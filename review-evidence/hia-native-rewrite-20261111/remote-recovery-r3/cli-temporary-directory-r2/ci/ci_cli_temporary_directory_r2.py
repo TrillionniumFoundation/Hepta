@@ -18,9 +18,9 @@ FILES=[
   },
   {
     "path": "tests/test_hia_cli_temporary_directory.py",
-    "gitsha": "f5a4055525c584f5e47e218a8be529f76c580341",
-    "bytes": 26711,
-    "sha256": "d5cb5e257b8d129383df1c7aa956f06ddb990de74d3ae6af29b67c4eabe86239"
+    "gitsha": "c0c2cd31dae43a92254857af3a3d149a33757926",
+    "bytes": 27709,
+    "sha256": "ccf55f73521de47cc8111ee93a2d5652a15f0f43e408d370fa6098d19110857a"
   },
   {
     "path": "docs/HIA_CLI_TEMPORARY_DIRECTORY.md",
@@ -66,8 +66,9 @@ def main():
     common=importlib.util.module_from_spec(spec);spec.loader.exec_module(common)
     common.PINS[cp]=raw;common.PINS[Path(__file__).resolve()]=Path(__file__).read_bytes()
     project=raw_out=None;status="FAIL"
-    details=dict(scope="NEW_NATIVE_TEMPDIR_COMPONENTS_R2_BODY_DELIMITER_REPAIR",old_suites_rerun=False,
-                 original_failure_run=43132319705,original_failure_native_entries=0,
+    details=dict(scope="NEW_NATIVE_TEMPDIR_COMPONENTS_R3_FILENAME_ERROR_TEXT",old_suites_rerun=False,
+                 original_generation_failure_run=43132319705,original_runtime_failure_run=43151734029,
+                 original_runtime_failure_native_entries=349,
                  complete_fixed_parent_publication_closed=False,public_error_formatter_closed=False,
                  scripted_receipts_are_physical_authority=False)
     try:

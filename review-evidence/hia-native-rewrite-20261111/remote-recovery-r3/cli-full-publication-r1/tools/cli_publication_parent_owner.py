@@ -320,7 +320,7 @@ def publication_cleanup(o:mutbuf, w:mutbuf, phase:u64) -> u64:
         if kind == 1:
             publication_error(w, 2, get(w, PP_EVENT_COPY + 48), 1, 26, get(w, PP_EVENT_COPY + 64), get(w, PP_EVENT_COPY + 72))
         elif kind == 2:
-            publication_error(w, 4, 7, 0, 0, 0, 0)
+            publication_error(w, 4, 7, 1, 26, get(w, PP_EVENT_COPY + 64), get(w, PP_EVENT_COPY + 72))
         elif kind != 0:
             return refuse(w, 9133)
         put(w, PP_CREATED, 0)

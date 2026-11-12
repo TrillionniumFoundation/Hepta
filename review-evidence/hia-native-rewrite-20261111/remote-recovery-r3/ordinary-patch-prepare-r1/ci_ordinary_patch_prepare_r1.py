@@ -21,7 +21,7 @@ FILES=[
   ],
   [
     "test_ordinary_patch_prepare_ci_r1.py",
-    "52f43c7c93bfef7fd1319591d616d1a2709f5b9c"
+    "f9ca5a02ee3f9fd824f0398bee6b890345ba077b"
   ]
 ]
 EXPECTED={"semantic":113,"errors":58,"private":32,"functions-1024":1,"large-bytes":1,"large-nodes":1}

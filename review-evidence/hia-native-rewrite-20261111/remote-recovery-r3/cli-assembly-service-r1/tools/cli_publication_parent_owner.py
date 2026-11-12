@@ -6,7 +6,7 @@ from pathlib import Path
 from hashlib import sha256
 import ast,copy
 import cli_publication_parent_reference as old
-assert sha256(Path(old.__file__).read_bytes()).hexdigest()=="65ade06a5a5650120ec3c192e452f31db15dbbd0751c367040bb874d3d8af44c"
+assert sha256(Path(old.__file__).read_bytes()).hexdigest()=="1d6ef4b512a81377ec2d54e2b9fdc4bbe748ffaa47c6e7670abf2172ed362460"
 CONSTANTS=dict(old.CONSTANTS);COMMON=old.COMMON;literals=old.literals
 tree=ast.parse(old.BODY);original={n.name:copy.deepcopy(n) for n in tree.body}
 functions={n.name:n for n in tree.body}

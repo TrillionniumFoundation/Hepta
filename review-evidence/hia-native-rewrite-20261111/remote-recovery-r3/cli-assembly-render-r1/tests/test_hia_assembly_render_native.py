@@ -168,6 +168,7 @@ def main():
         profile=cli_authoring.profile(document);save(out/"profile.json",profile)
         assert profile["functions"]<=128 and profile["blocks"]<=1536 and profile["ops"]<=8192 and profile["max_params"]<=16,profile
         hia=render_assembly(document).encode();(out/"source.hiaasm").write_bytes(hia);assemble_program(hia)
+        (out/"compile").mkdir()
         image_path,receipt=compile_stage(out/"compile","assembly-render",a.compiler,hia)
         image_raw=read(image_path)
         assert receipt["status"]=="returned" and receipt["abi_status"]==0

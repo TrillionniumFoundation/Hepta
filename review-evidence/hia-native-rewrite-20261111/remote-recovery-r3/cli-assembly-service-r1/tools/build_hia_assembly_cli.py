@@ -129,7 +129,9 @@ def build(root,reference,assets_path,inactive_map,inactive_dir,sha_source,sha_im
     for role,name in {8:"cli_publication_verified_owner",9:"cli_publication_path_owner",
                      11:"cli_publication_stage_writer",12:"cli_publication_tempdir_owner",
                      13:"cli_publication_cleanup_owner"}.items():
-        owner=importlib.import_module(name);parent[role]=compile_body(name,owner.BODY,owner.CONSTANTS)
+        owner=importlib.import_module(name)
+        body=owner.BODY+(owner.message_body() if role==8 else "")
+        parent[role]=compile_body(name,body,owner.CONSTANTS)
     import cli_publication_parent_owner as owner
     parent[7]=compile_body("assembly-public-parent",owner.BODY+owner.literals()+owner.COMMON,owner.CONSTANTS)
 

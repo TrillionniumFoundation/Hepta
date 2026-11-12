@@ -27,10 +27,20 @@ def norm(path,root):
     raw=os.fsencode(path);base=os.fsencode(root)
     if raw.startswith(base):raw=b"<ROOT>"+raw[len(base):]
     return raw.hex()
+def custom_error_text(error,root):
+    text=str(error)
+    if error.filename is None:return text
+    # Only the separately created native/reference fixture root differs.
+    # Preserve the entire remaining OSError string and the original raw text.
+    suffix=": "+repr(error.filename)
+    assert text.endswith(suffix),(text,suffix)
+    name=bytes.fromhex(norm(error.filename,root))
+    if isinstance(error.filename,str):name=os.fsdecode(name)
+    return text[:-len(suffix)]+": "+repr(name)
 def answer_error(error,root):
     return dict(kind=2 if error.errno is None else 1,errno=error.errno or 0,
                 path=norm(error.filename,root),type=type(error).__name__,
-                custom_text=str(error) if error.errno is None else None)
+                custom_text=custom_error_text(error,root) if error.errno is None else None)
 def inventory(root,cas):
     out=[]
     if not os.path.lexists(root):return out
@@ -161,6 +171,7 @@ class Actual:
                     if work_mutation is not None and not mutated:
                         work_mutation(work,e);mutated=True
                     continue
+                error_presentation=None
                 if mode=="create":
                     path=self.span(work,e[8],e[9]) if e[9] else None
                     stage=self.span(work,e[10],e[11]) if e[11] else None
@@ -172,9 +183,15 @@ class Actual:
                     path=self.span(work,e[8],e[9]) if e[9] else None
                     answer=dict(kind=e[5],errno=e[6],path=norm(path,root),type=None,custom_text=None)
                     if e[5]==1:answer["type"]=type(OSError(e[6],os.strerror(e[6]))).__name__
-                    if e[5]==2:answer.update(type="OSError",custom_text="Cannot call rmtree on a symbolic link")
+                    if e[5]==2:
+                        error=OSError("Cannot call rmtree on a symbolic link")
+                        if path is not None:error.filename=os.fsdecode(path)
+                        assert e[6]==0 and error.errno is None
+                        answer=answer_error(error,root)
+                        error_presentation=dict(type=type(error).__name__,text=str(error),errno=error.errno,
+                            filename=None if error.filename is None else os.fsencode(error.filename).hex())
                 assert self.call(mode,source,reply,work,label+"/terminal-reentry")==0xfffffffd
-                return dict(answer=answer,grows=grows,event=list(e))
+                return dict(answer=answer,grows=grows,event=list(e),error_presentation=error_presentation)
             raise AssertionError("test harness ceiling, not a filesystem or language quota")
         finally:
             # A private BAD deliberately abandons its lease. Close only its

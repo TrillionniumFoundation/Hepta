@@ -7,15 +7,15 @@ R3="review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/"
 FILES=[
   {
     "path": "tools/cli_publication_parent_owner.py",
-    "gitsha": "31def95cfac9f8823e540411da8ee82c81a21ef0",
-    "bytes": 39683,
-    "sha256": "65ade06a5a5650120ec3c192e452f31db15dbbd0751c367040bb874d3d8af44c"
+    "gitsha": "e52b24ea10317c2e9928714c60034c2a5f8f311f",
+    "bytes": 39734,
+    "sha256": "1d6ef4b512a81377ec2d54e2b9fdc4bbe748ffaa47c6e7670abf2172ed362460"
   },
   {
     "path": "tools/cli_publication_presentation_owner.py",
-    "gitsha": "6a92e0a0fd271a311c383b7723f09b8a6c335e7d",
-    "bytes": 16910,
-    "sha256": "ab4249320935a78377340faef471663955cfccb1535ce2fc4766726274a82822"
+    "gitsha": "b6e655464a7d0571f9d2ca0d6dddc2e08f606705",
+    "bytes": 17525,
+    "sha256": "8d9b72274f4d4a724117ba7fac0af72583b109e4be85bb50b81a259966b6b877"
   },
   {
     "path": "tools/cli_publication_policy2_fixture.py",
@@ -37,9 +37,9 @@ FILES=[
   },
   {
     "path": "tests/test_hia_cli_full_publication.py",
-    "gitsha": "64c2efb95524d3317c47c662cba80a2039637aa3",
-    "bytes": 34987,
-    "sha256": "0aa9653c66427105f273ee45b66033b0ac5a191227bf395bfd22fe1c5758f6e9"
+    "gitsha": "892c71e401ee751871959ca748f4198eff9dc3ac",
+    "bytes": 35540,
+    "sha256": "2503c11b28e40a39e3688c1db35a76214c848d2ffd299e4bf64b51c782f49a80"
   },
   {
     "path": "docs/HIA_CLI_FULL_PUBLICATION_PARENT_R1.md",
@@ -161,7 +161,7 @@ def main():
         cleanup_revision="R2_BODY_DELIMITER_REPAIR",original_cleanup_failure_run=43132319705,
         installed_entry_activated=False,ordinary_E_semantics_qualified=False,
         planned_new_exact_public_A_cases=44,planned_private_policy2_cases=11,
-        planned_presentation_cases=207,planned_private_presentation_controls=14)
+        planned_presentation_cases=218,retained_presentation_cases=207,new_root_symlink_filename_cases=11,planned_private_presentation_controls=14)
     try:
         context=common.prepare();base=Path(context["base"])
         mine=base/"cli-full-publication-recovery-r2";mine.mkdir()
@@ -223,7 +223,7 @@ def main():
         assert tuple(actual[k] for k in(
             "exact_public_A_publication_cases","private_policy2_publication_cases",
             "native_processes","reference_processes","actual_packer_entries",
-            "new_B3_compilations","presentation_cases","presentation_private_controls"))==(44,11,55,55,1,9,207,14)
+            "new_B3_compilations","presentation_cases","presentation_private_controls"))==(44,11,55,55,1,9,218,14)
         assert actual["complete_stdout_stderr_exit_equal"] and actual["complete_filesystem_semantic_snapshot_equal"]
         assert actual["real_A_service_bound"] and actual["public_argv_and_file_owner"]
         assert not actual["ordinary_E_semantics_qualified"] and not actual["old_cases_inherited"]

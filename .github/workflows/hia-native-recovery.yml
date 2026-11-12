@@ -4452,7 +4452,7 @@ jobs:
         env:
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-worker-initialization-pure-join-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/worker_initialization_pure_join_ci_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-initialization-pure-join-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r2/worker_initialization_pure_join_ci_r3.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-initialization-pure-join-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -4595,7 +4595,7 @@ jobs:
         env:
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-db-physical-join-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-ci.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-db-physical-join-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r2-ci.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-db-physical-join-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -4908,7 +4908,7 @@ jobs:
           ulimit -t 90
           ulimit -v 1048576
           ulimit -c 0
-          timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-read-storage-r2/read_worker_read_follow25_originals_r1.py --zip "$RUNNER_TEMP/worker-read-follow25-original.zip" --out "$RUNNER_TEMP/hia-worker-read-follow25-readback" 2>&1 | tee "$RUNNER_TEMP/hia-worker-read-follow25-readback-driver.log"
+          timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-read-frontier-reader-r2/read_worker_read_follow25_originals_r2.py --zip "$RUNNER_TEMP/worker-read-follow25-original.zip" --out "$RUNNER_TEMP/hia-worker-read-follow25-readback" 2>&1 | tee "$RUNNER_TEMP/hia-worker-read-follow25-readback-driver.log"
       - name: Retain exact original input and complete success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -4918,6 +4918,121 @@ jobs:
             ${{ runner.temp }}/worker-read-follow25-original.zip
             ${{ runner.temp }}/hia-worker-read-follow25-readback
             ${{ runner.temp }}/hia-worker-read-follow25-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  ordinary_patch_prepare_follow27_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:ordinary-patch-prepare-readback]')
+    name: Read all original patch candidate and error buffers after summary failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
+      - name: Check out submitted evidence reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact original ordinary patch artifact ZIP
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api repos/TrillionniumFoundation/Hepta/actions/artifacts/13914152509/zip > "$RUNNER_TEMP/ordinary-patch-follow27-original.zip"
+      - name: Independently read complete original evidence under original bounds
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-patch-prepare-r1/read_follow27_originals_r1.py --zip "$RUNNER_TEMP/ordinary-patch-follow27-original.zip" --out "$RUNNER_TEMP/hia-ordinary-patch-prepare-readback" 2>&1 | tee "$RUNNER_TEMP/hia-ordinary-patch-prepare-readback-driver.log"
+      - name: Preserve complete success or failure evidence and exact original input
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-ordinary-patch-prepare-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ordinary-patch-follow27-original.zip
+            ${{ runner.temp }}/hia-ordinary-patch-prepare-readback
+            ${{ runner.temp }}/hia-ordinary-patch-prepare-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  namespace_db_join_follow27_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:namespace-db-join-follow27-readback]')
+    name: Read original six role generation failure and every retained profile
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
+      - name: Check out submitted evidence reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact original physical join artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13914581685'
+          run-id: '43151734029'
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/namespace-db-join-follow27-original
+      - name: Independently read complete original evidence under original bounds
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_NAMESPACE_JOIN_ORIGINAL_DIR: ${{ runner.temp }}/namespace-db-join-follow27-original
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-db-join-follow27-readback
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/follow27-physical-frontier/read-original.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-db-join-follow27-readback-driver.log"
+      - name: Preserve complete success or failure evidence and exact original input
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-namespace-db-join-follow27-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/namespace-db-join-follow27-original
+            ${{ runner.temp }}/hia-namespace-db-join-follow27-readback
+            ${{ runner.temp }}/hia-namespace-db-join-follow27-readback-driver.log
           if-no-files-found: error
           retention-days: 90
           compression-level: 0

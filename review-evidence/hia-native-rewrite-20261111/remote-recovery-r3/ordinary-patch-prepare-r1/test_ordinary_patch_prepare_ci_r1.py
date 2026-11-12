@@ -428,7 +428,7 @@ def execute_group():
             lambda o:packet(o,[whole("new%04d"%i,add=True) for i in range(64)]),
             later="REJECTED_AT_LATER_REFERENCE_CORE")
         assert row["candidate_function_count"]==1088 and observed["kind"]=="candidate"
-        assert row["later_reference_stage"]["message"].startswith("E_HIA_LIMIT:")
+        assert row["later_reference_stage"]["message"]=="E_HIA_FORMAT: invalid function inventory"
     elif GROUP in ("large-bytes","large-nodes"):
         operations=10001 if GROUP=="large-bytes" else 14001
         label="unadmitted-candidate-"+GROUP
@@ -493,7 +493,7 @@ finally:
         actual_limits=dict(cpu=list(resource.getrlimit(resource.RLIMIT_CPU)),
             address=list(resource.getrlimit(resource.RLIMIT_AS)),core=list(resource.getrlimit(resource.RLIMIT_CORE))),
         elapsed_ns=time.monotonic_ns()-started)
-    save("source-pins.json",[dict(path=str(path),**cas(raw)) for path,raw in PINS.items()])
+    save("source-pins.json",[dict(source_path=str(path),**cas(raw)) for path,raw in PINS.items()])
     save("summary.json",summary)
     print("HIA_ORDINARY_PATCH_PREPARE_NATIVE "+json.dumps({k:v for k,v in summary.items()
         if k not in ("case_results","expected_inventory")},sort_keys=True),flush=True)

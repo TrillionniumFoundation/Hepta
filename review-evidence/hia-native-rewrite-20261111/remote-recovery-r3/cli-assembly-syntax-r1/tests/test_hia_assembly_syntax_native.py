@@ -214,6 +214,7 @@ def main():
         assert profile["functions"]<=128 and profile["blocks"]<=1536 and profile["ops"]<=8192 and profile["max_params"]<=16,profile
         hia=render_assembly(document).encode();(out/"source.hiaasm").write_bytes(hia)
         assemble_program(hia)
+        (out/"compile").mkdir()
         image_path,receipt=compile_stage(out/"compile","assembly-syntax",a.compiler,hia)
         image_bytes=read(image_path)
         assert receipt["artifact_sha256"]==digest(read(a.compiler)) and receipt["input_sha256"]==digest(hia)

@@ -110,7 +110,11 @@ def valid(s:readbuf, r:readbuf) -> u64:
         if n == 0 or n > 4095 or path != 0 or length(s) != 0:
             return 0
     else:
-        if n == 0 or n > 8 or path != 0 or (n != 8 and length(s) != 0):
+        if n == 0 or n > 8:
+            return 0
+        if path != 0 and n != 7:
+            return 0
+        if n != 8 and (n != 7 or path == 0) and length(s) != 0:
             return 0
     i = 64
     while i < 96:
@@ -209,6 +213,18 @@ def render(s:readbuf, w:mutbuf) -> u64:
         return quoted_repr(s, w)
     if kind == 4:
         code = get(w, NUMBER)
+        if code == 7 and get(w, HAS_PATH) == 1:
+            if fixed(w, 10) == 0:
+                return 0
+            if append(w, 78) == 0 or append(w, 111) == 0 or append(w, 110) == 0 or append(w, 101) == 0:
+                return 0
+            if fixed(w, 11) == 0:
+                return 0
+            if append(w, 78) == 0 or append(w, 111) == 0 or append(w, 110) == 0 or append(w, 101) == 0:
+                return 0
+            if fixed(w, 12) == 0:
+                return 0
+            return quoted_repr(s, w)
         if code == 5:
             if fixed(w, 10) == 0 or decimal(w, 17) == 0 or fixed(w, 11) == 0:
                 return 0

@@ -33,23 +33,23 @@ FILES=[
   },
   {
     "path": "tools/cli_publication_presentation_owner.py",
-    "gitsha": "258f415c0a98d461b269b61d573d20ddc2afb5dc",
-    "bytes": 17103,
-    "sha256": "16540795eb2ed5e004d6b01113c21cfcbd2a2e5552c4c24817521f2d45e6dc8f",
+    "gitsha": "e9d68a93603bd671202f4b76f8f45c6ad7402152",
+    "bytes": 17718,
+    "sha256": "6219706705a4e8a3a1358c8209607755b359422d3218887028d460a3734ba306",
     "scope": "NEW_AUTHORING_UNEXECUTED"
   },
   {
     "path": "tools/cli_publication_parent_owner.py",
-    "gitsha": "909e00b3c8e7f7fa0f50aa8374bba272c306c484",
+    "gitsha": "2494e1975d18860ce2ba78f8d0b858cff8d1f9f0",
     "bytes": 2697,
-    "sha256": "000c23604104df0b31f5bb0d8977aadf7da9ec572dc66b023263a5fa994cd2ab",
+    "sha256": "14f85fa7e383dd2962c5e0af399a62662880884f322c5068e5deb8c23154becd",
     "scope": "NEW_AUTHORING_UNEXECUTED"
   },
   {
     "path": "tools/build_hia_assembly_cli.py",
-    "gitsha": "04c2fd62a6764cc205eb255546a334e6a28daf17",
-    "bytes": 13129,
-    "sha256": "a4028086ee9f9d05307d2257b1b73fb386cb94d21d845e95863f386839008a67",
+    "gitsha": "4ce631b30e34d5dde82fb0bea08ecc990efeb3ac",
+    "bytes": 13197,
+    "sha256": "97d8b4c08fd4e2524d85c41f049acc456edefe7050f925302094ae0901fae673",
     "scope": "NEW_AUTHORING_UNEXECUTED"
   },
   {
@@ -82,9 +82,9 @@ FILES=[
   },
   {
     "path": "tools/cli_publication_parent_reference.py",
-    "gitsha": "31def95cfac9f8823e540411da8ee82c81a21ef0",
-    "bytes": 39683,
-    "sha256": "65ade06a5a5650120ec3c192e452f31db15dbbd0751c367040bb874d3d8af44c",
+    "gitsha": "e52b24ea10317c2e9928714c60034c2a5f8f311f",
+    "bytes": 39734,
+    "sha256": "1d6ef4b512a81377ec2d54e2b9fdc4bbe748ffaa47c6e7670abf2172ed362460",
     "scope": "EXACT_RETAINED_SOURCE_ALIAS_NO_RESULT_INHERITANCE"
   },
   {

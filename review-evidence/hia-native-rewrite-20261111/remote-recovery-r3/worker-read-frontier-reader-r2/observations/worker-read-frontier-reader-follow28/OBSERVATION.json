@@ -1,0 +1,161 @@
+{
+  "schema": "hia-worker-read-follow28-reader-failure-v1",
+  "status": "FAIL_READER_SOURCE_BINDING_ASSUMPTION",
+  "reader_job": 130964484176,
+  "reader_run": 43152411061,
+  "reader_head": "c7fcc195afb51d8eda9a0c9cf22e481e67234f9f",
+  "full_log": {
+    "path": "observations/worker-read-frontier-reader-follow28/full-job.log",
+    "bytes": 176678,
+    "sha256": "e3f248fc7cc41d326729097afc340cdf552cc84df089250af887d8f3ebeda150",
+    "gitsha": "8bc01dabec0f56725fe28c7e225b6cdfcdf28314"
+  },
+  "failed_reader": {
+    "path": "read_worker_read_follow25_originals_r1.py",
+    "bytes": 18108,
+    "sha256": "e9092a087bce570e87e403d843f52a67ff244169de5e57e81e26672bc092a77b",
+    "gitsha": "9d58ffa6cb978b0821c3e2895c926d759079da0f"
+  },
+  "first_failure": {
+    "line": 204,
+    "error": "AssertionError",
+    "expression": "assert matches and all((x['bytes'],x['sha256']) == (row[part+'_bytes'],row[part+'_sha256']) for x in matches)",
+    "stage": "After full original ZIP/inner/member checks, CAS checks, completed-entry/case reference checks; while requiring source/image paths to be directly archived under the original pathname.",
+    "exact_writer": {
+      "path": "compile_hia_read_ci_r2.py",
+      "bytes": 9070,
+      "sha256": "1161145a458e142eb599d639e9987d091c69bba0ff3a3186d7d5e471f3495c61",
+      "gitsha": "6179fa170644eed650e01665b46921268d7e22ae",
+      "classification": "NEW_UNEXECUTED_SOURCE"
+    },
+    "diagnosis": "The exact compile writer freezes every pinned input in source-after insertion order at run/read-compile/frozen-inputs/<ordinal>/<basename>. External original RENDER/REFERENCE paths are not roots of common.finish. The original index contains the precise frozen copy; absence of a direct original path is expected. The failed log does not identify which role was first, so no role is asserted as the first missing path.",
+    "new_binding": "Require unique source-after original paths; for every entry require the exact ordinal frozen member bytes/SHA/mode. Check every present direct original path too. Bind bundle source/image paths through that complete admitted mapping. No hash-only search or relaxed ZIP/member gate."
+  },
+  "exported_originals": [
+    {
+      "path": "observations/worker-read-frontier-reader-follow28/originals/read/development/actual-storage-r1/cases.jsonl",
+      "bytes": 9178,
+      "sha256": "d259e3839607a17a952415619f16efa07c7ed942e27702024e5b86d2791d23be",
+      "gitsha": "d7b3a1f04be5cbf00a70fdb40f6fd2df7d792448"
+    },
+    {
+      "path": "observations/worker-read-frontier-reader-follow28/originals/read/development/actual-storage-r1/pending-native-entry.json",
+      "bytes": 470,
+      "sha256": "86b94c4ce903de593c0437ec0c0134fac731c06fccefcaf26714a71ed485d0cd",
+      "gitsha": "157333841b4e4b1c7919dae3d7e8a2c11a748a29"
+    },
+    {
+      "path": "observations/worker-read-frontier-reader-follow28/originals/read/development/actual-wire-r1/cases.jsonl",
+      "bytes": 93191,
+      "sha256": "bcd795410912a6165df1dfb1abdd04f7469477915f4ca691f52e62f2e70143ed",
+      "gitsha": "dc2447ab53403fdb6731892e3972bc3d5bc9902d"
+    },
+    {
+      "path": "observations/worker-read-frontier-reader-follow28/originals/read/development/actual-wire-r1/pending-native-entry.json",
+      "bytes": 453,
+      "sha256": "ab06d6179b07532716f9c95313e5a7a41a382b84def4f56873151e852261c122",
+      "gitsha": "d3de361223ba66fb865bc1d28abcffbea2f592a6"
+    },
+    {
+      "path": "observations/worker-read-frontier-reader-follow28/originals/run/steps/worker-read-storage/process.json",
+      "bytes": 998,
+      "sha256": "6d12f7e7fa92b6f6debf6ebdfa49790ab96d0998e78445869f70378c648cc3c6",
+      "gitsha": "0a5d4ca2b5153500a3bf0e93f4e2c82ab325e590"
+    },
+    {
+      "path": "observations/worker-read-frontier-reader-follow28/originals/run/steps/worker-read-storage/stderr.log",
+      "bytes": 635,
+      "sha256": "7e476de8bc819b347a61b322381886aeab76f39a82011597cf8a19f7a7be55c6",
+      "gitsha": "3ea0b2364389a95143ab70a80fd0cf6034b2d45c"
+    },
+    {
+      "path": "observations/worker-read-frontier-reader-follow28/originals/run/steps/worker-read-storage/stdout.log",
+      "bytes": 2770,
+      "sha256": "fe1bb05bef8c25d51b37bdafd78195a50c37d19695bbb73b653af4bf0c63d67e",
+      "gitsha": "58d9a9387dfc5b79292cfea8c1baa342307587ee"
+    },
+    {
+      "path": "observations/worker-read-frontier-reader-follow28/originals/run/steps/worker-read-wire/process.json",
+      "bytes": 989,
+      "sha256": "c75c33d2c97b3018c5197ac89912e70a7159a6af19e18966a493ac5e3a66f7ea",
+      "gitsha": "9ee51b59d37702eb8ba7d0e4d951813c93f6cd07"
+    },
+    {
+      "path": "observations/worker-read-frontier-reader-follow28/originals/run/steps/worker-read-wire/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitsha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "observations/worker-read-frontier-reader-follow28/originals/run/steps/worker-read-wire/stdout.log",
+      "bytes": 5056,
+      "sha256": "0ee5ef4d9b573bc5fe6dc8da6dda6086352928bb83259b44847f1e4b8902f097",
+      "gitsha": "3b03dd57f95bf5fe61977471e77d54f8615cab01"
+    }
+  ],
+  "verified_actual_partial_wire": {
+    "original_head": "df7f8cfab21687c32de6366724e955335b068ec4",
+    "original_job": 130952352570,
+    "original_artifact": 13913401010,
+    "completed_cases": 30,
+    "completed_labels": "control-0 through control-29",
+    "started_unfinished": "control-30, ordinal31",
+    "planned_cases": 49,
+    "completed_case_entry_sum": {
+      "agent_read_flow": 550,
+      "agent_read_values": 145,
+      "emit": 660,
+      "scan": 345,
+      "sha256_stream": 90
+    },
+    "pending": {
+      "advertised_work": 8421376,
+      "label": "control-30.wire-3",
+      "role": "emit",
+      "role_entry": 666,
+      "second_bytes": 64,
+      "second_sha256": "3b75615e69195491e9327c2eeacdc8b36f0c8b45785a40362df8b8693d26adb1",
+      "source_bytes": 393346,
+      "source_sha256": "0a304dc7ffe0e566cecb8a911835b24f048e2841ad995879184a137c6b350967",
+      "workspace_before_sha256": "fc4b34cbc5be88c65f7e8fb85f31feff546726efac74b294048150e60a062ca6",
+      "workspace_bytes": 8421376
+    },
+    "process": {
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.12.14/x64/bin/python",
+        "-B",
+        "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-read-ci-source/test_hia_read_ci_r2.py",
+        "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2",
+        "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile",
+        "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-read-next/development/actual-wire-r1",
+        "wire"
+      ],
+      "child_cpu_seconds": 89.95997800000005,
+      "children_cumulative_maxrss_kib": 299736,
+      "cwd": "/home/runner/work/Hepta/Hepta",
+      "elapsed_ns": 90231605748,
+      "label": "worker-read-wire",
+      "returncode": -9,
+      "status": "FAIL",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 5056,
+      "stdout_sha256": "0ee5ef4d9b573bc5fe6dc8da6dda6086352928bb83259b44847f1e4b8902f097",
+      "timed_out": false,
+      "timeout_seconds": 180
+    },
+    "boundary": "Marker comes from original exact stdout/JSON, not inferred from rc-9. Full final entry-ledger versus marker relationship awaits corrected reader. It does not prove time was spent inside native entry rather than after return/before custody flush.",
+    "whole_group_status": "OPEN_FAIL_NO_TERMINAL_SUMMARY"
+  },
+  "replacement_reader": {
+    "path": "read_worker_read_follow25_originals_r2.py",
+    "bytes": 19976,
+    "sha256": "44d820608d2bee0dea9f3951fc133dacc1d83b54cfe9ad9a47f6aa7de999268d",
+    "gitsha": "72361770f1e3a1a158fe8d187f180626cbc57002"
+  },
+  "native_code_changed": false,
+  "native_execution_in_reader": 0,
+  "quota_changes": false,
+  "new_reader_executed": false,
+  "whole_worker_closed": false
+}

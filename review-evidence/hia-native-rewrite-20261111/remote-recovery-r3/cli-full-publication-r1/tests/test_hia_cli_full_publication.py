@@ -176,6 +176,15 @@ def main():
         for n in(134,255,4095):
             presentation_call("unknown-errno-"+str(n),2,n,0,b"",str(OSError(n,os.strerror(n))).encode())
 
+        # Retain all 207 original presentation cases. shutil assigns filename
+        # to its one-argument OSError before tempfile's callback re-raises it.
+        assert len(presentation_cases)==207
+        for i,raw in enumerate(paths):
+            error=OSError("Cannot call rmtree on a symbolic link")
+            error.filename=os.fsdecode(raw)
+            presentation_call("root-symlink-filename-"+str(i),4,7,1,raw,str(error).encode())
+        assert len(presentation_cases)==218
+
         private_presentation=[]
         def private_entry(label,data,command,before):
             nonlocal presentation_entries
@@ -238,7 +247,8 @@ def main():
             13:"cli_publication_cleanup_owner"}
         for role,name in owners.items():
             owner=importlib.import_module(name)
-            parent_images[role]=compile_body(name,owner.BODY,owner.CONSTANTS)
+            body=owner.BODY+(owner.message_body() if role==8 else "")
+            parent_images[role]=compile_body(name,body,owner.CONSTANTS)
         import cli_publication_parent_owner as parent
         parent_images[7]=compile_body("cli-publication-parent",parent.BODY+parent.literals()+parent.COMMON,parent.CONSTANTS)
         import cli_publication_policy2_fixture as queryfixture
@@ -464,7 +474,7 @@ def main():
         for label,setup in(("existing",existing),("parent-symlink",parent_link),("filesystem-bytes",byte_path)):
             compare("private-query-"+label,raw,setup,"PRIVATE_ISSUED_QUERY_POLICY2_REAL_PUBLICATION",private=True)
         assert len(cases)==55 and native_count==55 and reference_count==55
-        assert len(presentation_cases)==207
+        assert len(presentation_cases)==218
         assert len(compiled)==9 and packer_entries==1
         assert all(row["equal"] and row["filesystem_equal"] for row in cases)
         result.update(status="PASS",cases=cases,exact_public_A_publication_cases=44,

@@ -1,0 +1,136 @@
+{
+  "schema": "hepta.follow27-cli-failure-repair-observation.v1",
+  "base_commit": "78fff04d3476a70a3513af0606a8c91a945ed6a5",
+  "run_id": 43151734029,
+  "observed_from": "Complete original GitHub job log text; original CI JSON preserved verbatim. No independent extraction/readback of these new tar archives has been performed by this repair.",
+  "failures": [
+    {
+      "job": 130962281462,
+      "scope": "assembly syntax",
+      "phase": "B3 input capture before B3 invocation",
+      "error": "FileNotFoundError: compile/assembly-syntax.input.bin",
+      "profile": {
+        "functions": 80,
+        "blocks": 878,
+        "ops": 4291,
+        "max_blocks": 83,
+        "max_params": 14
+      },
+      "native_entries": 0,
+      "repair": "Create the compile output directory before compile_stage; all source, cases and assertions unchanged."
+    },
+    {
+      "job": 130962281576,
+      "scope": "assembly renderer",
+      "phase": "B3 input capture before B3 invocation",
+      "error": "FileNotFoundError: compile/assembly-render.input.bin",
+      "profile": {
+        "functions": 59,
+        "blocks": 830,
+        "ops": 3772,
+        "max_blocks": 83,
+        "max_params": 16
+      },
+      "native_entries": 0,
+      "repair": "Same exact one-line output-directory correction; no renderer semantics changed."
+    },
+    {
+      "job": 130962281097,
+      "scope": "TemporaryDirectory physical cleanup",
+      "phase": "root-link cleanup equality",
+      "native_entries": 349,
+      "actual_syscalls": 204,
+      "completed_creation_cases": 12,
+      "completed_entropy_cases": 2,
+      "completed_cleanup_cases": 14,
+      "private_controls_reached": 0,
+      "error": "Reference OSError has errno=None and filename assigned by shutil, so str(error) is '[Errno None] None: '+repr(filename); the native-event adapter incorrectly kept the initial one-argument message.",
+      "repair": "The HIA cleanup kernel's existing kind=2/errno=0/path stays unchanged. The test observer now preserves the complete actual/reference raw error and compares the complete OSError text after only exact controlled fixture-root normalization. Root filename and every filesystem equality assertion remain. The production native presentation owner gains kind4/code7/hasPath1 and the parent forwards the actual cleanup path instead of discarding it."
+    },
+    {
+      "job": 130962281286,
+      "scope": "full publication",
+      "phase": "verified owner authoring after presentation native panel",
+      "error": "KeyError: message",
+      "presentation_cases": 207,
+      "presentation_native_entries": 501,
+      "presentation_private_controls": 14,
+      "whole_elf_native_processes": 0,
+      "repair": "For role8 only, compile owner.BODY+owner.message_body(); the immutable verified owner and its original messages are unchanged."
+    },
+    {
+      "job": 130962283594,
+      "scope": "complete assembly CLI",
+      "phase": "same verified owner authoring",
+      "error": "KeyError: message",
+      "whole_elf_native_processes": 0,
+      "repair": "Same role8 body composition correction in the complete assembly builder."
+    }
+  ],
+  "reference_proof": {
+    "runtime": "Actual CPython 3.12.14 failure transcript is the primary observed oracle.",
+    "shutil_url": "https://raw.githubusercontent.com/python/cpython/v3.12.14/Lib/shutil.py",
+    "shutil_sha256": "53496e06742fe008fee2bccc8caeac77473e69923bec05358bd43eea467db1f8",
+    "tempfile_url": "https://raw.githubusercontent.com/python/cpython/v3.12.14/Lib/tempfile.py",
+    "tempfile_sha256": "2eea4401f4f29d0d3647ed6fc8bcf6aa1daf879c8aa407a8ea310edac9dfc317",
+    "source_fact": "shutil._rmtree_safe_fd raises a one-argument OSError for a root symlink, assigns err.filename=path in its OSError handler, then invokes the tempfile callback, which re-raises it."
+  },
+  "new_native_presentation_contract": {
+    "unchanged": "All existing kind4 codes and flag0 behavior, including bare code7 message, remain unchanged; assembly fixed codes19/20 remain unchanged.",
+    "extension": "kind=4, number=7, hasPath=1 accepts the complete raw filesystem path view and emits '[Errno None] None: '+CPython-compatible repr(os.fsdecode(path)). No path is reconstructed from a status code.",
+    "new_tests": "11 exact existing path corpus values including empty, quotes, Unicode, invalid UTF-8 and surrogateescape. Original207 presentation cases retained, resulting planned218; original14 private controls retained.",
+    "new_execution": 0
+  },
+  "binding_validation": {
+    "changed_materialization_rows": [
+      "cli-assembly-syntax-r1/tests/test_hia_assembly_syntax_native.py",
+      "cli-assembly-render-r1/tests/test_hia_assembly_render_native.py",
+      "cli-temporary-directory-r1/tests/test_hia_cli_temporary_directory.py",
+      "cli-full-publication-r1/tools/cli_publication_parent_owner.py",
+      "cli-full-publication-r1/tools/cli_publication_presentation_owner.py",
+      "cli-full-publication-r1/tests/test_hia_cli_full_publication.py",
+      "cli-assembly-service-r1/tools/cli_publication_presentation_owner.py",
+      "cli-assembly-service-r1/tools/cli_publication_parent_owner.py",
+      "cli-assembly-service-r1/tools/build_hia_assembly_cli.py",
+      "cli-assembly-service-r1/tools/cli_publication_parent_reference.py"
+    ],
+    "assembly_parent_reference_sha256": "1d6ef4b512a81377ec2d54e2b9fdc4bbe748ffaa47c6e7670abf2172ed362460",
+    "exact_blob_full_readback": true,
+    "ast_or_generation_run": false
+  },
+  "limits_unchanged": {
+    "compiler_cpu": 10,
+    "compiler_wall": 20,
+    "compiler_address": 268435456,
+    "case_cpu": 90,
+    "case_wall": 180,
+    "case_address": 1073741824
+  },
+  "elf_separate_actual_success": {
+    "job": 130962283588,
+    "groups": 7,
+    "cases": 525,
+    "private_controls": 45,
+    "native_entries": 1321,
+    "source_pins_unchanged": true,
+    "object_boundary": 67108864,
+    "symbol_boundary": 65536,
+    "source_bytes": 142266,
+    "source_sha256": "89a3717cf7b5cf6de7f0560ed60d8f52a3e2b823697a408cec3fc622f5c04fef",
+    "image_bytes": 196674,
+    "image_sha256": "495f3d4cc19f05f435d6f5ccaae304927f7800a04f042c50ba48000bb74016f7",
+    "artifact_id": 13914567351,
+    "artifact_zip_bytes": 117370220,
+    "inner_archive_bytes": 28363588,
+    "inner_archive_sha256": "fe3a24600f8b3f29066326d74ae795f2eece121f4f95b047c6a1598454956cb4",
+    "members": 50754,
+    "raw_bytes": 225152329,
+    "member_index_bytes": 24917957,
+    "member_index_sha256": "6005f44ea85834dc9cbb7e6262632624b3829feb8f39a43d7d340ed360d97e05",
+    "limit_note": "Per-group 90CPU/180wall/1GiB unchanged; original compile10/20/256MiB.",
+    "scope": "ET_REL pure value leaf; arbitrary Python callbacks, general Core lowering/build, installed dispatch and cold qualification not closed. No repeat ELF suite requested."
+  },
+  "new_revision_status": "NEW_UNEXECUTED",
+  "source_oracle_tests_weakened": false,
+  "refs_changed": false
+}

@@ -1,0 +1,850 @@
+﻿2026-11-12T04:00:17.3723420Z Current runner version: '2.338.2'
+2026-11-12T04:00:17.3746663Z ##[group]Runner Image Provisioner
+2026-11-12T04:00:17.3747445Z Hosted Compute Agent
+2026-11-12T04:00:17.3747988Z Version: 20261028.624
+2026-11-12T04:00:17.3748571Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-12T04:00:17.3749179Z Build Date: 2026-10-28T21:51:42Z
+2026-11-12T04:00:17.3749735Z Worker ID: {d3493596-7001-4a19-ac6c-29d6bec4526b}
+2026-11-12T04:00:17.3750393Z Region: westus2
+2026-11-12T04:00:17.3750895Z Cloud: Azure
+2026-11-12T04:00:17.3751375Z ##[endgroup]
+2026-11-12T04:00:17.3752767Z ##[group]Operating System
+2026-11-12T04:00:17.3753290Z Ubuntu
+2026-11-12T04:00:17.3753835Z 24.04.5
+2026-11-12T04:00:17.3754321Z LTS
+2026-11-12T04:00:17.3754792Z ##[endgroup]
+2026-11-12T04:00:17.3755283Z ##[group]Runner Image
+2026-11-12T04:00:17.3755809Z Image: ubuntu-24.04
+2026-11-12T04:00:17.3756344Z Version: 20261101.360.1
+2026-11-12T04:00:17.3757466Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-12T04:00:17.3758758Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-12T04:00:17.3759554Z ##[endgroup]
+2026-11-12T04:00:17.3760575Z ##[group]GITHUB_TOKEN Permissions
+2026-11-12T04:00:17.3762354Z Contents: read
+2026-11-12T04:00:17.3762946Z Metadata: read
+2026-11-12T04:00:17.3763466Z ##[endgroup]
+2026-11-12T04:00:17.3765757Z Secret source: Actions
+2026-11-12T04:00:17.3766603Z Cache mode: write
+2026-11-12T04:00:17.3767178Z Prepare workflow directory
+2026-11-12T04:00:17.4095743Z Prepare all required actions
+2026-11-12T04:00:17.4135995Z Getting action download info
+2026-11-12T04:00:17.7446787Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-12T04:00:17.8802404Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-12T04:00:18.0778552Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-12T04:00:18.3187396Z Complete job name: Actual HIA initialization sequence pure peer maps values join
+2026-11-12T04:00:18.3794002Z ##[group]Run set -euo pipefail
+2026-11-12T04:00:18.3794567Z [36;1mset -euo pipefail[0m
+2026-11-12T04:00:18.3794993Z [36;1m. /etc/os-release[0m
+2026-11-12T04:00:18.3795397Z [36;1mtest "$ID" = ubuntu[0m
+2026-11-12T04:00:18.3795811Z [36;1mtest "$VERSION_ID" = 24.04[0m
+2026-11-12T04:00:18.3796275Z [36;1mtest "$(uname -m)" = x86_64[0m
+2026-11-12T04:00:18.3796724Z [36;1mtest "${ImageOS:?}" = ubuntu24[0m
+2026-11-12T04:00:18.3797647Z [36;1mprintf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"[0m
+2026-11-12T04:00:18.3819614Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T04:00:18.3820338Z env:
+2026-11-12T04:00:18.3820692Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T04:00:18.3821102Z ##[endgroup]
+2026-11-12T04:00:18.3941593Z HIA_RUNNER_DOMAIN id=ubuntu version=24.04 architecture=x86_64 image=ubuntu24 image_version=20261101.360.1
+2026-11-12T04:00:18.4126449Z ##[group]Run actions/checkout@v4
+2026-11-12T04:00:18.4126938Z with:
+2026-11-12T04:00:18.4127298Z   fetch-depth: 0
+2026-11-12T04:00:18.4127673Z   persist-credentials: false
+2026-11-12T04:00:18.4128106Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T04:00:18.4131084Z   token: ***
+2026-11-12T04:00:18.4131431Z   ssh-strict: true
+2026-11-12T04:00:18.4132025Z   ssh-user: git
+2026-11-12T04:00:18.4132418Z   clean: true
+2026-11-12T04:00:18.4132776Z   sparse-checkout-cone-mode: true
+2026-11-12T04:00:18.4133193Z   fetch-tags: false
+2026-11-12T04:00:18.4133546Z   show-progress: true
+2026-11-12T04:00:18.4133902Z   lfs: false
+2026-11-12T04:00:18.4134236Z   submodules: false
+2026-11-12T04:00:18.4134591Z   set-safe-directory: true
+2026-11-12T04:00:18.4134994Z   allow-unsafe-pr-checkout: false
+2026-11-12T04:00:18.4135390Z env:
+2026-11-12T04:00:18.4135726Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T04:00:18.4136350Z ##[endgroup]
+2026-11-12T04:00:19.0809894Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T04:00:19.0812120Z ##[group]Getting Git version info
+2026-11-12T04:00:19.0813071Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-12T04:00:19.0814453Z [command]/usr/bin/git version
+2026-11-12T04:00:19.0875064Z git version 2.56.0
+2026-11-12T04:00:19.0892638Z ##[endgroup]
+2026-11-12T04:00:19.0916630Z Temporarily overriding HOME='/home/runner/work/_temp/05ea3ae8-6016-469b-b06e-5291bafb8fe5' before making global git config changes
+2026-11-12T04:00:19.0924061Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T04:00:19.0925078Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-12T04:00:19.0980881Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-12T04:00:19.0982753Z ##[group]Initializing the repository
+2026-11-12T04:00:19.0984910Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-12T04:00:19.1061445Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T04:00:19.1062822Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T04:00:19.1063680Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T04:00:19.1064332Z hint: call:
+2026-11-12T04:00:19.1064692Z hint:
+2026-11-12T04:00:19.1065198Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T04:00:19.1065756Z hint:
+2026-11-12T04:00:19.1066267Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T04:00:19.1067135Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T04:00:19.1067762Z hint:
+2026-11-12T04:00:19.1068138Z hint: 	git branch -m <name>
+2026-11-12T04:00:19.1068827Z hint:
+2026-11-12T04:00:19.1069908Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T04:00:19.1080521Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-12T04:00:19.1092653Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T04:00:19.1188937Z ##[endgroup]
+2026-11-12T04:00:19.1190061Z ##[group]Disabling automatic garbage collection
+2026-11-12T04:00:19.1192277Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T04:00:19.1226576Z ##[endgroup]
+2026-11-12T04:00:19.1227564Z ##[group]Setting up auth
+2026-11-12T04:00:19.1232571Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T04:00:19.1266188Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T04:00:19.1627768Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T04:00:19.1739359Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T04:00:19.1886711Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T04:00:19.1926904Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T04:00:19.2142320Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T04:00:19.2188121Z ##[endgroup]
+2026-11-12T04:00:19.2189164Z ##[group]Fetching the repository
+2026-11-12T04:00:19.2198931Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-11-12T04:01:49.6418224Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T04:01:49.6419730Z  * [new branch]        codex/hia-608-cold-record-custody-r2-20261111-e26e -> origin/codex/hia-608-cold-record-custody-r2-20261111-e26e
+2026-11-12T04:01:49.6422093Z  * [new branch]        codex/hia-608-independent-owner-audit-20261111-e26e -> origin/codex/hia-608-independent-owner-audit-20261111-e26e
+2026-11-12T04:01:49.6423400Z  * [new branch]        codex/hia-6e-ci-originals-20261111-e26e -> origin/codex/hia-6e-ci-originals-20261111-e26e
+2026-11-12T04:01:49.6424737Z  * [new branch]        codex/hia-970-ci-original-custody-run-r1-20261112-e26e -> origin/codex/hia-970-ci-original-custody-run-r1-20261112-e26e
+2026-11-12T04:01:49.6426332Z  * [new branch]        codex/hia-acffa-elf-ci-original-custody-control-r1-20261112-e26e -> origin/codex/hia-acffa-elf-ci-original-custody-control-r1-20261112-e26e
+2026-11-12T04:01:49.6428069Z  * [new branch]        codex/hia-acffa-elf-ci-original-custody-run-r1-20261112-e26e -> origin/codex/hia-acffa-elf-ci-original-custody-run-r1-20261112-e26e
+2026-11-12T04:01:49.6429705Z  * [new branch]        codex/hia-acffa-elf-ci-original-frames-run-r1-20261112-e26e -> origin/codex/hia-acffa-elf-ci-original-frames-run-r1-20261112-e26e
+2026-11-12T04:01:49.6431325Z  * [new branch]        codex/hia-acffa-source-original-custody-20261111-e26e -> origin/codex/hia-acffa-source-original-custody-20261111-e26e
+2026-11-12T04:01:49.6433165Z  * [new branch]        codex/hia-artifact-page-draft-checkpoint-20261111-e26e -> origin/codex/hia-artifact-page-draft-checkpoint-20261111-e26e
+2026-11-12T04:01:49.6434796Z  * [new branch]        codex/hia-cold-causal-audit-r2-20261111-e26e -> origin/codex/hia-cold-causal-audit-r2-20261111-e26e
+2026-11-12T04:01:49.6436021Z  * [new branch]        codex/hia-cold-prefix-ab-actual-r1-20261111-e26e -> origin/codex/hia-cold-prefix-ab-actual-r1-20261111-e26e
+2026-11-12T04:01:49.6437311Z  * [new branch]        codex/hia-cold-prefix-native-observer-r1-20261111-e26e -> origin/codex/hia-cold-prefix-native-observer-r1-20261111-e26e
+2026-11-12T04:01:49.6438626Z  * [new branch]        codex/hia-cold-throughput-evidence-20261111-e26e -> origin/codex/hia-cold-throughput-evidence-20261111-e26e
+2026-11-12T04:01:49.6440101Z  * [new branch]        codex/hia-compiler-caller-source-closure-20261112-e26e -> origin/codex/hia-compiler-caller-source-closure-20261112-e26e
+2026-11-12T04:01:49.6441600Z  * [new branch]        codex/hia-core-emitter-authoring-r2-run-20261112-e26e -> origin/codex/hia-core-emitter-authoring-r2-run-20261112-e26e
+2026-11-12T04:01:49.6443332Z  * [new branch]        codex/hia-core-emitter-generated-assets-run-r1-20261112-e26e -> origin/codex/hia-core-emitter-generated-assets-run-r1-20261112-e26e
+2026-11-12T04:01:49.6444776Z  * [new branch]        codex/hia-core-json-front-v68-20261111-7420 -> origin/codex/hia-core-json-front-v68-20261111-7420
+2026-11-12T04:01:49.6446038Z  * [new branch]        codex/hia-core-lowering-development-controls-20261111-e26e -> origin/codex/hia-core-lowering-development-controls-20261111-e26e
+2026-11-12T04:01:49.6447565Z  * [new branch]        codex/hia-d2-ci-originals-20261111-e26e -> origin/codex/hia-d2-ci-originals-20261111-e26e
+2026-11-12T04:01:49.6449239Z  * [new branch]        codex/hia-desktop-development-preparation-20261111-e26e -> origin/codex/hia-desktop-development-preparation-20261111-e26e
+2026-11-12T04:01:49.6450160Z  * [new branch]        codex/hia-e8-ci-original-custody-20261111-e26e -> origin/codex/hia-e8-ci-original-custody-20261111-e26e
+2026-11-12T04:01:49.6451174Z  * [new branch]        codex/hia-evidence-recovery-v73-20261112-dda7 -> origin/codex/hia-evidence-recovery-v73-20261112-dda7
+2026-11-12T04:01:49.6452462Z  * [new branch]        codex/hia-git-object-package-20261111-e26e -> origin/codex/hia-git-object-package-20261111-e26e
+2026-11-12T04:01:49.6453589Z  * [new branch]        codex/hia-heap-source-v71-20261112-dda7 -> origin/codex/hia-heap-source-v71-20261112-dda7
+2026-11-12T04:01:49.6454643Z  * [new branch]        codex/hia-hepta-suffix-20261111-7420 -> origin/codex/hia-hepta-suffix-20261111-7420
+2026-11-12T04:01:49.6455969Z  * [new branch]        codex/hia-instructions-actions-r5-result-43091589236-1 -> origin/codex/hia-instructions-actions-r5-result-43091589236-1
+2026-11-12T04:01:49.6457341Z  * [new branch]        codex/hia-instructions-actions-r5-run-20261111-e26e -> origin/codex/hia-instructions-actions-r5-run-20261111-e26e
+2026-11-12T04:01:49.6458520Z  * [new branch]        codex/hia-journal-ack-review-20261111-e26e -> origin/codex/hia-journal-ack-review-20261111-e26e
+2026-11-12T04:01:49.6460151Z  * [new branch]        codex/hia-json-pretty-bulk-r4-native-run-20261112-e26e -> origin/codex/hia-json-pretty-bulk-r4-native-run-20261112-e26e
+2026-11-12T04:01:49.6461863Z  * [new branch]        codex/hia-json-pretty-byte-bridge-run-r1-20261112-e26e -> origin/codex/hia-json-pretty-byte-bridge-run-r1-20261112-e26e
+2026-11-12T04:01:49.6463303Z  * [new branch]        codex/hia-json-pretty-native-r1-run-20261112-e26e -> origin/codex/hia-json-pretty-native-r1-run-20261112-e26e
+2026-11-12T04:01:49.6464749Z  * [new branch]        codex/hia-linked-native-observer-20261111-e26e -> origin/codex/hia-linked-native-observer-20261111-e26e
+2026-11-12T04:01:49.6465884Z  * [new branch]        codex/hia-machine-elf-authoring-20261111-e26e -> origin/codex/hia-machine-elf-authoring-20261111-e26e
+2026-11-12T04:01:49.6467094Z  * [new branch]        codex/hia-machine-elf-reconstructed-static-20261111-e26e -> origin/codex/hia-machine-elf-reconstructed-static-20261111-e26e
+2026-11-12T04:01:49.6468440Z  * [new branch]        codex/hia-machine-instructions-generated-r5-20261111-e26e -> origin/codex/hia-machine-instructions-generated-r5-20261111-e26e
+2026-11-12T04:01:49.6469710Z  * [new branch]        codex/hia-machine-instructions-native-20261111-e26e -> origin/codex/hia-machine-instructions-native-20261111-e26e
+2026-11-12T04:01:49.6470434Z  * [new branch]        codex/hia-machine-state-native-20261111-e26e -> origin/codex/hia-machine-state-native-20261111-e26e
+2026-11-12T04:01:49.6471112Z  * [new branch]        codex/hia-native-artifact-read-20261111-e26e -> origin/codex/hia-native-artifact-read-20261111-e26e
+2026-11-12T04:01:49.6472022Z  * [new branch]        codex/hia-native-budget-cleanup-20261111-ddc2 -> origin/codex/hia-native-budget-cleanup-20261111-ddc2
+2026-11-12T04:01:49.6472876Z  * [new branch]        codex/hia-native-cli-control-recovery-20261111-e26e -> origin/codex/hia-native-cli-control-recovery-20261111-e26e
+2026-11-12T04:01:49.6473637Z  * [new branch]        codex/hia-native-closure-20261111-e26e -> origin/codex/hia-native-closure-20261111-e26e
+2026-11-12T04:01:49.6474373Z  * [new branch]        codex/hia-native-core-emitter-20261111-e26e -> origin/codex/hia-native-core-emitter-20261111-e26e
+2026-11-12T04:01:49.6475400Z  * [new branch]        codex/hia-native-core-emitter-v2-authoring-input-20261111-e26e -> origin/codex/hia-native-core-emitter-v2-authoring-input-20261111-e26e
+2026-11-12T04:01:49.6476299Z  * [new branch]        codex/hia-native-core-lowering-20261111-e26e -> origin/codex/hia-native-core-lowering-20261111-e26e
+2026-11-12T04:01:49.6477093Z  * [new branch]        codex/hia-native-core-lowering-product-20261111-e26e -> origin/codex/hia-native-core-lowering-product-20261111-e26e
+2026-11-12T04:01:49.6478150Z  * [new branch]        codex/hia-native-evidence-v63-20261111-e26e -> origin/codex/hia-native-evidence-v63-20261111-e26e
+2026-11-12T04:01:49.6478856Z  * [new branch]        codex/hia-native-integration-20261111-7420 -> origin/codex/hia-native-integration-20261111-7420
+2026-11-12T04:01:49.6479802Z  * [new branch]        codex/hia-native-integration-v67-20261111-dda7 -> origin/codex/hia-native-integration-v67-20261111-dda7
+2026-11-12T04:01:49.6480550Z  * [new branch]        codex/hia-native-integration-v68-20261111-dda7 -> origin/codex/hia-native-integration-v68-20261111-dda7
+2026-11-12T04:01:49.6481268Z  * [new branch]        codex/hia-native-integration-v69-20261111-dda7 -> origin/codex/hia-native-integration-v69-20261111-dda7
+2026-11-12T04:01:49.6482155Z  * [new branch]        codex/hia-native-json-wire-20261111-e26e -> origin/codex/hia-native-json-wire-20261111-e26e
+2026-11-12T04:01:49.6482890Z  * [new branch]        codex/hia-native-machine-encoding-20261111-e26e -> origin/codex/hia-native-machine-encoding-20261111-e26e
+2026-11-12T04:01:49.6483808Z  * [new branch]        codex/hia-native-machine-plan-v65-20261111-e26e -> origin/codex/hia-native-machine-plan-v65-20261111-e26e
+2026-11-12T04:01:49.6484528Z  * [new branch]        codex/hia-native-recovery-v66-20261111-dda7 -> origin/codex/hia-native-recovery-v66-20261111-dda7
+2026-11-12T04:01:49.6485243Z  * [new branch]        codex/hia-native-self-rewrite-20261111-dda7 -> origin/codex/hia-native-self-rewrite-20261111-dda7
+2026-11-12T04:01:49.6485973Z  * [new branch]        codex/hia-native-source-build-20261111-7420 -> origin/codex/hia-native-source-build-20261111-7420
+2026-11-12T04:01:49.6486720Z  * [new branch]        codex/hia-native-source-package-20261111-e26e -> origin/codex/hia-native-source-package-20261111-e26e
+2026-11-12T04:01:49.6487629Z  * [new branch]        codex/hia-native-stack-integration-fixes-r1-20261111-e26e -> origin/codex/hia-native-stack-integration-fixes-r1-20261111-e26e
+2026-11-12T04:01:49.6488723Z  * [new branch]        codex/hia-native-stack-integration-r1-20261111-e26e -> origin/codex/hia-native-stack-integration-r1-20261111-e26e
+2026-11-12T04:01:49.6489800Z  * [new branch]        codex/hia-native-stack-integration-r2-20261111-e26e -> origin/codex/hia-native-stack-integration-r2-20261111-e26e
+2026-11-12T04:01:49.6490994Z  * [new branch]        codex/hia-native-stack-source-r1-result-43110682350-1 -> origin/codex/hia-native-stack-source-r1-result-43110682350-1
+2026-11-12T04:01:49.6492338Z  * [new branch]        codex/hia-native-stack-source-r1-run-20261111-e26e -> origin/codex/hia-native-stack-source-r1-run-20261111-e26e
+2026-11-12T04:01:49.6493490Z  * [new branch]        codex/hia-native-stack-source-r2-result-43116276591-1 -> origin/codex/hia-native-stack-source-r2-result-43116276591-1
+2026-11-12T04:01:49.6494556Z  * [new branch]        codex/hia-native-stack-source-r2-run-20261111-e26e -> origin/codex/hia-native-stack-source-r2-run-20261111-e26e
+2026-11-12T04:01:49.6495569Z  * [new branch]        codex/hia-native-state-owner-20261111-e26e -> origin/codex/hia-native-state-owner-20261111-e26e
+2026-11-12T04:01:49.6496678Z  * [new branch]        codex/hia-native-store-authority-20261111-e26e -> origin/codex/hia-native-store-authority-20261111-e26e
+2026-11-12T04:01:49.6497837Z  * [new branch]        codex/hia-native-successor-gates-v9-20261111-e26e -> origin/codex/hia-native-successor-gates-v9-20261111-e26e
+2026-11-12T04:01:49.6499086Z  * [new branch]        codex/hia-native-v65-state-observer-20261111-9acdfa -> origin/codex/hia-native-v65-state-observer-20261111-9acdfa
+2026-11-12T04:01:49.6500356Z  * [new branch]        codex/hia-native-v66-integration-checkpoint-20261111-e26e -> origin/codex/hia-native-v66-integration-checkpoint-20261111-e26e
+2026-11-12T04:01:49.6501617Z  * [new branch]        codex/hia-native-v66-linked-observer-20261111-9acdfa -> origin/codex/hia-native-v66-linked-observer-20261111-9acdfa
+2026-11-12T04:01:49.6503298Z  * [new branch]        codex/hia-native-v66-source-controls-20261111-e26e -> origin/codex/hia-native-v66-source-controls-20261111-e26e
+2026-11-12T04:01:49.6504615Z  * [new branch]        codex/hia-native-v67-call-fixed-point-20261111-9acdfa -> origin/codex/hia-native-v67-call-fixed-point-20261111-9acdfa
+2026-11-12T04:01:49.6505680Z  * [new branch]        codex/hia-native-wire-entry-20261111-e26e -> origin/codex/hia-native-wire-entry-20261111-e26e
+2026-11-12T04:01:49.6506745Z  * [new branch]        codex/hia-native-wire-interruption-20261111-e26e -> origin/codex/hia-native-wire-interruption-20261111-e26e
+2026-11-12T04:01:49.6507837Z  * [new branch]        codex/hia-native-wire-key-cache-20261111-e26e -> origin/codex/hia-native-wire-key-cache-20261111-e26e
+2026-11-12T04:01:49.6508892Z  * [new branch]        codex/hia-native-wire-lifecycle-20261111-e26e -> origin/codex/hia-native-wire-lifecycle-20261111-e26e
+2026-11-12T04:01:49.6510165Z  * [new branch]        codex/hia-native-wire-r7-cloud-development-20261111-e26e -> origin/codex/hia-native-wire-r7-cloud-development-20261111-e26e
+2026-11-12T04:01:49.6511205Z  * [new branch]        codex/hia-native-worker-report-next-20261111-e26e -> origin/codex/hia-native-worker-report-next-20261111-e26e
+2026-11-12T04:01:49.6512339Z  * [new branch]        codex/hia-nominal-json-native-20261111-7420 -> origin/codex/hia-nominal-json-native-20261111-7420
+2026-11-12T04:01:49.6513010Z  * [new branch]        codex/hia-nominal-tokens-native-20261111-7420 -> origin/codex/hia-nominal-tokens-native-20261111-7420
+2026-11-12T04:01:49.6513657Z  * [new branch]        codex/hia-preflight-diagnostics-20261111-e26e -> origin/codex/hia-preflight-diagnostics-20261111-e26e
+2026-11-12T04:01:49.6514333Z  * [new branch]        codex/hia-qualification-v7-evidence-20261111-e26e -> origin/codex/hia-qualification-v7-evidence-20261111-e26e
+2026-11-12T04:01:49.6515023Z  * [new branch]        codex/hia-source-custody-acffa-r1-20261111-e26e -> origin/codex/hia-source-custody-acffa-r1-20261111-e26e
+2026-11-12T04:01:49.6515686Z  * [new branch]        codex/hia-source-custody-v67-608157e5-20261111 -> origin/codex/hia-source-custody-v67-608157e5-20261111
+2026-11-12T04:01:49.6516339Z  * [new branch]        codex/hia-source-generation-v74-20261112-dda7 -> origin/codex/hia-source-generation-v74-20261112-dda7
+2026-11-12T04:01:49.6517168Z  * [new branch]        codex/hia-source-harness-v71-20261112-dda7 -> origin/codex/hia-source-harness-v71-20261112-dda7
+2026-11-12T04:01:49.6518352Z  * [new branch]        codex/hia-static-budget-recovery-v69-20261111-dda7 -> origin/codex/hia-static-budget-recovery-v69-20261111-dda7
+2026-11-12T04:01:49.6519459Z  * [new branch]        codex/hia-store-page-integration-20261111-e26e -> origin/codex/hia-store-page-integration-20261111-e26e
+2026-11-12T04:01:49.6520343Z  * [new branch]        codex/hia-strict-code-callers-20261111-e26e -> origin/codex/hia-strict-code-callers-20261111-e26e
+2026-11-12T04:01:49.6521262Z  * [new branch]        codex/hia-support-domain-docs-20261111-f9aa -> origin/codex/hia-support-domain-docs-20261111-f9aa
+2026-11-12T04:01:49.6522428Z  * [new branch]        codex/hia-three-loop-closure-20261111-1ac5 -> origin/codex/hia-three-loop-closure-20261111-1ac5
+2026-11-12T04:01:49.6523553Z  * [new branch]        codex/hia-three-loop-receipt-closure-20261111-f9aa -> origin/codex/hia-three-loop-receipt-closure-20261111-f9aa
+2026-11-12T04:01:49.6524649Z  * [new branch]        codex/hia-v67-all-originals-20261111-e26e -> origin/codex/hia-v67-all-originals-20261111-e26e
+2026-11-12T04:01:49.6525658Z  * [new branch]        codex/hia-v67-full-controller-20261111-e26e -> origin/codex/hia-v67-full-controller-20261111-e26e
+2026-11-12T04:01:49.6526735Z  * [new branch]        codex/hia-v67-ndu-fixture-supply-20261111-e26e -> origin/codex/hia-v67-ndu-fixture-supply-20261111-e26e
+2026-11-12T04:01:49.6527855Z  * [new branch]        codex/hia-v67-official-source-ingress-20261111-e26e -> origin/codex/hia-v67-official-source-ingress-20261111-e26e
+2026-11-12T04:01:49.6528935Z  * [new branch]        codex/hia-v8-independent-review-20261111-e26e -> origin/codex/hia-v8-independent-review-20261111-e26e
+2026-11-12T04:01:49.6530219Z  * [new branch]        codex/hia-worker-exception-context-20261111-e26e -> origin/codex/hia-worker-exception-context-20261111-e26e
+2026-11-12T04:01:49.6531369Z  * [new branch]        codex/hia-workflow-source-fixture-fix-e8-20261111-e26e -> origin/codex/hia-workflow-source-fixture-fix-e8-20261111-e26e
+2026-11-12T04:01:49.6532779Z  * [new branch]        evidence/hia-receipt-closure-20261111-f9aa -> origin/evidence/hia-receipt-closure-20261111-f9aa
+2026-11-12T04:01:49.6533706Z  * [new branch]        evidence/hia-three-loop-20261111-1ac5 -> origin/evidence/hia-three-loop-20261111-1ac5
+2026-11-12T04:01:49.6534341Z  * [new branch]        main       -> origin/main
+2026-11-12T04:01:49.6534996Z  * [new branch]        recovery/hia-function-9acdfa-20261111 -> origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T04:01:49.6535965Z  * [new branch]        review/library-hia-rational-static-20261110 -> origin/review/library-hia-rational-static-20261110
+2026-11-12T04:01:49.6538150Z [command]/usr/bin/git branch --list --remote origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T04:01:49.6538805Z   origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T04:01:49.6539812Z [command]/usr/bin/git rev-parse refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T04:01:49.6557394Z 78fff04d3476a70a3513af0606a8c91a945ed6a5
+2026-11-12T04:01:49.6563378Z ##[endgroup]
+2026-11-12T04:01:49.6564072Z ##[group]Determining the checkout info
+2026-11-12T04:01:49.6564874Z ##[endgroup]
+2026-11-12T04:01:49.6570568Z [command]/usr/bin/git sparse-checkout disable
+2026-11-12T04:01:49.6628867Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-12T04:01:49.6668969Z ##[group]Checking out the ref
+2026-11-12T04:01:49.6673482Z [command]/usr/bin/git checkout --progress --force -B recovery/hia-function-9acdfa-20261111 refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T04:01:50.5583750Z Switched to a new branch 'recovery/hia-function-9acdfa-20261111'
+2026-11-12T04:01:50.5584596Z branch 'recovery/hia-function-9acdfa-20261111' set up to track 'origin/recovery/hia-function-9acdfa-20261111'.
+2026-11-12T04:01:50.5712436Z ##[endgroup]
+2026-11-12T04:01:50.5775974Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T04:01:50.5813511Z 78fff04d3476a70a3513af0606a8c91a945ed6a5
+2026-11-12T04:01:50.5823368Z ##[group]Removing auth
+2026-11-12T04:01:50.5827367Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T04:01:50.5868770Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T04:01:50.6103878Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T04:01:50.6137052Z http.https://github.com/.extraheader
+2026-11-12T04:01:50.6144092Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T04:01:50.6195987Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T04:01:50.6430532Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T04:01:50.6470349Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T04:01:50.6701377Z ##[endgroup]
+2026-11-12T04:01:50.6873277Z ##[group]Run actions/checkout@v4
+2026-11-12T04:01:50.6873503Z with:
+2026-11-12T04:01:50.6873699Z   ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+2026-11-12T04:01:50.6873947Z   path: ci-reference-source
+2026-11-12T04:01:50.6874144Z   fetch-depth: 1
+2026-11-12T04:01:50.6874322Z   persist-credentials: false
+2026-11-12T04:01:50.6874542Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T04:01:50.6876489Z   token: ***
+2026-11-12T04:01:50.6876668Z   ssh-strict: true
+2026-11-12T04:01:50.6876844Z   ssh-user: git
+2026-11-12T04:01:50.6877008Z   clean: true
+2026-11-12T04:01:50.6877191Z   sparse-checkout-cone-mode: true
+2026-11-12T04:01:50.6877398Z   fetch-tags: false
+2026-11-12T04:01:50.6877569Z   show-progress: true
+2026-11-12T04:01:50.6877744Z   lfs: false
+2026-11-12T04:01:50.6877906Z   submodules: false
+2026-11-12T04:01:50.6878081Z   set-safe-directory: true
+2026-11-12T04:01:50.6878294Z   allow-unsafe-pr-checkout: false
+2026-11-12T04:01:50.6878495Z env:
+2026-11-12T04:01:50.6878705Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T04:01:50.6878905Z ##[endgroup]
+2026-11-12T04:01:50.7634717Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T04:01:50.7642275Z ##[group]Getting Git version info
+2026-11-12T04:01:50.7648117Z Working directory is '/home/runner/work/Hepta/Hepta/ci-reference-source'
+2026-11-12T04:01:50.7694401Z [command]/usr/bin/git version
+2026-11-12T04:01:50.7714938Z git version 2.56.0
+2026-11-12T04:01:50.7732808Z ##[endgroup]
+2026-11-12T04:01:50.7744388Z Temporarily overriding HOME='/home/runner/work/_temp/6a6400d6-51b0-49c3-87ae-a69f3ed66038' before making global git config changes
+2026-11-12T04:01:50.7745437Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T04:01:50.7749093Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/ci-reference-source
+2026-11-12T04:01:50.7788305Z ##[group]Initializing the repository
+2026-11-12T04:01:50.7792596Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/ci-reference-source
+2026-11-12T04:01:50.8202411Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T04:01:50.8203280Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T04:01:50.8203915Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T04:01:50.8204394Z hint: call:
+2026-11-12T04:01:50.8204613Z hint:
+2026-11-12T04:01:50.8204970Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T04:01:50.8205215Z hint:
+2026-11-12T04:01:50.8205487Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T04:01:50.8205865Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T04:01:50.8206245Z hint:
+2026-11-12T04:01:50.8206414Z hint: 	git branch -m <name>
+2026-11-12T04:01:50.8206605Z hint:
+2026-11-12T04:01:50.8206917Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T04:01:50.8207649Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/ci-reference-source/.git/
+2026-11-12T04:01:50.8215250Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T04:01:50.8262432Z ##[endgroup]
+2026-11-12T04:01:50.8262944Z ##[group]Disabling automatic garbage collection
+2026-11-12T04:01:50.8267862Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T04:01:50.8317752Z ##[endgroup]
+2026-11-12T04:01:50.8318229Z ##[group]Setting up auth
+2026-11-12T04:01:50.8326021Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T04:01:50.8373185Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T04:01:50.8606419Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T04:01:50.8649905Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T04:01:50.8883196Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T04:01:50.8927772Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T04:01:50.9151174Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T04:01:50.9200616Z ##[endgroup]
+2026-11-12T04:01:50.9201111Z ##[group]Fetching the repository
+2026-11-12T04:01:50.9209055Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+2026-11-12T04:01:53.1063449Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T04:01:53.1064055Z  * branch            0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5 -> FETCH_HEAD
+2026-11-12T04:01:53.1068338Z ##[endgroup]
+2026-11-12T04:01:53.1068803Z ##[group]Determining the checkout info
+2026-11-12T04:01:53.1070536Z ##[endgroup]
+2026-11-12T04:01:53.1077328Z [command]/usr/bin/git sparse-checkout disable
+2026-11-12T04:01:53.1129817Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-12T04:01:53.1196819Z ##[group]Checking out the ref
+2026-11-12T04:01:53.1201585Z [command]/usr/bin/git checkout --progress --force 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+2026-11-12T04:01:53.4012302Z Note: switching to '0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5'.
+2026-11-12T04:01:53.4012668Z 
+2026-11-12T04:01:53.4013113Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-12T04:01:53.4013713Z changes and commit them, and you can discard any commits you make in this
+2026-11-12T04:01:53.4014286Z state without impacting any branches by switching back to a branch.
+2026-11-12T04:01:53.4014633Z 
+2026-11-12T04:01:53.4014897Z If you want to create a new branch to retain commits you create, you may
+2026-11-12T04:01:53.4015434Z do so (now or later) by using -c with the switch command. Example:
+2026-11-12T04:01:53.4015747Z 
+2026-11-12T04:01:53.4015884Z   git switch -c <new-branch-name>
+2026-11-12T04:01:53.4016088Z 
+2026-11-12T04:01:53.4016212Z Or undo this operation with:
+2026-11-12T04:01:53.4016401Z 
+2026-11-12T04:01:53.4016504Z   git switch -
+2026-11-12T04:01:53.4016617Z 
+2026-11-12T04:01:53.4016794Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-12T04:01:53.4017029Z 
+2026-11-12T04:01:53.4017226Z HEAD is now at 0ef9541 Keep native cold binding and call-graph evidence in one CI environment
+2026-11-12T04:01:53.4040467Z ##[endgroup]
+2026-11-12T04:01:53.4089636Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T04:01:53.4127225Z 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+2026-11-12T04:01:53.4135572Z ##[group]Removing auth
+2026-11-12T04:01:53.4139361Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T04:01:53.4179055Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T04:01:53.4404332Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T04:01:53.4440409Z http.https://github.com/.extraheader
+2026-11-12T04:01:53.4448999Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T04:01:53.4816292Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T04:01:53.5043551Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T04:01:53.5088210Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T04:01:53.5313457Z ##[endgroup]
+2026-11-12T04:01:53.5486569Z ##[group]Run actions/setup-python@v5
+2026-11-12T04:01:53.5486810Z with:
+2026-11-12T04:01:53.5486993Z   python-version: 3.12.14
+2026-11-12T04:01:53.5487189Z   check-latest: false
+2026-11-12T04:01:53.5489053Z   token: ***
+2026-11-12T04:01:53.5489228Z   update-environment: true
+2026-11-12T04:01:53.5489429Z   allow-prereleases: false
+2026-11-12T04:01:53.5489640Z   freethreaded: false
+2026-11-12T04:01:53.5489813Z env:
+2026-11-12T04:01:53.5489978Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T04:01:53.5490173Z ##[endgroup]
+2026-11-12T04:01:53.6689856Z ##[group]Installed versions
+2026-11-12T04:01:53.6705296Z Version 3.12.14 was not found in the local cache
+2026-11-12T04:01:53.6884215Z (node:2453) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T04:01:53.6885181Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T04:01:54.6156514Z Version 3.12.14 is available for downloading
+2026-11-12T04:01:54.6157470Z Download from "https://github.com/actions/python-versions/releases/download/3.12.14-31661455385/python-3.12.14-linux-24.04-x64.tar.gz"
+2026-11-12T04:01:56.3682936Z Extract downloaded archive
+2026-11-12T04:01:56.3806237Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/eb4a289d-44e4-4137-b2a4-0a7f6d5af1a7 -f /home/runner/work/_temp/3c081c3d-ea2d-4be9-99e0-47a592cced35
+2026-11-12T04:01:58.0622535Z Execute installation script
+2026-11-12T04:01:58.0723577Z Check if Python hostedtoolcache folder exist...
+2026-11-12T04:01:58.0723921Z Create Python 3.12.14 folder
+2026-11-12T04:01:58.0736250Z Copy Python binaries to hostedtoolcache folder
+2026-11-12T04:01:58.4471242Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-12T04:01:58.4511087Z Upgrading pip...
+2026-11-12T04:02:00.0476097Z Collecting pip
+2026-11-12T04:02:00.0860646Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-12T04:02:00.0986723Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-12T04:02:00.1739065Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 29.4 MB/s eta 0:00:00
+2026-11-12T04:02:00.1739490Z 
+2026-11-12T04:02:00.1900744Z Installing collected packages: pip
+2026-11-12T04:02:00.1901175Z Attempting uninstall: pip
+2026-11-12T04:02:00.1918909Z Found existing installation: pip 25.0.1
+2026-11-12T04:02:00.2176732Z Uninstalling pip-25.0.1:
+2026-11-12T04:02:00.2224691Z Successfully uninstalled pip-25.0.1
+2026-11-12T04:02:01.0701600Z Successfully installed pip-26.3
+2026-11-12T04:02:01.1616149Z Create complete file
+2026-11-12T04:02:01.1650946Z Successfully set up CPython (3.12.14)
+2026-11-12T04:02:01.1651479Z ##[endgroup]
+2026-11-12T04:02:01.1829654Z ##[group]Run timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/check_active_source_syntax_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-source-syntax-driver.log"
+2026-11-12T04:02:01.1830841Z [36;1mtimeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/check_active_source_syntax_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-source-syntax-driver.log"[0m
+2026-11-12T04:02:01.1853203Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T04:02:01.1853500Z env:
+2026-11-12T04:02:01.1853711Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T04:02:01.1853984Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:02:01.1854342Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-12T04:02:01.1854695Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:02:01.1855068Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:02:01.1855372Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:02:01.1855670Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-12T04:02:01.1856019Z   HIA_SOURCE_GATE_OUTPUT: /home/runner/work/_temp/hia-selected-source-syntax
+2026-11-12T04:02:01.1856341Z ##[endgroup]
+2026-11-12T04:02:01.3711338Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1350, "identity": {"bytes": 6749, "gitsha": "ba3c2a387be4ff92a83eeebeceaf2d58db6773be", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/assembly-object-prefix-r1/build_assembly_object_prefix_ci_r1.py", "sha256": "a31c4dc285cffbf64c18c65c8466b1a8012f576090a1b13208aeeb51fef9a25f"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/assembly-object-prefix-r1/build_assembly_object_prefix_ci_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.3740917Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 730, "identity": {"bytes": 3632, "gitsha": "0a969e9597f4d1488841a5e32e8bb8e520982f34", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/assembly-object-prefix-r1/ci_assembly_object_prefix_r2.py", "sha256": "ccba1ff9dfa4ad8c164b6478d1dac9487ff274d8c3a8a98459790525624ada99"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/assembly-object-prefix-r1/ci_assembly_object_prefix_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.3770720Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 749, "identity": {"bytes": 14115, "gitsha": "90d7242bdc2ab328280b2c760f988cff3ad21d10", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/assembly-object-prefix-r1/generate_assembly_object_prefix_r1.py", "sha256": "e230b246ed2a410cc3a8f252525cff065b340606ba7cb168f70655bb02da7d4a"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/assembly-object-prefix-r1/generate_assembly_object_prefix_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.3880044Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 3462, "identity": {"bytes": 13978, "gitsha": "cc493fc40c284df22866a825467866c98a889c8c", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/assembly-object-prefix-r1/test_assembly_object_prefix_r2.py", "sha256": "f3ccea917fb352f61600a4331b8c7fb530283c4450de211f8a997e0bca832117"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/assembly-object-prefix-r1/test_assembly_object_prefix_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.3940051Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1490, "identity": {"bytes": 7593, "gitsha": "79dbd6e6cf7c91afb8f1f283fec994a21435ea2f", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/check_active_source_syntax_r1.py", "sha256": "abb7cf1556122119227316eb6674ea228384179cb4c5bc2ba85f8dc53040a152"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/check_active_source_syntax_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4012816Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2127, "identity": {"bytes": 9972, "gitsha": "4813cbd2253e4f9ced5d8e0e3212ca003d8b4f57", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_follow22_default_cold_originals_r1.py", "sha256": "693df2a721657fac9a539fb62a2baf24e24c2d35030889acaa3c81b49c294fd9"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_follow22_default_cold_originals_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4088800Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2322, "identity": {"bytes": 11810, "gitsha": "5b5db7cfbc8ac18a46a4560172dda6bc662cab73", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_follow23_default_cold_originals_r1.py", "sha256": "418043aa41511f2d621f739b257ede2b853558793ad318d545ed59ad50c2089f"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_follow23_default_cold_originals_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4177300Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2236, "identity": {"bytes": 11179, "gitsha": "0c6b2ea924e3cf4fed728685b5ca7a7584af6ce1", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_follow24_default_cold_originals_r1.py", "sha256": "33118d0ff36dd494a8dcd565b756afe667065f893cd2c9dbc740850112b91d65"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_follow24_default_cold_originals_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4210758Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 752, "identity": {"bytes": 3529, "gitsha": "3381603e4b840715e3ffe8cebbd5c9c1897b20be", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_patch_original_sources_r1.py", "sha256": "29e632422befd5082121fd40d75a648de6a7793cee48f1eb8f918e3c515a687c"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_patch_original_sources_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4311486Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 3325, "identity": {"bytes": 18047, "gitsha": "4d0c5a863d8d5e16b5a4d9b62171df6d75cf5e7c", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_schema_follow16_originals_r3.py", "sha256": "6f04fc1978118c9f2274f57e4b29ba0caa025c0e3ccbcd66d686c16d4c5ec4b1"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_schema_follow16_originals_r3.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4367305Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1445, "identity": {"bytes": 7491, "gitsha": "33f9c59df8c8b07d57adc79d409043b74de2dc21", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_worker_original_sources_r1.py", "sha256": "1a09482e7e0e6051380c60df0daede0af35b257d7af7e82ae4ef698455579739"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_worker_original_sources_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4408817Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1101, "identity": {"bytes": 5875, "gitsha": "faed52fc4d2e1a49ea55de1db06715ae8101639b", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-render-r1/ci/run_cli_assembly_render_r1.py", "sha256": "9acfa7e7b9c049b4b2c98d491e77294bae59aa1ad2de8a3c2963da43133ae402"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-render-r1/ci/run_cli_assembly_render_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4551455Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 6257, "identity": {"bytes": 24951, "gitsha": "8f72ce79164f1bb872e862554b15856bbfec1697", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-render-r1/tests/test_hia_assembly_render_native.py", "sha256": "7a66531cebba00eee7180494c9e784b2ee37fd6da770ae38528024b08eb51b2d"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-render-r1/tests/test_hia_assembly_render_native.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4595296Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1681, "identity": {"bytes": 29652, "gitsha": "030f921e725eaa1bc798f884f9801848e95c6f34", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-render-r1/tools/assembly_render_owner.py", "sha256": "8eaaf5a0b209f8a9e8a573fe2943912e45116414747ab6eef6c97b55384518d5"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-render-r1/tools/assembly_render_owner.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4642214Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2337, "identity": {"bytes": 16860, "gitsha": "e8f400f3e585087adf178a26a9da0b38b63b053e", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/ci/ci_complete_public_assembly_r1.py", "sha256": "1821054fbad1ed4d1c1ada277a838539d87440706446bcb2812480397725006f"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/ci/ci_complete_public_assembly_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4680964Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1951, "identity": {"bytes": 8002, "gitsha": "a858717eada7f3b655bbcc985604bb99a8f3bade", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/development/read_inactive_E_components.py", "sha256": "eea45838986247b1b06a5bdb104f1ba6f32ceadaa08e18582f2d2df368e8247e"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/development/read_inactive_E_components.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4795165Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 6257, "identity": {"bytes": 24951, "gitsha": "8f72ce79164f1bb872e862554b15856bbfec1697", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tests/assembly_render_corpus_reference.py", "sha256": "7a66531cebba00eee7180494c9e784b2ee37fd6da770ae38528024b08eb51b2d"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tests/assembly_render_corpus_reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.4922194Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 6071, "identity": {"bytes": 25849, "gitsha": "2f1ac120dc468c5f9a525c2f46313b3bd68ef460", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tests/assembly_syntax_corpus_reference.py", "sha256": "37ef03b33d0b37eebc3eb549324634bd948f5656900a9487fcab816ffce40694"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tests/assembly_syntax_corpus_reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5026112Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 4803, "identity": {"bytes": 22677, "gitsha": "9f4f6f62a1a4fd5a07b0c4b43e6e8b8b35afcb3d", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tests/test_hia_full_assembly_cli.py", "sha256": "328e9b270897a7712729bf9aa2a44a4473d401576ea0865f2abb465fe005ecf7"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tests/test_hia_full_assembly_cli.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5059161Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 749, "identity": {"bytes": 14115, "gitsha": "90d7242bdc2ab328280b2c760f988cff3ad21d10", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/assembly_object_prefix.py", "sha256": "e230b246ed2a410cc3a8f252525cff065b340606ba7cb168f70655bb02da7d4a"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/assembly_object_prefix.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5094900Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1681, "identity": {"bytes": 29652, "gitsha": "030f921e725eaa1bc798f884f9801848e95c6f34", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/assembly_render_owner.py", "sha256": "8eaaf5a0b209f8a9e8a573fe2943912e45116414747ab6eef6c97b55384518d5"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/assembly_render_owner.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5117314Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 689, "identity": {"bytes": 32542, "gitsha": "a1dd3d84ce16b7038cd28badefee00c4f714e75a", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/assembly_service_control.py", "sha256": "2f7c3c02507b0dadb268618b204e1e8e0dbceda5fc7ced0f44bb48abb07893fe"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/assembly_service_control.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5165317Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1563, "identity": {"bytes": 37844, "gitsha": "227e06a56e8da7091d72004c83daeea7d24ee884", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/assembly_syntax_owner.py", "sha256": "365d8460c6d502685815ad0039e0d5de5503326abf58db13cd922605d097d11e"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/assembly_syntax_owner.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5227173Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 3416, "identity": {"bytes": 13129, "gitsha": "04c2fd62a6764cc205eb255546a334e6a28daf17", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/build_hia_assembly_cli.py", "sha256": "a4028086ee9f9d05307d2257b1b73fb386cb94d21d845e95863f386839008a67"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/build_hia_assembly_cli.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5245858Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 472, "identity": {"bytes": 2697, "gitsha": "909e00b3c8e7f7fa0f50aa8374bba272c306c484", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/cli_publication_parent_owner.py", "sha256": "000c23604104df0b31f5bb0d8977aadf7da9ec572dc66b023263a5fa994cd2ab"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/cli_publication_parent_owner.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5265245Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 522, "identity": {"bytes": 39683, "gitsha": "31def95cfac9f8823e540411da8ee82c81a21ef0", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/cli_publication_parent_reference.py", "sha256": "65ade06a5a5650120ec3c192e452f31db15dbbd0751c367040bb874d3d8af44c"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/cli_publication_parent_reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5286264Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 879, "identity": {"bytes": 17103, "gitsha": "258f415c0a98d461b269b61d573d20ddc2afb5dc", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/cli_publication_presentation_owner.py", "sha256": "16540795eb2ed5e004d6b01113c21cfcbd2a2e5552c4c24817521f2d45e6dc8f"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/cli_publication_presentation_owner.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5294876Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 103, "identity": {"bytes": 12869, "gitsha": "64ebbf57364b46127d4579f836c701025821fa4f", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/cli_publication_tempdir_owner.py", "sha256": "748b144ee9eb040e0cd7629248ebe27cc37d7fcf68eceaa6a9a85ba9a43071f1"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/cli_publication_tempdir_owner.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5309027Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 616, "identity": {"bytes": 4717, "gitsha": "e6cd8a84ccf39584b8934021bc11e946297332e4", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/compose_cli_assembly_carrier.py", "sha256": "389ac96131a8e93bb11862fdf3b0e8c84cb416117dbf3e3e85def660a2e201ee"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/compose_cli_assembly_carrier.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5350164Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2197, "identity": {"bytes": 11510, "gitsha": "57c7c8f9c5d006b20e57b4e239b16d328d649a6f", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/generate_hia_assembly_service.py", "sha256": "2ff23251e65f46061abb329f09868855116de524ccd6a7f47458ab202e488914"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/generate_hia_assembly_service.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5401139Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2410, "identity": {"bytes": 33675, "gitsha": "e572e1273fcd55518f7395071cc56534f2771fc6", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/program_service_root_reference.py", "sha256": "f378c5cd7ef6a053ec63090cc3b3322929f54ef566a29fbaa3f687318c6779d9"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/tools/program_service_root_reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5429996Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1077, "identity": {"bytes": 5657, "gitsha": "f14dfc0f5b33054c04866ea207ad8054c93efdc6", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-syntax-r1/ci/ci_cli_full_assembly_syntax_r1.py", "sha256": "cb354d2bf886d525b32000528f1a19e5614ee8e4d2a49fe6d3eeaec6fb5021e2"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-syntax-r1/ci/ci_cli_full_assembly_syntax_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5538512Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 6071, "identity": {"bytes": 25849, "gitsha": "2f1ac120dc468c5f9a525c2f46313b3bd68ef460", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-syntax-r1/tests/test_hia_assembly_syntax_native.py", "sha256": "37ef03b33d0b37eebc3eb549324634bd948f5656900a9487fcab816ffce40694"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-syntax-r1/tests/test_hia_assembly_syntax_native.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5592838Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1563, "identity": {"bytes": 37844, "gitsha": "227e06a56e8da7091d72004c83daeea7d24ee884", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-syntax-r1/tools/assembly_syntax_owner.py", "sha256": "365d8460c6d502685815ad0039e0d5de5503326abf58db13cd922605d097d11e"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-syntax-r1/tools/assembly_syntax_owner.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5730711Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7424, "identity": {"bytes": 34987, "gitsha": "64c2efb95524d3317c47c662cba80a2039637aa3", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/tests/test_hia_cli_full_publication.py", "sha256": "0aa9653c66427105f273ee45b66033b0ac5a191227bf395bfd22fe1c5758f6e9"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/tests/test_hia_cli_full_publication.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5764071Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 522, "identity": {"bytes": 39683, "gitsha": "31def95cfac9f8823e540411da8ee82c81a21ef0", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/tools/cli_publication_parent_owner.py", "sha256": "65ade06a5a5650120ec3c192e452f31db15dbbd0751c367040bb874d3d8af44c"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/tools/cli_publication_parent_owner.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5777872Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 470, "identity": {"bytes": 5711, "gitsha": "b36c40dd918476c15c13b01506459c6d7bf5991c", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/tools/cli_publication_policy2_fixture.py", "sha256": "8722a23cb468a378e02759092be94d4c4da334289c07af15e251702f965ffdf7"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/tools/cli_publication_policy2_fixture.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5799474Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 877, "identity": {"bytes": 16910, "gitsha": "6a92e0a0fd271a311c383b7723f09b8a6c335e7d", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/tools/cli_publication_presentation_owner.py", "sha256": "ab4249320935a78377340faef471663955cfccb1535ce2fc4766726274a82822"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/tools/cli_publication_presentation_owner.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5811384Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 424, "identity": {"bytes": 3234, "gitsha": "2fb867b4df3bfedcd4ab6aa7adf5815378c960a0", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/tools/compose_cli_publication_filesystem_r3.py", "sha256": "a152dc2ef86e77263ffc6c1222888d4de0e6bab2ba5907774f2e951d9cedda6b"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/tools/compose_cli_publication_filesystem_r3.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5837695Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1160, "identity": {"bytes": 6715, "gitsha": "15a46334a1fb9c3b4bb2886e5231540d3440a62e", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/tools/generate_hia_cli_publication_packer_r3.py", "sha256": "d2f9900eb6dc180c7d6227b915e49d09a2751e06702b5a7ce586640fb0735bff"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/tools/generate_hia_cli_publication_packer_r3.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5881052Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2164, "identity": {"bytes": 13549, "gitsha": "a6fefc6f5b0b31eb39aece82cfad2cd359d53ec2", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r2/ci/ci_cli_full_publication_r2.py", "sha256": "c9571f88c82ab57b1c272c473521d108bd2a877363538f8d9127be179f836a70"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r2/ci/ci_cli_full_publication_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5913760Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1428, "identity": {"bytes": 7583, "gitsha": "57a7fb090744601ebdde05f476a99a378a26e0bf", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-temporary-directory-r2/ci/ci_cli_temporary_directory_r2.py", "sha256": "0d16c4bdc8c36b400c535a8ea1d11883a045e132f75b6c460cb415a0a337e76c"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-temporary-directory-r2/ci/ci_cli_temporary_directory_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5927602Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 217, "identity": {"bytes": 28738, "gitsha": "776161521c424afc2908cb9c667e7ec7d7bad4e3", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-temporary-directory-r2/tools/cli_publication_cleanup_owner.py", "sha256": "cf8a3f9b73c1dc1c18f0309fe311935856a73932fd4a7a57fe92e0bd512dd4e4"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-temporary-directory-r2/tools/cli_publication_cleanup_owner.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.5967169Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2164, "identity": {"bytes": 11755, "gitsha": "8a577f90a566ffd8b71494eb11244a42e404423b", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cold-archive-overlap-r1/ci_cold_archive_overlap_r2.py", "sha256": "12ca70d05227717c46784ca86c2e3208af4733388e8360456bd8ccd18f777011"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cold-archive-overlap-r1/ci_cold_archive_overlap_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6154138Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 9612, "identity": {"bytes": 62218, "gitsha": "0bc5eb3dc49ee79faa67d3ff0d2e504689bab1f8", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cold-archive-overlap-r1/qualify_hia_selfhost_candidate_r1.py", "sha256": "5827d103856fb871db6fe07772068aece8827458215cf4d2b89d5f14dee6e023"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cold-archive-overlap-r1/qualify_hia_selfhost_candidate_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6213190Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1706, "identity": {"bytes": 8342, "gitsha": "04c3a14e03bafad93b21d5976fad14d73d8dbb38", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cold-archive-overlap-r1/test_archive_admission_r1.py", "sha256": "24fae72cda0aab9d41ffa3327e4b2357935015f61510262120e8afb816fe676e"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cold-archive-overlap-r1/test_archive_admission_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6287670Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 3818, "identity": {"bytes": 16343, "gitsha": "635a74f0f7466a72f611cb4baee5ab654993753f", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/edit-public-service-r1/ci_edit_public_service_r1.py", "sha256": "027d480bdd2dfc2afef84686c6bccfeb4beeb859107f8c74ccf2db281ba8f759"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/edit-public-service-r1/ci_edit_public_service_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6348771Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2680, "identity": {"bytes": 48891, "gitsha": "6896c532705e39a86ed3015e9d14e80abfc3b042", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/edit-public-service-r1/cli_edit_service.py", "sha256": "fa87efc0ed4a893117ad888b57194866cc7aa1f2f3afeabfb467f4963487a6bd"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/edit-public-service-r1/cli_edit_service.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6383834Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1230, "identity": {"bytes": 7537, "gitsha": "8c6d9db75f5e204eb2089f093befa92a2deb4c38", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/ci/ci_machine_elf_writer_r1.py", "sha256": "17ed8d415d5f2ca5dde3958b17f38b317fc40a7222cdd9e87369b9186d891857"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/ci/ci_machine_elf_writer_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6428289Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2340, "identity": {"bytes": 9783, "gitsha": "eaf060c8c6870cad0a85a23f6b94ffa39308c45c", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/reference/graph_harness_r3.py", "sha256": "75fe54554a93e19e30251073ac225deff944d6673d87ccc2b597e47a19e8be7c"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/reference/graph_harness_r3.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6457626Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1421, "identity": {"bytes": 7026, "gitsha": "cad2e6d21dccc95ad3cfd368da42964ec52d4bb7", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/reference/hia_machine_elf.py", "sha256": "c77cc453d33058ccbeea9e056191001982892a3e59386958090122ccf487c101"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/reference/hia_machine_elf.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6599169Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7499, "identity": {"bytes": 28616, "gitsha": "78ddb619597883aa1e13a3b8138504e0b4755f6b", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/tests/test_hia_machine_elf_writer.py", "sha256": "8b0c3d2b08397d136931da9618ae8060bd4f3ad1d699a5b91b059506cd199e84"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/tests/test_hia_machine_elf_writer.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6647542Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1569, "identity": {"bytes": 7240, "gitsha": "9fda99bce633b363f4bd68378e31ac4e986743e8", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/tools/build_hia_machine_elf_writer.py", "sha256": "8c21d6fd581ba3e0945b27c7070c444f803d8f26609efe58b1fe14565ca47c0d"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/tools/build_hia_machine_elf_writer.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6664087Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 585, "identity": {"bytes": 2112, "gitsha": "6f1bffe8bd815a068f9834489960006cbaad6fac", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/tools/elf_authoring_reference.py", "sha256": "717d3bbd4bfc22bcca68aea7375787bfe9b0a355d74279c7258437dda2a4851b"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/tools/elf_authoring_reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6686065Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 882, "identity": {"bytes": 23950, "gitsha": "f7d123bdb2bf65b25182b571f024299cb0342828", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/tools/hia_agent_edit_source_views.py", "sha256": "555472263213f15deb239fcf3bf8e5b273a28caf3a67bb29ffd037f171d7ae5c"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/tools/hia_agent_edit_source_views.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6707143Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 899, "identity": {"bytes": 28963, "gitsha": "3f92d9e185f17f6df8b45d91a4201ce968723073", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/tools/hia_machine_elf_writer.py", "sha256": "84bbd81168ca645807ce0095755bb6e74efb1ffd9419cec3473a439e34dca985"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/tools/hia_machine_elf_writer.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6875416Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 8867, "identity": {"bytes": 27725, "gitsha": "88db473aeeb2038dbe54257bf0e0fc31c65ca393", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-db-node-r1-protocol.py", "sha256": "06a4d944a54668042a6bfeab9f8759e2530577a7fdc5cb5aa2c3dbb888e399e0"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-db-node-r1-protocol.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6939928Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2153, "identity": {"bytes": 13477, "gitsha": "fc3c7411d4ae8367483b1e1c096a1c58a953d331", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-db-node-r2-ci.py", "sha256": "3b816fd3f9ef81af594c316f3c3c53cc62eb2cd5d7b81133d8375fc03284e870"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-db-node-r2-ci.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6964492Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 375, "identity": {"bytes": 31678, "gitsha": "a63842ae07fa8769b585705ae100d7181a4d6084", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-db-node-r2-generator.py", "sha256": "cd51f698ba9e522b0b2411bdaa1e2fb9f9308f95503b78f35d7f28d21995ae52"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-db-node-r2-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.6991265Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 826, "identity": {"bytes": 3510, "gitsha": "847861c8c5c621170e4a0aa3f12d5cb61a86c779", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-db-node-r3-generate.py", "sha256": "c7a0139428b4a80ef8733b1d3e5c6ec026db30ccd948097cef35756af51edb15"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-db-node-r3-generate.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7085398Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 3795, "identity": {"bytes": 15821, "gitsha": "e0b4a131d18cca9516ed61302cc07af81793a6db", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-db-node-r3-validate.py", "sha256": "26eb20db6643fab6cbb6349e417b5749827e66cc46c9ff16247ecda9719fafcd"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-db-node-r3-validate.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7110552Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 631, "identity": {"bytes": 27802, "gitsha": "a188e9553b61ffc4293950908a71a93a3a9a27bb", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-objects-reference.py", "sha256": "2320a0363d312f1f07b48cc370f06ac7dbaedefa28437c28230fff6fba4dc3de"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-objects-reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7124642Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 534, "identity": {"bytes": 11623, "gitsha": "3d45466a68eca7a88d2352879ea1979848318f63", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-values-reference.py", "sha256": "7c3f0299291cf4b99d5c2296351dcfd5e471507d4903ab9da171420c126c5c50"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r2/namespace-values-reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7135443Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 330, "identity": {"bytes": 13823, "gitsha": "793ec691a910b642fc4f448f757af5b1052232d0", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/compose-namespace-db-join-r1.py", "sha256": "4d15a5913e37770577265b74a21b75e7e8c0f1da15b5a31a2674a346c727d976"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/compose-namespace-db-join-r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7221004Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 4865, "identity": {"bytes": 20780, "gitsha": "96762602378d98db79755759b4ad3f4e6a8662bf", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/four-role-original-replay.py", "sha256": "0b9bab8e16b0174c54062d56c5042afdaea35a1e936932bbd31ade04f06436a6"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/four-role-original-replay.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7284057Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2917, "identity": {"bytes": 20342, "gitsha": "b021ca319d37ff4f94370c9c6b092d7161597ebb", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-ci.py", "sha256": "a6c46c3cd3c8ffde130f6a2e4eae7779176cf7e88185b26d96f6e24acd9dd720"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-ci.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7368871Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 4220, "identity": {"bytes": 22281, "gitsha": "c489da3fc832d9caecaa271069bfc3608746ffec", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-client.py", "sha256": "e5cad29b23957856c3a3ae08645eb7a14a62f6b0263fe67720a9560b88e58270"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-client.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7390500Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 435, "identity": {"bytes": 40272, "gitsha": "92f06c473bd42fe5f3f16666c4e9aa9b3cebadcf", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-generator.py", "sha256": "c2d2d5f522febe4956db2ccd5d7b8003014fedb16b915c751c0e3a810008ba7b"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7410251Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 923, "identity": {"bytes": 5631, "gitsha": "05e2ac0ffb2ad6b1261ed1fef74f28090073c6d1", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-packer.py", "sha256": "c2fc592a6cff96082994e702bdc59c835f6d056bb19a34c78e19b4ee3023e9ff"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-packer.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7610600Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 10716, "identity": {"bytes": 44590, "gitsha": "4d22804b3daeabf28fea5066aaec46e50c04f273", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-physical.py", "sha256": "a14f0e30c22399c2868d273c157c8aa0c07ccb290e6fd0a70e0bb1640054c20b"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-physical.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7704989Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 4081, "identity": {"bytes": 17457, "gitsha": "38b7813e00ddf13f047cff6fdd9b407d1d2acce1", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-replay.py", "sha256": "3886e4af2d36ec42c7db076e954dd4ab7459f065c64e5847e83bb470b83db570"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r1-replay.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7799773Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 4668, "identity": {"bytes": 22884, "gitsha": "8c243156ccdbeec1ff9bea701dc9eb751713b704", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r2-build.py", "sha256": "823a2a76f8941907da4c2131bf2ffff75e215ad69917b7667705193df9167f1d"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-join-r2-build.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7818569Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 375, "identity": {"bytes": 31678, "gitsha": "a63842ae07fa8769b585705ae100d7181a4d6084", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-node-r2-generator.py", "sha256": "cd51f698ba9e522b0b2411bdaa1e2fb9f9308f95503b78f35d7f28d21995ae52"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-db-node-r2-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7833892Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 440, "identity": {"bytes": 72759, "gitsha": "5a63a53fb9fe1c221c1b7092c40414425695ba06", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-dms-map-join-r8-generator.py", "sha256": "1e687d80d69d4ea69a5be15add0a41f18c0119ee721d6dda1e8dcd7450d0ea8d"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-dms-map-join-r8-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7844657Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 339, "identity": {"bytes": 22419, "gitsha": "8dd0e6557cdbd1b42b932f682c2c6c396e57e598", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-fs5-generator.py", "sha256": "d1bc8721c3cd5f3276024c239a11060a005161b8d9f23114495cec04d68c48a6"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-fs5-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7855198Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 363, "identity": {"bytes": 22372, "gitsha": "7711bad8273121820a1fa169250acf9f6d43a726", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-memory-r2-generator.py", "sha256": "e9f5e580bbd69149f51f577f9246fb3f553b1574726e945bd0af0a31f7996560"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-memory-r2-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7871172Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 631, "identity": {"bytes": 27802, "gitsha": "a188e9553b61ffc4293950908a71a93a3a9a27bb", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-objects-reference.py", "sha256": "2320a0363d312f1f07b48cc370f06ac7dbaedefa28437c28230fff6fba4dc3de"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-objects-reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7882354Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 363, "identity": {"bytes": 23289, "gitsha": "58f0b8db47774ac75d073336b9fc1160d34d3fd2", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-shm-map-r3-generator.py", "sha256": "1ac940af6b31b8e7cc02ada063a46fc5a28ee04f524bb60d5bfeb5fde109fcde"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-shm-map-r3-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7895412Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 534, "identity": {"bytes": 11623, "gitsha": "3d45466a68eca7a88d2352879ea1979848318f63", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-values-reference.py", "sha256": "7c3f0299291cf4b99d5c2296351dcfd5e471507d4903ab9da171420c126c5c50"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-physical-join-r1/namespace-values-reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.7944664Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2837, "identity": {"bytes": 12622, "gitsha": "1ad6fdf42fd2074a030d47bc7b917244fe5b612b", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-map-follow17-18-readback-r4.py", "sha256": "42cd13122824ebde256104abb45cb2e8f0d4c113a750921ae8e53da85cbe5733"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-map-follow17-18-readback-r4.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8007383Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2860, "identity": {"bytes": 14643, "gitsha": "0151d3e68f240cd0066ab5acc35e214b46d86967", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-dms-r5-ci.py", "sha256": "b9c38c9a85140893c63bffeec3cf1ac3b16cf032cd5ab6a30c76101db1966ff4"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-dms-r5-ci.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8025120Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 400, "identity": {"bytes": 37241, "gitsha": "10c95eaeec93daf7f31d152c64e729c27cb697a7", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-dms-r5-generator.py", "sha256": "be988047e48b30cb85db48a43486b3397ceadec01c65c8fa486811eccb6b9da5"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-dms-r5-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8173115Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 8150, "identity": {"bytes": 26323, "gitsha": "1d511d7453674dd52cace82b4cffe357ce8b5294", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-dms-r5-protocol.py", "sha256": "da0eefc45740c6f6765b9b6e678df66d7baf578d350334194f34314e3ec1d786"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-dms-r5-protocol.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8254090Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 3667, "identity": {"bytes": 14640, "gitsha": "f63f298c6fd85025eddc9547cfaa8f410a78f593", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-dms-r5-validate.py", "sha256": "f4dd28183b12addbdbc5df36519377761ef6ac793fed0fabbf03259f7cbf01d9"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-dms-r5-validate.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8270774Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 339, "identity": {"bytes": 22419, "gitsha": "8dd0e6557cdbd1b42b932f682c2c6c396e57e598", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-fs5-generator.py", "sha256": "d1bc8721c3cd5f3276024c239a11060a005161b8d9f23114495cec04d68c48a6"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-fs5-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8287403Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 631, "identity": {"bytes": 27802, "gitsha": "a188e9553b61ffc4293950908a71a93a3a9a27bb", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-objects-reference.py", "sha256": "2320a0363d312f1f07b48cc370f06ac7dbaedefa28437c28230fff6fba4dc3de"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-objects-reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8301395Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 534, "identity": {"bytes": 11623, "gitsha": "3d45466a68eca7a88d2352879ea1979848318f63", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-values-reference.py", "sha256": "7c3f0299291cf4b99d5c2296351dcfd5e471507d4903ab9da171420c126c5c50"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-r5/namespace-values-reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8320022Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 899, "identity": {"bytes": 5135, "gitsha": "41b9007465dbba83ce4a9fbb9b88368fe595d565", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-dms-map-r1-packer.py", "sha256": "0bb8c8f223947256f3dba5b69ff2508c656def2a28dc5c272a840e456c5eb1a3"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-dms-map-r1-packer.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8406667Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 4865, "identity": {"bytes": 20780, "gitsha": "96762602378d98db79755759b4ad3f4e6a8662bf", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-dms-map-r1-replay.py", "sha256": "0b9bab8e16b0174c54062d56c5042afdaea35a1e936932bbd31ade04f06436a6"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-dms-map-r1-replay.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8499565Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 4656, "identity": {"bytes": 22599, "gitsha": "beaa6955fc3468398f565aa79b4751f9a009d620", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-dms-map-r2-build.py", "sha256": "d381914842bc0299e074efda29107cbd95262131f154ef667a39cb7a4295f886"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-dms-map-r2-build.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8579057Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 3855, "identity": {"bytes": 20630, "gitsha": "2bc6a6541cf6ce1947cddcaea3b3810f6594143e", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-dms-map-r3-client.py", "sha256": "a6f897be5011dc0aff46d68f6242bf703a833f705a34e4d1ea956b13b0b558be"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-dms-map-r3-client.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8751921Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 9674, "identity": {"bytes": 38901, "gitsha": "1fde7f42849cbea52634cb9f6ba8b1dcb5a671eb", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-dms-map-r4-physical.py", "sha256": "27b1ca0b97ddcc770972d9eb8d436fe675be225d9d2da7f8254b1eea51e9710e"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-dms-map-r4-physical.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8786156Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 440, "identity": {"bytes": 72233, "gitsha": "a35ef1c3c859bacd8240da59eb52422e94a824e7", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-dms-map-r7-generator.py", "sha256": "ccbcaca8c9e4f4054419fee69efd55db81c48367fee410317a0cb04284f4f8fa"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-dms-map-r7-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8831982Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2279, "identity": {"bytes": 15455, "gitsha": "581f81b14d56354ee1fa9d1a6a4a070d0d6ee68f", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-fixed-join-r2-ci.py", "sha256": "f4d293fdbb18d89bfc0038e3d6ead1d8bbacbf3f7f789776e004a4f761269ca0"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-fixed-join-r2-ci.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8848814Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 339, "identity": {"bytes": 22419, "gitsha": "8dd0e6557cdbd1b42b932f682c2c6c396e57e598", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-fs5-generator.py", "sha256": "d1bc8721c3cd5f3276024c239a11060a005161b8d9f23114495cec04d68c48a6"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-fs5-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8862369Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 363, "identity": {"bytes": 22379, "gitsha": "660eb5e54344c3007a984ccd609c06e0b8ab4a20", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-memory-lease-r1-generator.py", "sha256": "353f2ec8e9e95ce4186ea404893ea2f599e6963a29d541894e0613740ebef2c7"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-memory-lease-r1-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8880326Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 631, "identity": {"bytes": 27802, "gitsha": "a188e9553b61ffc4293950908a71a93a3a9a27bb", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-objects-reference.py", "sha256": "2320a0363d312f1f07b48cc370f06ac7dbaedefa28437c28230fff6fba4dc3de"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-objects-reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8893304Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 363, "identity": {"bytes": 23289, "gitsha": "58f0b8db47774ac75d073336b9fc1160d34d3fd2", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-shm-map-r3-generator.py", "sha256": "1ac940af6b31b8e7cc02ada063a46fc5a28ee04f524bb60d5bfeb5fde109fcde"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-shm-map-r3-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8908346Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 534, "identity": {"bytes": 11623, "gitsha": "3d45466a68eca7a88d2352879ea1979848318f63", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-values-reference.py", "sha256": "7c3f0299291cf4b99d5c2296351dcfd5e471507d4903ab9da171420c126c5c50"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/fixed-join-r2/namespace-values-reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8923129Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 400, "identity": {"bytes": 45289, "gitsha": "9122aea9d83d7d965982a95ec468c33368156969", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-dms-lifetime-r5-join-draft.py", "sha256": "1296bc3a2e51329c727fca1ae757e6f0a0620a75940a78443807b618430cbb15"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-dms-lifetime-r5-join-draft.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8976522Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2810, "identity": {"bytes": 14126, "gitsha": "6a08e4c42470253774c5fd40965c8242e8cd8cf9", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-memory-lease-r1-ci.py", "sha256": "db4fe0919270117dfeb60ebcc139d0fd28f4d482ed12aed459c1e8f7f132d29b"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-memory-lease-r1-ci.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.8991496Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 363, "identity": {"bytes": 22372, "gitsha": "7711bad8273121820a1fa169250acf9f6d43a726", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-memory-lease-r1-generator.py", "sha256": "e9f5e580bbd69149f51f577f9246fb3f553b1574726e945bd0af0a31f7996560"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-memory-lease-r1-generator.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9098399Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 5616, "identity": {"bytes": 16810, "gitsha": "b7492f359c9c32ad95a3ee74f1b7310b69bb4e8e", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-memory-lease-r1-protocol.py", "sha256": "9090401cfe13156fdd9589423adab8b5c8d22aea90937e4b0525eb3b07e9332c"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-memory-lease-r1-protocol.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9180591Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 3649, "identity": {"bytes": 14615, "gitsha": "6ad9d621be3ddf04dd6eab07884f0c72a91a5a97", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-memory-lease-r1-validate.py", "sha256": "691c2395175892396c54d44c33c36582953d23ba2127838123d5e755fa03403d"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-memory-lease-r1-validate.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9205874Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 631, "identity": {"bytes": 27802, "gitsha": "a188e9553b61ffc4293950908a71a93a3a9a27bb", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-objects-reference.py", "sha256": "2320a0363d312f1f07b48cc370f06ac7dbaedefa28437c28230fff6fba4dc3de"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-objects-reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9222921Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 534, "identity": {"bytes": 11623, "gitsha": "3d45466a68eca7a88d2352879ea1979848318f63", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-values-reference.py", "sha256": "7c3f0299291cf4b99d5c2296351dcfd5e471507d4903ab9da171420c126c5c50"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-values-reference.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9256804Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1743, "identity": {"bytes": 11816, "gitsha": "f3db94a20e1c948c764d630da82687e4ab138332", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-four-engine-original-sources-readback.py", "sha256": "159e430264c1c8ee1dd8ea769bb1c009c21098663634427a101d21903d3dc076"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-four-engine-original-sources-readback.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9289117Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1452, "identity": {"bytes": 7859, "gitsha": "90bf9b45cab0493cc1ff8779f053d98c6230b0cc", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-patch-prepare-r1/build_ordinary_patch_prepare_ci_r1.py", "sha256": "009d0eb822cccca78616058093839b5d59ae529e25218f8a45b8813d2d47aebe"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-patch-prepare-r1/build_ordinary_patch_prepare_ci_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9312836Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1001, "identity": {"bytes": 5136, "gitsha": "d7551ac5d83c2444a6f8a91ca3d1f525b9b0f4c3", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-patch-prepare-r1/ci_ordinary_patch_prepare_r1.py", "sha256": "2944b5a00b7dbef698c66736d9dcbd3899a159eec28e2f4894b36d6b0e38fdea"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-patch-prepare-r1/ci_ordinary_patch_prepare_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9345760Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1518, "identity": {"bytes": 19269, "gitsha": "572cc1f39841b9c142040ba8fba9ec99fc99d77e", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-patch-prepare-r1/generate_ordinary_patch_prepare_r1.py", "sha256": "348965a5bbce5ca2f7eeb93e0033bf1ee58c9d52a0b71aa9452f30b6b1ef2726"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-patch-prepare-r1/generate_ordinary_patch_prepare_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9496536Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7161, "identity": {"bytes": 31318, "gitsha": "52f43c7c93bfef7fd1319591d616d1a2709f5b9c", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-patch-prepare-r1/test_ordinary_patch_prepare_ci_r1.py", "sha256": "ef003cff6dfc4868505eb1e11e9dab6c4f4e050e67a6ded09df2efe65b74d8b0"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-patch-prepare-r1/test_ordinary_patch_prepare_ci_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9543987Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1460, "identity": {"bytes": 7961, "gitsha": "d5490db84132574313d2b5aff8404106108b7dd2", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/static-impact-r1/build_static_impact_ci_r1.py", "sha256": "246d1855c381b977df448d9b446e96c81b682d0d6b03f0895866c41456cca2fb"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/static-impact-r1/build_static_impact_ci_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9565918Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 839, "identity": {"bytes": 4165, "gitsha": "0597dc05db7c71412c28e39b45db3b7e5386879f", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/static-impact-r1/ci_static_impact_r1.py", "sha256": "7bedb817733b9fc5c52aa988c298b05087a12911de80dc77033e9d4909173370"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/static-impact-r1/ci_static_impact_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9598494Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1528, "identity": {"bytes": 27281, "gitsha": "10fd6493cece709385c661a18482b9bf481b254b", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/static-impact-r1/generate_static_impact_r1.py", "sha256": "95cdee2d444109f29240124a70956f1b384c80198a6382ba9a953d961436c481"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/static-impact-r1/generate_static_impact_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9713057Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 5633, "identity": {"bytes": 26022, "gitsha": "2660a8bb57da1469b70e88d62e8395b833404591", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/static-impact-r1/test_static_impact_ci_r1.py", "sha256": "30c4062417b04128f3489426803654e8116da5a4f4faf5df73e42490a107b184"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/static-impact-r1/test_static_impact_ci_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9763062Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1789, "identity": {"bytes": 9070, "gitsha": "6179fa170644eed650e01665b46921268d7e22ae", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/compile_hia_read_ci_r2.py", "sha256": "1161145a458e142eb599d639e9987d091c69bba0ff3a3186d7d5e471f3495c61"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/compile_hia_read_ci_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9914583Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7940, "identity": {"bytes": 28670, "gitsha": "cfa452ed967b6b9c8b3edbfb7ffa55e6a49788d5", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/development/test_hia_read_ci_r2.py", "sha256": "0989d6431729dc6a23f4faf84035096f217edb929f182a691836317d4c6ae27e"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/development/test_hia_read_ci_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9939847Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 282, "identity": {"bytes": 13642, "gitsha": "9e28e8fdb60741420b27b0c247a1e073cc6d39db", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/tools/agent_read_common.py", "sha256": "3b8cbc0082fea459b5b29667a73fc29a74bcac0962e55df92e523ee6e9cba513"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/tools/agent_read_common.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9946079Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7, "identity": {"bytes": 8361, "gitsha": "d4e48b654c3fe7133b89901a4cd7d8020bbd6ffd", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/tools/agent_read_flow.py", "sha256": "8aead3f3eb111287a27b3157e58a07d35e080069766745b75c29dce536273031"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/tools/agent_read_flow.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9951516Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7, "identity": {"bytes": 12519, "gitsha": "5db985a5e428f43c36c12faabb3fc9e376012d39", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/tools/agent_read_graph.py", "sha256": "f2bf6993bd1a44f15cae6e1d37bd9fffddee671e7ce4aa6c4470a6bd19e8ccfe"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/tools/agent_read_graph.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9957123Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 26, "identity": {"bytes": 8364, "gitsha": "e7042f139e4f64496e0f1d136476f9209a3e2afc", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/tools/agent_read_values.py", "sha256": "bfae2a7195187190a4547e907c5527411cb89a11de385bfd392348c72a4b576e"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/tools/agent_read_values.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:01.9999847Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2354, "identity": {"bytes": 10173, "gitsha": "cb70f909d8c6da0575fe32a21ebe44b5ab75cfba", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/tools/generate_hia_agent_read.py", "sha256": "e0d8594044ec12ee3214dd7b97d35bb683d7ebf3cb7d9ec8e4ce919a399a7738"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/tools/generate_hia_agent_read.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0032083Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1436, "identity": {"bytes": 8027, "gitsha": "ff3c863994e1de3ba6a7b8a60527e90e462608b1", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/worker_complete_read_ci_r1.py", "sha256": "ad340c218b597b05aa710c7a7c5573bfc24a768c71280e1063ae58863556d2b3"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-read-r1/worker_complete_read_ci_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0087761Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2966, "identity": {"bytes": 13078, "gitsha": "1cebb401bf26d4cf2d49c31ed4050ac6876c2765", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/build_default_json_fixed_ci_r3.py", "sha256": "a5e93d0cf0b9917ad8cfa8b92a39f7fa167938485e8fa9587cfebd7b0ca82099"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/build_default_json_fixed_ci_r3.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0128171Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1875, "identity": {"bytes": 7932, "gitsha": "d08bab662a981488c16454578d66011b4bb4cdba", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/restored-worker-originals/development/worker_report_harness.py", "sha256": "d0107fc2ffe32188e246c5dfc9dd2cad3b9e220ce3b0537b795e1601d8f846c2"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/restored-worker-originals/development/worker_report_harness.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0176973Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 2262, "identity": {"bytes": 10941, "gitsha": "1e8977e94885fc0416c58de9e9dc0380ac5ec4c5", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/restored-worker-originals/development/worker_request_harness.py", "sha256": "f16900f5ad10b217014180ef44971a962de3d5c9793a3af3e94a6b5ce49bfa7c"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/restored-worker-originals/development/worker_request_harness.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0209402Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1161, "identity": {"bytes": 18081, "gitsha": "29652ef67521c09e46d2ad2128ea2d226b458a4a", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/restored-worker-originals/tools/generate_hia_worker_report.py", "sha256": "dc69eb36aacc256287f2ca4ccbd634c4626da8255d1dfddbe0b5b5a1cf829cb1"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/restored-worker-originals/tools/generate_hia_worker_report.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0215585Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7, "identity": {"bytes": 19033, "gitsha": "c4b135ed956e666b47989321d2497cdd040a93ff", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/tools/agent_default_json_fixed_flow.py", "sha256": "4492b6254104af6ebb098687e3159a32c0521c9441fa8665a13166f4f12379e7"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/tools/agent_default_json_fixed_flow.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0247833Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1778, "identity": {"bytes": 10470, "gitsha": "0c2941680ef27b3fcc81e8629353604f55a17bcf", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/worker_default_json_fixed_ci_r3.py", "sha256": "df9dfc44ac4f8f39e85e97ce16adba75bc0adb8180c691fda1c9642a922fb479"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/worker_default_json_fixed_ci_r3.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0279320Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1076, "identity": {"bytes": 22197, "gitsha": "a0bdd8d99238cb52c6669be09463a57b9fdd0c78", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r1/dependencies/generate_hia_agent_worker_init_values.py", "sha256": "9a786c3d3982b736bd068eb522b8b8d7649da80bd4813f9c235e2c83461a95ac"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r1/dependencies/generate_hia_agent_worker_init_values.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0437937Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7479, "identity": {"bytes": 27098, "gitsha": "9cbdd11f46677e11e66e4c6593520fd8d44269ea", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r1/development/test_worker_init_maps_ci_r2.py", "sha256": "320870f96f70590deacdfa0a7e5ed603fd54c35eb0fb1609c3a4a92ca1a91c2a"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r1/development/test_worker_init_maps_ci_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0585459Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7420, "identity": {"bytes": 27233, "gitsha": "b12248a7ad4aa4875e78af33922182b3fffc1636", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r1/development/value_mechanics_source.py", "sha256": "1602df39c9dd982e42ece64379e76fc9ca123b7ca407e84d7f4ded767bebf753"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r1/development/value_mechanics_source.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0630845Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1421, "identity": {"bytes": 6959, "gitsha": "3d9e600f34a0db11430e1d1f86c93813581f7556", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r3/compile_worker_init_maps_ci_r2.py", "sha256": "a7723a3753c23a67514fc6b737a0dab2b5a03be74d971323e6b715d03eb83e5e"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r3/compile_worker_init_maps_ci_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0658989Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1126, "identity": {"bytes": 19560, "gitsha": "275a8c3a5d63a94241d0651adf425ae2530d2380", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r3/tools/generate_hia_agent_worker_init_maps.py", "sha256": "8a837ae4acaf11a68054c030c51d6d667d93dee4c825c8fee5bb324b9a6fc2fb"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r3/tools/generate_hia_agent_worker_init_maps.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0686321Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1304, "identity": {"bytes": 7469, "gitsha": "1e833898400fb4651a23cdcd4d7ebc50aa35813a", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r3/worker_initialization_maps_ci_r2.py", "sha256": "28f8a77bc52502b57715fd293bd14c59ff813bc217adb19e470c445c3277358b"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r3/worker_initialization_maps_ci_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0715395Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1403, "identity": {"bytes": 6541, "gitsha": "d99f6743e54de5c9237f101d343b00bb134147f4", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-sequence-r1/compile_worker_init_sequence_ci_r2.py", "sha256": "2adc1bdf2aa6377f7a525558e9494344d3a772f920c9c56115e7392cce80d05b"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-sequence-r1/compile_worker_init_sequence_ci_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.0890451Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 8762, "identity": {"bytes": 32141, "gitsha": "610dad775c08cddb0daa7be6d465318151bc95bb", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-sequence-r1/development/test_worker_init_sequence_ci_r4.py", "sha256": "b809f06c0c1a0e56d5a49555e6b3010ce7c78d18707571f87c4a9b78d7d62f2b"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-sequence-r1/development/test_worker_init_sequence_ci_r4.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1040414Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7420, "identity": {"bytes": 27233, "gitsha": "b12248a7ad4aa4875e78af33922182b3fffc1636", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-sequence-r1/development/value_mechanics_source.py", "sha256": "1602df39c9dd982e42ece64379e76fc9ca123b7ca407e84d7f4ded767bebf753"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-sequence-r1/development/value_mechanics_source.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1087856Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1477, "identity": {"bytes": 34300, "gitsha": "f9cd612bad5707d95acef736afe03b6600724d9b", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-sequence-r1/tools/generate_hia_agent_worker_init_sequence.py", "sha256": "fad447d45d40494f04280ca100f1ce1abf5e5651bce4feba8cedcfcdbdae06ef"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-sequence-r1/tools/generate_hia_agent_worker_init_sequence.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1115763Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1304, "identity": {"bytes": 7541, "gitsha": "5b4912b30d127a4422b073d734d8599fb7ef06dd", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-sequence-r1/worker_initialization_sequence_ci_r3.py", "sha256": "85ca32c91dfb8b6975b6e21faced6bc69b728b2a6d7673a1e3668136adb94c22"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-sequence-r1/worker_initialization_sequence_ci_r3.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1144250Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1484, "identity": {"bytes": 6787, "gitsha": "d1f98d448993ee1dc711aa1f38ecfb5c56e5900e", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-values-r1/compile_worker_init_values_ci_r1.py", "sha256": "f2a243e8673b9fbd1c1b248eaf83b5f685ffb5ca47179e0d224769a760a2123f"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-values-r1/compile_worker_init_values_ci_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1290538Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7420, "identity": {"bytes": 27233, "gitsha": "b12248a7ad4aa4875e78af33922182b3fffc1636", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-values-r1/development/test_worker_init_values_ci_r2.py", "sha256": "1602df39c9dd982e42ece64379e76fc9ca123b7ca407e84d7f4ded767bebf753"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-values-r1/development/test_worker_init_values_ci_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1406394Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 3261, "identity": {"bytes": 13155, "gitsha": "fe96d796fe71120ddef15707d6add729f96c7aec", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-values-r1/tools/agent_worker_init_templates.py", "sha256": "65d048c0eb027cbbe83be4d20f1708b96b40415c760322f1c79c4c7d3d1e93d0"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-values-r1/tools/agent_worker_init_templates.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1444591Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1076, "identity": {"bytes": 22197, "gitsha": "a0bdd8d99238cb52c6669be09463a57b9fdd0c78", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-values-r1/tools/generate_hia_agent_worker_init_values.py", "sha256": "9a786c3d3982b736bd068eb522b8b8d7649da80bd4813f9c235e2c83461a95ac"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-values-r1/tools/generate_hia_agent_worker_init_values.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1473716Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1294, "identity": {"bytes": 7295, "gitsha": "ef674268c32790d242f809ec936a8375be31e3e9", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-values-r1/worker_initialization_values_ci_r1.py", "sha256": "8de2fd76391e89e601af8e246198ee58c9be5f4f618afc73fbd08db559f63cdc"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-values-r1/worker_initialization_values_ci_r1.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1508018Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1748, "identity": {"bytes": 9954, "gitsha": "f0a05677fb090a6c6da60b647187a243d9000b43", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/compile_worker_init_pure_ci_r2.py", "sha256": "f68c5c69339533805dd2b682982745cfdeecf1dcf629efbd77638ab3a6775c28"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/compile_worker_init_pure_ci_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1535453Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1126, "identity": {"bytes": 19560, "gitsha": "275a8c3a5d63a94241d0651adf425ae2530d2380", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/dependencies/generate_hia_agent_worker_init_maps.py", "sha256": "8a837ae4acaf11a68054c030c51d6d667d93dee4c825c8fee5bb324b9a6fc2fb"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/dependencies/generate_hia_agent_worker_init_maps.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1568688Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1477, "identity": {"bytes": 34300, "gitsha": "f9cd612bad5707d95acef736afe03b6600724d9b", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/dependencies/generate_hia_agent_worker_init_sequence.py", "sha256": "fad447d45d40494f04280ca100f1ce1abf5e5651bce4feba8cedcfcdbdae06ef"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/dependencies/generate_hia_agent_worker_init_sequence.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1594302Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1076, "identity": {"bytes": 22197, "gitsha": "a0bdd8d99238cb52c6669be09463a57b9fdd0c78", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/dependencies/generate_hia_agent_worker_init_values.py", "sha256": "9a786c3d3982b736bd068eb522b8b8d7649da80bd4813f9c235e2c83461a95ac"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/dependencies/generate_hia_agent_worker_init_values.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1772971Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 8762, "identity": {"bytes": 32141, "gitsha": "610dad775c08cddb0daa7be6d465318151bc95bb", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/development/sequence_oracle_source.py", "sha256": "b809f06c0c1a0e56d5a49555e6b3010ce7c78d18707571f87c4a9b78d7d62f2b"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/development/sequence_oracle_source.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.1960814Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 8870, "identity": {"bytes": 35601, "gitsha": "703c4d78fae1cbc4bfe4ced89ea441f5a7f47d61", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/development/test_worker_init_pure_ci_r3.py", "sha256": "508a9e6050943be1ff3053ea4e1ace2d9761a38cede7d55f02995139ef451a6d"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/development/test_worker_init_pure_ci_r3.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.2128494Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7420, "identity": {"bytes": 27233, "gitsha": "b12248a7ad4aa4875e78af33922182b3fffc1636", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/development/value_mechanics_source.py", "sha256": "1602df39c9dd982e42ece64379e76fc9ca123b7ca407e84d7f4ded767bebf753"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/development/value_mechanics_source.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.2207648Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 3261, "identity": {"bytes": 13155, "gitsha": "fe96d796fe71120ddef15707d6add729f96c7aec", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/tools/agent_worker_init_templates.py", "sha256": "65d048c0eb027cbbe83be4d20f1708b96b40415c760322f1c79c4c7d3d1e93d0"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/tools/agent_worker_init_templates.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.2254764Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1422, "identity": {"bytes": 7025, "gitsha": "d95ce033f7d13ca8fa580de5eb8e83f9c85e3b18", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/tools/generate_hia_agent_worker_init_pure.py", "sha256": "1b7d97ba633a40814586b0101d786b2b660ded3c59709dc34949f831b69a6974"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/tools/generate_hia_agent_worker_init_pure.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.2262656Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7, "identity": {"bytes": 9085, "gitsha": "1151c9d63ce2f189fd0fcc72bf00870a55370544", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/tools/worker_init_pure_common.py", "sha256": "f8f54a86ed80cd977ea54faf5c75007d8eca98be752c5ad8e9d9fce780bf68f5"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/tools/worker_init_pure_common.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.2267375Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7, "identity": {"bytes": 15262, "gitsha": "f556d39f9d65a17874586a3a9f1a2b9d8e2d839a", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/tools/worker_init_pure_prepare.py", "sha256": "0862ff31b76d71edc9a47fc48632801a69960e6739a8b3d763151c3e5bb0dfb7"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/tools/worker_init_pure_prepare.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.2271628Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 7, "identity": {"bytes": 10563, "gitsha": "403d6012ca7833bc4da3fb5d40ee3cc66aad7966", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/tools/worker_init_pure_result.py", "sha256": "e26d47cdc4cc172183ae08ffbcbf3ec88db53d282a0d46f60a505a52dc823d38"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/tools/worker_init_pure_result.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.2296536Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 1314, "identity": {"bytes": 7594, "gitsha": "78c4a7f0a3b61c099387f56cd57cac805492f766", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/worker_initialization_pure_join_ci_r2.py", "sha256": "a6bb7a5d51757f44ee2e1ded753107fe9a66c14b9c88551ce8e92e89155e41c7"}, "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/worker_initialization_pure_join_ci_r2.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.2579984Z HIA_SUBMITTED_SOURCE_SYNTAX {"ast_nodes": 9612, "identity": {"bytes": 62218, "gitsha": "0bc5eb3dc49ee79faa67d3ff0d2e504689bab1f8", "mode": "100644", "path": "tools/qualify_hia_selfhost.py", "sha256": "5827d103856fb871db6fe07772068aece8827458215cf4d2b89d5f14dee6e023"}, "path": "tools/qualify_hia_selfhost.py", "status": "PASS_AST_ONLY"}
+2026-11-12T04:02:02.3040948Z HIA_SUBMITTED_SOURCE_SYNTAX_SUMMARY {"B3_compilations": 0, "HIA_generations": 0, "Python": "3.12.14 (main, Aug 13 2026, 02:47:42) [GCC 13.3.0]", "Python_AST_files": 159, "VM_entries": 0, "errors": [], "expected_Python_files": 159, "installed_activation": false, "inventory": {"bytes": 55321, "gitsha": "235f754d31325b8040b4f9b5b89dc6974822b9b4", "mode": "100644", "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/active_source_syntax_manifest_r1.json", "sha256": "c9a805b7b00ad8e4e8d5b638e04c5362f9191e9f33f44ed9c36c96d859af968a"}, "limits": {"address_bytes": 1073741824, "core_bytes": 0, "cores": 1, "cpu_seconds": 90, "external_wall_seconds": 180}, "native_entries": 0, "observed_HEAD": "78fff04d3476a70a3513af0606a8c91a945ed6a5", "run_id": "43151734029", "schema": "hia-selected-submitted-source-syntax-v1", "scope": "Only the explicitly inventoried source syntax; no import or target execution", "semantic_qualification": false, "status": "PASS_SOURCE_SYNTAX_ONLY", "submitted_head": "78fff04d3476a70a3513af0606a8c91a945ed6a5", "whole_stack_closed": false}
+2026-11-12T04:02:02.3185311Z ##[group]Run python -m pip install z3-solver==4.15.4.0
+2026-11-12T04:02:02.3185700Z [36;1mpython -m pip install z3-solver==4.15.4.0[0m
+2026-11-12T04:02:02.3206774Z shell: /usr/bin/bash -e {0}
+2026-11-12T04:02:02.3206998Z env:
+2026-11-12T04:02:02.3207194Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T04:02:02.3207487Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:02:02.3207841Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-12T04:02:02.3208192Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:02:02.3208501Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:02:02.3208804Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:02:02.3209107Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-12T04:02:02.3209364Z ##[endgroup]
+2026-11-12T04:02:03.1830514Z Collecting z3-solver==4.15.4.0
+2026-11-12T04:02:03.2463424Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-12T04:02:03.2576855Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-12T04:02:04.0199338Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 39.3 MB/s  0:00:00
+2026-11-12T04:02:04.0902745Z Installing collected packages: z3-solver
+2026-11-12T04:02:04.5534641Z Successfully installed z3-solver-4.15.4.0
+2026-11-12T04:02:04.6524150Z ##[group]Run python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/worker_initialization_pure_join_ci_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-initialization-pure-join-driver.log"
+2026-11-12T04:02:04.6525419Z [36;1mpython -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/worker_initialization_pure_join_ci_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-initialization-pure-join-driver.log"[0m
+2026-11-12T04:02:04.6544554Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T04:02:04.6544828Z env:
+2026-11-12T04:02:04.6545011Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T04:02:04.6545269Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:02:04.6545606Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-12T04:02:04.6546148Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:02:04.6546508Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:02:04.6546806Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:02:04.6547099Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-12T04:02:04.6547474Z   HIA_CI_OUTPUT: /home/runner/work/_temp/hia-worker-initialization-pure-join-recovery
+2026-11-12T04:02:04.6548046Z   HIA_CI_COMMON: /home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+2026-11-12T04:02:04.6548498Z ##[endgroup]
+2026-11-12T04:02:05.9623850Z {"label": "checkout-pinned-baseline", "timeout_seconds": 300, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 817978178, "child_cpu_seconds": 0.778906, "children_cumulative_maxrss_kib": 80392, "stdout_bytes": 88, "stdout_sha256": "594f75c379807db304f1716bc5a8f3ec537fa7622a59e469fc2a34e4adbe70cd", "stderr_bytes": 44, "stderr_sha256": "68ae5f70c237ae7992fb3f4387fee163afa3b015e6423d519f5c78049b084fd3"}
+2026-11-12T04:05:43.0558513Z {"label": "restore-exact-published-root-archives", "timeout_seconds": 600, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 216292631577, "child_cpu_seconds": 139.54051700000002, "children_cumulative_maxrss_kib": 299916, "stdout_bytes": 6090, "stdout_sha256": "6e9013d3a60e2a6f9af3965bd79ca25b140c1cfe862575740828409d3455a4aa", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T04:05:43.1754315Z {"label": "import-exact-reference-objects", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 114972546, "child_cpu_seconds": 0.032339000000007445, "children_cumulative_maxrss_kib": 299916, "stdout_bytes": 0, "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stderr_bytes": 133, "stderr_sha256": "56ff0a3b92ba81bbe09cc20fbb17de2c81d8212ddaa1a45c8b84ebd39b30e6b0"}
+2026-11-12T04:05:44.7983269Z {"label": "restore-exact-reference", "timeout_seconds": 300, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 1621588618, "child_cpu_seconds": 1.5072060000000036, "children_cumulative_maxrss_kib": 299916, "stdout_bytes": 910, "stdout_sha256": "29c37c44259a1abf8a1fd15946350c83d6cea3b11e754817c250641c5e072753", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T04:05:47.8794891Z {"label": "worker-initializer-pure-join-exact-dependency-restore", "timeout_seconds": 300, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 2873571792, "child_cpu_seconds": 2.815043000000003, "children_cumulative_maxrss_kib": 299916, "stdout_bytes": 192, "stdout_sha256": "83c5804a93fc2f11998e0c0a48bb160b31b99faa8ce1eed1c57c38474c8bde31", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T04:05:53.3605981Z {"label": "worker-initializer-pure-join-generation-and-four-bounded-B3", "timeout_seconds": 300, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 5480218951, "child_cpu_seconds": 5.442792999999995, "children_cumulative_maxrss_kib": 299916, "stdout_bytes": 6244, "stdout_sha256": "952882818003b9e2f170ff0ab807240d19a02ee4da15303bca2bd3f30dda2ddb", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T04:05:53.3619252Z HIA_INITIALIZER_PURE_JOIN_PANEL {"actual_successful_process": true, "label": "worker-initializer-pure-join-generation-and-four-bounded-B3", "original_summary": {"actual_compiles": 4, "components": {"maps": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": {"blocks": 352, "functions": 29, "instructions": 1615, "max_block_parameters": 15, "max_function_blocks": 39}, "image_bytes": 140591, "image_path": "/home/runner/work/_temp/hia-worker-initialization-pure-join-recovery/initializer-pure-join-compile/maps.image.bin", "image_sha256": "fdf6ec06432682e02ea8c3380235aa6a4accdac1024c93e32ba8df3df80674e0", "receipt_path": "/home/runner/work/_temp/hia-worker-initialization-pure-join-recovery/initializer-pure-join-compile/maps.receipt.json", "role": "maps", "source_bytes": 95040, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-initialization-pure-next/examples/hia_bootstrap/agent_worker_initialization_maps.hiaasm", "source_sha256": "bc3faf33b6e946e943aea8a42503b633a77625eb037058c277422d07039d7f3b"}, "pure": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": {"blocks": 768, "functions": 40, "instructions": 3555, "max_block_parameters": 15, "max_function_blocks": 92}, "image_bytes": 306738, "image_path": "/home/runner/work/_temp/hia-worker-initialization-pure-join-recovery/initializer-pure-join-compile/pure.image.bin", "image_sha256": "d04f574ea2d180d0eedbb36404787772b57471999bd3451ab03435c8d6536eb8", "receipt_path": "/home/runner/work/_temp/hia-worker-initialization-pure-join-recovery/initializer-pure-join-compile/pure.receipt.json", "role": "pure", "source_bytes": 208134, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-initialization-pure-next/examples/hia_bootstrap/agent_worker_initializer_pure_join.hiaasm", "source_sha256": "593312105f58a26c50586da921425e958325c0b1df3988bc2c353dc733fdb75f"}, "sequence": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": {"blocks": 545, "functions": 32, "instructions": 2947, "max_block_parameters": 10, "max_function_blocks": 93}, "image_bytes": 196611, "image_path": "/home/runner/work/_temp/hia-worker-initialization-pure-join-recovery/initializer-pure-join-compile/sequence.image.bin", "image_sha256": "f6ffb339a75828c19feb59e306d0256a22b161711559677bd8d53f77538b194a", "receipt_path": "/home/runner/work/_temp/hia-worker-initialization-pure-join-recovery/initializer-pure-join-compile/sequence.receipt.json", "role": "sequence", "source_bytes": 154820, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-initialization-pure-next/examples/hia_bootstrap/agent_worker_initialization_sequence.hiaasm", "source_sha256": "fa460eaf5f5b5e35061211724b07698bb3ab4da965f1a56bf53611da0cd62663"}, "values": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": {"blocks": 316, "functions": 23, "instructions": 1513, "max_block_parameters": 15, "max_function_blocks": 50}, "image_bytes": 128975, "image_path": "/home/runner/work/_temp/hia-worker-initialization-pure-join-recovery/initializer-pure-join-compile/values.image.bin", "image_sha256": "15cb7e589647fd22e2df9470004c7c64281f4ad9e9cb5dccb70c0cc191386297", "receipt_path": "/home/runner/work/_temp/hia-worker-initialization-pure-join-recovery/initializer-pure-join-compile/values.receipt.json", "role": "values", "source_bytes": 88015, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-initialization-pure-next/examples/hia_bootstrap/agent_worker_initialization_values.hiaasm", "source_sha256": "0d32720faeb22478b4163436a4586e6b140aac18628bf2a99b824f34e543a266"}}, "cross_graph_import_closed": false, "elapsed_ns": 5289088997, "failure": null, "namespace_effects_closed": false, "ordinary_initialization": false, "original_compiler_limits": {"address_space_bytes": 268435456, "cpu_seconds": 10, "wall_seconds": 20}, "production_activation": false, "runtime_entries": 0, "scope": "INITIALIZER_PURE_JOIN_FRESH_FOUR_IMAGE_ORIGINAL_LIMIT_COMPILE", "source_unchanged": true, "status": "PASS", "whole_worker_closed": false}}
+2026-11-12T04:05:54.0789784Z {"label": "worker-initializer-pure-join-semantic", "timeout_seconds": 180, "status": "FAIL", "returncode": 1, "timed_out": false, "elapsed_ns": 717411946, "child_cpu_seconds": 0.5684230000000241, "children_cumulative_maxrss_kib": 299916, "stdout_bytes": 0, "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stderr_bytes": 1333, "stderr_sha256": "7cf47352efc97ab4a5c8241429d355acf795d90a3b8d6e8a3ba0911b693cef7a"}
+2026-11-12T04:05:54.0791370Z Traceback (most recent call last):
+2026-11-12T04:05:54.0803737Z   File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-initializer-pure-join-ci-source/test_worker_init_pure_ci_r3.py", line 136, in <module>
+2026-11-12T04:05:54.0804380Z     globals()[name]=ast.literal_eval(assigned)
+2026-11-12T04:05:54.0804637Z                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:54.0805057Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 112, in literal_eval
+2026-11-12T04:05:54.0805445Z     return _convert(node_or_string)
+2026-11-12T04:05:54.0805656Z            ^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:54.0806002Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 101, in _convert
+2026-11-12T04:05:54.0806360Z     return dict(zip(map(_convert, node.keys),
+2026-11-12T04:05:54.0806614Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:54.0806970Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 111, in _convert
+2026-11-12T04:05:54.0807322Z     return _convert_signed_num(node)
+2026-11-12T04:05:54.0807532Z            ^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:54.0807904Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 85, in _convert_signed_num
+2026-11-12T04:05:54.0808274Z     return _convert_num(node)
+2026-11-12T04:05:54.0808475Z            ^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:54.0808812Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 76, in _convert_num
+2026-11-12T04:05:54.0809168Z     _raise_malformed_node(node)
+2026-11-12T04:05:54.0809570Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 73, in _raise_malformed_node
+2026-11-12T04:05:54.0810051Z     raise ValueError(msg + f': {node!r}')
+2026-11-12T04:05:54.0810383Z ValueError: malformed node or string on line 48: <ast.BinOp object at 0x7f5e87b9c310>
+2026-11-12T04:05:54.0810661Z 
+2026-11-12T04:05:54.0810778Z Traceback (most recent call last):
+2026-11-12T04:05:54.0811455Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/worker_initialization_pure_join_ci_r2.py", line 74, in panel
+2026-11-12T04:05:54.0812402Z     common.run(label,args,timeout=timeout);success=True
+2026-11-12T04:05:54.0812663Z     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:54.0813191Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py", line 91, in run
+2026-11-12T04:05:54.0813764Z     raise RuntimeError("Independent recovery step failed: "+label)
+2026-11-12T04:05:54.0814177Z RuntimeError: Independent recovery step failed: worker-initializer-pure-join-semantic
+2026-11-12T04:05:54.0814887Z HIA_INITIALIZER_PURE_JOIN_PANEL {"actual_successful_process": false, "label": "worker-initializer-pure-join-semantic", "original_summary": {"status": "MISSING_TERMINAL_SUMMARY"}}
+2026-11-12T04:05:54.6480190Z {"label": "worker-initializer-pure-join-catalog", "timeout_seconds": 180, "status": "FAIL", "returncode": 1, "timed_out": false, "elapsed_ns": 567252502, "child_cpu_seconds": 0.5648379999999946, "children_cumulative_maxrss_kib": 299916, "stdout_bytes": 0, "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stderr_bytes": 1333, "stderr_sha256": "0710116ff9000788090a77ad5445fd72a7b3e3f6821079ee50833bbf2ec2e289"}
+2026-11-12T04:05:54.6481488Z Traceback (most recent call last):
+2026-11-12T04:05:54.6482491Z   File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-initializer-pure-join-ci-source/test_worker_init_pure_ci_r3.py", line 136, in <module>
+2026-11-12T04:05:54.6483058Z     globals()[name]=ast.literal_eval(assigned)
+2026-11-12T04:05:54.6483316Z                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:54.6483733Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 112, in literal_eval
+2026-11-12T04:05:54.6484275Z     return _convert(node_or_string)
+2026-11-12T04:05:54.6484486Z            ^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:54.6484836Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 101, in _convert
+2026-11-12T04:05:54.6485217Z     return dict(zip(map(_convert, node.keys),
+2026-11-12T04:05:54.6485450Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:54.6485791Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 111, in _convert
+2026-11-12T04:05:54.6486132Z     return _convert_signed_num(node)
+2026-11-12T04:05:54.6486346Z            ^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:54.6486719Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 85, in _convert_signed_num
+2026-11-12T04:05:54.6487097Z     return _convert_num(node)
+2026-11-12T04:05:54.6487296Z            ^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:54.6487623Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 76, in _convert_num
+2026-11-12T04:05:54.6487985Z     _raise_malformed_node(node)
+2026-11-12T04:05:54.6488564Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 73, in _raise_malformed_node
+2026-11-12T04:05:54.6489140Z     raise ValueError(msg + f': {node!r}')
+2026-11-12T04:05:54.6489625Z ValueError: malformed node or string on line 48: <ast.BinOp object at 0x7fab5580c710>
+2026-11-12T04:05:54.6490042Z 
+2026-11-12T04:05:54.6490192Z Traceback (most recent call last):
+2026-11-12T04:05:54.6491245Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/worker_initialization_pure_join_ci_r2.py", line 74, in panel
+2026-11-12T04:05:54.6492508Z     common.run(label,args,timeout=timeout);success=True
+2026-11-12T04:05:54.6492887Z     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:54.6493738Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py", line 91, in run
+2026-11-12T04:05:54.6494745Z     raise RuntimeError("Independent recovery step failed: "+label)
+2026-11-12T04:05:54.6495400Z RuntimeError: Independent recovery step failed: worker-initializer-pure-join-catalog
+2026-11-12T04:05:54.6496537Z HIA_INITIALIZER_PURE_JOIN_PANEL {"actual_successful_process": false, "label": "worker-initializer-pure-join-catalog", "original_summary": {"status": "MISSING_TERMINAL_SUMMARY"}}
+2026-11-12T04:05:55.2160630Z {"label": "worker-initializer-pure-join-growth", "timeout_seconds": 180, "status": "FAIL", "returncode": 1, "timed_out": false, "elapsed_ns": 566793540, "child_cpu_seconds": 0.5516509999999926, "children_cumulative_maxrss_kib": 299916, "stdout_bytes": 0, "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stderr_bytes": 1333, "stderr_sha256": "710c6e0a03093f445f22038bc1abc4baba880ccc7fee39630b3550240e55cb01"}
+2026-11-12T04:05:55.2162826Z Traceback (most recent call last):
+2026-11-12T04:05:55.2164162Z   File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-initializer-pure-join-ci-source/test_worker_init_pure_ci_r3.py", line 136, in <module>
+2026-11-12T04:05:55.2165113Z     globals()[name]=ast.literal_eval(assigned)
+2026-11-12T04:05:55.2165495Z                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:55.2166112Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 112, in literal_eval
+2026-11-12T04:05:55.2166671Z     return _convert(node_or_string)
+2026-11-12T04:05:55.2167000Z            ^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:55.2167717Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 101, in _convert
+2026-11-12T04:05:55.2168295Z     return dict(zip(map(_convert, node.keys),
+2026-11-12T04:05:55.2168641Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:55.2169187Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 111, in _convert
+2026-11-12T04:05:55.2169935Z     return _convert_signed_num(node)
+2026-11-12T04:05:55.2170201Z            ^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:55.2170713Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 85, in _convert_signed_num
+2026-11-12T04:05:55.2171241Z     return _convert_num(node)
+2026-11-12T04:05:55.2171512Z            ^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:55.2172181Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 76, in _convert_num
+2026-11-12T04:05:55.2172805Z     _raise_malformed_node(node)
+2026-11-12T04:05:55.2173389Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 73, in _raise_malformed_node
+2026-11-12T04:05:55.2174010Z     raise ValueError(msg + f': {node!r}')
+2026-11-12T04:05:55.2174507Z ValueError: malformed node or string on line 48: <ast.BinOp object at 0x7f5cecb98550>
+2026-11-12T04:05:55.2174906Z 
+2026-11-12T04:05:55.2175036Z Traceback (most recent call last):
+2026-11-12T04:05:55.2176076Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/worker_initialization_pure_join_ci_r2.py", line 74, in panel
+2026-11-12T04:05:55.2177134Z     common.run(label,args,timeout=timeout);success=True
+2026-11-12T04:05:55.2177525Z     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:55.2178326Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py", line 91, in run
+2026-11-12T04:05:55.2179248Z     raise RuntimeError("Independent recovery step failed: "+label)
+2026-11-12T04:05:55.2179875Z RuntimeError: Independent recovery step failed: worker-initializer-pure-join-growth
+2026-11-12T04:05:55.2180988Z HIA_INITIALIZER_PURE_JOIN_PANEL {"actual_successful_process": false, "label": "worker-initializer-pure-join-growth", "original_summary": {"status": "MISSING_TERMINAL_SUMMARY"}}
+2026-11-12T04:05:55.7841613Z {"label": "worker-initializer-pure-join-protocol", "timeout_seconds": 180, "status": "FAIL", "returncode": 1, "timed_out": false, "elapsed_ns": 566661022, "child_cpu_seconds": 0.5514009999999985, "children_cumulative_maxrss_kib": 299916, "stdout_bytes": 0, "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stderr_bytes": 1333, "stderr_sha256": "7edf7697bd1bddfe2209c3d79eb449f2fbe31c27683badc127bfc74267b5e661"}
+2026-11-12T04:05:55.7843839Z Traceback (most recent call last):
+2026-11-12T04:05:55.7844844Z   File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-initializer-pure-join-ci-source/test_worker_init_pure_ci_r3.py", line 136, in <module>
+2026-11-12T04:05:55.7845789Z     globals()[name]=ast.literal_eval(assigned)
+2026-11-12T04:05:55.7846159Z                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:55.7846780Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 112, in literal_eval
+2026-11-12T04:05:55.7847346Z     return _convert(node_or_string)
+2026-11-12T04:05:55.7847656Z            ^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:55.7848643Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 101, in _convert
+2026-11-12T04:05:55.7849213Z     return dict(zip(map(_convert, node.keys),
+2026-11-12T04:05:55.7849542Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:55.7850084Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 111, in _convert
+2026-11-12T04:05:55.7850587Z     return _convert_signed_num(node)
+2026-11-12T04:05:55.7850901Z            ^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:55.7851387Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 85, in _convert_signed_num
+2026-11-12T04:05:55.7852006Z     return _convert_num(node)
+2026-11-12T04:05:55.7852293Z            ^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:55.7852787Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 76, in _convert_num
+2026-11-12T04:05:55.7853322Z     _raise_malformed_node(node)
+2026-11-12T04:05:55.7853999Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 73, in _raise_malformed_node
+2026-11-12T04:05:55.7854845Z     raise ValueError(msg + f': {node!r}')
+2026-11-12T04:05:55.7855404Z ValueError: malformed node or string on line 48: <ast.BinOp object at 0x7fdce3808390>
+2026-11-12T04:05:55.7855816Z 
+2026-11-12T04:05:55.7855947Z Traceback (most recent call last):
+2026-11-12T04:05:55.7856976Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/worker_initialization_pure_join_ci_r2.py", line 74, in panel
+2026-11-12T04:05:55.7858025Z     common.run(label,args,timeout=timeout);success=True
+2026-11-12T04:05:55.7858418Z     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:55.7859218Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py", line 91, in run
+2026-11-12T04:05:55.7860171Z     raise RuntimeError("Independent recovery step failed: "+label)
+2026-11-12T04:05:55.7860816Z RuntimeError: Independent recovery step failed: worker-initializer-pure-join-protocol
+2026-11-12T04:05:55.7862095Z HIA_INITIALIZER_PURE_JOIN_PANEL {"actual_successful_process": false, "label": "worker-initializer-pure-join-protocol", "original_summary": {"status": "MISSING_TERMINAL_SUMMARY"}}
+2026-11-12T04:05:56.3520493Z {"label": "worker-initializer-pure-join-large-values", "timeout_seconds": 180, "status": "FAIL", "returncode": 1, "timed_out": false, "elapsed_ns": 566565686, "child_cpu_seconds": 0.5521079999999969, "children_cumulative_maxrss_kib": 299916, "stdout_bytes": 0, "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stderr_bytes": 1333, "stderr_sha256": "0067924ad7810467fcc2d4da6ab16007aa548c329a02e95c9e8e55365e4293e9"}
+2026-11-12T04:05:56.3522680Z Traceback (most recent call last):
+2026-11-12T04:05:56.3523656Z   File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-initializer-pure-join-ci-source/test_worker_init_pure_ci_r3.py", line 136, in <module>
+2026-11-12T04:05:56.3524593Z     globals()[name]=ast.literal_eval(assigned)
+2026-11-12T04:05:56.3525002Z                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:56.3525619Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 112, in literal_eval
+2026-11-12T04:05:56.3526239Z     return _convert(node_or_string)
+2026-11-12T04:05:56.3526550Z            ^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:56.3527349Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 101, in _convert
+2026-11-12T04:05:56.3527910Z     return dict(zip(map(_convert, node.keys),
+2026-11-12T04:05:56.3528287Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:56.3528880Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 111, in _convert
+2026-11-12T04:05:56.3529459Z     return _convert_signed_num(node)
+2026-11-12T04:05:56.3529749Z            ^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:56.3530307Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 85, in _convert_signed_num
+2026-11-12T04:05:56.3531121Z     return _convert_num(node)
+2026-11-12T04:05:56.3531416Z            ^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:56.3532033Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 76, in _convert_num
+2026-11-12T04:05:56.3532501Z     _raise_malformed_node(node)
+2026-11-12T04:05:56.3533073Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 73, in _raise_malformed_node
+2026-11-12T04:05:56.3533687Z     raise ValueError(msg + f': {node!r}')
+2026-11-12T04:05:56.3534301Z ValueError: malformed node or string on line 48: <ast.BinOp object at 0x7fbb0bc44410>
+2026-11-12T04:05:56.3534700Z 
+2026-11-12T04:05:56.3534839Z Traceback (most recent call last):
+2026-11-12T04:05:56.3535887Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/worker_initialization_pure_join_ci_r2.py", line 74, in panel
+2026-11-12T04:05:56.3537178Z     common.run(label,args,timeout=timeout);success=True
+2026-11-12T04:05:56.3537567Z     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:56.3538353Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py", line 91, in run
+2026-11-12T04:05:56.3539278Z     raise RuntimeError("Independent recovery step failed: "+label)
+2026-11-12T04:05:56.3539952Z RuntimeError: Independent recovery step failed: worker-initializer-pure-join-large-values
+2026-11-12T04:05:56.3541126Z HIA_INITIALIZER_PURE_JOIN_PANEL {"actual_successful_process": false, "label": "worker-initializer-pure-join-large-values", "original_summary": {"status": "MISSING_TERMINAL_SUMMARY"}}
+2026-11-12T04:05:56.9706721Z {"label": "worker-initializer-pure-join-large-registry", "timeout_seconds": 180, "status": "FAIL", "returncode": 1, "timed_out": false, "elapsed_ns": 617124067, "child_cpu_seconds": 0.5669900000000112, "children_cumulative_maxrss_kib": 299916, "stdout_bytes": 0, "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stderr_bytes": 1333, "stderr_sha256": "e0dc132d1b7a0ef8528f68fa13ef7fc55ef8c92c020ccaf65bc3f0bba5316040"}
+2026-11-12T04:05:56.9708936Z Traceback (most recent call last):
+2026-11-12T04:05:56.9709957Z   File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-initializer-pure-join-ci-source/test_worker_init_pure_ci_r3.py", line 136, in <module>
+2026-11-12T04:05:56.9710887Z     globals()[name]=ast.literal_eval(assigned)
+2026-11-12T04:05:56.9711254Z                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:56.9712058Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 112, in literal_eval
+2026-11-12T04:05:56.9712675Z     return _convert(node_or_string)
+2026-11-12T04:05:56.9712990Z            ^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:56.9713509Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 101, in _convert
+2026-11-12T04:05:56.9714084Z     return dict(zip(map(_convert, node.keys),
+2026-11-12T04:05:56.9714460Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:56.9715008Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 111, in _convert
+2026-11-12T04:05:56.9715557Z     return _convert_signed_num(node)
+2026-11-12T04:05:56.9715875Z            ^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:56.9716463Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 85, in _convert_signed_num
+2026-11-12T04:05:56.9717056Z     return _convert_num(node)
+2026-11-12T04:05:56.9717344Z            ^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:56.9717876Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 76, in _convert_num
+2026-11-12T04:05:56.9718450Z     _raise_malformed_node(node)
+2026-11-12T04:05:56.9719053Z   File "/opt/hostedtoolcache/Python/3.12.14/x64/lib/python3.12/ast.py", line 73, in _raise_malformed_node
+2026-11-12T04:05:56.9719696Z     raise ValueError(msg + f': {node!r}')
+2026-11-12T04:05:56.9720233Z ValueError: malformed node or string on line 48: <ast.BinOp object at 0x7f4a50874410>
+2026-11-12T04:05:56.9720928Z 
+2026-11-12T04:05:56.9721069Z Traceback (most recent call last):
+2026-11-12T04:05:56.9722461Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r1/worker_initialization_pure_join_ci_r2.py", line 74, in panel
+2026-11-12T04:05:56.9723615Z     common.run(label,args,timeout=timeout);success=True
+2026-11-12T04:05:56.9724019Z     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T04:05:56.9724875Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py", line 91, in run
+2026-11-12T04:05:56.9725871Z     raise RuntimeError("Independent recovery step failed: "+label)
+2026-11-12T04:05:56.9726578Z RuntimeError: Independent recovery step failed: worker-initializer-pure-join-large-registry
+2026-11-12T04:05:56.9727874Z HIA_INITIALIZER_PURE_JOIN_PANEL {"actual_successful_process": false, "label": "worker-initializer-pure-join-large-registry", "original_summary": {"status": "MISSING_TERMINAL_SUMMARY"}}
+2026-11-12T04:06:01.1516488Z {"all_original_and_tar_member_bytes_sha256_modes_readback": true, "archive": "/home/runner/work/_temp/hia-worker-initialization-pure-join-recovery/evidence.tar.xz", "bytes": 6117284, "member_index_bytes": 79840, "member_index_sha256": "63130801af4edeb20824480ad4eb6e942d7ebae5701ef9799c1be2ad0e5f71eb", "members": 227, "original_bytes": 49706156, "schema": "hia-independent-ci-artifact-custody-v1", "scope": "worker-initializer-actual-native-pure-peer-join-r1", "sha256": "ee9c164dc1490b7347dc151efe1ca21c384e3cfb3113ff57ba446d97001d729e", "status": "FAIL", "whole_stack_closed": false}
+2026-11-12T04:06:01.1835445Z ##[error]Process completed with exit code 1.
+2026-11-12T04:06:01.1920433Z ##[group]Run actions/upload-artifact@v4
+2026-11-12T04:06:01.1920671Z with:
+2026-11-12T04:06:01.1920922Z   name: hia-worker-initialization-pure-join-recovery-43151734029-1
+2026-11-12T04:06:01.1921956Z   path: /home/runner/work/_temp/hia-selected-source-syntax
+/home/runner/work/_temp/hia-source-syntax-driver.log
+/home/runner/work/_temp/hia-worker-initialization-pure-join-recovery
+/home/runner/work/_temp/hia-worker-initialization-pure-join-driver.log
+
+2026-11-12T04:06:01.1922733Z   if-no-files-found: error
+2026-11-12T04:06:01.1922935Z   retention-days: 90
+2026-11-12T04:06:01.1923126Z   compression-level: 0
+2026-11-12T04:06:01.1923304Z   overwrite: false
+2026-11-12T04:06:01.1923480Z   include-hidden-files: false
+2026-11-12T04:06:01.1923670Z env:
+2026-11-12T04:06:01.1923839Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T04:06:01.1924088Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:06:01.1924468Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-12T04:06:01.1924800Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:06:01.1925096Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:06:01.1925392Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T04:06:01.1925685Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-12T04:06:01.1925934Z ##[endgroup]
+2026-11-12T04:06:01.3425097Z (node:2678) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T04:06:01.3425664Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T04:06:01.4834737Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-12T04:06:01.4835695Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+2026-11-12T04:06:01.4836124Z With the provided path, there will be 362 files uploaded
+2026-11-12T04:06:01.4836560Z Artifact name is valid!
+2026-11-12T04:06:01.4836765Z Root directory input is valid!
+2026-11-12T04:06:01.8632589Z Beginning upload of artifact content to blob storage
+2026-11-12T04:06:02.0229181Z (node:2678) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-12T04:06:03.0204629Z Uploaded bytes 8388608
+2026-11-12T04:06:03.0373801Z Uploaded bytes 16777216
+2026-11-12T04:06:03.0661206Z Uploaded bytes 25165824
+2026-11-12T04:06:03.0939135Z Uploaded bytes 33554432
+2026-11-12T04:06:03.2982205Z Uploaded bytes 41943040
+2026-11-12T04:06:03.3155999Z Uploaded bytes 50331648
+2026-11-12T04:06:03.5780117Z Uploaded bytes 58474453
+2026-11-12T04:06:03.6565641Z Finished uploading artifact content to blob storage!
+2026-11-12T04:06:03.6566254Z SHA256 digest of uploaded artifact zip is 03eceaf68cbde15d31421cf42c132a3b08ecd66350a2cf6e1e50ac6b15b27b93
+2026-11-12T04:06:03.6567745Z Finalizing artifact upload
+2026-11-12T04:06:04.1136130Z Artifact hia-worker-initialization-pure-join-recovery-43151734029-1.zip successfully finalized. Artifact ID 13914562020
+2026-11-12T04:06:04.1137391Z Artifact hia-worker-initialization-pure-join-recovery-43151734029-1 has been successfully uploaded! Final size is 58474453 bytes. Artifact ID is 13914562020
+2026-11-12T04:06:04.1141432Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/43151734029/artifacts/13914562020
+2026-11-12T04:06:04.1386912Z Post job cleanup.
+2026-11-12T04:06:04.2166692Z [command]/usr/bin/git version
+2026-11-12T04:06:04.2206913Z git version 2.56.0
+2026-11-12T04:06:04.2241125Z Temporarily overriding HOME='/home/runner/work/_temp/d715d8cd-4302-4045-831a-634e4da3d2a9' before making global git config changes
+2026-11-12T04:06:04.2242118Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T04:06:04.2246174Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/ci-reference-source
+2026-11-12T04:06:04.2288332Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T04:06:04.2324459Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T04:06:04.2579915Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T04:06:04.2613583Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T04:06:04.2849853Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T04:06:04.2891115Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T04:06:04.3251272Z Post job cleanup.
+2026-11-12T04:06:04.4132955Z [command]/usr/bin/git version
+2026-11-12T04:06:04.4148974Z git version 2.56.0
+2026-11-12T04:06:04.4202761Z Temporarily overriding HOME='/home/runner/work/_temp/bbce1556-0df6-4f2a-9bdb-47fcca7036c9' before making global git config changes
+2026-11-12T04:06:04.4233024Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T04:06:04.4242986Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-12T04:06:04.4264106Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T04:06:04.4310949Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T04:06:04.4564534Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T04:06:04.4643271Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T04:06:04.4896220Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T04:06:04.4935816Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T04:06:04.5291356Z Cleaning up orphan processes
+2026-11-12T04:06:04.5667824Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
