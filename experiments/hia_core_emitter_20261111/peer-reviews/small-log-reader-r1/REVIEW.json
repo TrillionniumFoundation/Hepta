@@ -1,0 +1,44 @@
+{
+  "schema": "hia.independent.static-review.v1",
+  "status": "STATIC_CLEAR_WITHIN_EXAMINED_SCOPE",
+  "reviewer": "/root/hia_remote_audit",
+  "repository": "TrillionniumFoundation/Hepta",
+  "control_commit": "e92c7aaac4dff59dbf379f7de7a733c6a2e161b4",
+  "workflow_commit": "0d16646e3345f1e31b75dc8476c3540135a4c569",
+  "sources": [
+    {
+      "name": "worker.py",
+      "bytes": 29235,
+      "sha256": "2a339449d9ab461ad3d349ee8b2801e2dfd714fb51c144a121cc158851166f93",
+      "git_blob_sha1": "77fe753ffcc097fa45389be0968279d7c966c544"
+    },
+    {
+      "name": "controller.py",
+      "bytes": 30786,
+      "sha256": "552355c5697b936f4db2201ca9bc2f43c2c64d943a288c7a1984bb5f5eb1e94c",
+      "git_blob_sha1": "ed5d1ecf11790449b25b0bf047e10d0827ae17d7"
+    },
+    {
+      "name": "policy.json",
+      "bytes": 5892,
+      "sha256": "75d6da9f1c2261191a71e15b9f537e3d50f317aabc06ef2b3bad38bae143b74b",
+      "git_blob_sha1": "32b2b757d051dde2671ea82decaaef480bca9530"
+    }
+  ],
+  "examined": [
+    "Complete worker (29,235 bytes), fixed pinned small artifact, outer full SHA before/after and all-member CRC reads.",
+    "Pinned original FINAL bytes and original run/control/workflow/policy, captured exact inventory, bytes and SHA.",
+    "Both selected-original archives: CUSTODY/SELECTED/DIRECTORY bindings, exact retained mapping, all-member CRC and SHA reads; partial raw fallback only with original CUSTODY_HOLD.",
+    "Controller accept_small_reader, output_frames and finalize: 23 present-or-missing targets plus at most five current control originals; identity, offset, per-frame and whole-file SHA.",
+    "Bounded 8 MiB raw and 12 MiB log output, no truncation; complete terminal emitted only after durable RESULT readback and frozen input stability."
+  ],
+  "findings": [],
+  "limits": [
+    "Read-only static examination; no parse, fault injection, new Actions trigger, h operation or product test.",
+    "STATIC_CLEAR does not claim transfer/network success, actual frame recovery, original product success or qualification.",
+    "ORIGINAL_FRAMES_COMPLETE_NOT_QUALIFICATION refers to complete framed files listed in the manifest. Explicit original missing_frame_targets and original custody HOLD remain material evidence.",
+    "Parent independently reviewed controller lifecycle/setup and workflow; native_install_owner independently reviewed the credential/redirect transport boundary."
+  ],
+  "qualifications_executed": false,
+  "original_statuses_reclassified": false
+}
