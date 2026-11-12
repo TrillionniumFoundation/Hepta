@@ -21,7 +21,7 @@ import traceback
 import unittest
 
 from tools.hia_artifact_publication_custody import (
-    Session, create_directory, identity, parent_fd, process_identity,
+    Session, create_directory, direct_child_custody_closed, identity, parent_fd, process_identity,
     read_file, write_json, write_new,
 )
 
@@ -267,8 +267,8 @@ def quiescence(root):
         if call['process'] is not None:
             if found := live_identity(call['process']):
                 live.append(found)
-            if not call['direct_child_reaped_observed']:
-                incomplete.append(call['ordinal'])
+        if not direct_child_custody_closed(call):
+            incomplete.append(call['ordinal'])
         for seen in call.get('descendants_seen', []):
             if found := live_identity(seen):
                 live.append(found)

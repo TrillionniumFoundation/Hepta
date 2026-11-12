@@ -180,6 +180,11 @@ class _Call:
         self.events = []
         self.flushed = 0
         self.process = None
+        self.launch_attempted = False
+        self.launch_completed = False
+        self.launched_pid = None
+        self.pid_identity = None
+        self.pid_identity_error = None
         self.seen = {}
         self.returncode = None
         self.closed_observed = False
@@ -237,27 +242,69 @@ class _Call:
 
     def summary(self):
         if self.process is not None:
-            self.returncode = self.process.returncode
+            self.returncode = getattr(self.process, 'returncode', None)
             self.closed_observed = self.returncode is not None
         return {'ordinal': self.index, 'path': str(self.root), 'test_id': self.request['test_id'],
-                'request': str(self.root / 'request.json'), 'process': getattr(self, 'pid_identity', None),
+                'request': str(self.root / 'request.json'), 'process': self.pid_identity,
+                'launch_attempted': self.launch_attempted, 'launch_completed': self.launch_completed,
+                'launched_pid': self.launched_pid, 'pid_identity_error': self.pid_identity_error,
                 'descendants_seen': list(self.seen.values()), 'returncode': self.returncode,
                 'direct_child_reaped_observed': self.closed_observed,
                 'events': len(self.events), 'record_errors': self.record_errors,
                 'full_process_tree_cleanup_claimed': False}
 
 
+def direct_child_custody_closed(row):
+    """An absent identity cannot stand for a launch that never happened."""
+    keys = {'launch_attempted', 'launch_completed', 'launched_pid', 'process',
+            'pid_identity_error', 'returncode', 'direct_child_reaped_observed'}
+    if not keys <= row.keys() or type(row['launch_attempted']) is not bool or type(row['launch_completed']) is not bool:
+        return False
+    if not row['launch_attempted']:
+        return (row['launch_completed'] is False and row['launched_pid'] is None
+                and row['process'] is None and row['pid_identity_error'] is None
+                and row['returncode'] is None and row['direct_child_reaped_observed'] is False)
+    observed = row['process']
+    return (row['launch_completed'] is True and type(row['launched_pid']) is int and row['launched_pid'] > 0
+            and type(observed) is dict and type(observed.get('pid')) is int
+            and observed['pid'] == row['launched_pid'] and type(observed.get('starttime')) is int
+            and observed['starttime'] >= 0 and row['pid_identity_error'] is None
+            and type(row['returncode']) is int and row['direct_child_reaped_observed'] is True)
+
+
 class _ObservedPopen(_REAL_POPEN):
     def __init__(self, call, *args, **kwargs):
         self._custody_call = call
+        call.launch_attempted = True
         call.event('LAUNCH_BEGIN', usage=child_usage())
         try:
             super().__init__(*args, **kwargs)
         except BaseException as exc:
+            # A constructor exception may follow creation of an OS child.
+            # Record any exposed PID, without new termination/wait behavior.
+            pid = getattr(self, 'pid', None)
+            if type(pid) is int and pid > 0:
+                call.process = self
+                call.launched_pid = pid
             call.event('LAUNCH_EXCEPTION', exception_type=type(exc).__name__, exception=repr(exc))
             raise
         call.process = self
-        call.pid_identity = process_identity(self.pid)
+        call.launch_completed = True
+        call.launched_pid = self.pid
+        try:
+            call.pid_identity = process_identity(self.pid)
+        except BaseException as exc:
+            text = type(exc).__name__ + ': ' + str(exc)
+            call.pid_identity_error = text
+            call.record_errors.append('PID_IDENTITY: ' + text)
+            call.session.errors.append('call %d PID_IDENTITY: %s' % (call.index, text))
+            call.event('PID_IDENTITY_EXCEPTION', exception_type=type(exc).__name__, exception=repr(exc),
+                       launched_pid=call.launched_pid)
+            raise
+        if call.pid_identity is None:
+            call.pid_identity_error = 'process_identity returned no identity after launch'
+            call.record_errors.append('PID_IDENTITY: ' + call.pid_identity_error)
+            call.session.errors.append('call %d PID_IDENTITY: %s' % (call.index, call.pid_identity_error))
         call.event('LAUNCH_RETURN', process=call.pid_identity)
 
     def communicate(self, input=None, timeout=None):
@@ -359,11 +406,12 @@ class Session:
     def finish(self, result):
         self.flush_calls()
         rows = [call.summary() for call in self.calls]
+        known_closed = all(direct_child_custody_closed(row) for row in rows)
         body = {'schema': 'hepta.hia.publication-test-custody.v1', 'runner': self.runner,
-                'status': 'TESTS_PASS' if result.wasSuccessful() and not self.errors else 'TESTS_FAIL_OR_CUSTODY_HOLD',
+                'status': 'TESTS_PASS' if result.wasSuccessful() and not self.errors and known_closed else 'TESTS_FAIL_OR_CUSTODY_HOLD',
                 'test_result_successful': result.wasSuccessful(), 'tests_run': result.testsRun,
                 'tests': self.tests, 'calls': rows, 'fixtures': self.fixtures, 'errors': self.errors,
-                'known_direct_children_reaped': all(row['direct_child_reaped_observed'] or row['process'] is None for row in rows),
+                'known_direct_children_reaped': known_closed,
                 'original_timeouts_changed': False, 'full_process_tree_cleanup_claimed': False,
                 'end_ns': time.time_ns()}
         write_json(self.root / 'RUN.json', body)
