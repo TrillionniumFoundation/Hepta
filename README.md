@@ -1,91 +1,9 @@
-# Evaluation P1: first independent development run
+# R6: guarded complete fresh source scan
 
-This is a new development observation, not default activation, matching-source
-cold, historical-failure closure, or whole-stack qualification.
+Independent CPython 3.14.4 development. Authentic product checkout remains 4b; the exact 794d joint recipe is only a development input. The Evaluation nine bodies and native HIA bytes are unchanged from R5.
 
-The authentic checkout stays at product 4b19af89a766593f7d5f1cc2db256e81aba7afcb /
-tree1bc7c90996e1910ad66ba771b0bfee1d5bfa655c. All 3,153 tracked files are admitted
-by complete bytes, SHA-256, Git blob and mode. The independent joint-recipe
-checkout794d441e1b44e3478f779c900d1fbf5319b8c2c5 supplies the exact 112-file
-overlay yielding 3,239 files/treebe497004503dba10759a5107caa43714910f511b.
-Its known original checker-inventory failure is not repaired or relabelled
-by this development run. No local commit or future product HEAD is fabricated.
+The only new product implementation is a standard-provider fast path for the existing complete ordered source scan, plus additive tests. It removes lexical Path joins/relative computations and retains actual `open -> read -> close -> hash` order and the actual runtime buffering protocol. Unknown or changed Path/io/hash providers use the original function. No cross-call file/digest/inventory cache, smaller source map, removed public admission, or budget change is introduced.
 
-The new 22-file source packet is7972a63bf9686bc7b200c810846ff42183098549:
-662,075 bytes, SHA256044e8a4fd95587dc624baa4d190ac9eea9b6ecf23cd4f4237651b6f967fbac37.
-It preserves seven service bodies plus two helpers as complete author input.
-The initial source and this harness are authored, not executed at freeze.
+R5 actual 3.14 run 43286586760 remains FAIL: the full namespace35 and ledger48 each had three original failures. R6 local 3.12 Source56 and Native12 passed. The targeted local six-case harness refused missing clang-20 before running any case; those observations are HOLD. They are not six business failures or passes.
 
-Actual CPython3.14.4/Linuxx86-64, explicitly pinned Python packages and clang-20
-are recorded. The 669,494-byte compiler81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109
-is a retained development input. The original compile limit remains20 seconds;
-each ordinary step/original caller group remains1800 seconds. Original3-second,
-1000-millisecond and journal deadlines remain unchanged. The outer120-minute
-workflow only encloses setup and separate stages.
-
-All original joint generators run, followed by Evaluation foreign/HIA generation,
-language coverage and complete support-contract generation/checks. The native
-inventory is not forged for an unpublished source. Actual unittest discovery
-records IDs and all anomaly categories; 31 new Source/Adapter/Qualifier methods
-and eight Native methods are expectations until observed. Original Agent48,
-namespace wrapper plus35 nested callers, and ledger wrapper plus48 nested callers
-run independently after a valid native build even if an earlier group fails.
-Original method bytes, ordered IDs and limits remain fixed. Seven retained
-service methods are poisoned. Helper poisoning is limited to the controlled
-component fixture because unrelated providers legitimately call those helpers.
-
-Complete source membership/bytes/modes are checked around each stage. All raw
-results, native receipts, manifests, images, original failures and source-after
-are retained. Every actual changed source relative to the Git-bound joint recipe
-is included in the final source packet. Lossless zlib/base64 text chunks carry
-individual and complete hashes; a full ZIP and member manifest retain binaries.
-
-SQLite/storage, clocks, runners, process ownership, backend/compiler, proof,
-emission, context and existing native providers remain explicit dependencies.
-Selecting Evaluation alone does not establish their native policy ownership
-or resolve the six historical deadline failures. Whole/default/deletion flags
-remain false.
-
-## R2 harness correction
-
-Original run43273754998 admitted all source successfully but ran zero generators:
-the harness inventory regex omitted digits in names such as sha256. Its original
-12 complete text records and job log are immutable under index
-ada6e1211722b1453f33658253af524a02008b6d and log
-b8c3793b7071c1451b2808870ce7a42e491fc177. No Source/Native/original caller tests
-ran. R2 accepts the actual digit-bearing names and compares the complete ordered
-88-item inventory to a frozen JSON literal before executing it. Owner22 source
-bytes remain exactly7972a63bf9686bc7b200c810846ff42183098549. All limits and
-supervisor bytes remain unchanged. R1 source-after equals authored bytes/Git
-modes; its original false generated-source comparison is preserved because no
-generated-source baseline existed. Original POSIX permissions were not separately
-recorded and are not retrospectively claimed.
-
-Before component execution, R2 also observes24 pre/post-admission helper-binding
-cases against the unchanged7972 candidate and original bodies: original function,
-replacement function, None, callable object, deletion and metadata-faulting object.
-This records the new source-review hypothesis as actual evidence. It does not
-apply a product fix or turn expected differences into PASS; all later original
-groups still run independently after a successful build.
-
-## R3 first authoring correction
-
-Original R2 run43275158954 completed all88 original generators, then the new
-Evaluation author refused Break(). No new image or business tests ran. Complete
-281 text members and full job log are indexed by
-be32cf7d5d813ec3f23b723308f35ab67ce22549. R3 uses source packet
-7333cb05fbcaa9addf3b1ce9ee147c0c3fbce1c0: the only source delta from7972 is
-Evaluation-local for-loop exhaustion/break/continue/else control and iterator
-retirement. Original nine bodies, shared compilers, prior tests and limits are
-unchanged. The separate pre/post helper-binding hypothesis remains unfixed so
-this run can observe it on an actual native image before a later correction.
-
-## R5 independent actual-source follow-up
-
-The preceding sections are immutable historical descriptions. R3 run43276697184 completed all generators, observed 8/8 Native, and retained the 24 helper matrix (14 equal / 10 differing). Source discovery and Agent collection had nine incorrect new qualifier ID literals; namespace35 and ledger48 each had two genuine pre-encoding budget failures, and both native-timeout cases passed. The full original artifact and log are preserved in custody ad58c1f14c99c23bbc482656f90c055cd6bf1c1f.
-
-The current 26-file R5 source fixes definition-time helper anchors, records the original store definition before service import, and preserves existence-first GLOBAL semantics. Metadata comes only from original definitions. The qualifier corrects the nine ID literals without changing any original method or deadline. The original nine bodies have no with/try/finally regions; unreviewed regions are explicitly refused during authoring. General region semantics are not inferred.
-
-R4 additionally exposed 10 real import-module-retirement differences in 18 original native/oracle observations. Their full original record is aa45730f1561fa30fa67f2ba32f658224e6daac1. The Evaluation-only author now accepts exactly the two reviewed full IMPORT_FROM port definitions and emits the version which moves its module formal to the interpreter stack before importing. Shared Build/Core/Byte/Verification inputs are unchanged.
-
-Local CPython3.12.14 independently passed 47 Source/Adapter/resource controls and all 12 Native controls, including the original 24 helper observations, 12 fresh store-before-service import routes, eight original loop lifetime comparisons and 18 original import-lifetime observations. These results do not qualify CPython3.14.4. This new workflow reexecutes the full source group, original external24, all12 Native methods and the separate original48/35/48 groups. Original compile20, ordinary1800 and internal deadlines remain unchanged. No source/cold/default qualification is inherited from the development dependency or any earlier run.
+This workflow keeps the exact R5 driver, complete 88 original plus two Evaluation generators, all source/adapter/helper/native controls, and independent original Agent48, namespace35, ledger48 groups. All original 1800s group / 20s compiler / 3000ms total and 1000ms native per-case budgets remain unchanged. Every stage and raw failure is retained even when another stage fails. Current-cold, whole-native, and default activation remain false.
