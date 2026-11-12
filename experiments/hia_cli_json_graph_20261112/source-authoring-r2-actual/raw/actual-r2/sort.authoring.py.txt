@@ -1,0 +1,210 @@
+def cli_json_sort(s: mutbuf, o: mutbuf, w: mutbuf) -> u32:
+    if length(w) != 20480:
+        return 4294967293
+    if get(w, 0) != 3554556523567661896:
+        return 4294967293
+    if get(w, 112) != 0:
+        return 4294967293
+    if get(w, 56) != 0:
+        put(w, 56, 0)
+        put(w, 24, 0)
+        put(w, 3264, 4096)
+        put(w, 4096 + 368, 18446744073709551615)
+        put(w, 4096 + 360, 901)
+        put(w, 8, 6024)
+    elif get(w, 24) != 0:
+        if get(w, 32) != get(w, 16) or get(w, 40) != get(w, 64):
+            return 4294967293
+        put(w, 24, 0)
+    elif get(w, 8) != 0:
+        return 4294967293
+    if get(w, 8) == 0:
+        if get(w, 120) == 0:
+            return 4294967293
+        put(w, 3264, 4096)
+        put(w, 4096 + 16, get(w, 120))
+        put(w, 4096 + 8, 900)
+        put(w, 8, 1024)
+    while True:
+        phase = get(w, 8)
+        if phase == 900 or phase == 901:
+            result = choose(phase == 900, get(w, 4096 + 0), get(w, 4096 + 352))
+            status = choose(result == 0 and get(w, 48) == 0, 0, 1)
+            put(w, 112, status + 1)
+            return status
+        status = dispatch(s, o, w, phase)
+        if status != 4:
+            return status
+    return 4294967293
+
+def request(w: mutbuf, operation: u64, a: u64, b: u64, c: u64, d: u64, phase: u64) -> u64:
+    if get(w, 24) != 0 or get(w, 16) == 18446744073709551615:
+        return 4294967293
+    put(w, 16, get(w, 16) + 1)
+    put(w, 64, operation)
+    put(w, 72, a)
+    put(w, 72 + 8, b)
+    put(w, 72 + 16, c)
+    put(w, 72 + 24, d)
+    put(w, 8, phase)
+    put(w, 24, 1)
+    return 2
+
+def answer(w: mutbuf, index: u64) -> u64:
+    return get(w, 160 + index * 8)
+
+def mutation_message(w: mutbuf) -> u64:
+    put(w, 416, 7237123112367778156)
+    put(w, 416 + 8, 8458921615678858857)
+    put(w, 416 + 16, 8245936025750104434)
+    put(w, 416 + 24, 116)
+    return 0
+
+def binary64_less(left: u64, right: u64) -> u64:
+    left_magnitude = left & 9223372036854775807
+    right_magnitude = right & 9223372036854775807
+    if left_magnitude > 9218868437227405312 or right_magnitude > 9218868437227405312:
+        return 0
+    if left_magnitude == 0 and right_magnitude == 0:
+        return 0
+    left_negative = left >> 63
+    right_negative = right >> 63
+    if left_negative != right_negative:
+        return left_negative
+    if left_negative != 0:
+        return choose(left_magnitude > right_magnitude, 1, 0)
+    return choose(left_magnitude < right_magnitude, 1, 0)
+
+def routed_get(s: mutbuf, o: mutbuf, w: mutbuf, address: u64) -> u64:
+    if address >= 9223372036854775808:
+        return get(o, address - 9223372036854775808)
+    if address >= 20480:
+        return get(s, address - 20480)
+    return get(w, address)
+
+def routed_put(s: mutbuf, o: mutbuf, w: mutbuf, address: u64, value: u64) -> u64:
+    if address >= 9223372036854775808:
+        return put(o, address - 9223372036854775808, value)
+    if address >= 20480:
+        return put(s, address - 20480, value)
+    return put(w, address, value)
+
+def routed_copy(s: mutbuf, o: mutbuf, w: mutbuf, destination: u64, source: u64, count: u64) -> u64:
+    if destination >= 9223372036854775808:
+        if source >= 9223372036854775808:
+            copy_span(o, destination - 9223372036854775808, o, source - 9223372036854775808, count)
+        elif source >= 20480:
+            copy_span(o, destination - 9223372036854775808, s, source - 20480, count)
+        else:
+            copy_span(o, destination - 9223372036854775808, w, source, count)
+    elif destination >= 20480:
+        if source >= 9223372036854775808:
+            copy_span(s, destination - 20480, o, source - 9223372036854775808, count)
+        elif source >= 20480:
+            copy_span(s, destination - 20480, s, source - 20480, count)
+        else:
+            copy_span(s, destination - 20480, w, source, count)
+    elif source >= 9223372036854775808:
+        copy_span(w, destination, o, source - 9223372036854775808, count)
+    elif source >= 20480:
+        copy_span(w, destination, s, source - 20480, count)
+    else:
+        copy_span(w, destination, w, source, count)
+    return 0
+
+def get(w: mutbuf, at: u64) -> u64:
+    value = 0
+    index = 0
+    while index < 8:
+        value = value | byte(w, at + index) << index * 8
+        index = index + 1
+    return value
+
+def put(w: mutbuf, at: u64, value: u64) -> u64:
+    index = 0
+    while index < 8:
+        store(w, at + index, value >> index * 8 & 255)
+        index = index + 1
+    return 0
+
+def ts_at(s: mutbuf, o: mutbuf, w: mutbuf, array: u64, index: u64) -> u64:
+    return routed_get(s, o, w, array + index * 8)
+
+def ts_move(s: mutbuf, o: mutbuf, w: mutbuf, destination: u64, source: u64, count: u64) -> u64:
+    routed_copy(s, o, w, destination, source, count * 8)
+    return 0
+
+def ts_reverse(s: mutbuf, o: mutbuf, w: mutbuf, array: u64, count: u64) -> u64:
+    left = 0
+    right = count
+    while left < right:
+        right = right - 1
+        if left < right:
+            first = routed_get(s, o, w, array + left * 8)
+            second = routed_get(s, o, w, array + right * 8)
+            routed_put(s, o, w, array + left * 8, second)
+            routed_put(s, o, w, array + right * 8, first)
+        left = left + 1
+    return 0
+
+def ts_pending(s: mutbuf, o: mutbuf, w: mutbuf, index: u64) -> u64:
+    return routed_get(s, o, w, 3264) + 8192 + index * 24
+
+def ts_minrun(n: u64) -> u64:
+    rest = 0
+    while n >= 64:
+        rest = rest | n & 1
+        n = n >> 1
+    return n + rest
+
+def ts_power(start: u64, first: u64, second: u64, n: u64) -> u64:
+    result = 0
+    a = 2 * start + first
+    b = a + first + second
+    while True:
+        result = result + 1
+        if a >= n:
+            a = a - n
+            b = b - n
+        elif b >= n:
+            return result
+        a = a << 1
+        b = b << 1
+    return result
+
+def dispatch(s: mutbuf, o: mutbuf, w: mutbuf, phase: u64) -> u64:
+    if phase >= 1000 and phase < 2000:
+        return ts_sort(s, o, w)
+    if phase >= 2000 and phase < 3000:
+        return ts_select_comparator(s, o, w)
+    if phase >= 3000 and phase < 4000:
+        return ts_selected_compare(s, o, w)
+    if phase >= 4000 and phase < 5000:
+        return ts_compare(s, o, w)
+    if phase >= 5000 and phase < 6000:
+        return ts_ensure_temp(s, o, w)
+    if phase >= 6000 and phase < 7000:
+        return ts_cleanup(s, o, w)
+    if phase >= 7000 and phase < 8000:
+        return ts_binary(s, o, w)
+    if phase >= 8000 and phase < 9000:
+        return ts_count_old(s, o, w)
+    if phase >= 9000 and phase < 10000:
+        return ts_count_new(s, o, w)
+    if phase >= 10000 and phase < 11000:
+        return ts_gallop_left(s, o, w)
+    if phase >= 11000 and phase < 12000:
+        return ts_gallop_right(s, o, w)
+    if phase >= 12000 and phase < 13000:
+        return ts_merge_lo(s, o, w)
+    if phase >= 13000 and phase < 14000:
+        return ts_merge_hi(s, o, w)
+    if phase >= 14000 and phase < 15000:
+        return ts_merge_at(s, o, w)
+    if phase >= 15000 and phase < 16000:
+        return ts_found_run(s, o, w)
+    if phase >= 16000 and phase < 17000:
+        return ts_force_collapse(s, o, w)
+    if phase >= 17000 and phase < 18000:
+        return ts_main(s, o, w)
+    return 4294967293

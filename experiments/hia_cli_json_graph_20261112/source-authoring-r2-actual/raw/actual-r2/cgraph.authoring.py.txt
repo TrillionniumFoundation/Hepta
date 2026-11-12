@@ -1,0 +1,638 @@
+def cli_json_cgraph(s: readbuf, o: mutbuf, w: mutbuf) -> u32:
+    if length(w) < 4096 + 256 or get(w, 0) != 3553981410266858312 or get(w, 120) != 0:
+        return 4294967293
+    aborting = get(w, 56)
+    if aborting != 0:
+        put(w, 56, 0)
+        put(w, 24, 0)
+        if get(w, 8) == 0:
+            put(w, 208, 0)
+            put(w, 120, 2)
+            return 1
+        fput(w, 8, 900)
+    elif get(w, 24) != 0:
+        if get(w, 32) != get(w, 16) or get(w, 40) != get(w, 64):
+            return 4294967293
+        put(w, 24, 0)
+    elif get(w, 8) != 0:
+        return 4294967293
+    if get(w, 8) == 0:
+        if get(w, 128) == 0 or get(w, 152) == 0 or get(w, 160) == 0:
+            return 4294967293
+        if get(w, 136) != 31404 and get(w, 136) != 31410:
+            return 4294967293
+        literals(w)
+        put(w, 200, 4096)
+        clear_frame(w, 4096)
+        fput(w, 0, get(w, 128))
+        fput(w, 8, 1)
+        put(w, 8, 1)
+    if get(w, 48) != 0 and (get(w, 64) == 202 or get(w, 64) == 204):
+        fput(w, 8, 900)
+    while True:
+        phase = fget(w, 8)
+        if phase < 20:
+            status = scalar_node(s, o, w, phase)
+        elif phase < 40:
+            status = sequence_node(o, w, phase)
+        elif phase < 80:
+            status = mapping_node(o, w, phase)
+        elif phase < 100:
+            status = default_node(w, phase)
+        elif phase < 200:
+            status = marker_node(w, phase)
+        else:
+            status = unwind_node(w, phase)
+        if status != 4:
+            return status
+        if get(w, 200) == 0:
+            return get(w, 120) - 1
+    return 4294967293
+
+def scalar_node(s: readbuf, o: mutbuf, w: mutbuf, phase: u64) -> u64:
+    if phase == 1:
+        return request(w, 55, fget(w, 0), 0, 0, 0, 0, 2)
+    if phase == 2:
+        kind = answer(w, 0)
+        if kind & 448 != 0:
+            which = choose(kind & 64 != 0, 0, choose(kind & 128 != 0, 1, 2))
+            fput(w, 152, which)
+            fput(w, 8, 3)
+            return 4
+        if kind & 1 != 0:
+            fput(w, 152, 0)
+            fput(w, 144, 10)
+            if get(w, 168) == 0:
+                return request(w, 32, get(w, 160), fget(w, 0), 0, 0, 0, 5)
+            return request(w, 200, fget(w, 0), 0, 1, 0, 0, 5)
+        if kind & 2 != 0 or kind & 4 != 0:
+            fput(w, 152, choose(kind & 2 != 0, 1, 2))
+            fput(w, 144, 10)
+            return request(w, 200, fget(w, 0), fget(w, 152), 0, 0, 0, 5)
+        if kind & 24 != 0:
+            fput(w, 16, 1)
+            return request(w, 66, 576, field(w, 104), 64, 0, 0, 20)
+        if kind & 32 != 0:
+            fput(w, 16, 2)
+            return request(w, 66, 576, field(w, 104), 64, 0, 0, 40)
+        fput(w, 16, 3)
+        return marker(w, 80)
+    if phase == 3:
+        status = reserve(o, w, 5, 3)
+        if status != 4:
+            return status
+        append_constant(o, w, fget(w, 152))
+        return pop(w, 0)
+    if phase == 5:
+        if get(w, 192) == 0:
+            if fget(w, 104) & 8 != 0:
+                return drop(w, 80, 8, 900)
+            return failed(w)
+        return adopt(w, 88, 16, 6)
+    if phase == 6:
+        return request(w, 55, fget(w, 88), 0, 0, 0, 0, 11)
+    if phase == 11:
+        if answer(w, 0) & 1 == 0:
+            return request(w, 65, get(w, 184), 896, fget(w, 88), 0, 0, 13)
+        if fget(w, 104) & 8 != 0:
+            return drop(w, 80, 8, 15)
+        fput(w, 8, 15)
+        return 4
+    if phase == 13:
+        return drop(w, 88, 16, 14)
+    if phase == 14:
+        if fget(w, 104) & 8 != 0:
+            return drop(w, 80, 8, 900)
+        return failed(w)
+    if phase == 15:
+        return request(w, 38, fget(w, 88), 0, 0, 0, 0, 12)
+    if phase == 12:
+        fput(w, 160, answer(w, 0))
+        fput(w, 168, answer(w, 1))
+        fput(w, 8, 7)
+        return 4
+    if phase == 7:
+        count = fget(w, 160)
+        kind = fget(w, 168)
+        if kind != 1 and kind != 2 and (kind != 4):
+            return 4294967293
+        shift = choose(kind == 1, 0, choose(kind == 2, 1, 2))
+        if count > length(s) >> shift:
+            return 4294967293
+        status = reserve(o, w, count, 7)
+        if status != 4:
+            return status
+        index = 0
+        cursor = get(w, 208)
+        while index < count:
+            value = byte(s, index * kind)
+            if kind >= 2:
+                value = value | byte(s, index * kind + 1) << 8
+            if kind == 4:
+                value = value | byte(s, index * kind + 2) << 16 | byte(s, index * kind + 3) << 24
+            point(o, cursor + index, value)
+            index = index + 1
+        put(w, 208, cursor + count)
+        return drop(w, 88, 16, 8)
+    if phase == 8:
+        fput(w, 8, fget(w, 144))
+        return 4
+    if phase == 10:
+        return pop(w, 0)
+    return 4294967293
+
+def sequence_node(o: mutbuf, w: mutbuf, phase: u64) -> u64:
+    if phase == 20:
+        if get(w, 48) != 0:
+            return failed(w)
+        return request(w, 24, fget(w, 0), 512, 0, 0, 0, 21)
+    if phase == 21:
+        if get(w, 192) == 0:
+            return failed(w)
+        return adopt(w, 48, 2, 22)
+    if phase == 22:
+        return request(w, 55, fget(w, 48), 0, 0, 0, 0, 23)
+    if phase == 23:
+        fput(w, 136, choose(answer(w, 0) & 8 != 0, 1, 2))
+        return request(w, 26, fget(w, 48), fget(w, 136), 0, 0, 0, 24)
+    if phase == 24:
+        if answer(w, 0) == 0:
+            return drop(w, 48, 2, 25)
+        return marker(w, 26)
+    if phase == 25:
+        status = reserve(o, w, 2, 25)
+        if status != 4:
+            return status
+        append_point(o, w, 91)
+        append_point(o, w, 93)
+        return leave_success(w)
+    if phase == 26:
+        status = reserve(o, w, 2 + 2 * (fget(w, 24) + 1), 26)
+        if status != 4:
+            return status
+        append_point(o, w, 91)
+        fput(w, 24, fget(w, 24) + 1)
+        newline(o, w, fget(w, 24))
+        fput(w, 32, 0)
+        return request(w, 26, fget(w, 48), fget(w, 136), 0, 0, 0, 28)
+    if phase == 27:
+        return request(w, 26, fget(w, 48), fget(w, 136), 0, 0, 0, 28)
+    if phase == 28:
+        if fget(w, 32) >= answer(w, 0):
+            return unmark(w, 35)
+        return request(w, 27, fget(w, 48), fget(w, 32), fget(w, 136), 0, 0, 29)
+    if phase == 29:
+        if get(w, 136) == 31410:
+            return request(w, 63, answer(w, 0), field(w, 56), field(w, 104), 4, 0, 30)
+        fput(w, 56, answer(w, 0))
+        fput(w, 8, 30)
+        return 4
+    if phase == 30:
+        if fget(w, 32) != 0:
+            status = reserve(o, w, 2 + 2 * fget(w, 24), 30)
+            if status != 4:
+                return status
+            append_point(o, w, 44)
+            newline(o, w, fget(w, 24))
+        fput(w, 8, 34)
+        return 4
+    if phase == 34:
+        return push(w, fget(w, 56), fget(w, 24), 31, 34)
+    if phase == 31:
+        if fget(w, 120) != 0:
+            return request(w, 203, 1, fget(w, 0), fget(w, 32), 0, 0, 32)
+        fput(w, 8, 32)
+        return 4
+    if phase == 32:
+        if fget(w, 104) & 4 != 0:
+            return drop(w, 56, 4, 33)
+        fput(w, 56, 0)
+        fput(w, 8, 33)
+        return 4
+    if phase == 33:
+        if fget(w, 120) != 0:
+            return failed(w)
+        fput(w, 32, fget(w, 32) + 1)
+        fput(w, 8, 27)
+        return 4
+    if phase == 35:
+        status = reserve(o, w, 2 + 2 * (fget(w, 24) - 1), 35)
+        if status != 4:
+            return status
+        fput(w, 24, fget(w, 24) - 1)
+        newline(o, w, fget(w, 24))
+        append_point(o, w, 93)
+        return drop(w, 48, 2, 36)
+    if phase == 36:
+        return leave_success(w)
+    return 4294967293
+
+def mapping_node(o: mutbuf, w: mutbuf, phase: u64) -> u64:
+    if phase == 40:
+        if get(w, 48) != 0:
+            return failed(w)
+        return request(w, 26, fget(w, 0), 3, 0, 0, 0, 41)
+    if phase == 41:
+        if answer(w, 0) == 0:
+            fput(w, 8, 42)
+            return 4
+        return marker(w, 43)
+    if phase == 42:
+        status = reserve(o, w, 2, 42)
+        if status != 4:
+            return status
+        append_point(o, w, 123)
+        append_point(o, w, 125)
+        return leave_success(w)
+    if phase == 43:
+        status = reserve(o, w, 1, 43)
+        if status != 4:
+            return status
+        append_point(o, w, 123)
+        fput(w, 24, fget(w, 24) + 1)
+        fput(w, 112, 1)
+        return request(w, 25, fget(w, 0), 0, 0, 0, 0, 44)
+    if phase == 44:
+        if get(w, 192) == 0:
+            return failed(w)
+        return adopt(w, 48, 2, 45)
+    if phase == 45:
+        return request(w, 201, fget(w, 48), 0, 0, 0, 0, 46)
+    if phase == 46:
+        if get(w, 48) != 0:
+            return failed(w)
+        fput(w, 32, 0)
+        fput(w, 8, 47)
+        return 4
+    if phase == 47:
+        return request(w, 26, fget(w, 48), 1, 0, 0, 0, 48)
+    if phase == 48:
+        if fget(w, 32) >= answer(w, 0):
+            return drop(w, 48, 2, 74)
+        return request(w, 27, fget(w, 48), fget(w, 32), 1, 0, 0, 49)
+    if phase == 49:
+        if get(w, 136) == 31410:
+            return request(w, 63, answer(w, 0), field(w, 56), field(w, 104), 4, 0, 50)
+        fput(w, 56, answer(w, 0))
+        fput(w, 8, 50)
+        return 4
+    if phase == 50:
+        return request(w, 55, fget(w, 56), 0, 0, 0, 0, 51)
+    if phase == 51:
+        if answer(w, 0) & 16 == 0:
+            return request(w, 10, get(w, 176), 704, 27, 0, 0, 900)
+        return request(w, 26, fget(w, 56), 2, 0, 0, 0, 52)
+    if phase == 52:
+        if answer(w, 0) != 2:
+            return request(w, 10, get(w, 176), 704, 27, 0, 0, 900)
+        return request(w, 27, fget(w, 56), 0, 2, 0, 0, 53)
+    if phase == 53:
+        fput(w, 64, answer(w, 0))
+        return request(w, 27, fget(w, 56), 1, 2, 0, 0, 54)
+    if phase == 54:
+        fput(w, 72, answer(w, 0))
+        return request(w, 55, fget(w, 64), 0, 0, 0, 0, 55)
+    if phase == 55:
+        kind = answer(w, 0)
+        if kind & 1 != 0:
+            return request(w, 63, fget(w, 64), field(w, 80), field(w, 104), 8, 0, 58)
+        if kind & 4 != 0:
+            return request(w, 200, fget(w, 64), 2, 0, 0, 0, 56)
+        if kind & 448 != 0:
+            return request(w, 200, fget(w, 64), 3, 0, 0, 0, 56)
+        if kind & 2 != 0:
+            return request(w, 200, fget(w, 64), 1, 0, 0, 0, 56)
+        return request(w, 65, get(w, 184), 768, fget(w, 64), 0, 0, 900)
+    if phase == 56:
+        if get(w, 192) == 0:
+            return failed(w)
+        return adopt(w, 80, 8, 58)
+    if phase == 58:
+        status = reserve(o, w, 2 + 2 * fget(w, 24), 58)
+        if status != 4:
+            return status
+        if fget(w, 112) == 0:
+            append_point(o, w, 44)
+        fput(w, 112, 0)
+        newline(o, w, fget(w, 24))
+        if get(w, 168) == 0:
+            return request(w, 32, get(w, 160), fget(w, 80), 0, 0, 0, 59)
+        return request(w, 200, fget(w, 80), 0, 1, 0, 0, 59)
+    if phase == 59:
+        fput(w, 144, 61)
+        fput(w, 8, 5)
+        return 4
+    if phase == 61:
+        status = reserve(o, w, 2, 61)
+        if status != 4:
+            return status
+        append_point(o, w, 58)
+        append_point(o, w, 32)
+        fput(w, 8, 65)
+        return 4
+    if phase == 65:
+        return push(w, fget(w, 72), fget(w, 24), 62, 65)
+    if phase == 62:
+        if fget(w, 120) != 0:
+            return request(w, 203, 2, fget(w, 0), fget(w, 64), 0, 0, 63)
+        fput(w, 8, 63)
+        return 4
+    if phase == 63:
+        if fget(w, 104) & 4 != 0:
+            return drop(w, 56, 4, 64)
+        fput(w, 56, 0)
+        fput(w, 8, 64)
+        return 4
+    if phase == 64:
+        fput(w, 64, 0)
+        fput(w, 72, 0)
+        if fget(w, 120) != 0:
+            return failed(w)
+        fput(w, 32, fget(w, 32) + 1)
+        fput(w, 8, 47)
+        return 4
+    if phase == 74:
+        return unmark(w, 75)
+    if phase == 75:
+        status = reserve(o, w, 2 + 2 * fget(w, 24), 75)
+        if status != 4:
+            return status
+        if fget(w, 112) == 0:
+            fput(w, 24, fget(w, 24) - 1)
+            newline(o, w, fget(w, 24))
+        append_point(o, w, 125)
+        return leave_success(w)
+    return 4294967293
+
+def default_node(w: mutbuf, phase: u64) -> u64:
+    if phase == 80:
+        return request(w, 32, get(w, 152), fget(w, 0), 0, 0, 0, 81)
+    if phase == 81:
+        if get(w, 192) == 0:
+            return failed(w)
+        return adopt(w, 96, 32, 82)
+    if phase == 82:
+        return request(w, 66, 576, field(w, 104), 64, 0, 0, 83)
+    if phase == 83:
+        if get(w, 48) != 0:
+            return failed(w)
+        return push(w, fget(w, 96), fget(w, 24), 84, 83)
+    if phase == 84:
+        return request(w, 67, field(w, 104), 64, 0, 0, 0, 85)
+    if phase == 85:
+        return drop(w, 96, 32, 86)
+    if phase == 86:
+        if fget(w, 120) != 0:
+            return request(w, 203, 0, fget(w, 0), 0, 0, 0, 900)
+        return unmark(w, 87)
+    if phase == 87:
+        return pop(w, 0)
+    return 4294967293
+
+def marker_node(w: mutbuf, phase: u64) -> u64:
+    if phase == 110:
+        if get(w, 192) == 0:
+            return failed(w)
+        return adopt(w, 40, 1, 111)
+    if phase == 111:
+        return request(w, 58, get(w, 144), fget(w, 40), 0, 0, 0, 112)
+    if phase == 112:
+        if get(w, 48) != 0:
+            return failed(w)
+        if answer(w, 0) != 0:
+            return request(w, 10, get(w, 176), 640, 28, 0, 0, 900)
+        return request(w, 59, get(w, 144), fget(w, 40), fget(w, 0), 0, 0, 113)
+    if phase == 113:
+        if get(w, 48) != 0:
+            return failed(w)
+        fput(w, 8, fget(w, 128))
+        return 4
+    if phase == 120:
+        if get(w, 48) != 0:
+            return failed(w)
+        return drop(w, 40, 1, 121)
+    if phase == 121:
+        fput(w, 8, fget(w, 128))
+        return 4
+    return 4294967293
+
+def unwind_node(w: mutbuf, phase: u64) -> u64:
+    if phase == 800:
+        return pop(w, 0)
+    if phase != 900:
+        return 4294967293
+    if get(w, 192) != 0:
+        return request(w, 6, 0, 0, 0, 0, 0, 900)
+    flags = fget(w, 104)
+    if fget(w, 16) == 3 and flags & 64 != 0:
+        return request(w, 67, field(w, 104), 64, 0, 0, 0, 900)
+    if flags & 16 != 0:
+        return drop(w, 88, 16, 900)
+    if flags & 8 != 0:
+        return drop(w, 80, 8, 900)
+    if flags & 4 != 0:
+        return drop(w, 56, 4, 900)
+    if flags & 32 != 0:
+        return drop(w, 96, 32, 900)
+    if fget(w, 16) == 1:
+        if flags & 1 != 0:
+            return drop(w, 40, 1, 900)
+        if flags & 2 != 0:
+            return drop(w, 48, 2, 900)
+    else:
+        if flags & 2 != 0:
+            return drop(w, 48, 2, 900)
+        if flags & 1 != 0:
+            return drop(w, 40, 1, 900)
+    if flags & 64 != 0:
+        return request(w, 67, field(w, 104), 64, 0, 0, 0, 900)
+    if flags != 0:
+        return 4294967293
+    return pop(w, 1)
+
+def marker(w: mutbuf, following: u64) -> u64:
+    fput(w, 128, following)
+    if get(w, 144) == 0:
+        fput(w, 8, following)
+        return 4
+    return request(w, 57, fget(w, 0), 0, 0, 0, 0, 110)
+
+def unmark(w: mutbuf, following: u64) -> u64:
+    fput(w, 128, following)
+    if fget(w, 104) & 1 == 0:
+        fput(w, 8, following)
+        return 4
+    return request(w, 60, get(w, 144), fget(w, 40), 0, 0, 0, 120)
+
+def failed(w: mutbuf) -> u64:
+    fput(w, 8, 900)
+    return 4
+
+def leave_success(w: mutbuf) -> u64:
+    if fget(w, 104) & 64 != 0:
+        return request(w, 67, field(w, 104), 64, 0, 0, 0, 800)
+    return pop(w, 0)
+
+def adopt(w: mutbuf, slot: u64, mask: u64, phase: u64) -> u64:
+    return request(w, 62, field(w, slot), field(w, 104), mask, 0, 0, phase)
+
+def drop(w: mutbuf, slot: u64, mask: u64, phase: u64) -> u64:
+    return request(w, 64, field(w, slot), field(w, 104), mask, 0, 0, phase)
+
+def reserve(o: mutbuf, w: mutbuf, count: u64, phase: u64) -> u64:
+    current = get(w, 208)
+    if current > 2305843009213693951 or count > 2305843009213693951 - current:
+        return request(w, 20, 0, 0, 0, 0, 0, 900)
+    required = (current + count) * 4
+    if required > length(o):
+        return request(w, 202, required, 0, 0, 0, 0, phase)
+    return 4
+
+def push(w: mutbuf, object: u64, level: u64, following: u64, retry: u64) -> u64:
+    top = get(w, 200)
+    if top > 9223372036854775807 - 256 * 2:
+        return request(w, 20, 0, 0, 0, 0, 0, 900)
+    next = top + 256
+    if next + 256 > length(w):
+        return request(w, 204, next + 256, 0, 0, 0, 0, retry)
+    fput(w, 8, following)
+    put(w, 200, next)
+    clear_frame(w, next)
+    fput(w, 0, object)
+    fput(w, 24, level)
+    fput(w, 8, 1)
+    return 4
+
+def pop(w: mutbuf, status: u64) -> u64:
+    if fget(w, 104) != 0:
+        return 4294967293
+    top = get(w, 200)
+    if top == 4096:
+        put(w, 200, 0)
+        put(w, 120, status + 1)
+        if status != 0:
+            put(w, 208, 0)
+        return 4
+    if top < 4096 + 256:
+        return 4294967293
+    put(w, 200, top - 256)
+    fput(w, 120, status)
+    return 4
+
+def clear_frame(w: mutbuf, at: u64) -> u64:
+    fill_range(w, at, 256, 0)
+    return 0
+
+def request(w: mutbuf, operation: u64, a: u64, b: u64, c: u64, d: u64, e: u64, phase: u64) -> u64:
+    if get(w, 24) != 0 or get(w, 16) == 18446744073709551615:
+        return 4294967293
+    put(w, 16, get(w, 16) + 1)
+    put(w, 64, operation)
+    put(w, 72, a)
+    put(w, 72 + 8, b)
+    put(w, 72 + 16, c)
+    put(w, 72 + 24, d)
+    put(w, 72 + 32, e)
+    fput(w, 8, phase)
+    put(w, 24, 1)
+    return 2
+
+def field(w: mutbuf, offset: u64) -> u64:
+    return get(w, 200) + offset
+
+def fget(w: mutbuf, offset: u64) -> u64:
+    return get(w, field(w, offset))
+
+def fput(w: mutbuf, offset: u64, value: u64) -> u64:
+    return put(w, field(w, offset), value)
+
+def answer(w: mutbuf, index: u64) -> u64:
+    return get(w, 256 + index * 8)
+
+def point(o: mutbuf, index: u64, value: u64) -> u64:
+    store(o, index * 4, value & 255)
+    store(o, index * 4 + 1, value >> 8 & 255)
+    store(o, index * 4 + 2, value >> 16 & 255)
+    store(o, index * 4 + 3, value >> 24 & 255)
+    return 0
+
+def append_point(o: mutbuf, w: mutbuf, value: u64) -> u64:
+    cursor = get(w, 208)
+    point(o, cursor, value)
+    put(w, 208, cursor + 1)
+    return 0
+
+def newline(o: mutbuf, w: mutbuf, level: u64) -> u64:
+    append_point(o, w, 10)
+    index = 0
+    while index < level * 2:
+        append_point(o, w, 32)
+        index = index + 1
+    return 0
+
+def append_constant(o: mutbuf, w: mutbuf, which: u64) -> u64:
+    if which == 0:
+        append_point(o, w, 110)
+        append_point(o, w, 117)
+        append_point(o, w, 108)
+        append_point(o, w, 108)
+    elif which == 1:
+        append_point(o, w, 116)
+        append_point(o, w, 114)
+        append_point(o, w, 117)
+        append_point(o, w, 101)
+    else:
+        append_point(o, w, 102)
+        append_point(o, w, 97)
+        append_point(o, w, 108)
+        append_point(o, w, 115)
+        append_point(o, w, 101)
+    return 0
+
+def get(w: mutbuf, at: u64) -> u64:
+    value = 0
+    index = 0
+    while index < 8:
+        value = value | byte(w, at + index) << index * 8
+        index = index + 1
+    return value
+
+def put(w: mutbuf, at: u64, value: u64) -> u64:
+    index = 0
+    while index < 8:
+        store(w, at + index, value >> index * 8 & 255)
+        index = index + 1
+    return 0
+
+def literals(w: mutbuf) -> u64:
+    put(w, 512, 7164775599195842911)
+    put(w, 520, 8391166444899230831)
+    put(w, 528, 6998720695968820768)
+    put(w, 536, 7164775612281090848)
+    put(w, 544, 101)
+    put(w, 576, 7286935713384789792)
+    put(w, 584, 2334956330750534510)
+    put(w, 592, 8007486240071491681)
+    put(w, 600, 499883797090)
+    put(w, 640, 8241988044500134211)
+    put(w, 648, 7954890096655036960)
+    put(w, 656, 7162258761223005539)
+    put(w, 664, 6579572)
+    put(w, 704, 8461454955027723369)
+    put(w, 712, 8247626271654179955)
+    put(w, 720, 7813874495322726510)
+    put(w, 728, 29541)
+    put(w, 768, 8319675872780576107)
+    put(w, 776, 8247343400599298164)
+    put(w, 784, 7358930669703602220)
+    put(w, 792, 8026012861230837612)
+    put(w, 800, 8020383662256188527)
+    put(w, 808, 2338616625288996206)
+    put(w, 816, 126650804153893)
+    put(w, 896, 2914503390902054501)
+    put(w, 904, 8223700958818672681)
+    put(w, 912, 2333181740693419109)
+    put(w, 920, 2318341632102134899)
+    put(w, 928, 3474577849509506926)
+    put(w, 936, 115)
+    return 0
