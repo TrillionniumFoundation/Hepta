@@ -1,0 +1,49 @@
+{
+  "ZIP": {
+    "bytes": 6633,
+    "git_blob_sha1": "660f20f6423a6f368731b31e88907e61f807ceeb",
+    "path": "actual-run-43191718592/archive-audit-r1/ZIP-INVENTORY.json",
+    "sha256": "e92f96be5217d0fd13b7ca7e8988a009e692e1f17a883656425769fe8da29a51"
+  },
+  "artifact_id": 13930698085,
+  "errors": [],
+  "external_seal": {
+    "actual": {
+      "bytes": 17443242,
+      "git_blob_sha1": "3bc902994604964e974b8f3db72973b6da6a216f",
+      "sha256": "bec5a2317ee9a1590dcd2ab2ac642df78012b7b32bebe5bcd6269bdbc563a506"
+    },
+    "metadata": {
+      "bytes": 909,
+      "git_blob_sha1": "4100a00f54ca5b11e92ee91108340dbc191a6912",
+      "sha256": "83362d1483f9f53cdcf7868afd209821dcaade3a76310aadf1e6464fdbbe5e4d"
+    }
+  },
+  "new_product_execution": false,
+  "original_final": {
+    "bytes": 17926,
+    "git_blob_sha1": "ac0f8968541b6460858947a7e91a66be302611c5",
+    "sha256": "a362130184aa45acb5ec030f7ea17c8efb68594b98eb34d59eafa3adf267145d"
+  },
+  "original_final_errors": [
+    {
+      "message": "actual installed native completion ledger differs",
+      "phase": "independent_product_readback",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/control/experiments/hia_bounded_read_owner_20261112/product-native-installed-capsule-r1/controller.py\", line 457, in finalize\n    final['outputs'] = verify_outputs(root, setup, policy)\n                       ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/control/experiments/hia_bounded_read_owner_20261112/product-native-installed-capsule-r1/actions_verify.py\", line 637, in verify_outputs\n    installation = verify_installation(source, evidence, control, python,\n                                      component_directory / \"bounded-read.image.bin\", compiler)\n  File \"/home/runner/work/Hepta/Hepta/control/experiments/hia_bounded_read_owner_20261112/product-native-installed-capsule-r1/actions_verify.py\", line 453, in verify_installation\n    require(type(result[\"native_completions\"]) is int and result[\"native_completions\"] == len(attempts) == len(completed) > 0\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            and result[\"native_read_returns\"] == len(reads) == 7\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ...<4 lines>...\n                    and b[\"status\"] in (0, 1) for a, b in zip(attempts, completed, strict=True)),\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            \"actual installed native completion ledger differs\")\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/control/experiments/hia_bounded_read_owner_20261112/product-native-installed-capsule-r1/source_common.py\", line 19, in require\n    raise RuntimeError(message)\nRuntimeError: actual installed native completion ledger differs\n",
+      "type": "RuntimeError"
+    }
+  ],
+  "product_status": "HOLD",
+  "run_id": 43191718592,
+  "schema": "hepta.hia.bounded-read-v80-original-archive-audit.v1",
+  "source_commit": "ba714f34b8dcb248c779bb5fc0b9538d9151c685",
+  "source_tree": "3489d2047956c1481b2e0593e2fbd32cf273cc70",
+  "status": "COMPLETE_ARCHIVE_READBACK_NOT_A_PRODUCT_PASS",
+  "typed": {
+    "bytes": 418088,
+    "git_blob_sha1": "1c8248ffb93f0d22d3f7304ab5b2481e96eab2df",
+    "path": "actual-run-43191718592/archive-audit-r1/TYPED-INVENTORY.json",
+    "sha256": "058d9a4a22c17a32adb06a15e3f9fa8c05f0d3973f8566fc011cb5aedf7639ad"
+  },
+  "workflow_head": "f9a08b4fea10d6a81c52f0345817b7c78359ac72"
+}
