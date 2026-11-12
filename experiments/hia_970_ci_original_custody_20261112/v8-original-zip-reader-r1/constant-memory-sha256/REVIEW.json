@@ -1,0 +1,66 @@
+{
+  "schema": "hia.root.constant-memory-original-SHA256-review.v1",
+  "scope": "Evidence-only reader for actual original53MiB cold JSON; no product dependency or threshold change",
+  "source_bytes": 2199,
+  "source_sha256": "90eb59d6c0817aba1b8d777ef386e964060f658ce4c62f5bd4fd9b623f99fd75",
+  "input_limit": 134217728,
+  "extra_byte_arrays": "64 words schedule, 64 constants, 8 state words, at most128-byte padding; no full-input copy",
+  "tests": [
+    {
+      "name": "empty",
+      "pass": true,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "abc",
+      "pass": true,
+      "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    },
+    {
+      "name": "56-byte-vector",
+      "pass": true,
+      "sha256": "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
+    },
+    {
+      "name": "unaligned deterministic original extent 55",
+      "pass": true,
+      "sha256": "d0d23ff2365963aceaf16d6ee55463a29895b5b3d8214b67095133f19101c31b"
+    },
+    {
+      "name": "unaligned deterministic original extent 63",
+      "pass": true,
+      "sha256": "3ed5a01f1b08ab41b2612ccca28a43aeb2e5115d2afb6e0bd6e2a4c3a8b4f8ef"
+    },
+    {
+      "name": "unaligned deterministic original extent 64",
+      "pass": true,
+      "sha256": "5f70c956c066ca935f6cbaece2a56f7fc479f1ff631f079fbd5b72eb63bb0b4e"
+    },
+    {
+      "name": "unaligned deterministic original extent 65",
+      "pass": true,
+      "sha256": "22f9b6bc195c44e7e484c335ebda0cbd1ee4dda638a62a74f7d27cfb507a1c81"
+    },
+    {
+      "name": "unaligned deterministic original extent 119",
+      "pass": true,
+      "sha256": "56d741eb31f8a5ae2705980769256b311853c46506b97f7ee0a5a08e844f3ec7"
+    },
+    {
+      "name": "unaligned deterministic original extent 120",
+      "pass": true,
+      "sha256": "bbd1f6cbcd958f6310b7c6d16c8ad5eff705a697f6637bcabbc7f0a508ee00ff"
+    },
+    {
+      "name": "unaligned deterministic original extent 128",
+      "pass": true,
+      "sha256": "0224e15162e359abf304857003967bfc8586f7348e3d4e7369faf8cb1c08b6a9"
+    },
+    {
+      "name": "unaligned deterministic original extent 1048576",
+      "pass": true,
+      "sha256": "b600baac4ccd47f464fbed9a3fd12ecf672f0ae0a0af3061428de68612bd627e"
+    }
+  ],
+  "actual_large_original_received": false
+}
