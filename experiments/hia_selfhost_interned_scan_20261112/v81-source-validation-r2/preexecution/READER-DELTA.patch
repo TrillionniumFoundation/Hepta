@@ -1,0 +1,23 @@
+--- r1/common.py
++++ r2/common.py
+@@ -88,6 +88,6 @@
+         and clean['leader_reaped'] is True and clean['remaining_direct_children'] == []
+         and clean['errors'] == [] and clean['deadline_exceeded'] is False, 'cleanup did not prove ECHILD')
+     kinds = [event['kind'] for event in life['events']]
+-    require(kinds == ['qualification_started', 'owned_child_observed', 'qualification_exit_observed', 'child_reaped'],
++    require(kinds == ['qualification_started', 'owned_child_observed', 'qualification_exit_observed', 'owned_child_reaped'],
+         'unexpected lifecycle event or live-child kill')
+     return life['wall_elapsed_ns'] if 'wall_elapsed_ns' in life else life.get('elapsed_ns')
+--- r1/driver.py
++++ r2/driver.py
+@@ -14,8 +14,8 @@
+ def main():
+     p=argparse.ArgumentParser();p.add_argument('--phase',required=True);a=p.parse_args()
+     require(a.phase in ('derive','caps',*[f'class-{i}' for i in range(8)]),'unknown fixed stage')
+-    if a.phase!='derive':
+-        require(json.loads((HERE/'actual-derive/ACCEPTANCE.json').read_bytes())['status']=='PASS','derived closure not accepted')
++    require(a.phase!='derive', 'derivation already executed; do not replay')
++    require(json.loads((HERE/'DERIVATION-ADMISSION.json').read_bytes())['status']=='DERIVATION_ORIGINALS_ACCEPTED','derived closure not admitted')
+     if a.phase.startswith('class-'):
+         require(json.loads((HERE/'actual-caps/ACCEPTANCE.json').read_bytes())['status']=='PASS','caps not accepted')
+     out=HERE/('actual-'+a.phase);out.mkdir(mode=0o700,exist_ok=False)
