@@ -1166,9 +1166,13 @@ def merge_service_document(old_document,post_document,CopyBuilder,compact_author
     result=deepcopy(original)
     result["module"]="cli_edit_service58_extended_r1"
     result["functions"]=[first]+original["functions"]+extra["functions"]
-    # Only the new wrapper is compacted separately; keep every old block and
-    # operation structurally exact under the declared function-name bijection.
-    compact=compact_authoring_cfg(dict(schema="hepta.hia.program.v8",module="dispatch",functions=[first]))
+    # Compaction verifies every call against the complete function interfaces.
+    # Supply the complete graph to a private copy, then select only the compact
+    # wrapper. All original callee blocks remain untouched in result and are
+    # independently compared through the inverse function-name bijection below.
+    compact=compact_authoring_cfg(deepcopy(result))
+    assert compact["functions"][0]["name"]=="f0"
+    assert [f["name"] for f in compact["functions"]]==[f["name"] for f in result["functions"]]
     result["functions"][0]=compact["functions"][0]
     reverse={v:k for k,v in old_names.items()}
     restored=deepcopy(result["functions"][1:1+len(original["functions"])])

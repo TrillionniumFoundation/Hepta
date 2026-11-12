@@ -1,0 +1,55 @@
+{
+  "schema": "hia-schema-follow17-reader-failure-observation-v1",
+  "scope": "READ_ONLY_EVIDENCE_READER_FAILURE_NOT_A_NEW_NATIVE_TEST",
+  "head": "bfc30ce5c77fc5541cd0900015cf2e64f5568457",
+  "run_id": 43129195254,
+  "job_id": 130888828849,
+  "original_schema_head": "0363c98ea5d24a4f01772b811bb548ce453d30fb",
+  "original_schema_job_id": 130880174175,
+  "reader_gitsha": "cb4489ddc196ad9abc57a391b669386d49402de4",
+  "status": "FAIL_READER_KEYERROR_STATUS",
+  "observed_steps": {
+    "checkout": "SUCCESS",
+    "python31214": "SUCCESS",
+    "exact_original_zip_download": "SUCCESS",
+    "readonly_task": "FAIL",
+    "retain_originals": "SUCCESS"
+  },
+  "exact_first_failure": "read_schema_follow16_originals_r2.py:166: assert all(r['status']=='PASS' for r in records) -> KeyError: 'status'",
+  "cause_evidence": {
+    "writer_gitsha": "f3c159cde18c0c84f224431eef84949ade828874",
+    "writer_bytes": 32948,
+    "writer_sha256": "c41de7121c4dbde203489fa5bca74af907099e266478acfb3f52d3b317fdb3a6",
+    "writer_semantic_row": "check() writes expected/actual, expected_wire_ids/actual_wire_ids, expected_patterns/actual_patterns before three equality assertions; no status field",
+    "writer_protocol_and_paired_rows": "explicit status PASS is written only after their respective assertions"
+  },
+  "log": {
+    "path": "schema-follow17-reader-job130888828849.log",
+    "bytes": 22629,
+    "sha256": "d925d10aa9dca8d29da3b29e52f2a6302ff66ede5943a4ff2560dbfc0e6ad754",
+    "gitsha": "a8dc49325555fe1e8d7e00bdced582cdc7ec0535"
+  },
+  "retained_artifact": {
+    "id": 13904679796,
+    "bytes": 134562884,
+    "sha256": "c03ca7849a39c0b5118726583457912f21e322879f3276aba5db67756a5d1fb3"
+  },
+  "replacement": {
+    "path": "read_schema_follow16_originals_r3.py",
+    "bytes": 18047,
+    "sha256": "6f04fc1978118c9f2274f57e4b29ba0caa025c0e3ccbcd66d686c16d4c5ec4b1",
+    "gitsha": "4d0c5a863d8d5e16b5a4d9b62171df6d75cf5e7c"
+  },
+  "replacement_changes": [
+    "Keep all exact original ZIP/inner/index/member/source/image/receipt identity checks unchanged",
+    "Independently compare all three original semantic row equality conditions; require explicit PASS for protocol/paired rows",
+    "Verify complete case graph/command/workspace CAS references in addition to entry buffers",
+    "Print exact archived large process/stdout/stderr/pending/case originals before interpreting optional ledger fields",
+    "Pin exact original ledger writer identity"
+  ],
+  "native_entries_executed": 0,
+  "qualification_repeated": false,
+  "original_large_status": "FAIL_SIGKILL_NO_TERMINAL_SUMMARY_UNCHANGED",
+  "large_frontier": "NOT_YET_INTERPRETED_BY_A_SUCCESSFUL_READER",
+  "quota_changed": false
+}

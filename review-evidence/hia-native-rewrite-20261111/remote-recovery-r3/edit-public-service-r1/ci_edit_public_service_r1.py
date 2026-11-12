@@ -84,7 +84,7 @@ def compile_new(args,original,rows,out):
     c=constants(blob(args.repo,"73096fe41a1e1d5d3e4c84e722707ac0b07eadf3"),"CONSTANTS","COMMON",
       dict(old=types.SimpleNamespace(CONSTANTS=lower),magic=lambda s:int.from_bytes(s.encode(),"little")))
     source_path=args.module.resolve();source_before=source_path.read_bytes()
-    assert gitsha(source_before)=="79260850291afad9297d5c2730bb788dee1d27b9"
+    assert gitsha(source_before)=="6896c532705e39a86ed3015e9d14e80abfc3b042"
     module=load_module("new_edit_public_service",source_path)
     root_old=original/"edit-terminal-relay/development/agent_edit_root_terminal_relay.authoring.py"
     text56,text58,scope=module.expanded_sources(root_old.read_text(),c)
@@ -106,6 +106,11 @@ def compile_new(args,original,rows,out):
     choices=[original/r["name"] for r in rows if r["bytes"]==row["source_bytes"] and r["sha256"]==row["source_sha256"]]
     assert choices and all(p.read_bytes()==choices[0].read_bytes() for p in choices)
     old58=assemble_program(choices[0].read_bytes()).as_dict()
+    # Keep every complete authored graph before linking so a generation
+    # failure retains its exact inputs and phase, without claiming B3 execution.
+    save(out/"root56-unlinked.document.json",rootdoc)
+    save(out/"post58-unlinked.document.json",postdoc)
+    save(out/"original58.document.json",old58)
     merged=module.merge_service_document(old58,postdoc,CopyBuilder,compact_authoring_cfg)
     compiler=original/"composed-latest-editor/development/build-r2/source/1/B3.image.bin"
     assert len(compiler.read_bytes())==669556 and digest(compiler.read_bytes())=="35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"

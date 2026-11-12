@@ -1,0 +1,345 @@
+{
+  "schema": "hia-namespace-memory-lease-private-abi-v1",
+  "revision": "source-r1",
+  "status": "NEW_UNGENERATED_UNEXECUTED",
+  "source": {
+    "bytes": 22379,
+    "sha256": "353f2ec8e9e95ce4186ea404893ea2f599e6963a29d541894e0613740ebef2c7",
+    "status": "NEW_UNGENERATED_UNEXECUTED",
+    "git_blob": "660eb5e54344c3007a984ccd609c06e0b8ab4a20",
+    "readback_exact": true
+  },
+  "scope": {
+    "purpose": "Physical-memory lease owner required by the issued DMS-node SHM-map continuation; no ordinary AgentStore or SQL authority.",
+    "private_parent_only": true,
+    "headers_are_external_authentication": false,
+    "actual_OS_syscalls_in_component_corpus": 0,
+    "fixed_memory_peer_implemented": false,
+    "fixed_DMS_Map_join_implemented": false,
+    "ordinary_namespace_closed": false
+  },
+  "provenance": {
+    "map_generator": {
+      "bytes": 23289,
+      "sha256": "1ac940af6b31b8e7cc02ada063a46fc5a28ee04f524bb60d5bfeb5fde109fcde",
+      "status": "NEW_UNEXECUTED"
+    },
+    "dms_join_generator": {
+      "bytes": 45289,
+      "sha256": "1296bc3a2e51329c727fca1ae757e6f0a0620a75940a78443807b618430cbb15",
+      "status": "NEW_UNEXECUTED_JOIN_DRAFT"
+    },
+    "existing_fencing_results_do_not_execute_this_source": true
+  },
+  "input": {
+    "prefix_bytes": 64,
+    "prefix_magic": "HIANMX01",
+    "prefix_qwords": [
+      "magic",
+      "origin",
+      "actual primitive id for origin2 else0",
+      "actual image return0",
+      "raw bytes",
+      "actual primitive serial for origin2 else0",
+      "0",
+      "0"
+    ],
+    "raw_bytes": 256,
+    "raw_magic": "HIANML01",
+    "common_qwords": {
+      "0": "magic",
+      "1": "command",
+      "4": "call",
+      "5": "action",
+      "6": "issued request lease generation",
+      "7": "issued DMS node ID",
+      "2,3": "private session nonces"
+    },
+    "origins": {
+      "1": "fixed HIA parent command1INIT/2OP/6VIEW",
+      "2": "fixed actual primitive command3ACK; exact issued event echoed",
+      "3": "parent command4UNKNOWN; only pending actual primitive",
+      "4": "fixed allocation command5GROW_FAILURE; only workspace growth pending"
+    },
+    "commands": {
+      "INIT": {
+        "id": 1,
+        "fields": {
+          "8": "actual page size, power-of-two1..2^30",
+          "9": "nonzero issued DMS node generation",
+          "4,5,6": "0",
+          "10..31": "0"
+        },
+        "effect": "Require empty first1536 bytes; initialize next token1, private per-node registry."
+      },
+      "OP": {
+        "id": 2,
+        "fields": {
+          "4": "previous call+1 (no wrap)",
+          "5": "0",
+          "6": "strictly greater than prior nonzero lease",
+          "8": "operation1..6",
+          "9": "input token",
+          "13": "issued raw FD for file mmap only",
+          "14": "same issued FS token for file mmap only",
+          "15": "exact initialized node generation",
+          "10,11,12": "a,b,c",
+          "16..31": "0"
+        }
+      },
+      "VIEW": {
+        "id": 6,
+        "fields": {
+          "8": "7",
+          "9": "live file/heap token",
+          "10": "byte offset",
+          "11": "nonzero byte count",
+          "12": "requested read1 or readwrite3",
+          "15": "exact generation",
+          "13,14": "0"
+        },
+        "effect": "Resolve to actual address+offset and permission only after extent/type/current-session checks. Publication stays private; vector storage is not borrowable."
+      },
+      "ACK": {
+        "id": 3,
+        "fields": {
+          "8": "exact primitive id",
+          "9": "actual errno0..4095",
+          "10": "actual mmap address on success, else0",
+          "11": "0",
+          "12": "actual strictly increasing primitive serial",
+          "13": "256",
+          "4,5,6,7": "exact pending identity",
+          "14..31": "0"
+        },
+        "body": "exact256-byte issued primitive event; total raw512, channel576. A byte-correct foreign packet is not actual provenance."
+      },
+      "UNKNOWN": {
+        "id": 4,
+        "fields": {
+          "8": "1",
+          "9..31": "0"
+        },
+        "effect": "Permanently poison, keep all live/quarantined/pending identity and no retry or compensating I/O."
+      },
+      "GROW_FAILURE": {
+        "id": 5,
+        "fields": {
+          "8": "12",
+          "9..31": "0"
+        },
+        "effect": "Actual workspace allocation failure yields ENOMEM; no primitive happened; preserves live registry."
+      }
+    }
+  },
+  "operations": [
+    {
+      "id": 1,
+      "name": "VECTOR_REALLOC",
+      "arguments": "token old or0; a new logical extent>0; b exact prior extent (or0); c/fd/fs0",
+      "policy": "Map's monotonically growing pointer-vector allocation only. Reserve bookkeeping capacity first, raw anonymous mmap, copy full old logical bytes once, old munmap once, issue fresh token. Allocation failure retains old token/memory. Cleanup failure quarantines old memory and succeeds with new token."
+    },
+    {
+      "id": 2,
+      "name": "FILE_MAP",
+      "arguments": "token=fs token; a aligned file offset; b logical extent>0; c1/3 protection; fd exact private live rawFD; fs same token",
+      "policy": "One MAP_SHARED actual mmap. HIA parent must derive raw FD from actual current FS owner state under an exclusive borrow and protect the lease through completion."
+    },
+    {
+      "id": 3,
+      "name": "ZERO_HEAP",
+      "arguments": "token0; a extent>0; b/c/fd/fs0",
+      "policy": "One zero-initialized anonymous mmap; logical ownership is the process-lock SHM heap equivalent."
+    },
+    {
+      "id": 4,
+      "name": "FILE_UNMAP",
+      "arguments": "live file token; a nominal munmap extent; b exact full logical extent; rest0",
+      "policy": "HIA requires page-round(a)==recorded full actual mapping span, preserves original nominal32768 syscall length on64KiB systems. One attempt; on failure token is consumed into quarantine and errno returned for caller's original ignore policy."
+    },
+    {
+      "id": 5,
+      "name": "FREE",
+      "arguments": "live vector/heap token; a exact logical extent; rest0",
+      "policy": "One actual munmap of the allocation. Retire logical token once; known failure retains quarantine, no retry."
+    },
+    {
+      "id": 6,
+      "name": "BARRIER",
+      "arguments": "all0",
+      "policy": "One primitive providing actual memory fence plus the fixed executor's process-local global-lock barrier. This source does not assert that a merely echoed header provided a barrier."
+    }
+  ],
+  "output": {
+    "bytes": 256,
+    "magic": "HIANML01",
+    "qwords": {
+      "0": "magic",
+      "1": "return/status:0 terminal,1 primitive,2 grow,0xfffffffd refused",
+      "20": "phase",
+      "21": "live resources",
+      "22": "quarantined resources",
+      "23": "node generation",
+      "24": "first refusal reason",
+      "2..7": "session,call,action,lease,node",
+      "25..31": "0"
+    },
+    "terminal": {
+      "8": "errno",
+      "9": "issued token (or0)",
+      "10": "logical extent",
+      "11": "actual address only for private VIEW",
+      "12": "VIEW permission",
+      "13": "ignored realloc cleanup errors",
+      "14": "last actual primitive serial",
+      "15..19": "0"
+    },
+    "grow": {
+      "8": "required workspace bytes",
+      "9": "256",
+      "10..19": "0"
+    },
+    "primitive": {
+      "8": "1MMAP/2MEMMOVE/3MUNMAP/4BARRIER",
+      "15": "stage10 allocate,20 copy,21 old cleanup,30 free,40 barrier",
+      "16": "0",
+      "17": "old/input token",
+      "18": "next fresh token",
+      "19": "actual page size",
+      "9..14": "actual mechanical a,b,c,d,e,f arguments"
+    }
+  },
+  "primitives": [
+    {
+      "id": 1,
+      "name": "MMAP",
+      "args": [
+        "address0",
+        "logical size",
+        "protection1/3",
+        "flags1MAP_SHARED or34MAP_PRIVATE_ANON",
+        "rawFD orUINT64_MAX",
+        "aligned offset"
+      ],
+      "receipt": "single raw syscall; no EINTR retry; errors preserved; successful address may be0 and must be aligned/nonoverlapping"
+    },
+    {
+      "id": 2,
+      "name": "MEMMOVE",
+      "args": [
+        "new actual address",
+        "copy bytes",
+        "old actual address",
+        "0",
+        "0",
+        "0"
+      ],
+      "receipt": "fixed mechanics must validate both actual mapping ranges and destination write permission before copying; error or unknown permanently poisons logical owner"
+    },
+    {
+      "id": 3,
+      "name": "MUNMAP",
+      "args": [
+        "actual base",
+        "nominal requested size",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "receipt": "single syscall; no silent retry; known failure quarantined"
+    },
+    {
+      "id": 4,
+      "name": "PROCESS_BARRIER",
+      "args": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "receipt": "actual memory fence and process-local global-lock sequence; cannot substitute a synthetic success in physical validation"
+    }
+  ],
+  "workspace": {
+    "minimum": 1536,
+    "fields_bytes": {
+      "0": "magic",
+      "8": "phase1idle2primitive3grow7bad",
+      "32": "call",
+      "40": "action",
+      "48": "lease",
+      "56": "node",
+      "64": "next token",
+      "72": "registry end",
+      "80": "live count",
+      "88": "quarantine count",
+      "96": "logical op",
+      "104": "primitive stage",
+      "112": "input token",
+      "136": "original a/file offset",
+      "144": "c/protection",
+      "152": "raw fd",
+      "160": "FS token",
+      "168": "old row",
+      "176": "reserved new row",
+      "184": "new actual address pending",
+      "192": "new logical extent",
+      "200": "growth need",
+      "208": "last errno",
+      "216": "ignored cleanup count",
+      "224": "actual primitive serial",
+      "232": "page size",
+      "240": "node generation",
+      "248": "first refusal",
+      "16,24": "session",
+      "120,128": "a,b",
+      "256..511": "complete original request",
+      "512..767": "complete issued primitive",
+      "768..1535": "zero reserved"
+    },
+    "row_bytes": 80,
+    "rows_at": 1536,
+    "row_qwords": [
+      "monotonic token",
+      "actual base",
+      "logical extent",
+      "rounded actual extent",
+      "kind1vector2file3heap",
+      "state0empty1live2quarantine",
+      "protection",
+      "source FS token for file else0",
+      "file offset else0",
+      "node generation"
+    ],
+    "growth": "Append one80-byte bookkeeping row or reuse an all-zero retired row; no global count/byte quota. Fixed GROW must preserve complete workspace and re-enter same immutable request. No primitive replay."
+  },
+  "invariants": [
+    "Every live/quarantine record has unique token and disjoint actual range; no wrap in address/range arithmetic.",
+    "Every primitive completion carries exact source event/current call/action/lease and actual strictly increasing serial.",
+    "Unmap consumes once. Quarantine cannot issue a VIEW, be reused as a free row, or silently authorize a later allocation at overlapping address.",
+    "Realloc allocation/copy occurs before consuming old token. Unknown copy/primitive outcome poisons and retains resources for process exit.",
+    "Parent/fixed carrier remain responsible for actual provenance, live FD binding and mechanical address guards. No public authentication is inferred from headers."
+  ],
+  "verification": {
+    "planned_tests": 28,
+    "planned_VM_groups": 1,
+    "planned_fresh_B3_compiles": 1,
+    "planned_full_buffer_VM_native_groups": 1,
+    "generation_executed": 0,
+    "VM_executed": 0,
+    "native_executed": 0,
+    "OS_syscalls_executed": 0,
+    "expected_actual_entries": "measured only after real terminal",
+    "original_compile_limits": {
+      "cpu_seconds": 10,
+      "wall_seconds": 20,
+      "address_bytes": 268435456,
+      "output_bytes": 1048576,
+      "workspace_bytes": 1048576
+    },
+    "no_inherited_results": true
+  }
+}
