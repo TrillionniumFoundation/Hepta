@@ -7,7 +7,7 @@ import ast
 import copy
 def magic(s):return int.from_bytes(s.encode("ascii"),"little")
 COMMON_SHA="fe63327671ea51ca950b955512a0f574d706176a4a8d050e3f8f12c83ef5e3a1"
-PREPARE_SHA="662e4dfc95c70c43495554dfd01cb3042176044bd8f63d10413e29a00cc7e1f2"
+PREPARE_SHA="da2a957ed48c1fce78c7b931b6b6e3833522271d0fe0578b248e367820ebfb3f"
 FINISH_SHA="66b6480a3f6f37985fc4d97c4d54de848bb7fcd247591f04542df7e94570337c"
 CONSTANTS=dict(MAX=(1<<64)-1,BAD=0xfffffffd,GROW=0xfffffffe,MIN_WORK=1<<20,
  INIT=magic("HIAEMB01"),LOWER_MAGIC=magic("HIAEMS01"),RESULT=magic("HIAMER01"),

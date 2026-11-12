@@ -62,13 +62,13 @@ class Suite:
   self.pins={}
   for name,h in PINS.items():self.pin(self.root/name,h)
   self.pin(__file__)
-  self.pin(self.root.parent/"tools/hia_emitter_controller.py","3d61004c26b89fdec53b4457659ae4eccd8f2fcd73b8f260fafa716d0af01665")
+  self.pin(self.root.parent/"tools/hia_emitter_controller.py","7b706ef28c91d57a36d567ce701501dfa9ed025f4e27278cf629ace6bf011398")
   self.H=load("whole_emitter_mechanics",self.root/"emitter_mechanical_harness.py",PINS["emitter_mechanical_harness.py"])
   self.N=load("whole_emitter_native",self.root/"emitter_native_adapter.py",PINS["emitter_native_adapter.py"])
   self.F=self.H.F
   self.M=load("whole_emitter_function_fixtures",self.root/"function_lowering_test_reference.py",PINS["function_lowering_test_reference.py"]);self.M.F=self.F
   self.W=load("whole_emitter_wrapper_fixtures",self.root/"wrapper_test_reference.py",PINS["wrapper_test_reference.py"]);self.W.F=self.F
-  self.control=load("whole_emitter_control_source",self.root.parent/"tools/hia_emitter_controller.py","3d61004c26b89fdec53b4457659ae4eccd8f2fcd73b8f260fafa716d0af01665")
+  self.control=load("whole_emitter_control_source",self.root.parent/"tools/hia_emitter_controller.py","7b706ef28c91d57a36d567ce701501dfa9ed025f4e27278cf629ace6bf011398")
   for prefix in("hepta","tools"):
    for path in sorted((args.reference/prefix).rglob("*.py")):self.pin(path,REF_PINS.get(str(path.relative_to(args.reference))))
   for path,h in REF_PINS.items():self.pin(args.reference/path,h)

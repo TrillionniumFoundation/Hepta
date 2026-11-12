@@ -1,0 +1,127 @@
+{
+  "schema": "hia.namespace.physical37.readback.delivery.v1",
+  "scope": "READ_ONLY_ORIGINAL_ARTIFACT_BYTES_MODES_HASHES_AND_CANONICAL_SOURCE_IMAGE_EXTRACTION",
+  "status": "NEW_SOURCE_FULL_GIT_TEXT_READBACK_NO_AST_OR_EXECUTION",
+  "source_files": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/physical-follow37-readback/read_physical37.py",
+      "blob": "4bde5a038bc9ec76babc0ec8acf6bcbc744bbed3",
+      "bytes": 13606,
+      "sha256": "00fb5fbd72a1dba6e3516dec835df583ca93b146d3caf30b569cc1095675cfa3",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/physical-follow37-readback/prior-drafts/read_physical37_r1_unexecuted.py",
+      "blob": "a16ea0a6c683625f2288f1c13ecb9c17adff621a",
+      "bytes": 12732,
+      "sha256": "52baef045d5387b0abd2c895540ac2ee99d2fb4c45ebfb03bb68a6152506c39e",
+      "mode": "100644"
+    }
+  ],
+  "workflow": {
+    "tag": "namespace-physical-follow37-readback",
+    "runner": "ubuntu-latest",
+    "required_os": "Ubuntu 24.04",
+    "required_arch": "x86_64",
+    "python": "3.12.14",
+    "no_common_prepare": true,
+    "command": "timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/physical-follow37-readback/read_physical37.py",
+    "syntax_files": [
+      "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/physical-follow37-readback/read_physical37.py"
+    ],
+    "downloads": [
+      {
+        "uses": "actions/download-artifact@v4",
+        "with": {
+          "artifact-ids": "13926453573",
+          "run-id": "43180758618",
+          "github-token": "${{ github.token }}",
+          "path": "${{ runner.temp }}/hia-namespace-physical37-original"
+        }
+      }
+    ],
+    "step_env": {
+      "HIA_NAMESPACE_PHYSICAL37_DIR": "${{ runner.temp }}/hia-namespace-physical37-original",
+      "HIA_CI_OUTPUT": "${{ runner.temp }}/hia-namespace-physical37-readback"
+    },
+    "artifact_upload_path": "${{ runner.temp }}/hia-namespace-physical37-readback",
+    "upload_if": "always()",
+    "original_artifact_lookup": "Bounded recursive walk inside ONLY the downloaded artifact directory, no symlink directories, exactly one evidence.tar.xz matching the exact declared SHA with adjacent evidence-members.json and custody.json; supports flat or artifact-named extraction."
+  },
+  "limits": {
+    "reader_cpu_seconds": 90,
+    "reader_wall_seconds": 180,
+    "reader_address_bytes": 1073741824,
+    "reader_core_bytes": 0,
+    "outer_timeout_seconds": 180,
+    "outer_kill_after_seconds": 5,
+    "new_target_entries": 0
+  },
+  "predecessor": {
+    "head": "e3ea7f33f1d7bf3350e4b54a9a8d3522746223c7",
+    "run_id": 43180758618,
+    "job_id": 131055866693,
+    "job_conclusion": "success",
+    "artifact_id": 13926453573,
+    "zip_bytes": 288450881,
+    "github_declared_zip_sha256": "d1df33ce176aa44b8eaf0d518ae39c1a738e24d2ed947112b0ec93875b06bcac",
+    "outer_zip_read_by_this_reader": false,
+    "inner_archive_bytes": 20585932,
+    "inner_archive_sha256": "ca72b80abe463797e7e8c65a7915585c4009f2966c829bc5bf1c4c2d008725e5",
+    "index_bytes": 1140352,
+    "index_sha256": "b2e54a00e55c695e2f9263dc8462191f0f45bdb0c1121ab63039e3542155b948",
+    "members": 2280,
+    "raw_bytes": 259051592
+  },
+  "expected_original_counts": {
+    "physical_tests": 18,
+    "fixed_processes": 22,
+    "native_entries": 2562,
+    "VM_entries": 2562,
+    "primitive_ACKs": 266,
+    "roles": {
+      "1": 561,
+      "2": 26,
+      "3": 24,
+      "4": 602,
+      "5": 372,
+      "6": 977
+    },
+    "DB_retirements": 28,
+    "inner_retirements": 2,
+    "B3_role_compiles": 6,
+    "B3_packer_compiles": 1,
+    "direct_native_packer_cases": 33,
+    "packer_old_VM": 84,
+    "packer_new_VM": 84,
+    "packer_new_native": 84,
+    "abort_cleanup_pure_controls": 3
+  },
+  "evidence_order": [
+    "Pin original archive/index/custody before any nested semantic parse.",
+    "Stream all 2280 tar regular members and verify exact name/bytes/mode/SHA256; compute full Git blob identity for every member.",
+    "Copy the unchanged sealed original, emit full selected report/stdout/stderr bytes plus index/custody in individually hashed base64 chunks before any nested semantic assertion.",
+    "Strictly verify all 18 test IDs and zero anomalies, actual process limits, full six-role VM/native replay and 33/84 controls.",
+    "Extract original canonical .hiaasm, image, request and receipt bytes into a separate tar, preserve modes, and reread every extracted member; no generation/compilation/execution.",
+    "Rehash original archive/index/custody and save final report. Retain original selected bytes even when later assertions fail."
+  ],
+  "scope_boundaries": {
+    "ordinary_AgentStore_closed": false,
+    "whole_unixOpen_closed": false,
+    "whole_31SQL_store_closed": false,
+    "all_complete_original_reports_already_locally_read": false,
+    "console_delivery": "064e96990d28c81eb5dcaebd521417262da2625a",
+    "aggregate_cpu_note": "315.322761 seconds is accumulated across the original 18 groups and 22 fixed processes. Each fixed process retains its actual 90 CPU /180 wall/1 GiB limit; this reader performs no target execution."
+  },
+  "source_revision_notes": [
+    "r2 extends raw selection to named *.stdout.log/*.stderr.log and validates all 7 B3 receipts against the original 35ee compiler and canonical source/image hashes.",
+    "r1 is unexecuted historical source, excluded from active syntax and runtime inputs."
+  ],
+  "new_execution_counts": {
+    "AST": 0,
+    "generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  }
+}

@@ -659,7 +659,15 @@ def source(frame_owner,elf_owner):
             result=i+offset if name=="reviewed_type" else 1
             lines+=["    if literal(s,w,name,L_"+prefix+suffix+") != 0:","        return "+str(result)]
         lines+=["    return "+str(miss)];helpers.append("\n".join(lines))
-    nodes=ast.parse(BODY+"\n"+"\n".join(helpers)).body+[shared[n] for n in shared_names]+[elf["node"]]
+    # Raw capture preserves bytearray and str subclasses as tags 10 and 11.
+    # They are legal private transport records, then rejected by exact-type
+    # normalization in HIA. Do not change the separately frozen ELF writer.
+    node_source=ast.unparse(elf["node"])
+    assert node_source.count("kind > 9")==1 and node_source.count("elif kind == 9:")==1
+    node_source=node_source.replace("kind > 9","kind > 11").replace(
+        "elif kind == 9:","elif kind == 9 or kind == 10:")
+    raw_node=ast.parse(node_source).body[0]
+    nodes=ast.parse(BODY+"\n"+"\n".join(helpers)).body+[shared[n] for n in shared_names]+[raw_node]
     names={n.name:n for n in nodes};assert len(names)==len(nodes)
     live={"emitter_prepare"};pending=["emitter_prepare"]
     while pending:

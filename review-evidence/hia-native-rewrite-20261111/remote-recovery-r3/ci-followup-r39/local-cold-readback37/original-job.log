@@ -1,0 +1,378 @@
+﻿2026-11-12T08:14:31.0672305Z Current runner version: '2.338.2'
+2026-11-12T08:14:31.0694310Z ##[group]Runner Image Provisioner
+2026-11-12T08:14:31.0695056Z Hosted Compute Agent
+2026-11-12T08:14:31.0695607Z Version: 20261028.624
+2026-11-12T08:14:31.0696157Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-12T08:14:31.0696761Z Build Date: 2026-10-28T21:51:42Z
+2026-11-12T08:14:31.0697413Z Worker ID: {b1d62ad8-199d-4da8-adeb-03a54dfbb357}
+2026-11-12T08:14:31.0698014Z Region: eastus2
+2026-11-12T08:14:31.0698785Z Cloud: Azure
+2026-11-12T08:14:31.0699314Z ##[endgroup]
+2026-11-12T08:14:31.0700447Z ##[group]Operating System
+2026-11-12T08:14:31.0701098Z Ubuntu
+2026-11-12T08:14:31.0701545Z 24.04.5
+2026-11-12T08:14:31.0701973Z LTS
+2026-11-12T08:14:31.0702481Z ##[endgroup]
+2026-11-12T08:14:31.0703187Z ##[group]Runner Image
+2026-11-12T08:14:31.0703774Z Image: ubuntu-24.04
+2026-11-12T08:14:31.0704282Z Version: 20261101.360.1
+2026-11-12T08:14:31.0705433Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-12T08:14:31.0706708Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-12T08:14:31.0707561Z ##[endgroup]
+2026-11-12T08:14:31.0708538Z ##[group]GITHUB_TOKEN Permissions
+2026-11-12T08:14:31.0710427Z Contents: read
+2026-11-12T08:14:31.0710964Z Metadata: read
+2026-11-12T08:14:31.0711476Z ##[endgroup]
+2026-11-12T08:14:31.0713516Z Secret source: Actions
+2026-11-12T08:14:31.0714300Z Cache mode: write
+2026-11-12T08:14:31.0715198Z Prepare workflow directory
+2026-11-12T08:14:31.1150811Z Prepare all required actions
+2026-11-12T08:14:31.1205643Z Getting action download info
+2026-11-12T08:14:31.3080731Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-12T08:14:31.4106974Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-12T08:14:31.5201165Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-12T08:14:31.7535369Z Complete job name: Complete local restored cold failure and original source control readback
+2026-11-12T08:14:31.8132141Z ##[group]Run set -euo pipefail
+2026-11-12T08:14:31.8132903Z [36;1mset -euo pipefail[0m
+2026-11-12T08:14:31.8133337Z [36;1m. /etc/os-release[0m
+2026-11-12T08:14:31.8133744Z [36;1mtest "$ID" = ubuntu[0m
+2026-11-12T08:14:31.8134166Z [36;1mtest "$VERSION_ID" = 24.04[0m
+2026-11-12T08:14:31.8134623Z [36;1mtest "$(uname -m)" = x86_64[0m
+2026-11-12T08:14:31.8135076Z [36;1mtest "${ImageOS:?}" = ubuntu24[0m
+2026-11-12T08:14:31.8136006Z [36;1mprintf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"[0m
+2026-11-12T08:14:31.8158169Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T08:14:31.8158925Z env:
+2026-11-12T08:14:31.8159282Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T08:14:31.8159692Z ##[endgroup]
+2026-11-12T08:14:31.8279378Z HIA_RUNNER_DOMAIN id=ubuntu version=24.04 architecture=x86_64 image=ubuntu24 image_version=20261101.360.1
+2026-11-12T08:14:31.8461174Z ##[group]Run actions/checkout@v4
+2026-11-12T08:14:31.8461644Z with:
+2026-11-12T08:14:31.8461976Z   fetch-depth: 0
+2026-11-12T08:14:31.8462346Z   persist-credentials: false
+2026-11-12T08:14:31.8462988Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T08:14:31.8466318Z   token: ***
+2026-11-12T08:14:31.8466674Z   ssh-strict: true
+2026-11-12T08:14:31.8467034Z   ssh-user: git
+2026-11-12T08:14:31.8467375Z   clean: true
+2026-11-12T08:14:31.8467734Z   sparse-checkout-cone-mode: true
+2026-11-12T08:14:31.8468149Z   fetch-tags: false
+2026-11-12T08:14:31.8468516Z   show-progress: true
+2026-11-12T08:14:31.8468872Z   lfs: false
+2026-11-12T08:14:31.8469207Z   submodules: false
+2026-11-12T08:14:31.8469564Z   set-safe-directory: true
+2026-11-12T08:14:31.8469962Z   allow-unsafe-pr-checkout: false
+2026-11-12T08:14:31.8470369Z env:
+2026-11-12T08:14:31.8470705Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T08:14:31.8471315Z ##[endgroup]
+2026-11-12T08:14:32.0598749Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T08:14:32.0601163Z ##[group]Getting Git version info
+2026-11-12T08:14:32.0601780Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-12T08:14:32.0603028Z [command]/usr/bin/git version
+2026-11-12T08:14:32.0667986Z git version 2.56.0
+2026-11-12T08:14:32.0688732Z ##[endgroup]
+2026-11-12T08:14:32.0703432Z Temporarily overriding HOME='/home/runner/work/_temp/2b3990df-f27c-4aa4-af53-ea62993f1aea' before making global git config changes
+2026-11-12T08:14:32.0705874Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T08:14:32.0710260Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-12T08:14:32.0773274Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-12T08:14:32.0778452Z ##[group]Initializing the repository
+2026-11-12T08:14:32.0783375Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-12T08:14:32.0918003Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T08:14:32.0919612Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T08:14:32.0920882Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T08:14:32.0921843Z hint: call:
+2026-11-12T08:14:32.0922548Z hint:
+2026-11-12T08:14:32.0923601Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T08:14:32.0924572Z hint:
+2026-11-12T08:14:32.0925517Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T08:14:32.0926971Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T08:14:32.0928230Z hint:
+2026-11-12T08:14:32.0929008Z hint: 	git branch -m <name>
+2026-11-12T08:14:32.0929999Z hint:
+2026-11-12T08:14:32.0931132Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T08:14:32.0933215Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-12T08:14:32.0941270Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T08:14:32.0988261Z ##[endgroup]
+2026-11-12T08:14:32.0989532Z ##[group]Disabling automatic garbage collection
+2026-11-12T08:14:32.0992028Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T08:14:32.1029068Z ##[endgroup]
+2026-11-12T08:14:32.1030405Z ##[group]Setting up auth
+2026-11-12T08:14:32.1036444Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T08:14:32.1072071Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T08:14:32.1430347Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T08:14:32.1509409Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T08:14:32.1761022Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T08:14:32.1793060Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T08:14:32.2012554Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T08:14:32.2058255Z ##[endgroup]
+2026-11-12T08:14:32.2059013Z ##[group]Fetching the repository
+2026-11-12T08:14:32.2069585Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-11-12T08:15:26.2473290Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T08:15:26.2476544Z  * [new branch]        codex/hia-608-cold-record-custody-r2-20261111-e26e -> origin/codex/hia-608-cold-record-custody-r2-20261111-e26e
+2026-11-12T08:15:26.2478206Z  * [new branch]        codex/hia-608-independent-owner-audit-20261111-e26e -> origin/codex/hia-608-independent-owner-audit-20261111-e26e
+2026-11-12T08:15:26.2479230Z  * [new branch]        codex/hia-6e-ci-originals-20261111-e26e -> origin/codex/hia-6e-ci-originals-20261111-e26e
+2026-11-12T08:15:26.2479948Z  * [new branch]        codex/hia-970-ci-original-custody-run-r1-20261112-e26e -> origin/codex/hia-970-ci-original-custody-run-r1-20261112-e26e
+2026-11-12T08:15:26.2480809Z  * [new branch]        codex/hia-970-full-original-two-parts-run-r1-20261112-e26e -> origin/codex/hia-970-full-original-two-parts-run-r1-20261112-e26e
+2026-11-12T08:15:26.2481586Z  * [new branch]        codex/hia-970-inner-archive-parts-run-r1-20261112-e26e -> origin/codex/hia-970-inner-archive-parts-run-r1-20261112-e26e
+2026-11-12T08:15:26.2482356Z  * [new branch]        codex/hia-970-selected-index-run-r1-20261112-e26e -> origin/codex/hia-970-selected-index-run-r1-20261112-e26e
+2026-11-12T08:15:26.2483689Z  * [new branch]        codex/hia-970-small-diagnostic-run-r1-20261112-e26e -> origin/codex/hia-970-small-diagnostic-run-r1-20261112-e26e
+2026-11-12T08:15:26.2493308Z  * [new branch]        codex/hia-970-small-recovery-run-r1-20261112-e26e -> origin/codex/hia-970-small-recovery-run-r1-20261112-e26e
+2026-11-12T08:15:26.2503756Z  * [new branch]        codex/hia-acffa-elf-ci-original-custody-control-r1-20261112-e26e -> origin/codex/hia-acffa-elf-ci-original-custody-control-r1-20261112-e26e
+2026-11-12T08:15:26.2504704Z  * [new branch]        codex/hia-acffa-elf-ci-original-custody-run-r1-20261112-e26e -> origin/codex/hia-acffa-elf-ci-original-custody-run-r1-20261112-e26e
+2026-11-12T08:15:26.2505548Z  * [new branch]        codex/hia-acffa-elf-ci-original-frames-run-r1-20261112-e26e -> origin/codex/hia-acffa-elf-ci-original-frames-run-r1-20261112-e26e
+2026-11-12T08:15:26.2506551Z  * [new branch]        codex/hia-acffa-source-original-custody-20261111-e26e -> origin/codex/hia-acffa-source-original-custody-20261111-e26e
+2026-11-12T08:15:26.2508027Z  * [new branch]        codex/hia-artifact-page-draft-checkpoint-20261111-e26e -> origin/codex/hia-artifact-page-draft-checkpoint-20261111-e26e
+2026-11-12T08:15:26.2509292Z  * [new branch]        codex/hia-bounded-read-native-r4b-run-r1-20261112-e26e -> origin/codex/hia-bounded-read-native-r4b-run-r1-20261112-e26e
+2026-11-12T08:15:26.2510477Z  * [new branch]        codex/hia-bounded-read-native-r4b-run-r2-20261112-e26e -> origin/codex/hia-bounded-read-native-r4b-run-r2-20261112-e26e
+2026-11-12T08:15:26.2511665Z  * [new branch]        codex/hia-cold-causal-audit-r2-20261111-e26e -> origin/codex/hia-cold-causal-audit-r2-20261111-e26e
+2026-11-12T08:15:26.2512946Z  * [new branch]        codex/hia-cold-prefix-ab-actual-r1-20261111-e26e -> origin/codex/hia-cold-prefix-ab-actual-r1-20261111-e26e
+2026-11-12T08:15:26.2514209Z  * [new branch]        codex/hia-cold-prefix-native-observer-r1-20261111-e26e -> origin/codex/hia-cold-prefix-native-observer-r1-20261111-e26e
+2026-11-12T08:15:26.2515791Z  * [new branch]        codex/hia-cold-throughput-evidence-20261111-e26e -> origin/codex/hia-cold-throughput-evidence-20261111-e26e
+2026-11-12T08:15:26.2516971Z  * [new branch]        codex/hia-combined-native-custody-20261112-e26e -> origin/codex/hia-combined-native-custody-20261112-e26e
+2026-11-12T08:15:26.2518240Z  * [new branch]        codex/hia-combined-native-gates-20261112-e26e -> origin/codex/hia-combined-native-gates-20261112-e26e
+2026-11-12T08:15:26.2519297Z  * [new branch]        codex/hia-combined-native-source-20261112-e26e -> origin/codex/hia-combined-native-source-20261112-e26e
+2026-11-12T08:15:26.2596542Z  * [new branch]        codex/hia-compiler-caller-source-closure-20261112-e26e -> origin/codex/hia-compiler-caller-source-closure-20261112-e26e
+2026-11-12T08:15:26.2597395Z  * [new branch]        codex/hia-context-development-v76-20261112-dda7 -> origin/codex/hia-context-development-v76-20261112-dda7
+2026-11-12T08:15:26.2598199Z  * [new branch]        codex/hia-core-emitter-authoring-r2-run-20261112-e26e -> origin/codex/hia-core-emitter-authoring-r2-run-20261112-e26e
+2026-11-12T08:15:26.2614828Z  * [new branch]        codex/hia-core-emitter-failed-reader-diagnostics-run-r1-20261112-e26e -> origin/codex/hia-core-emitter-failed-reader-diagnostics-run-r1-20261112-e26e
+2026-11-12T08:15:26.2615807Z  * [new branch]        codex/hia-core-emitter-generated-assets-run-r1-20261112-e26e -> origin/codex/hia-core-emitter-generated-assets-run-r1-20261112-e26e
+2026-11-12T08:15:26.2616793Z  * [new branch]        codex/hia-core-emitter-generated-assets-run-r2-20261112-e26e -> origin/codex/hia-core-emitter-generated-assets-run-r2-20261112-e26e
+2026-11-12T08:15:26.2617797Z  * [new branch]        codex/hia-core-emitter-native-development-run-r1-20261112-e26e -> origin/codex/hia-core-emitter-native-development-run-r1-20261112-e26e
+2026-11-12T08:15:26.2618800Z  * [new branch]        codex/hia-core-emitter-native-development-run-r2-20261112-e26e -> origin/codex/hia-core-emitter-native-development-run-r2-20261112-e26e
+2026-11-12T08:15:26.2619799Z  * [new branch]        codex/hia-core-emitter-native-development-run-r3-20261112-e26e -> origin/codex/hia-core-emitter-native-development-run-r3-20261112-e26e
+2026-11-12T08:15:26.2621098Z  * [new branch]        codex/hia-core-emitter-source-partitions-run-r1-20261112-e26e -> origin/codex/hia-core-emitter-source-partitions-run-r1-20261112-e26e
+2026-11-12T08:15:26.2622267Z  * [new branch]        codex/hia-core-json-front-v68-20261111-7420 -> origin/codex/hia-core-json-front-v68-20261111-7420
+2026-11-12T08:15:26.2623298Z  * [new branch]        codex/hia-core-lowering-development-controls-20261111-e26e -> origin/codex/hia-core-lowering-development-controls-20261111-e26e
+2026-11-12T08:15:26.2624102Z  * [new branch]        codex/hia-d2-ci-originals-20261111-e26e -> origin/codex/hia-d2-ci-originals-20261111-e26e
+2026-11-12T08:15:26.2624915Z  * [new branch]        codex/hia-desktop-development-preparation-20261111-e26e -> origin/codex/hia-desktop-development-preparation-20261111-e26e
+2026-11-12T08:15:26.2625756Z  * [new branch]        codex/hia-e8-ci-original-custody-20261111-e26e -> origin/codex/hia-e8-ci-original-custody-20261111-e26e
+2026-11-12T08:15:26.2626499Z  * [new branch]        codex/hia-elf-development-v76-20261112-dda7 -> origin/codex/hia-elf-development-v76-20261112-dda7
+2026-11-12T08:15:26.2627228Z  * [new branch]        codex/hia-evidence-recovery-v73-20261112-dda7 -> origin/codex/hia-evidence-recovery-v73-20261112-dda7
+2026-11-12T08:15:26.2627973Z  * [new branch]        codex/hia-exception-delivery-v75-20261112-dda7 -> origin/codex/hia-exception-delivery-v75-20261112-dda7
+2026-11-12T08:15:26.2628747Z  * [new branch]        codex/hia-exception-delivery-v75-r2-20261112-dda7 -> origin/codex/hia-exception-delivery-v75-r2-20261112-dda7
+2026-11-12T08:15:26.2629545Z  * [new branch]        codex/hia-full-qualification-v74-20261112-dda7 -> origin/codex/hia-full-qualification-v74-20261112-dda7
+2026-11-12T08:15:26.2630476Z  * [new branch]        codex/hia-git-object-package-20261111-e26e -> origin/codex/hia-git-object-package-20261111-e26e
+2026-11-12T08:15:26.2631184Z  * [new branch]        codex/hia-heap-source-v71-20261112-dda7 -> origin/codex/hia-heap-source-v71-20261112-dda7
+2026-11-12T08:15:26.2631827Z  * [new branch]        codex/hia-hepta-suffix-20261111-7420 -> origin/codex/hia-hepta-suffix-20261111-7420
+2026-11-12T08:15:26.2632862Z  * [new branch]        codex/hia-instructions-actions-r5-result-43091589236-1 -> origin/codex/hia-instructions-actions-r5-result-43091589236-1
+2026-11-12T08:15:26.2633911Z  * [new branch]        codex/hia-instructions-actions-r5-run-20261111-e26e -> origin/codex/hia-instructions-actions-r5-run-20261111-e26e
+2026-11-12T08:15:26.2634703Z  * [new branch]        codex/hia-journal-ack-review-20261111-e26e -> origin/codex/hia-journal-ack-review-20261111-e26e
+2026-11-12T08:15:26.2635521Z  * [new branch]        codex/hia-json-pretty-bulk-r4-native-run-20261112-e26e -> origin/codex/hia-json-pretty-bulk-r4-native-run-20261112-e26e
+2026-11-12T08:15:26.2636573Z  * [new branch]        codex/hia-json-pretty-byte-bridge-run-r1-20261112-e26e -> origin/codex/hia-json-pretty-byte-bridge-run-r1-20261112-e26e
+2026-11-12T08:15:26.2637441Z  * [new branch]        codex/hia-json-pretty-installed-run-r1-20261112-e26e -> origin/codex/hia-json-pretty-installed-run-r1-20261112-e26e
+2026-11-12T08:15:26.2638323Z  * [new branch]        codex/hia-json-pretty-native-r1-run-20261112-e26e -> origin/codex/hia-json-pretty-native-r1-run-20261112-e26e
+2026-11-12T08:15:26.2639537Z  * [new branch]        codex/hia-linked-native-observer-20261111-e26e -> origin/codex/hia-linked-native-observer-20261111-e26e
+2026-11-12T08:15:26.2640762Z  * [new branch]        codex/hia-machine-elf-authoring-20261111-e26e -> origin/codex/hia-machine-elf-authoring-20261111-e26e
+2026-11-12T08:15:26.2642109Z  * [new branch]        codex/hia-machine-elf-reconstructed-static-20261111-e26e -> origin/codex/hia-machine-elf-reconstructed-static-20261111-e26e
+2026-11-12T08:15:26.2643808Z  * [new branch]        codex/hia-machine-instructions-generated-r5-20261111-e26e -> origin/codex/hia-machine-instructions-generated-r5-20261111-e26e
+2026-11-12T08:15:26.2645210Z  * [new branch]        codex/hia-machine-instructions-native-20261111-e26e -> origin/codex/hia-machine-instructions-native-20261111-e26e
+2026-11-12T08:15:26.2646569Z  * [new branch]        codex/hia-machine-state-native-20261111-e26e -> origin/codex/hia-machine-state-native-20261111-e26e
+2026-11-12T08:15:26.2647746Z  * [new branch]        codex/hia-native-artifact-read-20261111-e26e -> origin/codex/hia-native-artifact-read-20261111-e26e
+2026-11-12T08:15:26.2648931Z  * [new branch]        codex/hia-native-budget-cleanup-20261111-ddc2 -> origin/codex/hia-native-budget-cleanup-20261111-ddc2
+2026-11-12T08:15:26.2650176Z  * [new branch]        codex/hia-native-cli-control-recovery-20261111-e26e -> origin/codex/hia-native-cli-control-recovery-20261111-e26e
+2026-11-12T08:15:26.2651340Z  * [new branch]        codex/hia-native-closure-20261111-e26e -> origin/codex/hia-native-closure-20261111-e26e
+2026-11-12T08:15:26.2652451Z  * [new branch]        codex/hia-native-core-emitter-20261111-e26e -> origin/codex/hia-native-core-emitter-20261111-e26e
+2026-11-12T08:15:26.2654030Z  * [new branch]        codex/hia-native-core-emitter-v2-authoring-input-20261111-e26e -> origin/codex/hia-native-core-emitter-v2-authoring-input-20261111-e26e
+2026-11-12T08:15:26.2655462Z  * [new branch]        codex/hia-native-core-lowering-20261111-e26e -> origin/codex/hia-native-core-lowering-20261111-e26e
+2026-11-12T08:15:26.2656696Z  * [new branch]        codex/hia-native-core-lowering-product-20261111-e26e -> origin/codex/hia-native-core-lowering-product-20261111-e26e
+2026-11-12T08:15:26.2658108Z  * [new branch]        codex/hia-native-evidence-v63-20261111-e26e -> origin/codex/hia-native-evidence-v63-20261111-e26e
+2026-11-12T08:15:26.2658877Z  * [new branch]        codex/hia-native-integration-20261111-7420 -> origin/codex/hia-native-integration-20261111-7420
+2026-11-12T08:15:26.2659851Z  * [new branch]        codex/hia-native-integration-v67-20261111-dda7 -> origin/codex/hia-native-integration-v67-20261111-dda7
+2026-11-12T08:15:26.2660616Z  * [new branch]        codex/hia-native-integration-v68-20261111-dda7 -> origin/codex/hia-native-integration-v68-20261111-dda7
+2026-11-12T08:15:26.2661356Z  * [new branch]        codex/hia-native-integration-v69-20261111-dda7 -> origin/codex/hia-native-integration-v69-20261111-dda7
+2026-11-12T08:15:26.2662066Z  * [new branch]        codex/hia-native-json-wire-20261111-e26e -> origin/codex/hia-native-json-wire-20261111-e26e
+2026-11-12T08:15:26.2663014Z  * [new branch]        codex/hia-native-machine-encoding-20261111-e26e -> origin/codex/hia-native-machine-encoding-20261111-e26e
+2026-11-12T08:15:26.2663796Z  * [new branch]        codex/hia-native-machine-plan-v65-20261111-e26e -> origin/codex/hia-native-machine-plan-v65-20261111-e26e
+2026-11-12T08:15:26.2664531Z  * [new branch]        codex/hia-native-recovery-v66-20261111-dda7 -> origin/codex/hia-native-recovery-v66-20261111-dda7
+2026-11-12T08:15:26.2665371Z  * [new branch]        codex/hia-native-self-rewrite-20261111-dda7 -> origin/codex/hia-native-self-rewrite-20261111-dda7
+2026-11-12T08:15:26.2666086Z  * [new branch]        codex/hia-native-source-build-20261111-7420 -> origin/codex/hia-native-source-build-20261111-7420
+2026-11-12T08:15:26.2666814Z  * [new branch]        codex/hia-native-source-package-20261111-e26e -> origin/codex/hia-native-source-package-20261111-e26e
+2026-11-12T08:15:26.2668018Z  * [new branch]        codex/hia-native-stack-integration-fixes-r1-20261111-e26e -> origin/codex/hia-native-stack-integration-fixes-r1-20261111-e26e
+2026-11-12T08:15:26.2669398Z  * [new branch]        codex/hia-native-stack-integration-r1-20261111-e26e -> origin/codex/hia-native-stack-integration-r1-20261111-e26e
+2026-11-12T08:15:26.2670302Z  * [new branch]        codex/hia-native-stack-integration-r2-20261111-e26e -> origin/codex/hia-native-stack-integration-r2-20261111-e26e
+2026-11-12T08:15:26.2671176Z  * [new branch]        codex/hia-native-stack-source-r1-result-43110682350-1 -> origin/codex/hia-native-stack-source-r1-result-43110682350-1
+2026-11-12T08:15:26.2672008Z  * [new branch]        codex/hia-native-stack-source-r1-run-20261111-e26e -> origin/codex/hia-native-stack-source-r1-run-20261111-e26e
+2026-11-12T08:15:26.2673142Z  * [new branch]        codex/hia-native-stack-source-r2-result-43116276591-1 -> origin/codex/hia-native-stack-source-r2-result-43116276591-1
+2026-11-12T08:15:26.2674449Z  * [new branch]        codex/hia-native-stack-source-r2-run-20261111-e26e -> origin/codex/hia-native-stack-source-r2-run-20261111-e26e
+2026-11-12T08:15:26.2675344Z  * [new branch]        codex/hia-native-state-owner-20261111-e26e -> origin/codex/hia-native-state-owner-20261111-e26e
+2026-11-12T08:15:26.2676099Z  * [new branch]        codex/hia-native-store-authority-20261111-e26e -> origin/codex/hia-native-store-authority-20261111-e26e
+2026-11-12T08:15:26.2676913Z  * [new branch]        codex/hia-native-successor-gates-v9-20261111-e26e -> origin/codex/hia-native-successor-gates-v9-20261111-e26e
+2026-11-12T08:15:26.2677739Z  * [new branch]        codex/hia-native-v65-state-observer-20261111-9acdfa -> origin/codex/hia-native-v65-state-observer-20261111-9acdfa
+2026-11-12T08:15:26.2678629Z  * [new branch]        codex/hia-native-v66-integration-checkpoint-20261111-e26e -> origin/codex/hia-native-v66-integration-checkpoint-20261111-e26e
+2026-11-12T08:15:26.2679519Z  * [new branch]        codex/hia-native-v66-linked-observer-20261111-9acdfa -> origin/codex/hia-native-v66-linked-observer-20261111-9acdfa
+2026-11-12T08:15:26.2680370Z  * [new branch]        codex/hia-native-v66-source-controls-20261111-e26e -> origin/codex/hia-native-v66-source-controls-20261111-e26e
+2026-11-12T08:15:26.2681207Z  * [new branch]        codex/hia-native-v67-call-fixed-point-20261111-9acdfa -> origin/codex/hia-native-v67-call-fixed-point-20261111-9acdfa
+2026-11-12T08:15:26.2681984Z  * [new branch]        codex/hia-native-wire-entry-20261111-e26e -> origin/codex/hia-native-wire-entry-20261111-e26e
+2026-11-12T08:15:26.2683039Z  * [new branch]        codex/hia-native-wire-interruption-20261111-e26e -> origin/codex/hia-native-wire-interruption-20261111-e26e
+2026-11-12T08:15:26.2683814Z  * [new branch]        codex/hia-native-wire-key-cache-20261111-e26e -> origin/codex/hia-native-wire-key-cache-20261111-e26e
+2026-11-12T08:15:26.2684551Z  * [new branch]        codex/hia-native-wire-lifecycle-20261111-e26e -> origin/codex/hia-native-wire-lifecycle-20261111-e26e
+2026-11-12T08:15:26.2685807Z  * [new branch]        codex/hia-native-wire-r7-cloud-development-20261111-e26e -> origin/codex/hia-native-wire-r7-cloud-development-20261111-e26e
+2026-11-12T08:15:26.2687187Z  * [new branch]        codex/hia-native-worker-report-next-20261111-e26e -> origin/codex/hia-native-worker-report-next-20261111-e26e
+2026-11-12T08:15:26.2688431Z  * [new branch]        codex/hia-nominal-json-native-20261111-7420 -> origin/codex/hia-nominal-json-native-20261111-7420
+2026-11-12T08:15:26.2689813Z  * [new branch]        codex/hia-nominal-tokens-native-20261111-7420 -> origin/codex/hia-nominal-tokens-native-20261111-7420
+2026-11-12T08:15:26.2691022Z  * [new branch]        codex/hia-note-reference-gcc15-v75-20261112-dda7 -> origin/codex/hia-note-reference-gcc15-v75-20261112-dda7
+2026-11-12T08:15:26.2692198Z  * [new branch]        codex/hia-note-reference-host-gcc15-v75-20261112-dda7 -> origin/codex/hia-note-reference-host-gcc15-v75-20261112-dda7
+2026-11-12T08:15:26.2693299Z  * [new branch]        codex/hia-note-reference-reproduction-v75-20261112-dda7 -> origin/codex/hia-note-reference-reproduction-v75-20261112-dda7
+2026-11-12T08:15:26.2694146Z  * [new branch]        codex/hia-preflight-diagnostics-20261111-e26e -> origin/codex/hia-preflight-diagnostics-20261111-e26e
+2026-11-12T08:15:26.2694958Z  * [new branch]        codex/hia-qualification-v7-evidence-20261111-e26e -> origin/codex/hia-qualification-v7-evidence-20261111-e26e
+2026-11-12T08:15:26.2695759Z  * [new branch]        codex/hia-source-custody-acffa-r1-20261111-e26e -> origin/codex/hia-source-custody-acffa-r1-20261111-e26e
+2026-11-12T08:15:26.2696526Z  * [new branch]        codex/hia-source-custody-v67-608157e5-20261111 -> origin/codex/hia-source-custody-v67-608157e5-20261111
+2026-11-12T08:15:26.2697315Z  * [new branch]        codex/hia-source-export-recovery-v75-20261112-dda7 -> origin/codex/hia-source-export-recovery-v75-20261112-dda7
+2026-11-12T08:15:26.2698091Z  * [new branch]        codex/hia-source-generation-v74-20261112-dda7 -> origin/codex/hia-source-generation-v74-20261112-dda7
+2026-11-12T08:15:26.2698825Z  * [new branch]        codex/hia-source-generation-v75-20261112-dda7 -> origin/codex/hia-source-generation-v75-20261112-dda7
+2026-11-12T08:15:26.2699586Z  * [new branch]        codex/hia-source-generation-v75-r2-20261112-dda7 -> origin/codex/hia-source-generation-v75-r2-20261112-dda7
+2026-11-12T08:15:26.2700347Z  * [new branch]        codex/hia-source-generation-v75-r3-20261112-dda7 -> origin/codex/hia-source-generation-v75-r3-20261112-dda7
+2026-11-12T08:15:26.2701237Z  * [new branch]        codex/hia-source-harness-v71-20261112-dda7 -> origin/codex/hia-source-harness-v71-20261112-dda7
+2026-11-12T08:15:26.2702012Z  * [new branch]        codex/hia-static-budget-recovery-v69-20261111-dda7 -> origin/codex/hia-static-budget-recovery-v69-20261111-dda7
+2026-11-12T08:15:26.2702993Z  * [new branch]        codex/hia-store-page-integration-20261111-e26e -> origin/codex/hia-store-page-integration-20261111-e26e
+2026-11-12T08:15:26.2703749Z  * [new branch]        codex/hia-strict-code-callers-20261111-e26e -> origin/codex/hia-strict-code-callers-20261111-e26e
+2026-11-12T08:15:26.2704477Z  * [new branch]        codex/hia-support-domain-docs-20261111-f9aa -> origin/codex/hia-support-domain-docs-20261111-f9aa
+2026-11-12T08:15:26.2705181Z  * [new branch]        codex/hia-three-loop-closure-20261111-1ac5 -> origin/codex/hia-three-loop-closure-20261111-1ac5
+2026-11-12T08:15:26.2705944Z  * [new branch]        codex/hia-three-loop-receipt-closure-20261111-f9aa -> origin/codex/hia-three-loop-receipt-closure-20261111-f9aa
+2026-11-12T08:15:26.2706865Z  * [new branch]        codex/hia-v67-all-originals-20261111-e26e -> origin/codex/hia-v67-all-originals-20261111-e26e
+2026-11-12T08:15:26.2707602Z  * [new branch]        codex/hia-v67-full-controller-20261111-e26e -> origin/codex/hia-v67-full-controller-20261111-e26e
+2026-11-12T08:15:26.2708355Z  * [new branch]        codex/hia-v67-ndu-fixture-supply-20261111-e26e -> origin/codex/hia-v67-ndu-fixture-supply-20261111-e26e
+2026-11-12T08:15:26.2709163Z  * [new branch]        codex/hia-v67-official-source-ingress-20261111-e26e -> origin/codex/hia-v67-official-source-ingress-20261111-e26e
+2026-11-12T08:15:26.2709941Z  * [new branch]        codex/hia-v8-independent-review-20261111-e26e -> origin/codex/hia-v8-independent-review-20261111-e26e
+2026-11-12T08:15:26.2710710Z  * [new branch]        codex/hia-wheel-resource-audit-v74-20261112-dda7 -> origin/codex/hia-wheel-resource-audit-v74-20261112-dda7
+2026-11-12T08:15:26.2711599Z  * [new branch]        codex/hia-worker-exception-context-20261111-e26e -> origin/codex/hia-worker-exception-context-20261111-e26e
+2026-11-12T08:15:26.2712458Z  * [new branch]        codex/hia-workflow-source-fixture-fix-e8-20261111-e26e -> origin/codex/hia-workflow-source-fixture-fix-e8-20261111-e26e
+2026-11-12T08:15:26.2713398Z  * [new branch]        evidence/hia-receipt-closure-20261111-f9aa -> origin/evidence/hia-receipt-closure-20261111-f9aa
+2026-11-12T08:15:26.2714082Z  * [new branch]        evidence/hia-three-loop-20261111-1ac5 -> origin/evidence/hia-three-loop-20261111-1ac5
+2026-11-12T08:15:26.2714544Z  * [new branch]        main       -> origin/main
+2026-11-12T08:15:26.2715055Z  * [new branch]        recovery-verify/hia-follow37-20261112 -> origin/recovery-verify/hia-follow37-20261112
+2026-11-12T08:15:26.2715694Z  * [new branch]        recovery/hia-function-9acdfa-20261111 -> origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T08:15:26.2716378Z  * [new branch]        review/library-hia-rational-static-20261110 -> origin/review/library-hia-rational-static-20261110
+2026-11-12T08:15:26.2717771Z [command]/usr/bin/git branch --list --remote origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T08:15:26.2718306Z   origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T08:15:26.2719091Z [command]/usr/bin/git rev-parse refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T08:15:26.2719515Z e3ea7f33f1d7bf3350e4b54a9a8d3522746223c7
+2026-11-12T08:15:26.2720204Z ##[endgroup]
+2026-11-12T08:15:26.2720567Z ##[group]Determining the checkout info
+2026-11-12T08:15:26.2720986Z ##[endgroup]
+2026-11-12T08:15:26.2721253Z [command]/usr/bin/git sparse-checkout disable
+2026-11-12T08:15:26.2721957Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-12T08:15:26.2722878Z ##[group]Checking out the ref
+2026-11-12T08:15:26.2723511Z [command]/usr/bin/git checkout --progress --force -B recovery/hia-function-9acdfa-20261111 refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T08:15:27.2409452Z Switched to a new branch 'recovery/hia-function-9acdfa-20261111'
+2026-11-12T08:15:27.2412344Z branch 'recovery/hia-function-9acdfa-20261111' set up to track 'origin/recovery/hia-function-9acdfa-20261111'.
+2026-11-12T08:15:27.2537299Z ##[endgroup]
+2026-11-12T08:15:27.2585372Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T08:15:27.2617990Z e3ea7f33f1d7bf3350e4b54a9a8d3522746223c7
+2026-11-12T08:15:27.2627222Z ##[group]Removing auth
+2026-11-12T08:15:27.2630582Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T08:15:27.2665750Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T08:15:27.2881871Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T08:15:27.2910273Z http.https://github.com/.extraheader
+2026-11-12T08:15:27.2916157Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T08:15:27.2953043Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T08:15:27.3164641Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T08:15:27.3198006Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T08:15:27.3404695Z ##[endgroup]
+2026-11-12T08:15:27.3585759Z ##[group]Run actions/setup-python@v5
+2026-11-12T08:15:27.3585994Z with:
+2026-11-12T08:15:27.3586165Z   python-version: 3.12.14
+2026-11-12T08:15:27.3586360Z   check-latest: false
+2026-11-12T08:15:27.3588455Z   token: ***
+2026-11-12T08:15:27.3588636Z   update-environment: true
+2026-11-12T08:15:27.3588832Z   allow-prereleases: false
+2026-11-12T08:15:27.3589177Z   freethreaded: false
+2026-11-12T08:15:27.3589346Z env:
+2026-11-12T08:15:27.3589514Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T08:15:27.3589708Z ##[endgroup]
+2026-11-12T08:15:27.4922174Z ##[group]Installed versions
+2026-11-12T08:15:27.4959823Z Version 3.12.14 was not found in the local cache
+2026-11-12T08:15:27.5126691Z (node:2218) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T08:15:27.5127705Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T08:15:28.2104105Z Version 3.12.14 is available for downloading
+2026-11-12T08:15:28.2105286Z Download from "https://github.com/actions/python-versions/releases/download/3.12.14-31661455385/python-3.12.14-linux-24.04-x64.tar.gz"
+2026-11-12T08:15:28.6513228Z Extract downloaded archive
+2026-11-12T08:15:28.6633614Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/e3c11a1c-95e9-4530-a085-de488a3ddbf2 -f /home/runner/work/_temp/6be70f61-eab6-482f-bf65-f4ca55563e3b
+2026-11-12T08:15:30.2984572Z Execute installation script
+2026-11-12T08:15:30.3087026Z Check if Python hostedtoolcache folder exist...
+2026-11-12T08:15:30.3087725Z Create Python 3.12.14 folder
+2026-11-12T08:15:30.3099221Z Copy Python binaries to hostedtoolcache folder
+2026-11-12T08:15:30.6719899Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-12T08:15:30.6755717Z Upgrading pip...
+2026-11-12T08:15:32.1122140Z Collecting pip
+2026-11-12T08:15:32.1528908Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-12T08:15:32.1633458Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-12T08:15:32.2454911Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 28.4 MB/s eta 0:00:00
+2026-11-12T08:15:32.2455434Z 
+2026-11-12T08:15:32.2577954Z Installing collected packages: pip
+2026-11-12T08:15:32.2578367Z Attempting uninstall: pip
+2026-11-12T08:15:32.2595455Z Found existing installation: pip 25.0.1
+2026-11-12T08:15:32.2845091Z Uninstalling pip-25.0.1:
+2026-11-12T08:15:32.2888526Z Successfully uninstalled pip-25.0.1
+2026-11-12T08:15:33.0575195Z Successfully installed pip-26.3
+2026-11-12T08:15:33.1066879Z Create complete file
+2026-11-12T08:15:33.1100193Z Successfully set up CPython (3.12.14)
+2026-11-12T08:15:33.1101149Z ##[endgroup]
+2026-11-12T08:15:33.1282929Z ##[group]Run timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r37/local-cold/read_local_originals_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-local-restoration-cold-readback-driver.log"
+2026-11-12T08:15:33.1284319Z [36;1mtimeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r37/local-cold/read_local_originals_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-local-restoration-cold-readback-driver.log"[0m
+2026-11-12T08:15:33.1304957Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T08:15:33.1305244Z env:
+2026-11-12T08:15:33.1305423Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T08:15:33.1305683Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T08:15:33.1306034Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-12T08:15:33.1306411Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T08:15:33.1306712Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T08:15:33.1307018Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T08:15:33.1307309Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-12T08:15:33.1307655Z   HIA_CI_OUTPUT: /home/runner/work/_temp/hia-local-restoration-cold-readback
+2026-11-12T08:15:33.1307954Z ##[endgroup]
+2026-11-12T08:15:35.2651415Z HIA_LOCAL_COLD_COMPLETE_READBACK {"B3_compiles": 0, "B3_image": {"bytes": 669556, "kind": "file", "mode": 420, "sha256": "35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"}, "archive_sha256": "19c0f613dd43da62d1918a5e3cb7d46fe88c5e8b9e8130f8b488e3a6e0f63d6e", "current_original_filesystem_available": false, "every_original_archive_byte_mode_link_checked": true, "exact_original_records": {"drivers/restoration37-cold.json": {"bytes": 79200, "gitsha": "469d479132df63ef0d352c4c1901d70fa5114da5", "sha256": "c8ac5f1769d43a38c454dd05fb399230c344861fea90495e44b60e670287f86b"}, "prerequisites/summary.json": {"bytes": 855, "gitsha": "c255c3acccdfebc0e6bf009fd7ac5cb371df05e5", "sha256": "f48a95632f63b5bde4e424a8c9b7126d4bb44ca0133ef42f8db6c3febcd38659"}, "prerequisites/unittest.stderr.log": {"bytes": 2516, "gitsha": "7dac71c4c3842ea0523de477330a0b5109597dfc", "sha256": "f160c08ea292e377984af47afc2e33eb069e81accf40d49fec579b2edc7a4509"}, "qualification/process-owner.json": {"bytes": 2882, "gitsha": "60f1037a1ee3a9269bb16c390050227cba3da07d", "sha256": "6efc0c7da2b0bb8bd9d5efef6649a47073e4adc682492cfe5980b093e684ea03"}, "qualification/qualification.evidence/B3.receipt.json": {"bytes": 1704, "gitsha": "a30308110fe2b61b0220a80f02e9957c10a35232", "sha256": "8ddbfaec2b619189f978bd1b5b9dd54e5e271bc65d9ee08bdf57da759dcd408e"}, "qualification/qualification.evidence/B3.request.json": {"bytes": 613, "gitsha": "154d13914f5179a406ce8a5c968632c784ea81a9", "sha256": "2f523de84fa2c6634ba5794b689f64856fd5335929f794be4ca084fc95197c1b"}, "qualification/qualification.evidence/B3.stdout.log": {"bytes": 967, "gitsha": "777ca0c545e710e9204f01240e29416a763efa1c", "sha256": "7b7ded711cfae26a01ff5bfb8c0d79e87d10712045a0bbb0ec9a26d2ef8053cb"}, "qualification/qualification.evidence/phase-index.json": {"bytes": 21274, "gitsha": "4f489066b756fd670bba9062c6efb3f1a1a67db1", "sha256": "fae750d86fdbe431d5d4d11f40e8edc4e252d813f3df3c74b4887f01fbf37dc9"}}, "members": 2689, "native_entries": 0, "original_bytes": 266536395, "original_cold_checks_passed": 6, "original_cold_checks_total": 11, "original_cold_status": "FAIL", "original_completed_phases": 26, "original_member_index_exact_sha256": "cd7b00197725326af8c692724099a8670ff0b32cf4113f0204d3c1b6c4c56240", "original_source_controls": 13, "original_total_phases": 38, "schema": "hia-complete-local-cold-original-readback-v1", "source_head": "e3ea7f33f1d7bf3350e4b54a9a8d3522746223c7", "status": "PASS_READBACK_ONLY", "wall_ns": 1964154562, "whole_stack_closed": false}
+2026-11-12T08:15:35.2796361Z ##[group]Run actions/upload-artifact@v4
+2026-11-12T08:15:35.2796603Z with:
+2026-11-12T08:15:35.2796829Z   name: hia-local-restoration-cold-readback-43180758618-1
+2026-11-12T08:15:35.2797382Z   path: /home/runner/work/_temp/hia-local-restoration-cold-readback
+/home/runner/work/_temp/hia-local-restoration-cold-readback-driver.log
+
+2026-11-12T08:15:35.2797876Z   if-no-files-found: error
+2026-11-12T08:15:35.2798076Z   retention-days: 90
+2026-11-12T08:15:35.2798261Z   compression-level: 0
+2026-11-12T08:15:35.2798438Z   overwrite: false
+2026-11-12T08:15:35.2798613Z   include-hidden-files: false
+2026-11-12T08:15:35.2798805Z env:
+2026-11-12T08:15:35.2798970Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T08:15:35.2799231Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T08:15:35.2799566Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-12T08:15:35.2799895Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T08:15:35.2800232Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T08:15:35.2800527Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T08:15:35.2800821Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-12T08:15:35.2801073Z ##[endgroup]
+2026-11-12T08:15:35.4149170Z (node:2280) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T08:15:35.4149741Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T08:15:35.4221603Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-12T08:15:35.4223424Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+2026-11-12T08:15:35.4224479Z With the provided path, there will be 12 files uploaded
+2026-11-12T08:15:35.4228276Z Artifact name is valid!
+2026-11-12T08:15:35.4228971Z Root directory input is valid!
+2026-11-12T08:15:35.7273956Z Beginning upload of artifact content to blob storage
+2026-11-12T08:15:35.7755906Z (node:2280) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-12T08:15:35.9948823Z Uploaded bytes 8388608
+2026-11-12T08:15:36.0834731Z Uploaded bytes 16777216
+2026-11-12T08:15:36.2475435Z Uploaded bytes 23182075
+2026-11-12T08:15:36.2659559Z Finished uploading artifact content to blob storage!
+2026-11-12T08:15:36.2660307Z SHA256 digest of uploaded artifact zip is 6343acd2393c987044e03ec7640b009c2bc0a427b0a84cb89d26baf7e6d28fab
+2026-11-12T08:15:36.2661553Z Finalizing artifact upload
+2026-11-12T08:15:36.5773899Z Artifact hia-local-restoration-cold-readback-43180758618-1.zip successfully finalized. Artifact ID 13926875313
+2026-11-12T08:15:36.5775209Z Artifact hia-local-restoration-cold-readback-43180758618-1 has been successfully uploaded! Final size is 23182075 bytes. Artifact ID is 13926875313
+2026-11-12T08:15:36.5803639Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/43180758618/artifacts/13926875313
+2026-11-12T08:15:36.5990056Z Post job cleanup.
+2026-11-12T08:15:36.6960634Z (node:2292) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T08:15:36.6961224Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T08:15:36.7108374Z Post job cleanup.
+2026-11-12T08:15:36.7832593Z [command]/usr/bin/git version
+2026-11-12T08:15:36.7872962Z git version 2.56.0
+2026-11-12T08:15:36.7906334Z Temporarily overriding HOME='/home/runner/work/_temp/dfb48c13-8dc5-459f-96d2-1dcf74676e45' before making global git config changes
+2026-11-12T08:15:36.7907307Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T08:15:36.7911105Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-12T08:15:36.7951853Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T08:15:36.8013683Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T08:15:36.8308958Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T08:15:36.8380943Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T08:15:36.8632417Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T08:15:36.8677125Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T08:15:36.9091544Z Cleaning up orphan processes
+2026-11-12T08:15:36.9418392Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

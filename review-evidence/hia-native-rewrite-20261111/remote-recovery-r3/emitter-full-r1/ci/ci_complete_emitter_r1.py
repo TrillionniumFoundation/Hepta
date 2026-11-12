@@ -22,9 +22,9 @@ FILES=[
   {
     "path": "docs/HIA_COMPLETE_EMITTER_NATIVE.md",
     "mode": "100644",
-    "bytes": 15328,
-    "sha256": "c47f13ca554193d0a4f0eb6e0e6fcfb8aabe52a01691c545d7fbb25d8dc1b416",
-    "gitsha": "5492646b558b6377054df18dffc8f1d6b5b0f859"
+    "bytes": 17054,
+    "sha256": "0c1434134ab0ea9c36f5bbd2c89336bb8892f7c7cc1b77fdff6a5a630a2e5f47",
+    "gitsha": "91f5f7fbdba3b5eb13d9a0d71dfbe174ad89d61d"
   },
   {
     "path": "reference/hia_machine_plan.py",
@@ -100,8 +100,8 @@ FILES=[
     "path": "tests/test_hia_complete_emitter.py",
     "mode": "100644",
     "bytes": 29760,
-    "sha256": "d5f81f61847c268c6297463be90bbaf3d44a767be5de4d79e11a216e90a724db",
-    "gitsha": "490d33cf4d84588e5ee1ddb2cc0e61683dbdf707"
+    "sha256": "d44389458f0ead3f4b290bfd183a0e3158c73561344d9b3e909bafadd4a19722",
+    "gitsha": "98a99f9ee214cb8cf70a402acf5f0167f8696a00"
   },
   {
     "path": "tests/wrapper_test_reference.py",
@@ -121,8 +121,8 @@ FILES=[
     "path": "tools/build_hia_complete_emitter.py",
     "mode": "100644",
     "bytes": 15496,
-    "sha256": "c1e4f1f2dbdaaa60e16f7ff1838e1362787837467973da293bc5385bd9df071b",
-    "gitsha": "f4160cbc9f96e5f2ab2b8256683d978c47688e24"
+    "sha256": "7b6664186a423173487aa8a562cd043768e7fec3b71a4f1948005ec39915530a",
+    "gitsha": "41d4a135744468845b6bc0fe79a3bf9ab3e5a227"
   },
   {
     "path": "tools/emitter_native_mechanics.c",
@@ -156,8 +156,8 @@ FILES=[
     "path": "tools/hia_emitter_controller.py",
     "mode": "100644",
     "bytes": 45316,
-    "sha256": "3d61004c26b89fdec53b4457659ae4eccd8f2fcd73b8f260fafa716d0af01665",
-    "gitsha": "06c28a49e02726fc5f0bbeb87c6de9aef55b2cfd"
+    "sha256": "7b706ef28c91d57a36d567ce701501dfa9ed025f4e27278cf629ace6bf011398",
+    "gitsha": "fdbbeed9d5cf5798f3a7b42aa4299f0c57e37402"
   },
   {
     "path": "tools/hia_emitter_finish.py",
@@ -169,9 +169,9 @@ FILES=[
   {
     "path": "tools/hia_emitter_prepare.py",
     "mode": "100644",
-    "bytes": 26413,
-    "sha256": "662e4dfc95c70c43495554dfd01cb3042176044bd8f63d10413e29a00cc7e1f2",
-    "gitsha": "764db25a1127659f4a3a068d985a9437ce9995bb"
+    "bytes": 26939,
+    "sha256": "da2a957ed48c1fce78c7b931b6b6e3833522271d0fe0578b248e367820ebfb3f",
+    "gitsha": "16e1786ece4aa71c0dac6d5a431288893c2829ad"
   },
   {
     "path": "tools/hia_emitter_wrapper_issuer.py",
@@ -337,7 +337,7 @@ def main():
      source_Graph_must_be_actual_immutable_admitted_Core_and_checked_plan=True,header_is_authentication=False)
  try:
   context=common.prepare()
-  mine=Path(context["base"])/"complete-emitter-recovery-r1";mine.mkdir()
+  mine=Path(context["base"])/"complete-emitter-recovery-r2";mine.mkdir()
   project=mine/"native-emitter-next";project.mkdir()
   for row in FILES:
    source=common.materialize(SOURCE_PREFIX+row["path"],row["gitsha"],project/row["path"])
@@ -347,7 +347,7 @@ def main():
   env=dict(PYTHONDONTWRITEBYTECODE="1",PYTHONPATH=context["reference"],LC_ALL="C.UTF-8",LANG="C.UTF-8")
   roles={}
   for index,component in enumerate(COMPONENTS,1):
-   build=project/"development"/("build-"+component+"-r1")
+   build=project/"development"/("build-"+component+"-r2")
    try:
     common.run("emitter-fresh-"+component,[context["python"],"-B",project/"tools/build_hia_complete_emitter.py",
        "--reference",context["reference"],"--compiler",context["compiler"],"--out",build,"--component",component],
@@ -382,7 +382,7 @@ def main():
   assets=project/"development/runtime-assets.json"
   save(assets,dict(schema="hia-emitter-development-runtime-assets-v1",roles=roles,
        actual_fresh_B3_compilations=11,old_results_inherited=False))
-  nativebuild=project/"development/native-mechanics-build-r1"
+  nativebuild=project/"development/native-mechanics-build-r2"
   c_label="emitter-development-C-mechanics-build"
   common.run(c_label,[context["python"],"-B",project/"tools/build_emitter_native_mechanics.py",
       "--stage","build","--source",project/"tools/emitter_native_mechanics.c","--out",nativebuild],
@@ -395,7 +395,7 @@ def main():
   carrier=nativebuild/"emitter-native-mechanics"
   assert len(SCHEDULE)==55 and sum(r[2] for r in SCHEDULE)==732 and sum(r[3] for r in SCHEDULE)==50
   for group,variant,count,private in SCHEDULE:
-   label=group+"-"+str(variant);out=project/"development"/("native-"+label+"-r1")
+   label=group+"-"+str(variant);out=project/"development"/("native-"+label+"-r2")
    try:
     common.run("emitter-whole-"+label,[context["python"],"-B",project/"tests/test_hia_complete_emitter.py",
        "--assets",assets,"--carrier",carrier,"--reference",context["reference"],"--out",out,
@@ -437,6 +437,6 @@ def main():
  finally:
   roots={}
   if project is not None and project.exists():roots["emitter-full"]=project
-  seal.finish(common,"emitter-full-r1",status,report,roots=roots)
+  seal.finish(common,"emitter-full-r2",status,report,roots=roots)
  if status!="PASS":raise SystemExit(1)
 if __name__=="__main__":main()

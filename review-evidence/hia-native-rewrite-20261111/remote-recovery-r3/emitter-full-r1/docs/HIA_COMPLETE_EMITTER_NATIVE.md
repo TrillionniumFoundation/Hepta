@@ -304,3 +304,30 @@ A successful component run still leaves full source-to-artifact admission,
 independent object inspection, the final fixed installed carrier, native
 clean build, ordinary CLI build/dispatch, publication, full suite and cold
 qualification as separate unfinished claims.
+
+## Revision 2: captured subclass records reach semantic normalization
+
+The first independent FOLLOW38 complete-Emitter run failed in the seventh
+`manifest` case, `manifest-invalid-6`, after the first 39 groups and the preceding
+six manifest cases passed. The unchanged capture records `InheritedStr("")` as
+Graph tag 11. Preparation reused the separately frozen ELF writer's node reader,
+whose accepted transport tag range ended at 9, so the actual entry returned
+private BAD before the original exact-tuple semantic rejection could run.
+
+Preparation now locally derives that node reader with two changes only: the
+maximum defined captured tag is 11, and bytearray tag 10 receives the same zero-aux
+payload checks as bytes tag 9. All identifier, reserved word, container edge,
+scalar range, integer magnitude, boolean and floating-point shape checks remain.
+A tag 11 string subclass remains distinct from exact string tag 4. The existing
+normalization therefore rejects it at the original top-level tuple gate, or at
+the exact-string pair gate when used as an export name. Tag 10 remains distinct
+from tuple and integer as well. This does not change the frozen ELF writer,
+coerce captured objects on the host, or admit a subclass into the borrowed-byte
+ABI.
+
+The controller, single-role builder and test module change only the source
+identity pins necessitated by this preparation change. The original 55-group,
+732-case, 50-private-control schedule, all comparison assertions and budgets
+remain. A fresh revision must execute that complete schedule; FOLLOW38's partial
+results are retained under their original source/image identities and are not
+revision-2 PASS evidence. This revision is NEW and UNEXECUTED when authored.

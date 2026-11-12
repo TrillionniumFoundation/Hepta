@@ -1,0 +1,46 @@
+{
+  "counts": {
+    "errors": 187,
+    "expected_failures": 0,
+    "failures": 1,
+    "skipped": 18,
+    "unexpected_successes": 0
+  },
+  "first_error": {
+    "original_traceback_tail": "Traceback (most recent call last):\n  File \"/var/tmp/hia9acdfa-v67-0ef9541b/source/tests/test_hia_ndu_bridge.py\", line 245, in test_adapter_sources_binary_and_generated_lock_match_recorded_execution\n    self.assertEqual(sha256(Path(BINARY).read_bytes()).hexdigest(), self.receipt[\"binary_sha256\"])\n                            ~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/usr/lib/python3.14/pathlib/__init__.py\", line 778, in read_bytes\n    with self.open(mode='rb', buffering=0) as f:\n         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/pathlib/__init__.py\", line 772, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/core-controls-ndu-original-prerequisite-01/target/debug/hia-ndu-bridge'\n",
+    "tail_truncated": false,
+    "test": "test_adapter_sources_binary_and_generated_lock_match_recorded_execution (tests.test_hia_ndu_bridge.NDUBridgeSourceProvenanceTests.test_adapter_sources_binary_and_generated_lock_match_recorded_execution)",
+    "traceback_bytes": 940,
+    "traceback_sha256": "72b061bf49e31db6998d364bb3fe4f020d1a1df3654ef6a849b537b05f12ac70"
+  },
+  "first_failure": {
+    "original_traceback_tail": "Traceback (most recent call last):\n  File \"/var/tmp/hia9acdfa-v67-0ef9541b/source/hepta/hia_ndu_optimizer.py\", line 99, in _read_file\n    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)\nFileNotFoundError: [Errno 2] No such file or directory: '/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/core-controls-ndu-original-prerequisite-01/target/debug/hia-ndu-bridge'\n\nThe above exception was the direct cause of the following exception:\n\nhepta.hia_ndu_optimizer.OptimizationRejected: E_HIA_NDU: bounded regular file read failed\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/var/tmp/hia9acdfa-v67-0ef9541b/source/tests/test_hia_ndu_bridge_isolation.py\", line 98, in test_each_actual_native_protocol_rejects_the_other_request_shape\n    with self.assertRaisesRegex(OptimizationRejected, \"native evaluator failed\"):\n         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"native evaluator failed\" does not match \"E_HIA_NDU: bounded regular file read failed\"\n",
+    "tail_truncated": false,
+    "test": "test_each_actual_native_protocol_rejects_the_other_request_shape (tests.test_hia_ndu_bridge_isolation.NativeBridgeIsolationTests.test_each_actual_native_protocol_rejects_the_other_request_shape)",
+    "traceback_bytes": 1131,
+    "traceback_sha256": "e62d2ae26b46c301f49f8e97fe3aea29b2e99223fd576b26a46ac113e7d77737"
+  },
+  "full_original_results_and_traces_retained": true,
+  "head": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+  "job_id": "1a1cab94f66-2564-82c",
+  "kind": "ORIGINAL_FAILED_RETAINED_DIAGNOSTIC",
+  "original_suite_outcome": {
+    "completed": false,
+    "discovery": true,
+    "passed": false,
+    "result": {
+      "path": "/var/tmp/hia9acdfa-v67-0ef9541b/qualification/full-retained-regression.json",
+      "sha256": "95f77891c23becf71f6ab5d554f4be12e30ac14d3bd14f284ddf112788ab6a5f"
+    },
+    "tests_run": 4157
+  },
+  "qualification_status": "HOLD",
+  "result_bytes": 468400,
+  "result_read_error": null,
+  "result_sha256": "95f77891c23becf71f6ab5d554f4be12e30ac14d3bd14f284ddf112788ab6a5f",
+  "source_before_after_equal": true,
+  "source_files": 2798,
+  "successful": false,
+  "tests_loaded": 4157,
+  "tests_run": 4157
+}
