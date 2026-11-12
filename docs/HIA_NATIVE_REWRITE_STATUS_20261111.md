@@ -13,6 +13,214 @@ are real implementations. The installed `hia` entry, Agent request authority,
 build/install ownership and other retained components still contain Python.
 Removing those owners now would remove supported behavior, not finish its port.
 
+## Current continuation: v65 request, journal and release ownership
+
+This continuation is based on v64 commit
+`5831f52fada45e076f8f68f198a15c0585e6104f`. It preserves the five-owner,
+eleven-image nominal route and adds three explicit native boundaries:
+[worker request admission](HIA_WORKER_REQUEST_NATIVE.md),
+[Agent journal decisions](HIA_AGENT_JOURNAL_NATIVE.md), and
+[release installation](HIA_RELEASE_INSTALL_NATIVE.md). Source contracts and
+installed-resource inventories include their actual source files. All prior
+source/native groups remain; the new group and ordinary selected-caller gate
+require complete execution with no errors, failures, skips or expected failures.
+
+The request owner validates the envelope, known tool and trusted catalog, and
+hashes the canonical five-field body without dropping nested fields. The
+journal owner preserves request identity, conflict-before-state ordering,
+reserved intents, cached replay and the acknowledgment-before-COMMIT boundary.
+Its separate response and cost channels do not introduce a combined byte limit.
+The hosted adapter still owns SQLite operations, business methods, schemas,
+context/proof authority, references and external materialization. These changes
+do not make durable Agent execution wholly native.
+
+The release executable performs bounded flat-package validation, SHA-256 checks,
+held-descriptor file operations, fsync, no-replace rename and read-only verification.
+It does not activate releases, upgrade workers or migrate user state. Python
+authoring/build tools and a fixed syscall template remain outside the runtime
+executable. Default activation and whole-stack retirement remain open.
+
+### Earlier exact-source observations and required follow-up
+
+The stage-4 candidate is commit
+`eef68334b078eb9fcc414f441c35687e33585bba`, with 636 cold-source files.
+GitHub run `42995591456` executed the complete 327-test source group and
+reported three import errors: its retained archive-queue controls referred to
+`_PhaseArchivePool` and `_PendingPhaseArchive`, but integration had omitted
+their matching qualification implementation. This is an integration defect,
+not an environment refusal. The candidate remains failed. The continuation
+restores the original bounded archive implementation from commit
+`3ed860043d537305b20aea3abb39c0daa2d2b966` without removing any test. One archive
+thread holds at most two pending seals; the two native-oracle workers and the
+180-second deadline remain unchanged. A phase stays pending until all original
+bytes have been archived and verified. All 38 phases remain required.
+The repaired stage-5 source then executed all 77 workflow test entries and
+327 tests locally, with zero failures, errors, skips, expected failures or
+unexpected successes. Its 636-file source map was unchanged before and after
+the 397.659118098-second controller run. Independent review found no scheduling
+blocker and confirmed the unchanged external deadline and two native workers.
+This source result does not replace a fresh cold or full-native qualification.
+
+The same stage-4 GitHub cold run timed out at 180.146844994 seconds. Its 34
+completed phases contain 3,758 true checks, but the names phases remained
+unfinished and exports had not completed. A separate local stage-4 cold run
+timed out at 180.352510184 seconds. Both failures retain the complete available
+original bytes and their source bindings; neither authorizes a native build.
+Independent stage-4 development validation did pass all 18 observer tests and
+the two actual installed constructor/outer tests. It compiled the current
+B0/B1/B2 chain and all eleven nominal images, observed both installation
+directories honoring TMPDIR, and retained all 28 isolated installed children
+(two accepted and 26 original tamper refusals). Those 20 tests are not a full
+source, cold or whole-stack qualification.
+
+GitHub run `42986320732` tested exact v64 main. Its 307 source tests and separate
+four-language CodeQL run passed, but cold qualification timed out at
+180.141377508 seconds under the unchanged 180-second limit. All 34 completed
+phases and 3,758 checks passed; two names phases were unfinished and exports
+had not started. The final nested report is absent and later native groups were
+skipped. Independent readback checked all 614 exported sources, all 4,394 outer
+archive members and 36,669 sealed current-phase raw members. This remains FAIL.
+
+The v64 ROG full run passed cold, language and earlier native groups, then its
+64-test composite-function group recorded two `EDQUOT` errors in installation
+fixtures. Both fixtures explicitly selected `/dev/shm` despite the configured
+NVMe temporary directory. This continuation removes those two hardcoded
+locations so standard `TMPDIR` selection applies. Package/resource, isolation,
+old-owner refusal and tamper assertions remain unchanged. The original failed
+run is retained; changing a fixture directory does not retroactively pass it.
+That original ROG run subsequently completed all 23 steps and remained HOLD.
+Its full retained group executed 3,872 tests with 27 errors and no failures or
+skips. Two errors were the installation paths above; 25 were Rust class setup
+errors because offline Cargo lacked the locked `cfg-if 1.0.5` archive. Those
+classes did not execute. The exact locked dependency cache is being repaired
+before a new-source full run; no old result is relabeled.
+
+The frozen v65 stage-3 draft passed all 46 generators and 43 focused source/VM
+checks. An initial stale support hash caused by generating the coverage
+inventory after the contract was preserved and corrected by generation order.
+Its first local cold run timed out at 180.170136349 seconds after 34 phases,
+with source preservation and complete child cleanup. The original 3,216-file
+raw archive was sealed and fully read back. That report is never admitted as
+passing cold evidence.
+
+The same frozen draft ran all 58 tests in the four new development modules:
+51 passed, four release fault-injection controls failed because local ptrace
+is unavailable, and three journal cases errored in development setup. One
+fixture used an underscore label where the retained request name required a
+hyphen; two cases used a Python 3.13 controller with a Python 3.12 `rpds`
+extension. All three cases subsequently passed unchanged on the existing
+matching Python 3.12 runtime with a real, correctly labeled recompilation.
+The first run remains failed. The cold-required composition group was not
+claimed by these development runs. ROG independently supports own-child
+ptrace/strace, allowing its unchanged release fault controls to run there.
+
+The observer transport now avoids a discarded full frame, repeated hashes of
+the same already-held immutable bytes and copying a full workspace to inspect
+fixed headers. It preserves every new native process, all response checks and
+the final actual disk reads. Accepted byte-subclass concatenation and exception
+order remain covered. All 11 original observer test bodies are unchanged;
+five native and two pure differential tests bring the module to 18 passing
+development tests. A balanced 12-process, 504-call A/B experiment found equal
+non-clock receipts and output bytes. Parent CPU decreased in that sample;
+wall-clock variation does not establish that the 180-second gate is repaired.
+
+These observations name their original frozen revisions. Current-source cold,
+language, installed and full-regression evidence must bind this exact source
+closure separately. The original time limits, two cold workers, full phase
+inventory and all existing negative controls remain required. Historical
+failures and source checkpoints are retained in the recovery branch, including
+commit `d4354aea3ad56c5e4ce6e2d72d4ce1974344f502`.
+
+## Retained v64 complete selected nominal integration
+
+The current source integrates the constructor and outer-program owners on top
+of v63 `31d81594997cfb6cce5ab62ea5aaba3bb7757af1`. Five explicitly selected
+owners now execute eleven HIA images: types/signatures, task helpers, complete
+functions, constructor admission and outer aggregation. Their responsibilities,
+dependency requirements, protocol bounds and remaining hosted custody are
+specified in [the integration contract](HIA_COMPOSITE_NATIVE_INTEGRATION.md).
+Default activation, a native standalone normalizer and whole-stack retirement
+remain open. Neither a selected path nor a source contract is a release pass.
+
+Constructor HIA preserves document/function admission, signature and origin
+ordering, unused task checks and partial state at the first refusal. Outer HIA
+preserves source function order, helper aggregation, late expanded block/function
+limits, export eligibility and ASCII sorting, and the v1-to-v6, v2/v3-to-v7 and
+v4-to-v8 schema mapping. Opaque function-result handles avoid introducing an
+early expanded-output byte limit. The final primitive checker still runs.
+
+Independent review found an actual helper-header mismatch accepted by the first
+outer candidate. The corrected HIA owner checks the helper response against its
+actual immutable arena before issuing a result. Protocol failure permanently
+poisons that outer invocation. The original faulty result is retained in the
+recovery branch; it is not counted as a passing test of the corrected source.
+
+The v63 public cleanup remains in place. The new owners additionally release
+partial allocations, unpublished type sessions and borrowed function-workspace
+references. Actual tests hold exceptions and tracebacks alive while observing
+buffer release. Private stateful reference controls remain separately callable.
+
+### Development observations and exact limits of their claims
+
+The complete 15-module nominal group ran 117 tests with zero errors, failures,
+skips, expected failures or unexpected successes. It recorded 306,716 actual
+parent-process entries into the eleven images, took 681.1583847719994 seconds,
+and preserved all source/image pins. Constructor comparisons include 150 complete
+state outcomes; outer comparisons include 23 canonical results. The installed
+joint control builds a real sdist, builds its wheel, and runs with `-I -S`, empty
+PATH and the old semantic owners disabled. Twenty missing/changed new resource,
+image and bundle controls refuse. The existing independent function installation
+control remains mandatory. Thirty-four focused source/protocol/fixture controls
+also pass. These are explicitly bootstrap-development observations for the frozen
+stage-3 source, not final-source cold or full-regression qualification.
+
+The full installed-resource class initially ran 17 tests on the available Python
+3.12.14 runtime: one failed because that interpreter's `fcntl` lacks
+`F_ADD_SEALS`. The existing Python 3.13.5 runtime passed an actual sealed-memfd
+probe and then all 17 unchanged tests, including native publication. Build-only
+packaging dependencies were reused; the installed children still used `-I -S`,
+empty PATH and no PYTHONPATH. No production constants, assertions or tests were
+changed to accommodate the first environment. Both original runs are retained.
+
+The three original raw archives contain 1,687 regular files and 144,448,794
+uncompressed bytes. Independent readback verified every byte count, SHA-256 and
+mode. Source manifests, compiler generations, input/output buffers, logs,
+observations, both installed attempts and the final handoff are under
+`review-evidence/hia-native-rewrite-20261111/v64`. The published source adds this
+audit, README and inventory after the frozen development run; its generated
+support contract is therefore refreshed and requires a new exact-source cold
+qualification. The original 180-second deadline and two cold workers remain.
+
+### v63 qualification result retained without promotion
+
+GitHub HIA run `42977949269` tested exact v63 commit `31d81594997cfb6cce5ab62ea5aaba3bb7757af1`.
+All 292 source tests passed. The cold wrapper passed all 11 checks in
+160.646645785 seconds, with 38 fresh phase processes, at most two workers,
+5,049 phase checks and complete cleanup. All 591 source/contract payloads match
+the Git source. The 1,242 language checks and ten assertions also passed.
+
+The native application group then ran 242 tests with one failure: the installed
+resource test incorrectly inferred a distinct Python bridge module from every
+HIA basename. The five function kernels actually share one `SOURCES` bridge.
+Thirteen later native groups were skipped by the workflow. The complete v63 HIA
+workflow is therefore FAIL/HOLD; its cold and language passes do not establish
+complete native acceptance. CodeQL run `42977948746` passed independently.
+
+v64 fixes the complete resource mapping, including the four new constructor and
+outer sources, without reducing the inventory or adding dummy modules. The
+complete original v63 GitHub artifact was retained. Independent streaming
+readback checked all 38 nested cold archives (42,623 members) and both language
+archives (12,234 members), including their original inputs, bytes and modes.
+The small original cold/failure evidence archive and custody are committed under
+`review-evidence/hia-native-rewrite-20261111/v63/github-final`.
+
+The independent ROG v63 full run is separately tracked. Its original insufficient
+storage preparation remains HOLD; an alternate existing execution volume passed
+the unchanged preparation and launched the original full run. Subsequent source
+and component logs report `EDQUOT` while writing test files. Those failures are
+preserved and require quota-aware environment diagnosis. They are not silently
+retried, attributed to language semantics, or counted as full acceptance.
+
 ## Audit coverage and evidence
 
 The [machine-readable inventory](HIA_NATIVE_REWRITE_INVENTORY.json) records the
@@ -558,13 +766,204 @@ archives measured 6.126 seconds for full replay and 0.066 seconds for compressed
 SHA-256. This is a bounded removal of duplicate work, not a measured CI speedup,
 deadline change or new cold pass.
 
+### Exact-source f50 qualification and retained evidence boundaries
+
+Commit `f50b37543d1a379353267ce0ab7111242806b8b4` completed
+[Actions run 42966395957](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42966395957)
+with successful source and native jobs. The source job passed 280 tests in
+328.079 seconds. Its native job passed 516 component test invocations and the
+10 language-report assertions, with all 1,242 language checks true. The four
+CodeQL language jobs also passed in the separate run `42966394894`.
+
+The original cold report records 151.755918610 seconds, all 11 outer checks,
+all 5,049 nested checks and all 38 sealed phases. The qualification deadline
+remains 180 seconds and the phase-worker maximum remains two. Process cleanup
+completed in 7.319815 milliseconds, with ECHILD observed, no remaining direct
+children and no cleanup errors. All 570 source/contract entries were compared
+to the immutable Git contents of that exact commit.
+
+The complete 56,338,188-byte Actions artifact has SHA-256
+`a94a13f74c3ac5ee1aee30a6d5ae0f05e2903f77e7a880b5c30710efa6c2ea59`.
+An independent streaming audit read every member of all 38 cold phase archives:
+42,623 members and 2,396,512,984 uncompressed bytes, checking compressed archive
+hashes, member inventories, modes, sizes, SHA-256 and ZIP CRCs. The language
+report also references two separate B3/M3 fixture archives, totalling 9,934,221
+compressed bytes, which the old upload path omitted. Their reported results
+and the ten report assertions passed, but those two original archives were not
+independently replayed from this artifact. The next workflow explicitly retains
+the language evidence directory. That correction does not retroactively add
+bytes to the original artifact.
+
+The same f50 source on ROG independently passed 280 source controls and all 11
+cold checks in 95.514395310 seconds. Its complete 570-entry cold source manifest
+matches the same Git commit. The complete retained regression then passed all
+3,985 tests in 1,708.094883034 seconds, with no errors, failures, skips, expected
+failures or unexpected successes. All 22 qualification steps passed. The original
+508,277-byte final report has SHA-256
+`350642894d8a0e42cf686661a1f42f1ad49c1a25324f99fbea4d37bdc1aa1ff4`.
+Its full 2,628-file source map matches the immutable Git tree; original source
+snapshots, source reproduction and harness pins remain unchanged. Connector
+timeouts were reconciled against the original request and job; no duplicate
+qualification was started or substituted for that result.
+
+The separately sealed original top-level evidence archive is 349,432 bytes with
+SHA-256 `4a502c4b6d8543c83ad3eb18edcc0dedf55dd20e9e847ac0e99d6a19163e7155`.
+All 96 regular members / 7,159,568 raw bytes were independently replayed against
+their remote hashes, sizes, modes, owners and timestamps. The original 22 step
+receipts and stdout/stderr, all 17 structured suite results and the full retained
+unittest conclusion agree. This top-level archive does not contain the separate
+ROG cold/language fixture directories; it is not described as a full local replay
+of those nested fixtures. These f50 results qualify f50, not the later
+complete-function continuation.
+
+### Complete HIA nominal function continuation
+
+The selected [five-kernel function bundle](HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md)
+now implements the retained complete `_Elaborator.function` responsibility:
+two-pass block admission, source value binding, record/enum and partial-record
+operations, task helper requests, calls and primitive instructions, jump/branch/
+match/return/trap terminators, resource transitions and final binding of returned
+loan origins to generated Core entry names. Every typed service resolves through
+the already-native type/helper owners. The Python bridge transports issued
+identities and object tokens, correlates continuation requests and mirrors
+native-issued counters and helper cache updates. It does not call the retained
+function algorithm when this bundle is selected.
+
+The five fixed native images stay within the original compiler's per-image
+function/block/instruction limits. They preserve the existing public input and
+Core-output gates. In particular, a function may temporarily produce more than
+8 MiB of Core before a later function fails: the whole-program Core size check
+still occurs after all function lowering, preserving the later semantic error's
+priority. The adapter checks exact membership of the admitted frozen document;
+an arbitrary replacement dictionary passed to its private function API is not
+a second public source-admission path. Altered members or malformed transport
+poison the session, and subsequent calls refuse.
+
+An environment interruption erased temporary audit directories. The surviving
+213-member evidence archive preserved the five HIA sources, four generators,
+adapters and actual native images. Fifteen source files were recovered exactly;
+seven missing test/configuration/document revisions were explicitly reconstructed
+and saved with a new source manifest on a separate recovery branch. Missing
+historical raw logs are not claimed to have been recovered. Fresh verification
+of that frozen candidate passed all seven protocol controls and all 15 combined
+codec, admission, source, installed-wheel and complete-function controls.
+
+A new independent capture ran 83 retained tests and recovered 134 distinct
+public nominal documents. With the same native type/helper dependencies, all
+134 complete outcomes and states, including 153 function calls and 52 constructor
+refusals, exactly match the retained function implementation. Native function
+execution occurs with retained function/type/helper semantic methods disabled.
+Every ordinary ABI input and complete response was recorded; borrowed type
+arenas were identified by their held lease, not misrepresented as full memory
+snapshots. Source and image pins remained unchanged.
+
+The additional fully-hosted comparison makes existing type-owner differences
+explicit: all 134 public categories, phases and Core outcomes agree; 125 also
+retain exact diagnostic text. Nine constructor refusals use the already-declared
+native type diagnostic context. Seventeen cases differ in the private presence
+of the `native_types` attribute after failed type initialization, including one
+of those diagnostic cases. Thus only 109 complete private constructor states
+are identical across the fully hosted and selected-native type routes. Those
+pre-function differences are not attributed to this new function owner or
+hidden by the same-dependency comparison.
+
+Nine explicit historical-lowering controls also match completely. Six actual
+public historical imports compare full canonical/structured bytes, import
+reports, errors and independent Core VM results/resources: three legitimate
+programs are accepted and three newer-opcode attempts are refused. The retained
+VM is an independent execution control, not a newly native runtime claim.
+
+A separate new panel covers 1,586 unique public-admitted mutations with 1,674
+labels, derived from 36 accepted parents across 45 opcodes and five terminators.
+All 1,586 complete same-dependency outcomes and 2,666 function calls agree;
+partial failure state, counters, helper ordering/cache and type observations
+remain part of the comparison. Lowering accepts 164 cases and rejects 1,422.
+Independent Core admission accepts 44 of those 164 and rejects 120; those
+distinct admission counts are not collapsed. All 332,872 actual native entries
+are preserved, including 203,854 entries into the five new function kernels.
+The run took 1,063.940469761 seconds with peak RSS 506,120 KiB and unchanged
+source/image pins. Its complete original input, driver, observations and logs
+were sealed into a 20,411,212-byte archive, SHA-256
+`83a13abceb31b181f8deccc10accdd87ecbddfe3dcfc17fc09c95c84dd0d2a2f`;
+all 17 members were read back and checked. This panel is new evidence, not a
+reconstruction of the historical lost 1,427-case raw observations.
+
+The v63 integration places all five test modules in the real native CI group
+and required-test contract, without skips, and includes all five HIA resources
+in both source distributions and installed wheels. The shared fixture either
+uses one matching-source cold receipt, all three explicit development manifests,
+or an explicitly labelled B0/B1/B2 bootstrap-development build. Ambiguous or
+partial provenance refuses. Independent review found and fixed both a source
+reread race and a loaded-image versus on-disk pin gap; their original
+counterexamples remain separate from the corrected results.
+
+An actual bootstrap-development run passed all 33 function tests in 110.374
+seconds (120.177 seconds including bootstrap), with no errors, failures, skips,
+expected failures or unexpected successes. The parent process recorded 21,449
+real native entries; the isolated installed child has its own verified entry
+observations. The actual source-distribution-to-wheel installation ran under
+`-I -S`, empty PATH and forbidden build-tool imports, with the retained semantic
+owners disabled and resource/image corruption controls active. All 589 source
+payload pins, the contract and 81 compiler/build artifacts remained unchanged.
+These are development results for their recorded source revision, not the
+matching-source cold qualification for the eventual published v63 tree.
+
+Independent public replay then found that retaining a rejected program's
+exception also retained approximately 384 MiB of native session buffers. The
+public elaboration boundary now explicitly closes its function and type
+sessions on both success and failure, including partial construction. Each
+native session also releases already allocated buffers if its own initializer
+fails before returning it to the elaborator. The 17 private `_Elaborator`
+methods and all five HIA kernels remain byte-identical. Private callers retain
+their original session and partial-state ownership.
+
+The original public rejection now releases all four buffer objects while the
+same exception remains held; an independent six-entry native replay preserves
+the exact error category and text. Three new lifecycle tests pass with 1,402
+actual native entries, covering two successful and six refused public paths,
+private repeated-failure state, and two allocation failures after a real first
+buffer allocation. The original 33 function tests also pass again, with 21,449
+parent-process native entries and unchanged 590-source/contract and 81-artifact
+pins. The final 26 source/contract controls pass on the final recorded bytes.
+The initial primitive-name test expectation error and first independent entry
+observer's instrumentation error remain preserved as failures of those test
+revisions. Neither required a further production change.
+
+The complete lifecycle follow-up archive is 795,448 bytes with SHA-256
+`7b60b5ace1babfa539c4287ae8b2a4f4bbc6197a990ef4d97d7016e8be22d9f1`;
+all 93 members / 3,197,887 raw bytes were read back. The new lifecycle module is
+mandatory in the real CI group, the full external runner and the six-module
+required-test contract. These successful development checks still require the
+final published source's own cold and complete-workflow acceptance.
+
+Constructor admission/signature collection and final program aggregation/export
+selection remained separate hosted owners in the historical v63 integration. A
+separate frozen constructor candidate now implements admission and signature
+collection in two HIA images. Its 14 development tests and two-case smoke pass;
+the author's 150-case panel compares complete state and type-command order.
+An independent replay of the separate 134 public documents also matches exactly:
+82 accepted, 52 refused, with first error class/category/text, partial state,
+source aliases and each real type command preserved. It records 3,535 actual
+native entries and unchanged source/image pins. The 1,721,352-byte independent
+archive has SHA-256
+`d04cdfeb0e28046d0230a344fa40f375c508991b7f9d0ed64ca9a9bcf8e840b5`;
+all 53 members were read back. That separate candidate is not yet integrated
+into v63 or promoted to a matching-source cold pass. The outer aggregation
+candidate has compiled two actual HIA images and passed two initial scalar/task
+smoke cases; full outer acceptance is still pending.
+
+The continuation's cold source contract,
+unskipped CI execution, source-distribution resources and installed path must
+receive their own matching-source qualification. Neither recovered images nor
+the earlier f50 pass establish that qualification.
+
 ## Remaining implementation owners
 
 | Area | Native implementation present | Work required before retiring the remaining owner |
 | --- | --- | --- |
 | Assembly/compiler | Direct x86-64 generation, resource checks, original/modified self-compilation, native `assemble` and the retained static x86-64 ELF ET_REL/RELA linker | Full retained language/composite lowering, linking beyond the existing static ELF profile and all claimed targets; retain the compiler's actual limits separately from the larger checker's limits |
 | Primitive Core admission | Declarations, 50 opcodes, SSA/CFG, calls/effects, ownership and loans; standalone checker | Nominal/composite normalization, complete object/diagnostic custody and independently justified equivalence for retained semantics |
-| Nominal elaboration | Complete selected declaration/layout session, v4 source-path-to-slot returned-loan resolution, ordered parameter and task-protocol admission, and complete task-helper Core generation | Remaining function/operation lowering, binding origins to generated Core entry names, final aggregation/export eligibility and default installed integration |
+| Nominal elaboration | Five selected HIA owners cover declarations/layouts, signatures/origins, helpers, complete functions, constructor admission and final aggregation/exports | Native raw-JSON transport and continuation driver, default installed integration and matching-source acceptance; foreign object/materialization bridges remain |
 | Workspace/project build | Native module graph, naming/privacy, Core materialization and semantic compiler pipeline | Complete project build, library resolution, installation/upgrade/recovery and file/process ownership without hosted orchestration |
 | Agent editing | Native slice/snapshot/data helpers, snapshot-bound patches, complete patch diagnostics and explicit ordinary raw-byte candidate route | Remaining query, batch/impact orchestration, composite/import paths, default installation and ordinary full worker protocol |
 | Agent state | Native artifact hashing, no-replace file publication and content byte store | Metadata/ref encoding and issuance, namespace/kind authority, SQLite transactions/WAL, request intents, locks, costs, leases, slots, versions and uncertain-operation recovery |
@@ -593,13 +992,18 @@ declarations, generic binding, finite layout, by-value cycles, stored loans and
 partial-declaration obligations; the no-selector path retains `_Types`.
 The selected type session also owns parameters and task-protocol admission,
 and the separately selected helper image generates the complete task helpers.
-`_Elaborator` still owns nominal SSA, record/enum transformations, inactive-slot
-cleanup within ordinary functions, partial tokens, generated entry-name origin binding and
-export eligibility. Composite v1 lowers to primitive v6, v2/v3 to v7 and v4 to
-v8; changing those schemas would change the retained language.
+The selected complete-function bundle now owns nominal SSA, record/enum
+transformations, inactive-slot cleanup, partial tokens and generated entry-name
+origin binding. v64 additionally selects HIA constructor sequencing and final
+program/export assembly, with the original bodies retained for independent
+controls and the no-selector route. Composite v1 lowers to primitive v6, v2/v3
+to v7 and v4 to v8; changing those schemas would change the retained language.
 
-The next semantic owner is complete nominal operation lowering, preserving all
-four composite versions and the native type session's stateful obligations.
+The next normalization boundary is an HIA-owned raw-JSON transport and complete
+continuation driver, preserving all four composite versions, failure ordering
+and the native type session's stateful obligations. Current Python adapters
+still own detached foreign-object copying, typed packet construction, callback
+forwarding and materialization of HIA-issued results.
 The current native JSON compiler frontend accepts v8; its 16 arguments, three
 results, 128 functions and 256 blocks per function are smaller than some legal
 normalized programs and the complete primitive checker's profile. Type-layout
@@ -616,7 +1020,7 @@ native or qualify the current complete retained suite.
 ### Build and installed-runtime prerequisites
 
 `pyproject.toml` still installs the `hia-core` Python distribution with
-`hia = hepta.cli:hia_main`. Wheel/sdist source custody packages 25 kernel HIA
+`hia = hepta.cli:hia_main`. Wheel/sdist source custody packages declared kernel HIA
 sources and the publisher's declared assets, but it is not a complete native
 self-rebuild kit: the selfhost source, general stdio/result packers, their build
 drivers and default installed native executables are not supplied through that
@@ -657,3 +1061,13 @@ acceptance can Python/Rust/other legacy production owners be removed. The
 inventory grants no deletion authority and does not mark an unimplemented path
 as retired or passed. The final repository should have one HIA-native product;
 this report records the work still needed to reach that state honestly.
+
+## v66 linked successor observer — isolated integration in progress
+
+The new candidate starts from exact d5da1eb760454ef3df5153c5e80eb046ddb389d9 (tree 71c9c3effb9ffa45c708e272f374302507d0d65a); all 2790 original file bytes and Git modes were checked before modification. It adds a HIA-emitted native transport for linked successor qualification calls using real system dlopen(RTLD_NOW)/dlsym. The original flat transport, B0/generation controls, two oracle workers, all 38 phases, complete suites and 180-second cold bound are retained.
+
+The isolated component passed all 14 actual native tests in 9.868249870 seconds under unchanged child limits. Eighteen independent VM windows observe every byte of the compact 2256-byte ELF. Controls include actual seals, RELRO and resource-limit observations, native constructor/relocations, trap writes and HIA compiler ELF self-rebuild. This component evidence does not qualify the integrated candidate. Full current-source source and cold gates remain pending at this revision.
+
+The full composite coordinator and namespace store remain under development. Complete native IR, type-request projection, type-response materialization and storage-call audit originals are preserved in recovery commit c71d82ff026d5bbb9bca28576b7301f2c505f3d4, with subsequent component revisions recorded separately. No production selector or old-stack deletion is authorized by this status update. Whole-stack closure remains OPEN.
+
+Independent review then found and reproduced an inherited source/compiler receipt binding race and a mixed-source VM-window reference in the observer build wrappers. The isolated candidate fixes both the existing flat observer and new linked observer using one immutable source/compiler snapshot, actual compile/emission receipt crosschecks and complete final readback. HIA/ELF bytes, ABI and native limits are unchanged. Both complete observer modules passed all 38 tests in 24.037136978 seconds; original failing review witnesses are retained separately. This is component validation, not a whole-stack or cold pass.

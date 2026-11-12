@@ -4,7 +4,7 @@ The original test file and its early raw protocol evidence were lost with the
 transient environment. This is a new revision, not a byte-identical restoration
 of that file or a replacement for its historical evidence. Actual-image checks
 use the presently source-bound complete bundle (recovered admit r3/render r2).
-They are development controls, not cold/compiler/whole-language qualification.
+Fixture provenance is explicit; these controls alone do not qualify the whole stack.
 """
 from __future__ import annotations
 
@@ -187,13 +187,13 @@ class _RawFunctionHarness:
         self.assert_poisoned()
 
 
-@unittest.skipUnless(os.environ.get(BUNDLE) and os.environ.get(TYPES),
-    'source-bound complete function/type development images required')
 class NativeFunctionProtocolAuditTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.bundle = installed_composite_functions(os.environ[BUNDLE])
-        cls.types_image = installed_composite_types(os.environ[TYPES])
+        from tests.hia_composite_function_fixture import composite_function_fixture
+        fixture = composite_function_fixture()
+        cls.bundle = fixture.bundle
+        cls.types_image = fixture.types_image
 
     def harness(self, **kwargs):
         return _RawFunctionHarness(self, self.bundle.images, self.types_image, **kwargs)

@@ -1,0 +1,108 @@
+--- physical-r5/namespace-db-join-r1-physical.py
++++ physical-r6/namespace-db-join-r1-physical.py
+@@ -9,7 +9,7 @@
+ import sys
+ sys.dont_write_bytecode=True
+ import argparse,errno,fcntl,hashlib,importlib.util,json,os,re,shutil,sqlite3,stat,struct
+-import traceback,unittest
++import signal,subprocess,time,traceback,unittest
+ from pathlib import Path
+ CLIENT_SHA="e5cad29b23957856c3a3ae08645eb7a14a62f6b0263fe67720a9560b88e58270"
+ REPLAY_SHA="3886e4af2d36ec42c7db076e954dd4ab7459f065c64e5847e83bb470b83db570"
+@@ -23,6 +23,80 @@
+ def save(path,value):
+     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
+     path.write_text(json.dumps(value,sort_keys=True,indent=2)+"\n")
++
++# A POSIX record lock belongs to a process and inode, rather than to an fd.
++# Opening/closing -shm in the SQLite-owning parent would release its locks.
++# This independent observer never inherits a SQLite descriptor and returns the
++# complete original bytes, plus two actual F_GETLK observations in its process.
++SHM_READ_OBSERVER="""import ctypes,fcntl,hashlib,json,os,resource,struct,sys
++parent=int(sys.argv[1])
++libc=ctypes.CDLL(None,use_errno=True)
++if libc.prctl(1,9,0,0,0):raise OSError(ctypes.get_errno(),'PR_SET_PDEATHSIG')
++if os.getppid()!=parent:os._exit(125)
++resource.setrlimit(resource.RLIMIT_CPU,(10,10))
++resource.setrlimit(resource.RLIMIT_AS,(256<<20,256<<20))
++resource.setrlimit(resource.RLIMIT_CORE,(0,0))
++fd=os.open(sys.argv[2],os.O_RDONLY|os.O_CLOEXEC)
++try:
++ def query():
++  raw=fcntl.fcntl(fd,fcntl.F_GETLK,struct.pack('<hh4xqqi4x',fcntl.F_WRLCK,os.SEEK_SET,128,1,0))
++  return dict(words=list(struct.unpack('<hh4xqqi4x',raw)),raw_hex=raw.hex())
++ before=query();st=os.fstat(fd);parts=[]
++ while True:
++  raw=os.read(fd,65536)
++  if not raw:break
++  parts.append(raw)
++ data=b''.join(parts);after=query();st_after=os.fstat(fd)
++ assert (st.st_dev,st.st_ino,st.st_size)==(st_after.st_dev,st_after.st_ino,st_after.st_size)
++ assert len(data)==st.st_size
++finally:os.close(fd)
++report=dict(pid=os.getpid(),parent_pid=parent,device=st.st_dev,inode=st.st_ino,
++ bytes=len(data),sha256=hashlib.sha256(data).hexdigest(),before=before,after=after,
++ limits=dict(cpu=list(resource.getrlimit(resource.RLIMIT_CPU)),
++ address=list(resource.getrlimit(resource.RLIMIT_AS)),core=list(resource.getrlimit(resource.RLIMIT_CORE))))
++sys.stderr.write(json.dumps(report,sort_keys=True)+'\\n');sys.stderr.flush()
++at=0
++while at<len(data):
++ count=os.write(1,data[at:]);assert count>0;at+=count
++"""
++
++def read_sqlite_shm_from_fresh_process(path,destination,label):
++    destination=Path(destination);started=time.monotonic_ns();parent=os.getpid()
++    command=[sys.executable,"-I","-S","-c",SHM_READ_OBSERVER,str(parent),str(path)]
++    process=subprocess.Popen(command,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
++        stderr=subprocess.PIPE,close_fds=True,start_new_session=True,
++        env=dict(PATH="",HOME="",LC_ALL="C",LANG="C"))
++    stdout=stderr=b"";timed_out=False
++    try:
++        try:stdout,stderr=process.communicate(timeout=20)
++        except subprocess.TimeoutExpired:
++            timed_out=True
++            try:os.killpg(process.pid,signal.SIGKILL)
++            except ProcessLookupError:pass
++            stdout,stderr=process.communicate()
++    finally:
++        if process.poll() is None:
++            try:os.killpg(process.pid,signal.SIGKILL)
++            except ProcessLookupError:pass
++            process.wait()
++        if process.stdout is not None:process.stdout.close()
++        if process.stderr is not None:process.stderr.close()
++        # Reaping/closing occurs before evidence writes, including ENOSPC.
++        (destination/(label+".stdout.bin")).write_bytes(stdout)
++        (destination/(label+".stderr.log")).write_bytes(stderr)
++        save(destination/(label+".process.json"),dict(pid=process.pid,parent_pid=parent,
++            returncode=process.returncode,timed_out=timed_out,elapsed_ns=time.monotonic_ns()-started,
++            wall_limit_seconds=20,observer_source_sha256=sha(SHM_READ_OBSERVER.encode()),
++            stdout_bytes=len(stdout),stdout_sha256=sha(stdout),
++            stderr_bytes=len(stderr),stderr_sha256=sha(stderr),HIA_entries=0))
++    assert not timed_out and process.returncode==0,(process.returncode,stderr)
++    report=json.loads(stderr)
++    assert report["pid"]==process.pid and report["parent_pid"]==parent
++    assert report["limits"]==dict(cpu=[10,10],address=[256<<20,256<<20],core=[0,0])
++    assert report["bytes"]==len(stdout) and report["sha256"]==sha(stdout)
++    assert report["before"]==report["after"]
++    assert report["before"]["words"]==[fcntl.F_RDLCK,os.SEEK_SET,128,1,parent]
++    return stdout
+ def main():
+     parser=argparse.ArgumentParser()
+     parser.add_argument("--context",type=Path,required=True)
+@@ -471,11 +545,13 @@
+                 self.assertEqual(conn.execute("pragma journal_mode=wal").fetchone()[0],"wal")
+                 conn.execute("create table retained(x)");conn.execute("insert into retained values(9)")
+                 conn.execute("begin immediate")
+-                before=Path(str(path)+"-shm").read_bytes();(self.case/"sqlite-before-shm.bin").write_bytes(before)
++                before=read_sqlite_shm_from_fresh_process(Path(str(path)+"-shm"),self.case,"sqlite-before-observer")
++                (self.case/"sqlite-before-shm.bin").write_bytes(before)
+                 with self.carrier() as c:
+                     _,handle,_,_=self.register(c,path);c.database(4,handle,target=1)
+                     self.attach(c,path,handle)
+-                    after=Path(str(path)+"-shm").read_bytes();(self.case/"sqlite-after-attach-shm.bin").write_bytes(after)
++                    after=read_sqlite_shm_from_fresh_process(Path(str(path)+"-shm"),self.case,"sqlite-after-attach-observer")
++                    (self.case/"sqlite-after-attach-shm.bin").write_bytes(after)
+                     self.assertEqual(after,before)
+                     self.dms(c,14,handle,a=0,b=0,d=32768)
+                     self.dms(c,4,handle,a=2,b=0,d=1,expect_code=5,expect_errno=errno.EAGAIN)

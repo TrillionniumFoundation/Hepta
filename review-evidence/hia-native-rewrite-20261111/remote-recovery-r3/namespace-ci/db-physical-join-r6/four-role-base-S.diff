@@ -1,0 +1,37 @@
+--- physical-r5/four-role-base.S
++++ physical-r6/four-role-base.S
+@@ -39,6 +39,7 @@
+ .equ USER_LENGTH,392
+ .equ LAST_ACTION,400
+ .equ CHILD_REPLY_SIZE,408
++.equ LAST_MEMORY_CALL,2480
+ .equ DMS_MAGIC,0x33304d444e414948
+ .equ MAP_MAGIC,0x3130504d53414948
+ .equ MEM_MAGIC,0x31304c4d4e414948
+@@ -707,9 +708,26 @@
+ memory_primitive:
+     cmp qword ptr [r12+160],2
+     jne protocol_failure
++    /* Action is local to one HIA memory call. The completed-call sequence is
++     * monotone, while every new call starts its first primitive at action 1.
++     * Calls without primitives may create gaps; old calls and repeated actions
++     * remain rejected before any memory syscall or registry operation. */
++    mov rdx,[r12+32]
++    test rdx,rdx
++    jz protocol_failure
++    cmp rdx,[r15+LAST_MEMORY_CALL]
++    jb protocol_failure
++    ja memory_first_primitive_of_call
+     mov rax,[r12+40]
+     cmp rax,[r15+LAST_ACTION]
+     jbe protocol_failure
++    jmp memory_primitive_correlated
++memory_first_primitive_of_call:
++    cmp qword ptr [r12+40],1
++    jne protocol_failure
++memory_primitive_correlated:
++    mov [r15+LAST_MEMORY_CALL],rdx
++    mov rax,[r12+40]
+     mov [r15+LAST_ACTION],rax
+     cmp qword ptr [r15+LAST_SYSSEQ],-1
+     je protocol_failure

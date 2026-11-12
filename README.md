@@ -28,9 +28,23 @@ owns declaration checks, generic binding, finite layouts and partial-record
 obligations for all four composite versions, source-level returned-loan origins,
 parameter admission and task-protocol checks. A separately selected
 [native task-helper generator](docs/HIA_TASK_HELPERS_NATIVE.md) constructs the
-complete start, poll, cancel, join and close Core functions. The ordinary
-elaborator consumes their results; remaining operation lowering and the durable
-Agent remain hosted owners.
+complete start, poll, cancel, join and close Core functions. The selected
+[complete function bundle](docs/HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md) owns
+nominal SSA/CFG, record/enum/partial/task operations, terminators and generated
+entry-name loan binding in HIA. The [complete selected nominal route](docs/HIA_COMPOSITE_NATIVE_INTEGRATION.md)
+also moves constructor admission, ordered signatures, complete function/helper
+aggregation, late limits, exports and primitive schema selection into HIA.
+Its five explicit owners use eleven images; the surrounding bridge retains
+foreign-object and packet custody. The default route and durable Agent remain
+hosted. Native normalization preserves the existing primitive Core recheck.
+The explicit [native worker-request owner](docs/HIA_WORKER_REQUEST_NATIVE.md)
+performs canonical request admission and identity checks. The
+[native journal owner](docs/HIA_AGENT_JOURNAL_NATIVE.md) controls request,
+replay, reservation and completion decisions; SQLite transactions, business
+methods and durable effects still have hosted owners. The separate
+[native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md) verifies a flat
+package, publishes it with no replacement and verifies installed bytes using
+Linux syscalls. Installation does not activate a new default or migrate state.
 Full native Agent editing/persistence, modules/build, runtime and installation
 acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
 the Agent entry. Standalone Core research backends remain explicitly scoped.

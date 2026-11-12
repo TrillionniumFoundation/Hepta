@@ -94,26 +94,33 @@ class NativeConstructorInvocation:
         self._profile = self._issued_phase = None
         self._waiting = self._completed = False
         self._delegate_error = None
-        self._workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
-        self._output = ctypes.create_string_buffer(OUTPUT_BYTES)
-        self._empty = ctypes.create_string_buffer(1)
-        self._original = [document, legacy]
-        self._source_wire = transport(self._original)
-        if len(self._source_wire) > INPUT_BYTES:
-            self._refuse('source exceeds derived transport capacity')
+        self._workspace = self._output = self._empty = None
         try:
-            self._snapshot, self._source_index = detached_packet_index(self._source_wire)
-            self._return_index = _custody_index(self._source_wire, self._original)
-            if transport(self._original) != self._source_wire:
-                self._refuse('source changed while taking its custody copy')
-        except (TokenProtocolError, UnicodeError, ValueError) as exc:
-            self._refuse('source is not a detached exact tree: ' + str(exc))
+            self._workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
+            self._output = ctypes.create_string_buffer(OUTPUT_BYTES)
+            self._empty = ctypes.create_string_buffer(1)
+            self._original = [document, legacy]
+            self._source_wire = transport(self._original)
+            if len(self._source_wire) > INPUT_BYTES:
+                self._refuse('source exceeds derived transport capacity')
+            try:
+                self._snapshot, self._source_index = detached_packet_index(self._source_wire)
+                self._return_index = _custody_index(self._source_wire, self._original)
+                if transport(self._original) != self._source_wire:
+                    self._refuse('source changed while taking its custody copy')
+            except (TokenProtocolError, UnicodeError, ValueError) as exc:
+                self._refuse('source is not a detached exact tree: ' + str(exc))
+        except BaseException:
+            self._workspace = self._output = self._empty = None
+            raise
 
     def _refuse(self, message):
         self._broken = True
         raise HIAProgramRejected('native composite constructor transport: ' + message, 'E_HIA_TYPE')
 
     def _frame(self, size):
+        if self._broken:
+            self._refuse('protocol has already refused')
         if type(size) is not int or size != 64:
             self._refuse('invalid continuation extent/status ' + str(size))
         frame = struct.unpack_from('<8Q', self._output)
@@ -155,6 +162,8 @@ class NativeConstructorInvocation:
         return frame
 
     def _invoke(self, wire):
+        if self._broken:
+            self._refuse('protocol has already refused')
         source = ctypes.create_string_buffer(wire, max(1, len(wire)))
         result = self.images['owner']._entry(source, len(wire), self._output,
             OUTPUT_BYTES, self._workspace, WORKSPACE_BYTES)
@@ -163,6 +172,8 @@ class NativeConstructorInvocation:
         return self._frame(result)
 
     def _run(self):
+        if self._broken:
+            self._refuse('protocol has already refused')
         if self.types is None or self.types._closed or self.types._broken:
             self._refuse('continuation has no live native type dependency')
         with self.types._lock:
@@ -171,6 +182,8 @@ class NativeConstructorInvocation:
         return self._frame(size)
 
     def _stream(self, action, request):
+        if self._broken:
+            self._refuse('protocol has already refused')
         decoder = ObjectTokenDecoder(self._return_index if action == 0 else self._source_index)
         sequence = 0
         while not decoder.complete:
@@ -356,8 +369,10 @@ class NativeConstructorInvocation:
                 frame = self._service(command, pending, request)
         finally:
             self._workspace = self._output = self._empty = None
-            self._source_index = {}
-            self._return_index = {}
+            if self.types is not None and getattr(self.owner, 'native_types', None) is not self.types:
+                self.types.close()
+            self._source_index.clear()
+            self._return_index.clear()
             # Avoid a self -> delegated exception -> traceback -> self cycle.
             # The currently raised exception and committed owner state retain
             # their normal lifetimes; the temporary bridge retains neither.

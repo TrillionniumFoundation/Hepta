@@ -6,6 +6,17 @@ from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,PUBLICA
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
 RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES
+BUNDLED_SOURCE_BINDINGS={
+    'composite_function_admit':('hepta.hia_composite_functions_native','admit'),
+    'composite_function_records':('hepta.hia_composite_functions_native','records'),
+    'composite_function_advanced':('hepta.hia_composite_functions_native','advanced'),
+    'composite_function_terms':('hepta.hia_composite_functions_native','terms'),
+    'composite_function_render':('hepta.hia_composite_functions_native','render'),
+    'composite_constructor_owner':('hepta.hia_composite_constructor_native','owner'),
+    'composite_constructor_render':('hepta.hia_composite_constructor_native','render'),
+    'composite_outer_owner':('hepta.hia_composite_outer_native','owner'),
+    'composite_outer_render':('hepta.hia_composite_outer_native','render'),
+}
 
 class AgentInstalledResourceSourceTests(unittest.TestCase):
     def test_actual_build_hook_uses_distinct_discovery_and_native_resource_paths(self):
@@ -26,6 +37,21 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
         from tools.hia_release import BOOTSTRAP_FILES
         for paths in ((*SOURCE_FILES,CONTRACT_PATH),BOOTSTRAP_FILES):
             self.assertLessEqual(set(RESOURCES),set(paths))
+
+    def test_complete_source_binding_map_matches_each_actual_runtime_bridge(self):
+        from importlib import import_module
+        observed={}
+        for resource in NATIVE_SOURCE_FILES:
+            name=Path(resource).stem
+            if name in BUNDLED_SOURCE_BINDINGS:
+                module,key=BUNDLED_SOURCE_BINDINGS[name]
+                source=import_module(module).SOURCES[key]
+            else:
+                source=import_module('hepta.hia_'+name+'_native').SOURCE
+            self.assertEqual(source,ROOT/resource)
+            observed[name]=source
+        self.assertEqual(len(observed),len(NATIVE_SOURCE_FILES))
+        self.assertLessEqual(set(BUNDLED_SOURCE_BINDINGS),set(observed))
 
 class AgentInstalledResourceTests(unittest.TestCase):
     @classmethod
@@ -127,7 +153,7 @@ class AgentInstalledResourceTests(unittest.TestCase):
                 executable_path='hia-artifact',executable_sha256=sha256(code).hexdigest(),
                 source_sha256={name:sha256((ROOT/name).read_bytes()).hexdigest() for name in SOURCES},development_only=True)))
         prefix=CHILD.split('from hepta.cli import')[0]
-        cls.child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+'''
+        cls.child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+'\nBUNDLED_SOURCE_BINDINGS='+repr(BUNDLED_SOURCE_BINDINGS)+'\n'+'''
 from pathlib import Path
 from hepta import hia_agent_store as store
 from hepta.hia_agent_identity_native import SOURCE
@@ -197,27 +223,17 @@ elif sys.argv[2]=='data':
 elif sys.argv[2]=='source-bindings':
     from importlib import import_module
     from hepta.hia_agent_contract import NATIVE_SOURCE_FILES
-    from hepta.hia_composite_functions_native import SOURCES as FUNCTION_SOURCES
-    kernels=('admit','records','advanced','terms','render')
-    assert set(FUNCTION_SOURCES)==set(kernels),FUNCTION_SOURCES
-    function_sources={'composite_function_'+name:FUNCTION_SOURCES[name] for name in kernels}
     names=[Path(name).stem for name in NATIVE_SOURCE_FILES]
-    assert len(names)==len(set(names))
     observed={}
     for name in names:
-        if name in function_sources:
-            owner='hepta.hia_composite_functions_native'
-            source=function_sources[name]
+        if name in BUNDLED_SOURCE_BINDINGS:
+            module,key=BUNDLED_SOURCE_BINDINGS[name]
+            source=import_module(module).SOURCES[key]
         else:
-            owner='hepta.hia_'+name+'_native'
-            source=import_module(owner).SOURCE
+            source=import_module('hepta.hia_'+name+'_native').SOURCE
         assert Path(sys.argv[1]) in source.parents,source
         assert source.is_file(),source
-        raw=source.read_bytes()
-        observed[name]={'path':str(source.relative_to(Path(sys.argv[1])/'hepta/_data')),
-                        'owner':owner,'bytes':len(raw),
-                        'sha256':__import__('hashlib').sha256(raw).hexdigest()}
-    assert set(function_sources)<=set(observed)
+        observed[name]=str(source.relative_to(Path(sys.argv[1])/'hepta/_data'))
     print(__import__('json').dumps(observed,sort_keys=True))
 elif sys.argv[2] in ('native-Core','native-Core-whole'):
     import os
@@ -329,22 +345,10 @@ assert not blocked.intersection(sys.modules)
         result=self.invoke('source-bindings',b'')
         self.assertEqual(result.returncode,0,result.stderr)
         observed=json.loads(result.stdout)
-        expected={Path(name).stem:name for name in NATIVE_SOURCE_FILES}
-        self.assertEqual(len(expected),len(NATIVE_SOURCE_FILES))
-        self.assertEqual(set(observed),set(expected))
-        self.assertEqual({row['path'] for row in observed.values()},set(NATIVE_SOURCE_FILES))
+        self.assertEqual(set(observed.values()),set(NATIVE_SOURCE_FILES))
         self.assertEqual(len(observed),len(NATIVE_SOURCE_FILES))
-        shared={'composite_function_'+name for name in ('admit','records','advanced','terms','render')}
-        self.assertLessEqual(shared,set(observed))
-        for stem,row in observed.items():
-            name=expected[stem]
-            owner='hepta.hia_composite_functions_native' if stem in shared else 'hepta.hia_'+stem+'_native'
-            self.assertEqual(row['owner'],owner)
-            self.assertEqual(row['path'],name)
-            actual=(self.installed/'hepta/_data'/name).read_bytes()
-            self.assertEqual(actual,(ROOT/name).read_bytes())
-            self.assertEqual(row['bytes'],len(actual))
-            self.assertEqual(row['sha256'],sha256(actual).hexdigest())
+        for name in observed.values():
+            self.assertEqual((self.installed/'hepta/_data'/name).read_bytes(),(ROOT/name).read_bytes())
 
     def test_actual_installed_native_Core_policies_preserve_body_guards_and_missing_source_refusal(self):
         from tests.test_hia_program import b,c,f,m,ret

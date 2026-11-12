@@ -62,9 +62,9 @@ FILES=[
   },
   {
     "path": "tests/test_hia_emitter_wrappers.py",
-    "bytes": 28425,
-    "sha256": "44f0d18c10623e06e59b5d4f332ebe033d028c008294750e764b5d07a3bf9768",
-    "gitsha": "33629f052b85fd256c2892cfc431f940555ab955"
+    "bytes": 28437,
+    "sha256": "30950bd89da646f64061fc55bd0b855178c7e20fd214485b58b20ad86b4bd470",
+    "gitsha": "b92c5ab3053e6661d564d13cb053c4d403a872c5"
   },
   {
     "path": "tools/build_hia_emitter_wrappers.py",

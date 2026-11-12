@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 from hashlib import sha256
 import json
+import os
 import sys
 import uuid
 
@@ -42,20 +43,29 @@ def main(argv=None):
             if expected is not None and expected != identities[field + "_sha256"]:
                 raise AgentRejected("E_HIA_WORKER_PIN", "administrator source pin differs before execution", retry_action="stop")
         raw = sys.stdin.buffer.read(8 * 1024 * 1024 + 1)
-        request = decode_data(raw)
-        keys(request, ("schema", "tool", "arguments", "request_sha256", "profile_sha256", "catalog_sha256"), label="worker request")
-        if request["schema"] != "hia-agent-worker-request-v1":
-            raise AgentRejected("E_HIA_WORKER_SCHEMA", "unknown worker envelope")
-        for name in ("request_sha256", "profile_sha256", "catalog_sha256"):
-            if not canonical_digest(request[name]):
-                raise AgentRejected("E_HIA_WORKER_IDENTITY", "invalid worker digest field")
-        digest_input = {key: value for key, value in request.items() if key != "request_sha256"}
-        if sha256(wire(digest_input)).hexdigest() != request["request_sha256"]:
-            raise AgentRejected("E_HIA_WORKER_IDENTITY", "worker request digest mismatch")
-        if request["catalog_sha256"] != identities["catalog_sha256"]:
-            raise AgentRejected("E_HIA_CATALOG_STALE", "worker request catalog differs from installed bytes")
-        if type(request["tool"]) is not str or len(request["tool"]) > 128:
-            raise AgentRejected("E_HIA_WORKER_TOOL", "invalid worker tool name")
+        selected = os.environ.get('HEPTA_HIA_WORKER_REQUEST_MANIFEST')
+        if selected:
+            from .hia_worker_request_native import installed_worker_request, NativeRequestRejected
+            try:
+                request = installed_worker_request(selected).admit(raw, identities['catalog_sha256'])
+            except NativeRequestRejected as exc:
+                request = exc.request
+                raise
+        else:
+            request = decode_data(raw)
+            keys(request, ("schema", "tool", "arguments", "request_sha256", "profile_sha256", "catalog_sha256"), label="worker request")
+            if request["schema"] != "hia-agent-worker-request-v1":
+                raise AgentRejected("E_HIA_WORKER_SCHEMA", "unknown worker envelope")
+            for name in ("request_sha256", "profile_sha256", "catalog_sha256"):
+                if not canonical_digest(request[name]):
+                    raise AgentRejected("E_HIA_WORKER_IDENTITY", "invalid worker digest field")
+            digest_input = {key: value for key, value in request.items() if key != "request_sha256"}
+            if sha256(wire(digest_input)).hexdigest() != request["request_sha256"]:
+                raise AgentRejected("E_HIA_WORKER_IDENTITY", "worker request digest mismatch")
+            if request["catalog_sha256"] != identities["catalog_sha256"]:
+                raise AgentRejected("E_HIA_CATALOG_STALE", "worker request catalog differs from installed bytes")
+            if type(request["tool"]) is not str or len(request["tool"]) > 128:
+                raise AgentRejected("E_HIA_WORKER_TOOL", "invalid worker tool name")
         from .hia_agent_service import HIAAgentService
         service = HIAAgentService(args.state_root, artifact_roots=args.artifact_root)
         try:

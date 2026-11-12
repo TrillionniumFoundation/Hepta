@@ -809,8 +809,10 @@ def check_calls(w:mutbuf) -> u64:
     f = 0
     target = 0
     ready = 0
+    remaining = 0
     while step < n:
         f = 0
+        remaining = 0
         while f < n:
             ready = 1
             target = 0
@@ -823,7 +825,13 @@ def check_calls(w:mutbuf) -> u64:
                 target = target + 1
             if ready == 1:
                 put(w, CSTATE + f * 8, 1)
+            if get(w, CSTATE + f * 8) != 1:
+                remaining = remaining + 1
             f = f + 1
+        # Every owner and edge was checked in this complete round. All active
+        # words equal one, so another round can only rewrite the same values.
+        if remaining == 0:
+            return 0
         step = step + 1
     f = 0
     while f < n:

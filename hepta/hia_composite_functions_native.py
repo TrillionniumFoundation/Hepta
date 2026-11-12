@@ -91,35 +91,44 @@ class NativeFunctionSession:
         self._pending_helpers = {}
         self._delegate_errors = {}
         self._active_kernel = 'admit'
-        self._workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
-        self._output = ctypes.create_string_buffer(OUTPUT_BYTES)
-        with self.types._lock:
-            members = tuple(owner.document['functions'])
-            registry = [[name, [[pname, self._type_id(typ)] for pname, typ in params],
-                         [self._type_id(typ) for typ in returns]]
-                        for name, (params, returns) in owner.signatures.items()]
-            wire = transport([owner.document, registry, list(owner.return_origins.items()),
-                              owner.serial, owner.value_slots, legacy, 0])
-            if len(wire) > INPUT_BYTES:
-                self._refuse('initial packet exceeds derived transport capacity')
-            try:
-                detached, self._source_index = detached_packet_index(wire)
-                self._function_sources = {
-                    id(member): (member, transport(snapshot))
-                    for member, snapshot in zip(members, detached[0]['functions'], strict=True)
-                }
-            except (TokenProtocolError, ValueError, UnicodeError, OverflowError) as exc:
-                self._refuse('initial packet is not a detached exact tree: ' + str(exc))
-            frame = self._invoke_bytes('admit', wire)
-            if frame[1] != 0 or frame[2] != 0:
-                self._refuse('initial native state is not ready')
+        self._workspace = self._output = None
+        self._source_index = {}
+        self._function_sources = {}
+        try:
+            self._workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
+            self._output = ctypes.create_string_buffer(OUTPUT_BYTES)
+            with self.types._lock:
+                members = tuple(owner.document['functions'])
+                registry = [[name, [[pname, self._type_id(typ)] for pname, typ in params],
+                             [self._type_id(typ) for typ in returns]]
+                            for name, (params, returns) in owner.signatures.items()]
+                wire = transport([owner.document, registry, list(owner.return_origins.items()),
+                                  owner.serial, owner.value_slots, legacy, 0])
+                if len(wire) > INPUT_BYTES:
+                    self._refuse('initial packet exceeds derived transport capacity')
+                try:
+                    detached, self._source_index = detached_packet_index(wire)
+                    self._function_sources = {
+                        id(member): (member, transport(snapshot))
+                        for member, snapshot in zip(members, detached[0]['functions'], strict=True)
+                    }
+                except (TokenProtocolError, ValueError, UnicodeError, OverflowError) as exc:
+                    self._refuse('initial packet is not a detached exact tree: ' + str(exc))
+                frame = self._invoke_bytes('admit', wire)
+                if frame[1] != 0 or frame[2] != 0:
+                    self._refuse('initial native state is not ready')
+        except BaseException:
+            # The owner cannot close a session whose construction never
+            # returned, including a failure after only one buffer allocation.
+            self.close()
+            raise
 
     def close(self):
         with self._lock:
             self._closed = True
             self._workspace = self._output = None
-            self._source_index = {}
-            self._function_sources = {}
+            self._source_index.clear()
+            self._function_sources.clear()
 
     def _refuse(self, message):
         self._broken = True

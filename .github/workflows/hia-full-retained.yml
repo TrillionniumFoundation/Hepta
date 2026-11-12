@@ -1,0 +1,132 @@
+name: HIA complete retained qualification
+
+on:
+  push:
+    branches:
+      - recovery/hia-function-9acdfa-20261111
+    paths:
+      - .github/workflows/hia-full-retained.yml
+      - .github/workflows/hia-core.yml
+      - hepta/**
+      - tools/**
+      - tests/**
+      - examples/hia_bootstrap/**
+      - formal/**
+      - rust/**
+      - review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-full-retained-r1/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hia-full-retained-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  complete:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:full-retained]')
+    name: Fresh complete dependencies and unchanged full retained regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Require Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "$ImageOS" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "$ImageVersion"
+      - name: Check out complete submitted source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install original full regression CPython version
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Install real native and tracing prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-full-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-full-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hia-full-llvm.asc" /usr/share/keyrings/hia-full-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-full-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-full-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc g++ pkg-config libssl-dev clang-20 libclang-rt-20-dev lld-20 llvm-20 llvm-20-tools qemu-user qemu-user-static strace zstd libboost1.83-dev
+      - name: Build six pinned bridges and verify complete prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-full-retained-r1/prepare_ci_prerequisites.py \
+            --source "$GITHUB_WORKSPACE" --output "$RUNNER_TEMP/hia-full-prerequisites" \
+            --cache-root "$RUNNER_TEMP/hia-full-build-cache" \
+            --temporary-root "/var/tmp/hia-f$GITHUB_RUN_ID" \
+            2>&1 | tee "$RUNNER_TEMP/hia-full-prerequisites-driver.log"
+      - name: Execute original full runner with unchanged limits and full discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B "$RUNNER_TEMP/hia-full-prerequisites/preparation/launch.py" \
+            "$GITHUB_WORKSPACE/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-full-retained-r1/run_original_retained.py" \
+            --source "$GITHUB_WORKSPACE" --output "$RUNNER_TEMP/hia-full-qualification" --full \
+            2>&1 | tee "$RUNNER_TEMP/hia-full-qualification-driver.log"
+      - name: Stream and verify complete original evidence
+        id: custody
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-full-retained-r1/seal_full_retained_evidence.py \
+            --prerequisites "$RUNNER_TEMP/hia-full-prerequisites" \
+            --qualification "$RUNNER_TEMP/hia-full-qualification" \
+            --driver-log "$RUNNER_TEMP/hia-full-prerequisites-driver.log" \
+            --driver-log "$RUNNER_TEMP/hia-full-qualification-driver.log" \
+            --output "$RUNNER_TEMP/hia-full-custody" \
+            2>&1 | tee "$RUNNER_TEMP/hia-full-custody-driver.log"
+      - name: Upload sealed success or failure evidence and direct status records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-full-retained-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-full-custody
+            ${{ runner.temp }}/hia-full-custody-driver.log
+            ${{ runner.temp }}/hia-full-prerequisites/summary.json
+            ${{ runner.temp }}/hia-full-prerequisites/commands
+            ${{ runner.temp }}/hia-full-prerequisites/preparation
+            ${{ runner.temp }}/hia-full-prerequisites-driver.log
+            ${{ runner.temp }}/hia-full-qualification/QUALIFICATION.json
+            ${{ runner.temp }}/hia-full-qualification/steps.json
+            ${{ runner.temp }}/hia-full-qualification/full-retained-regression.json
+            ${{ runner.temp }}/hia-full-qualification/full-retained-regression.stderr.log
+            ${{ runner.temp }}/hia-full-qualification/full-retained-regression.stdout.log
+            ${{ runner.temp }}/hia-full-qualification-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+      - name: Retain unsealed raw inputs when custody did not finish
+        if: always() && steps.custody.outcome != 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-full-retained-unsealed-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-full-prerequisites
+            ${{ runner.temp }}/hia-full-qualification
+            ${{ runner.temp }}/hia-full-prerequisites-driver.log
+            ${{ runner.temp }}/hia-full-qualification-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 1

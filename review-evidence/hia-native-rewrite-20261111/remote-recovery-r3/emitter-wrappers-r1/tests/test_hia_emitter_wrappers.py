@@ -168,7 +168,7 @@ def fixture(types_,returns=None,name="entry"):
     if "readbuf" in types_:effects.append("read")
     if "mutbuf" in types_:effects.extend(("read","write"))
     effects=sorted(set(effects))
-    block=dict(id="b0",params=copy.deepcopy(params),ops=[],term=dict(op="trap"))
+    block=dict(id="b0",params=copy.deepcopy(params),ops=[],term=dict(op="trap",code="user"))
     fn=dict(name=name,params=params,returns=returns,effects=effects,entry="b0",blocks=[block])
     return dict(schema="hepta.hia.program.v8",module="wrapper_fixture",functions=[fn])
 

@@ -1,0 +1,233 @@
+{
+  "schema": "hia.namespace-main-db-inode-reuse.reconstructed.v1",
+  "status": "NEW_RECONSTRUCTED_R3_SOURCE_ZERO_EXECUTION",
+  "source": {
+    "git_blob": "ba5452a46daa5532cb6a83f0a0ecf2e780f35959",
+    "bytes": 34186,
+    "sha256": "f5e4d87baf5046db3b1ec77300b057010b94529a3ea11408bb99abd15fc3f0b3",
+    "execution": {
+      "ast": 0,
+      "generation": 0,
+      "VM": 0,
+      "B3": 0,
+      "native": 0,
+      "OS": 0
+    },
+    "readback_exact": true
+  },
+  "source_reference": {
+    "repository": "sqlite/sqlite",
+    "commit": "f3d536d37825302e31ed0eddd811c689f38f85a3",
+    "path": "src/os_unix.c",
+    "git_blob": "9e7ba05d6882b1f3c310b99102e8ecbf7f830af2",
+    "bytes": 283843,
+    "sha256": "83e4f995c0cfc1362b46320d979b38349ac5b1c6a7c0b12cbc2c4577c6c13ef9"
+  },
+  "selected_branch": {
+    "platform": "Linux x86-64",
+    "SETLK_TIMEOUT": false,
+    "OS_VXWORKS": false,
+    "APPLE_NFS": false,
+    "unix_excl": "implemented as a first actual exclusive510-byte process lock, then internal no-op for subsequent file lock calls",
+    "scope": "actual main database POSIX locking algorithm, separate from old eight WAL lock slots and DMS128"
+  },
+  "files": {
+    "generator": "tools/generate_hia_agent_namespace_db_node_reuse_r3.py",
+    "planned_generated": "examples/hia_bootstrap/agent_namespace_db_node_reuse_r3.hiaasm"
+  },
+  "exact_lock_bytes": {
+    "PENDING_BYTE": 1073741824,
+    "RESERVED_BYTE": 1073741825,
+    "SHARED_FIRST": 1073741826,
+    "SHARED_SIZE": 510
+  },
+  "API": {
+    "magic": "HIANDB01",
+    "bad": "HIADBB01",
+    "header_bytes": 256,
+    "minimum_workspace_bytes": 1536,
+    "row_bytes": 128,
+    "commands": {
+      "1": "INIT with source-issued FS nonce/watermarks",
+      "2": "REGISTER actual live FS token; fstat15 assigns inode identity",
+      "3": "LOCK target1shared/2reserved/4exclusive; pending3 is internal only",
+      "4": "UNLOCK target0none/1shared",
+      "5": "CHECK_RESERVED local state then actual F_GETLK23",
+      "6": "CLOSE: exact lock cleanup, deferred close, last-reference retirement",
+      "7": "ACK original issued FS request plus complete actual output",
+      "8": "UNKNOWN exact pending action then persistent refusal",
+      "9": "TAKE_UNUSED: only already selected same-inode pUnused; first node matching original full32flags&3, detach before return, no FS calls"
+    },
+    "statuses": {
+      "0": "complete",
+      "1": "real FS pending",
+      "2": "workspace growth before first fstat; identical source",
+      "4294967293": "permanent refusal"
+    },
+    "input_qwords": [
+      "0magic",
+      "1command",
+      "2..3registry nonce",
+      "4strict caller sequence",
+      "5action0 new/exact ACK",
+      "6file handle0 register",
+      "7pending physical op for ACK",
+      "8REGISTER FS token, LOCK target, or command9 full unsigned32 original SQLite open flags",
+      "9register flags bit0readonly bit1unix-excl",
+      "10..11INIT actual FS nonce",
+      "12..13INIT FS call/sysseq watermarks",
+      "14zero",
+      "15nonzero source lease exceptINIT",
+      "16exact payload bytes",
+      "17..31zero"
+    ],
+    "ack_payload": "256B exact actual FS command followed by its complete actual output; stat144B and F_GETLK32B duplicate fields are cross-checked.",
+    "output_qwords": [
+      "0magic",
+      "1status",
+      "2..3nonce",
+      "4caller",
+      "5action",
+      "6original file handle",
+      "7pending physical op",
+      "8SQLite code",
+      "9raw errno",
+      "10result handle, reserved boolean, or command9 existing FS token (0=no match)",
+      "11source lease",
+      "12nRef",
+      "13nShared",
+      "14nLock",
+      "15inode lock level",
+      "16actual pending FS token",
+      "17fcntl type",
+      "18byte start",
+      "19byte length",
+      "20first ignored CLOSE errno",
+      "21required workspace",
+      "22version1",
+      "23poison reason",
+      "24phase",
+      "25process lock",
+      "26continuation stage",
+      "27dev",
+      "28ino",
+      "29..31zero"
+    ],
+    "rows": [
+      "handle",
+      "FS token",
+      "state0free/1live/2deferred/3token-free historical lock-count witness",
+      "file lock level0..4",
+      "readonly",
+      "unix-excl",
+      "lastErrno",
+      "next deferred row offset; 0 for active or state3",
+      "retirement sequence; positive for deferred and state3, zero for active",
+      "mode",
+      "uid",
+      "5reserved zero qwords"
+    ],
+    "allocation": "grow16 rows only as allocation granularity; repeated growth has no row count quota; u64 extent checked before use",
+    "process_local_scope": "one private, actually issued inode context; groupdev/ino can eachbe0 and UID0 is ordinary",
+    "reuse_does_not_grow": "Command9 reads the existing bounded linked list and commits one detachment; it issues no allocation, filesystem action, synthetic ack or new descriptor. Re-registration is command2 and obtains a fresh logical handle."
+  },
+  "preserved_rules": [
+    "Reference shared lock takes RDLCK pending byte, then RDLCK510bytes, then always drops temporary pending byte; a pending-unlock failure cannot hide an earlier range-lock error.",
+    "RESERVED->EXCLUSIVE takes WRLCK pending byte first; a later local or foreign conflict preserves PENDING3.",
+    "SHARED->EXCLUSIVE follows the source branch directly, without inventing a pending-byte syscall.",
+    "Known POSIX EACCES/EAGAIN/ETIMEDOUT/EBUSY/EINTR/ENOLCK map toBUSY5; EPERM toPERM3; other lock errors toIOERR_LOCK3850. This differs from the WAL component'sall-errnoBUSY rule.",
+    "Downgrade toSHARED read-lock failure isIOERR_RDLOCK2314 even if a conflict errno; pending/reserved unlock failure isIOERR_UNLOCK2058.",
+    "Unlock-toNONE decrements nShared before the final actual unlock; after the result it decrementsnLock and drains deferred descriptors ifnLock0. The private pending invariant includes this deliberate intermediate count difference.",
+    "Final whole-file unlock failure still clears logical file and inode lock level, preserves rawlastErrno, decrementsnLock and drains as inposixUnlock.",
+    "unixClose ignores known unixUnlock errors for returned business success, still queues FD ifnLock remains, and closes deferred FDs on last reference even for process-lock ownership.",
+    "Deferred list isLIFO, each token consumed before oneclose, close errorsaudited but not retried. Unknown or mismatched receipt poisons without synthesizing unlock/close success.",
+    "Same-process shared holders increment counters without duplicate physical locking; a conflicting local owner givesBUSY without syscall.",
+    "CHECK_RESERVED uses localinodelevel/processlock state before asking actualF_GETLK.",
+    "NoPython callback decides lockpolicy; this artifact isHIA authoring source, not an executed host owner.",
+    "findReusableFd masks full original int flags with READONLY|READWRITE (3); values0 or3 match neither existing legal descriptor mode. Upper32 bits are not accepted in the private original-int field.",
+    "The list is searched head to tail and only the first matching node is removed; other relative order, generation and inode nRef/nShared/nLock/eFileLock/process-lock remain exactly unchanged.",
+    "Closed logical handles never become active again. A reused FS token is re-registered through an actual fstat continuation under a strictly greater new handle; command9 does not invent a new token.",
+    "An earlier ignored posixUnlock failure can leave nShared/nLock/eFileLock nonzero after a logical close. Removing its pUnused fd must not reduce those original inode counters. State3 is a token-zero historical accounting witness, not a descriptor or callable file. Final nRef0 release retires these witnesses.",
+    "Unknown/malformed private input keeps permanent poison. New call sequence, nonzero source lease, reserved words and uint32 flags are validated before detaching a list node."
+  ],
+  "source_lease_boundary": [
+    "Byteheaders areprivateframing, not authentication.",
+    "Fixedwholecoordinator mustown selectedFS session, create each per-inode context, serialize operations, route only actual child receipts and prevent rawclose/fcntl bypass.",
+    "FS calls/sysseq are strictly newer than observed watermarks so other legitimate typed owners may interleave; sharedcaller broker still requires fixed native implementation.",
+    "Sameinode registration is established by full actualfstatpayload, not caller-provideddev/ino.",
+    "Command9 may only be called by the future fixed coordinator after the original global inode-list and stat path selection under the process-local serialization scope. It is not a caller-supplied pathname-to-inode authorization.",
+    "An FS token returned by command9 is a move of an existing issued token, not external authentication. The surrounding same-context registry must transfer it to unixOpen or close/error retirement exactly once."
+  ],
+  "still_open": [
+    "New reconstruction has0 AST/generation/B3/VM/native/OS; actual proposed40-group gate must run.",
+    "Original global inodeList empty shortcut, stat errors/path matching/mutex lifetime and complete findReusableFd route remain to be owned by the new fixed unixOpen coordinator.",
+    "Complete unixOpen temporary-name/getpid/PRNG/robust-open/create-mode/reusable-metadata allocation/fillInUnixFile/warning/error-cleanup order.",
+    "Actual fixed sharedFS DB/DMS/map/memory join remains FAIL follow35 SIGBUS pending full original diagnosis; selected component success cannot override it.",
+    "DB mmap/nFetchOut retirement, legacy writer fencing/migration, full10tables31SQL, physical immutable Store put/get and ordinary worker remainOPEN.",
+    "Busy handler is high-level policy, no automatic retries are added. Old runtime removal remains blocked until whole ordinary closure and complete qualification."
+  ],
+  "validation_plan": {
+    "independent_oracle": "extract selected exact immutableSQLiteCfunctions with theircontrol branches, recordwhichsyscallhooks are synthetic; not a fullSQLiteorphysicalclaim",
+    "actual_physical": "fresh fixedsharedFS invocations, foreignrealfcntl/SQLiteprocesses andfaultcontrols; recordlocalSQLiteversion/compileoptions",
+    "equality": "complete input/output/workspace/return andactual issued syscall order, allerrors/rawpartialstate",
+    "compile_gate": {
+      "cpu_seconds": 10,
+      "wall_seconds": 20,
+      "address_bytes": 268435456,
+      "output_bytes": 1048576,
+      "workspace_bytes": 1048576
+    },
+    "counts": "UNKNOWN_UNTIL_ACTUAL_EXECUTION",
+    "old_tests_preserved": "All32 previously published test method bodies remain byte-for-byte; their call transport gains explicit command9 observation only.",
+    "new_tests": 8,
+    "groups_per_phase": 40,
+    "phases": [
+      "retained CoreVM with unchanged exactC functions",
+      "same complete test cases paired full CoreVM/native byte-for-byte"
+    ],
+    "component_aggregate_wall_seconds": 900,
+    "component_new_physical_process_gate_claimed": false,
+    "oracle": "15 exact originalC functions; successful same-inode stat is a declared controlled provider, no actual OS syscall count."
+  },
+  "original_qualification": "0ef full FAIL/HOLD unchanged; NDUdeletionactorUNKNOWN",
+  "previous_attempt": {
+    "inaccessible_draft": "No full SHA recovered; not reused",
+    "published_base_history": {
+      "head": "136f29422076ee2cafe50c3e5553e993a5c625d7",
+      "run_id": 43149177895,
+      "job_id": 130954037883,
+      "full_job_log": {
+        "blob": "40facfeeb91548fef8e84677099230de03189a1b",
+        "bytes": 123220,
+        "sha256": "ae366252a777473c37dc7cc0ed39a6b1eeb586c35fb27fd61f746a08ba1b9de6",
+        "mode": "100644",
+        "full_readback": true
+      },
+      "AST_global_files": 120,
+      "AST_status": "PASS",
+      "generation_returncode": 1,
+      "first_error": "E_HIA_CFG: edge values do not match block parameter types",
+      "generation_elapsed_ns": 467052875,
+      "B3": 0,
+      "VM": 0,
+      "native": 0,
+      "OS": 0,
+      "secondary_error": "common.finish rejected a nested OUTPUT directory passed as an additional root; original full job log and uploaded artifact remain preserved.",
+      "artifact": {
+        "id": 13912518867,
+        "bytes": 41997075,
+        "sha256": "7f2890f3dee0bcd4c76f4bcc2abb6ce63184dc3cfb59d60d32be89e3bf6ef8a6"
+      }
+    }
+  },
+  "reconstruction": {
+    "published_base": "a63842ae07fa8769b585705ae100d7181a4d6084",
+    "inaccessible_prior_draft_identity_or_counts_reused": false,
+    "old_draft_lookup": {
+      "abbreviated_pin": "94f8ab",
+      "endpoint_result": "422: Git blob endpoint requires exactly40 hexadecimal digits",
+      "followups_attempted": false
+    },
+    "new_source_lineage": "Published DB2 exact source plus explicit new command9 and its accounting state; not a byte reconstruction of the inaccessible26-file draft."
+  }
+}

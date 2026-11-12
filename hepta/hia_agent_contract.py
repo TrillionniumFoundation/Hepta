@@ -27,6 +27,8 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/agent_journal.hiaasm',
+    'examples/hia_bootstrap/worker_request.hiaasm',
     'examples/hia_bootstrap/agent_identity.hiaasm',
     'examples/hia_bootstrap/agent_slice.hiaasm',
     'examples/hia_bootstrap/agent_data_json.hiaasm',
@@ -57,6 +59,10 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/composite_function_advanced.hiaasm',
     'examples/hia_bootstrap/composite_function_terms.hiaasm',
     'examples/hia_bootstrap/composite_function_render.hiaasm',
+    'examples/hia_bootstrap/composite_constructor_owner.hiaasm',
+    'examples/hia_bootstrap/composite_constructor_render.hiaasm',
+    'examples/hia_bootstrap/composite_outer_owner.hiaasm',
+    'examples/hia_bootstrap/composite_outer_render.hiaasm',
 )
 
 

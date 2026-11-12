@@ -437,7 +437,6 @@ class _Elaborator:
         function_owner = selected_composite_functions()
         self._native_function_session = (None if function_owner is None else
             function_owner.session(self, legacy=legacy))
-
     def _reference_initialize(self, document, *, legacy=False):
         _keys(document, {"schema", "module", "types", "functions"}, "nominal program")
         if type(document["schema"]) is not str or document["schema"] not in COMPOSITE_SCHEMAS:
@@ -1215,6 +1214,10 @@ class _Elaborator:
         return lowered
 
     def lower(self):
+        from .hia_composite_outer_native import selected_composite_outer
+        outer = selected_composite_outer()
+        return self._reference_lower() if outer is None else outer.lower(self)
+    def _reference_lower(self):
         functions = [self.function(fn) for fn in self.document["functions"]]
         functions += self.helpers
         if len(functions) > MAX_FUNCTIONS or any(len(f["blocks"]) > MAX_BLOCKS for f in functions):
@@ -1233,4 +1236,18 @@ def elaborate_program(document, *, legacy=False):
     before this function.  Direct callers gain no VerifiedProgram or execution
     authority from this function alone.
     """
-    return _Elaborator(document, legacy=legacy).lower()
+    # Retain the partial owner even if __init__ raises after acquiring native
+    # sessions. Private callers still own their sessions and partial state.
+    owner = _Elaborator.__new__(_Elaborator)
+    try:
+        owner.__init__(document, legacy=legacy)
+        return owner.lower()
+    finally:
+        try:
+            session = getattr(owner, '_native_function_session', None)
+            if session is not None:
+                session.close()
+        finally:
+            types = getattr(owner, 'native_types', None)
+            if types is not None:
+                types.close()

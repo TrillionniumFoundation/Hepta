@@ -123,14 +123,13 @@ class AdmissionHarness:
                 return self.error
 
 
-@unittest.skipUnless(os.environ.get('HEPTA_HIA_COMPOSITE_FUNCTIONS_DEVELOPMENT_MANIFEST')
-    and os.environ.get('HEPTA_HIA_COMPOSITE_TYPES_DEVELOPMENT_MANIFEST'), 'exact function/type images required')
 class AdmissionNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.images = installed_composite_functions(
-            os.environ['HEPTA_HIA_COMPOSITE_FUNCTIONS_DEVELOPMENT_MANIFEST']).images
-        cls.types_image = installed_composite_types(os.environ['HEPTA_HIA_COMPOSITE_TYPES_DEVELOPMENT_MANIFEST'])
+        from tests.hia_composite_function_fixture import composite_function_fixture
+        fixture = composite_function_fixture()
+        cls.images = fixture.bundle.images
+        cls.types_image = fixture.types_image
 
     def owner(self, document):
         with patch('hepta.hia_composite_types_native.selected_composite_types',

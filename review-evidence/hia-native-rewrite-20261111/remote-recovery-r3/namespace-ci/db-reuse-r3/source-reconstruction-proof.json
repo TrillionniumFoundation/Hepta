@@ -1,0 +1,246 @@
+{
+  "schema": "hia.namespace-db-reuse-reconstruction.proof.v1",
+  "status": "STATIC_SOURCE_INSPECTION_ONLY_NO_EXECUTION",
+  "base_generator": "a63842ae07fa8769b585705ae100d7181a4d6084",
+  "new_generator": {
+    "blob": "ba5452a46daa5532cb6a83f0a0ecf2e780f35959",
+    "bytes": 34186,
+    "sha256": "f5e4d87baf5046db3b1ec77300b057010b94529a3ea11408bb99abd15fc3f0b3"
+  },
+  "old_protocol": "88db473aeeb2038dbe54257bf0e0fc31c65ca393",
+  "new_protocol": {
+    "blob": "43e85d83883d89cdd6c274925f82043c849c3bc9",
+    "bytes": 36296,
+    "sha256": "3ae329f51a511867ad1aa8511c1bdf65d604878f1fe7df987561ec066953b62e"
+  },
+  "old32_test_method_bodies": [
+    {
+      "name": "test_01_zero_identity_uid_and_basic_cycle",
+      "bytes": 317,
+      "sha256": "3eccb6ceae35043e5e44b77d027a436e147c1093a691b05ef8c59b278de340fd",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_02_shared_direct_exclusive_has_no_extra_pending",
+      "bytes": 271,
+      "sha256": "63f1e348532eb469e8469c98d27b9e49f884f532ad67f9c9a340ff9df84f24cb",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_03_local_shared_reserved_and_pending_retry",
+      "bytes": 775,
+      "sha256": "a576f3854ebe63acae05f85d7b9d1e8a6daf3513cc8ec7eb75ad5813e0a05804",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_04_deferred_lifo_drains_at_last_lock",
+      "bytes": 375,
+      "sha256": "7db9c0b16037e8e2d20ded2de6885522f3e32d0da61654ad47bb04f446738951",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_05_unix_excl_process_lock_and_last_reference",
+      "bytes": 612,
+      "sha256": "28789a81749b5e102b6ae9beb1fbc4158385c430c1ccc02a027b6c739e997240",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_06_readonly_excl_does_not_take_process_lock",
+      "bytes": 255,
+      "sha256": "d3bce5e0a384de245b157011823652fef6fde3e463c300cfab35351f6a62a25c",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_07_mixed_excl_after_existing_shared_release_branch",
+      "bytes": 299,
+      "sha256": "cfc31694af6b05c4d0711ffdf14a85bf0a5e840d9a70568f3c269efb8629fa7e",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_08_first_lock_all_errno_categories",
+      "bytes": 427,
+      "sha256": "b3892cc147bce7484f563dbe49368662da1c17c8528288961ce1bdc9f3fc181e",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_09_shared_range_first_error_survives_unlock_error",
+      "bytes": 488,
+      "sha256": "bb38003feec15536350b56a91b5bae13322818bb7609f2e97230fb3ff4023480",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_10_shared_temporary_pending_unlock_failure",
+      "bytes": 332,
+      "sha256": "c4b80d4d43f0c9e896e1b3abd585a01201ec4951f533005af9c872fe0f787378",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_11_reserved_failure_and_last_errno_retention",
+      "bytes": 318,
+      "sha256": "565ee0d4d5a0d3aeda446d10ed40ccccd133b6a189126edbb35c78d159d74b5c",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_12_exclusive_pending_failure_preserves_reserved",
+      "bytes": 354,
+      "sha256": "14b5acf6d9e28c36cdee3539834689b1eca907561ae7c7e2d603be933123ddad",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_13_exclusive_range_failure_preserves_pending",
+      "bytes": 445,
+      "sha256": "14afed13b956e9650f3b70ff2cdf8b915f6fe9b9b05131d70f7bdf894e93be8f",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_14_downgrade_read_failure_never_reports_busy",
+      "bytes": 425,
+      "sha256": "f97fa1da127144270bf91f12b54f7deb6eff3b8f4d0caca3831a884fa226cb47",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_15_downgrade_pending_pair_unlock_failure",
+      "bytes": 301,
+      "sha256": "17166ce9841156c2225875b7d10c3baf1ba4194c0bbaec78f174cd27efbdfb45",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_16_final_unlock_error_clears_logical_lock_and_drains",
+      "bytes": 440,
+      "sha256": "6df53d15f11131a27c549a825fed126c65dae442d90357043104895ca6f3f9e2",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_17_close_ignores_known_unlock_failure_and_retires",
+      "bytes": 444,
+      "sha256": "675607e735e4d102e1b778e588db1d4a2061fbc6710e70273101a2d79c0d8e79",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_18_close_failed_unlock_stays_deferred_until_other_close",
+      "bytes": 395,
+      "sha256": "3cd26fc4132aef900e871c07a6e448249248cb7a6fc7fc2d959a16bf1da67b9f",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_19_close_eintr_no_retry_and_first_ignored_error",
+      "bytes": 401,
+      "sha256": "b6e89c58510d1736ea968e466b47cff0f39d6121bd1c7b9b34351c8838bb1e81",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_20_check_reserved_actual_kinds_errors_and_local",
+      "bytes": 519,
+      "sha256": "1e5b4760dbeb1d1793854ce1bd9e5dc41dbf8d44667ce7951f9189c3e33e6d93",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_21_register_stat_failure_does_not_commit_handle",
+      "bytes": 415,
+      "sha256": "39a2bed7ed5f1353ea0d3f69d6502bd19d1267267809d6a9cc8c89ebee999004",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_22_repeated_dynamic_rows_above_allocation_granule",
+      "bytes": 479,
+      "sha256": "c963d47566afd98081130c70c70e109bad8940b8b783e7033e6b0ad7d1a419bd",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_23_seeded_legal_connection_histories",
+      "bytes": 1192,
+      "sha256": "05e48e5e1f66b1974e8862216eff7bcde44868f0b07fe234029a5de427f269c6",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_24_init_header_reserved_bounds_and_persistent_poison",
+      "bytes": 427,
+      "sha256": "1736c255fa6835ce11b3a9139fb394a12690f92d3696af026c87631c9d2676bd",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_25_exact_pending_ack_identity_and_stat_duplicates",
+      "bytes": 679,
+      "sha256": "9f8bc769e532cc855b06b75bd374b46230c3f47137ef5eef77696a2cd5590c37",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_26_unknown_then_original_ack_stays_rejected",
+      "bytes": 310,
+      "sha256": "568189d4955f4ee28f8d51b1f18c6b97c0ac758a3a15089b11711faecd9e26f2",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_27_grow_identity_and_sequence_exhaustion",
+      "bytes": 616,
+      "sha256": "ba1833775440f83749a344e74dca98b348d50c39da429b1154ae014c4be32cf0",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_28_source_and_workspace_invariants",
+      "bytes": 658,
+      "sha256": "fe6b9df4659878a5ca63b5abd06d21aac34daa475ec8d3b2fbce10ee980404c5",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_29_retired_and_duplicate_close_are_refused",
+      "bytes": 309,
+      "sha256": "5e5bc3ea0c38bf66f319180a25ca213f49f1d25f45704899ad1ad3b3ff883c70",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_30_short_buffers_and_full_payload_extent",
+      "bytes": 602,
+      "sha256": "c7644824bd2c1697b105596f10c21af2d1dbd84aad4929a7de7b76eb0ac77425",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_31_deferred_list_corruption_and_cross_inode",
+      "bytes": 657,
+      "sha256": "826e76509f9435d8fed9aa4d758b8b5c4f52adb2aef1e634dd4e5a8bf77d67e1",
+      "new_source_exact_occurrences": 1
+    },
+    {
+      "name": "test_32_getlk_shape_watermark_and_pending_stage",
+      "bytes": 744,
+      "sha256": "6e794d4c3dd654b74d94457bd07ab9cda073fd955fffb09dddb4221d56f45254",
+      "new_source_exact_occurrences": 1
+    }
+  ],
+  "old32_methods_unchanged": true,
+  "new_test_count": 8,
+  "total_per_VM_or_paired_phase": 40,
+  "original_C_extract": {
+    "blob": "073805d450fb39c988f43426ef3ef5a941664124",
+    "bytes": 4334,
+    "sha256": "2644d5447902ecd6c06c54ebef2a30329e55e2edc3b133de353a30ddaa31e4cb"
+  },
+  "new_oracle": {
+    "blob": "6a33d663f59f33bbcd87090f44fe77d7068140d2",
+    "bytes": 36095,
+    "sha256": "989c2db0e13f2a19f9af3f79066a733a0e03e14c732ae745dc44c64dc4ff578f"
+  },
+  "original_C_functions_exact": 15,
+  "scope": [
+    "Descriptor reuse removes the first matching deferred-list node only; uint32flags&3 compared to existing readonly-derived1/2.",
+    "Newcommand9 does not allocate, issue FS, retry, create authority or register a new logical file.",
+    "State3 preserves a lock-accounting witness after ignored close-unlock failure; token is zero and old logical handle never becomes active. It is cleared on final inode retirement.",
+    "Old32 ordinary/private/error tests remain intact; original C selection functions are unchanged, providers and allocations remain declared fixtures.",
+    "NewselectedCstat succeeds on the already selected sameinode; globalpath/staterror handling and fixedserialization remain future completeunixOpen scope.",
+    "BothVM and newnative compare completeoutput/workspace/return/input/canaries; no masks or removed gates.",
+    "Component uses original900s aggregate; not a new90CPU/180sphysical qualification. B3 remains10CPU/20wall/256MiB and fulloriginalprofile."
+  ],
+  "actual": {
+    "AST": 0,
+    "generation": 0,
+    "C_compile": 0,
+    "C_calls": 0,
+    "VM": 0,
+    "B3": 0,
+    "native": 0,
+    "physical": 0
+  },
+  "inaccessible_old_draft": "Not recovered; no old identity/count claimed",
+  "follow35_physical": "FAIL SIGBUS preserved, separate fullrawreadback pending",
+  "ordinary_store_closed": false
+}

@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install agent_journal; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -47,7 +47,10 @@ jobs:
               'tests.test_hia_elf_linker.ElfLinkerSourceTests',
               'tests.test_hia_core_json_cli.CoreJsonCliSourceTests',
               'tests.test_hia_selfhost_word_io.WordIOSourceTests',
+              'tests.test_hia_selfhost_native_observer.ObserverFrameDifferentialTests',
+              'tests.test_hia_selfhost_linked_observer.LinkedObserverSourceTests',
               'tests.test_hia_selfhost_emitter_words.EmitterSourceTests',
+              'tests.test_hia_selfhost_call_graph.CallGraphSourceTests',
               'tests.test_hia_sha256_stream_native.Sha256StreamSourceTests',
               'tests.test_hia_sha256_native.Sha256HiaSourceTests',
               'tests.test_hia_json_preflight',
@@ -86,9 +89,20 @@ jobs:
               'tests.test_hia_composite_signatures_native.CompositeSignaturesAdapterTests',
               'tests.test_hia_task_helpers_native.TaskHelpersSourceTests',
               'tests.test_hia_task_helpers_native.TaskHelpersAdapterTests',
+              'tests.test_hia_composite_functions_native.FunctionSourceTests',
+              'tests.test_hia_composite_function_tokens.TokenCodecTests',
+              'tests.test_hia_composite_function_protocol_audit.FunctionTokenProtocolAuditTests',
+              'tests.test_hia_composite_constructor_source.ConstructorSourceTests',
+              'tests.test_hia_composite_constructor_native.ConstructorFrameTests',
+              'tests.test_hia_composite_outer_source.OuterSourceTests',
+              'tests.test_hia_composite_outer_native.OuterFrameTests',
               'tests.test_hia_native_builder_source_binding',
               'tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests',
               'tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests',
+              'tests.test_hia_worker_request_native.WorkerRequestSourceTests',
+              'tests.test_hia_release_install.ReleaseInstallerSourceTests',
+              'tests.test_hia_agent_journal_native.JournalSourceTests',
+              'tests.test_hia_composite_native_composition.SourceTests',
           )
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
@@ -135,6 +149,7 @@ jobs:
               'tests.test_hia_native_startup_isolation',
               'tests.test_hia_json_preflight_native',
               'tests.test_hia_selfhost_emitter_words',
+              'tests.test_hia_selfhost_call_graph',
               'tests.test_hia_host_region',
               'tests.test_hia_host_region_admission_transaction',
               'tests.test_hia_host_region_borrow_admission',
@@ -162,12 +177,15 @@ jobs:
               'tests.test_hia_agent_data_json_native',
               'tests.test_hia_agent_binary64_native',
               'tests.test_hia_agent_binary64_format_native',
+              'tests.test_hia_selfhost_native_observer',
+              'tests.test_hia_selfhost_linked_observer',
           )
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
           PYTEST
         env:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CALL_GRAPH_EVIDENCE: ${{ runner.temp }}/hia-call-graph-native/
       - name: Native Core module graph and actual workspace projects
         run: python -B -m unittest tests.test_hia_core_module_graph_native -v
         env:
@@ -219,7 +237,7 @@ jobs:
         env:
           HEPTA_HIA_CORE_PATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_CORE_PATCH_RESULT_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
-      - name: Native composite types signatures origins and complete task helpers
+      - name: Native complete nominal types helpers constructor functions and outer lowering
         run: |
           python -B - <<'PYTYPES'
           import unittest
@@ -227,13 +245,63 @@ jobs:
               'tests.test_hia_composite_types_native',
               'tests.test_hia_composite_origins_native',
               'tests.test_hia_composite_signatures_native',
-              'tests.test_hia_task_helpers_native'))
+              'tests.test_hia_task_helpers_native',
+              'tests.test_hia_composite_function_tokens',
+              'tests.test_hia_composite_function_admission',
+              'tests.test_hia_composite_function_protocol_audit',
+              'tests.test_hia_composite_function_terms_native',
+              'tests.test_hia_composite_functions_native',
+              'tests.test_hia_composite_public_lifecycle',
+              'tests.test_hia_composite_constructor_native',
+              'tests.test_hia_composite_constructor_integration',
+              'tests.test_hia_composite_outer_native',
+              'tests.test_hia_composite_outer_integration',
+              'tests.test_hia_composite_nominal_lifecycle'))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
           PYTYPES
         env:
           HEPTA_HIA_COMPOSITE_TYPES_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_TASK_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_FUNCTIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_CONSTRUCTOR_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_OUTER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-nominal-fixture
+      - name: Native request admission immutable release and Agent journal
+        run: |
+          python -B - <<'PYSTATE'
+          import unittest
+          modules = (
+              'tests.test_hia_worker_request_native',
+              'tests.test_hia_worker_request_review',
+              'tests.test_hia_release_install',
+              'tests.test_hia_agent_journal_native',
+              'tests.test_hia_composite_native_composition')
+          suite = unittest.defaultTestLoader.loadTestsFromNames(modules)
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = (expected > 0 and result.testsRun == expected
+                      and result.wasSuccessful() and not result.errors
+                      and not result.failures and not result.skipped
+                      and not result.expectedFailures and not result.unexpectedSuccesses)
+          raise SystemExit(0 if complete else 1)
+          PYSTATE
+        env:
+          HEPTA_HIA_WORKER_REQUEST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RELEASE_INSTALL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_TYPES_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_TASK_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RELEASE_INSTALL_OBSERVATIONS: ${{ runner.temp }}/hia-release-install
+      - name: Existing ordinary Agent callers with HIA journal selected
+        run: >-
+          python -B tools/qualify_hia_agent_journal_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --output "$RUNNER_TEMP/hia-agent-journal-callers.json"
+          --evidence-directory "$RUNNER_TEMP/hia-agent-journal-callers"
+        env:
+          HEPTA_HIA_WORKER_REQUEST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_PATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Preserve actual cold failure and stage evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -247,4 +315,10 @@ jobs:
             ${{ runner.temp }}/hia-cold.cold/
             ${{ runner.temp }}/hia-language.json
             ${{ runner.temp }}/hia-language.assertions.json
+            ${{ runner.temp }}/hia-language.evidence/
+            ${{ runner.temp }}/hia-call-graph-native/
+            ${{ runner.temp }}/hia-nominal-fixture/
             ${{ runner.temp }}/hia-module-projects/
+            ${{ runner.temp }}/hia-release-install/
+            ${{ runner.temp }}/hia-agent-journal-callers.json
+            ${{ runner.temp }}/hia-agent-journal-callers/
