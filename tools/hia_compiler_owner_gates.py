@@ -81,7 +81,7 @@ LEGACY_SOURCE_GENERATORS = (
     'machine_elf',
     'core_lowering',
 )
-SOURCE_GENERATORS = LEGACY_SOURCE_GENERATORS + ('bounded_read', 'core_unpack')
+SOURCE_GENERATORS = LEGACY_SOURCE_GENERATORS + ('bounded_read', 'core_unpack', 'core_compare')
 require = previous.require
 json_file = previous.json_file
 child_path = previous.child_path
@@ -588,7 +588,7 @@ def core_build(folder, context):
             'abi_file': source_record(ABI_SOURCE, context)}
 
 
-def inspect_core_observations(evidence, context, component, *, unpack_manifest=None):
+def inspect_core_observations(evidence, context, component, *, unpack_manifest=None, numeric_manifest=None):
     fixture = Path(evidence) / 'component-fixture'
     case = fixture / 'installed-control'
     expected = json_file(case / 'expected.json')
@@ -599,13 +599,24 @@ def inspect_core_observations(evidence, context, component, *, unpack_manifest=N
     require(expected.get('python') == py
             and expected.get('resources') == {name: context['source_manifest'][name] for name in resources}
             and type(expected.get('document')) is dict, 'installed Core input inventory differs')
+    from tools.hia_core_companion_arguments import installed_companion_arguments, parse_installed_companions
     installed_arguments = [component['bundle_files'][0]['path'], case / 'expected.json']
+    unpack_path = numeric_path = None
+    numeric_binding = None
     if unpack_manifest is not None:
         from tools.hia_core_unpack_gates import companion_build
         companion = companion_build(Path(unpack_manifest).parent, context)
         require(companion['files'][0]['path'] == str(Path(unpack_manifest).resolve(strict=True)),
                 'explicit installed companion is not the admitted matching-cold manifest')
-        installed_arguments.append(companion['files'][0]['path'])
+        unpack_path = companion['files'][0]['path']
+    if numeric_manifest is not None:
+        from tools.hia_core_compare_qualification import companion_build as numeric_build
+        numeric_binding = numeric_build(Path(numeric_manifest).parent, context)
+        numeric_path = numeric_binding['files'][0]['path']
+        require(numeric_path == str(Path(numeric_manifest).resolve(strict=True)),
+                'explicit numeric companion is not the admitted matching-cold manifest')
+    companion_arguments = installed_companion_arguments(unpack_path, numeric_path)
+    installed_arguments.extend(companion_arguments)
     package = installed_package(case, context, resources, 'installed-child.py',
         literal_script(OWNERS['core']['module'], name='INSTALLED_CHILD'),
         ('wheel-build', 'wheel-install', 'installed-execution'),
@@ -628,6 +639,16 @@ def inspect_core_observations(evidence, context, component, *, unpack_manifest=N
             and type(observed.get('actual_native_steps')) is int and observed['actual_native_steps'] > 0
             and type(observed.get('object_sha256')) is str and len(observed['object_sha256']) == 64,
             'installed Core execution/counts missing')
+    require(observed.get('companion_arguments') == parse_installed_companions(companion_arguments),
+            'installed companion argument schema or selected manifest identities differ')
+    if numeric_binding is None:
+        require(observed.get('numeric_compare_observations') is None,
+                'an unadmitted numeric installed observation cannot enter the original Core gate')
+    else:
+        from tools.hia_core_compare_qualification import validate_installed as numeric_installed
+        numeric_installed(observed.get('numeric_compare_observations'), numeric_binding)
+        from tools.hia_core_unpack_gates import validate_installed as unpack_installed
+        unpack_installed(observed.get('unpack_observations'), companion)
     return {'installed': package, 'files': [file_record(case / 'expected.json'), file_record(case / 'report.json')],
             'source_ABI_refusal_assertions_bound_to_complete_installed_method': True,
             'standalone_refusal_ledger_invented': False}
@@ -994,7 +1015,7 @@ def validate_core_steps(report, builds, abi):
             'each_group_claimed_to_cover_every_mode': False}
 
 
-def inspect_core_callers(evidence, context, expected, *, unpack_manifest=None):
+def inspect_core_callers(evidence, context, expected, *, unpack_manifest=None, numeric_manifest=None):
     from hepta.hia_core_lowering_selection import ABI_SOURCE, checked_abi
     from tools.qualify_hia_core_lowering_callers import COMPONENT_IDS, ORIGINAL_COMPONENT_IDS
     evidence = Path(evidence).resolve(strict=True)
@@ -1045,7 +1066,7 @@ def inspect_core_callers(evidence, context, expected, *, unpack_manifest=None):
     abi = checked_abi((ROOT / ABI_SOURCE).read_bytes())
     counters = validate_core_steps(report, builds, abi)
     runtime = inspect_core_observations(evidence, context, builds['component'],
-                                        unpack_manifest=unpack_manifest)
+                                        unpack_manifest=unpack_manifest, numeric_manifest=numeric_manifest)
     return {'owner': 'core', 'gates': {name: True for name in OWNERS['core']['gates']},
             'producer_report': file_record(evidence / 'report.json'), 'groups': expected,
             'actual_builds': builds, 'native_observations': counters, 'component_runtime': runtime,

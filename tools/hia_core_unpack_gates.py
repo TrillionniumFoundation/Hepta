@@ -357,7 +357,7 @@ def validate_installed(value, binding):
     return value
 
 
-def inspect_callers(base, cold, context):
+def inspect_callers(base, cold, context, *, numeric_manifest=None):
     evidence = Path(base).resolve(strict=True) / 'callers'
     admit_dependencies(context)
     groups = caller_groups()
@@ -365,7 +365,8 @@ def inspect_callers(base, cold, context):
     report = json_file(evidence / 'report.json')
     ledger = validate_callers(report, groups, companion, context, cold, evidence)
     core = previous.inspect_core_callers(evidence / 'core-callers', context, groups,
-                                        unpack_manifest=companion['files'][0]['path'])
+                                        unpack_manifest=companion['files'][0]['path'],
+                                        numeric_manifest=numeric_manifest)
     require(report.get('original_report') == size_pin(evidence / 'core-callers/report.json'),
             'UNPACK original Core116 report pin differs')
     progress_binding = progress.inspect_progress(evidence, groups, report['original_report'])

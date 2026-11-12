@@ -90,6 +90,7 @@ def _implementation_hash():
         "hia_json_wire_native.py",
         "hia_core_lowering_native.py", "hia_core_lowering_selection.py",
         "hia_core_unpack_native.py", "hia_core_unpack_selection.py",
+        "hia_core_compare_native.py", "hia_core_compare_selection.py",
         "hia_machine_plan.py", "hia_machine_plan_native.py",
         "hia_instruction_policy_native.py", "hia_json_preflight_native.py",
         "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",

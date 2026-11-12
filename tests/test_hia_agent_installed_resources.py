@@ -7,6 +7,7 @@ from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
 RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES
 BUNDLED_SOURCE_BINDINGS={
+    'core_compare':('hepta.hia_core_compare_selection','control'),
     'core_unpack':('hepta.hia_core_unpack_selection','control'),
     'cli_control':('hepta.hia_cli_native','control'),
     'cli_format':('hepta.hia_cli_native','format'),
@@ -24,7 +25,7 @@ BUNDLED_SOURCE_BINDINGS={
 # These metadata paths do not name standalone runtime bridge modules.
 # The bounded-read ABI remains a source-owned build descriptor; the explicit
 # UNPACK companion additionally validates its ABI at selection.
-NATIVE_METADATA_RESOURCE_FILES=('hepta/hia_bounded_read_abi.json','hepta/hia_core_unpack_abi.json')
+NATIVE_METADATA_RESOURCE_FILES=('hepta/hia_bounded_read_abi.json','hepta/hia_core_unpack_abi.json','hepta/hia_core_compare_abi.json')
 
 CORE_LOWERING_RESOURCE_FILES=(
     'hepta/hia_core_lowering_abi.json',

@@ -13,6 +13,8 @@ import operator
 import struct
 from types import FunctionType
 
+from .hia_core_compare_native import eligible as _numeric_comparison_eligible
+
 MAGIC = int.from_bytes(b'HIALOW02', 'little')
 POOL_MAGIC = int.from_bytes(b'HIALIT01', 'little')
 ABI = 0xfffffffd
@@ -328,6 +330,17 @@ class LoweringSession:
             return 0, (_UNARY[operation](get(value)),)
         if opcode == 13:
             operation, left, right = args
+            if self.owner.numeric_compare is not None:
+                # The target lookup precedes both original operand reads.
+                # A callback changing the registry during get cannot replace
+                # that already-bound callable. Each get still occurs once.
+                target = _COMPARE[operation]
+                observed_left = get(left)
+                observed_right = get(right)
+                if _numeric_comparison_eligible(operation, target, observed_left, observed_right):
+                    return 0, (self.owner.numeric_compare.compare(
+                        operation, observed_left, observed_right),)
+                return 0, (target(observed_left, observed_right),)
             return 0, (_COMPARE[operation](get(left), get(right)),)
         if opcode == 14:
             value, count = args
@@ -382,7 +395,7 @@ class LoweringSession:
 class NativeCoreLowering:
     """Composition of admitted images and explicitly hosted object primitives."""
 
-    def __init__(self, images, pool, abi, namespace, *, unpack=None):
+    def __init__(self, images, pool, abi, namespace, *, unpack=None, numeric_compare=None):
         if type(abi) is not dict or abi.get('schema') != 'hepta.hia.core-lowering-abi.v2':
             raise ValueError('native lowering ABI metadata differs')
         if abi.get('protocol_magic') != MAGIC or abi.get('pool_magic') != POOL_MAGIC or abi.get('packet_bytes') != 128:
@@ -398,6 +411,7 @@ class NativeCoreLowering:
         self.generator_modes = tuple(abi['generator_modes'])
         self.namespace = namespace
         self.unpack = unpack
+        self.numeric_compare = numeric_compare
         output = ctypes.create_string_buffer(abi['pool_bytes'])
         empty = ctypes.create_string_buffer(1)
         count = pool._entry(empty, 0, output, len(output), empty, 0)

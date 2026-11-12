@@ -578,9 +578,12 @@ class CoreLoweringNativeTests(unittest.TestCase):
         env['PATH'] = ''
         installed_arguments = [sys.executable, '-I', '-S', '-B', str(script), str(installed),
                                str(self.manifest), str(request)]
+        from tools.hia_core_companion_arguments import installed_companion_arguments
         unpack_manifest = os.environ.get('HEPTA_HIA_CORE_UNPACK_MANIFEST')
-        if unpack_manifest:
-            installed_arguments.append(str(Path(unpack_manifest).resolve(strict=True)))
+        numeric_manifest = os.environ.get('HEPTA_HIA_CORE_COMPARE_MANIFEST')
+        installed_arguments.extend(installed_companion_arguments(
+            str(Path(unpack_manifest).resolve(strict=True)) if unpack_manifest else None,
+            str(Path(numeric_manifest).resolve(strict=True)) if numeric_manifest else None))
         result = run(installed_arguments, 'installed-execution', env)
         observed = json.loads(result.stdout)
         self.assertEqual(observed['status'], 'INSTALLED_CORE_LOWERING_PASS')
@@ -854,6 +857,35 @@ INSTALLED_CHILD = r'''
 import importlib.abc,inspect,json,os,sys
 from pathlib import Path
 from hashlib import sha256
+def parse_installed_companions(arguments):
+    schema = 'hepta.hia.core-lowering-installed-companions.v1'
+    keys = {'schema', 'unpack_manifest', 'numeric_compare_manifest'}
+    if type(arguments) is not list or any(type(item) is not str for item in arguments):
+        raise ValueError('installed companion arguments must be actual strings')
+    if not arguments:
+        return {'schema': schema, 'unpack_manifest': None, 'numeric_compare_manifest': None}
+    if len(arguments) == 1 and arguments[0] != '--companions-json':
+        if not arguments[0] or '\0' in arguments[0]:
+            raise ValueError('legacy installed UNPACK manifest is empty or invalid')
+        return {'schema': schema, 'unpack_manifest': arguments[0], 'numeric_compare_manifest': None}
+    if len(arguments) != 2 or arguments[0] != '--companions-json':
+        raise ValueError('installed companions require the named JSON argument')
+    def pairs(rows):
+        result = {}
+        for key, value in rows:
+            if key in result:
+                raise ValueError('duplicate installed companion field')
+            result[key] = value
+        return result
+    value = json.loads(arguments[1], object_pairs_hook=pairs)
+    if type(value) is not dict or set(value) != keys or value.get('schema') != schema:
+        raise ValueError('installed companion schema differs')
+    for key in ('unpack_manifest', 'numeric_compare_manifest'):
+        item = value[key]
+        if type(item) is not str or not item or '\0' in item or not Path(item).is_absolute():
+            raise ValueError('both installed companions require explicit absolute manifests')
+    return value
+companions=parse_installed_companions(sys.argv[4:])
 sys.path.insert(0,sys.argv[1])
 class NoTools(importlib.abc.MetaPathFinder):
     def find_spec(self,fullname,path=None,target=None):
@@ -893,11 +925,11 @@ for name in ('_reject','_words','_bounds','_normalize','_prologue'):
         return _old(*args,**kwargs)
     setattr(backend,legacy,guard)
 unpack_observations=None
-if len(sys.argv)==5:
+if companions['unpack_manifest'] is not None:
     from hepta import hia_core_lowering_native as lowering_bridge
     from hepta.hia_core_unpack_selection import SELECTOR as UNPACK_SELECTOR,implementation_identity
     from hepta.hia_core_unpack_native import UnpackSession
-    os.environ[UNPACK_SELECTOR]=sys.argv[4]
+    os.environ[UNPACK_SELECTOR]=companions['unpack_manifest']
     lowering_bridge._host_unpack=forbidden
     unpack_steps=[]
     original_unpack_step=UnpackSession._step
@@ -906,6 +938,57 @@ if len(sys.argv)==5:
         unpack_steps.append((session.image.image_sha256,result))
         return result
     UnpackSession._step=unpack_step
+numeric_compare_observations=None
+if companions['numeric_compare_manifest'] is not None:
+    from hepta import hia_core_lowering_native as numeric_outer
+    from hepta.hia_core_compare_native import NumericCompareSession
+    from hepta.hia_core_compare_selection import SELECTOR as NUMERIC_SELECTOR
+    from hepta.hia_core_compare_selection import implementation_identity as numeric_identity
+    os.environ[NUMERIC_SELECTOR]=companions['numeric_compare_manifest']
+    numeric_steps=[]
+    numeric_effects=[]
+    retained_numeric_target_entries=[]
+    numeric_context=[None]
+    numeric_phase=['ordinary']
+    original_numeric_step=NumericCompareSession.step
+    original_numeric_primitive=numeric_outer.LoweringSession._primitive
+    original_numeric_eligible=numeric_outer._numeric_comparison_eligible
+    def numeric_step(session,packet):
+        status=original_numeric_step(session,packet)
+        numeric_steps.append((numeric_phase[0],session.image.image_sha256,status))
+        return status
+    def numeric_eligible(operation,target,left,right):
+        admitted=original_numeric_eligible(operation,target,left,right)
+        current=numeric_context[0]
+        if admitted and current is not None:
+            current['target']=target
+            current['eligible']=True
+        return admitted
+    def numeric_profile(frame,event,value):
+        current=numeric_context[0]
+        if event=='c_call' and current is not None and value is current['target']:
+            retained_numeric_target_entries.append(current['operation'])
+            raise AssertionError('retained builtin relation entered an eligible numeric effect')
+    def numeric_primitive(session,opcode,arguments,vector):
+        if opcode!=13:
+            return original_numeric_primitive(session,opcode,arguments,vector)
+        previous=numeric_context[0]
+        current={'operation':arguments[0],'target':None,'eligible':False,'returned':False}
+        numeric_context[0]=current
+        previous_profile=sys.getprofile()
+        try:
+            sys.setprofile(numeric_profile)
+            result=original_numeric_primitive(session,opcode,arguments,vector)
+            current['returned']=True
+            return result
+        finally:
+            sys.setprofile(previous_profile)
+            numeric_context[0]=previous
+            if current['eligible']:
+                numeric_effects.append({'operation':current['operation'],'returned':current['returned']})
+    NumericCompareSession.step=numeric_step
+    numeric_outer._numeric_comparison_eligible=numeric_eligible
+    numeric_outer.LoweringSession._primitive=numeric_primitive
 os.environ[SELECTOR]=sys.argv[2]
 owner=installed_core_lowering(sys.argv[2],vars(backend))
 machine=backend.emit_program_machine(verify_program(expected['document']))
@@ -922,7 +1005,7 @@ try:installed_core_lowering(sys.argv[2],vars(backend))
 except FileNotFoundError:pass
 else:raise AssertionError('missing installed ABI fell back to checkout')
 abi.write_bytes(raw)
-if len(sys.argv)==5:
+if companions['unpack_manifest'] is not None:
     from hepta.hia_core_unpack_selection import ABI_SOURCE as UNPACK_ABI,HIA_SOURCE as UNPACK_SOURCE
     assert owner.unpack is not None and unpack_steps
     unpack_image=owner.unpack.image.image_sha256
@@ -956,6 +1039,56 @@ if len(sys.argv)==5:
       'actual_step_returns':len(unpack_steps),'actual_statuses':sorted({status for identity,status in unpack_steps}),
       'retained_unpack_forbidden':True,'refusals':rejected,'restored_identity_sha256':sha256(unpack_identity).hexdigest(),
       'CPython_object_primitives_still_hosted':True}
+if companions['numeric_compare_manifest'] is not None:
+    from hepta.hia_core_compare_selection import ABI_SOURCE as NUMERIC_ABI,HIA_SOURCE as NUMERIC_SOURCE
+    assert owner.numeric_compare is not None and numeric_effects and not retained_numeric_target_entries
+    numeric_image=owner.numeric_compare.image.image_sha256
+    ordinary_numeric=[row for row in numeric_steps if row[0]=='ordinary']
+    assert ordinary_numeric and all(identity==numeric_image for phase,identity,status in ordinary_numeric)
+    assert 0 in {status for phase,identity,status in ordinary_numeric}
+    # The installed relation also actually crosses a complete 32-limb window.
+    # This explicit companion probe has a separate ledger from ordinary emit.
+    numeric_phase[0]='installed-window-probe'
+    assert owner.numeric_compare.compare(3,1<<1025,(1<<1025)+1) is True
+    window_steps=[row for row in numeric_steps if row[0]=='installed-window-probe']
+    assert window_steps and {status for phase,identity,status in window_steps}=={0,1}
+    assert all(identity==numeric_image for phase,identity,status in numeric_steps)
+    identity_before=numeric_identity(owner.numeric_compare)
+    rejected=[]
+    for relative in (NUMERIC_ABI,NUMERIC_SOURCE):
+        path=_source_resource_path(relative)
+        assert root in path.parents
+        original=path.read_bytes()
+        try:
+            path.write_bytes(original+b'\n')
+            try:installed_core_lowering(sys.argv[2],vars(backend))
+            except ValueError:rejected.append(relative+':changed')
+            else:raise AssertionError('warm numeric source change was ignored')
+            path.unlink()
+            try:installed_core_lowering(sys.argv[2],vars(backend))
+            except FileNotFoundError:rejected.append(relative+':missing')
+            else:raise AssertionError('missing numeric source fell back to checkout')
+        finally:path.write_bytes(original)
+    assert numeric_identity(owner.numeric_compare)==identity_before
+    numeric_compare_observations={
+      'schema':'hepta.hia.core-compare-installed-observation.v1',
+      'image_sha256':numeric_image,'source_sha256':owner.numeric_compare._admitted_compare.source_sha256,
+      'abi_sha256':owner.numeric_compare._admitted_compare.abi_sha256,
+      'bridge_sha256':owner.numeric_compare._admitted_compare.bridge_sha256,
+      'selection_sha256':owner.numeric_compare._admitted_compare.selection_sha256,
+      'compiler_sha256':owner.numeric_compare._admitted_compare.compiler_sha256,
+      'manifest_sha256':owner.numeric_compare._admitted_compare.manifest_sha256,
+      'actual_step_semantics':'NumericCompareSession.step returned from the admitted image; not a whole-method PASS.',
+      'ordinary_step_returns':len(ordinary_numeric),
+      'ordinary_statuses':sorted({status for phase,identity,status in ordinary_numeric}),
+      'ordinary_eligible_effects':numeric_effects,
+      'window_probe_step_returns':len(window_steps),
+      'window_probe_statuses':sorted({status for phase,identity,status in window_steps}),
+      'window_probe':{'operation':3,'left':'1<<1025','right':'(1<<1025)+1','predicate':True},
+      'actual_step_returns':len(numeric_steps),'actual_statuses':sorted({status for phase,identity,status in numeric_steps}),
+      'retained_builtin_target_forbidden':True,'retained_builtin_target_entries':retained_numeric_target_entries,
+      'refusals':rejected,'restored_identity_sha256':sha256(identity_before).hexdigest(),
+      'CPython_object_primitives_still_hosted':True}
 assert sys.flags.isolated and sys.flags.no_site and os.environ['PATH']==''
 print(json.dumps({'status':'INSTALLED_CORE_LOWERING_PASS','units':len(owner._admitted_bundle.images),
  'source_sha256':dict(owner._admitted_bundle.source_hashes),'abi_sha256':owner._admitted_bundle.abi_sha256,
@@ -963,7 +1096,8 @@ print(json.dumps({'status':'INSTALLED_CORE_LOWERING_PASS','units':len(owner._adm
  'object_sha256':machine.sha256,'python_files':len(expected['python']),
  'resource_files':len(expected['resources']),'actual_native_steps':len(entries),
  'retained_lowering_forbidden':True,'authoring_forbidden':True,'isolated_without_site':True,'empty_PATH':True,
- 'unpack_observations':unpack_observations}))
+ 'companion_arguments':companions,
+ 'unpack_observations':unpack_observations,'numeric_compare_observations':numeric_compare_observations}))
 '''
 
 

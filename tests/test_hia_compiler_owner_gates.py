@@ -397,8 +397,8 @@ class CompilerOwnerGateTests(unittest.TestCase):
         self.assertEqual(ledger['legacy_gate_count'], 21)
         self.assertEqual(ledger['generator_order'], list(gates.SOURCE_GENERATORS))
         self.assertEqual(ledger['generator_order'][:59], list(gates.LEGACY_SOURCE_GENERATORS))
-        self.assertEqual(ledger['generator_order'][59:], ['bounded_read', 'core_unpack'])
-        self.assertEqual(ledger['generator_count'], 61)
+        self.assertEqual(ledger['generator_order'][59:], ['bounded_read', 'core_unpack', 'core_compare'])
+        self.assertEqual(ledger['generator_count'], 62)
         self.assertEqual(ledger['controller_seconds'], 10800)
         self.assertEqual(ledger['full_retained_seconds'], 5400)
         self.assertEqual(ledger['cold_seconds'], 180)
@@ -504,9 +504,9 @@ class CompilerOwnerGateTests(unittest.TestCase):
         self.assertEqual(actual[:59], list(gates.LEGACY_SOURCE_GENERATORS))
         self.assertEqual(len(gates.LEGACY_SOURCE_GENERATORS), 59)
         self.assertEqual(len(set(gates.LEGACY_SOURCE_GENERATORS)), 59)
-        self.assertEqual(actual[59:], ['bounded_read', 'core_unpack'])
-        self.assertEqual(len(actual), 61)
-        self.assertEqual(len(set(actual)), 61)
+        self.assertEqual(actual[59:], ['bounded_read', 'core_unpack', 'core_compare'])
+        self.assertEqual(len(actual), 62)
+        self.assertEqual(len(set(actual)), 62)
         for name in ('MachineStateSourceTests', 'MachineInstructionsSourceTests',
                      'MachineElfSourceTests', 'CoreLoweringSourceTests', 'UnpackCompositionSourceTests',
                      'test_hia_compiler_owner_gates'):

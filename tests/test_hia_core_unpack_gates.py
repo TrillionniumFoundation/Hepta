@@ -403,7 +403,7 @@ class CoreUnpackGateSourceTests(unittest.TestCase):
         self.assertEqual(value['old_mandatory_gates'], list(gates.previous.SUCCESSOR_GATES))
         self.assertEqual(value['additional_mandatory_gates'], list(gates.NEW_GATES))
         self.assertEqual(value['source_generator_order'], list(gates.previous.SOURCE_GENERATORS))
-        self.assertEqual(value['source_generator_count'], 61)
+        self.assertEqual(value['source_generator_count'], 62)
         self.assertEqual(value['original_caller_counts'], [15, 51, 50])
         self.assertEqual(value['complete_original_callers'], 116)
         self.assertEqual(value['complete_component_methods'], 18)
