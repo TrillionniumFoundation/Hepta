@@ -1,0 +1,489 @@
+{
+  "schema": "hia.elf-original-post-failure-readonly-audit.v1",
+  "scope": "ORIGINAL_BYTES_AND_EXPORTED_HEADER_PREDICATES_ONLY_NOT_QUALIFICATION",
+  "original_result_reclassified": false,
+  "project_code_executed": false,
+  "process_or_native_test_started": false,
+  "integer_comparison": "All JSON number lexemes preserved; nanosecond identities never parsed through binary64",
+  "parser_controls": {
+    "nanosecond_precision_preserved": true,
+    "ordinary_order_independence": true
+  },
+  "originals": [
+    {
+      "artifact_id": "13901601239",
+      "original_gate_status": "HOLD",
+      "original_gate_error": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_compiler_owner_ci.py\", line 219, in main\n    inspection = gates.inspect_evidence(args.owner, part, args.evidence_dir, context, expected)\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_compiler_owner_gates.py\", line 1019, in inspect_evidence\n    else inspect_elf_callers(evidence, context, expected))\n         ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_compiler_owner_gates.py\", line 821, in inspect_elf_callers\n    require(report.get('actual_module_sources') == MODULE_SOURCE_PINS == report.get('expected_module_sources')\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            and all(context['source_manifest'].get(name) == digest for name, digest in MODULE_SOURCE_PINS.items()),\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            'ELF original caller source bytes differ')\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_store_page_gates.py\", line 65, in require\n    raise ValueError(message)\nValueError: ELF original caller source bytes differ\n",
+      "original_caller_status": "SELECTED_NATIVE_ELF_CALLERS_PASS",
+      "checks": [
+        {
+          "predicate": "821: actual == fixed expected module digests",
+          "observed_condition": true,
+          "basis": "RAW_REPORT_AND_FIXED_QUALIFIER_SOURCE",
+          "detail": {
+            "actual": {
+              "tests/test_hia_machine_plan.py": "a1d090bbbb5021957ca550813afb78f061bf10412554379f5efad3ca96974af9",
+              "tests/test_hia_machine_x64.py": "1ba1a51995c38ae93e5ce1a748a0b2bf3d2d6a19c0c48dfb9043c1ef639e094f",
+              "tests/test_hia_program_native.py": "a958a2bb4c94302f73332ee133a9583b84f14eece861f51211558099446359b7",
+              "tests/test_hia_safe_core_artifact.py": "f2cb87ff649d7f5af8ec809086ccd8de093bd13214410f790d5b3fef87f62f81"
+            }
+          }
+        },
+        {
+          "predicate": "821: module membership in original cold source closure",
+          "observed_condition": false,
+          "basis": "RAW_REPORT_AND_OUTER_GATE",
+          "detail": {
+            "missing": [
+              "tests/test_hia_machine_plan.py",
+              "tests/test_hia_machine_x64.py",
+              "tests/test_hia_safe_core_artifact.py"
+            ]
+          }
+        },
+        {
+          "predicate": "824: report source_before == admitted source == source_after",
+          "observed_condition": true,
+          "basis": "RAW_REPORT_AND_OUTER_GATE",
+          "detail": {
+            "source_count": 780
+          }
+        },
+        {
+          "predicate": "825: source_stable is true",
+          "observed_condition": true,
+          "basis": "RAW_REPORT",
+          "detail": null
+        },
+        {
+          "predicate": "826: cold_report_sha256 equals originally admitted cold SHA",
+          "observed_condition": true,
+          "basis": "RAW_REPORT_AND_OUTER_GATE",
+          "detail": null
+        },
+        {
+          "predicate": "single_build: manifest exact five fields",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "manifest_image: schema/source/compiler",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "single_build: image_path is original basename",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION_AND_REPORT",
+          "detail": null
+        },
+        {
+          "predicate": "single_build: projected build status/schema/scope/cold/compiler",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "single_build: all declared owned source inputs belong to original cold map",
+          "observed_condition": true,
+          "basis": "ACTUAL_READER_SOURCE_AND_OUTER_GATE",
+          "detail": {
+            "count": 14,
+            "missing": []
+          }
+        },
+        {
+          "predicate": "compile_receipt: status returned/abi zero",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "compile_receipt: five compiler/source/output identities",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "compile_receipt: unchanged source and no authoring modules",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "compile_receipt: exact original limits",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "compile_receipt: output extent agrees with reported image observation",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION_AND_REPORT_NOT_PHYSICAL_STAT",
+          "detail": null
+        },
+        {
+          "predicate": "830: bundle_before == bundle_after with every original integer preserved",
+          "observed_condition": true,
+          "basis": "RAW_REPORT_LOSSLESS_INTEGER_COMPARISON",
+          "detail": null
+        },
+        {
+          "predicate": "831: bundle_stable is true",
+          "observed_condition": true,
+          "basis": "RAW_REPORT",
+          "detail": null
+        },
+        {
+          "predicate": "832: manifest SHA agrees with selected original manifest member and build header",
+          "observed_condition": true,
+          "basis": "RAW_REPORT_SELECTED_DIGEST_AND_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "833: image SHA agrees across reported image, manifest and compilation",
+          "observed_condition": true,
+          "basis": "RAW_REPORT_AND_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "835: native counters nonempty and exact positive integers",
+          "observed_condition": true,
+          "basis": "RAW_REPORT",
+          "detail": {
+            "operations": 11,
+            "total": 172227
+          }
+        },
+        {
+          "predicate": "836-838: retained scope all false",
+          "observed_condition": true,
+          "basis": "RAW_REPORT",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: wrapper original source/cold snapshots",
+          "observed_condition": true,
+          "basis": "RAW_WRAPPER_AND_OUTER_GATE",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: command/cwd agree with originally captured request projection",
+          "observed_condition": true,
+          "basis": "RAW_WRAPPER_AND_REQUEST_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: original request digest",
+          "observed_condition": true,
+          "basis": "RAW_OWNER_AND_SELECTED_DIGEST",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: owner schema/implementation/180/3",
+          "observed_condition": true,
+          "basis": "RAW_OWNER_AND_OUTER_GATE",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: natural completion with no owner_error key",
+          "observed_condition": true,
+          "basis": "RAW_OWNER",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: cleanup/ECHILD",
+          "observed_condition": true,
+          "basis": "RAW_OWNER",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: natural event allowlist",
+          "observed_condition": true,
+          "basis": "RAW_OWNER",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: full return equals original receipt except two API-added fields",
+          "observed_condition": true,
+          "basis": "RAW_WRAPPER_AND_RAW_OWNER_LOSSLESS_COMPARISON",
+          "detail": null
+        },
+        {
+          "predicate": "finally: actual outer source/cold stable after original failure",
+          "observed_condition": true,
+          "basis": "RAW_OUTER_GATE_ORIGINAL_FAILURE_FINALLY",
+          "detail": null
+        }
+      ],
+      "not_independently_revalidated": [
+        "Re-read original qualified/manifest.json and validate actual file identity; only its complete header projection and selected digest are recovered here.",
+        "Re-read original qualified/build.json source_manifest, manifest, production_activated and owned_source_sha256; these fields were not retained in the header projection.",
+        "Re-read physical machine-elf.image.bin bytes/hash/extent and current resolved-path containment. The original image bytes are not in these frames.",
+        "Compare current actual elf_file_observation dev/ino/mode/size/mtime_ns/ctime_ns to the two historical bundle snapshots.",
+        "Re-read the original owner request full env, implementation/stdout/stderr/receipt paths; request bytes are sealed in the earlier small ZIP but not among these frames.",
+        "Execute the later second inspect_owned_product and source_now/cold_inputs reads on the same original filesystem. The original gate stopped at line821."
+      ],
+      "successor_gate_pass_claimed": false,
+      "original_HOLD_preserved": true
+    },
+    {
+      "artifact_id": "13900618647",
+      "original_gate_status": "HOLD",
+      "original_gate_error": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_compiler_owner_ci.py\", line 219, in main\n    inspection = gates.inspect_evidence(args.owner, part, args.evidence_dir, context, expected)\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_compiler_owner_gates.py\", line 1019, in inspect_evidence\n    else inspect_elf_callers(evidence, context, expected))\n         ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_compiler_owner_gates.py\", line 821, in inspect_elf_callers\n    require(report.get('actual_module_sources') == MODULE_SOURCE_PINS == report.get('expected_module_sources')\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            and all(context['source_manifest'].get(name) == digest for name, digest in MODULE_SOURCE_PINS.items()),\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            'ELF original caller source bytes differ')\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_store_page_gates.py\", line 65, in require\n    raise ValueError(message)\nValueError: ELF original caller source bytes differ\n",
+      "original_caller_status": "SELECTED_NATIVE_ELF_CALLERS_PASS",
+      "checks": [
+        {
+          "predicate": "821: actual == fixed expected module digests",
+          "observed_condition": true,
+          "basis": "RAW_REPORT_AND_FIXED_QUALIFIER_SOURCE",
+          "detail": {
+            "actual": {
+              "tests/test_hia_machine_plan.py": "a1d090bbbb5021957ca550813afb78f061bf10412554379f5efad3ca96974af9",
+              "tests/test_hia_machine_x64.py": "1ba1a51995c38ae93e5ce1a748a0b2bf3d2d6a19c0c48dfb9043c1ef639e094f",
+              "tests/test_hia_program_native.py": "a958a2bb4c94302f73332ee133a9583b84f14eece861f51211558099446359b7",
+              "tests/test_hia_safe_core_artifact.py": "f2cb87ff649d7f5af8ec809086ccd8de093bd13214410f790d5b3fef87f62f81"
+            }
+          }
+        },
+        {
+          "predicate": "821: module membership in original cold source closure",
+          "observed_condition": false,
+          "basis": "RAW_REPORT_AND_OUTER_GATE",
+          "detail": {
+            "missing": [
+              "tests/test_hia_machine_plan.py",
+              "tests/test_hia_machine_x64.py",
+              "tests/test_hia_safe_core_artifact.py"
+            ]
+          }
+        },
+        {
+          "predicate": "824: report source_before == admitted source == source_after",
+          "observed_condition": true,
+          "basis": "RAW_REPORT_AND_OUTER_GATE",
+          "detail": {
+            "source_count": 780
+          }
+        },
+        {
+          "predicate": "825: source_stable is true",
+          "observed_condition": true,
+          "basis": "RAW_REPORT",
+          "detail": null
+        },
+        {
+          "predicate": "826: cold_report_sha256 equals originally admitted cold SHA",
+          "observed_condition": true,
+          "basis": "RAW_REPORT_AND_OUTER_GATE",
+          "detail": null
+        },
+        {
+          "predicate": "single_build: manifest exact five fields",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "manifest_image: schema/source/compiler",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "single_build: image_path is original basename",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION_AND_REPORT",
+          "detail": null
+        },
+        {
+          "predicate": "single_build: projected build status/schema/scope/cold/compiler",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "single_build: all declared owned source inputs belong to original cold map",
+          "observed_condition": true,
+          "basis": "ACTUAL_READER_SOURCE_AND_OUTER_GATE",
+          "detail": {
+            "count": 14,
+            "missing": []
+          }
+        },
+        {
+          "predicate": "compile_receipt: status returned/abi zero",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "compile_receipt: five compiler/source/output identities",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "compile_receipt: unchanged source and no authoring modules",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "compile_receipt: exact original limits",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "compile_receipt: output extent agrees with reported image observation",
+          "observed_condition": true,
+          "basis": "RECOVERED_HEADER_PROJECTION_AND_REPORT_NOT_PHYSICAL_STAT",
+          "detail": null
+        },
+        {
+          "predicate": "830: bundle_before == bundle_after with every original integer preserved",
+          "observed_condition": true,
+          "basis": "RAW_REPORT_LOSSLESS_INTEGER_COMPARISON",
+          "detail": null
+        },
+        {
+          "predicate": "831: bundle_stable is true",
+          "observed_condition": true,
+          "basis": "RAW_REPORT",
+          "detail": null
+        },
+        {
+          "predicate": "832: manifest SHA agrees with selected original manifest member and build header",
+          "observed_condition": true,
+          "basis": "RAW_REPORT_SELECTED_DIGEST_AND_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "833: image SHA agrees across reported image, manifest and compilation",
+          "observed_condition": true,
+          "basis": "RAW_REPORT_AND_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "835: native counters nonempty and exact positive integers",
+          "observed_condition": true,
+          "basis": "RAW_REPORT",
+          "detail": {
+            "operations": 11,
+            "total": 172227
+          }
+        },
+        {
+          "predicate": "836-838: retained scope all false",
+          "observed_condition": true,
+          "basis": "RAW_REPORT",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: wrapper original source/cold snapshots",
+          "observed_condition": true,
+          "basis": "RAW_WRAPPER_AND_OUTER_GATE",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: command/cwd agree with originally captured request projection",
+          "observed_condition": true,
+          "basis": "RAW_WRAPPER_AND_REQUEST_HEADER_PROJECTION",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: original request digest",
+          "observed_condition": true,
+          "basis": "RAW_OWNER_AND_SELECTED_DIGEST",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: owner schema/implementation/180/3",
+          "observed_condition": true,
+          "basis": "RAW_OWNER_AND_OUTER_GATE",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: natural completion with no owner_error key",
+          "observed_condition": true,
+          "basis": "RAW_OWNER",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: cleanup/ECHILD",
+          "observed_condition": true,
+          "basis": "RAW_OWNER",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: natural event allowlist",
+          "observed_condition": true,
+          "basis": "RAW_OWNER",
+          "detail": null
+        },
+        {
+          "predicate": "later owned readback: full return equals original receipt except two API-added fields",
+          "observed_condition": true,
+          "basis": "RAW_WRAPPER_AND_RAW_OWNER_LOSSLESS_COMPARISON",
+          "detail": null
+        },
+        {
+          "predicate": "finally: actual outer source/cold stable after original failure",
+          "observed_condition": true,
+          "basis": "RAW_OUTER_GATE_ORIGINAL_FAILURE_FINALLY",
+          "detail": null
+        }
+      ],
+      "not_independently_revalidated": [
+        "Re-read original qualified/manifest.json and validate actual file identity; only its complete header projection and selected digest are recovered here.",
+        "Re-read original qualified/build.json source_manifest, manifest, production_activated and owned_source_sha256; these fields were not retained in the header projection.",
+        "Re-read physical machine-elf.image.bin bytes/hash/extent and current resolved-path containment. The original image bytes are not in these frames.",
+        "Compare current actual elf_file_observation dev/ino/mode/size/mtime_ns/ctime_ns to the two historical bundle snapshots.",
+        "Re-read the original owner request full env, implementation/stdout/stderr/receipt paths; request bytes are sealed in the earlier small ZIP but not among these frames.",
+        "Execute the later second inspect_owned_product and source_now/cold_inputs reads on the same original filesystem. The original gate stopped at line821."
+      ],
+      "successor_gate_pass_claimed": false,
+      "original_HOLD_preserved": true
+    }
+  ],
+  "canonical_originals": {
+    "commit": "4294dba64d00f142f6504445e46f5d64f868ec1d",
+    "tree": "130279a6ef1ce1eefc4cb178da0680d5d53609e5",
+    "prefix": "experiments/hia_machine_elf_recovery_20261112/original-gates-root-readback-r1/",
+    "independent_full_blob_readback_files": 30,
+    "unique_blob_reads": 25,
+    "bytes": 3133304,
+    "all_equal": true
+  },
+  "examined_source_pins": {
+    "tools/hia_compiler_owner_gates.py": {
+      "bytes": 66955,
+      "sha256": "c72e5ada081138651bbe76ecf3ce2eb7185103292b289f3228209eed4af709e9",
+      "git_blob_sha1": "4a2695aff6953b0b0312d001e933b8dbb42e4256"
+    },
+    "tools/qualify_hia_machine_elf.py": {
+      "bytes": 16712,
+      "sha256": "e7c3421851cf3a5f4b829e4b8ee23987c66df011f85e1a31399322c9ab7b7b8d",
+      "git_blob_sha1": "9e0e31839059744cde533fc33ed1f261b8700fb3"
+    },
+    "tools/hia_store_page_gates.py": {
+      "bytes": 21382,
+      "sha256": "3e56a4cb60ff346258f6e314c390d1354efd7319b6c45396ac166ca3a1f1b77d",
+      "git_blob_sha1": "cea3e8a984d7eff144d4d5f4076fecc62fe60eb5"
+    },
+    "tools/build_hia_machine_elf.py": {
+      "bytes": 5528,
+      "sha256": "15befacdb9fc37e1cd01728e4f1ca41f59cc7c18eda3cffed1fb550f27b9d0cd",
+      "git_blob_sha1": "c102668c6802a5aa1e6b8ad17280b522b053565a"
+    },
+    "tools/qualify_hia_compiler_owner_ci.py": {
+      "bytes": 13598,
+      "sha256": "0c133bb93ebeff0df5f97e9f46cbde67b4cc12ca108ffab3650ce50a5f57c15b",
+      "git_blob_sha1": "c9b52faea0034ccdbed65054e7b8cca90ab7d58c"
+    }
+  },
+  "overall_conclusion": "Original HOLD preserved. No additional mismatch among recovered raw-report and explicitly projected-header conditions; unselected physical build/image/request readback predicates remain unexecuted and require a new source-bound CI run."
+}
