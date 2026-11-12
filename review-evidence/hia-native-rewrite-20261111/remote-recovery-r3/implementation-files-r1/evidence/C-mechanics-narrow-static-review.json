@@ -1,0 +1,41 @@
+{
+  "schema": "hia.independent.implementation-file-carrier.static-review.v1",
+  "reviewer": "audit_runtime",
+  "source": {
+    "git_blob": "294fe43871dd11c06e6f01c7d21caf4b976b04e2",
+    "bytes": 12516,
+    "sha256": "0886ad565d13beb22e62e81652ba98b68e83bf841d4f9f8048c1f27d77de533b"
+  },
+  "scope": "Full text read; narrow review of new op19 OPENAT/READ/FSTAT/CLOSE and its actual buffers, FD ownership, child-call protections and complete syscall payload recording.",
+  "conclusion": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_STATIC_SCOPE",
+  "checks": [
+    "owned_file uses -1 as the sole empty sentinel. Actual descriptor0 is accepted and subsequently handled by >=0 checks. The HIA-visible token1 is mapped to the actual privately owned descriptor, never treated as an arbitrary external fd.",
+    "OPENAT requires no existing owned file, a positive complete RO path span, final NUL and exact selected O_RDONLY|O_CLOEXEC flags before the OS operation. Embedded earlier NUL is not newly rejected by mechanics; path policy remains in HIA.",
+    "READ validates actual destination slot>=4, writable permission, logical span and count<=SSIZE_MAX before the read. Exact signed result/errno and every successfully returned byte are recorded. An interrupted read is returned to HIA, not retried by this layer.",
+    "FSTAT validates the actual144-byte writable logical destination before zeroing/calling and records the exact144 bytes, including failure state, with actual signed return and errno. sizeof(struct stat)==144 is a real startup guard.",
+    "CLOSE consumes owned_file before invoking close, including error paths. There is no hidden retry. Fatal cleanup consumes any still-owned file once; process termination is the stated final cleanup boundary.",
+    "call_image validates distinct actual slot descriptors, all logical extents and RO input / RW output+workspace, with guard checks before and after. Role2 workspace and second output cannot target controller slots0..3. Temporary input RO is restored on successful return; fatal paths terminate the process.",
+    "Every raw op19 produces an8-word actual receipt with raw fd before/after, signed result, errno and logical answer, followed by the complete path/read/stat payload. No truncated or reserialized raw payload is substituted.",
+    "Successful terminal requires no owned file, a valid RO final result view and exact sequence. BAD terminal may still own a file; its subsequent cleanup is explicitly recorded, rather than described as a successful HIA CLOSE."
+  ],
+  "bounded_scope_notes": [
+    "This C executable is a development measurement/carrier, not the installed native TCB or an external namespace-authority issuer.",
+    "The fixed64 logical slots, two role images, mapping policy and role/controller semantics were not newly proven here.",
+    "Per-entry image trace records header windows; this review does not claim it contains every intermediate full workspace. It does contain full syscall payloads and final complete slot bytes as the source states.",
+    "No proof of whole process-tree CPU accounting is supplied by this source alone; the parent harness must retain its original90/180 and child cleanup controls."
+  ],
+  "actual_execution": {
+    "AST": 0,
+    "C_compile": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "not_reviewed": [
+    "HIA inventory owner semantic oracle",
+    "Image source provenance / fixture installer",
+    "Full run artifacts",
+    "External OS error-injection controls"
+  ],
+  "refs_changed": false
+}

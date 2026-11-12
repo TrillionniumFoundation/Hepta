@@ -1,0 +1,57 @@
+{
+  "schema": "hia.namespace.sqlite3461.prng-source-provenance.v1",
+  "scope": "EXACT_REFERENCE_SOURCE_DISCOVERY_AND_NEW_UNEXECUTED_AUTHOR",
+  "upstream": {
+    "repository": "sqlite/sqlite",
+    "ref": "version-3.46.1",
+    "file": "src/random.c",
+    "git_blob": "ea8431ba9409dbabefc972fe22f6d1e78dd328c7",
+    "bytes": 4419,
+    "sha256": "d25ba0221b50349bb75ab568813e6f9f4882f883dbe093dd06859d40439bdb2a",
+    "fossil_manifest_uuid": "c9c2ab54ba1f5f46360f1b4f35d849cd3f080e6fc2b6c60e91b16c63f69a1e33",
+    "source_url": "https://github.com/sqlite/sqlite/blob/version-3.46.1/src/random.c",
+    "public_domain_declaration_in_original_source": true
+  },
+  "independent_same_ref_crosscheck": {
+    "file": "src/os_unix.c",
+    "git_blob": "9e7ba05d6882b1f3c310b99102e8ecbf7f830af2",
+    "bytes": 283843,
+    "sha256": "83e4f995c0cfc1362b46320d979b38349ac5b1c6a7c0b12cbc2c4577c6c13ef9",
+    "exact_equal_to_existing_namespace_original": true
+  },
+  "fossil_raw_endpoint_attempt": {
+    "url": "https://sqlite.org/src/raw/src/random.c?ci=version-3.46.1",
+    "result": "Unavailable through browsing tool; no contents assumed from this attempt."
+  },
+  "Hepta_blob_created_and_full_text_GET_verified": {
+    "blob": "ea8431ba9409dbabefc972fe22f6d1e78dd328c7",
+    "bytes": 4419,
+    "sha256": "d25ba0221b50349bb75ab568813e6f9f4882f883dbe093dd06859d40439bdb2a",
+    "mode": "100644"
+  },
+  "new_author": {
+    "blob": "10ed741f497f41174db206569d23c020d0cf0126",
+    "bytes": 12011,
+    "sha256": "cc7309c3eb8e05abcceb362c32fb1a4096375a4d022906e558b7954bda06136d",
+    "mode": "100644"
+  },
+  "observations_from_original_source": [
+    "sqlite3_initialize runs before acquiring the static PRNG mutex; its nonzero result returns without resetting or generating bytes.",
+    "N<=0 or NULL destination changes only s[0] to0 while holding the mutex; cached output, n and other state words remain unchanged.",
+    "Initialization calls sqlite3_vfs_find before writing the four constants. OS entropy writes44 bytes to s[4..14]; then s[15]=s[12], s[12]=0 and n=0.",
+    "Each new ChaCha20 block uses a wrapping preincrement of s[12]. Short reads copy out[n-N..n), whereas exhausting a cached remainder copies out[0..n).",
+    "PRNG save/restore copies the entire state object; selected x86_64 layout is132 bytes including three zero-initialized padding bytes.",
+    "The Unix VFS entropy implementation uses zero-fill, actual PID, robust_open /dev/urandom, READ retry only on EINTR, robust_close, and a time/PID fallback. It is not equivalent to blindly substituting getrandom.",
+    "unixGetTempname has separate temp-directory, mutex, formatting, collision count and access semantics. This author does not claim that separate owner exists."
+  ],
+  "actual_new_execution": {
+    "AST": 0,
+    "generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "ordinary_Store_closed": false,
+  "installed_namespace_issuer_closed": false,
+  "refs_changed": false
+}

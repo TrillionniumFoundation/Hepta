@@ -1,0 +1,104 @@
+{
+  "schema": "hia.namespace.process-prng.preexecution-review-fix.v1",
+  "scope": "ONLY_PINNED_NATIVE_IMAGE_BYTES_AND_EXISTING_NUMERIC_PROFILE_GATES",
+  "old_validator": {
+    "blob": "456eccb03e3d2c986d2490e2eecdb4c35bff9486",
+    "bytes": 17308,
+    "sha256": "5ae8c79e4b22cbd42ea9754363f63b1b78385149a62463443f284a69bf29acc3",
+    "mode": "100644"
+  },
+  "new_validator": {
+    "blob": "bda8dffb660144a39e134de8b8049a7b90bf9978",
+    "bytes": 18076,
+    "sha256": "b20c839814ac49999df8087a478cefdc3ce28358bc3ad7320e0a574db9418934",
+    "mode": "100644"
+  },
+  "old_inputs": {
+    "blob": "a2401f9ca3af0f9a1676f6ae4ded6e683f76775e",
+    "bytes": 3845,
+    "sha256": "51892b86920f592576b2721fdaa8f44dfa36ac624fdd1eeebf11941a28179fa3",
+    "mode": "100644"
+  },
+  "new_inputs": {
+    "blob": "eef09604eadc8485df77385194339978558cde16",
+    "bytes": 3921,
+    "sha256": "a503c233ed85c88dc809fd188dc609d4b520cb5a8391098496235b7f503acac8",
+    "mode": "100644"
+  },
+  "old_launcher": {
+    "blob": "5909be69b5de37ef20ac27664d6b8274c9d877d3",
+    "bytes": 13007,
+    "sha256": "ca61fcd5edfd4c7ad047ec3dcc5ee53b2c1beef1dbff463ef9baf588855e31b9",
+    "mode": "100644"
+  },
+  "new_launcher": {
+    "blob": "f6e7247aa3f31fe6023558c903a805b1443f6649",
+    "bytes": 13007,
+    "sha256": "28fbeb2c7b8e03e34ef491d084ba214248d0d375403918b0d34833e24a7fcb0b",
+    "mode": "100644"
+  },
+  "exact_edits": [
+    [
+      "        profile=dict(functions=len(document[\"functions\"]),blocks=sum(len(f[\"blocks\"]) for f in document[\"functions\"]),",
+      "        def numeric_ssa(fn):\n            definitions=list(fn[\"params\"])\n            for block in fn[\"blocks\"]:\n                definitions.extend(block[\"params\"])\n                for op in block[\"ops\"]:definitions.extend(op[\"out\"])\n            names=[row[\"name\"] for row in definitions]\n            assert names and all(type(name) is str and name.startswith(\"v\") and\n                name[1:].isascii() and name[1:].isdecimal() for name in names)\n            return max(int(name[1:]) for name in names)\n        max_ssa={fn[\"name\"]:numeric_ssa(fn) for fn in document[\"functions\"]}\n        profile=dict(functions=len(document[\"functions\"]),blocks=sum(len(f[\"blocks\"]) for f in document[\"functions\"]),"
+    ],
+    [
+      "            max_block_params=max(len(b[\"params\"]) for f in document[\"functions\"] for b in f[\"blocks\"]))",
+      "            max_block_params=max(len(b[\"params\"]) for f in document[\"functions\"] for b in f[\"blocks\"]),\n            max_numeric_ssa=max(max_ssa.values()))"
+    ],
+    [
+      "            ops=sum(len(b[\"ops\"]) for b in f[\"blocks\"]),max_block_params=max(len(b[\"params\"]) for b in f[\"blocks\"]))",
+      "            ops=sum(len(b[\"ops\"]) for b in f[\"blocks\"]),max_block_params=max(len(b[\"params\"]) for b in f[\"blocks\"]),\n            max_numeric_ssa=max_ssa[f[\"name\"]])"
+    ],
+    [
+      "        assert profile[\"max_blocks\"]<=256 and profile[\"max_block_params\"]<=16\n        source=render_assembly(document).encode();program=assemble_program(source)\n        (out/\"agent_namespace_sqlite3461_prng_r1.hiaasm\").write_bytes(source)",
+      "        assert profile[\"max_blocks\"]<=256 and profile[\"max_block_params\"]<=16\n        assert profile[\"max_numeric_ssa\"]<2048\n        source=render_assembly(document).encode()\n        (out/\"agent_namespace_sqlite3461_prng_r1.hiaasm\").write_bytes(source)\n        assert 0<len(source)<=1<<20\n        program=assemble_program(source)"
+    ],
+    [
+      "        image=NativeHiaJsonImage(image_path,sha(image_raw))",
+      "        image=NativeHiaJsonImage(image_raw,sha(image_raw))"
+    ]
+  ],
+  "all_edits_unique_and_full_inverse_equal": true,
+  "loader_reference": {
+    "blob": "b661ae0b42b1ba83b89c123309f216d18ba6a36d",
+    "contract": "NativeHiaJsonImage requires exact bytes; the prior Path argument was a confirmed preexecution defect",
+    "repair": "Pass the already pinned image_raw; retain image_sha256 verification and original source/image after readback."
+  },
+  "profile_reference": {
+    "builder_blob": "540de9366827900d0b82b4893922ffd383c44fef",
+    "actual_definition_names": "Every fn param, block param and operation out is included; exact v plus ASCII decimal suffix is required.",
+    "new_fields": "Global and per-function max_numeric_ssa are saved/printed before numeric-limit assertions.",
+    "required_max_numeric_ssa_exclusive": 2048,
+    "source_bytes_inclusive": 1048576,
+    "output_workspace_bytes_each": 1048576,
+    "unchanged_functions_blocks_ops_maxblocks_maxparams": [
+      128,
+      1536,
+      8192,
+      256,
+      16
+    ],
+    "additional_per_block_operation_quota": false
+  },
+  "unchanged": {
+    "HIA_author": true,
+    "original_C_and_wrapper": true,
+    "all_122_semantic_calls": true,
+    "all_65_refusals": true,
+    "private_positive_INT_MAX": true,
+    "VM_native_fullbuffers_and_partial_state": true,
+    "no_masks": true,
+    "original_CPU_wall_memory_and_B3": true
+  },
+  "actual_new_execution": {
+    "AST": 0,
+    "C_compile": 0,
+    "HIA_generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "old_unexecuted_files_retained": true,
+  "refs_changed": false
+}

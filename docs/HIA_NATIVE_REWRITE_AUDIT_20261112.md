@@ -1,8 +1,50 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW50）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW51）
 
 ## 当前结论
 
 **整套仍为 OPEN。156个生产模块尚未完成原生安装替换；完整工具链、公开CLI/API、真实Worker/FS/Store/SQL、跨平台与原生安装/冷启动仍须闭合。生产激活0、旧实现删除0。已通过的私有组件、原件读取及旧保留版4,157项回归都不能替代全原生交付。**
+
+## FOLLOW51 最新状态（2026-11-12 13:14:08 UTC）
+
+父提交为 49e5cd97f11b3fb35d8a390e7ad4ed0c5b2fe030，tree 9279e975e53f367c6a2c5eecbeaf9c8d5ca0b6e1，7,083文件。整套仍OPEN，156个生产Python模块均未完成原生安装替换，生产激活0、删除0。下面明确区分实际执行结果、原件读取与本轮尚未执行的源码。
+
+### 第50轮的实际终态
+
+| 实际任务 | 结果与完整范围 | 尚未闭合的边界 |
+| --- | --- | --- |
+| 精确字节helper边界，job131190424035 | SUCCESS；2次fresh B3，564案例分别比较旧VM/新VM/旧native/新native；185返回、379陷阱，2,256份CASE-CAS核验；完整叶26.383137 CPU秒、162,130,128,641ns | 仅helper独立边界，不能替代原42组900秒文件系统组合 |
+| FS/framer，job131190424058 | SUCCESS；10源证明、6角色+packer+framer fresh B3；33packer、84×三方、19物理窗口、26原始请求、7次同上下文错误续接；80负控+1 UID0正控；framer227、fixed397次VM/native相等，34 ACK | 私有发行/受控入口；实际原生issuer、普通Store尚未安装；原42组未重跑 |
+| 类型上下文完整组合，job131190423991 | FAIL；13 fresh B3+1实际HIA packer；9完整组277案通过，151实际ELF、731私有入口（不含packer） | 全413案未通过：4公共上下文案失败，132案未完整完成；不能继承277案为下一修订的PASS |
+| 21核后端联调，job131190424091 | FAIL；21 fresh B3均完成，post真实39函数/365blocks/1888ops、maxparams11/maxSSA1152；第一cross0例未完成、4,904实际入口 | 约7.94597 CPU秒即严格计数比较失败；不是预算超时，也不是公共backend闭合 |
+| Core48原件reader，job131190423975 | PASS_READ_ONLY；完整原ZIP3,928文件/333,314,765B及37嵌套包40,125成员/2,270,129,423B；644精确源文件；0新目标执行 | 保留原Core48超时；读取成功不等于冷启动成功 |
+
+字节边界与FS/framer的完整原日志、原console JSON/receipt均保存；这里没有把producer封存结果写成根已独立读取全部内包。原42组使用DMS9，FOLLOW50 framer组合使用DMS10；“10项源码证明”的计数不是DMS版本，下一步原42候选必须保留确切DMS9。
+
+类型组合的五个失败组已分别定位到可核查的边界：四个公共上下文ELF均rc3、stderr32B；public-type-names/shapes/order因runpy环境不能导入type_context_public_plans_r2而在新入口前停止；context-protocol的原positive fixture只允许一个VIEW，实际第二VIEW被fixture拒绝，前两次入口不算完整案例。源码推断的错误帧摘要与四份stderr摘要一致，但完整实际stderr尚待只读原件reader，不能把哈希推断写成已读原字节。计划保留完整413案，修正实际子上下文call权限、明确模块加载及fixture，再全部fresh执行。
+
+后端首次cross严格要求entries/calls/commands相等。已确认C适配器按角色1..21初始化全部零计数，Python机械harness仅记录实际调用角色；该案角色12..16均0，字典表示因此不同。后续修复只把Python零计数初始化补齐，不删除严格比较、不修改HIA业务、不预先宣称其它slot/ACK比较已通过。完整753,588B日志、21份build打印、C build、cross摘要与25份base64原profile均保存。打印JSON原CI使用strip，因此文件明确标为.printed.json；不虚构原文件末尾换行。完整原trace/CAS另由零目标reader读取。
+
+第50轮源码检查job131190407347实际PASS_SOURCE_SYNTAX_ONLY；根从完整467,674B日志提取全部793条，路径/排序/mode/bytes/Git/SHA与提交清单完全一致。Core50 native job131190406906仍FAIL，6/11；完整41,630B日志及artifact13945277513身份保存。不能把Core48已知原因直接归给Core50，也不能用旧Core37成功覆盖当前失败。
+
+### 完整原件纠正的两个范围
+
+Core48原owner明确QUALIFICATION_TIMEOUT，返回-9、180,180,373,347ns；cleanup87,488,254ns完成、remaining children0。38阶段中36完成、2 pending（names-modified、exports-modified），未生成pending独立process receipt，不能推断各自耗时。原B1/B2/B3有实际ABI0 receipts并均绑定35ee编译器，B0只发射未执行；聚合hash列表为空不代表未编译。根从42个console frames独立还原22份原件共276,137B，并逐份核完整SHA256/Git/UTF8；原JSON及u64不经JS数字重编码。
+
+checked-plan49完整3,274,702B原log已由7个完整Git-GET片段重建并核whole Git/SHA，不声称直接GET完整大blob。新实际34组324案10,481入口/119私有控制；先读取47轮完整83,803成员/1,350,967,814B并确认5份fresh源/像完全相同后，才可计入旧21组355案15,886入口。两次独立运行的覆盖并集为55组679案26,367入口，旧partial20案/928入口不重复计入。这不是一次55组整轮成功或全原生安装通过。
+
+checked-plan49原件读取62.751291465 CPU/62.960129997wall，原90/180门通过。其后封存是独立存储阶段，实测166.690835994 CPU/166.720761191wall，原脚本没有独立90CPU或180wall封存门，只有父AS1GiB、单CPU affinity和workflow外层110分钟。不得把封存耗时记成原90/180目标门通过，也不追溯新增限制改写旧结果。
+
+### 第51轮三个新资格入口（提交前均0执行）
+
+1. ordinary-impact-json-inline：把已保存的7份完整HIA字符串解码展开源接入真实资格门。先恢复原63源/像与完整13,135,285B基线ELF；原builder执行6 fresh B3+1实际HIA packer，新builder再执行7 fresh B3并复用新鲜基线packer重打ELF。只替换roles24/26/27/57/59/60/63，其余56份精确不变；全部源经真实assemble/render roundtrip与原profile门，最终完整ELF与独立机械预期逐字相等。原13组329案、完整oracle、三次实际Core admission、错误顺序、1,024函数和14,827,750B报告全部保留，large-valid仍须原90CPU门。原测试仅两处元数据文字更改且完整逆回原字节。独立静态审查已核七HIA文本与三份集成源码，但没有声称已Core/B3/native通过或实测提速。测试每组父及回收子进程的90CPU/180wall/1GiB包含最终输入与CAS回读；后续存储阶段不冒称具有该subject门。
+2. implementation-files：两份新HIA核负责20个原名字的选择、路径/open/fstat/read/close协议与增量SHA256，C只执行机械syscall。计划2 fresh B3、11组90案49私有控制；40个C进程案和52个完整三buffer CAS案有2案交叉。11份独立全量回读均0目标。实际FD0允许、opaque token1只关闭一次；64KiB是读取窗口，不是8MiB总文件限制，保留8MiB+1单文件和20×500001B聚合案。保存源/像/输入/每次命令ACK/syscall payload/最终全部slots，不声称C提供每次入口完整中间工作区；完整CAS案独立验证。任意special device/并发改写及原Python OSError文本尚不在选定范围。此处20个Python兼容文件的指纹不构成最终安装策略，最终原生安装必须绑定实际HIA源、镜像与策略。新seal单独fork/PDEATHSIG/wait4，在完整tar/ledger回读后核父子90CPU/180wall/1GiB，仅适用于这个新门。
+3. namespace-process-prng-complete：保留完整原SQLite3.46.1 random.c与C oracle；HIA承接ChaCha20、重置、消费与save/restore。计划1 fresh B3+1 fresh原C编译，34场景122次C调用（103随机、19保存恢复），65拒绝与1个INT_MAX GROW控制；比较完整输出、132B current/saved state和回调顺序，VM/native三个buffer全字节一致，硬件只读与canary/CAS保持。初始化、mutex与VFS熵仍为受控foreign peers，不声称实际OS/Store/SQL接入。提交前根发现并修复NativeHiaJsonImage传Path而非完整bytes，以及未显式测量原SSA<2048门；5段文字改动能完整逆回，HIA/C算法与全部案例未改。完整validator进程树含C编译、B3、最终source/CAS检查仍90CPU/180wall/1GiB；原Machine4Msteps/32MiB/depth64不变。
+
+本轮232份payload均为新增完整文本，12,485,029B；旧失败、原件与未执行草稿全部保留。活动Python新增26份至819，146个恢复jobs全部保留原Ubuntu24.04/x86_64强制门，原143 jobs原字节不变。仅选择以上三个tag；所有新源码在提交前都是0 Python AST、0 HIA Core、0 B3、0 C编译、0 VM、0 native。
+
+原B3 10CPU/20wall/256MiB以及source/output/workspace各1MiB；Bootstrap128functions/1536blocks/8192ops/每函数256blocks/每block16参数/SSA<2048；公共1024函数、配对90CPU/180wall/1GiB、原物理900wall全部保持。没有128ops/block门。原旧保留版4157项全通过、已通过私有组件、只读证据恢复分别记录；它们不能替代原生公开入口、完整自举工具链、Worker/FS/Store/SQL、跨平台、安装/升级/恢复及旧业务不可调用时的整套验收。完成上述验收后再清理旧整套。
+
+证据：[FOLLOW50恢复](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43220473879)、[FOLLOW50源码](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43220473458)、[Core50](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43220473360)、[checked-plan49](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43215458125)。完整原件身份、限制与新门计划见ci-followup-r51/checkpoint.json、root-static-review.json及七份原delivery manifests。旧章节中的排队/运行状态是当时快照，当前终态以上述记录为准。
 
 ## FOLLOW50 最新状态（2026-11-12 12:35:32 UTC）
 

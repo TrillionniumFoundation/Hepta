@@ -1,0 +1,13 @@
+{
+  "reason": "Completed original C calls and full C output/state/callback records must be saved before any later HIA failure; old unexecuted r1 source retained.",
+  "support_delta": {
+    "from": "        expected=self.oracle.perform(operation)\n        self.serial+=1;original=begin(self.serial,operation);source=original\n",
+    "to": "        reference_before=self.oracle.states()\n        save(self.pair.frontier,dict(stage=\"BEFORE_REFERENCE_C\",name=name,operation=operation,\n            current=self.pair.cas.put(reference_before[0]),saved=self.pair.cas.put(reference_before[1]),\n            completed_original_C_calls=self.pair.report[\"original_C_calls\"]))\n        expected=self.oracle.perform(operation)\n        self.pair.report[\"original_C_calls\"]+=1\n        self.pair.log(dict(kind=\"reference-C-completed\",name=name,operation=operation,\n            original_C_call=self.pair.report[\"original_C_calls\"],\n            before_current=self.pair.cas.put(reference_before[0]),before_saved=self.pair.cas.put(reference_before[1]),\n            output=self.pair.cas.put(expected[\"output\"]),current=self.pair.cas.put(expected[\"current\"]),\n            saved=self.pair.cas.put(expected[\"saved\"]),\n            callbacks=[self.pair.cas.put(record) for record in expected[\"events\"]]))\n        self.serial+=1;original=begin(self.serial,operation);source=original\n"
+  },
+  "validator_delta": {
+    "from": "semantic.append(row);report[\"original_C_calls\"]+=1;report[\"semantic_cases\"]+=1",
+    "to": "semantic.append(row);report[\"semantic_cases\"]+=1"
+  },
+  "remaining_validator_change": "Only support SHA pin",
+  "actual_execution": 0
+}

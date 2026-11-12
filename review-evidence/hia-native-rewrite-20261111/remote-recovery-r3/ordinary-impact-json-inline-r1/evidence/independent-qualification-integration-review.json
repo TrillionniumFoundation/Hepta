@@ -1,0 +1,88 @@
+{
+  "schema": "hia-native-checker-static-review-v1",
+  "scope": "FOLLOW51 seven-HIA JSON-inline integration builder, retained tests, and CI",
+  "reviewer": "native_checker",
+  "repository": "TrillionniumFoundation/Hepta",
+  "execution": {
+    "AST": 0,
+    "Core": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "target_tests": 0
+  },
+  "conclusion": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_STATIC_SCOPE",
+  "inputs": [
+    {
+      "name": "builder",
+      "bytes": 18676,
+      "sha256": "fb55cfd935672d28795fbfb63da591a5b6d51c8601aad8895fa163c5f94796ae",
+      "gitsha": "c9da67c5ac99dcc42b388acb66e9cec82aa440c9",
+      "complete_git_blob_readback": true
+    },
+    {
+      "name": "test",
+      "bytes": 19431,
+      "sha256": "05cdbfca74851534bf2060f7b4f5de573853a25cf771f9a0db656afa9f1ce6a2",
+      "gitsha": "d545fb32db9c0e49f4a01f41abf1f09c0bfcf6e6",
+      "complete_git_blob_readback": true
+    },
+    {
+      "name": "ci",
+      "bytes": 18755,
+      "sha256": "89e712acc2680ccdbea365165ef36fc2882fee9896b7c39d06b1fe5da3edfb7c",
+      "gitsha": "be9f32837b4e48ff6253acd54edf6df5c96ee5fd",
+      "complete_git_blob_readback": true
+    }
+  ],
+  "original_test": {
+    "bytes": 19430,
+    "sha256": "8b4eb26c3f601558b3e6d0bd86bbe5ba1bc257d8580b7aa1bb362edc6bf28771",
+    "gitsha": "67c81f1551350d56210fdb7758214935caec80d8",
+    "complete_git_blob_readback": true,
+    "proof": "The complete new test is reproduced by exactly two unique byte substitutions: its ROOT directory and the expected fresh compile count 6 -> 13. Reversing those substitutions reproduces the complete original test bytes and Git identity."
+  },
+  "related_source_transform_review": {
+    "bytes": 14032,
+    "sha256": "43670306773f6ddf2de79a7367d82ec6c6ee3bd724511a07b8b6362df8ec031c",
+    "gitsha": "2d8bad7aaf6ced17f3234bba7e06e795b6791259",
+    "scope": "Seven complete original/candidate HIA source pairs, exact per-op word helper inlining, mutable-buffer carry and role27 f2 spelling bijection. That earlier static review is separately preserved; no execution result is inherited."
+  },
+  "checks": [
+    {
+      "area": "Original source and image provenance",
+      "finding": "The CI pins and materializes the original 18 dependencies and invokes the exact original artifact reader and original builder first. The new builder requires the baseline PASS, exactly six fresh baseline compilations and one baseline packer entry; it then compares all 63 baseline HIA source/image byte lengths and SHA256 values, and the baseline complete ELF length/hash, with the frozen actual47 manifest before constructing the optimized role table. This review checks the new call sites, assertions and exact identities; it does not rerun the nested original reader or builder."
+    },
+    {
+      "area": "Complete HIA source acceptance and inverse proof",
+      "finding": "Each of the seven candidate source bytes is bound to the complete stored transform proof and original pin. The builder checks the permitted decoder-function replacement and, only for role27 f2, the complete bijective SSA spelling inverse. It calls the actual assemble_program on each complete candidate and requires render_assembly(verified.as_dict()).encode('utf-8') to equal the supplied bytes before B3. These are real future gates, not claims that this review executed them."
+    },
+    {
+      "area": "Native compilation",
+      "finding": "Seven fresh candidate compilations bind the exact 35ee compiler and retain the original 10 CPU second / 20 wall second / 256 MiB compile limits and complete child receipts. Source, output and workspace originals are retained. A development Python compiler or pre-encoded image does not replace those compilation calls."
+    },
+    {
+      "area": "Fixed ELF packing",
+      "finding": "The candidate retains the exact baseline fixed prefix/layout and all 63 role positions. It replaces only the seven declared image entries, retains complete source/image identities for the other 56, and invokes the actual freshly compiled baseline HIA packer. The Python-constructed expected ELF is an independent full-byte comparison oracle. Complete packet, output, workspace, source-after and canaries are captured and compared; the fixed prefix is not interpreted as HIA semantic policy."
+    },
+    {
+      "area": "Count accounting",
+      "finding": "The local optimization builder records seven candidate B3 calls and one packer entry. Its manifest explicitly reports 13 fresh B3 calls and two packer entries including the six baseline calls and one baseline pack in this same CI. It does not relabel the local seven/one as thirteen/two executions. The CI separately validates the baseline and optimization counts and complete 63-source/image/ELF reproduction."
+    },
+    {
+      "area": "Retained semantic tests",
+      "finding": "The exact two-byte-region test inverse leaves all original fixtures, oracle calls, comparisons, error requirements and group resource checks unchanged. The CI selects all 13 original groups: semantic, errors, interfaces, input, identity, functions-1024, large-bytes, large-nodes, large-valid, impact-semantic, graph-1024, graph-dense, graph-long-report. It checks the original aggregate 329 cases, complete output equality, actual source custody and per-group terminal results; failures are retained rather than skipped."
+    },
+    {
+      "area": "Resources and custody",
+      "finding": "The builder retains parent RLIMIT_CPU=90, address space 1 GiB, core=0, aggregate self plus reaped-child CPU checks and elapsed wall checks. Its final path freezes each observed source/image with complete bytes and mode, verifies complete zlib CAS payloads, checks source/image identity again and records aggregate CPU/wall. The CI wraps the complete subprocess tree with the 90 CPU / 180 wall limits and checks its final result as well. The existing common.finish storage phase is explicitly described as lacking an independent 90 CPU / 180 wall gate; it is not credited as a bounded subject run."
+    }
+  ],
+  "limitations": [
+    "This is a static review of the three exact files and the complete two-substitution original-test proof; it is not execution qualification, performance measurement, or an independent rerun of the 63-role baseline.",
+    "The prior seven-source mechanical review and this integration review cover different scopes; neither implies successful future Core/B3/native gates.",
+    "The builder's failure evidence writes can themselves fail; this review does not certify recovery from arbitrary storage or evidence-writing failures.",
+    "The static assertions must execute successfully with the actual immutable artifact and exact dependency bytes before any semantic claim is made.",
+    "No complete ordinary impact closure, installed activation, whole native stack, arbitrary foreign-object authentication, or changed resource budget is asserted."
+  ]
+}
