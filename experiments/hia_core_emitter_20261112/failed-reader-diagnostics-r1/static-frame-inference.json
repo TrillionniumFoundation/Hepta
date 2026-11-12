@@ -1,0 +1,33 @@
+{
+  "schema": "hia.core-asset-frame-static-cost-observation.v1",
+  "run_id": 43152508792,
+  "job_id": 130964783226,
+  "algorithm_blob": "a09753aa2cd7af10330b4f7162754c1e7d7f357b",
+  "workflow_commit": "6049861e92f0f68dacaf3101bfdb0f98f06c9930",
+  "actual_steps": {
+    "owned_read_seconds_from_GitHub_timestamps": 5,
+    "finalize_seconds_from_GitHub_timestamps": 389,
+    "finalize_conclusion": "failure"
+  },
+  "fixed_limits": {
+    "owner_seconds": 900,
+    "owner_cleanup_seconds": 3,
+    "finalize_step_timeout_seconds": 240,
+    "frame_bytes": 24576,
+    "raw_bytes": 8388608,
+    "stdout_bytes": 12582912
+  },
+  "known_original_frames": 323,
+  "known_original_base64_bytes": 9668204,
+  "known_original_frame_lines_bytes": 9761685,
+  "scope_of_calculation": "54 historical fixed original targets only; actual five reader controls, manifest, terminal, timestamp prefix and runner-added log text are excluded. Values are length arithmetic on frozen pins, not recovered source/log bytes.",
+  "static_observations": [
+    "The owned reader returned success after five seconds. The separate finalizer has a four-minute workflow step timeout and is outside the 900-second process guardian.",
+    "output_frames emits each original chunk using synchronous sys.stdout.buffer.write then flush. Byte offset, frame count and raw count increase each iteration; files are bounded and EOF ends each loop.",
+    "The exact known original frame lines fit the twelve-MiB raw framing stdout limit before adding the five actual control files and manifest. Without actual report or log, their total and runtime are not proven.",
+    "The 389-second observed finalizer duration is compatible with, but does not prove, timeout followed by cancellation/cleanup delay. No timeout conclusion or source-byte acceptance is inferred."
+  ],
+  "failure_cause_confirmed": false,
+  "product_tests_executed": false,
+  "source_regenerated": false
+}
