@@ -1,0 +1,155 @@
+{
+  "actual_four_records": [
+    {
+      "elapsed_ns": 11427,
+      "entry": 131471,
+      "pair_sha256": "c8603684d48eaa86749bfc924b97d907b7c27c5a669008b746c71035ae437f8e",
+      "status": 1
+    },
+    {
+      "elapsed_ns": 6700,
+      "entry": 131472,
+      "pair_sha256": "f989f035e248c301b9696c726851956ad4e3855e1f1942a4a792b1e034a929ce",
+      "status": 1
+    },
+    {
+      "elapsed_ns": 8102,
+      "entry": 131473,
+      "pair_sha256": "055c6dad4b650dee5a512f21481b2020a29f5b31df8a42ec3dd348a704939768",
+      "status": 2
+    },
+    {
+      "elapsed_ns": 4306,
+      "entry": 131474,
+      "pair_sha256": "d1a6617616aa2fa96711b79996f98d09612ab1bb903d06d98b7b32f378c4c06b",
+      "status": 0
+    }
+  ],
+  "case": {
+    "case_id": 107,
+    "caught_reentry": true,
+    "complete": true,
+    "entry_count": 4,
+    "finish_permission": false,
+    "first_entry": 131471,
+    "metadata": {
+      "kind": "caught-done",
+      "negative_index": 5
+    },
+    "name": "caught-reentry-valid-DONE",
+    "status_counts": {
+      "0": 1,
+      "1": 2,
+      "2": 1
+    }
+  },
+  "conclusions": [
+    "The wrapper invokes the real trace entry before provoking recursive observe only on actual status zero.",
+    "The inner RuntimeError is caught, but the original outer session.run still raises and the recorded session remains closed without finish permission.",
+    "Post-catch calls to step/observe/finish/run are all required to raise with an unchanged real native entry count.",
+    "Four actual PRE/POST records independently match statuses 1,1,2,0 and case107; terminal native status zero is not recorded as a normal bridge return."
+  ],
+  "full_319747200_byte_trace_read": false,
+  "full_last_chunk_read": 1004416,
+  "original_outcomes_status": "FINITE_INTEGER_NATIVE_CASES_PASS",
+  "outcome": {
+    "actual_native_returns": 4,
+    "bridge_normal_method_return": false,
+    "caught_inner_exceptions": [
+      "RuntimeError"
+    ],
+    "finish_permission": false,
+    "kind": "caught-done",
+    "negative_index": 5,
+    "session_closed": true
+  },
+  "product_or_native_reexecution": false,
+  "records": {
+    "cases_source": {
+      "bytes": 17419,
+      "identity": [
+        39,
+        193239,
+        33188,
+        1000,
+        1000,
+        1,
+        17419,
+        1794507591695833589,
+        1794507591695833589
+      ],
+      "path": "/tmp/hia-core-integer-native-current-v89-r2-20261112-e26e/control/native_cases.py",
+      "sha256": "d59c0083d9f8c2a07cd51b4a692e52b212753f807d5028f6909f8fc5d26e8090"
+    },
+    "index": {
+      "bytes": 29020,
+      "identity": [
+        39,
+        268298,
+        33152,
+        1000,
+        1000,
+        1,
+        29020,
+        1794510095490295616,
+        1794510095490295616
+      ],
+      "path": "/tmp/hia-core-integer-finite-native-current-v89-local312-r2/work/native/trace/INDEX.json",
+      "sha256": "c6947dfccbe0ed60ee183d7ea76733138fb6939d5c53be71dbb6e97477213bc6"
+    },
+    "last_chunk": {
+      "bytes": 1004416,
+      "identity": [
+        39,
+        268297,
+        33152,
+        1000,
+        1000,
+        1,
+        1004416,
+        1794510095490295616,
+        1794510095490295616
+      ],
+      "path": "/tmp/hia-core-integer-finite-native-current-v89-local312-r2/work/native/trace/entries-0038.bin",
+      "sha256": "c107542204911b9277a936706c303710409fef0d7f908861cd33ed38394e8fc8"
+    },
+    "outcomes": {
+      "bytes": 37641,
+      "identity": [
+        39,
+        268299,
+        33152,
+        1000,
+        1000,
+        1,
+        37641,
+        1794510095490295616,
+        1794510095490295616
+      ],
+      "path": "/tmp/hia-core-integer-finite-native-current-v89-local312-r2/work/native/CASE-OUTCOMES.json",
+      "sha256": "8bab58e051cde92a1823e9f4087b5dd1d2260c65d2df1d8e4ba57e848745a28c"
+    },
+    "trace_source": {
+      "bytes": 23387,
+      "identity": [
+        39,
+        193240,
+        33188,
+        1000,
+        1000,
+        1,
+        23387,
+        1794507591695917756,
+        1794507591695917756
+      ],
+      "path": "/tmp/hia-core-integer-native-current-v89-r2-20261112-e26e/control/trace.py",
+      "sha256": "d9fa36618d4f21359469384337db73c76625f190051bfefa99a1aa43491a917e"
+    }
+  },
+  "schema": "hia.peer.integer-caught-done.readonly.v1",
+  "scope": "Only the final caught-valid-DONE case, four actual PRE/POST native returns, case metadata and frozen control body. Full 107-case, owner, compiler and whole-stream audit remain with the original auditor.",
+  "selected_trace_bytes": 9728,
+  "selected_trace_sha256": "3072cd34b68cd296c93b0a8643d8fb106d97f36050104f504f9254e5585a63dd",
+  "source_import_or_generation": false,
+  "status": "ASSIGNED_SCOPE_ORIGINALS_MATCH"
+}
