@@ -1,0 +1,37 @@
+{
+  "schema": "hia.independent-assembly-carrier-composer-static-review.v1",
+  "reviewer": "audit_runtime",
+  "status": "NO_CONFIRMED_BLOCKER_IN_READ_SCOPE_ZERO_EXECUTION",
+  "sources": {
+    "composer": {
+      "git_blob": "e6cd8a84ccf39584b8934021bc11e946297332e4",
+      "bytes": 4717,
+      "sha256": "389ac96131a8e93bb11862fdf3b0e8c84cb416117dbf3e3e85def660a2e201ee"
+    },
+    "finite": {
+      "git_blob": "ac4afce606abaca91b9b63c8ab8c7c3eb34ede0c",
+      "bytes": 57060,
+      "sha256": "f06b915cdfb415894e05c8c4a3e7bbdba9fe9c0bc5b8791878516f91cdfa66de"
+    }
+  },
+  "reviewed": [
+    "entire4717B composer",
+    "finite svc_op_call authorization branch and rights/protection restoration",
+    "finite svc_service_two_read_mask and service-ID/kind selection",
+    "exact frozen-suffix/reversible-replacement and selected child-closure assertions"
+  ],
+  "findings": [
+    "The new caller condition executes only after svc_KIND==2 and SVC_SERVICE_ID==1. Existing table1 role60 still requires controller56; roles61..63 now require controller59. Other roles retain the original gate.",
+    "Non-service descendants still accept only components1..28 or55, before the added identity branch. No new6162/63 route is opened to those program/ordinary contexts.",
+    "The service1 mask is exactly (e0bf80bee2ac0462 | 1<<60) & ~(1<<63) =70bf80bee2ac0462. Thus6162 remain two-read inputs and63 uses its already-checked writable second input. Non-service1 contexts retain the full original mask.",
+    "The pre-compose service suffix must equal the pinnedfinite source; after composing the two exact replacements reverse to all original bytes. The asserted controller/run-child/return/selection closures remain literal original instruction ranges.",
+    "The complete actual E image/table contents are deliberately outside this composer. Source masks and role numbers do not establish image authenticity; builder exact-E-byte check must be independently enforced."
+  ],
+  "limits": [
+    "0AST/0Pythoncomposerexecution/0as/0native",
+    "No assembly grammar/rendering semantics reviewed",
+    "No new HIA controller59 source, new packer136, actual ELF table or program execution reviewed",
+    "No prior finite/othercomponent execution count inherited"
+  ],
+  "conclusion": "The narrow new mechanical gate/mask change matches the stated table1 contract; actual build and E image identity remain separate gates."
+}

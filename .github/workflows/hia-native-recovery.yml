@@ -3229,3 +3229,243 @@ jobs:
           if-no-files-found: error
           retention-days: 90
           compression-level: 0
+
+  namespace_db_node_r1:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:namespace-db-node]')
+    name: Actual complete main database inode state compared with exact SQLite control
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Verify exact selected source syntax before target generation
+        shell: bash
+        env:
+          HIA_SOURCE_GATE_OUTPUT: ${{ runner.temp }}/hia-selected-source-syntax
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/check_active_source_syntax_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-source-syntax-driver.log"
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Execute new bounded independent component qualification
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-db-node-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/db-node-r1/namespace-db-node-r1-ci.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-db-node-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-namespace-db-node-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-selected-source-syntax
+            ${{ runner.temp }}/hia-source-syntax-driver.log
+            ${{ runner.temp }}/hia-namespace-db-node-recovery
+            ${{ runner.temp }}/hia-namespace-db-node-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+
+
+  cli_assembly_service_r1:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:cli-assembly-service]')
+    name: Actual complete public assembly syntax Core roundtrip and publication
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Verify exact selected source syntax before target generation
+        shell: bash
+        env:
+          HIA_SOURCE_GATE_OUTPUT: ${{ runner.temp }}/hia-selected-source-syntax
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/check_active_source_syntax_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-source-syntax-driver.log"
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Read original qualified CLI assets
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13899330292'
+          run-id: '43115476503'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-assembly-public-input/cli
+          merge-multiple: true
+      - name: Read original qualified A service assets
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13902950213'
+          run-id: '43122922476'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-assembly-public-input/a75
+          merge-multiple: true
+      - name: Read original candidate source and image archive
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13893874697'
+          run-id: '43107344619'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-assembly-candidate-input
+          merge-multiple: true
+      - name: Execute new bounded independent component qualification
+        shell: bash
+        env:
+          HIA_PUBLIC_A_DOWNLOAD_DIR: ${{ runner.temp }}/hia-assembly-public-input
+          HIA_ASSEMBLY_CANDIDATE_DOWNLOAD_DIR: ${{ runner.temp }}/hia-assembly-candidate-input
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-cli-assembly-service-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-assembly-service-r1/ci/ci_complete_public_assembly_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-cli-assembly-service-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-cli-assembly-service-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-selected-source-syntax
+            ${{ runner.temp }}/hia-source-syntax-driver.log
+            ${{ runner.temp }}/hia-cli-assembly-service-recovery
+            ${{ runner.temp }}/hia-cli-assembly-service-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+
+
+  namespace_engine_original_sources_r1:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:namespace-engine-original-sources]')
+    name: Read complete four original namespace engines without target execution
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out submitted diagnostic or reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Execute bounded independent evidence task
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-engine-original-sources
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-four-engine-original-sources-readback.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-engine-original-sources-driver.log"
+      - name: Retain original input and complete new evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-namespace-engine-original-sources-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-namespace-engine-original-sources
+            ${{ runner.temp }}/hia-namespace-engine-original-sources-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  worker_initialization_maps_r1:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:worker-initialization-maps]')
+    name: Actual ordered native initializer maps with full original value identities
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Verify exact selected source syntax before target generation
+        shell: bash
+        env:
+          HIA_SOURCE_GATE_OUTPUT: ${{ runner.temp }}/hia-selected-source-syntax
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/check_active_source_syntax_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-source-syntax-driver.log"
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Execute new bounded independent component qualification
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-worker-initialization-maps-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-maps-r1/worker_initialization_maps_ci_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-initialization-maps-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-worker-initialization-maps-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-selected-source-syntax
+            ${{ runner.temp }}/hia-source-syntax-driver.log
+            ${{ runner.temp }}/hia-worker-initialization-maps-recovery
+            ${{ runner.temp }}/hia-worker-initialization-maps-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+

@@ -1,0 +1,50 @@
+name: HIA submitted source syntax
+
+on:
+  push:
+    branches:
+      - recovery/hia-function-9acdfa-20261111
+    paths:
+      - .github/workflows/hia-recovery-source-syntax.yml
+      - review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hia-submitted-source-syntax-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  syntax:
+    name: Exact selected authoring and driver syntax only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out submitted sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Parse selected sources without importing or executing targets
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_SOURCE_GATE_OUTPUT: ${{ runner.temp }}/hia-selected-source-syntax
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/check_active_source_syntax_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-source-syntax-driver.log"
+      - name: Preserve all source identities and syntax results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-source-syntax-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-selected-source-syntax
+            ${{ runner.temp }}/hia-source-syntax-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 6
