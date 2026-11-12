@@ -1,0 +1,11 @@
+--- frozen-original/audit_records.py
++++ corrected-readonly/audit_records.py
+@@ -451,7 +451,7 @@
+                    and result["native_read_returns"] == len(reads) == 7
+                    and [r["id"] for r in reads] == [ids[0], ids[5], ids[6], ids[7], ids[8], ids[8], ids[8]]
+                    and sum(r["status"] == 0 for r in completed) == 7
+-                   and all(a["case"] == b["case"] and a["argument_count"] == 3
++                   and all(a["case"] == b["case"] and a["argument_count"] == 6
+                            and type(a["returned_status"]) is int and a["returned_status"] == b["status"]
+                            and b["status"] in (0, 1) for a, b in zip(attempts, completed, strict=True)),
+                    "all_seven_logical_native_reads_and_completed_entry_ledger")

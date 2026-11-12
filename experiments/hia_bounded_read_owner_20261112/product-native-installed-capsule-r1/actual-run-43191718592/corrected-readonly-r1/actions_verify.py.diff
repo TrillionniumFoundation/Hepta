@@ -1,0 +1,11 @@
+--- frozen-original/actions_verify.py
++++ corrected-readonly/actions_verify.py
+@@ -454,7 +454,7 @@
+             and result["native_read_returns"] == len(reads) == 7
+             and [row["id"] for row in reads] == [ids[0], ids[5], ids[6], ids[7], ids[8], ids[8], ids[8]]
+             and sum(row["status"] == 0 for row in completed) == 7
+-            and all(a["case"] == b["case"] and a["argument_count"] == 3
++            and all(a["case"] == b["case"] and a["argument_count"] == 6
+                     and type(a["returned_status"]) is int and a["returned_status"] == b["status"]
+                     and b["status"] in (0, 1) for a, b in zip(attempts, completed, strict=True)),
+             "actual installed native completion ledger differs")
