@@ -1,0 +1,99 @@
+name: Shared finish R5 independent development
+on:
+  push:
+    branches: [codex/hia-shared-finish-r5-cpython314-20261112-dda7]
+permissions:
+  contents: read
+jobs:
+  development:
+    name: Actual 3.14.4 finish R5 (${{ matrix.scope }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        scope: [core, byte]
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout independent immutable harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Checkout authentic published 4b source
+        uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+          path: source
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.4"
+      - name: Original explicit development prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc strace
+          python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Admit exact source and immutable inputs
+        id: prepare
+        run: python -B harness/inputs/run_finish_development.py --scope "${{ matrix.scope }}" --stage prepare --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-${{ matrix.scope }}"
+      - name: Compile unchanged original policy (original 20-second compiler limit)
+        id: build_original
+        if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
+        run: python -B harness/inputs/run_finish_development.py --scope "${{ matrix.scope }}" --stage build-original --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-${{ matrix.scope }}"
+      - name: Observe original finish and genuine native fault boundaries
+        id: original
+        if: ${{ !cancelled() && steps.build_original.outcome == 'success' }}
+        run: python -B harness/inputs/run_finish_development.py --scope "${{ matrix.scope }}" --stage observe-original --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-${{ matrix.scope }}"
+      - name: Apply only reviewed finish function bodies
+        id: apply
+        if: ${{ !cancelled() && steps.build_original.outcome == 'success' }}
+        run: python -B harness/inputs/run_finish_development.py --scope "${{ matrix.scope }}" --stage apply-fix --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-${{ matrix.scope }}"
+      - name: Build actual fixed-source development images
+        id: build_fixed
+        if: ${{ !cancelled() && steps.apply.outcome == 'success' }}
+        run: python -B harness/inputs/run_finish_development.py --scope "${{ matrix.scope }}" --stage build-fixed --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-${{ matrix.scope }}"
+      - name: Verify actual held-frame success, errors and lost ACK
+        id: fixed
+        if: ${{ !cancelled() && steps.build_fixed.outcome == 'success' }}
+        run: python -B harness/inputs/run_finish_development.py --scope "${{ matrix.scope }}" --stage observe-fixed --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-${{ matrix.scope }}"
+      - name: Original complete Core and Plan panel 60
+        if: ${{ !cancelled() && matrix.scope == 'core' && steps.build_fixed.outcome == 'success' }}
+        run: python -B harness/inputs/run_finish_development.py --scope core --stage panel60 --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-core"
+      - name: Original complete Core 23 plus machine 51 plus Core caller 50
+        if: ${{ !cancelled() && matrix.scope == 'core' && steps.build_fixed.outcome == 'success' }}
+        run: python -B harness/inputs/run_finish_development.py --scope core --stage complete124 --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-core"
+      - name: Original complete Plan callers 44
+        if: ${{ !cancelled() && matrix.scope == 'core' && steps.build_fixed.outcome == 'success' }}
+        run: python -B harness/inputs/run_finish_development.py --scope core --stage plan44 --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-core"
+      - name: Original Byte generator check (120 seconds)
+        if: ${{ !cancelled() && matrix.scope == 'byte' && steps.build_fixed.outcome == 'success' }}
+        run: python -B harness/inputs/run_finish_development.py --scope byte --stage byte-generated --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-byte"
+      - name: Original complete Byte component 25
+        if: ${{ !cancelled() && matrix.scope == 'byte' && steps.build_fixed.outcome == 'success' }}
+        run: python -B harness/inputs/run_finish_development.py --scope byte --stage byte25 --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-byte"
+      - name: Original complete Byte whole-emission integration 4
+        if: ${{ !cancelled() && matrix.scope == 'byte' && steps.build_fixed.outcome == 'success' }}
+        run: python -B harness/inputs/run_finish_development.py --scope byte --stage byte4 --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-byte"
+      - name: Original complete Byte and Agent callers 29
+        if: ${{ !cancelled() && matrix.scope == 'byte' && steps.build_fixed.outcome == 'success' }}
+        run: python -B harness/inputs/run_finish_development.py --scope byte --stage byte29 --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-byte"
+      - name: Complete independent result and source custody
+        if: ${{ always() }}
+        run: python -B harness/inputs/run_finish_development.py --scope "${{ matrix.scope }}" --stage finish --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/finish-r5-${{ matrix.scope }}"
+      - name: Retain every original and fixed observation
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-finish-r5-${{ matrix.scope }}-actual-3144
+          path: |
+            ${{ runner.temp }}/finish-r5-${{ matrix.scope }}
+            harness/inputs
+            harness/STATIC-REVIEW.json
+            harness/README.md
+          retention-days: 90
+          if-no-files-found: error
