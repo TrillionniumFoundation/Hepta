@@ -1,0 +1,130 @@
+name: HIA exact original Core sources in twenty bounded partitions
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  recover_original_source_partition:
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-core-emitter-source-partitions-run-r1-20261112-e26e' &&
+          github.run_attempt == '1' }}
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        partition: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    env:
+      HIA_CUSTODY_PARTITION_ID: '${{ matrix.partition }}'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out only the exact reviewed custody controls and fixed workflow pins
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 0c70cd860418461b070d46ad0df02685ff1e06b4
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            experiments/hia_core_emitter_20261112/source-partitions-r1
+            .github/workflows/hia-core.yml
+            .github/workflows/hia-ndu-feedback.yml
+            .github/workflows/hia-source-custody.yml
+      - name: Set up the fixed custody interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Verify frozen control bytes and create new private custody roots
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -S -B control/experiments/hia_core_emitter_20261112/source-partitions-r1/controller.py prepare --root "$RUNNER_TEMP/hia-core-emitter-source-partitions-r1-${HIA_CUSTODY_PARTITION_ID}" --policy-sha256 6ddf5c6dc5e660131831dfc50d84e9d72d09ee89e0ec22cfc9f49dadbc33fc58 --control-commit 0c70cd860418461b070d46ad0df02685ff1e06b4 --partition-id "$HIA_CUSTODY_PARTITION_ID"
+      - name: Read one fixed original source partition under its independent 900-second guardian
+        id: owned_collection
+        timeout-minutes: 16
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -S -B control/experiments/hia_core_emitter_20261112/source-partitions-r1/controller.py run --root "$RUNNER_TEMP/hia-core-emitter-source-partitions-r1-${HIA_CUSTODY_PARTITION_ID}" --policy-sha256 6ddf5c6dc5e660131831dfc50d84e9d72d09ee89e0ec22cfc9f49dadbc33fc58 --control-commit 0c70cd860418461b070d46ad0df02685ff1e06b4 --partition-id "$HIA_CUSTODY_PARTITION_ID"
+      - name: Frame two fixed source originals and five controls after closed cleanup
+        if: always()
+        timeout-minutes: 4
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -S -B control/experiments/hia_core_emitter_20261112/source-partitions-r1/controller.py finalize --root "$RUNNER_TEMP/hia-core-emitter-source-partitions-r1-${HIA_CUSTODY_PARTITION_ID}" --policy-sha256 6ddf5c6dc5e660131831dfc50d84e9d72d09ee89e0ec22cfc9f49dadbc33fc58 --control-commit 0c70cd860418461b070d46ad0df02685ff1e06b4 --partition-id "$HIA_CUSTODY_PARTITION_ID"
+      - name: Preserve complete original artifact and partition custody
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-core-source-partition-${{ matrix.partition }}-${{ github.run_id }}-1
+          path: '${{ runner.temp }}/hia-core-emitter-source-partition-receipts-r1-${{ matrix.partition }}/'
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          retention-days: 14
+          overwrite: false
