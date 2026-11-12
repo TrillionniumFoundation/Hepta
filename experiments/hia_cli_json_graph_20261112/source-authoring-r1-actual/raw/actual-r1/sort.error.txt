@@ -1,0 +1,28 @@
+Traceback (most recent call last):
+  File "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r1/source/hepta/hia_program.py", line 688, in instruction
+    self.required.update(check_instruction(spec, actual, types, attrs))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r1/source/hepta/hia_opcodes.py", line 227, in check_instruction
+    raise OpcodeRejected(f"{spec.name}: {label} types must match {rules}", code)
+hepta.hia_opcodes.OpcodeRejected: buffer.copy_range: operand types must match ('mutbuf', 'readbuf', 'usize', 'usize', 'usize')
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r1/control/source_authoring_worker.py", line 194, in main
+    document = module.document()
+               ^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r1/source/tools/generate_hia_cli_json_sort.py", line 280, in document
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8',
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r1/source/tools/generate_hia_selfhost.py", line 2069, in compact_authoring_cfg
+    verify_program(document)
+  File "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r1/source/hepta/hia_program.py", line 959, in verify_program
+    _verify_function(data["schema"], fn, block_maps[fn["name"]], interfaces)
+  File "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r1/source/hepta/hia_program.py", line 912, in _verify_function
+    check.instruction(ins)
+  File "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r1/source/hepta/hia_program.py", line 696, in instruction
+    _reject(str(exc), exc.code)
+  File "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r1/source/hepta/hia_program.py", line 61, in _reject
+    raise HIAProgramRejected(message, code)
+hepta.hia_program.HIAProgramRejected: E_HIA_TYPE: buffer.copy_range: operand types must match ('mutbuf', 'readbuf', 'usize', 'usize', 'usize')

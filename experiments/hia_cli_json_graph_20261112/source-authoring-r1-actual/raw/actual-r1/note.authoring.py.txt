@@ -1,0 +1,186 @@
+def cli_json_note(s: readbuf, o: mutbuf, w: mutbuf) -> u32:
+    if length(w) != 1024 or get(w, 0) != 3550336576465421128:
+        return 4294967293
+    if get(w, 112) != 0:
+        return 4294967293
+    if get(w, 24) != 0:
+        if get(w, 32) != get(w, 16) or get(w, 40) != get(w, 64):
+            return 4294967293
+        put(w, 24, 0)
+    elif get(w, 8) != 0:
+        return 4294967293
+    while True:
+        phase = get(w, 8)
+        if phase < 20:
+            status = note_body(w, phase)
+        elif phase < 100:
+            status = note_cleanup(w, phase)
+        else:
+            status = note_restore(w, phase)
+        if status != 4:
+            return status
+    return 4294967293
+
+def note_body(w: mutbuf, phase: u64) -> u64:
+    if phase == 0:
+        if get(w, 120) > 2 or get(w, 128) == 0 or get(w, 144) == 0 or (get(w, 152) == 0):
+            return 4294967293
+        return request(w, 16, 0, 0, 0, 0, 1)
+    if phase == 1:
+        profile = answer(w, 0)
+        if profile == 31214:
+            return finish(w)
+        if profile != 31404 and profile != 31410:
+            return 4294967293
+        return request(w, 42, 0, 0, 0, 0, 2)
+    if phase == 2:
+        original = answer(w, 0)
+        if original == 0:
+            return finish(w)
+        put(w, 256, original)
+        kind = get(w, 120)
+        if kind == 0:
+            object_message(w)
+            return request(w, 47, 512, get(w, 128), 0, 0, 3)
+        if kind == 1:
+            index_message(w)
+            return request(w, 48, 512, get(w, 128), get(w, 136), 0, 3)
+        key_message(w)
+        return request(w, 49, 512, get(w, 128), get(w, 136), 0, 3)
+    if phase == 3:
+        if answer(w, 0) == 0:
+            put(w, 8, 100)
+            return 4
+        return request(w, 44, 2, 0, 0, 0, 4)
+    if phase == 4:
+        put(w, 264, answer(w, 0))
+        return request(w, 50, get(w, 256), get(w, 144), 0, 0, 5)
+    if phase == 5:
+        if get(w, 48) != 0:
+            put(w, 8, 90)
+            return 4
+        if answer(w, 0) == 0:
+            return request(w, 51, 0, 0, 0, 0, 6)
+        if answer(w, 0) != 1:
+            return 4294967293
+        return request(w, 44, 3, 0, 0, 0, 7)
+    if phase == 6:
+        if answer(w, 0) == 0:
+            put(w, 8, 90)
+            return 4
+        return request(w, 44, 3, 0, 0, 0, 8)
+    if phase == 7:
+        put(w, 272, answer(w, 0))
+        return request(w, 46, 3, 0, 0, 0, 9)
+    if phase == 8:
+        put(w, 272, answer(w, 0))
+        return request(w, 52, get(w, 256), get(w, 144), get(w, 272), 0, 10)
+    if phase == 9:
+        if answer(w, 1) == 0:
+            return request(w, 45, 3, 0, 0, 0, 11)
+        put(w, 8, 12)
+        return 4
+    if phase == 10:
+        if answer(w, 0) != 0:
+            return request(w, 45, 3, 0, 0, 0, 91)
+        put(w, 8, 12)
+        return 4
+    if phase == 11:
+        wrong_notes_message(w)
+        return request(w, 10, get(w, 152), 640, 41, 0, 90)
+    if phase == 12:
+        return request(w, 53, get(w, 272), get(w, 264), 0, 0, 13)
+    if phase == 13:
+        put(w, 280, choose(answer(w, 0) != 0, 1, 0))
+        return request(w, 45, 3, 0, 0, 0, 14)
+    if phase == 14:
+        return request(w, 45, 2, 0, 0, 0, 15)
+    if phase == 15:
+        if get(w, 280) == 0:
+            return request(w, 43, 0, 0, 0, 0, 200)
+        put(w, 8, 100)
+        return 4
+    return 4294967293
+
+def note_cleanup(w: mutbuf, phase: u64) -> u64:
+    if phase == 90 or phase == 91:
+        return request(w, 45, 2, 0, 0, 0, 100)
+    return 4294967293
+
+def note_restore(w: mutbuf, phase: u64) -> u64:
+    if phase == 100:
+        return request(w, 42, 1, 0, 0, 0, 101)
+    if phase == 101:
+        if answer(w, 0) == 0:
+            return request(w, 43, 0, 0, 0, 0, 200)
+        return request(w, 54, 1, 0, 0, 0, 102)
+    if phase == 102:
+        return request(w, 43, 1, 0, 0, 0, 200)
+    if phase == 200:
+        return finish(w)
+    return 4294967293
+
+def request(w: mutbuf, operation: u64, a: u64, b: u64, c: u64, d: u64, phase: u64) -> u64:
+    if get(w, 24) != 0 or get(w, 16) == 18446744073709551615:
+        return 4294967293
+    put(w, 16, get(w, 16) + 1)
+    put(w, 64, operation)
+    put(w, 72, a)
+    put(w, 72 + 8, b)
+    put(w, 72 + 16, c)
+    put(w, 72 + 24, d)
+    put(w, 8, phase)
+    put(w, 24, 1)
+    return 2
+
+def finish(w: mutbuf) -> u64:
+    put(w, 112, 1)
+    return 0
+
+def answer(w: mutbuf, index: u64) -> u64:
+    return get(w, 160 + index * 8)
+
+def get(w: mutbuf, at: u64) -> u64:
+    value = 0
+    index = 0
+    while index < 8:
+        value = value | byte(w, at + index) << index * 8
+        index = index + 1
+    return value
+
+def put(w: mutbuf, at: u64, value: u64) -> u64:
+    index = 0
+    while index < 8:
+        store(w, at + index, value >> index * 8 & 255)
+        index = index + 1
+    return 0
+
+def object_message(w: mutbuf) -> u64:
+    put(w, 512, 8243121276099848311)
+    put(w, 520, 7453010407820386665)
+    put(w, 528, 7307761574785328416)
+    put(w, 536, 29795)
+    return 0
+
+def index_message(w: mutbuf) -> u64:
+    put(w, 512, 8243121276099848311)
+    put(w, 520, 7453010407820386665)
+    put(w, 528, 7882834717644694816)
+    put(w, 536, 1685726496)
+    return 0
+
+def key_message(w: mutbuf) -> u64:
+    put(w, 512, 8243121276099848311)
+    put(w, 520, 7453010407820386665)
+    put(w, 528, 7882834717644694816)
+    put(w, 536, 5383456)
+    return 0
+
+def wrong_notes_message(w: mutbuf) -> u64:
+    put(w, 640, 6998721842876670275)
+    put(w, 648, 4207897448785405028)
+    put(w, 656, 8315180308951424800)
+    put(w, 664, 8029390865705230175)
+    put(w, 672, 8391166443841986676)
+    put(w, 680, 0)
+    return 0

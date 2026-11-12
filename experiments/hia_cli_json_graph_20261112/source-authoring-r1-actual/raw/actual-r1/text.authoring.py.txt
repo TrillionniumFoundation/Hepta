@@ -1,0 +1,590 @@
+def cli_json_text(s: readbuf, o: mutbuf, w: mutbuf) -> u32:
+    if length(w) < 8448:
+        return 1
+    put(w, 0, 3555684583843054408)
+    put(w, 8, 1)
+    put(w, 16, 0)
+    put(w, 24, 0)
+    if length(s) < 64 or read(s, 0) != 3555684583843054408:
+        return finish(w, 1, 0, 0)
+    kind = read(s, 8)
+    mode = read(s, 16)
+    if kind > 3 or mode > 1 or read(s, 24) != 0 or (read(s, 56) != 0):
+        return finish(w, 1, 0, 0)
+    if kind == 0:
+        return string_text(s, o, w, mode)
+    if kind == 1:
+        return integer_text(s, o, w, mode)
+    if kind == 2:
+        return float_text(s, o, w, mode)
+    if length(s) != 64 or read(s, 32) != 0 or read(s, 40) > 2 or (read(s, 48) != 0):
+        return finish(w, 1, 0, 0)
+    return constant_text(o, w, mode, read(s, 40))
+
+def finish(w: mutbuf, status: u32, count: u64, detail: u64) -> u32:
+    put(w, 8, widen(status))
+    put(w, 16, choose(widen(status) == 0, count, 0))
+    put(w, 24, detail)
+    return status
+
+def string_text(s: readbuf, o: mutbuf, w: mutbuf, mode: u64) -> u32:
+    size = read(s, 32)
+    if read(s, 40) != 0 or read(s, 48) != 0:
+        return finish(w, 1, 0, 0)
+    if length(s) - 64 & 3 != 0 or size != length(s) - 64 >> 2:
+        return finish(w, 1, 0, 0)
+    required = 2
+    index = 0
+    while index < size:
+        character = read32(s, 64 + index * 4)
+        if character > 1114111:
+            return finish(w, 1, 0, index)
+        width = escape_width(character)
+        if required > 9223372036854775807 - width:
+            return finish(w, 4, 0, 0)
+        required = required + width
+        index = index + 1
+    if mode == 0:
+        return finish(w, 0, required, 0)
+    if required > length(o) >> 2:
+        return finish(w, 2, 0, required)
+    point(o, 0, 34)
+    cursor = 1
+    index = 0
+    while index < size:
+        character = read32(s, 64 + index * 4)
+        cursor = escape_point(o, cursor, character)
+        index = index + 1
+    point(o, cursor, 34)
+    return finish(w, 0, cursor + 1, 0)
+
+def escape_width(character: u64) -> u64:
+    if character == 34 or character == 92 or character == 8 or (character == 9) or (character == 10) or (character == 12) or (character == 13):
+        return 2
+    return choose(character < 32, 6, 1)
+
+def escape_point(o: mutbuf, cursor: u64, character: u64) -> u64:
+    if character == 34 or character == 92:
+        point(o, cursor, 92)
+        point(o, cursor + 1, character)
+        return cursor + 2
+    if character == 8 or character == 9 or character == 10 or (character == 12) or (character == 13):
+        point(o, cursor, 92)
+        escape = choose(character == 8, 98, choose(character == 9, 116, choose(character == 10, 110, choose(character == 12, 102, 114))))
+        point(o, cursor + 1, escape)
+        return cursor + 2
+    if character < 32:
+        point(o, cursor, 92)
+        point(o, cursor + 1, 117)
+        point(o, cursor + 2, 48)
+        point(o, cursor + 3, 48)
+        high = character >> 4
+        low = character & 15
+        point(o, cursor + 4, high + choose(high < 10, 48, 87))
+        point(o, cursor + 5, low + choose(low < 10, 48, 87))
+        return cursor + 6
+    point(o, cursor, character)
+    return cursor + 1
+
+def integer_text(s: readbuf, o: mutbuf, w: mutbuf, mode: u64) -> u32:
+    words = read(s, 32)
+    negative = read(s, 40)
+    limit = read(s, 48)
+    if negative > 1 or limit > 2147483647 or length(s) - 64 & 3 != 0:
+        return finish(w, 1, 0, 0)
+    if words != length(s) - 64 >> 2:
+        return finish(w, 1, 0, 0)
+    if words == 0:
+        if negative != 0:
+            return finish(w, 1, 0, 0)
+    elif read32(s, 64 + (words - 1) * 4) == 0:
+        return finish(w, 1, 0, 0)
+    if words > 658812288346769097:
+        return finish(w, 4, 0, 0)
+    limb_base = 256
+    digit_base = limb_base + words * 4
+    digit_capacity = words * 10 + 1
+    if length(w) < digit_base + digit_capacity + 8192:
+        return finish(w, 1, 0, 0)
+    index = 0
+    while index < words:
+        put32(w, limb_base + index * 4, read32(s, 64 + index * 4))
+        index = index + 1
+    count = 0
+    while words > 0:
+        carry = 0
+        index = words
+        while index > 0:
+            index = index - 1
+            value = get32(w, limb_base + index * 4)
+            quotient = 0
+            bit = 32
+            while bit > 0:
+                bit = bit - 1
+                carry = carry << 1 | value >> bit & 1
+                if carry >= 1000000000:
+                    carry = carry - 1000000000
+                    quotient = quotient | 1 << bit
+            put32(w, limb_base + index * 4, quotient)
+        while words > 0 and get32(w, limb_base + (words - 1) * 4) == 0:
+            words = words - 1
+        digits = 0
+        while digits < 9 and (words != 0 or carry != 0 or digits == 0):
+            quotient = carry * 3435973837 >> 35
+            if count >= digit_capacity:
+                return finish(w, 1, 0, 0)
+            store(w, digit_base + count, carry - quotient * 10 + 48)
+            carry = quotient
+            count = count + 1
+            digits = digits + 1
+    if count == 0:
+        store(w, digit_base, 48)
+        count = 1
+    if limit != 0 and count > limit:
+        return finish(w, 3, 0, count)
+    required = count + negative
+    if mode == 0:
+        return finish(w, 0, required, 0)
+    if required > length(o) >> 2:
+        return finish(w, 2, 0, required)
+    if negative != 0:
+        point(o, 0, 45)
+    index = 0
+    while index < count:
+        point(o, negative + index, byte(w, digit_base + count - 1 - index))
+        index = index + 1
+    return finish(w, 0, required, 0)
+
+def float_text(s: readbuf, o: mutbuf, w: mutbuf, mode: u64) -> u32:
+    if length(s) != 72 or read(s, 32) != 1 or read(s, 40) != 0 or (read(s, 48) != 0):
+        return finish(w, 1, 0, 0)
+    bits = read(s, 64)
+    magnitude = bits & 9223372036854775807
+    if magnitude >> 52 == 2047:
+        if magnitude & 4503599627370495 != 0:
+            return constant_text(o, w, mode, 3)
+        return constant_text(o, w, mode, choose(bits >> 63 != 0, 5, 4))
+    put(w, length(w) - 192, bits)
+    count = widen(format_render_binary64(w))
+    if count == 0 or count > 32:
+        return finish(w, 5, 0, count)
+    if mode == 0:
+        return finish(w, 0, count, 0)
+    if count > length(o) >> 2:
+        return finish(w, 2, 0, count)
+    index = 0
+    while index < count:
+        point(o, index, byte(w, length(w) - 2048 + index))
+        index = index + 1
+    return finish(w, 0, count, 0)
+
+def constant_text(o: mutbuf, w: mutbuf, mode: u64, kind: u64) -> u32:
+    count = choose(kind == 1, 5, choose(kind == 3, 3, choose(kind == 4, 8, choose(kind == 5, 9, 4))))
+    if kind > 5:
+        return finish(w, 1, 0, 0)
+    if mode == 0:
+        return finish(w, 0, count, 0)
+    if count > length(o) >> 2:
+        return finish(w, 2, 0, count)
+    index = 0
+    while index < count:
+        point(o, index, constant_point(kind, index))
+        index = index + 1
+    return finish(w, 0, count, 0)
+
+def constant_point(kind: u64, index: u64) -> u64:
+    if kind == 5 and index == 0:
+        return 45
+    shift = index
+    if kind == 5:
+        shift = index - 1
+    word = 1819047278
+    if kind == 1:
+        word = 435728179558
+    elif kind == 2:
+        word = 1702195828
+    elif kind == 3:
+        word = 5136718
+    elif kind == 4 or kind == 5:
+        word = 8751735898823355977
+    return word >> shift * 8 & 255
+
+def point(o: mutbuf, at: u64, value: u64) -> u64:
+    index = 0
+    while index < 4:
+        store(o, at * 4 + index, value >> index * 8 & 255)
+        index = index + 1
+    return 0
+
+def read(s: readbuf, at: u64) -> u64:
+    value = 0
+    index = 0
+    while index < 8:
+        value = value | byte(s, at + index) << index * 8
+        index = index + 1
+    return value
+
+def read32(s: readbuf, at: u64) -> u64:
+    value = 0
+    index = 0
+    while index < 4:
+        value = value | byte(s, at + index) << index * 8
+        index = index + 1
+    return value
+
+def get32(w: mutbuf, at: u64) -> u64:
+    value = 0
+    index = 0
+    while index < 4:
+        value = value | byte(w, at + index) << index * 8
+        index = index + 1
+    return value
+
+def put(w: mutbuf, at: u64, value: u64) -> u64:
+    index = 0
+    while index < 8:
+        store(w, at + index, value >> index * 8 & 255)
+        index = index + 1
+    return 0
+
+def put32(w: mutbuf, at: u64, value: u64) -> u64:
+    index = 0
+    while index < 4:
+        store(w, at + index, value >> index * 8 & 255)
+        index = index + 1
+    return 0
+
+def widen(value: u32) -> u64:
+    return value
+def format_render_binary64(w: mutbuf) -> u32:
+    if length(w) < 8192:
+        return 4294967293
+    original = format_get(w, 8000)
+    magnitude = original & 9223372036854775807
+    negative = original >> 63 != 0
+    exponent = magnitude >> 52 & 2047
+    mantissa = magnitude & 4503599627370495
+    if exponent == 2047:
+        return 4294967295
+    cursor = 0
+    if negative:
+        cursor = format_emit(w, cursor, 45)
+    if magnitude == 0:
+        cursor = format_emit(w, cursor, 48)
+        cursor = format_emit(w, cursor, 46)
+        cursor = format_emit(w, cursor, 48)
+    else:
+        if exponent != 0:
+            mantissa = mantissa | 4503599627370496
+        format_set64(w, 0, mantissa << 2)
+        format_set64(w, 1040, 4)
+        format_set64(w, 2080, 2)
+        format_set64(w, 3120, 2)
+        if exponent > 1 and mantissa == 4503599627370496:
+            format_set64(w, 2080, 1)
+        if exponent == 0:
+            format_shift(w, 1040, 1074)
+            binary = 3021 + format_bits(w, 0) - 2
+        else:
+            binary = exponent + 3073
+            if exponent >= 1075:
+                format_shift(w, 0, exponent - 1075)
+                format_shift(w, 2080, exponent - 1075)
+                format_shift(w, 3120, exponent - 1075)
+            else:
+                format_shift(w, 1040, 1075 - exponent)
+        order = 815 + (binary * 1233 >> 12)
+        if format_order_relation(w, order) == 1:
+            order = order - 1
+        if format_order_relation(w, order + 1) != 1:
+            order = order + 1
+        if order >= 2048:
+            count = order - 2048
+            i = 0
+            while i < count:
+                if format_multiply(w, 1040, 10, 0) != 0:
+                    return 4294967293
+                i = i + 1
+        else:
+            count = 2048 - order
+            i = 0
+            while i < count:
+                if format_multiply(w, 0, 10, 0) != 0 or format_multiply(w, 2080, 10, 0) != 0 or format_multiply(w, 3120, 10, 0) != 0:
+                    return 4294967293
+                i = i + 1
+        inclusive = mantissa & 1 == 0
+        digits = 0
+        done = False
+        round_up = False
+        while digits < 17 and done == False:
+            value = 0
+            while format_compare_big(w, 0, 1040) != 1:
+                format_subtract(w, 0, 1040)
+                value = value + 1
+            if value > 9:
+                return 4294967293
+            store(w, length(w) - 8192 + (6200 + digits), value + 48)
+            digits = digits + 1
+            relation = format_compare_big(w, 0, 2080)
+            low = relation == 1 or (relation == 0 and inclusive)
+            format_copy_big(w, 0, 4160)
+            if format_add_big(w, 4160, 3120) != 0:
+                return 4294967293
+            relation = format_compare_big(w, 4160, 1040)
+            high = relation == 2 or (relation == 0 and inclusive)
+            if low or high:
+                done = True
+                if low and high:
+                    format_multiply(w, 0, 2, 0)
+                    relation = format_compare_big(w, 0, 1040)
+                    round_up = relation == 2 or (relation == 0 and value & 1 != 0)
+                else:
+                    round_up = high
+            elif format_multiply(w, 0, 10, 0) != 0 or format_multiply(w, 2080, 10, 0) != 0 or format_multiply(w, 3120, 10, 0) != 0:
+                return 4294967293
+        if done == False:
+            return 4294967293
+        if round_up:
+            at = digits
+            carry = True
+            while at > 0 and carry:
+                at = at - 1
+                value = byte(w, length(w) - 8192 + (6200 + at))
+                if value == 57:
+                    store(w, length(w) - 8192 + (6200 + at), 48)
+                else:
+                    store(w, length(w) - 8192 + (6200 + at), value + 1)
+                    carry = False
+            if carry:
+                store(w, length(w) - 8192 + 6200, 49)
+                digits = 1
+                order = order + 1
+        while digits > 1 and byte(w, length(w) - 8192 + (6200 + digits - 1)) == 48:
+            digits = digits - 1
+        if order < 2044 or order >= 2064:
+            cursor = format_emit(w, cursor, byte(w, length(w) - 8192 + 6200))
+            if digits > 1:
+                cursor = format_emit(w, cursor, 46)
+                i = 1
+                while i < digits:
+                    cursor = format_emit(w, cursor, byte(w, length(w) - 8192 + (6200 + i)))
+                    i = i + 1
+            cursor = format_emit(w, cursor, 101)
+            if order < 2048:
+                cursor = format_emit(w, cursor, 45)
+                power = 2048 - order
+            else:
+                cursor = format_emit(w, cursor, 43)
+                power = order - 2048
+            hundreds = 0
+            while power >= 100:
+                hundreds = hundreds + 1
+                power = power - 100
+            if hundreds != 0:
+                cursor = format_emit(w, cursor, hundreds + 48)
+            tens = 0
+            while power >= 10:
+                tens = tens + 1
+                power = power - 10
+            cursor = format_emit(w, cursor, tens + 48)
+            cursor = format_emit(w, cursor, power + 48)
+        elif order >= 2048:
+            integer_digits = order - 2048 + 1
+            i = 0
+            while i < integer_digits:
+                value = 48
+                if i < digits:
+                    value = byte(w, length(w) - 8192 + (6200 + i))
+                cursor = format_emit(w, cursor, value)
+                i = i + 1
+            cursor = format_emit(w, cursor, 46)
+            if digits <= integer_digits:
+                cursor = format_emit(w, cursor, 48)
+            else:
+                while i < digits:
+                    cursor = format_emit(w, cursor, byte(w, length(w) - 8192 + (6200 + i)))
+                    i = i + 1
+        else:
+            cursor = format_emit(w, cursor, 48)
+            cursor = format_emit(w, cursor, 46)
+            i = order + 1
+            while i < 2048:
+                cursor = format_emit(w, cursor, 48)
+                i = i + 1
+            i = 0
+            while i < digits:
+                cursor = format_emit(w, cursor, byte(w, length(w) - 8192 + (6200 + i)))
+                i = i + 1
+    return cursor
+
+def format_set64(w: mutbuf, at: u64, value: u64) -> u64:
+    format_put(w, at, 2)
+    format_put(w, at + 8, value & 4294967295)
+    format_put(w, at + 16, value >> 32)
+    format_normalize(w, at)
+    return 0
+
+def format_order_relation(w: mutbuf, power: u64) -> u64:
+    if power >= 2048:
+        format_copy_big(w, 1040, 4160)
+        count = power - 2048
+    else:
+        format_copy_big(w, 0, 4160)
+        count = 2048 - power
+    i = 0
+    while i < count:
+        format_multiply(w, 4160, 10, 0)
+        i = i + 1
+    if power >= 2048:
+        return format_compare_big(w, 0, 4160)
+    return format_compare_big(w, 4160, 1040)
+
+def format_add_big(w: mutbuf, left: u64, right: u64) -> u64:
+    a = format_get(w, left)
+    b = format_get(w, right)
+    count = choose(a >= b, a, b)
+    carry = 0
+    i = 0
+    while i < count:
+        x = 0
+        y = 0
+        if i < a:
+            x = format_get(w, left + 8 + i * 8)
+        if i < b:
+            y = format_get(w, right + 8 + i * 8)
+        value = x + y + carry
+        format_put(w, left + 8 + i * 8, value & 4294967295)
+        carry = value >> 32
+        i = i + 1
+    if carry != 0:
+        if count >= 128:
+            return 1
+        format_put(w, left + 8 + count * 8, carry)
+        count = count + 1
+    format_put(w, left, count)
+    return 0
+
+def format_emit(w: mutbuf, index: u64, value: u64) -> u64:
+    store(w, length(w) - 8192 + (6144 + index), value)
+    return index + 1
+
+def format_read64(s: readbuf, at: u64) -> u64:
+    value = 0
+    i = 0
+    while i < 8:
+        value = value | byte(s, at + i) << i * 8
+        i = i + 1
+    return value
+
+def format_multiply(w: mutbuf, at: u64, factor: u64, carry: u64) -> u64:
+    count = format_get(w, at)
+    i = 0
+    while i < count:
+        value = format_get(w, at + 8 + i * 8) * factor + carry
+        format_put(w, at + 8 + i * 8, value & 4294967295)
+        carry = value >> 32
+        i = i + 1
+    if carry != 0:
+        if count >= 128:
+            return 1
+        format_put(w, at + 8 + count * 8, carry)
+        format_put(w, at, count + 1)
+    return 0
+
+def format_bits(w: mutbuf, at: u64) -> u64:
+    count = format_get(w, at)
+    value = format_get(w, at + count * 8)
+    result = (count - 1) * 32
+    while value != 0:
+        result = result + 1
+        value = value >> 1
+    return result
+
+def format_copy_big(w: mutbuf, source: u64, target: u64) -> u64:
+    count = format_get(w, source)
+    i = 0
+    while i <= count:
+        format_put(w, target + i * 8, format_get(w, source + i * 8))
+        i = i + 1
+    return 0
+
+def format_normalize(w: mutbuf, at: u64) -> u64:
+    count = format_get(w, at)
+    while count > 1 and format_get(w, at + count * 8) == 0:
+        count = count - 1
+    format_put(w, at, count)
+    return 0
+
+def format_shift(w: mutbuf, at: u64, amount: u64) -> u64:
+    words = amount >> 5
+    rest = amount & 31
+    count = format_get(w, at)
+    total = count + words
+    if rest != 0:
+        total = total + 1
+    if total > 128:
+        return 1
+    i = total
+    while i > 0:
+        i = i - 1
+        value = 0
+        if i >= words:
+            index = i - words
+            if index < count:
+                value = format_get(w, at + 8 + index * 8) << rest & 4294967295
+            if rest != 0 and index > 0 and (index - 1 < count):
+                value = value | format_get(w, at + index * 8) >> 32 - rest
+        format_put(w, at + 8 + i * 8, value)
+    format_put(w, at, total)
+    format_normalize(w, at)
+    return 0
+
+def format_compare_big(w: mutbuf, left: u64, right: u64) -> u64:
+    a = format_get(w, left)
+    b = format_get(w, right)
+    if a < b:
+        return 1
+    if a > b:
+        return 2
+    i = a
+    while i > 0:
+        x = format_get(w, left + i * 8)
+        y = format_get(w, right + i * 8)
+        if x < y:
+            return 1
+        if x > y:
+            return 2
+        i = i - 1
+    return 0
+
+def format_subtract(w: mutbuf, left: u64, right: u64) -> u64:
+    a = format_get(w, left)
+    b = format_get(w, right)
+    borrow = 0
+    i = 0
+    while i < a:
+        y = 0
+        if i < b:
+            y = format_get(w, right + 8 + i * 8)
+        value = 4294967296 + format_get(w, left + 8 + i * 8) - y - borrow
+        format_put(w, left + 8 + i * 8, value & 4294967295)
+        borrow = choose(value < 4294967296, 1, 0)
+        i = i + 1
+    format_normalize(w, left)
+    return 0
+
+def format_get(w: mutbuf, at: u64) -> u64:
+    value = 0
+    i = 0
+    while i < 8:
+        value = value | byte(w, length(w) - 8192 + (at + i)) << i * 8
+        i = i + 1
+    return value
+
+def format_put(w: mutbuf, at: u64, value: u64) -> u64:
+    i = 0
+    while i < 8:
+        store(w, length(w) - 8192 + (at + i), value & 255)
+        value = value >> 8
+        i = i + 1
+    return 0
