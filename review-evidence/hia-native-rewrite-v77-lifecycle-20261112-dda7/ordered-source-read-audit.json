@@ -1,0 +1,212 @@
+{
+  "schema": "hia.ordered-fresh-source-read.audit.v1",
+  "scope": "READ_ONLY_SOURCE_AND_PRIOR_EVIDENCE_REVIEW_NO_NEW_RUNTIME_OR_BUSINESS_CASE_EXECUTION",
+  "candidate_status": "NO_NEW_SEMANTICS_PRESERVING_IO_REPLACEMENT_CANDIDATE",
+  "product": {
+    "commit": "4b19af89a766593f7d5f1cc2db256e81aba7afcb",
+    "tree": "1bc7c90996e1910ad66ba771b0bfee1d5bfa655c",
+    "root": "/workspace/scratch/dda74a4fae35/v76-product-publication-r1/source",
+    "modified": false
+  },
+  "current_source_files": [
+    {
+      "path": "tools/hia_selfhost_contract.py",
+      "bytes": 137821,
+      "sha256": "722f015682a834244cb639481f30d5585fdfb6994e08e250e3e7b0feb3b64e51"
+    },
+    {
+      "path": "tools/build_hia_json_preflight.py",
+      "bytes": 10402,
+      "sha256": "26dcd8a5d38a77e2fa2034a5219f36984edce4561e6840d469f6d6d61ea36e7b"
+    },
+    {
+      "path": "hepta/artifact_publication_native.py",
+      "bytes": 12724,
+      "sha256": "47abaeb5eb2f2fa7d971b797e6ffadc8a750071d980c1627d055ddc47f68ea03"
+    },
+    {
+      "path": "hepta/hia_json_preflight_native.py",
+      "bytes": 7788,
+      "sha256": "935ada7ff406468837c28435bdba47969cdea7edc5d0ab1d460e29e0df8c8ad5"
+    },
+    {
+      "path": "tests/test_hia_source_admission_native.py",
+      "bytes": 61088,
+      "sha256": "56b6ec6a0fe0520996cee89b7b5e679833d52b2f423e95420cebfd83498d79f2"
+    },
+    {
+      "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+      "bytes": 193926,
+      "sha256": "233796caa92557d5dcbf4de125a867a70bc2859564f0dbe31fbc4196de6781f5"
+    }
+  ],
+  "original_order": [
+    "Path(root), then fresh Path.rglob('*.py') and original relative_to/as_posix for each yielded item",
+    "sorted union of declared names and this fresh dynamic inventory",
+    "for each sorted name: construct Path, Path.read_bytes -> Path.open -> stream enter/read/exit, then sha256 -> hexdigest -> insert",
+    "validate_contract reads and parses the support JSON before support_contract/file_digests and compares the complete expected contract",
+    "current_sources returns the validated map and freshly reads/hashes the contract after validation",
+    "publisher then reads its selected manifest, all five publication sources, executable bytes, and final manifest readback",
+    "the existing StoreAdmission is call-local; it already shares exact admitted executable bytes between one public put's hash and put, not between public calls"
+  ],
+  "closure": {
+    "count": 963,
+    "total_bytes": 28526830,
+    "declared_names": 789,
+    "dynamic_python_names": 197,
+    "overlap": 23,
+    "dynamic_python_parent_names": [
+      "hepta"
+    ],
+    "nonempty_files": 962,
+    "fileio314_large_read_seek_branch_size_count": 88,
+    "large_read_count_is_source_derived_not_traced": true
+  },
+  "interpreter_sources": [
+    {
+      "repository": "python/cpython",
+      "ref": "v3.14.4",
+      "path": "Lib/pathlib/__init__.py",
+      "git_blob": "0d763d1f0dcaa55bb3b2fe3eadf8a133d668eafb",
+      "utf8_characters": 46807,
+      "url": "https://github.com/python/cpython/blob/v3.14.4/Lib/pathlib/__init__.py"
+    },
+    {
+      "repository": "python/cpython",
+      "ref": "v3.14.4",
+      "path": "Modules/_io/fileio.c",
+      "git_blob": "26537fc6395e9f96c5842d8dcb98ac975308fe9e",
+      "utf8_characters": 36058,
+      "url": "https://github.com/python/cpython/blob/v3.14.4/Modules/_io/fileio.c"
+    },
+    {
+      "repository": "python/cpython",
+      "ref": "v3.14.4",
+      "path": "Lib/glob.py",
+      "git_blob": "7ce3998c27ce337945d43c36e725fcf0609e05e8",
+      "utf8_characters": 20768,
+      "url": "https://github.com/python/cpython/blob/v3.14.4/Lib/glob.py"
+    }
+  ],
+  "verified_version_specific_findings": [
+    "CPython 3.14.4 Path.read_bytes explicitly asks Path.open for unbuffered binary I/O. The earlier local 3.12 unbuffered variant is not an available new 3.14 optimization.",
+    "FileIO obtains fstat at open, rejects directories there, and retains that stat only as an allocation estimate. readall does not trust file size as final EOF.",
+    "For nonempty regular inputs, readall allocates size+1 and keeps reading to observed EOF; shrinking/growing and short reads remain observable. Large buffers over 65536 bytes also check current fd position.",
+    "FileIO open audits the original filename object, retries EINTR only with signal checks, and maintains non-inheritable descriptors. Close first marks the descriptor closed and preserves error chaining.",
+    "Path.rglob and Path.glob issue audit events. Their selectors perform fresh scandir and close each enumeration before iteration; OSError handling and separate selection/traversal observations are part of that existing protocol.",
+    "The current 963 support members include only one lexical parent for the 197 dynamic Python files. This does not measure all physical filesystem directories or prove a syscall count."
+  ],
+  "prior_measurements": {
+    "note": "Existing Python 3.12 development evidence, not a new Python 3.14 syscall trace or qualification; staged timers have their own overhead.",
+    "stage_profile": {
+      "path": "/workspace/scratch/dda74a4fae35/v76-context-budget-diagnostic-r1/fresh-stage-profile-r1/RESULT.json",
+      "sha256": "68eaf5ed52fd8ad026683f091eb1ca2b1a3aebc11b1ddb89023eb4de8e495588",
+      "base": "5f7f95367e8e395863801487e969d286b9091110",
+      "files": 928,
+      "original_wall_ms_median": 47.573809,
+      "original_cpu_ms_median": 45.4344265,
+      "staged_wall_ms_median": 65.300439,
+      "stages_wall_ms_median": {
+        "dynamic_enumeration_and_relative_paths": 5.14083,
+        "union_sort": 0.22578,
+        "path_construct": 1.673683,
+        "open": 13.985359,
+        "enter": 0.476375,
+        "read": 8.49226,
+        "close": 1.754804,
+        "sha256": 17.004087,
+        "hexdigest": 0.712973,
+        "release_bytes": 0.497603,
+        "result_insert": 0.590237,
+        "release_objects": 0.940448
+      },
+      "timings_are_python_stages_not_kernel_syscall_costs": true
+    },
+    "dispatch": {
+      "path": "/workspace/scratch/dda74a4fae35/v77-source-volume-development-r1/path-dispatch-profile-r1/RESULT.json",
+      "scope": "256 byte file, 4000 fresh reads per variant, ten alternating rounds",
+      "original_cpu_ns_per_call": 6012.99,
+      "guarded_unbound_cpu_ns_per_call": 6202.7,
+      "candidate_semantics_proved": false,
+      "result": "guarded unbound dispatch slower; no replacement adopted"
+    },
+    "path_allocation": {
+      "status": "UNMERGED_DEVELOPMENT_CANDIDATE",
+      "source_packet_git_blob": "0a2922658e9a0a4c8c03e6e94cc58138088ed3fb",
+      "original_three_second_cases": "FOUR_FAILURES_PRESERVED",
+      "not_an_accepted_deadline_fix": true
+    },
+    "sha_inline": {
+      "source_packet_git_blob": "c824183db331558446a0f93a9b592d148d33e7fe",
+      "abba_archive_wrapper_git_blob": "21cc093d76957dbbaa0dc8658b1c1806be2c29d6",
+      "final_summary_git_blob": "6eeaab00001a953436c93f5f90206774e024f464",
+      "baseline_full963_wall_seconds_median": 8.830760411,
+      "candidate_full963_wall_seconds_median": 8.535248633,
+      "wall_reduction_fraction": 0.0334639107,
+      "deadline_fix": false,
+      "default": false
+    }
+  },
+  "rejected_replacement_directions": [
+    {
+      "idea": "parallel, worker, threaded or pre-opened file I/O",
+      "reason": "moves later path effects before earlier close/hash/hex failures and changes cross-file mutation observation"
+    },
+    {
+      "idea": "persistent fd/dirfd or path inventory reuse",
+      "reason": "does not re-observe the original fresh pathname and ancestor binding on each public call"
+    },
+    {
+      "idea": "streaming or mmap hashing before close",
+      "reason": "moves hashing ahead of a possible close error and changes the consumed-byte/race boundary"
+    },
+    {
+      "idea": "direct os.open/read/close in place of Path protocol",
+      "reason": "bypasses the required Path/open monkeypatch protocol, audit filename object, original stream behavior and exception priority"
+    },
+    {
+      "idea": "single-walk replacement for rglob",
+      "reason": "changes the original audit, enumeration, symlink and OSError observations; no equivalence established"
+    },
+    {
+      "idea": "unbuffered read toggle",
+      "reason": "already the Python 3.14.4 implementation"
+    },
+    {
+      "idea": "guarded unbound read_bytes",
+      "reason": "previous actual fresh-read microbenchmark was slower and did not prove a broader arbitrary-hook domain"
+    },
+    {
+      "idea": "scan result or contract-content cache, mtime shortcut, removing admissions",
+      "reason": "explicitly outside allowed semantics and the original freshness controls"
+    }
+  ],
+  "meaningful_next_measurement": {
+    "kind": "OBSERVATION_ONLY_NOT_PRODUCT_CANDIDATE",
+    "environment": "actual Python 3.14.4 / exact product source",
+    "operation": "one unchanged file_digests scan, outside business deadlines, with bounded system-call observation",
+    "needed_data": [
+      "openat/newfstatat/read/close/lseek/getdents64 counts and elapsed time by original file or stage",
+      "separate unchanged uninstrumented scan identity and time to expose observer overhead",
+      "exact map/order equality, original source bytes before and after"
+    ],
+    "limits": [
+      "do not substitute the trace for a performance pass",
+      "no business case rerun without a real semantic candidate",
+      "do not preload, change GC, alter clock or drop a source file",
+      "do not infer kernel costs from the existing Python-stage timers"
+    ],
+    "execution_status": "NOT_RUN"
+  },
+  "conclusion": "No new semantics-preserving I/O replacement candidate is justified by the current source and measurements. Remaining timing attribution requires actual 3.14 syscall observation; this report does not resolve the original deadline failures.",
+  "claims": {
+    "new_business_tests_run": false,
+    "new_kernel_trace_run": false,
+    "current_source_cold": false,
+    "full": false,
+    "default": false,
+    "live": false,
+    "deletion": false,
+    "original_limits_changed": false
+  }
+}
