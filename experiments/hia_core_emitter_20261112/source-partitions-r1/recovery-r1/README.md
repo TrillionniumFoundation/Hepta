@@ -1,0 +1,9 @@
+# Actual original Core source recovery
+
+The unique create run 43160352144 completed all twenty independent read-only jobs. The strict V8 reader recovered forty original source files (39 HIA assemblies and one ABI), 7,089,249 bytes, with every SHA256 and Git blob identity equal to the externally frozen authoring output. SOURCE-MANIFEST.json maps each product path to its single retained original body. No source was generated again.
+
+All twenty provider logs, all 140 original files, their original frame manifests, provider run/jobs metadata, individual audits, and complete closure are retained. CLOSURE.json records 1,067 frames, 7,985,269 recovered original bytes and 11,714,963 raw provider-log bytes. The original failed reader 43152508792 remains failed; this successful recovery does not reclassify it. Per-partition RESULT bodies were not framed; only their late END hashes were observed.
+
+The independent reader preserves raw JSON and compares unsafe integer tokens as BigInt. The first local V8 harness incorrectly attempted to store a parsed object containing BigInt; the storage API rejected it. The original observations retain that harness HOLD. The reader itself had completed decoding. The corrected harness stores only original raw JSON and safe summaries; reader code remained unchanged. Its actual full-matrix audit passed, and 25 finite V8 controls cover missing frames, wrong identities, changed source/control bytes, incomplete cleanup, HOLD, and missing or mixed matrix jobs. These are custody controls, not Python/native/product tests.
+
+The recovered assets originated in the earlier source-only authoring run. The complete Core emitter candidate still requires fresh native preparation and the original single 180-second 116-method test gate. This directory contains no native, cold, or whole-product qualification claim.

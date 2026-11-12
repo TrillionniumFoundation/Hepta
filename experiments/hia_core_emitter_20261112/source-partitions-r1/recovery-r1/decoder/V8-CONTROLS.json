@@ -1,0 +1,194 @@
+{
+  "schema": "hia.core-partition-V8-reader-controls.v1",
+  "status": "PASS",
+  "control_count": 25,
+  "controls": [
+    {
+      "name": "actual_part1_seven_originals",
+      "expected_accept": true,
+      "observed_accept": true,
+      "pass": true,
+      "error": null
+    },
+    {
+      "name": "missing_late_END",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: missing partition manifest or complete late END"
+    },
+    {
+      "name": "duplicate_frame",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: frame order/gap/overlap"
+    },
+    {
+      "name": "noncontiguous_frame_offset",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: frame order/gap/overlap"
+    },
+    {
+      "name": "changed_frame_bytes_old_hash",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: frame complete bytes/hash"
+    },
+    {
+      "name": "deleted_frame",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: frame order/gap/overlap"
+    },
+    {
+      "name": "foreign_source_path",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: bounded frame header"
+    },
+    {
+      "name": "other_partition_context",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: manifest partition/provenance binding"
+    },
+    {
+      "name": "other_workflow_context",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: exact source partition operation binding"
+    },
+    {
+      "name": "old_failure_upgraded",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: END scope changed: original_failure_reclassified"
+    },
+    {
+      "name": "per_job_claims_whole_matrix",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: END scope changed: all_20_partitions_complete_claimed"
+    },
+    {
+      "name": "HOLD_cannot_enter_complete_audit",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: HOLD cannot include accepted source originals"
+    },
+    {
+      "name": "failure_marker_after_END",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: missing partition manifest or complete late END"
+    },
+    {
+      "name": "self_consistent_frames_changed_original_source",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: unselected or differing source original"
+    },
+    {
+      "name": "complete_stream_missing_one_control",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: complete partition lacks exact originals"
+    },
+    {
+      "name": "self_consistent_frames_changed_input_after",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: actual guardian operation and before/after identities"
+    },
+    {
+      "name": "self_consistent_frames_incomplete_cleanup",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: actual ECHILD/reap complete cleanup"
+    },
+    {
+      "name": "aggregate_missing_partition",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: exact twenty provider jobs and twenty original logs"
+    },
+    {
+      "name": "aggregate_duplicate_provider_job",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: exact distinct successful provider job"
+    },
+    {
+      "name": "aggregate_other_run",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: actual whole matrix workflow terminal"
+    },
+    {
+      "name": "aggregate_other_attempt",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: actual whole matrix workflow terminal"
+    },
+    {
+      "name": "aggregate_failed_provider_job",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: exact distinct successful provider job"
+    },
+    {
+      "name": "aggregate_job_id_not_from_provider",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: raw log tied to actual provider matrix job"
+    },
+    {
+      "name": "aggregate_swapped_partition_logs",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: manifest partition/provenance binding"
+    },
+    {
+      "name": "aggregate_missing_guardian_step",
+      "expected_accept": false,
+      "observed_accept": false,
+      "pass": true,
+      "error": "Error: every original matrix job step succeeded"
+    }
+  ],
+  "positive_actual_part1_log": {
+    "bytes": 637600,
+    "sha256": "9fae7964d24c4a55b3e220c372277970cc72b99309e13f524f87f5dbe74f7f62",
+    "git_blob_sha1": "4962a3c80a07403428f66cd6ac8eb5001398d67e"
+  },
+  "actual_full_twenty_group_baseline_required_separately": true,
+  "source_generated_again": false,
+  "Python_executed": false,
+  "native_compiler_executed": false,
+  "product_executed": false,
+  "mutations_only_to_in_memory_log_fixtures": true,
+  "original_provider_logs_unchanged": true
+}
