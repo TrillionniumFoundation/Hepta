@@ -1,0 +1,24 @@
+{
+  "schema": "hia.numeric-r3.root-readonly-audit-r1-schema-error.v1",
+  "status": "READER_ASSERTION_PRESERVED_NOT_PRODUCT_FAILURE",
+  "actual_original_result_unchanged": "FINITE_NATIVE_DEVELOPMENT_PASS",
+  "reason": "Reader expected kind=regular; exact original manifest uses kind=file for229 records and directory for12.",
+  "first_execution": {
+    "status": "fulfilled",
+    "value": {
+      "chunk_id": "b2c2ca",
+      "wall_time_seconds": 0.000025167,
+      "exit_code": 1,
+      "original_token_count": 91,
+      "output": "Traceback (most recent call last):\n  File \"/workspace/scratch/e26ed3e2edcf/root/verify_numeric_r3_originals.py\", line 26, in <module>\n    assert pin['kind']=='regular' and item.isfile() and stat.S_ISREG(s.st_mode) and item.size==pin['size']\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    }
+  },
+  "schema_inspection": {
+    "chunk_id": "88a0b4",
+    "wall_time_seconds": 0.012276879,
+    "exit_code": 0,
+    "original_token_count": 114,
+    "output": "{\"first_non_directory\": {\"git_blob_sha1\": \"474d91850cc6a3678b083cf810ae21282b7e3d84\", \"kind\": \"file\", \"mode\": 384, \"original_identity\": {\"ctime_ns\": 1794493861436873218, \"dev\": 39, \"gid\": 1000, \"ino\": 950030, \"mode\": 33152, \"mtime_ns\": 1794493861436873218, \"nlink\": 1, \"size\": 2665, \"uid\": 1000}, \"path\": \"FINAL.json\", \"sha256\": \"f3ffb0c64fbfa94e694e4618204337c9b388320df5ff5e76835c50f713579c43\", \"size\": 2665}, \"kinds\": {\"directory\": 12, \"file\": 229}}\n"
+  },
+  "correction": "Only match original kind=file; preserve size/hash/mode/identity/full-read assertions. No product or original native run repeated."
+}
