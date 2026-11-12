@@ -1,0 +1,98 @@
+{
+  "schema": "hia.cli-json.cpython312-call-mechanical-derivation.v1",
+  "status": "EXACT_TEXT_DERIVATION_CHECKED_NOT_COMPILED",
+  "source": {
+    "path": "reference/cpython-v3.12.14/Python/ceval.c",
+    "bytes": 88767,
+    "sha256": "29640a033f373391a5b000253f74a7a1bc3182265412c0b40a76c4615acd1fda"
+  },
+  "output": {
+    "path": "inputs/hepta/hia_cli_json_cpython312_call.inc",
+    "bytes": 16746,
+    "sha256": "b6f1a34c83b9a5551f340d1894715a511f3a56364c2bbe81e3db00065b1ee10b"
+  },
+  "renames": {
+    "format_missing": "cj312_format_missing",
+    "missing_arguments": "cj312_missing_arguments",
+    "too_many_positional": "cj312_too_many_positional",
+    "positional_only_passed_as_keyword": "cj312_positional_only_passed_as_keyword",
+    "initialize_locals": "cj312_initialize_locals",
+    "clear_thread_frame": "cj312_clear_thread_frame",
+    "_PyEvalFramePushAndInit": "cj312_push_and_init",
+    "_PyThreadState_PushFrame": "cj312_runtime.push_frame",
+    "_PyThreadState_PopFrame": "cj312_runtime.pop_frame",
+    "_PyFrame_ClearExceptCode": "cj312_runtime.clear_frame",
+    "_PyTuple_FromArraySteal": "cj312_runtime.tuple_from_array_steal"
+  },
+  "empty_tuple_change": {
+    "from": "Py_NewRef(&_Py_SINGLETON(tuple_empty))",
+    "to": "PyTuple_New(0)"
+  },
+  "functions": [
+    {
+      "name": "format_missing",
+      "original_bytes": 2015,
+      "original_sha256": "01f0fa04c369ff49408032d6dc686bdc4c85a28ca83902c3e5c612992b23fdc5",
+      "derived_bytes": 2021,
+      "derived_sha256": "d7a8bd66854fa5aee2a8474696eb02747622acadc268c2594d93ac11a45fd5e4",
+      "derived_offset": 731,
+      "exact_renamed_body_found_once": true
+    },
+    {
+      "name": "missing_arguments",
+      "original_bytes": 1215,
+      "original_sha256": "91a823b3801003b60b92789267eba8865b756a1bc823938b140da6c2f5032f2c",
+      "derived_bytes": 1227,
+      "derived_sha256": "14f302a985cb122a4251137d84e03d89ba03bd17e7d4c868d242550d7aa1c27f",
+      "derived_offset": 2753,
+      "exact_renamed_body_found_once": true
+    },
+    {
+      "name": "too_many_positional",
+      "original_bytes": 1951,
+      "original_sha256": "7e54c93df1862dcc6becf7d68c7f111bf9c73d1ca59720a86474bcb3ad8ad5bd",
+      "derived_bytes": 1957,
+      "derived_sha256": "8185a2d9ce20c30c1b0583dad9ea2a0a15c80a08606104ee28b1c3751fe6b1aa",
+      "derived_offset": 3981,
+      "exact_renamed_body_found_once": true
+    },
+    {
+      "name": "positional_only_passed_as_keyword",
+      "original_bytes": 1931,
+      "original_sha256": "b9813bd6de4c3f2816f02662e46b1a9f3ef2c0ad133e9c7e8cf976142ea24afe",
+      "derived_bytes": 1937,
+      "derived_sha256": "f95e84551e5d42096c8d608edc90855f9566735ff53996fc0ed2cba85ed61df5",
+      "derived_offset": 5939,
+      "exact_renamed_body_found_once": true
+    },
+    {
+      "name": "initialize_locals",
+      "original_bytes": 7259,
+      "original_sha256": "54ab94ac93dec668db563926bb81ae88ac782ec2f779c52768581df8a8bcf6fa",
+      "derived_bytes": 7278,
+      "derived_sha256": "7ae94738a561461117c7b13b1ea374b34df62a3fddf487bb6966fbe776f02f74",
+      "derived_offset": 7877,
+      "exact_renamed_body_found_once": true
+    },
+    {
+      "name": "clear_thread_frame",
+      "original_bytes": 650,
+      "original_sha256": "3ad83ac6f6e1f9b22da6a09d430416a954c0b94c6cc4f2051e6927ca49c9675b",
+      "derived_bytes": 657,
+      "derived_sha256": "2fd49066dab172b5e4bed90da2f95f3d5972f0d1ad058bcb698bc09b449ab987",
+      "derived_offset": 15156,
+      "exact_renamed_body_found_once": true
+    },
+    {
+      "name": "_PyEvalFramePushAndInit",
+      "original_bytes": 935,
+      "original_sha256": "89c64b923287e35b288853267edd90752d4851364419c406265e9f4835e2707c",
+      "derived_bytes": 931,
+      "derived_sha256": "eff39b7ecc0f214c17c16768ff0420246fb73254d87a30212fe796b4f43b68df",
+      "derived_offset": 15814,
+      "exact_renamed_body_found_once": true
+    }
+  ],
+  "claimed_scope": "The seven original function bodies after the listed mechanical name substitutions and one immortal-empty-tuple API substitution. Whole shim, private mapping, frame activation, recursion/monitoring equivalence and execution are not proved by this check.",
+  "native_executed": false
+}

@@ -1,0 +1,38 @@
+{
+  "schema": "hia.cli-json.graph-r4b.static-checkpoint.v1",
+  "status": "IMPLEMENTED_SOURCE_AST_ONLY_NOT_QUALIFIED",
+  "previous_four_source_result": {
+    "commit": "ef2f5971a9032af2afc2c7c805eff10908e81ebf",
+    "run": 43264350911,
+    "applies_only_to_old_four_source_bytes": true,
+    "will_not_rerun": true
+  },
+  "implemented": [
+    "New raw-scalar HIA continuation: representation conversion, integer early/late limits and original _pylong foreign extension; scalar.run_raw leaves object/error ownership in C context.",
+    "CPython 3.12.14 owned CALL consumes function/argument cells into an actual interpreter frame for the original exact-function fast path; generic vectorcall releases callable then arguments in the original order.",
+    "Exact mapped ELF admission of 11 runtime entries, immutable 12-word table, full source file and mapped function bytes checked; no fixed-address guesses.",
+    "New HIA deferred chunk collector owns actual list construction, cached tp_iternext, length hint, preallocation, arbitrary yielded objects, final trim and cleanup.",
+    "Actual generator frame metadata/store/load/traceback/clear leaves, and final join leaf preserving the encoding frame's chunks local."
+  ],
+  "remaining_blockers": [
+    "Complete CPython 3.12 JSON generator dispatcher and parent-frame activation are not implemented. Operation 230 requires an explicit separately admitted dispatcher and has no retained-encoder fallback.",
+    "Calling the real evaluator from the C leaf introduces a C activation/recursion and monitoring seam versus the original inline CALL. Full equivalence is not claimed.",
+    "Actual generator reentrancy, traceback/frame ownership on all paths, allocation failure, signals and finalizers need actual old/new controls.",
+    "New scalar/chunks HIA has not been generated, Core-checked, compiled or executed; C source/include has not been compiled.",
+    "The original 17 CLI methods and 46 trace plan remain preserved and unexecuted for this revision. No default selector or product source was changed."
+  ],
+  "runtime_scope": "Exact CPython 3.12.14 Linux x86-64 conventional-GIL development binding; other admitted shim profiles retain their prior branches, but the new owned CALL/frame leaves refuse outside 3.12.14. This is a private experimental ABI requirement, not a narrowed public JSON input contract.",
+  "hosted_remaining": [
+    "CPython object primitive/runtime allocation and argument binding",
+    "Original dynamic _pylong extension",
+    "Python raw-pointer transport and control bookkeeping"
+  ],
+  "original_input_caps_added": false,
+  "default_cli_changed": false,
+  "old_unknown_actions_touched": false,
+  "source_generation_executed": false,
+  "C_compilation_executed": false,
+  "native_executed": false,
+  "original_17_executed": 0,
+  "trace_46_executed": 0
+}
