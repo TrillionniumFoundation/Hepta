@@ -1,0 +1,65 @@
+{
+  "actual_completion_requests_before_amendment": 0,
+  "before_any_actual_model_answer": true,
+  "cost_accounting": "Retain and report failed attempt, zero-generation readiness, download, archive and all final attempts separately; these costs are not discarded or counted as model wrong answers.",
+  "expected_new_suite_plan_sha256": "6111e045057c2001596464328d2255ce1c49fdab7c88dd03d829729909ae9fd5",
+  "new_condition": {
+    "all_other_runtime_arguments": "unchanged frozen owned-runtime constructor",
+    "applies_to": "both frozen model families, both phases, every request",
+    "environment": {
+      "LLAMA_ARG_REPACK": "0"
+    },
+    "log_verbosity": "default 3 for scored execution; diagnostic readiness alone used 4",
+    "model_bytes_tasks_prompts_hidden_inputs_context_token_budget_threads_unchanged": true
+  },
+  "new_suite_root": "/tmp/hepta-next-20261028-agent-final-02",
+  "original_protocol_sha256": "6b21fc1455034d7681b93dbd6c32ea8bced96c843db051293ba83f9887c26036",
+  "plan_binding_note": "Unchanged frozen suite plan does not itself serialize inherited environment; this append-only amendment binds that plan and the actual launch condition explicitly. Actual new plan hash will be checked after creation.",
+  "prior_attempt": {
+    "archive": "agent-startup-oom-final-01.tar.xz",
+    "archive_sha256": "274524f823d0f8b2d3fc9b79a202cab6d7430934bd1612cad66011f0110d3ada",
+    "completion_requests": 0,
+    "model_result_sha256": "d5458bb468e0731185be3b39de567aece0a457c8d44e92b109a9344c53120ca8",
+    "oom_server_starts": 2,
+    "outer_shell_wall_seconds": 87.772,
+    "responses": 0,
+    "root": "/tmp/hepta-next-20261028-agent-final-01"
+  },
+  "prior_suite_plan_sha256": "6111e045057c2001596464328d2255ce1c49fdab7c88dd03d829729909ae9fd5",
+  "readiness": {
+    "actual_child_repack_environment": [
+      "LLAMA_ARG_REPACK=0"
+    ],
+    "generation_requests": 0,
+    "health": {
+      "status": "ok"
+    },
+    "memory_events_after": {
+      "high": 0,
+      "low": 0,
+      "max": 761686,
+      "oom": 2,
+      "oom_group_kill": 0,
+      "oom_kill": 2
+    },
+    "memory_events_before": {
+      "high": 0,
+      "low": 0,
+      "max": 756344,
+      "oom": 2,
+      "oom_group_kill": 0,
+      "oom_kill": 2
+    },
+    "new_oom_events": false,
+    "path": "/tmp/hepta-next-20261028-norepack-readiness-01",
+    "record_sha256": "ea9ea842982479360269a03325f33d6174cc4227b1520f5da2cdf868f6a55647",
+    "server_log_sha256": "33ef4399d59ec876fd7da5ab249468ea7aaab0dd652b34722a0b166abc1dfaeb",
+    "startup_wall_ns": 7646081621,
+    "total_wall_ns": 13735056921
+  },
+  "reason": "First frozen execution suffered two model-load OOM kills before any completion. The same official runtime supports disabling CPU weight repacking, which avoids that extra tensor allocation.",
+  "registered_unix_ns": 1793164668522644353,
+  "registration_sha256": "7ac576d316458e80e46ed5370fe6a9845f8f808325271fe7496bb71fbf8dc37d",
+  "retry_policy": "One complete final-02 suite for both frozen families; no answer-dependent selection or task-specific retries.",
+  "schema": "hepta.hia.agent-runtime-amendment.v1"
+}

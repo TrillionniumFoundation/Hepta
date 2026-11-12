@@ -1,0 +1,23 @@
+{
+  "schema": "hepta.hia.ndu.compute-price-protocol.v1",
+  "horizon": 3,
+  "environments": ["adaptive", "fixed", "misleading"],
+  "arms": ["state-greedy", "same-objective", "same-objective-priced", "dynamic-ndu", "dynamic-ndu-priced"],
+  "training_seeds": [211, 223, 227, 229],
+  "original_calibration_sha256": "f66e61d8686069881057e15451037c61389f280c61cfe96100e4b71a3252f148",
+  "holdout_seeds": [16001, 16007, 16033, 16057],
+  "dimension": 448,
+  "repetitions": 2,
+  "kernel_repeats": 4,
+  "episode_budget_ns": 500000000,
+  "max_transitions_per_decision": 20000,
+  "max_transitions_per_arm": 2000000,
+  "latency_model": "Reuse only the original 192/640 training calibration, bind its original bytes, and interpolate to the new 448 dimension before final measurements. No 384 or 448 final outcome enters a forecast.",
+  "controller_price": "For each environment and remaining depth, measure all three planners on the same training observations obtained under a greedy behavior policy. Freeze each planner's median whole decision wall, including its real native framing/validation when applicable. Retain every trial and startup/close; never revise prices from final timings.",
+  "price_scope": "One retained native session is used for training. Its median is predominantly a warm-process decision forecast, not a cold-start or cleanup cost guarantee. Final episode walls include every cold start, initialization and cleanup; forecasts are never substituted for those actual costs.",
+  "greedy_future_price": "The gate receives the maximum of the frozen greedy medians over all remaining depths, so its constant future-fee envelope covers the entire remaining registered training price table. This is still a forecast model, not a bound on realized timing.",
+  "compute_gate": "An O(horizon times actions) conservative model opportunity bound is compared to the frozen predicted current planning price. Candidate action values use the same registered task utility units. Forecast cost is not a guarantee of future physical elapsed time. The same gate and calibration procedure is offered to ordinary same-objective planning and NDU.",
+  "paired_order": "Rotate and reverse five arms per environment, seed and repetition; all 120 cells and 360 requests remain in the denominator.",
+  "qualification": "Check executed cache actions, complete delivery, observed whole cost, actual number of skipped native calls, and post-execution model oracle regret. A compute-cost saving is not NDU-exclusive task quality or a proof of model optimality under physical uncertainty.",
+  "prior_result": "The original 288-cell cohort and its zero numeric-preference variation / no-net-gain result remain unchanged. This is a separate prospectively frozen computation-price qualification with fresh final inputs."
+}

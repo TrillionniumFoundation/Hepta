@@ -1,0 +1,407 @@
+{
+  "schema": "hepta.hia.program.v8",
+  "module": "parameter_returns",
+  "functions": [
+    {
+      "name": "return_mut_recursive",
+      "params": [
+        {
+          "name": "input",
+          "type": "mutbuf"
+        },
+        {
+          "name": "depth",
+          "type": "u32"
+        }
+      ],
+      "returns": [
+        "mutbuf"
+      ],
+      "effects": [
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "input",
+              "type": "mutbuf"
+            },
+            {
+              "name": "depth",
+              "type": "u32"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "depth",
+                "zero"
+              ],
+              "out": [
+                {
+                  "name": "done",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "done",
+            "then": {
+              "target": "base",
+              "args": [
+                "input"
+              ]
+            },
+            "else": {
+              "target": "step",
+              "args": [
+                "input",
+                "depth"
+              ]
+            }
+          }
+        },
+        {
+          "id": "base",
+          "params": [
+            {
+              "name": "base_input",
+              "type": "mutbuf"
+            }
+          ],
+          "ops": [],
+          "term": {
+            "op": "ret",
+            "values": [
+              "base_input"
+            ]
+          }
+        },
+        {
+          "id": "step",
+          "params": [
+            {
+              "name": "step_input",
+              "type": "mutbuf"
+            },
+            {
+              "name": "step_depth",
+              "type": "u32"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "one",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.sub.checked",
+              "args": [
+                "step_depth",
+                "one"
+              ],
+              "out": [
+                {
+                  "name": "next_depth",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "call",
+              "args": [
+                "step_input",
+                "next_depth"
+              ],
+              "out": [
+                {
+                  "name": "recursive_view",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {
+                "function": "return_mut_recursive"
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "recursive_view"
+            ]
+          }
+        }
+      ],
+      "return_loans": [
+        "input"
+      ]
+    },
+    {
+      "name": "entry_mut_recursive",
+      "params": [
+        {
+          "name": "length",
+          "type": "usize"
+        },
+        {
+          "name": "byte",
+          "type": "u8"
+        }
+      ],
+      "returns": [
+        "u8"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "length",
+              "type": "usize"
+            },
+            {
+              "name": "byte",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.new",
+              "args": [
+                "length"
+              ],
+              "out": [
+                {
+                  "name": "owner",
+                  "type": "buffer"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.mut",
+              "args": [
+                "owner"
+              ],
+              "out": [
+                {
+                  "name": "initial",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "index",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "initial",
+                "index",
+                "byte"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "initial"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.mut",
+              "args": [
+                "owner"
+              ],
+              "out": [
+                {
+                  "name": "parent",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "depth",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "value": 3
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "parent",
+                "depth"
+              ],
+              "out": [
+                {
+                  "name": "returned",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {
+                "function": "return_mut_recursive"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "delta",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 5
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "byte",
+                "delta"
+              ],
+              "out": [
+                {
+                  "name": "changed",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "returned",
+                "index",
+                "changed"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "returned",
+                "index"
+              ],
+              "out": [
+                {
+                  "name": "answer",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "returned"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "parent",
+                "index"
+              ],
+              "out": [
+                {
+                  "name": "parent_read",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "parent"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "owner"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "answer"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "exports": [
+    "entry_mut_recursive"
+  ]
+}

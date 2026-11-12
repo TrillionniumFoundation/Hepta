@@ -1,0 +1,1109 @@
+{
+  "builds": {
+    "baseline": {
+      "binding_sha256": "41b308694a6b47959b57488983169dc0e6a63cd91514a93c999d63d5b6bc5c43",
+      "claims": {
+        "backend_refinement_proved": false,
+        "final_artifact_bound": true,
+        "performance_qualified": false,
+        "unverified_candidate_published": false
+      },
+      "native": {
+        "artifact_bytes": 15112,
+        "artifact_sha256": "362b7318d2f83a1eac77199892bb90dd63d61862365aeaa12f18f113a0433e7f",
+        "binary_inventory": {
+          "claims": {
+            "backend_refinement_proven": false,
+            "binary_abi_observed": true,
+            "native_execution_proven": false,
+            "whole_language_memory_safety_proven": false
+          },
+          "dynamic_exports": [
+            "add_step",
+            "transition"
+          ],
+          "format": "ELF64",
+          "kind": "ET_DYN",
+          "machine": 62,
+          "schema": "hepta.elf-shared-abi.v1",
+          "source_exports_rechecked": true,
+          "unresolved_imports": [
+            "_ITM_deregisterTMCloneTable",
+            "_ITM_registerTMCloneTable",
+            "__cxa_finalize",
+            "__gmon_start__"
+          ]
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "exports": [
+          "add_step",
+          "transition"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-shared"
+        ],
+        "implementation_sha256": "0519011099263210f3f0e9c0ad11c0dc4586fdaf079c6df16746ba49cc4a3ef9",
+        "input_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "kind": "shared",
+        "llvm_ir_sha256": "19fafb175994febba5c0f1cdd84c62fb9aa31cf02e4c05748542a51bfdc6ff46",
+        "ok": true,
+        "output": "/workspace/scratch/5567a9db5cf4/hepta-work/experiments/hia_stateful_eval/next_20261028/attempt02/runtime/baseline.so",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/tmp/hepta-next-llvm-20261028/usr/lib/llvm-20/bin/clang",
+          "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+          "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+        }
+      },
+      "schema": "hepta.hia.optimized-native.v1",
+      "status": "verified_core_native_bound",
+      "verification": {
+        "base_input_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "base_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "candidate_input_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "candidate_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "checker_sha256": "78694a5f57a303f576dd9b5430498affc9d65e7fa93d639721a940cf66554f12",
+        "claims": {
+          "all_scalar_inputs_in_declared_widths": true,
+          "arbitrary_rewrites_supported": false,
+          "backend_refinement_proved": false,
+          "cfg_and_resource_protocol_preserved": true,
+          "core_scalar_effect_equivalence_checked": true,
+          "deployment_authority": false,
+          "native_execution_qualified": false,
+          "whole_language_soundness_proved": false
+        },
+        "elapsed_ns": 220714203,
+        "obligations": [
+          {
+            "block": "entry",
+            "function": "add_step",
+            "observed": [
+              "r"
+            ],
+            "result": "unsat",
+            "segment": 0,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b0.input:y| () (_ BitVec 64))\n(declare-fun |f0.b0.input:x| () (_ BitVec 64))\n(assert\n (let ((?x10 (bvand |f0.b0.input:x| |f0.b0.input:y|)))\n(let ((?x11 (bvmul ?x10 (_ bv2 64))))\n(let ((?x9 (bvxor |f0.b0.input:x| |f0.b0.input:y|)))\n(let ((?x12 (bvadd ?x9 ?x11)))\n(let (($x13 (and (distinct ?x12 ?x12) true)))\n(let (($x14 (or $x13)))\n(let (($x16 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x16 $x16 $x14))))))))))\n(check-sat)\n",
+            "smt2_sha256": "1c693f8cc8f13bc16677443d27516e92a8f22aca89570f78ee986c12520e0d01"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "x",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 0,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.input:x| () (_ BitVec 64))\n(assert\n (let (($x45 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x44 (and (distinct |f1.b0.input:x| |f1.b0.input:x|) true)))\n(let (($x46 (or $x44 $x45)))\n(let (($x16 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x16 $x16 $x46)))))))\n(check-sat)\n",
+            "smt2_sha256": "d8bd62600adeeeb8abddfe39c877e03c4270dcbbdab0c1ed33335f17e7d1814a"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "a",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 1,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.effect:0:a| () (_ BitVec 64))\n(assert\n (let (($x45 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x28 (and (distinct |f1.b0.effect:0:a| |f1.b0.effect:0:a|) true)))\n(let (($x26 (or $x28 $x45)))\n(let (($x16 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x16 $x16 $x26)))))))\n(check-sat)\n",
+            "smt2_sha256": "9689fff36c087be2cb9c0698e88f0623223968ad09152277c5d696395d877f0a"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "b",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 2,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.effect:1:b| () (_ BitVec 64))\n(assert\n (let (($x45 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x8 (and (distinct |f1.b0.effect:1:b| |f1.b0.effect:1:b|) true)))\n(let (($x10 (or $x8 $x45)))\n(let (($x16 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x16 $x16 $x10)))))))\n(check-sat)\n",
+            "smt2_sha256": "a3b10aa293f01d7f632e80c3b04a60e42ce9a1d4ef4e05fa4c68bdad2aa677ec"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "c",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 3,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.effect:2:c| () (_ BitVec 64))\n(assert\n (let (($x45 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x5 (and (distinct |f1.b0.effect:2:c| |f1.b0.effect:2:c|) true)))\n(let (($x48 (or $x5 $x45)))\n(let (($x16 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x16 $x16 $x48)))))))\n(check-sat)\n",
+            "smt2_sha256": "abe4152113b3120878baa5b6744e109181c73160a65fa32b77dcd23939fa0ec7"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "r"
+            ],
+            "result": "unsat",
+            "segment": 4,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.effect:3:r| () (_ BitVec 64))\n(assert\n (let (($x44 (and (distinct |f1.b0.effect:3:r| |f1.b0.effect:3:r|) true)))\n(let (($x20 (or $x44)))\n(let (($x16 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x16 $x16 $x20))))))\n(check-sat)\n",
+            "smt2_sha256": "d9c4354a290363113ff42566dfd2a0679c6b50a48ea1a00ea3494753af172912"
+          }
+        ],
+        "policy": {
+          "max_obligations": 1024,
+          "max_scalar_operations": 4096,
+          "preconditions": [],
+          "schema": "hepta.hia.optimization-policy.v1",
+          "target": "x86_64-unknown-linux-gnu",
+          "timeout_ms": 5000
+        },
+        "policy_sha256": "664fed7c955263598614407633f581c9424740ee7bc31c689cf10186503b1142",
+        "preconditions": [],
+        "reason": "all compositional scalar/effect/trap obligations are UNSAT",
+        "resource_delta": {
+          "after": {
+            "call": 4
+          },
+          "allocation_failure_sequence_preserved_under_core_model": true,
+          "before": {
+            "call": 4
+          },
+          "native_cost_change_measured": false,
+          "ordered_resource_operations_preserved": true,
+          "peak_live_bytes_change_under_core_model": 0,
+          "resource_trace_equivalence_checked": true,
+          "vm_tick_count_preserved": false
+        },
+        "schema": "hepta.hia.optimization-verification.v1",
+        "solver": {
+          "binding_sha256": "093e8f2a92070c5b60a6f50e91e799a79123ba8573a2df64f1b31c01edd86b39",
+          "library_path": "/tmp/hepta-next-z3-20261028/z3/lib/libz3.so",
+          "library_sha256": "89456c35d2deb579a6a73f012d366148baa54d750f547069b89d86ee616d89cb",
+          "name": "Z3",
+          "version": "4.13.4"
+        },
+        "status": "verified",
+        "structural_preconditions": [
+          "both inputs pass canonical core admission",
+          "identical signatures, CFG edges and ordered resource/call operations",
+          "all scalar inputs in their declared finite widths; no asserted input assumptions"
+        ],
+        "target": "x86_64-unknown-linux-gnu",
+        "target_constraints": {
+          "foreign_abi": "scalar-only exports",
+          "optimization_budget": "policy deadline and obligation/operation limits",
+          "pointer_width": 64,
+          "resources": "preserve exact modeled trace",
+          "triple": "x86_64-unknown-linux-gnu"
+        },
+        "verification_sha256": "9af9d410e733d2f02b09f6dcbc642f66ee4b622639b4bc7755badcc5783fcdf0"
+      }
+    },
+    "bbaa3fce14d4edd82ebf82e7ea310417": {
+      "binding_sha256": "8787dfd7740f4e66e6a5ed0bd5f8b05a5199b96321c1162eb469d4503ebcfefd",
+      "claims": {
+        "backend_refinement_proved": false,
+        "final_artifact_bound": true,
+        "performance_qualified": false,
+        "unverified_candidate_published": false
+      },
+      "native": {
+        "artifact_bytes": 15112,
+        "artifact_sha256": "f39ca0a0e84815519d77be6f050ce12dc333f1f59fcf50fb5f27064ae305a970",
+        "binary_inventory": {
+          "claims": {
+            "backend_refinement_proven": false,
+            "binary_abi_observed": true,
+            "native_execution_proven": false,
+            "whole_language_memory_safety_proven": false
+          },
+          "dynamic_exports": [
+            "add_step",
+            "transition"
+          ],
+          "format": "ELF64",
+          "kind": "ET_DYN",
+          "machine": 62,
+          "schema": "hepta.elf-shared-abi.v1",
+          "source_exports_rechecked": true,
+          "unresolved_imports": [
+            "_ITM_deregisterTMCloneTable",
+            "_ITM_registerTMCloneTable",
+            "__cxa_finalize",
+            "__gmon_start__"
+          ]
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "9438c0a91d9d83f85aa9a6852c8ea52e06217ddeb979f296bcceb44abe0e983e",
+        "exports": [
+          "add_step",
+          "transition"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-shared"
+        ],
+        "implementation_sha256": "0519011099263210f3f0e9c0ad11c0dc4586fdaf079c6df16746ba49cc4a3ef9",
+        "input_sha256": "9438c0a91d9d83f85aa9a6852c8ea52e06217ddeb979f296bcceb44abe0e983e",
+        "kind": "shared",
+        "llvm_ir_sha256": "3057db0c939fab7027f020ded81144ca23be00427633a865b3a1656d4baa9f05",
+        "ok": true,
+        "output": "/workspace/scratch/5567a9db5cf4/hepta-work/experiments/hia_stateful_eval/next_20261028/attempt02/runtime/bbaa3fce14d4edd82ebf82e7ea310417.so",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/tmp/hepta-next-llvm-20261028/usr/lib/llvm-20/bin/clang",
+          "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+          "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+        }
+      },
+      "schema": "hepta.hia.optimized-native.v1",
+      "status": "verified_core_native_bound",
+      "verification": {
+        "base_input_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "base_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "candidate_input_sha256": "9438c0a91d9d83f85aa9a6852c8ea52e06217ddeb979f296bcceb44abe0e983e",
+        "candidate_sha256": "9438c0a91d9d83f85aa9a6852c8ea52e06217ddeb979f296bcceb44abe0e983e",
+        "checker_sha256": "78694a5f57a303f576dd9b5430498affc9d65e7fa93d639721a940cf66554f12",
+        "claims": {
+          "all_scalar_inputs_in_declared_widths": true,
+          "arbitrary_rewrites_supported": false,
+          "backend_refinement_proved": false,
+          "cfg_and_resource_protocol_preserved": true,
+          "core_scalar_effect_equivalence_checked": true,
+          "deployment_authority": false,
+          "native_execution_qualified": false,
+          "whole_language_soundness_proved": false
+        },
+        "elapsed_ns": 139740739,
+        "obligations": [
+          {
+            "block": "entry",
+            "function": "add_step",
+            "observed": [
+              "r"
+            ],
+            "result": "unsat",
+            "segment": 0,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b0.input:y| () (_ BitVec 64))\n(declare-fun |f0.b0.input:x| () (_ BitVec 64))\n(assert\n (let ((?x13 (bvadd |f0.b0.input:x| |f0.b0.input:y|)))\n(let ((?x10 (bvand |f0.b0.input:x| |f0.b0.input:y|)))\n(let ((?x11 (bvmul ?x10 (_ bv2 64))))\n(let ((?x9 (bvxor |f0.b0.input:x| |f0.b0.input:y|)))\n(let ((?x12 (bvadd ?x9 ?x11)))\n(let (($x14 (and (distinct ?x12 ?x13) true)))\n(let (($x15 (or $x14)))\n(let (($x17 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x17 $x17 $x15)))))))))))\n(check-sat)\n",
+            "smt2_sha256": "4062ad9a858ccf38b96a7174d285183b0fb5677650b1b455bd79a88d5a2bcfa1"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "x",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 0,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.input:x| () (_ BitVec 64))\n(assert\n (let (($x114 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x113 (and (distinct |f1.b0.input:x| |f1.b0.input:x|) true)))\n(let (($x115 (or $x113 $x114)))\n(let (($x17 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x17 $x17 $x115)))))))\n(check-sat)\n",
+            "smt2_sha256": "4771e4daafa271528f6a95d4b3e6128fca82026653df4d3b34579601677c08b8"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "a",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 1,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.effect:0:a| () (_ BitVec 64))\n(assert\n (let (($x114 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x41 (and (distinct |f1.b0.effect:0:a| |f1.b0.effect:0:a|) true)))\n(let (($x42 (or $x41 $x114)))\n(let (($x17 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x17 $x17 $x42)))))))\n(check-sat)\n",
+            "smt2_sha256": "a2a2b02231818efab43286f87c6d90a7fbb78c753accd00ea5c5804b423da0e8"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "b",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 2,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.effect:1:b| () (_ BitVec 64))\n(assert\n (let (($x114 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x8 (and (distinct |f1.b0.effect:1:b| |f1.b0.effect:1:b|) true)))\n(let (($x10 (or $x8 $x114)))\n(let (($x17 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x17 $x17 $x10)))))))\n(check-sat)\n",
+            "smt2_sha256": "f73921621c631d49b6d708e0abd4fb53244a9ae3bd31de0d485e7727602ebdea"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "c",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 3,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.effect:2:c| () (_ BitVec 64))\n(assert\n (let (($x114 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x5 (and (distinct |f1.b0.effect:2:c| |f1.b0.effect:2:c|) true)))\n(let (($x117 (or $x5 $x114)))\n(let (($x17 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x17 $x17 $x117)))))))\n(check-sat)\n",
+            "smt2_sha256": "9b02666cb00b9def05bc859d053e1b0a2845e918f68fd521308cf8ef064135a4"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "r"
+            ],
+            "result": "unsat",
+            "segment": 4,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.effect:3:r| () (_ BitVec 64))\n(assert\n (let (($x113 (and (distinct |f1.b0.effect:3:r| |f1.b0.effect:3:r|) true)))\n(let (($x44 (or $x113)))\n(let (($x17 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x17 $x17 $x44))))))\n(check-sat)\n",
+            "smt2_sha256": "3c27aeac6291ef583249a123b8aa47c176476ec7f37fe84b47755ca018fbd782"
+          }
+        ],
+        "policy": {
+          "max_obligations": 1024,
+          "max_scalar_operations": 4096,
+          "preconditions": [],
+          "schema": "hepta.hia.optimization-policy.v1",
+          "target": "x86_64-unknown-linux-gnu",
+          "timeout_ms": 5000
+        },
+        "policy_sha256": "664fed7c955263598614407633f581c9424740ee7bc31c689cf10186503b1142",
+        "preconditions": [],
+        "reason": "all compositional scalar/effect/trap obligations are UNSAT",
+        "resource_delta": {
+          "after": {
+            "call": 4
+          },
+          "allocation_failure_sequence_preserved_under_core_model": true,
+          "before": {
+            "call": 4
+          },
+          "native_cost_change_measured": false,
+          "ordered_resource_operations_preserved": true,
+          "peak_live_bytes_change_under_core_model": 0,
+          "resource_trace_equivalence_checked": true,
+          "vm_tick_count_preserved": false
+        },
+        "schema": "hepta.hia.optimization-verification.v1",
+        "solver": {
+          "binding_sha256": "093e8f2a92070c5b60a6f50e91e799a79123ba8573a2df64f1b31c01edd86b39",
+          "library_path": "/tmp/hepta-next-z3-20261028/z3/lib/libz3.so",
+          "library_sha256": "89456c35d2deb579a6a73f012d366148baa54d750f547069b89d86ee616d89cb",
+          "name": "Z3",
+          "version": "4.13.4"
+        },
+        "status": "verified",
+        "structural_preconditions": [
+          "both inputs pass canonical core admission",
+          "identical signatures, CFG edges and ordered resource/call operations",
+          "all scalar inputs in their declared finite widths; no asserted input assumptions"
+        ],
+        "target": "x86_64-unknown-linux-gnu",
+        "target_constraints": {
+          "foreign_abi": "scalar-only exports",
+          "optimization_budget": "policy deadline and obligation/operation limits",
+          "pointer_width": 64,
+          "resources": "preserve exact modeled trace",
+          "triple": "x86_64-unknown-linux-gnu"
+        },
+        "verification_sha256": "180a763728e2da215f3eb44f588661a1c69a0255fa4f5514aefd4e164d589b77"
+      }
+    }
+  },
+  "controls": {
+    "active_call_switch_close_and_borrow_refused": true,
+    "allocation_refusal_cleanup": true,
+    "close_with_live_alias_refused": true,
+    "completed_queue_replay_refused": true,
+    "ended_alias_access_refused": true,
+    "partial_cancelled_queue_replay_refused": true,
+    "persistent_owner_survives_actual_switch": true
+  },
+  "distinct_native_artifacts": true,
+  "driver": {
+    "artifact_sha256": "5cb05af57d65c6f2f5287d03a2c04b47fde0858365f0679ecf6eeddd5096f64a",
+    "binary_inventory": {
+      "claims": {
+        "backend_refinement_proven": false,
+        "binary_abi_observed": true,
+        "native_execution_proven": false,
+        "whole_language_memory_safety_proven": false
+      },
+      "dynamic_exports": [
+        "hs_allocations",
+        "hs_apply",
+        "hs_cancel",
+        "hs_clone",
+        "hs_free",
+        "hs_frees",
+        "hs_identity",
+        "hs_live",
+        "hs_new",
+        "hs_progress",
+        "hs_read",
+        "hs_refusals",
+        "hs_reset",
+        "hs_write"
+      ],
+      "format": "ELF64",
+      "kind": "ET_DYN",
+      "machine": 62,
+      "schema": "hepta.elf-shared-abi.v1",
+      "source_exports_rechecked": true,
+      "unresolved_imports": [
+        "_ITM_deregisterTMCloneTable",
+        "_ITM_registerTMCloneTable",
+        "__cxa_finalize",
+        "__gmon_start__",
+        "calloc",
+        "free",
+        "memcpy"
+      ]
+    },
+    "command": [
+      "/tmp/hepta-next-llvm-20261028/usr/lib/llvm-20/bin/clang",
+      "-std=c11",
+      "-O3",
+      "-fPIC",
+      "-shared",
+      "-x",
+      "c",
+      "-",
+      "-o",
+      "/workspace/scratch/5567a9db5cf4/hepta-work/experiments/hia_stateful_eval/next_20261028/attempt02/runtime/.owned-driver-4dv5bey7/driver.so"
+    ],
+    "compiler_sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+    "source_sha256": "e70cf7daf7752886d862dfb9ecae08a21db4fe025db64ba67d4821803b3cdce3"
+  },
+  "external_or_crash_exactly_once": false,
+  "final_native_ledger": {
+    "allocations": 17,
+    "frees": 17,
+    "live": 0,
+    "refusals": 2
+  },
+  "general_heap_migration": false,
+  "native_snapshots": {
+    "baseline": {
+      "bytes": 15112,
+      "sha256": "362b7318d2f83a1eac77199892bb90dd63d61862365aeaa12f18f113a0433e7f"
+    },
+    "candidate": {
+      "bytes": 15112,
+      "sha256": "f39ca0a0e84815519d77be6f050ce12dc333f1f59fcf50fb5f27064ae305a970"
+    }
+  },
+  "negative_gain_audit": {
+    "application_work_replayed": false,
+    "audit_experiment_cost_ns": 40085,
+    "baseline_native_execution_ns": 14030,
+    "decision_authority": false,
+    "deployment_cost_ns": 1287310480,
+    "final_state_matches": true,
+    "measured_deployment_net_ns": -1287296450,
+    "queue_sha256": "208bee5a5fa5466bf80f4256b63a887b64d73fd644660b05b0c5f0a48b0e6b96",
+    "schema": "hepta.hia.owned-queue-counterfactual.v1",
+    "total_experiment_cost_ns": 1287350565
+  },
+  "negative_gain_execution": {
+    "allocation_identity": "267025f2d5d943a144d234699ede39c76f09c2d6bfbffe0df607ffec7d052a31",
+    "application_execution_ns": 7870,
+    "automatic_selection": false,
+    "calibration_verification_switch_ns": 1831815,
+    "commit_bookkeeping_ns": 167263,
+    "committed_steps": 16,
+    "cumulative_deployment_cost_ns": 1287310480,
+    "deployment_cost_ns": 1287310480,
+    "error": null,
+    "executed_steps": 16,
+    "final_values": [
+      251,
+      18446744073709551607,
+      0
+    ],
+    "forecast_is_guaranteed": false,
+    "item_progress": [
+      {
+        "committed": 9,
+        "item": 0,
+        "replayed": 0,
+        "requested": 9
+      },
+      {
+        "committed": 7,
+        "item": 1,
+        "replayed": 0,
+        "requested": 7
+      }
+    ],
+    "measurement": {
+      "artifact_sha256": "f39ca0a0e84815519d77be6f050ce12dc333f1f59fcf50fb5f27064ae305a970",
+      "baseline_estimate_ns": 4185,
+      "basis": "minimum-observed-paired-saving; forecast-not-guaranteed",
+      "candidate": "bbaa3fce14d4edd82ebf82e7ea310417",
+      "committed_steps": 16,
+      "expires_ns": 30504512360101,
+      "generation": 2,
+      "measurement_cost_ns": 239510,
+      "owner": "bd93008cde120f7ae684346e85aa10d3",
+      "projected_saving_ns": -1643,
+      "queue_sha256": "208bee5a5fa5466bf80f4256b63a887b64d73fd644660b05b0c5f0a48b0e6b96",
+      "revision": 1,
+      "rounds": [
+        {
+          "baseline_ns": 21480,
+          "candidate_ns": 9260
+        },
+        {
+          "baseline_ns": 4189,
+          "candidate_ns": 5832
+        },
+        {
+          "baseline_ns": 4185,
+          "candidate_ns": 4138
+        }
+      ],
+      "sample_steps": 16
+    },
+    "native_ledger": {
+      "allocations": 15,
+      "frees": 13,
+      "live": 2,
+      "refusals": 2
+    },
+    "observed_net_against_baseline_forecast_ns": -1287306295,
+    "original_version": "baseline",
+    "owner_id": "bd93008cde120f7ae684346e85aa10d3",
+    "preparation_includes_initial_baseline_driver_and_all_prepare_attempts": true,
+    "queue": "4248bab706530a4d8f24c5a13ba59b0a",
+    "queue_sha256": "208bee5a5fa5466bf80f4256b63a887b64d73fd644660b05b0c5f0a48b0e6b96",
+    "replayed_steps": 0,
+    "schema": "hepta.hia.owned-queue-execution.v1",
+    "selection_reason": "nonpositive_empirical_queue_forecast",
+    "status": "completed",
+    "unamortized_preparation_ns": 1285303532,
+    "version": "baseline"
+  },
+  "ok": true,
+  "owner_after": {
+    "active_calls": 0,
+    "actual_progress": 0,
+    "allocation_identity": "267025f2d5d943a144d234699ede39c76f09c2d6bfbffe0df607ffec7d052a31",
+    "automatic_profitable_selection_supported": true,
+    "closed": false,
+    "completed_native_calls": 0,
+    "completed_shadow_calls": 0,
+    "crash_recovery_or_external_transaction_exactly_once": false,
+    "current": "bbaa3fce14d4edd82ebf82e7ea310417",
+    "event_count": 7,
+    "event_counts": {
+      "baseline_loaded": 1,
+      "prepared": 1,
+      "selected": 1,
+      "state_loan_created": 1,
+      "state_loan_ended": 1,
+      "state_owner_created": 1,
+      "state_version_switched": 1
+    },
+    "events": [
+      {
+        "artifact_sha256": "362b7318d2f83a1eac77199892bb90dd63d61862365aeaa12f18f113a0433e7f",
+        "event": "baseline_loaded",
+        "generation": 0,
+        "monotonic_ns": 30443725970488,
+        "token": "baseline"
+      },
+      {
+        "allocation_identity": "267025f2d5d943a144d234699ede39c76f09c2d6bfbffe0df607ffec7d052a31",
+        "cells": 3,
+        "event": "state_owner_created",
+        "generation": 0,
+        "monotonic_ns": 30443861939397,
+        "owner_id": "bd93008cde120f7ae684346e85aa10d3"
+      },
+      {
+        "artifact_sha256": "f39ca0a0e84815519d77be6f050ce12dc333f1f59fcf50fb5f27064ae305a970",
+        "event": "prepared",
+        "generation": 0,
+        "monotonic_ns": 30444243579406,
+        "preparation_ns": 379156451,
+        "token": "bbaa3fce14d4edd82ebf82e7ea310417"
+      },
+      {
+        "event": "state_loan_created",
+        "generation": 0,
+        "monotonic_ns": 30444245839393,
+        "mutable": true
+      },
+      {
+        "event": "state_loan_ended",
+        "generation": 0,
+        "monotonic_ns": 30444248861315
+      },
+      {
+        "event": "selected",
+        "generation": 1,
+        "mode": "explicit",
+        "monotonic_ns": 30444375983740,
+        "performance_claim": false,
+        "previous": "baseline",
+        "selection_cost_ns": 124019594,
+        "token": "bbaa3fce14d4edd82ebf82e7ea310417"
+      },
+      {
+        "allocation_identity": "267025f2d5d943a144d234699ede39c76f09c2d6bfbffe0df607ffec7d052a31",
+        "event": "state_version_switched",
+        "generation": 1,
+        "monotonic_ns": 30444376049176,
+        "owner_id": "bd93008cde120f7ae684346e85aa10d3"
+      }
+    ],
+    "general_heap_or_stack_migration_supported": false,
+    "generation": 1,
+    "live_loans": 0,
+    "measurement_mode": "conservative_shadow_only",
+    "native_ledger": {
+      "allocations": 2,
+      "frees": 0,
+      "live": 2,
+      "refusals": 0
+    },
+    "owner_id": "bd93008cde120f7ae684346e85aa10d3",
+    "owner_state_schema": {
+      "cells": 3,
+      "endianness": "little",
+      "owner": "exclusive-native-u64-array",
+      "persistent_fields": [
+        "cells"
+      ],
+      "safepoint": "no-active-call-and-no-live-loan",
+      "schema": "hepta.hia.owned-u64-transition-runtime.v1",
+      "target": "x86_64-unknown-linux-gnu",
+      "transition_abi": [
+        "u64",
+        "u64",
+        "u64"
+      ],
+      "word_bits": 64
+    },
+    "performance_policy": "committed-queue-empirical-forecast-not-a-guarantee",
+    "persistent_owner_switching_supported": true,
+    "preparing": 0,
+    "profile": "hepta.hia.owned-u64-transition-runtime.v1",
+    "raw_events_dropped": 0,
+    "state_revision": 1,
+    "state_schema": {
+      "calling_convention": "C-Linux-LP64",
+      "continuation": "native-adapter-entry-no-active-frames",
+      "core_schema": "hepta.hia.program.v1",
+      "effects": [],
+      "entry": "transition",
+      "interfaces": [
+        {
+          "effects": [],
+          "name": "add_step",
+          "params": [
+            {
+              "name": "x",
+              "type": "u64"
+            },
+            {
+              "name": "y",
+              "type": "u64"
+            }
+          ],
+          "returns": [
+            "u64"
+          ]
+        },
+        {
+          "effects": [],
+          "name": "transition",
+          "params": [
+            {
+              "name": "x",
+              "type": "u64"
+            },
+            {
+              "name": "y",
+              "type": "u64"
+            }
+          ],
+          "returns": [
+            "u64"
+          ]
+        }
+      ],
+      "live_loans": [],
+      "live_owners": [],
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        }
+      ],
+      "persistent_values": [],
+      "returns": [
+        "u64"
+      ],
+      "schema": "hepta.hia.total-scalar-helper-abi.v1",
+      "target": "x86_64-unknown-linux-gnu"
+    },
+    "state_sha256": "18bbae4259beadd05fe466eb1a138fdaf2f719f83b56ab77d879a8e1aaa52c36",
+    "state_values": [
+      18446744073709551615,
+      19,
+      0
+    ]
+  },
+  "owner_before": {
+    "active_calls": 0,
+    "actual_progress": 0,
+    "allocation_identity": "267025f2d5d943a144d234699ede39c76f09c2d6bfbffe0df607ffec7d052a31",
+    "automatic_profitable_selection_supported": true,
+    "closed": false,
+    "completed_native_calls": 0,
+    "completed_shadow_calls": 0,
+    "crash_recovery_or_external_transaction_exactly_once": false,
+    "current": "baseline",
+    "event_count": 3,
+    "event_counts": {
+      "baseline_loaded": 1,
+      "prepared": 1,
+      "state_owner_created": 1
+    },
+    "events": [
+      {
+        "artifact_sha256": "362b7318d2f83a1eac77199892bb90dd63d61862365aeaa12f18f113a0433e7f",
+        "event": "baseline_loaded",
+        "generation": 0,
+        "monotonic_ns": 30443725970488,
+        "token": "baseline"
+      },
+      {
+        "allocation_identity": "267025f2d5d943a144d234699ede39c76f09c2d6bfbffe0df607ffec7d052a31",
+        "cells": 3,
+        "event": "state_owner_created",
+        "generation": 0,
+        "monotonic_ns": 30443861939397,
+        "owner_id": "bd93008cde120f7ae684346e85aa10d3"
+      },
+      {
+        "artifact_sha256": "f39ca0a0e84815519d77be6f050ce12dc333f1f59fcf50fb5f27064ae305a970",
+        "event": "prepared",
+        "generation": 0,
+        "monotonic_ns": 30444243579406,
+        "preparation_ns": 379156451,
+        "token": "bbaa3fce14d4edd82ebf82e7ea310417"
+      }
+    ],
+    "general_heap_or_stack_migration_supported": false,
+    "generation": 0,
+    "live_loans": 0,
+    "measurement_mode": "conservative_shadow_only",
+    "native_ledger": {
+      "allocations": 2,
+      "frees": 0,
+      "live": 2,
+      "refusals": 0
+    },
+    "owner_id": "bd93008cde120f7ae684346e85aa10d3",
+    "owner_state_schema": {
+      "cells": 3,
+      "endianness": "little",
+      "owner": "exclusive-native-u64-array",
+      "persistent_fields": [
+        "cells"
+      ],
+      "safepoint": "no-active-call-and-no-live-loan",
+      "schema": "hepta.hia.owned-u64-transition-runtime.v1",
+      "target": "x86_64-unknown-linux-gnu",
+      "transition_abi": [
+        "u64",
+        "u64",
+        "u64"
+      ],
+      "word_bits": 64
+    },
+    "performance_policy": "committed-queue-empirical-forecast-not-a-guarantee",
+    "persistent_owner_switching_supported": true,
+    "preparing": 0,
+    "profile": "hepta.hia.owned-u64-transition-runtime.v1",
+    "raw_events_dropped": 0,
+    "state_revision": 0,
+    "state_schema": {
+      "calling_convention": "C-Linux-LP64",
+      "continuation": "native-adapter-entry-no-active-frames",
+      "core_schema": "hepta.hia.program.v1",
+      "effects": [],
+      "entry": "transition",
+      "interfaces": [
+        {
+          "effects": [],
+          "name": "add_step",
+          "params": [
+            {
+              "name": "x",
+              "type": "u64"
+            },
+            {
+              "name": "y",
+              "type": "u64"
+            }
+          ],
+          "returns": [
+            "u64"
+          ]
+        },
+        {
+          "effects": [],
+          "name": "transition",
+          "params": [
+            {
+              "name": "x",
+              "type": "u64"
+            },
+            {
+              "name": "y",
+              "type": "u64"
+            }
+          ],
+          "returns": [
+            "u64"
+          ]
+        }
+      ],
+      "live_loans": [],
+      "live_owners": [],
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        }
+      ],
+      "persistent_values": [],
+      "returns": [
+        "u64"
+      ],
+      "schema": "hepta.hia.total-scalar-helper-abi.v1",
+      "target": "x86_64-unknown-linux-gnu"
+    },
+    "state_sha256": "18bbae4259beadd05fe466eb1a138fdaf2f719f83b56ab77d879a8e1aaa52c36",
+    "state_values": [
+      18446744073709551615,
+      17,
+      0
+    ]
+  },
+  "partial_execution": {
+    "allocation_identity": "267025f2d5d943a144d234699ede39c76f09c2d6bfbffe0df607ffec7d052a31",
+    "application_execution_ns": 6608089,
+    "automatic_selection": false,
+    "calibration_verification_switch_ns": 1134190,
+    "commit_bookkeeping_ns": 52571,
+    "committed_steps": 1000000000,
+    "cumulative_deployment_cost_ns": 1296922198,
+    "deployment_cost_ns": 9611718,
+    "error": null,
+    "executed_steps": 940065,
+    "final_values": [
+      251,
+      18446744073709551607,
+      48883380
+    ],
+    "forecast_is_guaranteed": false,
+    "item_progress": [
+      {
+        "committed": 940065,
+        "item": 0,
+        "replayed": 0,
+        "requested": 1000000000
+      }
+    ],
+    "measurement": null,
+    "native_ledger": {
+      "allocations": 17,
+      "frees": 15,
+      "live": 2,
+      "refusals": 2
+    },
+    "observed_net_against_baseline_forecast_ns": null,
+    "original_version": "baseline",
+    "owner_id": "bd93008cde120f7ae684346e85aa10d3",
+    "preparation_includes_initial_baseline_driver_and_all_prepare_attempts": true,
+    "queue": "33162b838e21d3d9b78af5533e6fdc8d",
+    "queue_sha256": "e50e3189e150a51036d1f87dc77da6e75c5e76e54dea6462e7d278a690f5a27d",
+    "replayed_steps": 0,
+    "schema": "hepta.hia.owned-queue-execution.v1",
+    "selection_reason": "no_candidate",
+    "status": "cancelled",
+    "unamortized_preparation_ns": 1816868,
+    "version": "baseline"
+  },
+  "performance": {
+    "automatic_selected": true,
+    "counterfactual_audit": {
+      "application_work_replayed": false,
+      "audit_experiment_cost_ns": 3095343824,
+      "baseline_native_execution_ns": 3095271458,
+      "decision_authority": false,
+      "deployment_cost_ns": 2467681332,
+      "final_state_matches": true,
+      "measured_deployment_net_ns": 627590126,
+      "queue_sha256": "f5f6fc884179e4b415b6e1bca5caf57a6253f3d5ef480183837282cdd30f45f8",
+      "schema": "hepta.hia.owned-queue-counterfactual.v1",
+      "total_experiment_cost_ns": 5563025156
+    },
+    "deployment_net_positive": true,
+    "execution": {
+      "allocation_identity": "a117cc81505979159c010c66bc157cf3647e12849e45faa31ed94293c3c67fc7",
+      "application_execution_ns": 1445751893,
+      "automatic_selection": true,
+      "calibration_verification_switch_ns": 167328466,
+      "commit_bookkeeping_ns": 257317,
+      "committed_steps": 400000000,
+      "cumulative_deployment_cost_ns": 2467681332,
+      "deployment_cost_ns": 2467681332,
+      "error": null,
+      "executed_steps": 400000000,
+      "final_values": [
+        10492761773271355421,
+        31
+      ],
+      "forecast_is_guaranteed": false,
+      "item_progress": [
+        {
+          "committed": 400000000,
+          "item": 0,
+          "replayed": 0,
+          "requested": 400000000
+        }
+      ],
+      "measurement": {
+        "artifact_sha256": "f39ca0a0e84815519d77be6f050ce12dc333f1f59fcf50fb5f27064ae305a970",
+        "baseline_estimate_ns": 2550040800,
+        "basis": "minimum-observed-paired-saving; forecast-not-guaranteed",
+        "candidate": "a494e9bfc382c610c632bb2b3f23818c",
+        "committed_steps": 400000000,
+        "expires_ns": 30505417121306,
+        "generation": 0,
+        "measurement_cost_ns": 31319223,
+        "owner": "6af4bb13af99933f1aa3a45b32f9cb36",
+        "projected_saving_ns": 1164200800,
+        "queue_sha256": "f5f6fc884179e4b415b6e1bca5caf57a6253f3d5ef480183837282cdd30f45f8",
+        "revision": 0,
+        "rounds": [
+          {
+            "baseline_ns": 3570301,
+            "candidate_ns": 1890431
+          },
+          {
+            "baseline_ns": 3532232,
+            "candidate_ns": 2076981
+          },
+          {
+            "baseline_ns": 3187551,
+            "candidate_ns": 1366443
+          },
+          {
+            "baseline_ns": 7005289,
+            "candidate_ns": 1558726
+          },
+          {
+            "baseline_ns": 4373426,
+            "candidate_ns": 2476922
+          }
+        ],
+        "sample_steps": 500000
+      },
+      "native_ledger": {
+        "allocations": 22,
+        "frees": 20,
+        "live": 2,
+        "refusals": 0
+      },
+      "observed_net_against_baseline_forecast_ns": 82359468,
+      "original_version": "baseline",
+      "owner_id": "6af4bb13af99933f1aa3a45b32f9cb36",
+      "preparation_includes_initial_baseline_driver_and_all_prepare_attempts": true,
+      "queue": "faa7178acfbf1001549ed1fa049bd2a7",
+      "queue_sha256": "f5f6fc884179e4b415b6e1bca5caf57a6253f3d5ef480183837282cdd30f45f8",
+      "replayed_steps": 0,
+      "schema": "hepta.hia.owned-queue-execution.v1",
+      "selection_reason": "positive_empirical_queue_forecast",
+      "status": "completed",
+      "unamortized_preparation_ns": 854343656,
+      "version": "a494e9bfc382c610c632bb2b3f23818c"
+    },
+    "experiment_total_includes_baseline_audit": true,
+    "final_native_ledger": {
+      "allocations": 24,
+      "frees": 24,
+      "live": 0,
+      "refusals": 0
+    },
+    "guaranteed": false,
+    "performance_not_generalized_beyond_this_queue": true,
+    "status": "actual_native_measured"
+  },
+  "profile": "exclusive-u64-array; total scalar transition; live-process committed queue",
+  "schema": "hepta.hia.owned-state-qualification.v1",
+  "source_bindings": {
+    "hepta/hia_adaptive.py": "79936ef7509d8f4f208c96b43ec854e6e768e09926fb4fca16a1686978226246",
+    "hepta/hia_stateful.py": "05787aa1f9db5b924ffaa6267aaa4af7904ac92725aad0c2fa3f2fadaccd2a5f",
+    "tools/qualify_hia_stateful.py": "604b1f48d8985e1ec72bc7fd03076f8bf8edc9adb6a1710d2a24a565b30c959a"
+  }
+}

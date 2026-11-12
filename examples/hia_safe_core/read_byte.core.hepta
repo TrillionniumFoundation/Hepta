@@ -1,0 +1,79 @@
+{
+  "schema": "hepta.hia.program.v8",
+  "module": "safe_reader",
+  "functions": [
+    {
+      "name": "read_byte",
+      "params": [
+        {
+          "name": "buffer",
+          "type": "readbuf"
+        },
+        {
+          "name": "index",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "u32"
+      ],
+      "effects": [
+        "read",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "buffer",
+              "type": "readbuf"
+            },
+            {
+              "name": "index",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.load",
+              "args": [
+                "buffer",
+                "index"
+              ],
+              "out": [
+                {
+                  "name": "byte",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "byte"
+              ],
+              "out": [
+                {
+                  "name": "answer",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "answer"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

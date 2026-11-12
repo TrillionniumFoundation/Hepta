@@ -1,0 +1,387 @@
+{
+  "schema": "hepta.hia.program.v5",
+  "module": "distinct_owner_copy",
+  "functions": [
+    {
+      "name": "copy_offset",
+      "params": [
+        {
+          "name": "length",
+          "type": "usize"
+        },
+        {
+          "name": "dst",
+          "type": "usize"
+        },
+        {
+          "name": "src",
+          "type": "usize"
+        },
+        {
+          "name": "count",
+          "type": "usize"
+        },
+        {
+          "name": "probe",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "u8"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "length",
+              "type": "usize"
+            },
+            {
+              "name": "dst",
+              "type": "usize"
+            },
+            {
+              "name": "src",
+              "type": "usize"
+            },
+            {
+              "name": "count",
+              "type": "usize"
+            },
+            {
+              "name": "probe",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.new",
+              "args": [
+                "length"
+              ],
+              "out": [
+                {
+                  "name": "destination",
+                  "type": "buffer"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.new",
+              "args": [
+                "length"
+              ],
+              "out": [
+                {
+                  "name": "source",
+                  "type": "buffer"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.mut",
+              "args": [
+                "source"
+              ],
+              "out": [
+                {
+                  "name": "source_writer",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "idx0",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "byte0",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 11
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "source_writer",
+                "idx0",
+                "byte0"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "idx1",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "byte1",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 22
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "source_writer",
+                "idx1",
+                "byte1"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "idx2",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "byte2",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 33
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "source_writer",
+                "idx2",
+                "byte2"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "idx3",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 3
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "byte3",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 44
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "source_writer",
+                "idx3",
+                "byte3"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "idx4",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 4
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "byte4",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 55
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "source_writer",
+                "idx4",
+                "byte4"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "source_writer"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.read",
+              "args": [
+                "source"
+              ],
+              "out": [
+                {
+                  "name": "reader",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.mut",
+              "args": [
+                "destination"
+              ],
+              "out": [
+                {
+                  "name": "writer",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.copy_range",
+              "args": [
+                "writer",
+                "reader",
+                "dst",
+                "src",
+                "count"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "writer",
+                "probe"
+              ],
+              "out": [
+                {
+                  "name": "answer",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "writer"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "reader"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "destination"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "source"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "answer"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

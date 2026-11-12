@@ -1,0 +1,220 @@
+{
+  "schema": "hepta.hia.ndu.prepared-reuse.protocol.v1",
+  "purpose": "qualification",
+  "source_baseline": "2f49151ab9d8812eeb02ac2056f224f140099d76",
+  "runtime_review_source": "3c547848a4e9e488b42de631bb29ba039c489093",
+  "native_source_pin": "c4a1bbed3a39beba43a6abf1a18b6f75c5725c21",
+  "native_rustc": "1.90.0",
+  "groups": 2,
+  "calls": 131071,
+  "training_seed": 17,
+  "holdout_seed": 113,
+  "calibration_repetitions": 3,
+  "calibration_sizes": [
+    127,
+    4093,
+    32749
+  ],
+  "guard_limits": {
+    "guard-small": 128,
+    "guard-wide": 4096
+  },
+  "proof_policy": {
+    "schema": "hepta.hia.optimization-policy.v1",
+    "target": "x86_64-unknown-linux-gnu",
+    "timeout_ms": 30000,
+    "max_scalar_operations": 4096,
+    "max_obligations": 1024,
+    "preconditions": []
+  },
+  "modules": [
+    "byte_sum",
+    "packet_xor"
+  ],
+  "arms": [
+    "fixed",
+    "dp",
+    "native-stream-sealed"
+  ],
+  "application_profiles": {
+    "short-lived": {
+      "modules": [
+        "byte_sum"
+      ],
+      "module_sizes": [
+        [
+          127,
+          4093
+        ]
+      ],
+      "compile_credits": 1
+    },
+    "stable-reuse": {
+      "modules": [
+        "byte_sum"
+      ],
+      "module_sizes": [
+        [
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093
+        ]
+      ],
+      "compile_credits": 1
+    },
+    "changing-load": {
+      "modules": [
+        "packet_xor"
+      ],
+      "module_sizes": [
+        [
+          127,
+          4093,
+          4093,
+          127,
+          4093,
+          4093,
+          127,
+          4093,
+          4093,
+          127,
+          4093,
+          4093,
+          127,
+          4093,
+          4093,
+          127,
+          4093,
+          4093,
+          127,
+          4093,
+          4093,
+          127,
+          4093,
+          32749
+        ]
+      ],
+      "compile_credits": 1
+    },
+    "shared-budget": {
+      "modules": [
+        "byte_sum",
+        "packet_xor"
+      ],
+      "module_sizes": [
+        [
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          127,
+          32749
+        ],
+        [
+          127,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          4093,
+          32749
+        ]
+      ],
+      "compile_credits": 1
+    }
+  },
+  "session_limits": {
+    "max_entries": 8,
+    "max_retained_bytes": 33554432,
+    "max_artifact_bytes": 1048576,
+    "max_metadata_bytes": 1048576,
+    "max_leases": 4,
+    "max_executions": 256
+  },
+  "proof_reuse_pairs": 2,
+  "episode_budget_ns": 180000000000,
+  "completion_value_ns": 240000000000,
+  "controller_timeout_s": 10,
+  "forecast": "Interleaved median of actual lease acquisition, binding checks, child run, release and checksum verification at the exact module/target/input size. Completed observations replace only that cell. Candidate internal proof/build/sealing is charged once when its actual admission credit is consumed.",
+  "reuse_eligibility": "Every arm receives the identical internally proved self-built sealed-image session and finite entry/byte/lease/execution caps. No external receipt can create an admission. Exact source/tool/policy/artifact/proof ancestor checks remain on every lease and run.",
+  "proof_control": "Two interleaved pairs per semantic module execute the same actual admitted guard-wide image at n4093. Fresh-equivalence additionally resolves its theorem under the identical explicit policy. Both validate exact bindings. This common mechanism cost is charged to every standalone strategy; it is not NDU algorithm benefit.",
+  "fixed_control": "Complete finite budget-DP stationary suffix allocation committed after the same initial baseline probe; exact assignment reused for the full episode.",
+  "dp_control": "Complete multiple-choice DP over every registered stationary remaining-suffix target assignment, recomputed from the same bank and own completed observations. This is not a claim of complete optimal control over every future observation/decision tree.",
+  "ndu_control": "Pinned unchanged native recursive utility, feasibility and Pareto evaluator over the exact same assignments. Same input trace, initial bank, information interface, build-attempt budget and runtime reuse eligibility. Exact DP subsequently audits the model of every NDU decision.",
+  "resource_scope": "One compilation-attempt credit shared across real semantic modules, consumed before proposing/building and never refunded. Initial baselines and common calibration incur real costs outside this optimization-attempt quota. Session accounting includes unknown descriptor-release debt and excludes whole-process RSS, child heap and disk.",
+  "opportunity_control": "Before holdout execution, choose each module nonbaseline target with minimum calibrated setup plus complete shared-profile trace cost. After all policy episodes, run one actual baseline/candidate full-trace pair per module with fresh independent sessions, the group0 holdout inputs and alternating pair order. Count all preparation, delivered work and cleanup. Their data never feed any decision. These validation-only control costs are reported separately from strategy deployment totals and included in total study time.",
+  "competition_acceptance": "Two positive observed full-trace baseline-minus-candidate wall differences, both controls admitted, plus group0 epoch0 NDU has those exact two predicted-profitable new builds competing for one credit, chooses the exact DP plan, and actually builds and correctly executes its selected candidate. A finite observational pair is not a statistical or universal profitability guarantee.",
+  "economic_acceptance": "Separately require all output/budget/release gates and NDU current warm standalone total below both strong fixed and full finite DP in every profile. The competition gate never implies this gate. No new cold-build acceptance is available in this study.",
+  "historical_build": "The retained 32.133198039-second v2 empty-target build is an explicitly historical cost reference for the exact unchanged native controller/tool/wrapper. Report a separate current-warm-plus-historical table; never label it a new cold measurement.",
+  "cost_scope": "Current registration/source checks, driver build, all calibration and proof-mechanism controls, native admission/session/controller work, internal proposal/proof/build/sealing, lease checks, execution, checksum checking, evidence writes and shutdown. Charge common preparation once per standalone arm and residual source/dispatch checks conservatively to NDU. Warm omits controller compilation only; no cost-free candidate construction.",
+  "excluded_costs": [
+    "toolchain installation",
+    "acquisition of preexisting dependency caches",
+    "outer Python startup/imports/argparse",
+    "post-run opportunity controls and analysis from strategy totals (their complete actual durations remain in study total)",
+    "final aggregate encoding/archival",
+    "human engineering outside registered driver"
+  ],
+  "sample_exclusion": "none; failed/refused/timed-out attempts and release debt retain their costs",
+  "measurement_scope": "Two finite groups of two small actual native kernels on the available nonexclusive Linux host, not a representative application or verified dot workstation; known team processes are coordinated but external load cannot be excluded.",
+  "previous_negative_results_replaced": false,
+  "general_performance_claim": false,
+  "authority": "DENY_ALL",
+  "safety_certificate": false
+}

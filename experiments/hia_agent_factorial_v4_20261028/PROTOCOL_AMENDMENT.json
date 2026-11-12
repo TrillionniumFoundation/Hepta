@@ -1,0 +1,26 @@
+{
+  "schema": "hepta.agent.factorial.protocol-amendment.v1",
+  "original_protocol_sha256": "49ef4446e555ffc3c119d8fc41e9b4e743ec2c6976a191578246e6eabdce44d3",
+  "created_unix_ns": 1793209559292520636,
+  "created_utc": "2026-10-28T17:45:59.292527+00:00",
+  "effective_before_any_main_completion": true,
+  "main_completions_started": 0,
+  "reason": "The user explicitly requires confirming adequate baseline model capability before the language/interface comparison. This prospective amendment removes the original permission to run a capability-unqualified main cohort; it does not change any observed outcome or lower an acceptance gate.",
+  "supersedes": "The final sentence of PROTOCOL.json model_selection.eligibility permitting a capability-unqualified 7B main cohort.",
+  "new_policy": "Run the 16-cell main cohort only if the selected model passes all three original independent calibration problems on the first response. If neither pinned model qualifies, record baseline_capability_unqualified_main_not_run with 0 main requests. This is incomplete qualification, never success.",
+  "unchanged": [
+    "3/3 first-response calibration threshold",
+    "both model identities and selection order",
+    "calibration tasks and prompts",
+    "main tasks and prompts",
+    "all token/time/thread/context budgets",
+    "no retry or manual repair",
+    "historical observations and the original protocol"
+  ],
+  "observations_at_amendment": {
+    "qwen1_5b": "three complete responses; three actual Rust compiler refusals; 0/3",
+    "qwen7b_completed_cells": 0,
+    "qwen7b_raw_completion_responses": 0
+  },
+  "selection_cannot_be_reported_as_unbiased": true
+}

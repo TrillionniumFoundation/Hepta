@@ -1,0 +1,246 @@
+{
+  "advantage_gate": "Complete stable-source 16-cell main after fresh 3/3 qualification with complete usage. HIA node must pass all four hidden gates, succeed at least as often as Rust node and HIA full, use no more total input+output tokens than Rust node and fewer than HIA full. Report all within/between-language contrasts separately; descriptive only.",
+  "arms": [
+    "hia_full",
+    "hia_node",
+    "rust_full",
+    "rust_node"
+  ],
+  "budget": {
+    "hia_vm_heap_bytes": 256,
+    "hia_vm_steps": 10000,
+    "max_hia_blocks_per_function": 16,
+    "max_hia_operations_per_function": 128,
+    "native_address_space_bytes": 268435456,
+    "native_cpu_seconds": 2,
+    "native_wall_seconds": 5
+  },
+  "capacity_gate": "Before any generation, all 19 reference responses must pass actual public and terminal hidden/native/resource validation and fit 1536 output tokens; each complete initial and both repair requests plus reserve must fit context, and the hard allocation envelope must fit. References are control-only, never model answers, prompts, selected node hints or decoder values.",
+  "cell_order": "Qualification uses listed order. Main rotates four arms by task index, one pinned model for all 16 cells. No task/model substitution or main prompt adjustment after qualification.",
+  "claims": {
+    "compiler_or_language_soundness_proved": false,
+    "general_agent_productivity_proved": false,
+    "general_language_advantage_proved": false,
+    "real_long_term_maintenance_measured": false
+  },
+  "costs": [
+    "all actual requests including failures and partial generation",
+    "input/output IDs and unknown residual usage",
+    "each tool submission, compilation, public/hidden validation",
+    "tokenization/template/history preparation and diagnostics clipping",
+    "model/runtime/source hashing and process startup/shutdown",
+    "all qualification, failed selections and reference controls separately",
+    "whole-run and per-cell wall time",
+    "automatic repair count; zero human answer repair"
+  ],
+  "decoder": "Public-node-category-selection-first.v2: every public editable node, node-before-changes wire order, public finite Rust type grammar only; expression/HIA values open. Whole program admission unchanged. Actual body and returned grammar retained.",
+  "execution_location": "Available shared development host; LOCAL_RUNTIME_NOT_OBSERVABLE for dot.",
+  "feasibility": {
+    "estimate_is_measured": false,
+    "estimated_linear_state_bytes": 52690944,
+    "estimated_native_attention_kv_bytes": 268435456,
+    "estimated_total_ram_bytes_range": [
+      3600000000,
+      4600000000
+    ],
+    "gguf_bytes": 2740937888,
+    "measurement_window": "Do not load the model while the parent runs integrated regression. Actual host memory and load records are required.",
+    "minimum_free_disk_after_download_bytes": 1073741824,
+    "official_model_capability_basis": {
+      "benchmark_settings_differ_from_fixed_study": true,
+      "bfcl_v4": 50.3,
+      "hepta_eligibility_inherited": false,
+      "livecodebench_v6": 55.8,
+      "reported_by_publisher": true,
+      "source": "provenance/Qwen__Qwen3.5-4B__README.md"
+    }
+  },
+  "generation": {
+    "attempts_per_cell": 3,
+    "cache_prompt": false,
+    "context_tokens": 8192,
+    "max_output_tokens": 1536,
+    "seed": 0,
+    "temperature": 0,
+    "threads": 4,
+    "wall_seconds": 900
+  },
+  "hidden_random_cases_per_task": 24,
+  "hidden_seed": 1213216308,
+  "historical_results_immutable": true,
+  "history": {
+    "context_rule": "Tokenize every actual complete server-rendered request and reserve all 1536 output tokens before submitting. If it exceeds 8192, end the cell as budget failure with actual prior costs retained. The initial+1664+1024+1536+256 capacity envelope is a conservative allocation, not a theorem about arbitrary tokenization; actual exact checks are authoritative.",
+    "diagnostic_rule": "Keep all public case/resource/build fields. Retain the complete raw diagnostic separately. Display diagnostic string (canonical JSON for structured diagnostics); if over 1024 feedback tokens repeatedly halve that string prefix by Unicode character count and mark clipping until it fits. Never remove a public case or resource flag. If even an empty diagnostic cannot fit, end cell as budget failure.",
+    "feedback_tokens": 1024,
+    "framing_reserve_tokens": 256,
+    "previous_overflow": "End the cell; retain complete original model response and all consumed cost. Do not truncate code, discard cost, change budgets, or auto-merge answers.",
+    "previous_response_tokens": 1664,
+    "retention": "Each repair contains the unchanged initial prompt, complete immediately preceding assistant response, and bounded public feedback. Earlier failed responses are not accumulated. Same rule in all arms and qualification."
+  },
+  "interface": "Full returns exactly files with both complete editable definitions. Node returns exactly edits (1..16), each node ID and changes; host attaches the pre-generation query revision/digest. Node uses actual HIA production batch/patch or finite Rust AST fragments, with original ownership/type/native gates.",
+  "model": {
+    "bytes": 2740937888,
+    "filename": "Qwen3.5-4B-Q4_K_M.gguf",
+    "id": "qwen35_4b_unsloth_q4_k_m",
+    "repository": "unsloth/Qwen3.5-4B-GGUF",
+    "revision": "e87f176479d0855a907a41277aca2f8ee7a09523",
+    "sha256": "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4"
+  },
+  "model_provenance": {
+    "files": {
+      "provenance/GGUF_ACQUISITION.json": "682904e153931c0622e26b733519dcd0f8a948b5e4a7614c38fa34f99a598699",
+      "provenance/GGUF_METADATA.json": "c2049818de8e8ffdac491a44ead618c9d9c594e0cd965f476552bffcd5a6d26f",
+      "provenance/GGUF_chat_template.jinja": "7f0e529032c25183bcd66c7f238da2d377f43be754a94e2725a58c4e16d2ed67",
+      "provenance/Qwen__Qwen3.5-4B.metadata.json": "a170be171988ed75a15b77d8b9e9ffced42350ea6d12698ef4d44b88ade43681",
+      "provenance/Qwen__Qwen3.5-4B__LICENSE": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a",
+      "provenance/Qwen__Qwen3.5-4B__README.md": "1406be1b6b8fd8a6545870da516912804756593628a1d0fb0a7965211e82a7bb",
+      "provenance/Qwen__Qwen3.5-4B__config.json": "ddc63e1c717afa86c865bb5e01313d89d72bb53b97ad4a8a03ba8510c0621670",
+      "provenance/Qwen__Qwen3.5-4B__tokenizer_config.json": "316230d6a809701f4db5ea8f8fc862bc3a6f3229c937c174e674ff3ca0a64ac8",
+      "provenance/RUNTIME_MEMBERS.json": "3bf3805e63245ac06d434c03f8d91e9815788ff00377acbd94e43f7bd3325f92",
+      "provenance/RUNTIME_TEMPLATE_REVIEW.json": "efa6a346e93355d5a32aed64c88ceadbf1c8ed2a8955ac6349358ae3b99fb41a",
+      "provenance/SOURCE_RECEIPT.json": "8b8634decfe818785ee99cc222a6d1f951f8b73d481b4f74a2e41590ee543c28",
+      "provenance/V10_CAPACITY_SOURCE.py.txt": "a1e75aa207cabb1e31100e3e2ef9b8c23430c62fda75b3f97d9285ee3d68daa2",
+      "provenance/V10_PROTOCOL.json": "db1af3eee3e1544452c572d8bd42bfc2733e26ad4065b9f1b6dcc1dfb6c110d0",
+      "provenance/V10_STUDY_SOURCE.py.txt": "2d1c0024df4bcc11745c31d14a1edc7ff49d4015a7e5ee1c0050ec46deebb850",
+      "provenance/llama_b11669__LICENSE": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+      "provenance/llama_b11669__qwen35.cpp": "d35673cbb968b062928481d70d3ffa555675fb90a3ddd0df482f9613547e544f",
+      "provenance/llama_b11669__tokenize.cpp": "db0cd035294b91009250029a1435a1a688d72eb489c406b630d2293b30d6fb34",
+      "provenance/unsloth__Qwen3.5-4B-GGUF.metadata.json": "5b187ac16d1acb2c0569a951385220f3134d9ef58ca05b725485a5351f7e827d",
+      "provenance/unsloth__Qwen3.5-4B-GGUF__README.md": "28546f5fc4f22ee1b3f17b908957f17fcfa66174032136265bdb27f404bc1e6c"
+    },
+    "measurement_object": "The exact pinned Unsloth Qwen3.5-4B Q4_K_M GGUF; not an attested rebuild of official Qwen weights.",
+    "official_gguf": false,
+    "quantization_reconstruction_verified": false,
+    "reason": "One distinct CPU-feasible Qwen3.5-4B candidate selected from official model capability reports and explicit host resource constraints after V9 and V10 failures. No task-answer tuning or multi-model winner selection.",
+    "source_model": {
+      "license": "apache-2.0",
+      "repository": "Qwen/Qwen3.5-4B",
+      "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
+    },
+    "tokenizer_claim": "Owned server and independent pinned CLI IDs are checked for this exact GGUF. This does not attest upstream vocabulary identity or the quantization pipeline."
+  },
+  "model_template_options": {
+    "answer_repair": false,
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    },
+    "reasoning_tagged_assistant_history": "Fail closed before rendering because the official template would remove part of the complete previous response. Retain original response and all cost.",
+    "system_message_added": false,
+    "task_messages_changed": true
+  },
+  "official_template": {
+    "bytes": 16710,
+    "file": "tokenizer_config.json",
+    "local_file": "provenance/Qwen__Qwen3.5-4B__tokenizer_config.json",
+    "repository": "Qwen/Qwen3.5-4B",
+    "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "sha256": "316230d6a809701f4db5ea8f8fc862bc3a6f3229c937c174e674ff3ca0a64ac8"
+  },
+  "performance_timing_qualified": false,
+  "predecessor": "V9 ef9fbafabe9db52a5e59220f1738d5842ac164cc and V10 11d6f78c6c01f66978af7fcf4d40eea7dae5d5f0 complete failures and all costs remain immutable. V10 source was read at PR360 head b1fc801320c1ea8d0bca4708721cad49fd591c58. No earlier eligibility is inherited.",
+  "prospective_amendment": {
+    "accepted_programs_or_tool_authority_changed": false,
+    "changes": [
+      "Preserve node-before-changes schema property order in actual completion bytes; old profiles keep sorted bytes.",
+      "Partition Rust editable IDs by their public expression/type category and constrain types to the already disclosed language grammar.",
+      "Append the same generic specification review to all arms and public node-transaction guidance to both node arms.",
+      "Identify selected public fragment category/span on syntax rejection, never supply a replacement.",
+      "Render capacity control JSON in the actual grammar property order without modifying its values; no reference is used during generation."
+    ],
+    "decoder_changed": true,
+    "fresh_capacity_and_qualification_required": true,
+    "generation_budget_changed": false,
+    "historical_delivery": "ad23f44abe3e79fb975488c95e164d90126b963f",
+    "host_answer_repairs_added": false,
+    "local_freeze_only": true,
+    "observed_v12_qualification_correct": 0,
+    "observed_v12_qualification_tasks": 3,
+    "old_results_reclassified": false,
+    "public_preregistration_claimed": false,
+    "source_v12": "44e34b7a9ecd6bf1b3ad6093d21bba10d2a18304",
+    "stop_rule": "Freeze code/protocol before the first V13 generation. One complete capacity and fresh qualification; main must remain unstarted unless both pass. Do not tune or repeat identical runs after observing answers; preserve all costs and disclose any later changed study.",
+    "task_examples_answers_or_selected_nodes_added": false,
+    "task_initial_prompts_and_messages_changed": true
+  },
+  "prospective_integrity_review": {
+    "before_any_model_load_or_generation": true,
+    "changes": [
+      "Enforce the published runtime archive member roles, exact shared-library set, symlink targets and payload bytes/SHA256.",
+      "Register request counters and service records before fallible finalization; retain incomplete terminal reports and costs on each identity/close/file failure.",
+      "Retain CLI cost records in memory before persistence; keep missing usage unknown and count a complete terminal SSE receipt once without qualifying a failed submission."
+    ],
+    "exact_runtime_members_enforced": 40,
+    "pre_review_source": "cc151b2814adf8128953f7d1757436b53de410f6",
+    "runtime_member_manifest": "provenance/RUNTIME_MEMBERS.json",
+    "runtime_member_manifest_sha256": "3bf3805e63245ac06d434c03f8d91e9815788ff00377acbd94e43f7bd3325f92",
+    "runtime_system_loader_and_external_libraries_remain_tcb": true,
+    "task_messages_budgets_validators_references_unchanged": true
+  },
+  "public_feedback": "Original public compiler/admission and behavior/resource feedback; fragment rejection also identifies selected public node/category/span, without echoing replacement text or suggesting repairs.",
+  "qualification": {
+    "arm": "rust_node",
+    "eligibility": "Fresh same-source V13 Rust node qualification must pass all three unchanged functional/resource/terminal hidden gates within three submissions each, with complete usage and source/model/tools unchanged. Earlier 0/3 runs never grant eligibility.",
+    "main_forbidden_without_qualification": true,
+    "reason": "The retained V12 actual server grammar orders replacement before node selection; its answers also confuse public fragment categories. Test a generic selection-first transport, public type enum and generic complete-transaction review guidance, with the same model/tasks/examples/generation budget and 3/3 requirement.",
+    "reference_controls_are_qualification_successes": false,
+    "selection_bias": "Adaptive engineering follow-up on retained V12 failure categories and actual wire/grammar. Same tasks are not independent holdout. No reference nodes/answer values are inserted; every prior failure and cost remains.",
+    "tasks": [
+      "json_scalar_reasoning",
+      "two_file_signature_repair",
+      "owner_flow_repair"
+    ]
+  },
+  "rollback": "Any rejected response, including public wrong, leaves original source unchanged. Node retries bind the same captured original query and must resubmit all required edits. No partial install or answer merging.",
+  "runtime": {
+    "archive": "llama-b11669-bin-ubuntu-x64.tar.gz",
+    "bytes": 17851611,
+    "environment": {
+      "LLAMA_ARG_REPACK": "0"
+    },
+    "release": "b11669",
+    "repository": "ggml-org/llama.cpp",
+    "sha256": "cf07c1c112d709bd67e522017471de57ed0ec8bea031d732c5422351c07f65ac"
+  },
+  "runtime_compatibility": {
+    "actual_load_and_capacity_required": true,
+    "architecture": "qwen35",
+    "commit": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "source_architecture_support_only": true
+  },
+  "rust_conversion_profile": {
+    "arbitrary_custom_traits_or_methods_admitted": false,
+    "default_legacy_profiles_unchanged": true,
+    "id": "unshadowed_declared_scalar_parameter_into_v1",
+    "primitive_receivers": [
+      "u8",
+      "u16",
+      "u32",
+      "u64",
+      "usize",
+      "bool"
+    ],
+    "scope": "Only a bare identifier naming a declared scalar function parameter may receive .into(). Macro definitions and dollar-sign metavariables are excluded in every file under this opt-in profile, including files without a literal into call. No arguments, container/field/expression receivers, parameter shadowing, closures/bar syntax or complex let patterns in a file using into. Other v4 syntax/type/effect limits remain. Actual target conversion validity is decided by real rustc. No generated source is rewritten."
+  },
+  "schema": "hepta.agent.real-node-toolstudy.v13",
+  "tasks": [
+    "saturating_score",
+    "wide_span_upgrade",
+    "owned_byte_return",
+    "owner_pair_replace"
+  ],
+  "timeout": "End that cell; retain received SSE, exact input tokens and observed output-token lower bound, unknown residual usage. Stop owned server, fresh process for next distinct cell. No timeout retry of same cell.",
+  "tokenizer_controls": {
+    "all_rendered_capacity_requests_checked": true,
+    "all_times_and_calls_retained": true,
+    "independent_cli_calls": 95,
+    "literal_stdin_preserved_by": "--no-escape",
+    "mismatch_action": "Fail closed with raw records; no template fallback, injected system message, dropped or synthesized token ID, changed budget or answer.",
+    "special_token_policy": "Pinned b11669 tokenizer default parse_special=true; no flag to disable it. Reference responses --no-bos, rendered prompts default model BOS; exact server/CLI IDs must agree without repair."
+  },
+  "tool_scope": "Four actual source files; only provider and entrypoint editable. HIA signature edits require explicit selected-field container reconstruction. Rust expression/type nodes preserve all unselected syntax; no full function replacement disguised as a node. Full Rust uses the same finite parser; HIA full preserves original entry/effects/block identities. Full/node differ in presentation and edit granularity, so this estimates tool bundles rather than isolated context or syntax effects.",
+  "unmeasured_costs": [
+    "human tool/protocol development labor",
+    "model training and acquisition historical costs reported separately",
+    "real long-term maintenance across projects"
+  ]
+}

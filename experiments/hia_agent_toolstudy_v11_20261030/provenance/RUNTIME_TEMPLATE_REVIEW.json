@@ -1,0 +1,383 @@
+{
+  "model_inference_requests": 0,
+  "retrieved_unix_ns": 1793340817067329041,
+  "runtime_commit": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "schema": "hepta.agent.runtime-template-source-review.v1",
+  "sources": [
+    {
+      "bytes": 1078,
+      "excerpts": [],
+      "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+      "url": "https://raw.githubusercontent.com/ggml-org/llama.cpp/620d2225cc436ab0b001e3200e590e3b286ef9ab/LICENSE"
+    },
+    {
+      "bytes": 263836,
+      "excerpts": [
+        {
+          "line": 1626,
+          "text": "                /* use_jinja             */ params_base.use_jinja,"
+        },
+        {
+          "line": 1627,
+          "text": "                /* prefill_assistant     */ params_base.prefill_assistant,"
+        },
+        {
+          "line": 1628,
+          "text": "                /* reasoning_format      */ params_base.reasoning_format,"
+        },
+        {
+          "line": 1629,
+          "text": "                /* chat_template_kwargs  */ params_base.default_template_kwargs,"
+        },
+        {
+          "line": 1630,
+          "text": "                /* tmpls                 */ std::move(chat_templates),"
+        },
+        {
+          "line": 1631,
+          "text": "                /* allow_image           */ mctx ? mtmd_support_vision(mctx) : false,"
+        },
+        {
+          "line": 1632,
+          "text": "                /* allow_audio           */ mctx ? mtmd_support_audio (mctx) : false,"
+        },
+        {
+          "line": 1633,
+          "text": "                /* allow_video           */ mctx ? mtmd_helper_support_video(mctx) : false,"
+        },
+        {
+          "line": 1634,
+          "text": "                /* enable_thinking       */ enable_thinking,"
+        },
+        {
+          "line": 1635,
+          "text": "                /* reasoning_budget      */ params_base.sampling.reasoning_budget_tokens,"
+        },
+        {
+          "line": 1636,
+          "text": "                /* reasoning_budget_msg  */ params_base.sampling.reasoning_budget_message,"
+        },
+        {
+          "line": 1637,
+          "text": "                /* media_path            */ params_base.media_path,"
+        },
+        {
+          "line": 1638,
+          "text": "                /* force_pure_content    */ params_base.force_pure_content_parser"
+        },
+        {
+          "line": 1639,
+          "text": "            };"
+        },
+        {
+          "line": 1640,
+          "text": ""
+        },
+        {
+          "line": 1641,
+          "text": "            {"
+        },
+        {
+          "line": 5700,
+          "text": "    };"
+        },
+        {
+          "line": 5701,
+          "text": ""
+        },
+        {
+          "line": 5702,
+          "text": "    // same with handle_chat_completions, but without inference part"
+        },
+        {
+          "line": 5703,
+          "text": "    this->post_apply_template = [this](const server_http_req & req) {"
+        },
+        {
+          "line": 5704,
+          "text": "        auto res = create_response();"
+        },
+        {
+          "line": 5705,
+          "text": "        std::vector<raw_buffer> files; // dummy, unused"
+        },
+        {
+          "line": 5706,
+          "text": "        common_chat_session session;   // dummy, unused"
+        },
+        {
+          "line": 5707,
+          "text": "        json body = json::parse(req.body);"
+        },
+        {
+          "line": 5708,
+          "text": "        json data = oaicompat_chat_params_parse("
+        },
+        {
+          "line": 5709,
+          "text": "            ctx_server.vocab,"
+        },
+        {
+          "line": 5710,
+          "text": "            body,"
+        },
+        {
+          "line": 5711,
+          "text": "            meta->chat_params,"
+        },
+        {
+          "line": 5712,
+          "text": "            files,"
+        },
+        {
+          "line": 5713,
+          "text": "            session);"
+        },
+        {
+          "line": 5714,
+          "text": "        res->ok({{ \"prompt\", std::move(data.at(\"prompt\")) }});"
+        },
+        {
+          "line": 5715,
+          "text": "        return res;"
+        }
+      ],
+      "sha256": "4ed2e401a9e566b2caf2dd208582fbd42a6b230d516b1b9d56be130cbad3caa6",
+      "url": "https://raw.githubusercontent.com/ggml-org/llama.cpp/620d2225cc436ab0b001e3200e590e3b286ef9ab/tools/server/server-context.cpp"
+    },
+    {
+      "bytes": 73170,
+      "excerpts": [
+        {
+          "line": 1400,
+          "text": "    }"
+        },
+        {
+          "line": 1401,
+          "text": ""
+        },
+        {
+          "line": 1402,
+          "text": "    // merge the template args provided from command line with the args provided in the user request"
+        },
+        {
+          "line": 1403,
+          "text": "    auto chat_template_kwargs_object = json_value(body, \"chat_template_kwargs\", json::object());"
+        },
+        {
+          "line": 1404,
+          "text": "    inputs.chat_template_kwargs = opt.chat_template_kwargs;"
+        },
+        {
+          "line": 1405,
+          "text": "    for (const auto & item : chat_template_kwargs_object.items()) {"
+        },
+        {
+          "line": 1406,
+          "text": "        inputs.chat_template_kwargs[item.key()] = item.value().dump();"
+        },
+        {
+          "line": 1407,
+          "text": "    }"
+        },
+        {
+          "line": 1408,
+          "text": ""
+        },
+        {
+          "line": 1409,
+          "text": "    // parse the \"enable_thinking\" kwarg to override the default value"
+        },
+        {
+          "line": 1410,
+          "text": "    auto enable_thinking_kwarg = json_value(inputs.chat_template_kwargs, \"enable_thinking\", std::string(\"\"));"
+        },
+        {
+          "line": 1411,
+          "text": "    if (enable_thinking_kwarg == \"true\") {"
+        },
+        {
+          "line": 1412,
+          "text": "        inputs.enable_thinking = true;"
+        },
+        {
+          "line": 1413,
+          "text": "    } else if (enable_thinking_kwarg == \"false\") {"
+        },
+        {
+          "line": 1414,
+          "text": "        inputs.enable_thinking = false;"
+        },
+        {
+          "line": 1415,
+          "text": "    } else if (!enable_thinking_kwarg.empty() && enable_thinking_kwarg[0] == '\"') {"
+        },
+        {
+          "line": 1416,
+          "text": "        throw std::invalid_argument(\"invalid type for \\\"enable_thinking\\\" (expected boolean, got string)\");"
+        },
+        {
+          "line": 1417,
+          "text": "    }"
+        },
+        {
+          "line": 1418,
+          "text": ""
+        },
+        {
+          "line": 1419,
+          "text": "    // Parse the OAI \"reasoning_effort\" field; \"none\" disables reasoning."
+        },
+        {
+          "line": 1420,
+          "text": "    if (body.contains(\"reasoning_effort\")) {"
+        },
+        {
+          "line": 1421,
+          "text": "        auto reasoning_effort = json_value(body, \"reasoning_effort\", std::string(\"\"));"
+        },
+        {
+          "line": 1422,
+          "text": "        if (reasoning_effort == \"none\") {"
+        },
+        {
+          "line": 1423,
+          "text": "            inputs.enable_thinking = false;"
+        },
+        {
+          "line": 1424,
+          "text": "            inputs.chat_template_kwargs.erase(\"reasoning_effort\");"
+        },
+        {
+          "line": 1425,
+          "text": "        } else if (!reasoning_effort.empty()) {"
+        },
+        {
+          "line": 1426,
+          "text": "            inputs.chat_template_kwargs[\"reasoning_effort\"] = json(reasoning_effort).dump();"
+        },
+        {
+          "line": 1427,
+          "text": "        }"
+        },
+        {
+          "line": 1428,
+          "text": "    }"
+        },
+        {
+          "line": 1429,
+          "text": ""
+        },
+        {
+          "line": 1430,
+          "text": "    inputs.force_pure_content = opt.force_pure_content;"
+        },
+        {
+          "line": 1431,
+          "text": ""
+        },
+        {
+          "line": 1432,
+          "text": "    // Apply chat template to the list of messages"
+        },
+        {
+          "line": 1433,
+          "text": "    common_chat_session_params session_params;"
+        },
+        {
+          "line": 1434,
+          "text": "    session_params.echo = json_value(body, \"echo\", false);"
+        },
+        {
+          "line": 1435,
+          "text": "    out_session = common_chat_session(opt.tmpls.get(), vocab, inputs, session_params);"
+        },
+        {
+          "line": 1436,
+          "text": ""
+        },
+        {
+          "line": 1437,
+          "text": "    llama_params[\"prompt\"] = out_session.prompt().str();"
+        },
+        {
+          "line": 1438,
+          "text": ""
+        }
+      ],
+      "sha256": "fcb05757dd6a25d349024fd57df9b05c7ff77902cd17d1b70b9f41ac54f6c45c",
+      "url": "https://raw.githubusercontent.com/ggml-org/llama.cpp/620d2225cc436ab0b001e3200e590e3b286ef9ab/tools/server/server-common.cpp"
+    },
+    {
+      "bytes": 30649,
+      "excerpts": [
+        {
+          "line": 590,
+          "text": "    }"
+        },
+        {
+          "line": 591,
+          "text": ""
+        },
+        {
+          "line": 592,
+          "text": "    // Pass through common params"
+        },
+        {
+          "line": 593,
+          "text": "    for (const auto & key : {\"temperature\", \"top_p\", \"top_k\", \"stream\", \"chat_template_kwargs\"}) {"
+        },
+        {
+          "line": 594,
+          "text": "        if (body.contains(key)) {"
+        },
+        {
+          "line": 595,
+          "text": "            oai_body[key] = body.at(key);"
+        },
+        {
+          "line": 596,
+          "text": "        }"
+        },
+        {
+          "line": 597,
+          "text": "    }"
+        },
+        {
+          "line": 598,
+          "text": ""
+        },
+        {
+          "line": 599,
+          "text": "    // Handle Anthropic-specific thinking param"
+        },
+        {
+          "line": 600,
+          "text": "    if (body.contains(\"thinking\")) {"
+        },
+        {
+          "line": 601,
+          "text": "        json thinking = json_value(body, \"thinking\", json::object());"
+        },
+        {
+          "line": 602,
+          "text": "        std::string thinking_type = json_value(thinking, \"type\", std::string());"
+        },
+        {
+          "line": 603,
+          "text": "        if (thinking_type == \"enabled\") {"
+        },
+        {
+          "line": 604,
+          "text": "            int budget_tokens = json_value(thinking, \"budget_tokens\", 10000);"
+        },
+        {
+          "line": 605,
+          "text": "            oai_body[\"thinking_budget_tokens\"] = budget_tokens;"
+        }
+      ],
+      "sha256": "91f48e09afc5a345033866380e82db1c3ad4d18baf1cec38ffa6cddaf6a6263e",
+      "url": "https://raw.githubusercontent.com/ggml-org/llama.cpp/620d2225cc436ab0b001e3200e590e3b286ef9ab/tools/server/server-chat.cpp"
+    }
+  ]
+}

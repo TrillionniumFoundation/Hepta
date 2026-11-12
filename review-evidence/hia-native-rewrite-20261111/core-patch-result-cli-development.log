@@ -1,0 +1,54 @@
+test_candidate_semantics_ownership_and_effects_precede_diagnostic_output (__main__.DevelopmentNativeTests.test_candidate_semantics_ownership_and_effects_precede_diagnostic_output) ... ok
+test_declared_schema_and_raw_whitespace_cannot_rebind_result_identity (__main__.DevelopmentNativeTests.test_declared_schema_and_raw_whitespace_cannot_rebind_result_identity) ... ok
+test_four_edits_complete_diagnostics_and_copied_empty_PATH (__main__.DevelopmentNativeTests.test_four_edits_complete_diagnostics_and_copied_empty_PATH) ... ok
+test_full_Core_function_profile_and_real_partial_stdout (__main__.DevelopmentNativeTests.test_full_Core_function_profile_and_real_partial_stdout) ... ok
+test_invalid_original_cannot_be_repaired_past_base_admission (__main__.DevelopmentNativeTests.test_invalid_original_cannot_be_repaired_past_base_admission) ... ok
+test_snapshot_policy_patch_and_JSON_refusals_emit_no_frame (__main__.DevelopmentNativeTests.test_snapshot_policy_patch_and_JSON_refusals_emit_no_frame) ... ok
+test_strict_build_refuses_incomplete_cold_before_output (__main__.DevelopmentNativeTests.test_strict_build_refuses_incomplete_cold_before_output) ... ok
+test_syscalls_and_EINTR_preserve_the_complete_binary_frame (__main__.DevelopmentNativeTests.test_syscalls_and_EINTR_preserve_the_complete_binary_frame) ... FAIL
+test_v2_preservation_migration_sorted_interfaces_and_exact_edit_limit (__main__.DevelopmentNativeTests.test_v2_preservation_migration_sorted_interfaces_and_exact_edit_limit) ... FAIL
+test_wire_limit_argument_guard_and_real_descriptor_errors (__main__.DevelopmentNativeTests.test_wire_limit_argument_guard_and_real_descriptor_errors) ... ok
+
+======================================================================
+FAIL: test_syscalls_and_EINTR_preserve_the_complete_binary_frame (__main__.DevelopmentNativeTests.test_syscalls_and_EINTR_preserve_the_complete_binary_frame)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/623459b0e1bc/Hepta-native-candidate/tests/test_hia_core_patch_result_cli.py", line 427, in test_syscalls_and_EINTR_preserve_the_complete_binary_frame
+    self.assertEqual((actual.returncode, actual.stdout, actual.stderr), (0, expected, b''))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (1, b'', b'/usr/bin/strace: test_ptrace_ge[253 chars]s\n') != (0, b'HIAPAR01\xcf\x01\x00\x00\x00\x00\x00[1056 chars] b'')
+
+First differing element 0:
+1
+0
+
+Diff is 1540 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_v2_preservation_migration_sorted_interfaces_and_exact_edit_limit (__main__.DevelopmentNativeTests.test_v2_preservation_migration_sorted_interfaces_and_exact_edit_limit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/623459b0e1bc/Hepta-native-candidate/tests/test_hia_core_patch_result_cli.py", line 319, in test_v2_preservation_migration_sorted_interfaces_and_exact_edit_limit
+    actual = self.run_cli(request_wire(original, request), declared='v2').stdout
+             ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/623459b0e1bc/Hepta-native-candidate/tests/test_hia_core_patch_result_cli.py", line 284, in run_cli
+    self.assertEqual((result.returncode, result.stderr), (expected, b''), result)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (2, b'') != (0, b'')
+
+First differing element 0:
+2
+0
+
+- (2, b'')
+?  ^
+
++ (0, b'')
+?  ^
+ : CompletedProcess(args=['/workspace/scratch/623459b0e1bc/core-patch-result-cli-development/hia-patch-result', 'v2'], returncode=2, stdout=b'', stderr=b'')
+
+----------------------------------------------------------------------
+Ran 10 tests in 57.297s
+
+FAILED (failures=2)
+{"status": "DEVELOPMENT_TESTS_HAVE_FAILURES", "source_preserved": true, "seconds": 58.80411895599991}

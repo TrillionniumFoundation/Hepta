@@ -1,0 +1,864 @@
+"""Bounded standalone HIA Core/native differential and artifact custody.
+
+Finite observations are not a backend refinement proof. No source-language
+parser, source qualification pipeline or Rust validation is accepted here.
+"""
+from __future__ import annotations
+
+from hashlib import sha256
+import json
+import math
+import os
+from pathlib import Path
+import platform
+import re
+import signal
+import stat
+import subprocess
+import sys
+import tempfile
+import time
+from threading import Lock
+
+_IDENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z")
+_TYPES = {"i32": (-2**31, 2**31 - 1), "u32": (0, 2**32 - 1)}
+_MAX_CASES = 256
+_MAX_BYTES = 8 * 1024 * 1024
+
+# No repository import or source parsing occurs in the native child. Only the
+# already published shared object, an exact exported symbol and integer args.
+_WORKER = r'''
+import ctypes, json, os, resource, sys
+resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+# A hostile foreign constructor must not fill a host disk before timeout.
+resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))
+# Child evaluator limits: these do not prove HIA heap/RSS or OS sandboxing.
+resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
+resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
+# Fail-closed Linux x86-64 seccomp policy BEFORE loading the foreign DSO.
+# Process-group cleanup alone cannot contain a forked child calling setsid().
+# Keep the worker's unrestricted Python setup above this point; the native
+# library and all ELF constructors run after the irreversible kernel filter.
+class _BpfRule(ctypes.Structure):
+    _fields_ = [("code", ctypes.c_ushort), ("jt", ctypes.c_ubyte),
+                ("jf", ctypes.c_ubyte), ("k", ctypes.c_uint32)]
+class _BpfProgram(ctypes.Structure):
+    _fields_ = [("len", ctypes.c_ushort),
+                ("filter", ctypes.POINTER(_BpfRule))]
+# seccomp_data.nr at offset 0; arch at offset 4. Audit x86-64 0xc000003e.
+# Deny the x32 syscall ABI bit to prevent alternate syscall-number bypass.
+# Bad arch, x32 number and forbidden syscall all SIGSYS-kill this worker:
+# returning EPERM would let native code hide an attempted escape and return 7.
+_rules = [(0x20, 0, 0, 4), (0x15, 1, 0, 0xC000003E),
+          (0x06, 0, 0, 0x80000000),
+          (0x20, 0, 0, 0), (0x35, 0, 1, 0x40000000),
+          (0x06, 0, 0, 0x80000000)]
+# clone/fork/vfork/clone3, execve/execveat, process session/group escape,
+# namespace escape, ptrace and io_uring kernel-worker creation.
+# No socket/network channel is required for typed finite scalar observation.
+# Deny direct filesystem mutation syscalls and newer openat2 (whose pointer
+# flags cannot be examined by classic BPF). The worker still has read-only
+# filesystem visibility and writable stdout/stderr; this is NOT a complete
+# hostile-code sandbox or a proof of zero external side effects.
+_FORBIDDEN_SYSCALLS = (
+    56, 57, 58, 435, 59, 322, 109, 112, 272, 308, 101, 425,
+    # Native code must not undo the no-core-pipe setting established below.
+    157,  # prctl, including PR_SET_DUMPABLE
+    # socket, connect, accept, send/recv, bind, listen, socketpair, options
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
+    288, 299, 307,
+    # create/modify/remove/rename/link filesystem objects or metadata
+    76, 77, 82, 83, 84, 85, 86, 87, 88, 90, 91, 92, 93, 94,
+    132, 133, 235, 258, 259, 260, 261, 263, 264, 265, 266, 268,
+    280, 316, 452,
+    # openat2 takes pointer-to-flags: fail closed; also reject foreign FD
+    # duplication, remote-memory writes and process-scoped signalling.
+    437, 438, 311, 62, 200, 129, 297, 424,
+    # Additional operations with observable filesystem or kernel effects.
+    # Extends (never weakens) the reviewed native side-effect policy.
+    188, 189, 190, 197, 198, 199, 285,
+    155, 165, 166, 428, 429, 430, 431, 432, 433, 442,
+    298, 302, 319, 321, 323, 426, 427, 434,
+)
+if len(_FORBIDDEN_SYSCALLS) != len(set(_FORBIDDEN_SYSCALLS)):
+    raise RuntimeError("duplicated native evaluator syscall policy")
+for _nr in _FORBIDDEN_SYSCALLS:
+    _rules += [(0x15, 0, 1, _nr), (0x06, 0, 0, 0x80000000)]
+# Glibc abort()/raise(SIGABRT) on Linux x86-64 uses tgkill(234) to
+# signal the executing thread. Do not whitelist arbitrary tgkill: it can
+# target the parent or unrelated same-user threads. Admit ONLY the
+# exact original worker PID and native TID, with signal SIGABRT=6.
+# Kernel gettid() must be observed before installing seccomp.
+_libc = ctypes.CDLL(None, use_errno=True)
+# RLIMIT_CORE=0 does not suppress a pipe-based kernel core collector. A fatal
+# seccomp signal can otherwise wait for that external collector before waitid
+# observes termination, exhausting an unchanged short observation deadline.
+# Disable dumping per worker, not through host-global configuration. Native
+# constructors cannot restore it because prctl is denied by the filter.
+if (_libc.prctl(4, 0, 0, 0, 0) != 0  # PR_SET_DUMPABLE
+        or _libc.prctl(3, 0, 0, 0, 0) != 0):  # PR_GET_DUMPABLE
+    raise RuntimeError("native evaluator must disable kernel core dumping")
+_worker_pid = os.getpid()
+_worker_tid = _libc.syscall(186)
+if (not 0 < _worker_pid < (1 << 32)
+        or not 0 < _worker_tid < (1 << 32)):
+    raise RuntimeError("invalid exact worker PID/TID for seccomp")
+# Non-tgkill jumps nine instructions forward to the nr reload. Each
+# successful argument comparison skips its adjacent SIGSYS-kill.
+_rules += [
+    (0x15, 0, 9, 234),  # tgkill? otherwise reload syscall nr
+    (0x20, 0, 0, 16),  # tgkill arg0: thread group (low 32 bits)
+    (0x15, 1, 0, _worker_pid),
+    (0x06, 0, 0, 0x80000000),
+    (0x20, 0, 0, 24),  # tgkill arg1: native thread ID
+    (0x15, 1, 0, _worker_tid),
+    (0x06, 0, 0, 0x80000000),
+    (0x20, 0, 0, 32),  # tgkill arg2: signal
+    (0x15, 1, 0, 6),  # SIGABRT exclusively
+    (0x06, 0, 0, 0x80000000),
+    (0x20, 0, 0, 0),  # restore syscall nr for open()/openat() rules
+]
+# seccomp_data.args[1] starts at byte 24 for open(), args[2] at byte 32
+# for openat(). Both are little-endian low 32-bit flags on x86-64.
+# Reject writable opens, O_CREAT, O_TRUNC, O_APPEND and the
+# __O_TMPFILE-exclusive bit (0x400000). Do NOT mask the whole O_TMPFILE
+# macro (0x410000): its O_DIRECTORY bit would kill valid read-only directory
+# opens. Read-only dynamic loader and directory opens remain available.
+# Each nonmatching syscall or read-only open reloads nr for the next rule.
+_WRITE_OPEN_FLAGS = 0x3 | 0x40 | 0x200 | 0x400 | 0x400000
+for _nr, _flags_offset in ((2, 24), (257, 32)):
+    _rules += [
+        (0x15, 0, 4, _nr),  # other syscall: skip to reload nr
+        (0x20, 0, 0, _flags_offset),  # LD W ABS flags (low 32-bit)
+        (0x54, 0, 0, _WRITE_OPEN_FLAGS),  # AND write/create/truncate flags
+        (0x15, 1, 0, 0),  # zero flags: skip KILL; otherwise SIGSYS
+        (0x06, 0, 0, 0x80000000),
+        (0x20, 0, 0, 0),  # restore syscall number for subsequent tests
+    ]
+_rules.append((0x06, 0, 0, 0x7FFF0000))
+_rules_array = (_BpfRule * len(_rules))(*(_BpfRule(*r) for r in _rules))
+_filter = _BpfProgram(len(_rules), _rules_array)
+if _libc.prctl(38, 1, 0, 0, 0) != 0:
+    raise OSError(ctypes.get_errno(), "seccomp no_new_privs required")
+if _libc.prctl(22, 2, ctypes.byref(_filter), 0, 0) != 0:
+    raise OSError(ctypes.get_errno(), "seccomp syscall filter required")
+lib, symbol, word, packed = sys.argv[1:]
+args = json.loads(packed)
+c = ctypes.c_int32 if word == "i32" else ctypes.c_uint32
+f = getattr(ctypes.CDLL(lib), symbol)
+f.argtypes = [c] * len(args)
+f.restype = c
+print(json.dumps({"value": int(f(*args))}, separators=(",", ":")), flush=True)
+'''
+
+
+class HIADifferentialRejected(ValueError):
+    """Invalid corpus, corrupted source/artifact, or actual native divergence."""
+
+    @property
+    def build_diagnostics(self):
+        """Detached diagnostic data, never authority to execute a rejected build."""
+        payload = getattr(self, "_build_diagnostics_json", None)
+        return json.loads(payload) if payload is not None else None
+
+
+
+
+
+
+_MAX_NATIVE_CHILDREN = 32
+_NATIVE_CHILD_LOCK = Lock()
+_native_child_reservations = 0
+_PENDING_NATIVE_CLEANUPS = set()
+
+
+def _reserve_native_child():
+    global _native_child_reservations
+    with _NATIVE_CHILD_LOCK:
+        if _PENDING_NATIVE_CLEANUPS:
+            raise HIADifferentialRejected(
+                "E_HIA_NATIVE_CLEANUP: unconfirmed child cleanup blocks new native observers")
+        if _native_child_reservations >= _MAX_NATIVE_CHILDREN:
+            raise HIADifferentialRejected(
+                "E_HIA_NATIVE_LIMIT: concurrent native child budget exhausted")
+        _native_child_reservations += 1
+
+
+def _release_native_child_reservation():
+    global _native_child_reservations
+    with _NATIVE_CHILD_LOCK:
+        _native_child_reservations -= 1
+
+
+class NativeChildCleanup:
+    """Own a child until its direct-process reap is positively confirmed.
+
+    A bounded process-local quarantine retains this object after a failed
+    confirmation even if the caller discards its exception. The process
+    group is signalled once while its original leader is still the identity
+    anchor; retries only reap and never signal a potentially reused numeric
+    process group after an interrupted wait. This is not crash durability or
+    a way to force an uninterruptible kernel wait to finish immediately.
+    """
+
+    def __init__(self, process, *, observer_slot=False):
+        self._process = process
+        self._observer_slot = observer_slot
+        # Metadata readers must not wait behind an OS reap. In particular, a
+        # cleanup snapshot cannot wait behind another thread's bounded reap.
+        # Reap serialization has its own bounded acquisition.
+        self._state_lock = Lock()
+        self._reap_lock = Lock()
+        self._confirmed = False
+        self._signal_attempted = False
+        self._signal_delivered = False
+        self._attempts = 0
+        self._last_error = None
+        self._returncode = None
+        self._secondary_errors = []
+
+    @property
+    def confirmed(self):
+        with self._state_lock:
+            return self._confirmed
+
+    def _remember_primary_error(self, phase, error):
+        item = {"phase": phase, "type": type(error).__name__, "message": str(error)[:4096]}
+        with self._state_lock:
+            self._last_error = item
+
+    def retain_secondary_error(self, error):
+        """Keep bounded cleanup diagnostics without making them ownership."""
+        seen = set()
+        items = []
+        while error is not None and id(error) not in seen and len(seen) < 8:
+            seen.add(id(error))
+            if not isinstance(error, NativeChildCleanupPending):
+                items.append({"phase": "observer_cleanup", "type": type(error).__name__,
+                              "message": str(error)[:4096]})
+            error = error.__cause__ or error.__context__
+        with self._state_lock:
+            for item in items:
+                if item not in self._secondary_errors and len(self._secondary_errors) < 4:
+                    self._secondary_errors.append(item)
+
+    def try_reap(self, *, timeout=0.0):
+        global _native_child_reservations
+        if type(timeout) not in (int, float) or not 0 <= timeout <= 2:
+            raise ValueError("native cleanup retry timeout must be in [0,2]")
+        deadline = time.monotonic() + float(timeout)
+        acquired = (self._reap_lock.acquire(blocking=False) if timeout == 0 else
+                    self._reap_lock.acquire(timeout=max(0.0, deadline - time.monotonic())))
+        if not acquired:
+            return False
+        try:
+            with self._state_lock:
+                if self._confirmed:
+                    return True
+                self._attempts += 1
+                signal_needed = not self._signal_attempted
+                self._signal_attempted = True
+            if signal_needed:
+                try:
+                    os.killpg(self._process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    # A vanished group is not a successful reap. Still require
+                    # the owned Popen wait to confirm this direct child.
+                    pass
+                except BaseException as error:
+                    self._remember_primary_error("signal", error)
+                    return False
+                else:
+                    with self._state_lock:
+                        self._signal_delivered = True
+            try:
+                result = self._process.wait(timeout=max(0.0, deadline - time.monotonic()))
+            except BaseException as error:
+                self._remember_primary_error("reap", error)
+                return False
+            if type(result) is not int:
+                with self._state_lock:
+                    self._last_error = {"phase": "reap", "type": "InvalidWaitResult",
+                                        "message": "direct child wait returned no integer exit status"}
+                return False
+            with self._state_lock:
+                self._returncode = result
+                self._confirmed = True
+                # Same lock order as quarantine insertion: owner then registry.
+                # A confirmed reap releases the reservation exactly once.
+                with _NATIVE_CHILD_LOCK:
+                    _PENDING_NATIVE_CLEANUPS.discard(self)
+                    if self._observer_slot:
+                        _native_child_reservations -= 1
+                        self._observer_slot = False
+            return True
+        finally:
+            self._reap_lock.release()
+
+    def snapshot(self):
+        with self._state_lock:
+            return {"schema": "hepta.hia.native-child-cleanup.v1", "pid": self._process.pid,
+                    "cleanup_confirmed": self._confirmed,
+                    "quarantined": self._attempts > 0 and not self._confirmed,
+                    "status": "reaped" if self._confirmed else "quarantined" if self._attempts else "active",
+                    "reap_attempts": self._attempts, "returncode": self._returncode,
+                    "group_signal_attempted": self._signal_attempted,
+                    "group_signal_delivered": self._signal_delivered,
+                    "last_error": None if self._last_error is None else dict(self._last_error),
+                    "secondary_errors": [dict(item) for item in self._secondary_errors],
+                    "claims": {"direct_child_reaped": self._confirmed,
+                               "uninterruptible_kernel_wait_preempted": False}}
+
+
+class NativeChildCleanupPending(HIADifferentialRejected):
+    """The child owner must be retained and retried, never treated as drained."""
+
+    def __init__(self, cleanup):
+        super().__init__("E_HIA_NATIVE_CLEANUP: native child reap was not confirmed; ownership retained for recovery")
+        self.cleanup = cleanup
+        with cleanup._state_lock:
+            if not cleanup._confirmed:
+                with _NATIVE_CHILD_LOCK:
+                    _PENDING_NATIVE_CLEANUPS.add(cleanup)
+
+
+def native_child_cleanup_snapshot():
+    """Describe bounded local child ownership; never a native execution result."""
+    with _NATIVE_CHILD_LOCK:
+        reserved = _native_child_reservations
+        owners = tuple(_PENDING_NATIVE_CLEANUPS)
+    # Never hold the registry lock while acquiring an individual owner lock.
+    rows = sorted((owner.snapshot() for owner in owners), key=lambda row: row["pid"])
+    return {"schema": "hepta.hia.native-child-quarantine.v1",
+            "max_native_children": _MAX_NATIVE_CHILDREN,
+            "reserved_native_children": reserved,
+            "unconfirmed_child_reaps": sum(not row["cleanup_confirmed"] for row in rows),
+            "children": rows,
+            "claims": {"process_local_ownership_only": True,
+                       "crash_durable_cleanup": False,
+                       "failed_observation_reclassified_as_success": False}}
+
+
+def retry_pending_native_cleanup(*, timeout=2.0):
+    """Reap only retained children within one total deadline of at most 2s.
+
+    The first cleanup already attempted its group signal. A retry never sends
+    another signal, executes native code again or accepts an earlier result.
+    """
+    if type(timeout) not in (int, float) or not 0 <= timeout <= 2:
+        raise ValueError("native cleanup retry timeout must be in [0,2]")
+    deadline = time.monotonic() + float(timeout)
+    with _NATIVE_CHILD_LOCK:
+        owners = tuple(_PENDING_NATIVE_CLEANUPS)
+    for owner in owners:
+        owner.try_reap(timeout=max(0.0, deadline - time.monotonic()))
+    return native_child_cleanup_snapshot()
+
+
+def _confirm_native_child_cleanup(cleanup, *, timeout=2.0):
+    if not cleanup.try_reap(timeout=timeout):
+        raise NativeChildCleanupPending(cleanup)
+
+
+def _reject(message: str) -> None:
+    raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: " + message)
+
+
+def _canonical(value) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=False, allow_nan=False).encode("utf-8")
+
+
+def _corpus(cases, return_words):
+    if (type(cases) is not dict or type(return_words) is not tuple
+            or not 1 <= len(cases) <= 32 or len(return_words) != len(cases)):
+        _reject("corpus must cover every native exported function")
+    words = {}
+    for item in return_words:
+        if (type(item) is not tuple or len(item) != 2
+                or type(item[0]) is not str or _IDENT.fullmatch(item[0]) is None
+                or item[0] in words or type(item[1]) is not str or item[1] not in _TYPES):
+            _reject("invalid or duplicated native ABI function inventory")
+        words[item[0]] = item[1]
+    if set(cases) != set(words):
+        _reject("missing or unreviewed native export case coverage")
+    total = 0
+    for fn, inputs in cases.items():
+        if type(inputs) is not list or not inputs:
+            _reject("each export requires a nonempty list of test vectors")
+        word = words[fn]
+        low, high = _TYPES[word]
+        for args in inputs:
+            if (type(args) is not list or len(args) > 16
+                    or any(type(x) is not int or not low <= x <= high for x in args)):
+                _reject("case arguments violate exact i32/u32 ABI range")
+            total += 1
+            if total > _MAX_CASES:
+                _reject("finite corpus exceeds 256 cases")
+    if len(_canonical(cases)) > 64_000:
+        _reject("finite corpus exceeds byte budget")
+    return words, total
+
+
+
+
+def _require_exact_argument_arities(cases: dict, signatures: tuple[tuple[str, int], ...]) -> None:
+    """Verify every tested vector against checked Core ABI parameter count.
+
+    A shared-library ELF symbol alone does not authenticate the callee's
+    parameter types. This is the *source/Core-derived call-site* proof,
+    never an arbitrary raw oracle's trust credential.
+    """
+    if (type(cases) is not dict or type(signatures) is not tuple
+            or not 1 <= len(signatures) <= 32):
+        _reject("complete HIA native argument signature inventory required")
+    arities = {}
+    for entry in signatures:
+        if (type(entry) is not tuple or len(entry) != 2
+                or type(entry[0]) is not str or _IDENT.fullmatch(entry[0]) is None
+                or type(entry[1]) is not int or not 0 <= entry[1] <= 16
+                or entry[0] in arities):
+            _reject("unreviewed HIA native parameter signature")
+        arities[entry[0]] = entry[1]
+    if set(cases) != set(arities):
+        _reject("corpus differs from verified HIA ABI export inventory")
+    for name, vectors in cases.items():
+        if type(vectors) is not list or not vectors:
+            _reject("native export requires a nonempty typed corpus")
+        for index, args in enumerate(vectors):
+            if type(args) is not list or len(args) != arities[name]:
+                _reject(f"HIA ABI argument arity differs from verified function signature: {name} case {index}")
+
+
+def _read_regular_artifact(path: Path, *, maximum_bytes=None, close_owner=None):
+    """Read exactly one no-follow regular-file inode, bounded before allocation.
+
+    Opening with O_NONBLOCK prevents FIFOs/devices from blocking an admission
+    thread; O_NOFOLLOW prevents a final-component symlink substitution.
+    fstat before/after reads rejects concurrent in-place size/metadata drift.
+    """
+    if platform.system() != "Linux":
+        _reject("native artifact identity pinning requires Linux")
+    maximum_bytes = _MAX_BYTES if maximum_bytes is None else maximum_bytes
+    if type(maximum_bytes) is not int or not 1 <= maximum_bytes <= _MAX_BYTES:
+        _reject("native artifact byte cap must fit the existing bounded reader")
+    if close_owner is not None and not callable(close_owner):
+        _reject("native artifact close owner must be an internal callable")
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NONBLOCK | os.O_NOFOLLOW)
+    except OSError as exc:
+        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: cannot open no-follow native artifact") from exc
+    try:
+        before = os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= maximum_bytes:
+            _reject("native artifact must be bounded regular file")
+        chunks = []
+        remaining = before.st_size + 1
+        while remaining:
+            part = os.read(fd, min(1 << 20, remaining))
+            if not part:
+                break
+            chunks.append(part)
+            remaining -= len(part)
+        contents = b"".join(chunks)
+        after = os.fstat(fd)
+        identity = (before.st_dev, before.st_ino, before.st_size,
+                    before.st_mtime_ns, before.st_ctime_ns)
+        observed = (after.st_dev, after.st_ino, after.st_size,
+                    after.st_mtime_ns, after.st_ctime_ns)
+        if len(contents) != before.st_size or observed != identity:
+            _reject("native artifact changed during identity-bound read")
+        return contents, identity
+    except OSError as exc:
+        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: native artifact read failed") from exc
+    finally:
+        if close_owner is None:
+            os.close(fd)
+        else:
+            # An owning runtime can retain an uncertain close as budget debt.
+            # It receives this capability exactly once; the reader never retries.
+            close_owner(fd)
+
+
+def _pin_native_artifact(path: Path, *, maximum_bytes=None, close_owner=None):
+    """Create a sealed Linux memfd from the exact identity-checked artifact.
+
+    Native children load /proc/self/fd/<N>, not the mutable original pathname.
+    If memfd sealing is unavailable, fail closed rather than weakening the
+    differential's executable-byte identity guarantee.
+    """
+    original, identity = _read_regular_artifact(path, maximum_bytes=maximum_bytes, close_owner=close_owner)
+    fd = None
+    transferred = False
+    try:
+        # Keep the module importable on non-Linux hosts; the execution path
+        # itself still refuses anything except qualified Linux.
+        import fcntl
+        fd = os.memfd_create("hepta-hia-native", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+        remaining = memoryview(original)
+        while remaining:
+            count = os.write(fd, remaining)
+            if count <= 0:
+                _reject("sealed native snapshot write made no progress")
+            remaining = remaining[count:]
+        # Python built against older headers can omit these names even when
+        # the running Linux kernel supports sealing. Linux UAPI defines
+        # F_LINUX_SPECIFIC_BASE=1024 (asm-generic/fcntl.h), ADD/GET_SEALS as
+        # base+9/base+10 and these four bits as 0x1/0x2/0x4/0x8 (linux/fcntl.h).
+        # Only symbol lookup falls back: the real kernel operations and exact
+        # byte/required-seal readback remain mandatory, with no unsealed path.
+        expected_seals = (getattr(fcntl, "F_SEAL_WRITE", 0x0008)
+                          | getattr(fcntl, "F_SEAL_GROW", 0x0004)
+                          | getattr(fcntl, "F_SEAL_SHRINK", 0x0002)
+                          | getattr(fcntl, "F_SEAL_SEAL", 0x0001))
+        fcntl.fcntl(fd, getattr(fcntl, "F_ADD_SEALS", 1033), expected_seals)
+        if (os.fstat(fd).st_size != len(original) or
+                fcntl.fcntl(fd, getattr(fcntl, "F_GET_SEALS", 1034)) & expected_seals != expected_seals or
+                os.pread(fd, len(original), 0) != original):
+            _reject("sealed executable-byte snapshot differs from source")
+        transferred = True
+        return original, identity, fd
+    except (OSError, AttributeError, ImportError) as exc:
+        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: sealed executable snapshot unavailable") from exc
+    finally:
+        # Ownership of a successfully sealed descriptor transfers to caller.
+        # sys.exc_info() also reports an exception handled by the caller. An
+        # outer except block must not close a successfully transferred fd.
+        if fd is not None and not transferred:
+            if close_owner is None:
+                os.close(fd)
+            else:
+                close_owner(fd)
+
+
+def _check_artifact_unchanged(path: Path, original: bytes, identity) -> None:
+    current, metadata = _read_regular_artifact(path)
+    if current != original or metadata != identity:
+        _reject("native artifact path/inode/bytes changed during differential execution")
+
+def _has_in_group_descendant(pgid: int) -> bool:
+    """Conservatively inspect live process-group membership before PID reap.
+
+    Linux waitid(WNOWAIT) keeps the original worker PID from being reused.
+    The worker itself is excluded; no external process may be silently
+    accepted as a harmless effect of native code. Kernel-filtered fork/clone/setsid attempts SIGSYS-kill the native worker;
+    the remaining process-group scan defends against unexpected descendants.
+    """
+    seen = 0
+    try:
+        with os.scandir("/proc") as entries:
+            for entry in entries:
+                if not entry.name.isascii() or not entry.name.isdecimal():
+                    continue
+                seen += 1
+                if seen > 65536:
+                    _reject("native evaluator process inventory exceeds bounded scan")
+                pid = int(entry.name)
+                if pid == pgid:
+                    continue
+                try:
+                    member_group = os.getpgid(pid)
+                except ProcessLookupError:
+                    continue  # Race: the observed pid exited during /proc scan.
+                except OSError as exc:
+                    raise HIADifferentialRejected(
+                        "E_HIA_DIFFERENTIAL: cannot inspect native evaluator process group") from exc
+                if member_group == pgid:
+                    return True
+    except OSError as exc:
+        raise HIADifferentialRejected(
+            "E_HIA_DIFFERENTIAL: Linux process-group inspection unavailable") from exc
+    return False
+
+
+def _observe_native(library: Path, function: str, word: str, args: list[int], *,
+                    timeout: float, pinned_fd: int):
+    if (platform.system() != "Linux" or platform.machine().lower() not in {"x86_64", "amd64"}
+            or not 0 < timeout <= 10
+            or type(function) is not str or _IDENT.fullmatch(function) is None
+            or type(word) is not str or word not in _TYPES
+            or type(pinned_fd) is not int or pinned_fd < 0):
+        _reject("bounded Linux host and sealed native fd required")
+    cleanup = None
+    _reserve_native_child()
+    reservation_owned = True
+    try:
+        with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+            # The sealed memfd and checked ABI come from the unchanged
+            # canonical native observer. Give each finite case its own session
+            # so a timed-out worker cannot leave ordinary forked children
+            # running after the evaluator returns. Even a worker that exits
+            # successfully may have spawned descendants: kill the process
+            # group on *every* exit, before accepting its output.
+            # The pre-dlopen kernel filter now blocks fork/clone/setsid;
+            # other native side effects still require stronger containment.
+            proc = subprocess.Popen(
+                [sys.executable, "-I", "-S", "-c", _WORKER,
+                 "/proc/self/fd/" + str(pinned_fd),
+                 function, word, json.dumps(args, separators=(",", ":"))],
+                stdin=subprocess.DEVNULL, stdout=out, stderr=err,
+                # Isolated Python still loads sitecustomize unless -S is set.
+                # Inherited LD_PRELOAD/LD_AUDIT also run before Python/seccomp.
+                # This worker needs no ambient environment or loader paths.
+                env={"LC_ALL": "C", "LANG": "C", "TZ": "UTC"},
+                pass_fds=(pinned_fd,), start_new_session=True)
+            cleanup = NativeChildCleanup(proc, observer_slot=True)
+            reservation_owned = False
+            # Linux waitid(WNOWAIT) observes direct-child termination
+            # without reaping its PID. Popen.wait() would reap first, then
+            # killpg(pid) could race a reused PID/PGID. Keep the zombie as
+            # identity anchor until group cleanup, then reap exactly once.
+            deadline = time.monotonic() + timeout
+            timed_out = False
+            residual_group = False
+            try:
+                while True:
+                    status = os.waitid(os.P_PID, proc.pid,
+                                       os.WEXITED | os.WNOWAIT | os.WNOHANG)
+                    if status is not None:
+                        break
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        timed_out = True
+                        break
+                    time.sleep(min(0.01, remaining))
+                if not timed_out:
+                    # WNOWAIT intentionally keeps the direct worker PID
+                    # reserved. killpg() alone cannot reveal descendants:
+                    # it also succeeds for a lone zombie group leader.
+                    residual_group = _has_in_group_descendant(proc.pid)
+            finally:
+                # Clear the entire ordinary session/group for BOTH timeout
+                # and successful or trapped native exit, before waitpid reaps
+                # its leader. Seccomp blocks native fork/session escapes.
+                # A bounded wait failure retains an owned cleanup handle in
+                # NativeChildCleanupPending. The local quarantine retains
+                # the original process owner until a retry confirms the reap.
+                _confirm_native_child_cleanup(cleanup)
+            if timed_out:
+                _reject("native child timed out; process group terminated")
+            if residual_group:
+                _reject("native child left surviving in-group descendants after exit")
+            out.seek(0)
+            err.seek(0)
+            child_stdout = out.read(4097)
+            child_stderr = err.read(4097)
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: native child unavailable or timed out") from exc
+    finally:
+        if reservation_owned:
+            _release_native_child_reservation()
+        # Temporary-file close errors can replace the exception raised by the
+        # inner cleanup. Ownership follows the tracked child, not whichever
+        # exception survived those context-manager exits.
+        if cleanup is not None and not cleanup.confirmed:
+            cleanup.retain_secondary_error(sys.exc_info()[1])
+            raise NativeChildCleanupPending(cleanup)
+    # RLIMIT_FSIZE can surface as SIGXFSZ, a child write exception, or a
+    # Python exit code after a partial 4096-byte write. All are refusals.
+    if len(child_stdout) >= 4096 or len(child_stderr) >= 4096:
+        _reject("native subprocess exceeded output budget")
+    if proc.returncode == -signal.SIGABRT:
+        # HIA scalar profiles have no user-visible IO. A glibc diagnostic,
+        # constructor print or other output before SIGABRT cannot be accepted
+        # as the VM's defined checked trap; this is still a finite oracle,
+        # not a proof that a silent SIGABRT had the expected root cause.
+        if child_stdout or child_stderr:
+            _reject("native trap emitted unqualified stdout/stderr")
+        return ("trap", None)
+    if proc.returncode == -signal.SIGXFSZ:
+        _reject("native subprocess exceeded output budget")
+    if proc.returncode != 0:
+        _reject("native child exited with unexpected error/signal " + str(proc.returncode))
+    if child_stderr:
+        _reject("native result emitted unexpected stderr")
+    try:
+        value = json.loads(child_stdout)
+    except (ValueError, UnicodeError) as exc:
+        raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: invalid native child output") from exc
+    low, high = _TYPES[word]
+    if (type(value) is not dict or set(value) != {"value"}
+            or type(value["value"]) is not int or not low <= value["value"] <= high):
+        _reject("native child returned invalid scalar observation")
+    # The checked worker prints one exact compact JSON object and newline.
+    # Duplicate-key, whitespace, trailing material or native-injected output
+    # must not become an apparently qualified observation through json.loads.
+    # Native code capable of forging this *exact* record remains out of scope.
+    if child_stdout != _canonical({"value": value["value"]}) + b"\n":
+        _reject("native child output is not one canonical worker record")
+    return ("value", value["value"])
+
+
+def compare_oracle_with_native(oracle, library: str | Path, cases: dict, *,
+                               max_steps: int = 20000, timeout: float = 3.0) -> dict:
+    """Compare all exports; trap/budget/crash are deliberately distinct.
+
+    This helper compares finite observations; it grants no source binding.
+    """
+    from .hia_oracle import HIAOracleBudgetExceeded, HIAOracleRejected, HIAOracleTrap
+
+    if (type(max_steps) is not int or not 1 <= max_steps <= 1_000_000
+            or type(timeout) not in (float, int) or not 0 < timeout <= 10):
+        _reject("invalid execution limits")
+    words, total = _corpus(cases, getattr(oracle, "return_words", None))
+    binary = Path(library)
+    original, identity, pinned_fd = _pin_native_artifact(binary)
+    artifact_sha = sha256(original).hexdigest()
+    matches = traps = 0
+    try:
+        # Iterate canonically so receipt and first failure do not depend on map order.
+        for function in sorted(cases):
+            for index, args in enumerate(cases[function]):
+                _check_artifact_unchanged(binary, original, identity)
+                try:
+                    oracle_value = oracle.run(function, args, max_steps=max_steps)
+                except HIAOracleTrap:
+                    expected = ("trap", None)
+                except (HIAOracleBudgetExceeded, HIAOracleRejected) as exc:
+                    raise HIADifferentialRejected(
+                        "E_HIA_DIFFERENTIAL: oracle failed or exhausted budget, never native trap") from exc
+                else:
+                    # Python bool/float equality is not native ABI equivalence:
+                    # True == 1 and 1.0 == 1, but neither is an exact HIA integer.
+                    lo, hi = _TYPES[words[function]]
+                    if type(oracle_value) is not int or not lo <= oracle_value <= hi:
+                        _reject("oracle returned non-integer or out-of-range native ABI value")
+                    expected = ("value", oracle_value)
+                observed = _observe_native(binary, function, words[function], args,
+                                           timeout=timeout, pinned_fd=pinned_fd)
+                if observed != expected:
+                    _reject(f"native mismatch at {function} case {index}: expected {expected}, observed {observed}")
+                matches += 1
+                traps += observed[0] == "trap"
+        _check_artifact_unchanged(binary, original, identity)
+    except NativeChildCleanupPending as pending:
+        try:
+            os.close(pinned_fd)
+        except BaseException as error:
+            pending.cleanup.retain_secondary_error(error)
+        raise
+    except BaseException:
+        os.close(pinned_fd)
+        raise
+    else:
+        os.close(pinned_fd)
+    if matches != total:
+        _reject("complete finite denominator not executed")
+    return {
+        "schema": "hepta.hia.scalar-native-differential.v0",
+        "status": "finite_native_observations_match_oracle_not_proved",
+        "cases_sha256": sha256(_canonical(cases)).hexdigest(),
+        "artifact_sha256": artifact_sha,
+        "function_count": len(words), "cases_executed": matches,
+        "defined_traps_observed": traps,
+        "claims": {"finite_native_oracle_match": True,
+                   "checked_hepta_source_replayed": False,
+                   "core_corpus_argument_arity_checked": False,
+                   "backend_refinement_proved": False,
+                   "whole_language_soundness_proved": False,
+                   "physical_target_qualified": False},
+    }
+
+
+
+
+def compare_verified_hia_program(program, library: str | Path, cases: dict, *,
+                                 max_steps: int = 20000, timeout: float = 3.0) -> dict:
+    """Compare *the existing executable HIA v1-v6* to native scalar exports.
+
+    This reuses hia_program.verify_program, hia_program_runtime.execute_program,
+    and hia_program_llvm.emit_program_llvm. It neither creates another owner
+    checker nor treats a native file passed by the caller as Core-compiled.
+    For now accept only homogeneous i32/u32, one-result ABI wrappers.
+    """
+    from .hia_program import HIAProgramRejected, verify_program
+    from .hia_program_runtime import (HIAProgramBudgetExceeded, HIAProgramTrap,
+                                      execute_program)
+    from .hia_program_llvm import emit_program_llvm
+    from .hia_oracle import HIAOracleBudgetExceeded, HIAOracleRejected, HIAOracleTrap
+
+    checked = verify_program(program)
+    emitted = emit_program_llvm(checked)
+    functions = checked.as_dict().get("functions")
+    if type(functions) is not list:
+        _reject("HIA Core has no verified function inventory")
+    by_name = {fn.get("name"): fn for fn in functions if type(fn) is dict}
+    if type(cases) is not dict:
+        _reject("HIA Core native corpus must be a dictionary")
+    exported = emitted.exports
+    if (type(exported) is not tuple or not 1 <= len(exported) <= 32
+            or len(exported) != len(set(exported)) or
+            len(set(exported) - set(by_name)) or
+            set(cases) != set(exported)):
+        _reject("corpus must cover the exact HIA native scalar export inventory")
+    words = []
+    argument_arities = []
+    for name in sorted(exported):
+        fn = by_name[name]
+        result_types = fn.get("returns")
+        params = fn.get("params")
+        if (type(result_types) is not list or len(result_types) != 1
+                or result_types[0] not in _TYPES or type(params) is not list
+                or any(type(p) is not dict or p.get("type") != result_types[0] for p in params)):
+            _reject("HIA native differential supports homogeneous i32/u32 wrappers only")
+        words.append((name, result_types[0]))
+        argument_arities.append((name, len(params)))
+    # Reuse the one strict parameter admission for both executable HIA Core
+    # and historical source-qualified scalar SSA. No foreign child starts
+    # before this exact signature check.
+    _require_exact_argument_arities(cases, tuple(argument_arities))
+
+    class _ExecutableHIAOracle:
+        return_words = tuple(words)
+
+        def run(self, function, arguments, *, max_steps=20000):
+            try:
+                result = execute_program(checked, function, arguments,
+                                         max_steps=max_steps)
+            except HIAProgramTrap as exc:
+                raise HIAOracleTrap("verified HIA core defined trap: " + str(exc)) from exc
+            except HIAProgramBudgetExceeded as exc:
+                raise HIAOracleBudgetExceeded("verified HIA core resource/step limit") from exc
+            except HIAProgramRejected as exc:
+                raise HIAOracleRejected("HIA core evaluator rejected inputs") from exc
+            if (type(result) is not dict or result.get("status") != "returned"
+                    or type(result.get("values")) is not list
+                    or len(result["values"]) != 1 or
+                    type(result["values"][0]) is not int):
+                raise HIAOracleRejected("unexpected HIA core execution result shape")
+            return result["values"][0]
+
+    report = compare_oracle_with_native(_ExecutableHIAOracle(), library, cases,
+                                        max_steps=max_steps, timeout=timeout)
+    report["executable_hia_program_sha256"] = checked.sha256
+    report["executable_hia_llvm_sha256"] = emitted.sha256
+    report["claims"]["executable_hia_program_reverified"] = True
+    report["claims"]["core_corpus_argument_arity_checked"] = True
+    report["claims"]["native_compiled_from_program_verified"] = False
+    # This helper only compares an arbitrary provided artifact to the actual
+    # Core VM. compile/qualification provenance belongs to the wrappers below.
+    return report
+
+
+def qualify_executable_hia_program(program, cases: dict, *, clang="clang") -> dict:
+    """Actual verified HIA Core -> native LLVM -> finite VM differential.
+
+    Standalone mode does not claim pinned Hepta source or Rust validation.
+    """
+    from .hia_program import verify_program
+    from .hia_program_llvm import build_program_native
+
+    core = verify_program(program)
+    with tempfile.TemporaryDirectory(prefix="hia-core-native-diff-") as temp:
+        shared = Path(temp) / "core.so"
+        native = build_program_native(core, shared, clang=clang, kind="shared")
+        if (native.get("ok") is not True or native.get("status") != "native_compiled_not_executed"
+                or native.get("core_sha256") != core.sha256
+                or native.get("artifact_sha256") != sha256(shared.read_bytes()).hexdigest()):
+            _reject("canonical standalone Core/native artifact receipt mismatch")
+        compared = compare_verified_hia_program(core, shared, cases)
+        if compared["artifact_sha256"] != native["artifact_sha256"]:
+            _reject("native code changed during VM differential")
+        compared["claims"]["native_compiled_from_program_verified"] = True
+        compared["native_toolchain_sha256"] = native.get("toolchain", {}).get("sha256")
+        return compared

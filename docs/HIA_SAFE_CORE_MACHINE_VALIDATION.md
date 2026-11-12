@@ -1,0 +1,292 @@
+# Safe Core: Core semantics to the final machine image
+
+Status: **opt-in candidate validation profile**. This entry preserves default
+HIA emission and does not deploy a production service. Adding its implementation
+changes the worker's complete source inventory, so an integrated release must
+freeze new worker pins; an older installation receipt cannot qualify it.
+A successful result is an all-input SMT result for the explicitly
+stated independent models, not a Lean-kernel proof of the hardware ISA or of the
+whole language.
+
+## Accepted program boundary
+
+The profile identifier is
+`hia.safe-core.unsigned-acyclic-single-borrow.x86_64.v1`.
+
+| Boundary | Accepted scope |
+| --- | --- |
+| Core | Explicit primitive Core v1-v8; one function and one scalar return |
+| Scalars | `u8`, `u32`, `u64`, `usize`, `bool` |
+| Operations | Constants; wrapping/checked unsigned add and subtract; wrapping unsigned multiply; bitwise and Boolean operations; six unsigned/equality comparisons; wrapping casts; scalar select; buffer length/load/store |
+| Control flow | At most 16 blocks / 64 operations; acyclic branch/jump/return/trap; no internal calls or recursion |
+| Borrowed storage | At most one `readbuf` or `mutbuf` function parameter; no owner creation, allocation, transfer, returned loan or concurrency |
+| Public ABI | SysV AMD64, at most six expanded argument words; a loan expands to pointer/length; borrowed entries return the existing packed ABI status / `u32` result |
+| Machine choices | Canonical build entry preserves its producer-identity check; the separate supplied-ELF entry admits independently validated bytes in the same closed instruction/ABI model |
+| Object / image | Direct ELF64 object, GNU-ld Linux x86-64 shared library, exactly one immediately bound `abort@GLIBC_2.2.5` import |
+| Resource boundary | 64 KiB text, 16 KiB assumed available caller stack, bounded symbolic paths/steps, and a 100-60,000 ms symbolic-validation deadline |
+
+Outside-profile programs, missing Z3, solver `unknown`, a deadline, incomplete
+paths, unsupported bytes or loader metadata all reject. There is no sampled
+execution fallback that can turn an unknown proof result into approval.
+
+## The chain being checked
+
+1. **Exact Core.** The existing canonical verifier rechecks the actual primitive
+   operations and resource interfaces. A separate interpreter in
+   `hia_safe_core.py` encodes their unsigned bitvector and byte-array semantics.
+   It does not call the production VM or copy a desired answer into the model.
+
+2. **Lowering and instruction templates.** The canonical build entry retains its
+   producer-identity check. The supplied-ELF checker directly consumes an object
+   and final image and never imports or invokes the encoder or linker.
+   `hia_safe_core_x64.py` independently decodes the
+   *linked* bytes and symbolically executes its closed instruction set. It does
+   not import `Code` or the lowering implementation. Arithmetic, carry/zero
+   flags, conditional branches, byte stores, stack operations and calls are
+   interpreted from the decoded bytes. Unreviewed instructions are rejected,
+   including instructions in unreachable regions.
+
+   The register-only 64-bit two-operand `IMUL` leaf uses the exact low
+   product, with carry derived from signed truncation. Its undefined zero flag
+   becomes a fresh arbitrary Boolean on each model execution. A candidate that
+   relies on the prior zero flag surviving multiplication must therefore pass
+   for both outcomes; the checker does not assign a convenient fixed value.
+   Checked multiplication and memory/narrow `IMUL` forms remain outside this
+   profile. This leaf extension does not prove refinement to the full ISA.
+
+3. **ABI.** The model starts with arbitrary raw argument-register words. Narrow
+   types and Boolean normalization therefore cover dirty upper register bits.
+   It checks call alignment, saved registers, return-stack restoration and
+   caller-memory effects. For borrowed entrypoints the independent Core-side
+   model also covers oversized extents, nonempty null ranges and address-wrap
+   rejection before entering Core.
+   Every `CALL` also decrements the stack pointer and checks its implicit
+   return-address store before entering the callee, including nonreturning
+   `abort`. Treating the callee as terminal cannot skip the calling instruction's
+   memory access or admit a stack pointer outside the caller's stack budget.
+
+4. **Relocation and loader authority.** `hia_safe_core_elf.py` compares every
+   final text byte against the object, permitting differences only in the exact
+   two admitted `E8 rel32` call fields. Internal calls must land at the exact
+   function boundary. The external call is bound through PLT bytes, the GOT
+   slot, `R_X86_64_JUMP_SLOT`, the `abort` dynamic symbol, libc version metadata
+   and the actual `PT_DYNAMIC` table with immediate binding. All nonempty
+   allocated sections, including dynamic symbols/strings/relocations/hash and
+   version tables, must refer to the bytes the `PT_LOAD` mapping really loads.
+   Partial overlapping page mappings, extra executable segments and unreviewed
+   loader hooks reject. `PT_LOAD` entries must retain the gABI's ascending
+   virtual-address order in the actual program-header table, before any sorted
+   overlap calculation. Reordering a complete load-header record can leave all
+   section bindings unchanged while breaking the loader's mapping bounds.
+   SysV/GNU hash tables must actually resolve the checked
+   entrypoint; a matching symbol-table label alone is insufficient.
+   Direct shared-image linkage explicitly requests `--hash-style=both` (through
+   `-Wl,` for a C driver), because distribution-specific GNU-ld defaults otherwise
+   omit a lookup table required by this closed profile. The build receipt
+   records this flag. See [ELF gABI, Program Header / PT_LOAD](https://gabi.xinuos.com/elf/07-pheader.html).
+   The single `PT_GNU_RELRO` must retain its reviewed read-only header shape and
+   file/virtual mapping inside the GOT's writable load. Its effective protection
+   is `[floor(start / 4096) * 4096, floor(end / 4096) * 4096)` and must cover the
+   entire GOT. A raw range that contains the GOT is insufficient: it could also
+   remove execution from the checked text, or a second RELRO header could select
+   a different range. This follows the trusted glibc loader's
+   [`_dl_protect_relro`](https://sources.debian.org/src/glibc/2.44-1/elf/dl-reloc.c/)
+   and remains limited to this Linux x86-64, 4 KiB GNU-ld shape.
+
+5. **Final immutable image.** `build_safe_core` links into a private temporary
+   directory, validates those final bytes, and publishes the exact bytes only
+   after every obligation passes. The result binds Core, source implementation,
+   object, linked text and final image hashes. A saved JSON receipt grants no
+   execution authority and is never consumed as a substitute for recomputation.
+
+## Obligations and meaning
+
+Each accepted image retains five solver queries:
+
+| Obligation | Required answer |
+| --- | --- |
+| The caller contract has at least one valid state | `sat` |
+| A machine read/write/return can escape admitted memory | `unsat` |
+| A call/return can violate stack alignment or saved-register preservation | `unsat` |
+| Any admitted input can lack a terminal Core or machine-model outcome | `unsat` |
+| Core and the final image can disagree on return/abort or caller byte contents | `unsat` |
+
+Byte-array equality includes preservation of bytes outside each intended write.
+The comparison observes caller memory even at an abort, so replacing a check
+with a late check after an incorrect write cannot pass merely because both
+executions eventually abort. The native ABI's observable trap is nonreturning
+abort; this entry does **not** promise preservation of distinct HIA trap codes.
+
+The proof quantifies over arbitrary scalar words and caller bytes. Native
+execution tests separately exercise the published image and boundary/canary
+cases. Those finite tests are not the source of the all-input claim.
+
+## Independent consumer entry
+
+`validate_safe_core_artifact(core, object_bytes, final_bytes, ...)` accepts exact
+immutable byte strings. Its profile is
+`hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v1`.
+It uses the same Core operations, ABI, loader and resource limits above, but
+requires no producer object, emitter invocation or compiler correctness premise.
+The ELF reader derives `.text`, function extents, symbols and relocations from
+supplied bytes rather than accepting a producer's symbol map. Both the object
+and image are untrusted inputs. Mutating both consistently still has to pass the
+independent semantic obligations.
+
+The existing `validate_safe_core_image` and `build_safe_core` entries preserve
+the canonical profile and its reemission identity check as producer provenance.
+Their semantic result is computed by the independent consumer entry. Reemission
+is labeled `semantic_proof: false`; it is never substituted for the SMT checks.
+
+A standalone consumer can recheck an already built artifact:
+
+```sh
+python tools/check_hia_safe_core.py \
+  --source /tmp/hia-safe-core-scalar/source.core.hepta \
+  --object /tmp/hia-safe-core-scalar/candidate.o \
+  --image /tmp/hia-safe-core-scalar/program.so \
+  --output /tmp/hia-safe-core-scalar-independent
+```
+
+The optional `--source-sha256`, `--object-sha256` and `--image-sha256` arguments
+bind caller-selected identities before solver work. The new output directory
+retains captured source/object/image bytes, canonical Core, every produced SMT
+query and result, and a terminal `attempt.json`, including rejected attempts and
+counterexamples. The checker does not load or execute the image. A later consumer
+must still bind the exact inspected bytes to its own authorized loading action.
+
+Each successful result carries `subject`, `property`, `profile`, `assumptions`,
+`checker` and `unproved_obligations` in its raw validation record. For the CLI
+above, read `<output>/attempt.json` at `.validation`; stdout only summarizes
+the status and output location. The `build_safe_core(...)` API likewise places
+the complete proof record at `.validation` in its returned object. Checker
+identity separates the consumer
+model sources and pinned solver from optional producer provenance. The raw entry
+can be imported and used with imports of the native emitter, encoder, ELF writer
+and byte-ABI producer actively forbidden. Tests also replace `MOV RAX,0` with
+`XOR RAX,RAX` plus NOPs: these noncanonical bytes may pass the semantic checker,
+while jointly changing object and final-image addition into subtraction produces
+a real counterexample. Matching producer hashes are insufficient in either case.
+
+The qualification now runs these consumer tests and independently rechecks all
+three retained positive artifacts with pinned input hashes. This addition leaves
+the selfhost v6 support matrix intact. The complete selfhost compiler, loops,
+multiple functions, owned resources and general ELF remain outside this finite
+semantic profile; a whole-selfhost refinement proof remains an open obligation.
+
+## Agent artifact consumption
+
+The MCP `hia_verify` path exposes an explicit scalar projection of the supplied
+artifact validator. After `hia_emit`, request `lowering_refinement` using a
+`native_artifact` subject naming the returned native artifact and build receipt.
+The method is `independent_safe_core_machine_validation`, with the discovered
+Agent profile `hia.agent.safe-core.scalar-supplied-elf.x86_64.v1`.
+
+The build retains the original `image.object_bytes` in a dedicated immutable
+`build-object` artifact. Both native metadata and the build receipt bind that
+reference and hash to the exact Core and final image. Verification and receipt
+consumption check those bindings. They never reemit an object as a replacement
+for missing retained evidence. Core, object and final bytes used for checking
+and hashing are the same immutable observations; the raw API rejects
+`bytearray`, memory views and subclasses instead of accepting mutable inputs.
+
+This Agent profile admits only final shared ELF and one unsigned scalar acyclic
+function with an empty foreign export manifest. The broader raw borrowed-range
+profile remains available through its separate API/CLI; the Agent's existing
+scalar target ABI does not acquire that calling authority. Object-only builds,
+loops, multiple functions and other unsupported Core/ELF/instruction forms do
+not get a refinement proof. A valid scoped native proof can satisfy an exact
+artifact's required lowering claim while the existing workload, equivalence,
+resource and conditional adoption gates still apply.
+
+The proof envelope carries the raw report, all five ordered obligations, the
+actual independent checker and solver identities, and immutable SMT query
+references. Nonvacuity must be SAT and the four violation queries UNSAT. A
+real SAT violation is a refutation; budget expiry, an unknown solver result or
+incomplete evidence cannot be promoted to `proved`. Checks after the final
+solver/identity read and before Agent publication enforce the frozen deadline.
+The canonical whole-Core lowering request remains unsupported and machine-plan
+proofs remain conditional on their original producer assumptions.
+
+The integration regressions run with:
+
+```sh
+python -B -m unittest tests.test_hia_agent_native_machine_validation -v
+python -B -m unittest tests.test_hia_agent_native_proof_contract -v
+```
+
+## Trust and caller assumptions
+
+The caller must supply live initialized borrowed allocations for every admitted
+nonempty range. They must be disjoint from the active stack, and a mutable range
+must be exclusive during the synchronous call. Numeric pointer/length checks
+cannot establish allocation provenance, liveness or physical mapping. A
+foreign pointer that numerically passes these checks but names invalid memory
+violates this caller contract.
+
+The actual loader must map the inspected bytes and resolve the immediately
+bound abort slot to the expected nonreturning libc implementation. Hostile
+interposition, concurrent memory modification, signals and hardware faults are
+outside this profile. The model assumes the declared 16 KiB of stack is
+available; it does not turn an exhausted process stack into a safe call.
+
+The independent Python Core/x86/ELF models, the canonical verifier and the
+identified Z3 binary/bindings remain trusted. Their correspondence to a full
+Intel ISA model has not been machine-checked. The receipts accordingly retain:
+
+```json
+{
+  "all_input_refinement_in_independent_model": true,
+  "machine_checked_isa_refinement_proved": false,
+  "python_checker_soundness_proved": false,
+  "foreign_pointer_provenance_or_liveness_proved": false,
+  "whole_language_soundness_proved": false,
+  "serialized_receipt_authorizes_execution": false
+}
+```
+
+The next formal step is to connect this closed decoder and state relation to a
+kernel-checked ISA definition. Increasing the Core profile requires new
+operation/flag/memory/ABI obligations and negative controls before admission.
+
+## Reproduce a build
+
+Use Linux x86-64, GNU ld/glibc and the existing `z3-solver==4.15.4.0` optional
+verification dependency. The receipt records the actual loaded Z3 library and
+Python binding hashes, not only the package version.
+
+```sh
+python tools/build_hia_safe_core.py \
+  --source examples/hia_safe_core/scalar_add.core.hepta \
+  --output /tmp/hia-safe-core-scalar
+
+python tools/build_hia_safe_core.py \
+  --source examples/hia_safe_core/guarded_update.core.hepta \
+  --foreign-extent 4096 \
+  --output /tmp/hia-safe-core-borrowed
+```
+
+The output directories must be new. They retain original/canonical Core,
+candidate object/text, raw `.smt2` queries and per-query results, attempt timing
+and the authoritative terminal `attempt.json`. A rejected or unknown attempt
+keeps its report and available queries; it has no published `program.so`.
+
+## Reproduce the adversarial qualification
+
+```sh
+python tools/qualify_hia_safe_core.py --output /tmp/hia-safe-core-qualification
+```
+
+This runs the full targeted test inventory with no allowed skips, builds three
+positive examples, retains five wrong-backend object/image pairs, and replays
+every retained query with a fresh solver context. The wrong producers mutate
+addition into subtraction, admit the equal-to-extent byte access, emit an
+eight-byte store in place of a byte store, clobber a callee-saved register, and
+set `RSP` to zero immediately before the nonreturning `abort` call.
+They are accepted by their own image regeneration step and must still produce
+real semantic `sat` counterexamples in the independent checker.
+
+The binaries named `candidate.rejected.*` are negative-control evidence and must
+not be loaded. `original-files.json` binds every retained file. The qualification
+does not move the default release, alter a production task, or establish that
+the complete HIA language is sound.

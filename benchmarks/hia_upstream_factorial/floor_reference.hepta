@@ -1,0 +1,22 @@
+hia-asm.v1 hepta.hia.program.v6 c_stb_div_floor
+exports(target)
+fn target(arg230:i32,arg231:i32) -> (i32) effects(trap) entry(b0)
+block b0(arg230:i32,arg231:i32)
+  a:i64 = int.cast(arg230) {"mode":"checked"}
+  b:i64 = int.cast(arg231) {"mode":"checked"}
+  q:i64 = int.div.checked(a,b)
+  r:i64 = int.rem.checked(a,b)
+  zero:i64 = const() {"value":0}
+  one:i64 = const() {"value":1}
+  rp:bool = compare.gt(r,zero)
+  rn:bool = compare.lt(r,zero)
+  bp:bool = compare.gt(b,zero)
+  bn:bool = compare.lt(b,zero)
+  left:bool = bool.and(rp,bn)
+  right:bool = bool.and(rn,bp)
+  adjust:bool = bool.or(left,right)
+  delta:i64 = select(adjust,one,zero)
+  floor:i64 = int.sub.checked(q,delta)
+  result:i32 = int.cast(floor) {"mode":"checked"}
+  ret(result)
+end

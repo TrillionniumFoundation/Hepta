@@ -1,0 +1,101 @@
+{
+  "schema": "hepta.hia.blocker-ledger.v1",
+  "date_utc": "2026-10-26",
+  "source_scope": {
+    "main_commit": "ac4f02bc7a57766254aa30f67b2c8ff1126f8966",
+    "common_ancestor_pr149": "80da2e7ec168eaf308475a7f2178b92280066321",
+    "platform_integrated_parent_pr159": "137589f25cbdeaf86d44ff5646580f51e1ebebae",
+    "hia_donor_pr160": "7c58713ab1d1597beea4ac196e3ad10310b0c382",
+    "p0_p7_integrated_preledger_commit": "724de7ac96300f9d7334f9ea33c340d9e444d381",
+    "merge_policy": "stacked draft; never merge both HIA donor and integrated recipient independently"
+  },
+  "validation_policy": {
+    "ignore_ci_queue_as_development_stop": true,
+    "final_exact_head_native_test_required_for_native_qualification": true,
+    "ancestor_execution_never_substitutes_for_current_source": true,
+    "whole_project_blockers_closed": false
+  },
+  "evidence_in_this_turn": {
+    "offline_hia_oracle_unittests": {
+      "passed": 5,
+      "total": 5,
+      "full_hepta_checkout": false
+    },
+    "standalone_hia_core_stub_replay": {
+      "passed": true,
+      "full_hepta_checkout": false
+    },
+    "handwritten_llvm_clang17_x86_64_control": {
+      "matches": 15,
+      "total": 15,
+      "elf_sha256": "47ffc363b3b6299b440ae9facb275486076453e95d021d6593fd9fdb062336ca",
+      "elf_bytes": 14976,
+      "hepta_emitted": false,
+      "llvm_source_handwritten": true
+    },
+    "compiled_hia_source_native_rust_clang20": {
+      "executed": false
+    },
+    "real_arm64_physical_target": {
+      "executed": false
+    },
+    "real_ai_agent_ab": {
+      "executed": false
+    }
+  },
+  "blockers": [
+    {
+      "id": "P0",
+      "status": "partial",
+      "implemented": "canonical checked source authority reused; HIA scalar schema/source binding; exact blob integration",
+      "still_required": "producers/consumers unified under one versioned canonical schema, no incompatible HSIR authority, all source/consumer negative native tests"
+    },
+    {
+      "id": "P1",
+      "status": "partial",
+      "implemented": "scalar Core v0; SSA structural verifier; independent Resource IR; finite SSA oracle",
+      "still_required": "one operational typed value+ownership SSA with Move/Borrow/Drop/Provenance/effects, independent CFG/error-edge/loan verification and source refinement"
+    },
+    {
+      "id": "P2",
+      "status": "partial",
+      "implemented": "scalar LLVM consumes decoded Core SSA; independent finite interpreter; existing Owned LLVM retained",
+      "still_required": "Owned LLVM consumes only verified operational Core; same-source Rust/LLVM native differential with traps, allocator refusals and cleanup; soundness evidence"
+    },
+    {
+      "id": "P3",
+      "status": "open",
+      "implemented": "selected host GCC/Clang/MSVC and cross-object/layout probes retained from integrated ancestors",
+      "still_required": "live bidirectional ABI qualification for relevant x86-64/ARM64 GCC/Clang/MSVC, selected C++ object/exception boundaries and target configurations"
+    },
+    {
+      "id": "P4",
+      "status": "open",
+      "implemented": "existing bounded C project compiler capture, C++ bridge and selected owner migrator retained",
+      "still_required": "L0-L3 inventories for representative full projects, unsupported declarations accounted, exact C/C++ differential/UB preconditions, broad ownership migration"
+    },
+    {
+      "id": "P5",
+      "status": "open",
+      "implemented": "v4 immutable workspace and agent semantics retained; typed HIA core may serve editing future",
+      "still_required": "true provider/model 2x2 controlled trials with task success, token/time/error/cost receipts and deterministic crash-safe patch replay"
+    },
+    {
+      "id": "P6",
+      "status": "open",
+      "implemented": "QEMU Cortex-M4 baseline and finite ARM64 runtime/link/control probes retained; finite scalar native timing historical",
+      "still_required": "physical hardware MMIO/IRQ/DMA coherence and GPU/NPU qualification, sustained workloads, unbiased latency/RSS/CPU/p99 performance"
+    },
+    {
+      "id": "P7",
+      "status": "open",
+      "implemented": "historical abstract formal models, exact source/byte publication, target/compiler identity checks retained",
+      "still_required": "formal executable source-to-Core and Core-to-native refinements for claimed profiles; complete exact-HEAD reproducible release, verified external contracts and platform attestations"
+    }
+  ],
+  "commands": {
+    "local_scalar": "python -m unittest tests.test_hia_core tests.test_hia_oracle tests.test_native_resource_gate tests.test_llvm_ssa_cli tests.test_llvm_ssa_origin -v",
+    "local_platform": "python -m unittest tests.test_owned_aarch64_runtime tests.test_native_tool_identity -v",
+    "complete": "python tools/release_check.py"
+  }
+}

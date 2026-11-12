@@ -1,0 +1,68 @@
+{
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "entry",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "one",
+                  "type": "u32"
+                }
+              ]
+            },
+            {
+              "args": [
+                "x",
+                "one"
+              ],
+              "attrs": {},
+              "op": "int.add.checked",
+              "out": [
+                {
+                  "name": "answer",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "x",
+              "type": "u32"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "answer"
+            ]
+          }
+        }
+      ],
+      "effects": [
+        "trap"
+      ],
+      "entry": "entry",
+      "name": "increment",
+      "params": [
+        {
+          "name": "x",
+          "type": "u32"
+        }
+      ],
+      "returns": [
+        "u32"
+      ]
+    }
+  ],
+  "module": "counter",
+  "schema": "hepta.hia.program.v1"
+}

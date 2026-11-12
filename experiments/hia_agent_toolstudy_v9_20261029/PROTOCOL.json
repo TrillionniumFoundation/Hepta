@@ -1,0 +1,146 @@
+{
+  "advantage_gate": "Complete stable-source 16-cell main after fresh 3/3 qualification with complete usage. HIA node must pass all four hidden gates, succeed at least as often as Rust node and HIA full, use no more total input+output tokens than Rust node and fewer than HIA full. Report all within/between-language contrasts separately; descriptive only.",
+  "arms": [
+    "hia_full",
+    "hia_node",
+    "rust_full",
+    "rust_node"
+  ],
+  "budget": {
+    "hia_vm_heap_bytes": 256,
+    "hia_vm_steps": 10000,
+    "max_hia_blocks_per_function": 16,
+    "max_hia_operations_per_function": 128,
+    "native_address_space_bytes": 268435456,
+    "native_cpu_seconds": 2,
+    "native_wall_seconds": 5
+  },
+  "capacity_gate": "Before any generation, all 19 reference responses must pass actual public and terminal hidden/native/resource validation and fit 1536 output tokens; each complete initial and both repair requests plus reserve must fit context, and the hard allocation envelope must fit. References are control-only, never model answers, prompts, selected node hints or decoder values.",
+  "cell_order": "Qualification uses listed order. Main rotates four arms by task index, one pinned model for all 16 cells. No task/model substitution or main prompt adjustment after qualification.",
+  "claims": {
+    "compiler_or_language_soundness_proved": false,
+    "general_agent_productivity_proved": false,
+    "general_language_advantage_proved": false,
+    "real_long_term_maintenance_measured": false
+  },
+  "costs": [
+    "all actual requests including failures and partial generation",
+    "input/output IDs and unknown residual usage",
+    "each tool submission, compilation, public/hidden validation",
+    "tokenization/template/history preparation and diagnostics clipping",
+    "model/runtime/source hashing and process startup/shutdown",
+    "all qualification, failed selections and reference controls separately",
+    "whole-run and per-cell wall time",
+    "automatic repair count; zero human answer repair"
+  ],
+  "decoder": "Same syntax-only JSON grammar family; full has two registered file keys, node has node/changes without enumerated answers or golden nodes. No unscored check field.",
+  "execution_location": "Available shared development host; LOCAL_RUNTIME_NOT_OBSERVABLE for dot.",
+  "generation": {
+    "attempts_per_cell": 3,
+    "cache_prompt": false,
+    "context_tokens": 8192,
+    "max_output_tokens": 1536,
+    "seed": 0,
+    "temperature": 0,
+    "threads": 4,
+    "wall_seconds": 900
+  },
+  "hidden_random_cases_per_task": 24,
+  "hidden_seed": 1213216308,
+  "historical_results_immutable": true,
+  "history": {
+    "context_rule": "Tokenize every actual complete server-rendered request and reserve all 1536 output tokens before submitting. If it exceeds 8192, end the cell as budget failure with actual prior costs retained. The initial+1664+1024+1536+256 capacity envelope is a conservative allocation, not a theorem about arbitrary tokenization; actual exact checks are authoritative.",
+    "diagnostic_rule": "Keep all public case/resource/build fields. Retain the complete raw diagnostic separately. Display diagnostic string (canonical JSON for structured diagnostics); if over 1024 feedback tokens repeatedly halve that string prefix by Unicode character count and mark clipping until it fits. Never remove a public case or resource flag. If even an empty diagnostic cannot fit, end cell as budget failure.",
+    "feedback_tokens": 1024,
+    "framing_reserve_tokens": 256,
+    "previous_overflow": "End the cell; retain complete original model response and all consumed cost. Do not truncate code, discard cost, change budgets, or auto-merge answers.",
+    "previous_response_tokens": 1664,
+    "retention": "Each repair contains the unchanged initial prompt, complete immediately preceding assistant response, and bounded public feedback. Earlier failed responses are not accumulated. Same rule in all arms and qualification."
+  },
+  "interface": "Full returns exactly files with both complete editable definitions. Node returns exactly edits (1..16), each node ID and changes; host attaches the pre-generation query revision/digest. Node uses actual HIA production batch/patch or finite Rust AST fragments, with original ownership/type/native gates.",
+  "model": {
+    "bytes": 4683073536,
+    "filename": "qwen2.5-coder-7b-instruct-q4_k_m.gguf",
+    "id": "qwen_coder7b",
+    "repository": "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF",
+    "revision": "13fb94bfda8c8cf22497dc57b78f391a9acb426a",
+    "sha256": "509287f78cb4d4cf6b3843734733b914b2c158e43e22a7f4bf5e963800894d3c"
+  },
+  "performance_timing_qualified": false,
+  "predecessor": "Original V8 33c46cdef12c60faf0c1dbef02ea20caa3ad7d56 and its complete 1/3 qualification remain immutable, including all eight requests and 22412 tokens. V9 adds only independently reviewed general node-contract disclosure; no historical answer is rescored.",
+  "prospective_amendment": {
+    "accepted_programs_or_tool_authority_changed": false,
+    "changes": [
+      "Both node interfaces disclose at most one edit per node ID.",
+      "Rust node text is one allowed type expression or one complete expression according to category; same-file spans must be pairwise disjoint, choosing a parent or descendants, never both."
+    ],
+    "fresh_capacity_and_qualification_required": true,
+    "full_prompts_changed": false,
+    "host_repairs_or_overlap_deletion_added": false,
+    "independent_disclosure_review": "0201a6e56f334106c56134f350a3689f74c7ab7a",
+    "old_results_reclassified": false,
+    "qualification_scope": "Three correct tasks through the same complete public/native/resource/terminal hidden gates; same three-submission, token, wall, model and tool budgets. No V8 eligibility reuse.",
+    "source_v8": "33c46cdef12c60faf0c1dbef02ea20caa3ad7d56",
+    "stop_rule": "If this one complete V9 qualification again fails, do not tune prompts against these tasks again or repeat the same 7B experiment without a new independent model/resource justification. Retain all costs, keep main unstarted, and report that an independently capable model is required.",
+    "task_examples_answers_or_selected_nodes_added": false,
+    "v8_exact_tokens": 22412,
+    "v8_experiment_wall_ns": 2059597590950,
+    "v8_qualified_tasks": 1,
+    "v8_requests": 8,
+    "v8_result_sha256": "7f411804f0c161b5ffbc7d54d4065504074e0a3e2acfafac1ba4b1fe009567fe",
+    "v8_total_tasks": 3
+  },
+  "public_feedback": "Actual compiler/admission diagnostics and paired existing public input/expected/observed cases plus resource/VM status only. No hidden result or reference edit feedback. Hidden evaluation immediately ends the cell; no subsequent inference for that cell.",
+  "qualification": {
+    "arm": "rust_node",
+    "eligibility": "Fresh same-source V9 qualification must pass all three unchanged functional/resource/terminal hidden gates within three submissions each, with complete token accounting and unchanged source/model/tools. No inherited V8 or earlier eligibility.",
+    "main_forbidden_without_qualification": true,
+    "reason": "Independent review found initial node-contract disclosure omitted unique IDs and disjoint Rust spans. This single prospective amendment states those existing rules and clarifies type versus expression fragments. V8 actual failures were earlier fragment-category errors, not overlap rejections; no success from V8 is inherited.",
+    "reference_controls_are_qualification_successes": false,
+    "selection_bias": "Adaptive follow-up after the complete V8 tool-usage observations and an independent general API-contract audit; same pinned 7B only. This is not an unbiased model or pipeline sample.",
+    "tasks": [
+      "json_scalar_reasoning",
+      "two_file_signature_repair",
+      "owner_flow_repair"
+    ]
+  },
+  "rollback": "Any rejected response, including public wrong, leaves original source unchanged. Node retries bind the same captured original query and must resubmit all required edits. No partial install or answer merging.",
+  "runtime": {
+    "archive": "llama-b11669-bin-ubuntu-x64.tar.gz",
+    "bytes": 17851611,
+    "environment": {
+      "LLAMA_ARG_REPACK": "0"
+    },
+    "release": "b11669",
+    "repository": "ggml-org/llama.cpp",
+    "sha256": "cf07c1c112d709bd67e522017471de57ed0ec8bea031d732c5422351c07f65ac"
+  },
+  "rust_conversion_profile": {
+    "arbitrary_custom_traits_or_methods_admitted": false,
+    "default_legacy_profiles_unchanged": true,
+    "id": "unshadowed_declared_scalar_parameter_into_v1",
+    "primitive_receivers": [
+      "u8",
+      "u16",
+      "u32",
+      "u64",
+      "usize",
+      "bool"
+    ],
+    "scope": "Only a bare identifier naming a declared scalar function parameter may receive .into(). Macro definitions and dollar-sign metavariables are excluded in every file under this opt-in profile, including files without a literal into call. No arguments, container/field/expression receivers, parameter shadowing, closures/bar syntax or complex let patterns in a file using into. Other v4 syntax/type/effect limits remain. Actual target conversion validity is decided by real rustc. No generated source is rewritten."
+  },
+  "schema": "hepta.agent.real-node-toolstudy.v9",
+  "tasks": [
+    "saturating_score",
+    "wide_span_upgrade",
+    "owned_byte_return",
+    "owner_pair_replace"
+  ],
+  "timeout": "End that cell; retain received SSE, exact input tokens and observed output-token lower bound, unknown residual usage. Stop owned server, fresh process for next distinct cell. No timeout retry of same cell.",
+  "tool_scope": "Four actual source files; only provider and entrypoint editable. HIA signature edits require explicit selected-field container reconstruction. Rust expression/type nodes preserve all unselected syntax; no full function replacement disguised as a node. Full Rust uses the same finite parser; HIA full preserves original entry/effects/block identities. Full/node differ in presentation and edit granularity, so this estimates tool bundles rather than isolated context or syntax effects.",
+  "unmeasured_costs": [
+    "human tool/protocol development labor",
+    "model training and acquisition historical costs reported separately",
+    "real long-term maintenance across projects"
+  ]
+}

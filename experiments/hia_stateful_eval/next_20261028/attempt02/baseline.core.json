@@ -1,0 +1,221 @@
+{
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "entry",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 2
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "two",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "x",
+                "y"
+              ],
+              "attrs": {},
+              "op": "bit.xor",
+              "out": [
+                {
+                  "name": "xor",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "x",
+                "y"
+              ],
+              "attrs": {},
+              "op": "bit.and",
+              "out": [
+                {
+                  "name": "and",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "and",
+                "two"
+              ],
+              "attrs": {},
+              "op": "int.mul.wrap",
+              "out": [
+                {
+                  "name": "double",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "xor",
+                "double"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "r",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "x",
+              "type": "u64"
+            },
+            {
+              "name": "y",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "r"
+            ]
+          }
+        }
+      ],
+      "effects": [],
+      "entry": "entry",
+      "name": "add_step",
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        }
+      ],
+      "returns": [
+        "u64"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "entry",
+          "ops": [
+            {
+              "args": [
+                "x",
+                "y"
+              ],
+              "attrs": {
+                "function": "add_step"
+              },
+              "op": "call",
+              "out": [
+                {
+                  "name": "a",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "a",
+                "y"
+              ],
+              "attrs": {
+                "function": "add_step"
+              },
+              "op": "call",
+              "out": [
+                {
+                  "name": "b",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "b",
+                "y"
+              ],
+              "attrs": {
+                "function": "add_step"
+              },
+              "op": "call",
+              "out": [
+                {
+                  "name": "c",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "c",
+                "y"
+              ],
+              "attrs": {
+                "function": "add_step"
+              },
+              "op": "call",
+              "out": [
+                {
+                  "name": "r",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "x",
+              "type": "u64"
+            },
+            {
+              "name": "y",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "r"
+            ]
+          }
+        }
+      ],
+      "effects": [],
+      "entry": "entry",
+      "name": "transition",
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        }
+      ],
+      "returns": [
+        "u64"
+      ]
+    }
+  ],
+  "module": "stateful_native",
+  "schema": "hepta.hia.program.v1"
+}

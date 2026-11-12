@@ -1,0 +1,221 @@
+{
+  "schema": "hepta.hia.agent-repository-maintenance.v1",
+  "source_repository": "https://github.com/TrillionniumFoundation/Hepta",
+  "source_base": "1b5e946c9889b1c19ae86235cb14dfb76da10777",
+  "task_provenance": "Existing repository resource examples with explicitly registered defect injection. Not real historical maintenance; no before/after historical edit pair found in the recorded source history search.",
+  "tasks": [
+    {
+      "id": "offset-copy-api",
+      "source_path": "examples/hia_program/offset_copy_v5.hia",
+      "source_sha256": "dcab8716d7478b73ee6be9b67bd58dc946e1333467f967e3b9b1da343a36a809",
+      "source_git_blob": "084687a6f57f440dd6f317bf0b3447b593cfb7c1",
+      "function": "copy_offset",
+      "block": "entry",
+      "operation_index": 21,
+      "injection": "legacy-zero-offset-api",
+      "owners": 2
+    },
+    {
+      "id": "overlap-callsite",
+      "source_path": "examples/hia_program/overlap_move_v3.hia",
+      "source_sha256": "30087f179112b96acee60b8efa21a97a8992cd2fa98d23a980bb76eb113a6c91",
+      "source_git_blob": "569c50c3fccfa9d37e595f0b207230898f172aaf",
+      "function": "move_bytes",
+      "block": "entry",
+      "operation_index": 17,
+      "injection": "swapped-source-destination",
+      "owners": 1
+    }
+  ],
+  "arms": [
+    "hia_full",
+    "hia_structured"
+  ],
+  "task_order": [
+    "offset-copy-api",
+    "overlap-callsite"
+  ],
+  "arm_order": "rotate by task index",
+  "model": {
+    "repository": "Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF",
+    "revision": "f86cb2c1fa58255f8052cc32aeede1b7482d4361",
+    "filename": "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf",
+    "bytes": 1117320768,
+    "sha256": "cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046"
+  },
+  "second_model": {
+    "requested": "gpt-6.1-sol",
+    "status_policy": "actual usage-limit preflight is unavailable, not a wrong answer; no substitution"
+  },
+  "generation": {
+    "context_tokens": 8192,
+    "max_output_tokens": 2048,
+    "attempts_per_cell": 2,
+    "wall_seconds_per_attempt": 120,
+    "threads": 4,
+    "temperature": 0,
+    "seed": 0,
+    "cache_prompt": false,
+    "decoder": "generic JSON object syntax only; identical for both arms"
+  },
+  "public_cases": [
+    [
+      8,
+      2,
+      0,
+      3,
+      2
+    ],
+    [
+      8,
+      0,
+      2,
+      3,
+      0
+    ],
+    [
+      5,
+      1,
+      1,
+      3,
+      3
+    ],
+    [
+      5,
+      4,
+      4,
+      0,
+      4
+    ]
+  ],
+  "hidden_valid_cases": [
+    [
+      5,
+      0,
+      0,
+      5,
+      4
+    ],
+    [
+      6,
+      1,
+      0,
+      4,
+      3
+    ],
+    [
+      6,
+      0,
+      1,
+      4,
+      3
+    ],
+    [
+      7,
+      3,
+      1,
+      3,
+      4
+    ],
+    [
+      8,
+      4,
+      2,
+      3,
+      6
+    ],
+    [
+      8,
+      2,
+      4,
+      3,
+      3
+    ],
+    [
+      9,
+      5,
+      0,
+      4,
+      8
+    ],
+    [
+      9,
+      0,
+      5,
+      4,
+      3
+    ],
+    [
+      10,
+      6,
+      6,
+      3,
+      8
+    ],
+    [
+      16,
+      7,
+      1,
+      5,
+      11
+    ],
+    [
+      31,
+      0,
+      26,
+      5,
+      2
+    ],
+    [
+      31,
+      26,
+      0,
+      5,
+      30
+    ]
+  ],
+  "hidden_refusal_cases": [
+    [
+      4,
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      5,
+      4,
+      0,
+      2,
+      0
+    ],
+    [
+      5,
+      0,
+      4,
+      2,
+      0
+    ],
+    [
+      5,
+      0,
+      0,
+      1,
+      5
+    ],
+    [
+      5,
+      6,
+      0,
+      0,
+      0
+    ]
+  ],
+  "hidden_policy": "hidden native evaluation is terminal; hidden cases, expected values and target source are never in model messages",
+  "cost_policy": "record every model response token receipt, public and terminal validation wall time, retries, source admission, engine startup/shutdown and shared controls; human development and task authoring are unmeasured",
+  "claims": {
+    "general_agent_productivity": false,
+    "real_historical_maintenance": false,
+    "multi_model_advantage": false
+  }
+}

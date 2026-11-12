@@ -1,0 +1,303 @@
+"""Regression checks for the registered follow-up's actual evaluation boundaries."""
+from copy import deepcopy
+from hashlib import sha256
+import json
+import os
+import shutil
+from pathlib import Path
+import unittest
+from unittest import mock
+import tempfile
+import tarfile
+
+from tools import qualify_hia_agent_holdout as holdout
+from tools import qualify_hia_batch_study as batch
+from tools.qualify_hia_edit_study import ARMS
+from experiments.hia_optimizer_eval.next_20261028 import upgrade_pilot as upgrade
+from experiments.hia_optimizer_eval.next_20261028 import run_agent, archive_run
+
+
+class NextBenchmarkTests(unittest.TestCase):
+
+    pass
+
+
+class NextAgentTests(unittest.TestCase):
+    def test_new_seed_changes_hidden_inputs_and_never_changes_primary_prompts(self):
+        old, new = holdout.tasks(), holdout.tasks(0x20261028)
+        self.assertNotEqual(old[0]["cases"], new[0]["cases"])
+        for before, after in zip(old, new):
+            self.assertEqual(len(after["cases"]), 77)
+            for arm in ARMS:
+                self.assertEqual(batch.prompt(before, arm), batch.prompt(after, arm))
+        for value in (-1, 2**32, True, "7"):
+            with self.assertRaises(ValueError):
+                holdout.tasks(value)
+
+    def test_upgrade_hidden_cases_and_references_never_enter_prompt(self):
+        for task in upgrade.fixtures():
+            changed = deepcopy(task)
+            changed["hidden_cases"] = [[17, 23, 41]]
+            changed["hidden_expected"] = [777777777777]
+            changed["correct_hia"] = {}
+            changed["correct_rust"] = {}
+            for language in ("hia", "rust"):
+                self.assertEqual(upgrade.prompt(task, language), upgrade.prompt(changed, language))
+            self.assertFalse({tuple(row) for row in task["public_cases"]} &
+                             {tuple(row) for row in task["hidden_cases"]})
+
+    def test_upgrade_changes_both_real_interfaces_and_binds_whole_module(self):
+        for task in upgrade.fixtures():
+            for language in ("hia", "rust"):
+                good = json.dumps({"files": task["correct_" + language]})
+                candidate, receipt = upgrade.parse_files(task, language, good)
+                if language == "hia":
+                    self.assertIsNotNone(receipt)
+                    self.assertEqual(len(candidate.as_dict()["functions"]), 2)
+                with self.assertRaises(ValueError):
+                    upgrade.parse_files(task, language, json.dumps({"files": task["original_" + language]}))
+            for mask in (1, 2):
+                names = upgrade.FILE_NAMES["hia"]
+                files = {name: task[("correct_" if mask & (1 << i) else "original_") + "hia"][name]
+                         for i, name in enumerate(names)}
+                with self.assertRaises(ValueError):
+                    upgrade.parse_files(task, "hia", json.dumps({"files": files}), enforce_contract=False)
+
+    def test_upgrade_rejects_extra_files_external_code_and_unbound_public_api(self):
+        task = upgrade.fixtures()[0]
+        for payload in (
+            {"files": {**task["correct_rust"], "extra.rs": ""}},
+            {"files": {**task["correct_rust"], "api.rs": "pub fn wire_length(length:u32)->u64 { std::process::exit(0) }"}},
+            {"files": {**task["correct_rust"], "api.rs": "pub fn wire_length(length:u32)->u64 { unsafe { length as u64 } }"}},
+        ):
+            with self.assertRaises(ValueError):
+                upgrade.parse_files(task, "rust", json.dumps(payload))
+        files = deepcopy(task["correct_hia"])
+        files["client.core.hepta"]["returns"] = ["u32"]
+        with self.assertRaises(ValueError):
+            upgrade.parse_files(task, "hia", json.dumps({"files": files}))
+
+    def test_rust_finite_profile_rejects_paths_comments_turbofish_methods_and_calls(self):
+        task = upgrade.fixtures()[0]
+        snippets = (
+            "std :: process :: exit(0)", "::std::process::exit(0)",
+            "std/**/::process::exit(0)", "Vec::<u8>::new()", "Vec :: new()",
+            "core :: hint :: spin_loop()", "super::outside()", "crate::main()",
+            "println!(123)", "length.to_string()", "drop(length)",
+            "(api::wire_length)(length)", "Some(api::wire_length).unwrap()(length)",
+            "length /* comment */ as u64", "length // comment\n as u64",
+            "let z:Option<Box<u64>>=None; let boxed=z.unwrap_or_default(); (length as u64)+*boxed",
+            "let result={wire_length}(length); result", "(0..length as u64).max().unwrap_or(0)",
+            "let provider_call=wire_length; provider_call(length)",
+        )
+        for snippet in snippets:
+            files = deepcopy(task["correct_rust"])
+            files["api.rs"] = "pub fn wire_length(length:u32)->u64 { " + snippet + "; length as u64 }\n"
+            with self.subTest(snippet=snippet), self.assertRaises(ValueError):
+                upgrade.parse_files(task, "rust", json.dumps({"files": files}))
+        files = deepcopy(task["correct_rust"])
+        files["api.rs"] = "pub fn wire_length(length:u32)->u64 { (length as u64).wrapping_add(0) }\n"
+        upgrade.parse_files(task, "rust", json.dumps({"files": files}))
+        files["api.rs"] = "pub fn wire_length(length:u32)->u64 { let zero:Option<u64>=None; (length as u64).wrapping_add(zero.unwrap_or_default()) }\n"
+        upgrade.parse_files(task, "rust", json.dumps({"files": files}))
+        window = upgrade.fixtures()[1]
+        files = deepcopy(window["correct_rust"])
+        files["api.rs"] = "pub fn advance(offset:u32,amount:u32,capacity:u32)->(bool,u32) { let end = (offset as u64) + (amount as u64); let invalid = end > capacity as u64; (!invalid, end as u32) }\n"
+        upgrade.parse_files(window, "rust", json.dumps({"files": files}))
+
+    def test_native_rust_caller_refuses_a_changed_public_return_type(self):
+        rustc = os.environ.get("HEPTA_RUSTC") or shutil.which("rustc")
+        if not rustc:
+            self.skipTest("Rust compiler is required for the native public-signature control")
+        task = upgrade.fixtures()[0]
+        files = deepcopy(task["correct_rust"])
+        files["client.rs"] = "use crate::api;\npub fn entrypoint(tag:u32,length:u32,reserved:u32)->u128 { let _ = reserved; (((tag & 255) as u128) << 32) | (api::wire_length(length) as u128) }\n"
+        text = json.dumps({"files": files})
+        with self.assertRaisesRegex(ValueError, "E_UPGRADE_PUBLIC_INTERFACE"):
+            upgrade.parse_files(task, "rust", text)
+        with tempfile.TemporaryDirectory() as directory:
+            # Bypass front-door API admission solely for this negative control:
+            # the actual trusted Rust caller must still refuse the u128 API.
+            result = upgrade.build(task, "rust", text, Path(directory) / "bad", "unused-clang", rustc,
+                                   enforce_contract=False)
+            self.assertFalse(result["native_built"])
+            self.assertEqual(result["status"], "compile_rejected")
+            self.assertIn("E0308", result["compile"]["stderr"])
+            self.assertIn("u128", result["compile"]["stderr"])
+            self.assertIn("u64", result["compile"]["stderr"])
+
+    def test_same_core_vm_observes_unreachable_call_and_wrong_arguments(self):
+        controls = upgrade.historical_admission_controls()
+        tasks = {task["id"]: task for task in upgrade.fixtures()}
+        for label in ("dead_provider_hia", "wrong_argument_hia"):
+            item = next(row for row in controls if row["id"] == label)
+            task = tasks[item["task"]]
+            core, _ = upgrade.parse_files(task, "hia", json.dumps({"files": item["files"]}))
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "program.hepta"; path.write_bytes(core.canonical_bytes)
+                rows = upgrade.hia_provider_audit({"core_path": str(path), "core_sha256": core.sha256,
+                    "audit_task": task["id"], "audit_provider": task["provider"]}, task["public_cases"])
+            self.assertEqual([row["entry_vm"]["result"] for row in rows], task["public_expected"])
+            if label == "dead_provider_hia":
+                self.assertEqual([row["provider_calls_in_entry"] for row in rows], [0, 0, 0])
+                self.assertNotEqual([row["provider_result"] for row in rows],
+                    [upgrade.provider_expected(task["id"], case) for case in task["public_cases"]])
+            else:
+                self.assertEqual([row["provider_calls_in_entry"] for row in rows], [1, 1, 1])
+                self.assertFalse(all(row["provider_arguments_match"] for row in rows))
+
+    def test_historical_controls_preserve_raw_bytes_and_pass_current_core_checks(self):
+        path = run_agent.HERE / "ADMISSION_CONTROLS.json"
+        raw = path.read_bytes()
+        self.assertEqual(sha256(raw).hexdigest(),
+                         "f30d0661b89ac7d21ceab3937ca7184911f640c2c99709a864dc8fe494202309")
+        original = json.loads(raw)
+        controls = upgrade.historical_admission_controls()
+        tasks = {task["id"]: task for task in upgrade.fixtures()}
+        self.assertEqual(len(controls), len(original))
+        for recorded, current in zip(original, controls):
+            with self.subTest(control=recorded["id"]):
+                self.assertEqual({k: v for k, v in recorded.items() if k != "files"},
+                                 {k: v for k, v in current.items() if k != "files"})
+                if recorded["language"] == "rust":
+                    self.assertEqual(recorded, current)
+                    continue
+                self.assertEqual(set(recorded["files"]), {"api.hia.json", "client.hia.json"})
+                self.assertEqual(set(current["files"]), set(upgrade.FILE_NAMES["hia"]))
+                self.assertEqual([recorded["files"][n] for n in ("api.hia.json", "client.hia.json")],
+                                 [current["files"][n] for n in upgrade.FILE_NAMES["hia"]])
+                if not recorded["id"].endswith("_correct"):
+                    continue
+                task = tasks[recorded["task"]]
+                core, receipt = upgrade.parse_files(task, "hia", json.dumps({"files": current["files"]}))
+                self.assertIsNotNone(receipt)
+                with tempfile.TemporaryDirectory() as directory:
+                    output = Path(directory) / "control.core.hepta"
+                    output.write_bytes(core.canonical_bytes)
+                    observed = upgrade.hia_provider_audit({"core_path": str(output), "core_sha256": core.sha256,
+                        "audit_task": task["id"], "audit_provider": task["provider"]}, task["public_cases"])
+                self.assertEqual([row["entry_vm"]["result"] for row in observed], task["public_expected"])
+                self.assertTrue(all(row["provider_arguments_match"] for row in observed))
+        self.assertEqual(path.read_bytes(), raw)
+
+    def test_historical_projection_does_not_relax_names_language_or_core_validation(self):
+        controls = json.loads((run_agent.HERE / "ADMISSION_CONTROLS.json").read_bytes())
+        recorded = next(row for row in controls if row["id"] == "wire_length_v2_hia_correct")
+        task = upgrade.fixtures()[0]
+        old = recorded["files"]
+        for files in ({"api.hia.json": old["api.hia.json"]},
+                      {**old, "extra.hia.json": {}},
+                      {"api.core.hepta": old["api.hia.json"], "client.hia.json": old["client.hia.json"]},
+                      {"API.hia.json": old["api.hia.json"], "client.hia.json": old["client.hia.json"]}):
+            with self.subTest(keys=list(files)), self.assertRaisesRegex(ValueError, "HISTORICAL_WORKSPACE_FILES"):
+                upgrade._historical_hia_file_pair(files)
+        with self.assertRaisesRegex(ValueError, "E_UPGRADE_WORKSPACE_FILES"):
+            upgrade.parse_files(task, "hia", json.dumps({"files": old}))
+        files = upgrade._historical_hia_file_pair(old)
+        files["api.core.hepta"] = "not a Core function object"
+        with self.assertRaisesRegex(ValueError, "E_UPGRADE_HIA_FUNCTION_OBJECT"):
+            upgrade.parse_files(task, "hia", json.dumps({"files": files}))
+        files = upgrade._historical_hia_file_pair(old)
+        files["api.core.hepta"]["blocks"][0]["ops"][0]["op"] = "unregistered.legacy.opcode"
+        with self.assertRaises(ValueError):
+            upgrade.parse_files(task, "hia", json.dumps({"files": files}))
+
+    def test_historical_reader_refuses_changed_fixture_bytes(self):
+        raw = (run_agent.HERE / "ADMISSION_CONTROLS.json").read_bytes()
+        with tempfile.TemporaryDirectory() as directory:
+            location = Path(directory)
+            (location / "ADMISSION_CONTROLS.json").write_bytes(raw + b"\n")
+            with mock.patch.object(upgrade, "__file__", str(location / "upgrade_pilot.py")), \
+                    self.assertRaisesRegex(ValueError, "historical admission controls identity differs"):
+                upgrade.historical_admission_controls()
+
+    def test_actual_rust_counter_refuses_correct_entry_with_dead_provider(self):
+        rustc = os.environ.get("HEPTA_RUSTC") or shutil.which("rustc")
+        if not rustc or not hasattr(os, "memfd_create"):
+            self.skipTest("Rust compiler and Linux sealed-executable execution required")
+        controls = upgrade.historical_admission_controls()
+        item = next(row for row in controls if row["id"] == "dead_provider_rust")
+        task = upgrade.fixtures()[1]
+        with tempfile.TemporaryDirectory() as directory:
+            built = upgrade.build(task, "rust", json.dumps({"files": item["files"]}),
+                                  Path(directory) / "dead", "unused-clang", rustc)
+            self.assertTrue(built["native_built"], built)
+            # Exercise the actual kernel and Rust executable even on Python
+            # builds whose fcntl module exports none of the Linux seal names.
+            try:
+                raise ValueError("earlier candidate rejected")
+            except ValueError:
+                # Recovery while another exception is being handled must not
+                # make the sealing helper close its successfully transferred fd.
+                with mock.patch.dict(upgrade.fcntl.__dict__):
+                    for name in ("F_SEAL_WRITE", "F_SEAL_SHRINK", "F_SEAL_GROW", "F_SEAL_SEAL",
+                                 "F_ADD_SEALS", "F_GET_SEALS"):
+                        upgrade.fcntl.__dict__.pop(name, None)
+                    observed = upgrade.execute(built, task["public_cases"], task["public_expected"])
+        self.assertEqual(observed["actual"], task["public_expected"])
+        self.assertEqual(observed["seals"] & 15, 15)
+        self.assertEqual(observed["provider_call_counts"], [0, 0, 0])
+        self.assertFalse(observed["provider_contract_passed"])
+        self.assertEqual(observed["status"], "observable_wrong")
+
+    def test_upgrade_refuses_missing_kernel_seals_before_native_execution(self):
+        if not hasattr(os, "memfd_create"):
+            self.skipTest("Linux sealed-executable admission required")
+        from hepta.hia_native_differential import HIADifferentialRejected
+        real_fcntl = upgrade.fcntl.fcntl
+        get_seals = getattr(upgrade.fcntl, "F_GET_SEALS", 1034)
+        def missing_seals(descriptor, command, *arguments):
+            return 0 if command == get_seals else real_fcntl(descriptor, command, *arguments)
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory) / "unexecuted-candidate"
+            candidate.write_bytes(b"This negative control must never be executed.")
+            built = {"native_built": True, "artifact": upgrade.file_identity(candidate)}
+            with mock.patch.object(upgrade.fcntl, "fcntl", side_effect=missing_seals), \
+                    mock.patch.object(upgrade.subprocess, "run") as child:
+                with self.assertRaisesRegex(HIADifferentialRejected, "sealed executable-byte snapshot"):
+                    upgrade.execute(built, [], [])
+                child.assert_not_called()
+
+    def test_independent_oracle_covers_widening_and_overflow(self):
+        self.assertEqual(upgrade.oracle("wire_length_v2", (256, 2**32-1, 17)), 2**32-1)
+        self.assertEqual(upgrade.oracle("wire_length_v2", (255, 65536, 0)), (255 << 32) | 65536)
+        self.assertEqual(upgrade.oracle("bounded_window_v2", (2**32-1, 1, 2**32-1)), 2**64-1)
+        self.assertEqual(upgrade.oracle("bounded_window_v2", (8, 2, 10)), 10)
+        tasks = upgrade.fixtures()
+        self.assertEqual([len(t["hidden_cases"]) for t in tasks], [110, 160])
+
+    def test_public_feedback_cannot_pick_hidden_diagnostics_from_build_record(self):
+        feedback = upgrade.public_feedback({"status": "compile_rejected",
+            "compile": {"stderr": "type mismatch"}, "hidden_cases": [[99, 98, 97]],
+            "hidden_expected": [123]}, None)
+        self.assertEqual(feedback, {"compile_status": "compile_rejected", "compiler_stderr": "type mismatch"})
+
+    def test_registration_has_four_upgrade_and_sixteen_primary_prompt_hashes(self):
+        values = run_agent.inventory()
+        prompts = run_agent.prompt_inventory(values)
+        self.assertEqual(len(prompts["primary"]), 16)
+        self.assertEqual(len(prompts["upgrade"]), 4)
+        self.assertTrue(all(len(value) == 64 for group in prompts.values() for value in group.values()))
+
+
+class EvidenceArchiveTests(unittest.TestCase):
+    def test_reclamation_happens_only_after_every_raw_member_is_verified(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "run"; source.mkdir()
+            (source / "candidate").write_bytes(bytes([127]) + b"ELF" + b"frozen native bytes")
+            (source / "failure.json").write_text('{"status":"observable_wrong"}')
+            result = archive_run.pack(source, root / "run.tar.xz", prune_elf=True)
+            self.assertTrue(result["all_member_hashes_verified"])
+            self.assertEqual(result["member_count"], 2)
+            self.assertEqual(result["pruned_elf_files"], ["candidate"])
+            self.assertFalse((source / "candidate").exists())
+            self.assertTrue((source / "failure.json").exists())
+            with tarfile.open(root / "run.tar.xz", "r:xz") as archive:
+                self.assertEqual(archive.extractfile("candidate").read(), bytes([127]) + b"ELF" + b"frozen native bytes")
+            with self.assertRaises(ValueError):
+                archive_run.pack(source, root / "run.tar.xz")
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,171 @@
+{
+  "advantage_gate": "Complete stable-source 16-cell main after fresh 3/3 qualification with complete usage. HIA node must pass all four hidden gates, succeed at least as often as Rust node and HIA full, use no more total input+output tokens than Rust node and fewer than HIA full. Report all within/between-language contrasts separately; descriptive only.",
+  "arms": [
+    "hia_full",
+    "hia_node",
+    "rust_full",
+    "rust_node"
+  ],
+  "budget": {
+    "hia_vm_heap_bytes": 256,
+    "hia_vm_steps": 10000,
+    "max_hia_blocks_per_function": 16,
+    "max_hia_operations_per_function": 128,
+    "native_address_space_bytes": 268435456,
+    "native_cpu_seconds": 2,
+    "native_wall_seconds": 5
+  },
+  "capacity_gate": "Before any generation, all 19 reference responses must pass actual public and terminal hidden/native/resource validation and fit 1536 output tokens; each complete initial and both repair requests plus reserve must fit context, and the hard allocation envelope must fit. References are control-only, never model answers, prompts, selected node hints or decoder values.",
+  "cell_order": "Qualification uses listed order. Main rotates four arms by task index, one pinned model for all 16 cells. No task/model substitution or main prompt adjustment after qualification.",
+  "claims": {
+    "compiler_or_language_soundness_proved": false,
+    "general_agent_productivity_proved": false,
+    "general_language_advantage_proved": false,
+    "real_long_term_maintenance_measured": false
+  },
+  "costs": [
+    "all actual requests including failures and partial generation",
+    "input/output IDs and unknown residual usage",
+    "each tool submission, compilation, public/hidden validation",
+    "tokenization/template/history preparation and diagnostics clipping",
+    "model/runtime/source hashing and process startup/shutdown",
+    "all qualification, failed selections and reference controls separately",
+    "whole-run and per-cell wall time",
+    "automatic repair count; zero human answer repair"
+  ],
+  "decoder": "Same syntax-only JSON grammar family; full has two registered file keys, node has node/changes without enumerated answers or golden nodes. No unscored check field.",
+  "execution_location": "Available shared development host; LOCAL_RUNTIME_NOT_OBSERVABLE for dot.",
+  "generation": {
+    "attempts_per_cell": 3,
+    "cache_prompt": false,
+    "context_tokens": 8192,
+    "max_output_tokens": 1536,
+    "seed": 0,
+    "temperature": 0,
+    "threads": 4,
+    "wall_seconds": 900
+  },
+  "hidden_random_cases_per_task": 24,
+  "hidden_seed": 1213216308,
+  "historical_results_immutable": true,
+  "history": {
+    "context_rule": "Tokenize every actual complete server-rendered request and reserve all 1536 output tokens before submitting. If it exceeds 8192, end the cell as budget failure with actual prior costs retained. The initial+1664+1024+1536+256 capacity envelope is a conservative allocation, not a theorem about arbitrary tokenization; actual exact checks are authoritative.",
+    "diagnostic_rule": "Keep all public case/resource/build fields. Retain the complete raw diagnostic separately. Display diagnostic string (canonical JSON for structured diagnostics); if over 1024 feedback tokens repeatedly halve that string prefix by Unicode character count and mark clipping until it fits. Never remove a public case or resource flag. If even an empty diagnostic cannot fit, end cell as budget failure.",
+    "feedback_tokens": 1024,
+    "framing_reserve_tokens": 256,
+    "previous_overflow": "End the cell; retain complete original model response and all consumed cost. Do not truncate code, discard cost, change budgets, or auto-merge answers.",
+    "previous_response_tokens": 1664,
+    "retention": "Each repair contains the unchanged initial prompt, complete immediately preceding assistant response, and bounded public feedback. Earlier failed responses are not accumulated. Same rule in all arms and qualification."
+  },
+  "interface": "Full returns exactly files with both complete editable definitions. Node returns exactly edits (1..16), each node ID and changes; host attaches the pre-generation query revision/digest. Node uses actual HIA production batch/patch or finite Rust AST fragments, with original ownership/type/native gates.",
+  "model": {
+    "bytes": 2497281120,
+    "filename": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    "id": "qwen3_4b_instruct_2507",
+    "repository": "unsloth/Qwen3-4B-Instruct-2507-GGUF",
+    "revision": "a06e946bb6b655725eafa393f4a9745d460374c9",
+    "sha256": "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597"
+  },
+  "model_provenance": {
+    "files": {
+      "provenance/Qwen__Qwen3-4B-Instruct-2507.metadata.json": "4b91fa63d93510f0e3e286c98cf20f082679e5c7a77a333383573992f6cd349d",
+      "provenance/Qwen__Qwen3-4B-Instruct-2507__config.json": "5beea1a4a34c62782bfb2f911c606741a3bab8f92d80a118fa053c28af12e8ba",
+      "provenance/Qwen__Qwen3-4B-Instruct-2507__tokenizer_config.json": "a62ff0a2472a0fa1b8eaabcb57c59b58afa42a22831dc141400b6e0cf2b65ce3",
+      "provenance/SOURCE_RECEIPT.json": "6f5188ebd6fedad16a4ee9ab4af542fa775654f904ba1efec5a3f5b41c91ff02",
+      "provenance/TOKENIZER_CLI_SOURCE_REVIEW.json": "fae16b9ab76be582809bb1d2b67b2629f91f4ef2ca4ade72c6bc8a1fc9f72042",
+      "provenance/unsloth__Qwen3-4B-Instruct-2507-GGUF.metadata.json": "c0c469554f33ff26abea97b772017d1420aa8dab2b076ac2c9921d504baf8ccf"
+    },
+    "measurement_object": "The exact pinned Unsloth GGUF, not an attested rebuild of official upstream weights.",
+    "quantization_reconstruction_verified": false,
+    "reason": "One distinct CPU-feasible, non-thinking instruction-model candidate selected from official public metadata after old7B failures; no task-answer tuning or multi-model winner selection.",
+    "tokenizer_claim": "Server and independent CLI IDs are checked for this exact GGUF; this does not attest the entire upstream tokenizer vocabulary or quantization pipeline."
+  },
+  "official_template": {
+    "bytes": 9377,
+    "file": "tokenizer_config.json",
+    "local_file": "provenance/Qwen__Qwen3-4B-Instruct-2507__tokenizer_config.json",
+    "repository": "Qwen/Qwen3-4B-Instruct-2507",
+    "revision": "cdbee75f17c01a7cc42f958dc650907174af0554",
+    "sha256": "a62ff0a2472a0fa1b8eaabcb57c59b58afa42a22831dc141400b6e0cf2b65ce3"
+  },
+  "performance_timing_qualified": false,
+  "predecessor": "Original V9 ef9fbafabe9db52a5e59220f1738d5842ac164cc and all V5/V6/V8/V9 results/costs remain immutable. V10 only replaces the pinned model and its official plain template/tokenizer binding; no previous eligibility is inherited.",
+  "prospective_amendment": {
+    "accepted_programs_or_tool_authority_changed": false,
+    "changes": [
+      "One pinned Qwen3-4B-Instruct-2507 Q4_K_M model.",
+      "Official plain user/assistant template has no automatically inserted Qwen2 default system message; every actual server rendering must match before generation.",
+      "Fresh exact-GGUF tokenizer/template capacity controls and independent model/provenance identity binding."
+    ],
+    "decoder_or_generation_budget_changed": false,
+    "fresh_capacity_and_qualification_required": true,
+    "host_answer_repairs_added": false,
+    "old_results_reclassified": false,
+    "prior_study_status": "V9 must complete and exit before this new model is downloaded/loaded; its final result and all costs remain separately retained. No old main or qualification is inherited.",
+    "source_v9": "ef9fbafabe9db52a5e59220f1738d5842ac164cc",
+    "stop_rule": "If this single new V10 candidate fails complete qualification, retain all costs and keep main unstarted. Do not tune prompts against the same tasks, repeat this candidate pointlessly, or select further models until a winner appears.",
+    "task_examples_answers_or_selected_nodes_added": false,
+    "task_initial_prompts_and_messages_changed": false
+  },
+  "public_feedback": "Actual compiler/admission diagnostics and paired existing public input/expected/observed cases plus resource/VM status only. No hidden result or reference edit feedback. Hidden evaluation immediately ends the cell; no subsequent inference for that cell.",
+  "qualification": {
+    "arm": "rust_node",
+    "eligibility": "Fresh same-source V10 qualification must pass all three unchanged functional/resource/terminal hidden gates within three submissions each, with complete token accounting and unchanged source/model/tools. No inherited V9 or earlier eligibility.",
+    "main_forbidden_without_qualification": true,
+    "reason": "Test one prospectively pinned distinct instruction-model candidate after the old7B model could not pass the real tools. Identical V9 task prompts/messages, decoder, generation/history/native budgets, validators/references and3/3 requirement.",
+    "reference_controls_are_qualification_successes": false,
+    "selection_bias": "Adaptive follow-up after earlier model failures; one prospectively selected Qwen3-4B candidate only. This is not an unbiased model or pipeline sample, and prior failures/costs are never discarded.",
+    "tasks": [
+      "json_scalar_reasoning",
+      "two_file_signature_repair",
+      "owner_flow_repair"
+    ]
+  },
+  "rollback": "Any rejected response, including public wrong, leaves original source unchanged. Node retries bind the same captured original query and must resubmit all required edits. No partial install or answer merging.",
+  "runtime": {
+    "archive": "llama-b11669-bin-ubuntu-x64.tar.gz",
+    "bytes": 17851611,
+    "environment": {
+      "LLAMA_ARG_REPACK": "0"
+    },
+    "release": "b11669",
+    "repository": "ggml-org/llama.cpp",
+    "sha256": "cf07c1c112d709bd67e522017471de57ed0ec8bea031d732c5422351c07f65ac"
+  },
+  "rust_conversion_profile": {
+    "arbitrary_custom_traits_or_methods_admitted": false,
+    "default_legacy_profiles_unchanged": true,
+    "id": "unshadowed_declared_scalar_parameter_into_v1",
+    "primitive_receivers": [
+      "u8",
+      "u16",
+      "u32",
+      "u64",
+      "usize",
+      "bool"
+    ],
+    "scope": "Only a bare identifier naming a declared scalar function parameter may receive .into(). Macro definitions and dollar-sign metavariables are excluded in every file under this opt-in profile, including files without a literal into call. No arguments, container/field/expression receivers, parameter shadowing, closures/bar syntax or complex let patterns in a file using into. Other v4 syntax/type/effect limits remain. Actual target conversion validity is decided by real rustc. No generated source is rewritten."
+  },
+  "schema": "hepta.agent.real-node-toolstudy.v10",
+  "tasks": [
+    "saturating_score",
+    "wide_span_upgrade",
+    "owned_byte_return",
+    "owner_pair_replace"
+  ],
+  "timeout": "End that cell; retain received SSE, exact input tokens and observed output-token lower bound, unknown residual usage. Stop owned server, fresh process for next distinct cell. No timeout retry of same cell.",
+  "tokenizer_controls": {
+    "all_rendered_capacity_requests_checked": true,
+    "all_times_and_calls_retained": true,
+    "independent_cli_calls": 95,
+    "literal_stdin_preserved_by": "--no-escape",
+    "mismatch_action": "Fail closed with raw records; no template fallback, injected system message, dropped or synthesized token ID, changed budget or answer.",
+    "special_token_policy": "Pinned b11669 tokenizer default parse_special=true; no flag to disable it. Reference responses --no-bos, rendered prompts default model BOS; exact server/CLI IDs must agree without repair."
+  },
+  "tool_scope": "Four actual source files; only provider and entrypoint editable. HIA signature edits require explicit selected-field container reconstruction. Rust expression/type nodes preserve all unselected syntax; no full function replacement disguised as a node. Full Rust uses the same finite parser; HIA full preserves original entry/effects/block identities. Full/node differ in presentation and edit granularity, so this estimates tool bundles rather than isolated context or syntax effects.",
+  "unmeasured_costs": [
+    "human tool/protocol development labor",
+    "model training and acquisition historical costs reported separately",
+    "real long-term maintenance across projects"
+  ]
+}

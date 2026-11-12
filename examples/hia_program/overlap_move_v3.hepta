@@ -1,0 +1,323 @@
+{
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "entry",
+          "ops": [
+            {
+              "args": [
+                "length"
+              ],
+              "attrs": {},
+              "op": "buffer.new",
+              "out": [
+                {
+                  "name": "owned",
+                  "type": "buffer"
+                }
+              ]
+            },
+            {
+              "args": [
+                "owned"
+              ],
+              "attrs": {},
+              "op": "borrow.mut",
+              "out": [
+                {
+                  "name": "writer",
+                  "type": "mutbuf"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "idx0",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 11
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "byte0",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "writer",
+                "idx0",
+                "byte0"
+              ],
+              "attrs": {},
+              "op": "buffer.store",
+              "out": []
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "idx1",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 22
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "byte1",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "writer",
+                "idx1",
+                "byte1"
+              ],
+              "attrs": {},
+              "op": "buffer.store",
+              "out": []
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 2
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "idx2",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 33
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "byte2",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "writer",
+                "idx2",
+                "byte2"
+              ],
+              "attrs": {},
+              "op": "buffer.store",
+              "out": []
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 3
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "idx3",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 44
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "byte3",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "writer",
+                "idx3",
+                "byte3"
+              ],
+              "attrs": {},
+              "op": "buffer.store",
+              "out": []
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 4
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "idx4",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 55
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "byte4",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "writer",
+                "idx4",
+                "byte4"
+              ],
+              "attrs": {},
+              "op": "buffer.store",
+              "out": []
+            },
+            {
+              "args": [
+                "writer",
+                "destination",
+                "source",
+                "count"
+              ],
+              "attrs": {},
+              "op": "buffer.move_within",
+              "out": []
+            },
+            {
+              "args": [
+                "writer",
+                "probe"
+              ],
+              "attrs": {},
+              "op": "buffer.load",
+              "out": [
+                {
+                  "name": "answer",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "writer"
+              ],
+              "attrs": {},
+              "op": "loan.end",
+              "out": []
+            },
+            {
+              "args": [
+                "owned"
+              ],
+              "attrs": {},
+              "op": "owner.drop",
+              "out": []
+            }
+          ],
+          "params": [
+            {
+              "name": "length",
+              "type": "usize"
+            },
+            {
+              "name": "destination",
+              "type": "usize"
+            },
+            {
+              "name": "source",
+              "type": "usize"
+            },
+            {
+              "name": "count",
+              "type": "usize"
+            },
+            {
+              "name": "probe",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "answer"
+            ]
+          }
+        }
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "name": "move_bytes",
+      "params": [
+        {
+          "name": "length",
+          "type": "usize"
+        },
+        {
+          "name": "destination",
+          "type": "usize"
+        },
+        {
+          "name": "source",
+          "type": "usize"
+        },
+        {
+          "name": "count",
+          "type": "usize"
+        },
+        {
+          "name": "probe",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "u8"
+      ]
+    }
+  ],
+  "module": "overlapping_byte_moves",
+  "schema": "hepta.hia.program.v3"
+}
