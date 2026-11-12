@@ -1,0 +1,1914 @@
+{
+  "all_package_AST_parsed": true,
+  "all_package_original_bytes_git_matched": true,
+  "cli_hosted_effect_branches": [
+    {
+      "line": 368,
+      "operation": 1,
+      "source": "result = self.cli.agent_capabilities()"
+    },
+    {
+      "line": 370,
+      "operation": 2,
+      "source": "from .hia_opcodes import opcode_catalog\nresult = opcode_catalog(field(a, b))"
+    },
+    {
+      "line": 373,
+      "operation": 3,
+      "source": "result = self.common[\"read_bounded\"](field(a, b), limit=c)"
+    },
+    {
+      "line": 375,
+      "operation": 4,
+      "source": "result = self.common[\"verify_program\"](value(a))"
+    },
+    {
+      "line": 377,
+      "operation": 5,
+      "source": "result = self.common[\"assemble_program\"](value(a))"
+    },
+    {
+      "line": 379,
+      "operation": 6,
+      "source": "result = self.common[\"diagnose_assembly\"](value(a))"
+    },
+    {
+      "line": 381,
+      "operation": 7,
+      "source": "result = self.common[\"render_assembly\"](value(a))"
+    },
+    {
+      "line": 383,
+      "operation": 8,
+      "source": "result = value(a).as_dict()"
+    },
+    {
+      "line": 385,
+      "operation": 9,
+      "source": "result = value(a).report()"
+    },
+    {
+      "line": 387,
+      "operation": 10,
+      "source": "result = self.common[\"inspect_program\"](value(a))"
+    },
+    {
+      "line": 389,
+      "operation": 11,
+      "source": "from .hia_program_native import build_program_machine\nresult = build_program_machine(value(a), field(b, c), kind=\"object\", linker=\"cc\")"
+    },
+    {
+      "line": 392,
+      "operation": 12,
+      "source": "result = self.common[\"decode_json\"](value(a))"
+    },
+    {
+      "line": 394,
+      "operation": 13,
+      "source": "revised, receipt = self.common[\"apply_program_patch\"](value(a), value(b))\nreturn register(revised), register(receipt), 0"
+    },
+    {
+      "line": 397,
+      "operation": 14,
+      "source": "revised, receipt, impact = self.common[\"analyze_patch_impact\"](value(a), value(b))\nreturn register(revised), register(receipt), register(impact)"
+    },
+    {
+      "line": 400,
+      "operation": 15,
+      "source": "result = self.common[\"prepare_edit\"](\n                value(a), function=field(b, 8), block=field(b, 9),\n                output=field(b, 10), fields=value(c))"
+    },
+    {
+      "line": 404,
+      "operation": 16,
+      "source": "revised, receipt = self.common[\"apply_edit\"](value(a), value(b), value(c))\nreturn register(revised), register(receipt), 0"
+    },
+    {
+      "line": 407,
+      "operation": 17,
+      "source": "result = self.common[\"prepare_batch\"](value(a), value(b))"
+    },
+    {
+      "line": 409,
+      "operation": 18,
+      "source": "revised, receipt = self.common[\"apply_batch\"](value(a), value(b), value(c))\nreturn register(revised), register(receipt), 0"
+    },
+    {
+      "line": 412,
+      "operation": 19,
+      "source": "result = self.common[\"publish_program\"](value(a), field(b, c))"
+    },
+    {
+      "line": 414,
+      "operation": 20,
+      "source": "result = self.cli.publish_json_view(value(a), field(b, c))"
+    },
+    {
+      "line": 416,
+      "operation": 21,
+      "source": "result = _publish_assembly(value(a), value(b), field(c, d))"
+    },
+    {
+      "line": 418,
+      "operation": 22,
+      "source": "self.cli.output_json(value(a))\nreturn zero"
+    },
+    {
+      "line": 421,
+      "operation": 23,
+      "source": "print(value(a), end=\"\")\nreturn zero"
+    },
+    {
+      "line": 424,
+      "operation": 24,
+      "source": "result = {**value(a)}"
+    },
+    {
+      "line": 426,
+      "operation": 25,
+      "source": "value(a)[value(b)] = value(c)\nreturn zero"
+    },
+    {
+      "line": 429,
+      "operation": 26,
+      "source": "result = {}"
+    },
+    {
+      "line": 431,
+      "operation": 27,
+      "source": "result = []"
+    },
+    {
+      "line": 433,
+      "operation": 28,
+      "source": "value(a).append(value(b))\nreturn zero"
+    },
+    {
+      "line": 436,
+      "operation": 29,
+      "source": "result = field(a, b)[c:c + d]"
+    },
+    {
+      "line": 438,
+      "operation": 30,
+      "source": "return int(bool(value(a)[\"accepted\"])), 0, 0"
+    },
+    {
+      "line": 440,
+      "operation": 31,
+      "source": "return int(value(a).get(\"ok\") is True), 0, 0"
+    },
+    {
+      "line": 442,
+      "operation": 32,
+      "source": "result = str(value(a))"
+    },
+    {
+      "line": 444,
+      "operation": 33,
+      "source": "result = self.owner.driver_error(value(a))"
+    },
+    {
+      "line": 446,
+      "operation": 34,
+      "source": "print(value(a))\nreturn zero"
+    },
+    {
+      "line": 449,
+      "operation": 35,
+      "source": "from .hia_program import verify_program\nfrom .hia_program_tools import (\n                read_bounded, decode_json, inspect_program, apply_program_patch, publish_program,\n            )\nself.common.update(verify_program=verify_program, read_bounded=read_bounded,\n                               decode_json=decode_json, inspect_program=inspect_program,\n                               apply_program_patch=apply_program_patch, publish_program=publish_program)\nreturn zero"
+    },
+    {
+      "line": 458,
+      "operation": 36,
+      "source": "from .hia_agent_assembly import assemble_program, render_assembly, diagnose_assembly\nself.common.update(assemble_program=assemble_program, render_assembly=render_assembly,\n                               diagnose_assembly=diagnose_assembly)\nreturn zero"
+    },
+    {
+      "line": 463,
+      "operation": 37,
+      "source": "from .hia_edit_query import prepare_edit\nself.common[\"prepare_edit\"] = prepare_edit\nreturn zero"
+    },
+    {
+      "line": 467,
+      "operation": 38,
+      "source": "from .hia_edit_query import apply_edit, MAX_RESPONSE_BYTES\nself.common[\"apply_edit\"] = apply_edit\nreturn zero"
+    },
+    {
+      "line": 471,
+      "operation": 39,
+      "source": "from .hia_edit_batch import prepare_batch\nself.common[\"prepare_batch\"] = prepare_batch\nreturn zero"
+    },
+    {
+      "line": 475,
+      "operation": 40,
+      "source": "from .hia_edit_batch import apply_batch, MAX_QUERY_BYTES, MAX_RESPONSE_BYTES\nself.common[\"apply_batch\"] = apply_batch\nreturn zero"
+    },
+    {
+      "line": 479,
+      "operation": 41,
+      "source": "from .hia_patch_impact import analyze_patch_impact\nself.common[\"analyze_patch_impact\"] = analyze_patch_impact\nreturn zero"
+    }
+  ],
+  "commit": "e4fc00a775dab323758d77a2ef4918fd35585cdc",
+  "core_hosted_primitive_branches": [
+    {
+      "line": 254,
+      "operation": 1,
+      "source": "name, = args\nreturn 0, (self.owner.global_value(get(name)),)"
+    },
+    {
+      "line": 257,
+      "operation": 2,
+      "source": "value, name = args\nreturn 0, (getattr(get(value), get(name)),)"
+    },
+    {
+      "line": 260,
+      "operation": 3,
+      "source": "value, name, assigned = args\nsetattr(get(value), get(name), get(assigned))\nreturn 0, ()"
+    },
+    {
+      "line": 264,
+      "operation": 4,
+      "source": "value, key = args\nreturn 0, (get(value)[get(key)],)"
+    },
+    {
+      "line": 267,
+      "operation": 5,
+      "source": "value, key, assigned = args\nget(value)[get(key)] = get(assigned)\nreturn 0, ()"
+    },
+    {
+      "line": 271,
+      "operation": 6,
+      "source": "callee, argc, a, b, c, d, key, value = args\nif argc > 4:\n                raise RuntimeError('native lowering call arity differs')\ntarget = get(callee)\npositional = tuple(get(v) for v in (a, b, c, d)[:argc])\nif key == 0:\n                # A HIA-selected CALL_EX observation. Do not inspect or copy\n                # the mapping before CPython applies its own keyword protocol.\n                result = target(*positional, **get(value))\n            else:\n                keyword = get(key)\n                if keyword is None:\n                    result = target(*positional)\n                else:\n                    result = target(*positional, **{keyword: get(value)})\nreturn 0, (result,)"
+    },
+    {
+      "line": 288,
+      "operation": 7,
+      "source": "kind, count = args\nif count != len(vector):\n                raise RuntimeError('native lowering collection extent differs')\nvalues = tuple(get(value) for value in vector)\nif kind == 1:\n                result = list(values)\n            elif kind == 2:\n                result = values\n            elif kind == 3:\n                result = set(values)\n            elif kind == 4:\n                if count % 2:\n                    raise RuntimeError('native lowering dictionary extent differs')\n                result = {}\n                for i in range(0, count, 2):\n                    result[values[i]] = values[i + 1]\n            else:\n                raise RuntimeError('native lowering collection kind differs')\nreturn 0, (result,)"
+    },
+    {
+      "line": 310,
+      "operation": 8,
+      "source": "value, = args\nreturn 0, (iter(get(value)),)"
+    },
+    {
+      "line": 313,
+      "operation": 9,
+      "source": "value, = args\ntry:\n                result = next(get(value))\n            except StopIteration:\n                return 0, (None,)\nreturn 1, (result,)"
+    },
+    {
+      "line": 320,
+      "operation": 10,
+      "source": "value, = args\nreturn int(bool(get(value))), ()"
+    },
+    {
+      "line": 323,
+      "operation": 11,
+      "source": "operation, left, right = args\nreturn 0, (_BINARY[operation](get(left), get(right)),)"
+    },
+    {
+      "line": 326,
+      "operation": 12,
+      "source": "operation, value = args\nreturn 0, (_UNARY[operation](get(value)),)"
+    },
+    {
+      "line": 329,
+      "operation": 13,
+      "source": "operation, left, right = args\nreturn 0, (_COMPARE[operation](get(left), get(right)),)"
+    },
+    {
+      "line": 332,
+      "operation": 14,
+      "source": "value, count = args\nobserved = get(value)\nif self.owner.unpack is not None:\n                return 0, self.owner.unpack.unpack(observed, count)\nreturn _host_unpack(observed, count)"
+    },
+    {
+      "line": 338,
+      "operation": 15,
+      "source": "low, high, step = args\nreturn 0, (slice(get(low), get(high), get(step)),)"
+    },
+    {
+      "line": 341,
+      "operation": 16,
+      "source": "value, item = args\nlist.append(get(value), get(item))\nreturn 0, ()"
+    },
+    {
+      "line": 345,
+      "operation": 17,
+      "source": "kind, = args\nif kind == 1:\n                from .hia_machine_plan import VALUE_REGISTERS\n                result = VALUE_REGISTERS\n            elif kind == 2:\n                from .hia_machine_plan import code_options\n                result = code_options\n            elif kind == 3:\n                from .hia_native_byte_abi import emit_wrapper\n                result = emit_wrapper\n            else:\n                raise RuntimeError('native lowering import framing differs')\nreturn 0, (result,)"
+    },
+    {
+      "line": 359,
+      "operation": 18,
+      "source": "value, = args\nraise get(value)"
+    },
+    {
+      "line": 362,
+      "operation": 19,
+      "source": "name, iterator = args\nreturn 0, (self.owner.generator(get(name), get(iterator)),)"
+    }
+  ],
+  "extensions": {
+    "(none)": {
+      "bytes": 154748,
+      "files": 34
+    },
+    ".5-4B__LICENSE": {
+      "bytes": 11544,
+      "files": 1
+    },
+    ".MIT": {
+      "bytes": 2152,
+      "files": 2
+    },
+    ".S": {
+      "bytes": 35527,
+      "files": 7
+    },
+    ".base64": {
+      "bytes": 2050746,
+      "files": 2
+    },
+    ".bin": {
+      "bytes": 24199165,
+      "files": 49
+    },
+    ".c": {
+      "bytes": 177890,
+      "files": 65
+    },
+    ".cpp": {
+      "bytes": 39214,
+      "files": 4
+    },
+    ".diff": {
+      "bytes": 32879,
+      "files": 3
+    },
+    ".gitattributes": {
+      "bytes": 1082,
+      "files": 1
+    },
+    ".gitignore": {
+      "bytes": 103,
+      "files": 1
+    },
+    ".gz": {
+      "bytes": 52252867,
+      "files": 23
+    },
+    ".h": {
+      "bytes": 39559,
+      "files": 14
+    },
+    ".hia": {
+      "bytes": 223431,
+      "files": 12
+    },
+    ".hiaasm": {
+      "bytes": 17857831,
+      "files": 129
+    },
+    ".hpp": {
+      "bytes": 1873411,
+      "files": 2
+    },
+    ".in": {
+      "bytes": 5749,
+      "files": 1
+    },
+    ".inc": {
+      "bytes": 1682,
+      "files": 2
+    },
+    ".jinja": {
+      "bytes": 7816,
+      "files": 1
+    },
+    ".json": {
+      "bytes": 42244715,
+      "files": 1329
+    },
+    ".lean": {
+      "bytes": 63068,
+      "files": 7
+    },
+    ".lock": {
+      "bytes": 48803,
+      "files": 5
+    },
+    ".log": {
+      "bytes": 3488555,
+      "files": 327
+    },
+    ".md": {
+      "bytes": 3027810,
+      "files": 454
+    },
+    ".part-01": {
+      "bytes": 12582912,
+      "files": 3
+    },
+    ".part-02": {
+      "bytes": 7276812,
+      "files": 3
+    },
+    ".part000": {
+      "bytes": 12582912,
+      "files": 3
+    },
+    ".part001": {
+      "bytes": 12582912,
+      "files": 3
+    },
+    ".part002": {
+      "bytes": 9551844,
+      "files": 3
+    },
+    ".part003": {
+      "bytes": 8388608,
+      "files": 2
+    },
+    ".part004": {
+      "bytes": 8388608,
+      "files": 2
+    },
+    ".part005": {
+      "bytes": 8388608,
+      "files": 2
+    },
+    ".part006": {
+      "bytes": 8388608,
+      "files": 2
+    },
+    ".part007": {
+      "bytes": 8388608,
+      "files": 2
+    },
+    ".part008": {
+      "bytes": 8388608,
+      "files": 2
+    },
+    ".part009": {
+      "bytes": 8388608,
+      "files": 2
+    },
+    ".part010": {
+      "bytes": 8388608,
+      "files": 2
+    },
+    ".part011": {
+      "bytes": 8388608,
+      "files": 2
+    },
+    ".part012": {
+      "bytes": 8388608,
+      "files": 2
+    },
+    ".part013": {
+      "bytes": 8388608,
+      "files": 2
+    },
+    ".part014": {
+      "bytes": 7375293,
+      "files": 2
+    },
+    ".part015": {
+      "bytes": 654258,
+      "files": 1
+    },
+    ".patch": {
+      "bytes": 19548,
+      "files": 2
+    },
+    ".pstats": {
+      "bytes": 68227,
+      "files": 1
+    },
+    ".py": {
+      "bytes": 18440795,
+      "files": 1375
+    },
+    ".rs": {
+      "bytes": 535764,
+      "files": 48
+    },
+    ".smt2": {
+      "bytes": 13084,
+      "files": 4
+    },
+    ".stderr": {
+      "bytes": 0,
+      "files": 3
+    },
+    ".stdout": {
+      "bytes": 9172,
+      "files": 4
+    },
+    ".toml": {
+      "bytes": 2312,
+      "files": 6
+    },
+    ".txt": {
+      "bytes": 464863,
+      "files": 34
+    },
+    ".xz": {
+      "bytes": 58676308,
+      "files": 59
+    },
+    ".yml": {
+      "bytes": 47289,
+      "files": 4
+    },
+    ".zip": {
+      "bytes": 29623229,
+      "files": 21
+    }
+  },
+  "external_import_roots": [
+    {
+      "importers": [
+        "hepta/artifact_publication.py",
+        "hepta/artifact_publication_native.py",
+        "hepta/clang_capture.py",
+        "hepta/cli.py",
+        "hepta/darwin_capture.py",
+        "hepta/elf_shared_abi.py",
+        "hepta/hia_aarch64_elf.py",
+        "hepta/hia_adaptive.py",
+        "hepta/hia_agent_assembly.py",
+        "hepta/hia_agent_buffers.py",
+        "hepta/hia_agent_candidate_native.py",
+        "hepta/hia_agent_contract.py",
+        "hepta/hia_agent_exec.py",
+        "hepta/hia_agent_identity_native.py",
+        "hepta/hia_agent_journal_native.py",
+        "hepta/hia_agent_macro_discovery.py",
+        "hepta/hia_agent_macro_policy.py",
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_agent_service.py",
+        "hepta/hia_agent_slice_native.py",
+        "hepta/hia_agent_snapshot_native.py",
+        "hepta/hia_agent_store.py",
+        "hepta/hia_agent_store_authority_native.py",
+        "hepta/hia_agent_worker.py",
+        "hepta/hia_artifact_page_native.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_background_optimizer.py",
+        "hepta/hia_bounded_memory.py",
+        "hepta/hia_bounded_read_native.py",
+        "hepta/hia_bounded_unroll.py",
+        "hepta/hia_bounded_wire.py",
+        "hepta/hia_byte_sum.py",
+        "hepta/hia_call_expansion.py",
+        "hepta/hia_capability_flow.py",
+        "hepta/hia_capability_renaming_native.py",
+        "hepta/hia_cli_native.py",
+        "hepta/hia_composite_constructor_native.py",
+        "hepta/hia_composite_function_tokens.py",
+        "hepta/hia_composite_functions_native.py",
+        "hepta/hia_composite_outer_native.py",
+        "hepta/hia_composite_types_native.py",
+        "hepta/hia_continuation.py",
+        "hepta/hia_core_json_frontend_native.py",
+        "hepta/hia_core_lowering_native.py",
+        "hepta/hia_core_lowering_selection.py",
+        "hepta/hia_core_module_graph_native.py",
+        "hepta/hia_core_patch_native.py",
+        "hepta/hia_core_unpack_native.py",
+        "hepta/hia_core_unpack_selection.py",
+        "hepta/hia_core_upgrade.py",
+        "hepta/hia_core_workspace_json_native.py",
+        "hepta/hia_crc_kernel.py",
+        "hepta/hia_crc_linear.py",
+        "hepta/hia_durable_queue.py",
+        "hepta/hia_economic_search.py",
+        "hepta/hia_edit_batch.py",
+        "hepta/hia_edit_query.py",
+        "hepta/hia_empty_reduction.py",
+        "hepta/hia_entry_layout.py",
+        "hepta/hia_finite_actions.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_full_cost_gate.py",
+        "hepta/hia_guarded_batch.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_incremental.py",
+        "hepta/hia_inductive.py",
+        "hepta/hia_initialization.py",
+        "hepta/hia_invocation_bank.py",
+        "hepta/hia_json_canonical_native.py",
+        "hepta/hia_json_decode.py",
+        "hepta/hia_json_decode_native.py",
+        "hepta/hia_json_preflight.py",
+        "hepta/hia_json_preflight_native.py",
+        "hepta/hia_json_pretty_native.py",
+        "hepta/hia_json_wire_native.py",
+        "hepta/hia_linux_kernel.py",
+        "hepta/hia_machine_elf.py",
+        "hepta/hia_machine_elf_native.py",
+        "hepta/hia_machine_encoding_native.py",
+        "hepta/hia_machine_instructions_native.py",
+        "hepta/hia_machine_plan.py",
+        "hepta/hia_machine_plan_native.py",
+        "hepta/hia_machine_state_native.py",
+        "hepta/hia_machine_x64.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_narrowing.py",
+        "hepta/hia_native_byte_abi.py",
+        "hepta/hia_native_byte_runner.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_native_paired_replay.py",
+        "hepta/hia_native_retirement.py",
+        "hepta/hia_ndu.py",
+        "hepta/hia_ndu_cache.py",
+        "hepta/hia_ndu_cost.py",
+        "hepta/hia_ndu_dynamic.py",
+        "hepta/hia_ndu_module_costs.py",
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_ndu_persistent_ranker.py",
+        "hepta/hia_ndu_policy.py",
+        "hepta/hia_ndu_prepared_ranker.py",
+        "hepta/hia_ndu_raw_model.py",
+        "hepta/hia_ndu_raw_session.py",
+        "hepta/hia_ndu_scalar_selection.py",
+        "hepta/hia_ndu_session.py",
+        "hepta/hia_ndu_stateful.py",
+        "hepta/hia_opcodes.py",
+        "hepta/hia_optimization.py",
+        "hepta/hia_optimization_contract.py",
+        "hepta/hia_paired_holdout.py",
+        "hepta/hia_patch_impact.py",
+        "hepta/hia_planning.py",
+        "hepta/hia_prepared.py",
+        "hepta/hia_program.py",
+        "hepta/hia_program_aarch64.py",
+        "hepta/hia_program_composite.py",
+        "hepta/hia_program_llvm.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_program_runtime.py",
+        "hepta/hia_program_tools.py",
+        "hepta/hia_proof_contract.py",
+        "hepta/hia_queue_commit.py",
+        "hepta/hia_reduction.py",
+        "hepta/hia_result_cache.py",
+        "hepta/hia_result_cache_audit.py",
+        "hepta/hia_rust_byte_dag.py",
+        "hepta/hia_rust_crosscheck.py",
+        "hepta/hia_safe_core.py",
+        "hepta/hia_safe_core_elf.py",
+        "hepta/hia_safe_core_x64.py",
+        "hepta/hia_scalar_call_validation.py",
+        "hepta/hia_scalar_lowering_check.py",
+        "hepta/hia_scalar_proof_contract.py",
+        "hepta/hia_scalar_state.py",
+        "hepta/hia_scalar_totality.py",
+        "hepta/hia_schema.py",
+        "hepta/hia_sha256_native.py",
+        "hepta/hia_sha256_stream_native.py",
+        "hepta/hia_specialization.py",
+        "hepta/hia_stateful.py",
+        "hepta/hia_static_budget.py",
+        "hepta/hia_swap_opt.py",
+        "hepta/hia_task_helpers_native.py",
+        "hepta/hia_translation_validation.py",
+        "hepta/hia_worker_report_native.py",
+        "hepta/hia_worker_request_native.py",
+        "hepta/hia_x86_search.py",
+        "hepta/native_mapping_identity.py",
+        "hepta/native_tool_identity.py",
+        "hepta/object_structure.py",
+        "hepta/object_symbols.py",
+        "hepta/windows_capture.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "__future__"
+    },
+    {
+      "importers": [
+        "hepta/hia_adaptive.py",
+        "hepta/hia_native_retirement.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "_ctypes"
+    },
+    {
+      "importers": [
+        "hepta/cli.py",
+        "hepta/hia_agent_worker.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "argparse"
+    },
+    {
+      "importers": [
+        "hepta/hia_agent_service.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_guarded_batch.py",
+        "hepta/hia_native_byte_runner.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "base64"
+    },
+    {
+      "importers": [
+        "hepta/hia_core_lowering_native.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "builtins"
+    },
+    {
+      "importers": [
+        "hepta/hia_adaptive.py",
+        "hepta/hia_background_optimizer.py",
+        "hepta/hia_bounded_read_native.py",
+        "hepta/hia_bounded_unroll.py",
+        "hepta/hia_edit_query.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_initialization.py",
+        "hepta/hia_machine_elf_native.py",
+        "hepta/hia_machine_encoding_native.py",
+        "hepta/hia_machine_instructions_native.py",
+        "hepta/hia_machine_state_native.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_ndu_cache.py",
+        "hepta/hia_optimization.py",
+        "hepta/hia_patch_impact.py",
+        "hepta/hia_program.py",
+        "hepta/hia_scalar_state.py",
+        "hepta/hia_static_budget.py",
+        "hepta/hia_swap_opt.py",
+        "hepta/hia_translation_validation.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "collections"
+    },
+    {
+      "importers": [
+        "hepta/hia_background_optimizer.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "concurrent"
+    },
+    {
+      "importers": [
+        "hepta/hia_agent_store.py",
+        "hepta/hia_core_lowering_selection.py",
+        "hepta/hia_guarded_batch.py",
+        "hepta/hia_machine_elf.py",
+        "hepta/hia_machine_x64.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "contextlib"
+    },
+    {
+      "importers": [
+        "hepta/hia_core_lowering_selection.py",
+        "hepta/hia_machine_elf.py",
+        "hepta/hia_machine_plan.py",
+        "hepta/hia_machine_x64.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "contextvars"
+    },
+    {
+      "importers": [
+        "hepta/hia_agent_macro_discovery.py",
+        "hepta/hia_agent_macro_policy.py",
+        "hepta/hia_bounded_unroll.py",
+        "hepta/hia_call_expansion.py",
+        "hepta/hia_core_module_graph_native.py",
+        "hepta/hia_crc_kernel.py",
+        "hepta/hia_crc_linear.py",
+        "hepta/hia_durable_queue.py",
+        "hepta/hia_edit_batch.py",
+        "hepta/hia_edit_query.py",
+        "hepta/hia_empty_reduction.py",
+        "hepta/hia_entry_layout.py",
+        "hepta/hia_finite_actions.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_native_retirement.py",
+        "hepta/hia_ndu.py",
+        "hepta/hia_ndu_persistent_ranker.py",
+        "hepta/hia_ndu_policy.py",
+        "hepta/hia_ndu_prepared_ranker.py",
+        "hepta/hia_ndu_stateful.py",
+        "hepta/hia_program_tools.py",
+        "hepta/hia_proof_contract.py",
+        "hepta/hia_scalar_call_validation.py",
+        "hepta/hia_scalar_proof_contract.py",
+        "hepta/hia_specialization.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "copy"
+    },
+    {
+      "importers": [
+        "hepta/hia_adaptive.py",
+        "hepta/hia_agent_binary64_format_native.py",
+        "hepta/hia_agent_binary64_native.py",
+        "hepta/hia_agent_candidate_native.py",
+        "hepta/hia_agent_exec.py",
+        "hepta/hia_agent_identity_native.py",
+        "hepta/hia_agent_journal_native.py",
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_agent_slice_native.py",
+        "hepta/hia_agent_snapshot_json_native.py",
+        "hepta/hia_agent_snapshot_native.py",
+        "hepta/hia_agent_store_authority_native.py",
+        "hepta/hia_artifact_page_native.py",
+        "hepta/hia_bounded_read_native.py",
+        "hepta/hia_capability_renaming_native.py",
+        "hepta/hia_cli_native.py",
+        "hepta/hia_composite_constructor_native.py",
+        "hepta/hia_composite_functions_native.py",
+        "hepta/hia_composite_outer_native.py",
+        "hepta/hia_composite_types_native.py",
+        "hepta/hia_core_admission_native.py",
+        "hepta/hia_core_json_frontend_native.py",
+        "hepta/hia_core_lowering_native.py",
+        "hepta/hia_core_module_graph_native.py",
+        "hepta/hia_core_patch_native.py",
+        "hepta/hia_core_unpack_native.py",
+        "hepta/hia_core_workspace_facts_native.py",
+        "hepta/hia_core_workspace_json_native.py",
+        "hepta/hia_core_workspace_materialize_native.py",
+        "hepta/hia_function_shape_native.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_instruction_policy_native.py",
+        "hepta/hia_json_canonical_native.py",
+        "hepta/hia_json_decode_native.py",
+        "hepta/hia_json_preflight_native.py",
+        "hepta/hia_json_pretty_native.py",
+        "hepta/hia_json_wire_native.py",
+        "hepta/hia_machine_elf_native.py",
+        "hepta/hia_machine_encoding_native.py",
+        "hepta/hia_machine_plan_native.py",
+        "hepta/hia_machine_state_native.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_native_byte_runner.py",
+        "hepta/hia_native_retirement.py",
+        "hepta/hia_program_llvm.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_program_shape_native.py",
+        "hepta/hia_result_cache.py",
+        "hepta/hia_sha256_native.py",
+        "hepta/hia_sha256_stream_native.py",
+        "hepta/hia_stateful.py",
+        "hepta/hia_task_helpers_native.py",
+        "hepta/hia_worker_report_native.py",
+        "hepta/hia_worker_request_native.py",
+        "hepta/native_mapping_identity.py",
+        "hepta/windows_capture.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "ctypes"
+    },
+    {
+      "importers": [
+        "hepta/clang_capture.py",
+        "hepta/hia_adaptive.py",
+        "hepta/hia_agent_journal_native.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_background_optimizer.py",
+        "hepta/hia_capability_flow.py",
+        "hepta/hia_composite_types_native.py",
+        "hepta/hia_continuation.py",
+        "hepta/hia_core_lowering_selection.py",
+        "hepta/hia_core_unpack_selection.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_incremental.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_native_retirement.py",
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_ndu_policy.py",
+        "hepta/hia_opcodes.py",
+        "hepta/hia_planning.py",
+        "hepta/hia_prepared.py",
+        "hepta/hia_program.py",
+        "hepta/hia_program_composite.py",
+        "hepta/hia_program_llvm.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_program_runtime.py",
+        "hepta/hia_safe_core_x64.py",
+        "hepta/hia_stateful.py",
+        "hepta/hia_swap_opt.py",
+        "hepta/hia_task_helpers_native.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "dataclasses"
+    },
+    {
+      "importers": [
+        "hepta/hia_agent_service.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "datetime"
+    },
+    {
+      "importers": [
+        "hepta/darwin_capture.py",
+        "hepta/hia_json_wire_native.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "errno"
+    },
+    {
+      "importers": [
+        "hepta/artifact_publication_native.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_durable_queue.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_ndu_prepared_ranker.py",
+        "hepta/hia_ndu_session.py",
+        "hepta/hia_rust_crosscheck.py",
+        "hepta/native_mapping_identity.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "fcntl"
+    },
+    {
+      "importers": [
+        "hepta/hia_core_lowering_selection.py",
+        "hepta/hia_core_unpack_selection.py",
+        "hepta/hia_json_preflight_native.py",
+        "hepta/hia_machine_encoding_native.py",
+        "hepta/hia_machine_instructions_native.py",
+        "hepta/hia_machine_state_native.py",
+        "hepta/hia_planning.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "functools"
+    },
+    {
+      "importers": [
+        "hepta/artifact_publication.py",
+        "hepta/artifact_publication_native.py",
+        "hepta/hia_adaptive.py",
+        "hepta/hia_agent_assembly.py",
+        "hepta/hia_agent_buffers.py",
+        "hepta/hia_agent_contract.py",
+        "hepta/hia_agent_macro_policy.py",
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_agent_service.py",
+        "hepta/hia_agent_store.py",
+        "hepta/hia_agent_worker.py",
+        "hepta/hia_artifact_page_native.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_background_optimizer.py",
+        "hepta/hia_bounded_read_native.py",
+        "hepta/hia_bounded_unroll.py",
+        "hepta/hia_call_expansion.py",
+        "hepta/hia_cli_native.py",
+        "hepta/hia_composite_constructor_native.py",
+        "hepta/hia_composite_functions_native.py",
+        "hepta/hia_composite_outer_native.py",
+        "hepta/hia_core_lowering_selection.py",
+        "hepta/hia_core_module_graph_native.py",
+        "hepta/hia_core_unpack_native.py",
+        "hepta/hia_core_unpack_selection.py",
+        "hepta/hia_core_upgrade.py",
+        "hepta/hia_core_workspace_json_native.py",
+        "hepta/hia_durable_queue.py",
+        "hepta/hia_economic_search.py",
+        "hepta/hia_edit_batch.py",
+        "hepta/hia_edit_query.py",
+        "hepta/hia_empty_reduction.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_full_cost_gate.py",
+        "hepta/hia_guarded_batch.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_incremental.py",
+        "hepta/hia_initialization.py",
+        "hepta/hia_invocation_bank.py",
+        "hepta/hia_json_preflight_native.py",
+        "hepta/hia_linux_kernel.py",
+        "hepta/hia_machine_elf.py",
+        "hepta/hia_machine_plan.py",
+        "hepta/hia_machine_x64.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_narrowing.py",
+        "hepta/hia_native_byte_runner.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_native_paired_replay.py",
+        "hepta/hia_ndu.py",
+        "hepta/hia_ndu_cache.py",
+        "hepta/hia_ndu_cost.py",
+        "hepta/hia_ndu_dynamic.py",
+        "hepta/hia_ndu_module_costs.py",
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_ndu_persistent_ranker.py",
+        "hepta/hia_ndu_prepared_ranker.py",
+        "hepta/hia_ndu_raw_model.py",
+        "hepta/hia_ndu_raw_session.py",
+        "hepta/hia_ndu_response.py",
+        "hepta/hia_ndu_scalar_selection.py",
+        "hepta/hia_ndu_session.py",
+        "hepta/hia_ndu_stateful.py",
+        "hepta/hia_opcodes.py",
+        "hepta/hia_optimization.py",
+        "hepta/hia_optimization_contract.py",
+        "hepta/hia_patch_impact.py",
+        "hepta/hia_prepared.py",
+        "hepta/hia_program.py",
+        "hepta/hia_program_aarch64.py",
+        "hepta/hia_program_llvm.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_reduction.py",
+        "hepta/hia_result_cache.py",
+        "hepta/hia_rust_byte_dag.py",
+        "hepta/hia_rust_crosscheck.py",
+        "hepta/hia_safe_core.py",
+        "hepta/hia_safe_core_elf.py",
+        "hepta/hia_scalar_call_validation.py",
+        "hepta/hia_scalar_lowering_check.py",
+        "hepta/hia_scalar_proof_contract.py",
+        "hepta/hia_scalar_state.py",
+        "hepta/hia_scalar_totality.py",
+        "hepta/hia_sha256_native.py",
+        "hepta/hia_stateful.py",
+        "hepta/hia_static_budget.py",
+        "hepta/hia_translation_validation.py",
+        "hepta/hia_worker_report_native.py",
+        "hepta/hia_x86_search.py",
+        "hepta/native_tool_identity.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "hashlib"
+    },
+    {
+      "importers": [
+        "hepta/hia_proof_contract.py",
+        "hepta/hia_safe_core.py",
+        "hepta/hia_translation_validation.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "importlib"
+    },
+    {
+      "importers": [
+        "hepta/hia_agent_service.py",
+        "hepta/hia_ndu_cost.py",
+        "hepta/hia_ndu_stateful.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "itertools"
+    },
+    {
+      "importers": [
+        "hepta/artifact_publication_native.py",
+        "hepta/cli.py",
+        "hepta/hia_adaptive.py",
+        "hepta/hia_agent_assembly.py",
+        "hepta/hia_agent_contract.py",
+        "hepta/hia_agent_journal_native.py",
+        "hepta/hia_agent_macro_policy.py",
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_agent_service.py",
+        "hepta/hia_agent_store.py",
+        "hepta/hia_agent_worker.py",
+        "hepta/hia_artifact_page_native.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_background_optimizer.py",
+        "hepta/hia_cli_native.py",
+        "hepta/hia_composite_constructor_native.py",
+        "hepta/hia_composite_functions_native.py",
+        "hepta/hia_composite_outer_native.py",
+        "hepta/hia_composite_types_native.py",
+        "hepta/hia_core_lowering_selection.py",
+        "hepta/hia_core_unpack_selection.py",
+        "hepta/hia_durable_queue.py",
+        "hepta/hia_economic_search.py",
+        "hepta/hia_edit_batch.py",
+        "hepta/hia_edit_query.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_full_cost_gate.py",
+        "hepta/hia_function_shape_native.py",
+        "hepta/hia_guarded_batch.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_incremental.py",
+        "hepta/hia_json_decode.py",
+        "hepta/hia_json_preflight.py",
+        "hepta/hia_json_preflight_native.py",
+        "hepta/hia_linux_kernel.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_narrowing.py",
+        "hepta/hia_native_byte_runner.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_native_paired_replay.py",
+        "hepta/hia_ndu.py",
+        "hepta/hia_ndu_cache.py",
+        "hepta/hia_ndu_cost.py",
+        "hepta/hia_ndu_dynamic.py",
+        "hepta/hia_ndu_module_costs.py",
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_ndu_raw_model.py",
+        "hepta/hia_ndu_raw_session.py",
+        "hepta/hia_ndu_response.py",
+        "hepta/hia_ndu_scalar_selection.py",
+        "hepta/hia_ndu_session.py",
+        "hepta/hia_ndu_stateful.py",
+        "hepta/hia_opcodes.py",
+        "hepta/hia_optimization.py",
+        "hepta/hia_optimization_contract.py",
+        "hepta/hia_paired_holdout.py",
+        "hepta/hia_patch_impact.py",
+        "hepta/hia_prepared.py",
+        "hepta/hia_program.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_program_shape_native.py",
+        "hepta/hia_program_tools.py",
+        "hepta/hia_queue_commit.py",
+        "hepta/hia_rust_byte_dag.py",
+        "hepta/hia_rust_crosscheck.py",
+        "hepta/hia_safe_core.py",
+        "hepta/hia_scalar_call_validation.py",
+        "hepta/hia_scalar_proof_contract.py",
+        "hepta/hia_scalar_state.py",
+        "hepta/hia_stateful.py",
+        "hepta/hia_static_budget.py",
+        "hepta/hia_task_helpers_native.py",
+        "hepta/hia_translation_validation.py",
+        "hepta/hia_worker_report_native.py",
+        "hepta/hia_x86_search.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "json"
+    },
+    {
+      "importers": [
+        "hepta/clang_capture.py",
+        "hepta/hia_agent_contract.py",
+        "hepta/hia_agent_data_json_native.py",
+        "hepta/hia_agent_journal_native.py",
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_agent_store.py",
+        "hepta/hia_native_byte_runner.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_paired_holdout.py",
+        "hepta/hia_program_tools.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "math"
+    },
+    {
+      "importers": [
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_core_unpack_native.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_json_preflight_native.py",
+        "hepta/hia_json_wire_native.py",
+        "hepta/hia_machine_elf_native.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "mmap"
+    },
+    {
+      "importers": [
+        "hepta/windows_capture.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "msvcrt"
+    },
+    {
+      "importers": [
+        "hepta/hia_core_lowering_native.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "operator"
+    },
+    {
+      "importers": [
+        "hepta/artifact_publication.py",
+        "hepta/artifact_publication_native.py",
+        "hepta/clang_capture.py",
+        "hepta/cli.py",
+        "hepta/darwin_capture.py",
+        "hepta/hia_adaptive.py",
+        "hepta/hia_agent_buffers.py",
+        "hepta/hia_agent_data_json_native.py",
+        "hepta/hia_agent_exec.py",
+        "hepta/hia_agent_journal_native.py",
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_agent_service.py",
+        "hepta/hia_agent_store.py",
+        "hepta/hia_agent_worker.py",
+        "hepta/hia_artifact_page_native.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_bounded_read_native.py",
+        "hepta/hia_capability_flow.py",
+        "hepta/hia_cli_native.py",
+        "hepta/hia_composite_constructor_native.py",
+        "hepta/hia_composite_functions_native.py",
+        "hepta/hia_composite_outer_native.py",
+        "hepta/hia_composite_types_native.py",
+        "hepta/hia_core_admission_native.py",
+        "hepta/hia_core_lowering_selection.py",
+        "hepta/hia_core_patch_native.py",
+        "hepta/hia_core_unpack_selection.py",
+        "hepta/hia_durable_queue.py",
+        "hepta/hia_edit_query.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_function_shape_native.py",
+        "hepta/hia_guarded_batch.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_instruction_policy_native.py",
+        "hepta/hia_json_canonical_native.py",
+        "hepta/hia_json_decode.py",
+        "hepta/hia_json_preflight.py",
+        "hepta/hia_machine_elf.py",
+        "hepta/hia_machine_plan.py",
+        "hepta/hia_machine_x64.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_native_byte_runner.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_native_retirement.py",
+        "hepta/hia_ndu.py",
+        "hepta/hia_ndu_cache.py",
+        "hepta/hia_ndu_dynamic.py",
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_ndu_persistent_ranker.py",
+        "hepta/hia_ndu_prepared_ranker.py",
+        "hepta/hia_ndu_raw_model.py",
+        "hepta/hia_ndu_raw_session.py",
+        "hepta/hia_ndu_session.py",
+        "hepta/hia_program_aarch64.py",
+        "hepta/hia_program_llvm.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_program_shape_native.py",
+        "hepta/hia_program_tools.py",
+        "hepta/hia_result_cache.py",
+        "hepta/hia_rust_crosscheck.py",
+        "hepta/hia_safe_core.py",
+        "hepta/hia_sha256_native.py",
+        "hepta/hia_stateful.py",
+        "hepta/hia_task_helpers_native.py",
+        "hepta/hia_worker_report_native.py",
+        "hepta/hia_x86_search.py",
+        "hepta/native_mapping_identity.py",
+        "hepta/native_tool_identity.py",
+        "hepta/windows_capture.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "os"
+    },
+    {
+      "importers": [
+        "hepta/artifact_publication.py",
+        "hepta/artifact_publication_native.py",
+        "hepta/clang_capture.py",
+        "hepta/cli.py",
+        "hepta/darwin_capture.py",
+        "hepta/hia_adaptive.py",
+        "hepta/hia_agent_candidate_native.py",
+        "hepta/hia_agent_contract.py",
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_agent_service.py",
+        "hepta/hia_agent_snapshot_json_native.py",
+        "hepta/hia_agent_snapshot_native.py",
+        "hepta/hia_agent_store.py",
+        "hepta/hia_artifact_page_native.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_background_optimizer.py",
+        "hepta/hia_bounded_read_native.py",
+        "hepta/hia_bounded_unroll.py",
+        "hepta/hia_call_expansion.py",
+        "hepta/hia_capability_renaming_native.py",
+        "hepta/hia_cli_native.py",
+        "hepta/hia_composite_constructor_native.py",
+        "hepta/hia_composite_functions_native.py",
+        "hepta/hia_composite_outer_native.py",
+        "hepta/hia_core_admission_native.py",
+        "hepta/hia_core_json_frontend_native.py",
+        "hepta/hia_core_lowering_selection.py",
+        "hepta/hia_core_module_graph_native.py",
+        "hepta/hia_core_patch_native.py",
+        "hepta/hia_core_unpack_selection.py",
+        "hepta/hia_core_workspace_facts_native.py",
+        "hepta/hia_core_workspace_json_native.py",
+        "hepta/hia_core_workspace_materialize_native.py",
+        "hepta/hia_durable_queue.py",
+        "hepta/hia_empty_reduction.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_function_shape_native.py",
+        "hepta/hia_guarded_batch.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_initialization.py",
+        "hepta/hia_instruction_policy_native.py",
+        "hepta/hia_invocation_bank.py",
+        "hepta/hia_json_canonical_native.py",
+        "hepta/hia_json_decode_native.py",
+        "hepta/hia_json_preflight_native.py",
+        "hepta/hia_linux_kernel.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_narrowing.py",
+        "hepta/hia_native_byte_runner.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_native_retirement.py",
+        "hepta/hia_ndu.py",
+        "hepta/hia_ndu_cache.py",
+        "hepta/hia_ndu_dynamic.py",
+        "hepta/hia_ndu_module_costs.py",
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_ndu_raw_model.py",
+        "hepta/hia_ndu_raw_session.py",
+        "hepta/hia_ndu_session.py",
+        "hepta/hia_optimization.py",
+        "hepta/hia_optimization_contract.py",
+        "hepta/hia_program_aarch64.py",
+        "hepta/hia_program_llvm.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_program_shape_native.py",
+        "hepta/hia_program_tools.py",
+        "hepta/hia_reduction.py",
+        "hepta/hia_result_cache.py",
+        "hepta/hia_rust_byte_dag.py",
+        "hepta/hia_rust_crosscheck.py",
+        "hepta/hia_safe_core.py",
+        "hepta/hia_scalar_call_validation.py",
+        "hepta/hia_scalar_lowering_check.py",
+        "hepta/hia_scalar_proof_contract.py",
+        "hepta/hia_scalar_totality.py",
+        "hepta/hia_sha256_native.py",
+        "hepta/hia_sha256_stream_native.py",
+        "hepta/hia_stateful.py",
+        "hepta/hia_translation_validation.py",
+        "hepta/hia_worker_report_native.py",
+        "hepta/hia_x86_search.py",
+        "hepta/native_tool_identity.py",
+        "hepta/windows_capture.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "pathlib"
+    },
+    {
+      "importers": [
+        "hepta/hia_agent_service.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_core_unpack_native.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_guarded_batch.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_json_preflight_native.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_program_llvm.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_proof_contract.py",
+        "hepta/hia_scalar_proof_contract.py",
+        "hepta/hia_x86_search.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "platform"
+    },
+    {
+      "importers": [
+        "hepta/artifact_publication_native.py",
+        "hepta/elf_shared_abi.py",
+        "hepta/hia_aarch64_elf.py",
+        "hepta/hia_agent_assembly.py",
+        "hepta/hia_agent_buffers.py",
+        "hepta/hia_agent_contract.py",
+        "hepta/hia_agent_macro_policy.py",
+        "hepta/hia_agent_store.py",
+        "hepta/hia_economic_search.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_full_cost_gate.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_json_preflight.py",
+        "hepta/hia_linux_kernel.py",
+        "hepta/hia_machine_elf.py",
+        "hepta/hia_machine_x64.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_native_paired_replay.py",
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_ndu_response.py",
+        "hepta/hia_ndu_scalar_selection.py",
+        "hepta/hia_ndu_stateful.py",
+        "hepta/hia_program.py",
+        "hepta/hia_program_llvm.py",
+        "hepta/hia_program_tools.py",
+        "hepta/hia_rust_byte_dag.py",
+        "hepta/hia_rust_crosscheck.py",
+        "hepta/hia_scalar_lowering_check.py",
+        "hepta/hia_x86_search.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "re"
+    },
+    {
+      "importers": [
+        "hepta/hia_agent_runner.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "resource"
+    },
+    {
+      "importers": [
+        "hepta/hia_adaptive.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_continuation.py",
+        "hepta/hia_durable_queue.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_ndu_persistent_ranker.py",
+        "hepta/hia_scalar_state.py",
+        "hepta/hia_stateful.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "secrets"
+    },
+    {
+      "importers": [
+        "hepta/hia_ndu_dynamic.py",
+        "hepta/hia_ndu_persistent_ranker.py",
+        "hepta/hia_ndu_session.py",
+        "hepta/hia_rust_crosscheck.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "selectors"
+    },
+    {
+      "importers": [
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_guarded_batch.py",
+        "hepta/hia_linux_kernel.py",
+        "hepta/hia_program_aarch64.py",
+        "hepta/hia_program_llvm.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_stateful.py",
+        "hepta/hia_x86_search.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "shutil"
+    },
+    {
+      "importers": [
+        "hepta/clang_capture.py",
+        "hepta/darwin_capture.py",
+        "hepta/hia_agent_exec.py",
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_agent_service.py",
+        "hepta/hia_native_byte_runner.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_ndu_persistent_ranker.py",
+        "hepta/hia_rust_crosscheck.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "signal"
+    },
+    {
+      "importers": [
+        "hepta/hia_agent_service.py",
+        "hepta/hia_agent_store.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "sqlite3"
+    },
+    {
+      "importers": [
+        "hepta/artifact_publication.py",
+        "hepta/hia_agent_store.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_durable_queue.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_native_retirement.py",
+        "hepta/hia_ndu_cache.py",
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_ndu_prepared_ranker.py",
+        "hepta/hia_ndu_session.py",
+        "hepta/hia_program_aarch64.py",
+        "hepta/hia_program_llvm.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_program_tools.py",
+        "hepta/hia_rust_crosscheck.py",
+        "hepta/native_mapping_identity.py",
+        "hepta/native_tool_identity.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "stat"
+    },
+    {
+      "importers": [
+        "hepta/hia_multiversion.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "statistics"
+    },
+    {
+      "importers": [
+        "hepta/artifact_publication_native.py",
+        "hepta/darwin_capture.py",
+        "hepta/hia_agent_binary64_format_native.py",
+        "hepta/hia_agent_binary64_native.py",
+        "hepta/hia_agent_candidate_native.py",
+        "hepta/hia_agent_data_json_native.py",
+        "hepta/hia_agent_identity_native.py",
+        "hepta/hia_agent_journal_native.py",
+        "hepta/hia_agent_slice_native.py",
+        "hepta/hia_agent_snapshot_native.py",
+        "hepta/hia_agent_store_authority_native.py",
+        "hepta/hia_artifact_page_native.py",
+        "hepta/hia_bounded_read_native.py",
+        "hepta/hia_capability_renaming_native.py",
+        "hepta/hia_cli_native.py",
+        "hepta/hia_composite_constructor_native.py",
+        "hepta/hia_composite_function_tokens.py",
+        "hepta/hia_composite_functions_native.py",
+        "hepta/hia_composite_outer_native.py",
+        "hepta/hia_composite_types_native.py",
+        "hepta/hia_core_json_frontend_native.py",
+        "hepta/hia_core_lowering_native.py",
+        "hepta/hia_core_module_graph_native.py",
+        "hepta/hia_core_patch_native.py",
+        "hepta/hia_core_unpack_native.py",
+        "hepta/hia_function_shape_native.py",
+        "hepta/hia_instruction_policy_native.py",
+        "hepta/hia_json_canonical_native.py",
+        "hepta/hia_json_decode_native.py",
+        "hepta/hia_json_preflight_native.py",
+        "hepta/hia_json_pretty_native.py",
+        "hepta/hia_json_wire_native.py",
+        "hepta/hia_machine_elf.py",
+        "hepta/hia_machine_elf_native.py",
+        "hepta/hia_machine_encoding_native.py",
+        "hepta/hia_machine_instructions_native.py",
+        "hepta/hia_machine_plan_native.py",
+        "hepta/hia_machine_state_native.py",
+        "hepta/hia_machine_x64.py",
+        "hepta/hia_result_cache.py",
+        "hepta/hia_safe_core_elf.py",
+        "hepta/hia_safe_core_x64.py",
+        "hepta/hia_task_helpers_native.py",
+        "hepta/hia_worker_report_native.py",
+        "hepta/hia_worker_request_native.py",
+        "hepta/hia_x86_search.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "struct"
+    },
+    {
+      "importers": [
+        "hepta/artifact_publication_native.py",
+        "hepta/clang_capture.py",
+        "hepta/cli.py",
+        "hepta/darwin_capture.py",
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_cli_native.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_ndu.py",
+        "hepta/hia_ndu_dynamic.py",
+        "hepta/hia_ndu_persistent_ranker.py",
+        "hepta/hia_ndu_raw_model.py",
+        "hepta/hia_ndu_raw_session.py",
+        "hepta/hia_ndu_session.py",
+        "hepta/hia_rust_crosscheck.py",
+        "hepta/hia_stateful.py",
+        "hepta/windows_capture.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "subprocess"
+    },
+    {
+      "importers": [
+        "hepta/clang_capture.py",
+        "hepta/cli.py",
+        "hepta/darwin_capture.py",
+        "hepta/hia_agent_exec.py",
+        "hepta/hia_agent_journal_native.py",
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_agent_store_authority_native.py",
+        "hepta/hia_agent_worker.py",
+        "hepta/hia_cli_native.py",
+        "hepta/hia_core_unpack_native.py",
+        "hepta/hia_json_pretty_native.py",
+        "hepta/hia_json_wire_native.py",
+        "hepta/hia_machine_elf_native.py",
+        "hepta/hia_machine_state_native.py",
+        "hepta/hia_native_byte_runner.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_program_llvm.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_rust_crosscheck.py",
+        "hepta/hia_worker_report_native.py",
+        "hepta/hia_worker_request_native.py",
+        "hepta/native_mapping_identity.py",
+        "hepta/windows_capture.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "sys"
+    },
+    {
+      "importers": [
+        "hepta/hia_core_unpack_native.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "sysconfig"
+    },
+    {
+      "importers": [
+        "hepta/clang_capture.py",
+        "hepta/cli.py",
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_agent_service.py",
+        "hepta/hia_call_expansion.py",
+        "hepta/hia_cli_native.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_linux_kernel.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_narrowing.py",
+        "hepta/hia_native_byte_runner.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_ndu_dynamic.py",
+        "hepta/hia_optimization.py",
+        "hepta/hia_program_aarch64.py",
+        "hepta/hia_program_llvm.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_program_tools.py",
+        "hepta/hia_reduction.py",
+        "hepta/hia_safe_core.py",
+        "hepta/hia_stateful.py",
+        "hepta/hia_x86_search.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "tempfile"
+    },
+    {
+      "importers": [
+        "hepta/hia_adaptive.py",
+        "hepta/hia_agent_store.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_background_optimizer.py",
+        "hepta/hia_composite_functions_native.py",
+        "hepta/hia_composite_types_native.py",
+        "hepta/hia_durable_queue.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_incremental.py",
+        "hepta/hia_invocation_bank.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_ndu_cache.py",
+        "hepta/hia_ndu_persistent_ranker.py",
+        "hepta/hia_ndu_prepared_ranker.py",
+        "hepta/hia_ndu_raw_session.py",
+        "hepta/hia_ndu_session.py",
+        "hepta/hia_scalar_state.py",
+        "hepta/windows_capture.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "threading"
+    },
+    {
+      "importers": [
+        "hepta/clang_capture.py",
+        "hepta/hia_adaptive.py",
+        "hepta/hia_agent_macro_policy.py",
+        "hepta/hia_agent_runner.py",
+        "hepta/hia_agent_service.py",
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_background_optimizer.py",
+        "hepta/hia_call_expansion.py",
+        "hepta/hia_continuation.py",
+        "hepta/hia_economic_search.py",
+        "hepta/hia_empty_reduction.py",
+        "hepta/hia_finite_context.py",
+        "hepta/hia_guarded_batch.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_host_region.py",
+        "hepta/hia_invocation_bank.py",
+        "hepta/hia_multiversion.py",
+        "hepta/hia_narrowing.py",
+        "hepta/hia_native_byte_runner.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_native_retirement.py",
+        "hepta/hia_ndu_cache.py",
+        "hepta/hia_ndu_cost.py",
+        "hepta/hia_ndu_dynamic.py",
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_ndu_persistent_ranker.py",
+        "hepta/hia_ndu_policy.py",
+        "hepta/hia_ndu_prepared_ranker.py",
+        "hepta/hia_ndu_raw_model.py",
+        "hepta/hia_ndu_raw_session.py",
+        "hepta/hia_ndu_session.py",
+        "hepta/hia_optimization.py",
+        "hepta/hia_program_native.py",
+        "hepta/hia_queue_commit.py",
+        "hepta/hia_reduction.py",
+        "hepta/hia_result_cache.py",
+        "hepta/hia_result_cache_audit.py",
+        "hepta/hia_rust_crosscheck.py",
+        "hepta/hia_safe_core.py",
+        "hepta/hia_scalar_call_validation.py",
+        "hepta/hia_scalar_lowering_check.py",
+        "hepta/hia_scalar_proof_contract.py",
+        "hepta/hia_scalar_totality.py",
+        "hepta/hia_stateful.py",
+        "hepta/hia_x86_search.py",
+        "hepta/windows_capture.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "time"
+    },
+    {
+      "importers": [
+        "hepta/artifact_publication_native.py",
+        "hepta/hia_ndu_module_costs.py"
+      ],
+      "local_runtime_stdlib": false,
+      "module": "tools"
+    },
+    {
+      "importers": [
+        "hepta/hia_bounded_read_native.py",
+        "hepta/hia_cli_native.py",
+        "hepta/hia_core_lowering_native.py",
+        "hepta/hia_incremental.py",
+        "hepta/hia_invocation_bank.py",
+        "hepta/hia_opcodes.py",
+        "hepta/hia_schema.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "types"
+    },
+    {
+      "importers": [
+        "hepta/hia_json_wire_native.py",
+        "hepta/hia_ndu.py",
+        "hepta/hia_planning.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "typing"
+    },
+    {
+      "importers": [
+        "hepta/hia_agent_service.py",
+        "hepta/hia_agent_store.py",
+        "hepta/hia_agent_worker.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "uuid"
+    },
+    {
+      "importers": [
+        "hepta/hia_composite_functions_native.py",
+        "hepta/hia_incremental.py",
+        "hepta/hia_invocation_bank.py"
+      ],
+      "local_runtime_stdlib": true,
+      "module": "weakref"
+    },
+    {
+      "importers": [
+        "hepta/hia_artifact_session.py",
+        "hepta/hia_call_expansion.py",
+        "hepta/hia_empty_reduction.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_narrowing.py",
+        "hepta/hia_optimization.py",
+        "hepta/hia_reduction.py",
+        "hepta/hia_scalar_lowering_check.py"
+      ],
+      "local_runtime_stdlib": false,
+      "module": "z3"
+    }
+  ],
+  "full_git_tree_recomputed": true,
+  "limitations": [
+    "Static import edges include optional branches and are not a runtime trace.",
+    "The whole Git tree is inventoried; fresh physical reads cover all172 package modules and pyproject only.",
+    "AST parsing and source volume are not semantic or execution coverage.",
+    "This snapshot is v89; numeric/integer/CLI newer source drafts are separate.",
+    "The 19/41 dispatch branches remain even when HIA owns selected algorithms."
+  ],
+  "local_import_edges": 691,
+  "old_stack_deletion_ready": false,
+  "package_bytes": 2691545,
+  "package_lines": 51813,
+  "package_module_count": 172,
+  "prior_audit_delta": {
+    "added": [
+      "hepta/hia_core_unpack_native.py",
+      "hepta/hia_core_unpack_selection.py"
+    ],
+    "changed": [
+      "hepta/hia_agent_contract.py",
+      "hepta/hia_core_lowering_native.py",
+      "hepta/hia_core_lowering_selection.py",
+      "hepta/hia_program_native.py"
+    ],
+    "previous_scope": "752495d542d1cc7811321e37f3e7a3a140368d19",
+    "removed": []
+  },
+  "product_imports_executed": false,
+  "pyproject": {
+    "build-system": {
+      "build-backend": "setuptools.build_meta",
+      "requires": [
+        "setuptools>=68"
+      ]
+    },
+    "project": {
+      "dependencies": [],
+      "description": "Typed HIA Core and AI Agent tooling",
+      "name": "hia-core",
+      "optional-dependencies": {
+        "optimization": [
+          "z3-solver==4.15.4.0"
+        ],
+        "verification": [
+          "z3-solver==4.15.4.0"
+        ]
+      },
+      "requires-python": ">=3.11",
+      "scripts": {
+        "hia": "hepta.cli:hia_main"
+      },
+      "version": "0.3.0"
+    },
+    "tool": {
+      "setuptools": {
+        "packages": [
+          "hepta"
+        ]
+      }
+    }
+  },
+  "repository_bytes": 410622569,
+  "repository_files": 4076,
+  "schema": "hia.full-repository-and-static-package-inventory.v2",
+  "source_directory_name_is_not_a_version_identity": true,
+  "status": "PASSED_V89_SOURCE_STATIC_INVENTORY_NOT_WHOLE_NATIVE_CLOSURE",
+  "tests_executed": false,
+  "top_level": {
+    "(root)": {
+      "bytes": 15536,
+      "files": 8
+    },
+    ".github": {
+      "bytes": 47289,
+      "files": 4
+    },
+    "benchmarks": {
+      "bytes": 1174208,
+      "files": 92
+    },
+    "docs": {
+      "bytes": 4208667,
+      "files": 317
+    },
+    "evidence": {
+      "bytes": 127258,
+      "files": 1
+    },
+    "examples": {
+      "bytes": 16405633,
+      "files": 160
+    },
+    "experiments": {
+      "bytes": 306357787,
+      "files": 1728
+    },
+    "formal": {
+      "bytes": 106090,
+      "files": 15
+    },
+    "hepta": {
+      "bytes": 2697193,
+      "files": 175
+    },
+    "review-evidence": {
+      "bytes": 64903658,
+      "files": 541
+    },
+    "rust": {
+      "bytes": 498804,
+      "files": 54
+    },
+    "tests": {
+      "bytes": 8608522,
+      "files": 596
+    },
+    "tools": {
+      "bytes": 5471924,
+      "files": 385
+    }
+  },
+  "tree": "d9e8407c70e44a3ea0152b8b4c5eb2ed3833d790",
+  "whole_native_rewrite_complete": false
+}
