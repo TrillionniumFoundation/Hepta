@@ -1,0 +1,152 @@
+{
+  "classification": "SOURCE_DERIVED_COST_STRUCTURE_NOT_A_TIME_PROFILE",
+  "edge_fixture_expected_work_if_completed": {
+    "documents_in_order": [
+      "arith",
+      "other",
+      "cast_checked",
+      "cast_wrap",
+      "control"
+    ],
+    "function_count_arithmetic": 60,
+    "function_count_control": 5,
+    "function_count_each_cast": 100,
+    "function_count_other": 110,
+    "large_frame_operations": 1399,
+    "ordinary_emits_per_document": 2,
+    "second_emit_reason": "compile_program_machine re-emits to compare origin before linking",
+    "source": "tests/test_hia_machine_lowering_edges.py:setUpClass",
+    "status": "Static fixture construction facts; no claim all these operations ran before timeout.",
+    "total_function_definitions": 375,
+    "total_function_emissions_if_completed": 750
+  },
+  "entry_type_factory": {
+    "fact": "PYFUNCTYPE defines a new CFunctionType class on every call and has no cache.",
+    "frequency": "once per fresh UNPACK session",
+    "minimal_candidate": "Cache the fixed six-argument function-pointer TYPE only; continue to read each actual image._entry address and instantiate a new pointer object per session. Preserve fresh buffers, GIL/error flags, all HIA bytes and each requested primitive.",
+    "official_source": "references/cpython-v3.14.4/Lib/ctypes/__init__.py:PYFUNCTYPE",
+    "operation": "ctypes.PYFUNCTYPE(c_uint64, *(c_void_p,c_uint64)*3)(address)",
+    "source": "hepta/hia_core_unpack_native.py:UnpackSession.__init__",
+    "time_fraction_measured": false
+  },
+  "fresh_buffers": {
+    "cells": 80,
+    "input": 128,
+    "output": 256,
+    "transaction": 112,
+    "workspace": 256
+  },
+  "normal_successful_unpack": [
+    {
+      "C_API_calls_inside_transactions": 21,
+      "HIA_step_returns": 9,
+      "arity": 1,
+      "effects": 8,
+      "native_boundary_calls_total": 16,
+      "primitive_opcodes": [
+        1,
+        2,
+        2,
+        9,
+        11,
+        12,
+        13,
+        9
+      ],
+      "transaction_shim_calls": 7
+    },
+    {
+      "C_API_calls_inside_transactions": 27,
+      "HIA_step_returns": 11,
+      "arity": 2,
+      "effects": 10,
+      "native_boundary_calls_total": 20,
+      "primitive_opcodes": [
+        1,
+        2,
+        2,
+        2,
+        9,
+        11,
+        12,
+        12,
+        13,
+        9
+      ],
+      "transaction_shim_calls": 9
+    },
+    {
+      "C_API_calls_inside_transactions": 33,
+      "HIA_step_returns": 13,
+      "arity": 3,
+      "effects": 12,
+      "native_boundary_calls_total": 24,
+      "primitive_opcodes": [
+        1,
+        2,
+        2,
+        2,
+        2,
+        9,
+        11,
+        12,
+        12,
+        12,
+        13,
+        9
+      ],
+      "transaction_shim_calls": 11
+    },
+    {
+      "C_API_calls_inside_transactions": 39,
+      "HIA_step_returns": 15,
+      "arity": 4,
+      "effects": 14,
+      "native_boundary_calls_total": 28,
+      "primitive_opcodes": [
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        9,
+        11,
+        12,
+        12,
+        12,
+        12,
+        13,
+        9
+      ],
+      "transaction_shim_calls": 13
+    }
+  ],
+  "not_changed_or_waived": [
+    "116 exact IDs",
+    "owner180/3",
+    "all cold/compiler limits",
+    "source admission",
+    "foreign n+1 iteration",
+    "release/error order",
+    "old host UNPACK poison",
+    "all qualification ledgers"
+  ],
+  "not_per_unpack_mmap": "NativeUnpack and CpythonLeaves are created by cached _load. CpythonLeaves mmap/mprotect is per newly admitted owner, not each ordinary session. It must not be described as the proven per-unpack cost.",
+  "one_unpack_fresh_raw_buffer_bytes": 832,
+  "per_request_output_clear_byte_stores": 256,
+  "per_request_output_clear_word_count": 32,
+  "qualification_costs_unmeasured": [
+    "Outer opcode14 attempt/normal/exception Counters and ContextVar set/reset.",
+    "Every actual UNPACK step adds its per-image/status Counter after the real native return.",
+    "Every session also appends its low-level actual_steps and actual_primitives lists.",
+    "Existing outer Core step ledger remains active; its own cost is not newly attributed to UNPACK."
+  ],
+  "remaining_unknown": [
+    "exact operation alive at kill",
+    "actual total UNPACK count before kill",
+    "per-phase native/bridge/ledger time fractions",
+    "how much time the type-only cache will save",
+    "whether that alone suffices for complete116 in180s"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schema": "hia.core-unpack-progress-observation-proposal.v1",
+  "status": "UNIMPLEMENTED_SOURCE_PROPOSAL_NO_PRODUCT_EXECUTION",
+  "original_run_unchanged": 43207324933,
+  "original_116_ids_preserved": true,
+  "owner_seconds": 180,
+  "cleanup_seconds": 3,
+  "all_io_within_same_owner": true,
+  "proposed_path": "callers/core-callers/progress.jsonl",
+  "raw_file_maximum_bytes": 524288,
+  "event_maximum_bytes": 1024,
+  "no_per_primitive_disk_io": true,
+  "event_fields": ["sequence", "event", "group", "class_id", "test_id", "monotonic_ns", "outcome", "exception_type", "actual_step_counter_total"],
+  "events": ["group_begin", "group_end", "class_setup_begin", "class_setup_normal_return", "class_setup_fixture_error", "class_setup_exception", "class_teardown_begin", "class_teardown_normal_return", "class_teardown_exception", "module_fixture_begin", "module_fixture_end", "test_start", "test_stop"],
+  "mechanism": {
+    "suite_class": "A qualification-only TestSuite subclass installed as the actual TestLoader.suiteClass before loadTestsFromNames.",
+    "nested_coverage": "Walk the loaded suite tree without mutation or flattening. Require every suite directly executing a TestCase to use the tracing subclass. Preserve exact frozen IDs/order.",
+    "hooks": ["_handleClassSetUp", "_tearDownPreviousClass", "_handleModuleFixture", "_handleModuleTearDown"],
+    "official_runtime_binding": "Bind and source-test the official CPython3.14.4 TestSuite.run/hook call structure; do not assume the outermost suite executes all fixtures.",
+    "super_calls": "Invoke each inherited hook exactly once with the original arguments. Do not run or call a fixture for observation.",
+    "normal_vs_error": "The setup hook may return normally after recording a fixture Exception. Read its actual _classSetupFailed/module-failure state and label this separately; finally is never proof of successful setup.",
+    "logging_failure": "Before-call or after-success write failure makes the new operation HOLD. When preserving an already raised original BaseException, a secondary logging failure must not replace it. No logging failure permits PASS.",
+    "write": "Fixed owned ordinary create-only file, bounded one JSON line per event, no arbitrary object repr, flush each line, bind complete bytes and size at final receipt. SIGKILL can leave a valid prefix, never a complete-PASS marker.",
+    "ledger_scope": "Do not rewrite existing step/test Counter attribution in this logging change. Current counters are last-startTest keyed during class fixtures; progress events expose the fixture boundary separately.",
+    "authority": "Progress is diagnostic only; the original loaded/executed116 and zero five-anomaly checks plus owner closure remain mandatory. A partial progress file proves only its recorded prefix."
+  },
+  "required_source_controls": [
+    "Nested suite coverage and exact original116 ordering without execution or reordering.",
+    "One actual fixture invocation and distinct normal/fixture-error/BaseException observations.",
+    "No false test start or successful setup event on a setup failure.",
+    "Secondary log error cannot mask original exception; successful operation requires a complete log receipt.",
+    "Fixed file/bounds/strict monotonically ordered sequence and integer timestamps; truncate or duplicate row rejected.",
+    "Old test bodies, IDs, native limits and original owner180/3 stay byte/AST equal."
+  ],
+  "source_profile_or_timing_claim": false,
+  "added_native_run": false
+}
