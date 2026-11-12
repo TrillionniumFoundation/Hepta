@@ -1,0 +1,131 @@
+{
+  "actual_outer_ECHILD_supplied_by_this_control": false,
+  "cases": [
+    {
+      "detail": {
+        "actual_regular_bytes_and_types_read_back": true,
+        "open_observations": 96,
+        "receipt": {
+          "archive": {
+            "bytes": 10240,
+            "identity": [
+              27,
+              1483194,
+              33024,
+              1000,
+              1000,
+              1,
+              10240,
+              1794464093422149594,
+              1794464093422149594
+            ],
+            "path": "/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r1/authoring/custody-controls-r1/typed/public/owned-originals.tar",
+            "sha256": "450815631279fd7df3a5a3f61a0e956a8614a572eba694873eedd3726fcea9d3"
+          },
+          "closed_current_outer_ECHILD": true,
+          "manifest": {
+            "bytes": 2288,
+            "git_blob_sha1": "51447c2ed6fd854b152f7a80fea6ce49cf8d0376",
+            "sha256": "95e647b924d476a599b6ccc95714f8ac6b7efec5955eb1d8d80e262de00386bb"
+          },
+          "members": 6,
+          "no_product_execution": true,
+          "no_special_member_open_or_follow": true,
+          "original_members": 6,
+          "receipt": {
+            "bytes": 921,
+            "identity": [
+              27,
+              1483195,
+              33024,
+              1000,
+              1000,
+              1,
+              921,
+              1794464093422149594,
+              1794464093422149594
+            ],
+            "path": "/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r1/authoring/custody-controls-r1/typed/public/CUSTODY.json",
+            "sha256": "dceb2b83ee5b8dc260f7bd7eb2925db8560cd6bf28932e3dc6dab2defb46301c"
+          },
+          "regular_original_bytes": 256,
+          "schema": "hepta.hia.bounded-read-typed-custody-receipt.v1",
+          "status": "EXACT_TYPED_ORIGINALS_RETAINED_NOT_PRODUCT_PASS"
+        },
+        "special_member_open_count": 0
+      },
+      "id": "actual_regular_empty_symlink_FIFO_typed_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "message": "[Errno 40] Too many levels of symbolic links: 'link'",
+        "rejected": true,
+        "type": "OSError"
+      },
+      "id": "ordinary_reader_refuses_symbolic_link",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "message": "regular input required: /workspace/scratch/e26ed3e2edcf/bounded-read-actions-r1/authoring/custody-controls-r1/typed/nested/pipe",
+        "rejected": true,
+        "type": "RuntimeError"
+      },
+      "id": "ordinary_reader_refuses_FIFO_without_blocking",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "message": "owned single-link input required",
+        "rejected": true,
+        "type": "RuntimeError"
+      },
+      "id": "typed_inventory_refuses_multiple_link_regular_member",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "message": "[Errno 20] Not a directory: 'parent-link'",
+        "rejected": true,
+        "type": "NotADirectoryError"
+      },
+      "id": "reader_refuses_intermediate_symlink",
+      "status": "PASS"
+    }
+  ],
+  "executed_ids": [
+    "actual_regular_empty_symlink_FIFO_typed_roundtrip",
+    "ordinary_reader_refuses_symbolic_link",
+    "ordinary_reader_refuses_FIFO_without_blocking",
+    "typed_inventory_refuses_multiple_link_regular_member",
+    "reader_refuses_intermediate_symlink"
+  ],
+  "expected_ids": [
+    "actual_regular_empty_symlink_FIFO_typed_roundtrip",
+    "ordinary_reader_refuses_symbolic_link",
+    "ordinary_reader_refuses_FIFO_without_blocking",
+    "typed_inventory_refuses_multiple_link_regular_member",
+    "reader_refuses_intermediate_symlink"
+  ],
+  "native_compiled_or_executed": false,
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "schema": "hepta.hia.bounded-read-custody-synthetic-controls.v1",
+  "scope": "EVIDENCE_FILESYSTEM_ONLY_NO_PRODUCT_OR_GUARDIAN_EXECUTION",
+  "sources": {
+    "actions_custody.py": {
+      "bytes": 11208,
+      "sha256": "661619e2849d949cfa48807ae428271fba25799a29b653103b59d58c95e6ca80"
+    },
+    "native_support.py": {
+      "bytes": 14421,
+      "sha256": "d231bbdf27de6d909c7e3974ecccef5b8b62577db4de0c99d4012389ef4999be"
+    },
+    "source_common.py": {
+      "bytes": 13086,
+      "sha256": "76ed7450ac90e3f887c2d0b66b5e25bef487fbfd28bf94190ed7aeb699bcaefc"
+    }
+  },
+  "status": "PASS",
+  "test_population_55_plus_8_executed": false
+}
