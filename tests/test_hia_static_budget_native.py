@@ -210,6 +210,9 @@ class StaticBudgetNativeTests(unittest.TestCase):
             cls.compiler_bytes=cls.compiler.read_bytes()
             cls.cold_sources=admit_cold_build(cls.compiler_bytes,cls.cold_bytes)
             cls.folder=Path(os.environ.get(EVIDENCE) or tempfile.mkdtemp(prefix='hia-static-cold-'))/'candidate'
+            # Admission above precedes any creation under an explicit evidence root.
+            # The builder retains exclusive creation of the candidate itself.
+            cls.folder.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
             cls.manifest=build(cls.folder,cls.compiler,Path(cold),candidate='static-budget')
             cls.scope='CURRENT_SOURCE_COLD_BUILT_COMPONENT'
         else:

@@ -337,10 +337,14 @@ class PartialFiniteBounds(unittest.TestCase):
                 with self.assertRaisesRegex(HIAHeapBoundRejected, 'E_HIA_BUDGET_POLICY'):
                     self.bound(self.nominal, 'partial_case', [0, 7, 73], limit=limit)
         core = verify_core(nested_owned())
-        for variable in ('_FINITE_MAX_CONTEXTS', '_FINITE_MAX_TRANSFER_STEPS', '_FINITE_MAX_ANALYSIS_DEPTH'):
-            with self.subTest(variable=variable), patch('hepta.hia_heap_bound.' + variable, 1):
-                with self.assertRaisesRegex(HIAHeapBoundRejected, 'E_HIA_BUDGET_LIMIT'):
-                    self.bound(core, 'entry', [])
+        from tests.hia_heap_native_fixture import native_heap_selected, assert_native_finite_work_limits
+        if native_heap_selected():
+            assert_native_finite_work_limits(self,'qualify_finite_entry_live_heap_budget',7)
+        else:
+            for variable in ('_FINITE_MAX_CONTEXTS', '_FINITE_MAX_TRANSFER_STEPS', '_FINITE_MAX_ANALYSIS_DEPTH'):
+                with self.subTest(variable=variable), patch('hepta.hia_heap_bound.' + variable, 1):
+                    with self.assertRaisesRegex(HIAHeapBoundRejected, 'E_HIA_BUDGET_LIMIT'):
+                        self.bound(core, 'entry', [])
 
     def test_caller_mutation_cannot_rebind_analyzed_argument_snapshot(self):
         from hepta.hia_heap_bound import _FiniteInvocationAnalysis
@@ -360,8 +364,16 @@ class PartialFiniteBounds(unittest.TestCase):
             consumed_arguments.append(bounds)
             return original_invoke(analysis, function, bounds)
 
-        with patch.object(_FiniteInvocationAnalysis, 'invoke', mutate_caller_before_analysis):
-            certificate = self.bound(core, 'entry', arguments, limit=7)
+        from tests.hia_heap_native_fixture import native_heap_selected, before_native_finite_invocation
+        if native_heap_selected():
+            def mutate_native_before_analysis(bounds):
+                arguments[0] = 100
+                consumed_arguments.append(bounds)
+            with before_native_finite_invocation(mutate_native_before_analysis):
+                certificate = self.bound(core, 'entry', arguments, limit=7)
+        else:
+            with patch.object(_FiniteInvocationAnalysis, 'invoke', mutate_caller_before_analysis):
+                certificate = self.bound(core, 'entry', arguments, limit=7)
         self.assertEqual(arguments, [100])
         self.assertEqual(consumed_arguments, [(7,)])
         self.assertEqual(certificate['arguments'], [7])

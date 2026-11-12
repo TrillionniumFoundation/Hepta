@@ -370,8 +370,17 @@ def selected_static_budget():
     path = os.environ.get(SELECTOR)
     if not path:
         return None
+    # A selected composed owner captures all four paths before any image
+    # admission or foreign program callback. The cached image stays immutable.
+    heap_paths = (os.environ.get('HEPTA_HIA_HEAP_BOUND_MANIFEST'),
+                  os.environ.get('HEPTA_HIA_HEAP_LIVE_ENGINE_MANIFEST'), path,
+                  os.environ.get('HEPTA_HIA_HEAP_PAYLOAD_MANIFEST'))
     try:
-        return installed_static_budget(path)
+        image = installed_static_budget(path)
+        if not heap_paths[0]:
+            return image
+        from .hia_heap_bound_native import compose_static_heap
+        return compose_static_heap(image, heap_paths)
     except (ValueError, OSError, UnicodeError, RuntimeError) as exc:
         from .hia_static_budget import HIAStaticBudgetRejected
         raise HIAStaticBudgetRejected('E_HIA_BUDGET_NATIVE',

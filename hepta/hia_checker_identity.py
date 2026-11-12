@@ -36,6 +36,7 @@ CORE_SOURCE_FILES = (
     "hia_task_operations_native.py", "hia_task_helper_cache_native.py",
     "hia_program_execution_native.py",
     "hia_static_budget.py", "hia_static_budget_native.py", "hia_heap_bound.py",
+    "hia_heap_bound_native.py", "hia_heap_live_native.py", "hia_heap_payload_native.py",
 )
 
 # Exact verifier and checked-replay selectors. Finite-context checks also execute
@@ -44,6 +45,9 @@ CORE_SOURCE_FILES = (
 NATIVE_OWNERS = {
     "HEPTA_HIA_PROGRAM_EXECUTION_MANIFEST": ("hia_program_execution_native", "installed_program_execution"),
     "HEPTA_HIA_STATIC_BUDGET_MANIFEST": ("hia_static_budget_native", "installed_static_budget"),
+    "HEPTA_HIA_HEAP_BOUND_MANIFEST": ("hia_heap_bound_native", "installed_heap_controller"),
+    "HEPTA_HIA_HEAP_LIVE_ENGINE_MANIFEST": ("hia_heap_live_native", "installed_heap_live"),
+    "HEPTA_HIA_HEAP_PAYLOAD_MANIFEST": ("hia_heap_payload_native", "installed_heap_payload"),
     "HEPTA_HIA_JSON_PREFLIGHT_MANIFEST": ("hia_json_preflight_native", "installed_preflight"),
     "HEPTA_HIA_JSON_DECODE_MANIFEST": ("hia_json_decode_native", "installed_decoder"),
     "HEPTA_HIA_JSON_CANONICAL_MANIFEST": ("hia_json_canonical_native", "installed_canonicalizer"),

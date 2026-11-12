@@ -24,11 +24,15 @@ MAX_MANIFEST_BYTES = 16384
 MAX_IMAGE_BYTES = 1 << 20
 MAX_SOURCE_BYTES = 8 << 20
 
-# Only single-image contracts with the existing six-argument byte ABI.
-# Multi-image and external executable contracts need a separate custody closure.
+# Each entry owns one image with the existing six-argument byte ABI.
+# Composed heap dependencies are admitted as one complete selector set below.
+# Other multi-image and external executable contracts need separate closure.
 HELPERS = {
     "HEPTA_HIA_PROGRAM_EXECUTION_MANIFEST": ("hia_program_execution_native", "NativeProgramExecution"),
     "HEPTA_HIA_STATIC_BUDGET_MANIFEST": ("hia_static_budget_native", "NativeStaticBudget"),
+    "HEPTA_HIA_HEAP_BOUND_MANIFEST": ("hia_heap_bound_native", "NativeHeapController"),
+    "HEPTA_HIA_HEAP_LIVE_ENGINE_MANIFEST": ("hia_heap_live_native", "NativeLiveHeap"),
+    "HEPTA_HIA_HEAP_PAYLOAD_MANIFEST": ("hia_heap_payload_native", "NativePayloadHeap"),
     "HEPTA_HIA_WORKER_REQUEST_MANIFEST": ("hia_worker_request_native", "NativeWorkerRequest"),
     "HEPTA_HIA_AGENT_IDENTITY_MANIFEST": ("hia_agent_identity_native", "NativeAgentIdentity"),
     "HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST": ("hia_agent_snapshot_json_native", "NativeAgentSnapshotJson"),
@@ -140,6 +144,11 @@ class NativeHelpersBinding:
                 or admission_entry[0].resolve(strict=True) !=
                 patch_entry[0].resolve(strict=True).parent / "admission-manifest.json"):
             raise ValueError("native Core patch requires its exact adjacent admission helper")
+        if "HEPTA_HIA_HEAP_BOUND_MANIFEST" in entries and not {
+                "HEPTA_HIA_HEAP_LIVE_ENGINE_MANIFEST",
+                "HEPTA_HIA_STATIC_BUDGET_MANIFEST",
+                "HEPTA_HIA_HEAP_PAYLOAD_MANIFEST"} <= entries.keys():
+            raise ValueError("native heap controller requires its complete pinned dependency set")
         for selector, (manifest_path, manifest_sha256) in entries.items():
             manifest = _read(manifest_path, MAX_MANIFEST_BYTES)
             if sha256(manifest.raw).hexdigest() != manifest_sha256:
