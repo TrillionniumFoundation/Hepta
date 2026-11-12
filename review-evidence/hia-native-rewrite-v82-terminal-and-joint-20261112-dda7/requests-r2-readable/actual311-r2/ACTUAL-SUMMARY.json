@@ -1,0 +1,164 @@
+{
+  "current_source_cold": false,
+  "default_abi_refusal_command_passed": true,
+  "job_id": 131513105613,
+  "original_artifact_tests": {
+    "elapsed_ns": 633249239,
+    "errors": [
+      [
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+        "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/requests-default311/source/tests/test_hia_agent_native_tools.py\", line 38, in setUp\n    self.service = HIAAgentService(self.state_root, artifact_roots=(self.files_root,))\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_service.py\", line 96, in __init__\n    self.identities = installation_manifest()\n                      ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_contract.py\", line 168, in installation_manifest\n    \"backend_sha256\": _implementation_hash(),\n                      ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 92, in _implementation_hash\n    return _reference_implementation_hash()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 117, in _reference_implementation_hash\n    digest.update(checker_digest().encode())\n                  ^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 357, in checker_digest\n    \"native_selection\": checker_native_selection()}\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 293, in checker_native_selection\n    module = importlib.import_module(\".\" + module_name, __package__)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/importlib/__init__.py\", line 126, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1204, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1176, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1147, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 690, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 940, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 241, in _call_with_frames_removed\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_selection.py\", line 15, in <module>\n    from .hia_core_emitter_native import NativeCoreEmitter, SOURCE, SCHEMA, SELECTOR\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 80, in <module>\n    _merge_mapping = _mapping_merge_primitive()\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 51, in _mapping_merge_primitive\n    raise RuntimeError('native Core emitter keyword port requires a reviewed CPython ABI')\nRuntimeError: native Core emitter keyword port requires a reviewed CPython ABI\n"
+      ],
+      [
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+        "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/requests-default311/source/tests/test_hia_agent_native_tools.py\", line 38, in setUp\n    self.service = HIAAgentService(self.state_root, artifact_roots=(self.files_root,))\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_service.py\", line 96, in __init__\n    self.identities = installation_manifest()\n                      ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_contract.py\", line 168, in installation_manifest\n    \"backend_sha256\": _implementation_hash(),\n                      ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 92, in _implementation_hash\n    return _reference_implementation_hash()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 117, in _reference_implementation_hash\n    digest.update(checker_digest().encode())\n                  ^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 357, in checker_digest\n    \"native_selection\": checker_native_selection()}\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 293, in checker_native_selection\n    module = importlib.import_module(\".\" + module_name, __package__)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/importlib/__init__.py\", line 126, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1204, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1176, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1147, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 690, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 940, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 241, in _call_with_frames_removed\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_selection.py\", line 15, in <module>\n    from .hia_core_emitter_native import NativeCoreEmitter, SOURCE, SCHEMA, SELECTOR\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 80, in <module>\n    _merge_mapping = _mapping_merge_primitive()\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 51, in _mapping_merge_primitive\n    raise RuntimeError('native Core emitter keyword port requires a reviewed CPython ABI')\nRuntimeError: native Core emitter keyword port requires a reviewed CPython ABI\n"
+      ],
+      [
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+        "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/requests-default311/source/tests/test_hia_agent_native_tools.py\", line 38, in setUp\n    self.service = HIAAgentService(self.state_root, artifact_roots=(self.files_root,))\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_service.py\", line 96, in __init__\n    self.identities = installation_manifest()\n                      ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_contract.py\", line 168, in installation_manifest\n    \"backend_sha256\": _implementation_hash(),\n                      ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 92, in _implementation_hash\n    return _reference_implementation_hash()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 117, in _reference_implementation_hash\n    digest.update(checker_digest().encode())\n                  ^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 357, in checker_digest\n    \"native_selection\": checker_native_selection()}\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 293, in checker_native_selection\n    module = importlib.import_module(\".\" + module_name, __package__)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/importlib/__init__.py\", line 126, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1204, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1176, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1147, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 690, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 940, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 241, in _call_with_frames_removed\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_selection.py\", line 15, in <module>\n    from .hia_core_emitter_native import NativeCoreEmitter, SOURCE, SCHEMA, SELECTOR\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 80, in <module>\n    _merge_mapping = _mapping_merge_primitive()\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 51, in _mapping_merge_primitive\n    raise RuntimeError('native Core emitter keyword port requires a reviewed CPython ABI')\nRuntimeError: native Core emitter keyword port requires a reviewed CPython ABI\n"
+      ],
+      [
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+        "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/requests-default311/source/tests/test_hia_agent_native_tools.py\", line 38, in setUp\n    self.service = HIAAgentService(self.state_root, artifact_roots=(self.files_root,))\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_service.py\", line 96, in __init__\n    self.identities = installation_manifest()\n                      ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_contract.py\", line 168, in installation_manifest\n    \"backend_sha256\": _implementation_hash(),\n                      ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 92, in _implementation_hash\n    return _reference_implementation_hash()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 117, in _reference_implementation_hash\n    digest.update(checker_digest().encode())\n                  ^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 357, in checker_digest\n    \"native_selection\": checker_native_selection()}\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 293, in checker_native_selection\n    module = importlib.import_module(\".\" + module_name, __package__)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/importlib/__init__.py\", line 126, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1204, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1176, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1147, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 690, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 940, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 241, in _call_with_frames_removed\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_selection.py\", line 15, in <module>\n    from .hia_core_emitter_native import NativeCoreEmitter, SOURCE, SCHEMA, SELECTOR\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 80, in <module>\n    _merge_mapping = _mapping_merge_primitive()\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 51, in _mapping_merge_primitive\n    raise RuntimeError('native Core emitter keyword port requires a reviewed CPython ABI')\nRuntimeError: native Core emitter keyword port requires a reviewed CPython ABI\n"
+      ],
+      [
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+        "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/requests-default311/source/tests/test_hia_agent_native_tools.py\", line 38, in setUp\n    self.service = HIAAgentService(self.state_root, artifact_roots=(self.files_root,))\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_service.py\", line 96, in __init__\n    self.identities = installation_manifest()\n                      ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_contract.py\", line 168, in installation_manifest\n    \"backend_sha256\": _implementation_hash(),\n                      ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 92, in _implementation_hash\n    return _reference_implementation_hash()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 117, in _reference_implementation_hash\n    digest.update(checker_digest().encode())\n                  ^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 357, in checker_digest\n    \"native_selection\": checker_native_selection()}\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 293, in checker_native_selection\n    module = importlib.import_module(\".\" + module_name, __package__)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/importlib/__init__.py\", line 126, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1204, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1176, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1147, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 690, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 940, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 241, in _call_with_frames_removed\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_selection.py\", line 15, in <module>\n    from .hia_core_emitter_native import NativeCoreEmitter, SOURCE, SCHEMA, SELECTOR\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 80, in <module>\n    _merge_mapping = _mapping_merge_primitive()\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 51, in _mapping_merge_primitive\n    raise RuntimeError('native Core emitter keyword port requires a reviewed CPython ABI')\nRuntimeError: native Core emitter keyword port requires a reviewed CPython ABI\n"
+      ],
+      [
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+        "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/requests-default311/source/tests/test_hia_agent_native_tools.py\", line 38, in setUp\n    self.service = HIAAgentService(self.state_root, artifact_roots=(self.files_root,))\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_service.py\", line 96, in __init__\n    self.identities = installation_manifest()\n                      ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_contract.py\", line 168, in installation_manifest\n    \"backend_sha256\": _implementation_hash(),\n                      ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 92, in _implementation_hash\n    return _reference_implementation_hash()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 117, in _reference_implementation_hash\n    digest.update(checker_digest().encode())\n                  ^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 357, in checker_digest\n    \"native_selection\": checker_native_selection()}\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 293, in checker_native_selection\n    module = importlib.import_module(\".\" + module_name, __package__)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/importlib/__init__.py\", line 126, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1204, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1176, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1147, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 690, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 940, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 241, in _call_with_frames_removed\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_selection.py\", line 15, in <module>\n    from .hia_core_emitter_native import NativeCoreEmitter, SOURCE, SCHEMA, SELECTOR\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 80, in <module>\n    _merge_mapping = _mapping_merge_primitive()\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 51, in _mapping_merge_primitive\n    raise RuntimeError('native Core emitter keyword port requires a reviewed CPython ABI')\nRuntimeError: native Core emitter keyword port requires a reviewed CPython ABI\n"
+      ],
+      [
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+        "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/requests-default311/source/tests/test_hia_agent_native_tools.py\", line 38, in setUp\n    self.service = HIAAgentService(self.state_root, artifact_roots=(self.files_root,))\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_service.py\", line 96, in __init__\n    self.identities = installation_manifest()\n                      ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_contract.py\", line 168, in installation_manifest\n    \"backend_sha256\": _implementation_hash(),\n                      ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 92, in _implementation_hash\n    return _reference_implementation_hash()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 117, in _reference_implementation_hash\n    digest.update(checker_digest().encode())\n                  ^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 357, in checker_digest\n    \"native_selection\": checker_native_selection()}\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 293, in checker_native_selection\n    module = importlib.import_module(\".\" + module_name, __package__)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/importlib/__init__.py\", line 126, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1204, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1176, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1147, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 690, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 940, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 241, in _call_with_frames_removed\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_selection.py\", line 15, in <module>\n    from .hia_core_emitter_native import NativeCoreEmitter, SOURCE, SCHEMA, SELECTOR\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 80, in <module>\n    _merge_mapping = _mapping_merge_primitive()\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 51, in _mapping_merge_primitive\n    raise RuntimeError('native Core emitter keyword port requires a reviewed CPython ABI')\nRuntimeError: native Core emitter keyword port requires a reviewed CPython ABI\n"
+      ],
+      [
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+        "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/requests-default311/source/tests/test_hia_agent_native_tools.py\", line 38, in setUp\n    self.service = HIAAgentService(self.state_root, artifact_roots=(self.files_root,))\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_service.py\", line 96, in __init__\n    self.identities = installation_manifest()\n                      ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_agent_contract.py\", line 168, in installation_manifest\n    \"backend_sha256\": _implementation_hash(),\n                      ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 92, in _implementation_hash\n    return _reference_implementation_hash()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_program_native.py\", line 117, in _reference_implementation_hash\n    digest.update(checker_digest().encode())\n                  ^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 357, in checker_digest\n    \"native_selection\": checker_native_selection()}\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_checker_identity.py\", line 293, in checker_native_selection\n    module = importlib.import_module(\".\" + module_name, __package__)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.11.18/x64/lib/python3.11/importlib/__init__.py\", line 126, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1204, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1176, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1147, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 690, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 940, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 241, in _call_with_frames_removed\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_selection.py\", line 15, in <module>\n    from .hia_core_emitter_native import NativeCoreEmitter, SOURCE, SCHEMA, SELECTOR\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 80, in <module>\n    _merge_mapping = _mapping_merge_primitive()\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/requests-default311/source/hepta/hia_core_emitter_native.py\", line 51, in _mapping_merge_primitive\n    raise RuntimeError('native Core emitter keyword port requires a reviewed CPython ABI')\nRuntimeError: native Core emitter keyword port requires a reviewed CPython ABI\n"
+      ]
+    ],
+    "events": [
+      [
+        "start",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+        46120545866
+      ],
+      [
+        "stop",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+        46258832193
+      ],
+      [
+        "start",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+        46258855767
+      ],
+      [
+        "stop",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+        46301591747
+      ],
+      [
+        "start",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+        46301615231
+      ],
+      [
+        "stop",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+        46346818158
+      ],
+      [
+        "start",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+        46346839919
+      ],
+      [
+        "stop",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+        46389698540
+      ],
+      [
+        "start",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+        46389721013
+      ],
+      [
+        "stop",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+        46432145036
+      ],
+      [
+        "start",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+        46432168360
+      ],
+      [
+        "stop",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+        46475090852
+      ],
+      [
+        "start",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+        46475118263
+      ],
+      [
+        "stop",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+        46519700622
+      ],
+      [
+        "start",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+        46519743473
+      ],
+      [
+        "stop",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+        46562779158
+      ]
+    ],
+    "executed_ids": [
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor"
+    ],
+    "expected_failures": [],
+    "failures": [],
+    "loaded_ids": [
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor"
+    ],
+    "loader_errors": [],
+    "python": "3.11.18 (main, Oct 26 2026, 02:48:34) [GCC 13.3.0]",
+    "schema": "hia.evaluation.actual-unittest.v1",
+    "selectors": [
+      "tests.test_hia_agent_native_tools.ArtifactContractTests"
+    ],
+    "skips": [],
+    "status": "FAIL",
+    "tests_run": 8,
+    "unexpected_successes": []
+  },
+  "python": "3.11.18 (main, Oct 26 2026, 02:48:34) [GCC 13.3.0]",
+  "run_id": 43312842625,
+  "schema": "hia.requests.actual-default-summary.v81.r2",
+  "source_and_inputs_unchanged": true,
+  "source_files": 3272,
+  "source_tree": "98eff57e40af422cd69c39f2aa9588fdbf86a2ad",
+  "status": "FAIL",
+  "whole_native": false
+}
