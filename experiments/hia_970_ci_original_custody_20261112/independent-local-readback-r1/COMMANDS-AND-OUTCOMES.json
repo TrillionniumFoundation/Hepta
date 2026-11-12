@@ -1,0 +1,65 @@
+{
+  "full_5400_retained_suite_executed": false,
+  "historical_results_reclassified": false,
+  "login": false,
+  "new_product_execution": false,
+  "observations": [
+    {
+      "actual_report": "CONTAINER-READBACK.json",
+      "command": "python3 audit_original_container.py",
+      "exec_session_id": 69355,
+      "observed_counts": {
+        "all_member_bytes": 126634528,
+        "all_members": 356,
+        "original_bytes": 112639137,
+        "originals": 354
+      },
+      "observed_status": "ALL_356_ORIGINAL_MEMBERS_VERIFIED_NOT_PRODUCT_REEXECUTION",
+      "terminal_exit_code": 0
+    },
+    {
+      "command": "python3 audit_original_semantics.py",
+      "meaning": "Audit implementation used an incorrect contract path; not a product failure.",
+      "observed_exception": "KeyError: 'docs/HIA_SELF_HOSTING_SUPPORT.json'",
+      "report_generated": false,
+      "script_preserved": "audit_original_semantics.py",
+      "terminal_exit_code": 1
+    },
+    {
+      "actual_report": "SEMANTIC-READBACK.json",
+      "command": "python3 audit_original_semantics_r2.py",
+      "exec_session_id": 55336,
+      "observed_counts": {
+        "nested_checks": 5051,
+        "performed_checks": 2799,
+        "phases": 38,
+        "unselected_physical_file_references": 1025
+      },
+      "observed_status": "ORIGINAL_COLD_AND_FIVE_COMPILER_GATES_JOINED",
+      "terminal_exit_code": 0
+    },
+    {
+      "actual_report": "NINETEEN-PARTITION-AGGREGATE.json",
+      "additional_observation": "The reassembled ZIP was compared byte for byte with 014.original from the independently sealed small artifact, and was identical.",
+      "command": "node recover_all19.js",
+      "exec_session_id": 40916,
+      "observed_counts": {
+        "frames": 440,
+        "raw_bytes": 9252841,
+        "raw_files": 114,
+        "zip_bytes": 8316154
+      },
+      "observed_status": "ORIGINAL_INNER_ZIP_FULL_SHA_RECOVERED_NOT_QUALIFICATION",
+      "terminal_exit_code": 0
+    }
+  ],
+  "provenance": "Post-execution notes of the actual tool invocations and returned terminal results. These notes are not a reproduction of raw SDK envelopes or terminal streams.",
+  "raw_tool_transcripts_mirrored_as_files": false,
+  "schema": "hia.970-independent-local-command-observations.v1",
+  "semantic_r2_delta": [
+    "Use the actual support_contract.path from the original report rather than the mistaken literal path.",
+    "Write the successful new report into semantic-readback-r2 rather than the failed r1 directory."
+  ],
+  "shell": "bash",
+  "workdir": "/workspace/scratch/e26ed3e2edcf/cold"
+}
