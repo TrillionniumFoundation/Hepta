@@ -1,0 +1,10 @@
+{
+  "scope": "Read-only audit helper used generic artifact ownership before the pre-frozen system-file reader; no candidate change, compile, DSO load or native execution.",
+  "tool_result": {
+    "chunk_id": "60d8e9",
+    "wall_time_seconds": 0.159848183,
+    "exit_code": 1,
+    "original_token_count": 248,
+    "output": "Traceback (most recent call last):\n  File \"/tmp/hia-cli-json-c-runtime-lifetime-failure-r2b-20261112-e26e/audit_dynamic_closure.py\", line 303, in <module>\n    main()\n  File \"/tmp/hia-cli-json-c-runtime-lifetime-failure-r2b-20261112-e26e/audit_dynamic_closure.py\", line 235, in main\n    data = bound_system(path)\n           ^^^^^^^^^^^^^^^^^^\n  File \"/tmp/hia-cli-json-c-runtime-lifetime-failure-r2b-20261112-e26e/audit_dynamic_closure.py\", line 218, in bound_system\n    raw, record = read_file(Path(path), 64 << 20)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/hia-cli-json-c-runtime-lifetime-plan-r2b-20261112-e26e/control/common.py\", line 83, in read_file\n    require(initial.st_uid in (0, os.geteuid()) and not initial.st_mode & 0o022,\n  File \"/tmp/hia-cli-json-c-runtime-lifetime-plan-r2b-20261112-e26e/control/common.py\", line 25, in require\n    raise ValueError(message)\nValueError: input ownership or writable mode differs: /usr/lib/x86_64-linux-gnu/libpthread.so.0\n"
+  }
+}
