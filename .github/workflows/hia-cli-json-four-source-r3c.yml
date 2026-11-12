@@ -1,0 +1,102 @@
+name: CLI JSON r3c four source components
+
+on:
+  create:
+
+permissions:
+  contents: read
+
+jobs:
+  source-only:
+    if: github.event.ref_type == 'branch' && github.event.ref == 'codex/hia-cli-json-four-source-r3c-run-r1-20261112-e26e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CONTROL_CHECKOUT: ${{ github.workspace }}/control
+      CONTROL_PREFIX: experiments/hia_cli_json_graph_20261112/source-actions-r3c-r1
+      CONTROL_COMMIT: "f26b68a95ae257f59d9807dcccc950797442ab79"
+      POLICY_SHA256: "8e66871a71e0ecdb8cca704133d96ec604156aa17d94b5c81f204be3d06950a6"
+      CONTROLLER_SHA256: "b2a17727804f9ae80f5a8757363a11e33c485fa2a1fd32f48546ac01cc727241"
+    steps:
+      - name: Check out immutable source-only authority
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: "f26b68a95ae257f59d9807dcccc950797442ab79"
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /experiments/hia_cli_json_graph_20261112/source-actions-r3c-r1/
+            /experiments/hia_cli_json_graph_20261112/implementation-r3c/source-only-request-r3/
+
+      - name: Select the new exact remote Python profile
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.14.4"
+
+      - name: Check actual controller and policy bytes
+        id: authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;;
+            *) printf '%s\n' 'unexpected loader environment'; exit 1 ;;
+          esac
+          python -I -S -B -c 'from hashlib import sha256; from pathlib import Path; import sys; assert tuple(sys.version_info[:3]) == (3, 14, 4); assert sha256(Path(sys.argv[1]).read_bytes()).hexdigest() == sys.argv[2]; assert sha256(Path(sys.argv[3]).read_bytes()).hexdigest() == sys.argv[4]' "$CONTROL_CHECKOUT/$CONTROL_PREFIX/controller.py" "$CONTROLLER_SHA256" "$CONTROL_CHECKOUT/$CONTROL_PREFIX/POLICY.json" "$POLICY_SHA256"
+
+      - name: Create a fresh source request with actual runtime pins
+        id: prepare
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;;
+            *) printf '%s\n' 'unexpected loader environment'; exit 1 ;;
+          esac
+          python -I -S -B "$CONTROL_CHECKOUT/$CONTROL_PREFIX/controller.py" prepare --checkout "$CONTROL_CHECKOUT" --policy "$CONTROL_CHECKOUT/$CONTROL_PREFIX/POLICY.json" --policy-sha256 "$POLICY_SHA256" --control-commit "$CONTROL_COMMIT"
+
+      - name: Run the original four components under 180 plus 3 seconds
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;;
+            *) printf '%s\n' 'unexpected loader environment'; exit 1 ;;
+          esac
+          python -I -S -B "$CONTROL_CHECKOUT/$CONTROL_PREFIX/controller.py" run --checkout "$CONTROL_CHECKOUT" --policy "$CONTROL_CHECKOUT/$CONTROL_PREFIX/POLICY.json" --policy-sha256 "$POLICY_SHA256" --control-commit "$CONTROL_COMMIT"
+
+      - name: Verify closure and retain all available source originals
+        if: always() && steps.authority.conclusion == 'success'
+        id: finalize
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;;
+            *) printf '%s\n' 'unexpected loader environment'; exit 1 ;;
+          esac
+          python -I -S -B "$CONTROL_CHECKOUT/$CONTROL_PREFIX/controller.py" finalize --checkout "$CONTROL_CHECKOUT" --policy "$CONTROL_CHECKOUT/$CONTROL_PREFIX/POLICY.json" --policy-sha256 "$POLICY_SHA256" --control-commit "$CONTROL_COMMIT"
+
+      - name: Emit the bounded whole-file original channel
+        if: always() && steps.authority.conclusion == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;;
+            *) printf '%s\n' 'unexpected loader environment'; exit 1 ;;
+          esac
+          python -I -S -B "$CONTROL_CHECKOUT/$CONTROL_PREFIX/controller.py" frames --checkout "$CONTROL_CHECKOUT" --policy "$CONTROL_CHECKOUT/$CONTROL_PREFIX/POLICY.json" --policy-sha256 "$POLICY_SHA256" --control-commit "$CONTROL_COMMIT"
+
+      - name: Upload original bytes and all HOLD metadata
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-cli-json-r3c-source-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hia-cli-json-four-source-r3c-actions-r1-public/
+          if-no-files-found: warn
+          compression-level: 6
+          retention-days: 7
