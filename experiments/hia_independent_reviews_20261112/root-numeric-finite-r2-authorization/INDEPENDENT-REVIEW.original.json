@@ -1,0 +1,209 @@
+{
+  "actual_review_operations": [
+    "read/hashes",
+    "source AST-only comparisons",
+    "static integer arithmetic",
+    "official Git metadata read",
+    "full official ZIP hash and seven-member CRC/SHA read",
+    "full frozen XZ/tar recovery"
+  ],
+  "executable_reproduction": [
+    "python3 -B reproduce_static_observations.py /workspace/scratch/e26ed3e2edcf/core-numeric-native-plan-r2 --git-observation R2-GIT-OBSERVATION.json",
+    "python3 -B verify_r2_compiler_originals.py /workspace/scratch/e26ed3e2edcf/core-numeric-native-plan-r2"
+  ],
+  "failure_custody": "Create-only root and one operation; no retry/replay. Completed chunks have full fsync/readback. Partial records/index, native failure, compile timeout, missing reports, source drift or owner cleanup failure stayHOLD. Abrupt process termination may lose the unflushed current suffix; this declared limitation never becomes complete tracePASS. All surviving original files remain local for later custody.",
+  "files": {
+    "LAUNCH.json": {
+      "bytes": 1296,
+      "git_blob_sha1": "32d6171f49bf0f65c4f3169ab3cb3399a2e1d034",
+      "sha256": "ae008802e9593f54d70414499cdaaf68464c4e4507c0e840b2b4186b34f08e75"
+    },
+    "POLICY.json": {
+      "bytes": 18486,
+      "git_blob_sha1": "fb62bbba7e842f223ca6f6be7d334b43531573c1",
+      "sha256": "fddb9c2efd6f1574711547ead4616247bceee0275a7213e47793ed4df6c55625"
+    },
+    "REQUEST.json": {
+      "bytes": 414,
+      "git_blob_sha1": "4be79d2a58bd79fefa0c896ee11ca71c6245a16b",
+      "sha256": "49e1731eb7b9236538dfe2b901ece86d9985be008c6ef3940d9de7ddbe893eb2"
+    },
+    "control/common.py": {
+      "bytes": 8877,
+      "git_blob_sha1": "a3c391db0e3d75e7ccaa878e79b36f78bc697017",
+      "sha256": "83bdbf1b3795c49bd82e88d1a1d8cbd641d384657eb674f90c4e8807c5c79825"
+    },
+    "control/launch.py": {
+      "bytes": 7632,
+      "git_blob_sha1": "8238393f21a0c54ef93b28221ede14e599274f5f",
+      "sha256": "81d2241b46b66863818d3ac9e5ce967ae1d620f063d89d205d80f74c0df85431"
+    },
+    "control/native_cases.py": {
+      "bytes": 29890,
+      "git_blob_sha1": "18dbd2d9ca503a03a34840af7d4f7e288f29b96f",
+      "sha256": "d29b7dff8414c674dfc3c10bac95437ec7a722045996b629e2b5f710256006c1"
+    },
+    "control/trace.py": {
+      "bytes": 21817,
+      "git_blob_sha1": "b4ae363bcba7278d39742882f0b182c93ee5175d",
+      "sha256": "168af0d678fbfad96f92466937f52eebddd09069dc3bb0f53bede12999a4c8e0"
+    },
+    "control/worker.py": {
+      "bytes": 14215,
+      "git_blob_sha1": "d03cacbdc0cfd893ff459ebe0ae10f65575553a5",
+      "sha256": "7c5b3b6ac970237d2c78b273691cc19e6024a0d5178203aa3b01f072fa688c9d"
+    },
+    "reference/B3-ORIGINALS-CUSTODY.json": {
+      "bytes": 2756,
+      "git_blob_sha1": "e928f758bb0983a88430c6e23d9bc6cea7c5733a",
+      "sha256": "b4260ba356ac88e870068a2cf85e0b9a65e7f395a47d1af354d873371a6d1fe4"
+    },
+    "reference/COMPILER-ORIGIN.json": {
+      "bytes": 5234,
+      "git_blob_sha1": "358e549e4fc108d6e45a0c30922e4032f455358b",
+      "sha256": "08462cb127f8c5d1833376790d97ea6c8c1e3ca2f124437a99111d571616f21e"
+    }
+  },
+  "fixed_denominators": {
+    "actual_numeric_pairs_required": 173,
+    "additional_full_low_limb_pair": 1,
+    "exact_ID_list": [
+      "__main__.FiniteNumericComparisonNativeTests.test_arbitrary_integer_windows_have_no_eight_mib_value_gate",
+      "__main__.FiniteNumericComparisonNativeTests.test_bindings_and_foreign_fallback_order",
+      "__main__.FiniteNumericComparisonNativeTests.test_explicit_admission_missing_and_drift_refusals",
+      "__main__.FiniteNumericComparisonNativeTests.test_four_relations_and_six_predicates_are_HIA_decisions",
+      "__main__.FiniteNumericComparisonNativeTests.test_integer_bool_and_ieee_special_values_match_builtin_oracle",
+      "__main__.FiniteNumericComparisonNativeTests.test_mixed_dyadic_boundaries_and_seeded_binary64_match_oracle",
+      "__main__.FiniteNumericComparisonNativeTests.test_one_use_and_bad_native_ack_are_terminal",
+      "__main__.FiniteNumericComparisonNativeTests.test_z_complete_large_low_limb_traversal"
+    ],
+    "original_VM_entries": 291,
+    "original_VM_numeric_pairs": 172,
+    "required_status_counts": {
+      "0": 180,
+      "1": 131200,
+      "4294967293": 17
+    },
+    "trace_cases_required": 185,
+    "trace_entries_required": 131397,
+    "unittest_methods": 8,
+    "window_requests_required": 131200
+  },
+  "full_publication_observation": {
+    "all_parent5828_leaves_unchanged": true,
+    "all_size_SHA256_Gitblob_mode_equal": true,
+    "bytes": 1895653,
+    "files": 50,
+    "remote_tree_leaves": 5878,
+    "remote_tree_truncated": false
+  },
+  "full_window_recording": "Each actual C function return is preceded by a960B PRE and followed by960B POST, both with all256/128/512 bytes and a header/hash. The reader independently joins every record, chunk, full stream, operand range, continuation state and VM packet/output. The additional two8388612B operands differ only at their lowest limb;65537 requests per side yield131074 windows and131075 entries, with no skipped window.",
+  "independent_reader_correction": {
+    "cause": "Reviewer initially assumed historicalB3 workspace_fill0; actual old cold producer deliberately uses0x5a. New numeric compile remains separately fill0.",
+    "corrected_readback": "R2-COMPILER-ORIGINAL-READBACK.json",
+    "correction_scope": "Only the independent historical-byte reader expectation changed; no request/product/original data changed.",
+    "original_HOLD": "R2-COMPILER-READBACK-R1-HOLD.json"
+  },
+  "not_claimed": [
+    "native or VM execution",
+    "elapsed performance",
+    "synthetic malformed-input test execution",
+    "CPython3.14 execution",
+    "original18 or116 execution",
+    "Core39 execution",
+    "matching cold",
+    "full5400 qualification",
+    "installed wheel",
+    "default activation",
+    "object-runtime or entire numeric-domain closure"
+  ],
+  "owner_and_compile": {
+    "cleanup_seconds": 3,
+    "compile_attempts": 1,
+    "compiler_CPU_seconds": 10,
+    "compiler_input_output_workspace_bytes": 1048576,
+    "compiler_wall_seconds": 20,
+    "finite_child_attempts": 1,
+    "inside_same180": [
+      "compile_stage",
+      "finite native child",
+      "all raw trace writes",
+      "full independent trace reread"
+    ],
+    "new_finite_child_CPU_seconds": 180,
+    "new_finite_child_independent_wall_extension": false,
+    "qualification_seconds": 180,
+    "success_requirements": [
+      "actual request command/cwd/env and original369460 owner SHA",
+      "wrapper equals original lifecycle after removing only receipt_sha256 and supervisor_returncode",
+      "raw lifecycle SHA and supervisor0",
+      "return0 before deadline",
+      "exact four natural events",
+      "ECHILD and leader reaped",
+      "no remaining descendants, forced kill, interrupted signals, overflow, owner errors or cleanup errors",
+      "full input and stage identity stability"
+    ]
+  },
+  "parent": "74efbb5a63a007a8a3f994d3c1dd93aee127d7ca",
+  "prefix": "experiments/hia_core_compare_20261112/native-development-plan-r2/",
+  "r1_preservation": {
+    "commit": "74efbb5a63a007a8a3f994d3c1dd93aee127d7ca",
+    "duplicate_case_ID_gap": "R1-STATIC-REVIEW.json",
+    "intermediate_r2_unexecuted_draft": "r2/history/pre-reader-fix-draft/",
+    "old_B3_not_executed": true,
+    "state": "UNEXECUTED"
+  },
+  "r2_specific_review": {
+    "B3": "The actual current b7/run43220208164 cold B3 is670467B/9de8606c153e50f2e742a18d4eb9f3b7c210b404f005346e95b550648d8f2892. All7 raw original inputs are external frozen files before/after. Their complete146444B XZ recovers2185150B exact bytes; the whole original68308445B official ZIP seal and each selected member CRC/SHA independently match.",
+    "launcher": "Complete actual diff equals frozen LAUNCHER-REVISION.diff. Changes are operation/root identity and full statvfs/disk observation at the unchanged512MiB/4096inode precondition; it explicitly disclaims future availability proof. All owner calls and success/error cleanup predicates remain.",
+    "scope_preserved": "The source CI remains failure; this is permitted current-compiler development reuse, not matching-source qualification for the new comparison companion.",
+    "trace": "Exactly one added four-line predicate verifies raw185-row list, dict rows, exact-int ordered IDs1..185 before dictionary construction. Removing only this exact block reproduces the full r1 trace file. It rejects duplicate, missing, reordered and bool/float-aliased IDs without changing entries or test cases.",
+    "unchanged_policy_fields": [
+      "limits",
+      "development_resources",
+      "expected_ids",
+      "expected_trace_counts",
+      "numeric_source_sha256",
+      "original_owner_sha256",
+      "python",
+      "python_version",
+      "stage_files",
+      "native_child_control_paths",
+      "source_evidence_commit",
+      "source_evidence_tree",
+      "source_preexec_commit"
+    ],
+    "unchanged_whole_controls": [
+      "common.py",
+      "native_cases.py",
+      "worker.py"
+    ]
+  },
+  "request_commit": "df7cc43d9b225108924aef972b10f67a5a0dfb29",
+  "request_tree": "ea5f66368c72b104f040b19fee85a905fe8adbea",
+  "resource_arithmetic": {
+    "all_full_operand_bytes": 35656854,
+    "conservative_output_reservation": 402653184,
+    "expected_trace_bytes": 252282240,
+    "expected_trace_entries": 131397,
+    "hard_trace_bytes": 253624320,
+    "hard_trace_entries": 132096,
+    "large_each_operand_bytes": 8388612,
+    "large_operand_words": 2097153,
+    "large_total_entries": 131075,
+    "large_total_window_requests": 131074,
+    "large_window_requests_each_side": 65537,
+    "maximum_chunk_bytes": 8388480,
+    "original_full_padded_operand_bytes": 18879630,
+    "original_unique_operand_representations": 139,
+    "required_free_bytes": 536870912,
+    "required_free_inodes": 4096
+  },
+  "resource_scope": "384MiB/512 regular files are conservative output reservations, not an independently enforced aggregate quota. The actual fixed trace cap, per-file child limit and deterministic finite corpus support the reservation; launch requires512MiB free/4096 inodes. Availability is observed, not guaranteed for the future. No product limit or formal8GiB gate is changed.",
+  "reviewed_at_UTC": "2026-11-12T14:00:52.084768+00:00",
+  "reviewer": "/root/cold_ci_closure",
+  "schema": "hia.numeric-native-independent-static-review.v2",
+  "scope": "Read-only exact-source/control review plus byte hashing, AST comparison and selected original-compiler file recovery. No candidate import, native compilation, VM, test method, workflow or native entry was executed.",
+  "status": "STATIC_CLEAR_UNEXECUTED",
+  "vector_preservation": "All three full original vector-method raw bodies/ASTs and the fourth complete24-pair loop match; original172 VM rows remain in exact order. Only fixed additional native lifecycle/binding/admission and full-low-limb observations are added."
+}
