@@ -576,8 +576,12 @@ class CoreLoweringNativeTests(unittest.TestCase):
         script.write_text(INSTALLED_CHILD)
         env = {k: v for k, v in os.environ.items() if not k.startswith('HEPTA_HIA_') and k != 'PYTHONPATH'}
         env['PATH'] = ''
-        result = run([sys.executable, '-I', '-S', '-B', str(script), str(installed),
-                      str(self.manifest), str(request)], 'installed-execution', env)
+        installed_arguments = [sys.executable, '-I', '-S', '-B', str(script), str(installed),
+                               str(self.manifest), str(request)]
+        unpack_manifest = os.environ.get('HEPTA_HIA_CORE_UNPACK_MANIFEST')
+        if unpack_manifest:
+            installed_arguments.append(str(Path(unpack_manifest).resolve(strict=True)))
+        result = run(installed_arguments, 'installed-execution', env)
         observed = json.loads(result.stdout)
         self.assertEqual(observed['status'], 'INSTALLED_CORE_LOWERING_PASS')
         self.assertEqual(observed['units'], 39)
@@ -888,6 +892,20 @@ for name in ('_reject','_words','_bounds','_normalize','_prologue'):
         if active_core_lowering() is not None: return forbidden()
         return _old(*args,**kwargs)
     setattr(backend,legacy,guard)
+unpack_observations=None
+if len(sys.argv)==5:
+    from hepta import hia_core_lowering_native as lowering_bridge
+    from hepta.hia_core_unpack_selection import SELECTOR as UNPACK_SELECTOR,implementation_identity
+    from hepta.hia_core_unpack_native import UnpackSession
+    os.environ[UNPACK_SELECTOR]=sys.argv[4]
+    lowering_bridge._host_unpack=forbidden
+    unpack_steps=[]
+    original_unpack_step=UnpackSession._step
+    def unpack_step(session,packet):
+        result=original_unpack_step(session,packet)
+        unpack_steps.append((session.image.image_sha256,result))
+        return result
+    UnpackSession._step=unpack_step
 os.environ[SELECTOR]=sys.argv[2]
 owner=installed_core_lowering(sys.argv[2],vars(backend))
 machine=backend.emit_program_machine(verify_program(expected['document']))
@@ -904,13 +922,48 @@ try:installed_core_lowering(sys.argv[2],vars(backend))
 except FileNotFoundError:pass
 else:raise AssertionError('missing installed ABI fell back to checkout')
 abi.write_bytes(raw)
+if len(sys.argv)==5:
+    from hepta.hia_core_unpack_selection import ABI_SOURCE as UNPACK_ABI,HIA_SOURCE as UNPACK_SOURCE
+    assert owner.unpack is not None and unpack_steps
+    unpack_image=owner.unpack.image.image_sha256
+    assert all(identity==unpack_image for identity,status in unpack_steps)
+    assert {0,1}<={status for identity,status in unpack_steps}
+    unpack_identity=implementation_identity(owner.unpack)
+    rejected=[]
+    for relative in (UNPACK_ABI,UNPACK_SOURCE):
+        path=_source_resource_path(relative)
+        assert root in path.parents
+        original=path.read_bytes()
+        try:
+            path.write_bytes(original+b'\n')
+            try:installed_core_lowering(sys.argv[2],vars(backend))
+            except ValueError:rejected.append(relative+':changed')
+            else:raise AssertionError('warm UNPACK source change was ignored')
+            path.unlink()
+            try:installed_core_lowering(sys.argv[2],vars(backend))
+            except FileNotFoundError:rejected.append(relative+':missing')
+            else:raise AssertionError('missing UNPACK source fell back to checkout')
+        finally:path.write_bytes(original)
+    assert implementation_identity(owner.unpack)==unpack_identity
+    unpack_observations={'schema':'hepta.hia.core-unpack-installed-observation.v1',
+      'image_sha256':unpack_image,'source_sha256':owner.unpack._admitted_unpack.source_sha256,
+      'abi_sha256':owner.unpack._admitted_unpack.abi_sha256,
+      'bridge_sha256':owner.unpack._admitted_unpack.bridge_sha256,
+      'selection_sha256':owner.unpack._admitted_unpack.selection_sha256,
+      'compiler_sha256':owner.unpack._admitted_unpack.compiler_sha256,
+      'runtime_profile':owner.unpack.leaves.profile,
+      'transaction_sha256':owner.unpack._admitted_unpack.transaction_sha256,
+      'actual_step_returns':len(unpack_steps),'actual_statuses':sorted({status for identity,status in unpack_steps}),
+      'retained_unpack_forbidden':True,'refusals':rejected,'restored_identity_sha256':sha256(unpack_identity).hexdigest(),
+      'CPython_object_primitives_still_hosted':True}
 assert sys.flags.isolated and sys.flags.no_site and os.environ['PATH']==''
 print(json.dumps({'status':'INSTALLED_CORE_LOWERING_PASS','units':len(owner._admitted_bundle.images),
  'source_sha256':dict(owner._admitted_bundle.source_hashes),'abi_sha256':owner._admitted_bundle.abi_sha256,
  'image_sha256':[im.image_sha256 for im in owner._admitted_bundle.images],
  'object_sha256':machine.sha256,'python_files':len(expected['python']),
  'resource_files':len(expected['resources']),'actual_native_steps':len(entries),
- 'retained_lowering_forbidden':True,'authoring_forbidden':True,'isolated_without_site':True,'empty_PATH':True}))
+ 'retained_lowering_forbidden':True,'authoring_forbidden':True,'isolated_without_site':True,'empty_PATH':True,
+ 'unpack_observations':unpack_observations}))
 '''
 
 

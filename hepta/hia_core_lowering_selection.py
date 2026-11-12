@@ -176,10 +176,12 @@ def installed_core_lowering(manifest_path, namespace):
         inputs.append((name, str(unit_path), unit_raw,
                        sha256(_source_resource_path(relative).read_bytes()).hexdigest()))
     loaded = _load_bundle(str(path), raw, abi_raw, tuple(inputs))
+    from .hia_core_unpack_selection import selected_unpack
+    unpack = selected_unpack(bundle['compiler_sha256'])
     for previous_loaded, previous_namespace, owner in _OWNER_CACHE:
-        if previous_loaded is loaded and previous_namespace is namespace:
+        if previous_loaded is loaded and previous_namespace is namespace and owner.unpack is unpack:
             return owner
-    owner = NativeCoreLowering(loaded.images[1:], loaded.images[0], loaded.abi, namespace)
+    owner = NativeCoreLowering(loaded.images[1:], loaded.images[0], loaded.abi, namespace, unpack=unpack)
     owner._admitted_bundle = loaded
     _OWNER_CACHE.append((loaded, namespace, owner))
     if len(_OWNER_CACHE) > 3:
@@ -227,4 +229,8 @@ def native_implementation_identity(namespace):
         if source_sha != expected_sources[name]:
             raise ValueError('native Core lowering source identity mismatch')
         values.extend((relative, source_sha, image.image_sha256))
-    return ('\0'.join(values)).encode('ascii')
+    result = ('\0'.join(values)).encode('ascii')
+    if owner.unpack is not None:
+        from .hia_core_unpack_selection import implementation_identity
+        result += b'\0native-core-unpack\0' + implementation_identity(owner.unpack)
+    return result

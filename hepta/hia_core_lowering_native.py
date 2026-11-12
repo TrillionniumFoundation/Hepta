@@ -45,6 +45,25 @@ def _not_in(left, right):
 _COMPARE.update({7: _in, 8: _not_in})
 
 
+def _host_unpack(observed, count):
+    """Retained opcode-14 value policy, independent of the HIA companion."""
+    if count == 1:
+        a, = observed
+        results = (a,)
+    elif count == 2:
+        a, b = observed
+        results = (a, b)
+    elif count == 3:
+        a, b, c = observed
+        results = (a, b, c)
+    elif count == 4:
+        a, b, c, d = observed
+        results = (a, b, c, d)
+    else:
+        raise RuntimeError('native lowering unpack arity differs')
+    return 0, results
+
+
 def _decode_pool(raw, expected_count):
     if type(raw) is not bytes or len(raw) < 16:
         raise RuntimeError('native lowering literal packet is missing')
@@ -313,21 +332,9 @@ class LoweringSession:
         if opcode == 14:
             value, count = args
             observed = get(value)
-            if count == 1:
-                a, = observed
-                results = (a,)
-            elif count == 2:
-                a, b = observed
-                results = (a, b)
-            elif count == 3:
-                a, b, c = observed
-                results = (a, b, c)
-            elif count == 4:
-                a, b, c, d = observed
-                results = (a, b, c, d)
-            else:
-                raise RuntimeError('native lowering unpack arity differs')
-            return 0, results
+            if self.owner.unpack is not None:
+                return 0, self.owner.unpack.unpack(observed, count)
+            return _host_unpack(observed, count)
         if opcode == 15:
             low, high, step = args
             return 0, (slice(get(low), get(high), get(step)),)
@@ -375,7 +382,7 @@ class LoweringSession:
 class NativeCoreLowering:
     """Composition of admitted images and explicitly hosted object primitives."""
 
-    def __init__(self, images, pool, abi, namespace):
+    def __init__(self, images, pool, abi, namespace, *, unpack=None):
         if type(abi) is not dict or abi.get('schema') != 'hepta.hia.core-lowering-abi.v2':
             raise ValueError('native lowering ABI metadata differs')
         if abi.get('protocol_magic') != MAGIC or abi.get('pool_magic') != POOL_MAGIC or abi.get('packet_bytes') != 128:
@@ -390,6 +397,7 @@ class NativeCoreLowering:
         self.modes = abi['modes']
         self.generator_modes = tuple(abi['generator_modes'])
         self.namespace = namespace
+        self.unpack = unpack
         output = ctypes.create_string_buffer(abi['pool_bytes'])
         empty = ctypes.create_string_buffer(1)
         count = pool._entry(empty, 0, output, len(output), empty, 0)

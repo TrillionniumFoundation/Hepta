@@ -2,6 +2,7 @@
 from __future__ import annotations
 from hashlib import sha256
 from pathlib import Path
+from tools.hia_artifact_publication_custody import observed_popen
 import json,os,struct,subprocess,time,unittest,uuid
 from unittest.mock import patch
 from tests.test_hia_artifact_publication_native import observe,fields
@@ -129,8 +130,8 @@ class AgentArtifactStoreKernelTests(unittest.TestCase):
     def delayed_link_race(self,mutation,expected):
         payload=b'actual native store race';digest=sha256(payload).hexdigest()
         target=self.root/digest;trace=self.case/'race.trace'
-        process=subprocess.Popen(['/usr/bin/strace','-o',str(trace),'-e','trace=linkat,unlinkat',
-            '-e','inject=linkat:delay_exit=500ms',str(self.app),'store-put',str(self.root),'-'],
+        process=observed_popen(['/usr/bin/strace','-o',str(trace),'-e','trace=linkat,unlinkat',
+            '-e','inject=linkat:delay_exit=500ms',str(self.app),'store-put',str(self.root),'-'],offered_input=payload,
             stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':''})
         try:
             process.stdin.write(payload);process.stdin.close();process.stdin=None

@@ -34,6 +34,12 @@ class CoreWorkflowContractTests(unittest.TestCase):
     def test_actual_source_generator_shell_refuses_mutation_and_first_failed_generator(self):
         command = script('Regenerate actual HIA sources')
         components = command.split('for component in ', 1)[1].split('; do', 1)[0].split()
+        self.assertEqual(len(components), 61)
+        self.assertEqual(len(set(components)), 61)
+        self.assertEqual(components[-2:], ['bounded_read', 'core_unpack'])
+        self.assertEqual(WORKFLOW.read_text().count("python-version: '3.14.4'"), 2)
+        self.assertIn('tests.test_hia_core_unpack_native.UnpackCompositionSourceTests',
+                      script('Core source and independent reference controls'))
         for mode, expected in [('clean', 0), ('mutation', 1), ('failure', 7)]:
             with self.subTest(mode=mode), tempfile.TemporaryDirectory(prefix='hia-ci-shell-') as d:
                 root = Path(d)

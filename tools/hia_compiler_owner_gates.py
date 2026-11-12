@@ -81,7 +81,7 @@ LEGACY_SOURCE_GENERATORS = (
     'machine_elf',
     'core_lowering',
 )
-SOURCE_GENERATORS = LEGACY_SOURCE_GENERATORS + ('bounded_read',)
+SOURCE_GENERATORS = LEGACY_SOURCE_GENERATORS + ('bounded_read', 'core_unpack')
 require = previous.require
 json_file = previous.json_file
 child_path = previous.child_path
@@ -588,7 +588,7 @@ def core_build(folder, context):
             'abi_file': source_record(ABI_SOURCE, context)}
 
 
-def inspect_core_observations(evidence, context, component):
+def inspect_core_observations(evidence, context, component, *, unpack_manifest=None):
     fixture = Path(evidence) / 'component-fixture'
     case = fixture / 'installed-control'
     expected = json_file(case / 'expected.json')
@@ -599,10 +599,17 @@ def inspect_core_observations(evidence, context, component):
     require(expected.get('python') == py
             and expected.get('resources') == {name: context['source_manifest'][name] for name in resources}
             and type(expected.get('document')) is dict, 'installed Core input inventory differs')
+    installed_arguments = [component['bundle_files'][0]['path'], case / 'expected.json']
+    if unpack_manifest is not None:
+        from tools.hia_core_unpack_gates import companion_build
+        companion = companion_build(Path(unpack_manifest).parent, context)
+        require(companion['files'][0]['path'] == str(Path(unpack_manifest).resolve(strict=True)),
+                'explicit installed companion is not the admitted matching-cold manifest')
+        installed_arguments.append(companion['files'][0]['path'])
     package = installed_package(case, context, resources, 'installed-child.py',
         literal_script(OWNERS['core']['module'], name='INSTALLED_CHILD'),
         ('wheel-build', 'wheel-install', 'installed-execution'),
-        [component['bundle_files'][0]['path'], case / 'expected.json'])
+        installed_arguments)
     observed = json_file(case / 'report.json')
     require(observed == json_file(case / 'installed-execution.stdout')
             and observed.get('status') == 'INSTALLED_CORE_LOWERING_PASS'
@@ -987,7 +994,7 @@ def validate_core_steps(report, builds, abi):
             'each_group_claimed_to_cover_every_mode': False}
 
 
-def inspect_core_callers(evidence, context, expected):
+def inspect_core_callers(evidence, context, expected, *, unpack_manifest=None):
     from hepta.hia_core_lowering_selection import ABI_SOURCE, checked_abi
     from tools.qualify_hia_core_lowering_callers import COMPONENT_IDS, ORIGINAL_COMPONENT_IDS
     evidence = Path(evidence).resolve(strict=True)
@@ -1037,7 +1044,8 @@ def inspect_core_callers(evidence, context, expected):
             'Core original caller bundle input bytes differ')
     abi = checked_abi((ROOT / ABI_SOURCE).read_bytes())
     counters = validate_core_steps(report, builds, abi)
-    runtime = inspect_core_observations(evidence, context, builds['component'])
+    runtime = inspect_core_observations(evidence, context, builds['component'],
+                                        unpack_manifest=unpack_manifest)
     return {'owner': 'core', 'gates': {name: True for name in OWNERS['core']['gates']},
             'producer_report': file_record(evidence / 'report.json'), 'groups': expected,
             'actual_builds': builds, 'native_observations': counters, 'component_runtime': runtime,

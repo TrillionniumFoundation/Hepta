@@ -1,6 +1,7 @@
 """Independent path/metadata/byte observations for the native publication policy."""
 from __future__ import annotations
 from pathlib import Path, PurePosixPath
+from tools.hia_artifact_publication_custody import temporary_directory, observed_popen
 import json, os, struct, unittest
 from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_program import execute_program
@@ -87,7 +88,7 @@ class ArtifactPublicationPolicyTests(unittest.TestCase):
         import tempfile
         from tools.build_hia_artifact_publication import build,current_sources
         from tools.hia_selfhost_contract import PROFILE
-        with tempfile.TemporaryDirectory(prefix='hia-publication-cold-refusal-') as folder:
+        with temporary_directory(prefix='hia-publication-cold-refusal-') as folder:
             root=Path(folder);compiler=root/'compiler';compiler.write_bytes(b'not executed')
             cold=root/'cold.json';cold.write_text(json.dumps({'schema':'hepta.hia.selfhost-cold-replay.v1',
                 'status':'COLD_SELFHOST_REPLAY_PASS','returncode':0,'profile':PROFILE,
@@ -123,7 +124,7 @@ class ArtifactPublicationKernelTests(unittest.TestCase):
         import tempfile
         from tools.qualify_hia_selfhost import build_seed,compile_stage,invoke
         from tools.generate_hia_artifact_publication import MAGIC,template
-        cls.temporary=tempfile.TemporaryDirectory(prefix='hia-publication-kernel-')
+        cls.temporary=temporary_directory(prefix='hia-publication-kernel-')
         cls.folder=Path(cls.temporary.name);cold_path=os.environ.get('HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT')
         if cold_path:
             from tools.build_hia_artifact_publication import build
@@ -227,7 +228,7 @@ class ArtifactPublicationKernelTests(unittest.TestCase):
 
     def test_receipt_write_failure_keeps_verified_link_without_success_claim(self):
         import subprocess
-        process=subprocess.Popen([str(self.app),'publish',str(self.stage),str(self.dest)],
+        process=observed_popen([str(self.app),'publish',str(self.stage),str(self.dest)],offered_input=self.payload,
             stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':''})
         process.stdout.close();process.stdout=None
         _,err=process.communicate(self.payload,timeout=10)
@@ -238,8 +239,8 @@ class ArtifactPublicationKernelTests(unittest.TestCase):
     def race(self,injection,ready,mutation,code):
         import subprocess,time
         trace=self.case/'race.trace'
-        process=subprocess.Popen(['/usr/bin/strace','-o',str(trace),'-e','trace=lstat,open,link,unlink',
-            '-e',injection,str(self.app),'publish',str(self.stage),str(self.dest)],
+        process=observed_popen(['/usr/bin/strace','-o',str(trace),'-e','trace=lstat,open,link,unlink',
+            '-e',injection,str(self.app),'publish',str(self.stage),str(self.dest)],offered_input=self.payload,
             stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':''})
         process.stdin.write(self.payload);process.stdin.close();process.stdin=None
         deadline=time.monotonic()+5
