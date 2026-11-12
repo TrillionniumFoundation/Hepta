@@ -1,0 +1,43 @@
+{
+  "schema": "hia.namespace.join.new-authoring-static-findings.v1",
+  "execution": 0,
+  "findings": [
+    {
+      "source": "namespace_dms_map_join_client_r1",
+      "executed": false,
+      "finding": "new fixture wrongly treated terminal q12 as phase; dms_result overwrites q10..13 with node nRef/readOnly/isUnlocked/dmsHeld",
+      "revision": "r2 removes the incorrect fixed q12 assertion; full traced VM state validation remains mandatory"
+    },
+    {
+      "executed": false,
+      "changes": [
+        "SHM symlink exhaustion maps to retained SQLITE_CANTOPEN14 after both exact native readwrite/readOnly attempts, not fstat error1802",
+        "real syscall injection ordinal control now uses identical absolute DB path and reconstructs only known owned SHM fixture after fully reaped baseline; original baseline snapshot and raw trace are preserved"
+      ]
+    },
+    {
+      "executed": false,
+      "reason": "common finish intentionally only seals single-link regular files; live test hardlink/symlink fixtures placed in private BASE area, complete snapshot bytes and original topology/modes captured into evidence CAS, no following symlinks or deletion of raw evidence",
+      "all_tests_unchanged": 22
+    },
+    [
+      {
+        "finding": "Native FS op3 uses payload length; c/d must be zero. r6/r7draft3 sent c=1 in map one-byte extension.",
+        "fix": "draft4 sends c=0, payload still one NUL, actual FS image supplies syscall count from n.",
+        "scope": "source reading only; no prior ordinary/native failure claim"
+      },
+      {
+        "finding": "Dynamic child capsule must have explicit issued stage and lease without host reading HIA workspace semantics.",
+        "fix": "draft4 puts stage in O+112 and lease O+120 on child yield5.",
+        "scope": "new private ABI source-only"
+      }
+    ]
+  ],
+  "raw_authoring_failure": {
+    "status": "UNEXECUTED_AUTHORING_ANCHOR_FAILURE",
+    "anchor": "dms_finish_retire followed by dms_result was incorrect; draft2 unchanged",
+    "kernel_executions": 0
+  },
+  "no_DMS4_failure_root_cause_inferred": true,
+  "original_qualification": "0ef full FAIL/HOLD unchanged; NDU deletion actor UNKNOWN"
+}

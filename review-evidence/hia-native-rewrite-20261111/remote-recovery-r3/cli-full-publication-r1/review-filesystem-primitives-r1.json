@@ -1,0 +1,70 @@
+{
+  "schema": "hia-cli-publication-filesystem-primitive-static-review-v1",
+  "status": "REVIEWED_NARROW_SCOPE_NO_CONFIRMED_BLOCKER",
+  "reviewed": {
+    "new_composer": {
+      "blob": "2fb867b4df3bfedcd4ab6aa7adf5815378c960a0",
+      "bytes": 3234
+    },
+    "frozen_composer": {
+      "blob": "171b5c6983303a11836f5b6c2bf674b9ee6cd6f5",
+      "bytes": 12812,
+      "sha256": "925f97d39a30301dc035cc4e505a1533cde9da70a8b629b8ce3cbc2e6ecc5088"
+    },
+    "helpers": [
+      "op_filesystem",
+      "pfs_no_first",
+      "pfs_no_second",
+      "pfs_no_fd",
+      "pfs_no_integers",
+      "pfs_first_rw",
+      "pfs_owned",
+      "pfs_target",
+      "pfs_target_store",
+      "pfs_target_check",
+      "pfs_open_result",
+      "pfs_result"
+    ]
+  },
+  "findings": [
+    {
+      "scope": "primitive23",
+      "result": "pfs_no_first and pfs_no_integers plus explicit second-range zeros leave source slot80 and destination slot40. Destination must be free before F_DUPFD_CLOEXEC1030 with minimum fd0. Source must resolve to an existing nonnegative actual owned fd. Actual raw negative result is returned without issuing a new owned fd; success including fd0 enters existing pfs_open_result."
+    },
+    {
+      "scope": "primitive24",
+      "result": "No fd and no second range; only clockid72 remains after explicit104zero. First destination requires slot>=4, actual allocated range, writable/unpinned view, and exactly16 bytes before clock_gettime228. No read of timespec or clock policy is added to mechanics."
+    },
+    {
+      "scope": "primitive25",
+      "result": "FD/ranges/integer argument fields all empty before actual getpid39; the real return reaches unchanged pfs_result."
+    },
+    {
+      "scope": "dispatch",
+      "result": "Primitive upper bound22→25, explicit22/23/24 arms and final25 jump match; old fchmodat2 now explicitly jumps pfs_result, preventing accidental fallthrough into new code."
+    },
+    {
+      "scope": "parentroles",
+      "result": "Maximum10→14 retains rejection of role7; two-read-mask0x378→0x7b78 preserves prior bits3,4,5,6,8,9 and adds11,12,13,14. This checks the requested mechanical mask delta, not new HIA owner signatures."
+    },
+    {
+      "scope": "custody",
+      "result": "Frozen old composer hash checked before compile/exec, exact anchor counts asserted, original service suffix text compared, old path reread. This source review does not substitute for running the composer or verifying a built executable."
+    }
+  ],
+  "not_reviewed": [
+    "full140-slot parent HIA owner",
+    "new compiler or template composition execution",
+    "all finite carrier mechanics",
+    "OS syscall results/fault injection",
+    "new role signatures and ordinary CLI semantic completion"
+  ],
+  "executions": {
+    "ast": 0,
+    "assembly": 0,
+    "vm": 0,
+    "native": 0,
+    "syscalls": 0
+  },
+  "inherited_counts": false
+}

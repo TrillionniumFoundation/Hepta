@@ -1,0 +1,1608 @@
+{
+  "baseline_commit": "d5da1eb760454ef3df5153c5e80eb046ddb389d9",
+  "baseline_owner_pins": {
+    "hepta/hia_agent_journal_native.py": {
+      "bytes": 22923,
+      "sha256": "1cbd3c43ad5439f6fcfa1455d0c10725d38f7ae2807e403d9d3f47cdba874d21"
+    },
+    "hepta/hia_agent_service.py": {
+      "bytes": 100742,
+      "sha256": "684caf496de7e3e7c8db1fd80ef616139cf13717aa5879bbd2d6ebf834df9330"
+    },
+    "hepta/hia_agent_store.py": {
+      "bytes": 20250,
+      "sha256": "fae25d48a6de7187ed465287c1491af74214ac8bf3eae2af921bd100a247b822"
+    }
+  },
+  "baseline_tree": "71c9c3effb9ffa45c708e272f374302507d0d65a",
+  "current_implementation_claim": "ABI/catalog only at this checkpoint; no database or native semantic PASS is claimed.",
+  "namespace_methods": [
+    "open owned namespace",
+    "put exact bytes/kind/metadata",
+    "json canonical put",
+    "get issued id/sha/uri plus optional kind",
+    "get_json",
+    "resolve issued URI",
+    "profile intern",
+    "check exact installed profile",
+    "begin immediate",
+    "commit",
+    "rollback",
+    "close"
+  ],
+  "namespace_rules": [
+    "HIA computes content SHA/canonical metadata content_key, not a host digest oracle.",
+    "HIA creates opaque id and URI from actual entropy observations; hash/file existence grants no namespace authority.",
+    "File fsync and directory fsync precede row issuance; publication and row commit remain distinct boundaries.",
+    "Equivalent content_key returns the actual committed winning row. Equal bytes with different kind or metadata remain different references.",
+    "No partial implementation will install a selected owner or fall back to SQLite/Python for an unimplemented operation."
+  ],
+  "non_DML_sites": [
+    {
+      "end_line": 291,
+      "lexical_transactions": [],
+      "line": 291,
+      "method": "execute",
+      "owner": "AgentStore.__init__",
+      "parameters_source": null,
+      "path": "hepta/hia_agent_store.py",
+      "receiver": "self.db",
+      "sql": "PRAGMA journal_mode=WAL",
+      "tables": []
+    },
+    {
+      "end_line": 292,
+      "lexical_transactions": [],
+      "line": 292,
+      "method": "execute",
+      "owner": "AgentStore.__init__",
+      "parameters_source": null,
+      "path": "hepta/hia_agent_store.py",
+      "receiver": "self.db",
+      "sql": "PRAGMA synchronous=FULL",
+      "tables": []
+    },
+    {
+      "end_line": 336,
+      "lexical_transactions": [],
+      "line": 294,
+      "method": "executescript",
+      "owner": "AgentStore.__init__",
+      "parameters_source": null,
+      "path": "hepta/hia_agent_store.py",
+      "receiver": "self.db",
+      "sql": "\n            CREATE TABLE IF NOT EXISTS artifacts (\n                id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, uri TEXT UNIQUE NOT NULL,\n                kind TEXT NOT NULL, metadata TEXT NOT NULL, content_key TEXT UNIQUE NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS profiles (\n                id TEXT NOT NULL, sha256 TEXT NOT NULL, artifact TEXT NOT NULL,\n                PRIMARY KEY (id,sha256)\n            );\n            CREATE TABLE IF NOT EXISTS contexts (\n                id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, artifact TEXT NOT NULL,\n                created_ns TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0\n            );\n            CREATE TABLE IF NOT EXISTS requests (\n                key TEXT PRIMARY KEY, digest TEXT NOT NULL, tool TEXT NOT NULL,\n                state TEXT NOT NULL, response TEXT, started_ns TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS costs (\n                sequence INTEGER PRIMARY KEY AUTOINCREMENT, context_id TEXT,\n                tool TEXT NOT NULL, request_id TEXT NOT NULL, wall_ns TEXT NOT NULL,\n                status TEXT NOT NULL, details TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS cursors (\n                id TEXT PRIMARY KEY, artifact_id TEXT NOT NULL,\n                sha256 TEXT NOT NULL, offset INTEGER NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS slots (\n                name TEXT PRIMARY KEY, context_id TEXT NOT NULL,\n                generation TEXT NOT NULL, epoch TEXT NOT NULL, abi_sha256 TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS versions (\n                slot TEXT NOT NULL, generation TEXT NOT NULL, artifact TEXT NOT NULL,\n                PRIMARY KEY (slot,generation)\n            );\n            CREATE TABLE IF NOT EXISTS leases (\n                id TEXT PRIMARY KEY, slot TEXT NOT NULL, generation TEXT NOT NULL,\n                artifact TEXT NOT NULL, active INTEGER NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS execution_budgets (\n                context_id TEXT PRIMARY KEY, used_native_ns TEXT NOT NULL,\n                owner TEXT\n            );\n        ",
+      "tables": [
+        "artifacts",
+        "contexts",
+        "costs",
+        "cursors",
+        "execution_budgets",
+        "leases",
+        "profiles",
+        "requests",
+        "slots",
+        "versions"
+      ]
+    },
+    {
+      "end_line": 341,
+      "lexical_transactions": [],
+      "line": 341,
+      "method": "execute",
+      "owner": "AgentStore.transaction",
+      "parameters_source": null,
+      "path": "hepta/hia_agent_store.py",
+      "receiver": "self.db",
+      "sql": "BEGIN IMMEDIATE",
+      "tables": []
+    },
+    {
+      "end_line": 345,
+      "lexical_transactions": [],
+      "line": 345,
+      "method": "execute",
+      "owner": "AgentStore.transaction",
+      "parameters_source": null,
+      "path": "hepta/hia_agent_store.py",
+      "receiver": "self.db",
+      "sql": "ROLLBACK",
+      "tables": []
+    },
+    {
+      "end_line": 348,
+      "lexical_transactions": [],
+      "line": 348,
+      "method": "execute",
+      "owner": "AgentStore.transaction",
+      "parameters_source": null,
+      "path": "hepta/hia_agent_store.py",
+      "receiver": "self.db",
+      "sql": "COMMIT",
+      "tables": []
+    }
+  ],
+  "ownership": {
+    "HIA": [
+      "schema/keys/NULL and storage-class semantics",
+      "all row matching and INSERT OR IGNORE winner choice",
+      "CAS/rowcount/counters",
+      "transaction state and commit/replay decision",
+      "durable-log and index validation",
+      "artifact id/URI/content-key issuance and authority",
+      "slot/version/lease/budget persistence",
+      "migration/recovery/compaction validation"
+    ],
+    "existing_HIA_journal": [
+      "request digest and conflict/state/replay decision",
+      "exact response/cost wire",
+      "ACK phase order and fail-stop"
+    ],
+    "mechanical_transport_only": [
+      "admitted immutable image invocation",
+      "owned buffer/descriptor lifetime and exact syscalls/results",
+      "foreign value boxing/unboxing without row/branch choices"
+    ],
+    "not_qualified_yet": [
+      "physical native database",
+      "multiwriter and crash recovery",
+      "migration",
+      "default selection or deletion"
+    ]
+  },
+  "relational_operations": [
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 362,
+          "owner": "AgentStore.put",
+          "parameters_reference": "(content_key,)",
+          "path": "hepta/hia_agent_store.py"
+        },
+        {
+          "lexical_transactions": [],
+          "line": 396,
+          "owner": "AgentStore.put",
+          "parameters_reference": "(content_key,)",
+          "path": "hepta/hia_agent_store.py"
+        }
+      ],
+      "id": 1,
+      "kind": "SELECT",
+      "sql_reference": "SELECT * FROM artifacts WHERE content_key=?",
+      "table": "artifacts",
+      "table_id": 1
+    },
+    {
+      "bind_count": 6,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 394,
+          "owner": "AgentStore.put",
+          "parameters_reference": "(ref['id'], content_hash, ref['uri'], kind, wire(metadata).decode(), content_key)",
+          "path": "hepta/hia_agent_store.py"
+        }
+      ],
+      "id": 2,
+      "kind": "INSERT",
+      "sql_reference": "INSERT OR IGNORE INTO artifacts VALUES (?,?,?,?,?,?)",
+      "table": "artifacts",
+      "table_id": 1
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 408,
+          "owner": "AgentStore.get",
+          "parameters_reference": "(ref['id'],)",
+          "path": "hepta/hia_agent_store.py"
+        }
+      ],
+      "id": 3,
+      "kind": "SELECT",
+      "sql_reference": "SELECT * FROM artifacts WHERE id=?",
+      "table": "artifacts",
+      "table_id": 1
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 425,
+          "owner": "AgentStore.resolve_uri",
+          "parameters_reference": "(uri,)",
+          "path": "hepta/hia_agent_store.py"
+        }
+      ],
+      "id": 4,
+      "kind": "SELECT",
+      "sql_reference": "SELECT * FROM artifacts WHERE uri=?",
+      "table": "artifacts",
+      "table_id": 1
+    },
+    {
+      "bind_count": 3,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 435,
+          "owner": "AgentStore.profile",
+          "parameters_reference": "(identifier, ref['sha256'], wire(ref).decode())",
+          "path": "hepta/hia_agent_store.py"
+        }
+      ],
+      "id": 5,
+      "kind": "INSERT",
+      "sql_reference": "INSERT OR IGNORE INTO profiles VALUES (?,?,?)",
+      "table": "profiles",
+      "table_id": 2
+    },
+    {
+      "bind_count": 2,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 442,
+          "owner": "AgentStore.check_profile",
+          "parameters_reference": "(ref['id'], ref['sha256'])",
+          "path": "hepta/hia_agent_store.py"
+        }
+      ],
+      "id": 6,
+      "kind": "SELECT",
+      "sql_reference": "SELECT artifact FROM profiles WHERE id=? AND sha256=?",
+      "table": "profiles",
+      "table_id": 2
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [
+            "self.store.transaction()"
+          ],
+          "line": 268,
+          "owner": "HIAAgentService._reference_call",
+          "parameters_reference": "(key,)",
+          "path": "hepta/hia_agent_service.py"
+        },
+        {
+          "lexical_transactions": [
+            "service.store.transaction()"
+          ],
+          "line": 361,
+          "owner": "call_with_native_journal",
+          "parameters_reference": "(session.key,)",
+          "path": "hepta/hia_agent_journal_native.py"
+        }
+      ],
+      "id": 7,
+      "kind": "SELECT",
+      "sql_reference": "SELECT * FROM requests WHERE key=?",
+      "table": "requests",
+      "table_id": 4
+    },
+    {
+      "bind_count": 6,
+      "call_sites": [
+        {
+          "lexical_transactions": [
+            "self.store.transaction()"
+          ],
+          "line": 279,
+          "owner": "HIAAgentService._reference_call",
+          "parameters_reference": "(key, request_digest, tool, 'running', None, str(time.time_ns()))",
+          "path": "hepta/hia_agent_service.py"
+        },
+        {
+          "lexical_transactions": [
+            "service.store.transaction()"
+          ],
+          "line": 367,
+          "owner": "call_with_native_journal",
+          "parameters_reference": "(session.key, session.request_digest, tool, 'running', None, str(hosted.time.time_ns()))",
+          "path": "hepta/hia_agent_journal_native.py"
+        }
+      ],
+      "id": 8,
+      "kind": "INSERT",
+      "sql_reference": "INSERT INTO requests VALUES (?,?,?,?,?,?)",
+      "table": "requests",
+      "table_id": 4
+    },
+    {
+      "bind_count": 2,
+      "call_sites": [
+        {
+          "lexical_transactions": [
+            "self.store.transaction()"
+          ],
+          "line": 301,
+          "owner": "HIAAgentService._reference_call",
+          "parameters_reference": "(wire(response).decode(), key)",
+          "path": "hepta/hia_agent_service.py"
+        },
+        {
+          "lexical_transactions": [],
+          "line": 319,
+          "owner": "HIAAgentService._reference_call",
+          "parameters_reference": "(wire(response).decode(), key)",
+          "path": "hepta/hia_agent_service.py"
+        },
+        {
+          "lexical_transactions": [
+            "service.store.transaction()"
+          ],
+          "line": 396,
+          "owner": "call_with_native_journal",
+          "parameters_reference": "(instruction.response.decode('utf-8'), session.key)",
+          "path": "hepta/hia_agent_journal_native.py"
+        },
+        {
+          "lexical_transactions": [],
+          "line": 432,
+          "owner": "call_with_native_journal",
+          "parameters_reference": "(instruction.response.decode('utf-8'), session.key)",
+          "path": "hepta/hia_agent_journal_native.py"
+        }
+      ],
+      "id": 9,
+      "kind": "UPDATE",
+      "sql_reference": "UPDATE requests SET state='completed',response=? WHERE key=?",
+      "table": "requests",
+      "table_id": 4
+    },
+    {
+      "bind_count": 6,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 315,
+          "owner": "HIAAgentService._reference_call",
+          "parameters_reference": "(context_id, str(tool), request_id, str(time.monotonic_ns() - started), response['status'], wire({'error': response.get('error'), 'replayed': False}).decode())",
+          "path": "hepta/hia_agent_service.py"
+        },
+        {
+          "lexical_transactions": [],
+          "line": 427,
+          "owner": "call_with_native_journal",
+          "parameters_reference": "(context_id, str(tool), request_id, str(hosted.time.monotonic_ns() - started), instruction.status, instruction.cost_details.decode('utf-8'))",
+          "path": "hepta/hia_agent_journal_native.py"
+        }
+      ],
+      "id": 10,
+      "kind": "INSERT",
+      "sql_reference": "INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)",
+      "table": "costs",
+      "table_id": 5
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 332,
+          "owner": "HIAAgentService._context",
+          "parameters_reference": "(ref['id'],)",
+          "path": "hepta/hia_agent_service.py"
+        },
+        {
+          "lexical_transactions": [],
+          "line": 344,
+          "owner": "HIAAgentService._budget",
+          "parameters_reference": "(context['ref']['id'],)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 11,
+      "kind": "SELECT",
+      "sql_reference": "SELECT * FROM contexts WHERE id=?",
+      "table": "contexts",
+      "table_id": 3
+    },
+    {
+      "bind_count": 2,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 349,
+          "owner": "HIAAgentService._budget",
+          "parameters_reference": "(context['ref']['id'], limits['max_candidates'])",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 12,
+      "kind": "UPDATE",
+      "sql_reference": "UPDATE contexts SET attempts=attempts+1 WHERE id=? AND attempts<?",
+      "table": "contexts",
+      "table_id": 3
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 355,
+          "owner": "HIAAgentService._remaining_ms",
+          "parameters_reference": "(context['ref']['id'],)",
+          "path": "hepta/hia_agent_service.py"
+        },
+        {
+          "lexical_transactions": [],
+          "line": 1104,
+          "owner": "HIAAgentService._hia_evaluate",
+          "parameters_reference": "(args['context']['id'],)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 13,
+      "kind": "SELECT",
+      "sql_reference": "SELECT created_ns FROM contexts WHERE id=?",
+      "table": "contexts",
+      "table_id": 3
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 405,
+          "owner": "HIAAgentService._hia_read",
+          "parameters_reference": "(args['cursor'],)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 14,
+      "kind": "SELECT",
+      "sql_reference": "SELECT * FROM cursors WHERE id=?",
+      "table": "cursors",
+      "table_id": 6
+    },
+    {
+      "bind_count": 4,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 443,
+          "owner": "HIAAgentService._hia_read",
+          "parameters_reference": "(next_cursor, ref['id'], ref['sha256'], offset + len(chunk))",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 15,
+      "kind": "INSERT",
+      "sql_reference": "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+      "table": "cursors",
+      "table_id": 6
+    },
+    {
+      "bind_count": 4,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 493,
+          "owner": "HIAAgentService._hia_context",
+          "parameters_reference": "(context['id'], context['sha256'], wire(manifest).decode(), str(time.time_ns()))",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 16,
+      "kind": "INSERT",
+      "sql_reference": "INSERT INTO contexts VALUES (?,?,?,?,0)",
+      "table": "contexts",
+      "table_id": 3
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 495,
+          "owner": "HIAAgentService._hia_context",
+          "parameters_reference": "(context['id'],)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 17,
+      "kind": "INSERT",
+      "sql_reference": "INSERT INTO execution_budgets VALUES (?,'0',NULL)",
+      "table": "execution_budgets",
+      "table_id": 10
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 1053,
+          "owner": "HIAAgentService._cost_ledger",
+          "parameters_reference": "(context['ref']['id'],)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 18,
+      "kind": "SELECT",
+      "sql_reference": "SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001",
+      "table": "costs",
+      "table_id": 5
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [
+            "self.store.transaction()"
+          ],
+          "line": 1159,
+          "owner": "HIAAgentService._hia_evaluate",
+          "parameters_reference": "(args['context']['id'],)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 19,
+      "kind": "SELECT",
+      "sql_reference": "SELECT * FROM execution_budgets WHERE context_id=?",
+      "table": "execution_budgets",
+      "table_id": 10
+    },
+    {
+      "bind_count": 2,
+      "call_sites": [
+        {
+          "lexical_transactions": [
+            "self.store.transaction()"
+          ],
+          "line": 1165,
+          "owner": "HIAAgentService._hia_evaluate",
+          "parameters_reference": "(owner, args['context']['id'])",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 20,
+      "kind": "UPDATE",
+      "sql_reference": "UPDATE execution_budgets SET owner=? WHERE context_id=?",
+      "table": "execution_budgets",
+      "table_id": 10
+    },
+    {
+      "bind_count": 3,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 1215,
+          "owner": "HIAAgentService._hia_evaluate",
+          "parameters_reference": "(str(used_native_ns + native_ns), args['context']['id'], owner)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 21,
+      "kind": "UPDATE",
+      "sql_reference": "UPDATE execution_budgets SET owner=NULL,used_native_ns=? WHERE context_id=? AND owner=?",
+      "table": "execution_budgets",
+      "table_id": 10
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 1265,
+          "owner": "HIAAgentService._slot_snapshot",
+          "parameters_reference": "(slot,)",
+          "path": "hepta/hia_agent_service.py"
+        },
+        {
+          "lexical_transactions": [],
+          "line": 1320,
+          "owner": "HIAAgentService._hia_adopt",
+          "parameters_reference": "(args['target_slot'],)",
+          "path": "hepta/hia_agent_service.py"
+        },
+        {
+          "lexical_transactions": [],
+          "line": 1356,
+          "owner": "HIAAgentService._hia_rollback",
+          "parameters_reference": "(args['target_slot'],)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 22,
+      "kind": "SELECT",
+      "sql_reference": "SELECT * FROM slots WHERE name=?",
+      "table": "slots",
+      "table_id": 7
+    },
+    {
+      "bind_count": 2,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 1270,
+          "owner": "HIAAgentService._slot_snapshot",
+          "parameters_reference": "(slot, row['generation'])",
+          "path": "hepta/hia_agent_service.py"
+        },
+        {
+          "lexical_transactions": [],
+          "line": 1350,
+          "owner": "HIAAgentService._hia_rollback",
+          "parameters_reference": "(args['target_slot'], args['retained_generation'])",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 23,
+      "kind": "SELECT",
+      "sql_reference": "SELECT artifact FROM versions WHERE slot=? AND generation=?",
+      "table": "versions",
+      "table_id": 8
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 1272,
+          "owner": "HIAAgentService._slot_snapshot",
+          "parameters_reference": "(slot,)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 24,
+      "kind": "SELECT",
+      "sql_reference": "SELECT COUNT(*) FROM leases WHERE slot=? AND active=1",
+      "table": "leases",
+      "table_id": 9
+    },
+    {
+      "bind_count": 5,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 1315,
+          "owner": "HIAAgentService._hia_adopt",
+          "parameters_reference": "(args['target_slot'], args['context']['id'], '0', '0', abi)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 25,
+      "kind": "INSERT",
+      "sql_reference": "INSERT INTO slots VALUES (?,?,?,?,?)",
+      "table": "slots",
+      "table_id": 7
+    },
+    {
+      "bind_count": 3,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 1317,
+          "owner": "HIAAgentService._hia_adopt",
+          "parameters_reference": "(args['target_slot'], '0', wire(evaluation['baseline_artifact']).decode())",
+          "path": "hepta/hia_agent_service.py"
+        },
+        {
+          "lexical_transactions": [],
+          "line": 1332,
+          "owner": "HIAAgentService._hia_adopt",
+          "parameters_reference": "(args['target_slot'], current['generation'], wire(args['candidate_artifact']).decode())",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 26,
+      "kind": "INSERT",
+      "sql_reference": "INSERT INTO versions VALUES (?,?,?)",
+      "table": "versions",
+      "table_id": 8
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 1326,
+          "owner": "HIAAgentService._hia_adopt",
+          "parameters_reference": "(args['target_slot'],)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 27,
+      "kind": "SELECT",
+      "sql_reference": "SELECT generation FROM versions WHERE slot=?",
+      "table": "versions",
+      "table_id": 8
+    },
+    {
+      "bind_count": 4,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 1334,
+          "owner": "HIAAgentService._hia_adopt",
+          "parameters_reference": "(current['generation'], current['epoch'], args['context']['id'], args['target_slot'])",
+          "path": "hepta/hia_agent_service.py"
+        },
+        {
+          "lexical_transactions": [],
+          "line": 1363,
+          "owner": "HIAAgentService._hia_rollback",
+          "parameters_reference": "(current['generation'], current['epoch'], args['context']['id'], args['target_slot'])",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 28,
+      "kind": "UPDATE",
+      "sql_reference": "UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?",
+      "table": "slots",
+      "table_id": 7
+    },
+    {
+      "bind_count": 4,
+      "call_sites": [
+        {
+          "lexical_transactions": [
+            "self.store.transaction()"
+          ],
+          "line": 1381,
+          "owner": "HIAAgentService.acquire_slot",
+          "parameters_reference": "(lease['id'], target_slot, lease['generation'], wire(lease['artifact']).decode())",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 29,
+      "kind": "INSERT",
+      "sql_reference": "INSERT INTO leases VALUES (?,?,?,?,1)",
+      "table": "leases",
+      "table_id": 9
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 1387,
+          "owner": "HIAAgentService._lease",
+          "parameters_reference": "(lease['id'],)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 30,
+      "kind": "SELECT",
+      "sql_reference": "SELECT * FROM leases WHERE id=?",
+      "table": "leases",
+      "table_id": 9
+    },
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [
+            "self.store.transaction()"
+          ],
+          "line": 1435,
+          "owner": "HIAAgentService.release_slot",
+          "parameters_reference": "(lease['id'],)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 31,
+      "kind": "UPDATE",
+      "sql_reference": "UPDATE leases SET active=0 WHERE id=?",
+      "table": "leases",
+      "table_id": 9
+    }
+  ],
+  "required_qualification": [
+    "all ten tables and 51 exact production call-site mappings",
+    "complete ordinary public API/retained tests and eight-module selected-journal caller gate",
+    "exact error/replay/cost/state deltas plus non-TEXT and arbitrary decimal TEXT observations",
+    "multi-process contention/CAS/namespace/lease tests",
+    "real append/fsync/commit/ACK crash and I/O-failure controls",
+    "full legacy SQLite migration snapshot/readback including cost high-water and malformed observations",
+    "no new total store/history quota",
+    "installed no-SQLite/no-host-storage-owner gate",
+    "matching-source 180-second cold / two workers / complete full retained qualification"
+  ],
+  "schema": "hepta.hia.agent-namespace-store-abi.v1",
+  "scope": "One complete ten-table namespace and transaction engine. Value framing, transaction/log state, row/index operations, namespace issuance, durability/recovery, migration and installed transport are stages of this engine, not alternate reduced stores.",
+  "status": "DEVELOPMENT_ABI_R1_FROZEN_FOR_REVIEW_NO_ACTIVATION",
+  "tables": [
+    {
+      "columns": [
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "id",
+          "not_null": false,
+          "ordinal": 0,
+          "primary_key_position": 1
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "sha256",
+          "not_null": true,
+          "ordinal": 1,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "uri",
+          "not_null": true,
+          "ordinal": 2,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "kind",
+          "not_null": true,
+          "ordinal": 3,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "metadata",
+          "not_null": true,
+          "ordinal": 4,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "content_key",
+          "not_null": true,
+          "ordinal": 5,
+          "primary_key_position": 0
+        }
+      ],
+      "cost_autoincrement_high_water": false,
+      "ddl": "CREATE TABLE IF NOT EXISTS artifacts (\n                id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, uri TEXT UNIQUE NOT NULL,\n                kind TEXT NOT NULL, metadata TEXT NOT NULL, content_key TEXT UNIQUE NOT NULL\n            );",
+      "id": 1,
+      "indexes": [
+        {
+          "columns": [
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "content_key"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": false,
+              "name": null
+            }
+          ],
+          "origin": "u",
+          "partial": false,
+          "unique": true
+        },
+        {
+          "columns": [
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "uri"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": false,
+              "name": null
+            }
+          ],
+          "origin": "u",
+          "partial": false,
+          "unique": true
+        },
+        {
+          "columns": [
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "id"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": false,
+              "name": null
+            }
+          ],
+          "origin": "pk",
+          "partial": false,
+          "unique": true
+        }
+      ],
+      "name": "artifacts",
+      "rowid": true
+    },
+    {
+      "columns": [
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "id",
+          "not_null": true,
+          "ordinal": 0,
+          "primary_key_position": 1
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "sha256",
+          "not_null": true,
+          "ordinal": 1,
+          "primary_key_position": 2
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "artifact",
+          "not_null": true,
+          "ordinal": 2,
+          "primary_key_position": 0
+        }
+      ],
+      "cost_autoincrement_high_water": false,
+      "ddl": "CREATE TABLE IF NOT EXISTS profiles (\n                id TEXT NOT NULL, sha256 TEXT NOT NULL, artifact TEXT NOT NULL,\n                PRIMARY KEY (id,sha256)\n            );",
+      "id": 2,
+      "indexes": [
+        {
+          "columns": [
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "id"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "sha256"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": false,
+              "name": null
+            }
+          ],
+          "origin": "pk",
+          "partial": false,
+          "unique": true
+        }
+      ],
+      "name": "profiles",
+      "rowid": true
+    },
+    {
+      "columns": [
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "id",
+          "not_null": false,
+          "ordinal": 0,
+          "primary_key_position": 1
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "sha256",
+          "not_null": true,
+          "ordinal": 1,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "artifact",
+          "not_null": true,
+          "ordinal": 2,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "created_ns",
+          "not_null": true,
+          "ordinal": 3,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "INTEGER",
+          "default_sql": "0",
+          "name": "attempts",
+          "not_null": true,
+          "ordinal": 4,
+          "primary_key_position": 0
+        }
+      ],
+      "cost_autoincrement_high_water": false,
+      "ddl": "CREATE TABLE IF NOT EXISTS contexts (\n                id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, artifact TEXT NOT NULL,\n                created_ns TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0\n            );",
+      "id": 3,
+      "indexes": [
+        {
+          "columns": [
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "id"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": false,
+              "name": null
+            }
+          ],
+          "origin": "pk",
+          "partial": false,
+          "unique": true
+        }
+      ],
+      "name": "contexts",
+      "rowid": true
+    },
+    {
+      "columns": [
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "key",
+          "not_null": false,
+          "ordinal": 0,
+          "primary_key_position": 1
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "digest",
+          "not_null": true,
+          "ordinal": 1,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "tool",
+          "not_null": true,
+          "ordinal": 2,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "state",
+          "not_null": true,
+          "ordinal": 3,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "response",
+          "not_null": false,
+          "ordinal": 4,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "started_ns",
+          "not_null": true,
+          "ordinal": 5,
+          "primary_key_position": 0
+        }
+      ],
+      "cost_autoincrement_high_water": false,
+      "ddl": "CREATE TABLE IF NOT EXISTS requests (\n                key TEXT PRIMARY KEY, digest TEXT NOT NULL, tool TEXT NOT NULL,\n                state TEXT NOT NULL, response TEXT, started_ns TEXT NOT NULL\n            );",
+      "id": 4,
+      "indexes": [
+        {
+          "columns": [
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "key"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": false,
+              "name": null
+            }
+          ],
+          "origin": "pk",
+          "partial": false,
+          "unique": true
+        }
+      ],
+      "name": "requests",
+      "rowid": true
+    },
+    {
+      "columns": [
+        {
+          "declared_type": "INTEGER",
+          "default_sql": null,
+          "name": "sequence",
+          "not_null": false,
+          "ordinal": 0,
+          "primary_key_position": 1
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "context_id",
+          "not_null": false,
+          "ordinal": 1,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "tool",
+          "not_null": true,
+          "ordinal": 2,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "request_id",
+          "not_null": true,
+          "ordinal": 3,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "wall_ns",
+          "not_null": true,
+          "ordinal": 4,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "status",
+          "not_null": true,
+          "ordinal": 5,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "details",
+          "not_null": true,
+          "ordinal": 6,
+          "primary_key_position": 0
+        }
+      ],
+      "cost_autoincrement_high_water": true,
+      "ddl": "CREATE TABLE IF NOT EXISTS costs (\n                sequence INTEGER PRIMARY KEY AUTOINCREMENT, context_id TEXT,\n                tool TEXT NOT NULL, request_id TEXT NOT NULL, wall_ns TEXT NOT NULL,\n                status TEXT NOT NULL, details TEXT NOT NULL\n            );",
+      "id": 5,
+      "indexes": [],
+      "name": "costs",
+      "rowid": true
+    },
+    {
+      "columns": [
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "id",
+          "not_null": false,
+          "ordinal": 0,
+          "primary_key_position": 1
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "artifact_id",
+          "not_null": true,
+          "ordinal": 1,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "sha256",
+          "not_null": true,
+          "ordinal": 2,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "INTEGER",
+          "default_sql": null,
+          "name": "offset",
+          "not_null": true,
+          "ordinal": 3,
+          "primary_key_position": 0
+        }
+      ],
+      "cost_autoincrement_high_water": false,
+      "ddl": "CREATE TABLE IF NOT EXISTS cursors (\n                id TEXT PRIMARY KEY, artifact_id TEXT NOT NULL,\n                sha256 TEXT NOT NULL, offset INTEGER NOT NULL\n            );",
+      "id": 6,
+      "indexes": [
+        {
+          "columns": [
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "id"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": false,
+              "name": null
+            }
+          ],
+          "origin": "pk",
+          "partial": false,
+          "unique": true
+        }
+      ],
+      "name": "cursors",
+      "rowid": true
+    },
+    {
+      "columns": [
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "name",
+          "not_null": false,
+          "ordinal": 0,
+          "primary_key_position": 1
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "context_id",
+          "not_null": true,
+          "ordinal": 1,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "generation",
+          "not_null": true,
+          "ordinal": 2,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "epoch",
+          "not_null": true,
+          "ordinal": 3,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "abi_sha256",
+          "not_null": true,
+          "ordinal": 4,
+          "primary_key_position": 0
+        }
+      ],
+      "cost_autoincrement_high_water": false,
+      "ddl": "CREATE TABLE IF NOT EXISTS slots (\n                name TEXT PRIMARY KEY, context_id TEXT NOT NULL,\n                generation TEXT NOT NULL, epoch TEXT NOT NULL, abi_sha256 TEXT NOT NULL\n            );",
+      "id": 7,
+      "indexes": [
+        {
+          "columns": [
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "name"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": false,
+              "name": null
+            }
+          ],
+          "origin": "pk",
+          "partial": false,
+          "unique": true
+        }
+      ],
+      "name": "slots",
+      "rowid": true
+    },
+    {
+      "columns": [
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "slot",
+          "not_null": true,
+          "ordinal": 0,
+          "primary_key_position": 1
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "generation",
+          "not_null": true,
+          "ordinal": 1,
+          "primary_key_position": 2
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "artifact",
+          "not_null": true,
+          "ordinal": 2,
+          "primary_key_position": 0
+        }
+      ],
+      "cost_autoincrement_high_water": false,
+      "ddl": "CREATE TABLE IF NOT EXISTS versions (\n                slot TEXT NOT NULL, generation TEXT NOT NULL, artifact TEXT NOT NULL,\n                PRIMARY KEY (slot,generation)\n            );",
+      "id": 8,
+      "indexes": [
+        {
+          "columns": [
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "slot"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "generation"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": false,
+              "name": null
+            }
+          ],
+          "origin": "pk",
+          "partial": false,
+          "unique": true
+        }
+      ],
+      "name": "versions",
+      "rowid": true
+    },
+    {
+      "columns": [
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "id",
+          "not_null": false,
+          "ordinal": 0,
+          "primary_key_position": 1
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "slot",
+          "not_null": true,
+          "ordinal": 1,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "generation",
+          "not_null": true,
+          "ordinal": 2,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "artifact",
+          "not_null": true,
+          "ordinal": 3,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "INTEGER",
+          "default_sql": null,
+          "name": "active",
+          "not_null": true,
+          "ordinal": 4,
+          "primary_key_position": 0
+        }
+      ],
+      "cost_autoincrement_high_water": false,
+      "ddl": "CREATE TABLE IF NOT EXISTS leases (\n                id TEXT PRIMARY KEY, slot TEXT NOT NULL, generation TEXT NOT NULL,\n                artifact TEXT NOT NULL, active INTEGER NOT NULL\n            );",
+      "id": 9,
+      "indexes": [
+        {
+          "columns": [
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "id"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": false,
+              "name": null
+            }
+          ],
+          "origin": "pk",
+          "partial": false,
+          "unique": true
+        }
+      ],
+      "name": "leases",
+      "rowid": true
+    },
+    {
+      "columns": [
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "context_id",
+          "not_null": false,
+          "ordinal": 0,
+          "primary_key_position": 1
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "used_native_ns",
+          "not_null": true,
+          "ordinal": 1,
+          "primary_key_position": 0
+        },
+        {
+          "declared_type": "TEXT",
+          "default_sql": null,
+          "name": "owner",
+          "not_null": false,
+          "ordinal": 2,
+          "primary_key_position": 0
+        }
+      ],
+      "cost_autoincrement_high_water": false,
+      "ddl": "CREATE TABLE IF NOT EXISTS execution_budgets (\n                context_id TEXT PRIMARY KEY, used_native_ns TEXT NOT NULL,\n                owner TEXT\n            );",
+      "id": 10,
+      "indexes": [
+        {
+          "columns": [
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": true,
+              "name": "context_id"
+            },
+            {
+              "collation": "BINARY",
+              "descending": false,
+              "key": false,
+              "name": null
+            }
+          ],
+          "origin": "pk",
+          "partial": false,
+          "unique": true
+        }
+      ],
+      "name": "execution_budgets",
+      "rowid": true
+    }
+  ],
+  "transaction_log_contract": {
+    "acks": "Exact issued operation, request/phase sequence and syscall observation are required once; stale/duplicated/cross-session/unsolicited ACK refuses permanently.",
+    "compaction": "No committed history/state may disappear before full source/readback and atomic new-root publication; original WAL/store remains retained until migration qualifies.",
+    "durability": "Visible effect, durable commit and returned ACK are separate facts. Lost/failed commit ACK is never automatically retried as a fresh transaction. Reopen/recovery reads actual committed bytes before deciding replay.",
+    "format_status": "Physical log/index format is not frozen by this value-transport ABI; a complete persisted format and independent crash proof are required before activation.",
+    "journal_boundary": "Reserve/inline SQL-equivalent mutation ACK remains before enclosing transaction COMMIT, preserving the retained journal oracle.",
+    "multiwriter": "Native engine must arbitrate the same complete namespace across processes. A host-provided row or unverified boolean lock claim is not arbitration.",
+    "read_scope": "Non-authoritative slot inspection must not become adoption authority. Atomic adopt/rollback includes effect and completed response.",
+    "recovery": "Incomplete uncommitted tails cannot become completed state. Corrupt committed history must not be silently truncated. Recovery cannot clear unknown request/budget owners or discard active leases.",
+    "states": [
+      "CLOSED",
+      "OPEN_IDLE",
+      "WAIT_LOCK",
+      "TXN_OPEN",
+      "WRITE_PENDING",
+      "COMMIT_PENDING",
+      "COMMITTED",
+      "ROLLBACK_PENDING",
+      "RECOVERING",
+      "BROKEN"
+    ]
+  },
+  "value_representation": {
+    "SQL_affinity": "The exact original statement and declared schema remain the oracle for binding/affinity and storage-class comparison. Native binding/affinity belongs to HIA, never a Python sqlite3 conversion helper. Raw migration imports already observed storage classes separately from ordinary bindings.",
+    "envelope": "little-endian u64 tag; little-endian u64 payload_bytes; exact unpadded payload",
+    "integer_scope": "Arbitrary-precision clocks stay decimal TEXT. Machine INTEGER limits apply only where the original SQLite INTEGER field imposed them. Generation/epoch canonical u64 admission remains its existing owner.",
+    "sequence": "costs AUTOINCREMENT high-water must survive migration and recovery, including values absent from any surviving row.",
+    "tags": {
+      "0": "NULL, zero payload bytes",
+      "1": "signed INTEGER, exact little-endian 64-bit two-complement payload",
+      "2": "REAL, exact little-endian IEEE binary64 storage bits",
+      "3": "TEXT, exact persisted byte extent; no normalization and no narrowing of decimal strings",
+      "4": "BLOB, arbitrary bytes"
+    },
+    "text_boundary": "Ordinary Python strings are UTF-8 foreign observations. Persisted TEXT bytes are preserved; decoding/diagnostics are not silently canonicalized during migration.",
+    "total_size": "u64 transport/file extent, checked before arithmetic; no added aggregate store/row count or byte limit"
+  },
+  "value_stream_kernel": {
+    "commands": {
+      "1": "BEGIN, body empty, chunk_sequence 0, next request serial",
+      "2": "FEED, exact body extent, next chunk sequence",
+      "3": "FINISH, body empty, next chunk sequence, all envelopes complete"
+    },
+    "custody_limit": "This stream validator does not authenticate an externally supplied log or source and does not itself issue store references. The full HIA coordinator must bind actual same-call immutable input, source offsets and borrowed result leases.",
+    "entry": "namespace_values(input:readbuf, output:mutbuf, workspace:mutbuf) returns u32",
+    "input_header_bytes": 64,
+    "input_u64_words": [
+      "magic",
+      "command",
+      "request_serial",
+      "operation",
+      "table_id",
+      "value_count",
+      "body_bytes",
+      "chunk_sequence"
+    ],
+    "magic_ascii": "HIANSC01",
+    "operations": "1..31 exact relational bind arity/table; 100 raw persisted row with exact table width; 101 generic value stream, table 0. 100/101 are private engine channels, never public request authority.",
+    "output_header_bytes": 128,
+    "output_u64_words": [
+      "magic",
+      "status",
+      "request_serial",
+      "chunk_sequence",
+      "operation",
+      "table_id",
+      "expected_values",
+      "completed_values",
+      "partial_envelope_header_bytes",
+      "remaining_value_payload_bytes",
+      "encoded_bytes_observed",
+      "first_refusal_reason",
+      "version_1",
+      "zero",
+      "zero",
+      "zero"
+    ],
+    "poison": "Any protocol refusal permanently refuses that workspace. A too-short workspace cannot hold poison; the caller must discard the whole lease.",
+    "source": "examples/hia_bootstrap/agent_namespace_values.hiaasm",
+    "status": {
+      "0": "COMPLETE",
+      "1": "NEED_MORE_INPUT",
+      "4294967293": "REFUSED"
+    },
+    "workspace_minimum_bytes": 128
+  }
+}

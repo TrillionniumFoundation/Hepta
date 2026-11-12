@@ -1,0 +1,55 @@
+{
+  "schema": "hia-fixed-memory-narrow-static-review-v1",
+  "reviewer": "native_checker",
+  "status": "STATIC_REVIEW_ONLY_NO_ASSEMBLY_OR_EXECUTION",
+  "source": {
+    "repository": "TrillionniumFoundation/Hepta",
+    "blob": "50e68ef93eebfb994f135f956bc323dc4a93200e",
+    "bytes": 10530,
+    "sha256": "7c51a32e2c61016699878caca1a71bcd32b25b08ac32406deba46cfeed8d5820"
+  },
+  "scope": [
+    "complete 10,530-byte mechanical fragment only",
+    "actual map registry range and permission checks",
+    "context ownership and consumed-before-unmap quarantine",
+    "copy direction flag and bounded memmove",
+    "metadata allocation and context retirement"
+  ],
+  "findings": [
+    {
+      "status": "NO_IDENTIFIED_BLOCKER_IN_REVIEWED_SCOPE",
+      "detail": "mmap only selects shared file or anonymous private flags, no MAP_FIXED or executable permission; page is checked against the caller-issued actual auxv page and rounded extent is overflow checked. Real returned address plus rounded extent is also checked before registry commit."
+    },
+    {
+      "status": "NO_IDENTIFIED_BLOCKER_IN_REVIEWED_SCOPE",
+      "detail": "copy finds each exact live base in the current actual context, checks destination WRITE/source READ and full logical count before access. Previously recorded base+rounded overflow check plus count<=logical<=rounded bounds the later LEAs. memmove overlap order and DF restore are explicit."
+    },
+    {
+      "status": "NO_IDENTIFIED_BLOCKER_IN_REVIEWED_SCOPE",
+      "detail": "munmap resolves only current-context live mapping, requires identical rounded extent, consumes it to quarantine before its one syscall, clears the record only on real zero success, and leaves failures quarantined. context_empty sees live and quarantine entries and prevents metadata reuse."
+    },
+    {
+      "status": "NARROW_COMMENT_OR_CONTRACT_GAP",
+      "detail": "barrier comment says any nonzero mutex is a reentrancy/corruption fault. lock bts checks only bit 0; values with other bits set and bit 0 clear pass, with those bits remaining. If the full-word-zero invariant is required, check the entire word before bts under the stated single-thread executor; otherwise narrow the comment to bit 0. This is static private metadata framing, not a demonstrated public syscall defect."
+    },
+    {
+      "status": "OUTER_INTEGRATION_DEPENDENCY",
+      "detail": "This fragment is not standalone. The full immutable 256-byte r13 event extent, callee image/source/entry/lease correlation, actual auxv capture, context lifetime/quarantine retention, signal/fatal semantics and exactly-once wrapping of the raw result remain responsibilities of the final fixed caller."
+    }
+  ],
+  "evidence": {
+    "source_readback_complete": true,
+    "source_changed": false,
+    "generated": false,
+    "assembled": false,
+    "VM_entries": 0,
+    "native_entries": 0,
+    "syscalls_executed": 0
+  },
+  "nonclaims": [
+    "No ordinary namespace or DMS qualification",
+    "No physical inode/WAL concurrency proof",
+    "No claim that private metadata headers authenticate arbitrary supplied pointers",
+    "No inherited results from previous memory/fencing revisions"
+  ]
+}

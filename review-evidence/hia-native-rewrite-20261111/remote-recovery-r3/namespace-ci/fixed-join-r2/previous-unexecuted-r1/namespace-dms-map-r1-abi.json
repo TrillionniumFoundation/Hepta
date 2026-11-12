@@ -1,0 +1,252 @@
+{
+  "schema": "hepta.hia.namespace-dms-map-fixed-join.v1",
+  "status": "NEW_SOURCE_ONLY_ZERO_GENERATION_AS_VM_B3_NATIVE_OR_OS",
+  "roots": {
+    "ordinary_AgentStore": "OPEN",
+    "complete_31_SQL_operations": "OPEN",
+    "DB_inode_and_deferred_close_policy": "OPEN",
+    "root_admission": "OPEN",
+    "migration_and_old_SQLite_writer_fencing": "OPEN"
+  },
+  "roles": {
+    "1": "FS5 actual token registry and 24 raw Linux primitives",
+    "2": "Map3 one actual context per DMS-issued node",
+    "3": "Memory1 one actual context per DMS-issued node",
+    "4": "DMS7 all node, connection, DMS128, WAL120..127, map and retirement continuations"
+  },
+  "source_pins": {
+    "dms": {
+      "bytes": 72233,
+      "sha256": "ccbcaca8c9e4f4054419fee69efd55db81c48367fee410317a0cb04284f4f8fa",
+      "git_blob": "a35ef1c3c859bacd8240da59eb52422e94a824e7",
+      "execution": {
+        "ast": 0,
+        "generation": 0,
+        "as": 0,
+        "vm": 0,
+        "b3": 0,
+        "native": 0,
+        "os": 0
+      },
+      "readback_exact": true
+    },
+    "carrier": {
+      "bytes": 52928,
+      "sha256": "308b3b0f9d785e71493def82a43ceb4d8aa2891e79ef73e63a4d620657900406",
+      "git_blob": "5a64e9d2d51bd991077c9ee0607be62a8a4c5d5b",
+      "execution": {
+        "ast": 0,
+        "generation": 0,
+        "as": 0,
+        "vm": 0,
+        "b3": 0,
+        "native": 0,
+        "os": 0
+      },
+      "readback_exact": true
+    },
+    "packer": {
+      "git_blob": "41b9007465dbba83ce4a9fbb9b88368fe595d565",
+      "bytes": 5135,
+      "sha256": "0bb8c8f223947256f3dba5b69ff2508c656def2a28dc5c272a840e456c5eb1a3",
+      "execution": 0
+    },
+    "builder": {
+      "git_blob": "7ddd79be4bf96bd8c4810bab1baed50d3322297c",
+      "bytes": 21184,
+      "sha256": "8bc6fb421c92e723d1d445a96856216a779bfa7a67e506b5527150195a1bdff4",
+      "execution": 0
+    },
+    "client": {
+      "git_blob": "b9b43a9b1881c72fa6df46f0f134fccefda95514",
+      "bytes": 12099,
+      "sha256": "0d3c64a7d1407c316e22ffecb87d670630a26aeff2970f3cf56f6d698b279a64",
+      "execution": 0
+    },
+    "replay": {
+      "git_blob": "96762602378d98db79755759b4ad3f4e6a8662bf",
+      "bytes": 20780,
+      "sha256": "0b9bab8e16b0174c54062d56c5042afdaea35a1e936932bbd31ade04f06436a6",
+      "execution": 0
+    },
+    "physical": {
+      "git_blob": "79223b94d14ec8049ee1d67ad746a9b03d14eaa5",
+      "bytes": 37920,
+      "sha256": "0509222e58bcd5a25318299ff7b2a80893e8244c0a966ab30d35d0395fda3683",
+      "execution": 0
+    }
+  },
+  "source_boundary": [
+    "DMS root owns actual FS INIT, child role selection, per-node context creation, all policy transitions and retirement request.",
+    "Fixed assembly reads actual Linux AT_PAGESZ before changing its initial stack. It supports the already-selected 4096-byte x86-64 guard-page template and refuses any different actual page size.",
+    "stdin is a private USER-only raw frame transport for this component. It cannot inject a child, memory ACK or retirement ACK.",
+    "Higher Store still must supply admitted canonical DB paths and source-issued DB identity/descriptor authority. This component does not authenticate arbitrary user-supplied headers or replace the missing root/inode owner.",
+    "Gateway command16 provides real FS token operations while refusing access to internal SHM tokens and CLOSE of an attached DB token. It is a private typed predecessor interface, not a public Store API.",
+    "Every child capsule includes the exact originally issued immutable REQUEST, actual complete output/workspace, actual image-entry serial, node, create flag and stage. A memory primitive ACK is never substituted for REQUEST.",
+    "GROW reuses the same immutable source or completed child capsule; it never repeats a producer or syscall.",
+    "Memory actual extents are recorded by actual context and address, before copy/unmap. A failed unmap is quarantined and cannot be reused or borrowed.",
+    "After last Map PURGE and FS CLOSE, HIA emits an exact retirement event. The carrier checks actual live/quarantine mapping counts, releases the issued contexts once, and returns a monotonic actual retirement ACK.",
+    "A failed mechanical cleanup is fatal/UNKNOWN. Injected failed filesystem CLOSE is a real negative receipt and is not relabelled as a closed FD. The test explicitly observes the descriptor until process exit.",
+    "No global resource-count or byte quota is added to the production mapping or context registries. Test-only raw-response and /proc owned-child read bounds are fixtures, not language limits."
+  ],
+  "abi": {
+    "raw_magic": "HIANDM03",
+    "raw_header_bytes": 256,
+    "channel_magic": "HIANDX03",
+    "prefix_bytes": 64,
+    "prefix": [
+      "magic",
+      "origin",
+      "role",
+      "actual_return",
+      "raw_bytes",
+      "actual_entry_or_retirement_serial",
+      "actual_AT_PAGESZ",
+      "zero"
+    ],
+    "origins": {
+      "1": "private USER",
+      "2": "actual FS completion",
+      "5": "actual Map completion",
+      "6": "actual memory completion",
+      "7": "actual fixed retirement ACK"
+    },
+    "commands": {
+      "1": "initialize actual FS under DMS",
+      "2": "attach DB predecessor",
+      "3": "retry existing unlocked DMS",
+      "4": "acquire WAL",
+      "5": "release WAL",
+      "6": "detach and actual purge/retire",
+      "7": "inspect connection",
+      "10": "retained private legacy borrow entry; unsupported by this fixed carrier",
+      "12": "detach and actual purge/retire",
+      "14": "map region",
+      "15": "actual barrier",
+      "16": "typed FS gateway",
+      "17": "private Map reply",
+      "18": "private memory reply",
+      "19": "private retirement reply"
+    },
+    "raw_words": [
+      "magic",
+      "command",
+      "nonce0",
+      "nonce1",
+      "call",
+      "action",
+      "lease",
+      "handle",
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+      "g",
+      "h",
+      "payload_bytes",
+      "i",
+      "zero x14"
+    ],
+    "initialization": {
+      "nonce": "nonzero pair",
+      "a": "FS nonce0",
+      "b": "FS nonce1",
+      "c": 0,
+      "d": 0,
+      "e": 0,
+      "f": 3,
+      "g": 420,
+      "h": 3,
+      "i": 0,
+      "call": 0,
+      "action": 0,
+      "lease": 0,
+      "handle": 0
+    },
+    "map": {
+      "command": 14,
+      "handle": "connection",
+      "a": "region index",
+      "b": "extend 0/1",
+      "c": 32768
+    },
+    "gateway": {
+      "command": 16,
+      "a": "FS operation1..24",
+      "b": "FS a",
+      "c": "FS b",
+      "d": "FS c",
+      "e": "FS d",
+      "body": "exact original FS payload"
+    },
+    "terminal_map_fields": {
+      "q23": "memory logical token",
+      "q24": "offset",
+      "q25": "extent",
+      "q26": "read/write protection",
+      "q27": "Map call",
+      "q28": "node"
+    },
+    "terminal_note": "q12 is selected node isUnlocked when a node is returned; it is not a dedicated phase word. Complete phase and state are verified in the whole-workspace trace replay.",
+    "trace_header_words": [
+      "magic",
+      "kind",
+      "entry_serial",
+      "source_or_ACK_bytes",
+      "output_capacity_or_syscall",
+      "workspace_capacity_or_operation",
+      "actual_return",
+      "actual_primitive_sequence",
+      "node",
+      "never_reused_actual_context_sequence",
+      "role",
+      "zero"
+    ],
+    "trace_header_bytes": 96,
+    "fixed_contexts": {
+      "1": "DMS root",
+      "2": "FS",
+      "dynamic": "strictly increasing sequence, one actual Map/memory context per issued role/node; never reused after retirement"
+    },
+    "retirement": {
+      "output_status": 6,
+      "event_bytes": 256,
+      "ack_bytes": 576,
+      "origin": 7,
+      "command": 19,
+      "requires": "exact issued event; exact node/mask/live0/quarantine; actual fresh retirement serial"
+    }
+  },
+  "planned_validation": {
+    "exact_interpreter": "CPython3.12.14",
+    "exact_B3": {
+      "bytes": 669556,
+      "sha256": "35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"
+    },
+    "original_compile_gate": {
+      "cpu_seconds": 10,
+      "wall_seconds": 20,
+      "address_bytes": 268435456,
+      "output_bytes": 1048576,
+      "workspace_bytes": 1048576
+    },
+    "fresh_role_compiles": 4,
+    "new_actual_HIA_packer_compile": 1,
+    "new_actual_HIA_packer_controls": 25,
+    "new_actual_physical_tests": 22,
+    "full_entry_replay": "all complete pre/post input/output/workspace and exact return; no masks; no correctness cache; actual primitive ACKs are recorded and consumed without executing them in the replayer",
+    "native_counts": "UNKNOWN_UNTIL_ACTUAL_EXECUTION",
+    "actual_SQLite_reference": "record exact current sqlite_source_id and compile_options; no claim of reproducing SQLite3.46.1",
+    "required_strace": "mandatory actual fault controls, no skip fallback",
+    "inherited_counts": false
+  },
+  "original_failure_boundary": "DMS4 VM qualification failed before B3 compilation. Concrete failing cases remain unknown pending strict original readback. DMS7 is a new source revision and does not retrospectively change that failure.",
+  "qualifications": "All earlier cold and full retained qualification identities and HOLD results remain unchanged. No fresh full qualification is started by this component build.",
+  "fixture_evidence_scope": {
+    "executed": false,
+    "reason": "common finish intentionally only seals single-link regular files; live test hardlink/symlink fixtures placed in private BASE area, complete snapshot bytes and original topology/modes captured into evidence CAS, no following symlinks or deletion of raw evidence",
+    "all_tests_unchanged": 22
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "schema": "hia.namespace-original-abi-independent-readback-delivery.v1",
+  "status": "PASS_READBACK_ONLY",
+  "source": {
+    "run_id": 43132319705,
+    "job_id": 130899189991,
+    "head": "d521b0df870f153a992a4bef937add65f85a9058",
+    "started_at": "2026-11-12T02:15:47Z",
+    "completed_at": "2026-11-12T02:16:10Z"
+  },
+  "files": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/original-abi-follow19/HIA_AGENT_NAMESPACE_STORE_ABI.json",
+      "blob": "2cb6092f730298252943830a38b2864fce2597cd",
+      "bytes": 51264,
+      "sha256": "c15222c99cb04ef8bc6a7f13108a7e90adb0bc908876d663eb4329fd14563c04",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/original-abi-follow19/job.log",
+      "blob": "8691f540c12cbde5a76f35bc718eb3d9fa2e7133",
+      "bytes": 88584,
+      "sha256": "f50b4d58fca84a773378637c1e901d95481e93e153814ddc1106774460749fdc",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/original-abi-follow19/job-authority.json",
+      "blob": "3ff31d6be8832a9981b3cdabe96bd3ce65a85b6e",
+      "bytes": 2988,
+      "sha256": "5057dce82f24f47b0ed5e40ed0ea38563a81198b0baafc0c2235c68d793489f9",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/original-abi-follow19/readback-summary.json",
+      "blob": "184f3294af125730e82b42ffd5f522d949e1be28",
+      "bytes": 1156,
+      "sha256": "d27e19977dce9fbd6ff6f41817da75c5841ce2e146b9ffe27117269809d326fd",
+      "mode": "100644"
+    }
+  ],
+  "total_files": 4,
+  "total_bytes": 143992,
+  "ref_mutated": false,
+  "all_git_blobs_read_back_exact": true,
+  "source_archive": {
+    "bytes": 78580,
+    "gitsha": "1b2919a3ac82c74c648968c923bdf53115b66890",
+    "members": 20,
+    "raw_bytes": 489452,
+    "sha256": "3f50ea0ede4b9abf29921a319f0fffd189d34765db6a64631dd39899b7da1d8b",
+    "source_manifest_sha256": "b3c3f8ae19faeb005256982c046a9af0518575bd240798b0887c844588820bc0"
+  },
+  "ci_readback": {
+    "complete_archive_members": 20,
+    "complete_raw_bytes": 489452,
+    "all_input_bytes_modes_sha_unchanged": true,
+    "relational_operations": 31,
+    "tables": 10,
+    "call_sites": 45
+  },
+  "current_independent_readback": {
+    "full_job_log_saved": true,
+    "ABI_base64_decoded": true,
+    "complete_ABI_bytes": 51264,
+    "complete_ABI_sha256": "c15222c99cb04ef8bc6a7f13108a7e90adb0bc908876d663eb4329fd14563c04",
+    "complete_ABI_gitsha_verified_by_create_blob": "2cb6092f730298252943830a38b2864fce2597cd",
+    "no_local_outer_zip_or_archive_replay_claimed": true
+  },
+  "artifact": {
+    "id": 13908773681,
+    "name": "hia-namespace-originals-43132319705-1",
+    "zip_bytes": 624203,
+    "declared_upload_sha256": "7409c8477deeb84258b21275ec455ec4b733e123576421c7f00b9a5b342e16a1",
+    "observation": "exact successful upload log; no claim of independently downloaded outer ZIP"
+  },
+  "cursor_operations": [
+    {
+      "bind_count": 1,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 405,
+          "owner": "HIAAgentService._hia_read",
+          "parameters_reference": "(args['cursor'],)",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 14,
+      "kind": "SELECT",
+      "sql_reference": "SELECT * FROM cursors WHERE id=?",
+      "table": "cursors",
+      "table_id": 6
+    },
+    {
+      "bind_count": 4,
+      "call_sites": [
+        {
+          "lexical_transactions": [],
+          "line": 443,
+          "owner": "HIAAgentService._hia_read",
+          "parameters_reference": "(next_cursor, ref['id'], ref['sha256'], offset + len(chunk))",
+          "path": "hepta/hia_agent_service.py"
+        }
+      ],
+      "id": 15,
+      "kind": "INSERT",
+      "sql_reference": "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+      "table": "cursors",
+      "table_id": 6
+    }
+  ],
+  "new_VM_entries": 0,
+  "new_native_entries": 0,
+  "whole_store_closed": false,
+  "prior_qualification": "0ef full FAIL/HOLD unchanged; 187errors/1failure direct ENOENT correlation; deletion actor UNKNOWN"
+}
