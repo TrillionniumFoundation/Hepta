@@ -1,28 +1,31 @@
-# Exact GLOBAL/import source generation
+# GLOBAL/import eight-method development observation
 
-This independent harness checks out `64f67ae897c3cb49d45a1e1a4622db974812e3fe` / `b7cf3502931d5fae8f58444b0af04cc642414a4a`, verifies all 3,255
-tracked files, and composes the exact c32a repair packet plus four explicit
-registration/documentation changes. The product, audit, and default branches
-are not written. This branch contains only the source-generation harness.
+This independent workflow starts from actual source commit
+64f67ae897c3cb49d45a1e1a4622db974812e3fe and the frozen source-harness tree
+454ca062d3f7aa2a8fe27c332209e5c39d84990e. It verifies every original tracked
+file, exports an independent plain source directory, and applies the same
+24-path repair/registration input used by source run 43294252598. All original
+test bodies are retained. It does not write a product, audit, or default ref.
 
-The 20-path repair packet remains unchanged, including its earlier local
-development observations. The inherited missing test-helper registration is
-preserved as an actual original negative observation and corrected only in
-the separate registration delta. The joint mechanism assertion keeps all old
-19 names and adds the one actual Byte import-port dependency, for 20 mechanism
-files plus 47 Core files. Its fresh sorted-read logic is unchanged.
+The original four language/support/Core-only development preparation commands
+are retained, followed by the original six development image builds. Each
+compiler invocation uses the original 20-second child limit. The eight exact
+added regression methods keep their original 1,800-second supervisor and
+failure/skip/error assertions. The method denominator is three Source and five
+Native methods; this scope does not replace the separate 863-method source
+gate or any original caller group.
 
-The actual source workflow has 89 generators and 171 source selectors. The
-full prior 860 ordered test IDs and the earlier 764 IDs remain required. Three
-new source methods raise the current inventory to 863; five other new methods
-require real native fixtures and are reserved for subsequent current-source
-cold/native gates. Loader-only observation is not test qualification.
+The compiler is the exact 669,494-byte retained B3 image with SHA256
+81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109.
+It provides development authority only. The driver records its independently
+generated source tree and preserves every raw compiler/fixture record. This
+tree is not labelled as the output of the separate source-generation job.
 
-The original supervisor, each 1,800-second source-command limit, complete
-source readback, original Core-only checks, complete source-generation loop,
-support/language/native inventory regeneration, and original 764 controls are
-retained. The original closure negative and a new three-builder helper negative
-are separate from the successful 863-test denominator. All failures and completed
-evidence are exported. No cold, full-retained, default, or whole-native claim is
-made by this harness. The 89 generator outputs are genuinely regenerated under
-Python 3.14.4 with the original pinned source dependencies.
+The original local scripts are retained under inputs/original. Their mechanical
+path/environment changes are listed in PORTABILITY-DELTA.json. No policy,
+native-port implementation, test assertion, or eight-method inventory is
+modified by this harness. All fixed inputs and source files are checked before
+and after execution. Full binary records are uploaded as an artifact; a lossless
+log capsule separately preserves completed text records without claiming a
+binary-artifact CRC check. Current-source cold, full-retained, native-default,
+whole-native, and legacy-deletion claims remain false.

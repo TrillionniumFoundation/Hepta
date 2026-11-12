@@ -1,0 +1,61 @@
+name: HIA GLOBAL and import eight development controls V80
+
+"on":
+  push:
+    branches:
+      - codex/hia-global-import-development-v80-r1-20261112-dda7
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  development:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out exact development harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Check out exact published source base
+        uses: actions/checkout@v4
+        with:
+          ref: 64f67ae897c3cb49d45a1e1a4622db974812e3fe
+          path: base-source
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Set up exact Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Install original pinned development dependencies
+        run: python -I -m pip install --isolated setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Execute the eight exact added regression methods
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -eu
+          python -B harness/inputs/run_development.py \
+            --base-source "$GITHUB_WORKSPACE/base-source" \
+            --development "$GITHUB_WORKSPACE/development" \
+            --evidence "$GITHUB_WORKSPACE/evidence"
+      - name: Export completed original text
+        if: always()
+        run: python -B harness/inputs/export_development.py "$GITHUB_WORKSPACE"
+      - name: Upload complete original development records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-global-import-development-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            evidence/
+            development/new-controls-r1/
+            development/development-images-r2/
+            development/retained-development-compiler.bin
+            harness/inputs/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

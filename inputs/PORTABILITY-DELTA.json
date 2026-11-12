@@ -1,0 +1,46 @@
+{
+  "prepare_development_images.py": {
+    "after_sha256": "bf0f45231687c5bee040a0ae792ed427a268e517f6d44fa3d65b475680505ccb",
+    "before_sha256": "93acc55769e9dfaace694c4e683a878bd122e922e7f5f0bb955ab25baf90d093",
+    "changes": [
+      {
+        "after": "ROOT = Path(os.environ['HIA_V80_DEVELOPMENT_ROOT']).resolve(strict=True)",
+        "before": "ROOT = Path(__file__).resolve().parent"
+      },
+      {
+        "after": "Path(os.environ['HIA_V80_RETAINED_COMPILER'])",
+        "before": "ROOT.parent / 'v78-byte-abi-development-r1/inputs/retained-development-compiler.bin'"
+      },
+      {
+        "after": "Path(__file__).with_name('source_manifest.py')",
+        "before": "ROOT.parent / 'v80-global-resolution-development-r1/restore_source.py'"
+      }
+    ]
+  },
+  "run_new_controls.py": {
+    "after_sha256": "e103e8f401f3d927b954fe2fae69a179de9fab2b5397be2cf8ece3bb3070ee99",
+    "before_sha256": "5ae69d39e8b0870144e70da9fa41a32562ce9ae8385c619d134acf50a7d79811",
+    "changes": [
+      {
+        "after": "ROOT = Path(os.environ['HIA_V80_DEVELOPMENT_ROOT']).resolve(strict=True)",
+        "before": "ROOT = Path(__file__).resolve().parent"
+      },
+      {
+        "after": "Path(__file__).with_name('source_manifest.py')",
+        "before": "ROOT.parent / 'v80-global-resolution-development-r1/restore_source.py'"
+      },
+      {
+        "after": "Path(__file__).with_name('workflow_process.py')",
+        "before": "ROOT.parent / 'v78-machine-frame-r4-development/cpython314-development-ci-r1/inputs/workflow_process.py'"
+      },
+      {
+        "after": "",
+        "before": "    dependency = ROOT.parent / 'heap-development-dependencies-r1/venv/lib/python3.12/site-packages'\n"
+      },
+      {
+        "after": "PYTHONPATH=str(SOURCE)",
+        "before": "PYTHONPATH=str(SOURCE) + os.pathsep + str(dependency)"
+      }
+    ]
+  }
+}
