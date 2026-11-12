@@ -1,5 +1,6 @@
 """Explicit source-tree native publisher routing, no default/fallback change."""
 from pathlib import Path
+from tools.hia_artifact_publication_custody import temporary_directory
 import json,os,tempfile,unittest
 from unittest.mock import patch
 from hepta.artifact_publication import publish_verified,verify_published,withdraw_own_link,PublicationRejected
@@ -23,7 +24,7 @@ class PublicationRouteSourceTests(unittest.TestCase):
                 publish_verified('/tmp/stage','/tmp/out',b'abc')
 
     def test_missing_or_malformed_selected_manifest_fails_before_effects(self):
-        with tempfile.TemporaryDirectory(prefix='hia-publication-route-refusal-') as folder:
+        with temporary_directory(prefix='hia-publication-route-refusal-') as folder:
             root=Path(folder);stage=root/'stage';stage.write_bytes(b'abc');dest=root/'new'
             manifest=root/'build.json'
             for data in (None,b'{',b'{}'):
@@ -43,7 +44,7 @@ class PublicationRouteNativeTests(unittest.TestCase):
         from tools.hia_selfhost_contract import PROFILE
         from hashlib import sha256
         import fcntl,subprocess
-        with tempfile.TemporaryDirectory(prefix='hia-publication-real-route-') as folder:
+        with temporary_directory(prefix='hia-publication-real-route-') as folder:
             root=Path(folder)
             if cold_path:
                 outer=json.loads(Path(cold_path).read_bytes());inner=json.loads(Path(outer['nested_report']).read_bytes())

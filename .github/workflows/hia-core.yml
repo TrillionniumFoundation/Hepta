@@ -234,9 +234,12 @@ jobs:
         env:
           HEPTA_HIA_INSTRUCTION_POLICY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native exact-byte artifact publication and real kernel races
-        run: python -B -m unittest tests.test_hia_artifact_publication_native tests.test_hia_artifact_publication_route tests.test_hia_agent_artifact_store_native -v
+        run: python -B -m tools.qualify_hia_artifact_publication_tests run --retain-evidence "$RUNNER_TEMP/hia-artifact-publication"
         env:
           HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Preserve original artifact publication fixtures and call records
+        if: always()
+        run: python -B -m tools.qualify_hia_artifact_publication_tests archive --retain-evidence "$RUNNER_TEMP/hia-artifact-publication" --output "$RUNNER_TEMP/hia-artifact-publication-custody"
       - name: Native whole primitive Core admission and body resource flow
         run: python -B -m unittest tests.test_hia_core_admission_native -v
         env:
@@ -514,6 +517,7 @@ jobs:
             ${{ runner.temp }}/hia-bounded-read/
             ${{ runner.temp }}/hia-nominal-fixture/
             ${{ runner.temp }}/hia-module-projects/
+            ${{ runner.temp }}/hia-artifact-publication-custody/
             ${{ runner.temp }}/hia-release-install/
             ${{ runner.temp }}/hia-journal-callers.json
             ${{ runner.temp }}/hia-native-components.json

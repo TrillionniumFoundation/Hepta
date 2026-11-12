@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v82-native-core-emitter-json-pretty-bounded-read-interned-scans-development'
+PROFILE = 'selfhost-core-linux-x86_64-v85-artifact-publication-failure-custody-development'
 SOURCE_FILES = (
     'hepta/hia_bounded_read_native.py',
     'tools/generate_hia_bounded_read.py',
@@ -644,6 +644,8 @@ SOURCE_FILES = (
     'tools/generate_hia_artifact_publication.py',
     'tools/hia_artifact_publication_syscalls.S',
     'tools/build_hia_artifact_publication.py',
+    'tools/hia_artifact_publication_custody.py',
+    'tools/qualify_hia_artifact_publication_tests.py',
     'examples/hia_bootstrap/artifact_publication_policy.hiaasm',
     'examples/hia_bootstrap/artifact_publication_packer.hiaasm',
     'tests/test_hia_artifact_publication_native.py',
