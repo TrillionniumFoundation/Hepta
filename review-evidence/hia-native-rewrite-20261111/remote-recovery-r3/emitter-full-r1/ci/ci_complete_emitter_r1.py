@@ -1,7 +1,7 @@
-"""Fresh complete _Emitter across eleven actual HIA owners.
-Original 39 Function / 26 wrapper results are not rerun or inherited.
-The new C carrier retains full command/ACK/final slots; small crosschecks keep
-the independent full intermediate-workspace Python CAS.
+"""Remaining eleven original Emitter groups after an exact failed-run readback.
+The previous 44 groups remain the observations of FOLLOW39, not this run's counts.
+All eleven production HIA sources/images must be byte-identical before the tail
+is executed. No production difference or changed limit enables partial coverage.
 """
 from pathlib import Path
 from hashlib import sha1,sha256
@@ -22,9 +22,9 @@ FILES=[
   {
     "path": "docs/HIA_COMPLETE_EMITTER_NATIVE.md",
     "mode": "100644",
-    "bytes": 17054,
-    "sha256": "0c1434134ab0ea9c36f5bbd2c89336bb8892f7c7cc1b77fdff6a5a630a2e5f47",
-    "gitsha": "91f5f7fbdba3b5eb13d9a0d71dfbe174ad89d61d"
+    "bytes": 21212,
+    "sha256": "52075ded20d4a46ee8c1f343d7eafa5971c8a8672123685054ffc41efc047682",
+    "gitsha": "9050fd67250b80bc11449c368545383599f8f4fc"
   },
   {
     "path": "reference/hia_machine_plan.py",
@@ -99,9 +99,9 @@ FILES=[
   {
     "path": "tests/test_hia_complete_emitter.py",
     "mode": "100644",
-    "bytes": 29760,
-    "sha256": "d44389458f0ead3f4b290bfd183a0e3158c73561344d9b3e909bafadd4a19722",
-    "gitsha": "98a99f9ee214cb8cf70a402acf5f0167f8696a00"
+    "bytes": 29947,
+    "sha256": "9715d73aa19b36acccf05404497010503c146a18137ccca75a8d11f0d804bc41",
+    "gitsha": "28152bad4ec34225f76ff852d0e24fad876087d2"
   },
   {
     "path": "tests/wrapper_test_reference.py",
@@ -221,6 +221,27 @@ FILES=[
     "bytes": 51420,
     "sha256": "92070ffcb9e12bce1825c3f3361a97aadc8279f1041c4d2ed16dfadf350ec55a",
     "mode": "100644"
+  },
+  {
+    "path": "ci/read_emitter39_originals.py",
+    "mode": "100644",
+    "bytes": 15782,
+    "sha256": "568fd5333fae984dcb95720eecb2b81019aa5ced1b3558e53f304984cbd4d75b",
+    "gitsha": "3c521eafc2aea016e34e04168a7e9aff75f6ee03"
+  },
+  {
+    "path": "evidence/follow39-baseline.json",
+    "mode": "100644",
+    "bytes": 117059,
+    "sha256": "df09c61139a6b3a831c65f8dcf14685d0d2059eca6ecc8fc26077ec648d8ae69",
+    "gitsha": "af1359f1485f8c051041136e4ea66653c3510983"
+  },
+  {
+    "path": "evidence/follow39-test-original.py",
+    "mode": "100644",
+    "bytes": 29760,
+    "sha256": "d44389458f0ead3f4b290bfd183a0e3158c73561344d9b3e909bafadd4a19722",
+    "gitsha": "98a99f9ee214cb8cf70a402acf5f0167f8696a00"
   }
 ]
 SCHEDULE=[["cross",0,2,0],["scalars",0,24,0],["scalars",1,24,0],["scalars",2,24,0],["scalars",3,24,0],["scalars",4,24,0],["scalars",5,24,0],["scalars",6,24,0],["scalars",7,24,0],["scalars",8,24,0],["scalars",9,24,0],["casts",0,20,0],["casts",1,20,0],["casts",2,20,0],["casts",3,20,0],["casts",4,20,0],["casts",5,20,0],["casts",6,20,0],["casts",7,20,0],["casts",8,20,0],["casts",9,20,0],["boolean",0,32,0],["resources",0,30,0],["edges",0,21,0],["calls",0,12,0],["selection",0,16,0],["inventory",0,1,0],["inventory",1,1,0],["inventory",2,1,0],["inventory",3,1,0],["inventory",4,1,0],["borrowed",0,9,0],["borrowed",1,9,0],["borrowed",2,9,0],["borrowed",3,9,0],["borrowed",4,9,0],["borrowed",5,9,0],["borrowed",6,9,0],["borrowed",7,9,0],["manifest",0,36,0],["late",0,1,0],["late",1,1,0],["late",2,1,0],["late",3,1,0],["late",4,1,0],["late",5,1,0],["late",6,1,0],["late",7,1,0],["profile",0,8,0],["protocol",0,20,20],["protocol",1,8,8],["protocol",2,7,7],["protocol",3,5,5],["protocol",4,5,5],["protocol",5,5,5]]
@@ -320,6 +341,59 @@ def case_rows(directory,value):
  assert cats==value["case_categories"]
  return dict(cases=len(rows),counts=cats,native_entries=total,by_role=roles,
              lossless_raw_files=encodings,python_full_CAS_cases=fullcas,crosscheck_cases=crosses)
+OLD_FIXTURE="   doc=self.M.doc(self.W.fixture([\"readbuf\"],[\"u32\"],\"zz\")[\"functions\"][0],\n                 self.W.fixture([\"mutbuf\"],[\"u32\"],\"aa\")[\"functions\"][0])\n   doc[\"exports\"]=[\"zz\",\"aa\"];self.exact(\"missing-exports-sort-first\",doc)"
+NEW_FIXTURE="   doc=self.M.doc(self.W.fixture([\"u32\"],[\"u32\",\"u64\"],\"zz\")[\"functions\"][0],\n                 self.W.fixture([\"u64\"],[\"u64\",\"u32\"],\"aa\")[\"functions\"][0])\n   doc[\"exports\"]=[\"zz\",\"aa\"];self.exact(\"missing-exports-sort-first\",doc)\n   assert self.cases[-1][\"error\"]==dict(type=\"HIAProgramNativeRejected\",domain=2,\n       text=\"E_HIA_PROGRAM_ABI: explicit exports have signatures outside the native C ABI: aa, zz\")"
+
+def fixture_delta(project):
+ old=(project/"evidence/follow39-test-original.py").read_bytes()
+ new=(project/"tests/test_hia_complete_emitter.py").read_bytes()
+ old_fragment=OLD_FIXTURE.encode()
+ new_fragment=NEW_FIXTURE.encode()
+ assert old.count(old_fragment)==1
+ assert old.replace(old_fragment,new_fragment,1)==new
+ return dict(old_test_git=git_blob(old),new_test_git=git_blob(new),
+             only_one_exact_fixture_replacement=True,all_other_tests_and_assertions_byte_identical=True)
+
+def production_pair(component,m,build,old):
+ previous=old["manifest"]
+ stable={k:v for k,v in m.items() if k not in("source_path","image_path","compile_receipt")}
+ previous_stable={k:v for k,v in previous.items() if k not in("source_path","image_path","compile_receipt")}
+ assert stable==previous_stable,(component,"changed production manifest")
+ ignored=("native_elapsed_ns","wall_elapsed_ns","produced_image")
+ assert {k:v for k,v in m["compile_receipt"].items() if k not in ignored}=={
+        k:v for k,v in previous["compile_receipt"].items() if k not in ignored},component
+ pair={}
+ for kind in("source","image"):
+  current=Path(m[kind+"_path"]);original=Path(old["paths"][kind])
+  assert current.read_bytes()==original.read_bytes(),(component,kind,"production bytes changed")
+  assert stat.S_IMODE(current.stat().st_mode)==stat.S_IMODE(original.stat().st_mode)
+  pair[kind]=dict(current=str(current),original=str(original),**file_hash(current),
+      mode=stat.S_IMODE(current.stat().st_mode),full_bytes_equal=True)
+ original_build=Path(old["paths"]["source"]).parents[1]
+ before=json.loads((build/"source-before.json").read_bytes())
+ after=json.loads((build/"source-after.json").read_bytes())
+ old_before=json.loads((original_build/"source-before.json").read_bytes())
+ old_after=json.loads((original_build/"source-after.json").read_bytes())
+ def source_identity(rows):
+  return [(Path(r["path"]).name,r["bytes"],r["sha256"],r["mode"]) for r in rows]
+ assert source_identity(before)==source_identity(old_before)
+ assert len(before)==len(after) and len(old_before)==len(old_after)
+ for rows,ends in((before,after),(old_before,old_after)):
+  assert all(a["path"]==b["path"] and a["bytes"]==b["bytes"] and a["sha256"]==b["sha256"] and b["same"]
+             for a,b in zip(rows,ends))
+ return dict(component=component,profile=m["profile"],pair=pair,
+     complete_original_sources_and_images_equal=True,all_build_gate_snapshots_equal=True,
+     compile_invariant_receipt_equal=True,snapshots=len(before))
+
+def check_pairs_after(pairs):
+ for component,proof in pairs.items():
+  for kind,info in proof["pair"].items():
+   current=Path(info["current"]);original=Path(info["original"])
+   assert current.read_bytes()==original.read_bytes(),(component,kind,"post-run source/image changed")
+   assert file_hash(current)=={k:info[k] for k in("bytes","sha256")}
+   assert stat.S_IMODE(current.stat().st_mode)==info["mode"]
+   assert stat.S_IMODE(original.stat().st_mode)==info["mode"]
+
 def main():
  common_path=Path(os.environ["HIA_CI_COMMON"]).resolve()
  common,common_raw=load_module("complete_emitter_ci_common",common_path,COMMON_GIT)
@@ -328,8 +402,10 @@ def main():
  common.PINS[common_path]=common_raw;common.PINS[seal_path]=seal_raw
  common.PINS[Path(__file__).resolve()]=Path(__file__).read_bytes()
  project=None;status="FAIL"
- report=dict(scope="FRESH_COMPLETE_PRIVATE_NATIVE_EMITTER",status="INCOMPLETE",
-     expected_groups=55,expected_cases=732,expected_private_controls=50,expected_fresh_B3_compilations=11,
+ report=dict(scope="FRESH_EMITTER_REMAINING_11_GROUPS_AFTER_EXACT_FOLLOW39_READBACK",status="INCOMPLETE",
+     expected_groups=11,expected_cases=62,expected_private_controls=50,expected_fresh_B3_compilations=11,
+     previous_run=43184755381,previous_job=131069068249,previous_run_remains_FAILED=True,
+     previous_observed_PASS_groups=44,previous_observed_cases=670,single_run_55_group_PASS=False,
      actual_new_compilations=0,actual_cases=0,actual_native_entries=0,actual_private_controls=0,
      groups={},builds={},old_results_inherited=False,old_39_Function_groups_rerun=False,
      old_26_wrapper_groups_rerun=False,full_public_backend=False,installed=False,cold=False,
@@ -337,7 +413,7 @@ def main():
      source_Graph_must_be_actual_immutable_admitted_Core_and_checked_plan=True,header_is_authentication=False)
  try:
   context=common.prepare()
-  mine=Path(context["base"])/"complete-emitter-recovery-r2";mine.mkdir()
+  mine=Path(context["base"])/"complete-emitter-recovery-r3";mine.mkdir()
   project=mine/"native-emitter-next";project.mkdir()
   for row in FILES:
    source=common.materialize(SOURCE_PREFIX+row["path"],row["gitsha"],project/row["path"])
@@ -345,9 +421,35 @@ def main():
    source.chmod(int(row["mode"],8)&0o777)
   (project/"ci-driver-original.py").write_bytes(Path(__file__).read_bytes())
   env=dict(PYTHONDONTWRITEBYTECODE="1",PYTHONPATH=context["reference"],LC_ALL="C.UTF-8",LANG="C.UTF-8")
+  report["fixture_delta"]=fixture_delta(project)
+  originals=project/"development/follow39-readonly"
+  try:
+   common.run("emitter-follow39-exact-originals",[context["python"],"-B",project/"ci/read_emitter39_originals.py",
+       "--artifact-directory",Path(os.environ["HIA_EMITTER39_ORIGINALS"]).resolve(),
+       "--baseline",project/"evidence/follow39-baseline.json","--out",originals],
+       cwd=project,timeout=180,env=env)
+  finally:
+   report["original_readback"]=summary(originals,"HIA_EMITTER39_EXACT_ORIGINAL_READBACK")
+  old=report["original_readback"]
+  assert old["status"]=="PASS" and old["native_entries"]==old["VM_entries"]==old["product_imports"]==old["subprocesses"]==0
+  assert old["limits"]==dict(**LIMITS,wall=180)
+  assert old["actual_original_passed_cases"]==670 and old["actual_original_native_entries"]==1549752
+  assert old["all_members"]==43774 and old["all_member_bytes"]==1012497507
+  assert old["all_original_gate_source_snapshots_verified"] and old["full_tar_bytes_modes_and_SHA256_equal"]
+  assert old["all_45_original_groups_bound_to_the_same_eleven_actual_images"]
+  assert old["complete_original_encoded_inputs_preserved"] and old["full_tar_readback_completed"]
+  assert old["all_recorded_inputs_after_checked_equal"]
+  baseline=json.loads((project/"evidence/follow39-baseline.json").read_bytes())
+  assert SCHEDULE==baseline["planned_all_55"]
+  assert SCHEDULE[:44]==baseline["passed_first_44"]==old["actual_original_passed_groups"]
+  tail=SCHEDULE[44:]
+  assert tail==baseline["remaining_11"] and len(tail)==11 and sum(x[2] for x in tail)==62 and sum(x[3] for x in tail)==50
+  old_pairs=json.loads((originals/"actual-source-image-pairs.json").read_bytes())
+  assert set(old_pairs)==set(COMPONENTS)
+  report["production_identity"]={}
   roles={}
   for index,component in enumerate(COMPONENTS,1):
-   build=project/"development"/("build-"+component+"-r2")
+   build=project/"development"/("build-"+component+"-r3")
    try:
     common.run("emitter-fresh-"+component,[context["python"],"-B",project/"tools/build_hia_complete_emitter.py",
        "--reference",context["reference"],"--compiler",context["compiler"],"--out",build,"--component",component],
@@ -377,12 +479,13 @@ def main():
    assert r["source_unchanged"] and not r["forbidden_compiler_modules_loaded"]
    for typ in("source","image"):
     assert 0<m[typ+"_bytes"]<=1<<20 and file_hash(m[typ+"_path"])=={"bytes":m[typ+"_bytes"],"sha256":m[typ+"_sha256"]}
+   report["production_identity"][component]=production_pair(component,m,build,old_pairs[component])
    roles[str(index)]=dict(name=component,manifest=m)
   assert report["actual_new_compilations"]==11 and set(roles)=={str(i) for i in range(1,12)}
   assets=project/"development/runtime-assets.json"
   save(assets,dict(schema="hia-emitter-development-runtime-assets-v1",roles=roles,
        actual_fresh_B3_compilations=11,old_results_inherited=False))
-  nativebuild=project/"development/native-mechanics-build-r2"
+  nativebuild=project/"development/native-mechanics-build-r3"
   c_label="emitter-development-C-mechanics-build"
   common.run(c_label,[context["python"],"-B",project/"tools/build_emitter_native_mechanics.py",
       "--stage","build","--source",project/"tools/emitter_native_mechanics.c","--out",nativebuild],
@@ -393,9 +496,15 @@ def main():
   report["C_mechanics_build"]=summary(nativebuild,"HIA_EMITTER_C_BUILD_ORIGINAL")
   assert report["C_mechanics_build"]["status"]=="PASS_BUILD_ONLY"
   carrier=nativebuild/"emitter-native-mechanics"
+  assert report["C_mechanics_build"]["compiler"]==baseline["actual_C_build"]["compiler"]
+  assert report["C_mechanics_build"]["source_sha256"]==baseline["actual_C_build"]["source_sha256"]
+  assert report["C_mechanics_build"]["executable"]==baseline["actual_C_build"]["executable"]
+  assert carrier.read_bytes()==Path(old["old_C_executable"]).read_bytes()
+  assert stat.S_IMODE(carrier.stat().st_mode)==stat.S_IMODE(Path(old["old_C_executable"]).stat().st_mode)
+  report["development_carrier_complete_original_bytes_equal"]=True
   assert len(SCHEDULE)==55 and sum(r[2] for r in SCHEDULE)==732 and sum(r[3] for r in SCHEDULE)==50
-  for group,variant,count,private in SCHEDULE:
-   label=group+"-"+str(variant);out=project/"development"/("native-"+label+"-r2")
+  for group,variant,count,private in tail:
+   label=group+"-"+str(variant);out=project/"development"/("native-"+label+"-r3")
    try:
     common.run("emitter-whole-"+label,[context["python"],"-B",project/"tests/test_hia_complete_emitter.py",
        "--assets",assets,"--carrier",carrier,"--reference",context["reference"],"--out",out,
@@ -416,20 +525,36 @@ def main():
    assert value["original_group_limits_include_evidence_encoding"]
    assert not any(value[k] for k in("full_public_backend","installed","cold","host_instruction_or_ELF_generation"))
    value["independent_case_readback"]=case_rows(out,value)
-  assert len(report["groups"])==55 and (report["actual_cases"],report["actual_private_controls"])==(732,50)
+  assert len(report["groups"])==11 and (report["actual_cases"],report["actual_private_controls"])==(62,50)
   cats={name:sum(v["case_categories"].get(name,0) for v in report["groups"].values())
      for name in("WHOLE_NATIVE_EMITTER","PRIVATE_EMITTER_PROFILE","PRIVATE_EMITTER_PERMANENT_BAD")}
-  assert cats==dict(WHOLE_NATIVE_EMITTER=673,PRIVATE_EMITTER_PROFILE=9,PRIVATE_EMITTER_PERMANENT_BAD=50)
-  assert sum(v["independent_case_readback"]["crosscheck_cases"] for v in report["groups"].values())==2
-  assert sum(v["independent_case_readback"]["python_full_CAS_cases"] for v in report["groups"].values())==52
-  assert sum(v["independent_case_readback"]["lossless_raw_files"] for v in report["groups"].values())==1364
+  assert cats==dict(WHOLE_NATIVE_EMITTER=4,PRIVATE_EMITTER_PROFILE=8,PRIVATE_EMITTER_PERMANENT_BAD=50)
+  assert sum(v["independent_case_readback"]["crosscheck_cases"] for v in report["groups"].values())==0
+  assert sum(v["independent_case_readback"]["python_full_CAS_cases"] for v in report["groups"].values())==50
+  assert sum(v["independent_case_readback"]["lossless_raw_files"] for v in report["groups"].values())==24
+  check_pairs_after(report["production_identity"])
+  assert carrier.read_bytes()==Path(old["old_C_executable"]).read_bytes()
+  assert file_hash(carrier)==baseline["actual_C_build"]["executable"]
+  fixture_delta(project)
+  previous=old["actual_original_passed_groups"]
+  assert not ({(g,v) for g,v,_,_ in previous}&{(g,v) for g,v,_,_ in tail})
+  assert previous+tail==SCHEDULE
+  report["two_distinct_run_coverage"]=dict(
+      same_eleven_production_source_and_image_bytes_before_after=True,
+      previous=dict(run=43184755381,job=131069068249,status="FAIL",passed_groups=previous,
+                    passed_cases=670,native_entries=1549752),
+      current=dict(groups=tail,cases=62,native_entries=report["actual_native_entries"]),
+      original_schedule_55_covered_without_omission=True,
+      combined_cases=732,single_run_55_group_PASS=False)
+
   report.update(status="PASS",case_categories=cats,
       actual_by_role={str(i):sum(v["by_role"][str(i)] for v in report["groups"].values()) for i in range(1,12)},
       canonical_HIA_source_document_profile_actual_image_retained=True,
       exact_complete_machine_text_ELF_errors_and_surviving_Code_registry_equal=True,
       complete_image_input_command_ACK_and_final_slot_evidence=True,
       all_large_case_intermediate_workspaces_recorded=False,
-      small_crosscheck_full_intermediate_CAS_retained=True)
+      current_50_protocol_full_intermediate_CAS_retained=True,
+      old_2_crosschecks_preserved_in_exact_original_artifact=True)
   status="PASS"
  except BaseException as error:
   report.update(status="FAIL",error_class=type(error).__name__,error=str(error),traceback=traceback.format_exc())
@@ -437,6 +562,6 @@ def main():
  finally:
   roots={}
   if project is not None and project.exists():roots["emitter-full"]=project
-  seal.finish(common,"emitter-full-r2",status,report,roots=roots)
+  seal.finish(common,"emitter-full-r3-tail11",status,report,roots=roots)
  if status!="PASS":raise SystemExit(1)
 if __name__=="__main__":main()

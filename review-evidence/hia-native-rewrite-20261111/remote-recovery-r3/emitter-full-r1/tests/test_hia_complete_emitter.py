@@ -346,9 +346,11 @@ class Suite:
    if variant==2:doc["exports"]=["f"+str(i) for i in range(128)]
    self.exact("late-entry-count-"+str(variant),doc)
   elif variant==4:
-   doc=self.M.doc(self.W.fixture(["readbuf"],["u32"],"zz")["functions"][0],
-                 self.W.fixture(["mutbuf"],["u32"],"aa")["functions"][0])
+   doc=self.M.doc(self.W.fixture(["u32"],["u32","u64"],"zz")["functions"][0],
+                 self.W.fixture(["u64"],["u64","u32"],"aa")["functions"][0])
    doc["exports"]=["zz","aa"];self.exact("missing-exports-sort-first",doc)
+   assert self.cases[-1]["error"]==dict(type="HIAProgramNativeRejected",domain=2,
+       text="E_HIA_PROGRAM_ABI: explicit exports have signatures outside the native C ABI: aa, zz")
   elif variant==5:
    doc=self.W.fixture(["readbuf"],["u32"],"skip");self.exact("zero-scalar-entry",doc)
   elif variant==6:

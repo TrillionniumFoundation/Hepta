@@ -331,3 +331,71 @@ identity pins necessitated by this preparation change. The original 55-group,
 remain. A fresh revision must execute that complete schedule; FOLLOW38's partial
 results are retained under their original source/image identities and are not
 revision-2 PASS evidence. This revision is NEW and UNEXECUTED when authored.
+
+
+## FOLLOW39 observed frontier and a separate tail verification
+
+FOLLOW39 job 131069068249 at head
+f3d17aac2caabd1a077fee0848707f3a50ac3b46 actually built all eleven HIA owners
+and passed the first 44 scheduled groups: 670 cases and 1,549,752 native entries.
+The next group, late/4, failed while the independent reference Core verifier was
+admitting its fixture. Its exact error was
+"E_HIA_TYPE: public exports cannot carry resource descriptors"; that group
+executed zero native entries. The complete original run remains FAIL.
+
+The old fixture supplied readbuf/mutbuf parameters and explicit exports zz, aa.
+Those signatures cannot reach the Emitter through the original public Core
+front door. The new fixture supplies legal scalar parameters and two scalar
+return values. Core accepts those signatures, and the original Emitter excludes
+them from the scalar C ABI because it requires at most one return value.
+The new case retains explicit input order zz, aa and additionally requires the
+complete original Emitter rejection:
+"E_HIA_PROGRAM_ABI: explicit exports have signatures outside the native C ABI: aa, zz".
+No production HIA author, generated source, native image, runtime mechanics,
+reference, resource limit, original private control or other fixture is changed.
+
+A new targeted run reads the complete published failed archive before executing
+any target. The reader has 90 CPU seconds, 180 wall seconds and 1 GiB; it imports
+no product and executes no target or subprocess. It checks all 43,774 tar members
+and 1,012,497,507 original bytes against the pinned complete JSONL ledger,
+including every byte, mode and SHA256. It preserves every original group and
+case result, all eleven actual source/image pairs, all source-before/after
+records, and a complete byte-checked copy of the original compressed archive
+and ledger. This is an independent inner-archive readback, not a new native run
+or an independent outer-ZIP download. Original compressed logical-buffer
+checks remain the original run's checks; the new reader verifies the complete
+encoded members without pretending to have rerun the old encoder or native
+calls.
+
+The new CI regenerates and compiles eleven owners using the same exact 35ee B3
+and original compiler limits. Each complete generated source and image must
+equal its preserved FOLLOW39 original byte for byte. The complete profile,
+compiler receipt's invariant fields, author identity, immutable source
+snapshots and development carrier executable must also match. Any production
+difference is a failure; it cannot silently enable tail-only qualification.
+
+Only the previously incomplete suffix runs: late/4 through late/7, profile/0,
+and protocol/0 through protocol/5. This is eleven groups and 62 cases, including
+50 private controls, with the original per-group 90 CPU/180 wall/1 GiB gate.
+The suffix retains full bytes/errors, Code state, ordered registry, complete
+commands/ACKs/final slots and the original protocol full intermediate-workspace
+CAS. The test file is compared to the frozen old test using one exact fixture
+replacement, preserving all other tests and assertions.
+
+A successful future suffix can establish coverage of the original 55-group
+schedule across two separately identified runs with identical production bytes.
+It must never be described as one run passing 55 groups. The fresh run's case
+and entry counts include only its own eleven groups. The original 39 Function
+and 26 wrapper suites are neither rerun nor inherited. Public plan/admission,
+implementation identity, installed entry, object publication and the complete
+backend remain separate unclosed responsibilities.
+
+The original failed run's immutable artifact identity is:
+artifact 13928557086, archive SHA256
+accd7056db33d832632d9017ff2ece5c3803fdff6379168419bae0cd0f7888b0
+(162,416,008 bytes), JSONL ledger SHA256
+7977b41c33f23e6412e575adb7018b1ac4816212d59c441890908208e9ff9160
+(17,195,445 bytes). The full original job log and all printed original build/group
+summaries are preserved separately. This section records an observed original
+failure and a new unexecuted repair/verification design; it does not assert a
+new result.

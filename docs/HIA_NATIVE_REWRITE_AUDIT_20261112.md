@@ -1,10 +1,10 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW40）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW41）
 
 ## 当前结论
 
 **整套仍为 OPEN。普通补丁协调器已有完整独立 CI 通过；Function、wrapper 和命名空间若干域已有明确进展。完整 Emitter、Worker、普通 Store/SQL、安装与全部公开入口仍未闭合。当前生产入口仍依赖 Python，本提交不激活新生产入口、不删除旧实现。**
 
-FOLLOW37恢复点为e3ea7f33f1d7bf3350e4b54a9a8d3522746223c7，树f13b040a6f98ee39bef6f4db81f60d33a0dbd098、5,249文件。FOLLOW38已发布为86c3e60966085f9aefde1170fbbb737c20a52422，树fc5737b2d001163aba37d57f2e1244668feeddd8、5,366文件；FOLLOW39已发布为f3d17aac2caabd1a077fee0848707f3a50ac3b46，树e01d092ffe2dbba5aba01f62a7be77ab0f0fb0a2、5,546文件；本轮FOLLOW40以FOLLOW39为唯一父提交。独立完整基线始终固定为 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5，树 6ef9e1713065436a3b1886fe9edcf0a4a1120773，共2,798文件。FOLLOW37完整新增/恢复文件身份见 ci-followup-r37/publication-manifest.json；FOLLOW38、FOLLOW39及本轮新增/替换源码分别见对应ci-followup目录中的publication-manifest.json。
+FOLLOW37恢复点为e3ea7f33f1d7bf3350e4b54a9a8d3522746223c7，树f13b040a6f98ee39bef6f4db81f60d33a0dbd098、5,249文件。FOLLOW38已发布为86c3e60966085f9aefde1170fbbb737c20a52422，树fc5737b2d001163aba37d57f2e1244668feeddd8、5,366文件；FOLLOW39已发布为f3d17aac2caabd1a077fee0848707f3a50ac3b46，树e01d092ffe2dbba5aba01f62a7be77ab0f0fb0a2、5,546文件；FOLLOW40已发布为3a230c96c7ab0c0c12ed8caa552691ab226bcd05，树00331bbcfa30977f1d7ecd6578be0cdc51662e9e、5,680文件；本轮FOLLOW41以FOLLOW40为唯一父提交。独立完整基线始终固定为 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5，树 6ef9e1713065436a3b1886fe9edcf0a4a1120773，共2,798文件。FOLLOW37完整新增/恢复文件身份见 ci-followup-r37/publication-manifest.json；FOLLOW38、FOLLOW39及本轮新增/替换源码分别见对应ci-followup目录中的publication-manifest.json。
 
 本地计算环境在本轮工作中容量耗尽，随后正式 unavailable。失联前未取得终态的任务保持 UNKNOWN，不重放或推断成功。已落入 Git 的源码/证据继续用于独立 CI；尚未完成封包的本地记录不被描述为完整可恢复证据。
 
@@ -166,10 +166,28 @@ P16/P17/P18新固定服务组合有25项源/依赖文件，加完整交付manife
 
 截至本轮提交前，[完整原保留回归](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43180758665)仍在原runner步骤中；原4157项FAIL/HOLD不变。[FOLLOW39恢复CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43184755381)的实际PASS/FAIL边界如上。公共composite完整诊断、Worker完整初始化服务桥、unixOpen及Store、checked-plan与完整公开编译/安装仍分别推进。
 
+## FOLLOW41：精确失败修复与尚未完成的组合门
+
+FOLLOW40的程序服务和两个只读任务仍排队，未产生新目标执行结论。此处只报告已取得原始日志的FOLLOW39实际观察，以及本轮新源码需要接受的门。
+
+完整Emitter原日志591,319字节（Git 1e984ce18eadce6bee730078e011d9dba8cd6511）及45份实际组摘要106,026字节（Git 238cd0299b2663a0793f0b2359ae19902ce77daf）已全文Git回读。原11次B3后，前44组670例、1,549,752次native入口全部PASS。第45组late4尚未创建Emitter、0 native入口，原fixture的资源参数显式exports先被Core以“E_HIA_TYPE: public exports cannot carry resource descriptors”拒绝。新fixture仅改为Core可接受的scalar参数加双scalar返回，仍要求原Emitter的完整错误“E_HIA_PROGRAM_ABI: explicit exports have signatures outside the native C ABI: aa, zz”。全部其它测试和11个生产作者不变。
+
+本轮Emitter先读取原43,774个成员、1,012,497,507原字节，保存完整归档和账本，再验证原44组实际明细。原包在解析与语义断言前即复制保全；任何读回失败都保留原错误和partial状态。随后11个新B3源、像、profile、稳定编译字段及全部原源码快照必须与原件逐字节相等，才执行剩余11组62例/50私有控制。原55组调度表完整保留，用精确组名验证两轮覆盖集合。原run仍FAIL，两个run的覆盖并集不能描述为一次55组PASS；完整public backend、外层入参及安装仍OPEN。
+
+FS8 r3只修正已经触发的DMS9精确源证明：新DSL70,707字节，SHA256 95e13ccf13d9780c06e089773133479a44fd83e6d9fc9fe5f0a40820c7946e3e；唯一op上限29→24逆转后必须严格等于旧SHA256 7fe09da5b8d59c14d1b5cd6fbc65b4c937677e410356d843a74affc62770d310。原4,046字节origin/Builder尾部完全不变。独立10个纯源码控制先于B3，两个接受与八个拒绝都要实际执行。不会放开任意新源或删掉旧fixed-header证明门。
+
+新的issued-FS r3固定组合在唯一DMS/FS上下文中承接完整caller/action/sequence与256字节已发行FS请求，逐项绑定实际结果。原18物理组、10全局复用组、6 FS8原语组的方法体均完整保留，再加8个续接组，共42组。本轮只选择这个42组组合，不重复运行独立34组变体；后者精确修正源和CI仍可审阅。两个变体均保留6角色+1packer fresh B3、33packer控制、84×旧VM/新VM/native和所有原预算。该门仍是private发行请求fixture，完整unixOpen、临时名/随机与普通Store/SQL不能继承其结果。
+
+ordinary impact r2保留原协议的canonical impact view。原r1协议和原static-impact对照使用规范JSON，整链测试却对report用了插入顺序编码；新测试只把该report视图改用原canonical helper，receipt仍保留原序列。原analyze_patch_impact完整语义oracle、所有输入、13组329例、错误顺序均不改。根还在独立读取r1实际CAS，未在未读全字节前将原差异归因为“仅顺序”或重标旧PASS。
+
+r2原生性能修订只涉及SHA私有字宽。原SHA所有64个常数、8个状态字、输入四字节词和每个扩展/压缩更新均为32位；新hash_get读取每个原八字节槽的低四字节，hash_put保持低四字节和四个zero高字节。其它64位元数据、完整哈希、三次实际Core admission、逐字节候选比较、receipt/graph/report行为和缓冲区范围不变。原95/96秒预算失败保留，修订尚无实际性能测量；新6次B3和全部13组必须接受原90CPU/180wall门。
+
+本轮活动语法清单为531项。被新r3/r2替代的44项旧活动路径只从当前选择中移出，旧源码和原失败均留在Git。122个恢复job全部保留Ubuntu24.04/x86_64域门，显式选择issued-FS42、FS8原93member只读、Emitter剩余11组、impact r2四项。提交前新源码仍为0 AST/生成/B3/VM/native。当前156个生产模块保持完整，安装替换数仍为0。
+
 ## 最终闭合和清理门
 
 B3保持10CPU秒/20wall秒/256MiB，源/输出/工作区各1MiB。Bootstrap保持128functions、1536blocks、8192operations、每函数256blocks、每block16参数、SSA<2048；不存在额外128operations/block门。公共1024函数与Bootstrap容量分别验收。普通配对原90CPU/180wall/1GiB、物理原900秒聚合门不变。
 
 完整公开入口、编译/执行/存储/Worker、工具链、安装、更新与恢复都必须有实际HIA承接。随后需要在旧业务实现不可调用的环境中执行完整功能、冷启动、故障、平台和安装验收，并绑定可重建的HIA源、镜像、安装包与精确提交。Python作者、现有安装器、机械汇编和当前产品入口仍是待替换依赖。
 
-**FOLLOW40保留所有旧失败和旧实现，继续提交实际HIA组合、精确修复和完整原件。整套仍OPEN，激活0个新生产入口，删除0个仓库文件。**
+**FOLLOW41保留所有旧失败和旧实现，继续提交实际HIA组合、精确修复和完整原件。整套仍OPEN，激活0个新生产入口，删除0个仓库文件。**

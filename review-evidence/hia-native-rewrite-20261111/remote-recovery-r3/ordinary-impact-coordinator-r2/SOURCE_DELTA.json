@@ -1,0 +1,56 @@
+{
+  "schema": "hia-ordinary-impact-r2-source-delta-v1",
+  "prior_exact_head": "f3d17aac2caabd1a077fee0848707f3a50ac3b46",
+  "prior_run": 43184755381,
+  "prior_job": 131069068426,
+  "classification": "SOURCE_ONLY_NOT_EXECUTED",
+  "status": "UNQUALIFIED",
+  "original_failure_preserved": true,
+  "test_delta": {
+    "original": {
+      "bytes": 19428,
+      "gitsha": "350284e3a8ea5375156183d4c57c26b2cf0fa393",
+      "sha256": "ccc4cf445baa6ab7bc29978c052b741432269d4f7b1ee525d99ee5106264072d"
+    },
+    "new": {
+      "bytes": 19430,
+      "gitsha": "67c81f1551350d56210fdb7758214935caec80d8",
+      "sha256": "8b4eb26c3f601558b3e6d0bd86bbe5ba1bc257d8580b7aa1bb362edc6bf28771"
+    },
+    "description": "Correct impact serialization to the existing canonical wire contract stated by PROTOCOL.md and used by the original independent static-impact test. Original analyze_patch_impact remains the full oracle; receipt retains original ordered serialization; inputs, all 13 groups and329 cases and all limits are unchanged. Raw failed buffers will independently establish whether the observed differences are solely order."
+  },
+  "native_delta": {
+    "original": {
+      "bytes": 27281,
+      "gitsha": "10fd6493cece709385c661a18482b9bf481b254b",
+      "sha256": "95cdee2d444109f29240124a70956f1b384c80198a6382ba9a953d961436c481"
+    },
+    "new": {
+      "bytes": 27618,
+      "gitsha": "48b35a89ea199d69271fd94e8f34c9e5e6fb1f74",
+      "sha256": "933cf209d6d079ab95236c984347d6423ba13def32c5ac251144e1fbe86ee480"
+    },
+    "description": "Only private SHA word helpers use the low four bytes of each existing eight-byte scratch slot; stores preserve all eight bytes with zero high half. All original analyzer parsing, receipts, inventory, graph, report formatting and diagnostic behavior is byte-identical source.",
+    "invariants": [
+      "Exact original SHA author Git b59c2259f038eab830c16bf498b14a5d15556ee4 initializes all64 ROUND slots and8 INITIAL slots with32-bit constants.",
+      "Every message schedule word is either four input bytes or an explicit sum masked with4294967295; every compression/state update is masked with4294967295.",
+      "Every SHA word read has been initialized on every invocation/block before that read; upper four bytes are zero.",
+      "hash_get/hash_put are private to SHA compression; ordinary64-bit JSON/state get/put helpers remain unchanged.",
+      "Stored upper halves remain zero, preserving the original complete scratch bytes; no work buffer region or capacity changes."
+    ]
+  },
+  "original_limits": {
+    "cpu": 90,
+    "wall": 180,
+    "address": 1073741824,
+    "B3_cpu": 10,
+    "B3_wall": 20,
+    "B3_address": 268435456
+  },
+  "new_AST": 0,
+  "new_generation": 0,
+  "new_B3": 0,
+  "new_native": 0,
+  "performance_improvement_observed": false,
+  "whole_stack_closed": false
+}
