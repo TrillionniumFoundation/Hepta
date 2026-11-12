@@ -1,0 +1,240 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "init",
+        "--initial-branch=main",
+        "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/origin"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3",
+      "elapsed_ns": 7323415,
+      "label": "init",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "Initialized empty Git repository in /workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/origin/.git/\n",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "config",
+        "user.name",
+        "HIA fixture"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/origin",
+      "elapsed_ns": 2410459,
+      "label": "name",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "config",
+        "user.email",
+        "hia-fixture@example.invalid"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/origin",
+      "elapsed_ns": 2336367,
+      "label": "email",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "add",
+        "witness.txt"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/origin",
+      "elapsed_ns": 2209376,
+      "label": "add-parent",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "commit",
+        "-m",
+        "fixture parent"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/origin",
+      "elapsed_ns": 6373535,
+      "label": "commit-parent",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "[main (root-commit) 30e23d2] fixture parent\n 1 file changed, 1 insertion(+)\n create mode 100644 witness.txt\n",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/origin",
+      "elapsed_ns": 2326472,
+      "label": "parent",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "30e23d29b515dc2c6922c2530c76e948c813deab\n",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "add",
+        "witness.txt"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/origin",
+      "elapsed_ns": 2288435,
+      "label": "add-child",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "commit",
+        "-m",
+        "fixture child"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/origin",
+      "elapsed_ns": 5213038,
+      "label": "commit-child",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "[main c7e9d3b] fixture child\n 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/origin",
+      "elapsed_ns": 1220687,
+      "label": "head",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "c7e9d3be35f2309456b0b840623daf81feeca520\n",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--depth=1",
+        "file:///workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/origin",
+        "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/depth-1"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3",
+      "elapsed_ns": 18855662,
+      "label": "clone-1",
+      "returncode": 0,
+      "stderr": "Cloning into '/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/depth-1'...\n",
+      "stdout": "",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/depth-1",
+      "elapsed_ns": 1335781,
+      "label": "head-1",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "c7e9d3be35f2309456b0b840623daf81feeca520\n",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD^"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/depth-1",
+      "elapsed_ns": 1413729,
+      "label": "parent-1",
+      "returncode": 128,
+      "stderr": "fatal: ambiguous argument 'HEAD^': unknown revision or path not in the working tree.\nUse '--' to separate paths from revisions, like this:\n'git <command> [<revision>...] -- [<file>...]'\n",
+      "stdout": "HEAD^\n",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--depth=2",
+        "file:///workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/origin",
+        "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/depth-2"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3",
+      "elapsed_ns": 17711661,
+      "label": "clone-2",
+      "returncode": 0,
+      "stderr": "Cloning into '/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/depth-2'...\n",
+      "stdout": "",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/depth-2",
+      "elapsed_ns": 1409653,
+      "label": "head-2",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "c7e9d3be35f2309456b0b840623daf81feeca520\n",
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD^"
+      ],
+      "cwd": "/workspace/scratch/dda74a4fae35/context-ci-checkout-depth-r3/git-fixture/depth-2",
+      "elapsed_ns": 2035404,
+      "label": "parent-2",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "30e23d29b515dc2c6922c2530c76e948c813deab\n",
+      "timeout_seconds": 15
+    }
+  ],
+  "fixture_only": true,
+  "input_sha256_before_after": {
+    "original-r2.yml": "2f561643ecba5c808092c3a10ba60b72f48b69609269febeeb916dc30bc378f0",
+    "revised-r3.yml": "b8547996b7925deb39c937f25aa38b70a373e1be55b94b137b959f5799ca15da"
+  },
+  "native_execution_performed": false,
+  "observations": [
+    "exact workflow projection preserves all old steps and limits",
+    "real depth-one Git checkout refuses strict parent lookup with 128",
+    "real depth-two Git checkout returns exact original parent"
+  ],
+  "original_remote_failure_blob": "42999ce8957a519185e7231768ddccc02c8b4831",
+  "product_git_identity_tested": false,
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "schema": "hia.context-ci.checkout-depth-controls.v1",
+  "status": "PASS",
+  "tests": 3
+}
