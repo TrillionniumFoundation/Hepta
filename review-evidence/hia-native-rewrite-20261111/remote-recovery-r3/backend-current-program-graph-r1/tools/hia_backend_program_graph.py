@@ -222,9 +222,24 @@ def extend(generator,owner_raw,generator_raw):
         "    if get(w, C_MAGIC) == 0 and get(w, L_MAGIC) == 0:\n"
         "        if length(s) != 64 or word(s, 40) != 1 or word(s, 48) != 0:\n"
         "            return refuse(w, 12501)\n")
-    top=unique_replace(top,
-        "get(w, WP_MAGIC) != WP_STATE or acknowledge(s, w, MAIN) == 0:",
-        "get(w, WP_MAGIC) != WP_STATE or get(w, WP_MODE) != 1 or get(w, WP_TREE) != 0 or acknowledge(s, w, MAIN) == 0:")
+    # Match the whole pinned condition in this interpreter's own AST spelling.
+    # A suffix of a long BoolOp is not a stable unparse text boundary.
+    resume_before=ast.parse(
+        "get(w, C_MAGIC) != EDIT_STATE or get(w, A_MAGIC) != A_STATE_MAGIC or "
+        "get(w, WP_MAGIC) != WP_STATE or acknowledge(s, w, MAIN) == 0",
+        mode="eval").body
+    resume_after=ast.parse(
+        "get(w, C_MAGIC) != EDIT_STATE or get(w, A_MAGIC) != A_STATE_MAGIC or "
+        "get(w, WP_MAGIC) != WP_STATE or get(w, WP_MODE) != 1 or "
+        "get(w, WP_TREE) != 0 or acknowledge(s, w, MAIN) == 0",
+        mode="eval").body
+    resume_signature=ast.dump(resume_before,include_attributes=False)
+    assert sum(isinstance(node,ast.If)
+        and ast.dump(node.test,include_attributes=False)==resume_signature
+        for node in ast.walk(original["worker_program_service"]))==1
+    old_resume=ast.unparse(resume_before)+":"
+    new_resume=ast.unparse(resume_after)+":"
+    top=unique_replace(top,old_resume,new_resume)
     top=unique_replace(top,
         "        elif phase >= 88000 and phase < 88100:\n",
         "        elif phase >= 91000 and phase < 91100:\n"
@@ -236,9 +251,7 @@ def extend(generator,owner_raw,generator_raw):
         "        if length(s) != 64 or word(s, 40) != 1 or word(s, 48) != 0:\n"
         "            return refuse(w, 12501)\n",
         "    if get(w, C_MAGIC) == 0 and get(w, L_MAGIC) == 0:\n",1)
-    restored=restored.replace(
-        "get(w, WP_MAGIC) != WP_STATE or get(w, WP_MODE) != 1 or get(w, WP_TREE) != 0 or acknowledge(s, w, MAIN) == 0:",
-        "get(w, WP_MAGIC) != WP_STATE or acknowledge(s, w, MAIN) == 0:",1)
+    restored=restored.replace(new_resume,old_resume,1)
     restored=restored.replace(
         "        elif phase >= 91000 and phase < 91100:\n"
         "            result = backend_graph_step(o, w, phase)\n", "",1)

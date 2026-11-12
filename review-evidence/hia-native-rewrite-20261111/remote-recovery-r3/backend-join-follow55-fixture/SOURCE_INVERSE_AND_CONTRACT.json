@@ -1,0 +1,200 @@
+{
+  "schema": "hia-backend-follow54-retained-negative-plus-new-positive-fixture-v2",
+  "status": "NEW_UNEXECUTED",
+  "failed_head": "c6b8c01415473e68faed37e6c39ccf1d0f35d981",
+  "failed_run": 43246524664,
+  "failed_job": 131280574692,
+  "failure_log": {
+    "bytes": 853170,
+    "sha256": "b710e2007a12d9320611c65c41d892c82af31766395031a294fe4baeafb9ae5d",
+    "gitsha": "6580ac55686e67780f8cb2b416be01d0bc40b5b3"
+  },
+  "original_stderr": {
+    "bytes": 1005,
+    "sha256": "17c188deccb3af2713d23ee7666b10102575443c589d66ac3007a1a49a6b55d3",
+    "gitsha": "86100c6be17a6e7030a26456767675c0afda30a9"
+  },
+  "first_failure": {
+    "group": "plan",
+    "variant": 0,
+    "label": "closed-backedge-reordered",
+    "original_reference_exception": "HIAProgramNativeRejected",
+    "original_reference_text": "E_HIA_PROGRAM_NATIVE: native profile requires between 1 and 128 admitted entrypoints",
+    "target_entries_for_rejected_case": 0
+  },
+  "observed_before_failure": {
+    "complete_groups": [
+      {
+        "group": "cross",
+        "cases": 2,
+        "native_entries": 12748
+      },
+      {
+        "group": "scalar",
+        "cases": 12,
+        "native_entries": 29635
+      }
+    ],
+    "partial_group": {
+      "group": "plan",
+      "cases_completed": 4,
+      "native_entries": 11020,
+      "group_status": "FAIL"
+    },
+    "full_133": false
+  },
+  "source_reference": {
+    "frame_fixture": {
+      "path": "tests/function_frame_test_reference.py",
+      "bytes": 42184,
+      "sha256": "b3d590336e647df0804ef51c62b73ca2236abdfe8774161d4fd155cf0a5fbee6",
+      "gitsha": "a7d64f7804753398df08e69158bcebb7afc54747",
+      "def_name": "edge_case",
+      "full_text": "    a,b,c=param(\"a\",\"u64\"),param(\"b\",\"u64\"),param(\"cond\",\"bool\")\n    x,y,z=param(\"x\",\"u64\"),param(\"y\",\"u64\"),param(\"loop\",\"bool\")\n    u,v=param(\"u\",\"u64\"),param(\"v\",\"u64\")\n    blocks=[block(\"entry\",[a,b,c],[],dict(op=\"jump\",target=\"loop_block\",args=[\"b\",\"a\",\"cond\"])),\n        block(\"loop_block\",[x,y,z],[],dict(op=\"branch\",cond=\"loop\",\n            then=dict(target=\"loop_block\",args=[\"y\",\"x\",\"loop\"]),else_=None)),\n        block(\"end\",[u,v],[],dict(op=\"ret\",values=[\"u\",\"v\"]))]\n    term=blocks[1][\"term\"];term.pop(\"else_\");term[\"else\"]=dict(target=\"end\",args=[\"x\",\"y\"])\n    return program(function(params=[a,b,c],returns=[\"u64\",\"u64\"],blocks=blocks))"
+    },
+    "native": {
+      "path": "hepta/hia_program_native.py",
+      "bytes": 46917,
+      "sha256": "bf953a8b85d1ebc6b9d7a90fbbcaa4137e40ed214c2ede2af1a13cfc01b1c07c",
+      "gitsha": "1d0e0344f8300b11b5dd505cbea655170aba5be1",
+      "wrapper_exact": "        name = fn[\"name\"]\n        if name in self.foreign_buffer_exports:\n            from .hia_native_byte_abi import emit_wrapper\n            emit_wrapper(self, fn, self.foreign_buffer_exports[name])\n            return\n        if (name not in self.allowed_exports\n                or any(p[\"type\"] not in set(WIDTHS) | {\"bool\"} for p in fn[\"params\"])\n                or len(fn[\"returns\"]) > 1\n                or any(t not in set(WIDTHS) | {\"bool\", \"unit\"} for t in fn[\"returns\"])):\n            return\n        if name in IMPORTS or name in _LOADER_HOOKS or name.startswith(\"__hia_\"):\n            _reject(\"export conflicts with the closed runtime or loader ABI\", \"E_HIA_PROGRAM_ABI\")\n        count = len(fn[\"params\"])\n        frame = ((count + 1) * 8 + 15) & -16\n        if frame > MAX_FRAME_BYTES:\n            _reject(\"entry wrapper exceeds the stack budget\", \"E_HIA_PROGRAM_LIMIT\")\n        c = self.c\n        begin = len(c.data)\n        _prologue(c, frame)\n        input_slot, result_slot = -frame, -8\n        # rax is the only scratch until every incoming argument is saved.\n        for i, param in enumerate(fn[\"params\"]):\n            if i < len(_ARG_REGS):\n                c.mov_rr(\"rax\", _ARG_REGS[i])\n            else:\n                c.load(\"rax\", \"rbp\", 16 + 8 * (i - len(_ARG_REGS)))\n            _normalize(c, \"rax\", param[\"type\"])\n            c.store(\"rbp\", input_slot + i * 8, \"rax\")\n        c.lea(\"rdi\", \"rbp\", input_slot); c.lea(\"rsi\", \"rbp\", result_slot)\n        c.call(self.function_symbol(name))\n        if fn[\"returns\"] and fn[\"returns\"] != [\"unit\"]:\n            c.load(\"rax\", \"rbp\", result_slot)\n            _normalize(c, \"rax\", fn[\"returns\"][0])\n        c.leave(); c.ret()\n        self.symbols.append({\"name\": name, \"offset\": begin, \"size\": len(c.data) - begin, \"global\": True})\n        self.exports.append(name)\n"
+    },
+    "core": {
+      "path": "hepta/hia_program.py",
+      "bytes": 45247,
+      "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92",
+      "gitsha": "5d0027f4453759e4156a3496e64215c441a727e4",
+      "property": "VerifiedProgram.scalar_entrypoints"
+    },
+    "fixture_constructor": {
+      "path": "tests/function_lowering_test_reference.py",
+      "bytes": 48120,
+      "sha256": "e08023ddab7501313a45825e5e2cdbba40d3524fee3e4a0f9ad33ba65335bc17",
+      "gitsha": "cb42b8e725bc16471c1cd9fd965c0bdd7f704405"
+    }
+  },
+  "reason": "The retained internal Function/frame fixture f has returns [u64,u64]. It is valid Core and is included by scalar_entrypoints, but _Emitter.wrapper returns early for len(returns)>1. With only f in the program no native exports are emitted, so render rejects the program before the native target can be issued.",
+  "correction": "Retain the exact original F.edge_case input, machine-plan block order and closed-backedge-reordered label as a negative case. Require the exact observed HIAProgramNativeRejected class and full text, then compare the actual target full error bytes. Separately add closed-backedge-reordered-public-entrypoint: copy the complete original f unchanged and append edge_entry(a:u64,b:u64,cond:bool)->u64 which calls f, receives both original u64 results and returns the first. Original verify_program/emit_program_machine must report success before this new positive target command. New total is original 133 cases plus one: 134, with plan group 7 and all other groups unchanged.",
+  "test_edit": {
+    "old": {
+      "bytes": 34947,
+      "sha256": "293b599f1e2845b719df5eb95e9747be657b00263ebec59001db53584a9a1c2d",
+      "gitsha": "69dce61d53da0cb96c3b0482182463e4e5850d8d"
+    },
+    "new": {
+      "bytes": 36135,
+      "sha256": "072f61c4cbf9a90732346784362ce9108c2e6a550c78a0324cd7ae25d5977c03",
+      "gitsha": "069ff17fb22782f0582d458de0a6788e0c880a4d"
+    },
+    "edits": [
+      {
+        "before": "  doc=self.F.edge_case();plan=self.plan_for(doc);plan[\"block_order\"]={\"f\":[\"end\",\"loop_block\",\"entry\"]}\n  self.exact(\"closed-backedge-reordered\",doc,plan,expect_success=True)\n",
+        "after": "  doc=self.F.edge_case();plan=self.plan_for(doc);plan[\"block_order\"]={\"f\":[\"end\",\"loop_block\",\"entry\"]}\n  # Preserve the original valid Core input and its observed zero-C-entrypoint\n  # rejection: an internal function with two results has no public C wrapper.\n  self.exact(\"closed-backedge-reordered\",doc,plan,expect_success=False,expect_rejection=(\n    \"HIAProgramNativeRejected\",\"E_HIA_PROGRAM_NATIVE: native profile requires between 1 and 128 admitted entrypoints\"))\n  # Add a separate positive case. Keep f and every original CFG edge/result\n  # unchanged, and call it from a legal one-result public entrypoint.\n  original_functions=copy.deepcopy(doc[\"functions\"])\n  assert len(original_functions)==1 and original_functions[0][\"name\"]==\"f\"\n  assert original_functions[0][\"returns\"]==[\"u64\",\"u64\"] and \"exports\" not in doc\n  doc[\"functions\"].append(self.M.fn(\"edge_entry\",\n      params=[self.M.p(\"a\",\"u64\"),self.M.p(\"b\",\"u64\"),self.M.p(\"cond\",\"bool\")],\n      ops=[self.M.ins(\"call\",[\"a\",\"b\",\"cond\"],\n          [self.M.p(\"left\",\"u64\"),self.M.p(\"right\",\"u64\")],{\"function\":\"f\"})],\n      returns=[\"u64\"],term=dict(op=\"ret\",values=[\"left\"])))\n  assert doc[\"functions\"][:-1]==original_functions\n  plan=self.plan_for(doc);plan[\"block_order\"]={\"f\":[\"end\",\"loop_block\",\"entry\"]}\n  self.exact(\"closed-backedge-reordered-public-entrypoint\",doc,plan,expect_success=True)\n"
+      },
+      {
+        "before": "[\"plan\",0,6,0]",
+        "after": "[\"plan\",0,7,0]"
+      }
+    ],
+    "forward_exact": true,
+    "inverse_exact": true
+  },
+  "ci_edit": {
+    "old": {
+      "bytes": 50981,
+      "sha256": "5856c4f3c8c693674f4a5c51fe0973573fad858a2a5d40de1a8a1d2f7b0ea8f9",
+      "gitsha": "a38ba236abb86fccd108384d85c50ceea4a3412c"
+    },
+    "new": {
+      "bytes": 50981,
+      "sha256": "b6432391f44e6568f93d565a949a44eea2e48b9cd0b7e84f3505daf0d00ca351",
+      "gitsha": "57cd7a5c28e50a9c0df2ee9af303de02d75dc725"
+    },
+    "edits": [
+      {
+        "before": "\"path\": \"tests/test_hia_backend_join.py\",\n    \"mode\": \"100644\",\n    \"bytes\": 34947,\n    \"sha256\": \"293b599f1e2845b719df5eb95e9747be657b00263ebec59001db53584a9a1c2d\",\n    \"gitsha\": \"69dce61d53da0cb96c3b0482182463e4e5850d8d\"\n  }",
+        "after": "\"path\": \"tests/test_hia_backend_join.py\",\n    \"mode\": \"100644\",\n    \"bytes\": 36135,\n    \"sha256\": \"072f61c4cbf9a90732346784362ce9108c2e6a550c78a0324cd7ae25d5977c03\",\n    \"gitsha\": \"069ff17fb22782f0582d458de0a6788e0c880a4d\"\n  }"
+      },
+      {
+        "before": "[\"plan\",0,6,0]",
+        "after": "[\"plan\",0,7,0]"
+      },
+      {
+        "before": "expected_cases=133",
+        "after": "expected_cases=134"
+      },
+      {
+        "before": "sum(r[2] for r in SCHEDULE)==133",
+        "after": "sum(r[2] for r in SCHEDULE)==134"
+      },
+      {
+        "before": "(report[\"actual_cases\"],report[\"actual_private_controls\"])==(133,72)",
+        "after": "(report[\"actual_cases\"],report[\"actual_private_controls\"])==(134,72)"
+      },
+      {
+        "before": "sum(v[\"encoded_raw_files\"] for v in readings)==118",
+        "after": "sum(v[\"encoded_raw_files\"] for v in readings)==120"
+      }
+    ],
+    "forward_exact": true,
+    "inverse_exact": true,
+    "identity_fields": 3,
+    "schedule_or_expected_count_edits": 5
+  },
+  "preserved": {
+    "all_original_133_input_values_and_labels": true,
+    "original_failed_fixture_now_exact_reference_and_target_negative": true,
+    "all_21_production_authors": true,
+    "all_HIA_and_C_runtime_sources": true,
+    "groups": 22,
+    "private_controls": 72,
+    "original_plan_group_cases": 6,
+    "new_plan_group_cases": 7,
+    "old_total_cases": 133,
+    "new_total_cases": 134,
+    "new_distinct_positive_label": "closed-backedge-reordered-public-entrypoint",
+    "plan_block_order": [
+      "end",
+      "loop_block",
+      "entry"
+    ],
+    "scalar_unit_negative": true,
+    "all_full_byte_error_event_ACK_slot_comparisons": true,
+    "limits": true
+  },
+  "verification": {
+    "JavaScript_exact_forward_and_inverse_text_checks": true,
+    "Python_AST": 0,
+    "Core_admission_of_new_fixture": 0,
+    "reference_emission_of_new_fixture": 0,
+    "B3": 0,
+    "VM": 0,
+    "native_target": 0
+  },
+  "no_result_inheritance": true,
+  "whole_public_backend_closed": false,
+  "new_expected_storage": {
+    "full_CAS_cases_unchanged": 76,
+    "encoded_raw_files_old": 118,
+    "encoded_raw_files_new": 120,
+    "reason": "One additional native case creates the same two complete encoded trace/final-slot originals as every other native semantic case."
+  },
+  "previous_unexecuted_replacement_draft": {
+    "test": {
+      "bytes": 35740,
+      "sha256": "ad7be879d621352fe96e9e4c3a10f7dffec39bd554c3494be85b25f01f6e758e",
+      "gitsha": "415a1ee2d756c80b06702877fec64c4cf7b99959"
+    },
+    "ci": {
+      "bytes": 50981,
+      "sha256": "9e2727018fdb90d6b62e0b1ecb20a97e2441ee719dcb65edaaba16fe6a7937c8",
+      "gitsha": "b08796f2e3523bb3e7dc3c126f7ff48b3a56c6c4"
+    },
+    "proof": {
+      "bytes": 9293,
+      "sha256": "583b3ab293e3f89dba6e8c9a347f79e3182f6787b44c73a1d8316932ee161ceb",
+      "gitsha": "3f0fb08db11e6813f21cb5e092a5ad7350d7a780"
+    },
+    "scope": "Superseded before any execution; replaced original success input and is not the active approach."
+  }
+}

@@ -1,0 +1,250 @@
+{
+  "schema": "hia-current-program-Graph-follow55-canonical-complete-ACK-guard-repair-r1",
+  "status": "SOURCE_ONLY_ZERO_NEW_AST_GENERATION_B3_VM_NATIVE",
+  "original_failure": {
+    "run": 43246524664,
+    "job": 131280575254,
+    "log": {
+      "bytes": 751183,
+      "gitsha": "72495c84489221f8427b498a3bfa98c5c5f6453a",
+      "sha256": "689e266bec18c9e8941d07e4d122f35feea2c88171413c315145dec5879ee32c"
+    },
+    "location": "hia_backend_program_graph.py extend unique_replace ACK suffix",
+    "new_B3_attempts": 0,
+    "new_native_packer": 0,
+    "new_semantic_ELF": 0
+  },
+  "original_worker_owner": {
+    "bytes": 15172,
+    "gitsha": "3b30222922e916829e2f761c28bb9fbb5411edb4",
+    "sha256": "c7575f39085d09c05df5999087657f2825d9219e6d1512beba21d77c3551a3e4",
+    "path": "tools/worker_program_service.py"
+  },
+  "original_guard": "get(w, C_MAGIC) != EDIT_STATE or get(w, A_MAGIC) != A_STATE_MAGIC or get(w, WP_MAGIC) != WP_STATE or acknowledge(s, w, MAIN) == 0",
+  "intended_restricted_guard": "get(w, C_MAGIC) != EDIT_STATE or get(w, A_MAGIC) != A_STATE_MAGIC or get(w, WP_MAGIC) != WP_STATE or get(w, WP_MODE) != 1 or get(w, WP_TREE) != 0 or acknowledge(s, w, MAIN) == 0",
+  "actual_failed_suffix_is_not_claimed_to_be_a_semantic_HIA_counterexample": true,
+  "repair": "Canonicalize the complete expected old and intended new expressions with the same running ast.parse/ast.unparse, assert unique exact old condition AST in the actual current dispatch, keep unique text match and whole dispatch inverse. No guessed observed runtime spelling.",
+  "author_edits": [
+    {
+      "before": "    top=unique_replace(top,\n        \"get(w, WP_MAGIC) != WP_STATE or acknowledge(s, w, MAIN) == 0:\",\n        \"get(w, WP_MAGIC) != WP_STATE or get(w, WP_MODE) != 1 or get(w, WP_TREE) != 0 or acknowledge(s, w, MAIN) == 0:\")\n",
+      "after": "    # Match the whole pinned condition in this interpreter's own AST spelling.\n    # A suffix of a long BoolOp is not a stable unparse text boundary.\n    resume_before=ast.parse(\n        \"get(w, C_MAGIC) != EDIT_STATE or get(w, A_MAGIC) != A_STATE_MAGIC or \"\n        \"get(w, WP_MAGIC) != WP_STATE or acknowledge(s, w, MAIN) == 0\",\n        mode=\"eval\").body\n    resume_after=ast.parse(\n        \"get(w, C_MAGIC) != EDIT_STATE or get(w, A_MAGIC) != A_STATE_MAGIC or \"\n        \"get(w, WP_MAGIC) != WP_STATE or get(w, WP_MODE) != 1 or \"\n        \"get(w, WP_TREE) != 0 or acknowledge(s, w, MAIN) == 0\",\n        mode=\"eval\").body\n    resume_signature=ast.dump(resume_before,include_attributes=False)\n    assert sum(isinstance(node,ast.If)\n        and ast.dump(node.test,include_attributes=False)==resume_signature\n        for node in ast.walk(original[\"worker_program_service\"]))==1\n    old_resume=ast.unparse(resume_before)+\":\"\n    new_resume=ast.unparse(resume_after)+\":\"\n    top=unique_replace(top,old_resume,new_resume)\n"
+    },
+    {
+      "before": "    restored=restored.replace(\n        \"get(w, WP_MAGIC) != WP_STATE or get(w, WP_MODE) != 1 or get(w, WP_TREE) != 0 or acknowledge(s, w, MAIN) == 0:\",\n        \"get(w, WP_MAGIC) != WP_STATE or acknowledge(s, w, MAIN) == 0:\",1)\n",
+      "after": "    restored=restored.replace(new_resume,old_resume,1)\n"
+    }
+  ],
+  "author_whole_forward_inverse_equal": true,
+  "builder_only_owner_SHA_pin_changed": true,
+  "index_only_two_members_bytes_Git_SHA_changed": true,
+  "CI_only_index_bytes_Git_SHA_changed": true,
+  "unchanged_test": {
+    "gitsha": "2d8414ea44bd7a0ab1603a94219a23b78eebb882",
+    "bytes": 33278
+  },
+  "retained_schedule": [
+    {
+      "group": "semantic",
+      "variant": 0,
+      "cases": 26,
+      "actual_ELF": 26,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "private",
+      "variant": 0,
+      "cases": 54,
+      "actual_ELF": 0,
+      "private_cases": 54,
+      "private_entries": 128
+    },
+    {
+      "group": "fixed-errors",
+      "variant": 0,
+      "cases": 34,
+      "actual_ELF": 34,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "type-context",
+      "variant": 0,
+      "cases": 4,
+      "actual_ELF": 4,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "type-names",
+      "variant": 0,
+      "cases": 24,
+      "actual_ELF": 24,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "type-shapes",
+      "variant": 0,
+      "cases": 9,
+      "actual_ELF": 9,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "type-order",
+      "variant": 0,
+      "cases": 17,
+      "actual_ELF": 17,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "helper-budget",
+      "variant": 0,
+      "cases": 1,
+      "actual_ELF": 1,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "late-inventory",
+      "variant": 0,
+      "cases": 1,
+      "actual_ELF": 1,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "raw-boundary",
+      "variant": 0,
+      "cases": 1,
+      "actual_ELF": 1,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "raw-boundary",
+      "variant": 1,
+      "cases": 1,
+      "actual_ELF": 1,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "functions",
+      "variant": 0,
+      "cases": 1,
+      "actual_ELF": 1,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "functions",
+      "variant": 1,
+      "cases": 1,
+      "actual_ELF": 1,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "functions",
+      "variant": 2,
+      "cases": 1,
+      "actual_ELF": 1,
+      "private_cases": 0,
+      "private_entries": 0
+    },
+    {
+      "group": "functions",
+      "variant": 3,
+      "cases": 1,
+      "actual_ELF": 1,
+      "private_cases": 0,
+      "private_entries": 0
+    }
+  ],
+  "limits": {
+    "B3": {
+      "cpu": 10,
+      "wall": 20,
+      "address": 268435456
+    },
+    "group": {
+      "aggregate_parent_children_cpu": 90,
+      "wall": 180,
+      "address": 1073741824,
+      "core": 0
+    },
+    "profile": {
+      "functions": 128,
+      "blocks": 1536,
+      "operations": 8192,
+      "max_function_blocks": 256,
+      "max_block_parameters": 16,
+      "max_ssa_numeric_suffix_exclusive": 2048,
+      "no_128_ops_per_block_gate": true
+    },
+    "evidence_seal": {
+      "separate_parent_child_cpu": 90,
+      "wall": 180,
+      "address": 1073741824,
+      "no_target_replay": true
+    }
+  },
+  "unchanged_input_oracles_order_full_output_and_error_comparison": true,
+  "no_old_B3_or_case_counts_inherited": true,
+  "complete_public_backend": false,
+  "installed": false,
+  "whole_stack_closed": false,
+  "rows": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/tools/hia_backend_program_graph.py",
+      "bytes": 15061,
+      "gitsha": "5a62640448ed7321498c18bb0bdf80d006c814d6",
+      "sha256": "f909b810b8ec1cdcefc8fd72a72bbb4dec710e1c7f75d770a32559edc986d916"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/previous-follow54-ack-anchor-failure/tools/hia_backend_program_graph.py",
+      "bytes": 14439,
+      "gitsha": "2d8a42f4448bdd5d84a0dde2d42e96cc4394de17",
+      "sha256": "5d966d95e594be0b72a9569a3e2ba84ced0ac286cc1f565c3c636fade6ec970d"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/development/build_backend_program_graph.py",
+      "bytes": 25304,
+      "gitsha": "70a2d7eaeae1ad7fb9e46db569187bb58b06f408",
+      "sha256": "83b70a99f4a9db498bebe8ca8e7e87365d3f62b04d9309ac962c0ef357aacf43"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/previous-follow54-ack-anchor-failure/development/build_backend_program_graph.py",
+      "bytes": 25304,
+      "gitsha": "8b3aeb31be7bdd19d5355bdab1b9198ae0079244",
+      "sha256": "b30934fdfd79eb78ef950cef0b7ec26b2213ca89e0d89bed474ddb9a3ae144ff"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/sources.json",
+      "bytes": 19000,
+      "gitsha": "0d3d02b6aeb1b93a6cb6ff0babe4b7fdaebda2f8",
+      "sha256": "acac8039bca29f3180eda8482d96aa75aee81180be7f065a3cc6c0d76a594402"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/previous-follow54-ack-anchor-failure/sources.json",
+      "bytes": 19000,
+      "gitsha": "52e8ffbfa04044f67cc103f4a8b53e1bef1a2a03",
+      "sha256": "f6420dfd257bfbdf5ee969b046a1abdb138f943b386e5e541fea8090efacec72"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/ci/backend_current_program_graph_ci.py",
+      "bytes": 18997,
+      "gitsha": "6f401c92933e95ab3c918c780bcb2dbd11750480",
+      "sha256": "bbbe8417ac5138fe3d4dc24da8f845434b9e5b35f09ad4a05c6e223c798c5a54"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/previous-follow54-ack-anchor-failure/ci/backend_current_program_graph_ci.py",
+      "bytes": 18997,
+      "gitsha": "37ac2dd87d58cbda2d0c8f9c95e77ecc900e5380",
+      "sha256": "26c8f419f5788828ea3991bbdb8a440320915f427645e03ffa61ed060d38faff"
+    }
+  ]
+}

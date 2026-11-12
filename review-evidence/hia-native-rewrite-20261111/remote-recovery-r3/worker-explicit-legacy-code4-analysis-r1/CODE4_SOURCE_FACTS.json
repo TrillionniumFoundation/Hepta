@@ -1,0 +1,292 @@
+{
+  "schema": "hepta.hia.explicit-legacy-code4-reference-unreachability.r1",
+  "status": "PINNED_SOURCE_CONDITIONAL_DERIVATION_ONLY",
+  "scope": "Exact original explicit importer and reference elaboration; conditional native comparison invariant, not a native whole-program reachability proof.",
+  "reference_commit": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+  "frozen_first_ci_delivery": {
+    "gitsha": "e726ce8964d23aad18e9cfedc728c267824c126a",
+    "bytes": 33983,
+    "sha256": "6fe47605eeff41d548e1c4aef227215998f9772eac7e6ab5a88c64293726e8b1",
+    "public_cases_planned": 22,
+    "private_cases_planned": 48,
+    "modified": false
+  },
+  "code4": {
+    "native_group": 9,
+    "native_code": 4,
+    "reference_exception": "HIAProgramRejected",
+    "reference_message": "E_HIA_UPGRADE: nominal adapter changed primitive operations/CFG/effects",
+    "legal_public_reference_witness_found": false,
+    "reference_unreachable_under_stated_premises": true,
+    "native_full_machine_unreachability_proved": false,
+    "defensive_comparison_and_diagnostic_retained": true,
+    "private_controls_do_not_count_as_public_coverage": true
+  },
+  "premises": [
+    {
+      "id": "R1",
+      "text": "The four pinned original modules and normal Python built-in semantics remain unchanged. No monkeypatch, arbitrary native callback, asynchronous source mutation, or corrupted private state is introduced by the caller."
+    },
+    {
+      "id": "R2",
+      "text": "The source-level derivation uses the reference constructor/types/function/task-helper/outer branches. A selected implementation falls under the same conclusion only with separately established equivalence of that implementation and preservation of its immutable input contract."
+    },
+    {
+      "id": "R3",
+      "text": "Execution reaches the final comparison: decode, exact historical root/schema, full legacy elaboration, old primitive-v1 verification, renamed-input validation, new elaboration, and primitive-v6 verification all returned successfully. Exceptions, resource failures, and timeouts at earlier gates do not reach code4."
+    },
+    {
+      "id": "N1",
+      "text": "For the native corollary, the fixed executor must bind the actual same immutable renamed source to the two fresh child contexts and deliver their independently admitted complete canonical Core outputs to original role29. This is a custody/refinement premise, not authentication by a header or Graph ID."
+    },
+    {
+      "id": "N2",
+      "text": "The native role implementations, canonical serializers, compiler, and actual role29 execution must preserve the specified reference semantics. This report does not prove that whole native premise or replace the pending first CI."
+    }
+  ],
+  "derivation": [
+    {
+      "id": "L1",
+      "claim": "The explicit adapter makes a detached renamed composite.v1 document; the legacy lowerer returns a separate new outer mapping. Replacing old_payload.schema does not alter renamed.schema.",
+      "sources": [
+        "hepta/hia_core_upgrade.py:147-152",
+        "hepta/hia_program.py:_decode",
+        "hepta/hia_program_composite.py:_reference_lower"
+      ]
+    },
+    {
+      "id": "L2",
+      "claim": "At composite.v1, both elaborations have the same type flags, function inventory, parameter-loan policy, fresh serial/value-slot counters, ordered arrays, and task/helper generation. The only legacy-dependent reference behavior remaining after the schema guard is the nominal-operation allow-set.",
+      "sources": [
+        "hepta/hia_program_composite.py:_reference_initialize",
+        "hepta/hia_program_composite.py:_reference_function",
+        "hepta/hia_schema.py:LEGACY_COMPOSITE_OPERATIONS/COMPOSITE_OPERATIONS"
+      ]
+    },
+    {
+      "id": "L3",
+      "claim": "The target allow-set equals the legacy set union {record.borrow}. The successful legacy traversal checks every declared function/block instruction, so record.borrow and all other disallowed nominal operations cannot occur on an input that reaches the comparison. Its successful guard has no output or serial side effect. Both lowerings consequently produce the same complete Core tree, including generated names, helper functions, CFG, operations, attributes, effects, and exports."
+    },
+    {
+      "id": "L4",
+      "claim": "Successful primitive verification returns VerifiedProgram(raw), where raw was produced from the input before semantic verification. It does not rewrite the payload. as_dict only decodes canonical_bytes. The old checked tree is the legacy lowering with schema v1; changing only its schema back to v6 yields the same tree as the new checked Core."
+    },
+    {
+      "id": "L5",
+      "claim": "Thus imported.as_dict() == expected whenever R1-R3 hold, so the original public inequality branch cannot be selected by such a legitimate input. Rejecting cases can terminate earlier but do not provide a code4 witness."
+    },
+    {
+      "id": "N3",
+      "claim": "For compact sorted canonical Core with top-level exports/functions/module/schema, schema is the final key. v1 and v6 have equal byte length; their only permitted difference is the version digit at length-3. Original role29 first validates both complete version suffixes and then compares every other byte and the complete lengths. Under N1-N2 it emits different=0; importer phase31 therefore cannot select code4."
+    }
+  ],
+  "counterexample_policy": [
+    "A real public code4 from unchanged images is retained as a native/refinement/custody/comparator counterexample and investigated; it is not reclassified as an accepted language rejection to make a test pass.",
+    "An injected private mismatching comparison frame exercises defensive formatting and sequencing only. It does not demonstrate public reachability.",
+    "No guard, verification, old/new re-elaboration, canonicalization, comparison, or budget is removed on the basis of this argument."
+  ],
+  "execution": {
+    "javascript_full_text_hash_and_literal_census": true,
+    "python_AST": false,
+    "generation": false,
+    "assembler": false,
+    "B3": false,
+    "native": false,
+    "new_public_cases": 0,
+    "new_private_cases": 0,
+    "target_artifact_readback_this_analysis": false
+  },
+  "native_original_binding": {
+    "archive_gitsha": "a75abe1202c5b35e1411ba1d4fd69e33faa4e236",
+    "archive_sha256": "19c16b47ab03bad544bca724a23988ff65600e3739cfd0fde3052472a2fed1db",
+    "bundle_gitsha": "38321b2cb2ab2f9019916683c9a71d4b77ce2508",
+    "role29": {
+      "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+      "expected_source_path": "/workspace/scratch/9acdfa9f5639/native-composite-legacy-import-next/examples/hia_bootstrap/legacy_composite_compare.hiaasm",
+      "image_bytes": 33880,
+      "image_path": "/workspace/scratch/9acdfa9f5639/native-composite-legacy-import-next/development/build-r3/image-29/component-29.image.bin",
+      "image_sha256": "037fa81ca8382df77ab6defd01a5e9e276f6415d88ab34c795b3e0eb3d01b531",
+      "receipt_path": "/workspace/scratch/9acdfa9f5639/native-composite-legacy-import-next/development/build-r3/image-29/component-29.receipt.json",
+      "role": 29,
+      "source_bytes": 33590,
+      "source_path": "/workspace/scratch/9acdfa9f5639/native-composite-legacy-import-next/development/build-r3/image-29/source.hiaasm",
+      "source_sha256": "6dab397bd114fe40fab8db1c179c230a92d21898af068ba36fb5765a843a86cd"
+    },
+    "role46": {
+      "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+      "expected_source_path": "/workspace/scratch/9acdfa9f5639/native-composite-legacy-import-next/examples/hia_bootstrap/legacy_composite_import_driver.hiaasm",
+      "image_bytes": 201891,
+      "image_path": "/workspace/scratch/9acdfa9f5639/native-composite-legacy-import-next/development/build-r3/image-46/component-46.image.bin",
+      "image_sha256": "109e1d407a555845d599124f8a1a5bce8b9ad70461f3d41a6dbef21013691637",
+      "receipt_path": "/workspace/scratch/9acdfa9f5639/native-composite-legacy-import-next/development/build-r3/image-46/component-46.receipt.json",
+      "role": 46,
+      "source_bytes": 150893,
+      "source_path": "/workspace/scratch/9acdfa9f5639/native-composite-legacy-import-next/development/build-r3/image-46/source.hiaasm",
+      "source_sha256": "9f7c93b355c5e0ff759299db6a598c251031d65238abd01109a99aa83668e99a"
+    },
+    "source_binding_note": "Original sources were recovered from the full FOLLOW53 R9 archive readback. This turn rereads their exact text and pins, without regenerating or executing the images."
+  },
+  "source_facts": {
+    "source_pins": [
+      {
+        "path": "hepta/hia_core_upgrade.py",
+        "gitsha": "b44d36b28e00a79391df7d4ef26bb6eb91d7f26a",
+        "bytes": 8607,
+        "sha256": "550608c7b654c0af45cda8f122230188c1989069fda2dac4e05c285f7ce77570",
+        "mode": "100644",
+        "store_key": "worker_group9_reference_upgrade_source"
+      },
+      {
+        "path": "hepta/hia_program.py",
+        "gitsha": "5d0027f4453759e4156a3496e64215c441a727e4",
+        "bytes": 45247,
+        "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92",
+        "mode": "100644",
+        "store_key": "worker_group9_reference_program_source"
+      },
+      {
+        "path": "hepta/hia_program_composite.py",
+        "gitsha": "b06d009e403e77288a19eb929e6296bf68532db3",
+        "bytes": 68738,
+        "sha256": "cc5ab4c8dc68214e8868aab30405820c3662572de63952dec5f1fd1aaf180951",
+        "mode": "100644",
+        "store_key": "worker_group9_reference_composite_source"
+      },
+      {
+        "path": "hepta/hia_schema.py",
+        "gitsha": "28a7de9d1317a720f09e066427631b957bfdf16b",
+        "bytes": 5652,
+        "sha256": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253",
+        "mode": "100644",
+        "store_key": "worker_group9_reference_schema_source"
+      },
+      {
+        "path": "R9/importer/development/build-r3/frozen-source/tools/generate_hia_legacy_import_driver.py",
+        "gitsha": "1e503f8b9237150ddab2898fde59708e92c3d6a5",
+        "bytes": 17529,
+        "sha256": "53cdf4ce01c8f14ab4894062fdc321a124f0b2ed16e39e284876d7eb37f9968c",
+        "mode": "100644",
+        "store_key": "worker_follow53_r9_original_1e503f8b9237150ddab2898fde59708e92c3d6a5_source"
+      },
+      {
+        "path": "R9/importer/development/build-r3/frozen-source/tools/generate_hia_legacy_compare.py",
+        "gitsha": "38973d1c7971c52c2ffbb9583e709aa2bac700ce",
+        "bytes": 1680,
+        "sha256": "59b7dc3cd7366bec958dfef4e47389bf47842d956f24ae0b1fc4b6bc81729ab8",
+        "mode": "100644",
+        "store_key": "worker_follow53_r9_original_38973d1c7971c52c2ffbb9583e709aa2bac700ce_source"
+      },
+      {
+        "path": "R9/importer/development/build-r3/frozen-source/tools/generate_hia_legacy_projection.py",
+        "gitsha": "bcc7a88a98546d68db86a229d0c5dbe595971476",
+        "bytes": 4977,
+        "sha256": "3b502f9e42e68844de18c0c4800b34342a553c6e81fd303dfe1c41d08a7dfd07",
+        "mode": "100644",
+        "store_key": "worker_follow53_r9_original_bcc7a88a98546d68db86a229d0c5dbe595971476_source"
+      }
+    ],
+    "composite_legacy_nominal_occurrences": {
+      "legacy": [
+        {
+          "line": 429,
+          "source": "    def __init__(self, document, *, legacy=False):"
+        },
+        {
+          "line": 433,
+          "source": "            self._reference_initialize(document, legacy=legacy)"
+        },
+        {
+          "line": 435,
+          "source": "        constructor.initialize(self, document, legacy=legacy)"
+        },
+        {
+          "line": 439,
+          "source": "            function_owner.session(self, legacy=legacy))"
+        },
+        {
+          "line": 440,
+          "source": "    def _reference_initialize(self, document, *, legacy=False):"
+        },
+        {
+          "line": 444,
+          "source": "        if legacy and document[\"schema\"] != SCHEMA:"
+        },
+        {
+          "line": 445,
+          "source": "            _reject(\"legacy nominal adapter only targets composite v1\", \"E_HIA_SCHEMA\")"
+        },
+        {
+          "line": 448,
+          "source": "        self.nominal_operations = (LEGACY_COMPOSITE_OPERATIONS if legacy else"
+        },
+        {
+          "line": 495,
+          "source": "            function_owner.session(self, legacy=legacy))"
+        },
+        {
+          "line": 1232,
+          "source": "def elaborate_program(document, *, legacy=False):"
+        },
+        {
+          "line": 1243,
+          "source": "        owner.__init__(document, legacy=legacy)"
+        }
+      ],
+      "nominal_operations": [
+        {
+          "line": 448,
+          "source": "        self.nominal_operations = (LEGACY_COMPOSITE_OPERATIONS if legacy else"
+        },
+        {
+          "line": 797,
+          "source": "                        and ins[\"op\"] not in self.nominal_operations):"
+        }
+      ],
+      "__dict__": [],
+      "setattr": [],
+      "getattr": [
+        {
+          "line": 1247,
+          "source": "            session = getattr(owner, '_native_function_session', None)"
+        },
+        {
+          "line": 1251,
+          "source": "            types = getattr(owner, 'native_types', None)"
+        }
+      ]
+    },
+    "original_import_sequence": [
+      {
+        "line": 147,
+        "text": "    renamed = dict(source)\n    renamed[\"schema\"] = COMPOSITE_SCHEMA\n    old_payload = elaborate_program(renamed, legacy=True)\n    old_payload[\"schema\"] = SCHEMA\n    old_core = verify_program(old_payload)\n    imported = verify_program(renamed)\n    expected = old_core.as_dict()\n    expected[\"schema\"] = SCHEMA_V6\n    if imported.as_dict() != expected:\n        raise HIAProgramRejected(\"nominal adapter changed primitive operations/CFG/effects\",\n                                 \"E_HIA_UPGRADE\")\n    return imported, {\n        \"schema\": \"hepta.hia.legacy-composite-import.v1\", \"ok\": True,\n        \"source_schema\": LEGACY_COMPOSITE_SCHEMA,\n        \"source_profile\": LEGACY_COMPOSITE_PROFILE,\n        \"source_input_sha256\": sha256(source_bytes).hexdigest(),\n        \"source_primitive_schema\": SCHEMA,"
+      }
+    ],
+    "primitive_admission_return": [
+      {
+        "line": 953,
+        "text": "    selected = selected_core_structure(data, raw)\n    if selected is not None:\n        return VerifiedProgram(raw)\n    functions, block_maps = _primitive_structure(data)\n    interfaces = _function_interfaces(functions)\n    for fn in functions.values():\n        _verify_function(data[\"schema\"], fn, block_maps[fn[\"name\"]], interfaces)\n    return VerifiedProgram(raw)\n"
+      }
+    ],
+    "native_comparison": [
+      {
+        "line": 14,
+        "text": "    different = 0\n    if length(s) != length(r):\n        different = 1\n    else:\n        at = 0\n        while at < length(s):\n            if at != length(s) - 3 and byte(s, at) != byte(r, at):\n                different = 1\n            at = at + 1\n    put(w, 0, MAGIC)\n    put(w, 8, different)\n    put(w, 16, length(s))\n    put(w, 24, length(r))\n    put(w, 32, 0)\n    put(w, 40, 0)\n    put(w, 48, 0)\n    put(w, 56, 0)"
+      }
+    ],
+    "native_terminal": [
+      {
+        "line": 175,
+        "text": "    if phase == 31:\n        if get(w, C_RETURN) != 64 or get(w, OBS) != COMPARISON or get(w, OBS + 8) > 1:\n            return refuse(w, 814)\n        if get(w, OBS + 16) != get(w, M_OLD_BYTES) or get(w, OBS + 24) != get(w, M_NEW_BYTES):\n            return refuse(w, 815)\n        if get(w, OBS + 32) != 0 or get(w, OBS + 40) != 0 or get(w, OBS + 48) != 0 or get(w, OBS + 56) != 0:\n            return refuse(w, 816)\n        if get(w, OBS + 8) != 0:\n            return finish(o, w, 9, 4, 0)\n        return release(o, w, B_COMPARE, 32)\n    if phase == 32:"
+      }
+    ],
+    "schema_lines": [
+      {
+        "line": 49,
+        "text": "LEGACY_COMPOSITE_OPERATIONS = frozenset({\n    \"record.make\", \"record.unpack\", \"record.get\", \"enum.make\", \"enum.tag\",\n    \"task.create\", \"task.state\", \"task.start\", \"task.poll\", \"task.cancel\",\n    \"task.join\", \"task.close\",\n})\nCOMPOSITE_OPERATIONS = LEGACY_COMPOSITE_OPERATIONS | {\"record.borrow\"}\nPARTIAL_RECORD_OPERATIONS = frozenset({\n    \"record.begin\", \"record.take\", \"record.insert\", \"record.finish\", \"record.abandon\",\n})\nCOMPOSITE_OPERATIONS_BY_SCHEMA = MappingProxyType({\n    COMPOSITE_SCHEMA: COMPOSITE_OPERATIONS,\n    COMPOSITE_SCHEMA_V2: COMPOSITE_OPERATIONS,\n    COMPOSITE_SCHEMA_V3: COMPOSITE_OPERATIONS | PARTIAL_RECORD_OPERATIONS,\n    COMPOSITE_SCHEMA_V4: COMPOSITE_OPERATIONS | PARTIAL_RECORD_OPERATIONS,\n})\n\nPRIMITIVE_PROFILES = MappingProxyType({\n    SCHEMA: PROFILE, SCHEMA_V2: PROFILE_V2, SCHEMA_V3: PROFILE_V3,"
+      }
+    ],
+    "reader_note": "Occurrences are a literal JavaScript source census, not an executed Python AST or a formal proof."
+  },
+  "ordinary_route_note": "Original verify_program rejects ambiguous nominal-v2 input containing types; it does not silently call this explicit historical importer.",
+  "remaining_status": "Whole native Worker, ordinary installed route, namespace authority, and machine-level completeness remain OPEN."
+}

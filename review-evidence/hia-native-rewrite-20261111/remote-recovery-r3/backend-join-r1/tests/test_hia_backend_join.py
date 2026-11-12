@@ -330,7 +330,23 @@ class Suite:
    if version>=3:plan["value_registers"]={"entry":{"x":"r8" if version==4 else"r12"}}
    self.exact("plan-v"+str(version),doc,plan,expect_success=True)
   doc=self.F.edge_case();plan=self.plan_for(doc);plan["block_order"]={"f":["end","loop_block","entry"]}
-  self.exact("closed-backedge-reordered",doc,plan,expect_success=True)
+  # Preserve the original valid Core input and its observed zero-C-entrypoint
+  # rejection: an internal function with two results has no public C wrapper.
+  self.exact("closed-backedge-reordered",doc,plan,expect_success=False,expect_rejection=(
+    "HIAProgramNativeRejected","E_HIA_PROGRAM_NATIVE: native profile requires between 1 and 128 admitted entrypoints"))
+  # Add a separate positive case. Keep f and every original CFG edge/result
+  # unchanged, and call it from a legal one-result public entrypoint.
+  original_functions=copy.deepcopy(doc["functions"])
+  assert len(original_functions)==1 and original_functions[0]["name"]=="f"
+  assert original_functions[0]["returns"]==["u64","u64"] and "exports" not in doc
+  doc["functions"].append(self.M.fn("edge_entry",
+      params=[self.M.p("a","u64"),self.M.p("b","u64"),self.M.p("cond","bool")],
+      ops=[self.M.ins("call",["a","b","cond"],
+          [self.M.p("left","u64"),self.M.p("right","u64")],{"function":"f"})],
+      returns=["u64"],term=dict(op="ret",values=["left"])))
+  assert doc["functions"][:-1]==original_functions
+  plan=self.plan_for(doc);plan["block_order"]={"f":["end","loop_block","entry"]}
+  self.exact("closed-backedge-reordered-public-entrypoint",doc,plan,expect_success=True)
   doc=self.M.doc(self.M.fn("inside",params=[self.M.p("x","u64")],returns=["u64"],term=dict(op="ret",values=["x"])),
      self.M.fn("outside",params=[self.M.p("x","u64")],ops=[self.M.ins("call",["x"],[self.M.p("y","u64")],{"function":"inside"})],
        returns=["u64"],term=dict(op="ret",values=["y"])))
@@ -469,7 +485,7 @@ class Suite:
   return dict(files=len(rows),all_bytes_and_modes_equal=True)
 
 SCHEDULE=[
- ["cross",0,2,0],["scalar",0,12,0],["plan",0,6,0],["borrowed",0,10,0],
+ ["cross",0,2,0],["scalar",0,12,0],["plan",0,7,0],["borrowed",0,10,0],
  ["order",0,8,0],["planerror",0,12,0],["late",0,5,0],
  ["scale",0,1,0],["scale",1,1,0],["scale",2,1,0],["scale",3,1,0],["inspect",0,2,0],
  ["initial",0,32,32],["ack",0,8,8],

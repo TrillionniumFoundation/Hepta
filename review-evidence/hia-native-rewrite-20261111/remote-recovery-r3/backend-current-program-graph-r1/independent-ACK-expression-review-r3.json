@@ -1,0 +1,124 @@
+{
+  "schema": "hia-independent-current-Graph-ACK-canonical-match-review-r1",
+  "status": "NO_CONFIRMED_BLOCKER_IN_STATED_STATIC_SCOPE",
+  "reviewer": "audit_selfhost",
+  "scope": "Complete current ACK expression matching and source-to-builder-to-index-to-CI transitive pins only.",
+  "reviewed": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/tools/hia_backend_program_graph.py",
+      "gitsha": "5a62640448ed7321498c18bb0bdf80d006c814d6",
+      "bytes": 15061,
+      "sha256": "f909b810b8ec1cdcefc8fd72a72bbb4dec710e1c7f75d770a32559edc986d916"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/previous-follow54-ack-anchor-failure/tools/hia_backend_program_graph.py",
+      "gitsha": "2d8a42f4448bdd5d84a0dde2d42e96cc4394de17",
+      "bytes": 14439,
+      "sha256": "5d966d95e594be0b72a9569a3e2ba84ced0ac286cc1f565c3c636fade6ec970d"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/development/build_backend_program_graph.py",
+      "gitsha": "70a2d7eaeae1ad7fb9e46db569187bb58b06f408",
+      "bytes": 25304,
+      "sha256": "83b70a99f4a9db498bebe8ca8e7e87365d3f62b04d9309ac962c0ef357aacf43"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/previous-follow54-ack-anchor-failure/development/build_backend_program_graph.py",
+      "gitsha": "8b3aeb31be7bdd19d5355bdab1b9198ae0079244",
+      "bytes": 25304,
+      "sha256": "b30934fdfd79eb78ef950cef0b7ec26b2213ca89e0d89bed474ddb9a3ae144ff"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/sources.json",
+      "gitsha": "0d3d02b6aeb1b93a6cb6ff0babe4b7fdaebda2f8",
+      "bytes": 19000,
+      "sha256": "acac8039bca29f3180eda8482d96aa75aee81180be7f065a3cc6c0d76a594402"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/previous-follow54-ack-anchor-failure/sources.json",
+      "gitsha": "52e8ffbfa04044f67cc103f4a8b53e1bef1a2a03",
+      "bytes": 19000,
+      "sha256": "f6420dfd257bfbdf5ee969b046a1abdb138f943b386e5e541fea8090efacec72"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/ci/backend_current_program_graph_ci.py",
+      "gitsha": "6f401c92933e95ab3c918c780bcb2dbd11750480",
+      "bytes": 18997,
+      "sha256": "bbbe8417ac5138fe3d4dc24da8f845434b9e5b35f09ad4a05c6e223c798c5a54"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/previous-follow54-ack-anchor-failure/ci/backend_current_program_graph_ci.py",
+      "gitsha": "37ac2dd87d58cbda2d0c8f9c95e77ecc900e5380",
+      "bytes": 18997,
+      "sha256": "26c8f419f5788828ea3991bbdb8a440320915f427645e03ffa61ed060d38faff"
+    }
+  ],
+  "derivation": "5cdf75dc952fbc9c00ce6bf0a60322eddee1c345",
+  "original_worker_owner": {
+    "bytes": 15172,
+    "gitsha": "3b30222922e916829e2f761c28bb9fbb5411edb4",
+    "sha256": "c7575f39085d09c05df5999087657f2825d9219e6d1512beba21d77c3551a3e4",
+    "path": "tools/worker_program_service.py"
+  },
+  "actual_byte_checks": {
+    "all8identities": true,
+    "author_two_edits_inverse": true,
+    "author_forward": true,
+    "builder_one_pin_inverse": true,
+    "index_two_row_inverse": true,
+    "ci_index_only_inverse": true
+  },
+  "findings": [
+    {
+      "id": "whole-guard",
+      "finding": "The exact original 3b302 worker_program_service contains the four predicates in the stated left-to-right order. New resume_before is that complete expression, rather than a suffix within a BoolOp."
+    },
+    {
+      "id": "canonical-match",
+      "finding": "Both expected old and intended new condition texts are derived through ast.parse(mode='eval') and ast.unparse in the executing interpreter. The actual original dispatch must contain exactly one If whose test has the exact old ast.dump without locations. Text unique_replace and the complete restored==original_top inverse remain fail-closed. This review does not claim to have executed the Python canonicalization."
+    },
+    {
+      "id": "ACK-order",
+      "finding": "The original C_MAGIC, A_MAGIC, WP_MAGIC, acknowledge predicate relative order is retained. WP_MODE !=1 and WP_TREE !=0 are inserted before acknowledge, preserving the already intended restriction for this mode1/tree0 Graph entry. No ACK moves before a guard."
+    },
+    {
+      "id": "inverse",
+      "finding": "Independently applied both exact author edits in JavaScript and their reverse: complete new/old source bytes match. The builder changes exactly one OWNER SHA; the entire index reverses by exactly two member identity updates; the entire CI reverses by exactly index identity updates. All eight full GET byte counts, SHA256 and Git blob hashes matched."
+    },
+    {
+      "id": "unchanged",
+      "finding": "BODY, Graph lease41/frame checks, COPY/PROTECT/release chain, error handlers, full tests/schedule, source guards, raw process accounting, limits and evidence finalization are unchanged by this fix. This is a narrow delta review, not a new independent qualification of those inherited operations."
+    }
+  ],
+  "original_failure": {
+    "run": 43246524664,
+    "job": 131280575254,
+    "log": {
+      "bytes": 751183,
+      "gitsha": "72495c84489221f8427b498a3bfa98c5c5f6453a",
+      "sha256": "689e266bec18c9e8941d07e4d122f35feea2c88171413c315145dec5879ee32c"
+    },
+    "location": "hia_backend_program_graph.py extend unique_replace ACK suffix",
+    "new_B3_attempts": 0,
+    "new_native_packer": 0,
+    "new_semantic_ELF": 0
+  },
+  "source_only": true,
+  "execution": {
+    "project_AST": 0,
+    "project_imports": 0,
+    "generation": 0,
+    "B3": 0,
+    "native": 0,
+    "original_artifact_downloads": 0
+  },
+  "bounds": {
+    "no_budget_change": true,
+    "no_test_or_oracle_change": true,
+    "no_old_success_inheritance": true,
+    "unified_Group6_all_mode_owner_reviewed": false
+  },
+  "private_Graph_headers_not_admission_authority": true,
+  "installed_activation": false,
+  "whole_product_closed": false
+}

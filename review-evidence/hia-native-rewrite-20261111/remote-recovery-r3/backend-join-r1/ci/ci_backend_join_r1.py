@@ -144,9 +144,9 @@ FILES=[
   {
     "path": "tests/test_hia_backend_join.py",
     "mode": "100644",
-    "bytes": 34947,
-    "sha256": "293b599f1e2845b719df5eb95e9747be657b00263ebec59001db53584a9a1c2d",
-    "gitsha": "69dce61d53da0cb96c3b0482182463e4e5850d8d"
+    "bytes": 36135,
+    "sha256": "072f61c4cbf9a90732346784362ce9108c2e6a550c78a0324cd7ae25d5977c03",
+    "gitsha": "069ff17fb22782f0582d458de0a6788e0c880a4d"
   },
   {
     "path": "tests/wrapper_test_reference.py",
@@ -359,7 +359,7 @@ FILES=[
     "sha256": "92070ffcb9e12bce1825c3f3361a97aadc8279f1041c4d2ed16dfadf350ec55a"
   }
 ]
-SCHEDULE=[["cross",0,2,0],["scalar",0,12,0],["plan",0,6,0],["borrowed",0,10,0],["order",0,8,0],["planerror",0,12,0],["late",0,5,0],["scale",0,1,0],["scale",1,1,0],["scale",2,1,0],["scale",3,1,0],["inspect",0,2,0],["initial",0,32,32],["ack",0,8,8],["peer",0,4,4],["peer",1,4,4],["peer",2,4,4],["peer",3,4,4],["peer",4,4,4],["peer",5,4,4],["peer",6,4,4],["grow",0,4,4]]
+SCHEDULE=[["cross",0,2,0],["scalar",0,12,0],["plan",0,7,0],["borrowed",0,10,0],["order",0,8,0],["planerror",0,12,0],["late",0,5,0],["scale",0,1,0],["scale",1,1,0],["scale",2,1,0],["scale",3,1,0],["inspect",0,2,0],["initial",0,32,32],["ack",0,8,8],["peer",0,4,4],["peer",1,4,4],["peer",2,4,4],["peer",3,4,4],["peer",4,4,4],["peer",5,4,4],["peer",6,4,4],["grow",0,4,4]]
 EMITTER=("prepare","frame","tape","issuer","wrap_tape","wrap_issuer","encoder","finalizer","finish","elf","controller")
 EMITTER_OWNERS=("hia_emitter_prepare.py","hia_function_frame_plan.py","hia_function_lowering_tape.py",
  "hia_function_code_issuer.py","hia_emitter_wrapper_tape.py","hia_emitter_wrapper_issuer.py",
@@ -793,7 +793,7 @@ def main():
  common.PINS[Path(__file__).resolve()]=Path(__file__).read_bytes()
  project=None;status="FAIL";roles={};pairs={}
  report=dict(scope="FRESH_POST_CORE_BACKEND_TWENTY_ONE_IMAGE_JOIN",status="INCOMPLETE",
-   expected_fresh_B3=21,expected_groups=22,expected_cases=133,expected_private_controls=72,
+   expected_fresh_B3=21,expected_groups=22,expected_cases=134,expected_private_controls=72,
    builds={},groups={},readbacks={},actual_compilations=0,actual_cases=0,actual_native_entries=0,
    actual_private_controls=0,old_results_inherited=False,old_Emitter_55_groups_rerun=False,
    old_Function_39_groups_rerun=False,old_wrapper_26_groups_rerun=False,
@@ -817,7 +817,7 @@ def main():
   tree=ast.parse((project/"tests/test_hia_backend_join.py").read_bytes())
   schedules=[n for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=="SCHEDULE" for t in n.targets)]
   assert len(schedules)==1 and ast.literal_eval(schedules[0].value)==SCHEDULE
-  assert len(SCHEDULE)==22 and sum(r[2] for r in SCHEDULE)==133 and sum(r[3] for r in SCHEDULE)==72
+  assert len(SCHEDULE)==22 and sum(r[2] for r in SCHEDULE)==134 and sum(r[3] for r in SCHEDULE)==72
   env=dict(PYTHONDONTWRITEBYTECODE="1",PYTHONPATH=context["reference"],LC_ALL="C.UTF-8",LANG="C.UTF-8")
   tasks=[]
   for i,component in enumerate(EMITTER,1):
@@ -938,11 +938,11 @@ def main():
    assert observation["readback"]["cases"]==count and observation["readback"]["private_controls"]==private
    file_closure(project);assert identity(carrier)==carrier_before
   assert len(report["groups"])==len(report["readbacks"])==22
-  assert (report["actual_cases"],report["actual_private_controls"])==(133,72)
+  assert (report["actual_cases"],report["actual_private_controls"])==(134,72)
   readings=[v["readback"] for v in report["readbacks"].values()]
   assert sum(v["crosscheck_cases"] for v in readings)==2
   assert sum(v["full_CAS_cases"] for v in readings)==76
-  assert sum(v["encoded_raw_files"] for v in readings)==118
+  assert sum(v["encoded_raw_files"] for v in readings)==120
   assert sum(v["native_entries"] for v in readings)==report["actual_native_entries"]
   report.update(status="PASS",actual_by_role={str(i):sum(v["by_role"][str(i)] for v in readings) for i in range(1,22)},
     complete_original_public_outer_oracle_after_private_admission=True,

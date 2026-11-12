@@ -1,3 +1,84 @@
+# HIA 全量原生重写审计（2026-11-12，FOLLOW55）
+
+## 当前结论
+
+**整套仍为 OPEN。156 个生产 Python 模块没有完成原生安装替换；生产激活 0，旧实现删除 0。** 本轮全树复核确认：这156条生产路径的mode、长度和Git身份与先前完整生产审计逐条一致，没有新增生产Python模块。其1,957个定义、1,007个公开命名定义是源码盘点数量，不是已完成API资格。现有pyproject仍使用setuptools、要求Python≥3.11，并把安装命令指向 `hia=hepta.cli:hia_main`。当前不能执行用户要求的最终旧整套删除。
+
+本轮先保存第54轮全部实际终态，修正两处生成/测试阻断，提交九角色HIA同值调用优化、真实UnixOpen发行首段和显式旧语言错误输出三个新门。统一编译入口、完整backend transaction、实现文件前后指纹、完整UnixOpen/Store/SQL、CLI/API、原生安装、生成工具链及旧业务不可调用环境下的全回归仍须继续闭合。组件PASS、两轮覆盖并集、源码证明与原件读取均不能代替此条件。
+
+父提交 `c6b8c01415473e68faed37e6c39ccf1d0f35d981`，tree `206205c233b79d8ab467d2abb25e0ff1d705c824`，8,231文件。准备时间 2026-11-12 15:53:44 UTC。本轮新源码提交前是0 AST、0 HIA Core、0 B3、0 VM、0 native执行；以下已发生的结果只属于其明确标识的第54轮或原运行。
+
+## 第54轮实际终态
+
+Recovery run43246524664整体FAIL；独立Core run43246524339的source/native均SUCCESS；source-syntax run43246524275实际SUCCESS。所有原始JSON和u64字节保留为原文，派生观察另存，未用JavaScript数字重编码替代原件。
+
+| 实际任务 | 已核实结果 | 限定与后续 |
+| --- | --- | --- |
+| Core54 native131280552403、source131280552967 | native完整255,793B日志、source完整108,813B日志已保存。cold11/11、language1,242/1,242；17次printed unittest invocation合计791，最后94项覆盖11普通工具。source331tests通过 | 791不是唯一test identities；source inventory仍列156 package模块、1,098 Python source文件。开发/参考环境的冷启动成功不代表仅HIA原生安装。完整artifact ZIP尚未独立读取 |
+| Core53原件读取131280574568 | SUCCESS，0新目标。完整3,881外包文件/331,076,565B；37嵌入ZIP、40,125成员/2,270,129,761B；644实际53source-export绑定原Git树。根从完整437,429B日志还原22份原件、275,077原始B，逐字数/Git/SHA核对 | 原cold确为180秒QUALIFICATION_TIMEOUT、rc−9、wall180,162,579,327ns；清理完成、reaped/ECHILD、无余子进程。38phases中36完成、修改names/exports两项pending。正常三代和修改三代B3完整收据存在，空generation数组不等于0 native。内部慢因仍UNKNOWN，不拿Core54成功覆盖53失败 |
+| 原42只读131280574990 | SUCCESS，0新目标。4,706完整成员/334,479,715B；根全文核七份原始报告共1,577,904B并逐条匹配完整日志中的原始身份 | 原42=18+10+6+8；60固定进程、5,011 native=5,011 VM、503 ACK、39 DB、2 retirements。原900秒阶段为806,869,480,926ns，含source-after。仅读取原结果，不是新42重跑，也不是单一90CPU门。外ZIP仍只有元数据 |
+| group6剩余44，131280574557 | SUCCESS；13 fresh B3+1 HIA packer，43份source/image及完整ELF先与实际53精确相等。6实际公共ELF+38private/105新role56入口完整通过 | 原六项完整读取通过后，旧6＋新44是两轮覆盖并集50，不是一次50整轮PASS。原53 FAIL和private partial1保持。构建41.346285CPU/50.282635122wall，原300外层未改；两新组各约1.25CPU。新完整ZIP未独立读取 |
+| 当前类型→Core/Graph，131280575254 | FAIL；4,783成员/190,964,237B旧43-image完整读取成功，实际原root HIA身份匹配。生成扩展在ACK表达式文本唯一性断言失败 | 0新B3尝试、0 packer、0 ELF、0案例；不是HIA语义反例。完整751,183B日志及12份原JSON/6过程记录保存。实际旧root字节来自原归档，不冒称另有松散上传文件 |
+| backend133，131280574692 | FAIL；21 fresh B3完成；cross2/12,748入口和scalar12/29,635入口完整通过并完成原件读取。plan前四案/11,020入口后，第五案在新目标前被原oracle拒绝 | 原 `closed-backedge-reordered` 的f有两个返回值，原native wrapper不生成公开C入口，最终1..128入口门拒绝。完整853,170B日志、原stderr及全部已交原JSON保留。133整门没有通过 |
+| 七角色ASCII，131280574901 | FAIL；13 fresh B3、2实际HIA packer及原63 source/image/ELF复现成功。13组329项均尝试，11组327项完整，另两组0完整 | large-valid聚合96.420971CPU/96.497712247wall；graph-long-report95.323075CPU/95.403182224wall，均超过原CPU预算。当前两案原process JSON尚未读取，returncode/stdout/stderr保持UNKNOWN，不能继承51的−9结论。完整668,072B日志及15个原控制台面板保存 |
+| source-syntax931 | SUCCESS；完整548,833B日志中931个有序path/mode/length/Git/SHA逐条匹配 | 仅AST/source syntax；0 HIA/B3/VM/native资格。不是迁移完成数 |
+
+Core53正常三代均为669,556B、SHA35ee92b…；修改第一代4aa0556e…、随后两代cb3052a…，原完整收据独立保留。22份原件的base64帧编码字节376,425不等于原字节275,077。reader自身约13.989045CPU，post-output/final严格门通过；最后预算文件所在新完整归档尚未独立读取，不扩大其范围。
+
+根对group6三份原面板及三份transport/reader/custody原正文逐字匹配完整日志。根对Graph七份和backend二十五份base64原件重新拼接完整offset、decode、字节数与SHA，再与已完整Git回读的原件相等；其余原面板、过程记录和首个stderr分别逐字匹配原控制台正文。完整u64原件不重新序列化。
+
+## FOLLOW55 五条实际执行链
+
+### 1. 九角色47处同值调用替换：原13组329全部fresh
+
+roles2/24/25/26/27/57/59/60/63分别16/1/17/2/3/2/2/2/2处调用变为同类型u64 `int.cast wrap`。每个原callee只有一个u64参数、一个u64结果、单block、零operation、直接返回参数；函数本体仍保留。参数/结果SSA及所有其余行、内存访问顺序、branch、块与函数结构逐字不变。没有bulk load或cursor缓存，也不承诺任意fuel/stack耗尽逐步等价。
+
+两份独立审查全文保留：十八份新旧HIA和47调用的数学/类型/全正逆核验；builder/test/CI的全正逆、17条真实repository输入、原329完整test字节核验。它们均为源码审查而非目标执行。旧ASCII层的严格“不改其他函数”声明嵌于prior_ASCII_layer，不误用于当前47行改动。原role27的79fn/1445blocks/6901ops/SSA2000及所有限制维持。
+
+计划6个baseline B3+9个候选B3、2次实际HIA packer，先完整复现原63 source/image/ELF，再运行全部原13组329；327旧通过不继承。现有完整进程树CPU `<=90`、wall `<180`及1GiB谓词原样保留。没有测得加速前不声明性能收益。新增失败pending/process原JSON的有界完整base64控制台出口，只改善证据可见性，不改目标或门；超出上限明确记录省略，完整原件仍封存。
+
+### 2. 当前类型→Core/Graph ACK完整表达式修正
+
+只把不稳定的局部文本后缀匹配换成完整原四条件表达式的唯一AST签名验证，再在当前Python中canonical unparse原表达式和新增六条件表达式；整体替换唯一且可逐字逆回原source。原四项顺序、ACK、输入、权限、memory顺序与176案例完全保留。builder只换author身份；source index只换两行身份；CI只换index身份。独立审查未发现该窄范围确认阻断，0实际AST/目标资格。
+
+仍先读实际52a旧43-image组合，再只改统一56并加31/32/33/58。计划1 fresh B3、1实际保留packer、15组176=122ELF+54private/128入口。尚不包含group6 late-Core、implementation或整个backend；它们正在合入后续同一56入口，不能把独立56候选并列当统一编译事务。
+
+### 3. backend原133＋新增1正案＝134全部fresh
+
+原失败输入、原label、原block_order及两返回值f完整保留，改为要求原oracle的精确class和完整文本拒绝，随后仍比较实际目标的完整错误/terminal/slot。另加独立label `closed-backedge-reordered-public-entrypoint`：不改f，新增合法单返回值edge_entry调用f、接收两个结果并返回第一个。新案必须先经原verify_program/emit_program_machine成功才进入目标。
+
+根逐字正逆验证两处test及六处CI编辑；原fixture和wrapper片段与完整原源绑定。22组、72private、21业务HIA作者、runtime、所有原133输入及限制不变；plan6→7、总133→134、完整encoded原件118→120。较早“替换原案而仍称133”的未执行稿保留为历史，不活动。全部134 fresh，不继承原cross/scalar通过。
+
+### 4. 真实UnixOpen发行→共享FS首段
+
+新门运行parent7→issuer9→framer8→同一活FS6→framer真实512B BACK→同一parent7续接。FS9/DMS10源码分支独立于原42的DMS9。计划9角色fresh B3+1 packer B3、45实际九image packer controls、28固定进程=12raw-prefix+8parent refusal+8transport refusal；每一个实际native window的return/O/W都用fresh VM完整重放，不mask，不缓存，也不供应host completion capsule。
+
+首门只覆盖getpid原始前缀：期望14真实parent ACK、15实际role1 getpid，其中PID reset pair和先前同session FS计数明确分开。10个nonraw peer仍pending，不声称所有9角色都被进入，更不声称完整UnixOpen/ordinary Store。下一切片正在接真实create/URI/robust-open到同一registry的open/fstat/close。
+
+28输入、全部非空working alias及25活动Python路径核对；29处源码派生编辑正反逐字核验。原每次B310CPU/20wall/256MiB、每组完整进程树严格90CPU/180wall/1GiB、VM4Msteps/32MiB/64保持。900wall主体包括source-after和末端phase收据；独立seal另执行严格90/180，不能把它与主体混计或给旧门追溯新规则。失败原字节在任何JSON解释之前保留，未知入口数不伪填0。
+
+### 5. 显式旧语言importer真实Group9错误文本
+
+完整读取Git原R9归档4,595,336B、2,949成员/2,389文件/71,724,847B，才使用其37-image表。计划4 fresh B3=原46/新46/原packer/新packer、2实际HIA packer；原46 source/image、原packer source/image和完整旧ELF先逐字复现。随后6组22公共ELF和1组48private/130实际入口（4旧46、126新46）。
+
+只在原真实phase5/28/31的group9返回点接诊断；ordinary P16无import_step，不改变其路由。fixed executor只对实际top46持有的owned readonly slot57追加真实extent，原128B terminal先输出，旧子失败/成功/ABI mask保持。code4仍只有私有防御控制；附精确参考源码的条件性不可达推导：旧legacy成功已排除record.borrow唯一集合差异、fresh lowering同树、canonical verify返回原raw、schema1→6后相等。此推导不证明全部37原生角色refinement，不移除原完整比较，也不冒称公共native可达资格。22+48计划冻结未改。
+
+15份materialized source、3份restore输入和17活动Python路径完整绑定；本轮不用artifact API下载R9。构建300外层和各运行90/180分开记账；common原存储阶段不误称新严格90/180门。
+
+## 发布约束与真实全量缺口
+
+本轮pre-audit集合313文件、12471453B，305新增、8替换、0删除，全部UTF-8原文完整Git身份核验；随后本审计、checkpoint、root-static和publication manifest另计，最终以publication manifest为准。976活动Python=926条原身份不变、5条原路径换身份、45条新路径（identity3+UnixOpen25+R917），无原活动路径移除。未执行历史稿和code4参考数据不加入活动语法集合。固定语法status不变。
+
+158个恢复jobs中原155个全文不变，新增identity/UnixOpen/R9三job。每job仍有Ubuntu24.04/x86_64域门；五个tag精确选择，其他原组件不重复。发布按全部blob全文核验→完整树校验→commit回读→精确父HEAD CAS→ref复核执行；不能只凭create返回SHA声称发布完成。
+
+最终统一路径仍须在**同一role56**接当前类型→late-Core→Core/Graph→实现文件完整前后指纹→完整backend，并连接所有普通Worker、Store/SQL、真实文件系统peer、CLI/API、原生安装和源码发行。156生产模块与旧安装入口的这次完整身份刷新作为独立报告保存。已有4,157保留回归、各kernel和源码语法都不是全套原生可安装验收。
+
+所有原预算与层级保持：B3 10CPU/20wall/256MiB，source/output/work各≤1MiB；bootstrap128fn/1536blocks/8192ops/每函数256blocks/16block参数/SSA<2048；没有128ops-per-block规则；公共1024fn另列。配对完整进程树90CPU/180wall/1GiB；原42聚合900wall。已有`<=90`谓词不被文字改成严格`<90`。旧checked-plan49 seal没有被追溯新90/180门。丢失h/ROG仍UNKNOWN，不重放、不推断。
+
+**只有纯HIA生产入口、全套自举与公开回归在旧业务不可调用的环境中闭合后，才清掉旧整套。当前删除0；没有宣布整套完成。**
+
+## 第54轮及更早历史记录（原文保留）
+
 # HIA 全量原生重写审计（2026-11-12，FOLLOW54）
 
 ## 当前结论

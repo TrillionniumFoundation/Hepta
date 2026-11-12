@@ -1,0 +1,260 @@
+{
+  "schema": "hia-nine-role-identity-build-test-CI-exact-source-derivation-r1",
+  "status": "SOURCE_ONLY_ZERO_NEW_AST_GENERATION_B3_VM_NATIVE",
+  "HIA_transform": {
+    "bytes": 31564,
+    "gitsha": "3ed69cb7e2c1e35f316358307eee9081d78e4aba",
+    "sha256": "f19bf9434cbff1797f416802cc729b0c717dece53e8e9f9dc8174de4d9baa057"
+  },
+  "builder": {
+    "original": {
+      "bytes": 21295,
+      "gitsha": "efe65ddb66dd4e1d5a3557450e0952ff9abe43d5",
+      "sha256": "f0747925aefa645b0497b192f09e7bacd30ee81ac7fb9e74b8069fb5e02b34f4"
+    },
+    "first": {
+      "bytes": 26172,
+      "gitsha": "5665374c082abc409c6bf31ba33d22d0caaed41e",
+      "sha256": "08fdd6ac0586388ef9306c5b0aaca74b074f2026d27595863a73a40f047db24c"
+    },
+    "final": {
+      "bytes": 26386,
+      "gitsha": "7dae271fa20af3ac9f57ea902ce6f3984a24efa6",
+      "sha256": "78b75e415656fc978473769a846ea81590fa09184189e1c89a29e05dd4e17345"
+    },
+    "edits": [
+      {
+        "label": "module explanation",
+        "before": "\"\"\"Seven exact ASCII reader additions, original 63 roles and unchanged ELF carrier.\n\nThis development builder does not execute public semantic cases. The unchanged\nsix-image baseline build must first reproduce every original source/image and\nthe actual original ELF recovered by the timing47 readback.\n\"\"\"",
+        "after": "\"\"\"Nine exact HIA identity-cast candidates on the actual seven-ASCII predecessor.\n\nOnly calls to proven zero-operation, one-u64-parameter identity functions become\nsame-u64 wrap casts. Complete prior source transformations are inverted first.\nEvery original input, full output/error oracle and resource gate stays exact.\n\"\"\""
+      },
+      {
+        "label": "new output root",
+        "before": "ROOT=WORK/\"native-ordinary-impact-ascii-fast-r1\"",
+        "after": "ROOT=WORK/\"native-ordinary-impact-identity-casts-r1\""
+      },
+      {
+        "label": "exact nine roles",
+        "before": "CHANGED=(24,26,27,57,59,60,63)",
+        "after": "ASCII_CHANGED=(24,26,27,57,59,60,63)\nCHANGED=(2,24,25,26,27,57,59,60,63)"
+      },
+      {
+        "label": "retain entire prior ASCII transformation checker",
+        "before": "def check_changes(old,new,row):",
+        "after": "def check_ascii_changes(old,new,row):"
+      },
+      {
+        "label": "exact identity proof checker",
+        "before": "def core_profile(document):",
+        "after": "def check_changes(old,new,row):\n    check_pin(old,row[\"original\"]);check_pin(new,row[\"candidate\"])\n    new_header,new_fns=split_functions(new)\n    lines=new.splitlines(keepends=True);restored=list(lines)\n    changes=row[\"changes\"];helpers=row[\"identity_helpers\"]\n    assert changes and helpers and len({x[\"line_index\"] for x in changes})==len(changes)\n    names=set()\n    for helper in helpers:\n        name=helper[\"name\"];assert name not in names\n        names.add(name);body=new_fns[name]\n        check_pin(body,helper)\n        assert body==helper[\"source\"].encode(\"ascii\")\n        parameter=helper[\"parameter\"]\n        expected=(\"fn \"+name+\"(\"+parameter+\":u64) -> (u64) effects(read,write,trap) entry(b0)\\n\"\n            \"block b0(\"+parameter+\":u64)\\n  ret(\"+parameter+\")\\nend\\n\").encode(\"ascii\")\n        assert body==expected\n    for change in changes:\n        at=change[\"line_index\"];before=change[\"before\"].encode(\"ascii\");after=change[\"after\"].encode(\"ascii\")\n        assert type(at) is int and 0<=at<len(lines) and lines[at]==after\n        match=re.fullmatch(rb'  (v\\d+):u64 = call\\((v\\d+)\\) \\{\"function\":\"(f\\d+)\"\\}\\n',before)\n        assert match is not None and match[3].decode(\"ascii\") in names\n        assert change[\"result\"]==match[1].decode(\"ascii\")\n        assert change[\"argument\"]==match[2].decode(\"ascii\")\n        assert change[\"identity_helper\"]==match[3].decode(\"ascii\")\n        wanted=b'  '+match[1]+b':u64 = int.cast('+match[2]+b') {\"mode\":\"wrap\"}\\n'\n        assert after==wanted\n        current=None\n        for line in lines[:at]:\n            if line.startswith(b\"fn \"):current=line.split(b\"(\",1)[0][3:].decode(\"ascii\")\n        assert current==change[\"function\"]\n        restored[at]=before\n    predecessor=b\"\".join(restored);check_pin(predecessor,row[\"predecessor\"])\n    prior_header,prior_fns=split_functions(predecessor)\n    assert new_header==prior_header and list(new_fns)==list(prior_fns)\n    for helper in helpers:assert prior_fns[helper[\"name\"]]==new_fns[helper[\"name\"]]\n    forward=list(restored)\n    for change in changes:\n        at=change[\"line_index\"];assert forward[at]==change[\"before\"].encode(\"ascii\")\n        forward[at]=change[\"after\"].encode(\"ascii\")\n    assert b\"\".join(forward)==new\n    for name in names:\n        assert re.search(rb' = call\\([^\\n]*\\) \\{\"function\":\"'+name.encode(\"ascii\")+rb'\"\\}',new) is None\n    if row[\"role\"] in ASCII_CHANGED:\n        check_ascii_changes(old,predecessor,ascii_proof_rows[row[\"role\"]])\n    else:\n        assert row[\"role\"] in (2,25) and predecessor==old\n        source_checks.append(dict(role=row[\"role\"],original=pin(old),\n            candidate=pin(new),exact_complete_inverse=True))\n    source_checks[-1].update(candidate=pin(new),identity_predecessor=pin(predecessor),\n        exact_zero_operation_identity_calls=len(changes),identity_helpers=sorted(names),\n        complete_identity_call_cast_forward_inverse=True,\n        all_original_memory_operations_and_order_preserved=True,\n        no_mutable_workspace_cursor_cache=True,no_bulk_access=True,\n        arbitrary_VM_fuel_and_stack_limit_equivalence_claimed=False)\n\ndef core_profile(document):"
+      },
+      {
+        "label": "seven inline identities remain seven",
+        "before": "assert [r[\"role\"] for r in inline_proof[\"roles\"]]==list(CHANGED)",
+        "after": "assert [r[\"role\"] for r in inline_proof[\"roles\"]]==list(ASCII_CHANGED)"
+      },
+      {
+        "label": "prior actual ASCII and nine identity sources bound separately",
+        "before": "    proof_raw=read(SUBMITTED/\"evidence/source-transform-proof.json\")\n    check_pin(proof_raw,dict(bytes=94747,gitsha=\"92781bd45591f622d544e54faa9842adf8438826\",\n        sha256=\"e0487d5b78def8ba34fa5ef8eef2c5f4233a4ad09655c802880e045dd53abc06\"))\n    proof=json.loads(proof_raw)\n    assert proof[\"prior_inline_proof\"]==dict(bytes=202873,gitsha=\"3cfa3d613205fb07db028fceee8d8ee1da3e2595\",sha256=\"64faa076ecb678d671aae86ca67de191d8cf15dfc32309d213d3be85512b5d5f\")\n    assert [r[\"role\"] for r in proof[\"roles\"]]==list(CHANGED)\n",
+        "after": "    ascii_proof_raw=read(SUBMITTED/\"evidence/ascii-source-transform-proof.original.json\")\n    check_pin(ascii_proof_raw,dict(bytes=94747,gitsha=\"92781bd45591f622d544e54faa9842adf8438826\",\n        sha256=\"e0487d5b78def8ba34fa5ef8eef2c5f4233a4ad09655c802880e045dd53abc06\"))\n    ascii_proof=json.loads(ascii_proof_raw)\n    assert ascii_proof[\"prior_inline_proof\"]==dict(bytes=202873,gitsha=\"3cfa3d613205fb07db028fceee8d8ee1da3e2595\",sha256=\"64faa076ecb678d671aae86ca67de191d8cf15dfc32309d213d3be85512b5d5f\")\n    assert [r[\"role\"] for r in ascii_proof[\"roles\"]]==list(ASCII_CHANGED)\n    ascii_proof_rows={row[\"role\"]:row for row in ascii_proof[\"roles\"]}\n    proof_raw=read(SUBMITTED/\"evidence/identity-source-transform-proof.json\")\n    check_pin(proof_raw,dict(bytes=31564,gitsha=\"3ed69cb7e2c1e35f316358307eee9081d78e4aba\",sha256=\"f19bf9434cbff1797f416802cc729b0c717dece53e8e9f9dc8174de4d9baa057\"))\n    proof=json.loads(proof_raw)\n    assert proof[\"schema\"]==\"hia-nine-role-identity-call-to-same-u64-cast-source-r1\"\n    assert proof[\"prior_ASCII_source_proof\"]==pin(ascii_proof_raw)\n    assert [r[\"role\"] for r in proof[\"roles\"]]==list(CHANGED)\n    actual_ascii_raw=read(SUBMITTED/\"evidence/follow54-candidate-build.original-console.json\")\n    check_pin(actual_ascii_raw,dict(bytes=26946,gitsha=\"7cfe3e651244944faee009b685193471b2547fe3\",sha256=\"4f0d2b1b05273908baee457360271e893870aa0181120f198d76380b5ae7c27e\"))\n    actual_ascii=json.loads(actual_ascii_raw)\n    assert actual_ascii[\"status\"]==\"PASS\" and actual_ascii[\"actual_optimization_B3\"]==7\n    assert actual_ascii[\"actual_optimization_packer_entries\"]==1 and len(actual_ascii[\"compiled\"])==7\n    actual_ascii_rows={row[\"role\"]:row for row in actual_ascii[\"compiled\"]}\n    assert set(actual_ascii_rows)==set(ASCII_CHANGED)\n    for row in proof[\"roles\"]:\n        if row[\"role\"] in ASCII_CHANGED:\n            prior=actual_ascii_rows[row[\"role\"]]\n            assert (prior[\"source_bytes\"],prior[\"source_sha256\"])==(row[\"predecessor\"][\"bytes\"],row[\"predecessor\"][\"sha256\"])\n            assert prior[\"receipt\"][\"status\"]==\"returned\" and prior[\"receipt\"][\"abi_status\"]==0\n            assert prior[\"receipt\"][\"source_sha256\"]==row[\"predecessor\"][\"sha256\"]\n"
+      },
+      {
+        "label": "receipt scope",
+        "before": "origin=\"FRESH_ORIGINAL_LIMIT_B3_ASCII_FAST_JSON_READER\"",
+        "after": "origin=\"FRESH_ORIGINAL_LIMIT_B3_ZERO_OP_IDENTITY_TO_SAME_U64_CAST\""
+      },
+      {
+        "label": "manifest scope",
+        "before": "schema=\"hia-ordinary-impact-seven-HIA-ASCII-reader-build-v1\"",
+        "after": "schema=\"hia-ordinary-impact-nine-HIA-identity-cast-build-v1\""
+      },
+      {
+        "label": "fresh compilation counts",
+        "before": "compiler_sha256=digest(compiler_raw),new_compiles=13,baseline_new_compiles=6,\n        optimization_new_compiles=7,changed_roles=list(CHANGED),unchanged_roles=56,",
+        "after": "compiler_sha256=digest(compiler_raw),new_compiles=15,baseline_new_compiles=6,\n        optimization_new_compiles=9,changed_roles=list(CHANGED),unchanged_roles=54,"
+      },
+      {
+        "label": "nine completed candidates",
+        "before": "assert len(compiled)==7 and len(source_checks)==7 and packer_entries==1 and unchanged()",
+        "after": "assert len(compiled)==9 and len(source_checks)==9 and packer_entries==1 and unchanged()"
+      },
+      {
+        "label": "summary scope",
+        "before": "    report=dict(status=status,scope=\"SEVEN_ACTUAL_HIA_ASCII_READER_IMAGES_AND_FRESH_FIXED_ELF\",",
+        "after": "    report=dict(status=status,scope=\"NINE_ACTUAL_HIA_IDENTITY_CAST_READER_IMAGES_AND_FRESH_FIXED_ELF\","
+      }
+    ],
+    "additional_layer_scope_edit": {
+      "before": "    if row[\"role\"] in ASCII_CHANGED:\n        check_ascii_changes(old,predecessor,ascii_proof_rows[row[\"role\"]])\n    else:\n        assert row[\"role\"] in (2,25) and predecessor==old\n        source_checks.append(dict(role=row[\"role\"],original=pin(old),\n            candidate=pin(new),exact_complete_inverse=True))\n",
+      "after": "    if row[\"role\"] in ASCII_CHANGED:\n        check_ascii_changes(old,predecessor,ascii_proof_rows[row[\"role\"]])\n        prior_layer=source_checks.pop()\n        source_checks.append(dict(role=row[\"role\"],original=pin(old),\n            candidate=pin(new),exact_complete_inverse=True,\n            prior_ASCII_layer=prior_layer))\n    else:\n        assert row[\"role\"] in (2,25) and predecessor==old\n        source_checks.append(dict(role=row[\"role\"],original=pin(old),\n            candidate=pin(new),exact_complete_inverse=True))\n"
+    }
+  },
+  "test": {
+    "original": {
+      "bytes": 19430,
+      "gitsha": "e23763ed1b118141bf8fc797e2f31664155fc676",
+      "sha256": "b6cf9a7e9d0ec7c185a1b5865a4690be880cdbdbeb7861573936d37684adf6d7"
+    },
+    "final": {
+      "bytes": 19434,
+      "gitsha": "90e7423a7599ca5070ea2825413d315a2fff2e11",
+      "sha256": "ec0e5ec483eae3314d2e3eb4991fe3b129c14805703a74c45e891c694001c3d8"
+    },
+    "edits": [
+      {
+        "before": "native-ordinary-impact-ascii-fast-r1\"",
+        "after": "native-ordinary-impact-identity-casts-r1\""
+      },
+      {
+        "before": "manifest[\"new_compiles\"]==13",
+        "after": "manifest[\"new_compiles\"]==15"
+      }
+    ]
+  },
+  "CI": {
+    "original": {
+      "bytes": 19137,
+      "gitsha": "313ba68a9f981efaa1f633b3e52470b5bde2936f",
+      "sha256": "8e0993d6646284d649c74535f6fa14aa6e6927109f3db4f83f541fa7fc223474"
+    },
+    "first": {
+      "bytes": 21687,
+      "gitsha": "05c40896ce21f424822ae59fb9a719d23a6d68df",
+      "sha256": "5cca6c774af089f2af03619a76c02787aeb4e5c82b889419c2ac0a9f1194e9d6"
+    },
+    "final": {
+      "bytes": 21687,
+      "gitsha": "5ad2f37a8c6c14f9734d70c41855422e0c9a632a",
+      "sha256": "e2ded11943a6300c62657db1c8ac0d5bb58e3a1bbc160525f135bd2174511a56"
+    },
+    "edits": [
+      {
+        "label": "module description",
+        "before": "\"\"\"Full original thirteen-group qualification of seven exact HIA ASCII reader additions.\"\"\"",
+        "after": "\"\"\"Full original thirteen-group qualification of nine HIA identity-cast candidates.\"\"\"",
+        "count": 1
+      },
+      {
+        "label": "runtime root",
+        "before": "native-ordinary-impact-ascii-fast-r1",
+        "after": "native-ordinary-impact-identity-casts-r1",
+        "count": 3,
+        "global": true
+      },
+      {
+        "label": "test filename",
+        "before": "test_ordinary_impact_ascii_r1.py",
+        "after": "test_ordinary_impact_identity_r1.py",
+        "count": 4,
+        "global": true
+      },
+      {
+        "label": "builder filename",
+        "before": "build_ordinary_impact_ascii_r1.py",
+        "after": "build_ordinary_impact_identity_r1.py",
+        "count": 3,
+        "global": true
+      },
+      {
+        "label": "distinct new console markers",
+        "before": "HIA_ORDINARY_ASCII_",
+        "after": "HIA_ORDINARY_IDENTITY_",
+        "count": 4,
+        "global": true
+      },
+      {
+        "label": "scope",
+        "before": "SEVEN_EXACT_ASCII_READER_SOURCES",
+        "after": "NINE_EXACT_IDENTITY_CAST_SOURCES",
+        "count": 1
+      },
+      {
+        "label": "independent new submission directory",
+        "before": "submitted=common.BASE/\"ordinary-inline-seven-submitted-source\"",
+        "after": "submitted=common.BASE/\"ordinary-identity-nine-submitted-source\"",
+        "count": 1
+      },
+      {
+        "label": "total fresh B3 fixture pins",
+        "before": "manifest[\"new_compiles\"]==13",
+        "after": "manifest[\"new_compiles\"]==15",
+        "count": 3,
+        "global": true
+      },
+      {
+        "label": "full compile receipt count",
+        "before": "len(manifest[\"compiled\"])==13",
+        "after": "len(manifest[\"compiled\"])==15",
+        "count": 1
+      },
+      {
+        "label": "nine actual candidate receipts",
+        "before": "build[\"actual_optimization_B3\"]==7",
+        "after": "build[\"actual_optimization_B3\"]==9",
+        "count": 1
+      },
+      {
+        "label": "nine candidate count",
+        "before": "manifest[\"optimization_new_compiles\"]==7",
+        "after": "manifest[\"optimization_new_compiles\"]==9",
+        "count": 1
+      },
+      {
+        "label": "exact role partition",
+        "before": "manifest[\"changed_roles\"]==[24,26,27,57,59,60,63] and manifest[\"unchanged_roles\"]==56",
+        "after": "manifest[\"changed_roles\"]==[2,24,25,26,27,57,59,60,63] and manifest[\"unchanged_roles\"]==54",
+        "count": 1
+      },
+      {
+        "label": "public build counts",
+        "before": "details.update(new_native_compiles=13,new_native_packer_entries=2",
+        "after": "details.update(new_native_compiles=15,new_native_packer_entries=2",
+        "count": 1
+      },
+      {
+        "label": "step label",
+        "before": "ordinary-inline-seven-fresh-B3-and-new-ELF-pack",
+        "after": "ordinary-identity-nine-fresh-B3-and-new-ELF-pack",
+        "count": 1
+      },
+      {
+        "label": "seal scope",
+        "before": "common.finish(\"ordinary-impact-ascii-fast-r1\"",
+        "after": "common.finish(\"ordinary-impact-identity-casts-r1\"",
+        "count": 1
+      },
+      {
+        "label": "raw original base64",
+        "before": "import importlib.util,json,os,sys,traceback",
+        "after": "import importlib.util,base64,json,os,sys,traceback",
+        "count": 1
+      },
+      {
+        "label": "complete actual seventeen input rows",
+        "before": "ADDITIONAL_FILES=[\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/build_ordinary_impact_identity_r1.py\",\n    \"path\": \"build_ordinary_impact_identity_r1.py\",\n    \"bytes\": 21295,\n    \"gitsha\": \"efe65ddb66dd4e1d5a3557450e0952ff9abe43d5\",\n    \"sha256\": \"f0747925aefa645b0497b192f09e7bacd30ee81ac7fb9e74b8069fb5e02b34f4\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/test_ordinary_impact_identity_r1.py\",\n    \"path\": \"test_ordinary_impact_identity_r1.py\",\n    \"bytes\": 19430,\n    \"gitsha\": \"e23763ed1b118141bf8fc797e2f31664155fc676\",\n    \"sha256\": \"b6cf9a7e9d0ec7c185a1b5865a4690be880cdbdbeb7861573936d37684adf6d7\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/sources/role-24.hiaasm\",\n    \"path\": \"sources/role-24.hiaasm\",\n    \"bytes\": 112882,\n    \"gitsha\": \"ad332cb75dde66d1dcb45c85583ecdadc0d157ff\",\n    \"sha256\": \"919898dea949756cbd5f9c40d88a73bf80a338943f24bc2829b1dbddb9d559de\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/sources/role-26.hiaasm\",\n    \"path\": \"sources/role-26.hiaasm\",\n    \"bytes\": 137200,\n    \"gitsha\": \"164c2e260335e54ce27298e4aebd2eec2a483f06\",\n    \"sha256\": \"d92efee9ff73042291d9bd04247adcdaa14669b7c509f88848faad5dd187245b\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/sources/role-27.hiaasm\",\n    \"path\": \"sources/role-27.hiaasm\",\n    \"bytes\": 428317,\n    \"gitsha\": \"fb7c30f6be7c71c1ccea77650fe38961ad368cfe\",\n    \"sha256\": \"a5c0f7d5122860335585091262f602e21c99e18fdbd9ba566356016668c7d4cd\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/sources/role-57.hiaasm\",\n    \"path\": \"sources/role-57.hiaasm\",\n    \"bytes\": 293142,\n    \"gitsha\": \"a6d534e3a7930a9799b73c9b30795bfa72fc9e25\",\n    \"sha256\": \"7bae0b0c912e39ef2041cd6407ca3336e507c3a3f9332098f8f76e1ca4b93ae7\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/sources/role-59.hiaasm\",\n    \"path\": \"sources/role-59.hiaasm\",\n    \"bytes\": 254055,\n    \"gitsha\": \"b7c4b501817fc6075bb8b2b8210a2e4ead27ed77\",\n    \"sha256\": \"c3878bc263831256807ddcbd221d9e9645773756633b58208f3f09bd019dd65b\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/sources/role-60.hiaasm\",\n    \"path\": \"sources/role-60.hiaasm\",\n    \"bytes\": 296442,\n    \"gitsha\": \"b12fd9765f34c181599e7a841a302bd3694cd90b\",\n    \"sha256\": \"f41dd8ce4e5a046a7d3924a25bf536c3fac5c41dbdbbe0e3b26a1951b35a0865\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/sources/role-63.hiaasm\",\n    \"path\": \"sources/role-63.hiaasm\",\n    \"bytes\": 177952,\n    \"gitsha\": \"14eae26f4a9c5a4b07890e852ef7ee8d76efd749\",\n    \"sha256\": \"df04bfd70eec7091980deaa68869a63218be4693499121f736f934942e47c857\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/evidence/ascii-source-transform-proof.json\",\n    \"path\": \"evidence/source-transform-proof.json\",\n    \"bytes\": 94747,\n    \"gitsha\": \"92781bd45591f622d544e54faa9842adf8438826\",\n    \"sha256\": \"e0487d5b78def8ba34fa5ef8eef2c5f4233a4ad09655c802880e045dd53abc06\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-json-inline-r1/evidence/source-transform-proof.json\",\n    \"path\": \"evidence/inline-source-transform-proof.original.json\",\n    \"bytes\": 202873,\n    \"gitsha\": \"3cfa3d613205fb07db028fceee8d8ee1da3e2595\",\n    \"sha256\": \"64faa076ecb678d671aae86ca67de191d8cf15dfc32309d213d3be85512b5d5f\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-json-inline-r1/evidence/independent-inline-static-review.json\",\n    \"path\": \"evidence/independent-inline-static-review.json\",\n    \"bytes\": 14032,\n    \"gitsha\": \"2d8bad7aaf6ced17f3234bba7e06e795b6791259\",\n    \"sha256\": \"43670306773f6ddf2de79a7367d82ec6c6ee3bd724511a07b8b6362df8ec031c\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-timing47-readback-r1/actual-follow49/raw/build/manifest.json\",\n    \"path\": \"resources/actual47-build-manifest.original.json\",\n    \"bytes\": 21225,\n    \"gitsha\": \"39d4f27505f651fba51171816d05eac3ad80f3e8\",\n    \"sha256\": \"db45591a5df693a841eb032b7cc58d786d572391a6f0330f44f1d632c8796d73\"\n  }\n]",
+        "after": "ADDITIONAL_FILES=[\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/build_ordinary_impact_identity_r1.py\",\n    \"path\": \"build_ordinary_impact_identity_r1.py\",\n    \"bytes\": 26172,\n    \"gitsha\": \"5665374c082abc409c6bf31ba33d22d0caaed41e\",\n    \"sha256\": \"08fdd6ac0586388ef9306c5b0aaca74b074f2026d27595863a73a40f047db24c\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/test_ordinary_impact_identity_r1.py\",\n    \"path\": \"test_ordinary_impact_identity_r1.py\",\n    \"bytes\": 19434,\n    \"gitsha\": \"90e7423a7599ca5070ea2825413d315a2fff2e11\",\n    \"sha256\": \"ec0e5ec483eae3314d2e3eb4991fe3b129c14805703a74c45e891c694001c3d8\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-2.hiaasm\",\n    \"path\": \"sources/role-2.hiaasm\",\n    \"bytes\": 66848,\n    \"gitsha\": \"d76ea76c40fe9ecf3272852a88ab7fb8848c2773\",\n    \"sha256\": \"7169d54f3d4b6f77550a2c63d0618c4d1a1f6b9381764f12cead5e04559d078b\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-24.hiaasm\",\n    \"path\": \"sources/role-24.hiaasm\",\n    \"bytes\": 112884,\n    \"gitsha\": \"9798e63fb55ddbb92e958ce9c224202760a20834\",\n    \"sha256\": \"2c8b4c41bcc5303dc75c9faf1e5cda157df2b83d9f1cbcd28a94ce4a54c54be7\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-25.hiaasm\",\n    \"path\": \"sources/role-25.hiaasm\",\n    \"bytes\": 71090,\n    \"gitsha\": \"b7207f41377d7f844591f529d9d6b804e6a24747\",\n    \"sha256\": \"184cdda79e7e2d337b454f81d08b52ccd287472a132604186605f071822a9c78\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-26.hiaasm\",\n    \"path\": \"sources/role-26.hiaasm\",\n    \"bytes\": 137204,\n    \"gitsha\": \"6d347b5613d13c270ae258a6aeb214a1467522bb\",\n    \"sha256\": \"4d8b950a95c67b2edadf80d86a05c703535ce15573d19311cf54ee46df3e3b64\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-27.hiaasm\",\n    \"path\": \"sources/role-27.hiaasm\",\n    \"bytes\": 428320,\n    \"gitsha\": \"a942e712cdc68a6691e37a8b22da3f6e84ce1bba\",\n    \"sha256\": \"fdf05f68d8de2b804b5478a8c9dcfd78b538ba45201982cc5bc72fd495a1bd69\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-57.hiaasm\",\n    \"path\": \"sources/role-57.hiaasm\",\n    \"bytes\": 293144,\n    \"gitsha\": \"db1ed8ce2a30c8a7e2f13718f2ecebac82a387d2\",\n    \"sha256\": \"12487e9fc6886d9b591d1286cb1e2674752c47b408073e0a4d02e04af1bd6f89\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-59.hiaasm\",\n    \"path\": \"sources/role-59.hiaasm\",\n    \"bytes\": 254057,\n    \"gitsha\": \"15c2edb507d541a05f3694bcc826436fe08c6f9a\",\n    \"sha256\": \"ec63735e1b8b016743bb5b8d422dea3740919ebd83ea3772c50192f3d3e35ed5\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-60.hiaasm\",\n    \"path\": \"sources/role-60.hiaasm\",\n    \"bytes\": 296444,\n    \"gitsha\": \"904a4dfab8e820e8fb801bd932f0e2286769a025\",\n    \"sha256\": \"ee69376391e547adc2c55ab5a7d0b05938624d84ef125271fe2777b093071936\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-63.hiaasm\",\n    \"path\": \"sources/role-63.hiaasm\",\n    \"bytes\": 177954,\n    \"gitsha\": \"aa9d322bc69e717b68cad58280141b8f3618bfbc\",\n    \"sha256\": \"fca4c7688d216da86f02ee6b5ec6823acb942baff6a829b85cabcc42b55cfb41\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/evidence/identity-source-transform-proof.json\",\n    \"path\": \"evidence/identity-source-transform-proof.json\",\n    \"bytes\": 31564,\n    \"gitsha\": \"3ed69cb7e2c1e35f316358307eee9081d78e4aba\",\n    \"sha256\": \"f19bf9434cbff1797f416802cc729b0c717dece53e8e9f9dc8174de4d9baa057\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/evidence/follow54-candidate-build.original-console.json\",\n    \"path\": \"evidence/follow54-candidate-build.original-console.json\",\n    \"bytes\": 26946,\n    \"gitsha\": \"7cfe3e651244944faee009b685193471b2547fe3\",\n    \"sha256\": \"4f0d2b1b05273908baee457360271e893870aa0181120f198d76380b5ae7c27e\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/evidence/ascii-source-transform-proof.json\",\n    \"path\": \"evidence/ascii-source-transform-proof.original.json\",\n    \"bytes\": 94747,\n    \"gitsha\": \"92781bd45591f622d544e54faa9842adf8438826\",\n    \"sha256\": \"e0487d5b78def8ba34fa5ef8eef2c5f4233a4ad09655c802880e045dd53abc06\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-json-inline-r1/evidence/source-transform-proof.json\",\n    \"path\": \"evidence/inline-source-transform-proof.original.json\",\n    \"bytes\": 202873,\n    \"gitsha\": \"3cfa3d613205fb07db028fceee8d8ee1da3e2595\",\n    \"sha256\": \"64faa076ecb678d671aae86ca67de191d8cf15dfc32309d213d3be85512b5d5f\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-json-inline-r1/evidence/independent-inline-static-review.json\",\n    \"path\": \"evidence/independent-inline-static-review.json\",\n    \"bytes\": 14032,\n    \"gitsha\": \"2d8bad7aaf6ced17f3234bba7e06e795b6791259\",\n    \"sha256\": \"43670306773f6ddf2de79a7367d82ec6c6ee3bd724511a07b8b6362df8ec031c\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-timing47-readback-r1/actual-follow49/raw/build/manifest.json\",\n    \"path\": \"resources/actual47-build-manifest.original.json\",\n    \"bytes\": 21225,\n    \"gitsha\": \"39d4f27505f651fba51171816d05eac3ad80f3e8\",\n    \"sha256\": \"db45591a5df693a841eb032b7cc58d786d572391a6f0330f44f1d632c8796d73\"\n  }\n]",
+        "count": 1
+      },
+      {
+        "label": "complete failed-case process and input metadata before evidence seal",
+        "before": "def show_originals():\n    for root in (OLD_ROOT,ROOT):\n        if root.exists():\n            for path in sorted(root.rglob(\"*.stderr.log\")):\n                print(\"HIA_ORDINARY_IDENTITY_ORIGINAL_STDERR \"+json.dumps(dict(path=str(path),text=path.read_text()),sort_keys=True),flush=True)\n",
+        "after": "def show_originals():\n    for root in (OLD_ROOT,ROOT):\n        if root.exists():\n            for path in sorted(root.rglob(\"*.stderr.log\")):\n                print(\"HIA_ORDINARY_IDENTITY_ORIGINAL_STDERR \"+json.dumps(dict(path=str(path),text=path.read_text()),sort_keys=True),flush=True)\n    raw_console_bytes=0\n    for failed in failures:\n        directory=ROOT/\"development\"/(\"native-\"+failed[\"group\"])\n        for pattern in (\"pending-*.json\",\"process-*.json\"):\n            for path in sorted(directory.glob(pattern)):\n                raw=path.read_bytes()\n                identity=dict(path=str(path),bytes=len(raw),sha256=sha256(raw).hexdigest(),gitsha=gitsha(raw))\n                if raw_console_bytes+len(raw)>2*1024*1024:\n                    print(\"HIA_ORDINARY_IDENTITY_ORIGINAL_CASE_RETAINED \"+json.dumps(identity,sort_keys=True),flush=True)\n                    continue\n                for offset in range(0,max(1,len(raw)),12000):\n                    print(\"HIA_ORDINARY_IDENTITY_ORIGINAL_CASE \"+json.dumps(dict(identity,\n                        offset=offset,base64=base64.b64encode(raw[offset:offset+12000]).decode(\"ascii\")),sort_keys=True),flush=True)\n                raw_console_bytes+=len(raw)\n",
+        "count": 1
+      }
+    ],
+    "final_builder_identity_only": {
+      "before": "ADDITIONAL_FILES=[\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/build_ordinary_impact_identity_r1.py\",\n    \"path\": \"build_ordinary_impact_identity_r1.py\",\n    \"bytes\": 26172,\n    \"gitsha\": \"5665374c082abc409c6bf31ba33d22d0caaed41e\",\n    \"sha256\": \"08fdd6ac0586388ef9306c5b0aaca74b074f2026d27595863a73a40f047db24c\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/test_ordinary_impact_identity_r1.py\",\n    \"path\": \"test_ordinary_impact_identity_r1.py\",\n    \"bytes\": 19434,\n    \"gitsha\": \"90e7423a7599ca5070ea2825413d315a2fff2e11\",\n    \"sha256\": \"ec0e5ec483eae3314d2e3eb4991fe3b129c14805703a74c45e891c694001c3d8\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-2.hiaasm\",\n    \"path\": \"sources/role-2.hiaasm\",\n    \"bytes\": 66848,\n    \"gitsha\": \"d76ea76c40fe9ecf3272852a88ab7fb8848c2773\",\n    \"sha256\": \"7169d54f3d4b6f77550a2c63d0618c4d1a1f6b9381764f12cead5e04559d078b\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-24.hiaasm\",\n    \"path\": \"sources/role-24.hiaasm\",\n    \"bytes\": 112884,\n    \"gitsha\": \"9798e63fb55ddbb92e958ce9c224202760a20834\",\n    \"sha256\": \"2c8b4c41bcc5303dc75c9faf1e5cda157df2b83d9f1cbcd28a94ce4a54c54be7\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-25.hiaasm\",\n    \"path\": \"sources/role-25.hiaasm\",\n    \"bytes\": 71090,\n    \"gitsha\": \"b7207f41377d7f844591f529d9d6b804e6a24747\",\n    \"sha256\": \"184cdda79e7e2d337b454f81d08b52ccd287472a132604186605f071822a9c78\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-26.hiaasm\",\n    \"path\": \"sources/role-26.hiaasm\",\n    \"bytes\": 137204,\n    \"gitsha\": \"6d347b5613d13c270ae258a6aeb214a1467522bb\",\n    \"sha256\": \"4d8b950a95c67b2edadf80d86a05c703535ce15573d19311cf54ee46df3e3b64\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-27.hiaasm\",\n    \"path\": \"sources/role-27.hiaasm\",\n    \"bytes\": 428320,\n    \"gitsha\": \"a942e712cdc68a6691e37a8b22da3f6e84ce1bba\",\n    \"sha256\": \"fdf05f68d8de2b804b5478a8c9dcfd78b538ba45201982cc5bc72fd495a1bd69\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-57.hiaasm\",\n    \"path\": \"sources/role-57.hiaasm\",\n    \"bytes\": 293144,\n    \"gitsha\": \"db1ed8ce2a30c8a7e2f13718f2ecebac82a387d2\",\n    \"sha256\": \"12487e9fc6886d9b591d1286cb1e2674752c47b408073e0a4d02e04af1bd6f89\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-59.hiaasm\",\n    \"path\": \"sources/role-59.hiaasm\",\n    \"bytes\": 254057,\n    \"gitsha\": \"15c2edb507d541a05f3694bcc826436fe08c6f9a\",\n    \"sha256\": \"ec63735e1b8b016743bb5b8d422dea3740919ebd83ea3772c50192f3d3e35ed5\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-60.hiaasm\",\n    \"path\": \"sources/role-60.hiaasm\",\n    \"bytes\": 296444,\n    \"gitsha\": \"904a4dfab8e820e8fb801bd932f0e2286769a025\",\n    \"sha256\": \"ee69376391e547adc2c55ab5a7d0b05938624d84ef125271fe2777b093071936\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-63.hiaasm\",\n    \"path\": \"sources/role-63.hiaasm\",\n    \"bytes\": 177954,\n    \"gitsha\": \"aa9d322bc69e717b68cad58280141b8f3618bfbc\",\n    \"sha256\": \"fca4c7688d216da86f02ee6b5ec6823acb942baff6a829b85cabcc42b55cfb41\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/evidence/identity-source-transform-proof.json\",\n    \"path\": \"evidence/identity-source-transform-proof.json\",\n    \"bytes\": 31564,\n    \"gitsha\": \"3ed69cb7e2c1e35f316358307eee9081d78e4aba\",\n    \"sha256\": \"f19bf9434cbff1797f416802cc729b0c717dece53e8e9f9dc8174de4d9baa057\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/evidence/follow54-candidate-build.original-console.json\",\n    \"path\": \"evidence/follow54-candidate-build.original-console.json\",\n    \"bytes\": 26946,\n    \"gitsha\": \"7cfe3e651244944faee009b685193471b2547fe3\",\n    \"sha256\": \"4f0d2b1b05273908baee457360271e893870aa0181120f198d76380b5ae7c27e\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/evidence/ascii-source-transform-proof.json\",\n    \"path\": \"evidence/ascii-source-transform-proof.original.json\",\n    \"bytes\": 94747,\n    \"gitsha\": \"92781bd45591f622d544e54faa9842adf8438826\",\n    \"sha256\": \"e0487d5b78def8ba34fa5ef8eef2c5f4233a4ad09655c802880e045dd53abc06\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-json-inline-r1/evidence/source-transform-proof.json\",\n    \"path\": \"evidence/inline-source-transform-proof.original.json\",\n    \"bytes\": 202873,\n    \"gitsha\": \"3cfa3d613205fb07db028fceee8d8ee1da3e2595\",\n    \"sha256\": \"64faa076ecb678d671aae86ca67de191d8cf15dfc32309d213d3be85512b5d5f\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-json-inline-r1/evidence/independent-inline-static-review.json\",\n    \"path\": \"evidence/independent-inline-static-review.json\",\n    \"bytes\": 14032,\n    \"gitsha\": \"2d8bad7aaf6ced17f3234bba7e06e795b6791259\",\n    \"sha256\": \"43670306773f6ddf2de79a7367d82ec6c6ee3bd724511a07b8b6362df8ec031c\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-timing47-readback-r1/actual-follow49/raw/build/manifest.json\",\n    \"path\": \"resources/actual47-build-manifest.original.json\",\n    \"bytes\": 21225,\n    \"gitsha\": \"39d4f27505f651fba51171816d05eac3ad80f3e8\",\n    \"sha256\": \"db45591a5df693a841eb032b7cc58d786d572391a6f0330f44f1d632c8796d73\"\n  }\n]",
+      "after": "ADDITIONAL_FILES=[\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/build_ordinary_impact_identity_r1.py\",\n    \"path\": \"build_ordinary_impact_identity_r1.py\",\n    \"bytes\": 26386,\n    \"gitsha\": \"7dae271fa20af3ac9f57ea902ce6f3984a24efa6\",\n    \"sha256\": \"78b75e415656fc978473769a846ea81590fa09184189e1c89a29e05dd4e17345\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/test_ordinary_impact_identity_r1.py\",\n    \"path\": \"test_ordinary_impact_identity_r1.py\",\n    \"bytes\": 19434,\n    \"gitsha\": \"90e7423a7599ca5070ea2825413d315a2fff2e11\",\n    \"sha256\": \"ec0e5ec483eae3314d2e3eb4991fe3b129c14805703a74c45e891c694001c3d8\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-2.hiaasm\",\n    \"path\": \"sources/role-2.hiaasm\",\n    \"bytes\": 66848,\n    \"gitsha\": \"d76ea76c40fe9ecf3272852a88ab7fb8848c2773\",\n    \"sha256\": \"7169d54f3d4b6f77550a2c63d0618c4d1a1f6b9381764f12cead5e04559d078b\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-24.hiaasm\",\n    \"path\": \"sources/role-24.hiaasm\",\n    \"bytes\": 112884,\n    \"gitsha\": \"9798e63fb55ddbb92e958ce9c224202760a20834\",\n    \"sha256\": \"2c8b4c41bcc5303dc75c9faf1e5cda157df2b83d9f1cbcd28a94ce4a54c54be7\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-25.hiaasm\",\n    \"path\": \"sources/role-25.hiaasm\",\n    \"bytes\": 71090,\n    \"gitsha\": \"b7207f41377d7f844591f529d9d6b804e6a24747\",\n    \"sha256\": \"184cdda79e7e2d337b454f81d08b52ccd287472a132604186605f071822a9c78\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-26.hiaasm\",\n    \"path\": \"sources/role-26.hiaasm\",\n    \"bytes\": 137204,\n    \"gitsha\": \"6d347b5613d13c270ae258a6aeb214a1467522bb\",\n    \"sha256\": \"4d8b950a95c67b2edadf80d86a05c703535ce15573d19311cf54ee46df3e3b64\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-27.hiaasm\",\n    \"path\": \"sources/role-27.hiaasm\",\n    \"bytes\": 428320,\n    \"gitsha\": \"a942e712cdc68a6691e37a8b22da3f6e84ce1bba\",\n    \"sha256\": \"fdf05f68d8de2b804b5478a8c9dcfd78b538ba45201982cc5bc72fd495a1bd69\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-57.hiaasm\",\n    \"path\": \"sources/role-57.hiaasm\",\n    \"bytes\": 293144,\n    \"gitsha\": \"db1ed8ce2a30c8a7e2f13718f2ecebac82a387d2\",\n    \"sha256\": \"12487e9fc6886d9b591d1286cb1e2674752c47b408073e0a4d02e04af1bd6f89\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-59.hiaasm\",\n    \"path\": \"sources/role-59.hiaasm\",\n    \"bytes\": 254057,\n    \"gitsha\": \"15c2edb507d541a05f3694bcc826436fe08c6f9a\",\n    \"sha256\": \"ec63735e1b8b016743bb5b8d422dea3740919ebd83ea3772c50192f3d3e35ed5\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-60.hiaasm\",\n    \"path\": \"sources/role-60.hiaasm\",\n    \"bytes\": 296444,\n    \"gitsha\": \"904a4dfab8e820e8fb801bd932f0e2286769a025\",\n    \"sha256\": \"ee69376391e547adc2c55ab5a7d0b05938624d84ef125271fe2777b093071936\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/sources/role-63.hiaasm\",\n    \"path\": \"sources/role-63.hiaasm\",\n    \"bytes\": 177954,\n    \"gitsha\": \"aa9d322bc69e717b68cad58280141b8f3618bfbc\",\n    \"sha256\": \"fca4c7688d216da86f02ee6b5ec6823acb942baff6a829b85cabcc42b55cfb41\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/evidence/identity-source-transform-proof.json\",\n    \"path\": \"evidence/identity-source-transform-proof.json\",\n    \"bytes\": 31564,\n    \"gitsha\": \"3ed69cb7e2c1e35f316358307eee9081d78e4aba\",\n    \"sha256\": \"f19bf9434cbff1797f416802cc729b0c717dece53e8e9f9dc8174de4d9baa057\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/evidence/follow54-candidate-build.original-console.json\",\n    \"path\": \"evidence/follow54-candidate-build.original-console.json\",\n    \"bytes\": 26946,\n    \"gitsha\": \"7cfe3e651244944faee009b685193471b2547fe3\",\n    \"sha256\": \"4f0d2b1b05273908baee457360271e893870aa0181120f198d76380b5ae7c27e\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/evidence/ascii-source-transform-proof.json\",\n    \"path\": \"evidence/ascii-source-transform-proof.original.json\",\n    \"bytes\": 94747,\n    \"gitsha\": \"92781bd45591f622d544e54faa9842adf8438826\",\n    \"sha256\": \"e0487d5b78def8ba34fa5ef8eef2c5f4233a4ad09655c802880e045dd53abc06\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-json-inline-r1/evidence/source-transform-proof.json\",\n    \"path\": \"evidence/inline-source-transform-proof.original.json\",\n    \"bytes\": 202873,\n    \"gitsha\": \"3cfa3d613205fb07db028fceee8d8ee1da3e2595\",\n    \"sha256\": \"64faa076ecb678d671aae86ca67de191d8cf15dfc32309d213d3be85512b5d5f\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-json-inline-r1/evidence/independent-inline-static-review.json\",\n    \"path\": \"evidence/independent-inline-static-review.json\",\n    \"bytes\": 14032,\n    \"gitsha\": \"2d8bad7aaf6ced17f3234bba7e06e795b6791259\",\n    \"sha256\": \"43670306773f6ddf2de79a7367d82ec6c6ee3bd724511a07b8b6362df8ec031c\"\n  },\n  {\n    \"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-timing47-readback-r1/actual-follow49/raw/build/manifest.json\",\n    \"path\": \"resources/actual47-build-manifest.original.json\",\n    \"bytes\": 21225,\n    \"gitsha\": \"39d4f27505f651fba51171816d05eac3ad80f3e8\",\n    \"sha256\": \"db45591a5df693a841eb032b7cc58d786d572391a6f0330f44f1d632c8796d73\"\n  }\n]"
+    }
+  },
+  "whole_forward_and_inverse_bytes_verified": true,
+  "all_original_329_inputs_labels_errors_oracles_orders_limits_unchanged": true,
+  "actual_prior_CPU_failures_not_superseded": true,
+  "all15_compiles_and329_cases_must_be_fresh": true,
+  "source_checks_are_layered_so_prior_ASCII_unchanged_body_claims_do_not_describe_new_identity_calls": true,
+  "new_failure_observability": "Complete original pending/process JSON bytes for failed groups printed as bounded base64; omitted bodies explicitly identified and retained. This changes only outer driver evidence output, outside each original target group process.",
+  "existing_seal_policy_unchanged": true,
+  "whole_stack_closed": false,
+  "activation": 0,
+  "deletions": 0
+}
