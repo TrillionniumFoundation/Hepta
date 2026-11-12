@@ -1,0 +1,46 @@
+{
+  "schema": "hia.namespace.raw-framer.r4.same-allocation-generation.v1",
+  "status": "STATIC_CORRECTION_BEFORE_ANY_EXECUTION",
+  "source": {
+    "blob": "18f176eb647fe70710b0b4ae39f442052041e02c",
+    "bytes": 20819,
+    "sha256": "e5682dd85164edda7f7e2a6adcc7f8a567f72c9dcc9626b06b95afa47024e83b",
+    "mode": "100644"
+  },
+  "previous": {
+    "blob": "6b5cc2ce0cfd8b08f7be9ef1fe7d41ddd8642925",
+    "bytes": 20819,
+    "sha256": "dead36dc28c0a9c3e5281eb3f639ee85ab2377f0cf76b299f2b53d6d9e3220fa",
+    "mode": "100644"
+  },
+  "mechanical_source": {
+    "blob": "ceb21c40b4287b1eff4e998d61fdfcfa59fb3110",
+    "bytes": 64979,
+    "sha256": "dd33f23d901ecd8ecb85b65b71d672d9865855f5eb3308b7cb9735d52cd66d3a",
+    "symbols": {
+      "CONTEXT_SEQUENCE": 2408,
+      "ENTRY_SERIAL": 280
+    },
+    "observation": "CONTEXT_SEQUENCE assigned at allocation; ENTRY_SERIAL incremented for each actual image call. trace_header_common records serial Q2, node Q8, allocation generation Q9, role Q10."
+  },
+  "replacement_scope": "Exact context allocation generation remains equal; actual per-image serial strictly advances. Context ID is a separately issued private handle for actual process/node/generation, not a nonzero requirement on the root's legitimate node zero.",
+  "replacements": [
+    {
+      "old": "    if read64(r, 40) != get(w, 64) or read64(r, 48) <= get(w, 72) or read64(r, 72) <= get(w, 224):",
+      "new": "    if read64(r, 40) != get(w, 64) or read64(r, 48) != get(w, 72) or read64(r, 72) <= get(w, 224):",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "agent_namespace_unixopen_fs_framer_r3",
+      "new": "agent_namespace_unixopen_fs_framer_r4",
+      "expected_occurrences": 2
+    }
+  ],
+  "old_SOURCE_unexecuted": true,
+  "new_execution": {
+    "AST": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  }
+}

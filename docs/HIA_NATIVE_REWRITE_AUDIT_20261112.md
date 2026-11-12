@@ -1,8 +1,34 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW47）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW48）
 
 ## 当前结论
 
 **整套仍为 OPEN。完整保留版4,157项回归原件已完整核实；固定程序服务、UnixOpen父层和P16私有controls已在各自限定范围通过，Emitter三轮覆盖55组732案。真实FS/Store/SQL、公开上下文、impact大输入CPU、完整工具链/平台/API和HIA原生安装仍待闭合。生产激活0、旧实现删除0。**
+
+## FOLLOW48 最新状态（2026-11-12 11:31:22 UTC）
+
+父提交FOLLOW47为 `58a5b2b462d312f77f9b0431aa230a7bfa1af993`，tree `f549aea1e3ed4da0166f9c77afae4ede5033adc8`，6,529个文件。整套仍OPEN，156个生产模块的原生安装替换尚未验收，生产激活0、删除0。FOLLOW47恢复run43208616674的两项只读原件reader已实际SUCCESS；checked-plan、initializer/program桥、type-context独立组件和impact计时在本次API快照中仍运行，尚无这四项终态结论。完整原件解封另行保全，不把读取结果记为新的HIA执行。
+
+### 二十一核后端组合的首次实际执行门
+
+新backend-join交付61份完整文本，根逐份全文GET并核bytes/Git SHA1/SHA256。48个活动Python源进入严格排序的语法清单；9份前序未执行源和完整范围/身份说明同时保留。计划在原35ee编译器上fresh编译21个HIA内核，把prepare、可选checked-plan、Emitter、Code、ELF、对象检查、流式SHA与原metadata顺序接到同一个父控。22个独立组共133案，其中72个私有controls；76案完整CAS、59个新固定C语义进程和2案严格小型CAS/C交叉比较分别记录。全部进程原始输入输出和完整压缩流必须保全，不能继承旧Emitter的55组、旧plan的55组或旧inventory的20组通过。
+
+该入口明确是private HIABBI01，接受已准入Core、rawPlan与rawForeign的实际Graph；它尚未提供公开原始输入的实际Core准入、20份实现文件的真实前后读回、公开foreign捕获或安装入口。两份预先传入相等的摘要不构成真实late recheck。对外结果是readonly HIABMR01描述符与完整对象、text、metadata、registry和规范plan；只有新实际组合验收能说明这些产物是否逐字一致。
+
+### 真实类型上下文沿lowering、program与P16传播
+
+另一交付55份完整文本逐字GET核实，其中46个活动Python源。候选接通实际types8、lowering40/41、constructor43、program46、reader50与P16 56；先全量验证R12原归档8,355成员，再逐字复现旧8/40/41/43/46 HIA源，role46额外绑定原expanded source、HIA和image。之后13次fresh B3、1次实际HIA packer，最终63槽表含43个非空镜像。
+
+计划14个独立组413案：旧281案在新身份上全部重新执行，另加100个真实公开context案例和32个私有capsule控制，计划251个实际ELF进程。真实错误上下文须在原types完成与validator REPLY之后、constructor cleanup之前取出；lowering/program/P16传递并校验实际lease、request和只读capsule，最终完整错误文本以精确旧公开API为oracle。host不得生成where标签，也不得拿enum表充当公开oracle。先前四个公开全文FAIL保留；groups6/9、其它未测公开错误、普通Worker与Store/SQL仍OPEN。
+
+### 原件、inactive修订与发布界线
+
+同轮保存framer-r4的三份inactive源码：CONTEXT_SEQUENCE随实际上下文分配而稳定，只有ENTRY_SERIAL逐次native入口增加；r4允许同generation与更晚serial。r2元数据次序错误、r3错误的generation递增假设和其余旧源码仍保留。固定issuer、其余10个foreign peer与真实FS/Store组合尚未完成，此三文件不加入活动语法或新工作流。
+
+只读gzip解封helper单独保存；它对完整DEFLATE流结束、CRC32、ISIZE、精确原长作检查，并在每次使用时另核原SHA256。原JSON/u64文本必须保持原字节，不能经浮点JSON解码重写。此helper已用于恢复先前完整原件，仍不是任何产品语义或原生安装验收。
+
+本轮只选择backend-join与worker-program-type-context-join两tag，138个恢复job保留138个Ubuntu24.04/x86_64硬门；活动Python从663增加到757。新增源中32处直接hepta模块拼写均对照当前完整树，未见缺失；这是静态名称核查，不能代替AST、导入或运行。两个新增组合在提交前均为0 AST/生成/B3/VM/native。原B3、配对、物理聚合以及全部Bootstrap/公共容量门保持不变。
+
+参考：[父提交](https://github.com/TrillionniumFoundation/Hepta/commit/58a5b2b462d312f77f9b0431aa230a7bfa1af993)、[FOLLOW47实际CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43208616674)、[后端范围与身份](../review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-join-r1/docs/HIA_BACKEND_JOIN_NATIVE.md)、[类型上下文传播设计](../review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-program-type-context-join-r1/docs/HIA_WORKER_NATIVE_TYPE_CONTEXT_PROPAGATION_R1.md)。
 
 ## FOLLOW47 最新状态（2026-11-12 11:16:49 UTC）
 
