@@ -1,0 +1,9 @@
+{
+  "schema": "hepta.numeric-r3-local-reader-preparation-error.v1",
+  "status": "LOCAL_AUTHORING_ASSERTION_FAILED",
+  "error": "AssertionError: ('FROZEN_ROOT', 4)",
+  "cause": "The reverse-substitution count accidentally included the newly added FROZEN_ROOT declaration in addition to its three path uses.",
+  "followup_shell_observation": "The requested adapted reader did not exist, so Python reported cannot open file; no audit or product executed.",
+  "original_artifact_unchanged": true,
+  "repair": "In a new namespace, substitute only the exact path expression ROOT.parent.parent / and reverse only FROZEN_ROOT /; retain all assertions and read-only algorithms."
+}
