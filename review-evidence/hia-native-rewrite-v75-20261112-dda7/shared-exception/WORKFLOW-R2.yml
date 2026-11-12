@@ -1,0 +1,99 @@
+name: HIA exception delivery independent development r2
+"on":
+  push:
+    branches:
+      - codex/hia-exception-delivery-v75-r2-20261112-dda7
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  exception-delivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      KIT_BLOB: 'd858a3103ace40e349a378e8b8994469b5ac1340'
+      KIT_SHA256: '9a392953bed7da8101e07553b5a1c4ec4f194104a31979f6e1b1543e234b4a1a'
+      MECHANISM_BLOB: '538b30f50a052130c5c84c82bb50062e83f6a030'
+      MECHANISM_SHA256: '602deac844fe2ea360c4ca239563f2fe10128c4adbb8105cfa1a7db8c7915a65'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 7e9c5a796a29746d169f9db97392ec774f627c03
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Create exclusive development evidence scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$RUNNER_TEMP/hia-exception-delivery-v75"
+          mkdir -m 700 "$RUNNER_TEMP/hia-exception-delivery-v75/inputs"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          out=Path(os.environ['RUNNER_TEMP'])/'hia-exception-delivery-v75/inputs'
+          names=('GITHUB_REPOSITORY','GITHUB_SHA','GITHUB_WORKFLOW_REF','GITHUB_RUN_ID','GITHUB_RUN_ATTEMPT','RUNNER_OS','RUNNER_ARCH')
+          (out/'workflow-context.json').write_text(json.dumps({key:os.environ.get(key) for key in names},indent=2,sort_keys=True)+'\n')
+          PY
+      - name: Confirm the interpreter and independent reference tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          python -I -S -B -c 'import sys; assert sys.implementation.name == "cpython" and sys.version_info[:3] == (3, 14, 4); print(sys.version)' > "$RUNNER_TEMP/hia-exception-delivery-v75/inputs/python-version.txt"
+          command -v as
+          command -v objcopy
+      - name: Retrieve immutable kit and original retained compiler artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/hia-exception-delivery-v75"
+          gh api "repos/TrillionniumFoundation/Hepta/git/blobs/$KIT_BLOB" > "$root/inputs/kit.response.json"
+          gh api "repos/TrillionniumFoundation/Hepta/git/blobs/$MECHANISM_BLOB" > "$root/inputs/mechanism.response.json"
+          python - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, json, os
+          root=Path(os.environ['RUNNER_TEMP'])/'hia-exception-delivery-v75/inputs'
+          for name,variable in [('kit','KIT_SHA256'),('mechanism','MECHANISM_SHA256')]:
+              response=json.loads((root/(name+'.response.json')).read_bytes())
+              assert response['encoding']=='base64'
+              raw=base64.b64decode(response['content'])
+              assert hashlib.sha256(raw).hexdigest()==os.environ[variable]
+              (root/(name+'.json')).write_bytes(raw)
+          kit=json.loads((root/'kit.json').read_bytes())
+          assert kit['schema']=='hia.exception-delivery.python314-ci-kit.v1'
+          assert set(kit['files'])=={'run_exception_delivery_ci.py','exception-delivery-development.workflow.template.yml','CI-KIT.md','validate_exception_delivery_ci_kit.py'}
+          for name,record in kit['files'].items():
+              assert name==Path(name).name and name not in ('.','..')
+              raw=record['text'].encode('utf-8')
+              assert len(raw)==record['bytes'] and hashlib.sha256(raw).hexdigest()==record['sha256']
+              (root/name).write_bytes(raw)
+          PY
+          gh api repos/TrillionniumFoundation/Hepta/actions/artifacts/13910483391 > "$root/inputs/original-artifact.metadata.json"
+          gh api repos/TrillionniumFoundation/Hepta/actions/artifacts/13910483391/zip > "$root/original-ac3.zip"
+      - name: Run one complete-source HIA mechanism development job
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/hia-exception-delivery-v75"
+          timeout --signal=TERM --kill-after=3s 240s python -I -S -B "$root/inputs/run_exception_delivery_ci.py" --source-root "$GITHUB_WORKSPACE/source" --source-packet "$root/inputs/mechanism.json" --original-artifact "$root/original-ac3.zip" --out "$root/output"
+      - name: Retain complete new observations and exact used compiler bytes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exception-delivery-python314-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-exception-delivery-v75/inputs
+            ${{ runner.temp }}/hia-exception-delivery-v75/output
+          if-no-files-found: error
+          retention-days: 30
