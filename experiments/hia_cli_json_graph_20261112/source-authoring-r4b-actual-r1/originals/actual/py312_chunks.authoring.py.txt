@@ -1,0 +1,193 @@
+def cli_json_py312_chunks(s: readbuf, o: mutbuf, w: mutbuf) -> u32:
+    if length(w) != 512 or get(w, 0) != 3551162292518011720 or get(w, 112) != 0:
+        return 4294967293
+    if get(w, 56) != 0:
+        put(w, 56, 0)
+        put(w, 24, 0)
+        put(w, 8, 900)
+    elif get(w, 24) != 0:
+        if get(w, 32) != get(w, 16) or get(w, 40) != get(w, 64):
+            return 4294967293
+        put(w, 24, 0)
+    elif get(w, 8) != 0:
+        return 4294967293
+    if get(w, 8) == 0:
+        if get(w, 120) == 0 or get(w, 128) > 1 or get(w, 320) != 0 or (get(w, 48) != 0):
+            return 4294967293
+        put(w, 160, 0)
+        put(w, 8, 1)
+    while True:
+        phase = get(w, 8)
+        if phase < 100:
+            status = setup(w, phase)
+        elif phase < 200:
+            status = collect(w, phase)
+        elif phase < 900:
+            status = complete(w, phase)
+        else:
+            status = unwind(w, phase)
+        if status != 4:
+            return status
+    return 4294967293
+
+def setup(w: mutbuf, phase: u64) -> u64:
+    if phase == 1:
+        return request(w, 46, get(w, 160), 0, 0, 0, 0, 2)
+    if phase == 2:
+        if answer(w, 0) != 0:
+            return 4294967293
+        cell = get(w, 160) + 1
+        put(w, 160, cell)
+        if cell < 8:
+            put(w, 8, 1)
+            return 4
+        return request(w, 51, 0, 0, 0, 0, 0, 3)
+    if phase == 3:
+        if get(w, 320) == 0:
+            return failed(w)
+        return request(w, 44, 0, 0, 0, 0, 0, 4)
+    if phase == 4:
+        put(w, 136, answer(w, 0))
+        return request(w, 22, get(w, 120), 0, 0, 0, 0, 5)
+    if phase == 5:
+        if get(w, 320) == 0:
+            return failed(w)
+        put(w, 152, answer(w, 1))
+        if get(w, 152) == 0:
+            return 4294967293
+        return request(w, 44, 1, 0, 0, 0, 0, 6)
+    if phase == 6:
+        put(w, 144, answer(w, 0))
+        return request(w, 90, get(w, 120), 8, 0, 0, 0, 7)
+    if phase == 7:
+        if get(w, 48) != 0:
+            return failed(w)
+        hint = answer(w, 0)
+        if hint > 9223372036854775807:
+            return 4294967293
+        if hint != 0:
+            return request(w, 88, get(w, 136), hint, 0, 0, 0, 8)
+        put(w, 8, 100)
+        return 4
+    if phase == 8:
+        if get(w, 48) != 0:
+            return failed(w)
+        if answer(w, 0) != 0:
+            return 4294967293
+        put(w, 8, 100)
+        return 4
+    return 4294967293
+
+def collect(w: mutbuf, phase: u64) -> u64:
+    if phase == 100:
+        operation = choose(get(w, 128) == 1, 230, 91)
+        return request(w, operation, get(w, 144), get(w, 152), 0, 0, 0, 101)
+    if phase == 101:
+        if get(w, 320) != 0:
+            if get(w, 48) != 0:
+                return 4294967293
+            return request(w, 87, get(w, 136), 0, 0, 0, 0, 102)
+        if get(w, 48) != 0:
+            return request(w, 92, 0, 0, 0, 0, 0, 103)
+        put(w, 8, 200)
+        return 4
+    if phase == 102:
+        if get(w, 48) != 0:
+            return failed(w)
+        if answer(w, 0) != 0 or get(w, 320) != 0:
+            return 4294967293
+        put(w, 8, 100)
+        return 4
+    if phase == 103:
+        if answer(w, 0) == 0:
+            return failed(w)
+        if answer(w, 0) != 1 or get(w, 48) != 0:
+            return 4294967293
+        put(w, 8, 200)
+        return 4
+    return 4294967293
+
+def complete(w: mutbuf, phase: u64) -> u64:
+    if phase == 200:
+        return request(w, 26, get(w, 136), 1, 0, 0, 0, 201)
+    if phase == 201:
+        if answer(w, 0) < answer(w, 1):
+            return request(w, 89, get(w, 136), 0, 0, 0, 0, 202)
+        put(w, 8, 202)
+        return 4
+    if phase == 202:
+        if get(w, 48) != 0:
+            return failed(w)
+        return request(w, 45, 1, 0, 0, 0, 0, 203)
+    if phase == 203:
+        return request(w, 93, 0, 0, 0, 0, 0, 204)
+    if phase == 204:
+        if get(w, 320) == 0 or get(w, 48) != 0:
+            return 4294967293
+        put(w, 112, 1)
+        return 0
+    return 4294967293
+
+def unwind(w: mutbuf, phase: u64) -> u64:
+    if phase == 900:
+        if get(w, 320) != 0:
+            return request(w, 6, 0, 0, 0, 0, 0, 901)
+        put(w, 8, 901)
+        return 4
+    if phase == 901:
+        return request(w, 46, 1, 0, 0, 0, 0, 902)
+    if phase == 902:
+        if answer(w, 0) != 0:
+            return request(w, 45, 1, 0, 0, 0, 0, 903)
+        put(w, 8, 903)
+        return 4
+    if phase == 903:
+        return request(w, 46, 0, 0, 0, 0, 0, 904)
+    if phase == 904:
+        if answer(w, 0) != 0:
+            return request(w, 45, 0, 0, 0, 0, 0, 905)
+        put(w, 8, 905)
+        return 4
+    if phase == 905:
+        if get(w, 320) != 0 or get(w, 48) == 0:
+            return 4294967293
+        put(w, 112, 2)
+        return 1
+    return 4294967293
+
+def failed(w: mutbuf) -> u64:
+    put(w, 8, 900)
+    return 4
+
+def request(w: mutbuf, operation: u64, a: u64, b: u64, c: u64, d: u64, e: u64, following: u64) -> u64:
+    sequence = get(w, 16)
+    if sequence == 18446744073709551615:
+        return 4294967293
+    put(w, 16, sequence + 1)
+    put(w, 24, 1)
+    put(w, 64, operation)
+    put(w, 72, a)
+    put(w, 72 + 8, b)
+    put(w, 72 + 16, c)
+    put(w, 72 + 24, d)
+    put(w, 72 + 32, e)
+    put(w, 8, following)
+    return 2
+
+def answer(w: mutbuf, index: u64) -> u64:
+    return get(w, 256 + index * 8)
+
+def get(w: mutbuf, at: u64) -> u64:
+    value = 0
+    index = 0
+    while index < 8:
+        value = value | byte(w, at + index) << index * 8
+        index = index + 1
+    return value
+
+def put(w: mutbuf, at: u64, value: u64) -> u64:
+    index = 0
+    while index < 8:
+        store(w, at + index, value >> index * 8 & 255)
+        index = index + 1
+    return 0
