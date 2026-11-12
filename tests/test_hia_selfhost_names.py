@@ -11,6 +11,67 @@ from tools.hia_selfhost_names import (cases, independent_reference, name_hash,
 
 
 class SelfhostFunctionNameTests(unittest.TestCase):
+    def test_all_case_compilation_originals_survive_later_same_name_calls(self):
+        # Exercise the real qualification driver with inert file-writing
+        # transports. This verifies evidence custody, not native semantics.
+        import json
+        from pathlib import Path
+        import tempfile
+        from unittest.mock import patch
+        from tools import qualify_hia_selfhost as native
+        from tools import qualify_hia_selfhost_cli as cli
+        from tools.hia_selfhost_names import qualify
+        rows=cases()+value_cases()+block_cases()+entry_order_cases()
+        self.assertEqual(len(rows),106)
+        self.assertEqual(len({row['program'] for row in rows}),52)
+        executions={'original-'+row['id']+'-'+kind:row for row in rows for kind in ('flat','elf')}
+        written={}
+        def original(directory,label,stage):
+            value={'case':label,'stage':stage}
+            raw=(json.dumps(value,sort_keys=True)+'\n').encode()
+            for suffix in ('.request.json','.input.bin','.output.bin','.receipt.json'):
+                path=directory/(label+suffix)
+                with path.open('xb') as stream:stream.write(raw)
+                written[path]=raw
+            return value
+        def compile_stage(directory,label,compiler,source,output_extension='.image.bin'):
+            receipt=original(directory,label,'compile')
+            image=directory/(label+output_extension)
+            image.write_bytes(Path(compiler).read_bytes())
+            return image,receipt
+        def invoke(directory,label,image,source,**kwargs):
+            original(directory,label,'invoke')
+            row=executions[label]
+            return {'status':'returned','abi_status':0,'core_u32':row['expected_result'],
+                    'source_unchanged':True},bytes.fromhex(row['expected_hex'])
+        def link(directory,label,tool,arguments):
+            original(directory,label,'link')
+            Path(arguments[-1]).write_bytes(b'inert shared image')
+            return {'returncode':0}
+        def execute(directory,label,image,source):
+            original(directory,label,'execute')
+            return {'status':'OWNED_PROCESS_COMPLETED','returncode':0,
+                    'cleanup':{'complete':True},'stderr_hex':''},image.read_bytes()
+        with tempfile.TemporaryDirectory() as temporary:
+            directory=Path(temporary)
+            compiler=directory/'compiler.bin'
+            compiler.write_bytes(b'inert compiler image, not executable')
+            reference={'cases':rows,'refusals':[],
+                       'alpha_compiler':{'original':{'source':native.SOURCE.read_text()}}}
+            checks={}
+            with patch.object(native,'compile_stage',side_effect=compile_stage), \
+                    patch.object(native,'invoke',side_effect=invoke), \
+                    patch.object(native,'observe_native_tool',side_effect=link), \
+                    patch.object(native,'inspect_selfhost_object',return_value={}), \
+                    patch.object(cli,'inspect_executable',return_value={}), \
+                    patch.object(cli,'execute',side_effect=execute):
+                observations=qualify(directory,compiler,checks,reference,'original')
+            self.assertTrue(checks and all(checks.values()))
+            self.assertEqual(len(executions),212)
+            compile_records=[row for row in observations if row.get('stage')=='compile']
+            self.assertEqual(len(compile_records),109)
+            self.assertTrue(all(path.read_bytes()==raw for path,raw in written.items()))
+
     def test_equal_hash_names_have_distinct_runtime_functions_and_results(self):
         self.assertEqual(name_hash('aaB'), name_hash('aba'))
         rows = [r for r in cases() if r['program'] == 'equal-hash-distinct-functions']

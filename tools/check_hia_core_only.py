@@ -62,7 +62,9 @@ def check(root=ROOT):
             text=p.read_text()
             if re.search(r'\bhepta\s+(?:hia|check|build|run|lower)\b',text):
                 problems.append('removed CLI instruction: '+str(p.relative_to(root)))
-            for reference in re.findall(r'\b(?:tools|tests)/[\w/.-]+\.py\b',text):
+            # Retained independent Python fixtures have a .py.txt suffix. Bind
+            # that whole path; its .py prefix is not an advertised executable.
+            for reference in re.findall(r'\b(?:tools|tests)/[\w/.-]+\.py(?:\.txt)?\b',text):
                 if not (root/reference).is_file():
                     problems.append(f'{p.relative_to(root)}: absent documented script {reference}')
     for name in ['docs/HIA_SOURCE_SCALAR_EXPORTS_20261028.md',

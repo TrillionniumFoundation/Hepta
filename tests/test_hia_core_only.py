@@ -32,6 +32,34 @@ class CoreOnlyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'absent documented script'):
                 check(root)
 
+    def test_documented_retained_fixture_binds_complete_py_txt_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name in ['pyproject.toml','docs/HIA_CORE_ONLY_SCOPE.json']:
+                target=root/name;target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/name,target)
+            fixture=root/'tests/fixtures/independent.py.txt'
+            fixture.parent.mkdir(parents=True)
+            fixture.write_text('independent reference source, never an executable module\n')
+            (root/'docs/REFERENCE.md').write_text('Retained `tests/fixtures/independent.py.txt`.\n')
+            self.assertEqual(check(root)['status'],'PASS')
+            fixture.unlink()
+            with self.assertRaisesRegex(ValueError,'tests/fixtures/independent.py.txt'):
+                check(root)
+
+    def test_existing_py_txt_fixture_cannot_advertise_absent_py_command(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name in ['pyproject.toml','docs/HIA_CORE_ONLY_SCOPE.json']:
+                target=root/name;target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/name,target)
+            fixture=root/'tests/fixtures/independent.py.txt'
+            fixture.parent.mkdir(parents=True)
+            fixture.write_text('independent reference source\n')
+            (root/'docs/REFERENCE.md').write_text('Run `python tests/fixtures/independent.py`.\n')
+            with self.assertRaisesRegex(ValueError,'absent documented script'):
+                check(root)
+
     def test_stale_string_selector_refuses_instead_of_disappearing(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)

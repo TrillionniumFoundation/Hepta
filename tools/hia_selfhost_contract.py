@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v77-native-core-emitter-json-pretty-gates-development'
+PROFILE = 'selfhost-core-linux-x86_64-v78-native-core-emitter-json-pretty-custody-development'
 SOURCE_FILES = (
     'tools/hia_compiler_owner_gates.py',
     'tools/qualify_hia_compiler_owner_ci.py',

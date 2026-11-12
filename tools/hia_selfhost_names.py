@@ -718,7 +718,9 @@ def qualify(directory, compiler, checks, reference, label):
         program = row['program']
         if program not in images:
             source = row['source'].encode()
-            flat, build = compile_stage(directory, label + '-' + program + '-flat', compiler, source)
+            # A case may use its program name as its id. Keep compilation
+            # originals distinct from that case's subsequent "-flat" call.
+            flat, build = compile_stage(directory, label + '-' + program + '-flat-build', compiler, source)
             observations.append(build)
             obj, build = compile_stage(directory, label + '-' + program + '-object', compiler,
                 source.replace(b'v8 selfhost\n', b'v8 selfhost_elf\n', 1), output_extension='.o')
