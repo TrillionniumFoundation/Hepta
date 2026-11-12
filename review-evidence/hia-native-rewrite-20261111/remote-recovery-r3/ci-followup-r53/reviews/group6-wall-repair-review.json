@@ -1,0 +1,53 @@
+{
+  "schema": "hia-worker-late-core-follow53-independent-static-review-r2-narrow-fix",
+  "reviewer": "audit_runtime",
+  "date_utc": "2026-11-12",
+  "status": "CONFIRMED_WALL_RECEIPT_GAP_CLOSED_BY_EXACT_ONE_LINE_SOURCE_DIFF",
+  "previous_report": {
+    "blob": "d7f63850b6e706f9c81d593c18343ff58e65a608",
+    "bytes": 19041,
+    "sha256": "095124b8766f4d4eb8051ff1e9aba7c418a672e39744b95ef81fefec30e3b8a8",
+    "mode": "100644"
+  },
+  "old_ci": {
+    "gitsha": "dba6067d7e2715f0296252730c3a8d0af4001c23",
+    "bytes": 17242,
+    "sha256": "a2c1d4356934ab4fae71dbb428b7491274e5fe857c888209d7eda6004b1012d6"
+  },
+  "new_ci": {
+    "gitsha": "51b1bb74b78da17247973014e2007fee7ec77301",
+    "bytes": 17357,
+    "sha256": "8741a7028ba8f2c59e0754a47ecca43e1a1c72ce2e6a27550bd75b2d1b933d42"
+  },
+  "changed_lines": [
+    {
+      "line": 74,
+      "text": "                assert 0<=process[\"elapsed_ns\"]<180_000_000_000,(\"complete receipt elapsed\",process[\"elapsed_ns\"])"
+    }
+  ],
+  "full_new_bytes_read_from_Git": true,
+  "full_new_utf8_bytes_SHA256_GitSHA_checked": true,
+  "deleting_exact_unique_added_line_restores_old_full_text": true,
+  "scope": [
+    "The unique added assertion is inside only the existing worker-late-Core-group- successful-runtime branch immediately after the final aggregate child CPU assertion.",
+    "It checks complete common.run process receipt elapsed_ns >=0 and strictly below180000000000, so the earlier summary measurement no longer substitutes for the complete final receipt.",
+    "All other source bytes, eight runtime groups, twelve public ELF processes, thirty-eight private controls, thirteen fresh B3 compiles, individual compiler10/20/256MiB, runtime90/180/1GiB and separate build300 outer timeout are byte-for-byte unchanged.",
+    "No native semantic branch, role mapping, original oracle, archive/member assertion, source pins, count or profile gate was changed.",
+    "No confirmed blocker remains within the combined original narrow review plus this exact one-line repair; this is a source review conclusion only."
+  ],
+  "execution": {
+    "AST": 0,
+    "project_import": 0,
+    "original_archive_member_readback": 0,
+    "generation": 0,
+    "Core_verifier": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "limitations": [
+    "All previous report exclusions apply, including no actual archive member readback or target execution.",
+    "New final delivery metadata/transitive pin propagation must still be checked by publisher.",
+    "Public group6 status1 late-depth reachability remains expressly unproven and private controls do not establish external authority."
+  ]
+}

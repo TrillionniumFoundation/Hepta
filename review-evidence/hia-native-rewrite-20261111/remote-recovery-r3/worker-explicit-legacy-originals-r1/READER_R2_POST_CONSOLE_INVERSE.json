@@ -1,0 +1,70 @@
+{
+  "schema": "hia-explicit-legacy-originals-reader-post-console-budget-inverse-v1",
+  "status": "SOURCE_ONLY_NO_AST_OR_EXECUTION",
+  "original": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-explicit-legacy-originals-r1/read_explicit_legacy_originals_r1.py",
+    "mode": "100644",
+    "bytes": 17396,
+    "sha256": "8e0d1dd60c57356e47ae0c908623be533332864bcf88406ed7320ce461517997",
+    "gitsha": "9cab6ef70a4a4f6c09e5d0e463f4377ebf6883f7",
+    "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+  },
+  "replacement": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-explicit-legacy-originals-r1/read_explicit_legacy_originals_r2.py",
+    "mode": "100644",
+    "bytes": 18007,
+    "sha256": "9efff05c417b83fa361341c4677034a9de18e057d2250440efdd253c30dac006",
+    "gitsha": "62199c4e71dbdeb596875a097bff3a280cfe8426",
+    "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+  },
+  "change_count": 1,
+  "change_kind": "INSERT_EXACTLY_ONE_CONTIGUOUS_BLOCK_AFTER_FINAL_COMPACT_PRINT_FLUSH",
+  "anchor": "        print(\"HIA_EXPLICIT_LEGACY_ORIGINAL_READBACK \"+json.dumps(compact,sort_keys=True),flush=True)\n",
+  "inserted_exact_text": "        post_console_cpu=absolute_cpu();post_console_elapsed=time.monotonic_ns()-STARTED\n        if not (0<=post_console_cpu<90 and 0<=post_console_elapsed<180000000000):\n            status=\"FAIL\"\n            write_json(out/\"post-console-budget-failure.json\",dict(\n                status=\"FAIL\",scope=\"complete reader including final flushed console output\",\n                aggregate_CPU_seconds=post_console_cpu,elapsed_ns=post_console_elapsed,\n                limit_CPU=90,limit_wall=180,primary_error=primary,after_errors=after_errors,\n                summary=OUTPUTS[str((out/\"summary.json\").resolve())]))\n",
+  "full_text_inverse_equals_original": true,
+  "original_three_delivery_rows_retained": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-explicit-legacy-originals-r1/read_explicit_legacy_originals_r1.py",
+      "mode": "100644",
+      "bytes": 17396,
+      "sha256": "8e0d1dd60c57356e47ae0c908623be533332864bcf88406ed7320ce461517997",
+      "gitsha": "9cab6ef70a4a4f6c09e5d0e463f4377ebf6883f7",
+      "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-explicit-legacy-originals-r1/reference/hia_core_upgrade.py",
+      "mode": "100644",
+      "bytes": 8607,
+      "sha256": "550608c7b654c0af45cda8f122230188c1989069fda2dac4e05c285f7ce77570",
+      "gitsha": "b44d36b28e00a79391df7d4ef26bb6eb91d7f26a",
+      "classification": "EXACT_ORIGINAL_REFERENCE_CODE_AS_READ_ONLY_DATA_NOT_EXECUTED"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-explicit-legacy-originals-r1/ORIGINAL_DOMAIN_AND_NEXT_BINDING.json",
+      "mode": "100644",
+      "bytes": 5112,
+      "sha256": "10f342fe07f6ffdbf2171c1d8761d48dde0adc513d8c723e6848913eb899c86c",
+      "gitsha": "716b92a2be4e808b75cb0bdbfd8a415b9f856b53",
+      "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+    }
+  ],
+  "unchanged": [
+    "complete original archive and member verification",
+    "all original reference/export bytes and modes",
+    "all input, self and completed output afterchecks",
+    "original primary and after-error reporting",
+    "earlier final-budget check and summary bytes generation",
+    "console export selection and 400000 byte bound",
+    "zero original code imports, AST, compiler, image and tests",
+    "original 90 aggregate parent-plus-Git-children CPU / 180 wall / 1GiB",
+    "external 180 second timeout protection"
+  ],
+  "new_failure_facts": "On final post-flush budget failure, retain existing summary and write post-console-budget-failure.json including original primary_error/after_errors, exact complete CPU/elapsed, limits and the summary identity. Exit nonzero. No success claim follows this measurement.",
+  "execution": {
+    "AST": 0,
+    "original_imports": 0,
+    "B3": 0,
+    "native": 0,
+    "original_archive_readback": 0
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "schema": "hia-worker-late-Core-runtime-receipt-wall-gate-r3",
+  "status": "SOURCE_ONLY_0_AST_0_GENERATION_0_B3_0_NATIVE",
+  "prior_delivery": "cce9c1d7fd04d4acb95e72ef915d8361df904010",
+  "old_driver": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-program-late-core-r1/worker_program_late_core_ci_r2.py",
+    "mode": "100644",
+    "bytes": 17242,
+    "sha256": "a2c1d4356934ab4fae71dbb428b7491274e5fe857c888209d7eda6004b1012d6",
+    "gitsha": "dba6067d7e2715f0296252730c3a8d0af4001c23",
+    "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+  },
+  "new_driver": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-program-late-core-r1/worker_program_late_core_ci_r3.py",
+    "mode": "100644",
+    "bytes": 17357,
+    "sha256": "8741a7028ba8f2c59e0754a47ecca43e1a1c72ce2e6a27550bd75b2d1b933d42",
+    "gitsha": "51b1bb74b78da17247973014e2007fee7ec77301",
+    "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+  },
+  "change": {
+    "location": "panel() success branch for labels beginning worker-late-Core-group-",
+    "old_snippet": "                assert isinstance(cpu,(int,float)) and 0<=cpu<90,(\"aggregate CPU\",cpu)\n",
+    "new_snippet": "                assert isinstance(cpu,(int,float)) and 0<=cpu<90,(\"aggregate CPU\",cpu)\n                assert 0<=process[\"elapsed_ns\"]<180_000_000_000,(\"complete receipt elapsed\",process[\"elapsed_ns\"])\n"
+  },
+  "complete_text_inverse_equals_old_driver": true,
+  "source_index": {
+    "gitsha": "5837ee4555c371cdcdf8f76205ca3e008ae9b090",
+    "unchanged": true,
+    "files": 56
+  },
+  "why": "The existing group-owned timer finishes before summary/print/accounted writes. The common receipt elapsed_ns also includes wait and complete stdout/stderr readback. The new assertion requires that full receipt elapsed remain below the unchanged 180-second gate.",
+  "applies_to_runtime_groups": 8,
+  "build_outer_timeout_seconds": 300,
+  "build_outer_timeout_unchanged": true,
+  "build_not_relabelled_as_a_90_second_aggregate_runtime_group": true,
+  "new_compiles": 13,
+  "public_cases": 12,
+  "private_unissued_cases": 38,
+  "total_cases": 50,
+  "limits_unchanged": {
+    "group_CPU_seconds": 90,
+    "group_wall_seconds": 180,
+    "group_AS": 1073741824,
+    "compile_CPU_seconds": 10,
+    "compile_wall_seconds": 20,
+    "compile_AS": 268435456
+  },
+  "static_peer": {
+    "agent": "audit_runtime",
+    "finding_source": "direct exact-source peer message; formal review pin pending",
+    "finding": "Missing full common receipt elapsed gate",
+    "no_execution_claimed": true
+  },
+  "original_r2_preserved_and_excluded_from_active_inventory": true
+}

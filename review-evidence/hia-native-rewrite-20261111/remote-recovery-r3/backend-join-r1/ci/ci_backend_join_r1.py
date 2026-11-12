@@ -145,8 +145,8 @@ FILES=[
     "path": "tests/test_hia_backend_join.py",
     "mode": "100644",
     "bytes": 34032,
-    "sha256": "7f3062a520bc546258f3bf4d715025a63a657d14232d3fc9cbed0c62f8a17095",
-    "gitsha": "cdf5a6c0c43963d4f5e1f636443092c12d62877e"
+    "sha256": "55f585aebae5b96f3abc7b31e6eda59d86be27a8d45670524ad4355c80dbcfb1",
+    "gitsha": "c22029a73799772f27d759dfa64ce304baedaf7a"
   },
   {
     "path": "tests/wrapper_test_reference.py",

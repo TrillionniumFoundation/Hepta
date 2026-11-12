@@ -1,0 +1,10 @@
+{
+  "old_gitsha": "9cab6ef70a4a4f6c09e5d0e463f4377ebf6883f7",
+  "new_gitsha": "62199c4e71dbdeb596875a097bff3a280cfe8426",
+  "added_block": "    post_console_cpu=absolute_cpu();post_console_elapsed=time.monotonic_ns()-STARTED\n        if not (0<=post_console_cpu<90 and 0<=post_console_elapsed<180000000000):\n            status=\"FAIL\"\n            write_json(out/\"post-console-budget-failure.json\",dict(\n                status=\"FAIL\",scope=\"complete reader including final flushed console output\",\n                aggregate_CPU_seconds=post_console_cpu,elapsed_ns=post_console_elapsed,\n                limit_CPU=90,limit_wall=180,primary_error=primary,after_errors=after_errors,\n                summary=OUTPUTS[str((out/\"summary.json\").resolve())]))\n    ",
+  "exact_contiguous_insert": true,
+  "whole_inverse_equal": true,
+  "all_archive_and_original_code_bytes_unmodified": true,
+  "actual_AST": 0,
+  "new_target_executions": 0
+}

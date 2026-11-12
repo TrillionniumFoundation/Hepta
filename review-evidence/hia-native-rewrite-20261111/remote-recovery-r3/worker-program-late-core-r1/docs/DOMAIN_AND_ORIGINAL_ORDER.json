@@ -1,0 +1,164 @@
+{
+  "schema": "hia-worker-late-Core-and-explicit-legacy-domain-static-r1",
+  "status": "STATIC_SOURCE_INSPECTION_ONLY_NO_NEW_TARGET_EXECUTION",
+  "evidence": [
+    {
+      "path": "hepta/hia_program.py",
+      "gitsha": "5d0027f4453759e4156a3496e64215c441a727e4",
+      "bytes": 45247,
+      "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92",
+      "complete_source_text_hashed": true
+    },
+    {
+      "path": "hepta/hia_program_composite.py",
+      "gitsha": "b06d009e403e77288a19eb929e6296bf68532db3",
+      "bytes": 68738,
+      "sha256": "cc5ab4c8dc68214e8868aab30405820c3662572de63952dec5f1fd1aaf180951",
+      "complete_source_text_hashed": true
+    },
+    {
+      "path": "hia_composite_lowering_driver_main.py",
+      "gitsha": "bf42c98fed5347886912081b3a23adc47813c1eb",
+      "bytes": 19407,
+      "sha256": "120675ee8bdb22e756277574146fb9319aa2d5009727fc22a49355afa4357824",
+      "complete_source_text_hashed": true
+    },
+    {
+      "path": "hia_composite_lowering_driver_common.py",
+      "gitsha": "e56539a9cb76f95010ea6ca995737f40ab6e1850",
+      "bytes": 17781,
+      "sha256": "fe63327671ea51ca950b955512a0f574d706176a4a8d050e3f8f12c83ef5e3a1",
+      "complete_source_text_hashed": true
+    },
+    {
+      "path": "generate_hia_legacy_import_driver.py",
+      "gitsha": "1e503f8b9237150ddab2898fde59708e92c3d6a5",
+      "bytes": 17529,
+      "sha256": "53cdf4ce01c8f14ab4894062fdc321a124f0b2ed16e39e284876d7eb37f9968c",
+      "complete_source_text_hashed": true
+    },
+    {
+      "path": "generate_hia_program_driver.py",
+      "gitsha": "0bc3aff0f5b42b4a756f37b434ea91f187aa65cb",
+      "bytes": 11395,
+      "sha256": "aaedd6b85df7cb20dd7b3f08610b514fb1b12d63750b3f67769981457137db48",
+      "complete_source_text_hashed": true
+    },
+    {
+      "path": "worker_program_service.py",
+      "gitsha": "3b30222922e916829e2f761c28bb9fbb5411edb4",
+      "bytes": 15172,
+      "sha256": "c7575f39085d09c05df5999087657f2825d9219e6d1512beba21d77c3551a3e4",
+      "complete_source_text_hashed": true
+    }
+  ],
+  "group6": {
+    "source_order": "verify_program decodes complete original input; elaborate_program returns Core; recursive verify_program snapshots that caller-owned Core, measures canonical bytes, then performs primitive admission.",
+    "actual_native_chain": "Source-bound role23 mode2 ADMIT -> lower-main phase15020 finish(group6,status,actual outer request) -> actual program46 terminal -> parent prefix_failure.",
+    "unchanged_visitor": {
+      "source_sha256": "34f0d66c4ffe19b286dab5ad5c07d3b11e69bf8cd6c9e27d4bd3ddb53cf87e66",
+      "image_sha256": "b210b6e1f8347c783273baf860e76a1e2462a7be4d38529c122dc722252e508e",
+      "before_new_B3_full_original_reproduction_required": true
+    },
+    "statuses": [
+      {
+        "status": 1,
+        "text": "E_HIA_LIMIT: caller-owned tree exceeds snapshot budget",
+        "source_function": "_bounded_detached_snapshot",
+        "public_late_depth_reachability": "NOT_PROVEN_OR_CLAIMED",
+        "new_private_controls": true
+      },
+      {
+        "status": 2,
+        "text": "E_HIA_LIMIT: caller-owned tree exceeds queued-node budget",
+        "source_function": "_bounded_detached_snapshot",
+        "planned_public_path": "Decoded input nodes <=262144; elaboration adds exactly one node. The actual public oracle must confirm complete text and snapshot stack before ELF starts."
+      },
+      {
+        "status": 3,
+        "text": "E_HIA_LIMIT: program exceeds byte budget before encoding",
+        "source_function": "_structure",
+        "planned_public_path": "Original raw/canonical bytes <=8388608; elaborated Core canonical bytes increase by exactly3. The actual public oracle must confirm the late byte refusal."
+      }
+    ],
+    "parent_guards": "Exact group6/status1..3; nonzero bounded parent lease/sequence; actual128B event from child lease parent+2; observed target6 and role46; zero copied error/result extent; empty47/48 and inactive fixed/context renderers; no prior result/receipt; positive complete Core byte count and status3 count>8388608.",
+    "fixed_private_issuer_required": true,
+    "numeric_headers_are_external_authentication": false,
+    "no_early_Core_gate_added": true,
+    "no_budget_change": true,
+    "no_host_runtime_text_rendering": true,
+    "current_submitted_delta": {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-program-late-core-r1/tools/extend_worker_late_core_r1.py",
+      "mode": "100644",
+      "bytes": 7313,
+      "sha256": "2c7ae73cf067397e7245cd52713e4c13ede0a108376a1697d40b2c6f1e580906",
+      "gitsha": "cc04ea825d524224eb8f101f5f89f4b73ca2e13e",
+      "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+    }
+  },
+  "group9": {
+    "ordinary_P16": "The ordinary program owner imports seven legacy helpers, excluding import_step; group9 is not this entry's imported control path.",
+    "exact_legacy_helpers_reused": [
+      "run_child",
+      "child_result",
+      "mirror_frame",
+      "child_error",
+      "copy_digest",
+      "hash_start",
+      "import_hash_step"
+    ],
+    "explicit_importer_sites": [
+      {
+        "phase": 5,
+        "source": "Actual role28 HIALIP01 projection",
+        "errors": [
+          1,
+          2
+        ],
+        "position": "Before either old/new Core child invocation."
+      },
+      {
+        "phase": 28,
+        "source": "After actual old Core child acceptance; renamed input extent original+2",
+        "errors": [
+          3
+        ],
+        "position": "Original caller snapshot-byte error point before second independent ordinary program child."
+      },
+      {
+        "phase": 31,
+        "source": "Actual role29 full old/new Core comparison",
+        "errors": [
+          4
+        ],
+        "position": "After two independent validations, with complete actual lengths and reserved fields checked."
+      }
+    ],
+    "full_explicit_entry_required": true,
+    "new_public_or_private_group9_cases": 0,
+    "legacy_cli_flag_equivalent_to_importer": false,
+    "public_group9_diagnostics_closed": false
+  },
+  "planned_scope": {
+    "groups": 8,
+    "cases": 50,
+    "actual_public_ELF_cases": 12,
+    "private_unissued_capsules": 38,
+    "old_413_counts_inherited": false,
+    "old_413_groups_reexecuted": false
+  },
+  "limitations": [
+    "New component sources have not been AST-parsed, imported, generated, B3-compiled or executed at submission.",
+    "Public large fixture dimensions and messages are required pre-target oracle assertions, not executed observations here.",
+    "Private seeded group6 status1 does not prove public late-depth reachability.",
+    "The fixed181 adapter enum catalog alone is not dynamic public text equivalence; the type-context repair has a separate full qualification.",
+    "No ordinary Worker, Store, installation or whole-public-diagnostics closure."
+  ],
+  "source_metadata_only_correction": {
+    "description": "A transcribed incomplete program-driver SHA was rejected by this report's full byte/Git/SHA gate before report creation; the final evidence pin is computed from the complete exact Git source.",
+    "target_execution": false
+  },
+  "new_AST": 0,
+  "new_B3": 0,
+  "new_native": 0
+}

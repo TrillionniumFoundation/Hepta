@@ -1,0 +1,103 @@
+{
+  "schema": "hia-typejoin50-readback-fixed-original-prefix-revision-r4",
+  "status": "NEW_SOURCE_ONLY_NOT_EXECUTED",
+  "original_target": {
+    "head": "49e5cd97f11b3fb35d8a390e7ad4ed0c5b2fe030",
+    "run": 43220473879,
+    "job": 131190423991,
+    "status": "FAIL_RETAINED",
+    "artifact": 13945268820,
+    "bytes": 98664861,
+    "sha256": "21f6294bfd90c441eb166ed963773256bb309e2b78e08755df88b7a197520233"
+  },
+  "reader_actual_failure": {
+    "head": "122a6640aee2666d23563910578ef66858c01d88",
+    "run": 43230668215,
+    "job": 131224824715,
+    "first_failure": "scan_zip exact captured set assertion because r3 required three names at ZIP root",
+    "inner_members_read": 0,
+    "target_entries": 0,
+    "after_errors": [],
+    "retained_original_ZIP_complete_afterchecked": true,
+    "artifact": {
+      "id": 13950456090,
+      "bytes": 197340440,
+      "sha256": "cdd1a1a1823c8c4005649cc19743a0f922ed1be1b76ab30a4fc00de060f4a16d"
+    }
+  },
+  "original_prefix_binding": {
+    "exact_prefix": "hia-worker-program-type-context-join-recovery/",
+    "original_workflow": {
+      "path": ".github/workflows/hia-native-recovery.yml",
+      "ref": "49e5cd97f11b3fb35d8a390e7ad4ed0c5b2fe030",
+      "gitsha": "1466bf3352b08551ef3ff557a9162c3fe9749fa6",
+      "bytes": 415073,
+      "sha256": "635a18952c92b8ac6769404f0e302e5aa7d190955af88bb2fbb4c849afd3c256"
+    },
+    "original_full_job_log": {
+      "gitsha": "f464735cc23b946503638294f6c26b0fb5ecea0e",
+      "bytes": 621530,
+      "sha256": "bacf2746695c70d52a0d5354072a0cc59585451b8857145452e52c568185b92e"
+    },
+    "original_log_excerpt": {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-typejoin50-originals-readback-r4/original50-upload-path-excerpt.log",
+      "mode": "100644",
+      "bytes": 1814,
+      "sha256": "79e7252b5100d78bbe960de6b2068b5aef13fa5e4d17184f04ed6fd6d6a1433e",
+      "gitsha": "74b2bfeceb5995d66f9916f3a25ad81a8742db92",
+      "classification": "EXACT_CONTIGUOUS_BYTE_EXCERPT_OF_COMPLETE_ORIGINAL_LOG_f464735cc23b946503638294f6c26b0fb5ecea0e"
+    },
+    "original_uploaded_files": 907,
+    "original_upload_least_common_ancestor": "/home/runner/work/_temp",
+    "actual_original_ZIP_member_listing_not_yet_exported": true,
+    "exact_prefix_will_be_verified_again_against_every_actual_ZIP_member": true,
+    "no_fuzzy_basename_search": true
+  },
+  "inverse_proof": {
+    "old_gitsha": "2adf683391a74c64db368ba46b5df1f87a08f5fb",
+    "new_gitsha": "0ed375ac1b8821d85219cbcdb6861212b22e7e8e",
+    "literal_replacements": [
+      [
+        "ROOT=\"worker-type-context-join/\"",
+        "OUTER_PREFIX=\"hia-worker-program-type-context-join-recovery/\"\nROOT=\"worker-type-context-join/\""
+      ],
+      [
+        "    outer=[];names=set();captured={}\n    with zipfile.ZipFile(retained) as z:",
+        "    outer=[];names=set();captured={}\n    capture_names={OUTER_PREFIX+base:base for base in (\"custody.json\",\"evidence-members.json\",\"evidence.tar.xz\")}\n    with zipfile.ZipFile(retained) as z:"
+      ],
+      [
+        "            target=out/\"outer\"/name if name in (\"custody.json\",\"evidence-members.json\",\"evidence.tar.xz\") else None",
+        "            target=out/\"outer\"/name if name in capture_names else None"
+      ],
+      [
+        "                captured[name]=target\n    assert set(captured)=={\"custody.json\",\"evidence-members.json\",\"evidence.tar.xz\"}",
+        "                captured[capture_names[name]]=target\n    # Preserve the complete actual ZIP inventory even if the exact capture gate fails.\n    write_json(out/\"outer-members.json\",outer)\n    assert len(outer)==907,(len(outer),\"original upload reported 907 files\")\n    assert set(captured)=={\"custody.json\",\"evidence-members.json\",\"evidence.tar.xz\"}"
+      ],
+      [
+        "    write_json(out/\"outer-members.json\",outer)\n    return captured,expected,outer",
+        "    return captured,expected,outer"
+      ],
+      [
+        "schema=\"hia-follow50-whole-type-context-original-readback-r3\"",
+        "schema=\"hia-follow50-whole-type-context-original-readback-r4\""
+      ]
+    ],
+    "complete_reverse_to_original_true": true,
+    "scan_inner_and_CAS_resolution_and_diagnose_text_unchanged": true,
+    "all_budget_and_aftercheck_code_unchanged_except_report_schema": true
+  },
+  "limits": {
+    "cpu": 90,
+    "wall": 180,
+    "address": 1073741824,
+    "unchanged": true
+  },
+  "execution": {
+    "new_AST": 0,
+    "new_project_imports": 0,
+    "new_native": 0,
+    "new_B3": 0,
+    "new_target_reruns": 0
+  },
+  "whole_Worker_closed": false
+}

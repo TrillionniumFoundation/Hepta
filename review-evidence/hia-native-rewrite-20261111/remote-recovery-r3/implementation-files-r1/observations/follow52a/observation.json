@@ -1,0 +1,513 @@
+{
+  "schema": "hia-implementation-files52a-complete-observation-v1",
+  "status": "ACTUAL_PASS",
+  "source_head": "122a6640aee2666d23563910578ef66858c01d88",
+  "run_id": 43230668215,
+  "job_id": 131224824882,
+  "original_log": {
+    "bytes": 760731,
+    "sha256": "44dc21b0b31dde2a9a11c121ada52bb2bb67f87182ee2a4bbcb17a3dddc7f2f8",
+    "gitsha": "57c18ebc946ff19bfa06705e4471b1ed2018eb4f"
+  },
+  "log_full_GET_equal": true,
+  "original_JSON_records": 32,
+  "original_JSON_method": "Printed JSON kept byte-for-byte after removal of log timestamp prefixes; profile full base64 decoded and exact source bytes/SHA checked. Original JSON is never regenerated from parsed values.",
+  "all_original_records_create_and_full_GET_equal": true,
+  "fresh_build": {
+    "B3_compilations": 2,
+    "compiler": "35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b",
+    "limits": {
+      "cpu": 10,
+      "wall": 20,
+      "address_bytes": 268435456
+    },
+    "actual_components": [
+      {
+        "component": "controller",
+        "author_sha256": "a7fc5e1f656fdf4bacc3e35b754cc6f113c0b257b49dcc13c9a03fa5a23fc871",
+        "source_bytes": 196675,
+        "source_sha256": "c77b262cac0e34c2b1db0db0ef5c28471a6546a3c7ad85764d6589b74eea4069",
+        "image_bytes": 203390,
+        "image_sha256": "b8268f47b1f3295a968ec44b54626373cbc4c35dd6b19ea8dc3348820ae47b13",
+        "profile": {
+          "blocks": 460,
+          "functions": 29,
+          "max_block_ops": 141,
+          "max_blocks": 116,
+          "max_function_values": 1991,
+          "max_params": 15,
+          "max_ssa_index": 1990,
+          "ops": 4083
+        }
+      },
+      {
+        "component": "hash",
+        "author_sha256": "247816be2a50d384a6dd86a1d8cad909a48fbcdef54444f2394a7789fb137238",
+        "source_bytes": 30794,
+        "source_sha256": "82452152789e625b72b0d19a24b8bd25760779e15a6cca350063f7a327e8d7e6",
+        "image_bytes": 37158,
+        "image_sha256": "e9b0c18a52518af8d9e9909451d8174a02b7d6adc2910f8ca68d1b284a7093cb",
+        "profile": {
+          "blocks": 67,
+          "functions": 5,
+          "max_block_ops": 227,
+          "max_blocks": 46,
+          "max_function_values": 686,
+          "max_params": 10,
+          "max_ssa_index": 685,
+          "ops": 620
+        }
+      }
+    ],
+    "C_mechanics": "PASS_BUILD_ONLY"
+  },
+  "actual": {
+    "groups": 11,
+    "cases": 90,
+    "private_controls": 49,
+    "native_entries": 20254,
+    "by_role": {
+      "1": 18080,
+      "2": 2174
+    },
+    "raw_syscalls": 3353,
+    "fixed_native_processes": 40,
+    "full_CAS_cases": 52,
+    "cross_cases_run_by_both": 2,
+    "entry_note": "Actual native entry total includes both independently executed paths for the two cross cases. Forty fixed-C process cases plus 52 complete-CAS cases overlap at those two cases, giving 90 distinct case identities.",
+    "group_inventory": [
+      {
+        "group": "cross",
+        "variant": 0,
+        "cases": 2,
+        "private_controls": 0,
+        "actual_native_entries": 2052,
+        "by_role": {
+          "1": 1844,
+          "2": 208
+        },
+        "raw_syscalls": 360,
+        "started_C_processes": 2,
+        "full_CAS_cases": 2,
+        "subject_CPU": 2.657331,
+        "subject_wall": 2.459259432999943,
+        "original_readback_CPU": 2.245926,
+        "original_readback_wall": 2.0163514659999464,
+        "labels": [
+          "cross-empty",
+          "cross-varied"
+        ],
+        "status": "PASS",
+        "original_readback_status": "PASS"
+      },
+      {
+        "group": "normal",
+        "variant": 0,
+        "cases": 12,
+        "private_controls": 0,
+        "actual_native_entries": 6857,
+        "by_role": {
+          "1": 6130,
+          "2": 727
+        },
+        "raw_syscalls": 1183,
+        "started_C_processes": 12,
+        "full_CAS_cases": 0,
+        "subject_CPU": 2.363016,
+        "subject_wall": 2.202733303000059,
+        "original_readback_CPU": 0.626687,
+        "original_readback_wall": 0.391885997999907,
+        "labels": [
+          "normal-reference",
+          "normal-empty",
+          "normal-varied",
+          "normal-unicode",
+          "normal-undecodable",
+          "normal-trailing",
+          "normal-relative",
+          "normal-filelink",
+          "normal-parentlink",
+          "normal-chunk65535",
+          "normal-chunk65536",
+          "normal-chunk65537"
+        ],
+        "status": "PASS",
+        "original_readback_status": "PASS"
+      },
+      {
+        "group": "errors",
+        "variant": 0,
+        "cases": 24,
+        "private_controls": 0,
+        "actual_native_entries": 6792,
+        "by_role": {
+          "1": 6090,
+          "2": 702
+        },
+        "raw_syscalls": 1120,
+        "started_C_processes": 24,
+        "full_CAS_cases": 0,
+        "subject_CPU": 2.149856,
+        "subject_wall": 2.1996739060000436,
+        "original_readback_CPU": 0.825474,
+        "original_readback_wall": 0.5922185770000397,
+        "labels": [
+          "missing-00",
+          "missing-01",
+          "missing-02",
+          "missing-03",
+          "missing-04",
+          "missing-05",
+          "missing-06",
+          "missing-07",
+          "missing-08",
+          "missing-09",
+          "missing-10",
+          "missing-11",
+          "missing-12",
+          "missing-13",
+          "missing-14",
+          "missing-15",
+          "missing-16",
+          "missing-17",
+          "missing-18",
+          "missing-19",
+          "directory-00",
+          "directory-09",
+          "directory-19",
+          "kernel-ENAMETOOLONG"
+        ],
+        "status": "PASS",
+        "original_readback_status": "PASS"
+      },
+      {
+        "group": "large",
+        "variant": 0,
+        "cases": 1,
+        "private_controls": 0,
+        "actual_native_entries": 1479,
+        "by_role": {
+          "1": 1289,
+          "2": 190
+        },
+        "raw_syscalls": 228,
+        "started_C_processes": 1,
+        "full_CAS_cases": 0,
+        "subject_CPU": 10.000632,
+        "subject_wall": 9.792706761999966,
+        "original_readback_CPU": 0.355523,
+        "original_readback_wall": 0.1255499259999624,
+        "labels": [
+          "no-new-8MiB-budget-0"
+        ],
+        "status": "PASS",
+        "original_readback_status": "PASS"
+      },
+      {
+        "group": "large",
+        "variant": 1,
+        "cases": 1,
+        "private_controls": 0,
+        "actual_native_entries": 1563,
+        "by_role": {
+          "1": 1361,
+          "2": 202
+        },
+        "raw_syscalls": 240,
+        "started_C_processes": 1,
+        "full_CAS_cases": 0,
+        "subject_CPU": 11.93384,
+        "subject_wall": 11.727783923999937,
+        "original_readback_CPU": 0.366978,
+        "original_readback_wall": 0.1343382830000337,
+        "labels": [
+          "no-new-8MiB-budget-1"
+        ],
+        "status": "PASS",
+        "original_readback_status": "PASS"
+      },
+      {
+        "group": "fd0",
+        "variant": 0,
+        "cases": 1,
+        "private_controls": 0,
+        "actual_native_entries": 583,
+        "by_role": {
+          "1": 521,
+          "2": 62
+        },
+        "raw_syscalls": 100,
+        "started_C_processes": 0,
+        "full_CAS_cases": 1,
+        "subject_CPU": 1.514086,
+        "subject_wall": 1.277491255999962,
+        "original_readback_CPU": 1.3798439999999998,
+        "original_readback_wall": 1.1433784759999526,
+        "labels": [
+          "actual-owned-file-descriptor-zero"
+        ],
+        "status": "PASS",
+        "original_readback_status": "PASS"
+      },
+      {
+        "group": "initial",
+        "variant": 0,
+        "cases": 16,
+        "private_controls": 16,
+        "actual_native_entries": 30,
+        "by_role": {
+          "1": 30,
+          "2": 0
+        },
+        "raw_syscalls": 0,
+        "started_C_processes": 0,
+        "full_CAS_cases": 16,
+        "subject_CPU": 0.6931179999999999,
+        "subject_wall": 0.45570723999992424,
+        "original_readback_CPU": 0.564713,
+        "original_readback_wall": 0.32960530000002564,
+        "labels": [
+          "initial-field-0",
+          "initial-field-8",
+          "initial-field-16",
+          "initial-field-24",
+          "initial-field-32",
+          "initial-field-40",
+          "initial-field-48",
+          "initial-field-56",
+          "initial-empty",
+          "initial-short",
+          "initial-truncated",
+          "initial-extra",
+          "initial-NUL",
+          "initial-wrong-total",
+          "short-output-127-work-65536",
+          "short-output-128-work-65535"
+        ],
+        "status": "PASS",
+        "original_readback_status": "PASS"
+      },
+      {
+        "group": "ack",
+        "variant": 0,
+        "cases": 10,
+        "private_controls": 10,
+        "actual_native_entries": 30,
+        "by_role": {
+          "1": 30,
+          "2": 0
+        },
+        "raw_syscalls": 0,
+        "started_C_processes": 0,
+        "full_CAS_cases": 10,
+        "subject_CPU": 0.62267,
+        "subject_wall": 0.38251898800001527,
+        "original_readback_CPU": 0.487824,
+        "original_readback_wall": 0.2569962970000006,
+        "labels": [
+          "ACK-q0",
+          "ACK-q8",
+          "ACK-q16",
+          "ACK-q24",
+          "ACK-q32",
+          "ACK-q40",
+          "ACK-q48",
+          "ACK-q56",
+          "ACK-short",
+          "ACK-extra"
+        ],
+        "status": "PASS",
+        "original_readback_status": "PASS"
+      },
+      {
+        "group": "state",
+        "variant": 0,
+        "cases": 12,
+        "private_controls": 12,
+        "actual_native_entries": 36,
+        "by_role": {
+          "1": 36,
+          "2": 0
+        },
+        "raw_syscalls": 0,
+        "started_C_processes": 0,
+        "full_CAS_cases": 12,
+        "subject_CPU": 0.67675,
+        "subject_wall": 0.44454598099991927,
+        "original_readback_CPU": 0.531587,
+        "original_readback_wall": 0.2973888400000533,
+        "labels": [
+          "issued-pin-C_PHASE",
+          "issued-pin-C_PENDING",
+          "issued-pin-C_NEXT",
+          "issued-pin-C_ALLOC_SLOT",
+          "issued-pin-C_ALLOC_BYTES",
+          "issued-pin-CAPS",
+          "issued-pin-L_DRIVER",
+          "issued-pin-F_INDEX",
+          "issued-pin-F_HASH_BYTES",
+          "issued-pin-ARGS",
+          "issued-pin-NAME_AT",
+          "issued-pin-WIRE"
+        ],
+        "status": "PASS",
+        "original_readback_status": "PASS"
+      },
+      {
+        "group": "operation",
+        "variant": 0,
+        "cases": 8,
+        "private_controls": 8,
+        "actual_native_entries": 218,
+        "by_role": {
+          "1": 200,
+          "2": 18
+        },
+        "raw_syscalls": 22,
+        "started_C_processes": 0,
+        "full_CAS_cases": 8,
+        "subject_CPU": 0.973008,
+        "subject_wall": 0.7333711640000047,
+        "original_readback_CPU": 0.8283189999999999,
+        "original_readback_wall": 0.5944852960000162,
+        "labels": [
+          "raw-result-1-0",
+          "raw-result-1-2",
+          "raw-result-2-65537",
+          "raw-result-2-18446744073709547520",
+          "raw-result-3-1",
+          "raw-result-3-2",
+          "raw-result-4-1",
+          "raw-result-4-2"
+        ],
+        "status": "PASS",
+        "original_readback_status": "PASS"
+      },
+      {
+        "group": "hash",
+        "variant": 0,
+        "cases": 3,
+        "private_controls": 3,
+        "actual_native_entries": 614,
+        "by_role": {
+          "1": 549,
+          "2": 65
+        },
+        "raw_syscalls": 100,
+        "started_C_processes": 0,
+        "full_CAS_cases": 3,
+        "subject_CPU": 1.603689,
+        "subject_wall": 1.3688805219999267,
+        "original_readback_CPU": 1.461831,
+        "original_readback_wall": 1.2317571490000319,
+        "labels": [
+          "actual-SHA-return-0",
+          "actual-SHA-return-1",
+          "actual-SHA-return-2"
+        ],
+        "status": "PASS",
+        "original_readback_status": "PASS"
+      }
+    ]
+  },
+  "independent_readback": {
+    "reader_groups": 11,
+    "fixed_processes": 40,
+    "full_CAS_cases": 52,
+    "cas_pages": 10625,
+    "cas_snapshots": 15222,
+    "cas_logical_bytes": 301461810,
+    "checked_original_files": 14467,
+    "checked_original_bytes": 73357264,
+    "new_target_entries": 0,
+    "all_complete_original_bytes_and_modes_before_after_equal": true,
+    "intermediate_C_workspace_complete": false,
+    "note": "Fixed C traces retain complete source/images/events/ACKs/raw syscall payloads and final all-slot bytes. Full intermediate buffer snapshots are available on the separate complete-CAS executions; no missing C intermediate workspace is claimed."
+  },
+  "seal_process_original": {
+    "actual_target_executions": 0,
+    "aggregate_limits_pass": true,
+    "child_cpu_seconds": 16.903104,
+    "cleanup_errors": [],
+    "elapsed_wall_seconds": 17.737162925000007,
+    "error": null,
+    "error_class": null,
+    "exit_code": 0,
+    "limits": {
+      "address": [
+        1073741824,
+        1073741824
+      ],
+      "core": [
+        0,
+        0
+      ],
+      "cpu": [
+        90,
+        90
+      ],
+      "wall": 180
+    },
+    "method": "fresh fork with inherited immutable evidence paths",
+    "outer_metadata_note": "This post-wait receipt is outside evidence.tar.xz and is retained in the outer CI artifact beside custody.json.",
+    "parent_CPU_seconds": 0.03537358200000007,
+    "pid": 2959,
+    "schema": "hia-independent-evidence-seal-process-v1",
+    "scope": "implementation-files-r1",
+    "status": "PASS",
+    "subject_status": "PASS",
+    "timed_out": false,
+    "wait_status": 0,
+    "whole_seal_parent_child_CPU_seconds": 16.938477581999997
+  },
+  "artifact": {
+    "id": 13949599738,
+    "outer_zip": {
+      "bytes": 80050950,
+      "sha256": "8825e768f33bc77b3216cf072f222cea7d15ee7ab3f1d719a1e57b847435a490",
+      "scope": "Upload log identity only; ZIP bytes not independently downloaded here."
+    },
+    "inner_custody_original": {
+      "all_original_and_tar_member_bytes_sha256_modes_readback": true,
+      "archive": "/home/runner/work/_temp/hia-implementation-files-r1-recovery/evidence.tar.xz",
+      "bytes": 14939528,
+      "complete_source_inventory_before_after_equal": true,
+      "member_index": "/home/runner/work/_temp/hia-implementation-files-r1-recovery/evidence-members.jsonl",
+      "member_index_bytes": 7616822,
+      "member_index_format": "JSONL",
+      "member_index_sha256": "5e0e8524580317862ddfddfb0fda095d0de3b533c9f3dce7732350c51d64fd8e",
+      "members": 15619,
+      "no_target_execution_in_seal": true,
+      "original_bytes": 139143396,
+      "schema": "hia-independent-ci-streamed-artifact-custody-v1",
+      "scope": "implementation-files-r1",
+      "seal_cpu_seconds": 15.868873806,
+      "seal_wall_seconds": 15.907130902999938,
+      "sha256": "5f430100fea1c267b89576606d7699267da15a376974ed3444cd04c0d493352c",
+      "status": "PASS",
+      "tar_member_cache_cleared_after_each_member": true,
+      "whole_stack_closed": false
+    },
+    "independent_whole_archive_readback_in_this_observation": false
+  },
+  "limits": {
+    "each_subject": {
+      "cpu": 90,
+      "wall": 180,
+      "address_bytes": 1073741824
+    },
+    "each_readback": {
+      "cpu": 90,
+      "wall": 180,
+      "address_bytes": 1073741824
+    },
+    "seal": "Separate fresh process with full parent-plus-child 90 CPU / 180 wall / 1 GiB receipt; subject gates and evidence encoding within each test remain unchanged."
+  },
+  "no_prior_results_inherited": true,
+  "original51_failure_preserved": true,
+  "actual_public_Core_admission": false,
+  "full_public_backend": false,
+  "complete_exception_text": false,
+  "installed": false,
+  "whole_stack_closed": false
+}

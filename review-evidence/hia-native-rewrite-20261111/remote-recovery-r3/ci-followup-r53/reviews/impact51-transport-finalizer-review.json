@@ -1,0 +1,63 @@
+{
+  "schema": "hia-impact51-transport-r2-narrow-authoring-review",
+  "status": "TWO_IDENTIFIED_FINALIZATION_GAPS_FIXED_SOURCE_ONLY",
+  "reviewer": "audit_runtime",
+  "original_review": {
+    "blob": "8b6d3f06a87e3b09f0226dd9c3e0a6123750413c",
+    "bytes": 11638,
+    "sha256": "be41e6acbf89399e90720a7acb63f24520dd081dc3a814b510fbd063279cc02d",
+    "mode": "100644"
+  },
+  "old_transport": {
+    "gitsha": "deb2d31ea82df82d6a6270a4e099f3edb5ab6f30",
+    "bytes": 5398,
+    "sha256": "7119876ac2e223ac00a7d521f8ae5ab76285182288d75398db0d3e9e3a3985d6"
+  },
+  "new_transport": {
+    "blob": "6dfa64de80e8cdac5dbae58acec757931c857b70",
+    "bytes": 8338,
+    "sha256": "44025a0e2ac48736bcbe47b12b90553776563ee18ed272bd4a5b223188e86655",
+    "mode": "100644"
+  },
+  "exact_delta": {
+    "blob": "c0288cc22c2881b9755e07caca130d9224a7f89e",
+    "bytes": 6030,
+    "sha256": "a81fc1d52e8114928d7f915f2be026077b062c182f1de90a97280f07c09534e7",
+    "mode": "100644"
+  },
+  "unchanged_reader": {
+    "gitsha": "0f92a15c2d05778d1fbd4ddbe2f24dee4126a270",
+    "bytes": 30862,
+    "sha256": "8807d6142b935d9fdb4722499703a498c97506fa2056f9859374c82da0517ec0"
+  },
+  "verified_source_properties": [
+    "Only the one finalizer block is replaced. Exact new-block-to-old-block replacement recovers every original byte.",
+    "All imports, argument handling, artifact/run/head/name/size/SHA, original API metadata/redirect/token handling, stream cap/hash, rename and initial ZIP readback remain byte-for-byte identical.",
+    "Self-after and originally-successful ZIP-after checks are attempted independently. Failures append scope/error class without overwriting the captured primary network/transport error.",
+    "Receipt or stdout finalization failure sets status FAIL and is retained separately; a failure does not manufacture a successful transport.",
+    "After receipt write/stdout flush, post-budget metadata is written exclusively and read back byte for byte. A further final process CPU and wall measurement enforces strict<90 and<180s, including that post-budget write/readback.",
+    "A late failure rewrites the primary receipt to FAIL with final measurements while preserving original error, and attempts a sanitized failure stdout. Failed failure-record output never produces successful exit.",
+    "The existing180s wall alarm remains armed until final receipt/flush/post-budget readback and final strict gate finish. No original resource threshold changes.",
+    "No typejoin/Core transport or already-running source is modified. This new standalone source has not been AST parsed or executed."
+  ],
+  "changed_output_artifacts": [
+    "<ZIP>.receipt.json gains after_errors and post_stdout_budget_file",
+    "<ZIP>.post-stdout-budget.json is new derived transport measurement, never original target data"
+  ],
+  "limits": {
+    "CPU": 90,
+    "wall": 180,
+    "AS": 1073741824,
+    "core": 0
+  },
+  "root_independent_review_required_before_publication": true,
+  "execution": {
+    "AST": 0,
+    "network_transport": 0,
+    "original_archive_readback": 0,
+    "project_import": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  }
+}
