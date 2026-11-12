@@ -74,6 +74,44 @@ def invoke(owner,status,ledger,options):
 
 
 class ExecutionObservationSourceTests(unittest.TestCase):
+    def test_installed_publisher_binds_every_observation_resource(self):
+        from hepta import hia_agent_contract as contract
+        from hepta.artifact_publication import PublicationRejected
+        from hepta.artifact_publication_native import _installed_source_custody
+        import hepta.hia_json_preflight_native as resources
+        # This is a test-owned installed-source contract, not a forged cold
+        # qualification or executable manifest. No image is selected or run.
+        assets=(tuple('docs/'+n for n in contract.DISCOVERY_FILES)
+            +contract.NATIVE_SOURCE_FILES+contract.SOURCE_BUILD_FILES
+            +contract.COMPILER_BUILD_FILES+contract.PUBLICATION_BUILD_FILES
+            +contract.BACKEND_BUILD_FILES+contract.EMITTER_BUILD_FILES
+            +contract.BYTE_WRAPPER_BUILD_FILES+contract.MACHINE_OBJECT_BUILD_FILES
+            +contract.EXECUTION_OBSERVATION_BUILD_FILES)
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)/'installed';root.mkdir()
+            shutil.copytree(ROOT/'hepta',root/'hepta',ignore=shutil.ignore_patterns('__pycache__'))
+            for name in assets:
+                target=root/name;target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/name,target)
+            names=[p.relative_to(root).as_posix() for p in (root/'hepta').rglob('*.py')]
+            identities={name:sha256((root/name).read_bytes()).hexdigest() for name in [*names,*assets]}
+            installed_contract={'schema':'hepta.hia.selfhost-core-support.v1',
+                'profile':'test-owned-installed-source-custody-not-cold',
+                'source_identity':{'files':identities}}
+            (root/'docs/HIA_SELFHOST_CORE_SUPPORT.json').write_text(json.dumps(installed_contract))
+            with patch.object(resources,'_source_resource_path',lambda name:root/name):
+                _,observed=_installed_source_custody(root)
+                for name in contract.EXECUTION_OBSERVATION_BUILD_FILES:
+                    self.assertEqual(observed[name],identities[name])
+                    target=root/name;raw=target.read_bytes();target.write_bytes(raw+b'changed')
+                    try:
+                        with self.assertRaises(PublicationRejected):_installed_source_custody(root)
+                    finally:target.write_bytes(raw)
+                    target.unlink()
+                    try:
+                        with self.assertRaises(FileNotFoundError):_installed_source_custody(root)
+                    finally:target.write_bytes(raw)
+
     def test_original_complete_AST_and_generated_caps(self):
         raw=(ROOT/'tests/fixtures/hia_opcodes_99d6567.py.txt').read_bytes()
         self.assertEqual(sha256(raw).hexdigest(),'7c3e1a531b790883da2f74ca0e06e37b18073a594063afb9aeb07be9bd34fd65')

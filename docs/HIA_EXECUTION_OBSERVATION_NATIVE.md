@@ -42,3 +42,18 @@ The separate complete thirteen-module development caller gate then executed
 All three HIA modes and all continuation statuses were observed; retained
 ledger policy was forbidden and source/bundle hashes remained unchanged.
 This result still uses explicit old-compiler development reuse.
+
+## Installed-source custody follow-up
+
+The frozen initial v85 candidate omitted these nine resources from the installed
+publisher's source-custody loop. A read-only redirected-resource reproduction
+showed all nine changed resources could be reported without being read. Its
+unstarted cold/native/full queues were retired; the source-only workflow may
+finish, but does not erase this finding. Frozen v85 bytes remain untouched.
+
+The isolated v86 follow-up adds the exact nine-resource role to the publisher's
+existing import and assets union. All original custody checks remain AST-exact.
+One new test passed: a test-owned complete installed contract accepts intact
+assets and rejects mutation and absence of each of the nine files. This is a
+source-custody unit witness, not a cold or executable qualification. Current
+source must still pass its own complete source/cold/native/full acceptance.
