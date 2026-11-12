@@ -1,0 +1,100 @@
+{
+  "added_embedded_function": "divide_small",
+  "arithmetic_reasoning": [
+    "The original digit representation admits only (shift,width)=(15,2) or (30,4) before the threshold. C positive integer division gives floor(6400/45)+2=144 and floor(6400/90)+2=73.",
+    "The early limit remains read only after that threshold. limit>0 is evaluated before count-11. A valid phase100 has count>=73 or144; an explicit count>=11 guard prevents unsigned underflow for an invalid workspace.",
+    "divide_small is called only with divisors10,45,90. It processes exactly64 input bits from63 down to0. The invariant is processed_prefix=quotient*divisor+remainder, with 0<=remainder<divisor. A step doubles the remainder then appends one input bit; the intermediate remainder is below180, so the shift cannot overflow u64. Conditional subtraction restores the invariant.",
+    "Each quotient shift appends one binary digit. Before any iteration the quotient fits the number of bits already processed, which is at most63; no shift loses a high bit. The final quotient equals floor(value/divisor). No host division or changed integer-text algorithm is introduced.",
+    "Unicode width is validated as1,2,4; division of byte length is the corresponding shift0,1,2. The count-versus-quotient comparison short-circuits before count*width; therefore the multiplication is bounded by the buffer length. The subsequent exact equality remains."
+  ],
+  "changed_embedded_functions": [
+    "observe_scalar",
+    "integer_policy",
+    "packet"
+  ],
+  "new_division_modulo_ast_nodes": 0,
+  "new_request_executed": false,
+  "new_scalar": {
+    "bytes": 17132,
+    "git_blob": "0657b8aa1c9500232530379cf9e0b6ba1d29d217",
+    "sha256": "c751be3b1098070371be4cd6d22549213b2c059729f88137d1f4cd1378c0d8a2"
+  },
+  "official_reference": {
+    "bytes": 204954,
+    "git_blob": "c366034fe4bf90d7f2680647f38b47703a2080f3",
+    "local_path": "reference/cpython-v3.12.14/Objects/longobject.c",
+    "sha256": "315c71c11dacfcffcbc33bc2d778533297f162438d02780ec02de569871a2879",
+    "url": "https://raw.githubusercontent.com/python/cpython/v3.12.14/Objects/longobject.c"
+  },
+  "old_request_replayed": false,
+  "old_scalar": {
+    "bytes": 15788,
+    "git_blob": "3137dcfc6d3961320c7375af5ec89975008df800",
+    "sha256": "8c4261c02e54e36c3f9ae3ced320347a90ba241aba7fd9bc076fff02728b2269"
+  },
+  "original_ast_divisions": [
+    {
+      "lineno": 91,
+      "operator": "Div"
+    },
+    {
+      "lineno": 118,
+      "operator": "Div"
+    },
+    {
+      "lineno": 118,
+      "operator": "Div"
+    },
+    {
+      "lineno": 227,
+      "operator": "Div"
+    }
+  ],
+  "original_failure_reclassified": false,
+  "other_12_implementation_files_wholebytes_unchanged": [
+    "hepta/hia_cli_json_cpython.c",
+    "hepta/hia_cli_json_cpython312_call.inc",
+    "hepta/hia_cli_json_py312_chunks_native.py",
+    "hepta/hia_cli_json_raw_native.py",
+    "hepta/hia_cli_json_runtime312.py",
+    "hepta/hia_cli_json_scalar_native.py",
+    "hepta/hia_cli_json_sort_native.py",
+    "tools/generate_hia_cli_json_cgraph.py",
+    "tools/generate_hia_cli_json_note.py",
+    "tools/generate_hia_cli_json_py312_chunks.py",
+    "tools/generate_hia_cli_json_text.py",
+    "tools/hia_cli_json_continuation.py"
+  ],
+  "outer_authoring_python_ast_unchanged": true,
+  "prior_actual_failure_commit": "60e30e1bd5ad5a7434ea0019767e5c9210e32be7",
+  "prior_failed_request_commit": "6ae4d8765678fe1e8c54c365c595d1528655ea62",
+  "remaining_obligations": [
+    "Two complete new source components must actually generate, roundtrip and meet the original nine caps.",
+    "Native compilation still enforces the original line gate and all compiler limits.",
+    "Owned CALL, live generator frames, non-string final join, full17 CLI methods and46 trace cases remain unexecuted."
+  ],
+  "schema": "hia.cli-json.r4b1.scalar-correction.v1",
+  "scope_preserved": {
+    "cleanup_seconds": 3,
+    "compiler_line_gate_executed": false,
+    "components": [
+      [
+        "scalar",
+        "tools.generate_hia_cli_json_scalar"
+      ],
+      [
+        "py312_chunks",
+        "tools.generate_hia_cli_json_py312_chunks"
+      ]
+    ],
+    "input_pins": 174,
+    "original_cli_17_executed": 0,
+    "owner_seconds": 180,
+    "private_c_compiled": false,
+    "source_bytes": 2632579,
+    "source_files": 167,
+    "structural_caps": 9,
+    "trace_46_executed": 0
+  },
+  "status": "STATIC_AST_VERIFIED_NOT_AUTHORED_OR_EXECUTED"
+}
