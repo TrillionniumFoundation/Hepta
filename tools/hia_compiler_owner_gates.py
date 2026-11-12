@@ -20,7 +20,7 @@ import zipfile
 from tools import hia_store_page_gates as previous
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_GENERATORS = (
+LEGACY_SOURCE_GENERATORS = (
     'core_workspace_pipeline',
     'core_workspace_facts',
     'core_workspace_facts_cli',
@@ -81,6 +81,7 @@ SOURCE_GENERATORS = (
     'machine_elf',
     'core_lowering',
 )
+SOURCE_GENERATORS = LEGACY_SOURCE_GENERATORS + ('bounded_read',)
 require = previous.require
 json_file = previous.json_file
 child_path = previous.child_path

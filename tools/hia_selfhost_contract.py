@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v82-native-core-emitter-json-pretty-bounded-read-interned-scans-development'
+PROFILE = 'selfhost-core-linux-x86_64-v84-native-core-emitter-json-pretty-bounded-read-interned-scans-ci-repair-development'
 SOURCE_FILES = (
     'hepta/hia_bounded_read_native.py',
     'tools/generate_hia_bounded_read.py',
