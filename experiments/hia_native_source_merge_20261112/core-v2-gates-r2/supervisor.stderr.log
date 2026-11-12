@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/workspace/scratch/e26ed3e2edcf/core/native116-freeze-r1/guardian.py", line 199, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/workspace/scratch/e26ed3e2edcf/core/native116-freeze-r1/guardian.py", line 195, in main
+    return execute(config, args.config.parent, args.implementation)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/e26ed3e2edcf/core/native116-freeze-r1/guardian.py", line 95, in execute
+    private_directory(control)
+  File "/workspace/scratch/e26ed3e2edcf/core/native116-freeze-r1/guardian.py", line 43, in private_directory
+    require(stat.S_ISDIR(item.st_mode) and item.st_uid == os.geteuid()
+  File "/workspace/scratch/e26ed3e2edcf/core/native116-freeze-r1/guardian.py", line 34, in require
+    raise RuntimeError(message)
+RuntimeError: guardian requires its existing private directory
