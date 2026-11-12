@@ -45,3 +45,25 @@ emission, context and existing native providers remain explicit dependencies.
 Selecting Evaluation alone does not establish their native policy ownership
 or resolve the six historical deadline failures. Whole/default/deletion flags
 remain false.
+
+## R2 harness correction
+
+Original run43273754998 admitted all source successfully but ran zero generators:
+the harness inventory regex omitted digits in names such as sha256. Its original
+12 complete text records and job log are immutable under index
+ada6e1211722b1453f33658253af524a02008b6d and log
+b8c3793b7071c1451b2808870ce7a42e491fc177. No Source/Native/original caller tests
+ran. R2 accepts the actual digit-bearing names and compares the complete ordered
+88-item inventory to a frozen JSON literal before executing it. Owner22 source
+bytes remain exactly7972a63bf9686bc7b200c810846ff42183098549. All limits and
+supervisor bytes remain unchanged. R1 source-after equals authored bytes/Git
+modes; its original false generated-source comparison is preserved because no
+generated-source baseline existed. Original POSIX permissions were not separately
+recorded and are not retrospectively claimed.
+
+Before component execution, R2 also observes24 pre/post-admission helper-binding
+cases against the unchanged7972 candidate and original bodies: original function,
+replacement function, None, callable object, deletion and metadata-faulting object.
+This records the new source-review hypothesis as actual evidence. It does not
+apply a product fix or turn expected differences into PASS; all later original
+groups still run independently after a successful build.

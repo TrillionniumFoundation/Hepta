@@ -31,7 +31,7 @@ JOINT_TREE='4574f06c479e70849f955934d55d8b58a68f00ff'
 JOINT_SOURCE_TREE='be497004503dba10759a5107caa43714910f511b'
 JOINT_OVERLAY_SHA='eb26f329484558f4ff3639795d897f288230815715d10c93223bd9a14a69641c'
 COMPILER_SHA='81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109'
-STAGES=('prepare','generate','source','build','component','agent','namespace','ledger','finish')
+STAGES=('prepare','generate','source','build','helper-binding','component','agent','namespace','ledger','finish')
 
 def require(ok,message):
     if not ok:raise AssertionError(message)
@@ -219,9 +219,10 @@ def prepare(source,joint,output):
 def generate(source,output):
     authored=read(output/'AUTHORED-SOURCE.json');require(snapshot(source)==authored,'authored source changed before generation')
     workflow=(source/'.github/workflows/hia-core.yml').read_text()
-    match=re.search(r'for component in ([a-z_ ]+); do',workflow)
+    match=re.search(r'for component in ([a-z0-9_ ]+); do',workflow)
     require(match is not None,'original complete generator inventory absent')
     original=match.group(1).split()
+    require(original==read(INPUTS/'ORIGINAL-GENERATORS.json'),'exact original 88-generator order differs')
     require(len(original)==len(set(original)) and 'service_verification' in original
             and 'native_build' in original,'original generator inventory differs')
     generators=original+['service_evaluation_foreign','service_evaluation']
@@ -283,6 +284,15 @@ def build(source,output):
         str(source/'tools/build_hia_service_evaluation.py'),'--compiler',str(compiler),
         '--output',str(output/'candidate'),'--development'])
     current_source(source,output);require(sha(compiler.read_bytes())==COMPILER_SHA,'compiler changed after build')
+    return receipt['status']=='WORKFLOW_STEP_COMPLETED'
+
+def helper_bindings(source,output):
+    current_source(source,output)
+    receipt=command(source,output,'helper-binding-observations',
+        [sys.executable,'-I','-B',str(INPUTS/'probe_helper_bindings.py'),
+         '--source',str(source),'--manifest',str(output/'candidate/development-manifest.json'),
+         '--output',str(output/'helper-binding-observations')])
+    current_source(source,output)
     return receipt['status']=='WORKFLOW_STEP_COMPLETED'
 
 def component(source,output):
@@ -390,6 +400,7 @@ def main():
         elif args.stage=='generate':ok=generate(source,output)
         elif args.stage=='source':ok=source_controls(source,output)
         elif args.stage=='build':ok=build(source,output)
+        elif args.stage=='helper-binding':ok=helper_bindings(source,output)
         elif args.stage=='component':ok=component(source,output)
         elif args.stage in ('agent','namespace','ledger'):ok=caller(source,output,args.stage)
         else:return 0 if finish(source,output) else 1
