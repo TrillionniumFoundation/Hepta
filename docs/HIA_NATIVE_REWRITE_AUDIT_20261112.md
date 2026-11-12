@@ -1,10 +1,10 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW39）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW40）
 
 ## 当前结论
 
 **整套仍为 OPEN。普通补丁协调器已有完整独立 CI 通过；Function、wrapper 和命名空间若干域已有明确进展。完整 Emitter、Worker、普通 Store/SQL、安装与全部公开入口仍未闭合。当前生产入口仍依赖 Python，本提交不激活新生产入口、不删除旧实现。**
 
-FOLLOW37恢复点为e3ea7f33f1d7bf3350e4b54a9a8d3522746223c7，树f13b040a6f98ee39bef6f4db81f60d33a0dbd098、5,249文件。FOLLOW38已发布为86c3e60966085f9aefde1170fbbb737c20a52422，树fc5737b2d001163aba37d57f2e1244668feeddd8、5,366文件；本轮FOLLOW39以此为唯一父提交。独立完整基线始终固定为 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5，树 6ef9e1713065436a3b1886fe9edcf0a4a1120773，共2,798文件。FOLLOW37完整新增/恢复文件身份见 ci-followup-r37/publication-manifest.json；FOLLOW38及本轮新增/替换源码分别见ci-followup-r38和ci-followup-r39的publication-manifest.json。
+FOLLOW37恢复点为e3ea7f33f1d7bf3350e4b54a9a8d3522746223c7，树f13b040a6f98ee39bef6f4db81f60d33a0dbd098、5,249文件。FOLLOW38已发布为86c3e60966085f9aefde1170fbbb737c20a52422，树fc5737b2d001163aba37d57f2e1244668feeddd8、5,366文件；FOLLOW39已发布为f3d17aac2caabd1a077fee0848707f3a50ac3b46，树e01d092ffe2dbba5aba01f62a7be77ab0f0fb0a2、5,546文件；本轮FOLLOW40以FOLLOW39为唯一父提交。独立完整基线始终固定为 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5，树 6ef9e1713065436a3b1886fe9edcf0a4a1120773，共2,798文件。FOLLOW37完整新增/恢复文件身份见 ci-followup-r37/publication-manifest.json；FOLLOW38、FOLLOW39及本轮新增/替换源码分别见对应ci-followup目录中的publication-manifest.json。
 
 本地计算环境在本轮工作中容量耗尽，随后正式 unavailable。失联前未取得终态的任务保持 UNKNOWN，不重放或推断成功。已落入 Git 的源码/证据继续用于独立 CI；尚未完成封包的本地记录不被描述为完整可恢复证据。
 
@@ -132,10 +132,44 @@ FOLLOW37的49个二进制文件已在只读CI43180354999/job131054530017全部�
 
 参考实际工作流：[全量原保留回归](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43180758665)、[Core37](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43180758678)、[恢复37](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43180758618)、[恢复38](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43181547044)。全量原保留回归已完成fresh依赖/六桥和READY，仍在原完整runner内执行；没有原全量终态时不得宣布4,157项PASS。
 
+## FOLLOW40：实际P12与对象检查通过，失败保持可追溯
+
+FOLLOW39在精确提交f3d17aac2caabd1a077fee0848707f3a50ac3b46上的恢复run43184755381已结束。以下结果分别来自实际job，不能合并成全量安装通过。
+
+| 组件与精确job | 实际结果 | 作用域 |
+| --- | --- | --- |
+| P12资源初始化，131069068422 | 13次fresh B3；2 semantic、1 capacity、88 protocol，共91案、7,637实际native入口全部PASS | 三组CPU分别23.749902、13.483815、12.726759秒；P12 owner283、metadata8，其余11类initializer peer仍foreign |
+| ELF64对象检查，131069068695 | 2次fresh B3；20组579案、1,097实际入口全部PASS，其中inventory1,073与producer24 | 27个私有控制、8条实际HIA writer→inspector；COFF/MachO/shared、完整public build及安装仍OPEN |
+| FS8固定物理组合，131069068418 | FAIL；生成role4时旧fixed-header helper要求旧完整源码摘要，0 fresh B3、0 packer、0 physical案例 | 原roles1..3 document/profile已生成；不会把前置失败描述为运行时原语失败 |
+| ordinary impact，131069068426 | 6次fresh B3和1次packer通过；13组中5组全部PASS、8组FAIL | errors58、input67和三个各1案边界通过；interfaces前2案通过后第3案失败，其余差异与预算原件全部保留 |
+| 完整Emitter，131069068249 | GitHub终态FAIL | 尚待完整后段失败原件审阅；不能将前序组通过写成整套Emitter通过 |
+| 完整inventory/Core原件reader，131069068481 | PASS_READ_ONLY | 全ZIP/member字节校验；0被读目标执行 |
+| physical37全原件reader，131069068584 | PASS_READ_ONLY | 原2,280个成员、259,051,592字节完整校验；0新B3/VM/native |
+
+ordinary impact的5个完整PASS组共128案，另interfaces有2个完成案；其余组的已调用进程不能计为成功案例。成功返回的完整字节不等问题正在读取实际stdout与原期望CAS定位。large-valid与graph-long-report两组实测父子CPU分别96.399365和95.195808秒，均超原90秒门。旧FAIL保留，不能靠增加限额或排除原始参考执行时间取得通过。该CI从原root overlay搜到的诊断作者为0，只表示该选择范围未包含文件；完整诊断作者另从精确原归档读取。
+
+本提交完整保存P12、对象检查及FS8/impact的原日志。原始JSON文本和u64数字保持原字节，不经JavaScript浮点解析重写；派生的小计数观察单独标为derived。FS8原完整23,429字节build报告仍在精确工件13928371900；14122字节console字段明确不是完整报告。对象检查原CI已流式逐成员校验，当前Git交付不冒称另行下载ZIP完成复验。
+
+### 完整审计清单与Core原件已取得Git二进制回读点
+
+只读reader把完整9,847,160字节静态清单、179,152字节生产投影、原审计摘要与完整ZIP成员索引，以及成功Core的cold/language/callers三个原报告封为一个7成员tar.xz。该归档1,006,864字节，Git为3b2ebf37e4f3f54b15d57fc0ca17b675def6517b，SHA256为abfcceeb168157fbc0bcc4ac6eef42fbe3c0ec514a32d6ba10b987b1ea9ee793。根已从完整base64分片重建并核三项身份，再在不可变暂存提交d18e564729acfa7f7c033e0b1ba05053e533771d通过认证文件读取取回全部二进制，三项相等。此操作未移动分支。
+
+physical37 reader的完整原日志2,886,486字节、原summary23,914字节及56份原JSON/日志2,040,950字节均完整Git回读。最大原物理报告678,746字节，Git e891a280ea6c064d7d5ec28e0a307a2e7a975974，SHA256 00afd2787cdee947fcce02130d7e26b197fbf5df3a959fbfee0a97f18de482aa。reader读取的是download-artifact解包后的原工件，不声称验证该外层ZIP字节/CRC。源、镜像及receipt的977,372字节规范子归档仍仅在CI工件中，不冒称已保存为Git二进制。
+
+### 本轮新执行入口
+
+P16/P17/P18新固定服务组合有25项源/依赖文件，加完整交付manifest。原63槽位中41为live，原36个peer均绑定完整源和像，其余22槽为空且不可调用。新6次B3须使用原0e09ccca…668,608字节编译器；服务必须完成原输入验证→完整render→assemble→新Core admission→完整canonical字节比较。五组113案包括45 semantic、22 assembly boundary、8 object boundary、35 private protocol、3 example chain；预期83个实际ELF进程和38次直接私有入口分别计数。全部逐组原90CPU/180wall/1GiB、B3原10/20/256MiB及容量门不变。没有预借P12或早期program子组件的PASS。
+
+另外两个新入口只读原件：一项读取reuse37/adoption38原900秒超时账本前沿；一项读取impact39原失败CAS和r3/r10/r12精确原诊断作者。它们不启动被读目标、不补写成功案例，也不将原超时的已完成数量猜成零或任意前缀。实际只读代码也要在本轮CI中执行后才能记PASS。
+
+当前493项活动Python源将重新检查语法；120个恢复job均保留Ubuntu24.04/x86_64硬门，本轮只选择worker-program-services、namespace-reuse-adopt-timeout-readback、impact-and-diagnostic-originals三项。所有新源在提交前仍是0新AST、0生成、0B3和0native。
+
+截至本轮提交前，[完整原保留回归](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43180758665)仍在原runner步骤中；原4157项FAIL/HOLD不变。[FOLLOW39恢复CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43184755381)的实际PASS/FAIL边界如上。公共composite完整诊断、Worker完整初始化服务桥、unixOpen及Store、checked-plan与完整公开编译/安装仍分别推进。
+
 ## 最终闭合和清理门
 
 B3保持10CPU秒/20wall秒/256MiB，源/输出/工作区各1MiB。Bootstrap保持128functions、1536blocks、8192operations、每函数256blocks、每block16参数、SSA<2048；不存在额外128operations/block门。公共1024函数与Bootstrap容量分别验收。普通配对原90CPU/180wall/1GiB、物理原900秒聚合门不变。
 
 完整公开入口、编译/执行/存储/Worker、工具链、安装、更新与恢复都必须有实际HIA承接。随后需要在旧业务实现不可调用的环境中执行完整功能、冷启动、故障、平台和安装验收，并绑定可重建的HIA源、镜像、安装包与精确提交。Python作者、现有安装器、机械汇编和当前产品入口仍是待替换依赖。
 
-**FOLLOW39保留所有旧失败和旧实现，继续提交实际HIA组合、精确修复和完整原件。整套仍OPEN，激活0个新生产入口，删除0个仓库文件。**
+**FOLLOW40保留所有旧失败和旧实现，继续提交实际HIA组合、精确修复和完整原件。整套仍OPEN，激活0个新生产入口，删除0个仓库文件。**
