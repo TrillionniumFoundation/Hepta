@@ -52,7 +52,10 @@ def apply(source,expected,rows,*,core=False):
         seen.add(name);raw=item['content'].encode('utf-8')
         if len(raw)!=item['bytes'] or digest(raw)!=item['sha256'] or blob(raw)!=item.get('git_blob',item.get('git_blob_sha1')):raise ValueError('overlay bytes differ: '+name)
         mode=item['mode']
-        if mode not in ('100644','100755'):raise ValueError('overlay mode differs')
+        if core:
+            if type(mode) is not int or mode not in (0o644,0o755):raise ValueError('Core overlay POSIX mode differs')
+            mode='100755' if mode==0o755 else '100644'
+        elif type(mode) is not str or mode not in ('100644','100755'):raise ValueError('Byte overlay Git mode differs')
         target=source/name;target.parent.mkdir(parents=True,exist_ok=True)
         if target.is_symlink():raise ValueError('overlay symlink')
         target.write_bytes(raw);target.chmod(0o755 if mode=='100755' else 0o644)
