@@ -1,7 +1,7 @@
-name: Exact joint HIA static and full retained qualification v80
+name: Exact V80 explicitly requested full retained attempt
 "on":
   push:
-    branches: [codex/hia-full-retained-v80-r1-20261112-dda7]
+    branches: [codex/hia-full-retained-v80-execute-r1-20261112-dda7]
   workflow_dispatch:
     inputs:
       run_full:
@@ -102,7 +102,7 @@ jobs:
             "$RUNNER_TEMP/hia-v79-harness/run_v79_static_gate.py" \
             --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/hia-v79-static"
       - name: Refuse unresolved source readiness before an explicit full attempt
-        if: github.event_name == 'workflow_dispatch' && inputs.run_full
+        if: github.ref == 'refs/heads/codex/hia-full-retained-v80-execute-r1-20261112-dda7' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.run_full))
         run: |
           python -B - "$RUNNER_TEMP/hia-v79-harness/V79-CONFIGURATION.json" <<'PY'
           import json, sys
@@ -111,10 +111,10 @@ jobs:
               raise RuntimeError('Explicit full attempt remains blocked: ' + repr(value['current_full_start_blockers']))
           PY
       - name: Install the unchanged original system prerequisites
-        if: github.event_name == 'workflow_dispatch' && inputs.run_full
+        if: github.ref == 'refs/heads/codex/hia-full-retained-v80-execute-r1-20261112-dda7' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.run_full))
         run: bash "$RUNNER_TEMP/hia-v79-harness/install_system_prerequisites.sh"
       - name: Build fresh original prerequisites and run unchanged v2 admission
-        if: github.event_name == 'workflow_dispatch' && inputs.run_full
+        if: github.ref == 'refs/heads/codex/hia-full-retained-v80-execute-r1-20261112-dda7' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.run_full))
         run: |
           set -euo pipefail
           "$RUNNER_TEMP/hia-full-venv/bin/python" -B \
@@ -124,7 +124,7 @@ jobs:
             --temporary-root "/tmp/hq-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
             --rustup "$(command -v rustup)"
       - name: Prepare pinned real GCC15 after original v2 READY
-        if: github.event_name == 'workflow_dispatch' && inputs.run_full
+        if: github.ref == 'refs/heads/codex/hia-full-retained-v80-execute-r1-20261112-dda7' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.run_full))
         run: |
           set -euo pipefail
           "$RUNNER_TEMP/hia-full-venv/bin/python" -B \
@@ -133,7 +133,7 @@ jobs:
             --prepared "$RUNNER_TEMP/hia-v79-prepared" \
             --output "$RUNNER_TEMP/hia-v79-gcc15"
       - name: Run the new exact-source qualification once with original limits
-        if: github.event_name == 'workflow_dispatch' && inputs.run_full
+        if: github.ref == 'refs/heads/codex/hia-full-retained-v80-execute-r1-20261112-dda7' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.run_full))
         run: |
           set -euo pipefail
           "$RUNNER_TEMP/hia-full-venv/bin/python" -B \
@@ -144,7 +144,7 @@ jobs:
             --gcc15-receipt "$RUNNER_TEMP/hia-v79-gcc15/RESULT.json" \
             --output "$RUNNER_TEMP/hia-v79-qualification"
       - name: Retain the six original bridge inputs outside their prepared tree
-        if: always() && github.event_name == 'workflow_dispatch' && inputs.run_full
+        if: always() && github.ref == 'refs/heads/codex/hia-full-retained-v80-execute-r1-20261112-dda7' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.run_full))
         run: |
           set -euo pipefail
           python -B "$RUNNER_TEMP/hia-v79-harness/retain_six_bridge_inputs.py" \

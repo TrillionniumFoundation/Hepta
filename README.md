@@ -1,5 +1,5 @@
-# Exact V80 retained qualification harness
+# Explicit same-source full retained attempt
 
-This independent branch checks out source65ceb711e47548f85ecf6b2ec2ae90f11dd50743 (tree49a48cef565b78d0a353822026ec525789768840). The immutable255-file external packet preserves all121 original v10r2 inputs, all27 original groups, and original ordinary1800/full5400/cold180+3/outer240/compiler20 limits.
+This independent execute-r1 branch is the concrete authorized start of the complete retained qualification for source65ceb711e47548f85ecf6b2ec2ae90f11dd50743. Its outer trigger permits this exact branch only. The frozen static branch4045be49 remains unchanged.
 
-A push runs exact source/loader/AST admission only. The explicitly authorized workflow_dispatch run_full=true starts fresh prerequisites, a new same-source cold, all original retained groups and the additive owner groups. Development and previous source results are never imported as cold authority. The known Python3.11 default-import compatibility finding remains separate and unresolved by this Python3.14.4 attempt. No product/main/audit ref or default route is changed.
+Actual Python3.14.4 static run43307749914 passed371 checks and56 complete loader inventories with zero business methods or fixtures executed. Every full run still performs that admission again, unchanged original prerequisites, a fresh same-source cold, all27 original groups plus additive owner groups, and the original complete discovery gate. All original1800/5400/180+3/240/20 limits and all command bodies are unchanged. No prior qualification is transferred, and the separately observed Python3.11 default-import failure remains recorded.
