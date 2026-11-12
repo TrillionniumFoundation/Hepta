@@ -79,25 +79,27 @@ EXPLICIT_MECHANISMS = (
     'hia_assembly_front_selection.py',
     'hia_service_requests_native.py',
     'hia_service_requests_foreign.py',
-    "hia_core_emitter_native.py",
-    "hia_core_emitter_selection.py",
-    "hia_core_lowering_native.py",
-    "hia_core_lowering_selection.py",
-    "hia_machine_plan.py",
-    "hia_machine_plan_control_native.py",
-    "hia_machine_plan_native.py",
-    "hia_native_build_foreign.py",
-    "hia_native_build_native.py",
-    "hia_native_build_selection.py",
-    "hia_native_byte_abi.py",
-    "hia_native_byte_abi_native.py",
-    "hia_native_byte_abi_foreign.py",
-    "hia_native_byte_abi_selection.py",
-    "hia_proof_contract_foreign.py",
-    "hia_proof_contract_native.py",
-    "hia_proof_contract_selection.py",
-    "hia_service_verification_foreign.py",
-    "hia_service_verification_native.py",
+    'hia_core_emitter_native.py',
+    'hia_core_emitter_selection.py',
+    'hia_core_lowering_native.py',
+    'hia_core_lowering_selection.py',
+    'hia_machine_plan.py',
+    'hia_machine_plan_control_native.py',
+    'hia_machine_plan_native.py',
+    'hia_native_build_foreign.py',
+    'hia_native_build_native.py',
+    'hia_native_build_selection.py',
+    'hia_native_byte_abi.py',
+    'hia_native_byte_abi_native.py',
+    'hia_native_byte_abi_foreign.py',
+    'hia_native_byte_abi_selection.py',
+    'hia_proof_contract_foreign.py',
+    'hia_proof_contract_native.py',
+    'hia_proof_contract_selection.py',
+    'hia_service_verification_foreign.py',
+    'hia_service_verification_native.py',
+    'hia_service_artifacts_native.py',
+    'hia_service_artifacts_foreign.py',
 )
 NEW_RESOURCES = (
     'examples/hia_bootstrap/core_verification.hiaasm',
@@ -108,17 +110,17 @@ NEW_RESOURCES = (
     'examples/hia_bootstrap/native_build.hiaasm',
     'examples/hia_bootstrap/service_verification.hiaasm',
     'examples/hia_bootstrap/proof_contract.hiaasm',
+    'examples/hia_bootstrap/service_artifacts.hiaasm',
 )
-NEW_HELPERS = {
-    'HEPTA_HIA_CORE_VERIFICATION_MANIFEST': ('hia_core_verification_native', 'NativeCoreVerification'),
-    'HEPTA_HIA_ASSEMBLY_FRONT_MANIFEST': ('hia_assembly_front_native', 'NativeAssemblyFront'),
-    'HEPTA_HIA_SERVICE_REQUESTS_MANIFEST': ('hia_service_requests_native', 'NativeRequestsImage'),
-    'HEPTA_HIA_PROOF_CONTRACT_MANIFEST': ('hia_proof_contract_native', 'NativeProofContractImage'),
-    'HEPTA_HIA_CORE_EMITTER_MANIFEST': ('hia_core_emitter_native', 'NativeCoreEmitter'),
-    'HEPTA_HIA_NATIVE_BYTE_ABI_MANIFEST': ('hia_native_byte_abi_native', 'NativeByteABI'),
-    'HEPTA_HIA_NATIVE_BUILD_MANIFEST': ('hia_native_build_native', 'NativeBuild'),
-    'HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST': ('hia_service_verification_native', 'NativeVerificationImage'),
-}
+NEW_HELPERS = {'HEPTA_HIA_CORE_VERIFICATION_MANIFEST': ('hia_core_verification_native', 'NativeCoreVerification'),
+ 'HEPTA_HIA_ASSEMBLY_FRONT_MANIFEST': ('hia_assembly_front_native', 'NativeAssemblyFront'),
+ 'HEPTA_HIA_SERVICE_REQUESTS_MANIFEST': ('hia_service_requests_native', 'NativeRequestsImage'),
+ 'HEPTA_HIA_PROOF_CONTRACT_MANIFEST': ('hia_proof_contract_native', 'NativeProofContractImage'),
+ 'HEPTA_HIA_CORE_EMITTER_MANIFEST': ('hia_core_emitter_native', 'NativeCoreEmitter'),
+ 'HEPTA_HIA_NATIVE_BYTE_ABI_MANIFEST': ('hia_native_byte_abi_native', 'NativeByteABI'),
+ 'HEPTA_HIA_NATIVE_BUILD_MANIFEST': ('hia_native_build_native', 'NativeBuild'),
+ 'HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST': ('hia_service_verification_native', 'NativeVerificationImage'),
+ 'HEPTA_HIA_SERVICE_ARTIFACTS_MANIFEST': ('hia_service_artifacts_native', 'NativeArtifactsImage')}
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -128,7 +130,7 @@ class JointOwnerIntegrationSourceTests(unittest.TestCase):
         self.assertEqual(identity.MECHANISM_SOURCE_FILES, EXPLICIT_MECHANISMS)
         self.assertFalse(set(CURRENT_CORE) & set(EXPLICIT_MECHANISMS))
         expected = sorted(set(CURRENT_CORE) | set(EXPLICIT_MECHANISMS))
-        self.assertEqual(len(expected), 79)
+        self.assertEqual(len(expected), 81)
         root = Path(identity.__file__).parent
         original = Path.read_bytes
         observed = []
@@ -249,6 +251,7 @@ class JointOwnerIntegrationSourceTests(unittest.TestCase):
             ('build_hia_service_emission', 'REQUIRED_SOURCE_NAMES'),
             ('build_hia_service_verification', 'REQUIRED_SOURCE_NAMES'),
             ('build_hia_service_requests', 'REQUIRED_SOURCE_NAMES'),
+            ('build_hia_service_artifacts', 'REQUIRED_SOURCE_NAMES'),
             ('build_hia_source_admission', 'REQUIRED_SOURCE_NAMES'),
         }
         self.assertEqual(set(inventories), expected)

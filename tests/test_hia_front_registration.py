@@ -72,7 +72,7 @@ class FrontRegistrationSourceTests(unittest.TestCase):
         from hepta import hia_checker_identity as identity
         core = set(identity.CORE_SOURCE_FILES)
         mechanisms = set(identity.MECHANISM_SOURCE_FILES)
-        self.assertEqual((len(core), len(mechanisms), len(core | mechanisms)), (54, 25, 79))
+        self.assertEqual((len(core), len(mechanisms), len(core | mechanisms)), (54, 27, 81))
         self.assertFalse(core & mechanisms)
         self.assertIn('hia_exception_delivery.py', core)
         self.assertNotIn('hia_agent_assembly.py', core)

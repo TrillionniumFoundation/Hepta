@@ -91,6 +91,8 @@ class HIAAgentService:
         proof_owner = capture_proof_contract()
         from .hia_service_requests_native import admitted_requests, NativeRequestsService
         requests_admission = admitted_requests(capture_identity=True)
+        from .hia_service_artifacts_native import admitted_artifacts, NativeArtifactsService
+        artifacts_admission = admitted_artifacts(capture_identity=True)
         self.catalog, self.catalog_sha256 = catalog()
         self.tools = {t["name"]: t for t in self.catalog["tools"]}
         self.identities = installation_manifest()
@@ -101,6 +103,8 @@ class HIAAgentService:
         self._native_proof_contract = proof_owner
         self._native_requests = None if requests_admission is None else NativeRequestsService(
             requests_admission.image, checker_custody=requests_admission)
+        self._native_artifacts = None if artifacts_admission is None else NativeArtifactsService(
+            artifacts_admission.image, checker_custody=artifacts_admission)
         self._profiles()
         self._native_context = None if context_admission is None else NativeContextService(
             self, context_admission.image, checker_custody=context_admission)
@@ -110,6 +114,9 @@ class HIAAgentService:
             verification_admission.image, checker_custody=verification_admission)
 
     def close(self):
+        selected_artifacts = getattr(self, '_native_artifacts', None)
+        if selected_artifacts is not None:
+            selected_artifacts.closed = True
         selected_requests = getattr(self, '_native_requests', None)
         if selected_requests is not None:
             selected_requests.closed = True
@@ -453,9 +460,29 @@ class HIAAgentService:
         return response
 
     def _profile(self, ref, name, *, _connection=None):
+        owner = getattr(self, '_native_artifacts', None)
+        if owner is None:
+            arguments = {'callee': _NATIVE_ARTIFACTS_PROFILE_REFERENCE, 'self': self, 'ref': ref, 'name': name, '_connection': _connection}
+            del self, ref, name, _connection, owner
+            return arguments.pop('callee')(arguments.pop('self'), arguments.pop('ref'), arguments.pop('name'), _connection=arguments.pop('_connection'))
+        frame = owner.prepare('_profile', (self, ref, name, _connection,))
+        self = ref = name = _connection = None
+        return owner.finish(frame)
+
+    def _profile_reference(self, ref, name, *, _connection=None):
         return self.store.check_profile(ref, self.profiles[name], **_connection_arguments(_connection))
 
     def _program(self, ref, *, _connection=None):
+        owner = getattr(self, '_native_artifacts', None)
+        if owner is None:
+            arguments = {'callee': _NATIVE_ARTIFACTS_PROGRAM_REFERENCE, 'self': self, 'ref': ref, '_connection': _connection}
+            del self, ref, _connection, owner
+            return arguments.pop('callee')(arguments.pop('self'), arguments.pop('ref'), _connection=arguments.pop('_connection'))
+        frame = owner.prepare('_program', (self, ref, _connection,))
+        self = ref = _connection = None
+        return owner.finish(frame)
+
+    def _program_reference(self, ref, *, _connection=None):
         data, _ = self.store.get(ref, **_connection_arguments(_connection))
         return verify_program(decode_json(data))
 
@@ -908,9 +935,21 @@ class HIAAgentService:
         proof = getattr(self, '_native_proof_contract', None)
         held = held if proof is None else held + (proof.checker_owner(),)
         requests = getattr(self, '_native_requests', None)
-        return held if requests is None else held + (requests.checker_owner(),)
+        held = held if requests is None else held + (requests.checker_owner(),)
+        artifacts = getattr(self, '_native_artifacts', None)
+        return held if artifacts is None else held + (artifacts.checker_owner(),)
 
     def _signature_values(self, program, foreign_buffer_exports=()):
+        owner = getattr(self, '_native_artifacts', None)
+        if owner is None:
+            arguments = {'callee': _NATIVE_ARTIFACTS_SIGNATURE_VALUES_REFERENCE, 'self': self, 'program': program, 'foreign_buffer_exports': foreign_buffer_exports}
+            del self, program, foreign_buffer_exports, owner
+            return arguments.pop('callee')(arguments.pop('self'), arguments.pop('program'), arguments.pop('foreign_buffer_exports'))
+        frame = owner.prepare('_signature_values', (self, program, foreign_buffer_exports,))
+        self = program = foreign_buffer_exports = None
+        return owner.finish(frame)
+
+    def _signature_values_reference(self, program, foreign_buffer_exports=()):
         owner = getattr(self, '_native_emission', None)
         arguments = {'callee': _signatures if owner is None else owner.signatures,
                      'program': program, 'foreign_buffer_exports': foreign_buffer_exports}
@@ -1177,6 +1216,16 @@ class HIAAgentService:
             "linker_used": args["output_kind"] == "shared", "native_execution_observed": False, "adopted": False}
 
     def _native(self, ref, context=None, *, _connection=None):
+        owner = getattr(self, '_native_artifacts', None)
+        if owner is None:
+            arguments = {'callee': _NATIVE_ARTIFACTS_NATIVE_REFERENCE, 'self': self, 'ref': ref, 'context': context, '_connection': _connection}
+            del self, ref, context, _connection, owner
+            return arguments.pop('callee')(arguments.pop('self'), arguments.pop('ref'), arguments.pop('context'), _connection=arguments.pop('_connection'))
+        frame = owner.prepare('_native', (self, ref, context, _connection,))
+        self = ref = context = _connection = None
+        return owner.finish(frame)
+
+    def _native_reference(self, ref, context=None, *, _connection=None):
         data, metadata = self.store.get(ref, kind="native", **_connection_arguments(_connection))
         if metadata["installation"] != self.identities or context is not None and metadata["context"] != context:
             reject("E_HIA_RECEIPT_BINDING", "native artifact belongs to a different context or implementation")
@@ -1189,9 +1238,29 @@ class HIAAgentService:
         return data, metadata, program
 
     def _build_receipt(self, ref, context, artifact, *, _connection=None):
+        owner = getattr(self, '_native_artifacts', None)
+        if owner is None:
+            arguments = {'callee': _NATIVE_ARTIFACTS_BUILD_RECEIPT_REFERENCE, 'self': self, 'ref': ref, 'context': context, 'artifact': artifact, '_connection': _connection}
+            del self, ref, context, artifact, _connection, owner
+            return arguments.pop('callee')(arguments.pop('self'), arguments.pop('ref'), arguments.pop('context'), arguments.pop('artifact'), _connection=arguments.pop('_connection'))
+        frame = owner.prepare('_build_receipt', (self, ref, context, artifact, _connection,))
+        self = ref = context = artifact = _connection = None
+        return owner.finish(frame)
+
+    def _build_receipt_reference(self, ref, context, artifact, *, _connection=None):
         return self._build_inputs(ref, context, artifact, **_connection_arguments(_connection))[0]
 
     def _build_inputs(self, ref, context, artifact, *, _connection=None):
+        owner = getattr(self, '_native_artifacts', None)
+        if owner is None:
+            arguments = {'callee': _NATIVE_ARTIFACTS_BUILD_INPUTS_REFERENCE, 'self': self, 'ref': ref, 'context': context, 'artifact': artifact, '_connection': _connection}
+            del self, ref, context, artifact, _connection, owner
+            return arguments.pop('callee')(arguments.pop('self'), arguments.pop('ref'), arguments.pop('context'), arguments.pop('artifact'), _connection=arguments.pop('_connection'))
+        frame = owner.prepare('_build_inputs', (self, ref, context, artifact, _connection,))
+        self = ref = context = artifact = _connection = None
+        return owner.finish(frame)
+
+    def _build_inputs_reference(self, ref, context, artifact, *, _connection=None):
         """Capture and validate one immutable Core/object/final build observation."""
         record, _ = self.store.get_json(ref, kind="build-receipt", **_connection_arguments(_connection))
         if (record["context"] != context or record["native_artifact"] != artifact or record["installation"] != self.identities
@@ -1866,3 +1935,11 @@ class HIAAgentService:
 # Preserve its definition-time function even if that public class binding is
 # replaced later; the selected HIA route is separately poison-qualified.
 _NATIVE_REQUESTS_EXAMPLES_REFERENCE = HIAAgentService._examples_reference
+
+# Unbound retained functions preserve the original argument ownership boundary.
+_NATIVE_ARTIFACTS_PROFILE_REFERENCE = HIAAgentService._profile_reference
+_NATIVE_ARTIFACTS_PROGRAM_REFERENCE = HIAAgentService._program_reference
+_NATIVE_ARTIFACTS_SIGNATURE_VALUES_REFERENCE = HIAAgentService._signature_values_reference
+_NATIVE_ARTIFACTS_NATIVE_REFERENCE = HIAAgentService._native_reference
+_NATIVE_ARTIFACTS_BUILD_RECEIPT_REFERENCE = HIAAgentService._build_receipt_reference
+_NATIVE_ARTIFACTS_BUILD_INPUTS_REFERENCE = HIAAgentService._build_inputs_reference

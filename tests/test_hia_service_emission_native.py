@@ -64,10 +64,10 @@ class ServiceEmissionSourceTests(unittest.TestCase):
         module=ast.parse((ROOT/'hepta/hia_agent_service.py').read_bytes())
         service=next(n for n in module.body if isinstance(n,ast.ClassDef) and n.name=='HIAAgentService')
         methods={n.name:n for n in service.body if isinstance(n,ast.FunctionDef)}
-        for name,count in (('_behavior_equivalence',2),('_native',1)):
+        for name,count in (('_behavior_equivalence',2),('_native_reference',1)):
             calls=[n for n in ast.walk(methods[name]) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='_signature_values']
             self.assertEqual(len(calls),count,name)
-        for name in ('_compile','_hia_emit','_signature_values'):
+        for name in ('_compile','_hia_emit','_signature_values_reference'):
             self.assertTrue(any(isinstance(n,ast.Constant) and n.value=='_native_emission' for n in ast.walk(methods[name])))
 
 

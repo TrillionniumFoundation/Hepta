@@ -56,7 +56,7 @@ def controlled_build():
 class ServiceContextAdapterTests(unittest.TestCase):
     def test_held_service_selection_does_not_change_default_core_checker_scope(self):
         from hepta import hia_checker_identity as checker
-        self.assertEqual(set(checker.HELD_NATIVE_OWNERS), {native.SELECTOR, 'HEPTA_HIA_SERVICE_EMISSION_MANIFEST', 'HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST', 'HEPTA_HIA_PROOF_CONTRACT_MANIFEST', 'HEPTA_HIA_SERVICE_REQUESTS_MANIFEST'})
+        self.assertEqual(set(checker.HELD_NATIVE_OWNERS), {native.SELECTOR, 'HEPTA_HIA_SERVICE_EMISSION_MANIFEST', 'HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST', 'HEPTA_HIA_PROOF_CONTRACT_MANIFEST', 'HEPTA_HIA_SERVICE_REQUESTS_MANIFEST', 'HEPTA_HIA_SERVICE_ARTIFACTS_MANIFEST'})
         self.assertFalse(set(checker.NATIVE_OWNERS) & set(checker.HELD_NATIVE_OWNERS))
         env = {key: '' for key in checker.NATIVE_OWNERS}
         env[native.SELECTOR] = '/not-a-default-core-selection'
