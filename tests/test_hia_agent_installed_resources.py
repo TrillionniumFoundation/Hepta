@@ -6,16 +6,21 @@ from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,PUBLICA
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
 RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES
+# Actual runtime bindings include single-image aliases and shared source tables.
 BUNDLED_SOURCE_BINDINGS={
-    'composite_function_admit':('hepta.hia_composite_functions_native','admit'),
-    'composite_function_records':('hepta.hia_composite_functions_native','records'),
-    'composite_function_advanced':('hepta.hia_composite_functions_native','advanced'),
-    'composite_function_terms':('hepta.hia_composite_functions_native','terms'),
-    'composite_function_render':('hepta.hia_composite_functions_native','render'),
-    'composite_constructor_owner':('hepta.hia_composite_constructor_native','owner'),
-    'composite_constructor_render':('hepta.hia_composite_constructor_native','render'),
-    'composite_outer_owner':('hepta.hia_composite_outer_native','owner'),
-    'composite_outer_render':('hepta.hia_composite_outer_native','render'),
+    'composite_function_admit':('hepta.hia_composite_functions_native','SOURCES','admit'),
+    'composite_function_records':('hepta.hia_composite_functions_native','SOURCES','records'),
+    'composite_function_advanced':('hepta.hia_composite_functions_native','SOURCES','advanced'),
+    'composite_function_terms':('hepta.hia_composite_functions_native','SOURCES','terms'),
+    'composite_function_render':('hepta.hia_composite_functions_native','SOURCES','render'),
+    'composite_constructor_owner':('hepta.hia_composite_constructor_native','SOURCES','owner'),
+    'composite_constructor_render':('hepta.hia_composite_constructor_native','SOURCES','render'),
+    'composite_outer_owner':('hepta.hia_composite_outer_native','SOURCES','owner'),
+    'composite_outer_render':('hepta.hia_composite_outer_native','SOURCES','render'),
+    'heap_live_engine':('hepta.hia_heap_live_native','SOURCE',None),
+    'program_normalization':('hepta.hia_program_normalization_native','SOURCES','normalization'),
+    'cpython_note_packer':('hepta.hia_program_normalization_native','NOTE_SOURCES','examples/hia_bootstrap/cpython_note_packer.hiaasm'),
+    'hia_program_normalization_notes':('hepta.hia_program_normalization_native','NOTE_SOURCES','hepta/hia_program_normalization_notes.py'),
 }
 
 class AgentInstalledResourceSourceTests(unittest.TestCase):
@@ -44,8 +49,9 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
         for resource in NATIVE_SOURCE_FILES:
             name=Path(resource).stem
             if name in BUNDLED_SOURCE_BINDINGS:
-                module,key=BUNDLED_SOURCE_BINDINGS[name]
-                source=import_module(module).SOURCES[key]
+                module,attribute,key=BUNDLED_SOURCE_BINDINGS[name]
+                binding=getattr(import_module(module),attribute)
+                source=binding if key is None else binding[key]
             else:
                 source=import_module('hepta.hia_'+name+'_native').SOURCE
             self.assertEqual(source,ROOT/resource)
@@ -243,8 +249,9 @@ elif sys.argv[2]=='source-bindings':
     observed={}
     for name in names:
         if name in BUNDLED_SOURCE_BINDINGS:
-            module,key=BUNDLED_SOURCE_BINDINGS[name]
-            source=import_module(module).SOURCES[key]
+            module,attribute,key=BUNDLED_SOURCE_BINDINGS[name]
+            binding=getattr(import_module(module),attribute)
+            source=binding if key is None else binding[key]
         else:
             source=import_module('hepta.hia_'+name+'_native').SOURCE
         assert Path(sys.argv[1]) in source.parents,source
