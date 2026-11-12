@@ -1,0 +1,157 @@
+--- finite-r3/hepta/hia_core_compare_native.py
++++ integration/hepta/hia_core_compare_native.py
+@@ -80,6 +80,7 @@
+     """
+ 
+     def __init__(self, image, operation, left, right):
++        self._closed, self._epoch = True, 0
+         self.finished = True
+         self.pending = self.finish_pending = self.busy = False
+         self.next_packet = self.request = self.returned = None
+@@ -100,13 +101,31 @@
+         header = (MAGIC, 0, 0, operation, *self.summaries[0], *self.summaries[1], *([0] * 6))
+         self.next_packet = FRAME.pack(*header) + bytes(128)
+         self.finished = False
++        self._closed = False
+ 
+     def _seal(self):
++        # A caught invalid reentry must not be undone by the active call's
++        # later DONE reply, bookkeeping, or packet materialization.
++        self._closed = True
++        self._epoch += 1
+         self.finished = True
+         self.pending = self.finish_pending = False
+         self.next_packet = self.request = None
+ 
++    def _checkpoint(self, epoch):
++        if self._closed or self._epoch != epoch:
++            raise RuntimeError('numeric comparison continuation was permanently closed')
++
++    def _leave(self):
++        if self._closed:
++            self.finished = True
++            self.pending = self.finish_pending = False
++            self.next_packet = self.request = None
++        self.busy = False
++
+     def _limbs(self, side, start, count):
++        epoch = self._epoch
++        self._checkpoint(epoch)
+         kind, words, _ = self.summaries[side]
+         if kind != 2 or not 1 <= count <= WINDOW_LIMBS or not 0 <= start < words or count > words - start:
+             raise RuntimeError('numeric comparison requested an invalid integer window')
+@@ -115,27 +134,39 @@
+             # This matches the existing GraphObserver representation leaf.
+             # There is no 8 MiB integer limit and no whole-value native copy.
+             # CPython bytes allocation / MemoryError remain hosted boundaries.
+-            raw = _TO_BYTES(_ABS(self.values[side]), words * 4, 'little')
++            magnitude = _ABS(self.values[side])
++            self._checkpoint(epoch)
++            raw = _TO_BYTES(magnitude, words * 4, 'little')
++            self._checkpoint(epoch)
+             self.magnitudes[side] = raw
+-        return raw[start * 4:(start + count) * 4]
++        result = raw[start * 4:(start + count) * 4]
++        self._checkpoint(epoch)
++        return result
+ 
+     def step(self, packet):
+         try:
+-            if (self.finished or self.busy or self.pending or self.next_packet is None
++            if (self._closed or self.finished or self.busy or self.pending or self.next_packet is None
+                     or packet is not self.next_packet or _TYPE(packet) is not bytes
+                     or len(packet) != INPUT_BYTES):
+                 raise RuntimeError('numeric comparison has no entry permission')
+             self.next_packet = None
+             self.busy = True
++            epoch = self._epoch
+             ctypes.memmove(self.input, packet, INPUT_BYTES)
+-            status = self.image._entry(self.input, INPUT_BYTES, self.output, OUTPUT_BYTES,
+-                                       self.state, WORKSPACE_BYTES)
++            self._checkpoint(epoch)
++            entry = self.image._entry
++            self._checkpoint(epoch)
++            status = entry(self.input, INPUT_BYTES, self.output, OUTPUT_BYTES,
++                           self.state, WORKSPACE_BYTES)
++            self._checkpoint(epoch)
+             # Accounting follows a real image return. A failure here also
+             # seals the invocation, so a completed effect cannot be replayed.
+             self.actual_steps.append((self.sequence, status))
++            self._checkpoint(epoch)
+             if _TYPE(status) is not _INT or status not in (0, 1):
+                 raise RuntimeError('numeric comparison image refused its ABI')
+             header = FRAME.unpack(self.output.raw)
++            self._checkpoint(epoch)
+             if header[0] != MAGIC:
+                 raise RuntimeError('numeric comparison reply identity differs')
+             if status == 0:
+@@ -147,6 +178,7 @@
+                 self.finished = self.finish_pending = True
+                 self.pending = False
+                 self.request = None
++                self._checkpoint(epoch)
+                 return 0
+             if (header[1] != self.sequence + 1 or header[2] != 1
+                     or header[3] > 1 or not 1 <= header[5] <= WINDOW_LIMBS
+@@ -159,43 +191,56 @@
+             self.sequence = header[1]
+             self.request = (side, start, count)
+             self.pending = True
++            self._checkpoint(epoch)
+             return 1
+         except BaseException:
+             self._seal()
+             raise
+         finally:
+-            self.busy = False
++            self._leave()
+ 
+     def observe(self):
+         try:
+-            if self.finished or self.busy or not self.pending or self.request is None:
++            if self._closed or self.finished or self.busy or not self.pending or self.request is None:
+                 raise RuntimeError('numeric comparison has no observation permission')
+             self.pending = False
+             self.busy = True
++            epoch = self._epoch
+             side, start, count = self.request
+             self.request = None
+             raw = self._limbs(side, start, count)
++            self._checkpoint(epoch)
+             if _TYPE(raw) is not bytes or len(raw) != count * 4:
+                 raise RuntimeError('numeric comparison limb representation differs')
+             self.actual_windows.append((self.sequence, side, start, count))
++            self._checkpoint(epoch)
+             header = FRAME.pack(MAGIC, 1, self.sequence, side, start, count, *([0] * 10))
++            self._checkpoint(epoch)
+             self.next_packet = header + raw + bytes(128 - len(raw))
++            self._checkpoint(epoch)
+             return self.next_packet
+         except BaseException:
+             self._seal()
+             raise
+         finally:
+-            self.busy = False
++            self._leave()
+ 
+     def finish(self):
+         try:
+-            if self.busy or not self.finished or not self.finish_pending:
++            if self._closed or self.busy or not self.finished or not self.finish_pending:
+                 raise RuntimeError('numeric comparison has no result permission')
++            epoch = self._epoch
++            self.busy = True
+             self.finish_pending = False
+-            return self.returned
++            result = self.returned
++            self._checkpoint(epoch)
++            self._seal()
++            return result
+         except BaseException:
+             self._seal()
+             raise
++        finally:
++            self._leave()
+ 
+     def run(self):
+         packet = self.next_packet

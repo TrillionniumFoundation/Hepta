@@ -1,0 +1,16 @@
+{
+  "scope": "STATIC_CORRECTION_BEFORE_ANY_SOURCE_TEST_OR_NATIVE_EXECUTION",
+  "old_bridge_sha256": "63fa60cb7357528c157f8e2c2b36fa9b12abdce1c2c2aea6179b02bb366a2976",
+  "new_bridge_sha256": "5a0fbd0875d799180a973ccc4b2ff21010e5afbb5ff7698d20e4d8bfda66b2e3",
+  "exact_bridge_change": {
+    "old": "self._epoch += 1",
+    "new": "self._epoch = None"
+  },
+  "reason": "Permanent closure must not allocate a new integer during BaseException cleanup. The existing closed bit remains dominant and every active checkpoint rejects the None epoch.",
+  "original83_method_bodies_unchanged": true,
+  "original11_method_bodies_unchanged": true,
+  "buffers_HIA_ABI_generators_limits_unchanged": true,
+  "r1_status": "FROZEN_UNEXECUTED_PRESERVED",
+  "r2_execution_status": "UNEXECUTED",
+  "request_revision_and_output_identity_updated": true
+}
