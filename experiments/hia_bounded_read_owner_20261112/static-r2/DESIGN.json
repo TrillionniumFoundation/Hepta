@@ -1,0 +1,132 @@
+{
+  "schema": "hepta.hia.bounded-read-owner-design.v2",
+  "status": "STATIC_WIP_UNPARSED_UNGENERATED_UNEXECUTED",
+  "base_commit": "acffa9262f31d073f8f0a6f0201eae201039f619",
+  "base_tree": "22a095436c94efc87b1a89aca912c8caab2eed80",
+  "no_public_entry_or_contract_changed": true,
+  "objective": "Move the complete existing read_bounded decision and observation schedule to HIA, retaining explicit foreign Path/OS/buffered-file/context primitives. No JSON policy is part of this component.",
+  "artifact_meaning": "The two source files are authoring candidates, not previously executed or reconstructed successful source. No reported ELF, CLI, page or source-only success is inherited.",
+  "original_behavior": [
+    "Path(path) is evaluated before the try/except OSError region.",
+    "O_RDONLY, getattr(O_NOFOLLOW,0), left bit-or, getattr(O_NONBLOCK,0), right bit-or preserve left-to-right observations.",
+    "The os.fdopen function is bound before the os.open function is bound and called. fdopen receives the open result and the original literal rb.",
+    "Use the target CPython context-manager protocol. Bind os.fstat before looking up and invoking stream.fileno.",
+    "Bind stat.S_ISREG before loading info.st_mode. A false result rejects without loading st_size or comparing limit.",
+    "Compare info.st_size > limit, then truth-test its result. Bind stream.read before evaluating limit + 1.",
+    "Assign the exact stream.read result to payload, close the context, then compute len(payload) > limit and truth-test it.",
+    "An OSError from inside the original try region is wrapped as HIAEditRejected with the same message and original exception as explicit cause. Other BaseException types propagate.",
+    "A close exception replaces the body exception according to the real with protocol; suppression can produce the target interpreter's UnboundLocalError if payload was never assigned.",
+    "No parent-symlink prohibition, hard-link restriction, uid/mode policy, snapshot identity gate, mandatory EOF check, or post-read stat is added.",
+    "The default limit is exactly 8*1024*1024. Existing explicit caller limits remain unchanged; the original public API does not first coerce or require limit to be an int."
+  ],
+  "owner_boundary": {
+    "hia": [
+      "entire operation sequence",
+      "all regular-file and byte-limit decisions",
+      "short-circuit priority",
+      "close timing and error disposition",
+      "request/ack sequence and terminal state",
+      "error message selection"
+    ],
+    "foreign_adapter": [
+      "Path and OS binding observations",
+      "actual Python buffered file read primitive",
+      "opaque-object arithmetic/comparison/truth/length",
+      "CPython context special-method binding and exception-aware exit",
+      "opaque object and exception identity",
+      "buffer transport/native image mapping"
+    ],
+    "not_claimed": [
+      "Python-free OS runtime",
+      "native JSON encode/decode",
+      "complete interpreter or installer migration",
+      "syscall-level reimplementation of CPython buffered IO"
+    ]
+  },
+  "protocol": {
+    "magic": "HIARDB01",
+    "packet_bytes": 64,
+    "output_bytes": 24,
+    "workspace_bytes": 1024,
+    "request_opcodes": 27,
+    "sequence": "exact prior opcode and monotonic sequence ACK",
+    "results": [
+      "return original opaque payload",
+      "reraise original foreign exception",
+      "construct selected diagnostic with original OSError cause"
+    ],
+    "malformed_or_failed_session": "permanently terminal; no stale effect permission may be reused",
+    "terminal_result_permission": "Distinct from an effect permission. Granted only after native status 0 and normal post-entry accounting; consumed before finish envelope decoding and every foreign effect. close or any finish/step/observe BaseException clears it permanently."
+  },
+  "required_generation_caps": {
+    "source_bytes": 1048576,
+    "source_lines": 16384,
+    "functions": 128,
+    "total_blocks": 1536,
+    "blocks_per_function": 256,
+    "total_operations": 8192,
+    "unique_ssa_names_per_function": 2048,
+    "function_parameters": 16,
+    "block_parameters": 16,
+    "branch_edge_arguments": 16
+  },
+  "original_input_default_bytes": 8388608,
+  "original_budget_preservation": "Keep existing 3-second and 5-second product assertions, original per-caller subprocess deadlines and original 180-second owners. This static checkpoint establishes no new qualification time budget.",
+  "current_unresolved": [
+    "The r2 terminal permission change has only text-level inspection; its ten real-image lifecycle controls are planned, not executed.",
+    "Neither Python source has been parsed, generated, assembled, compiled, imported, or executed.",
+    "No actual native image or manifest exists for this candidate.",
+    "The generator capsule is a proposed mechanical context-protocol adapter. Its exact exception/context/finalizer schedule needs differential tests against target CPython, including BaseException and suppression.",
+    "Opaque handles retain values for a session; exact finalizer and temporary-release timing is not proved.",
+    "The current reject primitive directly instantiates the diagnostic class. The original helper call/lookup and foreign replacement observations must be explicitly reviewed and tested before an all-input claim.",
+    "A complete current-tree caller census and selected ordinary-call integration have not been performed.",
+    "No public dispatch, strict builder, qualifier, wheel resource, source contract, global CI gate, or native test module has been installed.",
+    "Private continuation failure/interrupt and source/image race controls are designed but not run."
+  ],
+  "next_acceptance_order": [
+    "preserve this WIP",
+    "static independent review and source syntax/generation with unchanged caps",
+    "real development B3 build under original 20-second/10-CPU compile profile",
+    "execute the old/new actual-native terminal-result permission controls with constructor/read ledgers; preserve old failed observations",
+    "old/new full trace and real-file controls with complete source/image identities",
+    "real installed wheel and session/source admission faults",
+    "exact original eight program-tools IDs plus complete caller census/selected original suites",
+    "strict fresh-cold builder and qualifier only after implementation gates"
+  ],
+  "qualification_claim": false,
+  "whole_native_delivery_qualified": false,
+  "predecessor": {
+    "commit": "7d5a4c4a8551807b6722116af0a5364741151080",
+    "prefix": "experiments/hia_bounded_read_owner_20261112/static-r1",
+    "immutable": true
+  },
+  "static_findings": [
+    {
+      "finding": "The r1 public read wrapper invokes finish once, but the exposed private finish method can decode the same retained kind-3 output and repeat foreign diagnostic construction, including after close.",
+      "evidence": "Complete r1 source read only; independently reported by hia_remote_audit. No real native image or executed reproduction exists yet.",
+      "status": "STATIC_REPLAY_PATH_WITH_UNEXECUTED_CANDIDATE_FIX",
+      "fix": {
+        "status": "STATIC_TEXT_REVISION_NOT_PARSED_OR_EXECUTED",
+        "before": {
+          "size": 11528,
+          "sha256": "fff265e435a3aea4c83158a401c117c5e3964ea6890a506c4178e92e5172536f",
+          "git_blob_sha1": "032a5390456bfa01482ee3e637208fd21dccbca9"
+        },
+        "after": {
+          "size": 12139,
+          "sha256": "73bb61c65daf6efb45c3d246aa3385d0d250b15043aad1baa8801ac220d45708",
+          "git_blob_sha1": "1d5c4166c76fe3849732b5a6c3418c78ccb8c046"
+        },
+        "unchanged_hia_generator_sha256": "e21045b16a5d50ad9d63a2bf2e0cfda595b16edc22bfcbe5df5547bb1bc3a201",
+        "changes": [
+          "initialize one terminal-result permission flag as false",
+          "seal clears effect/prepared/terminal-result permissions",
+          "only native return status zero grants one terminal-result permission after entry accounting returns",
+          "finish checks and consumes that permission before decoding or any foreign effect",
+          "any finish BaseException seals the session and is re-raised without replacement"
+        ],
+        "claim": "The revision closes a statically identified private finish replay path; no actual native control has yet run and no public API failure has been reproduced."
+      }
+    }
+  ]
+}

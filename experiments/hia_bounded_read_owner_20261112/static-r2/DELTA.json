@@ -1,0 +1,22 @@
+{
+  "status": "STATIC_TEXT_REVISION_NOT_PARSED_OR_EXECUTED",
+  "before": {
+    "size": 11528,
+    "sha256": "fff265e435a3aea4c83158a401c117c5e3964ea6890a506c4178e92e5172536f",
+    "git_blob_sha1": "032a5390456bfa01482ee3e637208fd21dccbca9"
+  },
+  "after": {
+    "size": 12139,
+    "sha256": "73bb61c65daf6efb45c3d246aa3385d0d250b15043aad1baa8801ac220d45708",
+    "git_blob_sha1": "1d5c4166c76fe3849732b5a6c3418c78ccb8c046"
+  },
+  "unchanged_hia_generator_sha256": "e21045b16a5d50ad9d63a2bf2e0cfda595b16edc22bfcbe5df5547bb1bc3a201",
+  "changes": [
+    "initialize one terminal-result permission flag as false",
+    "seal clears effect/prepared/terminal-result permissions",
+    "only native return status zero grants one terminal-result permission after entry accounting returns",
+    "finish checks and consumes that permission before decoding or any foreign effect",
+    "any finish BaseException seals the session and is re-raised without replacement"
+  ],
+  "claim": "The revision closes a statically identified private finish replay path; no actual native control has yet run and no public API failure has been reproduced."
+}
