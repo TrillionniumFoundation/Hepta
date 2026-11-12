@@ -1,0 +1,40 @@
+--- a/controls/check_apt_ownership.py
++++ b/controls/check_apt_ownership.py
+@@ -127,7 +127,7 @@
+         for name in ("requests", "reports", "source", "tmp"):
+             (self.root / name).mkdir(mode=0o700)
+         (self.root / "source/input.py").write_bytes(b"# frozen synthetic input\n")
+-        env = {"HOME": str(self.root), "PATH": "/usr/bin:/bin"}
++        env = {"PATH": "/usr/bin:/bin"}
+         with patch.dict(os.environ, env, clear=True):
+             env = S.clean_env(network=True)
+         env.update(DEBIAN_FRONTEND="noninteractive", NEEDRESTART_MODE="a",
+@@ -276,7 +276,7 @@
+ 
+     def test_12_proxy_credentials_refused_and_environment_restored(self):
+         before = dict(os.environ)
+-        with patch.dict(os.environ, {"HOME": str(self.root), "PATH": "/usr/bin:/bin"}, clear=True):
++        with patch.dict(os.environ, {"PATH": "/usr/bin:/bin"}, clear=True):
+             env = S.clean_env(network=True)
+         env.update(DEBIAN_FRONTEND="noninteractive", NEEDRESTART_MODE="a",
+                    TMPDIR=str(self.root / "tmp"), TMP=str(self.root / "tmp"), TEMP=str(self.root / "tmp"))
+--- a/freeze_preexecution.py
++++ b/freeze_preexecution.py
+@@ -9,7 +9,7 @@
+ import sys
+ 
+ ROOT = Path(__file__).resolve().parent
+-OPERATION = Path("/tmp/hia-full32-apt-owner-source-io-22-r1-20261112-e26e")
++OPERATION = Path("/tmp/hia-full32-apt-owner-source-io-22-r2-20261112-e26e")
+ 
+ 
+ def wire(value):
+@@ -66,7 +66,7 @@
+         "runtime_version": list(sys.version_info[:3]), "runtime_invocation": str(Path(sys.executable).absolute()),
+         "command": [str(Path(sys.executable).absolute()), "-I", "-S", "-B",
+                     str(ROOT / "controls/check_apt_ownership.py"), str(OPERATION / "tests")],
+-        "environment": {"HOME": str(OPERATION), "PATH": "", "PYTHONDONTWRITEBYTECODE": "1",
++        "environment": {"PATH": "", "PYTHONDONTWRITEBYTECODE": "1",
+                         "PYTHONUNBUFFERED": "1", "PYTHONNOUSERSITE": "1", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"},
+         "inputs": request_inputs, "APT_executed": False, "sudo_executed": False,
+         "network_used": False, "product_executed": False, "native_executed": False,

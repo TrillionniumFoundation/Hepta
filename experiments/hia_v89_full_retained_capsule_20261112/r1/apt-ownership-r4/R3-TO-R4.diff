@@ -1,0 +1,655 @@
+--- r3/control/supply_v87.py
++++ r4/control/supply_v87.py
+@@ -5,7 +5,9 @@
+ guardian.  Its 3600-second supply allowance is inside that deadline.  Every
+ external supply command uses the pinned original workflow_process supervisor.
+ That supervisor proves only termination of its started POSIX process group;
+-only the enclosing guardian can establish its stronger final ECHILD condition.
++the enclosing guardian establishes the complete workflow ECHILD condition.
++The two APT commands additionally use the unchanged external guardian in a
++root worker, within their original allowances, before any cache handoff.
+ 
+ All outputs are new.  Original archives, command streams, unsuccessful partial
+ downloads, actual source inventories and fresh builder receipts are retained.
+@@ -683,6 +685,374 @@
+             "scope": "only this fresh APT cache after observed process-group closure"}
+ 
+ 
++# The original run_owned() retains its 180-second hard maximum. These are
++# external supply steps, owned through the already frozen external guardian.
++APT_GUARDIAN_SHA = "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023"
++APT_LIFECYCLE_SHA = "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
++APT_OWNER_NAMES = ("config.json", "root-process.json", "environment.json",
++                   "guardian.json", "child.stdout.log", "child.stderr.log")
++APT_OWNER_BINDING = {
++    "guardian": {"path": "guardian.py", "bytes": 10257, "sha256": APT_GUARDIAN_SHA},
++    "implementation": {"path": "process_owner_impl.py", "bytes": 17601, "sha256": APT_LIFECYCLE_SHA},
++    "entry": "original external guardian.execute -> original lifecycle.supervise",
++    "external_seconds": {"update": 600, "install": 900},
++    "inner_reserve_seconds": 10, "cleanup_seconds": 3,
++    "selfhost_run_owned_180_gate_modified": False,
++}
++
++
++def apt_executable_record(path, runner_uid):
++    """The original runtime rule, evaluated against the requesting runner."""
++    path = Path(path).absolute()
++    links = []
++    for part in [*reversed(path.parents), path]:
++        if part == Path("/"):
++            continue
++        item = part.lstat()
++        if stat.S_ISLNK(item.st_mode):
++            links.append({"path": str(part), "identity": identity(item), "target": os.readlink(part)})
++    target = path.resolve(strict=True)
++    record = file_record(target)
++    require(record["identity"][3] in (0, runner_uid) and not record["mode"] & 0o022
++            and record["mode"] & 0o111, "APT runtime executable ownership or mode differs")
++    require(path.resolve(strict=True) == target, "APT runtime alias changed")
++    for row in links:
++        name = Path(row["path"])
++        require(identity(name.lstat()) == row["identity"] and os.readlink(name) == row["target"],
++                "APT runtime alias identity changed")
++    return {**record, "invocation_path": str(path), "resolved_path": str(target), "links": links}
++
++
++def apt_environment(value, supply_root):
++    """Reapply the original environment/proxy admission before root execution."""
++    require(type(value) is dict and all(type(k) is str and type(v) is str for k, v in value.items()),
++            "APT environment must be an exact string mapping")
++    extra = {"DEBIAN_FRONTEND": "noninteractive", "NEEDRESTART_MODE": "a",
++             "TMPDIR": str(supply_root / "tmp"), "TMP": str(supply_root / "tmp"),
++             "TEMP": str(supply_root / "tmp")}
++    require(all(value.get(k) == v for k, v in extra.items()), "APT fixed environment differs")
++    before = dict(os.environ)
++    try:
++        os.environ.clear()
++        os.environ.update(value)
++        checked = clean_env(network=True)
++        checked.update(extra)
++        require(checked == value, "APT environment contains unadmitted variables")
++    finally:
++        os.environ.clear()
++        os.environ.update(before)
++    return dict(value)
++
++
++def apt_context(request, request_path, request_sha):
++    """Bind the two allowed APT operations to the already written outer request."""
++    require(request["kind"] == "apt_owned" and type(request["data"]) is dict,
++            "fixed APT worker request required")
++    data = request["data"]
++    require(set(data) == {"phase", "supply_root", "external_request", "uid", "gid", "apt", "sudo", "python"},
++            "APT worker request fields differ")
++    phase = data["phase"]
++    require(type(phase) is str and phase in ("update", "install"), "only fixed APT update/install allowed")
++    root = Path(data["supply_root"])
++    require(root.is_absolute() and ".." not in root.parts and root.name not in ("", ".", ".."),
++            "APT supply root must be canonical")
++    root_stat = root.lstat()
++    require(stat.S_ISDIR(root_stat.st_mode) and type(data["uid"]) is int and type(data["gid"]) is int
++            and data["uid"] > 0 and data["gid"] >= 0
++            and root_stat.st_uid == data["uid"] and root_stat.st_gid == data["gid"]
++            and stat.S_IMODE(root_stat.st_mode) == 0o700,
++            "APT supply root does not belong to the original runner")
++    require(root.resolve(strict=True) == root, "APT supply root has a symlink ancestor")
++    request_path = Path(request_path)
++    label = "apt-" + phase
++    require(request_path == root / "requests" / (label + ".worker.json")
++            and Path(request["result"]) == root / "reports" / (label + ".result.json"),
++            "APT worker request/result path differs")
++    request_record = file_record(request_path, limit=262144, owner=data["uid"], single=True)
++    require(request_record["sha256"] == request_sha, "APT worker request changed")
++    external_path = Path(data["external_request"])
++    require(external_path.parent == root / "requests"
++            and re.fullmatch(r"[0-9]{3}-" + label + r"\.json", external_path.name),
++            "APT external request path differs")
++    external, external_record = read_json(external_path)
++    require(file_record(external_path, limit=262144, owner=data["uid"], single=True) == external_record,
++            "APT external request identity changed")
++    script = Path(__file__).absolute()
++    require(data["python"] == str(Path(sys.executable).absolute())
++            and data["apt"] == "/usr/bin/apt-get" and data["sudo"] == "/usr/bin/sudo",
++            "APT fixed executable paths differ")
++    expected_command = [data["sudo"], "-n", "--", data["python"], "-I", "-B", str(script),
++                        "--worker", str(request_path), request_sha]
++    stem = external_path.stem
++    require(set(external) == {"schema", "command", "cwd", "environment", "seconds", "stdout", "stderr", "receipt"}
++            and external["schema"] == "hia.v87.supply-command.v1"
++            and external["command"] == expected_command and external["cwd"] == str(root)
++            and external["stdout"] == str(root / "logs" / (stem + ".stdout"))
++            and external["stderr"] == str(root / "logs" / (stem + ".stderr"))
++            and external["receipt"] == str(root / "logs" / (stem + ".receipt.json")),
++            "APT original external request does not bind this worker")
++    seconds = external["seconds"]
++    require(type(seconds) is int and 10 < seconds <= APT_OWNER_BINDING["external_seconds"][phase],
++            "APT original external allowance is insufficient or enlarged")
++    environment = apt_environment(external["environment"], root)
++    configuration, configuration_record = read_json(request["configuration"])
++    require(configuration_record["sha256"] == request["configuration_sha256"]
++            and configuration["privileged_apt_owner"] == APT_OWNER_BINDING,
++            "APT guardian configuration binding differs")
++    pinned = {str(script): request["script_sha256"],
++              str(request_path): request_sha, str(external_path): external_record["sha256"],
++              str(Path(request["configuration"])): configuration_record["sha256"]}
++    source = Path(request["source"])
++    for name, expected in configuration["source_pins"].items():
++        row = file_record(source / name)
++        require(row["bytes"] == expected["bytes"] and row["sha256"] == expected["sha256"],
++                "APT fixed source input differs: " + name)
++        pinned[str(source / name)] = expected["sha256"]
++    for key in ("guardian", "implementation"):
++        pin = APT_OWNER_BINDING[key]
++        path = script.parent / pin["path"]
++        row = file_record(path, single=True)
++        require(row["bytes"] == pin["bytes"] and row["sha256"] == pin["sha256"],
++                "APT original guardian/lifecycle bytes differ")
++        pinned[str(path.resolve(strict=True))] = pin["sha256"]
++    executable_records = {}
++    for name in ("apt", "sudo", "python"):
++        row = apt_executable_record(data[name], data["uid"])
++        executable_records[name] = row
++        pinned[row["path"]] = row["sha256"]
++    command = [data["apt"], "update"] if phase == "update" else [data["apt"], "-o",
++        "Dir::Cache::archives=" + str(root / "apt-cache"), "-o",
++        "APT::Keep-Downloaded-Packages=true", "install", "-y", *APT_PACKAGES]
++    return {"phase": phase, "root": root, "uid": data["uid"], "gid": data["gid"],
++            "evidence": root / "evidence" / ("apt-owned-" + phase),
++            "command": command, "environment": environment,
++            "outer_seconds": seconds, "inner_seconds": seconds - 10,
++            "external_request": external_record, "external_request_value": external,
++            "worker_request": request_record, "executables": executable_records,
++            "pinned_inputs": pinned,
++            "guardian": script.parent / "guardian.py",
++            "implementation": script.parent / "process_owner_impl.py"}
++
++
++def apt_guardian_state(value, config, root_process):
++    """Separate closed ownership from successful, unsignalled APT completion."""
++    require(type(value) is dict and value.get("schema") == "hepta.hia.external-qualification-guardian.v1"
++            and value.get("command") == config["command"] and value.get("cwd") == config["cwd"]
++            and value.get("external_controller_seconds") == config["controller_seconds"]
++            and value.get("lifecycle_implementation_sha256") == APT_LIFECYCLE_SHA
++            and value.get("lifecycle_entry") == "supervise; distinct external schema and deadline"
++            and value.get("cold_180_second_gate_modified") is False
++            and value.get("source_identities_before") == config["source_identities"]
++            and value.get("source_identities_after") == config["source_identities"]
++            and value.get("input_identity_preserved") is True
++            and value.get("qualification") is None
++            and value.get("whole_native_delivery_qualified") is False,
++            "APT guardian does not bind the current external request and original inputs")
++    require(type(root_process) is dict and set(root_process) == {"uid", "euid", "gid", "egid", "pid", "ppid", "pgid", "sid"}
++            and all(type(root_process[k]) is int for k in root_process)
++            and root_process["uid"] == root_process["euid"] == 0
++            and root_process["gid"] >= 0 and root_process["egid"] >= 0
++            and all(root_process[k] > 0 for k in ("pid", "ppid", "pgid", "sid")),
++            "APT lifecycle was not owned by the root worker")
++    life = value.get("lifecycle", {})
++    require(type(life) is dict and life.get("schema") == "hepta.hia.external-qualification-guardian.v1.lifecycle"
++            and life.get("supervisor_pid") == root_process["pid"]
++            and life.get("parent_pid") == root_process["ppid"]
++            and life.get("qualification_seconds") == config["controller_seconds"]
++            and life.get("cleanup_seconds") == 3,
++            "APT actual lifecycle identity or original budgets differ")
++    cleanup = life.get("cleanup", {})
++    require(type(cleanup) is dict, "APT lifecycle cleanup must be an object")
++    closed = (life.get("subreaper_enabled") is True and life.get("qualification_started") is True
++              and type(life.get("qualification_pid")) is int and life["qualification_pid"] > 0
++              and life.get("event_overflow") is False and cleanup.get("attempted") is True
++              and cleanup.get("complete") is True and cleanup.get("observed_echild") is True
++              and cleanup.get("leader_reaped") is True and cleanup.get("remaining_direct_children") == []
++              and cleanup.get("errors") == [] and cleanup.get("deadline_exceeded") is False)
++    events = life.get("events", [])
++    event_shape = (type(events) is list and all(type(e) is dict and type(e.get("monotonic_ns")) is int for e in events))
++    qpid = life.get("qualification_pid")
++    starts = [e for e in events if e.get("kind") == "qualification_started"] if event_shape else []
++    exits = [e for e in events if e.get("kind") == "qualification_exit_observed"] if event_shape else []
++    reaps = [e for e in events if e.get("kind") == "owned_child_reaped" and e.get("pid") == qpid] if event_shape else []
++    observed = [e for e in events if e.get("kind") == "owned_child_observed" and e.get("pid") == qpid] if event_shape else []
++    natural_events = (event_shape and len(starts) == len(exits) == len(reaps) == len(observed) == 1
++        and starts[0].get("pid") == exits[0].get("pid") == qpid
++        and exits[0].get("si_status") == reaps[0].get("returncode") == 0
++        and observed[0].get("ppid") == root_process["pid"]
++        and type(observed[0].get("start_ticks")) is int
++        and observed[0]["start_ticks"] == reaps[0].get("start_ticks")
++        and all(a["monotonic_ns"] <= b["monotonic_ns"] for a, b in zip(events, events[1:])))
++    natural = (closed and natural_events and value.get("status") == "EXTERNAL_OWNED_PROCESS_COMPLETED"
++               and life.get("status") == "OWNED_PROCESS_COMPLETED" and life.get("returncode") == 0
++               and life.get("timed_out") is False and life.get("exit_observed_before_deadline") is True
++               and life.get("interrupted_signals") == [] and life.get("owner_error") is None
++               and not any(e.get("kind") == "owned_child_sigkill" for e in events))
++    return {"closed": closed, "natural": natural, "returncode": life.get("returncode"),
++            "lifecycle_status": life.get("status"), "guardian_status": value.get("status"),
++            "qualification_seconds": config["controller_seconds"], "cleanup_seconds": 3}
++
++
++def read_apt_owner_evidence(context):
++    directory = context["evidence"]
++    directory_before = directory.lstat()
++    require(stat.S_ISDIR(directory_before.st_mode) and stat.S_IMODE(directory_before.st_mode) == 0o700
++            and directory_before.st_uid in (0, context["uid"]), "APT owner evidence directory differs")
++    require(sorted(p.name for p in directory.iterdir()) == sorted(APT_OWNER_NAMES),
++            "APT owner fixed evidence inventory differs")
++    values, records = {}, {}
++    for name in APT_OWNER_NAMES:
++        if name.endswith(".json"):
++            values[name], records[name] = read_json(directory / name, limit=4 << 20)
++            require(file_record(directory / name, limit=4 << 20, single=True) == records[name],
++                    "APT original JSON identity changed")
++    config, root_process, environment = (values[n] for n in ("config.json", "root-process.json", "environment.json"))
++    expected_inputs = dict(context["pinned_inputs"])
++    expected_inputs[str(directory / "root-process.json")] = records["root-process.json"]["sha256"]
++    expected_inputs[str(directory / "environment.json")] = records["environment.json"]["sha256"]
++    require(config == {"schema": "hia-external-guardian-request.v1", "command": context["command"],
++                       "cwd": str(context["root"]), "controller_seconds": context["inner_seconds"],
++                       "source_identities": expected_inputs}
++            and environment == context["environment"], "APT owner config/environment differs")
++    state = apt_guardian_state(values["guardian.json"], config, root_process)
++    require(state["closed"] is True, "APT children are not closed; child streams must remain unread")
++    for name in ("child.stdout.log", "child.stderr.log"):
++        records[name] = file_record(directory / name, single=True)
++    require(values["guardian.json"].get("logs") == {
++        str(directory / name): records[name]["sha256"] for name in ("child.stdout.log", "child.stderr.log")},
++        "APT complete child stream hashes differ")
++    require(identity(directory.lstat()) == identity(directory_before)
++            and sorted(p.name for p in directory.iterdir()) == sorted(APT_OWNER_NAMES),
++            "APT owner evidence namespace changed during read")
++    return {"state": state, "originals": records, "root_process": root_process,
++            "config": config, "environment_sha256": records["environment.json"]["sha256"]}
++
++
++def read_apt_outer_evidence(context):
++    """The original group receipt must bind this request before child reads."""
++    request = context["external_request_value"]
++    value, receipt = read_json(request["receipt"], limit=4 << 20)
++    cleanup = value.get("cleanup", {})
++    require(value.get("schema") == "hepta.hia.external-workflow-process.v1"
++            and value.get("command") == request["command"] and value.get("cwd") == request["cwd"]
++            and value.get("workflow_seconds") == context["outer_seconds"]
++            and value.get("selfhost_qualification_gate_modified") is False
++            and type(value.get("returncode")) is int and type(cleanup) is dict
++            and cleanup.get("complete") is True and cleanup.get("errors") == []
++            and cleanup.get("full_process_tree_claimed") is False
++            and cleanup.get("scope") == "started POSIX process group only",
++            "APT original outer process group is not identity-bound and closed")
++    streams = {key: file_record(request[key], single=True) for key in ("stdout", "stderr")}
++    require(value.get("logs") == {request[key]: row["sha256"] for key, row in streams.items()},
++            "APT root-worker stream identities differ")
++    require(file_record(request["receipt"], limit=4 << 20, single=True) == receipt,
++            "APT outer original receipt changed")
++    return {"value": value, "receipt": receipt, "streams": streams}
++
++
++def return_apt_owner_evidence(context, accepted, attempts):
++    """Only six closed guardian files; preserve every byte and original mtime."""
++    require(os.getuid() == os.geteuid() == 0 and accepted["state"]["closed"] is True,
++            "closed root APT owner required before evidence handoff")
++    directory = context["evidence"]
++    with parent_fd(directory) as (parent, name, stable):
++        before = os.stat(name, dir_fd=parent, follow_symlinks=False)
++        require(stat.S_ISDIR(before.st_mode) and before.st_uid == 0
++                and stat.S_IMODE(before.st_mode) == 0o700, "fresh private root evidence directory required")
++        descriptor = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=parent)
++        try:
++            require(identity(os.fstat(descriptor)) == identity(before)
++                    and sorted(os.listdir(descriptor)) == sorted(APT_OWNER_NAMES), "APT evidence directory changed")
++            for child in APT_OWNER_NAMES:
++                first = os.stat(child, dir_fd=descriptor, follow_symlinks=False)
++                expected = accepted["originals"][child]
++                require(stat.S_ISREG(first.st_mode) and first.st_uid == 0 and first.st_nlink == 1
++                        and first.st_dev == before.st_dev and identity(first) == expected["identity"]
++                        and not first.st_mode & 0o6000, "APT evidence member identity differs")
++                fd = os.open(child, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, dir_fd=descriptor)
++                row = {"name": child, "before": identity(first), "sha256": expected["sha256"], "status": "ATTEMPT"}
++                attempts.append(row)
++                try:
++                    require(identity(os.fstat(fd)) == identity(first), "APT evidence changed at held open")
++                    os.fchown(fd, context["uid"], context["gid"])
++                    os.fchmod(fd, stat.S_IMODE(first.st_mode) | 0o600)
++                    digest = hashlib.sha256(); count = 0
++                    while block := os.read(fd, 1 << 20):
++                        digest.update(block); count += len(block)
++                    after = os.fstat(fd)
++                    require(count == first.st_size and digest.hexdigest() == expected["sha256"]
++                            and (after.st_dev, after.st_ino, after.st_nlink, after.st_size, after.st_mtime_ns)
++                            == (first.st_dev, first.st_ino, first.st_nlink, first.st_size, first.st_mtime_ns)
++                            and after.st_uid == context["uid"] and after.st_gid == context["gid"]
++                            and identity(os.stat(child, dir_fd=descriptor, follow_symlinks=False)) == identity(after),
++                            "APT evidence changed beyond its explicit ownership handoff")
++                    row.update(status="OWNERSHIP_RETURNED_BYTES_UNCHANGED", after=identity(after))
++                finally:
++                    os.close(fd)
++            require(sorted(os.listdir(descriptor)) == sorted(APT_OWNER_NAMES), "APT evidence namespace changed")
++            os.fchown(descriptor, context["uid"], context["gid"])
++            os.fchmod(descriptor, 0o700)
++            after = os.fstat(descriptor)
++            require(after.st_dev == before.st_dev and after.st_ino == before.st_ino
++                    and after.st_uid == context["uid"] and after.st_gid == context["gid"]
++                    and stat.S_IMODE(after.st_mode) == 0o700
++                    and identity(os.stat(name, dir_fd=parent, follow_symlinks=False)) == identity(after),
++                    "APT evidence root handoff differs")
++            stable()
++        finally:
++            os.close(descriptor)
++    reread = read_apt_owner_evidence(context)
++    require(reread["state"] == accepted["state"] and all(
++        reread["originals"][n]["sha256"] == accepted["originals"][n]["sha256"]
++        and reread["originals"][n]["bytes"] == accepted["originals"][n]["bytes"] for n in APT_OWNER_NAMES),
++        "APT evidence independent post-handoff read differs")
++    return reread
++
++
++def apt_owned_worker(request, request_path, request_sha, report):
++    require(os.getuid() == os.geteuid() == 0, "APT external guardian must run with actual root ownership")
++    context = apt_context(request, request_path, request_sha)
++    directory = mkdir(context["evidence"])
++    report["result"] = {"phase": context["phase"], "closed": False, "natural": False,
++        "external_seconds": context["outer_seconds"], "inner_seconds": context["inner_seconds"],
++        "cleanup_seconds": 3, "evidence": str(directory), "ownership_attempts": [],
++        "cache_ownership_here": False, "cache_handoff_remains_separate_original_180_step": True}
++    process = {"pid": os.getpid(), "ppid": os.getppid(), "uid": os.getuid(), "euid": os.geteuid(),
++               "gid": os.getgid(), "egid": os.getegid(), "pgid": os.getpgid(0), "sid": os.getsid(0)}
++    process_record = create(directory / "root-process.json", wire(process))
++    env_record = create(directory / "environment.json", wire(context["environment"]))
++    identities = dict(context["pinned_inputs"])
++    identities[process_record["path"]] = process_record["sha256"]
++    identities[env_record["path"]] = env_record["sha256"]
++    config = {"schema": "hia-external-guardian-request.v1", "command": context["command"],
++              "cwd": str(context["root"]), "controller_seconds": context["inner_seconds"],
++              "source_identities": identities}
++    config_record = create(directory / "config.json", wire(config))
++    report["result"]["config_original"] = config_record
++    guardian = checked_module("_v87_root_apt_external_guardian", context["guardian"], APT_GUARDIAN_SHA)
++    before_environment = dict(os.environ)
++    try:
++        os.environ.clear()
++        os.environ.update(context["environment"])
++        # A fresh --worker process holds root and becomes the subreaper. The
++        # existing external guardian owns APT, including adopted sessions.
++        code = guardian.execute(config, directory, context["implementation"])
++    finally:
++        os.environ.clear()
++        os.environ.update(before_environment)
++    require(file_record(directory / "config.json") == config_record, "APT guardian config changed")
++    accepted = read_apt_owner_evidence(context)
++    report["result"].update(accepted["state"], guardian_exit=code,
++        original_root_evidence=accepted, root_process=process)
++    require(accepted["state"]["closed"] is True, "APT root children are not proven reaped; no evidence/cache handoff")
++    handed = return_apt_owner_evidence(context, accepted, report["result"]["ownership_attempts"])
++    report["result"]["runner_owned_evidence"] = handed
++    report["result"]["evidence_handoff_complete"] = True
++    require(code == 0 and accepted["state"]["natural"] is True,
++            "APT external owner closed with nonzero, timeout, signal or cleanup kill")
++    return report["result"]
++
++
+ def worker_main(request_path, expected_request_sha):
+     request, request_record = read_json(request_path)
+     require(request_record["sha256"] == expected_request_sha, "worker request pin differs")
+@@ -726,6 +1096,8 @@
+             create(LLVM_KEY_DEST, key, 0o644)
+             create(LLVM_REPO_DEST, LLVM_REPO.encode(), 0o644)
+             value = {"key": file_record(LLVM_KEY_DEST), "repository": file_record(LLVM_REPO_DEST)}
++        elif kind == "apt_owned":
++            value = apt_owned_worker(request, request_path, expected_request_sha, report)
+         elif kind == "apt_cache_owner":
+             require(Path(data["cache"]) == output.parent.parent / "apt-cache", "different cache operation root")
+             report["ownership_attempts"] = []
+@@ -742,9 +1114,9 @@
+         report["error"] = {"type": type(error).__name__, "message": str(error), "traceback": traceback.format_exc()}
+         code = 2
+     report["finished_ns"] = time.time_ns()
+-    # These two root-run operations contain public signing input / new-cache
+-    # metadata only. Their original result must be readable by the runner.
+-    public_root_result = os.getuid() == 0 and request["kind"] in {"apt_inputs", "apt_cache_owner"}
++    # Root signing/cache metadata and closed APT ownership originals are
++    # retained evidence. The original runner must be able to read the report.
++    public_root_result = os.getuid() == 0 and request["kind"] in {"apt_inputs", "apt_cache_owner", "apt_owned"}
+     create(output, wire(report), 0o644 if public_root_result else 0o600)
+     print(json.dumps({"status": report["status"], "kind": report["kind"], "report": str(output)}), flush=True)
+     return code
+@@ -761,6 +1133,8 @@
+         self.self_record = file_record(self.script)
+         require(self.plan["schema"] == "hia.v87.full-prerequisite-supply-plan.v1", "wrong supply plan")
+         require(self.plan["dispatchable"] is True, "draft supply plan cannot execute")
++        require(self.plan.get("privileged_apt_owner") == APT_OWNER_BINDING,
++                "original external APT owner binding differs")
+         require(self.plan["supply_seconds"] == 3600 and self.plan["outer_seconds"] == 10800, "supply budget differs")
+         require(self.plan["control"] == {"bytes": self.self_record["bytes"], "sha256": self.self_record["sha256"]}, "supply control pin differs")
+         require(re.fullmatch(r"[0-9a-f]{40}", self.plan["source"]["head"]) and self.plan["source"]["head"] != "0" * 40
+@@ -893,6 +1267,110 @@
+         receipt = self.save(label + ".snapshot.json", value)
+         return value, receipt
+ 
++    def apt_owned_step(self, phase, apt, sudo, environment):
++        require(phase in ("update", "install") and apt == "/usr/bin/apt-get" and sudo == "/usr/bin/sudo",
++                "only the two fixed APT supply commands are permitted")
++        label = "apt-" + phase
++        request_path = self.output / "requests" / (label + ".worker.json")
++        external_path = self.output / "requests" / (f"{len(self.steps) + 1:03d}-" + label + ".json")
++        result_path = self.output / "reports" / (label + ".result.json")
++        row = {"phase": phase, "status": "HOLD", "root_owner_closed": False,
++               "outer_group_closed": False, "cache_handoff_authorized": False}
++        self.report.setdefault("apt_root_owners", {})[phase] = row
++        original_error = None
++        returned = None
++        try:
++            returned = self.operation(label, "apt_owned", {
++                "phase": phase, "supply_root": str(self.output), "external_request": str(external_path),
++                "uid": os.getuid(), "gid": os.getgid(), "apt": apt, "sudo": sudo, "python": self.python},
++                privileged=True, seconds=APT_OWNER_BINDING["external_seconds"][phase], env=environment)
++        except BaseException as error:
++            original_error = error
++            row["primary_error"] = {"type": type(error).__name__, "message": str(error),
++                                    "traceback": traceback.format_exc()}
++            raise
++        finally:
++            # A POSIX group alone is no longer the admission for APT outputs.
++            # Any missing inner proof prevents the original finally cache step.
++            outer_reported_closed = not self.pending_group
++            self.pending_group = True
++            try:
++                require(outer_reported_closed and self.steps and self.steps[-1]["label"] == label
++                        and self.steps[-1]["observed_process_group_closed"] is True,
++                        "APT outer group is not closed; do not read child outputs")
++                request, request_record = read_json(request_path, limit=262144)
++                context = apt_context(request, request_path, request_record["sha256"])
++                outer = read_apt_outer_evidence(context)
++                require(outer["value"] == self.steps[-1].get("returned"),
++                        "APT original outer receipt differs from its actual return")
++                row["outer_group_closed"] = True
++                row["outer_evidence"] = outer
++                value, result_record = read_json(result_path, limit=16 << 20)
++                require(file_record(result_path, limit=16 << 20, owner=0, single=True) == result_record
++                        and result_record["mode"] == 0o644
++                        and value.get("schema") == "hia.v87.supply-worker.v1"
++                        and value.get("kind") == "apt_owned" and value.get("qualification_executed") is False,
++                        "APT root worker result identity differs")
++                detail = value.get("result", {})
++                require(type(detail) is dict and detail.get("phase") == phase
++                        and detail.get("external_seconds") == context["outer_seconds"]
++                        and detail.get("inner_seconds") == context["inner_seconds"]
++                        and detail.get("cleanup_seconds") == 3
++                        and detail.get("evidence") == str(context["evidence"])
++                        and detail.get("closed") is True and detail.get("evidence_handoff_complete") is True
++                        and detail.get("cache_ownership_here") is False
++                        and detail.get("cache_handoff_remains_separate_original_180_step") is True,
++                        "APT root closure/evidence handoff is incomplete")
++                current = read_apt_owner_evidence(context)
++                require(context["evidence"].lstat().st_uid == os.getuid()
++                        and detail.get("runner_owned_evidence") == current
++                        and detail.get("root_process") == current["root_process"]
++                        and all(detail.get(k) == v for k, v in current["state"].items()),
++                        "APT actual owner evidence differs from the root worker original")
++                original = detail.get("original_root_evidence", {})
++                require(original.get("state") == current["state"]
++                        and original.get("root_process") == current["root_process"]
++                        and original.get("config") == current["config"]
++                        and original.get("environment_sha256") == current["environment_sha256"]
++                        and set(original.get("originals", {})) == set(APT_OWNER_NAMES),
++                        "APT root original metadata does not bind its handoff")
++                attempts = detail.get("ownership_attempts", [])
++                require(type(attempts) is list and len(attempts) == len(APT_OWNER_NAMES),
++                        "APT fixed ownership handoff denominator differs")
++                for name, attempt in zip(APT_OWNER_NAMES, attempts):
++                    before, after = original["originals"][name], current["originals"][name]
++                    old, new = before["identity"], after["identity"]
++                    require(before["path"] == after["path"] == str(context["evidence"] / name)
++                            and before["bytes"] == after["bytes"] and before["sha256"] == after["sha256"]
++                            and old[3] == 0 and new[3] == os.getuid() and new[4] == os.getgid()
++                            and old[5] == new[5] == 1 and new[2] == old[2] | 0o600
++                            and all(old[i] == new[i] for i in (0, 1, 5, 6, 7))
++                            and attempt == {"name": name, "before": old, "after": new,
++                                "sha256": before["sha256"], "status": "OWNERSHIP_RETURNED_BYTES_UNCHANGED"},
++                            "APT evidence handoff changed bytes or another physical identity")
++                    self.bindings[after["path"]] = after["sha256"]
++                self.bindings[result_record["path"]] = result_record["sha256"]
++                self.bindings.update(context["pinned_inputs"])
++                row.update(root_owner_closed=True, cache_handoff_authorized=True,
++                    root_worker_result=result_record, owner_state=current["state"],
++                    current_evidence=current, original_root_evidence=original,
++                    status="APT_ROOT_CLOSED_SUPPLY_HELD")
++                # Closure is useful even if APT failed; it never promotes that
++                # failure to success. The original command exception survives.
++                self.pending_group = False
++                if original_error is None:
++                    require(value.get("status") == "SUPPLY_OPERATION_COMPLETED"
++                            and current["state"]["natural"] is True and detail.get("guardian_exit") == 0
++                            and returned == detail, "APT did not naturally complete under the root owner")
++                    row["status"] = "APT_ROOT_OWNED_COMMAND_COMPLETED"
++            except BaseException as error:
++                row["evidence_error"] = {"type": type(error).__name__, "message": str(error),
++                                         "traceback": traceback.format_exc()}
++                if original_error is None:
++                    raise
++        return returned
++
++
+     def apt_supply(self):
+         before = self.step("apt-packages-before", [self.executable("dpkg-query"), "-W", "-f=${Package}\t${Version}\t${Status}\n"], seconds=30)
+         key = self.get("llvm-signing-key", LLVM_KEY_URL, maximum=1 << 20, seconds=60, filename="llvm-snapshot.gpg.key")
+@@ -907,17 +1385,23 @@
+         sudo, apt = self.executable("sudo"), self.executable("apt-get")
+         env = dict(self.network_env, DEBIAN_FRONTEND="noninteractive", NEEDRESTART_MODE="a")
+         try:
+-            self.step("apt-update", [sudo, "-n", "--", apt, "update"], env=env, seconds=600)
+-            self.step("apt-install", [sudo, "-n", "--", apt, "-o", "Dir::Cache::archives=" + str(self.output / "apt-cache"),
+-                "-o", "APT::Keep-Downloaded-Packages=true", "install", "-y", *APT_PACKAGES], env=env, seconds=900)
++            self.apt_owned_step("update", apt, sudo, env)
++            self.apt_owned_step("install", apt, sudo, env)
+         finally:
+-            if not self.pending_group:
+-                self.report["apt_cache_ownership"] = self.operation("apt-cache-owner", "apt_cache_owner",
+-                    {"cache": str(self.output / "apt-cache"), "uid": os.getuid(), "gid": os.getgid()},
+-                    privileged=True, seconds=180)
+-            else:
+-                self.report["apt_cache_ownership"] = {"status": "HOLD",
+-                    "reason": "APT group not observed closed; no live cache read or ownership change attempted"}
++            primary_error = sys.exc_info()[1]
++            try:
++                if not self.pending_group:
++                    self.report["apt_cache_ownership"] = self.operation("apt-cache-owner", "apt_cache_owner",
++                        {"cache": str(self.output / "apt-cache"), "uid": os.getuid(), "gid": os.getgid()},
++                        privileged=True, seconds=180)
++                else:
++                    self.report["apt_cache_ownership"] = {"status": "HOLD",
++                        "reason": "APT outer group and inner root ECHILD not both proven; no cache read or ownership change"}
++            except BaseException as error:
++                self.report["apt_cache_ownership_error"] = {"type": type(error).__name__, "message": str(error),
++                    "traceback": traceback.format_exc()}
++                if primary_error is None:
++                    raise
+         after = self.step("apt-packages-after", [self.executable("dpkg-query"), "-W", "-f=${Package}\t${Version}\t${Status}\n"], seconds=30)
+         debs = {p.name: file_record(p) for p in sorted((self.output / "apt-cache").glob("*.deb"))}
+         self.report["apt"] = {"packages": list(APT_PACKAGES), "before": file_record(before), "after": file_record(after),
+@@ -1264,7 +1748,7 @@
+                     self.report["status"] = "HOLD"
+             else:
+                 self.report.update(status="HOLD", final_readback_complete=False,
+-                    final_readback_omission="started process group not proven closed; original guardian must establish terminal state")
++                    final_readback_omission="started process group or required APT root owner not proven closed; original guardian must establish terminal state")
+             self.report["finished_ns"] = time.time_ns()
+             self.report["wall_seconds"] = time.monotonic() - self.started
+             create(self.output / "SUPPLY.json", wire(self.report))
+--- r3/plan/supply-plan.json
++++ r4/plan/supply-plan.json
+@@ -1,12 +1,32 @@
+ {
+   "control": {
+-    "bytes": 79658,
+-    "sha256": "6aee5f1667b0afb52fbf70ea5b2a0dd2fc2dddd7d1a052326e09ccb9aeef80e9"
++    "bytes": 111870,
++    "sha256": "cb25fcc04be3414afce234e8842247639e6390d825198a329bb7460c089a4321"
+   },
+   "dispatchable": true,
+   "final_freeze_requirement": "Only the parent-reviewed enclosing capsule may dispatch this exact code, source, input plan and unchanged budgets.",
+   "original_cargo_manifest_sha256": "83efd48f22248a3381d084fff3551f4475c4d0c2e589acc737d3d03007a50c33",
+   "outer_seconds": 10800,
++  "privileged_apt_owner": {
++    "cleanup_seconds": 3,
++    "entry": "original external guardian.execute -> original lifecycle.supervise",
++    "external_seconds": {
++      "install": 900,
++      "update": 600
++    },
++    "guardian": {
++      "bytes": 10257,
++      "path": "guardian.py",
++      "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023"
++    },
++    "implementation": {
++      "bytes": 17601,
++      "path": "process_owner_impl.py",
++      "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
++    },
++    "inner_reserve_seconds": 10,
++    "selfhost_run_owned_180_gate_modified": false
++  },
+   "pure_source_same_tree": "e4fc00a775dab323758d77a2ef4918fd35585cdc",
+   "review_state": "COMPLETE_STATIC_PREEXECUTION_CANDIDATE_UNEXECUTED",
+   "schema": "hia.v87.full-prerequisite-supply-plan.v1",
+--- r3/plan/policy.json
++++ r4/plan/policy.json
+@@ -74,16 +74,16 @@
+       "sha256": "3e05e662f119cff334d62ea28fe6adf2b57538dfb2e08a0fbf4ea50e92d6bbf0"
+     },
+     "supply-plan.json": {
+-      "bytes": 7953,
+-      "git_blob_sha1": "e885befc01cef9b512fb2234010337d7bee289aa",
++      "bytes": 8588,
++      "git_blob_sha1": "57651e424c51638953565bbd20b541c18a4a42d6",
+       "path": "plan/supply-plan.json",
+-      "sha256": "8c06fb6d51ca68e72bb3fb99d3b5deed65dc1f137e7329f76f7a2233df5046f7"
++      "sha256": "df00181c200be9465d56c4dcae5e330e4de58ead0ba4a8e9fc566a577e88a504"
+     },
+     "supply_v87.py": {
+-      "bytes": 79658,
+-      "git_blob_sha1": "d0c76f67171f5a0ed3ad0643045a2aa5ac2247b3",
++      "bytes": 111870,
++      "git_blob_sha1": "31938c9bcc3e3b12b20ed477bea9295f02c840e4",
+       "path": "control/supply_v87.py",
+-      "sha256": "6aee5f1667b0afb52fbf70ea5b2a0dd2fc2dddd7d1a052326e09ccb9aeef80e9"
++      "sha256": "cb25fcc04be3414afce234e8842247639e6390d825198a329bb7460c089a4321"
+     },
+     "workflow_process.py": {
+       "bytes": 3268,
+@@ -92,7 +92,7 @@
+       "sha256": "f3ebc453de2d2c9ecd3825547e301c122b6c7fa05af1aacd9103b8a67893ee80"
+     }
+   },
+-  "intended_branch": "codex/hia-v89-full-retained-run-r3-20261112-e26e",
++  "intended_branch": "codex/hia-v89-full-retained-run-r4-20261112-e26e",
+   "limits": {
+     "cleanup_seconds": 3,
+     "cold_phases": 38,
+@@ -150,7 +150,9 @@
+     "z3-solver": "4.15.4.0"
+   },
+   "pending": [
+-    "R3 custody-only revision is unexecuted; the original R2 supply/capture failure is preserved at af99babc105d411db97d56dbbd4a73d0c98400bb. The supplier and original full32 gates/budgets are unchanged."
++    "R4 privileged APT ownership is a new unexecuted supply request. The original R3 full32 run 43283027193 failed after apt-install when the original workflow helper observed EPERM; its original HOLD and incomplete qualification remain unchanged.",
++    "The exact 22 source/ordinary-IO controls passed once under the original 180/3 owner and are archived at 2a1b42edc3d2c24bbc8f56718bbc4d19aa470b32. Root UID/event positives in those finite controls are synthetic; actual privileged APT ownership is not yet proved.",
++    "The product checkout remains the original v89 standard-CI head 784f088fcc5ad81c65de541d54e26d380c86293c and tree d9e8407c70e44a3ea0152b8b4c5eb2ed3833d790. This request makes no claim about v90/v91 or integer integration."
+   ],
+   "prior_evidence": {
+     "ndu-public-visibility.sdk.json": {
