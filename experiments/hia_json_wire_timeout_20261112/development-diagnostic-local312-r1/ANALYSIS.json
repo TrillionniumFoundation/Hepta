@@ -1,0 +1,75 @@
+{
+  "schema": "hepta.wire89-original-timeout-static-causal-audit.v1",
+  "status": "STATIC_CAUSAL_CANDIDATES_NOT_MEASURED",
+  "historical": {
+    "run": 43274637363,
+    "job": 131379662969,
+    "head": "f41f9122e536d8a86b4a74428caae963ff4a95bd",
+    "artifact_id": 13973507513,
+    "artifact_bytes": 181669029,
+    "artifact_sha256": "a407c29a2bda821c2ee47be76e97a89ddf53863c7e6329c5def8b4e9c02a0141",
+    "method": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+    "expected_loaded_executed": 89,
+    "sole_failure_elapsed_seconds": 6.503077664999637,
+    "original_assertion_seconds": 5,
+    "python": "3.14.4",
+    "per_test_ordinary_wire_calls": 3879,
+    "per_test_native_step_returns": 561013,
+    "per_test_counts_include_setup_and_build_pair": true,
+    "missing_original_stage_timing": true
+  },
+  "source_join": {
+    "root": "/workspace/scratch/e26ed3e2edcf/combined-native-v88-r1",
+    "actual_carrier_source_manifest_entries": 841,
+    "all841_full_sha_match": true,
+    "helper_additional_direct_carrier_Git_read": "https://github.com/TrillionniumFoundation/Hepta/blob/f41f9122e536d8a86b4a74428caae963ff4a95bd/tools/hia_agent_native_qualification.py",
+    "workload_cases": 256,
+    "workload_258_not_supported_by_actual_source": true
+  },
+  "paths": [
+    {
+      "name": "Repeated source admission",
+      "source": "hepta/hia_json_preflight_native.py:_installed_json_image",
+      "observed_algorithm": "Each selection resolves and reads the manifest and reads/hashes the complete source. The LRU caches the immutable image only after these operations.",
+      "wire_source_bytes": 350165,
+      "arithmetic_for_entire_test_including_setup_bytes": 1358290035,
+      "arithmetic_is_not_evaluate_attribution": true,
+      "semantics_to_preserve": "Warm selected source drift must remain visible; a timing hypothesis does not authorize skipping source checks."
+    },
+    {
+      "name": "Reference requests and observations",
+      "source": "hepta/hia_agent_service.py:_hia_evaluate; hepta/hia_agent_runner.py:run_native_batch/run_reference_batch/main",
+      "observed_algorithm": "Two original reference subprocesses receive the complete 256-case workload. Parent request and child result wire are selected independently. Parent qualifier counters do not include child counters.",
+      "native_1ms_does_not_bound_reference_phase": true,
+      "diagnostic": "Time each original parent runner call and retain exact argv/env/request/stdout/stderr and existing wall_ns; no claim about uninstrumented child sub-stages."
+    },
+    {
+      "name": "Measurement graph serialization",
+      "source": "hepta/hia_agent_service.py:_hia_evaluate; hepta/hia_agent_store.py:json",
+      "observed_algorithm": "After reference and native work, the measurements object includes combined observations plus both complete reference reports. It passes through ordinary selected wire; later store metadata/digests and receipt serialization use it again.",
+      "duplicate_graph_presence_is_static": true,
+      "timing_share_unknown": true
+    },
+    {
+      "name": "Native wire continuation and scratch",
+      "source": "hepta/hia_json_wire_native.py:WireSession and _private_zeroed_buffer",
+      "observed_algorithm": "Each call creates output/workspace mmap-backed views and drives real HIA continuation requests. Actual step count and key-cache flag will be grouped by evaluate boundary.",
+      "do_not_patch": "ForeignGraphObserver methods, whose identities gate immutable-key caching."
+    }
+  ],
+  "diagnostic": {
+    "request_path": "/tmp/hia-wire89-timeout-diagnostic-local312-r1/REQUEST.json",
+    "request_sha256": "272f86a8162cabfebfbd75311d5417231f98674c376dfbabd3cce6f7dfecca75",
+    "runtime": "local CPython 3.12.14, not a reproduction claim for historical GitHub 3.14.4",
+    "source_modified": false,
+    "original_test_method_modified": false,
+    "original_5s_assertion_preserved": true,
+    "original256cases_preserved": true,
+    "one_test_only": true,
+    "full89_qualification_claimed": false,
+    "owner_seconds": 180,
+    "cleanup_seconds": 3,
+    "source_or_native_run_started": false,
+    "default_cold_qualification_claimed": false
+  }
+}
