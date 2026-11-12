@@ -1,0 +1,83 @@
+{
+  "schema": "hia.namespace.fs8.fixed-gateway.private-abi.v1",
+  "status": "AUTHORING_ONLY_NOT_QUALIFIED",
+  "source_family": "Same six roles; FS8,DMS9,DB-reuse3,global3 with unchanged map3/memory2",
+  "magic": "HIANFR03",
+  "carrier": "Same fixed mechanical kernel raw syscall ABI and immutable request/ACK layout. No script, database, path-policy or retry branch exists in the mechanical carrier.",
+  "new_or_newly_connected_operations": [
+    {
+      "operation": 25,
+      "name": "OPENAT_WITH_FD",
+      "syscall": 257,
+      "contract": "Same existing OPENAT arguments and full extent/NUL checks; FS issues the logical token and additionally returns actual numeric fd at result+72. fd0 remains valid."
+    },
+    {
+      "operation": 26,
+      "name": "GETPID",
+      "syscall": 39,
+      "contract": "Actual native process PID; no host PID receipt. HIA validates positive signed-int range and returns it."
+    },
+    {
+      "operation": 27,
+      "name": "ACCESS",
+      "syscall": 21,
+      "contract": "Actual access(path, mode) with real UID semantics and exact C pathname. No permission result is synthesized. Normal mode0..7 remains HIA policy."
+    },
+    {
+      "operation": 28,
+      "name": "OPENAT_CSTR_WITH_FD",
+      "syscall": 257,
+      "contract": "Like25, additionally admits zero content bytes, emits the actual one-byte NUL buffer, and retains the real kernel result."
+    },
+    {
+      "operation": 29,
+      "name": "STATAT_CSTR",
+      "syscall": 262,
+      "contract": "Like existing18 STATAT, additionally permits zero content bytes. Success yields original144-byte stat plus exact duplicate fields; error payload is empty."
+    }
+  ],
+  "old_1_through24": "All original syscall numbers, argument mapping, lease, token, no-retry, close consumption, result and guard rules retained.",
+  "global_reuse": "The existing HIA global directory still skips STAT when empty. With a nonempty directory it invokes existing op18 for nonempty C paths and actual op29 for the zero-byte C path. A real failed stat is a miss. The same pending reply/generation/source and token-consumption rules remain mandatory.",
+  "barriers": "DMS accepts the new generic gateway numbers but retains internal-FD protection and the same sole shared-FS issuer. The global outer retains registered DB token protection. Tokens are not raw FD integers or externally authenticated headers.",
+  "tests": {
+    "unchanged_original_physical": 18,
+    "unchanged_new_global_reuse": 10,
+    "new_raw_primitive_groups": 6,
+    "total": 34,
+    "original_packer_controls": 33,
+    "original_old_VM_new_VM_new_native_cases_each": 84,
+    "full_actual_trace_and_all_workspace_bytes": true,
+    "mandatory_real_strace_faults": true
+  },
+  "limits": {
+    "each_native_CPU": 90,
+    "each_native_wall": 180,
+    "each_native_address_bytes": 1073741824,
+    "core": 0,
+    "B3_CPU": 10,
+    "B3_wall": 20,
+    "B3_address_bytes": 268435456,
+    "B3_output_bytes": 1048576,
+    "B3_workspace_bytes": 1048576,
+    "physical_aggregate_wall": 900,
+    "VM_steps_per_entry": 4000000,
+    "VM_arena_bytes": 33554432,
+    "profile": [
+      128,
+      1536,
+      8192,
+      256,
+      16
+    ]
+  },
+  "open_scope": [
+    "Actual robust-open and create-mode callers must still be composed with the global open controller; raw gateway success is not full unixOpen success.",
+    "Full PID/URI/temp/allocator fallback/verifyDbFile warning sequence not closed.",
+    "Ordinary Store/31SQL/migrations/crash recovery remain OPEN."
+  ],
+  "execution": {
+    "AST": 0,
+    "B3": 0,
+    "native": 0
+  }
+}

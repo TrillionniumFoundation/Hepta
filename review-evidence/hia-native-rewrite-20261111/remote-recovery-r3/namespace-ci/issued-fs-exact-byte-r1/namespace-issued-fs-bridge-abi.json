@@ -1,0 +1,134 @@
+{
+  "schema": "hia.namespace.issued.fs.bridge.v1",
+  "scope": "PRIVATE_PREDECESSOR_FULL_UNIXOPEN_ISSUED_REQUEST_TO_EXISTING_SOLE_FS",
+  "revision": 2,
+  "status": "NEW_SOURCE_UNEXECUTED",
+  "production": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/issued-fs-bridge-r2/namespace-db-join-issued-fs-r2-generator.py",
+    "blob": "eb61e1e2b4d7f4fe3f28126968c414ca650fad27",
+    "bytes": 49740,
+    "sha256": "7ffa1c1d8cd357417e08ca6a5d2a44590c63e0444080425921855612d00ba56f",
+    "mode": "100644"
+  },
+  "predecessor": {
+    "outer": "9dba2741beba0a1b567358fc9f5a385bfad66408",
+    "FS8": "5c64683dff44a779a8f1217c37f565e625b10910",
+    "DMS9": "47beb3764f3774acab90883ee202cf5c03b8643d",
+    "fixed_carrier": "f90bbc7cbdff24135df2e4e0b7e1f0592c9723ba",
+    "role_count": 6,
+    "unchanged_roles": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "new_outer_role": 6
+  },
+  "authority": "Only the fixed private issuer's immutable request and actual CHILD capsule are accepted as provenance. Byte magic, numeric caller/lease and Graph IDs do not authenticate arbitrary externally supplied state.",
+  "problem": "The older command2 intentionally binds FS caller104 to outer user lease144. A robust-open/create-mode request has its own caller/action and FS sequence. Relabelling the reply would break the actual peer. New command11 preserves the complete peer request instead of forging a substitute result.",
+  "user": {
+    "transport": "Existing HIANDJX1 origin1, 128-byte envelope plus HIANDJ01 USER256 plus payload",
+    "command": 11,
+    "handle": 0,
+    "args_a_through_f": 0,
+    "outer_call": "next existing outer sequence",
+    "outer_lease": "nonzero existing private outer call lease; distinct from original FS caller",
+    "payload": "Entire original HIANFR03 request256 followed by exactly payloadBytes bytes; min256",
+    "no_new_size_limit": true
+  },
+  "FS_request_256": {
+    "magic": "HIANFR03",
+    "offset8_command": 2,
+    "offset16_24_scope": "exact existing FS namespace w80/w88",
+    "offset32_call": "existing FS watermark w216+1, reject exhausted sequence",
+    "offset40_sysseq": 0,
+    "offset48_operation": "1..29, unchanged FS8 operation set",
+    "offset56_error": 0,
+    "offset64_72_80_88": "original operands; copied unchanged",
+    "offset96_payload_bytes": "USER payloadSize-256 exactly",
+    "offset104_caller": "original nonzero caller/action, copied unchanged",
+    "offset112_through248": 0
+  },
+  "registered_tokens": "Same exclusion as command2. Registered DB file tokens cannot pass to mutating/raw-closing operations; rename checks both token operands. Existing DMS lifetime protection remains independently active.",
+  "dispatch": {
+    "new_stage": 62,
+    "role": 4,
+    "identity": 1,
+    "create": 0,
+    "DMS_command": 16,
+    "DMS_lease": "original request104, not the outer USER lease",
+    "DMS_operation_and_four_args": "exact original request48/64/72/80/88",
+    "DMS_path": "exact original request256 tail",
+    "sole_FS": "Existing DMS instance forwards into its original registered FS instance. No new FS or second FD registry is created."
+  },
+  "completion": {
+    "required_stage": 62,
+    "required_outer_command": 11,
+    "unassociated_DB_handles": "w120,w128,w248 must all remain zero",
+    "actual_DMS": "Existing j_child_shape verifies exact issued source bytes, actual completion frame, scope, action, identity/generation/counters and workspace extent.",
+    "actual_FS": "Existing j_gateway_frame validates FS scope/call/syscall, opcode, caller, version3, actual source/request and payload extent.",
+    "extra_bindings": [
+      "actual DMS success code/errno are0; actual FS errno is preserved inside FS result",
+      "actual DMS workspace768..1023 equals the saved original request header byte for byte",
+      "actual DMS source path tail equals the saved original payload byte for byte"
+    ],
+    "result": "Original actual FS output prefix[0:256+payloadBytes] copied unmodified, omitting unused output capacity only. Complete raw capacity and workspace remain in the original native trace.",
+    "retirement": "After output reserve succeeds, accept exact DMS/FS watermarks, publish result and retire USER/source blobs through original j_finish."
+  },
+  "grow": {
+    "before_dispatch": "Original j_user reserve does not issue an OS operation before sufficient source/work/output capacity.",
+    "after_completion": "Same immutable actual CHILD capsule resumes stage62; capacity growth cannot issue another DMS/FS request or repeat completed IO.",
+    "compaction": "Pointers are reacquired where used after reserve; completion does not reuse an old mutable workspace pointer after compaction."
+  },
+  "failure": {
+    "malformed_request": "Permanent outer poison before DMS issue.",
+    "malformed_actual_completion": "Permanent outer poison; no forged success.",
+    "known_FS_errno": "Returned inside exact actual FS result; outer remains usable, with actual sequence watermarks committed.",
+    "no_implicit_retry": true,
+    "no_implicit_close_on_rejection": true
+  },
+  "new_actual_gate": {
+    "retained_physical_tests": 34,
+    "new_private_bridge_tests": 8,
+    "total_physical_tests": 42,
+    "original_packer_controls": 33,
+    "old_VM_packer": 84,
+    "new_VM_packer": 84,
+    "new_native_packer": 84,
+    "new_HIA_B3_roles": 6,
+    "new_HIA_B3_packer": 1,
+    "each_process_CPU": 90,
+    "each_process_wall": 180,
+    "address_bytes": 1073741824,
+    "aggregate_physical_wall": 900,
+    "VM_steps_per_original_entry": 4000000,
+    "VM_arena_bytes": 33554432,
+    "compiler_CPU": 10,
+    "compiler_wall": 20,
+    "compiler_address_bytes": 268435456,
+    "compiler_output_bytes": 1048576,
+    "compiler_workspace_bytes": 1048576,
+    "original_profile_unchanged": {
+      "functions": 128,
+      "blocks": 1536,
+      "ops": 8192,
+      "max_blocks": 256,
+      "max_block_params": 16
+    },
+    "zero_relocation_required": true
+  },
+  "tests_scope": "Tests explicitly construct private issued-request fixtures. They exercise real FS syscalls under the unchanged fixed carrier and replay every native entry completely. They do not claim an ordinary/native robust-open or full unixOpen parent has already issued those fixtures.",
+  "open": [
+    "Full unixOpen PID/PRNG/tempname/create-mode/robust-open/readonly fallback/fill/verify sequencing",
+    "Actual fixed native parent contexts issuing robust-open/create-mode requests",
+    "Native Store.put/get, 31 SQL operation engine, all ten tables, durable transactions, migration and ordinary AgentStore"
+  ],
+  "new_execution_counts": {
+    "AST": 0,
+    "HIA_generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  }
+}

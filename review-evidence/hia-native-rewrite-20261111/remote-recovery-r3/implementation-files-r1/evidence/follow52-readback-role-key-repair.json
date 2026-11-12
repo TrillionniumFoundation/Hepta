@@ -1,0 +1,73 @@
+{
+  "schema": "hia-implementation-files-readback-JSON-role-key-repair-v1",
+  "status": "NEW_UNEXECUTED_MINIMAL_TEST_ONLY_REPAIR",
+  "previous_test": {
+    "bytes": 35226,
+    "sha256": "b4636bc61da70a2fd9a8a6a8bfde6da9fe6a78f6ae82ee3e011028d03ac7fe64",
+    "gitsha": "42fad7af4318694b8f1d1c0e3572656a8f455213"
+  },
+  "new_test": {
+    "bytes": 35301,
+    "sha256": "ff09bf45efe5b32324de767c69401337008a458fe341051662fe35e5d6fe3837",
+    "gitsha": "19859f832f5cbfca1cdd4c0e8e2f31cdbae6ba3b"
+  },
+  "previous_CI": {
+    "bytes": 21489,
+    "sha256": "01e04c1ee1ce070133a5b0443f7b05ec079034d1f7776ee74358b2b38172a8fb",
+    "gitsha": "65baf27b35e2170d85979a3fac781c7fdc8dd35f"
+  },
+  "new_CI": {
+    "bytes": 21489,
+    "sha256": "ee7807f5703811f471b0df70ca718beb2d26bd12aeed7fcc9b15e40a0c20b2cf",
+    "gitsha": "cba3377e22cbec335a21b92154758de3a48688de"
+  },
+  "actual_failure": {
+    "job_id": 131208740284,
+    "run_id": 43225855642,
+    "test_line": 521,
+    "readback_target_executions": 0,
+    "original_group_status": "PASS",
+    "original_job_status": "FAIL"
+  },
+  "cause": {
+    "trace_validator_counts": "counts={1:0,2:0}; each actual entry increments counts[role]; returned by_role=counts",
+    "serialized_summary": "NativeMechanical stores the full trace_summary using json.dumps; JSON object role keys are strings.",
+    "old_comparison": "direct Python dictionary equality compares integer role keys with JSON string role keys",
+    "new_comparison": "Only by_role keys are mapped by str(role). Every count and every other field is still compared by full dictionary equality."
+  },
+  "test_unique_edit": {
+    "before": "    assert value==json.loads((native/\"trace-summary.json\").read_bytes())\n",
+    "after": "    assert dict(value,by_role={str(role):count for role,count in value[\"by_role\"].items()})==json.loads((native/\"trace-summary.json\").read_bytes())\n",
+    "complete_reverse_bytes_equal": true
+  },
+  "CI_unique_pin_edits": [
+    [
+      "\"bytes\": 35226,",
+      "\"bytes\": 35301,"
+    ],
+    [
+      "\"sha256\": \"b4636bc61da70a2fd9a8a6a8bfde6da9fe6a78f6ae82ee3e011028d03ac7fe64\"",
+      "\"sha256\": \"ff09bf45efe5b32324de767c69401337008a458fe341051662fe35e5d6fe3837\""
+    ],
+    [
+      "\"gitsha\": \"42fad7af4318694b8f1d1c0e3572656a8f455213\"",
+      "\"gitsha\": \"19859f832f5cbfca1cdd4c0e8e2f31cdbae6ba3b\""
+    ]
+  ],
+  "CI_complete_reverse_bytes_equal": true,
+  "production_owner_adapter_harness_C_unchanged": true,
+  "case_data_schedule_assertions_limits_unchanged": true,
+  "planned_fresh": {
+    "B3": 2,
+    "groups": 11,
+    "cases": 90,
+    "private_controls": 49
+  },
+  "new_AST": 0,
+  "new_B3": 0,
+  "new_VM": 0,
+  "new_native": 0,
+  "root_authorized_full_fresh_schedule": true,
+  "original_FAIL_retained": true,
+  "whole_public_backend": false
+}

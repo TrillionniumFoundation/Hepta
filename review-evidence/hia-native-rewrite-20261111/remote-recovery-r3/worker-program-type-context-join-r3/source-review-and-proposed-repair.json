@@ -1,0 +1,160 @@
+{
+  "schema": "hia-worker-type-context-follow50-proposed-repair-r3",
+  "status": "SOURCE_ONLY_0_AST_0_GENERATION_0_B3_0_NATIVE",
+  "failed_original_delivery": "76ae69d3bca8ae94104d5a4946714dbee51a6c09",
+  "readonly_original_reader_delivery": "4aa51b0099ac377347a2da138ff639174b9d9e64",
+  "original_archive_bytes_not_yet_read_here": true,
+  "production": {
+    "source_text_composition": {
+      "schema": "hia-worker-type-context-reader50-fixed-source-text-proof-r1",
+      "status": "SOURCE_TEXT_COMPOSITION_ONLY_NO_PYTHON_AUTHORING_OR_TARGET_EXECUTION",
+      "original_input_git": "8163cf41059b38260f66dbc5a89d5676b1f7f121",
+      "old_frozen_builder_composition_sha256": "49092799d080dac9fec3c4b311805168cc6acd291523939da2f1fc79de3b2db2",
+      "old_bytes": 32389,
+      "new_composition_sha256": "c7e1eafadd41b7f7fdac004a68468cebce882036210de8dcad5fd9ad8645107c",
+      "new_bytes": 32667,
+      "new_extra_call_gate_occurrences": 1,
+      "removed_original_instructions": false,
+      "only_replacement_before_and_after": {
+        "before": "    cmp rax,55\n    je component_role_checked\n    cmp rax,28\n    ja abi_error\n    jmp component_role_checked\ncomponent_edit_roles:\n",
+        "after": "    cmp rax,50\n    jne component_original_child_roles\n    cmp qword ptr [r15+KIND],0\n    jne abi_error\n    cmp qword ptr [r15+ROLE],41\n    je component_role_checked\n    cmp qword ptr [r15+ROLE],43\n    jne abi_error\n    jmp component_role_checked\ncomponent_original_child_roles:\n    cmp rax,55\n    je component_role_checked\n    cmp rax,28\n    ja abi_error\n    jmp component_role_checked\ncomponent_edit_roles:\n"
+      },
+      "inverse_exact_old_source": true,
+      "actual_artifact_old_source_readback_pending": true,
+      "actual_B3_assembler_ELF_entries": 0
+    },
+    "unchanged_native_owner_and_transfer_proof": {
+      "old": "9cde51fdbea3047505b709fa76317dcbd81d4844",
+      "changes": [
+        "new explicitly scoped child reader50 call dispatch",
+        "proof schema/metadata for actual two edits"
+      ],
+      "native_HIA_BODY_text_unchanged": true,
+      "original_ALL_TRANSFER_text_unchanged": true
+    },
+    "error_header_only_inference": {
+      "source": "frozen execution_error header + observed four original stderr SHA256",
+      "classification": "HASH_MATCHED_SYNTHETIC_HEADER_INFERENCE_NOT_ARTIFACT_BYTE_READBACK",
+      "range": {
+        "roles": [
+          1,
+          63
+        ],
+        "sequences": [
+          0,
+          4096
+        ]
+      },
+      "matches": [
+        {
+          "role": 43,
+          "seq": 72,
+          "hex": "484941584552303103000000000000002b000000000000004800000000000000"
+        }
+      ],
+      "sha256": "a888546bbab0a05858ff048c77cbe8878d88a8ac9ddfc204c5a1bcbdce97f075"
+    },
+    "why_scope_is_finite": "Reader50 is invoked by tcx_capture_step only from ctor43 or type services41; KIND0 is the actual private lower context. The old fixed child op_call rejects roles above28 except55. New gate does not change parent KIND2 dispatch, program KIND1, any other role, readonly mask or command/parent/capacity ownership checks.",
+    "scope_of_claim": "The old instruction branch is a confirmed static blocker for the new issued role50 call. Actual causal error-site confirmation and full successful rerun are still required; no other future failure is excluded."
+  },
+  "harness": {
+    "private_fixture": {
+      "original_git": "a89e1ea24f7660af3a9ebe4fb54f0fc61ef31dce",
+      "changes": [
+        {
+          "before": "assert not want_bad and view_count==1 and copies==1 and released",
+          "after": "assert not want_bad and view_count==2 and copies==1 and released"
+        },
+        {
+          "before": "                    assert (slot,at,size)==(6,0,128) and not released\n                    assert slots[6].readonly and slots[6].value()==capsule\n                    observed=slots[6].value()[:128];view_count+=1",
+          "after": "                    assert not released and slots[6].readonly and slots[6].value()==capsule\n                    if view_count==0:\n                        assert (slot,at,size)==(6,0,128),(label,\"header VIEW\",slot,at,size)\n                    elif view_count==1:\n                        assert (slot,at,size)==(6,128,min(len(text),64)),(label,\"code-prefix VIEW\",slot,at,size)\n                    else:raise AssertionError((label,\"unexpected repeated VIEW\",view_count))\n                    observed=slots[6].value()[at:at+size];view_count+=1"
+        },
+        {
+          "before": "                if kind==\"ACK-word\" and action==14:\n",
+          "after": "                if kind==\"ACK-word\" and action==14 and view_count==1:\n"
+        },
+        {
+          "before": "                        assembly_slots_unchanged=True,terminal_not_reusable=True,result=cas(frame))",
+          "after": "                        assembly_slots_unchanged=True,terminal_not_reusable=True,result=cas(frame),\n                        actual_ordered_header_and_code_prefix_views=2)"
+        }
+      ],
+      "inverse_exact": true,
+      "plan32_and_all_other_source_bytes_unchanged": true,
+      "view_actual_original_readback_pending": true,
+      "execution": 0
+    },
+    "explicit_modules": {
+      "old": "0016a41e397c6c40eb81d67631d69b9612ccebc0",
+      "new_function": "def same_directory_context_modules():\n    # runpy does not place this test file's directory on sys.path. Bind the\n    # exact two pinned sibling modules explicitly before any public oracle\n    # plan or native call. The builder also resolves these imports pre-B3.\n    expected=[[\"type_context_original_corpus_r1\",11863,\"110f96c2f8a1744d4c65e6487bde8d214d76987a3f9e50afebdecb4199188206\"],[\"type_context_public_plans_r2\",3973,\"1896ec7c44225df0c0acc0e6bdca54e5dcd7ea8e461870b4190995e2b59b8474\"]]\n    loaded={}\n    for name,size,identity in expected:\n        path=PROJECT/\"development\"/(name+\".py\")\n        raw=pin(path);assert (len(raw),digest(raw))==(size,identity),(name,\"exact fixture source\")\n        ast.parse(raw,filename=str(path))\n        spec=importlib.util.spec_from_file_location(name,path)\n        module=importlib.util.module_from_spec(spec)\n        sys.modules[name]=module;spec.loader.exec_module(module)\n        assert Path(module.__file__).resolve()==path.resolve(),name\n        assert pin(path)==raw,name\n        loaded[name]=module\n    assert sys.modules[\"type_context_original_corpus_r1\"] is loaded[\"type_context_original_corpus_r1\"]\n    save(OUT/\"actual-test-module-resolution.json\",dict(status=\"PASS\",sources=[\n        dict(module=name,path=str(PROJECT/\"development\"/(name+\".py\")),bytes=size,sha256=identity)\n        for name,size,identity in expected],runpy_implicit_search_path_not_used=True,\n        no_public_oracle_or_native_case_executed_by_loader=True))\n    return loaded[\"type_context_public_plans_r2\"]\n\n",
+      "old_import_block": "        import type_context_public_plans_r2 as context_plans\n        import type_context_original_corpus_r1 as context_corpus\n        pin(context_plans.__file__);pin(context_corpus.__file__)\n        context_plans.plan(globals(),a.group)",
+      "new_import_block": "        context_plans=same_directory_context_modules()\n        context_plans.plan(globals(),a.group)",
+      "inverse_exact": true,
+      "group14_cases413_unchanged": true,
+      "public_oracle_assertions_unchanged": true,
+      "original_budgets_unchanged": true
+    },
+    "pre_B3_import_inventory": {
+      "original": "eb3ef8ab0a3c47aefbc436bafb9bf18182e88161",
+      "edits": [
+        {
+          "before": "            \"tools.program_authoring\":program/\"tools/program_authoring.py\",\n",
+          "after": "            \"tools.program_authoring\":program/\"tools/program_authoring.py\",\n            \"type_context_original_corpus_r1\":project/\"development/type_context_original_corpus_r1.py\",\n            \"type_context_public_plans_r2\":project/\"development/type_context_public_plans_r2.py\",\n"
+        },
+        {
+          "before": "            \"type_context_exact_diagnostic_driver_generator\":diagnostics/\"tools/generate_hia_core_diagnostic_drivers.py\",\n",
+          "after": "            \"type_context_exact_diagnostic_driver_generator\":diagnostics/\"tools/generate_hia_core_diagnostic_drivers.py\",\n            \"selected_full_group_test_AST_only\":project/\"development/test_worker_type_context_program_r2.py\",\n"
+        },
+        {
+          "before": "            \"hepta.hia_agent_assembly\":reference/\"hepta/hia_agent_assembly.py\",\n",
+          "after": "            \"hepta.hia_agent_assembly\":reference/\"hepta/hia_agent_assembly.py\",\n            \"hepta.hia_program\":reference/\"hepta/hia_program.py\",\n"
+        },
+        {
+          "before": "        stdlib={\"__future__\",\"ast\",\"hashlib\",\"importlib\",\"importlib.util\",\"json\",\"os\",\"pathlib\",\"sys\"}\n",
+          "after": "        stdlib={\"__future__\",\"argparse\",\"ast\",\"copy\",\"ctypes\",\"hashlib\",\"importlib\",\"importlib.util\",\n                \"json\",\"os\",\"pathlib\",\"resource\",\"signal\",\"stat\",\"struct\",\"subprocess\",\"sys\",\n                \"time\",\"traceback\",\"types\",\"zlib\"}\n"
+        },
+        {
+          "before": "        for module,path in references.items():\n            loaded=sys.modules.get(module)\n            assert loaded is not None and Path(loaded.__file__).resolve()==path.resolve(),(module,path)\n            read(path)\n",
+          "after": "        for module,path in references.items():\n            loaded=sys.modules.get(module)\n            if loaded is None:\n                loaded=importlib.import_module(module)\n            assert Path(loaded.__file__).resolve()==path.resolve(),(module,path)\n            read(path)\n        fixture_loads=[]\n        for module,size,identity in (\n            (\"type_context_original_corpus_r1\",11863,\"110f96c2f8a1744d4c65e6487bde8d214d76987a3f9e50afebdecb4199188206\"),\n            (\"type_context_public_plans_r2\",3973,\"1896ec7c44225df0c0acc0e6bdca54e5dcd7ea8e461870b4190995e2b59b8474\"),\n        ):\n            path=private[module];raw=read(path)\n            assert (len(raw),digest(raw))==(size,identity),module\n            loaded=load(module,path)\n            assert Path(loaded.__file__).resolve()==path.resolve(),module\n            assert read(path)==raw,module\n            fixture_loads.append(dict(module=module,path=str(path),bytes=size,sha256=identity,\n                actual_module_loaded_before_B3=True,oracle_case_functions_executed=False))\n        assert sys.modules[\"type_context_original_corpus_r1\"].__file__==str(private[\"type_context_original_corpus_r1\"])\n"
+        },
+        {
+          "before": "            schema=\"hia-type-context-authoring-import-closure-r2\",status=\"PASS\",\n",
+          "after": "            schema=\"hia-type-context-authoring-import-closure-r3\",status=\"PASS\",\n            exact_runpy_test_sibling_import_closure=fixture_loads,\n            full_group_test_static_import_inventory_checked=True,\n            test_module_not_loaded_via_implicit_sys_path=True,\n"
+        }
+      ],
+      "all_other_source_bytes_exact": true,
+      "no_native_HIA_generation_method_changed": true,
+      "pre_B3_module_resolution_and_full_selected_test_static_imports": true,
+      "source_only": true
+    },
+    "builder_metadata": {
+      "original": "9a798ecd359f210cbc05d16dffdec261cb6497f1",
+      "before": "        all_descendant_instruction_text_except_exact_type_transfer_unchanged=True,",
+      "after": "        all_descendant_instruction_text_except_exact_type_transfer_and_reader50_dispatch_unchanged=True,",
+      "inverse_exact": true,
+      "all_native_generation_compile_limits_packer_gates_unchanged": true
+    }
+  },
+  "new_verification_required": {
+    "originals": "Read all 3554 original archive members/CAS and actual4stderr + first2private events before calling original causal chain closed.",
+    "build": "Reproduce all5 retained HIA sources; 13 fresh B3 compiles; actual HIA packer; exact full ELF/padding comparison.",
+    "runtime": "Re-run every original14 group and413 case under the same budgets and strict original public oracle. Count only this actual new execution.",
+    "limits": {
+      "compiler_cpu": 10,
+      "compiler_wall": 20,
+      "compiler_AS": 268435456,
+      "group_cpu": 90,
+      "group_wall": 180,
+      "group_AS": 1073741824,
+      "functions": 128,
+      "blocks": 1536,
+      "operations": 8192,
+      "max_function_blocks": 256,
+      "max_block_parameters": 16,
+      "SSA_suffix_exclusive": 2048
+    }
+  },
+  "whole_Worker_closed": false,
+  "namespace_authority": false,
+  "group6_and9_diagnostics_open": true,
+  "activation": false
+}

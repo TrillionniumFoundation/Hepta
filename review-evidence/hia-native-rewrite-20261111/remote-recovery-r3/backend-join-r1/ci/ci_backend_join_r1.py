@@ -116,9 +116,9 @@ FILES=[
   {
     "path": "tests/backend_mechanical_harness.py",
     "mode": "100644",
-    "bytes": 8829,
-    "sha256": "68e884ce901c2c5611ca72309513ba3b6e605c5338246fd3a4123e12e0a351eb",
-    "gitsha": "f4f8b88d9b77e19ea53d81527d1a6fc0fe9d758c"
+    "bytes": 8853,
+    "sha256": "f481be27e3988e2f92a90c9dd34dea90958c60e1d9b29e52791217e3f890f198",
+    "gitsha": "d255ffd8147d4658ed555c54ac5c79ccf8779973"
   },
   {
     "path": "tests/backend_native_adapter.py",

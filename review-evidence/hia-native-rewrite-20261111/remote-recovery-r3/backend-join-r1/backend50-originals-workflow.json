@@ -1,0 +1,75 @@
+{
+  "schema": "hia-readonly-job-binding-v1",
+  "job_id": "backend50_originals",
+  "tag": "backend50-originals",
+  "outer_timeout_minutes": 15,
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "setup": {
+    "python": "3.12.14",
+    "platform_guard": "existing Ubuntu24.04 x86_64 guard",
+    "additional_packages": []
+  },
+  "artifact": {
+    "repository": "TrillionniumFoundation/Hepta",
+    "run_id": 43220473879,
+    "artifact_id": 13946102285,
+    "ZIP_metadata": {
+      "bytes": 115405158,
+      "sha256": "944561d46d4899cea7317631056210fa41fdeac7b4bd5c9163de060274b44169"
+    },
+    "download_directory_env": "HIA_BACKEND50_ORIGINALS",
+    "action": "actions/download-artifact@v4",
+    "with": {
+      "artifact-ids": "13946102285",
+      "run-id": "43220473879",
+      "repository": "TrillionniumFoundation/Hepta",
+      "github-token": "${{ github.token }}",
+      "path": "${{ env.HIA_BACKEND50_ORIGINALS }}"
+    }
+  },
+  "entry": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-join-r1/ci/read_backend50_originals.py",
+  "command": "python -I -B \"$GITHUB_WORKSPACE/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-join-r1/ci/read_backend50_originals.py\" \\\n  --input \"$HIA_BACKEND50_ORIGINALS\" \\\n  --out \"$HIA_CI_OUTPUT/readback\" \\\n  --observations \"$GITHUB_WORKSPACE/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-join-r1/observations/follow50-originals/observations.json\" \\\n  --helper \"$GITHUB_WORKSPACE/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-join-r1/ci/backend50_first_cross_replay.py\" \\\n  --repaired-harness \"$GITHUB_WORKSPACE/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-join-r1/tests/backend_mechanical_harness.py\"",
+  "inputs": {
+    "observations": {
+      "bytes": 35464,
+      "sha256": "12f45c736d4f74fbf221f05e12f87d45268bf57f5bcbe558acbf78762ba94016",
+      "gitsha": "5544db958ae58c389f6aabfd8595d586a9525667"
+    },
+    "reader": {
+      "bytes": 14318,
+      "sha256": "030d972ac263b7d1b47747251710774b06b18fe12999e98ebd9f1303947b164c",
+      "gitsha": "12e6b19587cd7948bcf39781d00ae817bc5c369b"
+    },
+    "helper": {
+      "bytes": 22961,
+      "sha256": "0e47d970d5faa73884a74165625119ffd562224e28ad652f693f0b61dfa7c380",
+      "gitsha": "e6faa70b24b432c07dbf0347ccf0afad10ff5373"
+    },
+    "repaired_harness": {
+      "bytes": 8853,
+      "sha256": "f481be27e3988e2f92a90c9dd34dea90958c60e1d9b29e52791217e3f890f198",
+      "gitsha": "d255ffd8147d4658ed555c54ac5c79ccf8779973"
+    }
+  },
+  "upload": {
+    "when": "always",
+    "path_env": "HIA_CI_OUTPUT",
+    "preserve_all_files": true
+  },
+  "limits": {
+    "subject_cpu_seconds": 90,
+    "subject_wall_seconds": 180,
+    "address_bytes": 1073741824,
+    "core_bytes": 0
+  },
+  "target_entries": 0,
+  "product_imports": 0,
+  "common_prepare": false,
+  "expected_original_status": "FAIL",
+  "expected_original_completed_cases": 0,
+  "expected_new_qualified_cases": 0,
+  "new_actual_execution_status": "UNEXECUTED"
+}

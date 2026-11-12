@@ -1,0 +1,79 @@
+{
+  "schema": "hia.namespace.DMS9.exact-header-proof-transfer.v1",
+  "status": "NEW_SOURCE_UNEXECUTED",
+  "failure": {
+    "head": "f3d17aac2caabd1a077fee0848707f3a50ac3b46",
+    "run": 43184755381,
+    "job": 131069068418,
+    "role": 4,
+    "message": "DMS fixed-header proof requires the exact reviewed source",
+    "target_B3": 0,
+    "target_native": 0,
+    "original_delivery": "7795b77f36567a33a966a683cd421ce11764e85a"
+  },
+  "immutable_unchanged_authors": {
+    "DMS8": "9ba36ef7fe77ce697a78720e4d7d0039116c386c",
+    "DMS9": "47beb3764f3774acab90883ee202cf5c03b8643d",
+    "values": "3d45466a68eca7a88d2352879ea1979848318f63",
+    "original_helper": "837e09e975db0215d0572cf23d5d129aaf43dfad"
+  },
+  "original_DSL": {
+    "bytes": 70707,
+    "sha256": "7fe09da5b8d59c14d1b5cd6fbc65b4c937677e410356d843a74affc62770d310"
+  },
+  "DMS9_DSL": {
+    "bytes": 70707,
+    "sha256": "95e13ccf13d9780c06e089773133479a44fd83e6d9fc9fe5f0a40820c7946e3e"
+  },
+  "literal_delta": {
+    "before": "dms_read(s, 64) > 24",
+    "after": "dms_read(s, 64) > 29",
+    "occurrences": 1,
+    "reverse_complete_DSL_byte_equal": true,
+    "all_original_guards_reader_bodies_aliases_calls_unchanged": true
+  },
+  "new_helper": {
+    "name": "namespace-dms9-fixed-header-builder-r2.py",
+    "blob": "96e6d51e1008770b3d5060f13812179a1b6da6c8",
+    "bytes": 5807,
+    "sha256": "dce0bf0ba466b84cfffdb8b40921c6d8522fb0e631b4b647adf490176f3338be",
+    "target": "tools/hia_namespace_dms_fixed_header_builder.py"
+  },
+  "validation": {
+    "name": "validate-dms9-header-proof-r2.py",
+    "blob": "d1ceb373aa5dfaf71193ce9615a359897f45a989",
+    "bytes": 9757,
+    "sha256": "29066aa94d0e84c7371da05af28cecc457efd259b550abf0a56997c548a67f00",
+    "target": null
+  },
+  "guard_policy": [
+    "Require exact new70707-byte source digest.",
+    "Require exactly one new bound and no old bound.",
+    "Reverse only that single bound and require the complete old source digest.",
+    "Keep original f0-first-name, direct-positional-call, no-buffer-rebind and origin fixed-point checks byte-identical.",
+    "Keep complete FixedHeaderBuilder class, total read/shift rules and all fallback behavior byte-identical."
+  ],
+  "why_original_totality_proof_survives": "The sole changed operand is a constant in a scalar operation-number comparison. It does not alter either entry buffer-size guard, reader definitions, buffer identities, call graph, byte-read offsets, shift widths or totality checks. The new gate proves the whole remaining DSL is exactly the originally reviewed text before permitting authoring optimization.",
+  "pure_control_plan": {
+    "original_DMS8_accept": 1,
+    "new_DMS9_accept_same_origins_and_bindings": 1,
+    "old_rejects_new": 1,
+    "new_rejects_old": 1,
+    "digest_mutations": 4,
+    "matching_current_digest_still_rejects_original_or_delta_change": 2,
+    "total": 10,
+    "CPU": 10,
+    "wall": 30,
+    "address_bytes": 268435456
+  },
+  "source_delta_beyond_helper": "Each builder changes only its expected helper SHA. Each CI swaps the target helper and builder pin and runs the independent pure proof controls before original6+1B3,33packer,84×3 and all physical groups.",
+  "limits": "Original128functions/1536blocks/8192ops/256blocksPerFunction/16params, B3 10CPU/20wall/256MiB, each fixed process90CPU/180wall/1GiB and physical aggregate900wall all unchanged.",
+  "actual_new_execution": {
+    "AST": 0,
+    "generation": 0,
+    "VM": 0,
+    "B3": 0,
+    "native": 0
+  },
+  "ref_mutations": 0
+}

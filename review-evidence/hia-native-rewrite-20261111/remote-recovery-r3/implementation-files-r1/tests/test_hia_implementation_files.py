@@ -518,7 +518,7 @@ def readback_group(args):
     initial_raw=(case/"initial.bin").read_bytes()
     assert (native/"initial.bin").read_bytes()==initial_raw
     value=adapter.validate_trace(trace,assets,initial_raw,trace_id["bytes"])
-    assert value==json.loads((native/"trace-summary.json").read_bytes())
+    assert dict(value,by_role={str(role):count for role,count in value["by_role"].items()})==json.loads((native/"trace-summary.json").read_bytes())
     slots=json.loads((case/"native-final-slots.json").read_bytes())
     final_value=final_readback(final,final_id,slots,adapter)
     assert (final_value["event_hex"],final_value["returned"],final_value["native_entries"],final_value["commands"])==(value["terminal_hex"],value["returned"],value["native_entries"],value["commands"])

@@ -24,7 +24,7 @@ F=load("emitter_buffer_evidence_reference",HELPER,HELPER_SHA)
 class Mechanical:
  def __init__(self,assets,reference,out):
   self.out=Path(out);self.out.mkdir(parents=True,exist_ok=False)
-  self.evidence=F.Evidence(self.out);self.buffers=F.Buffers();self.images={};self.slots={};self.entries=0;self.calls={};self.commands=0;self.closed=False
+  self.evidence=F.Evidence(self.out);self.buffers=F.Buffers();self.images={};self.slots={};self.entries=0;self.calls={i:0 for i in range(1,22)};self.commands=0;self.closed=False
   self.evidence.pin(__file__);self.evidence.pin(HELPER,HELPER_SHA)
   doc=json.loads(self.evidence.pin(assets))
   assert doc["schema"]=="hia-backend-join-runtime-assets-v1" and set(map(int,doc["roles"]))==set(range(1,22))

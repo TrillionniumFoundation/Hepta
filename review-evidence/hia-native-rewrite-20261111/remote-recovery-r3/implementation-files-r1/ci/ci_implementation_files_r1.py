@@ -76,9 +76,9 @@ FILES=[
   {
     "path": "tests/test_hia_implementation_files.py",
     "mode": "100644",
-    "bytes": 35226,
-    "sha256": "b4636bc61da70a2fd9a8a6a8bfde6da9fe6a78f6ae82ee3e011028d03ac7fe64",
-    "gitsha": "42fad7af4318694b8f1d1c0e3572656a8f455213"
+    "bytes": 35301,
+    "sha256": "ff09bf45efe5b32324de767c69401337008a458fe341051662fe35e5d6fe3837",
+    "gitsha": "19859f832f5cbfca1cdd4c0e8e2f31cdbae6ba3b"
   },
   {
     "path": "tools/build_hia_implementation_files.py",

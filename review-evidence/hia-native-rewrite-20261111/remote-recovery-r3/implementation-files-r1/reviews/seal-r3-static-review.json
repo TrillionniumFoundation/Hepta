@@ -1,0 +1,43 @@
+{
+  "schema": "hia.peer.independent-static-seal-review.v1",
+  "reviewer": "audit_runtime",
+  "source": {
+    "blob": "084a98a1d42e3081612b817e909eb50443d8a924",
+    "bytes": 12302,
+    "sha256": "e74aaa4648fc406628e3dc0530e20b28c2da65a8ff304e9fa90ec85568208724"
+  },
+  "previous_unexecuted_revision": "7d014167dc69e800f1546ff111a416a6cbab1639",
+  "status": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_FORK_REAP_AND_COMPLETION_GATE_SCOPE",
+  "read_scope": [
+    "Full new finish wrapper from fork to final return",
+    "PDEATHSIG startup parent race, setsid, actual CPU/AS/core/affinity limits",
+    "Parent wait4 receipt, timeout killpg with pre-setsid direct-PID fallback, reap and primary exception precedence",
+    "Actual summary/custody reads before parent timing; last postcheck after process receipt and stdout flush"
+  ],
+  "explicitly_not_reviewed": [
+    "Full original streamed traversal/archive/CAS correctness algorithm; only old/new prefix bytes compared",
+    "Caller job integration and outer timeout configuration",
+    "Actual failure injection, AST, fork, compiler, VM or native execution"
+  ],
+  "facts": [
+    "All original _finish_streamed bytes preceding the wrapper are byte-identical between the two supplied revisions.",
+    "The child sets its own session, arms SIGKILL parent-death handling and checks that its original parent still exists before work; CPU90/AS1GiB/core0 and one-CPU affinity are actually read back.",
+    "The parent owns the exact child PID and receives real wait4 status and rusage. An outstanding child is killed and reaped in finally. The session-creation race has a direct PID kill fallback.",
+    "The parent does not claim success from child exit alone: it verifies the actual limit receipt/PIDs and reads both final JSON files before the first parent completion timing.",
+    "The final combined child+parent CPU and wall postcheck occurs after the process receipt write and flushed stdout. A failed final postcheck overwrites the process receipt as FAIL and raises, preserving the original child artifacts.",
+    "Original primary errors remain primary; subsequent kill/reap/save failures are recorded or added as notes rather than replacing the primary exception.",
+    "No target is rerun by this wrapper, and its separate budget cannot retroactively qualify the earlier166CPU sealing history."
+  ],
+  "budget_scope_qualification": "A successful return is subject to the final measured aggregate90CPU/180wall gate. The child has asynchronous CPU/alarm enforcement and the parent supervises the child deadline. Parent metadata/stdout I/O after child reap has a post-completion gate, not a new asynchronous parent alarm; this review does not certify hard interruption of an indefinitely blocked parent write.",
+  "new_execution": {
+    "AST": 0,
+    "source_generation": 0,
+    "C_compile": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "archive_readback": 0
+  },
+  "source_modified": false,
+  "old_results_reclassified": false
+}

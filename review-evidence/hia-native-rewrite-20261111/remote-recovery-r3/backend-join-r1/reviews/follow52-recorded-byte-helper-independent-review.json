@@ -1,0 +1,176 @@
+{
+  "schema": "hia-backend52-recorded-byte-replay-independent-static-review-v1",
+  "reviewer": "audit_runtime",
+  "date_utc": "2026-11-12",
+  "status": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_STATIC_SCOPE_AFTER_BINDING_FIX",
+  "repository": "TrillionniumFoundation/Hepta",
+  "scope": "Static comparison of the pinned read-only replay with the original C and Python mechanical record producers; includes the final helper receipt binding and strict reader CPU predicates. No execution of the reader or project code.",
+  "sources": [
+    {
+      "role": "reader",
+      "git_blob": "12e6b19587cd7948bcf39781d00ae817bc5c369b",
+      "bytes": 14318,
+      "sha256": "030d972ac263b7d1b47747251710774b06b18fe12999e98ebd9f1303947b164c",
+      "read_scope": "complete source text"
+    },
+    {
+      "role": "reader_strict_CPU_predecessor",
+      "git_blob": "28d29377cd91fdf80c675ca06c40e85fbb023402",
+      "bytes": 14318,
+      "sha256": "0970d10e8704e36d80124d961e7c22b7f39f1c8a902e85f337eca2a1f59eb6c4",
+      "read_scope": "complete source text"
+    },
+    {
+      "role": "reader_before_strict_CPU",
+      "git_blob": "410f2d02ff1c025fdabffc328c79b3de71691e8c",
+      "bytes": 14316,
+      "sha256": "f23dd21e80d4f296a04fce1302ab349b7b470deab3db44cd66799711835f4f0b",
+      "read_scope": "complete source text"
+    },
+    {
+      "role": "replay_helper",
+      "git_blob": "e6faa70b24b432c07dbf0347ccf0afad10ff5373",
+      "bytes": 22961,
+      "sha256": "0e47d970d5faa73884a74165625119ffd562224e28ad652f693f0b61dfa7c380",
+      "read_scope": "complete source text"
+    },
+    {
+      "role": "helper_before_receipt_binding",
+      "git_blob": "ad579d74b69d4456497add081e3d44a4a7f0b1cf",
+      "bytes": 22744,
+      "sha256": "3af6d9d2ed204bb27c27b81300aadfaa87a2291cb64fdfb7e4d57fc9770b4b97",
+      "read_scope": "complete source text"
+    },
+    {
+      "role": "original_C_carrier",
+      "git_blob": "9a0770eb18dd1a9b0a1777db1645d47aef5c3794",
+      "bytes": 10431,
+      "sha256": "dae66f88b96826384c6c278e4f391754acdd43c51c989f963bd90e6bc83d764c",
+      "read_scope": "complete source text"
+    },
+    {
+      "role": "original_Python_mechanics",
+      "git_blob": "f4f8b88d9b77e19ea53d81527d1a6fc0fe9d758c",
+      "bytes": 8829,
+      "sha256": "68e884ce901c2c5611ca72309513ba3b6e605c5338246fd3a4123e12e0a351eb",
+      "read_scope": "complete source text"
+    },
+    {
+      "role": "original_native_adapter",
+      "git_blob": "a43445f3153653582e3453e87dcc2b58ab88570e",
+      "bytes": 14782,
+      "sha256": "d5c2732735410dd02be8754ce16db0473bb51febf6b2dc8f11ffd897a42dc4b7",
+      "read_scope": "trace schema, compare_python, final-slot parsing and closed-evidence paths"
+    },
+    {
+      "role": "counter_representation_repair",
+      "git_blob": "d255ffd8147d4658ed555c54ac5c79ccf8779973",
+      "bytes": 8853,
+      "sha256": "f481be27e3988e2f92a90c9dd34dea90958c60e1d9b29e52791217e3f890f198",
+      "read_scope": "complete source text"
+    },
+    {
+      "role": "fixed_observation",
+      "git_blob": "5544db958ae58c389f6aabfd8595d586a9525667",
+      "bytes": 35464,
+      "sha256": "12f45c736d4f74fbf221f05e12f87d45268bf57f5bcbe558acbf78762ba94016",
+      "read_scope": "complete source text"
+    },
+    {
+      "role": "delivery",
+      "git_blob": "b7c46b8e79d8630ebc9f8e2b8eeb5163f2531fff",
+      "bytes": 17747,
+      "sha256": "68ea2c7f72d0bbca2c4fc4d520f31141fba74f99cf63ce93bc1fb636daf0d69c",
+      "read_scope": "metadata and current source identities"
+    }
+  ],
+  "execution": {
+    "AST_checks": 0,
+    "project_imports": 0,
+    "generated_sources": 0,
+    "B3_compiles": 0,
+    "VM_entries": 0,
+    "native_entries": 0,
+    "product_processes": 0,
+    "original_artifact_downloads": 0,
+    "original_archive_member_reads": 0,
+    "actual_replay_runs": 0
+  },
+  "immutable_input": {
+    "original_artifact_id": 13946102285,
+    "original_run_id": 43220473879,
+    "original_job_id": 131190424091,
+    "original_job_status": "FAIL",
+    "original_completed_cases": 0,
+    "expected_tar_members": 19329,
+    "expected_tar_member_bytes": 322056528,
+    "independently_observed_original_bytes_in_this_review": false
+  },
+  "resolved_findings": [
+    {
+      "id": "compile-source-receipt-binding",
+      "classification": "Static readback validation gap; no observed artifact mismatch or public product counterexample",
+      "old_helper": "ad579d74b69d4456497add081e3d44a4a7f0b1cf",
+      "description": "The old helper hashed actual source and image files against each manifest and pinned observation, without explicitly requiring the embedded compile receipt source/input identity to be the same source.",
+      "fix": "The current helper requires receipt.source_sha256 == receipt.input_sha256 == manifest.source_sha256 and receipt.input_bytes == manifest.source_bytes. The preceding complete byte/hash/length comparisons bind this manifest to the archived source. It also requires the 21 observed runtime roles to be exactly set(1..21).",
+      "verified_inverse": {
+        "passed": true,
+        "additions": [
+          " assert {row[\"runtime_role\"] for row in observation[\"observed_build\"][\"roles\"]}==ROLES",
+          "  assert receipt[\"source_sha256\"]==receipt[\"input_sha256\"]==m[\"source_sha256\"]",
+          "  assert receipt[\"input_bytes\"]==m[\"source_bytes\"]"
+        ],
+        "bytesAdded": 217
+      }
+    },
+    {
+      "id": "strict-reader-CPU",
+      "description": "Both successful whole-tree CPU predicates now reject >=90 seconds. Wall predicates remain >=180. The final check follows metadata output and stdout flush; no allowance increased.",
+      "verified_inverse_to_410f": {
+        "passed": true
+      },
+      "exact_difference": "Two >90 to >=90 replacements and two helper Git/SHA constant replacements only."
+    }
+  ],
+  "reviewed_relationships": [
+    {
+      "area": "Actual record schema",
+      "result": "The C producer emits exact limits/image/initial/entry/return/controller/ACK/terminal records. The helper matches that schema, checks the full recorded image against archived bytes, requires serial/role ordering and input dimensions, and correlates each peer return with the pending command. Source/image manifests are now also bound to each compile receipt's input/source identity."
+    },
+    {
+      "area": "All Python snapshots and CAS",
+      "result": "Every page is decompressed and hash checked. Sequential descriptors require their exact previous same-key base, ordered changed-page indices, complete page coverage, precise last-page extent and complete-buffer hash. Every entry consumes exactly three before and three after descriptors; every readonly operand must remain byte identical."
+    },
+    {
+      "area": "Pure mechanical reconstruction",
+      "result": "Reconstruction starts with the original four slots and initial bytes. It implements only recorded CALL/GROW/ZERO/COPY/RELEASE/PROTECT/VIEW. GROW preserves the prior logical bytes and zero fills the extension; readonly operand views do not overwrite persisted permissions. Mutation is confined to the recorded writable logical operands. No Graph, instruction, Code or ELF semantics are run."
+    },
+    {
+      "area": "Every event and ACK",
+      "result": "Each complete stored event and return value is compared to the matching C entry. Every full ACK is reconstructed from the recorded command, actual recorded peer return and current replayed view, then compared to both the original Python ACK CAS and complete C ACK. Controller lease/sequence and terminal correlation remain exact."
+    },
+    {
+      "area": "All final C slots",
+      "result": "The C dump requires the exact header, strictly ordered unique live slot set, sizes, readonly bits, owned/reserved fields, terminal bytes and exact EOF. All slot bytes and permissions are compared to the complete Python replay state. Returned object/text/metadata and linked payload digests are checked separately."
+    },
+    {
+      "area": "Compound original counter failure",
+      "result": "The helper independently derives entry and mechanical-command totals from recorded events, requires dense role counts to equal C, and separately requires the original sparse dictionary to differ only by absent zero roles 12,13,14,15,16. The proposed counter initialization is one exact reversible representation change.",
+      "counter_repair_inverse_exact": true
+    },
+    {
+      "area": "Custody and failure continuation",
+      "result": "The final reader remains an exact derivative of the previously reviewed custody reader: preserve full compressed archive/index/source inputs before parsing artifact JSON; validate all tar members; perform original, retained and extracted after-checks independently; retain the primary exception; include final metadata and stdout in successful budget accounting."
+    }
+  ],
+  "boundaries": [
+    "The original C trace does not store complete intermediate C workspaces. Full intermediate snapshots validated by this helper belong to the Python carrier; the C side exposes recorded return headers/events/ACKs and complete final slots. This is not all-intermediate-C-buffer equivalence.",
+    "Canary status in Python rows is a producer assertion. This review does not inspect live guards or independently repeat any native call.",
+    "Record validation is tied to exact pinned original producers and archive identities. Private fields do not authenticate arbitrary external trace replacements or grant namespace authority.",
+    "No original archive, member index, CAS page or recorded trace was read in this review. Actual read-only CI must establish the member, counter and byte relationships.",
+    "The original cross-0 remains FAIL with zero original completed cases. A successful readback may explain its one recorded assertion; it creates zero newly qualified product cases and does not close the complete backend or public build."
+  ],
+  "previous_custody_only_review": "b86ba65c57751f93f5f4b120495066b3955d6cf0",
+  "refs_changed": 0,
+  "reviewed_sources_mutated": 0
+}

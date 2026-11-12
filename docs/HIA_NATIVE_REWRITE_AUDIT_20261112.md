@@ -1,10 +1,47 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW51）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW52）
 
 ## 当前结论
 
 **整套仍为 OPEN。156个生产模块尚未完成原生安装替换；完整工具链、公开CLI/API、真实Worker/FS/Store/SQL、跨平台与原生安装/冷启动仍须闭合。生产激活0、旧实现删除0。已通过的私有组件、原件读取及旧保留版4,157项回归都不能替代全原生交付。**
 
-## FOLLOW51 最新状态（2026-11-12 13:14:08 UTC）
+## FOLLOW52 最新状态（2026-11-12 13:38:39 UTC）
+
+父提交 `969bebebdd71f5bf185dd5e22ef990cfc0a6bc0b`，tree `e217d3d18f3c1d046c9a4073c1add67d7cc5a0c5`，7,318文件。本轮保存第51轮真实结果，提交六项完整重跑或零目标原件读取。新源码仍未执行，不能把静态审查写成Python AST、HIA生成、B3或native通过。
+
+### 第51轮的实际终态与范围
+
+| 实际任务 | 已核实的结果 | 仍然开放的边界 |
+| --- | --- | --- |
+| 原SQLite process PRNG，job131208740297 | SUCCESS；1 fresh B3与1原C库编译；34场景122次C调用（103 random、19 save/restore），65拒绝控制及1 INT_MAX GROW正控；905次VM和905次native逐入口比较返回值及完整输入、输出、工作区；完整C输出、current/saved 132B状态、回调顺序一致 | mutex、VFS entropy仍是受控foreign peers；真实namespace、OS发行权、ordinary Store没有被这个组件门闭合 |
+| implementation-files，job131208740284 | FAIL；2 fresh B3均PASS_BUILD_ONLY。第一cross-0组2案、2,052原生入口（role1=1,844、role2=208）、360 raw syscalls、2个C进程通过；34份输入字节/mode前后相同 | 随后0目标的原件回读在第521行比较integer role keys与JSON string role keys时失败，其余10个目标组未开始；不能报11组90案通过 |
+| 7份HIA内联源与原impact全门，job131208740363 | FAIL；真实13 fresh B3和2次HIA packer完成。13组中11组通过，共327完整案例、329实际ELF进程 | large-valid与graph-long-report分别为96.451228与95.310825 CPU秒，超过原90CPU总门。两个失败案例不因ELF已经执行而计入完成，完整impact和公开安装仍OPEN |
+| 第51轮源码清单，job131208715414 | PASS_SOURCE_SYNTAX_ONLY；完整484,082B日志中819条路径、顺序、mode、bytes、Git和SHA与提交清单全部一致 | 语法通过不授予语义或原生安装资格 |
+| Core51，run43225855354 | 截至本次观察，source SUCCESS，native仍IN_PROGRESS | 不继承旧Core37成功，不提前宣称当前冷启动或完整Core通过 |
+
+PRNG主体实测46.195158668000005 CPU秒、47,961,285,697ns，含54份源的最终回读，无cleanup/after错误。真实HIA profile为24函数、304blocks、1102ops、最大每函数57blocks、5个block参数、SSA280。完整610,935B日志与54,278B producer console JSON均全文回读，根从日志独立重取原JSON并逐字匹配；原始HIA和image字节仍在artifact13947997468中，没有冒称已经上传Git或独立下载全包。producer内包2,100成员/45,190,777原字节，当前属于producer封存证据，尚无第二次全包/CAS重放。
+
+implementation的controller实际29函数/460blocks/4083ops、maxparams15、SSA1990，hash实际5函数/67blocks/620ops、maxparams10、SSA685；两者没有越过原profile门。第一次实际目标组2.568096 CPU秒，2.380747862wall秒；随后只读组1.781118 CPU秒就失败。新独立seal实测父子7.539846948 CPU秒、8.200993809wall秒且PASS，但subject仍FAIL。该seal的child受异步预算监管；父进程回收后的metadata/stdout最终写出纳入事后总量检查，不虚构可打断任意阻塞父写入的硬时限，也不追溯给旧checked-plan49 seal增加90/180门。
+
+impact保留完整595,572B原日志、两份完整build打印、13份group打印和custody。两个失败组的原断言分别观察96.334649与95.18259300000001 CPU秒；全组最终数字更大，均保留而不改写。11个通过组的完整oracle、CAS与source/image前后检查通过；两个失败组的完整result equality没有成立。原件artifact13948294840的ZIP为99,436,852B，SHA256 `1b1509d6f1aba5ff1f10e907f4ae8c31cad3431ffc01131d16bcd89f77d6d920`；producer内包40,901,028B/3,538成员/260,366,769原字节，根尚未独立下载。仍须在原90CPU/180wall/1GiB下继续实际优化和重跑，不能增加预算或把327案与旧328案拼成一次329案通过。
+
+### 第52轮六项选定入口
+
+1. **类型上下文完整组合：14组413案、251个实际ELF，13 fresh B3与1实际HIA packer。** 精确恢复角色41/43的kind0 executor调用component50；kind2原路径先分支，其他kind/角色不放开新权限。HIA BODY、attach、old/new transfer等原文本前缀完整不变。public plans通过精确模块路径和绑定加载；private context fixture只允许原header VIEW和随后精确code-prefix VIEW，第三次仍拒绝。原32项private完整控制、所有诊断与公共案例保留。13个改动上下文组合必须全部fresh执行，不继承旧277通过数。根逐项正逆文本还原，runtime独审已读完整源码，仍不是运行结果。
+2. **第50轮类型原件：0新目标。** 严格下载整个artifact13945268820原ZIP，校验98,664,861B及完整SHA、CRC，再读全部3,554内包成员、189,178,620原字节与命名CAS。保留完整实际32B stderr、两次private event和实际精确组装source。只有读到原字节才可把先前错误帧哈希推断升格为原件事实。读取器修正精确完整路径，不用basename猜测；传输与读取各自独立原90CPU/180wall/1GiB。
+3. **原42组issued-FS：继续使用原DMS9。** 保留47个原输入pin、10个原源码控制、6角色与packer fresh B3、33packer控制、84×旧VM/新VM/native，以及原42组900秒聚合门。唯一HIA helper变更为八次有序byte load/store与shift展开；没有bulk访问、预先bounds、缓存或阈值改动，早期陷阱/部分写入顺序保留，不声称任意fuel耗尽时逐步等价。6个作者各只有一次exact hook，builder只有6源pin与helper依赖，CI的12处文本变更均可完整逆回原42源码。原DMS9 guard在变换前检查精确旧DSL/AST；另外增加8项负控与6项逆回证明，未删除旧控制。这与FOLLOW50成功的FS9/framer DMS10组合是不同证据。
+4. **后端完整组合：22组133案、72控制，21 fresh B3。** 只把Python机械harness的角色计数从空字典改为1..21全零初始化，HIA/C业务源码不变，完整entries/calls/commands、ACK、slots和结果比较仍然严格。CI只更新三项对应身份。原cross-0仍FAIL/0完整案，4,904实际入口不转写成通过。
+5. **后端第50轮原件：0新目标。** 外ZIP只采用原API/producer元数据；实际全读内包50,284,504B、19,329成员/322,056,528原字节及8,492,520B ledger。纯stdlib helper重放原C事件、全部Python三缓冲区前后CAS、命令ACK及最终全部slot字节/权限；原C未提供完整中间工作区，不声称该层对等。收据source/input哈希与字节数已显式绑定实际归档source；两处成功CPU条件严格拒绝>=90。根与runtime已独审完整源码，实际读取仍待CI。读回成功只能解释旧失败，不产生新产品合格案例。
+6. **implementation-files完整重跑：11组90案、49控制，2 fresh B3。** 只在第521行把trace validator的by_role整数键映射成字符串后做原完整字典相等比较；每个计数和其他字段原样保留。CI仅3个精确身份替换。根已做完整正逆文本比较，其他17个活动输入不变；上次cross的2案不被继承，本次全部fresh重跑。
+
+### 源码、证据与发布边界
+
+本轮活动Python清单832份，其中732份逐路径/mode/bytes/Git/SHA与上一轮通过的819清单完全一致，另100份新增或改动源码全文Git回读。旧36份FS与47份typejoin活动路径只退出当前选择，文件留存；新增两对零目标transport/readback脚本。6处被覆盖的原backend与implementation文件在本轮树中的history路径保留原完整身份。148个恢复job都保留Ubuntu24.04/x86_64显式域门；原146中仅两个入口指向新完整source bundle，新增两个只读job，其他144job字节不变。
+
+本轮payload共216文件、5,843,445B，210新增、6替换，全部完整Git GET并核SHA256/Git SHA1；随后另生成审计、checkpoint、workflow、语法清单、根静态报告与publication manifest。所有原console JSON正文未经JS数字解析后重编码；解析结果仅作为衍生观察，原打印文件末尾whitespace不冒充artifact原文件。发布仍按完整blob→tree→commit回读→expected-head CAS→ref复核进行，0文件删除。
+
+完整public CLI/API、动态诊断、编译与原生安装策略、真实Worker/namespace/Store/SQL、跨平台及仅HIA环境中的全回归继续OPEN。继续推进实际UnixOpen→framer→sharedFS发行链、公开group6/9诊断与emit transaction；这些工作尚未取得本轮资格，不在本轮结果中提前计PASS。**全156个生产Python模块的安装替换仍为0；只有整套在旧业务实现不可调用的环境中完成验收，才进入用户要求的旧整套清理。**
+
+## FOLLOW51 提交前历史记录（2026-11-12 13:14:08 UTC）
 
 父提交为 49e5cd97f11b3fb35d8a390e7ad4ed0c5b2fe030，tree 9279e975e53f367c6a2c5eecbeaf9c8d5ca0b6e1，7,083文件。整套仍OPEN，156个生产Python模块均未完成原生安装替换，生产激活0、删除0。下面明确区分实际执行结果、原件读取与本轮尚未执行的源码。
 

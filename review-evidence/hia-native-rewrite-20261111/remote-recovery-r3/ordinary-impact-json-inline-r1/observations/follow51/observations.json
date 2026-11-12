@@ -1,0 +1,184 @@
+{
+  "schema": "hia-seven-inline-follow51-actual-results-v1",
+  "head": "969bebebdd71f5bf185dd5e22ef990cfc0a6bc0b",
+  "run_id": 43225855642,
+  "job_id": 131208740363,
+  "conclusion": "failure",
+  "completed_at": "2026-11-12T13:34:08Z",
+  "log": {
+    "bytes": 595572,
+    "gitsha": "3d7b78deb701fd2e248e5cff0ae3d94838a7bb6b",
+    "sha256": "1defd85a048fd13695ff8ae21efbf22cec93a49489caad3de9c733f69da2a773"
+  },
+  "actual_build": {
+    "baseline_fresh_B3": 6,
+    "baseline_actual_HIA_packer": 1,
+    "new_inline_fresh_B3": 7,
+    "candidate_actual_HIA_packer": 1,
+    "group_exact_image_source_afterchecks": 13,
+    "all_63_roles_accounted_in_candidate": true
+  },
+  "actual_groups": [
+    {
+      "group": "semantic",
+      "status": "PASS",
+      "completed_cases": 113,
+      "actual_native_processes": 113,
+      "parent_plus_children_cpu_seconds": 17.760868000000002,
+      "elapsed_ns": "17902028523",
+      "error": null
+    },
+    {
+      "group": "errors",
+      "status": "PASS",
+      "completed_cases": 58,
+      "actual_native_processes": 58,
+      "parent_plus_children_cpu_seconds": 4.746798999999999,
+      "elapsed_ns": "4811889956",
+      "error": null
+    },
+    {
+      "group": "interfaces",
+      "status": "PASS",
+      "completed_cases": 48,
+      "actual_native_processes": 48,
+      "parent_plus_children_cpu_seconds": 7.214583,
+      "elapsed_ns": "7271500739",
+      "error": null
+    },
+    {
+      "group": "input",
+      "status": "PASS",
+      "completed_cases": 67,
+      "actual_native_processes": 67,
+      "parent_plus_children_cpu_seconds": 4.563143999999999,
+      "elapsed_ns": "4637212646",
+      "error": null
+    },
+    {
+      "group": "identity",
+      "status": "PASS",
+      "completed_cases": 3,
+      "actual_native_processes": 3,
+      "parent_plus_children_cpu_seconds": 5.420905,
+      "elapsed_ns": "5428793208",
+      "error": null
+    },
+    {
+      "group": "functions-1024",
+      "status": "PASS",
+      "completed_cases": 1,
+      "actual_native_processes": 1,
+      "parent_plus_children_cpu_seconds": 6.209848,
+      "elapsed_ns": "6216024361",
+      "error": null
+    },
+    {
+      "group": "large-bytes",
+      "status": "PASS",
+      "completed_cases": 1,
+      "actual_native_processes": 1,
+      "parent_plus_children_cpu_seconds": 43.198777,
+      "elapsed_ns": "43230157258",
+      "error": null
+    },
+    {
+      "group": "large-nodes",
+      "status": "PASS",
+      "completed_cases": 1,
+      "actual_native_processes": 1,
+      "parent_plus_children_cpu_seconds": 59.182991,
+      "elapsed_ns": "59228234478",
+      "error": null
+    },
+    {
+      "group": "large-valid",
+      "status": "FAIL",
+      "completed_cases": 0,
+      "actual_native_processes": 1,
+      "parent_plus_children_cpu_seconds": 96.451228,
+      "elapsed_ns": "96534182280",
+      "error": "('original aggregate CPU bound', 96.334649)"
+    },
+    {
+      "group": "impact-semantic",
+      "status": "PASS",
+      "completed_cases": 33,
+      "actual_native_processes": 33,
+      "parent_plus_children_cpu_seconds": 7.277508,
+      "elapsed_ns": "7319094222",
+      "error": null
+    },
+    {
+      "group": "graph-1024",
+      "status": "PASS",
+      "completed_cases": 1,
+      "actual_native_processes": 1,
+      "parent_plus_children_cpu_seconds": 15.412612,
+      "elapsed_ns": "15426814974",
+      "error": null
+    },
+    {
+      "group": "graph-dense",
+      "status": "PASS",
+      "completed_cases": 1,
+      "actual_native_processes": 1,
+      "parent_plus_children_cpu_seconds": 16.73449,
+      "elapsed_ns": "16749688132",
+      "error": null
+    },
+    {
+      "group": "graph-long-report",
+      "status": "FAIL",
+      "completed_cases": 0,
+      "actual_native_processes": 1,
+      "parent_plus_children_cpu_seconds": 95.31082500000001,
+      "elapsed_ns": "95394066227",
+      "error": "('original aggregate CPU bound', 95.18259300000001)"
+    }
+  ],
+  "qualified_groups": 11,
+  "failed_groups": 2,
+  "completed_cases": 327,
+  "actual_native_processes": 329,
+  "old_passes_inherited": 0,
+  "failures": [
+    {
+      "group": "large-valid",
+      "assertion_CPU_seconds": 96.334649,
+      "whole_group_CPU_seconds": 96.451228
+    },
+    {
+      "group": "graph-long-report",
+      "assertion_CPU_seconds": 95.18259300000001,
+      "whole_group_CPU_seconds": 95.31082500000001
+    }
+  ],
+  "limits": {
+    "whole_group_CPU_seconds": 90,
+    "whole_group_wall_seconds": 180,
+    "address_bytes": 1073741824
+  },
+  "original_limits_unchanged": true,
+  "failure_boundary": "Both groups executed their one candidate ELF, but the complete group CPU assertion failed before a completed-case result. Native success, full public output equality or public full-impact closure must not be inferred from the process count.",
+  "artifact": {
+    "id": 13948294840,
+    "ZIP_bytes": 99436852,
+    "ZIP_SHA256": "1b1509d6f1aba5ff1f10e907f4ae8c31cad3431ffc01131d16bcd89f77d6d920",
+    "inner_archive_bytes": 40901028,
+    "inner_archive_SHA256": "b8a90321c1891fd2485dcd9c925346d4e74b81610174c35e825651446aea26ea",
+    "member_index_bytes": 1561783,
+    "member_index_SHA256": "90ea9d889d21067076663d04e9e1141e3ead84e9e400932113d6cac53809a420",
+    "members": 3538,
+    "original_bytes": 260366769,
+    "producer_full_original_and_tar_readback": true,
+    "root_independent_archive_readback": false
+  },
+  "original_console_JSON_retained_without_reserialization": true,
+  "printed_JSON_boundary": "Full balanced console JSON text after removing only GitHub timestamp and marker; one LF is appended for storage. This is not independent readback of the original artifact file whitespace.",
+  "post_failure_artifact_seal_is_not_subject_qualification": true,
+  "source_edit_or_target_reexecution_during_root_readback": 0,
+  "whole_stack_closed": false,
+  "installed_activation": 0,
+  "deletions": 0
+}

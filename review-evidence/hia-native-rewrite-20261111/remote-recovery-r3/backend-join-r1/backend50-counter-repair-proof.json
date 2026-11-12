@@ -1,0 +1,87 @@
+{
+  "schema": "hia-backend-counter-representation-minimal-repair-v1",
+  "status": "NEW_SOURCE_ONLY_UNEXECUTED",
+  "original_observation": {
+    "bytes": 35464,
+    "sha256": "12f45c736d4f74fbf221f05e12f87d45268bf57f5bcbe558acbf78762ba94016",
+    "gitsha": "5544db958ae58c389f6aabfd8595d586a9525667"
+  },
+  "old_harness": {
+    "bytes": 8829,
+    "sha256": "68e884ce901c2c5611ca72309513ba3b6e605c5338246fd3a4123e12e0a351eb",
+    "gitsha": "f4f8b88d9b77e19ea53d81527d1a6fc0fe9d758c"
+  },
+  "repaired_harness": {
+    "bytes": 8853,
+    "sha256": "f481be27e3988e2f92a90c9dd34dea90958c60e1d9b29e52791217e3f890f198",
+    "gitsha": "d255ffd8147d4658ed555c54ac5c79ccf8779973"
+  },
+  "exact_substitution": {
+    "before": "self.slots={};self.entries=0;self.calls={};self.commands=0;self.closed=False",
+    "after": "self.slots={};self.entries=0;self.calls={i:0 for i in range(1,22)};self.commands=0;self.closed=False",
+    "matches": 1,
+    "full_reverse_original_bytes_equal": true
+  },
+  "original_adapter_unchanged": {
+    "bytes": 14782,
+    "sha256": "d5c2732735410dd02be8754ce16db0473bb51febf6b2dc8f11ffd897a42dc4b7",
+    "gitsha": "a43445f3153653582e3453e87dcc2b58ab88570e"
+  },
+  "original_strict_entry_call_command_assertion_unchanged": true,
+  "all_final_slot_bytes_permissions_comparison_unchanged": true,
+  "all_native_return_event_and_ACK_comparisons_unchanged": true,
+  "production_HIA_source_generators_and_C_carrier_unchanged": true,
+  "old_CI": {
+    "bytes": 50981,
+    "sha256": "b29bd35ce67c456f2d4542aa43b7e90df82629c93faeb4bb1443e25d32f981d4",
+    "gitsha": "41d5e5ddda9a09abd2c94a1a4b32cd524d93fbf0"
+  },
+  "new_CI": {
+    "bytes": 50981,
+    "sha256": "fe2bae278a3ddb63b84bde99c93d75c4f161ad828157db1b00620a1f4a507411",
+    "gitsha": "88509d5496ac9428d37b31c78df89770e9ad8381"
+  },
+  "CI_changes": [
+    {
+      "before": "f4f8b88d9b77e19ea53d81527d1a6fc0fe9d758c",
+      "after": "d255ffd8147d4658ed555c54ac5c79ccf8779973"
+    },
+    {
+      "before": "68e884ce901c2c5611ca72309513ba3b6e605c5338246fd3a4123e12e0a351eb",
+      "after": "f481be27e3988e2f92a90c9dd34dea90958c60e1d9b29e52791217e3f890f198"
+    },
+    {
+      "before": "\"bytes\": 8829",
+      "after": "\"bytes\": 8853"
+    }
+  ],
+  "CI_full_inverse_original_bytes_equal": true,
+  "retained_test_source": {
+    "bytes": 34032,
+    "sha256": "7f3062a520bc546258f3bf4d715025a63a657d14232d3fc9cbed0c62f8a17095",
+    "gitsha": "cdf5a6c0c43963d4f5e1f636443092c12d62877e"
+  },
+  "retained_schedule": {
+    "groups": 22,
+    "cases": 133,
+    "private_controls": 72
+  },
+  "limits": {
+    "B3": {
+      "cpu_seconds": 10,
+      "wall_seconds": 20,
+      "address_bytes": 268435456
+    },
+    "each_subject_group": {
+      "cpu_seconds": 90,
+      "wall_seconds": 180,
+      "address_bytes": 1073741824
+    }
+  },
+  "initialization_effect": "Every role starts with an explicit zero. Existing increments, get(role,0), aggregation, target calls and all strict comparison expressions are unchanged. Missing zero keys become representationally identical to the existing C adapter's 21-role dictionary.",
+  "actual_case_status": "The original FOLLOW50 first cross remains FAIL with zero completed cases. The new source is not treated as qualified until its independent original-data readback and actual fresh test gates run.",
+  "new_AST": 0,
+  "new_B3": 0,
+  "new_VM": 0,
+  "new_native": 0
+}

@@ -1,0 +1,202 @@
+
+        def issued_fs_input(self,c,op,*,caller=1,a=0,b=0,carg=0,d=0,body=b""):
+            terminal=[entry for entry in trace_records(c.output)[1]
+                if entry["role"]==6 and entry["code"]==0]
+            self.assertTrue(terminal)
+            work=terminal[-1]["work"]
+            self.assertEqual(struct.unpack_from("<Q",work,8)[0],1)
+            scope=struct.unpack_from("<2Q",work,80)
+            call=struct.unpack_from("<Q",work,216)[0]
+            self.assertLess(call,MASK);self.assertNotEqual(caller,0)
+            values=[int.from_bytes(b"HIANFR03","little"),2,*scope,call+1,0,
+                op,0,a,b,carg,d,len(body),caller,*([0]*18)]
+            self.assertEqual(len(values),32)
+            return struct.pack("<32Q",*values)+body
+
+        def fs_source_records_since(self,directory,offset):
+            path=Path(directory)/"trace.bin";end=path.stat().st_size;sources=[]
+            with path.open("rb") as stream:
+                stream.seek(offset)
+                def take(n):
+                    raw=stream.read(n);self.assertEqual(len(raw),n);return raw
+                while stream.tell()<end:
+                    header=struct.unpack("<12Q",take(96));role=replayer.MAGICS[header[0]]
+                    if header[1]==1:
+                        source=take(header[3]);take(header[4]);take(header[5])
+                        if role==1:sources.append(source)
+                    elif header[1]==2:
+                        take(header[4]);take(header[5])
+                    elif header[1]==3:
+                        take(header[3])
+                    else:self.assertEqual(header[1],4)
+                self.assertEqual(stream.tell(),end)
+            self.assertEqual(path.stat().st_size,end)
+            return sources
+
+        def issued_fs(self,c,op,*,caller=1,a=0,b=0,carg=0,d=0,body=b"",expect_errno=0):
+            raw=self.issued_fs_input(c,op,caller=caller,a=a,b=b,carg=carg,d=d,body=body)
+            offset=(c.output/"trace.bin").stat().st_size
+            _,payload=c.call(11,body=raw)
+            self.assertGreaterEqual(len(payload),256)
+            result=struct.unpack_from("<32Q",payload)
+            self.assertEqual(result[0],int.from_bytes(b"HIANFR03","little"))
+            self.assertEqual((result[1],result[6],result[7],result[14],result[15],result[22]),
+                (0,op,expect_errno,caller,1,3))
+            self.assertEqual(result[2:5],struct.unpack_from("<3Q",raw,16))
+            self.assertEqual(len(payload),256+result[16])
+            # The first actual FS invocation in this call is the exact issued
+            # bytes; subsequent ACK/GROW entries belong to that same call.
+            sources=self.fs_source_records_since(c.output,offset)
+            self.assertTrue(sources);self.assertEqual(sources[0],raw)
+            entries=trace_records(c.output)[1]
+            completed=[entry for entry in entries if entry["role"]==1 and entry["code"]==0]
+            self.assertTrue(completed)
+            actual=completed[-1]["output"]
+            self.assertEqual(payload,actual[:256+struct.unpack_from("<Q",actual,128)[0]])
+            dms=[entry for entry in entries if entry["role"]==4 and entry["code"]==0]
+            self.assertTrue(dms);self.assertEqual(dms[-1]["work"][768:1024],raw[:256])
+            return result,payload[256:]
+
+        def test_35_issued_FS_preserves_caller_and_actual_zero_descriptor(self):
+            data=b"\x00\xff\nbinary-issued-FS\x80\x00"
+            path=self.database(content=data)
+            with self.carrier() as c:
+                opened,_=self.issued_fs(c,25,caller=MASK,b=os.O_RDWR|os.O_CLOEXEC,
+                    carg=0o600,body=os.fsencode(path))
+                token=opened[8];self.assertGreater(token,0);self.assertEqual(opened[9],0)
+                _,read=self.issued_fs(c,2,caller=1,a=token,b=len(data),carg=0)
+                self.assertEqual(read,data)
+                changed=b"\xff\x00issued-write"
+                written,_=self.issued_fs(c,3,caller=7,a=token,b=2,body=changed)
+                self.assertEqual(written[8],len(changed))
+                self.assertEqual(path.read_bytes(),data[:2]+changed+data[2+len(changed):])
+                self.issued_fs(c,8,caller=2,a=token)
+            replay_instance(c.output)
+            self.assertEqual([entry["raw_return"] for entry in fs_events(c.output,25)],[0])
+
+        def test_36_issued_and_legacy_gateway_share_one_FS_sequence_and_registry(self):
+            path=self.database()
+            with self.carrier() as c:
+                first,_=c.filesystem(25,b=os.O_RDONLY|os.O_CLOEXEC,body=os.fsencode(path))
+                first_token=first[8]
+                closed,_=self.issued_fs(c,8,caller=1,a=first_token)
+                self.assertGreater(closed[4],first[4])
+                second,_=self.issued_fs(c,25,caller=1,b=os.O_RDONLY|os.O_CLOEXEC,
+                    body=os.fsencode(path))
+                self.assertGreater(second[8],first_token);self.assertEqual(second[9],0)
+                c.filesystem(8,a=second[8])
+                pid,_=self.issued_fs(c,26,caller=MASK)
+                self.assertEqual(pid[8],c.owned_native_pid())
+                c.filesystem(26)
+            replay_instance(c.output)
+            requests=[entry for entry in trace_records(c.output)[1] if entry["role"]==1 and entry["code"]==0]
+            calls=[struct.unpack_from("<Q",entry["output"],32)[0] for entry in requests]
+            self.assertEqual(calls,list(range(len(calls))))
+
+        def test_37_issued_known_empty_path_errors_keep_following_session_usable(self):
+            with self.carrier() as c:
+                opened,body=self.issued_fs(c,28,caller=1,b=os.O_RDONLY|os.O_CLOEXEC,
+                    body=b"",expect_errno=errno.ENOENT)
+                self.assertEqual(body,b"");self.assertEqual(opened[8:10],(0,0))
+                result,body=self.issued_fs(c,29,caller=2,body=b"",expect_errno=errno.ENOENT)
+                self.assertEqual(body,b"");self.assertEqual(result[16],0)
+                pid,_=self.issued_fs(c,26,caller=1)
+                self.assertEqual(pid[8],c.owned_native_pid())
+            replay_instance(c.output)
+            self.assertEqual([r["raw_return"] for r in fs_events(c.output,28)],[(-errno.ENOENT)&MASK])
+            self.assertEqual([r["raw_return"] for r in fs_events(c.output,29)],[(-errno.ENOENT)&MASK])
+
+        def test_38_issued_STAT_returns_exact_logical_400_bytes_and_full_real_stat(self):
+            path=self.database(content=b"stat-issued")
+            expected=path.stat()
+            with self.carrier() as c:
+                result,raw=self.issued_fs(c,29,caller=901,body=os.fsencode(path))
+                self.assertEqual(len(raw),144)
+                self.assertEqual(result[16],144)
+                self.assertEqual(result[8:10],(expected.st_dev,expected.st_ino))
+                self.assertEqual(struct.unpack_from("<2Q",raw),(expected.st_dev,expected.st_ino))
+                self.assertEqual(struct.unpack_from("<q",raw,48)[0],expected.st_size)
+            replay_instance(c.output)
+
+        def test_39_issued_raw_EINTR_is_one_real_IO_and_no_implicit_retry(self):
+            path=self.database();launcher,baseline=self.tracer("issued-open-baseline")
+            with self.carrier(launcher=launcher) as c:
+                result,_=self.issued_fs(c,25,caller=13,b=os.O_RDONLY|os.O_CLOEXEC,
+                    body=os.fsencode(path))
+                self.issued_fs(c,8,caller=14,a=result[8])
+            replay_instance(c.output)
+            selected=syscall_ordinal(baseline,"openat",lambda line:str(path) in line)
+            save(self.case/"selected-issued-open.json",selected)
+            launcher,log=self.tracer("issued-open-fault",
+                f"inject=openat:error=EINTR:when={selected['ordinal']}")
+            with self.carrier(launcher=launcher) as failed:
+                result,body=self.issued_fs(failed,25,caller=13,b=os.O_RDONLY|os.O_CLOEXEC,
+                    body=os.fsencode(path),expect_errno=errno.EINTR)
+                self.assertEqual(body,b"");self.assertEqual(result[8:10],(0,0))
+                self.assertEqual(len(fs_events(failed.output,25)),1)
+                result,_=self.issued_fs(failed,25,caller=14,b=os.O_RDONLY|os.O_CLOEXEC,
+                    body=os.fsencode(path))
+                self.issued_fs(failed,8,caller=15,a=result[8])
+            self.assertIn("INJECTED",log.read_text());replay_instance(failed.output)
+            self.assertEqual([row["raw_return"] for row in fs_events(failed.output,25)],
+                [(-errno.EINTR)&MASK,0])
+
+        def test_40_issued_raw_close_cannot_bypass_live_DB_token_registration(self):
+            path=self.database()
+            with self.carrier() as c:
+                token,handle,_,_=self.register(c,path)
+                before=len(fs_events(c.output))
+                raw=self.issued_fs_input(c,8,caller=3,a=token)
+                c.call_number+=1
+                header,_=c.request(transport.frame(11,session=c.session,call=c.call_number,
+                    lease=1000+c.call_number,body=raw),label="issued-registered-close")
+                self.assertEqual(header[1],0xfffffffd)
+                header,_=c.request(transport.frame(1,session=c.session,a=171,b=183),
+                    label="issued-after-permanent-refusal")
+                self.assertEqual(header[1],0xfffffffd)
+                self.assertEqual(len(fs_events(c.output)),before)
+            replay_instance(c.output)
+
+        def test_41_issued_header_sequence_scope_and_extent_refusals_precede_IO(self):
+            mutations=[("magic",0,0),("command",8,1),("scope",16,999),("sequence",32,0),
+                ("sysseq",40,1),("operation",48,30),("error",56,1),
+                ("payload-size",96,1),("zero-caller",104,0),("reserved",112,1)]
+            observations=[]
+            for label,offset,value in mutations:
+                with self.subTest(label=label):
+                    with self.carrier() as c:
+                        raw=bytearray(self.issued_fs_input(c,26,caller=1))
+                        struct.pack_into("<Q",raw,offset,value)
+                        before=len(fs_events(c.output))
+                        header,_=c.request(transport.frame(11,session=c.session,call=1,lease=1001,
+                            body=bytes(raw)),label="issued-"+label)
+                        self.assertEqual(header[1],0xfffffffd)
+                        header,_=c.request(transport.frame(1,session=c.session,a=171,b=183),
+                            label="issued-after-"+label)
+                        self.assertEqual(header[1],0xfffffffd)
+                        self.assertEqual(len(fs_events(c.output)),before)
+                    result=replay_instance(c.output)
+                    observations.append(dict(label=label,native_entries=result["native_entries"],
+                        VM_entries=result["vm_entries"],actual_primitive_ACKs=len(fs_events(c.output))))
+            self.assertEqual(len(observations),10)
+            save(self.case/"issued-header-controls.json",observations)
+
+        def test_42_issued_input_and_output_GROW_never_reissue_completed_IO(self):
+            data=bytes(range(256))*32+b"tail"
+            path=self.database(content=data)
+            with self.carrier() as c:
+                too_long,_=self.issued_fs(c,28,caller=1,b=os.O_RDONLY|os.O_CLOEXEC,
+                    body=b"a"*5000,expect_errno=errno.ENAMETOOLONG)
+                self.assertEqual(too_long[16],0)
+                opened,_=self.issued_fs(c,25,caller=2,b=os.O_RDONLY|os.O_CLOEXEC,
+                    body=os.fsencode(path))
+                _,actual=self.issued_fs(c,2,caller=1,a=opened[8],b=len(data),carg=0)
+                self.assertEqual(actual,data)
+                self.issued_fs(c,8,caller=2,a=opened[8])
+            replay_instance(c.output)
+            events,entries=trace_records(c.output)
+            self.assertEqual(len([row for row in events if row["role"]==1 and row["operation"]==28]),1)
+            self.assertEqual(len([row for row in events if row["role"]==1 and row["operation"]==25]),1)
+            self.assertEqual(len([row for row in events if row["role"]==1 and row["operation"]==2]),1)
+            self.assertTrue(any(row["role"]==6 and row["code"]==2 for row in entries))
+

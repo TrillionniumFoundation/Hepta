@@ -7460,7 +7460,7 @@ jobs:
       !contains(github.event.head_commit.message, '[hia-ci:') ||
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-issued-fs-request-bridge]')
-    name: Complete issued FS requests through one namespace and all42 physical groups
+    name: Original42 issued FS with three exact byte helpers and full replay
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -7513,7 +7513,7 @@ jobs:
         env:
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-issued-fs-request-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/issued-fs-bridge-r4/ci_namespace_issued_fs_r4.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-issued-fs-request-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/issued-fs-exact-byte-r1/ci_namespace_issued42_exact_byte.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-issued-fs-request-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -8628,7 +8628,7 @@ jobs:
         env:
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-worker-program-type-context-join-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-program-type-context-join-r2/worker_program_type_context_join_ci_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-program-type-context-join-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-program-type-context-join-r3/worker_program_type_context_join_ci_r3.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-program-type-context-join-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -9143,6 +9143,128 @@ jobs:
             ${{ runner.temp }}/hia-source-syntax-driver.log
             ${{ runner.temp }}/hia-namespace-process-prng-complete-r1-recovery
             ${{ runner.temp }}/hia-namespace-process-prng-complete-r1-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  worker_typejoin50_original_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:worker-typejoin50-original-readback]')
+    name: Read exact whole type context failure and complete original ZIP
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
+      - name: Check out exact submitted original archives and reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Fetch and verify complete immutable original ZIP
+        shell: bash
+        env:
+          HIA_ARTIFACT_TOKEN: ${{ github.token }}
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/download_typejoin50_original_zip_r1.py --output "$RUNNER_TEMP/typejoin50-original-input/typejoin50-original.zip"
+      - name: Read exact complete original artifacts without target execution
+        shell: bash
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_worker_typejoin50_original_r3.py --zip "$RUNNER_TEMP/typejoin50-original-input/typejoin50-original.zip" --out "$RUNNER_TEMP/hia-worker-typejoin50-original-readback-r3" 2>&1 | tee "$RUNNER_TEMP/hia-worker-typejoin50-original-readback-r3-driver.log"
+      - name: Preserve all complete original readbacks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-worker-typejoin50-original-readback-r3-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/typejoin50-original-input
+            ${{ runner.temp }}/hia-worker-typejoin50-original-readback-r3
+            ${{ runner.temp }}/hia-worker-typejoin50-original-readback-r3-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  backend50_originals:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:backend50-originals]')
+    name: Read full backend50 originals and recorded C Python comparison
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HIA_BACKEND50_ORIGINALS: ${{ runner.temp }}/hia-backend50-original-input
+      HIA_CI_OUTPUT: ${{ runner.temp }}/hia-backend50-original-readback
+    steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
+      - name: Check out submitted read-only reader and exact source inputs
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download the exact original failed backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13946102285'
+          run-id: '43220473879'
+          repository: TrillionniumFoundation/Hepta
+          github-token: ${{ github.token }}
+          path: ${{ env.HIA_BACKEND50_ORIGINALS }}
+      - name: Verify complete original inner archive and recorded buffers
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM --kill-after=5s 180s python -I -B "$GITHUB_WORKSPACE/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-join-r1/ci/read_backend50_originals.py" \
+            --input "$HIA_BACKEND50_ORIGINALS" \
+            --out "$HIA_CI_OUTPUT/readback" \
+            --observations "$GITHUB_WORKSPACE/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-join-r1/observations/follow50-originals/observations.json" \
+            --helper "$GITHUB_WORKSPACE/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-join-r1/ci/backend50_first_cross_replay.py" \
+            --repaired-harness "$GITHUB_WORKSPACE/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-join-r1/tests/backend_mechanical_harness.py" 2>&1 | tee "$RUNNER_TEMP/hia-backend50-original-readback-driver.log"
+      - name: Preserve complete original success or failure readbacks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-backend50-original-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.HIA_BACKEND50_ORIGINALS }}
+            ${{ env.HIA_CI_OUTPUT }}
+            ${{ runner.temp }}/hia-backend50-original-readback-driver.log
           if-no-files-found: error
           retention-days: 90
           compression-level: 0

@@ -1,0 +1,43 @@
+{
+  "schema": "hia-runtime-independent-backend50-reader-custody-review-r1",
+  "reviewer": "/root/audit_runtime",
+  "status": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_STATIC_SCOPE",
+  "input": {
+    "gitsha": "410f2d02ff1c025fdabffc328c79b3de71691e8c",
+    "bytes": 14316,
+    "sha256": "f23dd21e80d4f296a04fce1302ab349b7b470deab3db44cd66799711835f4f0b",
+    "complete_Git_GET_verified": true
+  },
+  "scope": [
+    "copied/identity and early archive+ledger+custody preservation order",
+    "main failure handling and independent finally after-checks",
+    "original FAIL versus readback-only status and zero new target counts",
+    "reader resource gates including final report and stdout completion"
+  ],
+  "execution": {
+    "Python_AST": 0,
+    "archive_open": 0,
+    "helper_execution": 0,
+    "VM": 0,
+    "B3": 0,
+    "native": 0
+  },
+  "findings": [
+    "The complete compressed archive and JSONL member index are copied first, followed by custody and the four submitted sources. copied() pins each original before copy, fsyncs the completed destination, checks source/destination SHA/size/mode and performs a second complete byte comparison. It records each completed copy before any artifact JSON is parsed.",
+    "Fixed archive and index byte counts/SHA values are asserted before custody semantics or extraction. The helper and observation text have fixed Git+SHA pins. The script describes outer ZIP identity as GitHub metadata only and does not assert independent outer ZIP byte verification.",
+    "On failure, the primary BaseException and traceback are retained. Each original input, each completed copy and each returned extracted-member row gets a separately protected after-check. One missing or changed file does not stop the rest of those checks; after-check failures force FAIL without replacing the original exception.",
+    "A complete extracted-member-readback flag is set only after extract_all returns with the exact full member and byte counts. If extraction fails before returning, main rows remains empty and the report does not claim completed extraction or after-checks of all expanded members. The preserved compressed originals remain the recovery source.",
+    "Report-write/flush failure becomes primary when there was no prior exception, otherwise it is attached as a note. Final CPU and elapsed checks occur after report construction, write/readback and stdout flush; an overrun changes status to FAIL, attempts a separate final-budget report and raises the preserved primary/overrun.",
+    "RLIMIT_CPU=90, RLIMIT_AS=1GiB, CORE=0 and SIGALRM=180 are configured. CPU accounting includes self and reaped children; the source uses >90 for CPU failure and >=180 for elapsed failure. During finally, a delivered alarm may be retained as an after-check error while the other checks continue; the final elapsed check prevents a late completed reader from being reported as PASS.",
+    "Original job status remains FAIL, completed original cases remain zero and new qualified cases remain zero. Any helper audit result is required to be PASS_READBACK_ONLY with zero VM/native/new qualification counts. A passing readback does not retroactively pass the original cross run."
+  ],
+  "limits_of_review": [
+    "The 23KB helper audit/replay algorithm, all native semantic comparisons, exact sparse-to-dense counter diagnosis and repaired harness behavior were not reviewed here.",
+    "No actual 50MiB archive, 8MiB index, 19,329 member, original CAS or source-after file was opened by this review.",
+    "No claim that this script has passed AST/import execution or fits its actual 90CPU/180wall budget. Those require the new read-only CI.",
+    "The copying/extraction functions were read only for the specified custody/failure-order scope; this is not a hostile archive or filesystem race security audit."
+  ],
+  "confirmed_blockers": [],
+  "requested_changes": [],
+  "root_only_ref_writer": true
+}
