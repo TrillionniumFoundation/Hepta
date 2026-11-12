@@ -1,0 +1,79 @@
+{
+  "schema": "hia.970-selected-index-original-readback.v1",
+  "status": "SELECTED_INDEX_COMPLETE_HISTORICAL_CUSTODY_HOLD_PRESERVED",
+  "run_id": 43160830393,
+  "job_id": 130991331441,
+  "attempt": 1,
+  "event": "create",
+  "head": "f286c4732a1bd9a931e1ea6b73df6f20f9303a7f",
+  "tree": "fb4e5daf306f44b7f42543d545fd77fd6f66f5c5",
+  "workflow_conclusion": "success",
+  "decoder": {
+    "commit": "931472fe00e566981718f0eaf7f387e4e7286f16",
+    "path": "experiments/hia_970_ci_original_custody_20261112/selected-index-r1/independent-reader/decode-original-log.js",
+    "sha256": "2e08b067609f28f125d502fa54a487b5a92b28679dca8f84df74eac2d454f809"
+  },
+  "analyzer": {
+    "commit": "9e40819022ad517b3b798092aa11361238c939ee",
+    "path": "experiments/hia_970_ci_original_custody_20261112/selected-index-r1/independent-reader/inspect-selected-metadata.js",
+    "sha256": "3491c892ce0b32a57390a98fe42ff622ad5e5ac0ad466b1e7c5d869408dac330"
+  },
+  "transport": {
+    "files": 6,
+    "frames": 18,
+    "raw_bytes": 362570,
+    "stdout_bytes": 532607,
+    "full_log_bytes": 556383,
+    "full_log_sha256": "e690a59a3612e9091fb66d1adf5fa0b9b7ea3f2c1fceb7be253c54b3769937d9",
+    "manifest_sha256": "f6a8ae6357bafe4669593ab03c5fcbc8a732abcc3e0123651157f9439392e1f8",
+    "missing": [],
+    "omitted": [],
+    "terminal": "SELECTED_INDEX_ORIGINAL_FRAMES_COMPLETE_NOT_QUALIFICATION"
+  },
+  "current_reader": {
+    "worker_status": "SELECTED_INDEX_OUTER_VERIFIED_PENDING_NATURAL_GUARDIAN",
+    "guardian_status": "EXTERNAL_OWNED_PROCESS_COMPLETED",
+    "lifecycle_status": "OWNED_PROCESS_COMPLETED",
+    "returncode": 0,
+    "qualification_seconds": 900,
+    "cleanup_seconds": 3,
+    "natural_event_kinds": [
+      "qualification_started",
+      "owned_child_observed",
+      "qualification_exit_observed",
+      "owned_child_reaped"
+    ],
+    "cleanup_complete": true,
+    "observed_echild": true,
+    "remaining_direct_children": [],
+    "input_identity_preserved": true
+  },
+  "historical_result": {
+    "status": "CUSTODY_HOLD",
+    "original_worker_failed_stage": "SAFE_DIRECTORY_AND_ORIGINAL_MEMBERS_13911977275",
+    "safe_refusal": "owned bounded single-link input required",
+    "original_worker_returncode": 1,
+    "original_timed_out": false,
+    "original_result_reclassified": false,
+    "first_size_ineligible_observation": {
+      "order": 1,
+      "name": "hia-cold.cold/qualification.json",
+      "bytes": 53341583,
+      "sha256": "bf6fe83a9a45a5084e2fe97fdc054f35df195bd9f59418b07dcbd1a0b926b870",
+      "retained_file": "0062.raw",
+      "size_exceeds_original4194304_observation_bound": true
+    },
+    "interpretation": "The exact original observation read order reaches the 53,341,583-byte nested qualification JSON after the 93,953-byte hia-cold.json. Its observed preserved size fails the unchanged 4,194,304-byte observation limit. The failed call's own fstat tuple was not separately printed. The earlier 13,678,084-byte DIRECTORY was admitted by a different 64-MiB archive-reading bound."
+  },
+  "scope": {
+    "selected_metadata_rows": 354,
+    "metadata_declared_original_bytes": 112639137,
+    "original354_bodies_received": false,
+    "inner_selected_zip_received": false,
+    "new_source_or_product_execution": false,
+    "cold_180_or_full_5400_executed_by_receiver": false,
+    "qualification_conclusion_inferred_from_transport": false,
+    "raw_original_json_numeric_lexemes_preserved": true
+  },
+  "next_plan": "Preserve all original states. Prepare fixed binary slices of the already sealed 8,316,154-byte inner selected-originals.zip; do not dispatch the superseded nine whole-file small-original groups."
+}
