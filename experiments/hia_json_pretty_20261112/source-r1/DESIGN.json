@@ -1,0 +1,110 @@
+{
+  "schema": "hia.json-pretty-source-development-design.v1",
+  "status": "HIA_SOURCE_WITH_DEVELOPMENT_IR_OBSERVATIONS_ONLY",
+  "base_product_commit": "acffa9262f31d073f8f0a6f0201eae201039f619",
+  "primary_source": "json_pretty.hiaasm",
+  "source_sha256": "ca64c987f7efdede645672eb2eee4b5efa4a265ad6eee09c7bb3f346051e7600",
+  "entry": "f0(readbuf source, mutbuf output, mutbuf workspace) -> u64",
+  "owned_decisions": [
+    "structural traversal of admitted compact JSON bytes",
+    "empty container handling",
+    "quoted/escaped byte preservation",
+    "two-space indentation and colon spacing",
+    "measure and emit phases using the same HIA control",
+    "output capacity and workspace capacity checks",
+    "refusal status and input offset"
+  ],
+  "input_contract": {
+    "producer": "source-admitted HIA JSON wire owner",
+    "ordinary_profile": "existing bounded Agent wire, maximum8MiB; valid compact JSON and original depth admission happen upstream",
+    "key_order": "preserved from upstream wire; upstream owner implements requested sorting",
+    "string_and_number_lexemes": "preserved byte for byte",
+    "syntax_admission": "not supplied by this layout component; arbitrary unvalidated byte strings must not enter a public admission path"
+  },
+  "workspace": {
+    "minimum_bytes": 32,
+    "ordinary_wire_workspace_bytes": 161,
+    "fields": [
+      {
+        "offset": 0,
+        "bytes": 8,
+        "name": "mode",
+        "values": {
+          "0": "measure",
+          "1": "emit"
+        }
+      },
+      {
+        "offset": 8,
+        "bytes": 8,
+        "name": "output_length",
+        "reset_by_entry": true
+      },
+      {
+        "offset": 16,
+        "bytes": 8,
+        "name": "error_input_offset",
+        "reset_by_entry": true
+      },
+      {
+        "offset": 24,
+        "bytes": 8,
+        "name": "error_code",
+        "reset_by_entry": true
+      },
+      {
+        "offset": 32,
+        "bytes": "remaining buffer",
+        "name": "HIA container stack"
+      }
+    ]
+  },
+  "statuses": {
+    "0": "successful layout or measurement",
+    "1": "ABI mode/header or original8MiB wire ceiling refused",
+    "2": "layout structural refusal; this does not provide full JSON admission",
+    "3": "output capacity insufficient",
+    "4": "workspace stack capacity insufficient",
+    "5": "output counter overflow"
+  },
+  "structure": {
+    "functions": 6,
+    "blocks_total": 67,
+    "blocks_per_function": 44,
+    "instructions": 248,
+    "ssa_names_per_function": 425,
+    "parameters_or_arguments": 7,
+    "source_bytes": 16557,
+    "source_lines": 395
+  },
+  "unchanged_compiler_caps": {
+    "source_bytes": 1048576,
+    "source_lines": 16384,
+    "functions": 128,
+    "blocks_total": 1536,
+    "blocks_per_function": 256,
+    "instructions": 8192,
+    "ssa_names_per_function": 2048,
+    "parameters_or_arguments": 16
+  },
+  "actual_development_observation": {
+    "cases": 31,
+    "failed": 0,
+    "scope": "INDEPENDENT_MECHANICAL_V8_INTERPRETATION_OF_NEW_HIA_IR_ONLY",
+    "maximum_ordinary_depth_case": 128,
+    "source_immutable": true,
+    "output_guard_bytes_checked": true
+  },
+  "not_yet_observed": [
+    "public Core assembly and full verifier acceptance",
+    "native compilation from a matching-source qualified compiler",
+    "native execution of fixed cases",
+    "exact original CLI callers with old formatting owner forbidden",
+    "whole CLI value/foreign-object/float/error domain replacement",
+    "installed source resources and full retained suite",
+    "matching final cold and final default cutover"
+  ],
+  "product_source_modified": false,
+  "default_selected": false,
+  "old_implementation_deleted": false
+}
