@@ -1521,7 +1521,7 @@
     "whole_native_delivery_qualified": false,
     "whole_writer_qualified": false
   },
-  "profile": "selfhost-core-linux-x86_64-v88-unpack-bounded-read-sha-word-access-publication-custody-ingress-development",
+  "profile": "selfhost-core-linux-x86_64-v89-unpack-bounded-read-sha-word-access-publication-observer-isolation-development",
   "program_shape_application": {
     "all_input_refinement_proved": false,
     "host_boundaries": [
@@ -1599,7 +1599,7 @@
       "stdin/stdout descriptor contracts"
     ],
     "files": {
-      ".github/workflows/hia-core.yml": "76e8c35654a16775b32c0e91bb2d7c25529e692b97d28dc155a3ca22eb70eab1",
+      ".github/workflows/hia-core.yml": "4e64700f06e2369a025befa8ab1ceb912bed190bf1636f0e6c70a66afdb802c3",
       ".github/workflows/hia-ndu-feedback.yml": "97807c4266faf651b7d9e8467521d36e4119a1a3a5dd80a90e8045d3bbe36d94",
       "MANIFEST.in": "bce5c0fac2aa622db64a72754b789b03e3c4670f1b435ce28ff715c93427f487",
       "README.md": "a683238fa4b6dd9939a0f82c4ad77b24886a3f44f1f88abc4c8d3ef59bbefd69",
@@ -1673,7 +1673,7 @@
       "docs/HIA_PROGRAM_SHAPE_NATIVE.md": "9f6bf08d78ac3cbafa7acfc141395566e892b5b7671b0ee806760c2dbe5c5e6a",
       "docs/HIA_RELEASE_INSTALL_NATIVE.md": "f71812ac85187988920cf6b673220b734fa7e815b774c77055ef27fb684e69d5",
       "docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md": "8a0067b88a45ade5737e79cc223e31959004b369019f9c38ff14c4c090030519",
-      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "e0dd865600614cd3b90a567c146752b003c3a5e7d228a2dd449bf83a7ed4b4b4",
+      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "d437ebb00ac074cf8767d6c241ff1d8996e323d2e010d10a4b473cf3be385af7",
       "docs/HIA_SELF_HOSTING_CORE.md": "a4ae21dccc1d182e7390410bc82ceed03dff149966475efa1a4b046125d274ad",
       "docs/HIA_STORE_PAGE_QUALIFICATION_GATES.json": "d2fc5878b44a00ff69b85df851409540f92e620e558c246850e63bf70fc6613a",
       "docs/HIA_TASK_HELPERS_NATIVE.md": "89c8dd0e630bce48ef7cec51eba96f3177c12a88ed9dcaa4ff3aba7b141cb731",
@@ -2183,6 +2183,7 @@
       "tests/test_hia_program_shape_native.py": "29238240601aefb3826dcd0d640f2e6084aef7062659c05099aae385af57d75c",
       "tests/test_hia_program_tools.py": "8e885163d57ec41e869d5b8cb206de1b9942e0c636bcacf3b362bd5e669317c6",
       "tests/test_hia_publication_custody_ingress.py": "81691e3ba006f1d8347d0bc271a86ce88ba22a42306d50d84706430f03eca2ab",
+      "tests/test_hia_publication_custody_observer.py": "f8ae339a0556cad4ceeb89b18da92629f50e8194be7112d2a55a766ab1d63d87",
       "tests/test_hia_qualification_entrypoints.py": "560631769bad4f1dca2e0e5c3a1d12b5bbeea518138fe7cd28e843ff82bb0f59",
       "tests/test_hia_reference_fixture_efficiency.py": "469e5145e8079c08d9a5282f557bfcce103cf518b66229bafa9d1f770abd53b8",
       "tests/test_hia_release_install.py": "07db6db743a3f9ddd16b7e9275e1fd2faa0c389d1e17668cecde2d6f64f51dd6",
@@ -2341,7 +2342,7 @@
       "tools/generate_hia_task_helpers.py": "d77fce280b3cd0a56f770aeab88d4f009da079a2117cf6a4cc5c15f94e61541c",
       "tools/generate_hia_worker_report.py": "61ffcb573c2c316fa2708a593a415dd430af9136ad1f52b00afb0f8782d9ced8",
       "tools/generate_hia_worker_request.py": "6616f3a11a0c77823444980764dc0a2d84b1166f93a21584d529a7d0a1806c4a",
-      "tools/hia_artifact_publication_custody.py": "581e97f515d1b5528d179d6d41f8897828c619e195f257d68f1d676ae9ae8019",
+      "tools/hia_artifact_publication_custody.py": "9257109bfc4f2eebba2e1f6585ec96b4366fa8682b2a8c8c935b6ac26a34d9c9",
       "tools/hia_artifact_publication_syscalls.S": "0042cf07a91f7a61ca2dd440ec838e0aaafc9d986d584acaa2c0c7dfbb80ddbf",
       "tools/hia_bounded_read_checks/caller_observer.py": "1908efab182e53a1ff2a6ee4adb77897380b983f3c7cad218e8063f7ad19f837",
       "tools/hia_bounded_read_checks/filesystem_cases.py": "381d69db1c47be8273ee8680c3f7cea6563798f9d2eba5eebc6410db11202fe4",
@@ -2381,7 +2382,7 @@
       "tools/hia_selfhost_child.py": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
       "tools/hia_selfhost_cli.py": "bad278f878746841f284a290bcaef473b309b4eb13ef126f81e7de0c88c6d02f",
       "tools/hia_selfhost_cli_child.py": "46229de9524b795df54d2b4ba49789c4c0a2174ed25318d68d135427d6353289",
-      "tools/hia_selfhost_contract.py": "d483f71ed749b2292b289dd87990b81ffc7ab10793705f9f39dfd846af538df5",
+      "tools/hia_selfhost_contract.py": "e56a4b9a167a620383614ac73b5dddc551399a33707e07d9ace2fb3ebcefc2ac",
       "tools/hia_selfhost_effects.py": "7e4297659c6108767e593e43c36f247fb8dfd1b192b95e80ccea72ca0b9709cf",
       "tools/hia_selfhost_exports.py": "d429d405c30cdfda9c9ed8141591c9803cf2a5670459d7eecf34e85230537382",
       "tools/hia_selfhost_exports_cases.py": "c5cc5b4aeefcdb639b34c103fb057a6a167ee48080e9ff0f024b1c6cf7a8687c",
@@ -2412,7 +2413,7 @@
       "tools/hia_store_page_gates.py": "3e56a4cb60ff346258f6e314c390d1354efd7319b6c45396ac166ca3a1f1b77d",
       "tools/qualify_hia_agent_journal_callers.py": "f56b8d94836f9cfeea2a8860158e20ba945fe4cc3f710c790409e30e0dfaea10",
       "tools/qualify_hia_agent_store_authority_callers.py": "47c07f35a4f40c461255488bce452f958816a178111453a01e0b9f1c28305eb9",
-      "tools/qualify_hia_artifact_publication_tests.py": "67c7e5cafdcb408ce3e45a577c9178c55dda0f4e6e3312c9cf60d05f955b8a0f",
+      "tools/qualify_hia_artifact_publication_tests.py": "b31129332465692588a4d140b87b71a0985e14548fb7aa8815e9126b3d80748d",
       "tools/qualify_hia_artifact_read_callers.py": "9339cb2c165029947fdc4681a41f1dd9a3af7e9b9066e3c3dd55badd0e22d747",
       "tools/qualify_hia_bounded_read.py": "d3251afd54455ba6f98e1f95c883248d4bcda95f224a6913f136f1d24a9f0c7a",
       "tools/qualify_hia_compiler_owner_ci.py": "0c133bb93ebeff0df5f97e9f46cbde67b4cc12ca108ffab3650ce50a5f57c15b",

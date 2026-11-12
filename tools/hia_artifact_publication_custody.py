@@ -17,11 +17,17 @@ import stat
 import subprocess
 import tempfile
 import time
+import traceback
 
 
 OPERATIONS = frozenset(('publish', 'verify', 'withdraw', 'store-put', 'store-get', 'store-hash'))
 _REAL_RUN = subprocess.run
 _REAL_POPEN = subprocess.Popen
+# Evidence durability belongs to this explicit observer.  The original tests
+# poison the shared os.fsync attribute to forbid hosted product publication;
+# that poison must remain effective for the product, while observer records
+# still use the genuine primitive captured before the tests are installed.
+_EVIDENCE_FSYNC = os.fsync
 _ACTIVE = None
 
 
@@ -81,7 +87,7 @@ def write_new(path, data):
                 if count <= 0:
                     raise OSError('short evidence write')
                 view = view[count:]
-            os.fsync(leaf)
+            _EVIDENCE_FSYNC(leaf)
             os.lseek(leaf, 0, os.SEEK_SET)
             digest = sha256()
             size = 0
@@ -95,7 +101,7 @@ def write_new(path, data):
                 raise ValueError('evidence name changed')
         finally:
             os.close(leaf)
-        os.fsync(fd)
+        _EVIDENCE_FSYNC(fd)
     return {'path': str(path), 'bytes': len(data), 'sha256': sha256(data).hexdigest(), 'identity': observed}
 
 
@@ -204,7 +210,7 @@ def copy_cold_evidence(source, destination, maximum, *, expected_bytes=None, exp
                         view = view[count:]
                 if os.read(incoming, 1):
                     raise ValueError('cold evidence grew beyond its admitted size')
-                os.fsync(target)
+                _EVIDENCE_FSYNC(target)
                 copied = identity(os.fstat(target))
                 actual = digest.hexdigest()
                 if (copied['size'] != before['size'] or copied['nlink'] != 1 or
@@ -225,7 +231,7 @@ def copy_cold_evidence(source, destination, maximum, *, expected_bytes=None, exp
                     raise ValueError('cold evidence retained bytes or name differ')
                 if expected_sha256 is not None and actual != expected_sha256:
                     raise ValueError('cold evidence SHA256 differs')
-                os.fsync(parent)
+                _EVIDENCE_FSYNC(parent)
             finally:
                 os.close(target)
     return {'source': str(source), 'original_identity': before,
@@ -282,8 +288,9 @@ class _Call:
     def __init__(self, session, argv, wire, timeout, origin, kwargs):
         self.session = session
         self.index = len(session.calls)
-        self.root = create_directory(session.root / 'calls' / ('%05d' % self.index))
-        self.argv = [os.fspath(v) for v in argv]
+        self.root = session.root / 'calls' / ('%05d' % self.index)
+        self.test_id = session.test_id
+        self.argv = None
         self.events = []
         self.flushed = 0
         self.process = None
@@ -297,31 +304,61 @@ class _Call:
         self.closed_observed = False
         self.record_errors = []
         self.origin = origin
+        self.input = self.code = self.request = None
+        self.root_created = self.request_written = self.preflight_complete = False
+        self.preflight_stage = 'INITIALIZED'
+        self.preflight_error = None
+        # All fields used by summary/finish are initialized before the first
+        # evidence operation.  A failed preflight is a real call attempt record,
+        # not a launch, and must not erase the original unittest failure.
         session.calls.append(self)
-        if type(wire) is not bytes:
-            raise TypeError('test native stdin must be exact bytes')
-        self.input = write_new(self.root / 'stdin.offered.bin', wire)
-        executable = self.argv[-4]
-        if executable.startswith('/proc/self/fd/'):
-            source_fd = int(executable.rsplit('/', 1)[1])
-            before = identity(os.fstat(source_fd))
-            if not stat.S_ISREG(before['mode']) or before['size'] > 1 << 20:
-                raise ValueError('bounded sealed executable required')
-            code = os.pread(source_fd, before['size'], 0)
-            if len(code) != before['size'] or identity(os.fstat(source_fd)) != before:
-                raise ValueError('sealed executable changed')
-        else:
-            code, before = read_file(Path(executable).absolute(), 1 << 20)
-        self.code = write_new(self.root / 'executable.bin', code)
-        self.request = {'schema': 'hepta.hia.publication-test-call.v1', 'ordinal': self.index,
-                        'test_id': session.test_id, 'origin': origin, 'argv': self.argv,
-                        'cwd': os.getcwd(), 'env': kwargs.get('env'), 'timeout': timeout,
-                        'capture_output': kwargs.get('capture_output'),
-                        'pass_fds': list(kwargs.get('pass_fds', ())),
-                        'stdin': self.input, 'executable': self.code, 'executable_original_identity': before,
-                        'stdin_scope': 'full bytes offered by the test; consumed byte count is not inferred',
-                        'timeout_scope': 'unchanged original subprocess timeout, after evidence preflight'}
-        write_json(self.root / 'request.json', self.request)
+        try:
+            self.preflight_stage = 'DIRECTORY'
+            create_directory(self.root)
+            self.root_created = True
+            self.preflight_stage = 'ARGUMENTS'
+            self.argv = [os.fspath(v) for v in argv]
+            if type(wire) is not bytes:
+                raise TypeError('test native stdin must be exact bytes')
+            self.preflight_stage = 'STDIN'
+            self.input = write_new(self.root / 'stdin.offered.bin', wire)
+            self.preflight_stage = 'EXECUTABLE_READ'
+            executable = self.argv[-4]
+            if executable.startswith('/proc/self/fd/'):
+                source_fd = int(executable.rsplit('/', 1)[1])
+                before = identity(os.fstat(source_fd))
+                if not stat.S_ISREG(before['mode']) or before['size'] > 1 << 20:
+                    raise ValueError('bounded sealed executable required')
+                code = os.pread(source_fd, before['size'], 0)
+                if len(code) != before['size'] or identity(os.fstat(source_fd)) != before:
+                    raise ValueError('sealed executable changed')
+            else:
+                code, before = read_file(Path(executable).absolute(), 1 << 20)
+            self.preflight_stage = 'EXECUTABLE_WRITE'
+            self.code = write_new(self.root / 'executable.bin', code)
+            self.request = {'schema': 'hepta.hia.publication-test-call.v1', 'ordinal': self.index,
+                            'test_id': self.test_id, 'origin': origin, 'argv': self.argv,
+                            'cwd': os.getcwd(), 'env': kwargs.get('env'), 'timeout': timeout,
+                            'capture_output': kwargs.get('capture_output'),
+                            'pass_fds': list(kwargs.get('pass_fds', ())),
+                            'stdin': self.input, 'executable': self.code, 'executable_original_identity': before,
+                            'stdin_scope': 'full bytes offered by the test; consumed byte count is not inferred',
+                            'timeout_scope': 'unchanged original subprocess timeout, after evidence preflight'}
+            self.preflight_stage = 'REQUEST_WRITE'
+            write_json(self.root / 'request.json', self.request)
+            self.request_written = self.preflight_complete = True
+            self.preflight_stage = 'READY'
+        except BaseException as exc:
+            self.preflight_error = {'stage': self.preflight_stage, 'type': type(exc).__name__}
+            try:
+                self.preflight_error.update(message=str(exc), traceback=traceback.format_exc())
+            except BaseException as rendering:
+                self.preflight_error['rendering_error_type'] = type(rendering).__name__
+            text = 'PREFLIGHT: ' + self.preflight_stage + ': ' + type(exc).__name__
+            self.record_errors.append(text)
+            session.errors.append('call %d %s' % (self.index, text))
+            self.event('PREFLIGHT_EXCEPTION', failure=self.preflight_error)
+            raise
 
     def event(self, kind, **values):
         # No filesystem I/O, payload hashing or /proc traversal occurs between
@@ -351,13 +388,17 @@ class _Call:
         if self.process is not None:
             self.returncode = getattr(self.process, 'returncode', None)
             self.closed_observed = self.returncode is not None
-        return {'ordinal': self.index, 'path': str(self.root), 'test_id': self.request['test_id'],
+        return {'ordinal': self.index, 'path': str(self.root), 'test_id': self.test_id,
                 'request': str(self.root / 'request.json'), 'process': self.pid_identity,
                 'launch_attempted': self.launch_attempted, 'launch_completed': self.launch_completed,
                 'launched_pid': self.launched_pid, 'pid_identity_error': self.pid_identity_error,
                 'descendants_seen': list(self.seen.values()), 'returncode': self.returncode,
                 'direct_child_reaped_observed': self.closed_observed,
                 'events': len(self.events), 'record_errors': self.record_errors,
+                'preflight': {'stage': self.preflight_stage, 'complete': self.preflight_complete,
+                              'root_created': self.root_created, 'request_written': self.request_written,
+                              'error': self.preflight_error, 'stdin': self.input, 'executable': self.code,
+                              'unwritten_request_data': None if self.request_written else self.request},
                 'full_process_tree_cleanup_claimed': False}
 
 

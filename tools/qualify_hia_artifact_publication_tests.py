@@ -361,7 +361,31 @@ def quiescence(root):
     # supplied no descendant owner, so refuse data custody in that ambiguous
     # case rather than claim an ECHILD guarantee that never existed.
     ambiguous_strace_kills = []
+    incomplete_preflight = []
     for call in record['calls']:
+        preflight = call.get('preflight')
+        if preflight is not None:
+            if (type(preflight) is not dict or
+                    any(type(preflight.get(name)) is not bool for name in
+                        ('complete', 'root_created', 'request_written'))):
+                raise ValueError('call preflight record shape differs')
+            if preflight['complete'] is False:
+                # A failed observer preflight has not entered Popen.  Its
+                # request may be absent or partial; retain those actual bytes
+                # through typed_inventory instead of inventing a request or
+                # failing again before the original error can be archived.
+                if (call['launch_attempted'] is not False or
+                        not direct_child_custody_closed(call) or
+                        type(preflight.get('error')) is not dict or
+                        preflight['error'].get('stage') != preflight.get('stage') or
+                        type(preflight['error'].get('type')) is not str):
+                    raise ValueError('incomplete preflight is not proven unlaunched')
+                incomplete_preflight.append({'ordinal': call['ordinal'],
+                                             'preflight': preflight,
+                                             'request_path': call['request']})
+                continue
+            if not preflight['root_created'] or not preflight['request_written']:
+                raise ValueError('completed preflight lacks retained request')
         request_raw, _ = read_file(Path(call['request']), 8 << 20)
         request = json.loads(request_raw)
         if '/usr/bin/strace' in request['argv']:
@@ -371,6 +395,7 @@ def quiescence(root):
                     ambiguous_strace_kills.append(call['ordinal'])
     return {'runner_and_known_children_absent': not live, 'live': live,
             'not_observed_reaped': incomplete, 'ambiguous_strace_kills': ambiguous_strace_kills,
+            'incomplete_preflight_requests': incomplete_preflight,
             'fixture_roots': record.get('fixtures', []),
             'full_process_tree_cleanup_claimed': False,
             'ready_for_fixture_read': not live and not incomplete and not ambiguous_strace_kills,
