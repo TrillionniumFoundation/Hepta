@@ -1,0 +1,7 @@
+static void
+cj312_set_raised_exception(PyThreadState *tstate, PyObject *exc)
+{
+    PyObject *old_exc = tstate->current_exception;
+    tstate->current_exception = exc;
+    Py_XDECREF(old_exc);
+}

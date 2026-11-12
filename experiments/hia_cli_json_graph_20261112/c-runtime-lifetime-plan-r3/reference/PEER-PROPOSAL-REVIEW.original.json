@@ -1,0 +1,44 @@
+{
+  "call_count": 1,
+  "checks": [
+    {
+      "detail": "A new private static helper with only identifier/linkage renamed, same explicit tstate and exc parameters, can preserve all three original C operations in order.",
+      "id": "exact-static-body",
+      "result": "PASS"
+    },
+    {
+      "detail": "Existing do_raise first Py_INCREFs the handled exc; the original setter steals that new reference and XDECREFs the previous current_exception. No extra INCREF or DECREF is introduced, including when old_exc==exc or either is NULL.",
+      "id": "owned-reference",
+      "result": "PASS"
+    },
+    {
+      "detail": "Store the new raised exception before DECREF(old_exc), retaining the original finalizer-visible error state. Do not move DECREF before assignment or substitute a setter that obtains a different current thread state.",
+      "id": "error-before-release",
+      "result": "PASS"
+    }
+  ],
+  "official_complete_source": {
+    "bytes": 55402,
+    "git_blob": "79cf4e07f3e0107560403bc2aae9a84a2c0be018",
+    "path": "/tmp/hia-v92-standard-ci-readonly-43324913647-r1/cli-peer/cpython-v3.12.14-errors.c",
+    "sha256": "d38cf667e13fb9f298a278759daf6117167f45a08d2c5bae7f279d9ba86a2454"
+  },
+  "official_function": "void\n_PyErr_SetRaisedException(PyThreadState *tstate, PyObject *exc)\n{\n    PyObject *old_exc = tstate->current_exception;\n    tstate->current_exception = exc;\n    Py_XDECREF(old_exc);\n}",
+  "official_url": "https://raw.githubusercontent.com/python/cpython/v3.12.14/Python/errors.c",
+  "original_frozen_call_source": {
+    "bytes": 4905,
+    "git_blob": "1757b06f05ff10a4c9997c9871549ed339ba4989",
+    "path": "/tmp/hia-cli-json-c-runtime-lifetime-plan-r2b-20261112-e26e/source/hepta/hia_cli_json_cpython312_errors.inc",
+    "sha256": "3e7efbd74b73684652cb7c4b740851705937a663b60708ff39e7ad6b473058ab"
+  },
+  "original_results_unchanged": true,
+  "schema": "hia.peer.cli312-raised-error-local-body-static-review.v1",
+  "scope_limits": [
+    "Only the specified helper and frozen unique call were reviewed.",
+    "No new proposed r3 helper bytes were supplied or claimed verified.",
+    "No assertion of complete DSO undefined-symbol closure, evaluator/frame equivalence, or runtime qualification.",
+    "No C compile, dlopen, native, source controls, or product execution."
+  ],
+  "source_modified": false,
+  "status": "STATIC_REVIEW_PASS_LIMITED_BODY_SUBSTITUTION"
+}

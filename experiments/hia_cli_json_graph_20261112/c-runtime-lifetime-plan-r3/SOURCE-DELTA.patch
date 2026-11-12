@@ -1,0 +1,29 @@
+--- r2b/hepta/hia_cli_json_cpython312_errors.inc
++++ r3/hepta/hia_cli_json_cpython312_errors.inc
+@@ -5,6 +5,17 @@
+  * This avoids importing private TLS; error and ownership order are unchanged.
+  * Private development ABI; not compiled or executed.
+  */
++
++/* Exact CPython v3.12.14 Python/errors.c body; local linkage only.
++ * Preserve the explicit state, stolen reference, and store-before-DECREF.
++ */
++static void
++cj312_set_raised_exception(PyThreadState *tstate, PyObject *exc)
++{
++    PyObject *old_exc = tstate->current_exception;
++    tstate->current_exception = exc;
++    Py_XDECREF(old_exc);
++}
+ 
+ static int
+ cj312_do_raise(PyThreadState *tstate, PyObject *exc, PyObject *cause)
+@@ -22,7 +33,7 @@
+         }
+         Py_INCREF(exc);
+         assert(PyExceptionInstance_Check(exc));
+-        _PyErr_SetRaisedException(tstate, exc);
++        cj312_set_raised_exception(tstate, exc);
+         return 1;
+     }
+ 
