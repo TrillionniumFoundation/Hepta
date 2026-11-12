@@ -1,72 +1,49 @@
-# HIA Core
+# Isolated service emission development
 
-Typed abstract assembly and structured Core for AI agents. HIA checks explicit
-control flow, types, capabilities, ownership and borrowed resources before
-machine-code generation. There is no high-level source language or migration
-frontend in this tree.
+This harness checks out the complete original product commit
+`4b19af89a766593f7d5f1cc2db256e81aba7afcb` (tree
+`1bc7c90996e1910ad66ba771b0bfee1d5bfa655c`, 3,153 files), verifies its actual
+Git blobs and modes, and applies the frozen sixteen-path emission owner packet.
+The harness tree itself is deliberately minimal; it is not a product checkout.
 
-## Agent entry
+The selected compiler is the byte-verified original 669,494-byte B3 with SHA256
+`81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109`.
+Its prior cold report grants no authority to this new source. The only source
+registration edits are explicit literal unions in this development export,
+followed by regeneration and validation of its support manifest.
 
-```sh
-python -m pip install .
-hia capabilities
-hia check-assembly examples/hia_bootstrap/bytesum.hiaasm
-hia verify examples/hia_program/counter.hia
-```
+Five separate groups run under actual CPython 3.14.4 on an independently
+checked Ubuntu 24.04 x86-64 runner:
 
-The `hia` entry is currently a Python-hosted bridge. The independently built
-HIA-native stdio application supports `capabilities`, `verify`, `compile`,
-`render-assembly` and direct HIA-source `assemble` on
-Linux x86-64 without Python at runtime; see [native stdio](docs/HIA_AGENT_STDIO_NATIVE.md).
-The separate [native patch application](docs/HIA_CORE_PATCH_CLI.md) performs
-snapshot-bound edits with native whole-Core checks of both base and candidate.
-The [native patch-result application](docs/HIA_CORE_PATCH_RESULT_CLI.md) also
-constructs the complete diagnostic bytes. Its explicit ordinary Agent route
-consumes and stores opaque payload bytes, preserving the existing request journal.
-An explicitly selected [native nominal type session](docs/HIA_COMPOSITE_TYPES_NATIVE.md)
-owns declaration checks, generic binding, finite layouts and partial-record
-obligations for all four composite versions, source-level returned-loan origins,
-parameter admission and task-protocol checks. A separately selected
-[native task-helper generator](docs/HIA_TASK_HELPERS_NATIVE.md) constructs the
-complete start, poll, cancel, join and close Core functions. Two explicit
-native nominal routes are retained during integration: the
-[complete function bundle](docs/HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md) and
-the [individual nominal owners](docs/HIA_NOMINAL_FUNCTION_NATIVE.md).
-The [complete selected nominal route](docs/HIA_COMPOSITE_NATIVE_INTEGRATION.md)
-moves constructor admission, ordered signatures, complete function/helper
-aggregation, late limits, exports and primitive schema selection into HIA.
-An explicitly selected [native worker request kernel](docs/HIA_WORKER_REQUEST_NATIVE.md)
-owns ordinary JSON, finite binary64 canonical bytes, request digests and envelope
-admission. Separate native request journal and execution budget owners retain
-the existing service's transaction and foreign-resource boundaries.
-The [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md) checks and
-publishes a bounded immutable release from an operator-pinned bundle.
-Default selection and whole-stack delivery remain unqualified; the old owners
-are retained until the corresponding complete replacement is qualified.
-Full native Agent editing/persistence, modules/build, runtime and installation
-acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
-the Agent entry. Standalone Core research backends remain explicitly scoped.
+1. The original 45 emission component controls, with their exact ordered IDs.
+2. Twelve additional generator lifetime observations comparing the complete
+   original Python policy with the selected native owner, including held
+   tracebacks, short-circuit cancellation, and an outer handled exception.
+3. Sixteen additional normal-return and held-error named-local observations
+   for the original complete `_compile` and `_hia_emit` paths. The local
+   CPython 3.12.14 run found six actual ordering differences; these remain
+   failures and this candidate has not closed that domain.
+4. The same sixteen observations on the unselected public wrappers. Six
+   local differences show that their extra argument references also affect
+   finalizer order. The unchanged reference body alone does not prove that
+   the wrapper preserves the original default behavior.
+5. The original 48 Agent callers through the source-owned emission qualifier,
+   with the three former emission policies poisoned only in that test process.
 
-## Source and native qualification
+The original component 240-second supervisor, Agent 1,800-second supervisor,
+compiler 20-second limit, and each original test budget remain unchanged.
+An ordinary failure in one group does not prevent the other groups from being
+attempted. Unknown executions are not retried. All source, held executable,
+manifest and receipt bytes are checked again after each group.
 
-```sh
-python -B tools/check_hia_core_only.py
-python -B tools/generate_hia_selfhost_contract.py --check
-python -B tools/replay_hia_selfhost_cold.py --output /var/tmp/NEW-hia-cold.json
-python -B tests/test_hia_selfhost_language_coverage.py --output /var/tmp/NEW-hia-language.json
-```
+This is development evidence only. It does not change the default selector,
+qualify a current-source cold build, authorize legacy deletion, or establish
+that the entire stack is native. Actual foreign compilation, linker, Python
+object primitives, SQLite, storage, and fixed CPython exception delivery remain
+explicit dependencies.
 
-Cold qualification preserves original and modified-source native fixed points,
-independent reference controls and resource refusal witnesses. Source contracts
-are identities, not correctness or release approvals. Old high-level-specific
-CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
-
-Repository cleanup: [current audit](docs/HIA_REPOSITORY_CLEANUP_20261110.md).
-Native rewrite: [current audit, implementation and remaining owners](docs/HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md).
-Earlier source-bound observations remain in the [rewrite history](docs/HIA_NATIVE_REWRITE_STATUS_20261111.md).
-The selected [native enum-match owner](docs/HIA_ENUM_MATCH_NATIVE.md) produces
-complete match control flow; other nominal operations remain separate owners.
-The [native release selector](docs/HIA_RELEASE_SELECTION_NATIVE.md) implements
-explicit status, compare-and-swap activation and previous-version rollback for
-verified immutable releases. Ordinary CLI/service migration remains open.
-Runtime integration: [compatibility and upgrade requirements](docs/HIA_RUNTIME_COMPATIBILITY_AUDIT_20261110.md).
+The accompanying preparation evidence records eight real-Git/input and supervisor controls and
+four literal resource/wheel-reader controls that passed locally. The twelve
+local lifetime observations used CPython 3.12.14 and do not predict the result
+on CPython 3.14.4. All earlier emission failures remain in the owner evidence
+index `eabaca09e781b04324cf21c86b0b1688afa02eda` and its predecessor indexes.
