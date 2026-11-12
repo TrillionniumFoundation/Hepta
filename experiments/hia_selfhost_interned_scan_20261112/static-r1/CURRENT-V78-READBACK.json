@@ -1,0 +1,313 @@
+{
+  "head": "d0e110e19f9433baaf202a0f605671c7205b4cff",
+  "rows": [
+    {
+      "bytes": 81991,
+      "git_blob": "08455f39278c4d428ea312137887c53d964d4466",
+      "path": "tools/generate_hia_selfhost.py",
+      "same_as_970": true,
+      "sha256": "d9ede90b8b1d71674bd9f3d7c992f20bd5de7caef39e447bc112eaca7be77f32"
+    },
+    {
+      "bytes": 43505,
+      "diff": "--- 970/tools/hia_selfhost_names.py\n+++ v78/tools/hia_selfhost_names.py\n@@ -718,7 +718,9 @@\n         program = row['program']\n         if program not in images:\n             source = row['source'].encode()\n-            flat, build = compile_stage(directory, label + '-' + program + '-flat', compiler, source)\n+            # A case may use its program name as its id. Keep compilation\n+            # originals distinct from that case's subsequent \"-flat\" call.\n+            flat, build = compile_stage(directory, label + '-' + program + '-flat-build', compiler, source)\n             observations.append(build)\n             obj, build = compile_stage(directory, label + '-' + program + '-object', compiler,\n                 source.replace(b'v8 selfhost\\n', b'v8 selfhost_elf\\n', 1), output_extension='.o')\n",
+      "git_blob": "579666757c87c5cb3e4f5d5d62282f6948048bff",
+      "path": "tools/hia_selfhost_names.py",
+      "same_as_970": false,
+      "sha256": "991c77ce3981eadee219b4b64f2c4345019827051de8d45412b0ebfb31e4a942"
+    },
+    {
+      "bytes": 7494,
+      "git_blob": "01e8d83ecb086f7ab6ea1dc6949711aa645eca3d",
+      "path": "tools/hia_selfhost_owned_elf.py",
+      "same_as_970": true,
+      "sha256": "7faa48f93664b3804d250d29dd6bd7a7c0b58b13e6c9849445b3ab19ac09f0ff"
+    },
+    {
+      "bytes": 6721,
+      "git_blob": "227764f9febde969b2e1fda68932924926252667",
+      "path": "tools/hia_selfhost_chain_elf.py",
+      "same_as_970": true,
+      "sha256": "b928ce29d26ecf24c390b70c924ee57957550f20696e1537657364a084421f00"
+    },
+    {
+      "bytes": 13948,
+      "git_blob": "63016aaf9a70f6c97c2fa4ada89c06da3a2e0f05",
+      "path": "tools/hia_selfhost_effects.py",
+      "same_as_970": true,
+      "sha256": "7e4297659c6108767e593e43c36f247fb8dfd1b192b95e80ccea72ca0b9709cf"
+    },
+    {
+      "bytes": 21747,
+      "git_blob": "1dac7fb2fb0985076288e9ca6a8fd62a8bc081dc",
+      "path": "tools/hia_selfhost_multi_results.py",
+      "same_as_970": true,
+      "sha256": "59163d4a11bc7fdf21ce4cee3bda75ffce5c0de371ac58d1e65fa7f87673274f"
+    },
+    {
+      "bytes": 14062,
+      "git_blob": "4387f62dfba97afdab0405f4e19d7ff8d98fac40",
+      "path": "tools/hia_selfhost_keywords.py",
+      "same_as_970": true,
+      "sha256": "bdf6d9f8747ff0ae037e6b28b59dee38dbab91fedf30c443e2d09ea88f468bd7"
+    },
+    {
+      "bytes": 3642,
+      "git_blob": "d831a704c6e21eb9d2bcf145d18a229c53916b5d",
+      "path": "tools/hia_selfhost_signed.py",
+      "same_as_970": true,
+      "sha256": "eb3140aed200e975f613b68b9e4d386dd3a8343596439dfa747646e93c40b555"
+    },
+    {
+      "bytes": 10231,
+      "git_blob": "a81df7502219caa20923b8a04cf304f4add479a9",
+      "path": "tools/hia_selfhost_traps.py",
+      "same_as_970": true,
+      "sha256": "9f13ce716c8a7018f53e0586a568b322384be83c8199175af597692723ee67c0"
+    },
+    {
+      "bytes": 11401,
+      "git_blob": "5d72d7c407d4aeb59947fb2ee68b4e42b3514dcb",
+      "path": "tools/hia_selfhost_returned_loans.py",
+      "same_as_970": true,
+      "sha256": "2c71acbaf736dc5a01d9fc7c12cab40c451bc1f5ae686c2def30521ac0136ddb"
+    },
+    {
+      "bytes": 4124,
+      "git_blob": "3c395f9a44754c4bf4709e91e9efabb3c0fb082c",
+      "path": "tools/hia_selfhost_cli.py",
+      "same_as_970": true,
+      "sha256": "bad278f878746841f284a290bcaef473b309b4eb13ef126f81e7de0c88c6d02f"
+    },
+    {
+      "bytes": 6932,
+      "git_blob": "59d0e454e7c562d962b821b5417b03de64dfaa0b",
+      "path": "tools/hia_selfhost_exports.py",
+      "same_as_970": true,
+      "sha256": "d429d405c30cdfda9c9ed8141591c9803cf2a5670459d7eecf34e85230537382"
+    },
+    {
+      "bytes": 1853,
+      "git_blob": "5705a617e63d0e5f65766ab85b7588f7b9b73d66",
+      "path": "tools/hia_selfhost_limits.py",
+      "same_as_970": true,
+      "sha256": "e232997b64253b8f8150785b8947f78d91dfe93a0b41537edc54eaeede52a055"
+    },
+    {
+      "bytes": 11035,
+      "git_blob": "89d446fc59481bd2ed25bac6ac89a9d5a9ea84b8",
+      "path": "docs/HIA_SELFHOST_CFG_WORKLIST_FIX_20261108.md",
+      "same_as_970": true,
+      "sha256": "559c00935d2a27c5f321d25c54096f9b6f99b6fa3b44e6ff8ec69368347c6603"
+    },
+    {
+      "bytes": 70320,
+      "git_blob": "f28a65eb7ca6c0af249dfcd39db52dfe437b9d9e",
+      "ids": [
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_private_scanner_words_preserve_full_value_and_zero_high_bytes_in_Core_VM",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_private_scanner_narrowing_does_not_touch_numeric_payload_or_generic_word_ABI",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_authoring_forwarders_preserve_parallel_values_and_ordered_effects",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_authoring_forwarders_keep_resource_joins_return_origins_and_loops",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_authoring_forwarders_leave_entry_and_empty_cycles_intact",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_authoring_scalar_liveness_retains_unobserved_checked_operations",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_shared_failure_guards_preserve_conditional_effects_and_argument_laziness",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_inferred_total_helpers_refuse_loops_checked_shifts_memory_and_recursion",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_constant_sharing_stays_block_local_and_preserves_all_arithmetic",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_total_scalar_if_conversion_preserves_values_without_speculating_traps",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_reference_process_envelopes_refuse_changed_identity_payload_and_provenance",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_authoring_short_circuit_cfg_preserves_trap_order_and_join_values",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_qualification_phase_merge_requires_complete_disjoint_boolean_results",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_qualification_phase_inputs_require_pinned_bytes_and_closed_inventory",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_qualification_phase_process_failures_preserve_logs_and_refuse_merge",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_archive_queue_bounds_pending_work_and_uses_one_thread",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_unsealed_phase_stays_pending_until_archive_completion",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_archive_failure_is_retained_while_other_completions_are_observed",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_complete_compiler_is_valid_core_and_reproducible_source",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_native_effect_table_matches_independent_core_instruction_contract",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_effect_witnesses_compare_all_declarations_and_refusals_with_general_core",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_compiler_itself_fits_declared_per_function_block_and_ssa_limits",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_codegen_mutation_is_valid_core_and_changes_one_literal",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_native_rejection_fixtures_also_fail_independent_core_frontend",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_readonly_alias_rules_distinguish_calls_from_linear_edges",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_resource_reference_and_refusals_are_independent_core_observations",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_call_graph_admission_distinguishes_general_core_from_fixed_profile",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_boolean_equality_admits_bool_but_rejects_ordering_and_mixed_types",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_tail_reference_uses_real_recursion_and_preserves_vm_budget_refusal",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_expanded_capacity_has_independent_execution_and_exact_structural_boundary",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_select_reference_covers_all_scalar_types_and_rejects_bad_signatures",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_loan_reference_covers_live_capability_graphs_and_lifecycle_refusals",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_cfg_worklist_preserves_the_review_subjects_and_block_boundaries",
+        "tests.test_hia_selfhost.SelfhostSourceTests.test_cfg_worklist_reference_covers_replays_and_late_join_refusals",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_B1_B2_B3_are_executed_self_compilations",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_loans_keep_live_graphs_through_native_original_and_mutated_compilers",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_entry_last_and_middle_whole_compilers_self_reproduce_and_preserve_owned_flow",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_cfg_worklist_checks_reverse_order_replays_and_refusals_with_both_compilers",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_native_effect_contracts_match_core_for_original_and_mutated_compilers",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_native_capacity_boundary_and_original_modified_node_accounting",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_modified_emitter_propagates_and_rebuilds_modified_self",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_bad_sources_and_small_output_never_write_output",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_backward_calls_and_full_depth_execute_in_original_and_modified_compilers",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_non_tail_recursion_and_bad_backward_signatures_are_transactionally_refused",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_tail_self_calls_bootstrap_and_keep_frame_resource_and_capacity_boundaries",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_hia_writes_elf_objects_that_link_and_rebuild_the_compiler",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_independent_elf_inspector_refuses_changed_class_flags_symbols_and_extent",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_swap_effects_bounds_refusals_and_trap_observer_positive_control",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_generated_byte_bounds_and_checked_shift_really_trap",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_boolean_and_unsigned_comparison_encodings",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_width_normalization_uses_real_generated_machine_code",
+        "tests.test_hia_selfhost.SelfhostNativeTests.test_native_select_uses_input_dependent_values_and_full_width_outputs"
+      ],
+      "path": "tests/test_hia_selfhost.py",
+      "same_as_970": true,
+      "sha256": "c7bfa47411a9f6e4567cab0d0d8a9ddcd01f978eb0a4544036a5f1383b15c649"
+    },
+    {
+      "bytes": 11116,
+      "diff": "--- 970/tests/test_hia_selfhost_names.py\n+++ v78/tests/test_hia_selfhost_names.py\n@@ -11,6 +11,67 @@\n \n \n class SelfhostFunctionNameTests(unittest.TestCase):\n+    def test_all_case_compilation_originals_survive_later_same_name_calls(self):\n+        # Exercise the real qualification driver with inert file-writing\n+        # transports. This verifies evidence custody, not native semantics.\n+        import json\n+        from pathlib import Path\n+        import tempfile\n+        from unittest.mock import patch\n+        from tools import qualify_hia_selfhost as native\n+        from tools import qualify_hia_selfhost_cli as cli\n+        from tools.hia_selfhost_names import qualify\n+        rows=cases()+value_cases()+block_cases()+entry_order_cases()\n+        self.assertEqual(len(rows),106)\n+        self.assertEqual(len({row['program'] for row in rows}),52)\n+        executions={'original-'+row['id']+'-'+kind:row for row in rows for kind in ('flat','elf')}\n+        written={}\n+        def original(directory,label,stage):\n+            value={'case':label,'stage':stage}\n+            raw=(json.dumps(value,sort_keys=True)+'\\n').encode()\n+            for suffix in ('.request.json','.input.bin','.output.bin','.receipt.json'):\n+                path=directory/(label+suffix)\n+                with path.open('xb') as stream:stream.write(raw)\n+                written[path]=raw\n+            return value\n+        def compile_stage(directory,label,compiler,source,output_extension='.image.bin'):\n+            receipt=original(directory,label,'compile')\n+            image=directory/(label+output_extension)\n+            image.write_bytes(Path(compiler).read_bytes())\n+            return image,receipt\n+        def invoke(directory,label,image,source,**kwargs):\n+            original(directory,label,'invoke')\n+            row=executions[label]\n+            return {'status':'returned','abi_status':0,'core_u32':row['expected_result'],\n+                    'source_unchanged':True},bytes.fromhex(row['expected_hex'])\n+        def link(directory,label,tool,arguments):\n+            original(directory,label,'link')\n+            Path(arguments[-1]).write_bytes(b'inert shared image')\n+            return {'returncode':0}\n+        def execute(directory,label,image,source):\n+            original(directory,label,'execute')\n+            return {'status':'OWNED_PROCESS_COMPLETED','returncode':0,\n+                    'cleanup':{'complete':True},'stderr_hex':''},image.read_bytes()\n+        with tempfile.TemporaryDirectory() as temporary:\n+            directory=Path(temporary)\n+            compiler=directory/'compiler.bin'\n+            compiler.write_bytes(b'inert compiler image, not executable')\n+            reference={'cases':rows,'refusals':[],\n+                       'alpha_compiler':{'original':{'source':native.SOURCE.read_text()}}}\n+            checks={}\n+            with patch.object(native,'compile_stage',side_effect=compile_stage), \\\n+                    patch.object(native,'invoke',side_effect=invoke), \\\n+                    patch.object(native,'observe_native_tool',side_effect=link), \\\n+                    patch.object(native,'inspect_selfhost_object',return_value={}), \\\n+                    patch.object(cli,'inspect_executable',return_value={}), \\\n+                    patch.object(cli,'execute',side_effect=execute):\n+                observations=qualify(directory,compiler,checks,reference,'original')\n+            self.assertTrue(checks and all(checks.values()))\n+            self.assertEqual(len(executions),212)\n+            compile_records=[row for row in observations if row.get('stage')=='compile']\n+            self.assertEqual(len(compile_records),109)\n+            self.assertTrue(all(path.read_bytes()==raw for path,raw in written.items()))\n+\n     def test_equal_hash_names_have_distinct_runtime_functions_and_results(self):\n         self.assertEqual(name_hash('aaB'), name_hash('aba'))\n         rows = [r for r in cases() if r['program'] == 'equal-hash-distinct-functions']\n",
+      "git_blob": "caeb13c5de7b8873cc6d0c8d0f2993ff90a6870e",
+      "ids": [
+        "tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_all_case_compilation_originals_survive_later_same_name_calls",
+        "tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_equal_hash_names_have_distinct_runtime_functions_and_results",
+        "tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_independent_vm_inputs_preserve_resource_and_byte_results",
+        "tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_core_reserved_duplicate_long_and_invalid_names_are_not_profile_aliases",
+        "tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_whole_compiler_alpha_renaming_preserves_every_call_target",
+        "tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_ssa_contextual_names_full_intern_table_and_capacity_refusal_stay_distinct",
+        "tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_block_names_preserve_collisions_forward_cfg_full_tables_and_entry_boundary",
+        "tests.test_hia_selfhost_names.SelfhostFunctionNameTests.test_nonfirst_entries_keep_formals_tail_origins_and_complete_block_boundaries"
+      ],
+      "path": "tests/test_hia_selfhost_names.py",
+      "same_as_970": false,
+      "sha256": "8a87379e153321a088b8f8c62364af2e72c823077f808a1f0d91d5336b52362a"
+    },
+    {
+      "bytes": 5033,
+      "git_blob": "54f5afc993d1fb57c81f788bf034b60c3facabe3",
+      "ids": [
+        "tests.test_hia_selfhost_chain.ChainSourceTests.test_all_six_operations_have_valid_typed_core_witnesses",
+        "tests.test_hia_selfhost_chain.ChainSourceTests.test_independent_core_observes_results_traps_and_prior_writes",
+        "tests.test_hia_selfhost_chain.ChainSourceTests.test_runtime_sized_chains_release_payload_and_node_storage",
+        "tests.test_hia_selfhost_chain.ChainSourceTests.test_independent_flow_inputs_close_chain_roots_and_nested_loans",
+        "tests.test_hia_selfhost_chain.ChainSourceTests.test_invalid_core_stays_distinct_from_valid_profile_exclusions",
+        "tests.test_hia_selfhost_chain.ChainSourceTests.test_resource_block_parameters_reach_the_exact_ssa_boundary",
+        "tests.test_hia_selfhost_chain.ChainSourceTests.test_high_resource_parameter_names_are_valid_core_profile_exclusions"
+      ],
+      "path": "tests/test_hia_selfhost_chain.py",
+      "same_as_970": true,
+      "sha256": "63ed06fa164d02f24c46c4cb1f3a4c7d0bbaeca514dadc941293d60e27a6d44b"
+    },
+    {
+      "bytes": 2854,
+      "git_blob": "220d7f48202bda6997c7b7483f62254966c079b4",
+      "ids": [
+        "tests.test_hia_selfhost_owned_flow.OwnedFlowSourceTests.test_positive_flows_release_every_owned_value_and_local_loan",
+        "tests.test_hia_selfhost_owned_flow.OwnedFlowSourceTests.test_core_rejections_and_valid_profile_exclusions_stay_distinct",
+        "tests.test_hia_selfhost_owned_flow.OwnedFlowSourceTests.test_flat_type_exclusions_do_not_depend_on_allocator_opcodes"
+      ],
+      "path": "tests/test_hia_selfhost_owned_flow.py",
+      "same_as_970": true,
+      "sha256": "e9da12c4fd2e40bbb7fd804986801002c4f2e8eecabc4634158064348aa0a520"
+    },
+    {
+      "bytes": 2167,
+      "git_blob": "8c9b5e31a23114bbec22dba2484a82f379d8d6ed",
+      "ids": [
+        "tests.test_hia_selfhost_returned_loans.SelfhostReturnedLoanSourceTests.test_real_views_survive_calls_cfg_and_tail_renaming_with_closed_ledgers",
+        "tests.test_hia_selfhost_returned_loans.SelfhostReturnedLoanSourceTests.test_malformed_or_unbound_contracts_are_real_core_refusals",
+        "tests.test_hia_selfhost_returned_loans.SelfhostReturnedLoanSourceTests.test_origin_tables_do_not_overlap_or_expand_workspace"
+      ],
+      "path": "tests/test_hia_selfhost_returned_loans.py",
+      "same_as_970": true,
+      "sha256": "8987e10dd5cd14abd912926a555621acf9a0c4b4cf5c68ebca4f9b80827f7542"
+    },
+    {
+      "bytes": 8356,
+      "git_blob": "82332d4810b6f9e1fe2eb1857bf43d721a132d09",
+      "ids": [
+        "tests.test_hia_selfhost_keywords.SelfhostKeywordTests.test_length_guard_retains_every_occupied_byte_and_rejects_zero_padding_aliases",
+        "tests.test_hia_selfhost_keywords.SelfhostKeywordTests.test_known_unknown_long_nul_and_offset_inputs_match_the_independent_vm",
+        "tests.test_hia_selfhost_keywords.SelfhostKeywordTests.test_full_compiler_fits_unchanged_caps_with_reclaimed_cfg_space",
+        "tests.test_hia_selfhost_keywords.SelfhostKeywordTests.test_fixture_keyword_function_is_exactly_the_live_compiler_body",
+        "tests.test_hia_selfhost_keywords.SelfhostKeywordTests.test_live_scanner_numeric_identifiers_preserve_full_token_state_in_Core_VM",
+        "tests.test_hia_selfhost_keywords.SelfhostKeywordTests.test_outside_the_packed_grammar_fails_at_authoring_time"
+      ],
+      "path": "tests/test_hia_selfhost_keywords.py",
+      "same_as_970": true,
+      "sha256": "e55a71758aca2383ea614a81fad8aeeaece3cac1b1d45f6a714a152ff238e974"
+    },
+    {
+      "bytes": 12601,
+      "git_blob": "97d2e5f1cb0dda2f8bee31c6663dc6fb47efb4d9",
+      "ids": [
+        "tests.test_hia_selfhost_contract.SelfhostContractTests.test_hosted_agent_discovery_resources_are_in_actual_source_identity",
+        "tests.test_hia_selfhost_contract.SelfhostContractTests.test_release_freeze_inventory_covers_the_complete_selfhost_closure",
+        "tests.test_hia_selfhost_contract.SelfhostContractTests.test_contract_binds_support_and_complete_seed_source_closure",
+        "tests.test_hia_selfhost_contract.SelfhostContractTests.test_capacity_growth_preserves_workspace_and_core_byte_limits",
+        "tests.test_hia_selfhost_contract.SelfhostContractTests.test_upgrade_refuses_an_unpinned_historical_image_before_execution",
+        "tests.test_hia_selfhost_contract.SelfhostContractTests.test_changed_loader_or_broadened_support_cannot_reuse_the_contract",
+        "tests.test_hia_selfhost_contract.SelfhostContractTests.test_cold_output_refuses_existing_and_symbolic_paths_before_creating_artifacts",
+        "tests.test_hia_selfhost_contract.SelfhostColdReplayTests.test_source_only_clean_rebuild_has_original_and_modified_fixed_points"
+      ],
+      "path": "tests/test_hia_selfhost_contract.py",
+      "same_as_970": true,
+      "sha256": "bf9a59eab699974ff1e0426d5e80915c0c0a05412aab11f92b672c26f515ab75"
+    },
+    {
+      "bytes": 97835,
+      "git_blob": "e280e0ba4052abb12a9c5b682025826b5c279152",
+      "ids": [
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_inventory_matches_supported_features_actual_hia_and_source_closure",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_every_supported_integer_opcode_and_width_has_independent_inputs",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_select_covers_each_scalar_type_and_changing_inputs",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_independent_core_vm_agrees_with_scalar_buffer_and_boundary_oracles",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_flat_native_fixtures_cover_all_flat_input_opcodes_and_observe_full_width",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_owned_fixtures_cover_only_the_explicit_elf_extension",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_chain_fixtures_cover_six_chain_opcodes_without_general_signature_claims",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_rejections_retain_invalid_core_and_valid_outside_profile_distinction",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_module_names_keep_core_identity_and_output_profile_boundaries",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_checked_arithmetic_covers_width_boundaries_and_both_write_orders",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_checked_casts_cover_all_pairs_and_narrowing_overflow_with_runtime_inputs",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_boolean_equality_has_the_full_truth_table_and_input_dependent_programs",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_language_inventory_does_not_claim_unavailable_whole_v8_or_formal_proof",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageNativeTests.test_original_and_modified_compilers_are_real_fixed_points",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageNativeTests.test_every_positive_program_runs_under_both_hia_compilers",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageNativeTests.test_negative_inputs_are_transactionally_rejected_by_both_compilers",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageNativeTests.test_invalid_checked_shifts_trap_with_native_output_preserved",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageNativeTests.test_checked_arithmetic_traps_before_later_writes_and_preserves_prior_writes",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageNativeTests.test_new_integer_operations_use_runtime_input_under_both_compilers",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageNativeTests.test_select_uses_changing_inputs_and_full_width_output_under_both_compilers",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageNativeTests.test_checked_casts_read_runtime_values_and_preserve_trap_write_order",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageNativeTests.test_boolean_equality_reads_all_truth_table_inputs",
+        "tests.test_hia_selfhost_language_coverage.SelfhostLanguageNativeTests.test_all_generations_and_raw_evidence_are_retained"
+      ],
+      "path": "tests/test_hia_selfhost_language_coverage.py",
+      "same_as_970": true,
+      "sha256": "c80501bb7ca159306028bdfd0f49a950b6f4c98beab87387b928013db16479d0"
+    },
+    {
+      "bytes": 12150,
+      "git_blob": "8d0b08468d9097656e9b9cc6c59b601a4910f1fb",
+      "path": "tools/hia_selfhost_cfg_worklist.py",
+      "same_as_970": true,
+      "sha256": "4cf1b908088438485e9f5e03937c0ec5a2adf40367437a55f95ea2982a6018e5"
+    },
+    {
+      "bytes": 7232,
+      "git_blob": "ac3f55b00be573fed7f5f4311874699bbd05b94a",
+      "path": "tools/hia_selfhost_references.py",
+      "same_as_970": true,
+      "sha256": "e08102dcf84deb5fb4f4c6c196e785a5286c671031c59db2128bd04ef9cd06dd"
+    },
+    {
+      "bytes": 21629,
+      "git_blob": "da954923cf34df3f63f8ea7e7bb9ea768c2dd422",
+      "path": "tools/hia_selfhost_loans.py",
+      "same_as_970": true,
+      "sha256": "29f76ed70b35131604719ad32f4ab582834472aea13fc042b917d9cf9a8c6829"
+    }
+  ],
+  "schema": "hia.selfhost.interned-scan-current-v78-readback.v1",
+  "scope": "Exact file reads plus test AST inventory only; no project imports, no generation, no tests",
+  "source_root": "/workspace/scratch/e26ed3e2edcf/recovered-Hepta-r1",
+  "tree": "6381daf9beb11d873d4608c26facc0b9e5bc747f"
+}
