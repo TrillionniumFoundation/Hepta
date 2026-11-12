@@ -1,0 +1,47 @@
+name: Exact HIA complete wheel resource audit v74
+"on":
+  push:
+    branches:
+      - codex/hia-wheel-resource-audit-v74-20261112-dda7
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Exact audit harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Exact complete product checkout
+        uses: actions/checkout@v4
+        with:
+          ref: 7e9c5a796a29746d169f9db97392ec774f627c03
+          path: source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Exact hosted interpreter
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Read every tracked file and every Python packaging candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B "$GITHUB_WORKSPACE/harness/audit_wheel_resources.py"
+      - name: Preserve full original read-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-v74-wheel-resource-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+          include-hidden-files: true
+          path: ${{ runner.temp }}/hia-wheel-resource-audit
