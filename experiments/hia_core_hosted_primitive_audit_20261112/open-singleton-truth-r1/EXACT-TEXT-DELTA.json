@@ -1,0 +1,7 @@
+{
+  "helper": "\ndef singleton_truth_source():\n    # OPEN DRAFT: relies on singleton handle identity throughout the session.\n    # The current writable values/handles/literals surface does not prove it.\n    return '\\n'.join((\n        'def singleton_truth_tag(handle:u64) -> u64:',\n        '    if handle == 1:',\n        '        return 1',\n        '    if handle == 2:',\n        '        return 1',\n        '    if handle == 3:',\n        '        return 2',\n        '    return 0',\n    )) + '\\n'\n\n\n",
+  "effect": "    if (instruction['opcode'] == 10 and len(arguments) == 1\n            and not vector and not destinations):\n        # Reuse the complete original staged request and sequence transition.\n        # Only an admitted, immutable singleton registry could justify eliding\n        # this observation; that lifetime condition is currently OPEN.\n        lines += [\n            'truth_tag = singleton_truth_tag(get(o, 64))',\n            'if truth_tag != 0:',\n            '    put(w, 40, truth_tag - 1)',\n            '    put(w, 8, 0)',\n            '    return 4',\n        ]\n",
+  "unitOld": "    return main + '\\n' + startup + '\\n' + '\\n\\n'.join(leaves + ['\\n'.join(lines)]) + '\\n' + helpers()\n",
+  "unitNew": "    singleton = singleton_truth_source() if any(\n        item['kind'] == 'effect' and item['opcode'] == 10 for item in selected) else ''\n    return main + '\\n' + startup + '\\n' + '\\n\\n'.join(leaves + ['\\n'.join(lines)]) + '\\n' + helpers() + singleton\n",
+  "inverse_restores_base": true
+}

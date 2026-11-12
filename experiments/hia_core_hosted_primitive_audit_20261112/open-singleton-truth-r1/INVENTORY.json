@@ -1,0 +1,355 @@
+{
+  "schema": "hia.core-hosted-primitives.static-inventory.v1",
+  "source_commit": "80ec04ae7489209b122c874531d194c67b30dfed",
+  "source_tree": "963e980c2486e1f7c74fa42bc8132ef6b1b8b690",
+  "source_pins": {
+    "hepta/hia_core_lowering_native.py": {
+      "bytes": 23766,
+      "sha256": "9a510303d9e71d6e656e36f72daef5c2a381735c9b175097b8f0f50d666a3e41",
+      "git_blob_sha1": "ee9fc7c6bcb0c971b33c272f790bf2a598808a4f"
+    },
+    "tools/hia_core_lowering_ir.py": {
+      "bytes": 24460,
+      "sha256": "8c70ac7cf57bfb7ee2c89796bbde3b928a4ae543a7c68da7a94b4dea40659ca7",
+      "git_blob_sha1": "2c7214119763ca26d0ce56d81a349ffee7285982"
+    },
+    "tools/generate_hia_core_lowering.py": {
+      "bytes": 16918,
+      "sha256": "03912aead3b5fb1a9c539560f62a51a5e942c3b36f9675666d3278248259019f",
+      "git_blob_sha1": "ec7903aea42a0dd96c68f4f728dd2a0b5949c429"
+    },
+    "tools/hia_core_lowering_policy.py": {
+      "bytes": 27319,
+      "sha256": "9da1b04b5044bcd7d41c9cb19af09b5de1b2dfd63da3b63fc10a02fb2dba6e9d",
+      "git_blob_sha1": "4bd67ca0dc56b3beaf1af3be59ea40aca536a544"
+    },
+    "docs/HIA_CORE_LOWERING_NATIVE.md": {
+      "bytes": 15806,
+      "sha256": "3ae98ea9aa84bec103e3f11b3581b5930ff39e92841cc49b492baafbc9e395ff",
+      "git_blob_sha1": "7412aacb8d28529246625a67e72189e61c2a41e9"
+    }
+  },
+  "scope": "STATIC_EXACT_SOURCE_READING_ONLY",
+  "project_code_executed": false,
+  "python_ast_parse_executed": false,
+  "hosted_primitive_kinds": 19,
+  "ir_textual_call_sites": 31,
+  "rows": [
+    {
+      "opcode": 1,
+      "name": "GLOBAL",
+      "bridge_line": 234,
+      "python_responsibility": "Helper/namespace/builtins precedence and missing-name exception remain in Python; HIA chooses the name and lookup point.",
+      "ir_sites": [
+        {
+          "line": 173,
+          "method": "Function.expression",
+          "text": "return local if local is not None else self.effect('GLOBAL', (self.constant(node.id),))"
+        }
+      ]
+    },
+    {
+      "opcode": 2,
+      "name": "ATTR",
+      "bridge_line": 237,
+      "python_responsibility": "CPython attribute and descriptor lookup remains hosted; HIA chooses receiver/name and order.",
+      "ir_sites": [
+        {
+          "line": 175,
+          "method": "Function.expression",
+          "text": "return self.effect('ATTR', (self.expression(node.value), self.constant(node.attr)))"
+        },
+        {
+          "line": 364,
+          "method": "Function.statements",
+          "text": "old = self.effect('ATTR', (receiver, self.constant(node.target.attr)))"
+        }
+      ]
+    },
+    {
+      "opcode": 3,
+      "name": "SET_ATTR",
+      "bridge_line": 240,
+      "python_responsibility": "CPython attribute assignment and descriptor effects remain hosted; HIA sequences the effect.",
+      "ir_sites": [
+        {
+          "line": 275,
+          "method": "Function.assign",
+          "text": "self.effect('SET_ATTR', (self.expression(target.value), self.constant(target.attr), value), count=0)"
+        },
+        {
+          "line": 369,
+          "method": "Function.statements",
+          "text": "else: self.effect('SET_ATTR', (receiver, self.constant(node.target.attr), value), count=0)"
+        }
+      ]
+    },
+    {
+      "opcode": 4,
+      "name": "ITEM",
+      "bridge_line": 244,
+      "python_responsibility": "Subscription, indexing, hashing and equality protocols remain hosted.",
+      "ir_sites": [
+        {
+          "line": 178,
+          "method": "Function.expression",
+          "text": "return self.effect('ITEM', (value, self.expression(node.slice)))"
+        }
+      ]
+    },
+    {
+      "opcode": 5,
+      "name": "SET_ITEM",
+      "bridge_line": 247,
+      "python_responsibility": "Item mutation, lookup, hashing and foreign receiver behavior remain hosted.",
+      "ir_sites": [
+        {
+          "line": 277,
+          "method": "Function.assign",
+          "text": "self.effect('SET_ITEM', (self.expression(target.value), self.expression(target.slice), value), count=0)"
+        },
+        {
+          "line": 314,
+          "method": "Function.comprehension",
+          "text": "self.effect('SET_ITEM', (result, key, value), count=0)"
+        }
+      ]
+    },
+    {
+      "opcode": 6,
+      "name": "CALL",
+      "bridge_line": 251,
+      "python_responsibility": "Positional/keyword application and the actual callee remain hosted. Policy call sites may still invoke algorithms such as sorted/min/max or explicitly selected existing HIA owners; CALL alone proves neither native ownership nor fallback.",
+      "ir_sites": [
+        {
+          "line": 245,
+          "method": "Function.expression",
+          "text": "return self.effect('CALL', (callee, Raw(len(node.args)), *arguments, key, value))"
+        }
+      ]
+    },
+    {
+      "opcode": 7,
+      "name": "PACK",
+      "bridge_line": 268,
+      "python_responsibility": "List/tuple allocation plus set/dict hashing, equality, insertion and duplicate handling remain hosted.",
+      "ir_sites": [
+        {
+          "line": 221,
+          "method": "Function.expression",
+          "text": "return self.effect('PACK', (Raw(PACK[type(node).__name__]), Raw(len(observed))),"
+        },
+        {
+          "line": 309,
+          "method": "Function.comprehension",
+          "text": "result = self.effect('PACK', (Raw(PACK['Dict' if isinstance(node, ast.DictComp) else 'List']), Raw(0)), vector=())"
+        }
+      ]
+    },
+    {
+      "opcode": 8,
+      "name": "ITER",
+      "bridge_line": 290,
+      "python_responsibility": "Iterator acquisition and its __iter__/sequence behavior remain hosted.",
+      "ir_sites": [
+        {
+          "line": 264,
+          "method": "Function.generator_expression",
+          "text": "iterator = self.effect('ITER', (self.expression(loop.iter),))"
+        },
+        {
+          "line": 291,
+          "method": "Function.iterate",
+          "text": "iterator = first_iterator or self.effect('ITER', (self.expression(generator.iter),))"
+        },
+        {
+          "line": 308,
+          "method": "Function.comprehension",
+          "text": "first = self.effect('ITER', (self.expression(node.generators[0].iter),))"
+        },
+        {
+          "line": 329,
+          "method": "Function.reduction",
+          "text": "first = self.effect('ITER', (self.expression(generator.generators[0].iter),))"
+        },
+        {
+          "line": 376,
+          "method": "Function.statements",
+          "text": "iterator = self.effect('ITER', (self.expression(node.iter),))"
+        }
+      ]
+    },
+    {
+      "opcode": 9,
+      "name": "NEXT",
+      "bridge_line": 293,
+      "python_responsibility": "next() and StopIteration classification remain hosted; HIA chooses loop progression and body.",
+      "ir_sites": [
+        {
+          "line": 293,
+          "method": "Function.iterate",
+          "text": "self.mark(head); value = self.effect('NEXT', (iterator,))"
+        },
+        {
+          "line": 378,
+          "method": "Function.statements",
+          "text": "self.mark(head); value = self.effect('NEXT', (iterator,))"
+        },
+        {
+          "line": 423,
+          "method": "GeneratorFunction.compile",
+          "text": "value = self.effect('NEXT', (self.locals['iterator'],))"
+        }
+      ]
+    },
+    {
+      "opcode": 10,
+      "name": "TRUTH",
+      "bridge_line": 300,
+      "python_responsibility": "bool(value), including __bool__/__len__ and exceptions, remains hosted for runtime references. Literal truth is already folded by the authoring IR.",
+      "ir_sites": [
+        {
+          "line": 131,
+          "method": "Function.truth",
+          "text": "self.effect('TRUTH', (value,), count=0)"
+        }
+      ]
+    },
+    {
+      "opcode": 11,
+      "name": "BINARY",
+      "bridge_line": 303,
+      "python_responsibility": "Twelve arithmetic/bit operations and their in-place forms use Python operator dispatch, arbitrary integer semantics and foreign operand protocols.",
+      "ir_sites": [
+        {
+          "line": 183,
+          "method": "Function.expression",
+          "text": "return self.effect('BINARY', (Raw(BINARY[type(node.op).__name__]),"
+        },
+        {
+          "line": 337,
+          "method": "Function.reduction",
+          "text": "self.move(result, self.effect('BINARY', (Raw(BINARY['Add']), result, value)))"
+        },
+        {
+          "line": 367,
+          "method": "Function.statements",
+          "text": "value = self.effect('BINARY', (Raw(128 + BINARY[type(node.op).__name__]), old, self.expression(node.value)))"
+        }
+      ]
+    },
+    {
+      "opcode": 12,
+      "name": "UNARY",
+      "bridge_line": 306,
+      "python_responsibility": "Unary positive/negative/invert use Python operator dispatch and value semantics.",
+      "ir_sites": [
+        {
+          "line": 192,
+          "method": "Function.expression",
+          "text": "return self.effect('UNARY', (Raw(UNARY[type(node.op).__name__]), self.expression(node.operand)))"
+        }
+      ]
+    },
+    {
+      "opcode": 13,
+      "name": "COMPARE",
+      "bridge_line": 309,
+      "python_responsibility": "Six rich comparisons and membership/nonmembership use Python dispatch. HIA already handles object identity comparisons and subsequent control flow.",
+      "ir_sites": [
+        {
+          "line": 166,
+          "method": "Function.compare",
+          "text": "return self.effect('COMPARE', (Raw(COMPARE[type(operator).__name__]), left, right))"
+        }
+      ]
+    },
+    {
+      "opcode": 14,
+      "name": "UNPACK",
+      "bridge_line": 312,
+      "python_responsibility": "Python unpacking of one through four values owns iteration and arity errors.",
+      "ir_sites": [
+        {
+          "line": 280,
+          "method": "Function.assign",
+          "text": "pieces = self.effect('UNPACK', (value, Raw(len(target.elts))), count=len(target.elts))"
+        }
+      ]
+    },
+    {
+      "opcode": 15,
+      "name": "SLICE",
+      "bridge_line": 330,
+      "python_responsibility": "CPython slice object construction remains hosted; slicing itself is handled by the later ITEM operation.",
+      "ir_sites": [
+        {
+          "line": 180,
+          "method": "Function.expression",
+          "text": "return self.effect('SLICE', tuple(self.expression(v) if v is not None else self.constant(None)"
+        }
+      ]
+    },
+    {
+      "opcode": 16,
+      "name": "APPEND",
+      "bridge_line": 333,
+      "python_responsibility": "Unbound list.append mutates the admitted list; HIA chooses when and what to append.",
+      "ir_sites": [
+        {
+          "line": 316,
+          "method": "Function.comprehension",
+          "text": "self.effect('APPEND', (result, self.expression(node.elt)), count=0)"
+        }
+      ]
+    },
+    {
+      "opcode": 17,
+      "name": "IMPORT",
+      "bridge_line": 337,
+      "python_responsibility": "Three existing module dependencies are imported by Python at the HIA-selected point.",
+      "ir_sites": [
+        {
+          "line": 394,
+          "method": "Function.statements",
+          "text": "value = self.effect('IMPORT', (Raw(imports[(node.module, node.names[0].name)]),))"
+        }
+      ]
+    },
+    {
+      "opcode": 18,
+      "name": "RAISE",
+      "bridge_line": 351,
+      "python_responsibility": "Python raises the selected object, retaining runtime exception semantics.",
+      "ir_sites": [
+        {
+          "line": 398,
+          "method": "Function.statements",
+          "text": "self.effect('RAISE', (self.expression(node.exc),), count=0)"
+        }
+      ]
+    },
+    {
+      "opcode": 19,
+      "name": "GENERATOR",
+      "bridge_line": 354,
+      "python_responsibility": "The Python generator object owns suspension/throw/close/PEP479 behavior; HIA owns its lowered body, NEXT/yield/control routing.",
+      "ir_sites": [
+        {
+          "line": 267,
+          "method": "Function.generator_expression",
+          "text": "return self.effect('GENERATOR', (self.constant(name), iterator))"
+        }
+      ]
+    }
+  ],
+  "already_hia_owned": [
+    "Lowered policy control flow, branches, loop routing and cross-unit continuation",
+    "Object identity comparison using existing handle identity",
+    "Literal truth folding in Function.truth",
+    "Lowered generator reductions and NEXT/body/yield sequencing"
+  ],
+  "selected_experiment": "TRUTH for handles 1/2/3 only",
+  "selected_status": "OPEN_BLOCKED_BY_MUTABLE_REGISTRY_AND_STEP_OBSERVABILITY",
+  "original_hosted_primitive_count_after_draft": 19
+}
