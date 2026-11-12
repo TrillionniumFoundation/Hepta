@@ -1,0 +1,72 @@
+{
+  "schema": "hia.json-pretty-bulk-r4-design.v1",
+  "status": "HIA_SOURCE_AND_V8_DEVELOPMENT_PASS_NATIVE_UNEXECUTED",
+  "source_bytes": 21222,
+  "source_sha256": "2a8b2180cb15947c90961a55927241e8198f32a046484127d83b16fa880e9303",
+  "structure": {
+    "functions": 8,
+    "blocks_total": 85,
+    "blocks_per_function": 47,
+    "instructions": 307,
+    "ssa_names_per_function": 495,
+    "parameters_or_arguments": 8
+  },
+  "baseline": {
+    "commit": "7b3cce17334eae4d5590fc1fb367a537320f0c90",
+    "source_sha256": "7a49da7115945fe90a1672e379e1f06a7f7778ef9f402c73afdbf7ce8cbad216",
+    "native_run": 43134139906
+  },
+  "predecessor": {
+    "commit": "72c6bb2d1ebb510da6dd22597a82e3f388206eb6",
+    "source_sha256": "dccf5a93dcdeed7877c9ec05d261cff06257dd53d980b89fcfcb614a1d732f73",
+    "observed_error_offset_regression_preserved": true
+  },
+  "ordinary_domain": {
+    "input": "Valid compact UTF-8 JSON admitted by the upstream bounded wire profile; source lexemes are preserved.",
+    "input_limit": 8388608,
+    "workspace_header_bytes": 32,
+    "ordinary_stack_capacity": 129,
+    "workspace_bytes": 161,
+    "input_output_workspace": "Private, pairwise disjoint buffers; input remains immutable for both passes.",
+    "indent_spaces": 2,
+    "trailing_newline": false,
+    "modes": {
+      "measure": 0,
+      "emit": 1
+    },
+    "public_f0_return": "u32"
+  },
+  "output_contract": {
+    "success": "Only status 0 admits output length and emitted bytes.",
+    "failure": "Discard output and output length for every nonzero status; failed prefixes and failed length do not have an equivalence promise.",
+    "valid_input_short_output_error_offset": "Preserved from r2 byte-at-a-time candidate: first literal byte not emitted, or original structural input offset for punctuation/indentation.",
+    "unadmitted_input": "This formatter is not an independent full JSON parser. Diagnostic priority for malformed or unadmitted wire is not asserted equivalent to r2."
+  },
+  "change": {
+    "span_failure_code3": "Use span_start + max(0, output_capacity - pre-span output_counter). A code-3 span failure implies remaining capacity is shorter than the admitted span.",
+    "other_span_failure": "Retain previous end-offset reporting for non-code-3 statuses.",
+    "existing_bulk_ops": [
+      "buffer.copy_range",
+      "buffer.fill_range"
+    ],
+    "new_opcodes": false,
+    "compiler_caps_changed": false
+  },
+  "observed": {
+    "existing31_and_two_scale_cases": 33,
+    "short_capacity_comparisons": 477,
+    "deep_capacity_comparisons": 8,
+    "guard_bytes_checked": true,
+    "small_and_depth_comparisons_use_nonzero_workspace": 107
+  },
+  "unexecuted": [
+    "Public Core parse/render/verify for this r4 source",
+    "Native compilation and native caller execution",
+    "Exact 8MiB native scale case",
+    "CLI integration and original caller contract tests",
+    "Cold 180s/2 workers/all38",
+    "Full 5400s under 10800s guardian"
+  ],
+  "old_owners_deleted": false,
+  "product_branch_changed": false
+}

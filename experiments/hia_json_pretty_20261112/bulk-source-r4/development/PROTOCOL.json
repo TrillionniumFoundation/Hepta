@@ -1,0 +1,55 @@
+{
+  "schema": "hia.json-pretty-r4-development-protocol.v1",
+  "vm": "development/ssa_vm.js; development interpreter only",
+  "validation": "Use validate(document) and check all block/call/return interfaces and globally unique function SSA names.",
+  "original_cases": "cases.json; exact same 31 baseline case IDs",
+  "added_cases": "scale-fixtures.json; exactly valid_string_64KiB and wide_array_1024_scalars",
+  "runner": "new Function(case_runner_source)()(document,cases,H,vm_source)",
+  "short_capacity": {
+    "fixtures": "All 16 baseline exact_layout cases with UTF-8 expected output below 1024 bytes, plus quoted_abcd_short_output_regression.",
+    "extra_fixture": {
+      "name": "quoted_abcd_short_output_regression",
+      "wire": "\"abcd\"",
+      "expected": "\"abcd\"",
+      "kind": "exact_layout"
+    },
+    "capacities": "Every integer from 0 through expected UTF-8 byte length + 1, inclusive.",
+    "baseline_source_sha256": "7a49da7115945fe90a1672e379e1f06a7f7778ef9f402c73afdbf7ce8cbad216",
+    "observed_comparisons": 477
+  },
+  "depth_capacity": {
+    "fixture": "maximum_wire_root_depth_128",
+    "capacities": [
+      0,
+      1,
+      31,
+      255,
+      1023,
+      16641,
+      33281,
+      33282
+    ],
+    "exhaustive": false
+  },
+  "pairwise_call": {
+    "mode": 1,
+    "vm_instruction_budget": 60000000,
+    "workspace_bytes": 161,
+    "workspace_initial_fill": 107,
+    "first_eight_bytes": "zeroed then byte 0 set to 1",
+    "guard_regions": "16 bytes of 0xa5 before and after output and workspace",
+    "checks": [
+      "source immutability",
+      "guard integrity",
+      "return status",
+      "header diagnostic status",
+      "header error offset"
+    ],
+    "success_checks": [
+      "length equals expected length",
+      "output bytes equal expected bytes"
+    ],
+    "failure_length_or_prefix_equivalence": false
+  },
+  "qualification": "No public Core, native execution, native timing, original caller, cold or full qualification is inferred."
+}
