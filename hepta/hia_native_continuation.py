@@ -16,6 +16,7 @@ import struct
 import subprocess
 import time
 
+from .hia_native_helpers import check_native_scheduling_scope
 from .hia_core_lowering_native import LoweringSession,_decode_pool,MAGIC,FRAME
 
 EVENT=struct.Struct('<8Q')
@@ -48,6 +49,7 @@ def _read_file(fd):
 
 class NativeContinuation:
     def __init__(self,path,expected_sha256,*,pool_bytes):
+        check_native_scheduling_scope()
         self.path=Path(path)
         if not self.path.is_absolute():raise ValueError('absolute native continuation executable required')
         if type(expected_sha256) is not str or len(expected_sha256)!=64:
@@ -74,6 +76,7 @@ class NativeContinuation:
         fd=None
         process=None;captured=False;executable_fd=None
         try:
+            check_native_scheduling_scope()
             fd=os.open(self.path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
             raw,identity=_read_file(fd)
             if sha256(raw).hexdigest()!=self.sha256:raise ValueError('native continuation executable identity mismatch')

@@ -14,7 +14,7 @@ from .hia_machine_object_native import NativeMachineObject
 
 SCHEMA='hepta.hia.native-continuation.v1'
 INPROCESS_SCHEMA='hepta.hia.native-continuation-inprocess.v1'
-_RUNTIME=('hia_native_continuation.py','hia_native_continuation_selection.py','hia_native_continuation_inprocess.py')
+_RUNTIME=('hia_native_continuation.py','hia_native_continuation_selection.py','hia_native_continuation_inprocess.py','hia_native_helpers.py','hia_core_lowering_native.py')
 _OWNER_CACHE=[]
 
 
@@ -39,6 +39,8 @@ _FAMILIES={
 
 
 def installed_native_continuation(manifest_path,namespace,*,kind='execution-observation'):
+    from .hia_native_helpers import check_native_scheduling_scope
+    check_native_scheduling_scope()
     from .hia_agent_contract import CONTINUATION_BUILD_FILES
     from importlib import import_module
     if type(kind) is not str or kind not in _FAMILIES:raise ValueError('native continuation family differs')

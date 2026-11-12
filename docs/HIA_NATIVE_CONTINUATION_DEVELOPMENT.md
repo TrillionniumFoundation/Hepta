@@ -144,3 +144,32 @@ is still tested, not described as a native CLI rewrite.
 The aggregate development evidence remains external and explicitly uses an
 older v87 compiler. Current source has not yet obtained its own cold/full
 qualification. Native object semantics, persistence and defaults remain open.
+
+
+## Worker custody correction (v89 successor)
+
+The frozen v88 witness actually executed 26 native scheduler sessions / 348
+unit calls inside an unselected worker scope before its original terminal pin
+check rejected an added selector. Terminal refusal cannot undo that execution.
+The original frozen source and failure evidence are retained, not rewritten.
+
+Current v1/v2 worker capsules do not register the five scheduler families.
+They now refuse before general loading, pool execution or foreign effects.
+Captured owners, pre-created sessions and cached in-process/subprocess engines
+cannot bypass that refusal. A refused held session is closed. Standalone
+explicit scheduling outside worker scopes remains available. The already
+registered v2 worker-report/wire pair keeps its original behavior and guards.
+This is refusal closure for an unsupported scope, not an implementation of
+five-family worker support. A separately specified, fully transitive pinned
+worker capsule is still required before enabling those families in a worker.
+
+The new outer runtime identity also pins the canonical worker authority and
+primitive bridge sources (five runtime files total); no guard can be silently
+swapped while retaining the former three-file identity. All 178 HIA sources
+and all existing caps/primitive counts remain unchanged. A v88 source-workflow
+failure also found a redundant production-module entry in bootstrap-only
+SOURCE_FILES. Removing that redundant entry does not drop the module from
+complete source custody: every production Python module is included by its
+separate automatic inventory. The original release-inventory assertion remains.
+No v88 cold/native/full was started after these findings; its 525-test failure
+and childless-waiter retirement records are preserved externally.

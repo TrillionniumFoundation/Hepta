@@ -933,6 +933,24 @@ print(json.dumps({'installed_entry':True,'retained_report_owner_entered':False,'
                 authority.native_helpers_identity()
         self.assertEqual(selectors(), before)
 
+    def test_real_v2_scope_refuses_unregistered_schedulers_before_native_mapping(self):
+        import importlib
+        from hepta import hia_native_helpers as authority
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        from hepta.hia_json_wire_native import installed_json_wire
+        before=dict(os.environ)
+        with authority.native_helpers_scope(str(self.worker_bundle),self.worker_pin):
+            captured=installed_worker_report(os.environ[SELECTOR])
+            with patch.object(NativeHiaJsonImage,'__init__',side_effect=AssertionError('unregistered image mapping')):
+                for family in ('core_lowering','core_emitter','byte_wrapper','machine_object','execution_observation'):
+                    module=importlib.import_module('hepta.hia_'+family+'_selection')
+                    with self.subTest(family=family):
+                        with self.assertRaisesRegex(ValueError,'outside the pinned worker bundle'):getattr(module,'installed_'+family)('/must-not-open',{})
+            self.assertIs(installed_worker_report(os.environ[SELECTOR]),captured)
+            self.assertIs(installed_json_wire(os.environ['HEPTA_HIA_JSON_WIRE_MANIFEST']),captured.wire)
+            self.assertEqual(authority.native_helpers_identity(),{'native_helpers_sha256':self.worker_pin})
+        self.assertEqual(dict(os.environ),before)
+
     def test_real_v2_wrong_pin_child_drift_and_environment_restore(self):
         from hepta import hia_native_helpers as authority
         before = dict(os.environ)

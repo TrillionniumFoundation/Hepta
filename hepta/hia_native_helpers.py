@@ -118,6 +118,20 @@ def _read(path, limit):
     return _Snapshot(path, raw, identity)
 
 
+
+def check_native_scheduling_scope():
+    """The existing v1/v2 worker pins do not register these five schedulers.
+
+    Keep standalone explicit scheduling unchanged. A worker scope must refuse
+    unsupported scheduling before mapping, pool execution or foreign effects,
+    not merely discover an extra selector at terminal attestation. The separately
+    registered worker-report/wire companions use their existing v2 custody.
+    """
+    _check_scope_owner()
+    if _SCOPE_OWNER is not None:
+        raise ValueError('native scheduling bundle is outside the pinned worker bundle')
+
+
 def _manifest_environment():
     return {key: value for key, value in os.environ.items()
             if key.startswith("HEPTA_HIA_") and key.endswith("_MANIFEST")}

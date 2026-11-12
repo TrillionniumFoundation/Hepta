@@ -47,12 +47,75 @@ def call(image,raw,capacity=2<<20):
 
 
 class ContinuationSourceTests(unittest.TestCase):
+    def test_pack_publication_checks_actual_native_extents_and_exact_receipt_types(self):
+        from tools.build_hia_native_continuation import _checked_pack_result
+        image=b'native-packer';source=b'pack-input'
+        header=bytearray(176);header[:8]=b'HIAINP01'
+        struct.pack_into('<2Q',header,8,1,176)
+        struct.pack_into('<2Q',header,96,177,177)
+        executable=bytes(header)+b'\xc3';output=executable+b'\xa5'*31
+        digest=lambda raw:sha256(raw).hexdigest()
+        receipt=dict(status='returned',result_u64=177,core_u32=177,abi_status=0,
+            image_sha256=digest(image),source_sha256=digest(source),
+            input_sha256=digest(source),input_bytes=len(source),output_sha256=digest(output),
+            source_unchanged=True,buffer_redzones_unchanged=True,
+            output_tail_unchanged=True,input_pages_read_only=True,
+            forbidden_compiler_modules_loaded=[])
+        def checked(row=receipt,actual=output,capacity=len(output),transport='inprocess'):
+            return _checked_pack_result(row,actual,image=image,source=source,
+                capacity=capacity,transport=transport)
+        self.assertEqual(checked(),executable)
+        corruptions=(dict(core_u32=True,result_u64=True),
+            dict(core_u32=177.0,result_u64=177.0),dict(abi_status=False),
+            dict(abi_status=0.0),dict(result_u64=177+(1<<32)),
+            dict(input_bytes=True),dict(input_bytes=len(source)+1),
+            dict(input_sha256=None),dict(input_sha256='0'*64),
+            dict(source_sha256='0'*64),dict(image_sha256='0'*64),
+            dict(output_sha256='0'*64),dict(source_unchanged=1),
+            dict(buffer_redzones_unchanged=1),dict(output_tail_unchanged=1),
+            dict(input_pages_read_only=1),dict(forbidden_compiler_modules_loaded=()),
+            dict(forbidden_compiler_modules_loaded=['hepta.compiler']),
+            dict(core_u32=178,result_u64=178),dict(core_u32=176,result_u64=176),
+            dict(core_u32=len(output)+1,result_u64=len(output)+1))
+        for changes in corruptions:
+            with self.subTest(receipt_changes=changes),self.assertRaises(ValueError):
+                checked({**receipt,**changes})
+        for actual in (b'',output[:-1],output+b'\xa5',bytearray(output)):
+            with self.subTest(output_type=type(actual),length=len(actual)),self.assertRaises(ValueError):
+                checked({**receipt,'output_sha256':digest(actual)},actual)
+        for capacity in (True,0,(64<<20)+1):
+            with self.subTest(capacity=capacity),self.assertRaises(ValueError):checked(capacity=capacity)
+        for offset in (0,8,16,24,96,104,175):
+            broken=bytearray(output);broken[offset]^=1;broken=bytes(broken)
+            with self.subTest(header_offset=offset),self.assertRaises(ValueError):
+                checked({**receipt,'output_sha256':digest(broken)},broken)
+        with self.assertRaises(ValueError):checked([])
+        with self.assertRaises(ValueError):checked(transport='unknown')
+        with self.assertRaises(ValueError):checked(transport='subprocess')
+
+
     def test_unqualified_builder_refuses_before_output_creation(self):
         from tools.build_hia_native_continuation import build
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);(root/'compiler').write_bytes(b'not qualified');(root/'cold.json').write_text('{}')
             with self.assertRaises(ValueError):build(root/'must-not-exist',root/'compiler',root/'cold.json')
             self.assertFalse((root/'must-not-exist').exists())
+
+    def test_worker_scope_rejects_all_unregistered_schedulers_before_mapping(self):
+        import importlib
+        from hepta.hia_native_helpers import native_helpers_scope
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        from hepta.hia_native_continuation import NativeContinuation
+        from hepta.hia_native_continuation_inprocess import InProcessContinuation
+        from hepta.hia_native_continuation_selection import installed_native_continuation
+        with native_helpers_scope(),patch.object(NativeHiaJsonImage,'__init__',side_effect=AssertionError('unregistered mapping')),patch('subprocess.Popen',side_effect=AssertionError('unregistered process')):
+            for family in ('core_lowering','core_emitter','byte_wrapper','machine_object','execution_observation'):
+                module=importlib.import_module('hepta.hia_'+family+'_selection')
+                with self.subTest(family=family):
+                    with self.assertRaisesRegex(ValueError,'outside the pinned worker bundle'):getattr(module,'installed_'+family)('/must-not-open',{})
+            with self.assertRaisesRegex(ValueError,'outside the pinned worker bundle'):installed_native_continuation('/must-not-open',{})
+            for factory in (NativeContinuation,InProcessContinuation):
+                with self.assertRaisesRegex(ValueError,'outside the pinned worker bundle'):factory(None,None,pool_bytes=64)
 
     def test_generator_and_independent_policy_VM(self):
         from tools.generate_hia_continuation import policy_source,packer_source
@@ -144,7 +207,7 @@ class ContinuationNativeTests(unittest.TestCase):
         raw=self.inprocess_executable if in_process else self.executable
         target=directory/('continuation.image.bin' if in_process else 'continuation.native');target.write_bytes(raw);target.chmod(0o400 if in_process else 0o500)
         base=(directory/'policy/manifest.json').read_bytes()
-        value=dict(schema='hepta.hia.native-continuation-inprocess.v1' if in_process else 'hepta.hia.native-continuation.v1',kind='execution-observation',policy_bundle='policy/manifest.json',policy_bundle_sha256=sha256(base).hexdigest(),compiler_sha256=json.loads(base)['compiler_sha256'],image_path=target.name,image_sha256=sha256(raw).hexdigest(),resource_sha256={name:sha256((ROOT/name).read_bytes()).hexdigest() for name in CONTINUATION_BUILD_FILES},runtime_sha256={'hepta/'+name:sha256((ROOT/'hepta'/name).read_bytes()).hexdigest() for name in ('hia_native_continuation.py','hia_native_continuation_selection.py','hia_native_continuation_inprocess.py')})
+        value=dict(schema='hepta.hia.native-continuation-inprocess.v1' if in_process else 'hepta.hia.native-continuation.v1',kind='execution-observation',policy_bundle='policy/manifest.json',policy_bundle_sha256=sha256(base).hexdigest(),compiler_sha256=json.loads(base)['compiler_sha256'],image_path=target.name,image_sha256=sha256(raw).hexdigest(),resource_sha256={name:sha256((ROOT/name).read_bytes()).hexdigest() for name in CONTINUATION_BUILD_FILES},runtime_sha256={'hepta/'+name:sha256((ROOT/'hepta'/name).read_bytes()).hexdigest() for name in ('hia_native_continuation.py','hia_native_continuation_selection.py','hia_native_continuation_inprocess.py','hia_native_helpers.py','hia_core_lowering_native.py')})
         path=directory/'manifest.json';path.write_text(json.dumps(value,sort_keys=True));path.chmod(0o600)
         return path
 
@@ -278,6 +341,28 @@ print('installed native scheduling passed')
             with patch.object(owner._continuation,'_entry',side_effect=AssertionError('must refuse before entry')):
                 with self.assertRaisesRegex(ValueError,'executable identity mismatch'):installed_execution_observation(str(path),vars(hia_opcodes))
         finally:target.chmod(0o600);target.write_bytes(original);target.chmod(0o400)
+
+    def test_held_sessions_and_cached_engines_cannot_enter_unpinned_worker(self):
+        from hepta.hia_core_lowering_native import LoweringSession
+        from hepta.hia_native_helpers import native_helpers_scope
+        from hepta.hia_native_continuation import NativeContinuation
+        from hepta.hia_native_continuation_inprocess import InProcessContinuation
+        mode=self.owner.modes['need']['number']
+        engines=(NativeContinuation(self.path,sha256(self.executable).hexdigest(),pool_bytes=self.abi['pool_bytes']),
+            InProcessContinuation(self.inprocess_executable,sha256(self.inprocess_executable).hexdigest(),pool_bytes=self.abi['pool_bytes']))
+        for method in ('run','step','handoff','observe'):
+            session=LoweringSession(self.owner,mode,(True,None))
+            with native_helpers_scope(),patch.object(self.owner.images[0],'_entry',side_effect=AssertionError('unregistered native unit')):
+                with self.assertRaisesRegex(ValueError,'outside the pinned worker bundle'):
+                    getattr(session,method)(*([session.initial] if method=='step' else []))
+            self.assertTrue(session.finished);self.assertFalse(session.pending)
+        for engine in engines:
+            session=LoweringSession(self.owner,mode,(True,None))
+            with native_helpers_scope(),patch('subprocess.Popen',side_effect=AssertionError('unregistered native process')):
+                with self.assertRaisesRegex(ValueError,'outside the pinned worker bundle'):engine.run(session)
+            self.assertTrue(session.finished);self.assertFalse(session.pending)
+        # Rejection consumes only the held session, not an unrelated fresh use.
+        self.assertIsNone(engines[1].invoke(self.owner,'need',(True,None)))
 
     def test_inprocess_packer_matches_independent_Core_VM_and_original_caps(self):
         from hepta.hia_agent_assembly import assemble_program

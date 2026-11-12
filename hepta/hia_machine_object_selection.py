@@ -130,6 +130,8 @@ def installed_machine_object(manifest_path, namespace):
     cache key. A new unit manifest key forces fresh image admission. Source and
     ABI bytes are read on every selection, including a warm loaded bundle.
     """
+    from .hia_native_helpers import check_native_scheduling_scope
+    check_native_scheduling_scope()
     if type(namespace) is not dict:
         raise TypeError('native machine-object requires an actual module namespace')
     path = Path(manifest_path).resolve(strict=True)
