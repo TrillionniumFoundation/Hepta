@@ -1,7 +1,7 @@
-name: Byte ABI native development on CPython 3.14.4
+name: Byte ABI whole-emission integration on CPython 3.14.4
 on:
   push:
-    branches: [codex/hia-byte-abi-development-v78-20261112-dda7]
+    branches: [codex/hia-byte-abi-integration-v78-20261112-dda7]
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,7 +33,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hia-byte-abi-development-${{ github.sha }}-${{ github.run_attempt }}
+          name: hia-byte-abi-integration-${{ github.sha }}-${{ github.run_attempt }}
           path: |
             byte-abi-evidence/
             harness/inputs/
