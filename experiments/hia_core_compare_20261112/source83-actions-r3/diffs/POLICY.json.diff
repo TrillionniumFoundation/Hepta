@@ -1,0 +1,269 @@
+--- r2/POLICY.json
++++ r3/POLICY.json
+@@ -1,9 +1,9 @@
+ {
+   "schema": "hepta.hia.numeric-source83-actions-adaptation.v1",
+   "status": "FROZEN_UNEXECUTED_ROOT_TRIGGER_ONLY",
+-  "source_controls_commit": "ba291c1fa432fe2590f282a9450a63de8fb6b249",
+-  "source_controls_prefix": "experiments/hia_core_compare_20261112/source83-on-v89-request-r2/",
+-  "source_controls_request_sha256": "9920e2c75063062f44346e6329bba7278c214729fa5abbe15f18fb7de3c25e8b",
++  "source_controls_commit": "df4e7e5168877130e5e2b139c0d227b0d8ebff0a",
++  "source_controls_prefix": "experiments/hia_core_compare_20261112/source83-on-v89-request-r3/",
++  "source_controls_request_sha256": "202abe268a2be446115e5e269e7b43357b1d72e4ae3e9617fa2d9aa688e8dfc7",
+   "source_delta_sha256": "4c45fca5eaf5cf8998d9266952c1915c02d7b628dce799f83fc93e67a56c0fda",
+   "base_tree_metadata_sha256": "4dce188bbb45f9dc0094aa834cb9087dbd5526e893492b765966db3b261f3e70",
+   "base_commit": "cc51db1c74c082572ae6183ebfa0c81cd36b0648",
+@@ -11,8 +11,8 @@
+   "prospective_tree_before_derivation": "4e59cae3f3c498980bb347694be78043e8115e3f",
+   "base_complete_leaf_count": 4097,
+   "prospective_complete_leaf_count": 4097,
+-  "physical_source_count": 1653,
+-  "physical_source_bytes": 40186814,
++  "physical_source_count": 1658,
++  "physical_source_bytes": 40254784,
+   "required_runtime": {
+     "implementation": "CPython",
+     "version": [
+@@ -45,9 +45,9 @@
+   "original_controls": [
+     {
+       "name": "child.py",
+-      "size": 6014,
+-      "sha256": "a51bac57d4c475d3c7bfa8f87ec17976d657349fe3fa5055b28c72fe2eafc474",
+-      "git_blob_sha1": "c43862a1caf034c46513c04ce86ee86625c40311"
++      "size": 24646,
++      "sha256": "c305d59edd12a05c9b42f66a228ce529155c09c5a6b1808e0d80ef26b3636027",
++      "git_blob_sha1": "f0b584ad9cb396d831dd3f94229fbea9aadc089f"
+     },
+     {
+       "name": "common.py",
+@@ -57,15 +57,15 @@
+     },
+     {
+       "name": "launch.py",
+-      "size": 9294,
+-      "sha256": "f1fca0fe13617afb39fdd1547f295900850e6cb4b06e508ac754c71da13cdff4",
+-      "git_blob_sha1": "8895d594dde0eb23d367769f8fe76818f8b3f20d"
++      "size": 10275,
++      "sha256": "bb702a16ac69bb6ed9f7a304ac579e229f681dfc2d3f3916fb4c7d357d6c5677",
++      "git_blob_sha1": "09d7794205610346d0a4825720ee3f9ceb57a819"
+     },
+     {
+       "name": "worker.py",
+-      "size": 6174,
+-      "sha256": "3dc30413318f9274132d3462741ca4c5d061783dff169abb9d2d4b1838060631",
+-      "git_blob_sha1": "ec2f28499cb868529123b00f1048c63a87a73690"
++      "size": 7281,
++      "sha256": "6f49992f359967db6700355b8e2d6250fbdd3e486736078e4bde3d8114e090c5",
++      "git_blob_sha1": "2e6c8f71142972ad69157f734774abf9ce97be05"
+     }
+   ],
+   "new_request_must_change": [
+@@ -105,13 +105,18 @@
+     "minimum_available_inodes",
+     "anticipated_new_evidence_bytes_upper_estimate",
+     "estimate_is_not_a_product_or_output_cap",
+-    "native_and_compiler_and_subprocess_entry_poison_required_in_each_source_child",
+     "source_Core_VM_allowed",
+     "native_executed",
+     "complete18_executed",
+     "complete116_executed",
+     "cold_executed",
+-    "installed_executed"
++    "installed_executed",
++    "native_and_compiler_entry_poison_required_in_each_source_child",
++    "all_other_subprocess_entry_poison_required_in_each_source_child",
++    "source_child_process_policy",
++    "allowed_negative_processes_expected",
++    "zero_process_scope_claimed",
++    "original_fixture_closure_additions"
+   ],
+   "sparse_checkout": {
+     "cone_mode": false,
+@@ -167,12 +172,17 @@
+       "/rust/hia-ndu-raw-model/src/ndu.rs",
+       "/rust/hia-ndu-raw-model/src/planner.rs",
+       "/rust/hia-ndu-raw-model/upstream.json",
+-      "/setup.py"
++      "/setup.py",
++      "/experiments/hia_v67_qualification_runner_20261111/guardian.py",
++      "/experiments/hia_v67_qualification_runner_20261111/process_owner_impl.py",
++      "/experiments/hia_v67_qualification_runner_20261111/workflow_process.py",
++      "/experiments/hia_v67_qualification_runner_20261111/qualification_prerequisites.py",
++      "/experiments/hia_v67_qualification_runner_20261111/native_owner_gates.py"
+     ],
+     "head_and_full_tree_names_modes_blob_ids_required": true,
+     "unmaterialized_historical_blobs_not_claimed_read": true
+   },
+-  "output_identity": "New private RUNNER_TEMP/hia-numeric-source83-actions-r2-<actual run id>-<actual attempt>; create-only; old local and remote evidence roots are not reused.",
++  "output_identity": "New private RUNNER_TEMP/hia-numeric-source83-actions-r3-<actual run id>-<actual attempt>; create-only; old local and remote evidence roots are not reused.",
+   "qualification_boundaries": {
+     "native": false,
+     "complete18": false,
+@@ -193,7 +203,7 @@
+     "small_log_is_not_complete_custody": true,
+     "artifact_recovery_required_before_complete_raw_custody_claim": true,
+     "full_private_physical_subset_in_artifact": true,
+-    "explanation": "Retain the current 40,186,814-byte physical source subset and every actual output, including changed source bytes on HOLD. The 410 MB repository is not copied.",
++    "explanation": "Retain the current 40,254,784-byte physical source subset and every actual output, including all four negative-command input/request/stdout/stderr/receipt sets and changed source bytes on HOLD. The 410 MB repository is not copied.",
+     "fixed_small_targets": 34,
+     "new_priority_targets": [
+       "generator-32-artifact_publication.report.json",
+@@ -203,21 +213,24 @@
+       "generator-45-release_install.stdout.log",
+       "generator-45-release_install.stderr.log"
+     ],
+-    "source_control_launch_closed_guard": "S2 verifies the wrapper, raw owner receipt/request, exact command/environment/deadline, and ECHILD before any child-original traversal. Confirmed closed nonzero preserves originals; unknown closure records only parent observations."
++    "source_control_launch_closed_guard": "S3 preserves the S2 bound wrapper/raw receipt/request/ECHILD guard before any child-original traversal. Closed nonzero preserves originals; unknown closure only parent observations. Added actual four-negative-command accounting is checked separately.",
++    "negative_command_originals_required": 20,
++    "negative_command_originals_in_complete_artifact": true
+   },
+   "before_activation": [
+-    "Root independently reviews exact S2, A, B, all policy fields and byte projections before the single new execution ref is created.",
+-    "Only static metadata/AST preparation has occurred for this request. No generator or source method has run for the on-v89 candidate. Actual CPython3.14.4 parses the four adapters and four source controls during fresh preparation.",
+-    "All 62 generators, all 83 original source methods, all four derivations and all four idempotence commands remain required under one original 180+3 owner.",
+-    "Old source83 run43261208151 remains FAIL. Its assembler attempt was blocked before a child launch. The separate local3.12 source4 PASS is not inherited as source83 validation.",
+-    "Derived support and coverage documents are still v89 bytes until this new run produces and verifies both captured documents.",
+-    "This is source-only; no numeric native, Core39, 18, 116, installed or matching-cold result is inherited."
++    "Root independently reviews exact S3, A3, B3, full policy and byte projections before one new execution ref.",
++    "R3 source83 is unexecuted. Four separate local CPython3.12.14 synthetic permission controls passed; no real negative project process or source83 result is inherited.",
++    "All 62 generators, all 83 original source methods, four derivations and four idempotence commands remain required under one original 180+3 owner.",
++    "Exactly the unchanged original test may start the four ordered frozen negative-admission Python commands with original timeout10; all native/compiler/other subprocess entries remain forbidden. This request does not claim zero subprocesses.",
++    "Old source83 runs43261208151 and43272140755 remain FAIL. R2 completed62+4+4 then83 with4FAIL+5ERROR. Added fixture closure and explicit original four-command permissions correct those observed control failures.",
++    "Derived support and coverage documents remain v89 originals before this new run; the two actual new documents must be retained and independently verified.",
++    "No numeric native, Core39,18,116,installed,matching-cold or whole-runtime result is inherited."
+   ],
+   "guard_algorithms_must_remain_byte_identical_after_exact_metadata_projection": true,
+   "worker_metadata_substitutions": [
+     {
+-      "old_text": "'scope': 'LOCAL_EXACT_PARTIAL_SOURCE_GENERATION_AND_SOURCE_VM_CONTROLS_ONLY'",
+-      "new_text": "'scope': 'GITHUB_ACTIONS_EXACT_PARTIAL_SOURCE_GENERATION_AND_SOURCE_VM_CONTROLS_ONLY'"
++      "old_text": "'scope': 'LOCAL_EXACT_PARTIAL_SOURCE_GENERATION_SOURCE_VM_AND_FOUR_NEGATIVE_ADMISSION_COMMANDS'",
++      "new_text": "'scope': 'GITHUB_ACTIONS_EXACT_PARTIAL_SOURCE_GENERATION_SOURCE_VM_AND_FOUR_NEGATIVE_ADMISSION_COMMANDS'"
+     },
+     {
+       "old_text": "'cold_executed': False, 'installed_executed': False, 'remote_triggered': False",
+@@ -225,15 +238,15 @@
+     }
+   ],
+   "adapted_worker": {
+-    "size": 6251,
+-    "sha256": "4da6f2b95801ef580e616285f4d5c66353a028a811516b34ee4b9efce1b90176",
+-    "git_blob_sha1": "db4c80937e08fcd4494b86c67b2e20f7aed4fa7a"
++    "size": 7358,
++    "sha256": "3e655b44f914f54fa8741183586b3daf4051b04ac7a2ac48ebf074892726bed1",
++    "git_blob_sha1": "ddb614da587bef0ba423df77a0f41373c40b0a0e"
+   },
+   "repository": "TrillionniumFoundation/Hepta",
+-  "adapter_prefix": "experiments/hia_core_compare_20261112/source83-actions-r2/",
+-  "execution_branch": "codex/hia-core-numeric-source83-run-r2-20261112-e26e",
+-  "workflow_path": ".github/workflows/hia-core-numeric-source83-r2-isolated.yml",
+-  "operation_prefix": "hia-numeric-source83-actions-r2-",
++  "adapter_prefix": "experiments/hia_core_compare_20261112/source83-actions-r3/",
++  "execution_branch": "codex/hia-core-numeric-source83-run-r3-20261112-e26e",
++  "workflow_path": ".github/workflows/hia-core-numeric-source83-r3-isolated.yml",
++  "operation_prefix": "hia-numeric-source83-actions-r3-",
+   "adapter_inputs": [
+     {
+       "name": "files.py",
+@@ -244,14 +257,14 @@
+     {
+       "name": "adapt_request.py",
+       "size": 14451,
+-      "sha256": "52cc22c333158073c30bae1c96553597cfffe96ec5f6507d4b0811827dd492e5",
+-      "git_blob_sha1": "16731c0705f8db73b7fea83c0b3681e383eacdb8"
++      "sha256": "7afe19bf38eaf89b5b7c1ed5d2f0406ee1ac9a96fcc92b7e6732a39cd8b39b8d",
++      "git_blob_sha1": "bc105a2fcad4f3b40b117ac5b5427b13d7386641"
+     },
+     {
+       "name": "finalize.py",
+-      "size": 20001,
+-      "sha256": "414400ae1d2a30c365454e81765fb45b2899a35fca788dbdcbb8643e3f5cd052",
+-      "git_blob_sha1": "64196073e8827a81eaa51adf95875c05cc2620da"
++      "size": 31340,
++      "sha256": "b3f7f0608279016ed9d7e7caf6a3a89765e37f40f3665e118e469822f6a79874",
++      "git_blob_sha1": "bfa73e319fe9dea653a4d0d9f4b8c6bf8acfdb05"
+     },
+     {
+       "name": "diagnostics.py",
+@@ -268,15 +281,73 @@
+     "base_is_numeric_on_v89": true,
+     "publication_observer_fix_preserved": true,
+     "derived_documents_stale_until_execution": true,
+-    "old_failed_source_run": "43261208151"
++    "old_failed_source_runs": [
++      "43261208151",
++      "43272140755"
++    ],
++    "real_four_negative_commands_not_yet_run_under_new_control": true
+   },
+   "source_control_provenance": {
+-    "original_three_controls_byte_identical_to_6f636": true,
++    "S3": "df4e7e5168877130e5e2b139c0d227b0d8ebff0a",
++    "prior_S2": "ba291c1fa432fe2590f282a9450a63de8fb6b249",
++    "common_exactly_unchanged": true,
++    "child_worker_launch_explicit_four_negative_process_revision": true,
+     "worker_only_existing_two_metadata_substitutions_in_remote_copy": true,
+-    "launch_closed_guard_correction_S1": "1dff558270cccfe29ad9207f39e37cea62da16d4",
+-    "launch_closed_guard_correction_S2": "ba291c1fa432fe2590f282a9450a63de8fb6b249",
+     "pure_product": "545e7814b97bc767a15810dd99534aaccc23adf4",
+-    "full_actual_source4": "972b7d6ac850d99262cd928168bfc6eb82c0d97f",
+-    "old_source83_failure": "31c026602c188ab03c737051ce2a4d91fd9fafee"
+-  }
++    "source83_r2_actual_failure": "5af9ae52de56d257f2c80f91e14b4cb24cecf7be",
++    "four_synthetic_permission_controls_actual": "4add2650f1de8425fc46adf5129112e093fea5b4",
++    "four_synthetic_controls_are_not_a_source83_PASS": true
++  },
++  "source_child_process_policy": {
++    "all_other_subprocess_entries_forbidden": true,
++    "binding_sources": [
++      "tests/test_hia_store_page_gates.py",
++      "tools/qualify_hia_store_page_ci.py",
++      "tools/hia_store_page_gates.py",
++      "tools/build_hia_json_preflight.py"
++    ],
++    "cases": [
++      {
++        "development": false,
++        "owner": "authority"
++      },
++      {
++        "development": true,
++        "owner": "authority"
++      },
++      {
++        "development": false,
++        "owner": "page"
++      },
++      {
++        "development": true,
++        "owner": "page"
++      }
++    ],
++    "development_value": "/old/development",
++    "environment": {
++      "LANG": "C",
++      "LC_ALL": "C",
++      "PATH": ""
++    },
++    "expected_processes": 4,
++    "input_bytes_utf8": "{}",
++    "native_and_compiler_entries_forbidden": true,
++    "prefixes": {
++      "authority": "HEPTA_HIA_AGENT_STORE_AUTHORITY",
++      "page": "HEPTA_HIA_ARTIFACT_PAGE"
++    },
++    "python_flags": [
++      "-I",
++      "-S",
++      "-B"
++    ],
++    "schema": "hepta.source83-four-negative-python-permissions.v1",
++    "script": "tools/qualify_hia_store_page_ci.py",
++    "target_test_id": "tests.test_hia_store_page_gates.StorePageCIGateTests.test_real_command_rejects_bad_cold_and_development_before_creating_evidence",
++    "timeout_seconds": 10,
++    "zero_process_scope_claimed": false
++  },
++  "allowed_negative_processes_expected": 4,
++  "zero_process_scope_claimed": false
+ }

@@ -1,0 +1,20 @@
+--- r2/adapt_request.py
++++ r3/adapt_request.py
+@@ -137,7 +137,7 @@
+     require(source_controls == source_controls.resolve(strict=True)
+             and base == base.resolve(strict=True), "checkout root aliases refused")
+     require(git(source_controls, "rev-parse", "HEAD").decode().strip() == policy["source_controls_commit"],
+-            "source-control checkout is not the frozen exact S2 HEAD")
++            "source-control checkout is not the frozen exact S3 HEAD")
+     require(git(base, "rev-parse", "HEAD").decode().strip() == policy["base_commit"]
+             and git(base, "rev-parse", "HEAD^{tree}").decode().strip() == policy["base_tree"],
+             "base checkout HEAD/tree differs")
+@@ -215,7 +215,7 @@
+                 and sum(row["size"] for row in physical) == policy["physical_source_bytes"],
+                 "complete new physical source differs from frozen on-v89 content/modes")
+         fresh = dict(old)
+-        fresh.update(revision="github-actions-cpython31404-source83-r2",
++        fresh.update(revision="github-actions-cpython31404-source83-r3",
+             status="FRESH_RUNTIME_BOUND_UNEXECUTED", source_root=str(source),
+             evidence_root=str(operation / "actual-source"),
+             runtime=common.pin(binary), process_owner=common.pin(source / "tools/hia_selfhost_process_owner.py"),

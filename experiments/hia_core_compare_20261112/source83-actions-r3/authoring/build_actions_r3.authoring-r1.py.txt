@@ -1,0 +1,214 @@
+"""Author a distinct Actions adapter for frozen S3; no project code executes."""
+from pathlib import Path
+import ast
+import difflib
+import hashlib
+import json
+import shutil
+
+ROOT = Path('/workspace/scratch/e26ed3e2edcf')
+S = ROOT / 'core-numeric-source83-on-v89-r3'
+OLD = ROOT / 'core-numeric-source83-actions-r2'
+NEW = ROOT / 'core-numeric-source83-actions-r3'
+SCOMMIT = 'df4e7e5168877130e5e2b139c0d227b0d8ebff0a'
+ACTUAL = '4add2650f1de8425fc46adf5129112e093fea5b4'
+
+def pin(raw):
+    return {'size':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),
+            'git_blob_sha1':hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()}
+
+def write(name, raw):
+    if isinstance(raw,str):raw=raw.encode()
+    p=NEW/name;p.parent.mkdir(parents=True,exist_ok=True)
+    with p.open('xb') as stream:stream.write(raw)
+    return pin(raw)
+
+def save(name,value):return write(name,json.dumps(value,indent=2,ensure_ascii=False)+'\n')
+
+def replace_once(text,before,after):
+    assert text.count(before)==1,before
+    return text.replace(before,after,1)
+
+def main():
+    NEW.mkdir()
+    original_policy=json.loads((OLD/'POLICY.json').read_bytes())
+    request=json.loads((S/'REQUEST.json').read_bytes())
+    assert request['expected_methods']==83 and len(request['generator_names'])==62
+    assert request['physical_source_count']==1658 and request['physical_source_bytes']==40254784
+    old_request=json.loads((ROOT/'core-numeric-source83-on-v89-r2/REQUEST.json').read_bytes())
+    for k in ('expected_ids','test_classes','class_denominators','generator_names','derivations',
+              'qualification_seconds','cleanup_seconds','minimum_available_bytes','minimum_available_inodes'):
+        assert request[k]==old_request[k],k
+    files={}
+    for name in ('files.py','adapt_request.py','finalize.py','diagnostics.py','POLICY.json','workflow.template.yml'):
+        write('reference-r2/'+name,(OLD/name).read_bytes())
+    files['files.py']=write('files.py',(OLD/'files.py').read_bytes())
+    files['diagnostics.py']=write('diagnostics.py',(OLD/'diagnostics.py').read_bytes())
+    adapter=(OLD/'adapt_request.py').read_text()
+    adapter=replace_once(adapter,'source83-r2','source83-r3')
+    adapter=replace_once(adapter,'frozen exact S2 HEAD','frozen exact S3 HEAD')
+    files['adapt_request.py']=write('adapt_request.py',adapter)
+
+    final=(OLD/'finalize.py').read_text()
+    final=replace_once(final,'github-actions-cpython31404-source83-r2','github-actions-cpython31404-source83-r3')
+    final=replace_once(final,'GITHUB_ACTIONS_EXACT_PARTIAL_SOURCE_GENERATION_AND_SOURCE_VM_CONTROLS_ONLY',
+        'GITHUB_ACTIONS_EXACT_PARTIAL_SOURCE_GENERATION_SOURCE_VM_AND_FOUR_NEGATIVE_ADMISSION_COMMANDS')
+    assert final.count('== 1653')==2
+    final=final.replace('== 1653','== 1658')
+    final=replace_once(final,'def command_specs(request):',(S/'independent_negative_reader.py').read_text()+'\n\ndef command_specs(request):')
+    final=replace_once(final,'            and all(final[name] is False for name in FALSE_SCOPES), "original launcher final differs")',
+        '''            and all(final[name] is False for name in FALSE_SCOPES)
+            and final["source_child_process_policy"] == request["source_child_process_policy"]
+            and type(final["allowed_negative_processes"]) is int
+            and final["allowed_negative_processes"] == 4 and final["forbidden_attempts"] == []
+            and final["zero_process_scope_claimed"] is False, "original launcher final differs")''')
+    final=replace_once(final,'            and all(worker[name] is False for name in FALSE_SCOPES), "worker source-only contract differs")',
+        '''            and all(worker[name] is False for name in FALSE_SCOPES)
+            and worker["source_child_process_policy"] == request["source_child_process_policy"]
+            and type(worker["allowed_negative_processes"]) is int
+            and worker["allowed_negative_processes"] == 4 and worker["forbidden_attempts"] == []
+            and worker["zero_process_scope_claimed"] is False, "worker source and negative-command contract differs")''')
+    final=replace_once(final,'                and child["runtime_identity"] == request["runtime"]',
+        '''                and child["runtime_identity"] == request["runtime"]
+                and child["source_child_process_policy"] == request["source_child_process_policy"]
+                and child["forbidden_attempts"] == []
+                and type(child["forbidden_attempt_count"]) is int and child["forbidden_attempt_count"] == 0
+                and child["negative_permission_refusals"] == []
+                and child["zero_process_scope_claimed"] is False
+                and type(child["allowed_negative_processes"]) is int
+                and child["allowed_negative_processes"] == (4 if operation_name == "tests" else 0)''')
+    final=replace_once(final,'        if operation_name == "tests":\n            validate_tests(child, request)',
+        '''        if operation_name != "tests":
+            require(child["allowed_negative_process_records"] == [],
+                    "generator/derivation child unexpectedly retained a process permission")
+        if operation_name == "tests":
+            validate_tests(child, request)
+            result["negative_commands"] = validate_negative_processes(child, request, operation, evidence)''')
+    final=replace_once(final,'    result["worker_seconds"] = worker["seconds"]',
+        '''    result["worker_seconds"] = worker["seconds"]
+    result["allowed_negative_processes"] = 4
+    result["forbidden_attempts"] = 0''')
+    final=replace_once(final,'              "cold_executed": False, "installed_executed": False}',
+        '''              "cold_executed": False, "installed_executed": False,
+              "zero_process_scope_claimed": False,
+              "allowed_negative_processes": None, "forbidden_attempts": None}''')
+    files['finalize.py']=write('finalize.py',final)
+
+    policy=json.loads(json.dumps(original_policy))
+    policy.update(source_controls_commit=SCOMMIT,
+        source_controls_prefix='experiments/hia_core_compare_20261112/source83-on-v89-request-r3/',
+        source_controls_request_sha256=pin((S/'REQUEST.json').read_bytes())['sha256'],
+        physical_source_count=1658,physical_source_bytes=40254784,
+        adapter_prefix='experiments/hia_core_compare_20261112/source83-actions-r3/',
+        execution_branch='codex/hia-core-numeric-source83-run-r3-20261112-e26e',
+        workflow_path='.github/workflows/hia-core-numeric-source83-r3-isolated.yml',
+        operation_prefix='hia-numeric-source83-actions-r3-',
+        source_child_process_policy=request['source_child_process_policy'],
+        allowed_negative_processes_expected=4,zero_process_scope_claimed=False)
+    policy['original_controls']=[{'name':name,**pin((S/'control'/name).read_bytes())}
+                                for name in ('child.py','common.py','launch.py','worker.py')]
+    policy['unchanged_request_fields'].remove('native_and_compiler_and_subprocess_entry_poison_required_in_each_source_child')
+    policy['unchanged_request_fields'] += [
+        'native_and_compiler_entry_poison_required_in_each_source_child',
+        'all_other_subprocess_entry_poison_required_in_each_source_child',
+        'source_child_process_policy','allowed_negative_processes_expected',
+        'zero_process_scope_claimed','original_fixture_closure_additions']
+    policy['worker_metadata_substitutions'][0]={
+        'old_text':"'scope': 'LOCAL_EXACT_PARTIAL_SOURCE_GENERATION_SOURCE_VM_AND_FOUR_NEGATIVE_ADMISSION_COMMANDS'",
+        'new_text':"'scope': 'GITHUB_ACTIONS_EXACT_PARTIAL_SOURCE_GENERATION_SOURCE_VM_AND_FOUR_NEGATIVE_ADMISSION_COMMANDS'"}
+    worker=(S/'control/worker.py').read_text()
+    for row in policy['worker_metadata_substitutions']:
+        worker=replace_once(worker,row['old_text'],row['new_text'])
+    policy['adapted_worker']=pin(worker.encode())
+    additions=['/'+row['relative_path'] for row in request['original_fixture_closure_additions']]
+    assert not set(additions)&set(policy['sparse_checkout']['patterns'])
+    policy['sparse_checkout']['patterns']+=additions
+    policy['output_identity']=policy['output_identity'].replace('actions-r2-','actions-r3-')
+    policy['failure_custody']['explanation']='Retain the current 40,254,784-byte physical source subset and every actual output, including all four negative-command input/request/stdout/stderr/receipt sets and changed source bytes on HOLD. The 410 MB repository is not copied.'
+    policy['failure_custody']['source_control_launch_closed_guard']='S3 preserves the S2 bound wrapper/raw receipt/request/ECHILD guard before any child-original traversal. Closed nonzero preserves originals; unknown closure only parent observations. Added actual four-negative-command accounting is checked separately.'
+    policy['failure_custody']['negative_command_originals_required']=20
+    policy['failure_custody']['negative_command_originals_in_complete_artifact']=True
+    policy['before_activation']=[
+        'Root independently reviews exact S3, A3, B3, full policy and byte projections before one new execution ref.',
+        'R3 source83 is unexecuted. Four separate local CPython3.12.14 synthetic permission controls passed; no real negative project process or source83 result is inherited.',
+        'All 62 generators, all 83 original source methods, four derivations and four idempotence commands remain required under one original 180+3 owner.',
+        'Exactly the unchanged original test may start the four ordered frozen negative-admission Python commands with original timeout10; all native/compiler/other subprocess entries remain forbidden. This request does not claim zero subprocesses.',
+        'Old source83 runs43261208151 and43272140755 remain FAIL. R2 completed62+4+4 then83 with4FAIL+5ERROR. Added fixture closure and explicit original four-command permissions correct those observed control failures.',
+        'Derived support and coverage documents remain v89 originals before this new run; the two actual new documents must be retained and independently verified.',
+        'No numeric native, Core39,18,116,installed,matching-cold or whole-runtime result is inherited.'
+    ]
+    policy['adapter_inputs']=[{'name':name,**files[name]} for name in ('files.py','adapt_request.py','finalize.py','diagnostics.py')]
+    policy['current_limitations']['old_failed_source_runs']=['43261208151','43272140755']
+    del policy['current_limitations']['old_failed_source_run']
+    policy['current_limitations']['real_four_negative_commands_not_yet_run_under_new_control']=True
+    policy['source_control_provenance']={
+        'S3':SCOMMIT,'prior_S2':'ba291c1fa432fe2590f282a9450a63de8fb6b249',
+        'common_exactly_unchanged':True,
+        'child_worker_launch_explicit_four_negative_process_revision':True,
+        'worker_only_existing_two_metadata_substitutions_in_remote_copy':True,
+        'pure_product':'545e7814b97bc767a15810dd99534aaccc23adf4',
+        'source83_r2_actual_failure':'5af9ae52de56d257f2c80f91e14b4cb24cecf7be',
+        'four_synthetic_permission_controls_actual':ACTUAL,
+        'four_synthetic_controls_are_not_a_source83_PASS':True}
+    files['POLICY.json']=save('POLICY.json',policy)
+
+    workflow=(OLD/'workflow.template.yml').read_text()
+    workflow=workflow.replace('source83-actions-r2','source83-actions-r3').replace('source83-run-r2','source83-run-r3').replace('source83-r2-','source83-r3-')
+    workflow=workflow.replace('source83-on-v89-request-r2','source83-on-v89-request-r3')
+    workflow=replace_once(workflow,'name: HIA numeric source83 fixed transports on v89',
+        'name: HIA numeric source83 fixed original negative commands on v89')
+    workflow=replace_once(workflow,'Read the three unchanged controls, bound-closure launcher and four exact transport repairs',
+        'Read the frozen four-command permissions, bound-closure launcher and exact transport repairs')
+    workflow=replace_once(workflow,'1653-file source subset','1658-file source subset')
+    workflow=replace_once(workflow,'ref: ba291c1fa432fe2590f282a9450a63de8fb6b249','ref: '+SCOMMIT)
+    workflow=replace_once(workflow,'            /setup.py\n','            /setup.py\n'+''.join('            '+p+'\n' for p in additions))
+    assert workflow.count(original_policy['adapter_inputs'][0]['sha256'])==0
+    old_policy_sha=pin((OLD/'POLICY.json').read_bytes())['sha256']
+    assert workflow.count(old_policy_sha)==4
+    workflow=workflow.replace(old_policy_sha,files['POLICY.json']['sha256'])
+    files['workflow.template.yml']=write('workflow.template.yml',workflow)
+    for name in ('files.py','adapt_request.py','finalize.py','diagnostics.py'):
+        ast.parse((NEW/name).read_bytes(),filename=name)
+    ast.parse(worker,filename='adapted-source-worker.py')
+    assert (NEW/'files.py').read_bytes()==(OLD/'files.py').read_bytes()
+    assert (NEW/'diagnostics.py').read_bytes()==(OLD/'diagnostics.py').read_bytes()
+    assert adapter.replace('source83-r3','source83-r2').replace('frozen exact S3 HEAD','frozen exact S2 HEAD')==(OLD/'adapt_request.py').read_text()
+    for key in ('process_owner','required_runtime','denominators','qualification_boundaries'):
+        assert policy[key]==original_policy[key]
+    for key in policy['unchanged_request_fields']:assert key in request,key
+    assert len(set(policy['unchanged_request_fields']))==len(policy['unchanged_request_fields'])
+    assert len(policy['sparse_checkout']['patterns'])==57
+    def materialized(name):
+        path='/'+name
+        return any(path==p or path.startswith(p+'/') for p in policy['sparse_checkout']['patterns'])
+    assert all(materialized(row['relative_path']) for row in request['source_files'])
+    module=ast.parse(final)
+    functions={n.name:n for n in module.body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))}
+    old_functions={n.name:n for n in ast.parse((OLD/'finalize.py').read_bytes()).body if isinstance(n,ast.FunctionDef)}
+    unmodified=[]
+    for name in ('file_paths','exact_pin','content','owner_binding','validate_tests','command_specs','validate_originals'):
+        assert ast.dump(functions[name],include_attributes=False)==ast.dump(old_functions[name],include_attributes=False)
+        unmodified.append(name)
+    expected_fragment=ast.parse((S/'independent_negative_reader.py').read_bytes()).body[0]
+    assert ast.dump(functions['validate_negative_processes'],include_attributes=False)==ast.dump(expected_fragment,include_attributes=False)
+    for name in ('adapt_request.py','finalize.py','POLICY.json','workflow.template.yml'):
+        write('diffs/'+name+'.diff',''.join(difflib.unified_diff((OLD/name).read_text().splitlines(keepends=True),(NEW/name).read_text().splitlines(keepends=True),fromfile='r2/'+name,tofile='r3/'+name)))
+    checks={'schema':'hepta.source83-actions-r3-static-projection.v1','status':'STATIC_SOURCE_ASSEMBLY_PASS_NOT_EXECUTED',
+        'source_controls_commit':SCOMMIT,'source_methods':83,'generators':62,'commands':71,'classes':10,
+        'qualification_seconds':180,'cleanup_seconds':3,'negative_commands':4,'negative_timeout_seconds':10,
+        'source_files':1658,'source_bytes':40254784,'sparse_patterns':57,'source_closure_all_materialized':True,
+        'files_and_diagnostics_byte_identical_to_r2':True,'adapt_request_only_two_identity_strings_changed':True,
+        'unchanged_finalizer_function_ASTs':unmodified,'independent_negative_reader_AST_equals_S3':True,
+        'all_original_expected_ids_generator_names_and_derive_commands_equal_r2':True,
+        'four_synthetic_controls_actual_commit':ACTUAL,'source83_executed':False,'native_executed':False,
+        'actions_triggered':False,'four_actual_negative_project_processes_executed':False,
+        'adapter_inputs':files}
+    save('STATIC-CHECKS.json',checks)
+    write('README.md','''# Numeric source83 r3 Actions control\n\nThis new request preserves the prior failed operations and the original complete 62-generator, 83-method, 180+3-second qualification. It adds the five exact legacy fixtures already present in the product tree and a narrow permission for the unchanged original test to launch its four ordered negative-admission Python commands. Each retains the original ten-second timeout, command, environment and two-byte invalid cold input. All other subprocess, native and compiler entries remain forbidden.\n\nThe new finalizer independently reads the actual twenty input/request/stdout/stderr/receipt files and the complete parent reports. The bounded diagnostic log still emits only whole files under 512 KiB raw and 1 MiB output; the always-upload artifact retains every actual original. A missing or omitted small-channel file does not establish custody or qualification.\n\nThe four local synthetic permission controls passed separately under 20+3 seconds on CPython 3.12.14. They used stubs and imported no project package. They are not the four real negative commands, source83, native, Core39,18,116, installation, matching-cold or whole-runtime qualification.\n\nThe source/control checkout is exact S3. The base is exact cc51 numeric-on-v89; only the four already frozen transport repair deltas are overlaid. The full product tree has4097 leaves, while the actual physical source closure has1658 files. Derived JSONs remain stale v89 bytes until this new operation executes and preserves their actual outputs.\n\nRoot alone reviews and creates one new execution ref after A/B freeze. This draft does not trigger any workflow.\n''')
+    rows=[]
+    for p in sorted(NEW.rglob('*')):
+        if p.is_file():rows.append({'path':p.relative_to(NEW).as_posix(),'mode':'100644',**pin(p.read_bytes())})
+    save('INPUTS.json',{'schema':'hepta.source83-actions-r3-files.v1','files':rows})
+    print(json.dumps({'status':checks['status'],'files_before_INPUTS':len(rows),'source_files':1658,'source_methods':83,'generators':62,'policy':files['POLICY.json']}))
+
+if __name__=='__main__':main()
