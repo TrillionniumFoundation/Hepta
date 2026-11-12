@@ -37,3 +37,16 @@ the old import/refusal and the actual unchanged physical templates on this new
 interpreter, then exercises ten fixed-primitive controls. Invalid actual operand
 bytes are refused without executing them. The same original43 and Agent48 still
 run as independent groups; these new controls cannot substitute for either.
+
+## R3 successor boundary
+
+The second actual 3.14.4 run 43244892788 admitted the empty-call template and
+then refused the kind-keyword template's constant vector before any component
+or Agent test executed. Its complete original artifact and reports are retained.
+This revision admits the observed per-version original constants, appends a real
+None only when absent, and does not renumber any original literal. The three
+SWAP/POP pairs leave the prepared dictionary; the placeholder is safely popped,
+not returned. Twelve primitive observations preserve the first ten and add the
+actual placeholder/literal-index observation plus an invalid-kind-constant
+negative control. The same original43 and original48 definitions and limits
+remain unchanged; no prior native or cold qualification is transferred.

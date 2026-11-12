@@ -74,7 +74,7 @@ def main():
     args = parser.parse_args()
     out = args.output.absolute(); out.mkdir(mode=0o700)
     before = {str(path.resolve()): digest(path) for path in (args.original, args.candidate)}
-    report = {'schema': 'hia.verification.fixed-foreign-profile.observations.r4',
+    report = {'schema': 'hia.verification.fixed-foreign-profile.observations.r5',
               'scope': 'ACTUAL_CPYTHON_FIXED_PRIMITIVES_ONLY_NO_NATIVE_POLICY_ENTRY',
               'python': sys.version, 'implementation': sys.implementation.name,
               'inputs_before': before, 'observations': [], 'status': 'STARTED',
@@ -93,7 +93,7 @@ def main():
         assert digest(args.original) == OLD_SHA
         assert digest(args.candidate) == args.candidate_sha
         old, old_error = load(args.original, 'frozen_verification_foreign_r3')
-        new, new_error = load(args.candidate, 'candidate_verification_foreign_r4')
+        new, new_error = load(args.candidate, 'candidate_verification_foreign_r5')
         report['original_import'] = old_error
         report['candidate_import'] = new_error
         report['original_templates'] = {name: instructions(getattr(old, name)) for name in
@@ -192,7 +192,38 @@ def main():
             assert result['error'] == {'type': 'builtins.RuntimeError', 'message': 'verification mapping ports require a reviewed CPython ABI'}
             return result
         record('unreviewed_interpreter_profile_refused', unsupported)
-        report['status'] = 'PASS' if len(report['observations']) == 10 and all(row['status'] == 'PASS' for row in report['observations']) else 'FAIL'
+        def explicit_null_and_literal_indexes():
+            rows = []
+            for original, prepared in ((new._merge_empty_template, new.merge_empty),
+                                       (new._merge_kind_template, new.merge_kind)):
+                original_instructions = tuple(dis.get_instructions(original, show_caches=True, adaptive=False))
+                prepared_instructions = {item.offset: item for item in dis.get_instructions(prepared, show_caches=True, adaptive=False)}
+                null, = [item for item in original_instructions if item.opname == 'PUSH_NULL']
+                replacement = prepared_instructions[null.offset]
+                assert replacement.opname == 'LOAD_CONST' and replacement.argval is None
+                assert prepared.__code__.co_consts[:len(original.__code__.co_consts)] == original.__code__.co_consts
+                for item in original_instructions:
+                    if item.opname == 'LOAD_CONST':
+                        actual = prepared_instructions[item.offset]
+                        assert actual.opname == item.opname and actual.arg == item.arg and actual.argval == item.argval
+                rows.append({'template': original.__name__, 'original_constants': list(original.__code__.co_consts),
+                             'prepared_constants': list(prepared.__code__.co_consts), 'null_offset': null.offset,
+                             'none_index': replacement.arg, 'original_literal_indexes_preserved': True})
+            return rows
+        record('explicit_none_placeholder_preserves_original_literal_indexes', explicit_null_and_literal_indexes)
+
+        def incorrect_kind_constant_refused():
+            template = new._merge_kind_template
+            constants = template.__code__.co_consts
+            assert constants.count('kind') == 1
+            changed = tuple('altered-key' if value == 'kind' else value for value in constants)
+            altered = FunctionType(template.__code__.replace(co_consts=changed), vars(new))
+            result = outcome(lambda: new._merge_port(altered, constants))
+            assert result['error'] == {'type': 'builtins.RuntimeError', 'message': 'verification DICT_MERGE opcode template differs'}
+            return {'original_constants': list(constants), 'mutant_constants': list(changed),
+                    'malformed_code_executed': False, 'outcome': result}
+        record('incorrect_original_kind_literal_refused_before_execution', incorrect_kind_constant_refused)
+        report['status'] = 'PASS' if len(report['observations']) == 12 and all(row['status'] == 'PASS' for row in report['observations']) else 'FAIL'
     except BaseException:
         report.update(status='FAIL', traceback=traceback.format_exc())
     finally:
