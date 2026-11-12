@@ -1,43 +1,21 @@
-# Shared frame R4 — independent CPython 3.14.4 development
+# Original baseline observation supplement
 
-This branch contains only an external development harness. It checks out the
-authentic published product `4b19af89a766593f7d5f1cc2db256e81aba7afcb`
-(`1bc7c90996e1910ad66ba771b0bfee1d5bfa655c`, 3,153 files) separately.
-It never changes a product or audit ref and never assigns a new HEAD to an
-uncommitted candidate.
+This is a new, independent CPython 3.14.4 diagnostic. The earlier run
+43244880819 is retained as a failed job: its original Core label probe completed
+4 cases with 2 matches, but the original 120-case mechanism probe never ran
+because the caller supplied unsupported named flags. The later R4 60, 124 and
+44 complete gates passed in that same original job and are not repeated here.
 
-The first finite overlay is the exact saved joint R2 source packet
-`0d2a9613a4aa37102448b5847bc4eab452a2573f`: 51 paths, 3,181 files,
-content tree `a9a2b5ec40d176a7684a03ca2859190abd982db0`. The original R3
-Core-label and 120 CALL/BoolOp observations execute on that baseline first.
-Any observed equivalence failures are retained under their original statuses.
-A completed baseline observation is not a passing equivalence qualification.
+This new caller checks out the exact old harness commit
+0cade56c88497b1baa90f541c16c1ce3ff6c85cd and the exact product base
+4b19af89a766593f7d5f1cc2db256e81aba7afcb. The unchanged original preparation
+admits all 3153 product files, applies the frozen 51-path baseline overlay,
+checks all 3181 resulting records and retains the exact development compiler.
+The original 120-case probe receives its three actual positional arguments.
+Its source, policy, assertions, original 20-second compiler limit and the
+1800-second process supervisor remain unchanged. Every mismatch remains in
+the raw report. Completion of the observation is not a passing equivalence
+claim, current-source cold qualification, or whole-native qualification.
 
-The subsequent 13-path R4 overlay is immutable source packet
-`440f47786b68dc4b162ee205712aa8eaa0449494`: 3,184 files,
-content tree `3e67be1f7a92ce418c0625b13ef8e948f143b7c0`.
-It changes CALL temporary transfer, BoolOp onward retirement, two generated
-images, and the finite tests/registration for those changes. It retains every
-original Core method and caller assertion. The local source qualification is
-CPython 3.12.14 development only; it does not supply a cold report here.
-
-The actual interpreter must be CPython 3.14.4 on Linux x86-64. The retained
-669,494-byte compiler with SHA-256
-`81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109`
-is explicitly admitted only as development input. All six Code/ELF/Plan/Core
-images are compiled afresh using the original 20-second compilation bound.
-
-Three independent gates then run: the complete 60-test component/lifecycle/
-checker panel; all 124 tests comprising 23 current Core controls, the original
-51 machine callers and the original 50 Core callers; and the original 44 Plan
-callers. Each retains its original 1,800-second outer supervisor and all
-original inner limits. The latter gates still run if an earlier test gate
-fails. Full source byte/mode identity and all actual manifest/image identities
-are checked around each gate. Original tool and harness identities are also
-compared before and after.
-
-Every report, process receipt, log, generated image, original baseline
-observation, frozen input and evidence manifest is uploaded even on failure.
-No current-cold, full-stack, default activation or old-owner deletion claim is
-made. The two Emission EOF whitespace changes independently owned by the root
-integration are not silently copied into this R4 source.
+No product or audit ref is modified. The full source, compiler, tools and
+harness before/after records and all logs are retained even on failure.
