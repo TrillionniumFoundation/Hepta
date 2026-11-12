@@ -1,0 +1,52 @@
+{
+  "schema": "hepta.hia.core-unpack-first-observation.v1",
+  "source_revision": "ee59eb5bed1d1088ff3848a827be2eb946f6d73f",
+  "source_control": {
+    "status": "SOURCE_CORE_CAPS_PASS",
+    "seconds": 0.59127488599961,
+    "assembly_size": 88485,
+    "assembly_sha256": "f16b072ba6a3daa7dd162b8653eef7abb47d5da770197c2ebdc717bd2eaf81b0",
+    "counts": {
+      "functions": 7,
+      "blocks": 205,
+      "max_blocks": 181,
+      "instructions": 1724,
+      "max_ssa_names": 1390,
+      "max_arity": 9
+    },
+    "original_caps_unchanged": true
+  },
+  "shim_control": {
+    "status": "HOLD",
+    "loaded": 4,
+    "executed": 4,
+    "passed": 3,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "seconds": 0.16434792900008688,
+    "shim_sha256": "7cae34a202e02d184ddc60a8ea386c2b65a0686b9f5f35033ebbe3242332c811",
+    "failed_id": "__main__.ShimControls.test_pending_error_cleanup_preserves_handled_context",
+    "actual": "Expected immediate iterator finalizer event, observed empty events",
+    "diagnosis": "The test's Python __next__(self) raises an exception whose traceback frame retains self. Immediate destruction was not an established oracle behavior.",
+    "correction": "Separate unexecuted r2 test uses staticmethod __next__ and performs the original unpack under the same ambient exception before comparing the shim.",
+    "product_shim_bridge_HIA_unchanged": true
+  },
+  "owners": {
+    "qualification_seconds": 180,
+    "cleanup_seconds": 3,
+    "both_natural": true,
+    "both_echild": true,
+    "kill": false
+  },
+  "native_HIA_compiled": false,
+  "native_HIA_run": false,
+  "ordinary_116_run": false,
+  "cold_or_whole_stack_claim": false,
+  "transport_notes": [
+    "An initial large document read exceeded the chosen output token budget; 11 complete 65536-character reads were SHA-verified against the unchanged full original.",
+    "Two initial canonical tree checks incorrectly compared expected base metadata shape/absent sizes; final full path/mode/SHA and new-size equality plus independent Git tree hash passed before ref update. Neither was a product execution failure."
+  ]
+}

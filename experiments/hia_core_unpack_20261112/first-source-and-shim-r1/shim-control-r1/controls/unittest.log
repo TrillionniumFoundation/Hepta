@@ -1,0 +1,31 @@
+test_exact_assembly_literal (__main__.ShimControls.test_exact_assembly_literal) ... ok
+test_gil_and_error_transfer (__main__.ShimControls.test_gil_and_error_transfer) ... ok
+test_pending_error_cleanup_preserves_handled_context (__main__.ShimControls.test_pending_error_cleanup_preserves_handled_context) ... FAIL
+test_post_entry_exception_still_adopts_owned_result (__main__.ShimControls.test_post_entry_exception_still_adopts_owned_result) ... ok
+
+======================================================================
+FAIL: test_pending_error_cleanup_preserves_handled_context (__main__.ShimControls.test_pending_error_cleanup_preserves_handled_context)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hia-core-unpack-native-20261112-r1/source/experiments/hia_core_unpack_20261112/static-r1/inputs/tests/check_hia_core_unpack.py", line 167, in test_pending_error_cleanup_preserves_handled_context
+    raise LookupError('ambient')
+LookupError: ambient
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/hia-core-unpack-native-20261112-r1/source/experiments/hia_core_unpack_20261112/static-r1/inputs/tests/check_hia_core_unpack.py", line 176, in test_pending_error_cleanup_preserves_handled_context
+    self.assertEqual(events, [('LookupError', ('ambient',))])
+AssertionError: Lists differ: [] != [('LookupError', ('ambient',))]
+
+Second list contains 1 additional elements.
+First extra element 0:
+('LookupError', ('ambient',))
+
+- []
++ [('LookupError', ('ambient',))]
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.163s
+
+FAILED (failures=1)
