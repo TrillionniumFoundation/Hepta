@@ -1,0 +1,270 @@
+name: HIA current-source complete owner integration V76
+'on':
+  push:
+    branches:
+    - codex/hia-native-owners-v76-4b19-20261112-dda7
+  workflow_dispatch: null
+permissions:
+  contents: read
+jobs:
+  current-source-owners:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+    - uses: actions/checkout@v4
+      id: original_0
+      with:
+        ref: 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+        fetch-depth: 2
+        persist-credentials: false
+    - uses: actions/setup-python@v5
+      with:
+        python-version: 3.14.4
+      id: original_1
+    - name: Admit the exact published source and original workflow
+      id: source_admission
+      run: "python -B - <<'PYADMIT'\nimport hashlib, json, os, pathlib, platform, subprocess, sys\nout=pathlib.Path(os.environ['RUNNER_TEMP'])/'hia-native-owners-v76'\n\
+        out.mkdir(mode=0o700,exist_ok=False)\ndef git(*args):\n    return subprocess.check_output(['git',*args],text=True).strip()\n\
+        raw=pathlib.Path('.github/workflows/hia-core.yml').read_bytes()\nrecord={'schema':'hia.v76.current-owner-source-admission.v1',\n\
+        \        'expected_head':'4b19af89a766593f7d5f1cc2db256e81aba7afcb','expected_tree':'1bc7c90996e1910ad66ba771b0bfee1d5bfa655c',\n\
+        \        'head':git('rev-parse','HEAD'),'tree':git('rev-parse','HEAD^{tree}'),\n        'status_porcelain':git('status','--porcelain=v1','--untracked-files=all'),\n\
+        \        'tracked_files':len(git('ls-tree','-r','--name-only','HEAD').splitlines()),\n        'source_workflow_bytes':len(raw),'source_workflow_sha256':hashlib.sha256(raw).hexdigest(),\n\
+        \        'python':platform.python_version(),'implementation':platform.python_implementation(),\n        'platform':sys.platform,'harness_commit':os.environ['GITHUB_SHA'],\n\
+        \        'event':os.environ['GITHUB_EVENT_NAME'],\n        'whole_native_delivery_qualified':False}\npassed=(record['head']==record['expected_head']\
+        \ and record['tree']==record['expected_tree']\n        and not record['status_porcelain'] and record['tracked_files']==3153\n\
+        \        and record['source_workflow_bytes']==45310\n        and record['source_workflow_sha256']=='30f59b1a79e82d82b5f30278b5a0b61866645fb819341d6ce79478bf70b01670'\n\
+        \        and record['python']=='3.14.4' and record['implementation']=='CPython'\n        and record['platform']=='linux')\n\
+        record['status']='EXACT_SOURCE_ADMITTED_NOT_QUALIFICATION' if passed else 'SOURCE_HOLD'\n(out/'SOURCE-ADMISSION.json').write_text(json.dumps(record,sort_keys=True,indent=2)+'\\\
+        n')\nprint(json.dumps(record,sort_keys=True),flush=True)\nraise SystemExit(0 if passed else 1)\nPYADMIT\n"
+    - name: Install qualified Clang 20 native execution prerequisites
+      run: 'set -euo pipefail
+
+        curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+
+        fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-llvm.asc" | awk -F: ''$1 == "fpr" { print $10; exit
+        }'')
+
+        test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+
+        sudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc
+
+        printf ''%s\n'' ''deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20
+        main'' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list
+
+        sudo apt-get update
+
+        sudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace
+
+        printf ''CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n'' >> "$GITHUB_ENV"
+
+        '
+      id: original_2
+    - run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      id: original_3
+    - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      id: original_4
+    - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
+      id: original_5
+    - name: Native public live heap payload bounds and installed composition
+      run: "python -B - <<'PYHEAP'\nimport unittest\nsuite = unittest.defaultTestLoader.loadTestsFromNames((\n    'tests.test_hia_heap_bound_native',\n\
+        \    'tests.test_hia_heap_bound_integration',\n    'tests.test_hia_heap_live_engine_native',\n))\nresult = unittest.TextTestRunner(verbosity=2).run(suite)\n\
+        raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)\nPYHEAP\n"
+      env:
+        HEPTA_HIA_HEAP_BOUND_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        HEPTA_HIA_HEAP_BOUND_EVIDENCE: ${{ runner.temp }}/hia-heap-bound
+        HEPTA_HIA_HEAP_LIVE_ENGINE_EVIDENCE: ${{ runner.temp }}/hia-heap-live-engine
+      id: original_23
+      if: ${{ !cancelled() && steps.original_4.outcome == 'success' && steps.original_5.outcome == 'success' && steps.source_admission.outcome
+        == 'success' }}
+    - name: Native complete CLI arguments formatting and continuations
+      run: "python -B - <<'PYCLI75'\nimport unittest\nnames = (\n    'tests.test_hia_cli_native',\n    'tests.test_hia_cli_continuation_native',\n\
+        )\nsuite = unittest.defaultTestLoader.loadTestsFromNames(names)\nif suite.countTestCases() != 38:\n    raise AssertionError('complete\
+        \ native component test inventory changed')\nresult = unittest.TextTestRunner(verbosity=2).run(suite)\npassed = (result.wasSuccessful()\
+        \ and result.testsRun == 38\n          and not result.skipped and not result.expectedFailures\n          and not result.unexpectedSuccesses)\n\
+        raise SystemExit(0 if passed else 1)\nPYCLI75\n"
+      env:
+        HEPTA_HIA_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        HEPTA_HIA_CLI_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-cli-native
+      id: original_31
+      if: ${{ !cancelled() && steps.original_4.outcome == 'success' && steps.original_5.outcome == 'success' && steps.source_admission.outcome
+        == 'success' }}
+    - name: Native complete machine Code owners and exception custody
+      run: "python -B - <<'PYCODE75'\nimport unittest\nnames = (\n    'tests.test_hia_machine_encoding_native',\n    'tests.test_hia_machine_state_native',\n\
+        \    'tests.test_hia_machine_instructions_native',\n    'tests.test_hia_machine_code_composition',\n)\nsuite = unittest.defaultTestLoader.loadTestsFromNames(names)\n\
+        if suite.countTestCases() != 44:\n    raise AssertionError('complete native component test inventory changed')\nresult\
+        \ = unittest.TextTestRunner(verbosity=2).run(suite)\npassed = (result.wasSuccessful() and result.testsRun == 44\n\
+        \          and not result.skipped and not result.expectedFailures\n          and not result.unexpectedSuccesses)\n\
+        raise SystemExit(0 if passed else 1)\nPYCODE75\n"
+      env:
+        HEPTA_HIA_MACHINE_ENCODING_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        HEPTA_HIA_MACHINE_STATE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        HEPTA_HIA_MACHINE_INSTRUCTIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        HEPTA_HIA_MACHINE_ENCODING_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-machine-encoding
+        HEPTA_HIA_MACHINE_STATE_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-machine-state
+        HEPTA_HIA_MACHINE_INSTRUCTIONS_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-machine-instructions
+        HEPTA_HIA_MACHINE_CODE_COMPOSITION_EVIDENCE: ${{ runner.temp }}/hia-machine-code-composition
+      id: original_32
+      if: ${{ !cancelled() && steps.original_4.outcome == 'success' && steps.original_5.outcome == 'success' && steps.source_admission.outcome
+        == 'success' }}
+    - name: Native machine instructions through complete original callers
+      run: "python -B tools/qualify_hia_machine_instructions_callers.py \\\n  --cold-report \"$RUNNER_TEMP/hia-cold.json\"\
+        \ \\\n  --evidence \"$RUNNER_TEMP/hia-machine-instructions-callers\"\n"
+      id: original_33
+      if: ${{ !cancelled() && steps.original_4.outcome == 'success' && steps.original_5.outcome == 'success' && steps.source_admission.outcome
+        == 'success' }}
+    - name: Native machine ELF writer and exact exception custody
+      run: "python -B - <<'PYELF76'\nimport unittest\nnames = (\n    'tests.test_hia_machine_elf_native',\n    'tests.test_hia_machine_elf_protocol',\n\
+        )\nsuite = unittest.defaultTestLoader.loadTestsFromNames(names)\nif suite.countTestCases() != 37:\n    raise AssertionError('complete\
+        \ native component test inventory changed')\nresult = unittest.TextTestRunner(verbosity=2).run(suite)\npassed = (result.wasSuccessful()\
+        \ and result.testsRun == 37\n          and not result.skipped and not result.expectedFailures\n          and not result.unexpectedSuccesses)\n\
+        raise SystemExit(0 if passed else 1)\nPYELF76\n"
+      env:
+        HEPTA_HIA_MACHINE_ELF_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        HEPTA_HIA_MACHINE_ELF_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-machine-elf
+      id: original_34
+      if: ${{ !cancelled() && steps.original_4.outcome == 'success' && steps.original_5.outcome == 'success' && steps.source_admission.outcome
+        == 'success' }}
+    - name: Native machine ELF through complete original callers
+      run: "python -B tools/qualify_hia_machine_elf.py \\\n  --cold-report \"$RUNNER_TEMP/hia-cold.json\" \\\n  --output \"\
+        $RUNNER_TEMP/hia-machine-elf-callers\"\n"
+      id: original_35
+      if: ${{ !cancelled() && steps.original_4.outcome == 'success' && steps.original_5.outcome == 'success' && steps.source_admission.outcome
+        == 'success' }}
+    - name: Native machine plan policy and original object lifetimes
+      run: "python -B - <<'PYPLAN76'\nimport unittest\nnames = (\n    'tests.test_hia_machine_plan_native',\n    'tests.test_hia_machine_plan_control_lifecycle',\n\
+        )\nsuite = unittest.defaultTestLoader.loadTestsFromNames(names)\nif suite.countTestCases() != 21:\n    raise AssertionError('complete\
+        \ native component test inventory changed')\nresult = unittest.TextTestRunner(verbosity=2).run(suite)\npassed = (result.wasSuccessful()\
+        \ and result.testsRun == 21\n          and not result.skipped and not result.expectedFailures\n          and not result.unexpectedSuccesses)\n\
+        raise SystemExit(0 if passed else 1)\nPYPLAN76\n"
+      env:
+        HEPTA_HIA_MACHINE_PLAN_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        HEPTA_HIA_MACHINE_PLAN_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-machine-plan
+      id: original_36
+      if: ${{ !cancelled() && steps.original_4.outcome == 'success' && steps.original_5.outcome == 'success' && steps.source_admission.outcome
+        == 'success' }}
+    - name: Native machine plan through complete original callers
+      run: "python -B tools/qualify_hia_machine_plan_native_callers.py \\\n  --cold-report \"$RUNNER_TEMP/hia-cold.json\"\
+        \ \\\n  --output \"$RUNNER_TEMP/hia-machine-plan-callers.json\" \\\n  --evidence-dir \"$RUNNER_TEMP/hia-machine-plan-callers\"\
+        \n"
+      id: original_37
+      if: ${{ !cancelled() && steps.original_4.outcome == 'success' && steps.original_5.outcome == 'success' && steps.source_admission.outcome
+        == 'success' }}
+    - name: Native service context policy integers and held proof identity
+      run: "python -B - <<'PYCONTEXT76'\nimport unittest\nnames = (\n    'tests.test_hia_service_context_native',\n    'tests.test_hia_service_context_builder',\n\
+        )\nsuite = unittest.defaultTestLoader.loadTestsFromNames(names)\nif suite.countTestCases() != 52:\n    raise AssertionError('complete\
+        \ native component test inventory changed')\nresult = unittest.TextTestRunner(verbosity=2).run(suite)\npassed = (result.wasSuccessful()\
+        \ and result.testsRun == 52\n          and not result.skipped and not result.expectedFailures\n          and not result.unexpectedSuccesses)\n\
+        raise SystemExit(0 if passed else 1)\nPYCONTEXT76\n"
+      env:
+        HEPTA_HIA_SERVICE_CONTEXT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        HEPTA_HIA_SERVICE_CONTEXT_EVIDENCE: ${{ runner.temp }}/hia-service-context
+      id: original_38
+      if: ${{ !cancelled() && steps.original_4.outcome == 'success' && steps.original_5.outcome == 'success' && steps.source_admission.outcome
+        == 'success' }}
+    - name: Native service context through all original Agent callers
+      run: "python -B -m tools.qualify_hia_service_context \\\n  --cold-report \"$RUNNER_TEMP/hia-cold.json\" \\\n  --evidence\
+        \ \"$RUNNER_TEMP/hia-service-context-callers\"\n"
+      id: original_39
+      if: ${{ !cancelled() && steps.original_4.outcome == 'success' && steps.original_5.outcome == 'success' && steps.source_admission.outcome
+        == 'success' }}
+    - name: Record all selected outcomes and final source custody
+      id: selected_result
+      if: always()
+      env:
+        HIA_ORIGINAL_STEP_OUTCOMES: ${{ toJSON(steps) }}
+      run: "python -B - <<'PYRESULT'\nimport json, os, pathlib, subprocess\nout=pathlib.Path(os.environ['RUNNER_TEMP'])/'hia-native-owners-v76'\n\
+        out.mkdir(mode=0o700,parents=True,exist_ok=True)\ndef git(*args):\n    return subprocess.check_output(['git',*args],text=True).strip()\n\
+        outcomes=json.loads(os.environ['HIA_ORIGINAL_STEP_OUTCOMES'])\nexpected=['original_0', 'original_1', 'original_2',\
+        \ 'original_3', 'original_4', 'original_5', 'original_23', 'original_31', 'original_32', 'original_33', 'original_34',\
+        \ 'original_35', 'original_36', 'original_37', 'original_38', 'original_39', 'source_admission']\nrecord={'schema':'hia.v76.current-owner-selected-gates.v1',\n\
+        \        'scope':'CURRENT_SOURCE_COLD_AND_COMPLETE_SELECTED_OWNER_GROUPS',\n        'source_head':git('rev-parse','HEAD'),'source_tree':git('rev-parse','HEAD^{tree}'),\n\
+        \        'status_porcelain':git('status','--porcelain=v1','--untracked-files=all'),\n        'harness_commit':os.environ['GITHUB_SHA'],\n\
+        \        'expected_step_ids':expected,'actual_step_outcomes':outcomes,\n        'original_selected_step_bodies_env_tests_and_limits_unchanged':True,\n\
+        \        'full_original_core_workflow_executed':False,\n        'full_5400_second_regression_executed':False,\n  \
+        \      'whole_native_delivery_qualified':False,\n        'native_defaults_changed':False,'legacy_deleted':False}\n\
+        passed=(record['source_head']=='4b19af89a766593f7d5f1cc2db256e81aba7afcb' and record['source_tree']=='1bc7c90996e1910ad66ba771b0bfee1d5bfa655c'\n\
+        \        and not record['status_porcelain']\n        and all(outcomes.get(name,{}).get('outcome')=='success' for name\
+        \ in expected))\nrecord['status']='ALL_SELECTED_STEPS_PASS' if passed else 'SELECTED_GATES_FAIL_OR_INCOMPLETE'\n(out/'RESULT.json').write_text(json.dumps(record,sort_keys=True,indent=2)+'\\\
+        n')\nprint(json.dumps(record,sort_keys=True),flush=True)\nraise SystemExit(0 if passed else 1)\nPYRESULT\n"
+    - name: Preserve actual cold failure and stage evidence
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: hia-current-owners-v76-${{ github.run_id }}-${{ github.run_attempt }}
+        if-no-files-found: error
+        retention-days: 7
+        include-hidden-files: true
+        path: '${{ runner.temp }}/hia-cold.json
+
+          ${{ runner.temp }}/hia-cold.cold/
+
+          ${{ runner.temp }}/hia-language.json
+
+          ${{ runner.temp }}/hia-language.assertions.json
+
+          ${{ runner.temp }}/hia-language.evidence/
+
+          ${{ runner.temp }}/hia-nominal-fixture/
+
+          ${{ runner.temp }}/hia-module-projects/
+
+          ${{ runner.temp }}/hia-slot-ledger/
+
+          ${{ runner.temp }}/hia-program-execution/
+
+          ${{ runner.temp }}/hia-program-execution-scalars/
+
+          ${{ runner.temp }}/hia-static-budget/
+
+          ${{ runner.temp }}/hia-static-bigints/
+
+          ${{ runner.temp }}/hia-static-graphs/
+
+          ${{ runner.temp }}/hia-heap-bound/
+
+          ${{ runner.temp }}/hia-heap-live-engine/
+
+          ${{ runner.temp }}/hia-linked-observer/
+
+          ${{ runner.temp }}/hia-compile-receipts/
+
+          ${{ runner.temp }}/hia-release-install/
+
+          ${{ runner.temp }}/hia-release-selection/
+
+          ${{ runner.temp }}/hia-source-build/
+
+          ${{ runner.temp }}/hia-selfhost-build/
+
+          ${{ runner.temp }}/hia-source-admission/
+
+          ${{ runner.temp }}/hia-cli-native/
+
+          ${{ runner.temp }}/hia-machine-encoding/
+
+          ${{ runner.temp }}/hia-machine-state/
+
+          ${{ runner.temp }}/hia-machine-instructions/
+
+          ${{ runner.temp }}/hia-machine-code-composition/
+
+          ${{ runner.temp }}/hia-machine-instructions-callers/
+
+          ${{ runner.temp }}/hia-machine-elf/
+
+          ${{ runner.temp }}/hia-machine-elf-callers/
+
+          ${{ runner.temp }}/hia-machine-plan/
+
+          ${{ runner.temp }}/hia-machine-plan-callers.json
+
+          ${{ runner.temp }}/hia-machine-plan-callers/
+
+          ${{ runner.temp }}/hia-service-context/
+
+          ${{ runner.temp }}/hia-service-context-callers/
+
+
+          ${{ runner.temp }}/hia-native-owners-v76/
+
+          '
