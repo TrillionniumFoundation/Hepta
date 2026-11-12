@@ -126,7 +126,8 @@ def _native_fixture(cls):
     cls.metadata = json.loads(cls.manifest.read_bytes())
     cls.owner = normalization.installed_program_normalization(cls.manifest)
     paths = {cls.manifest, FIXTURE, *normalization.SOURCES.values(),
-             *normalization.NOTE_SOURCES.values()}
+             *normalization.NOTE_SOURCES.values(),
+             Path(normalization._note_module.__file__)}
     paths.update(cls.manifest.parent / row['image_path']
                  for row in cls.metadata['images'].values())
     note = cls.metadata['hosted_mechanisms']['cpython_notes']
@@ -712,7 +713,7 @@ class ProgramNormalizationNativeTests(unittest.TestCase):
                         ignore=shutil.ignore_patterns('__pycache__','*.pyc','_data'))
         contract=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())
         resources=[]
-        for name in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','PUBLICATION_BUILD_FILES'):
+        for name in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES'):
             rows=[node for node in contract.body if isinstance(node,ast.Assign)
                   and any(isinstance(t,ast.Name) and t.id==name for t in node.targets)]
             self.assertEqual(len(rows),1,name)
@@ -765,8 +766,55 @@ try:
     except ValueError:pass
     else:raise AssertionError('changed installed source reused a warm image')
 finally:source.write_bytes(raw)
+import hepta.hia_program_normalization_notes as note_module
+assert native._note_module is note_module
+module=Path(note_module.__file__)
+resource=native.NOTE_SOURCES[native.NOTE_MODULE_SOURCE_NAME]
+assert module.resolve().is_relative_to(Path(sys.argv[1]).resolve()/'hepta')
+assert module!=resource and module.read_bytes()==resource.read_bytes()
+custody=[]
+for role,target in (('module',module),('resource',resource)):
+    for fault in ('tampered','missing'):
+        before=target.read_bytes()
+        if fault=='missing':target.unlink()
+        else:target.write_bytes(before+b'\n# real installed note source drift\n')
+        try:
+            with patch.object(native,'_mapped',side_effect=AssertionError('drift reached native mapping/cache')):
+                try:native.installed_program_normalization(sys.argv[2])
+                except (ValueError,OSError):pass
+                else:raise AssertionError('installed note '+role+' '+fault+' was admitted')
+        finally:target.write_bytes(before)
+        assert native.installed_program_normalization(sys.argv[2]) is owner
+        custody.append({'role':role,'fault':fault,'refused_before_mapping_or_cache':True})
+# Both file observations belong to the existing final readback as well.
+readback=[]
+real_mapping=native._mapped
+for role,target in (('module',module),('resource',resource)):
+    before=target.read_bytes();hits=[]
+    def drift_after_mapping(*args):
+        selected=real_mapping(*args)
+        target.write_bytes(before+b'\n# readback boundary drift\n')
+        hits.append(True)
+        return selected
+    try:
+        with patch.object(native,'_mapped',side_effect=drift_after_mapping):
+            try:native.installed_program_normalization(sys.argv[2])
+            except ValueError as error:
+                assert 'admission inputs changed' in str(error)
+            else:raise AssertionError('installed note '+role+' readback drift returned cached owner')
+    finally:target.write_bytes(before)
+    assert hits==[True]
+    assert native.installed_program_normalization(sys.argv[2]) is owner
+    readback.append({'role':role,'changed_readback_refused':True})
+assert module.read_bytes()==resource.read_bytes()
+with patch('json.dumps',side_effect=AssertionError('hosted serializer')), patch('json.loads',side_effect=AssertionError('hosted parser')):
+    value,wire=owner.normalize_program(b' {"z":0,"a":[true,null]} ')
+assert value=={'a':[True,None],'z':0} and wire==b'{"a":[true,null],"z":0}'
 assert not any(name=='tools' or name.startswith('tools.') for name in sys.modules)
-print(json.dumps({'actual_normalization':True,'missing_resource_refused':True,'tampered_resource_refused':True,'authoring_imported':False}))
+print(json.dumps({'actual_normalization':True,'missing_resource_refused':True,
+ 'tampered_resource_refused':True,'authoring_imported':False,
+ 'note_module_and_resource_custody':custody,'note_readback':readback,
+ 'actual_HIA_after_restoration':True}))
 '''
         environment={key:value for key,value in os.environ.items()
                      if not key.startswith('HEPTA_HIA_') and key not in ('PYTHONPATH','PYTHONHOME')}
@@ -775,8 +823,15 @@ print(json.dumps({'actual_normalization':True,'missing_resource_refused':True,'t
             cwd=work,env=environment,capture_output=True,timeout=30)
         put(work/'application.stdout',result.stdout);put(work/'application.stderr',result.stderr)
         self.assertEqual(result.returncode,0,result.stderr.decode('utf-8','replace'))
+        observed=json.loads(result.stdout)
+        self.assertEqual(len(observed['note_module_and_resource_custody']),4)
+        self.assertTrue(all(row['refused_before_mapping_or_cache']
+                            for row in observed['note_module_and_resource_custody']))
+        self.assertEqual(len(observed['note_readback']),2)
+        self.assertTrue(all(row['changed_readback_refused'] for row in observed['note_readback']))
+        self.assertTrue(observed['actual_HIA_after_restoration'])
         self.observations.append({'case':'installed_wheel_no_authoring_empty_PATH',
-                                  'result':json.loads(result.stdout)})
+                                  'result':observed})
 
 
 if __name__ == '__main__':

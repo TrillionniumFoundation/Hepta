@@ -20,6 +20,8 @@ _start:
  mov r15,rsp
  cmp QWORD PTR [r15],3
  je selection_argc_ok
+ cmp QWORD PTR [r15],5
+ je selection_argc_ok
  cmp QWORD PTR [r15],6
  jne usage
 selection_argc_ok:
@@ -72,6 +74,17 @@ selection_argv_next:
  cmp QWORD PTR [r15],3
  jne usage
 selection_arity_ok:
+ cmp QWORD PTR [rbp+SELWORK+8],4
+ jne selection_mutation_arity
+ cmp QWORD PTR [r15],5
+ jne usage
+ jmp selection_arity_complete
+selection_mutation_arity:
+ cmp QWORD PTR [rbp+SELWORK+8],3
+ je selection_arity_complete
+ cmp QWORD PTR [r15],6
+ jne usage
+selection_arity_complete:
  /* HIA emits the actual installer's verify argument packet. */
  mov r12d,eax
  mov ecx,eax
@@ -106,7 +119,7 @@ selection_root:
  mov edx,0xa0800
  xor r10d,r10d
  cmp QWORD PTR [rbp+SELWORK+8],3
- je selection_lock_open
+ jae selection_lock_open
  /* The private child fixes its own umask, never the operator's. */
  mov edi,63
  mov eax,95
@@ -121,7 +134,7 @@ selection_lock_open:
  cmp rax,-2
  jne selection_lock_result
  cmp QWORD PTR [rbp+SELWORK+8],3
- jne identity_exit
+ jb identity_exit
  jmp selection_read_initial
 selection_lock_result:
  test rax,rax
@@ -137,7 +150,7 @@ selection_lock_result:
  mov rdi,[rbp+SELWORK+48]
  mov esi,6
  cmp QWORD PTR [rbp+SELWORK+8],3
- jne selection_lock_flock
+ jb selection_lock_flock
  mov esi,5
 selection_lock_flock:
  mov eax,73
@@ -151,11 +164,36 @@ selection_read_initial:
  call selection_read_state
  cmp QWORD PTR [rbp+SELWORK+8],3
  je selection_receipt
+ cmp QWORD PTR [rbp+SELWORK+8],4
+ je selection_verify_current
  sgate 4
  /* The exact actual installed-tree verifier runs under the exclusive lock. */
  jmp open_release
 /* @INSTALLER_VERIFY@ */
+ cmp QWORD PTR [rbp+SELWORK+8],4
+ je selection_verified_current
  jmp selection_commit
+
+selection_verify_current:
+ /* The selected sequence/hash is a HIA decision under the shared lock. */
+ sgate 18
+ sgate 19
+ jmp open_release
+
+selection_verified_current:
+ /* Reopen and rehash actual selection after the full installed-tree read. */
+ mov rdi,[rbp+SELWORK+40]
+ mov eax,3
+ syscall
+ test rax,rax
+ js io_exit
+ call selection_read_state
+ sgate 20
+ sgate 18
+ call selection_check_lock_name
+ stat_current r14d
+ gate 5
+ jmp selection_receipt
 
 selection_commit:
  /* HIA created the 160-byte state body; HIA SHA supplies its checksum. */

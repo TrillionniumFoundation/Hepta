@@ -56,6 +56,160 @@ class NativeInventoryBoundary(unittest.TestCase):
             with self.subTest(source=source), self.assertRaises(ValueError):
                 preflight.native_source_files(source)
 
+    @staticmethod
+    def _all_asset_roles():
+        return {
+            "NATIVE_SOURCE_FILES": (
+                "examples/hia_bootstrap/native.hiaasm",
+                "hepta/hia_program_normalization_notes.py",
+            ),
+            "SOURCE_BUILD_FILES": (
+                "examples/hia_bootstrap/source_build_policy.hiaasm",
+                "examples/hia_bootstrap/selfhost.hiaasm",
+                "examples/hia_bootstrap/source_build_packer.hiaasm",
+            ),
+            "COMPILER_BUILD_FILES": (
+                "examples/hia_bootstrap/core_json_cli_packer.hiaasm",
+            ),
+            "PUBLICATION_BUILD_FILES": ("tools/adapter.S", "tools/builder.py"),
+        }
+
+    @classmethod
+    def _write_role_fixture(cls, root):
+        roles = cls._all_asset_roles()
+        source = "DISCOVERY_FILES = " + repr(tuple(sorted(preflight.REQUIRED_WORKER_DOCS))) + "\n"
+        source += "".join(name + " = " + repr(paths) + "\n" for name, paths in roles.items())
+        files = {
+            "hepta/hia_agent_worker.py": b"# source-only fixture worker\n",
+            "hepta/hia_agent_store.py": b"# source-only fixture store\n",
+            "hepta/hia_agent_contract.py": source.encode(),
+            **{name: ("# declared bytes " + name + "\n").encode()
+               for paths in roles.values() for name in paths},
+            **{"docs/" + name: b"{}\n" for name in preflight.REQUIRED_WORKER_DOCS},
+        }
+        for name, raw in files.items():
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(raw)
+            path.chmod(0o600)
+        return files
+
+    def test_all_four_asset_roles_are_preserved_in_declared_worker_order(self):
+        roles = self._all_asset_roles()
+        source = "".join(name + " = " + repr(paths) + "\n" for name, paths in roles.items())
+        expected = tuple(name for paths in roles.values() for name in paths)
+        self.assertEqual(preflight.native_source_files(source), expected)
+        self.assertEqual(len(expected), len(set(expected)))
+
+    def test_python_exception_and_new_build_roles_are_exact_not_generic_path_permissions(self):
+        invalid = (
+            ("NATIVE_SOURCE_FILES", "hepta/hia_agent_store.py"),
+            ("NATIVE_SOURCE_FILES", "hepta/./hia_program_normalization_notes.py"),
+            ("NATIVE_SOURCE_FILES", "hepta/../hepta/hia_program_normalization_notes.py"),
+            ("NATIVE_SOURCE_FILES", "/hepta/hia_program_normalization_notes.py"),
+            ("NATIVE_SOURCE_FILES", "hepta/hia_program_normalization_notes.py\n"),
+            ("NATIVE_SOURCE_FILES", "hepta\\hia_program_normalization_notes.py"),
+            ("PUBLICATION_BUILD_FILES", "hepta/hia_program_normalization_notes.py"),
+            ("SOURCE_BUILD_FILES", "hepta/hia_program_normalization_notes.py"),
+            ("COMPILER_BUILD_FILES", "hepta/hia_program_normalization_notes.py"),
+            ("SOURCE_BUILD_FILES", "tools/builder.py"),
+            ("SOURCE_BUILD_FILES", "examples/hia_bootstrap/unreviewed.hiaasm"),
+            ("SOURCE_BUILD_FILES", "examples/hia_bootstrap/source_build_policy.hepta"),
+            ("SOURCE_BUILD_FILES", "examples/hia_bootstrap/../source_build_policy.hiaasm"),
+            ("COMPILER_BUILD_FILES", "examples/hia_bootstrap/selfhost.hiaasm"),
+            ("COMPILER_BUILD_FILES", "examples/hia_bootstrap/core_json_cli_packer.hiaasm/"),
+            ("COMPILER_BUILD_FILES", "/examples/hia_bootstrap/core_json_cli_packer.hiaasm"),
+        )
+        for group, path in invalid:
+            source = group + " = " + repr((path,)) + "\n"
+            with self.subTest(group=group, path=path), self.assertRaises(ValueError):
+                preflight.native_source_files(source)
+
+    def test_new_groups_keep_literal_single_assignment_and_cross_group_uniqueness(self):
+        for group in ("SOURCE_BUILD_FILES", "COMPILER_BUILD_FILES"):
+            for declaration in ("get_files()", "(True,)", "('x', 1)", "{'x'}", "None"):
+                with self.subTest(group=group, declaration=declaration), self.assertRaises(ValueError):
+                    preflight.native_source_files(group + " = " + declaration + "\n")
+            with self.subTest(group=group, duplicate=True), self.assertRaises(ValueError):
+                preflight.native_source_files(group + " = ()\n" + group + " = ()\n")
+        for group, path in (
+                ("SOURCE_BUILD_FILES", "examples/hia_bootstrap/selfhost.hiaasm"),
+                ("COMPILER_BUILD_FILES", "examples/hia_bootstrap/core_json_cli_packer.hiaasm")):
+            source = "NATIVE_SOURCE_FILES = " + repr((path,)) + "\n"
+            source += group + " = " + repr((path,)) + "\n"
+            with self.subTest(group=group), self.assertRaises(ValueError):
+                preflight.native_source_files(source)
+
+    def test_total_asset_bound_is_unchanged_across_all_four_groups(self):
+        paths = tuple("examples/hia_bootstrap/asset_" + str(index) + ".hiaasm" for index in range(256))
+        source = "NATIVE_SOURCE_FILES = " + repr(paths) + "\n"
+        self.assertEqual(preflight.native_source_files(source), paths)
+        with self.assertRaises(ValueError):
+            preflight.native_source_files(source + "COMPILER_BUILD_FILES = "
+                "('examples/hia_bootstrap/core_json_cli_packer.hiaasm',)\n")
+        with self.assertRaises(ValueError):
+            preflight.native_source_files("NATIVE_SOURCE_FILES = " + repr(paths + (
+                "examples/hia_bootstrap/asset_256.hiaasm",)) + "\n")
+
+    def test_actual_file_inventory_includes_every_role_and_reads_fresh_bytes(self):
+        with tempfile.TemporaryDirectory(prefix="hia-complete-native-inventory-") as folder:
+            root = Path(folder)
+            files = self._write_role_fixture(root)
+            with mock.patch.object(preflight, "snapshot", snapshot):
+                original = preflight.worker_inventory(root)
+                self.assertEqual(original, {name: preflight.sha256(raw) for name, raw in files.items()})
+                for name in (
+                        "hepta/hia_program_normalization_notes.py",
+                        "examples/hia_bootstrap/source_build_policy.hiaasm",
+                        "examples/hia_bootstrap/source_build_packer.hiaasm",
+                        "examples/hia_bootstrap/core_json_cli_packer.hiaasm"):
+                    with self.subTest(path=name):
+                        path = root / name
+                        try:
+                            path.write_bytes(files[name] + b"# next observation\n")
+                            observed = preflight.worker_inventory(root)
+                            self.assertEqual(set(observed), set(original))
+                            self.assertNotEqual(observed[name], original[name])
+                            self.assertEqual({key: value for key, value in observed.items() if key != name},
+                                             {key: value for key, value in original.items() if key != name})
+                        finally:
+                            path.write_bytes(files[name])
+
+    def test_package_source_resource_requires_an_existing_matching_module_observation(self):
+        with tempfile.TemporaryDirectory(prefix="hia-dual-role-inventory-") as folder:
+            root = Path(folder)
+            files = self._write_role_fixture(root)
+            name = "hepta/hia_program_normalization_notes.py"
+            path = root / name
+            path.unlink()
+            try:
+                with mock.patch.object(preflight, "snapshot", snapshot), \
+                     self.assertRaisesRegex(ValueError, "no package module"):
+                    preflight.worker_inventory(root)
+            finally:
+                path.write_bytes(files[name])
+                path.chmod(0o600)
+            observations = []
+
+            def changing_snapshot(input_path, label, limit=preflight.MAX_JSON_BYTES):
+                result = snapshot(input_path, label, limit)
+                if input_path == path:
+                    observations.append(label)
+                if label == "worker identity contract":
+                    path.write_bytes(files[name] + b"# changed between roles\n")
+                return result
+
+            try:
+                with mock.patch.object(preflight, "snapshot", changing_snapshot), \
+                     self.assertRaisesRegex(ValueError, "module and source resource differ"):
+                    preflight.worker_inventory(root)
+                self.assertEqual(observations, ["worker source", "worker language contract"])
+            finally:
+                path.write_bytes(files[name])
+            with mock.patch.object(preflight, "snapshot", snapshot):
+                self.assertEqual(preflight.worker_inventory(root),
+                                 {name: preflight.sha256(raw) for name, raw in files.items()})
+
     def test_historical_worker_without_native_assets_keeps_its_identity_domain(self):
         self.assertEqual(preflight.native_source_files("DISCOVERY_FILES = ()\n"), ())
 
@@ -125,6 +279,106 @@ class NativeInventoryBoundary(unittest.TestCase):
                 asset.parent.symlink_to(actual, target_is_directory=True)
                 with self.assertRaisesRegex(ValueError, "symbolic links"):
                     preflight.worker_inventory(root)
+
+
+class InstalledPublisherSourceCustody(unittest.TestCase):
+    """Actual ordinary/data file observations, without a native execution claim."""
+
+    def setUp(self):
+        from hepta import hia_agent_contract as contract
+        from hepta import hia_json_preflight_native as resources
+        from hepta import artifact_publication_native as publisher
+        from hepta.artifact_publication import PublicationRejected
+        self.contract, self.resources, self.publisher = contract, resources, publisher
+        self.rejection = PublicationRejected
+        temporary = tempfile.TemporaryDirectory(prefix="hia-publisher-dual-source-")
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.data = self.root / "hepta/_data"
+        self.name = "hepta/hia_program_normalization_notes.py"
+        self.contract_name = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
+        assets = tuple("docs/" + name for name in contract.DISCOVERY_FILES)
+        for group in ("NATIVE_SOURCE_FILES", "SOURCE_BUILD_FILES",
+                      "COMPILER_BUILD_FILES", "PUBLICATION_BUILD_FILES"):
+            assets += tuple(getattr(contract, group, ()))
+        self.assertIn(self.name, assets)
+        self.assertEqual(len(assets), len(set(assets)))
+        raw_files = {name: ("# source custody fixture " + name + "\n").encode()
+                     for name in assets if name != self.contract_name}
+        for name, raw in raw_files.items():
+            path = self.data / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(raw)
+            if name.startswith("hepta/") and name.endswith(".py"):
+                module = self.root / name
+                module.parent.mkdir(parents=True, exist_ok=True)
+                module.write_bytes(raw)
+        self.files = {name: preflight.sha256(raw) for name, raw in raw_files.items()}
+        self.contract_raw = preflight.json_bytes({
+            "schema": "hepta.hia.selfhost-core-support.v1",
+            "profile": "explicit-custody-fixture",
+            "source_identity": {"files": self.files},
+        })
+        path = self.data / self.contract_name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(self.contract_raw)
+        self.expected = ("explicit-custody-fixture", {
+            **self.files, self.contract_name: preflight.sha256(self.contract_raw),
+        })
+        self.module, self.resource = self.root / self.name, self.data / self.name
+        self.assertNotEqual(self.module, self.resource)
+        self.original = self.module.read_bytes()
+        self.assertEqual(self.original, self.resource.read_bytes())
+
+    def admit(self):
+        with mock.patch.object(self.resources, "_source_resource_path",
+                               side_effect=lambda name: self.data / name), \
+             mock.patch.object(self.contract, "installation_manifest",
+                               side_effect=AssertionError("different admission route")):
+            return self.publisher._installed_source_custody(self.root)
+
+    def test_valid_wire_has_one_identity_entry_but_reads_both_actual_roles(self):
+        observed = []
+        original_read = Path.read_bytes
+
+        def read(path):
+            observed.append(path)
+            return original_read(path)
+
+        with mock.patch.object(Path, "read_bytes", read):
+            self.assertEqual(self.admit(), self.expected)
+        self.assertEqual([path for path in observed if path in (self.module, self.resource)],
+                         [self.module, self.resource])
+        self.assertEqual(list(self.expected[1]).count(self.name), 1)
+
+    def test_each_installed_copy_is_fresh_and_independently_mandatory(self):
+        self.assertEqual(self.admit(), self.expected)
+        for role, path in (("module", self.module), ("resource", self.resource)):
+            for missing in (False, True):
+                with self.subTest(role=role, missing=missing):
+                    if missing:
+                        path.unlink()
+                    else:
+                        path.write_bytes(self.original + b"# drift\n")
+                    try:
+                        expected = FileNotFoundError if role == "resource" and missing else self.rejection
+                        with self.assertRaises(expected):
+                            self.admit()
+                    finally:
+                        path.write_bytes(self.original)
+                    self.assertEqual(self.admit(), self.expected)
+
+    def test_equal_but_changed_module_and_resource_do_not_replace_bound_contract(self):
+        self.assertEqual(self.admit(), self.expected)
+        for path in (self.module, self.resource):
+            path.write_bytes(self.original + b"# same changed bytes\n")
+        try:
+            with self.assertRaisesRegex(self.rejection, "E_PUBLISH_NATIVE_CUSTODY"):
+                self.admit()
+        finally:
+            for path in (self.module, self.resource):
+                path.write_bytes(self.original)
+        self.assertEqual(self.admit(), self.expected)
 
 
 class RetainedEvidenceBoundary(unittest.TestCase):

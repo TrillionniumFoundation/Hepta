@@ -7,13 +7,18 @@ are embedded directly; neither a child process nor a host state parser runs.
 from __future__ import annotations
 import struct
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
+
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_release_install import policy_source as installer_policy_source
 
-ROOT = Path(__file__).resolve().parents[1]
 MAGIC = int.from_bytes(b'HIASPK01', 'little')
 STATE_MAGIC = int.from_bytes(b'HIASEL01', 'little')
 STATE_BYTES = 192
@@ -103,6 +108,30 @@ POLICY_SOURCE = '''def selection(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if get(w, 856) != get(w, 1288) or get(w, 864) != get(w, 1296):
             return 12
         return 0
+    if phase == 18:
+        if get(w, 8) != 4:
+            return 16
+        if get(w, 32) != 1 or get(w, 16) != get(w, 24):
+            return 19
+        i = 0
+        while i < 64:
+            if byte(w, 128 + i) != byte(w, 288 + i):
+                return 19
+            i = i + 1
+        return 0
+    if phase == 19:
+        copy(w, 256, 1408, 192)
+        copy(w, 768, 1600, 144)
+        return 0
+    if phase == 20:
+        if stable(w, 1600, 768) == 0:
+            return 12
+        i = 0
+        while i < 192:
+            if byte(w, 256 + i) != byte(w, 1408 + i):
+                return 12
+            i = i + 1
+        return 0
     if phase == 16:
         if regular(w, 912, 256, 192) == 0:
             return 10
@@ -129,6 +158,8 @@ def arguments(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         op = 2
     if a == 6 and uint(s, 40, 6) == STATUS:
         op = 3
+    if a == 6 and uint(s, 40, 6) == VERIFY:
+        op = 4
     if op == 0:
         return 16
     root = 40 + a
@@ -139,8 +170,15 @@ def arguments(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if c != 0 or d != 0 or e != 0:
             return 16
     else:
-        if c == 0 or e != 64:
+        if c == 0:
             return 16
+        if op == 4:
+            if d != 64 or e != 0:
+                return 16
+            target_at = expected_at
+        else:
+            if e != 64:
+                return 16
         if c > 1 and byte(s, sequence_at) == 48:
             return 16
         sequence = 0
@@ -155,6 +193,8 @@ def arguments(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             sequence = sequence * 10 + digit
             i = i + 1
         put(w, 16, sequence)
+        if op == 4 and sequence == 0:
+            return 16
         if sequence == 0:
             if d != 1 or byte(s, expected_at) != 45:
                 return 16
@@ -301,6 +341,8 @@ def receipt(o:mutbuf, w:mutbuf) -> u32:
         at = append(o, at, ROLLBACK, 8)
     if op == 3:
         at = append(o, at, STATUS, 6)
+    if op == 4:
+        at = append(o, at, VERIFY, 6)
     RECEIPT_SEQUENCE
     at = decimal(o, at, get(w, 24))
     RECEIPT_CURRENT

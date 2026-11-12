@@ -192,8 +192,14 @@ def worker_inventory(root):
         path = root / filename
         if any(part.is_symlink() for part in (path, *path.parents)):
             raise ValueError("worker asset cannot use symbolic links")
+        package_source = filename.startswith("hepta/") and filename.endswith(".py")
+        if package_source and filename not in entries:
+            raise ValueError("worker source resource has no package module: " + filename)
         raw, _ = snapshot(path, "worker language contract")
-        entries[filename] = sha256(raw)
+        digest = sha256(raw)
+        if package_source and entries[filename] != digest:
+            raise ValueError("worker package module and source resource differ: " + filename)
+        entries[filename] = digest
     if "hepta/hia_agent_worker.py" not in entries or "hepta/hia_agent_store.py" not in entries:
         raise ValueError("selected source lacks the actual HIA worker")
     return entries
@@ -235,18 +241,30 @@ def native_source_files(source):
     Optional absence supports pre-native historical workers. A present malformed
     declaration always refuses; it never silently shrinks the identity domain.
     These files are build inputs, not evidence that a native image was selected.
+    The notes module is the one declared dual-role Python source; its ordinary
+    module observation must also exist and agree in worker_inventory.
     """
     native = literal_inventory(source, "NATIVE_SOURCE_FILES", required=False)
+    source_build = literal_inventory(source, "SOURCE_BUILD_FILES", required=False)
+    compiler_build = literal_inventory(source, "COMPILER_BUILD_FILES", required=False)
     publication = literal_inventory(source, "PUBLICATION_BUILD_FILES", required=False)
-    files = native + publication
+    source_build_paths = frozenset({
+        "examples/hia_bootstrap/source_build_policy.hiaasm",
+        "examples/hia_bootstrap/selfhost.hiaasm",
+        "examples/hia_bootstrap/source_build_packer.hiaasm",
+    })
+    compiler_build_paths = frozenset({"examples/hia_bootstrap/core_json_cli_packer.hiaasm"})
+    files = native + source_build + compiler_build + publication
     if (len(files) > 256 or len(files) != len(set(files))
-            or any(not re.fullmatch(r"examples/hia_bootstrap/[A-Za-z0-9_-]+\.hiaasm", name)
+            or any(name != "hepta/hia_program_normalization_notes.py"
+                   and not re.fullmatch(r"examples/hia_bootstrap/[A-Za-z0-9_-]+\.hiaasm", name)
                    for name in native)
+            or any(name not in source_build_paths for name in source_build)
+            or any(name not in compiler_build_paths for name in compiler_build)
             or any(not re.fullmatch(r"(?:examples/hia_bootstrap/[A-Za-z0-9_-]+\.hiaasm|tools/[A-Za-z0-9_-]+\.(?:py|S))", name)
                    for name in publication)):
         raise ValueError("native/build inventory must contain unique bounded repository asset paths")
     return files
-
 
 def worker_matches_commit(root, revision, entries):
     """Do not let assume-unchanged/ignored source masquerade as an exact revision."""

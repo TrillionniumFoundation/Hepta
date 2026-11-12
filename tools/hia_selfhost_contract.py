@@ -15,6 +15,21 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = 'selfhost-core-linux-x86_64-v69-native-execution-integration-pending'
 SOURCE_FILES = (
+    'docs/HIA_SOURCE_ADMISSION_NATIVE.md',
+    'examples/hia_bootstrap/source_admission.hiaasm',
+    'tests/fixtures/hia_source_admission_reference.hiaasm',
+    'tests/test_hia_source_admission_native.py',
+    'tools/build_hia_source_admission.py',
+    'tools/generate_hia_source_admission.py',
+    'tools/build_hia_source_build.py',
+    'tools/generate_hia_source_build.py',
+    'tools/hia_source_build_syscalls.S',
+    'examples/hia_bootstrap/source_build_policy.hiaasm',
+    'examples/hia_bootstrap/source_build_packer.hiaasm',
+    'tests/test_hia_source_build.py',
+    'tests/test_hia_program_selfhost.py',
+    'tests/test_hia_source_release_integration.py',
+    'docs/HIA_NATIVE_SOURCE_RELEASE_INTEGRATION.md',
     'tools/generate_hia_heap_kernels.py',
     'tests/__init__.py',
     'tests/test_hia_bulk_memory.py',

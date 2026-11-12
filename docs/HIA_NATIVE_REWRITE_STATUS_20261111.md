@@ -1,4 +1,4 @@
-# Native rewrite execution status — 2026-11-11
+# Native rewrite execution status — 2026-11-12
 
 The working continuation is [PR #889](https://github.com/TrillionniumFoundation/Hepta/pull/889).
 The complete HIA-native product and deletion of all former production owners
@@ -6,7 +6,159 @@ remain unfinished. The source audit and remaining ownership boundaries are in
 [the audit](HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md). File counts are an
 inventory, not a native-completion percentage.
 
-## Current v72 candidate: normalization, linked observation and receipt integration
+## Current v74 source-generation follow-up
+
+The first complete generation run is now available:
+[run 43149993963](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43149993963),
+using the exact Python 3.14.4 harness commit
+`1796c12e208039fd88f2af5bcfcf8a175ce07338` and a separate complete checkout
+of `ac3fb576419d9ec36841822b4be0fca420268f1b`. All 72 generators,
+the language/support records, the original complete generator reproduction
+and its unchanged Git diff checks passed. The actual generated index tree was
+`6fbeff329024a2cd1c406e4b3e6882e895c1f064`, with 3,084 files and 45
+changed paths. This is the observed generated tree, not a claim that it was
+already published as a product commit.
+
+The source panel ran **659 tests** under the 138 complete selectors:
+zero failures, one error, zero skips, zero expected failures and zero
+unexpected successes. The error is the original standalone-builder custody
+fixture for `build_hia_core_json_cli`: its recording packer omitted the new
+ABI/image/frame/source-unchanged receipt fields. All production receipt checks
+remain strict. This follow-up adds the actual fixture image/frame identities
+only when the recording invoke receives those inputs, retains the original
+zero-argument raw-entry fixture, and explicitly keeps `native_execution: false`.
+The 13 original test-method ASTs are unchanged. One new method exercises 17
+missing, malformed or mismatched receipts and requires no published executable
+or build/selection manifest. The corrected 14-method module passed on the
+local Python 3.12.14 development host; the first local fixture revision's
+zero-argument regression is retained as a failure. This revised source has
+not yet passed its complete new Python 3.14.4 panel.
+
+The executor is available again, but its former working directory was lost.
+The recovered original ac3 CI artifact was verified at 68,873,189 bytes and
+SHA-256 `082cf9245a6c46959acf75be6c981fa87a6b4f3babaca95232166a9b2fc4e528`.
+Its 865 exact cold-input files were checked against both the original cold
+manifest and complete Git metadata. The 38-file first overlay was applied to
+a new development copy; all 72 generators, language generation, support
+generation and support checking passed there. This 883-file component closure
+is explicitly not a complete checkout. It does not recover the old local
+71-test raw report or authorize replay of unknown jobs.
+
+The streaming SHA change has now been exercised by the original development
+B0/B1/B2 fixtures. The first 10-test panel passed nine tests, including the
+original inclusive 64 MiB storage boundary with its unchanged 60-second limit.
+Its one error was a missing original test helper in the recovered component
+closure, not a changed product result. That helper was restored from its exact
+ac3 Git blob in a separate copy, and the one previously blocked test passed
+unchanged. The complete original failures and separate successful retry remain
+distinct. These local Python 3.12.14 observations are not the current-source
+cold qualification or the complete Python 3.14.4 native panel.
+
+The original first source-run evidence was recovered losslessly: all 482
+nested ZIP members were checked for exact bytes, SHA-256, Git blob identity,
+mode and CRC. Its failed status is retained. Separately, all 143 members of the
+historical r1-r3 source-admission archive were recovered and checked against
+its original manifest; this closes only the earlier archive-verification gap.
+The final v9 preparation passed its 108 static checks, and the initial six-
+bridge byte-preservation helper passed eight controls. Those are preparation
+controls, not product qualification.
+
+Fresh cold self-compilation, all installed/native panels and the retained
+unfiltered full regression remain required for the revised product tree.
+The CLI and public Code owners are being implemented in separate development
+copies; actual continuation/lifetime differences found there are still being
+repaired. General service orchestration, other backend owners, hosted build
+authoring and the historical B/physical C-stack obligations remain open.
+The complete HIA-native product is still unfinished.
+
+## Prior v74 first authoring candidate: source build, admission and physical source custody
+
+This revision is assembled against product commit
+`ac3fb576419d9ec36841822b4be0fca420268f1b`, tree
+`8231abac1bb2f30d7a8da8eb08a79ce92c50eb25`. Its new integration has
+**not yet been executed**. The local executor became unavailable; prepared
+source, a source-review result and a queued CI job are not execution evidence.
+The original raw failures and exact authoring packets are retained under
+[audit commit bde6f3cf](https://github.com/TrillionniumFoundation/Hepta/tree/bde6f3cf4fe3cb2ebc21b87d5a8b6f7b48ef4002/review-evidence/hia-native-rewrite-20261111/v74).
+
+The candidate joins the following explicit owners and repairs:
+
+- A permanent HIA checkout-source admission component retains the exact r3
+  HIA state machine and independent r1 reference. HIA owns ordering,
+  deduplication, SHA-256, issued read claims and complete-map admission.
+  Every selection freshly reads its manifest, source and image, including
+  warm selection. The original filesystem transport and explicit production
+  cold-admission boundary remain visible.
+- The native source builder and explicit public selfhost compiler are joined
+  to the release installer/selector and installed resource closure. Physical
+  source-build resources use `.hiaasm`; the three historical `.hepta`
+  wire role strings and their accepted aliases remain protocol data. No
+  physical `.hepta` source or checker exception is added. The public compiler
+  remains an explicit bounded primitive Core v8 scalar-output route, with
+  hosted verification, transport and publication dependencies.
+- Installed resources now use the complete discovery, native, source-build,
+  compiler-build and publication-build union. The ordinary imported notes
+  module and its `_data` copy must both exist and match. Identity collection,
+  direct normalization selection, candidate inventory and direct native
+  publication retain both physical observations. A duplicate identity key
+  cannot silently substitute one copy for the other. Real-wheel negative
+  controls separately mutate and remove both copies.
+- Source inventory assertions retain the exact explicit inventory and the
+  entire actual Python package union. The candidate preflight admits the
+  single declared notes-module resource in its precise role and includes
+  the new build groups. Cross-group uniqueness, path confinement and the
+  original total bound of 256 assets remain.
+- A streaming SHA candidate replaces only its fixed eight-byte word-access
+  loops with ordered checked byte operations. The shared one-shot SHA source,
+  compression algebra, 1,184-byte state layout, quota, readbacks and syncs
+  remain. New controls compare the complete old/new state and output,
+  including high u64 bits, dirty workspace, refusals and canaries. The
+  original 64 MiB operation still has its 60-second limit. No speedup or
+  timeout repair has yet been measured.
+
+Root source review finds 698 explicit source entries and 187 Python package
+modules, with an 881-file union and 81 distinct installed resources. These
+are inventory observations, not a completion percentage. New native source
+assets and all three generated JSON records still require real generation.
+Core CI retains the original 129 source selections in order and appends five;
+the original 43 native-application selections and 37 binding controls remain.
+The four new complete source-build/admission modules add 72 authored controls.
+The retained full qualification still requires all 27 original component
+groups, all original time limits and unfiltered test discovery.
+
+### Actual results on the preceding ac3 source
+
+[Core push run 43142647704](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43142647704)
+passed all 11 cold checks, all 1,242 language checks, all 37 binding controls
+and all 244 native-application tests. The three B compiler images match
+`81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109`;
+M1 differs and M2 equals M3. These are actual ac3 observations, not
+qualification of this new overlay.
+
+The same run failed overall. The source group ran 569 tests and failed its
+release-freeze inventory assertion. The publication/store group ran 39 tests
+with one error: the inclusive 64 MiB store-put exceeded its original
+60-second subprocess limit. Later native groups were skipped by that
+workflow. [Candidate bindings run 43142813543](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43142813543)
+ran 170 tests with one inventory error caused by the notes resource.
+All three failures remain original failures. The new controls and proposed
+repairs require execution.
+
+### Remaining closure
+
+The next gate is actual complete source generation and source/ordinary
+controls, followed by a published exact generated tree, its fresh cold build,
+all installed/native controls and the complete retained regression.
+Normalization's physical C-stack compatibility and exact historical B
+reference remain distinct open obligations. General backend coverage, service
+orchestration, packaging/build authoring, external providers, process and
+database boundaries and the retained scalar proposal evaluator still prevent
+whole-product replacement. No production default or live state has been
+changed and no old production owner has been removed by this candidate.
+Deletion remains part of the authorized goal after replacement and
+qualification actually close.
+
+## Prior v72 candidate: normalization, linked observation and receipt integration
 
 This checkpoint extends `aa8014354a676236f73206fb4b3ad6842bffe15c`
 (tree `9e44752bb1ed2532d21164c9aaec23d4f223dfdb`). It combines the 33

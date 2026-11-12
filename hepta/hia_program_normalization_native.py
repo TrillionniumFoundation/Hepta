@@ -25,6 +25,7 @@ from .hia_agent_binary64_native import NativeAgentBinary64
 from .hia_agent_binary64_format_native import NativeAgentBinary64Format
 from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path
 from .hia_program import HIAProgramRejected
+from . import hia_program_normalization_notes as _note_module
 from .hia_program_normalization_notes import (
     NativeCPythonNotes, API_NAMES as NOTE_API_NAMES, require_supported_interpreter,
 )
@@ -45,10 +46,11 @@ SELECTOR = 'HEPTA_HIA_PROGRAM_NORMALIZATION_MANIFEST'
 SCHEMA = 'hepta.hia.program-normalization-native.v4-development-permanent'
 NOTE_SCHEMA = 'hepta.hosted.cpython-note-hia-packer.v1'
 NOTE_PACKER_SOURCE = 'examples/hia_bootstrap/cpython_note_packer.hiaasm'
+NOTE_MODULE_SOURCE_NAME = 'hepta/hia_program_normalization_notes.py'
 NOTE_SOURCES = {
     name: _source_resource_path(name) for name in (
         NOTE_PACKER_SOURCE,
-        'hepta/hia_program_normalization_notes.py',
+        NOTE_MODULE_SOURCE_NAME,
     )
 }
 SOURCES = {
@@ -1098,6 +1100,18 @@ def installed_program_normalization(path):
             if sha256(source_bytes).hexdigest() != note['sources'][name]:
                 raise ValueError('hosted note mechanism source changed')
             consumed.append((source, source_bytes))
+            if name == NOTE_MODULE_SOURCE_NAME:
+                # The installed data copy is a declared source, not the
+                # imported Python bridge. Bind both actual byte observations
+                # before mapping or returning a cached native composition.
+                filename = getattr(_note_module, '__file__', None)
+                if type(filename) is not str or not filename:
+                    raise ValueError('actual hosted note module has no source filename')
+                module_path = Path(filename)
+                module_bytes = module_path.read_bytes()
+                if module_bytes != source_bytes:
+                    raise ValueError('actual hosted note module and source resource differ')
+                consumed.append((module_path, module_bytes))
         filename = note['image_path']
         if type(filename) is not str or not filename or Path(filename).name != filename:
             raise ValueError('hosted note image must be a sibling basename')

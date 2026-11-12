@@ -27,6 +27,7 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/source_admission.hiaasm',
     'examples/hia_bootstrap/worker_request.hiaasm',
     'examples/hia_bootstrap/agent_identity.hiaasm',
     'examples/hia_bootstrap/retirement_state.hiaasm',
@@ -93,6 +94,20 @@ NATIVE_SOURCE_FILES = (
 
 # Build-input custody assets, not loadable native image adapters. The streaming
 # SHA source is already in NATIVE_SOURCE_FILES and is deliberately not repeated.
+# Native source-builder resources are data, never executable Python modules.
+# Existing shared compiler bytes retain their .hiaasm source identity.
+SOURCE_BUILD_FILES = (
+    'examples/hia_bootstrap/source_build_policy.hiaasm',
+    'examples/hia_bootstrap/selfhost.hiaasm',
+    'examples/hia_bootstrap/source_build_packer.hiaasm',
+)
+
+# The explicit Core JSON compiler additionally owns this packer resource.
+COMPILER_BUILD_FILES = (
+    'examples/hia_bootstrap/core_json_cli_packer.hiaasm',
+)
+
+
 PUBLICATION_BUILD_FILES = (
     'examples/hia_bootstrap/artifact_publication_policy.hiaasm',
     'examples/hia_bootstrap/artifact_publication_packer.hiaasm',
@@ -120,8 +135,17 @@ def installation_manifest():
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
-    for native_source in (*NATIVE_SOURCE_FILES, *PUBLICATION_BUILD_FILES):
-        entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
+    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES):
+        # A Python file can be both an imported module and a packaged source
+        # resource. Preserve the existing identity key only when both actual
+        # copies agree; a data copy cannot replace a missing/changed module.
+        package_source = native_source.startswith("hepta/") and native_source.endswith(".py")
+        if package_source and native_source not in entries:
+            raise ValueError("installed source resource has no package module: " + native_source)
+        resource_digest = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
+        if package_source and entries[native_source] != resource_digest:
+            raise ValueError("installed package module and source resource differ: " + native_source)
+        entries[native_source] = resource_digest
     from .hia_program_native import _implementation_hash
     from .hia_native_helpers import native_helpers_identity
     return {"worker_sha256": sha256(wire(entries)).hexdigest(),
