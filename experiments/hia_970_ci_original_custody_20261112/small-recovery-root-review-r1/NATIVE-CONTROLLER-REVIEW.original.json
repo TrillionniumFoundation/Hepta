@@ -1,0 +1,162 @@
+{
+  "schema": "hia.independent-static-review.v1",
+  "reviewer": "/root/native_install_owner",
+  "status": "STATIC_CLEAR_WITH_EXPLICIT_UNEXECUTED_SCOPE",
+  "subject": "Small-only recovery of the original 970 custody failure; controller/framing/finalization and failure-byte preservation",
+  "repository": "TrillionniumFoundation/Hepta",
+  "reviewed_inputs": {
+    "worker": {
+      "bytes": 34101,
+      "sha256": "6eae0b9682ba99a2dcbe35d49c90211d16295369b78b413836e69870e2840779",
+      "git_blob_sha1": "255f780a65661eee664b92f798029c3438f08737",
+      "role": "Cross-read for controller field and source-file joins; root owns independent transport/inner-ZIP review"
+    },
+    "original_controller_draft": {
+      "bytes": 40442,
+      "sha256": "12c7ec733063eb228f2bcffccd0c34973342504df235b38d5c0b09cef6094eaa",
+      "git_blob_sha1": "45b6a417c700b65f0e27c442680e4a653e65abe1",
+      "status": "UNEXECUTED_DRAFT_WITH_IDENTIFIED_COMPLETE_SMALL_ZIP_CONJUNCTION_DEFECT"
+    },
+    "complete_zip_fix": {
+      "bytes": 40967,
+      "sha256": "40698baaba435b4970ba25407eaea97279e5cb2474a64b99f72ce768044a9ce5",
+      "git_blob_sha1": "cee2d6b4cfb379da926718d9f8578cd07b2594c1",
+      "status": "UNEXECUTED_INTERMEDIATE"
+    },
+    "final_controller": {
+      "bytes": 43516,
+      "sha256": "bda5b73b5d0caac9779a078d827174565f231608fad40adbc04aa7657c421f2c",
+      "git_blob_sha1": "45971b9f27cb9e6159d7adc06c150db5c7767d16",
+      "status": "REVIEWED_STATIC"
+    },
+    "final_policy": {
+      "bytes": 30780,
+      "sha256": "7d4b81fd61b76334ad8321f964a61ef37e11c908e0e697a72ee88d3c859a43cd",
+      "git_blob_sha1": "e41870824b07e4d65f043102aa942d6f2382b8f6",
+      "status": "REVIEWED_STATIC"
+    }
+  },
+  "original_operation": {
+    "run_id": 43150215535,
+    "status": "CUSTODY_HOLD",
+    "original_worker_exit_code": 1,
+    "original_product_result_reclassified": false,
+    "original_big_artifact_download_repeated": false,
+    "original_frame_failure": "The original frame task refused its fixed 16 MiB raw limit before emitting any frames. Its worker exit-1 cause is still unknown pending actual small-package recovery."
+  },
+  "input_small_artifact": {
+    "id": 13913382201,
+    "bytes": 22390611,
+    "sha256": "58424f2690a09f10e2f06557985648aa89d0dab1c37be89833b0f2653344976d",
+    "independent_full_bytes_not_read_by_this_review": true
+  },
+  "findings_and_resolution": [
+    {
+      "id": "FULL_SMALL_ZIP_REQUIRED",
+      "finding": "The initial controller could omit a missing complete small ZIP and still compute a successful framing conjunction.",
+      "resolution": "The final controller independently verifies the current full ZIP against the external byte length and SHA, copies it create-only, reads the copy back, and requires complete_small_artifact_independently_retained is True for COMPLETE."
+    },
+    {
+      "id": "SMALL_ZIP_FAILURE_DOES_NOT_HIDE_DIAGNOSTICS",
+      "finding": "A complete ZIP read/copy failure inside the outer finalization try could prevent reading the original small control diagnostics.",
+      "resolution": "Complete-ZIP custody now has its own exception boundary. Failure records SMALL_ARCHIVE_CUSTODY, preserves HOLD, and proceeds to available authenticated metadata and five current control originals."
+    },
+    {
+      "id": "FAILED_HTTP_BYTES",
+      "finding": "The fixed downloader can leave an artifact-ID.zip.partial file after a failed transfer; omitting it would lose available original failure bytes.",
+      "resolution": "After bound closed ECHILD, the final controller observes exactly the complete and partial names with lstat; a present partial is read through the unchanged bounded owned single-link NOFOLLOW file_record, copied create-only and independently read back. It is explicitly not a complete sealed input, adds a HOLD error, is included in the public byte budget, and is read again after framing."
+    },
+    {
+      "id": "TWO_ALIAS_WINDOW",
+      "resolution": "No nlink=2 success exception was introduced. Both names may have typed identity observations, but the unchanged single-link byte admission refuses their bytes. This limitation remains explicit; the review does not claim every abnormal filesystem object's bytes are retained."
+    }
+  ],
+  "checked_properties": [
+    "The current operation's exact command, cwd, source identities, owner and request are checked before closed ECHILD allows access to child-produced originals.",
+    "Natural source acceptance remains a separate stricter predicate requiring rc0, no timeout, no kill/overflow/error, no remaining owned children, and original source/log identities.",
+    "The final policy changes from the intermediate policy only in the final controller byte length, SHA256 and Git blob; there is no target, budget, authentication or timeout change in this delta.",
+    "The complete small ZIP is permanently copied into public/SMALL-ARTIFACT.original.zip rather than put into the log framing stream.",
+    "Only the fixed .partial path is eligible for unsealed failure-byte preservation; it does not become accepted input or replace the external full-ZIP seal.",
+    "The historical denominator remains exactly 371 requests: 17 original custody names and 354 original CI target names; the current operation adds at most five control originals.",
+    "Historical originals remain joined to exact paths, byte lengths, SHA256 and observed identities. Missing originals and budget-omitted originals are explicit and prevent COMPLETE.",
+    "Available current controls are framed first, followed by the historical custody records and then the original CI targets in their fixed policy order.",
+    "All available selected originals are independently copied and read back before log framing; an omitted frame can still exist in the bounded public artifact, but is not counted as recovered by the log decoder.",
+    "Framing retains 32 MiB raw, 48 MiB stdout, fixed chunk hashes and full-file hashes; original product budgets and the original 900+3 custody owner are not changed.",
+    "The final conjunction now also requires the error list to be empty. Typed-observation failures, partial-byte retention, missing full ZIP or failed copy cannot yield COMPLETE.",
+    "Current frozen controls, independent copied originals, the complete ZIP and any copied partial are rechecked before final success is published.",
+    "RESULT.json is create-only, read back, and the bounded public directory is synchronized before the END frame containing its raw SHA is emitted.",
+    "The old custody HOLD, original CI result and product qualification status are never promoted by successful recovery or framing."
+  ],
+  "exact_unchanged_function_checks": [
+    {
+      "name": "file_record",
+      "byte_equal": true,
+      "sha256": "9dfcc0bab719059edd2a777d888c6f8998bf0a2088466b37c9a850d3a7f9330c"
+    },
+    {
+      "name": "copy_original",
+      "byte_equal": true,
+      "sha256": "6e9453edff8e2ad4cb57cf9b140c4e6e2635ef98b9733866d407dff62572278a"
+    },
+    {
+      "name": "observed_frame_files",
+      "byte_equal": true,
+      "sha256": "a88cf7797f8cac4053261c12a828c6c96989bd0a197b6af33cce626bc87c700e"
+    },
+    {
+      "name": "accept_small_reader",
+      "byte_equal": true,
+      "sha256": "2ec0fc373a161fe88e36a342ffbafdf106427a9dff901c655730f7d6ba3b0bfe"
+    },
+    {
+      "name": "output_frames",
+      "byte_equal": true,
+      "sha256": "12d74aed273e273401b71bc63fe19e9dde88635aa551259f5e7d89b289384cb0"
+    },
+    {
+      "name": "closed_guardian",
+      "byte_equal": true,
+      "sha256": "46a50825cb73638e4b9fa219cb6cc9efe20604109781f210053c9d2ef9c6d219"
+    },
+    {
+      "name": "natural_guardian",
+      "byte_equal": true,
+      "sha256": "d75a8e1783f02da2fad2c572d291e7f8542109d06bf7b630f3f6532a7d0a72ae"
+    }
+  ],
+  "exact_policy_delta": [
+    {
+      "path": "/control_files/controller.py/bytes",
+      "old": 40967,
+      "new": 43516
+    },
+    {
+      "path": "/control_files/controller.py/sha256",
+      "old": "40698baaba435b4970ba25407eaea97279e5cb2474a64b99f72ce768044a9ce5",
+      "new": "bda5b73b5d0caac9779a078d827174565f231608fad40adbc04aa7657c421f2c"
+    },
+    {
+      "path": "/control_files/controller.py/git_blob_sha1",
+      "old": "cee2d6b4cfb379da926718d9f8578cd07b2594c1",
+      "new": "45971b9f27cb9e6159d7adc06c150db5c7767d16"
+    }
+  ],
+  "actual_review_operations": {
+    "github_blob_text_readback": true,
+    "independent_utf8_byte_length_sha256_git_blob_recomputed": true,
+    "javascript_exact_text_projection": true,
+    "python_parse": false,
+    "local_execution": false,
+    "remote_h_calls": false,
+    "network_download": false,
+    "native_or_product_tests": false,
+    "workflow_trigger": false
+  },
+  "limits": [
+    "This is a source review, not a real download, archive audit, parser run, framing run or product qualification.",
+    "The actual old worker failure cause, which historical originals are present, whether 32 MiB fits, and the runtime results remain unknown until execution.",
+    "This review does not claim full-body bytes for symlinks, nonregular objects or nlink=2 aliases; those are refused and only typed observations may survive.",
+    "Leaf NOFOLLOW and observed identities do not constitute locks held across process execution. No broader filesystem-concurrency claim is made.",
+    "No final workflow or trigger is covered before its actual identity and source-policy references are separately read."
+  ]
+}
