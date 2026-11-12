@@ -1,0 +1,108 @@
+name: HIA shared frame R4 independent CPython 3.14.4 development
+on:
+  push:
+    branches:
+      - codex/hia-core-plan-r4-cpython314-20261112-dda7
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Checkout only the independent harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Checkout the exact published base separately
+        uses: actions/checkout@v4
+        with:
+          ref: 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+          path: source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Select the actual independent interpreter
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.14.4
+      - name: Install the original ordinary caller prerequisites
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc strace
+          python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Admit authentic source and compile the original R3 baseline
+        id: baseline
+        run: >-
+          python -B harness/inputs/run_development.py
+          --source "$GITHUB_WORKSPACE/source"
+          --out "$RUNNER_TEMP/hia-core-plan-r4-development"
+          --stage baseline
+      - name: Preserve original CALL and BoolOp observations without relabelling differences
+        id: observe_baseline
+        if: ${{ !cancelled() && steps.baseline.outcome == 'success' }}
+        run: >-
+          python -B harness/inputs/run_development.py
+          --source "$GITHUB_WORKSPACE/source"
+          --out "$RUNNER_TEMP/hia-core-plan-r4-development"
+          --stage observe-baseline
+      - name: Apply the frozen R4 delta and compile all six actual development images
+        id: prepare
+        if: ${{ !cancelled() && steps.baseline.outcome == 'success' }}
+        run: >-
+          python -B harness/inputs/run_development.py
+          --source "$GITHUB_WORKSPACE/source"
+          --out "$RUNNER_TEMP/hia-core-plan-r4-development"
+          --stage prepare
+      - name: Complete Core Plan shared lifecycle and original checker panel 60
+        id: panel60
+        if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
+        run: >-
+          python -B harness/inputs/run_development.py
+          --source "$GITHUB_WORKSPACE/source"
+          --out "$RUNNER_TEMP/hia-core-plan-r4-development"
+          --stage panel60
+      - name: Complete 23 plus original 51 and 50 callers with six selected owners
+        id: complete124
+        if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
+        run: >-
+          python -B harness/inputs/run_development.py
+          --source "$GITHUB_WORKSPACE/source"
+          --out "$RUNNER_TEMP/hia-core-plan-r4-development"
+          --stage complete124
+      - name: All original 44 machine Plan callers
+        id: plan44
+        if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
+        run: >-
+          python -B harness/inputs/run_development.py
+          --source "$GITHUB_WORKSPACE/source"
+          --out "$RUNNER_TEMP/hia-core-plan-r4-development"
+          --stage plan44
+      - name: Preserve original outcomes and final source custody
+        if: always()
+        env:
+          HIA_STEP_OUTCOMES: ${{ toJSON(steps) }}
+        run: >-
+          python -B harness/inputs/run_development.py
+          --source "$GITHUB_WORKSPACE/source"
+          --out "$RUNNER_TEMP/hia-core-plan-r4-development"
+          --stage finish
+      - name: Retain every original raw result and frozen input
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-plan-r4-cpython314-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 90
+          if-no-files-found: error
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-core-plan-r4-development/
+            harness/inputs/
+            harness/AUTHORING.json
+            harness/STATIC-REVIEW.json
+            harness/README.md
