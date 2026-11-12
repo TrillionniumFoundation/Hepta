@@ -328,6 +328,52 @@ class CompilerOwnerGateTests(unittest.TestCase):
         self.assertEqual(ledger['elf_full_decoded_archives'], 12)
         self.assertFalse(ledger['default_activation_or_whole_native_delivery_claimed'])
 
+        # Receipt readers require these actual test bytes in the cold closure.
+        # Follow the declared module providers as source, without importing or
+        # running any component/caller test or constructing a native image.
+        from tools.hia_selfhost_contract import CONTRACT_PATH, SOURCE_FILES
+        from tools.hia_release import BOOTSTRAP_FILES
+        declared = json.loads((ROOT / CONTRACT_PATH).read_bytes())['source_identity']['files']
+        modules = {owner['module'] for owner in gates.OWNERS.values()}
+        pending = {owner['qualifier'].replace('.', '/') + '.py'
+                   for owner in gates.OWNERS.values()}
+        providers = {}
+        module_bindings = {'MODULES', 'ORIGINAL_MODULES', 'COMPONENT_MODULES', 'CORE_MODULES'}
+        while pending:
+            name = min(pending)
+            pending.remove(name)
+            if name in providers:
+                continue
+            syntax = ast.parse((ROOT / name).read_bytes())
+            providers[name] = syntax
+            modules.update(node.value for node in ast.walk(syntax)
+                           if isinstance(node, ast.Constant) and type(node.value) is str
+                           and re.fullmatch(r'tests\.test_[A-Za-z0-9_]+', node.value))
+            for node in syntax.body:
+                if (isinstance(node, ast.ImportFrom) and node.module
+                        and node.module.startswith('tools.')
+                        and any(alias.name in module_bindings for alias in node.names)):
+                    pending.add(node.module.replace('.', '/') + '.py')
+        required = set(providers) | {name.replace('.', '/') + '.py' for name in modules}
+        for name in sorted(required):
+            with self.subTest(cold_source=name):
+                self.assertIn(name, SOURCE_FILES)
+                self.assertIn(name, BOOTSTRAP_FILES)
+                self.assertIn(name, declared)
+                self.assertEqual(declared[name], sha256((ROOT / name).read_bytes()).hexdigest())
+        elf = providers['tools/qualify_hia_machine_elf.py']
+        constants = {target.id: ast.literal_eval(node.value)
+                     for node in elf.body if isinstance(node, ast.Assign)
+                     for target in node.targets
+                     if isinstance(target, ast.Name)
+                     and target.id in {'MODULES', 'MODULE_SOURCE_PINS'}}
+        self.assertEqual(set(constants['MODULE_SOURCE_PINS']),
+                         {name.replace('.', '/') + '.py' for name in constants['MODULES']})
+        for name, digest in constants['MODULE_SOURCE_PINS'].items():
+            with self.subTest(original_elf_source=name):
+                self.assertEqual(declared[name], digest)
+                self.assertEqual(sha256((ROOT / name).read_bytes()).hexdigest(), digest)
+
     def test_v9_preserves_original_suite_observer_helpers_and_limits(self):
         old_tree, tree = ast.parse(OLD_RUNNER.read_bytes()), ast.parse(RUNNER.read_bytes())
         def function(tree, name):

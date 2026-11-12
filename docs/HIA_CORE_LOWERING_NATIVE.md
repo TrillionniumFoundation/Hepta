@@ -1,230 +1,281 @@
-# General Core function lowering: development work in progress
+# General Core lowering: Function and Emitter controls
 
-This branch holds an unqualified authoring candidate for moving the complete
-`_Function` policy in `hepta.hia_program_native` into HIA. It is not integrated
-into the ordinary product entry. The first actual authoring run checked the
-original 22 methods and five helpers, then generated one literal-pool unit before
-the first control unit failed the unchanged Core type verifier. Revision 3
-corrects only the internal helper return types and remains unexecuted.
-No native compilation, Core VM, component/caller result, installed owner or
-matching-source cold qualification exists for this Core candidate.
+This document describes the unqualified **v2 ordinary-entry candidate**. Its
+HIA policy includes the original 22 Function methods, five shared helpers and
+all six Emitter methods. Python still provides explicitly enumerated value,
+object and foreign runtime primitives. The retained implementation remains
+available as an independent oracle, and the native owner remains an explicit
+selection.
 
-## Exact source and proposed boundary
+The v2 HIA units have not yet been generated, compiled or exercised by product
+tests at this checkpoint. The one authorized Actions source-authoring run is
+43131161021, attempt 1, with workflow commit
+4d508b8e7b66d8f2801e76f6b6bb4794eb4bdac7 and control checkout
+9473e0fca206dc27ed87122f4a5d45a905d8b35c. Its immutable source input is
+80ec04ae7489209b122c874531d194c67b30dfed, tree
+963e980c2486e1f7c74fa42bc8132ef6b1b8b690, containing all 4,023 original leaves.
+A later ordinary-entry revision fixes inherited constructor dispatch; it does
+not modify that running source input or relabel its outputs.
 
-The independent base is commit
-`608157e52b0b94e0d294f6b99c4e809869f183aa`, tree
-`e7c29a60796a1a78946a2c667aa80df86529e532`.
-The complete original 47,839-byte module is retained at
-the `tests/fixtures` directory, named `hia_program_native_608.py.txt`, as the independent oracle.
+## What the HIA owner controls
 
-The proposed owner is all 22 `_Function` methods and the five helpers
-`_reject`, `_words`, `_bounds`, `_normalize`, and `_prologue`.
-It includes frame and slot assignment, edge/call staging, register versus slot
-selection, all 50 currently supported Core opcode branches, range and allocation
-control, chains, block and terminator order, trap emission, and function reports.
+The exact original module is retained as the 47,839-byte
+tests/fixtures/hia_program_native_608.py.txt file, SHA256
+8f0be8c06e932fedbdd5973591310440a97e85a0c3b88ba9bc5ca95035810185.
+The candidate preserves the full ASTs of its 33 original methods and helpers.
+The additional Python constructor selectors are outside those retained policy
+bodies.
 
-The authoring policy is copied from that exact source; a restricted authoring
-compiler lowers its control into explicit continuation instructions. The later
-generator is intended to render those instructions as HIA. Unsupported syntax
-must refuse generation. Runtime must not execute or import this authoring policy,
-compiler, or oracle. This is a source-translation design, not a table of
-precomputed program outputs.
+The Function owner chooses frame and slot layout, register versus slot use,
+parameter and edge staging, all reviewed Core instruction branches, allocation
+and range checks, chain operations, block and terminator order, trap emission,
+and function-report creation. Its five shared helpers are _reject, _words,
+_bounds, _normalize and _prologue.
 
-The original `_Emitter` module policy, verifier, machine-plan provider, wrapper
-construction, native Code primitives, ELF writer, linker, filesystem operations,
-and arbitrary object effects remain outside this proposed owner. Code state,
-encoding, and ELF are independently owned work and are not modified here.
+The Emitter owner adds these complete responsibilities:
 
-## Intended observation discipline
+| Original method | HIA-controlled decisions and order |
+| --- | --- |
+| _Emitter.__init__ | Original imports, Code binding and keyword expansion, assignment order, function indices, layout truth observation, foreign-buffer map construction |
+| ordered_blocks | Explicit caller layout lookup, default block order, block-map creation and requested order |
+| label | Serial update followed by the original string conversion and concatenation |
+| function_symbol | Original index lookup, conversion and symbol construction |
+| wrapper | Foreign-buffer route, scalar signature admission, export conflicts, original frame bound, register/stack argument moves, normalization, calls, result handling and exported-symbol metadata |
+| render | Reviewed schema/opcode/type checks, optional function order, function and wrapper alignment/iteration, missing export errors, export/text bounds, finalization and ELF invocation |
 
-HIA will choose every control branch and the order of individual primitive
-observations: attribute/item binding, calls, iteration, truth and rich comparison,
-arithmetic, packing, and writes. Actual Python objects and their foreign hooks
-remain observations, including independent `__ne__`, evaluation order, exceptions,
-and reentrant effects. A mere Python wrapper around the former lowering decisions
-would not satisfy this scope.
+The original byte-wrapper policy in hia_native_byte_abi.emit_wrapper remains a
+foreign function called at its original point. The independently selected
+machine plan, Code state/encoding/instructions, ELF writer and verification
+owners retain their own contracts. This candidate does not claim to replace
+them merely because the HIA Emitter invokes them.
 
-A source-bound explicit selector, immutable selection scope, versioned one-shot
-continuation protocol, and finite HIA unit split are planned. The existing
-compiler limits, 64 KiB frame limit, 16 MiB text limit, original caller
-denominators, and 3/5-second product budgets must remain unchanged. No performance,
-ABI, lifetime, or foreign-domain equivalence claim is established by this static
-checkpoint.
+The policy is translated from the retained source into finite continuation
+instructions. It is not a table of precomputed program outputs. Unsupported
+authoring syntax refuses generation. Installed runtime code does not import
+the authoring policy, authoring compiler or independent source fixture.
 
-## Custody and execution status
+## Mode and source identities
 
-The local executor became unavailable during a write. Its last filesystem
-mutation acknowledgement is unknown. These files were recovered from retained
-tool-call text and the canonical original module, then saved through Git APIs.
-The earlier policy reconstruction matches its observed 21,778-byte size, but its
-original local hash is unavailable. It is explicitly not presented as a
-byte-verified restoration of that local file.
+V2 uses HIALOW02 for the continuation protocol. The unchanged typed literal-pool
+encoding remains HIALIT01. Both the bundle and ABI schemas are version 2, and
+the selected loader rejects a v1 bundle instead of attempting an implicit
+compatibility fallback.
 
-The current candidate additionally uses the original frozenset kind for
-`BYTE_RESOURCES`, and refuses a reducer shape lacking an explicit default.
-These are new static edits. The earlier requested source text is retained
-separately under `experiments/hia_core_lowering_20261111/static-wip-r1`; no prior observation is relabelled.
+| Inventory | Required v2 denominator |
+| --- | --- |
+| Original Function methods | 22 |
+| Original shared helpers | 5 |
+| Original Emitter methods | 6 |
+| Public policy modes | 33 |
+| Independent _native_globals fixture | Mode 28 |
+| Lazy generator-body modes | Modes 35 and 36 |
+| All ABI modes | 36 |
+| Planned control units | 38 |
+| Planned complete image bundle | 39, including the literal pool |
 
-The first remote authoring request was never dispatched. The corrected r2
-request ran once on the pinned CPython 3.14.4 executable, with the original
-180-second guardian. All four new Python files passed syntax checks; the complete
-22-method class and five helper ASTs matched the retained oracle. It compiled
-28 modes into 1,922 control instructions with at most 510 object slots.
-The complete 3,925-leaf base and 3,936-leaf candidate byte/mode inventories
-matched before and after the attempt.
+The finite IR observed in the separate CPython 3.12.14 development syntax
+control contains 2,428 instructions, 312 literals and at most 510 object slots.
+That control did not generate HIA or execute native code. The 39-unit count is
+prospective until the actual source-authoring report and all generated bytes
+are recovered and independently checked.
 
-Of 32 planned HIA units, the literal pool passed the public Core roundtrip.
-The first control unit failed with `E_HIA_TYPE` because a `u32` helper result
-was compared to a `u64` literal. The run finished HOLD after 22.007921965 seconds;
-the guardian naturally reaped the leader and observed ECHILD without timeout or
-live-child killing. The original report and logs are preserved in commit
-55e39d6a65ff848ee7596c548ddbf98e391bcbdf under the remote-authoring-r2 terminal
-directory. No native compiler or product test ran in that remote request.
+The selected ABI is hepta/hia_core_lowering_abi.json. Complete resource and
+implementation identities must include the pool and every control unit from
+core_lowering_000 through core_lowering_037. The installation manifest and
+MANIFEST.in explicitly include the seven new 031–037 files. The common source
+contract and generated inventories must be regenerated against the final
+combined candidate before it can claim matching-source qualification.
 
-Separately, seven earlier pushes to this development branch triggered the old
-GitHub workflow. Those runs failed and are not native qualifications. In the
-latest run, 43085426169 at exact head 55e39d6, the source job rejected a document
-reference and the cold command rejected source-closure drift before writing a
-cold report. Its job logs and exact run identities are preserved separately.
-Future evidence and unexecuted source checkpoints use `[skip ci]`.
+The backend implementation identity preserves the independent state,
+instructions, encoding, ELF and JSON-wire bridge dependencies already present
+in the combined source. It also binds both Core bridges, the actual ABI, every
+HIA source digest, the complete bundle digest and all admitted image digests.
 
-## Static revision 2
+## Ordinary entry and selection
 
-The renderer emits HIA control units with 64 finite control instructions per
-unit, and a separate HIA-owned typed literal pool. The HIA program chooses
-cross-unit handoffs using its own program counter. The bridge decodes only the
-versioned literal framing and primitive requests. It binds all 22 original
-method signatures to native invocations; the ordinary product selector and
-source-bound loader have not yet been added.
+HEPTA_HIA_CORE_LOWERING_MANIFEST selects the complete native bundle. The ordinary
+emit_program_machine entry captures an admitted selection or the absence of a
+selection for the whole emission. Reentrant emission receives its own scope
+and then restores its caller's scope. Early unsupported-target rejection keeps
+its existing position.
 
-The 128-byte request/acknowledgement protocol carries a sequence, phase, mode,
-object handles and raw truth/iteration observations. Private state remains HIA
-owned. Foreign permission is consumed before the effect; BaseException in a
-native step, post-call framing or foreign effect permanently closes the session.
-No claim about that protocol is validated by this unexecuted source.
+Exact retained _Function and _Emitter construction dispatches to their native
+subclasses within this selected scope. Arbitrary user subclasses retain their
+own initializer signatures. The follow-up dispatcher accepts *args and **kwargs
+before checking exact class identity, so a subclass with a one-argument or
+keyword-only initializer is not prematurely bound to the original class's
+constructor signature. The unchanged source test method now includes these
+shapes with a deliberately missing explicit manifest. This correction has not
+yet been executed at this checkpoint.
 
-The intended initial domain retains normal module and built-in bindings.
-Monkeypatching the five private helpers or the reducer built-ins is not silently
-presented as equivalent: helper names always select their HIA implementations,
-and sum/max/any generator control is compiled into HIA. Literal object identity,
-arbitrary stack/traceback introspection, foreign finalizer timing, recursive
-resource exhaustion, and tampering with private registries are also unproven.
-Normal public method argument binding, dynamic receiver attributes, independent
-rich comparisons, module value observations and actual Code effects remain
-explicit compatibility targets. Remaining limits must be reported rather than
-removed by an implicit retained-owner fallback.
+The five helper names select their HIA implementations inside the captured
+scope. Unselected calls retain their earlier hosted behavior. Missing, malformed
+or changed selected source/ABI/manifest data refuses the selected owner; it does
+not call the retained policy as a fallback.
 
-Source revision 2 also refuses value-context chained comparisons, which are
-absent from the current policy, rather than incorrectly normalizing arbitrary
-rich comparison results into booleans. Original source and all prior unknown
-write records remain unchanged in history.
+Each selection observes every source, the ABI and each unit manifest. A changed
+manifest key forces new admission. An unchanged warm key keeps its previously
+admitted immutable image mapping; it does not promise to remap a modified file
+under that unchanged key. The loader and backend identity checks explicitly
+bind the sources admitted with those mappings.
 
-## Revision 3 type correction
+## Continuation and generator semantics
 
-Internal startup, instruction-group and dispatch helpers now return `u64`,
-matching the existing word-sized status comparisons. The public lowering and
-literal-pool entries still return `u32`. Every defined internal status remains
-one of 0, 1, 2, 4 or the unchanged ABI refusal value; the final entry conversion
-does not add an admitted status. This is an authoring type correction, not a
-change to the verifier, compiler caps, packet, phase sequence or policy IR.
-The corrected ca871 source was generated once on the pinned desktop CPython 3.14.4:
-all 32 public Core roundtrips and all original caps passed in 65.0857341099 seconds.
-The original 3,925-leaf base and 3,937-leaf candidate stayed byte/mode identical.
-The guardian naturally reaped the process and observed ECHILD; it did not time out
-or kill a live child. Compact raw results are preserved in 9efc2fb. No native
-compiler, VM or product test ran in that source-only request. The original failing
-source and the first unknown local write remain preserved.
+The HIA program selects primitive requests, branches, handoffs and termination.
+The bridge uses stable, strongly retained handles for actual Python objects.
+Native response framing must pass before a step is recorded as a successful
+native return. A foreign-effect permission is consumed before the effect, and a
+failed continuation closes permanently.
+
+V2 adds a yield status and two HIA generator-body modes for the original lazy
+generator expressions passed to foreign consumers. HIA chooses iteration,
+lookup, expression evaluation, each yielded value and exhaustion. A Python
+generator frame provides the target interpreter's suspension, throw, close and
+PEP479 behavior. The transport does not eagerly materialize either generator or
+evaluate its body before the original consumer asks for a value.
+
+Component controls are intended to compare ordinary next/send/throw/close,
+foreign body errors, a body StopIteration, ambient exception context and
+interrupts after an actual native yield. These are test definitions, not a
+reported pass.
+
+## The 19 hosted primitive kinds
+
+The complete control migration does not make Python object semantics native.
+These operations remain explicit foreign primitives chosen by HIA:
+
+| Primitive | Remaining hosted operation |
+| --- | --- |
+| 1 | Global or builtin binding lookup, with the selected HIA helper bindings |
+| 2–3 | Attribute read and write |
+| 4–5 | Item read and write |
+| 6 | Actual callable invocation and CPython keyword-expansion behavior |
+| 7 | List, tuple, set and dictionary construction |
+| 8–9 | Iterator acquisition and next/exhaustion observation |
+| 10 | Truth observation |
+| 11–12 | Binary and unary value operations |
+| 13 | Rich comparison, including independent inequality and containment |
+| 14 | Original unpacking arities and their runtime errors |
+| 15 | Slice construction |
+| 16 | Append to a HIA-controlled list-comprehension result |
+| 17 | The three explicit original import bindings |
+| 18 | Raising the HIA-selected actual exception object |
+| 19 | Transport of HIA-controlled lazy generator suspension |
+
+The Python runtime still allocates objects, stores attributes and containers,
+implements arbitrary precision integers and strings, and executes foreign
+methods. The original Code, ELF and byte-wrapper calls remain actual effects,
+subject to their independently selected owners. These primitives must be
+internalized by a later HIA runtime before an entirely native compiler/runtime
+claim is justified.
+
+The supported ordinary domain uses the existing verified Core input and normal
+builtin bindings. Arbitrary replacement of private helpers or reduction
+builtins, exact finalizer timing, resource-exhaustion thresholds, private
+registry mutation, literal object identity and stack/traceback introspection
+remain unproved extensions. These limitations do not authorize silent retained
+policy fallback or changing existing program budgets.
 
 
-## Ordinary entry integration draft
+## Ordinary Python argument-binding boundary
 
-The new integration source is a separate, unexecuted revision. It does not
-inherit a native or product pass from the source-only r3 run. The explicit
-environment selector is HEPTA_HIA_CORE_LOWERING_MANIFEST. The ordinary backend
-entry captures either its admitted 32-image bundle or the absence of a selection
-for the entire emit, including reentrant emission. Subclasses of the retained
-private Function class keep their existing behavior.
+A subsequent ordinary-entry revision preserves CPython's own constructor
+argument diagnostics before observing the native selector. For exact builtin
+string keyword names, a shape check only dispatches already-invalid calls to
+typed, no-body signature functions with the original constructor qualified
+names. The interpreter chooses the original missing, duplicate, unexpected and
+excess argument errors. Valid calls retain their existing selector and method
+body order. No retained lowering method is called by this binding boundary.
 
-The five shared helpers use the selected HIA owner within that captured scope.
-Outside it their earlier public-admission and target-error behavior remains
-hosted. Direct selected Function invocations resolve their five helpers through
-the HIA owner. The original 22 method bodies and five helper bodies remain
-separately available for AST and semantic comparison; a selected load failure
-does not call them.
+Both allocation dispatchers make their implicit class argument positional-only.
+Foreign subclasses can therefore keep their own positional, keyword-only and
+`cls=` initializer signatures. This correction does not change any of the
+original 22 Function or six Emitter method bodies.
 
-The loader reads the installed ABI, every HIA unit source and every unit manifest
-on selection. It binds one compiler identity across all 32 images and caches
-immutable mappings as a complete bundle. The backend implementation identity
-also binds both new Python bridge modules, the ABI, all 32 source hashes, the
-bundle hash and all actual image hashes. A changed unit-manifest key requires
-fresh image admission. An unchanged warm key retains its already immutable
-mapping; changing a disk image alone does not rewrite that mapping.
+The 28 native method wrappers and five helper wrappers retain their typed
+signatures and use the original qualified function names for interpreter
+binding diagnostics. Successfully bound calls still enter the HIA owner. The
+argument binder remains an explicit hosted CPython primitive; changing a
+function's diagnostic qualified name does not make its value semantics native.
 
-The strict builder requires a successful matching-source cold report before
-creating its output directory. Development use of the old 0e09 compiler is
-separate and cannot authorize that production builder. The new component gate
-declares four source methods and eight native methods. The caller gate keeps the
-original five machine modules and their 51 identifiers, plus the four existing
-general Core modules and their 50 identifiers. All loaded and executed
-identifiers must match, with zero errors, failures, skips, expected failures or
-unexpected successes. No existing test or original time limit is changed.
+Exact builtin keyword names are the scope of the new early-arity correction.
+Foreign string-subclass keyword names keep the preceding dispatch behavior:
+repeating their hash or rich-comparison hooks to prevalidate arguments would
+change observation order. Their invalid-arity/selector precedence remains open.
+Private constructor replacement, signature/default mutation, direct private
+`__new__` calls, stack inspection and exact resource/finalizer timing are also
+not closed by these controls.
 
-The installed control builds a real wheel, compares every installed Python file
-and declared resource, and invokes ordinary emission in an isolated child with
-no site initialization, empty PATH and an authoring-import refusal. These are
-unexecuted controls until a new result explicitly records their actual execution.
+The existing component methods now contain independent comparisons against
+the complete frozen original definitions for constructor and wrapper binding
+errors, including keyword insertion order and each original optional
+signature. Invalid constructor controls forbid selector observation; invalid
+native wrapper controls forbid HIA invocation. They do not add test methods:
+the required counts remain 15 component, 51 original machine and 50 original
+Core, together in the unchanged single 180-second test owner. This revision is
+unexecuted until those actual controls run. The 39 historical HIA source bytes,
+literal pool and ABI are unchanged.
 
-The 18 primitive kinds remain hosted observations, including object allocation
-and storage, arbitrary precision arithmetic, interpreter builtins and actual Code
-methods. Python generator objects are not created for HIA reductions; arbitrary
-foreign StopIteration/PEP479 behavior and monkeypatching reducer builtins are not
-included in the ordinary verified-builtin claim. The existing arbitrary
-recursion/resource, finalizer and introspection limitations also remain.
-No retained implementation is removed and no default selection is enabled.
+## Required independent validation
 
-## Instruction owner integration boundary
+The component candidate retains all original 12 test identifiers and adds three
+Emitter methods, giving 15 methods. Those additions cover constructor/keyword
+and partial-assignment order; layout/label/foreign byte-wrapper order; and the
+lazy generator protocol. The original machine group remains its exact five
+modules and 51 identifiers. The original general Core group remains its exact
+four modules and 50 identifiers.
 
-The ordinary-entry draft additionally preserves the exact 7186dee24f33173c25f2246a6dfe15eeda053992 machine-state and instruction-control source. The backend identity includes hia_machine_state_native.py, hia_machine_instructions_native.py and hia_json_wire_native.py alongside both Core-lowering bridges. The existing native_encoding_scope implementation and its independently selected Code owners remain unchanged. The complete original Function and helper oracle is still the exact 608 source; these bodies did not change in 7186. This source merge does not inherit native/caller qualification for the new composition. Its private v72 contract definition still requires actual regeneration and source-bound validation before any cold-built claim.
+The default full caller gate must execute all 116 methods in its original single
+180-second owner. Loaded and executed identifiers must match with no errors,
+failures, skips, expected failures or unexpected successes. Original product
+3-second and 5-second assertions, compile-stage limits and compiler caps remain
+unchanged. Development-only split groups cannot satisfy that full gate.
 
-## Original-source recovery and execution accounting
+The v2 selected-caller report separates invocation attempts, ordinary method
+returns and actual native step returns. Each native return row binds its group,
+mode and number, control-unit index/name, actual image hash, ABI hash, bundle
+hash, returned status and count. Control-unit index 0 corresponds to
+core_lowering_000; bundle index 0 is the literal pool, so the image index for a
+control unit is its index plus one.
 
-The 32 original r3 HIA files were recovered from the same e86 custody archive:
-2,218,343 compressed bytes with SHA256
-400f59e67817fb9a6fc3ce744b4bb93c64957d932272880af7bb382325a2c450.
-All 58 members were independently checked against their original byte, size,
-mode and uid/gid records. The 32 source files total 5,546,188 bytes and were
-published without regeneration in 028058563592a853c7b4eeea145b35f5545aaa94.
-The original read timeouts, partial transfers and subsequent complete recovery
-remain in that commit's custody history. This establishes source custody only.
+All 33 public modes need actual native step returns across the complete group
+union. A legitimate _reject need not return normally. The component must
+independently enter _native_globals, and both generator modes must actually
+return a yield status. Full coverage includes native statuses 0, 1, 2 and 3.
+Every group must have actual native returns, and retained policy entry guards
+must remain empty.
 
-The selected-caller producer distinguishes invocation attempts from ordinary
-method returns and actual native step returns. Its native_step_returns ledger
-records the group, original mode and mode number, actual control-unit index,
-unit name, admitted image, ABI and bundle digests, returned status and count.
-A row is added only after LoweringSession.step completes the actual HIA entry
-and admits its output frame. Status1 can request a later rejection primitive;
-it is not a claim that the method or product succeeded. The original _reject
-method therefore need not return normally. All 27 public policy modes must have
-actual native step returns across the complete 12 + 51 + 50 run, and each of its
-three groups must have actual returns. The unchanged 28th private diagnostic
-mode is outside that 27-mode requirement.
+Cold mode builds the caller bundle and the component bundle independently
+against the current successful source-bound cold report. The reader must bind
+all 39 units and receipts in each build and each bundle's original before/after
+bytes. A development bundle, or a DEVELOPMENT_GROUP_PASS report, cannot be
+accepted as a cold or complete caller result.
 
-Control-unit index 0 denotes core_lowering_000. The complete bundle includes the
-literal pool at bundle index 0, so a control unit's bundle_image_index is its
-unit_index plus 1. All 32 source/image bindings remain independently admitted,
-including the pool.
+The wheel control must compare all installed Python and declared HIA resources,
+then exercise ordinary emission in a child using -I -S -B, an empty PATH and an
+authoring-import refusal. The existing installed image/source/ABI and fresh-key
+admission refusals remain mandatory. None has run for v2 at this checkpoint.
 
-The producer separately retains before/after original bytes for the caller
-bundle and the component's fresh qualified bundle. It captures the latter after
-unittest has performed its one real setUpClass, before the first method, without
-calling setup again. Cold mode requires both actual build.json receipts and
-both sets of 32 images/manifests. The original machine and general Core groups
-use the caller bundle. Development mode is explicitly separate and may reuse
-the selected development bundle for the component; it never claims a fresh
-cold build. These revised producer controls have not yet been executed.
+## Evidence boundaries and retained failures
 
-### Development phase isolation
+V1's recovered 32-unit authoring archive and three separate development groups
+remain exact historical evidence. The groups contained 12, 51 and 50 methods;
+they were never relabeled as one complete 180-second run. The later acffa
+ordinary CI gate did report the full v1 gate passing; it does not qualify this
+new v2 source.
 
-The caller driver accepts `--development-group component|original-machine|original-core` only with an explicit development manifest. A supplied cold report rejects that option before creating output. The selected group still loads and executes its entire original 12, 51, or 50 method set, preserves all five anomaly refusals, and records the same native return and input-identity observations. Its successful status is `DEVELOPMENT_GROUP_PASS`, its scope is `EXPLICIT_DEVELOPMENT_GROUP_ONLY`, and it explicitly does not claim complete three-group qualification. This permits three independent process owners with the original 180-second boundary each. A separate development aggregate must bind all three reports to the same candidate and original compiled bundle, require all 113 original methods and the 27 public modes in the union of actual native returns, and preserve every phase's original receipt. The ordinary default and cold invocation still require all three groups in one report and retain their existing complete-coverage requirements.
+All earlier authoring type failures, unknown executor acknowledgements,
+transfer timeouts and corrected duration accounting remain in their original
+evidence history. The unexecuted Actions A1/B1 and B2 controls also remain:
+their optional owner-error lookup, failure-status and setup-python loader
+environment corrections were static control fixes, not product test failures.
 
-The ABI contains 28 modes: 22 `_Function` methods, five shared helpers, and the independent `_native_globals` fixture mode. The 27 public product control modes remain the required cross-group union. The existing component literal-owner method separately invokes mode 28 and compares its entire returned structure with the original constants; the component and complete reports additionally require its actual HIA step-return observation. It is not silently removed from the ABI or relabeled as an ordinary product call.
+The current source-authoring operation produces original reports and generated
+sources only. Its fixed diagnostic log frames preserve original bytes with
+per-frame and whole-file SHA checks, a complete fixed-file denominator,
+explicit missing observations and a closed-current-operation boundary.
+Successfully recovering those records does not imply native compilation or
+product qualification.
+
+No old implementation is deleted, no native selection becomes a default, and
+no complete native delivery is claimed by this candidate.

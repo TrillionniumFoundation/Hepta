@@ -24,6 +24,37 @@ from hepta.hia_core_lowering_native import NativeCoreLowering, LoweringSession
 from hepta import hia_program_native as backend
 
 COMPONENT_MODULES = ('tests.test_hia_core_lowering_native',)
+ORIGINAL_COMPONENT_IDS = [
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_actual_installed_wheel_uses_complete_bundle_without_authoring",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_actual_native_return_then_foreign_failure_closes_every_continuation",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_capture_identity_reentrancy_and_all_bridge_dependencies",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_exact_foreign_store_binding_and_nested_native_invocation_order",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_five_helpers_and_native_literal_owner_keep_errors_and_values",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_ordinary_backend_is_native_with_complete_metadata_and_no_retained_Function",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_protocol_buffers_canaries_and_single_use_observations",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_warm_source_ABI_and_fresh_manifest_key_must_be_readmitted",
+    "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_complete_original_Function_and_five_helpers_are_independent",
+    "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_current_32_sources_keep_original_Core_caps_and_literal_VM",
+    "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_unqualified_cold_refuses_before_output_creation",
+    "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_unselected_constructor_subclass_and_early_target_errors_stay_original"
+]
+COMPONENT_IDS = [
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_Emitter_constructor_keeps_keyword_expansion_and_partial_assignments",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_Emitter_layout_labels_and_foreign_byte_wrapper_keep_observation_order",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_Emitter_lazy_generators_preserve_suspension_errors_and_one_use_resume",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_actual_installed_wheel_uses_complete_bundle_without_authoring",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_actual_native_return_then_foreign_failure_closes_every_continuation",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_capture_identity_reentrancy_and_all_bridge_dependencies",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_exact_foreign_store_binding_and_nested_native_invocation_order",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_five_helpers_and_native_literal_owner_keep_errors_and_values",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_ordinary_backend_is_native_with_complete_metadata_and_no_retained_Function",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_protocol_buffers_canaries_and_single_use_observations",
+    "tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_warm_source_ABI_and_fresh_manifest_key_must_be_readmitted",
+    "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_complete_original_Function_and_five_helpers_are_independent",
+    "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_current_32_sources_keep_original_Core_caps_and_literal_VM",
+    "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_unqualified_cold_refuses_before_output_creation",
+    "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_unselected_constructor_subclass_and_early_target_errors_stay_original"
+]
 CORE_MODULES = (
     'tests.test_hia_program_native', 'tests.test_hia_program_native_review',
     'tests.test_hia_machine_lowering_edges', 'tests.test_hia_native_byte_abi',
@@ -204,22 +235,28 @@ def main():
     directory = args.evidence.resolve()
     directory.mkdir(parents=True, exist_ok=False)
     report = {
-        'schema': 'hepta.hia.core-lowering-selected-callers.v1', 'status': 'STARTED',
+        'schema': 'hepta.hia.core-lowering-selected-callers.v2', 'status': 'STARTED',
         'scope': ('EXPLICIT_DEVELOPMENT_GROUP_ONLY' if args.development_group else
                   'MATCHING_SOURCE_COLD_SELECTED_CALLERS' if args.cold_report else 'EXPLICIT_DEVELOPMENT_ONLY'),
         'development_group': args.development_group,
         'complete_three_groups_required_for_qualification': True,
         'complete_three_groups_executed': False,
         'groups': [], 'retained_owner_entries': [], 'python': sys.version,
-        'native_step_ledger_schema': 'hepta.hia.core-lowering-native-step-returns.v1',
-        'native_step_return_semantics': 'Actual admitted HIA unit entry and output framing returned status0/1/2; not method or product success.',
+        'native_step_ledger_schema': 'hepta.hia.core-lowering-native-step-returns.v2',
+        'native_step_return_semantics': 'Actual admitted HIA unit entry and output framing returned status0/1/2/3; status3 is HIA yield, not method or product success.',
         'native_mode_entries_are_attempts': True,
-        'public_control_mode_count': 27, 'abi_control_mode_count': 28,
+        'public_control_mode_count': 33, 'abi_control_mode_count': 36,
         'private_fixture_modes': ['_native_globals'],
+        'private_generator_modes': ['_native_generator_0', '_native_generator_1'],
         'native_step_unit_index_basis': 'owner.images excludes literal pool; unit_index0 is core_lowering_000; bundle_image_index is unit_index+1; complete bundle index0 is core_lowering_pool.',
-        'component_denominator': 12, 'original_machine_denominator': 51,
+        'component_denominator': 15, 'original_component_denominator': 12,
+        'original_component_ids': ORIGINAL_COMPONENT_IDS,
+        'added_Emitter_component_ids': [name for name in COMPONENT_IDS if name not in ORIGINAL_COMPONENT_IDS],
+        'original_machine_denominator': 51,
         'original_core_denominator': 50, 'original_methods_modified': False,
-        'hosted_primitive_kinds': 18, 'Emitter_control_still_hosted': True,
+        'hosted_primitive_kinds': 19, 'Emitter_control_still_hosted': False,
+        'generator_object_suspension_transport_still_hosted': True,
+        'native_byte_ABI_wrapper_policy_still_hosted': True,
         'default_activated': False, 'whole_native_claimed': False,
     }
     started = time.monotonic()
@@ -346,7 +383,7 @@ def main():
                                       for p, raw in inputs])
         with patch.object(NativeCoreLowering, 'invoke', invoke), patch.object(LoweringSession, 'step', step):
             for label, modules, count, expected_ids, guard_reference in (
-                ('component', COMPONENT_MODULES, 12, None, False),
+                ('component', COMPONENT_MODULES, 15, COMPONENT_IDS, False),
                 ('original-machine', ORIGINAL_MODULES, 51, ORIGINAL_IDS, True),
                 ('original-core', CORE_MODULES, 50, CORE_IDS, True)):
                 if label not in expected_groups:
@@ -383,9 +420,10 @@ def main():
                 with ExitStack() as stack:
                     if guard_reference:
                         stack.enter_context(patch.dict(os.environ, {SELECTOR: str(manifest)}))
-                        for name, method in backend._Function.__dict__.items():
-                            if inspect.isfunction(method) and name != '__new__':
-                                stack.enter_context(patch.object(backend._Function, name, forbid('_Function.' + name)))
+                        for cls in (backend._Function, backend._Emitter):
+                            for name, method in cls.__dict__.items():
+                                if inspect.isfunction(method) and name != '__new__':
+                                    stack.enter_context(patch.object(cls, name, forbid(cls.__name__ + '.' + name)))
                         for name in HELPERS:
                             legacy = '_reference' + name
                             stack.enter_context(patch.object(backend, legacy,
@@ -407,7 +445,10 @@ def main():
                 row['strict_pass'] = strict_pass(result, loaded, executed)
                 if not row['strict_pass']:
                     raise AssertionError('complete caller group failed: ' + label)
-        required = set(native.modes) - {'_native_globals'}
+        generator_modes = {'_native_generator_0', '_native_generator_1'}
+        required = set(native.modes) - {'_native_globals'} - generator_modes
+        if len(required) != 33 or set(native.generator_modes) != generator_modes:
+            raise AssertionError('complete v2 public/private mode inventory differs')
         observed_modes = {row[1] for row, count in step_returns.items() if count > 0}
         observed_groups = {row[0] for row, count in step_returns.items() if count > 0}
         if report['retained_owner_entries'] or observed_groups != expected_groups or not step_returns:
@@ -417,11 +458,18 @@ def main():
             raise AssertionError('ABI mode28 native global fixture did not return an actual HIA step')
         report['all_required_modes_attempted'] = required <= set(entries)
         report['all_required_modes_have_actual_step_returns'] = required <= observed_modes
-        report['all_native_step_statuses_observed'] = all(actual_steps[str(v)] for v in (0, 1, 2))
+        yielded_modes = {row[1] for row, count in step_returns.items() if count > 0 and row[-1] == 3}
+        report['all_generator_modes_have_actual_step_returns'] = generator_modes <= observed_modes
+        report['all_generator_modes_have_actual_yield_returns'] = generator_modes <= yielded_modes
+        if 'component' in expected_groups and (not report['all_generator_modes_have_actual_step_returns']
+                or not report['all_generator_modes_have_actual_yield_returns']):
+            raise AssertionError('both lazy generator modes must actually enter HIA and yield')
+        report['all_native_step_statuses_observed'] = all(actual_steps[str(v)] for v in (0, 1, 2, 3))
         if not args.development_group:
             if (not report['all_required_modes_attempted']
                     or not report['all_required_modes_have_actual_step_returns']
-                    or not report['all_native_step_statuses_observed']):
+                    or not report['all_native_step_statuses_observed']
+                    or not report['all_generator_modes_have_actual_yield_returns']):
                 raise AssertionError('complete actual HIA lowering policy/continuation ownership was not observed')
             report['complete_three_groups_executed'] = True
         report['status'] = 'DEVELOPMENT_GROUP_PASS' if args.development_group else 'PASS'

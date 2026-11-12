@@ -53,13 +53,61 @@ def original_nodes():
     return ast.parse(raw)
 
 
+
+def original_binding_targets():
+    # Compile the complete frozen definitions solely as an independent Python
+    # binder oracle. Every call below has invalid arguments and must fail before
+    # any original method/helper body can execute.
+    names = {'_Function', '_Emitter', *HELPERS}
+    nodes = [node for node in original_nodes().body
+             if isinstance(node, (ast.ClassDef, ast.FunctionDef)) and node.name in names]
+    namespace = {'__name__': 'hia_independent_original_binding'}
+    exec(compile(ast.Module(body=nodes, type_ignores=[]),
+                 '<hia-original-binding-oracle>', 'exec'), namespace)
+    return namespace
+
+
+def invalid_binding_arguments(function):
+    parameters = tuple(inspect.signature(function).parameters.values())
+    if not all(p.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD for p in parameters):
+        raise AssertionError('original binding control needs its exact positional signatures')
+    marker = object()
+    names = tuple(p.name for p in parameters)
+    required = sum(p.default is inspect.Parameter.empty for p in parameters)
+    full = (marker,) * len(parameters)
+    cases = [
+        ('extra-positional', full + (marker,), {}),
+        ('unknown-keyword', full, {'unknown_argument': marker}),
+        ('implicit-self-keyword', full, {'self': marker}),
+        ('class-keyword', full, {'cls': marker}),
+        ('extra-and-unknown', full + (marker,), {'unknown_argument': marker}),
+    ]
+    for count in range(required):
+        cases.append(('missing-' + str(count), full[:count], {}))
+    for name in names:
+        cases.append(('duplicate-' + name, full, {name: marker}))
+    if required:
+        values = dict.fromkeys(names, marker)
+        del values[names[required - 1]]
+        cases.append(('missing-required-keyword', (), values))
+    if names:
+        first = names[0]
+        cases.extend([
+            ('unknown-before-duplicate', full, {'unknown_argument': marker, first: marker}),
+            ('duplicate-before-unknown', full, {first: marker, 'unknown_argument': marker}),
+            ('similar-unknown-keyword', full, {first + '_': marker}),
+        ])
+    return cases
+
+
 def selected_guard(manifest):
     stack = ExitStack()
     stack.enter_context(patch.dict(os.environ, {SELECTOR: str(manifest)}))
-    for name, method in backend._Function.__dict__.items():
-        if inspect.isfunction(method) and name != '__new__':
-            stack.enter_context(patch.object(backend._Function, name,
-                side_effect=AssertionError('retained Function control entered: ' + name)))
+    for cls in (backend._Function, backend._Emitter):
+        for name, method in cls.__dict__.items():
+            if inspect.isfunction(method) and name != '__new__':
+                stack.enter_context(patch.object(cls, name,
+                    side_effect=AssertionError('retained lowering control entered: ' + cls.__name__ + '.' + name)))
     for name in HELPERS:
         legacy = '_reference' + name
         original = getattr(backend, legacy)
@@ -75,13 +123,16 @@ class CoreLoweringSourceTests(unittest.TestCase):
     def test_complete_original_Function_and_five_helpers_are_independent(self):
         original = original_nodes()
         current = ast.parse(inspect.getsource(backend))
-        before = next(n for n in original.body if isinstance(n, ast.ClassDef) and n.name == '_Function')
-        after = next(n for n in current.body if isinstance(n, ast.ClassDef) and n.name == '_Function')
-        additions = [n for n in after.body if isinstance(n, ast.FunctionDef) and n.name == '__new__']
-        self.assertEqual(len(additions), 1)
-        after.body = [n for n in after.body if n not in additions]
-        self.assertEqual(len([n for n in before.body if isinstance(n, ast.FunctionDef)]), 22)
-        self.assertEqual(ast.dump(before), ast.dump(after))
+        # Keep the original v1 method ID while extending its whole-body oracle
+        # to the six newly owned Emitter methods.
+        for class_name, count in (('_Function', 22), ('_Emitter', 6)):
+            before = next(n for n in original.body if isinstance(n, ast.ClassDef) and n.name == class_name)
+            after = next(n for n in current.body if isinstance(n, ast.ClassDef) and n.name == class_name)
+            additions = [n for n in after.body if isinstance(n, ast.FunctionDef) and n.name == '__new__']
+            self.assertEqual(len(additions), 1)
+            after.body = [n for n in after.body if n not in additions]
+            self.assertEqual(len([n for n in before.body if isinstance(n, ast.FunctionDef)]), count)
+            self.assertEqual(ast.dump(before), ast.dump(after))
         for name in HELPERS:
             wanted = next(n for n in original.body if isinstance(n, ast.FunctionDef) and n.name == name)
             retained = next(n for n in current.body if isinstance(n, ast.FunctionDef) and n.name == '_reference' + name)
@@ -97,7 +148,8 @@ class CoreLoweringSourceTests(unittest.TestCase):
         from hepta.hia_program_runtime import _Machine, _Owner, _View
         abi = checked_abi(_source_resource_path(ABI_SOURCE).read_bytes())
         names = source_names(abi)
-        self.assertEqual(len(names), 32)
+        # The historical test ID remains fixed; v2 adds seven real units.
+        self.assertEqual(len(names), 39)
         programs = []
         for name in names:
             raw = _source_resource_path(name).read_bytes()
@@ -174,14 +226,48 @@ class CoreLoweringSourceTests(unittest.TestCase):
         class Foreign(backend._Function):
             def __init__(self, parent, fn, index):
                 self.marker = (parent, fn, index)
+        class ForeignEmitter(backend._Emitter):
+            def __init__(self, document, exports):
+                self.marker = (document, exports)
         with patch.dict(os.environ, {SELECTOR: '/missing/explicit-core-lowering-manifest'}):
             foreign = Foreign(None, None, 7)
             self.assertEqual(foreign.marker, (None, None, 7))
+            emitter = ForeignEmitter({'foreign': True}, {'f0'})
+            self.assertEqual(emitter.marker, ({'foreign': True}, {'f0'}))
+            # The inherited dispatcher must not bind the original class's
+            # signature before allowing a foreign subclass to run its own init.
+            # These calls must not observe even a missing explicit selector.
+            for base in (backend._Function, backend._Emitter):
+                class Positional(base):
+                    def __init__(self, value):
+                        self.marker = value
+                class KeywordOnly(base):
+                    def __init__(self, *, value):
+                        self.marker = value
+                class ClassKeyword(base):
+                    def __init__(self, *, cls):
+                        self.marker = cls
+                marker = object()
+                self.assertIs(Positional(marker).marker, marker)
+                self.assertIs(KeywordOnly(value=marker).marker, marker)
+                self.assertIs(ClassKeyword(cls=marker).marker, marker)
             with self.assertRaises(FileNotFoundError):
                 backend.emit_program_machine(program)
             with self.assertRaisesRegex(backend.HIAProgramNativeRejected, 'E_HIA_PROGRAM_TARGET'):
                 backend.emit_program_machine(program, target='not-the-accepted-target')
         self.assertIn('value', wanted)
+        reference = original_binding_targets()
+        with patch.dict(os.environ, {SELECTOR: '/missing/explicit-core-lowering-manifest'}):
+            with patch('hepta.hia_core_lowering_selection.selected_core_lowering',
+                       side_effect=AssertionError('invalid arguments observed the selector')):
+                for name in ('_Function', '_Emitter'):
+                    original, actual = reference[name], getattr(backend, name)
+                    for label, arguments, keywords in invalid_binding_arguments(original):
+                        with self.subTest(constructor=name, shape=label):
+                            expected = recorded(lambda: original(*arguments, **keywords))
+                            self.assertIs(expected.get('exception_type'), TypeError)
+                            observed = recorded(lambda: actual(*arguments, **keywords))
+                            self.assertEqual(observed, expected)
 
 
 class CoreLoweringNativeTests(unittest.TestCase):
@@ -224,6 +310,26 @@ class CoreLoweringNativeTests(unittest.TestCase):
                 actual = backend.emit_program_machine(verify_program(doc))
             self.assertEqual(comparable(actual), comparable(wanted))
             self.assertNotEqual(actual.implementation_sha256, wanted.implementation_sha256)
+        reference = original_binding_targets()
+        factories = {'_Function': self.owner.function_class,
+                     '_Emitter': self.owner.emitter_class}
+        for name, factory in factories.items():
+            original_type = reference[name]
+            native_type = factory(getattr(backend, name))
+            original_receiver = object.__new__(original_type)
+            native_receiver = object.__new__(native_type)
+            for method_name, method in vars(original_type).items():
+                if not inspect.isfunction(method):
+                    continue
+                original = types.MethodType(method, original_receiver)
+                actual = getattr(native_receiver, method_name)
+                with patch.object(self.owner, 'invoke',
+                                  side_effect=AssertionError('invalid binding entered HIA')):
+                    for label, arguments, keywords in invalid_binding_arguments(original):
+                        with self.subTest(owner=name, method=method_name, shape=label):
+                            expected = recorded(lambda: original(*arguments, **keywords))
+                            self.assertIs(expected.get('exception_type'), TypeError)
+                            self.assertEqual(recorded(lambda: actual(*arguments, **keywords)), expected)
 
     def test_five_helpers_and_native_literal_owner_keep_errors_and_values(self):
         for typ in (*backend.WIDTHS, 'bool', 'unit', 'buffer', 'readbuf', 'mutbuf', 'chain', 'missing', None, []):
@@ -252,6 +358,16 @@ class CoreLoweringNativeTests(unittest.TestCase):
         backend._reference_prologue(old, 8193)
         self.owner.invoke('_prologue', (native, 8193))
         self.assertEqual(native.calls, old.calls)
+        reference = original_binding_targets()
+        with patch.object(self.owner, 'invoke',
+                          side_effect=AssertionError('invalid helper binding entered HIA')):
+            for name in HELPERS:
+                original, actual = reference[name], self.owner._helpers[name]
+                for label, arguments, keywords in invalid_binding_arguments(original):
+                    with self.subTest(helper=name, shape=label):
+                        expected = recorded(lambda: original(*arguments, **keywords))
+                        self.assertIs(expected.get('exception_type'), TypeError)
+                        self.assertEqual(recorded(lambda: actual(*arguments, **keywords)), expected)
 
     def test_exact_foreign_store_binding_and_nested_native_invocation_order(self):
         def observe(native, reenter):
@@ -303,20 +419,22 @@ class CoreLoweringNativeTests(unittest.TestCase):
             session.observe()
         with self.assertRaises(RuntimeError):
             session.step(ack)
-        for source_size, out_size, work_size in ((127, 320, 5120), (128, 319, 5120), (128, 320, 5119)):
+        output_bytes, workspace_bytes = self.owner.output_bytes, self.owner.workspace_bytes
+        for source_size, out_size, work_size in ((127, output_bytes, workspace_bytes),
+                (128, output_bytes - 1, workspace_bytes), (128, output_bytes, workspace_bytes - 1)):
             session = LoweringSession(self.owner, mode, ('mutbuf',))
             source = ctypes.create_string_buffer(session.initial)
-            output = ctypes.create_string_buffer(b'\xa5' * (320 + 32))
-            workspace = ctypes.create_string_buffer(b'\0' * (5120 + 32))
+            output = ctypes.create_string_buffer(b'\xa5' * (output_bytes + 32))
+            workspace = ctypes.create_string_buffer(b'\0' * (workspace_bytes + 32))
             before_source = bytes(source)
             result = self.owner.images[0]._entry(source, source_size,
                 ctypes.byref(output, 16), out_size, ctypes.byref(workspace, 16), work_size)
             self.assertEqual(result, ABI)
             self.assertEqual(bytes(source), before_source)
             self.assertEqual(bytes(output)[:16], b'\xa5' * 16)
-            self.assertEqual(bytes(output)[336:352], b'\xa5' * 16)
+            self.assertEqual(bytes(output)[16 + output_bytes:32 + output_bytes], b'\xa5' * 16)
             self.assertEqual(bytes(workspace)[:16], b'\0' * 16)
-            self.assertEqual(bytes(workspace)[5136:5152], b'\0' * 16)
+            self.assertEqual(bytes(workspace)[16 + workspace_bytes:32 + workspace_bytes], b'\0' * 16)
 
     def test_actual_native_return_then_foreign_failure_closes_every_continuation(self):
         mode = self.owner.modes['_words']['number']
@@ -332,7 +450,7 @@ class CoreLoweringNativeTests(unittest.TestCase):
                 with self.assertRaises(exception):
                     session.step(session.initial)
             self.assertTrue(entered)
-            for action in (lambda: session.step(session.initial), session.observe, session.handoff):
+            for action in (lambda: session.step(session.initial), session.observe, session.handoff, session.resume):
                 with self.assertRaises(RuntimeError):
                     action()
             self.assertEqual(len(entered), 1)
@@ -357,12 +475,18 @@ class CoreLoweringNativeTests(unittest.TestCase):
         program = verify_program(minimal_document())
         with selected_guard(self.manifest):
             wanted = backend.emit_program_machine(program)
-            original = backend._Emitter.render
-            def render(emitter):
+            # The retained Emitter.render is now forbidden too. Observe at the
+            # original imported callback, inside actual native __init__.
+            from hepta import hia_machine_plan
+            original_options, callbacks = hia_machine_plan.code_options, []
+            def code_options(plan):
+                self.assertIsNotNone(active_core_lowering())
+                callbacks.append('after-captured-owner')
                 os.environ[SELECTOR] = '/missing/changed-after-capture'
-                return original(emitter)
-            with patch.object(backend._Emitter, 'render', render):
+                return original_options(plan)
+            with patch.object(hia_machine_plan, 'code_options', code_options):
                 actual = backend.emit_program_machine(program)
+            self.assertEqual(callbacks, ['after-captured-owner'])
         self.assertEqual(actual, wanted)
         with patch.dict(os.environ, {SELECTOR: ''}), native_core_lowering_scope(vars(backend)):
             os.environ[SELECTOR] = str(self.manifest)
@@ -456,8 +580,270 @@ class CoreLoweringNativeTests(unittest.TestCase):
                       str(self.manifest), str(request)], 'installed-execution', env)
         observed = json.loads(result.stdout)
         self.assertEqual(observed['status'], 'INSTALLED_CORE_LOWERING_PASS')
-        self.assertEqual(observed['units'], 32)
+        self.assertEqual(observed['units'], 39)
         (case / 'report.json').write_text(json.dumps(observed, indent=2, sort_keys=True) + '\n')
+
+    def test_Emitter_constructor_keeps_keyword_expansion_and_partial_assignments(self):
+        from hepta import hia_machine_plan
+        def observation(native, failure):
+            events = []
+            document = {'functions': [{'name': 'f0'}]}
+            allowed = {'f0'}
+            class Receiver:
+                def __setattr__(self, name, value):
+                    events.append(('set', name))
+                    object.__setattr__(self, name, value)
+            receiver = Receiver()
+            class Plan:
+                def get(self, key, default):
+                    events.append(('plan.get', key, default))
+                    return 32
+            plan = Plan()
+            class Options:
+                def keys(self):
+                    events.append(('options.keys',))
+                    if failure == 'keys':
+                        raise TypeError('foreign keys refused')
+                    return ['scratch']
+                def __getitem__(self, key):
+                    events.append(('options.get', key))
+                    if failure == 'getitem':
+                        raise ValueError('foreign keyword value refused')
+                    return 'r11'
+            class Layout:
+                def __bool__(self):
+                    events.append(('block-order.truth',))
+                    if failure == 'truth':
+                        raise KeyboardInterrupt('foreign layout truth')
+                    return False
+            class Buffers:
+                def __iter__(self):
+                    events.append(('buffer-exports.iter',))
+                    if failure == 'exports':
+                        raise SystemExit('foreign exports iterator')
+                    return iter([('f0', 'bytes')])
+            def later(**kwargs):
+                events.append(('later-Code', tuple(kwargs.items())))
+                return {'chosen': 'later', 'kwargs': kwargs}
+            def first(**kwargs):
+                events.append(('first-Code', tuple(kwargs.items())))
+                return {'chosen': 'first', 'kwargs': kwargs}
+            def options(observed):
+                events.append(('code-options', observed is plan))
+                backend.Code = later
+                return Options()
+            arguments = (receiver, document, allowed, Layout(), Buffers(), plan)
+            with patch.object(backend, 'Code', first), patch.object(hia_machine_plan, 'code_options', options):
+                result = (recorded(self.owner.invoke, '_Emitter.__init__', arguments) if native
+                          else recorded(backend._Emitter.__init__, *arguments))
+            state = {name: ('document' if value is document else 'allowed' if value is allowed
+                           else 'plan' if value is plan else value)
+                     for name, value in vars(receiver).items()}
+            return result, events, state
+        for failure in ('none', 'keys', 'getitem', 'truth', 'exports'):
+            with self.subTest(failure=failure):
+                self.assertEqual(observation(True, failure), observation(False, failure))
+
+    def test_Emitter_layout_labels_and_foreign_byte_wrapper_keep_observation_order(self):
+        from hepta import hia_native_byte_abi
+        def ordered(native, missing):
+            events = []
+            receiver = types.SimpleNamespace()
+            class Layout:
+                def __getattribute__(self, name):
+                    if name == 'get':
+                        events.append(('bind-layout.get',))
+                    return object.__getattribute__(self, name)
+                def get(self, name):
+                    events.append(('original-layout.get', name))
+                    return ['absent'] if missing else ['b1', 'b0']
+            class Function(dict):
+                def __getitem__(self, key):
+                    events.append(('function.get', key))
+                    if key == 'name':
+                        receiver.block_order = {'f0': ['wrong-later-layout']}
+                    return super().__getitem__(key)
+            receiver.block_order = Layout()
+            fn = Function(name='f0', blocks=[{'id': 'b0'}, {'id': 'b1'}])
+            result = (recorded(self.owner.invoke, '_Emitter.ordered_blocks', (receiver, fn))
+                      if native else recorded(backend._Emitter.ordered_blocks, receiver, fn))
+            return result, events
+        for missing in (False, True):
+            self.assertEqual(ordered(True, missing), ordered(False, missing))
+        def label(native):
+            events = []
+            class Serial:
+                def __iadd__(self, amount):
+                    events.append(('serial.iadd', amount))
+                    return 9
+            class Prefix(str):
+                def __add__(self, other):
+                    events.append(('prefix.add', other))
+                    return super().__add__(other)
+            receiver = types.SimpleNamespace(serial=Serial())
+            arguments = (receiver, Prefix('block'))
+            result = (recorded(self.owner.invoke, '_Emitter.label', arguments)
+                      if native else recorded(backend._Emitter.label, *arguments))
+            return result, events, receiver.serial
+        self.assertEqual(label(True), label(False))
+        def symbol(native):
+            events = []
+            class Indices:
+                def __getitem__(self, name):
+                    events.append(('indices.get', name))
+                    return 17
+            receiver = types.SimpleNamespace(indices=Indices())
+            result = (recorded(self.owner.invoke, '_Emitter.function_symbol', (receiver, 'f0'))
+                      if native else recorded(backend._Emitter.function_symbol, receiver, 'f0'))
+            return result, events
+        self.assertEqual(symbol(True), symbol(False))
+        def wrapper(native, exception):
+            events = []
+            class Mapping:
+                def __init__(self, ordinal):
+                    self.ordinal = ordinal
+                def __contains__(self, name):
+                    events.append(('buffer.contains', self.ordinal, name))
+                    return True
+                def __getitem__(self, name):
+                    events.append(('buffer.get', self.ordinal, name))
+                    return 'second-mapping-value'
+            class Receiver:
+                reads = 0
+                @property
+                def foreign_buffer_exports(self):
+                    self.reads += 1
+                    events.append(('buffer-exports.read', self.reads))
+                    return Mapping(self.reads)
+            receiver, fn = Receiver(), {'name': 'f0'}
+            def leaf(actual_receiver, actual_fn, value):
+                events.append(('byte-wrapper', actual_receiver is receiver, actual_fn is fn, value))
+                if exception is not None:
+                    raise exception('foreign byte wrapper')
+            with patch.object(hia_native_byte_abi, 'emit_wrapper', leaf):
+                result = (recorded(self.owner.invoke, '_Emitter.wrapper', (receiver, fn))
+                          if native else recorded(backend._Emitter.wrapper, receiver, fn))
+            return result, events
+        for exception in (None, TypeError, KeyboardInterrupt):
+            self.assertEqual(wrapper(True, exception), wrapper(False, exception))
+
+    def test_Emitter_lazy_generators_preserve_suspension_errors_and_one_use_resume(self):
+        def outcome(function, *arguments):
+            try:
+                return {'value': function(*arguments)}
+            except BaseException as error:
+                cause = error.__cause__
+                return {'exception': type(error).__name__, 'args': error.args,
+                        'cause': None if cause is None else (type(cause).__name__, cause.args)}
+        def observation(native, mode, actions, body_exception=None):
+            events = []
+            class Row:
+                def __init__(self, value):
+                    self.value = value
+                def __getitem__(self, key):
+                    active = sys.exception()
+                    events.append(('item', self.value, key,
+                        None if active is None else (type(active).__name__, active.args)))
+                    if body_exception is not None:
+                        raise body_exception('foreign generator item')
+                    return self.value
+            class Source:
+                def __init__(self):
+                    self.at = 0
+                def __iter__(self):
+                    events.append(('outer.iter',))
+                    return self
+                def __next__(self):
+                    events.append(('outer.next', self.at))
+                    if self.at == 2:
+                        raise StopIteration
+                    value = self.at + 10
+                    self.at += 1
+                    return Row(value)
+            source = Source()
+            iterator = self.owner.generator(mode, iter(source)) if native else (p['type'] for p in source)
+            before = list(events)
+            self.assertEqual(before, [('outer.iter',)])
+            results = []
+            try:
+                raise KeyError('ambient-handled-exception')
+            except KeyError:
+                for action in actions:
+                    if action == 'next':
+                        results.append(outcome(next, iterator))
+                    elif action == 'send':
+                        results.append(outcome(iterator.send, 'ignored-by-generator-body'))
+                    elif action == 'throw':
+                        results.append(outcome(iterator.throw, ValueError('injected')))
+                    elif action == 'stop':
+                        results.append(outcome(iterator.throw, StopIteration('injected-stop')))
+                    elif action == 'close':
+                        results.append(outcome(iterator.close))
+                    else:
+                        raise AssertionError('unknown test action')
+            return before, results, events
+        cases = [
+            (('next', 'send', 'next', 'next'), None),
+            (('next', 'throw', 'next'), None),
+            (('throw', 'next'), None),
+            (('next', 'stop', 'next'), None),
+            (('next', 'close', 'next'), None),
+            (('close', 'next'), None),
+            (('next', 'next'), StopIteration),
+            (('next', 'next'), ValueError),
+            (('next', 'next'), KeyboardInterrupt),
+        ]
+        for mode in ('_native_generator_0', '_native_generator_1'):
+            for actions, exception in cases:
+                with self.subTest(mode=mode, actions=actions, exception=exception):
+                    self.assertEqual(observation(True, mode, actions, exception),
+                                     observation(False, mode, actions, exception))
+        mode = self.owner.modes['_native_generator_0']['number']
+        def suspended():
+            session = LoweringSession(self.owner, mode, (iter([{'type': 'u64'}]),))
+            self.assertEqual(session.advance(session.initial), 3)
+            self.assertEqual(session.yielded, 'u64')
+            return session
+        for action in ('observe', 'handoff', 'duplicate-resume', 'wrong-sequence'):
+            session = suspended()
+            if action == 'duplicate-resume':
+                packet = session.resume()
+                with self.assertRaises(RuntimeError):
+                    session.resume()
+            elif action == 'wrong-sequence':
+                packet = session.resume()
+                words = list(FRAME.unpack(packet))
+                words[2] += 1
+                with self.assertRaises(RuntimeError):
+                    session.step(FRAME.pack(*words))
+            else:
+                with self.assertRaises(RuntimeError):
+                    getattr(session, action)()
+            for retry in (session.observe, session.resume, session.handoff,
+                          lambda: session.step(session.initial)):
+                with self.assertRaises(RuntimeError):
+                    retry()
+        for exception in (KeyboardInterrupt, MemoryError):
+            returned = []
+            def after_yield(original):
+                def entry(*arguments):
+                    result = original(*arguments)
+                    if result == 3:
+                        returned.append(result)
+                        raise exception('after actual native yield')
+                    return result
+                return entry
+            session = LoweringSession(self.owner, mode, (iter([{'type': 'u64'}]),))
+            with ExitStack() as stack:
+                for image in self.owner.images:
+                    stack.enter_context(patch.object(image, '_entry', after_yield(image._entry)))
+                with self.assertRaises(exception):
+                    session.advance(session.initial)
+            self.assertEqual(returned, [3])
+            for retry in (session.observe, session.resume, session.handoff,
+                          lambda: session.step(session.initial)):
+                with self.assertRaises(RuntimeError):
+                    retry()
 
 
 INSTALLED_CHILD = r'''
@@ -491,9 +877,10 @@ def step(session,packet):
 LoweringSession.step=step
 def forbidden(*args,**kwargs):
     raise AssertionError('retained Function control entered installed child')
-for name,method in tuple(backend._Function.__dict__.items()):
-    if inspect.isfunction(method) and name!='__new__':
-        setattr(backend._Function,name,forbidden)
+for cls in (backend._Function,backend._Emitter):
+    for name,method in tuple(cls.__dict__.items()):
+        if inspect.isfunction(method) and name!='__new__':
+            setattr(cls,name,forbidden)
 for name in ('_reject','_words','_bounds','_normalize','_prologue'):
     legacy='_reference'+name
     original=getattr(backend,legacy)

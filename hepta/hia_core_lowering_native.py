@@ -11,6 +11,7 @@ import builtins
 import ctypes
 import operator
 import struct
+from types import FunctionType
 
 MAGIC = int.from_bytes(b'HIALOW02', 'little')
 POOL_MAGIC = int.from_bytes(b'HIALIT01', 'little')
@@ -411,6 +412,8 @@ class NativeCoreLowering:
             return self.invoke('_prologue', (code, frame))
         self._helpers = {'_reject': reject, '_words': words, '_bounds': bounds,
                          '_normalize': normalize, '_prologue': prologue}
+        for name, helper in self._helpers.items():
+            helper.__qualname__ = name
 
     def global_value(self, name):
         # Private helper replacement is not a runtime fallback. Remaining module
@@ -528,6 +531,11 @@ class NativeCoreLowering:
             def render(self):
                 return owner.invoke('_Function.render', (self,))
 
+        # Keep CPython's original binding-error names without entering any
+        # original method. All successfully bound bodies still invoke HIA.
+        for name, method in vars(Function).items():
+            if type(method) is FunctionType:
+                method.__qualname__ = '_Function.' + name
         self._classes[base] = Function
         return Function
 
@@ -558,5 +566,8 @@ class NativeCoreLowering:
             def render(self):
                 return owner.invoke('_Emitter.render', (self,))
 
+        for name, method in vars(Emitter).items():
+            if type(method) is FunctionType:
+                method.__qualname__ = '_Emitter.' + name
         self._emitter_classes[base] = Emitter
         return Emitter

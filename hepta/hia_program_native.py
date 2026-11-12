@@ -189,9 +189,49 @@ class HIAProgramMachine:
     foreign_buffer_exports: tuple[tuple[str, int], ...] = ()
 
 
+
+def _function_constructor_arguments(self, parent, fn, index):
+    """CPython argument-binding boundary; no retained lowering body."""
+    return None
+
+
+def _emitter_constructor_arguments(self, document, allowed_exports,
+                                   block_order=None, foreign_buffer_exports=(),
+                                   machine_plan=None):
+    """CPython argument-binding boundary; no retained lowering body."""
+    return None
+
+
+# The runtime uses func.__qualname__ for its own argument diagnostics.
+_function_constructor_arguments.__qualname__ = '_Function.__init__'
+_emitter_constructor_arguments.__qualname__ = '_Emitter.__init__'
+
+
+def _check_constructor_arguments(arguments, keywords, names, required, binder):
+    # Normal class-call keyword names are exact builtin strings. Do not repeat
+    # rich comparison/hash hooks for foreign string-subclass keyword names;
+    # that extension retains the previous selector timing and remains unproved.
+    if any(type(name) is not str for name in keywords):
+        return
+    count = len(arguments)
+    invalid = count > len(names)
+    if not invalid:
+        invalid = any(name not in names or name in names[:count]
+                      for name in keywords)
+    if not invalid:
+        invalid = any(name not in keywords for name in names[count:required])
+    if invalid:
+        # Let the interpreter decide precedence, spelling and suggestions. The
+        # typed no-body binder raises before any selected manifest is observed.
+        binder(None, *arguments, **keywords)
+        raise RuntimeError('native constructor argument boundary did not reject')
+
+
 class _Function:
-    def __new__(cls, parent, fn, index):
+    def __new__(cls, /, *args, **kwargs):
         if cls is _Function:
+            _check_constructor_arguments(args, kwargs, ('parent', 'fn', 'index'),
+                                         3, _function_constructor_arguments)
             from .hia_core_lowering_selection import selected_core_lowering
             owner = selected_core_lowering(globals())
             if owner is not None:
@@ -619,9 +659,12 @@ class _Function:
 
 
 class _Emitter:
-    def __new__(cls, document, allowed_exports, block_order=None,
-                foreign_buffer_exports=(), machine_plan=None):
+    def __new__(cls, /, *args, **kwargs):
         if cls is _Emitter:
+            _check_constructor_arguments(args, kwargs,
+                ('document', 'allowed_exports', 'block_order',
+                 'foreign_buffer_exports', 'machine_plan'),
+                2, _emitter_constructor_arguments)
             from .hia_core_lowering_selection import selected_core_lowering
             owner = selected_core_lowering(globals())
             if owner is not None:
