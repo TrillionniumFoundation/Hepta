@@ -1,0 +1,273 @@
+name: HIA isolated Core Emitter native development
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  native_development:
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-core-emitter-native-development-run-r1-20261112-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the frozen development controller without credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: cfea04962c0db644e27830a34265f9ff7e771bdc
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Check out the exact candidate with all generated original assets
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 946f3fd08b63846305d3cbf920b61ceed1e696f0
+          path: source
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Set up the fixed actual development interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Provision the unchanged native tool and proof prerequisites
+        timeout-minutes: 10
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace
+          printf 'CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n' >> "$GITHUB_ENV"
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -B -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Verify exact full source and create one preparation request
+        id: prepare
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CORE_EMITTER_NATIVE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          set -o noclobber
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r1/controller.py prepare --root "$RUNNER_TEMP/hia-core-emitter-native-development-r1" --source "$GITHUB_WORKSPACE/source" --policy-sha256 5352fa09d0059144ee7d8799fffe7e5b93763daa0a26918b26a0c0426965a022 --control-commit cfea04962c0db644e27830a34265f9ff7e771bdc > "$RUNNER_TEMP/hia-core-emitter-native-prepare.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-prepare.stderr.log"
+      - name: Build B0 B1 B2 and all 39 units under one original 180-second owner
+        id: run_preparation
+        timeout-minutes: 4
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CORE_EMITTER_NATIVE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          set -o noclobber
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r1/controller.py run-preparation --root "$RUNNER_TEMP/hia-core-emitter-native-development-r1" --source "$GITHUB_WORKSPACE/source" --policy-sha256 5352fa09d0059144ee7d8799fffe7e5b93763daa0a26918b26a0c0426965a022 --control-commit cfea04962c0db644e27830a34265f9ff7e771bdc > "$RUNNER_TEMP/hia-core-emitter-native-run-preparation.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-run-preparation.stderr.log"
+      - name: Bind actual complete compiler originals and create the test request
+        id: admit_preparation
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CORE_EMITTER_NATIVE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          set -o noclobber
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r1/controller.py admit-preparation --root "$RUNNER_TEMP/hia-core-emitter-native-development-r1" --source "$GITHUB_WORKSPACE/source" --policy-sha256 5352fa09d0059144ee7d8799fffe7e5b93763daa0a26918b26a0c0426965a022 --control-commit cfea04962c0db644e27830a34265f9ff7e771bdc > "$RUNNER_TEMP/hia-core-emitter-native-admit-preparation.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-admit-preparation.stderr.log"
+      - name: Run the default complete 15 plus 51 plus 50 methods under one original 180-second owner
+        id: run_tests
+        timeout-minutes: 4
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CORE_EMITTER_NATIVE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          set -o noclobber
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r1/controller.py run-tests --root "$RUNNER_TEMP/hia-core-emitter-native-development-r1" --source "$GITHUB_WORKSPACE/source" --policy-sha256 5352fa09d0059144ee7d8799fffe7e5b93763daa0a26918b26a0c0426965a022 --control-commit cfea04962c0db644e27830a34265f9ff7e771bdc > "$RUNNER_TEMP/hia-core-emitter-native-run-tests.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-run-tests.stderr.log"
+      - name: Require both naturally closed owners and exact complete native originals
+        if: always()
+        id: finalize
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CORE_EMITTER_NATIVE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          set -o noclobber
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r1/controller.py finalize --root "$RUNNER_TEMP/hia-core-emitter-native-development-r1" --source "$GITHUB_WORKSPACE/source" --policy-sha256 5352fa09d0059144ee7d8799fffe7e5b93763daa0a26918b26a0c0426965a022 --control-commit cfea04962c0db644e27830a34265f9ff7e771bdc > "$RUNNER_TEMP/hia-core-emitter-native-finalize.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-finalize.stderr.log"
+      - name: Preserve full bounded diagnostic frames in an artifact file after phase cleanup
+        if: always()
+        timeout-minutes: 3
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CORE_EMITTER_NATIVE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          set -o noclobber
+          python -I -S -B control/experiments/hia_core_emitter_20261111/native-development-r1/diagnostics.py --policy-sha256 5352fa09d0059144ee7d8799fffe7e5b93763daa0a26918b26a0c0426965a022 --control-commit cfea04962c0db644e27830a34265f9ff7e771bdc > "$RUNNER_TEMP/hia-core-emitter-native-full-diagnostics.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-full-diagnostics.stderr.log"
+      - name: Print a smaller whole-file custody channel without changing product results
+        if: always()
+        timeout-minutes: 3
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CORE_EMITTER_NATIVE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -S -B control/experiments/hia_core_emitter_20261111/native-development-r1/small_diagnostics.py --policy-sha256 5352fa09d0059144ee7d8799fffe7e5b93763daa0a26918b26a0c0426965a022 --control-commit cfea04962c0db644e27830a34265f9ff7e771bdc
+      - name: Preserve all development originals including failed or partial phases
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-core-emitter-native-development-${{ github.run_id }}-1
+          path: |
+            ${{ runner.temp }}/hia-core-emitter-native-development-r1/
+            ${{ runner.temp }}/hia-core-emitter-native-prepare.stdout.log
+            ${{ runner.temp }}/hia-core-emitter-native-prepare.stderr.log
+            ${{ runner.temp }}/hia-core-emitter-native-run-preparation.stdout.log
+            ${{ runner.temp }}/hia-core-emitter-native-run-preparation.stderr.log
+            ${{ runner.temp }}/hia-core-emitter-native-admit-preparation.stdout.log
+            ${{ runner.temp }}/hia-core-emitter-native-admit-preparation.stderr.log
+            ${{ runner.temp }}/hia-core-emitter-native-run-tests.stdout.log
+            ${{ runner.temp }}/hia-core-emitter-native-run-tests.stderr.log
+            ${{ runner.temp }}/hia-core-emitter-native-finalize.stdout.log
+            ${{ runner.temp }}/hia-core-emitter-native-finalize.stderr.log
+            ${{ runner.temp }}/hia-core-emitter-native-full-diagnostics.stdout.log
+            ${{ runner.temp }}/hia-core-emitter-native-full-diagnostics.stderr.log
+            ${{ runner.temp }}/hia-core-emitter-native-small-diagnostics.stdout.log
+            ${{ runner.temp }}/hia-core-emitter-native-small-diagnostics.derived.json
+            ${{ runner.temp }}/hia-core-emitter-native-small-diagnostics.manifest.json
+            ${{ runner.temp }}/hia-core-emitter-native-small-diagnostics.RESULT.json
+          if-no-files-found: error
+          include-hidden-files: true
+          compression-level: 0
+          retention-days: 14
+          overwrite: false
