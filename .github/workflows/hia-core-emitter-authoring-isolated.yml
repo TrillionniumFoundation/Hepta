@@ -54,6 +54,20 @@ jobs:
         run: |
           set -euo pipefail
           set -C
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
           python -I -S -B control/experiments/hia_core_emitter_20261111/actions-source-authoring-r1/controller.py prepare --root "$RUNNER_TEMP/hia-core-emitter-source-authoring-r2" --source "$GITHUB_WORKSPACE/source" --policy-sha256 0cf91131f947850badb125537249c94229f5cf0590653363702b378913a84dcf --control-commit 9473e0fca206dc27ed87122f4a5d45a905d8b35c > "$RUNNER_TEMP/hia-core-emitter-authoring-prepare.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-authoring-prepare.stderr.log"
       - name: Generate all 39 prospective units under the unchanged 180-second owner
         id: owned_author
@@ -61,6 +75,20 @@ jobs:
         run: |
           set -euo pipefail
           set -C
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
           python -I -S -B control/experiments/hia_core_emitter_20261111/actions-source-authoring-r1/controller.py run --root "$RUNNER_TEMP/hia-core-emitter-source-authoring-r2" --source "$GITHUB_WORKSPACE/source" --policy-sha256 0cf91131f947850badb125537249c94229f5cf0590653363702b378913a84dcf --control-commit 9473e0fca206dc27ed87122f4a5d45a905d8b35c > "$RUNNER_TEMP/hia-core-emitter-authoring-run.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-authoring-run.stderr.log"
       - name: Verify natural cleanup and every retained source-only output
         if: always()
@@ -68,12 +96,40 @@ jobs:
         run: |
           set -euo pipefail
           set -C
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
           python -I -S -B control/experiments/hia_core_emitter_20261111/actions-source-authoring-r1/controller.py finalize --root "$RUNNER_TEMP/hia-core-emitter-source-authoring-r2" --source "$GITHUB_WORKSPACE/source" --policy-sha256 0cf91131f947850badb125537249c94229f5cf0590653363702b378913a84dcf --control-commit 9473e0fca206dc27ed87122f4a5d45a905d8b35c > "$RUNNER_TEMP/hia-core-emitter-authoring-finalize.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-authoring-finalize.stderr.log"
       - name: Print fixed original receipts and logs as bounded SHA-bound frames
         if: always()
         continue-on-error: true
         timeout-minutes: 2
         run: |
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
           python -I -S -B control/experiments/hia_core_emitter_20261111/actions-source-authoring-r1/diagnostics.py --policy-sha256 0cf91131f947850badb125537249c94229f5cf0590653363702b378913a84dcf --control-commit 9473e0fca206dc27ed87122f4a5d45a905d8b35c
       - name: Preserve original authoring output and HOLD logs
         if: always()
