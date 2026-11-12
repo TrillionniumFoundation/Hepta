@@ -1,0 +1,84 @@
+{
+  "actual_artifact_readback_executed": false,
+  "controller_original_function_bodies_unchanged": [
+    "require",
+    "wire",
+    "identity",
+    "read",
+    "file_record",
+    "create",
+    "sync_dir",
+    "document",
+    "run",
+    "expected_setup_identities",
+    "closed_guardian",
+    "natural_guardian",
+    "copy_original"
+  ],
+  "new_product_execution": false,
+  "parsed_files": [
+    {
+      "bytes": 40020,
+      "git_blob": "13a1bfaa5df1cfd17de151ea43cd5f618a9c54ab",
+      "name": "controller.py",
+      "result": "AST_PARSE_PASS",
+      "sha256": "21b68cdb406915697b5cce80278a2e1a542f0511fd61e6210d4467d790f4a0c9"
+    },
+    {
+      "bytes": 10257,
+      "git_blob": "1a7b8588871d1a0eb485dacc2dac2f1fe373b8a7",
+      "name": "guardian.py",
+      "result": "AST_PARSE_PASS",
+      "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023"
+    },
+    {
+      "bytes": 25558,
+      "git_blob": "708d384d3728efcbf88908e497e5b91004cd179d",
+      "name": "original_receiver.py",
+      "result": "AST_PARSE_PASS",
+      "sha256": "3967f8e0203e20f5c0f0fcb552cf1e1e66c9b8e0d9fe01863f3ed1d0484d76a2"
+    },
+    {
+      "bytes": 17601,
+      "git_blob": "6f600ab75894859b9840c0311cc8891a67b6c53a",
+      "name": "process_owner_impl.py",
+      "result": "AST_PARSE_PASS",
+      "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+    },
+    {
+      "bytes": 18307,
+      "git_blob": "49efb0827f1a35455dbd8a1b6de4743a46155ec8",
+      "name": "worker.py",
+      "result": "AST_PARSE_PASS",
+      "sha256": "8c2afe170b7ce04079f01a45c165877493cc9e608a7919503cb4514a28b69479"
+    }
+  ],
+  "python_runtime": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "remote_execution": false,
+  "schema": "hia.970-two-part-local-static-validation.v1",
+  "scope": "Syntax and exact-source reuse only; no network, guardian, product, or archive execution.",
+  "self_review_corrections_before_freeze": [
+    "Removed an initial new check for lifecycle.started_ns/deadline_ns because the actual original supervise() result does not export those fields. The unchanged guardian request/command/config/900/3 and natural lifecycle checks remain.",
+    "Preserve the actual partial public copy if copy_original fails after creating its destination; this cannot make a HOLD complete."
+  ],
+  "unchanged_whole_files": [
+    "guardian.py",
+    "process_owner_impl.py",
+    "original_receiver.py"
+  ],
+  "worker_original_function_bodies_unchanged": [
+    "require",
+    "wire",
+    "identity",
+    "read",
+    "create",
+    "new_client",
+    "deadline_check",
+    "api_request",
+    "bounded_response",
+    "metadata",
+    "official_location",
+    "storage_download",
+    "load_helper"
+  ]
+}
