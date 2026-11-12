@@ -29,3 +29,7 @@ and after execution. Full binary records are uploaded as an artifact; a lossless
 log capsule separately preserves completed text records without claiming a
 binary-artifact CRC check. Current-source cold, full-retained, native-default,
 whole-native, and legacy-deletion claims remain false.
+
+## Materialization revision R2
+
+The original R1 run 43296999188 failed before any project compilation or business test because its harness equated a Git 100644 entry with exact archive POSIX mode 0644. R2 records each actual archive mode, requires a regular non-link member with the same executable-bit class as its pinned Git entry, verifies size and both hashes, and materializes canonical 0644/0755 files. Special mode bits, executable drift, links, duplicate paths, missing paths, and changed bytes remain refusals. The 24-path source overlay, eight original regression methods, compiler inputs, and all time limits are unchanged. This is a separate development run and grants no cold or full qualification.

@@ -65,13 +65,41 @@ def process_complete(value):
             and cleanup.get('errors')==[] and cleanup.get('full_process_tree_claimed') is False)
 
 
+def materialize_git_archive(archive,source,expected,observations):
+    """Verify Git file type/executable class, then write exact canonical modes."""
+    seen=set()
+    with tarfile.open(fileobj=io.BytesIO(archive),mode='r:') as tar:
+        for member in tar:
+            if member.isdir():continue
+            observations[member.name]={'archive_mode':member.mode,'archive_type':member.type.hex()}
+            assert member.isfile() and not member.issym() and not member.islnk(),member.name
+            assert member.name in expected and member.name not in seen,member.name
+            row=expected[member.name]
+            assert row['mode'] in ('100644','100755'),member.name
+            assert type(member.mode) is int and member.mode>=0 and member.mode & ~0o777==0,member.name
+            canonical=0o755 if row['mode']=='100755' else 0o644
+            assert bool(member.mode & 0o111)==(canonical==0o755),member.name
+            raw=tar.extractfile(member).read()
+            assert HELPER.identify(raw)=={k:row[k] for k in ('bytes','sha256','blob')},member.name
+            target=source/member.name
+            target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_bytes(raw);target.chmod(canonical)
+            assert target.is_file() and not target.is_symlink() and target.stat().st_mode & 0o777==canonical
+            assert HELPER.identify(target.read_bytes())=={k:row[k] for k in ('bytes','sha256','blob')}
+            observations[member.name].update(git_mode=row['mode'],materialized_mode=canonical,bytes_verified=True)
+            seen.add(member.name)
+    assert seen==set(expected)
+    return {'bytes':len(archive),'sha256':sha256(archive).hexdigest(),'source_files':len(seen),
+            'complete_source_recoverable_from_git':True,'materialization':'REGULAR_FILE_GIT_EXECUTABLE_CLASS_AND_EXACT_CANONICAL_TARGET_MODE'}
+
+
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--base-source',required=True);parser.add_argument('--development',required=True);parser.add_argument('--evidence',required=True)
     args=parser.parse_args();base=Path(args.base_source).resolve(strict=True);dev=Path(args.development).resolve();out=Path(args.evidence).resolve()
     assert not dev.exists() and not out.exists()
     assert not dev.is_relative_to(base) and not base.is_relative_to(dev)
     dev.mkdir();out.mkdir()
-    report={'schema':'hia.global-import.eight-controls.development.v80.r1','status':'RUNNING',
+    report={'schema':'hia.global-import.eight-controls.development.v80.r2','status':'RUNNING',
             'scope':'EXACT_PUBLISHED_BASE_PLUS_FROZEN_REPAIR_AND_SEPARATELY_RECORDED_DEVELOPMENT_GENERATION',
             'python':sys.version,'source_generation_run':43294252598,'source_generation_result_transferred':False,
             'current_source_cold':False,'whole_native':False,'full_suite':False,'default_changed':False,
@@ -113,17 +141,12 @@ def main():
         assert HELPER.tree_hash(before)==BASE_TREE
         save(out/'BASE-SOURCE.json',before)
         archive=git(base,'archive','--format=tar','HEAD')
-        source=dev/'source';source.mkdir();seen=set()
-        with tarfile.open(fileobj=io.BytesIO(archive),mode='r:') as tar:
-            for member in tar:
-                if member.isdir():continue
-                assert member.isfile() and member.name in expected and member.name not in seen
-                raw=tar.extractfile(member).read();seen.add(member.name)
-                assert HELPER.identify(raw)=={k:expected[member.name][k] for k in ('bytes','sha256','blob')}
-                assert member.mode & 0o777 == int(expected[member.name]['mode'],8)&0o777
-                target=source/member.name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw);target.chmod(member.mode&0o777)
-        assert seen==set(expected)
-        report['base_archive']={'bytes':len(archive),'sha256':sha256(archive).hexdigest(),'source_files':len(seen),'complete_source_recoverable_from_git':True}
+        source=dev/'source';source.mkdir()
+        archive_modes={}
+        try:
+            report['base_archive']=materialize_git_archive(archive,source,expected,archive_modes)
+        finally:
+            save(out/'ARCHIVE-MODES.json',archive_modes)
         del archive
         copy=dev/'source-harness';shutil.copytree(HARNESS/'source-harness',copy)
         composed=run('compose',[sys.executable,'-B',str(copy/'tools/compose_global_repairs.py'),'--harness',str(copy),'--output',str(out/'composition')],dev)
