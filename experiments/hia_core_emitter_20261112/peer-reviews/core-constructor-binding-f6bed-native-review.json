@@ -1,0 +1,180 @@
+{
+  "schema": "hia.independent-static-review.v1",
+  "status": "STATIC_CLEAR_EXAMINED_CONSTRUCTOR_BINDING_DELTA",
+  "reviewer": "native_install_owner",
+  "subject_commit": "f6bed05ffdfd68db3f8c72e3d6bbd291770bfbd3",
+  "prefix": "experiments/hia_core_emitter_20261112/constructor-binding-static-r1/inputs/",
+  "subjects": [
+    {
+      "name": "backend",
+      "bytes": 52564,
+      "sha256": "53f364081158b3070d0408482331b9308b5a1b04562c83b7d0583fda2f1d100c",
+      "git_blob_sha1": "651af89d0a4822c4c12730a834a73e3a3933eac6"
+    },
+    {
+      "name": "native",
+      "bytes": 24345,
+      "sha256": "7190753bc1e8c70e6918ef2b798a8e0dd8c006794a6b94a7dbce957ca1fdb019",
+      "git_blob_sha1": "603a5358af567602a9e24ad63fc20971f3839ab5"
+    },
+    {
+      "name": "tests",
+      "bytes": 49493,
+      "sha256": "f8ee81bde0a374ce0dedd4f4e03583e52bee62221f83a3e708e4d0133e23ef62",
+      "git_blob_sha1": "7bf5c2acb3b8447383e672e18e140157a4a34f67"
+    },
+    {
+      "name": "docs",
+      "bytes": 15786,
+      "sha256": "bd01c0ced3b058f8b99461f3d1e1f7fc5f82317d4a972ee8305330ab7d85c552",
+      "git_blob_sha1": "8c5b8d3c9a7aa7bae4c7c4bcb8ebcc85f9198838"
+    }
+  ],
+  "baselines": [
+    {
+      "role": "v2 ordinary backend",
+      "commit": "8ddd872e2f5fd0cc856e7f92aa3a22265051967c",
+      "path": "experiments/hia_core_emitter_20261111/ordinary-v2-integration-static-r1/inputs/hepta/hia_program_native.py",
+      "bytes": 50540,
+      "sha256": "4fae7583a94d29b998dac1f0288fd9e120f6abb74b7e86a09558873711480be0",
+      "git_blob_sha1": "6671c783c52355d712cc01bfb6791291375f6212"
+    },
+    {
+      "role": "v2 native bridge",
+      "commit": "80ec04ae7489209b122c874531d194c67b30dfed",
+      "path": "hepta/hia_core_lowering_native.py",
+      "bytes": 23766,
+      "sha256": "9a510303d9e71d6e656e36f72daef5c2a381735c9b175097b8f0f50d666a3e41",
+      "git_blob_sha1": "ee9fc7c6bcb0c971b33c272f790bf2a598808a4f"
+    },
+    {
+      "role": "complete original Python oracle",
+      "path": "tests/fixtures/hia_program_native_608.py.txt",
+      "bytes": 47839,
+      "sha256": "8f0be8c06e932fedbdd5973591310440a97e85a0c3b88ba9bc5ca95035810185",
+      "git_blob_sha1": "0be63e6465f65866ae2509457ebb52edb63857f1"
+    },
+    {
+      "role": "v2 component tests",
+      "commit": "8ddd872e2f5fd0cc856e7f92aa3a22265051967c",
+      "path": "experiments/hia_core_emitter_20261111/ordinary-v2-integration-static-r1/inputs/tests/test_hia_core_lowering_native.py",
+      "bytes": 44142,
+      "sha256": "e1140a1b4409ce3460c8fcd81bfafcddf59cd6868cd9bbfb53742f05e9a6ea65",
+      "git_blob_sha1": "ff4b26428f84978e032bea24d97b0752bc266d73"
+    }
+  ],
+  "actual_textual_checks": {
+    "native_reverse_projection_byte_equal": true,
+    "backend_reverse_projection_byte_equal": true,
+    "backend_first_diff": null,
+    "wrappers_signature_equal_after_only_literal_quote_normalization": true,
+    "classes": [
+      {
+        "name": "_Function",
+        "expected_bytes": 20176,
+        "actual_bytes": 20176,
+        "byte_equal": true,
+        "expected_sha256": "4cd04fc239786a4641b21a8c723915e15132a6521f19c16992953df88b0ad599",
+        "actual_sha256": "4cd04fc239786a4641b21a8c723915e15132a6521f19c16992953df88b0ad599"
+      },
+      {
+        "name": "_Emitter",
+        "expected_bytes": 5528,
+        "actual_bytes": 5528,
+        "byte_equal": true,
+        "expected_sha256": "8da5aefb0cc15872aac827d79015838ccfcf19eb2e0c5b15091d62b388d940d1",
+        "actual_sha256": "8da5aefb0cc15872aac827d79015838ccfcf19eb2e0c5b15091d62b388d940d1"
+      }
+    ]
+  },
+  "test_method_checks": {
+    "new_ids": [
+      "test_complete_original_Function_and_five_helpers_are_independent",
+      "test_current_32_sources_keep_original_Core_caps_and_literal_VM",
+      "test_unqualified_cold_refuses_before_output_creation",
+      "test_unselected_constructor_subclass_and_early_target_errors_stay_original",
+      "test_ordinary_backend_is_native_with_complete_metadata_and_no_retained_Function",
+      "test_five_helpers_and_native_literal_owner_keep_errors_and_values",
+      "test_exact_foreign_store_binding_and_nested_native_invocation_order",
+      "test_protocol_buffers_canaries_and_single_use_observations",
+      "test_actual_native_return_then_foreign_failure_closes_every_continuation",
+      "test_capture_identity_reentrancy_and_all_bridge_dependencies",
+      "test_warm_source_ABI_and_fresh_manifest_key_must_be_readmitted",
+      "test_actual_installed_wheel_uses_complete_bundle_without_authoring",
+      "test_Emitter_constructor_keeps_keyword_expansion_and_partial_assignments",
+      "test_Emitter_layout_labels_and_foreign_byte_wrapper_keep_observation_order",
+      "test_Emitter_lazy_generators_preserve_suspension_errors_and_one_use_resume"
+    ],
+    "old_ids": [
+      "test_complete_original_Function_and_five_helpers_are_independent",
+      "test_current_32_sources_keep_original_Core_caps_and_literal_VM",
+      "test_unqualified_cold_refuses_before_output_creation",
+      "test_unselected_constructor_subclass_and_early_target_errors_stay_original",
+      "test_ordinary_backend_is_native_with_complete_metadata_and_no_retained_Function",
+      "test_five_helpers_and_native_literal_owner_keep_errors_and_values",
+      "test_exact_foreign_store_binding_and_nested_native_invocation_order",
+      "test_protocol_buffers_canaries_and_single_use_observations",
+      "test_actual_native_return_then_foreign_failure_closes_every_continuation",
+      "test_capture_identity_reentrancy_and_all_bridge_dependencies",
+      "test_warm_source_ABI_and_fresh_manifest_key_must_be_readmitted",
+      "test_actual_installed_wheel_uses_complete_bundle_without_authoring",
+      "test_Emitter_constructor_keeps_keyword_expansion_and_partial_assignments",
+      "test_Emitter_layout_labels_and_foreign_byte_wrapper_keep_observation_order",
+      "test_Emitter_lazy_generators_preserve_suspension_errors_and_one_use_resume"
+    ],
+    "count": 15,
+    "changed": [
+      "test_unselected_constructor_subclass_and_early_target_errors_stay_original",
+      "test_ordinary_backend_is_native_with_complete_metadata_and_no_retained_Function",
+      "test_five_helpers_and_native_literal_owner_keep_errors_and_values"
+    ],
+    "unchanged": 12
+  },
+  "findings": [
+    {
+      "status": "CLEAR",
+      "subject": "Exact builtin keyword arity",
+      "detail": "The exact-str precheck dispatches only already-invalid shapes to typed no-body constructor binders before looking up the selected native owner. Missing, duplicate, unexpected and excess-argument precedence is left to the actual interpreter binder. Both binder parameter names/defaults match the preserved original constructors."
+    },
+    {
+      "status": "CLEAR",
+      "subject": "Subclass class-keyword observation",
+      "detail": "Making the allocation dispatcher implicit cls positional-only prevents cls= intended for a subclass initializer from being consumed or rejected as a duplicate allocation argument. Subclasses still bypass base-only selector dispatch; this is checked by planned controls, not claimed as executed."
+    },
+    {
+      "status": "CLEAR",
+      "subject": "28 methods and five helper qualified names",
+      "detail": "Only diagnostic __qualname__ is set on the existing typed wrappers. All 28 wrapper signatures match the original ordered parameter/default signatures, with only equivalent quote spelling for rax. Successfully bound wrapper bodies continue to invoke the HIA owner. The five helper wrappers likewise retain owner.invoke bodies."
+    },
+    {
+      "status": "CLEAR",
+      "subject": "Complete retained-body oracle",
+      "detail": "After removing the two allocation dispatcher additions, the complete Function and Emitter class bodies are byte equal to the frozen original oracle: 20176 and 5528 bytes. This is a textual comparison, not a Python AST parse."
+    },
+    {
+      "status": "CLEAR",
+      "subject": "Narrow delta projection",
+      "detail": "Removing the exact new binder/helper blocks, two early check calls, positional-only slash changes and qualname additions reproduces the correct v2 backend/native baseline bytes. The old root backend at 8ddd is not the v2 staged input and was not used as the final projection baseline."
+    },
+    {
+      "status": "CLEAR",
+      "subject": "Existing denominator and meaningful controls",
+      "detail": "All 15 component method names remain in the same order; only three existing methods add bad-binding/subclass cases and 12 method bodies remain byte equal. The invalid constructor cases forbid selector observation; invalid native method/helper cases forbid HIA invocation and compare original TypeError class/args from the complete original definitions."
+    }
+  ],
+  "unexecuted": [
+    "Python parse/AST verification",
+    "Constructor runtime argument comparisons",
+    "Actual 39-unit native compilation",
+    "15 component plus 51 machine plus 50 Core in the original full owner",
+    "Installed wheel",
+    "Cold qualification"
+  ],
+  "open_boundaries": [
+    "Foreign string-subclass keyword hash/equality and invalid-arity selector precedence",
+    "Private constructor/signature/default mutation and direct __new__ behavior",
+    "Stack/traceback introspection and exact resource/finalizer timing",
+    "Hosted CPython argument binding remains an explicit host primitive; this delta is not a whole-native compiler claim"
+  ],
+  "review_scope": "Only these exact static binding changes. Existing HIA ownership and arbitrary foreign-input equivalence are not promoted by this review. Adjacent qualifier/ledger non-use of __qualname__ was reported by the peer, not independently re-audited here."
+}
