@@ -77,6 +77,12 @@ SOURCE_BUILD_FILES = (
     'examples/hia_bootstrap/source_build_policy.hepta',
     'examples/hia_bootstrap/selfhost.hepta',
     'examples/hia_bootstrap/source_build_packer.hepta',
+)
+
+
+# Additional Core JSON compiler build data, not source-builder repack roles or
+# loadable native-image adapters. Shared compiler/frontend inputs stay above.
+COMPILER_BUILD_FILES = (
     'examples/hia_bootstrap/core_json_cli_packer.hepta',
 )
 
@@ -110,7 +116,7 @@ def installation_manifest():
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
-    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *PUBLICATION_BUILD_FILES):
+    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES):
         entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
     from .hia_program_native import _implementation_hash
     from .hia_native_helpers import native_helpers_identity

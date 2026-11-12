@@ -148,11 +148,21 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
                        'produced_sha256': sha256(raw).hexdigest(), 'produced_bytes': len(raw)}
 
     def pack(self, *args):
+        # Bind the actual fixture image and input at the recording boundary.
+        # This nonexecuting stub never constitutes native qualification.
+        receipt = {'status': 'returned', 'custody_stub': True,
+                   'native_execution': False}
+        if len(args) >= 4:
+            _, _, image, source = args[:4]
+            receipt.update(abi_status=0,
+                           image_sha256=sha256(image.read_bytes()).hexdigest(),
+                           source_sha256=sha256(source).hexdigest(),
+                           source_unchanged=True)
         if self.pack_mutation:
             self.pack_mutation()
         raw = b'not an ELF executable; custody fixture only'
-        return {'status': 'returned', 'core_u32': len(raw),
-                'custody_stub': True, 'native_execution': False}, raw
+        receipt['core_u32'] = len(raw)
+        return receipt, raw
 
     def inspect(self, raw):
         if self.inspection_mutation:

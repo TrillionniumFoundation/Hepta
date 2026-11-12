@@ -74,6 +74,14 @@ source/image result and compares the complete reconstructed ELF. It also
 requires all three missing/changed input controls to refuse. The same real
 sdist/wheel fixture is reused for these controls.
 
+`COMPILER_BUILD_FILES` separately lists the standalone Core JSON compiler's
+`core_json_cli_packer.hepta` input. It remains an exact packaged and
+identity-bound resource, but it is not a fourth source-builder repack role or
+a loadable single-image native adapter. Package construction, installed custody
+and complete installed fixtures include both groups. The source-builder role
+tuple remains exactly policy, compiler and source-builder packer; its native
+six-entry repack contract is unchanged.
+
 With a matching-source cold report, both component fixtures call their strict
 builders with the report's actual nested compiler in separate output directories.
 Without that report they explicitly perform fresh native bootstrap development.

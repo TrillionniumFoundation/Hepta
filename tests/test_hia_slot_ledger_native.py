@@ -285,6 +285,64 @@ class SlotLedgerSourceTests(unittest.TestCase):
                           {'require_net_benefit': 0}, {'require_net_benefit': {}}):
             self.assertEqual(observed(driver.admit_net_benefit, objective), observed(reference_net, objective))
 
+    def test_unhashable_outcome_uses_interpreter_error_after_native_refusal(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from hepta import hia_slot_ledger_native as native
+        class VMImage:
+            def __init__(self):
+                self.operations = []
+            def transition(self, raw, state=None):
+                result = VM().call(raw)
+                header, fields = decode(result)
+                self.operations.append((struct.unpack_from('<Q', raw, 8)[0], header[1]))
+                return SlotLedgerReceipt(header[1], header[2], header[4:6], fields, result[1])
+        complete = dict(report_complete=True, planned_workload_complete=True,
+                        termination_confirmed=True)
+        for outcome, status in (([], 16), ([0], 16), ({}, 17), ({'value': 0}, 17)):
+            for allow in (False, True):
+                with self.subTest(outcome=outcome, allow=allow):
+                    evaluation = complete | {'outcome': outcome}
+                    objective = {'allow_unchanged': allow}
+                    with self.assertRaises(TypeError) as expected:
+                        HIAAgentService._reference_adoption_evaluation(None, evaluation, objective)
+                    image = VMImage()
+                    # Interpreter-raised errors do not consult this module name.
+                    # A hand-written TypeError constructor must fail this control.
+                    with patch.object(native, 'TypeError',
+                            side_effect=AssertionError('manual outcome TypeError'), create=True):
+                        with self.assertRaises(TypeError) as actual:
+                            native.NativeSlotLedgerStore(None, image).admit_evaluation(evaluation, objective)
+                    self.assertEqual((type(actual.exception), actual.exception.args, str(actual.exception)),
+                                     (type(expected.exception), expected.exception.args, str(expected.exception)))
+                    self.assertEqual(image.operations, [(17, 0), (17, 0), (17, 0), (18, status)])
+
+    def test_outcome_diagnostic_cannot_override_native_decisions(self):
+        from hepta.hia_agent_store import AgentRejected
+        from hepta.hia_slot_ledger_native import NativeSlotLedgerStore
+        class VerdictImage:
+            def __init__(self, status):
+                self.status = status
+            def transition(self, raw, state=None):
+                opcode = struct.unpack_from('<Q', raw, 8)[0]
+                return SlotLedgerReceipt(self.status if opcode == 18 else 0, 0, (0, 0), (), b'')
+        complete = dict(report_complete=True, planned_workload_complete=True,
+                        termination_confirmed=True)
+        objective = {'allow_unchanged': False}
+        # Adapter-only controls: a selected verdict owns the decision. These
+        # synthetic receipts are not executable-image qualification evidence.
+        for outcome in ([], {}):
+            evaluation = complete | {'outcome': outcome}
+            self.assertIsNone(NativeSlotLedgerStore(None, VerdictImage(0)).admit_evaluation(evaluation, objective))
+            with self.assertRaises(AgentRejected) as refused:
+                NativeSlotLedgerStore(None, VerdictImage(14)).admit_evaluation(evaluation, objective)
+            self.assertEqual(refused.exception.code, 'E_HIA_EVALUATION_REQUIRED')
+        for status in (16, 17):
+            with self.assertRaises(AgentRejected) as invalid:
+                NativeSlotLedgerStore(None, VerdictImage(status)).admit_evaluation(
+                    complete | {'outcome': 'improved'}, objective)
+            self.assertEqual((invalid.exception.code, invalid.exception.retry_action),
+                             ('E_HIA_SLOT_NATIVE_CUSTODY', 'stop'))
+
     def test_bad_cold_builder_refuses_before_output_or_compilation(self):
         from tools.build_hia_slot_ledger import build
         with tempfile.TemporaryDirectory() as temporary:

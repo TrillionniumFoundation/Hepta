@@ -192,9 +192,6 @@ def _raise(receipt, labels=()):
         if not 0 <= index < len(labels):
             _custody('native range refusal lacks its field label')
         raise AgentRejected('E_HIA_RANGE', labels[index] + ' must be a canonical u64 decimal string')
-    if status in {16, 17}:
-        kind = 'list' if status == 16 else 'dict'
-        raise TypeError("unhashable type: '" + kind + "'")
     messages = {
         3: ('E_HIA_GENERATION_STALE', 'slot changed; read the retained current snapshot and choose a fresh conditional request', 'adoption'),
         4: ('E_HIA_ABI', 'candidate changes the live slot ABI', 'adoption'),
@@ -331,7 +328,14 @@ class NativeSlotLedgerStore:
             self._call(17, (wire(evaluation[name]),))
         outcome = evaluation['outcome']
         allow_unchanged = objective['allow_unchanged']
-        self._call(18, (wire(outcome), wire(allow_unchanged)))
+        receipt = self.image.transition(request_packet(18, (wire(outcome), wire(allow_unchanged))))
+        if receipt.status in {16, 17}:
+            # HIA has already refused this unhashable outcome. Execute only the
+            # original diagnostic operation so this interpreter supplies its
+            # own TypeError; its boolean result never decides eligibility.
+            outcome not in ({"improved", "unchanged"} if allow_unchanged else {"improved"})
+            _custody('native unhashable outcome refusal did not raise a Python error')
+        _raise(receipt)
 
     def admit_net_benefit(self, objective):
         from .hia_agent_store import wire

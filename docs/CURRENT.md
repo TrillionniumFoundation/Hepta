@@ -111,6 +111,31 @@ independent historical gzip oracle from installed production resources while
 retaining exact membership and duplicate checks. The sdist keeps the oracle;
 the wheel's resource subtree contains only production resources.
 
+The first v71 implementation, `21a9ce46c4d4ff17d5d73eb3fa07916ec8c2a50d`,
+was published to the same PR. Its exact-head push run
+[43124813544](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43124813544)
+passed cold replay (11/11) and language coverage (1,242/1,242, with the ten
+original assertions). Source tests ran 468 cases with three failures and one
+error; native application tests ran 258 cases with one failure. That run is
+not a successful overall qualification.
+
+The follow-up correction synchronizes the exact native CI test-class set,
+binds the recording packer fixture to its actual image and input, obtains
+unhashable-outcome diagnostics from the running Python interpreter only after
+HIA has rejected that outcome, and separates compiler build data from the
+source-builder's three fixed repack roles. The flattened installed resource
+list remains the same 60 paths in the same order. These repairs require a new
+source-specific qualification; the earlier cold and language passes cannot
+qualify changed source.
+
+The separate local replay of `21a9ce46` failed after 162.957657775 seconds
+with `OSError: [Errno 28] No space left on device` while writing the native
+observer's input. It returned `QUALIFICATION_FAILED`, not a timeout, and
+owned-process cleanup completed with no surviving children. Duplicate
+toolchain downloads and extraction directories were removed while retaining
+installed tools and the original failed replay. This failed observation is
+preserved independently of the GitHub cold pass.
+
 A separate local baseline replay of the same `0d296447` source reached the
 unchanged 180-second owner limit and reported `QUALIFICATION_TIMEOUT` at
 180.398390018 seconds. Its 34 completed phases passed; the complete cold gate

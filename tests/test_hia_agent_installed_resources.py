@@ -2,10 +2,10 @@
 from pathlib import Path
 from hashlib import sha256
 import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
-from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,SOURCE_BUILD_FILES,PUBLICATION_BUILD_FILES,installation_manifest
+from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,SOURCE_BUILD_FILES,COMPILER_BUILD_FILES,PUBLICATION_BUILD_FILES,installation_manifest
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
-RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+PUBLICATION_BUILD_FILES
+RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES
 # Source-distribution test inputs are not installed Agent resources and must
 # never expand the worker's production source identity or _data payload.
 SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',)
@@ -22,6 +22,18 @@ BUNDLED_SOURCE_BINDINGS={
 }
 
 class AgentInstalledResourceSourceTests(unittest.TestCase):
+    def test_source_builder_roles_remain_closed_and_compiler_data_remains_packaged(self):
+        self.assertEqual(SOURCE_BUILD_FILES,(
+            'examples/hia_bootstrap/source_build_policy.hepta',
+            'examples/hia_bootstrap/selfhost.hepta',
+            'examples/hia_bootstrap/source_build_packer.hepta',
+        ))
+        self.assertEqual(COMPILER_BUILD_FILES,('examples/hia_bootstrap/core_json_cli_packer.hepta',))
+        self.assertTrue(set(COMPILER_BUILD_FILES).isdisjoint(
+            (*NATIVE_SOURCE_FILES,*SOURCE_BUILD_FILES,*PUBLICATION_BUILD_FILES)))
+        self.assertLessEqual(set(COMPILER_BUILD_FILES),set(RESOURCES))
+        self.assertEqual(len(RESOURCES),len(set(RESOURCES)))
+
     def test_actual_build_hook_uses_distinct_discovery_and_native_resource_paths(self):
         import ast
         source=ast.parse((ROOT/'setup.py').read_text())
