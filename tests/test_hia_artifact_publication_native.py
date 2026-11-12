@@ -123,7 +123,7 @@ class ArtifactPublicationKernelTests(unittest.TestCase):
     def setUpClass(cls):
         import tempfile
         from tools.qualify_hia_selfhost import build_seed,compile_stage,invoke
-        from tools.generate_hia_artifact_publication import MAGIC,template
+        from tools.generate_hia_artifact_publication import MAGIC, assembled_template as template
         cls.temporary=temporary_directory(prefix='hia-publication-kernel-')
         cls.folder=Path(cls.temporary.name);cold_path=os.environ.get('HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT')
         if cold_path:
@@ -273,7 +273,7 @@ class ArtifactPublicationKernelTests(unittest.TestCase):
 
 
 def vm_pack(policy,sha):
-    from tools.generate_hia_artifact_publication import MAGIC,template,packer_source
+    from tools.generate_hia_artifact_publication import MAGIC, assembled_template as template, packer_source
     from hepta.hia_agent_assembly import render_assembly
     wire=struct.pack('<3Q',MAGIC,len(policy),len(sha))+policy+sha
     prefix,holes=template();wanted=bytearray(prefix+policy+sha)

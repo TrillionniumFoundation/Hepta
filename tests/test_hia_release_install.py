@@ -15,7 +15,7 @@ import unittest
 from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_program import execute_program
 from tools.generate_hia_artifact_publication import document
-from tools.generate_hia_release_install import BUNDLE_MAGIC, MAGIC, policy_source, packer_source, template
+from tools.generate_hia_release_install import BUNDLE_MAGIC, MAGIC, policy_source, packer_source, assembled_template as template
 from tools.hia_selfhost_bulk import Body
 
 ROOT = Path(__file__).resolve().parents[1]
