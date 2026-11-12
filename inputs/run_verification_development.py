@@ -27,9 +27,9 @@ BASE = '4b19af89a766593f7d5f1cc2db256e81aba7afcb'
 TREE = '1bc7c90996e1910ad66ba771b0bfee1d5bfa655c'
 BASE_PARENT = '5f7f95367e8e395863801487e969d286b9091110'
 BASE_FILES = 3153
-OVERLAY_SHA = '6a8842ccf02910032fe02a7469fd03bff8b658ab22f7ea4ad837a97a1f7130ab'
-OVERLAY_BYTES = 2441217
-OVERLAY_SOURCE_SHA = '28fe3ec4d0c8b2e4626999bde94950eb96ddb83199d11ad4c6a166d854e20e4c'
+OVERLAY_SHA = '89db2187f786ac89ae90e07510436941904377b1576431f2f2a39cc9270b0d5c'
+OVERLAY_BYTES = 2443565
+OVERLAY_SOURCE_SHA = '7a20b1605cc72f44fdf05a08a2b6db252976b28c7e165ddd34a14b2212a790f1'
 COMPONENT_SHA = 'a580ab7c0b57f0609c4f9fe4bf5a6b0de092bf4e56d783591cc0b6ce8842ae91'
 COMPILER_PACKET_SHA = 'df542582525e52f7855f2746ae9dc7501f6835e41aa46b209e59f2e121177b8b'
 ORIGINAL_SUITE_SHA = '9397c321d04b2c55c3cf297065c27a12ef58908f10e14d546a9cad765493e7e4'
@@ -144,7 +144,7 @@ def read_overlay(path):
             or expected['git_blob_sha'] != sha1(b'blob ' + str(len(body)).encode() + b'\0' + body).hexdigest()):
         raise ValueError('complete frozen source capsule bytes differ')
     value = json.loads(body)
-    if (value['schema'] != 'hia.service-verification.cumulative-development-overlay.r3'
+    if (value['schema'] != 'hia.service-verification.cumulative-development-overlay.r4'
             or value['base_commit'] != BASE or value['base_tree'] != TREE
             or value['base_file_count'] != BASE_FILES or value['source_file_count'] != 3185
             or value['deleted'] != [] or len(value['files']) != 40
@@ -183,7 +183,7 @@ def main():
     inputs = args.inputs.resolve(strict=True)
     out = args.output.absolute()
     out.mkdir(mode=0o700, exist_ok=False)
-    report = {'schema': 'hia.service-verification.v78.development-ci.r1',
+    report = {'schema': 'hia.service-verification.v78.development-ci.r2',
               'status': 'STARTED', 'source_base': BASE, 'source_tree': TREE,
               'base_parent': BASE_PARENT, 'python': sys.version,
               'platform': platform.platform(), 'commands': [],
@@ -384,6 +384,13 @@ def main():
         component_env = env.copy()
         component_env['HEPTA_HIA_SERVICE_VERIFICATION_DEVELOPMENT_MANIFEST'] = str(manifest)
         component_env['HEPTA_HIA_SERVICE_VERIFICATION_EVIDENCE'] = str(out / 'component-observations')
+        command('fixed-foreign-profile-10', [sys.executable, '-B', inputs / 'probe_foreign_profile.py',
+            '--original', inputs / 'frozen-foreign-r3.py',
+            '--candidate', root / 'hepta/hia_service_verification_foreign.py',
+            '--candidate-sha', 'b47f0bb64fe46a2383db290905d327a4f67138f6f6be414dadf25c8522fce020',
+            '--output', out / 'fixed-foreign-profile-10'],
+            seconds=60, environment=env, allow_failure=True)
+        guard('after-fixed-foreign-profile-10')
         command('component-43', [sys.executable, '-B', inputs / 'run_verification_group.py',
             '--source', root, '--denominator', inputs / 'component-43.json',
             '--output', out / 'component-43'], seconds=240, environment=component_env, allow_failure=True)
@@ -394,8 +401,13 @@ def main():
             '--development-compiler', compiler, '--evidence', out / 'original-agent-48'],
             seconds=1800, environment=env, allow_failure=True)
         guard('after-original-agent-48')
+        report['fixed_foreign_profile'] = json.loads((out / 'fixed-foreign-profile-10/REPORT.json').read_bytes())
         report['component'] = json.loads((out / 'component-43/REPORT.json').read_bytes())
         report['original_agent'] = json.loads((out / 'original-agent-48/report.json').read_bytes())
+        if (report['fixed_foreign_profile']['status'] != 'PASS'
+                or len(report['fixed_foreign_profile']['observations']) != 10
+                or report['fixed_foreign_profile']['inputs_unchanged'] is not True):
+            raise ValueError('actual fixed CPython primitive profile controls failed')
         if report['component']['status'] != 'PASS' or report['component']['tests_run'] != 43:
             raise ValueError('complete verification component group failed')
         if (report['original_agent']['status'] != 'DEVELOPMENT_CALLERS_PASS'

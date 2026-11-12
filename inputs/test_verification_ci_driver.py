@@ -83,7 +83,7 @@ class VerificationCIDriverTests(unittest.TestCase):
         tree = ast.parse((HERE/'run_verification_development.py').read_bytes())
         main = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'main')
         selected = []
-        expected = [('component-43', 240), ('original-agent-48', 1800)]
+        expected = [('fixed-foreign-profile-10', 60), ('component-43', 240), ('original-agent-48', 1800)]
         for n in ast.walk(main):
             if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == 'command' and n.args and isinstance(n.args[0], ast.Constant) and n.args[0].value in dict(expected):
                 options = {item.arg: ast.literal_eval(item.value) for item in n.keywords if item.arg in ('seconds', 'allow_failure')}

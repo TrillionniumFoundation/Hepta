@@ -25,3 +25,15 @@ before/after observations, original raw output and the full development source
 export are retained. This is not current-source cold qualification, default
 native activation, all-input equivalence, whole-stack closure, live deployment,
 or authorization to delete retained reference owners.
+
+## R2 successor boundary
+
+The first actual 3.14.4 run 43240356060 completed source generation and native
+development compilation, then both groups refused at the original fixed bridge
+import before any business test executed. That source, run and complete original
+artifact remain unchanged. This revision changes only the private generator and
+generated bridge's explicit CALL_FUNCTION_EX operand profile. It first records
+the old import/refusal and the actual unchanged physical templates on this new
+interpreter, then exercises ten fixed-primitive controls. Invalid actual operand
+bytes are refused without executing them. The same original43 and Agent48 still
+run as independent groups; these new controls cannot substitute for either.
