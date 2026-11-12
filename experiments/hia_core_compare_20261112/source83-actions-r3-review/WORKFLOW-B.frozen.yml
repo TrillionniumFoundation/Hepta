@@ -1,0 +1,228 @@
+name: HIA numeric source83 fixed original negative commands on v89
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  source83:
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-core-numeric-source83-run-r3-20261112-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the exact adapter A without credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 3f38de9cc0e3588205474c75f31250341d7034b3
+          path: adapter
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /experiments/hia_core_compare_20261112/source83-actions-r3
+      - name: Read the frozen four-command permissions, bound-closure launcher and exact transport repairs
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: df4e7e5168877130e5e2b139c0d227b0d8ebff0a
+          path: frozen
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /experiments/hia_core_compare_20261112/source83-on-v89-request-r3
+      - name: Materialize the exact base paths required by the 1658-file source subset
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: cc51db1c74c082572ae6183ebfa0c81cd36b0648
+          path: base
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /hepta
+            /tools
+            /tests
+            /docs
+            /examples/hia_bootstrap
+            /.github/workflows/hia-core.yml
+            /.github/workflows/hia-ndu-feedback.yml
+            /MANIFEST.in
+            /README.md
+            /evidence/hia_five_deliverables_20261030/EVIDENCE_FILES.json
+            /examples/hia_program/finite_aarch64_multi_runtime.c
+            /examples/hia_program/finite_aarch64_runtime.c
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/GGUF_ACQUISITION.json
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/GGUF_METADATA.json
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/GGUF_chat_template.jinja
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/Qwen__Qwen3.5-4B.metadata.json
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/Qwen__Qwen3.5-4B__LICENSE
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/Qwen__Qwen3.5-4B__README.md
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/Qwen__Qwen3.5-4B__config.json
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/Qwen__Qwen3.5-4B__tokenizer_config.json
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/RUNTIME_MEMBERS.json
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/RUNTIME_TEMPLATE_REVIEW.json
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/SOURCE_RECEIPT.json
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/V10_CAPACITY_SOURCE.py.txt
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/V10_PROTOCOL.json
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/V10_STUDY_SOURCE.py.txt
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/llama_b11669__LICENSE
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/llama_b11669__qwen35.cpp
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/llama_b11669__tokenize.cpp
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/unsloth__Qwen3.5-4B-GGUF.metadata.json
+            /experiments/hia_agent_toolstudy_v11_20261030/provenance/unsloth__Qwen3.5-4B-GGUF__README.md
+            /experiments/hia_native_successor_runner_20261111/guardian.py
+            /experiments/hia_native_successor_runner_20261111/native_owner_gates.py
+            /experiments/hia_native_successor_runner_20261111/process_owner_impl.py
+            /experiments/hia_native_successor_runner_20261111/qualification_prerequisites.py
+            /experiments/hia_native_successor_runner_20261111/run_hia_qualification_v10.py
+            /experiments/hia_native_successor_runner_20261111/run_hia_qualification_v9.py
+            /experiments/hia_native_successor_runner_20261111/workflow_process.py
+            /experiments/hia_ndu_feedback_20261106/ci.py
+            /experiments/hia_v67_qualification_runner_20261111/run_hia_qualification_v8.py
+            /pyproject.toml
+            /review-evidence/hia-ndu-persistent-20261108-5e6c/originals.tar.xz
+            /review-evidence/hia-ndu-prepared-20261108-5e6c/final-originals.tar.xz
+            /review-evidence/hia-ndu-scalar-controls-20261108-23d1/original-campaign.zip
+            /rust/hia-ndu-raw-model/Cargo.lock
+            /rust/hia-ndu-raw-model/Cargo.toml
+            /rust/hia-ndu-raw-model/src/main.rs
+            /rust/hia-ndu-raw-model/src/model.rs
+            /rust/hia-ndu-raw-model/src/ndu.rs
+            /rust/hia-ndu-raw-model/src/planner.rs
+            /rust/hia-ndu-raw-model/upstream.json
+            /setup.py
+            /experiments/hia_v67_qualification_runner_20261111/guardian.py
+            /experiments/hia_v67_qualification_runner_20261111/process_owner_impl.py
+            /experiments/hia_v67_qualification_runner_20261111/workflow_process.py
+            /experiments/hia_v67_qualification_runner_20261111/qualification_prerequisites.py
+            /experiments/hia_v67_qualification_runner_20261111/native_owner_gates.py
+      - name: Supply the explicitly supported new runner interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Bind fresh runtime identities and exact source bytes without running project code
+        id: prepare
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          NUMERIC_SOURCE83_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              test -n "${pythonLocation-}"
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          set -o noclobber
+          operation="$RUNNER_TEMP/hia-numeric-source83-actions-r3-${GITHUB_RUN_ID}-1"
+          "${pythonLocation}/bin/python3.14" -I -S -B adapter/experiments/hia_core_compare_20261112/source83-actions-r3/adapt_request.py --adapter-checkout "$GITHUB_WORKSPACE/adapter" --control-commit 3f38de9cc0e3588205474c75f31250341d7034b3 --policy-sha256 ec04e640b2418448a5f4847888f9169c80efee158135cb550f2f5292704b7f0f --source-controls-checkout "$GITHUB_WORKSPACE/frozen" --base-checkout "$GITHUB_WORKSPACE/base" --output "$operation" > "$operation.prepare.stdout.log" 2> "$operation.prepare.stderr.log"
+      - name: Run all 62 generators and exact 83 source methods once under original 180 plus 3 seconds
+        id: source_operation
+        timeout-minutes: 4
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          NUMERIC_SOURCE83_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              test -n "${pythonLocation-}"
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          set -o noclobber
+          operation="$RUNNER_TEMP/hia-numeric-source83-actions-r3-${GITHUB_RUN_ID}-1"
+          "${pythonLocation}/bin/python3.14" -I -S -B "$operation/control/launch.py" > "$operation.run.stdout.log" 2> "$operation.run.stderr.log"
+      - name: Read the complete naturally closed source operation and all original file bindings
+        id: readback
+        if: always()
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          NUMERIC_SOURCE83_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              test -n "${pythonLocation-}"
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          set -o noclobber
+          operation="$RUNNER_TEMP/hia-numeric-source83-actions-r3-${GITHUB_RUN_ID}-1"
+          "${pythonLocation}/bin/python3.14" -I -S -B adapter/experiments/hia_core_compare_20261112/source83-actions-r3/finalize.py --adapter-checkout "$GITHUB_WORKSPACE/adapter" --control-commit 3f38de9cc0e3588205474c75f31250341d7034b3 --policy-sha256 ec04e640b2418448a5f4847888f9169c80efee158135cb550f2f5292704b7f0f --source-controls-checkout "$GITHUB_WORKSPACE/frozen" > "$operation.finalize.stdout.log" 2> "$operation.finalize.stderr.log"
+      - name: Emit only bounded whole original files and explicit omissions
+        id: small_channel
+        if: always()
+        timeout-minutes: 3
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          NUMERIC_SOURCE83_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              test -n "${pythonLocation-}"
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          set -o noclobber
+          operation="$RUNNER_TEMP/hia-numeric-source83-actions-r3-${GITHUB_RUN_ID}-1"
+          "${pythonLocation}/bin/python3.14" -I -S -B adapter/experiments/hia_core_compare_20261112/source83-actions-r3/diagnostics.py --adapter-checkout "$GITHUB_WORKSPACE/adapter" --control-commit 3f38de9cc0e3588205474c75f31250341d7034b3 --policy-sha256 ec04e640b2418448a5f4847888f9169c80efee158135cb550f2f5292704b7f0f 2> "$operation.diagnostics.stderr.log"
+      - name: Preserve the complete actual private source subset and all failed or successful originals
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-numeric-source83-r3-${{ github.run_id }}-1
+          path: |
+            ${{ runner.temp }}/hia-numeric-source83-actions-r3-${{ github.run_id }}-1/
+            ${{ runner.temp }}/hia-numeric-source83-actions-r3-${{ github.run_id }}-1.*
+          if-no-files-found: error
+          include-hidden-files: true
+          compression-level: 6
+          retention-days: 14
+          overwrite: false
