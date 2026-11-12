@@ -1,0 +1,282 @@
+{
+  "Python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "actual_producer_pins": {
+    "hepta/hia_program_native.py": "d58058760c02f65aa406dd54a0d0fa40cea5df0f4b8191696d21a784e71e8344",
+    "tools/hia_selfhost_child.py": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+    "tools/qualify_hia_selfhost.py": "a1c76c165856927bfbaded5610568fa79456f15e1eb356dda7a8b882bb602c92"
+  },
+  "cases": [
+    {
+      "expected_strengthened_acceptance": true,
+      "id": "matching_complete_receipt_bytes",
+      "mutation": null,
+      "observations": {
+        "original_A1": {
+          "accepted": true,
+          "records": 29,
+          "scope": "CURRENT_SOURCE_B0_B1_B2_DEVELOPMENT_NOT_COLD"
+        },
+        "strengthened_A2": {
+          "accepted": true,
+          "records": 29,
+          "scope": "CURRENT_SOURCE_B0_B1_B2_DEVELOPMENT_NOT_COLD"
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_strengthened_acceptance": false,
+      "id": "B0_artifact_hash_mismatch",
+      "mutation": [
+        "B0.receipt.json",
+        "artifact_sha256",
+        "0000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "observations": {
+        "original_A1": {
+          "accepted": true,
+          "records": 29,
+          "scope": "CURRENT_SOURCE_B0_B1_B2_DEVELOPMENT_NOT_COLD"
+        },
+        "strengthened_A2": {
+          "accepted": false,
+          "text": "actual explicit B0 seed binding differs",
+          "type": "RuntimeError"
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_strengthened_acceptance": false,
+      "id": "B0_artifact_size_mismatch",
+      "mutation": [
+        "B0.receipt.json",
+        "artifact_bytes",
+        999
+      ],
+      "observations": {
+        "original_A1": {
+          "accepted": true,
+          "records": 29,
+          "scope": "CURRENT_SOURCE_B0_B1_B2_DEVELOPMENT_NOT_COLD"
+        },
+        "strengthened_A2": {
+          "accepted": false,
+          "text": "actual explicit B0 seed binding differs",
+          "type": "RuntimeError"
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_strengthened_acceptance": false,
+      "id": "B1_loaded_image_hash_mismatch",
+      "mutation": [
+        "B1",
+        "image_sha256",
+        "0000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "observations": {
+        "original_A1": {
+          "accepted": true,
+          "records": 29,
+          "scope": "CURRENT_SOURCE_B0_B1_B2_DEVELOPMENT_NOT_COLD"
+        },
+        "strengthened_A2": {
+          "accepted": false,
+          "text": "actual native compile output differs",
+          "type": "RuntimeError"
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_strengthened_acceptance": false,
+      "id": "B2_source_hash_mismatch",
+      "mutation": [
+        "B2",
+        "source_sha256",
+        "0000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "observations": {
+        "original_A1": {
+          "accepted": true,
+          "records": 29,
+          "scope": "CURRENT_SOURCE_B0_B1_B2_DEVELOPMENT_NOT_COLD"
+        },
+        "strengthened_A2": {
+          "accepted": false,
+          "text": "actual native compile output differs",
+          "type": "RuntimeError"
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_strengthened_acceptance": false,
+      "id": "component_full_output_hash_mismatch",
+      "mutation": [
+        "bounded-read",
+        "output_sha256",
+        "0000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "observations": {
+        "original_A1": {
+          "accepted": true,
+          "records": 29,
+          "scope": "CURRENT_SOURCE_B0_B1_B2_DEVELOPMENT_NOT_COLD"
+        },
+        "strengthened_A2": {
+          "accepted": false,
+          "text": "actual native compile output differs",
+          "type": "RuntimeError"
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_strengthened_acceptance": false,
+      "id": "B1_stdout_full_projection_mismatch",
+      "mutation": [
+        "B1.stdout.log",
+        "native_elapsed_ns",
+        999
+      ],
+      "observations": {
+        "original_A1": {
+          "accepted": true,
+          "records": 29,
+          "scope": "CURRENT_SOURCE_B0_B1_B2_DEVELOPMENT_NOT_COLD"
+        },
+        "strengthened_A2": {
+          "accepted": false,
+          "text": "actual complete child stdout differs from the producer receipt projection",
+          "type": "RuntimeError"
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_strengthened_acceptance": false,
+      "id": "B2_stdout_full_projection_mismatch",
+      "mutation": [
+        "B2.stdout.log",
+        "native_elapsed_ns",
+        999
+      ],
+      "observations": {
+        "original_A1": {
+          "accepted": true,
+          "records": 29,
+          "scope": "CURRENT_SOURCE_B0_B1_B2_DEVELOPMENT_NOT_COLD"
+        },
+        "strengthened_A2": {
+          "accepted": false,
+          "text": "actual complete child stdout differs from the producer receipt projection",
+          "type": "RuntimeError"
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_strengthened_acceptance": false,
+      "id": "component_stdout_full_projection_mismatch",
+      "mutation": [
+        "bounded-read.stdout.log",
+        "native_elapsed_ns",
+        999
+      ],
+      "observations": {
+        "original_A1": {
+          "accepted": true,
+          "records": 29,
+          "scope": "CURRENT_SOURCE_B0_B1_B2_DEVELOPMENT_NOT_COLD"
+        },
+        "strengthened_A2": {
+          "accepted": false,
+          "text": "actual complete child stdout differs from the producer receipt projection",
+          "type": "RuntimeError"
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_strengthened_acceptance": false,
+      "id": "producer_appended_field_missing",
+      "mutation": [
+        "B2.receipt.json",
+        "wall_elapsed_ns",
+        null
+      ],
+      "observations": {
+        "original_A1": {
+          "accepted": true,
+          "records": 29,
+          "scope": "CURRENT_SOURCE_B0_B1_B2_DEVELOPMENT_NOT_COLD"
+        },
+        "strengthened_A2": {
+          "accepted": false,
+          "text": "actual complete child stdout differs from the producer receipt projection",
+          "type": "RuntimeError"
+        }
+      },
+      "status": "PASS"
+    }
+  ],
+  "executed_ids": [
+    "matching_complete_receipt_bytes",
+    "B0_artifact_hash_mismatch",
+    "B0_artifact_size_mismatch",
+    "B1_loaded_image_hash_mismatch",
+    "B2_source_hash_mismatch",
+    "component_full_output_hash_mismatch",
+    "B1_stdout_full_projection_mismatch",
+    "B2_stdout_full_projection_mismatch",
+    "component_stdout_full_projection_mismatch",
+    "producer_appended_field_missing"
+  ],
+  "expected_ids": [
+    "matching_complete_receipt_bytes",
+    "B0_artifact_hash_mismatch",
+    "B0_artifact_size_mismatch",
+    "B1_loaded_image_hash_mismatch",
+    "B2_source_hash_mismatch",
+    "component_full_output_hash_mismatch",
+    "B1_stdout_full_projection_mismatch",
+    "B2_stdout_full_projection_mismatch",
+    "component_stdout_full_projection_mismatch",
+    "producer_appended_field_missing"
+  ],
+  "native_executed": false,
+  "original_A1_sha256": "d231bbdf27de6d909c7e3974ecccef5b8b62577db4de0c99d4012389ef4999be",
+  "original_child_or_guardian_run": false,
+  "producer_update_keys_from_actual_AST": {
+    "compile_stage": [
+      "produced_bytes",
+      "produced_image",
+      "produced_sha256"
+    ],
+    "invoke": [
+      "artifact_sha256",
+      "case",
+      "format",
+      "input_bytes",
+      "input_sha256",
+      "runner_sha256",
+      "wall_elapsed_ns"
+    ]
+  },
+  "product_cases_executed": 0,
+  "schema": "hepta.hia.bounded-read-synthetic-receipt-join-controls.v1",
+  "scope": "READ_ONLY_RECEIPT_VERIFIER_CONTROLS_WITH_NONEXECUTABLE_STANDIN_BYTES",
+  "status": "PASS",
+  "strengthened_A2_sha256": "e2e1e4473ea18935e51c490117890073ced0454c38d3ce0054ed83e6b6bb4c2c",
+  "synthetic_archive": {
+    "all_member_hashes_and_modes_read_back": true,
+    "bytes": 53504,
+    "decoded_bytes": 31620813,
+    "members": 236,
+    "path": "/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r1/authoring/receipt-join-controls-r2/synthetic-originals.tar.xz",
+    "sha256": "978837d4e36c1abe5eea717a811c843b2491b0a727f1ead3468b155331d29853"
+  }
+}

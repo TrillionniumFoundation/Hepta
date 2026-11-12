@@ -1,4 +1,3 @@
-
 QUALIFY_SHA = "a1c76c165856927bfbaded5610568fa79456f15e1eb356dda7a8b882bb602c92"
 CHILD_SHA = "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29"
 
@@ -16,7 +15,11 @@ def observe_compiler_bundle(source, directory):
             "unchanged native compiler supervisor or child differs")
     seed_raw = actual(directory / "B0.so", 16 << 20)
     seed = json.loads(actual(directory / "B0.receipt.json", 8 << 20))
-    require(seed["seed_only"] is True and seed["source_sha256"] == sha256(selfhost).hexdigest()
+    require(seed["schema"] == "hepta.hia.program.direct-native.v1" and seed["ok"] is True
+            and seed["kind"] == "shared" and seed["output"] == str(directory / "B0.so")
+            and seed["artifact_sha256"] == sha256(seed_raw).hexdigest()
+            and type(seed["artifact_bytes"]) is int and seed["artifact_bytes"] == len(seed_raw)
+            and seed["seed_only"] is True and seed["source_sha256"] == sha256(selfhost).hexdigest()
             and seed["python"]["isolated"] is True and seed["python"]["no_site"] is True,
             "actual explicit B0 seed binding differs")
     require(seed["support_contract_sha256"] == sha256(actual(
@@ -49,13 +52,25 @@ def observe_compiler_bundle(source, directory):
                 and receipt["limits"] == NATIVE_LIMITS and receipt["format"] == image_format
                 and receipt["runner_sha256"] == CHILD_SHA
                 and receipt["artifact_sha256"] == wanted["image_sha256"]
+                and receipt["image_sha256"] == sha256(predecessor_raw).hexdigest()
+                and receipt["source_sha256"] == sha256(input_raw).hexdigest()
+                and receipt["output_sha256"] == sha256(output_raw).hexdigest()
                 and receipt["input_sha256"] == wanted["source_sha256"] and receipt["input_bytes"] == len(input_raw)
                 and receipt["produced_image"] == str(image_path) and type(receipt["core_u32"]) is int
                 and 0 < receipt["core_u32"] == receipt["produced_bytes"] == len(image_raw) <= 1 << 20
                 and receipt["produced_sha256"] == sha256(image_raw).hexdigest()
                 and len(output_raw) == 1 << 20 and output_raw[:len(image_raw)] == image_raw,
                 "actual native compile output differs")
-        actual(directory / (label + ".stdout.log"), 4 << 20)
+        child_stdout = json.loads(actual(directory / (label + ".stdout.log"), 4 << 20))
+        # Exact original invoke() additions followed by compile_stage() additions.
+        # All other fields must be the complete actual child JSON, not a subset.
+        producer_fields = {"case", "input_sha256", "input_bytes", "artifact_sha256", "format",
+                           "runner_sha256", "wall_elapsed_ns", "produced_image",
+                           "produced_bytes", "produced_sha256"}
+        require(producer_fields <= set(receipt) and type(child_stdout) is dict
+                and child_stdout == {key: value for key, value in receipt.items()
+                                     if key not in producer_fields},
+                "actual complete child stdout differs from the producer receipt projection")
         actual(directory / (label + ".stderr.log"), 4 << 20)
         results[label] = {"request": request, "receipt": receipt,
             "image_sha256": sha256(image_raw).hexdigest(), "image_bytes": len(image_raw)}
