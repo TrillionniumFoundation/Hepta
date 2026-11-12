@@ -23,7 +23,7 @@ BUNDLED_SOURCE_BINDINGS={
 CORE_LOWERING_RESOURCE_FILES=(
     'hepta/hia_core_lowering_abi.json',
     'examples/hia_bootstrap/core_lowering_pool.hiaasm',
-    *(f'examples/hia_bootstrap/core_lowering_{index:03d}.hiaasm' for index in range(31)),
+    *(f'examples/hia_bootstrap/core_lowering_{index:03d}.hiaasm' for index in range(38)),
 )
 
 class AgentInstalledResourceSourceTests(unittest.TestCase):
@@ -50,7 +50,7 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
         from importlib import import_module
         from hepta.hia_core_lowering_selection import ABI_SOURCE,checked_abi,source_names
         from hepta.hia_json_preflight_native import _source_resource_path
-        # One Core lowering adapter consumes its ABI and all 32 source units.
+        # One Core lowering adapter consumes its ABI and all 39 source units.
         # The metadata and units do not name separate Python bridge modules.
         abi_source=_source_resource_path(ABI_SOURCE)
         core_resources=(ABI_SOURCE,*source_names(checked_abi(abi_source.read_bytes())))
