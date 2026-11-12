@@ -1,0 +1,39 @@
+{
+  "schema": "hia.actions.elf-original-custody-static-corrections.v1",
+  "original_control_commit": "447aa7b07fe142e168f7052e401bc96c607c1020",
+  "original_controller_sha256": "9bd271032e7028e4f4429a2247581d01c0b98e61b54078f6ca85f138d630acd3",
+  "original_control_executed": false,
+  "source_of_findings": "independent agent static reads, not subprocess observations",
+  "findings": [
+    {
+      "reviewer": "native_install_owner",
+      "problem": "selected-originals.zip existence alone suppressed17raw capture after a partial bundle failure",
+      "fix": "valid_selected_archive requires complete original CUSTODY marker and actual full ZIP identity/SHA; otherwise retains presentZIP and17raw under HOLD"
+    },
+    {
+      "reviewer": "hia_remote_audit",
+      "problem": "missing/changed accepted directory or archive could be merely listed missing and still becomeREADY",
+      "fix": "required_successful_originals binds worker raw records, exact original stage CUSTODY and OBSERVATIONS plus API metadata; final capture must contain matching bytes/SHA/identity for every required name"
+    },
+    {
+      "reviewer": "hia_remote_audit",
+      "problem": "cleanup-shaped foreign receipt was accepted before operation identity validation",
+      "fix": "closed_guardian binds exact current schema/command/cwd/deadlines/source-before; check_setup rederives expected identity inventory"
+    }
+  ],
+  "unchanged": [
+    "worker.py",
+    "original_receiver.py",
+    "guardian.py",
+    "process_owner_impl.py",
+    "artifact-pins.json",
+    "17requestedpaths",
+    "900/3owner",
+    "720transfer",
+    "480MiBpubliccap"
+  ],
+  "local_AST_results_observed": 0,
+  "local_executor_unavailable": true,
+  "remote_run_or_trigger_requested": false,
+  "original_failures_reclassified": false
+}

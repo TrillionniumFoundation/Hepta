@@ -15,3 +15,9 @@ The final upload directory has a fixed allowlist. It includes metadata, original
 No Python parse, transport, or artifact inspection is claimed by this static checkpoint. Runtime reports must preserve any failure and the precise actual event/control source identity. The original acffa ELF-caller failure and the unexecuted full-v9 blueprint are separate.
 
 Primary references: [GitHub artifact API](https://docs.github.com/en/rest/actions/artifacts#download-an-artifact), [create event](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#create), and [GITHUB_TOKEN permissions](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token).
+
+## A2 static corrections before any trigger
+
+Unexecuted control A1 (`447aa7b`) remains immutable. Two independent reviewers found a partial-archive raw-capture omission and a final-receipt path that could mark missing actual metadata READY. A2 requires current archive identity/SHA plus its complete original marker before suppressing raw fallback, binds the two complete worker-observed sets to every actual retained file and copied output, and binds any closed cleanup to the precise current operation before inspecting child output. A failure remains HOLD with available fixed-path originals retained. The API transport worker, original receiver, guardian, 17 targets and every timing limit are unchanged.
+
+The attempted independent local syntax check obtained no execution result because the executor was unavailable. A2 has not been parsed or run here; root must review the complete A2/B workflow before the single create trigger. No previous static opinion or source generation is promoted to a runtime custody result.

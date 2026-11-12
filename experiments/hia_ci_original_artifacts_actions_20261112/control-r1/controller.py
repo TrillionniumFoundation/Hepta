@@ -215,8 +215,7 @@ def run(args):
     require(type(os.environ.get(TOKEN_VARIABLE)) is str and bool(os.environ[TOKEN_VARIABLE]),
             'Actions read token absent from owned collection step')
     setup, _ = document(root / 'setup.json')
-    require(setup.get('context') == context and setup.get('controller_seconds') == 900
-            and setup.get('cleanup_seconds') == 3, 'original setup context differs')
+    check_setup(setup, context, policy, root)
     config_raw = read(root / 'guard/request.json', 1 << 20, setup['guardian_config_sha256'])
     for path, expected in setup['source_identities'].items():
         require(file_record(Path(path), 64 << 20,
@@ -239,8 +238,43 @@ def run(args):
                       '--implementation', str(root / 'control/process_owner_impl.py')], env)
 
 
-def closed_guardian(value):
+def expected_setup_identities(context, policy, root):
+    identities = dict(context['control_sources'])
+    for name, pin in policy['control_files'].items():
+        identities[str(root / 'control' / name)] = pin['sha256']
+    identities[str(root / 'control/policy.json')] = context['policy_sha256']
+    identities[str(root / 'context.json')] = sha256(wire(context)).hexdigest()
+    identities[context['python']['resolved']] = context['python']['binary']['sha256']
+    return identities
+
+
+def check_setup(setup, context, policy, root):
+    command = [context['python']['resolved'], '-I', '-S', '-B',
+               str(root / 'control/worker.py'), '--root', str(root),
+               '--policy-sha256', context['policy_sha256']]
+    require(setup.get('schema') == 'hia.actions.elf-original-custody-setup.v1'
+            and setup.get('status') == 'PREPARED_NOT_EXECUTED'
+            and setup.get('context') == context and setup.get('command') == command
+            and setup.get('source_identities') == expected_setup_identities(context, policy, root)
+            and setup.get('controller_seconds') == 900 and setup.get('cleanup_seconds') == 3,
+            'exact original setup identity differs')
+
+
+def closed_guardian(value, setup, policy, root):
+    # A cleanup-shaped dictionary from another operation is not a read boundary.
+    # Failure or forced cleanup is permitted only for partial-custody HOLD.
     life = value.get('lifecycle', {})
+    require(value.get('schema') == 'hepta.hia.external-qualification-guardian.v1'
+            and value.get('command') == setup['command'] and value.get('cwd') == str(root)
+            and value.get('external_controller_seconds') == 900
+            and value.get('cold_180_second_gate_modified') is False
+            and value.get('lifecycle_implementation_sha256') ==
+                policy['control_files']['process_owner_impl.py']['sha256']
+            and value.get('source_identities_before') == setup['source_identities']
+            and life.get('schema') == 'hepta.hia.external-qualification-guardian.v1.lifecycle'
+            and life.get('subreaper_enabled') is True and life.get('qualification_started') is True
+            and life.get('qualification_seconds') == 900 and life.get('cleanup_seconds') == 3,
+            'closed guardian is not this exact original owned operation')
     cleanup = life.get('cleanup', {})
     return (cleanup.get('attempted') is True and cleanup.get('complete') is True
             and cleanup.get('observed_echild') is True and cleanup.get('leader_reaped') is True
@@ -267,7 +301,7 @@ def natural_guardian(value, setup, policy, root):
             and life.get('qualification_seconds') == 900 and life.get('cleanup_seconds') == 3
             and life.get('timed_out') is False and life.get('exit_observed_before_deadline') is True
             and life.get('event_overflow') is False and life.get('interrupted_signals') == []
-            and life.get('owner_error') is None and closed_guardian(value), 'natural lifecycle incomplete')
+            and life.get('owner_error') is None and closed_guardian(value, setup, policy, root), 'natural lifecycle incomplete')
     require(type(events) is list and events
             and all(x.get('kind') in NATURAL_EVENTS for x in events)
             and {'qualification_started', 'qualification_exit_observed', 'owned_child_reaped'}
@@ -359,6 +393,78 @@ def copy_original(source, target, expected):
     return observed
 
 
+def valid_selected_archive(folder, pin):
+    try:
+        custody, _ = document(folder / 'CUSTODY.json', 16 << 20)
+        bundle = custody.get('selected_custody', {})
+        expected = bundle.get('archive', {})
+        path = folder / 'selected-originals.zip'
+        count = custody.get('selected_member_count')
+        require(custody.get('schema') == 'hia.acffa.elf.original-CI-artifact-readback.v1'
+                and custody.get('artifact') == pin
+                and custody.get('requested_member_count') == 17
+                and type(count) is int and 0 <= count <= 17
+                and bundle.get('member_count') == count + 2
+                and bundle.get('all_member_SHA_and_CRC_verified') is True
+                and bundle.get('raw_files_included_without_transformation') is True
+                and expected.get('path') == str(path), 'selected archive lacks a complete original marker')
+        actual = file_record(path)
+        require(actual['bytes'] == expected.get('bytes')
+                and actual['sha256'] == expected.get('sha256')
+                and actual['identity'] == expected.get('identity'),
+                'selected archive no longer matches its complete original marker')
+        return True
+    except Exception:
+        return False
+
+
+def pinned_retained_record(root, name, expected, *, full_identity=True):
+    path = root / name
+    require(type(expected) is dict and expected.get('path') == str(path),
+            'retained original path binding differs')
+    actual = file_record(path)
+    require(actual['bytes'] == expected.get('bytes') and actual['sha256'] == expected.get('sha256'),
+            'retained original content differs from worker receipt')
+    if full_identity:
+        require(actual['identity'] == expected.get('identity')
+                and expected.get('actual_bytes_independently_read') == actual['bytes'],
+                'retained original identity/read denominator differs')
+    return actual
+
+
+def required_successful_originals(root, report, setup_record, guardian_record, report_record):
+    required = {}
+    def bind_content(name, expected):
+        record = pinned_retained_record(root, name, expected, full_identity=False)
+        required[name] = record
+    bind_content('setup.json', setup_record)
+    bind_content('guard/guardian.json', guardian_record)
+    bind_content('recovery-terminal.json', report_record)
+    bind_content('recovery.json', dict(report_record, path=str(root / 'recovery.json')))
+    for item in report['artifacts']:
+        prefix = 'selected/' + str(item['artifact']['id']) + '/'
+        for name, expected in (
+                ('DIRECTORY.json', item['directory']),
+                ('SELECTED.json', item['selected']),
+                ('selected-originals.zip', item['selected_custody']['archive'])):
+            required[prefix + name] = pinned_retained_record(root, prefix + name, expected)
+        # The original CUSTODY was written before header observation and before
+        # the two full ZIP reads/API metadata were appended to the worker item.
+        expected_custody = {k: v for k, v in item.items()
+                            if k not in ('zip_before', 'zip_after', 'official_metadata')}
+        expected_custody['header_observations'] = None
+        for name, expected_value in (('CUSTODY.json', expected_custody),
+                                     ('OBSERVATIONS.json', item['header_observations'])):
+            original = read(root / prefix / name, 16 << 20)
+            require(original == wire(expected_value),
+                    'actual metadata original differs from exact worker observation')
+            required[prefix + name] = file_record(root / prefix / name)
+        api_name = 'api/artifact-%d.metadata.original.json' % item['artifact']['id']
+        required[api_name] = pinned_retained_record(root, api_name, item['official_metadata'],
+                                                   full_identity=False)
+    return required
+
+
 def fixed_capture_paths(root, policy):
     names = ['context.json', 'setup.json', 'recovery.json', 'recovery-terminal.json',
              'supervisor.stdout.log', 'supervisor.stderr.log',
@@ -372,9 +478,10 @@ def fixed_capture_paths(root, policy):
                      ('DIRECTORY.json', 'SELECTED.json', 'CUSTODY.json', 'OBSERVATIONS.json'))
         if os.path.lexists(folder / 'selected-originals.zip'):
             names.append('selected/' + aid + '/selected-originals.zip')
-        else:
-            # If the original worker failed before closing a selected archive,
-            # preserve the bounded raw partials without claiming member validity.
+        if not valid_selected_archive(folder, pin):
+            # Mere ZIP existence is insufficient. Preserve that ZIP and every
+            # present raw member until a complete marker and actual full-file
+            # identity/SHA agree; partial custody remains HOLD.
             names.extend('selected/' + aid + '/%04d.raw' % i for i in range(17))
     require(len(names) == len(set(names)) and len(names) <= MAX_PUBLIC_FILES, 'capture allowlist differs')
     require(not any(n.startswith(('original/', 'control/')) for n in names), 'large ZIP/control leakage')
@@ -396,11 +503,13 @@ def finalize(args):
         'maximum_public_payload_bytes': MAX_PUBLIC_BYTES, 'capture_complete': False,
         'large_original_ZIPs_only_ephemeral_runner_custody': True}
     errors = []
+    required_originals = {}
     try:
         setup, setup_record = document(root / 'setup.json')
-        require(setup.get('context') == context, 'final context differs')
+        check_setup(setup, context, policy, root)
         guardian, guardian_record = document(root / 'guard/guardian.json')
-        require(closed_guardian(guardian), 'no closed ECHILD boundary; do not read possible live child originals')
+        require(closed_guardian(guardian, setup, policy, root),
+                'no bound closed ECHILD boundary; do not read possible live child originals')
         final['setup_original'] = setup_record
         final['guardian_original'] = guardian_record
         final['cleanup_closed_before_capture'] = True
@@ -418,6 +527,10 @@ def finalize(args):
                         'frozen input changed at final readback')
             report, report_record = document(root / 'recovery-terminal.json', 16 << 20)
             accept_worker(report, policy, setup)
+            required_originals = required_successful_originals(
+                root, report, setup_record, guardian_record, report_record)
+            for name in ('guard/request.json', 'context.json', 'guard/child.stdout.log', 'guard/child.stderr.log'):
+                required_originals[name] = file_record(root / name)
             final['worker_original'] = report_record
             final['selected_original_member_accounting'] = [
                 {'artifact_id': x['artifact']['id'], 'present': x['selected_member_names'],
@@ -445,6 +558,18 @@ def finalize(args):
             final['captured'].append({'source_relative_path': name, 'retained_file': output_name,
                 'bytes': observed['bytes'], 'sha256': observed['sha256'],
                 'source_identity': record['identity'], 'independent_copy_readback': True})
+        if final.get('source_bound_originals_and_natural_owner_accepted') is True:
+            captured = {x['source_relative_path']: x for x in final['captured']}
+            require(required_originals and set(required_originals) <= set(captured),
+                    'successful custody omitted a mandatory actual original')
+            for name, expected in required_originals.items():
+                row = captured[name]
+                require(row['bytes'] == expected['bytes'] and row['sha256'] == expected['sha256']
+                        and row['source_identity'] == expected['identity'],
+                        'uploaded original drifted from accepted worker identity')
+            final['required_actual_originals_bound'] = {
+                name: {'bytes': value['bytes'], 'sha256': value['sha256']}
+                for name, value in required_originals.items()}
         final['capture_complete'] = True
         if not errors and final.get('source_bound_originals_and_natural_owner_accepted') is True:
             final['status'] = 'TWO_HISTORICAL_CI_ORIGINALS_SMALL_CUSTODY_READY_NOT_QUALIFICATION'
