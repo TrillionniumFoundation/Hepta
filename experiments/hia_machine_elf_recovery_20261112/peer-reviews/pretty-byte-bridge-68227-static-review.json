@@ -1,0 +1,111 @@
+{
+  "schema": "hepta.hia.independent-static-review.v1",
+  "status": "STATIC_CLEAR_WITH_EXPLICIT_UNEXECUTED_SCOPE",
+  "reviewer": "/root/native_install_owner",
+  "review_date_utc": "2026-11-12",
+  "subject": {
+    "commit": "68227f07bceae8c34135b005ee9bdde28887f302",
+    "tree": "38fd133cc51385e3949a0589ab61e6dafa1113e4",
+    "prefix": "experiments/hia_json_pretty_20261112/byte-bridge-static-r1/",
+    "files": [
+      {
+        "path": "inputs/hepta/hia_json_pretty_native.py",
+        "bytes": 4244,
+        "sha256": "a8ed958219ef5a147433d0ffd201b54b573271780d7ec3be9026f41fa0c36e40",
+        "git_blob_sha1": "ea1c2651b9ca5e1f49f56e4a97391c8d234bb321"
+      },
+      {
+        "path": "DRAFT-PLAN.json",
+        "bytes": 2584,
+        "sha256": "75ecfdad406336e735a5ff8491b12edc390da6843faf679819a6b107a7690d02",
+        "git_blob_sha1": "51cbe77d661dd6a8165f521639d0665b0c28a852"
+      },
+      {
+        "path": "README.md",
+        "bytes": 1914,
+        "sha256": "779e64ef2c6765da178d8618e8ab0a3456ff627694d220f47e116c81a4e6f6aa",
+        "git_blob_sha1": "f029be7a0512339786a8834bc849dd306d9bc7d3"
+      }
+    ]
+  },
+  "actual_inputs_read": {
+    "all_three_subject_files": true,
+    "existing_loader": {
+      "commit": "9704596acc4470bd0042838586602e26bac7b3d1",
+      "path": "hepta/hia_json_preflight_native.py",
+      "bytes": 8901,
+      "sha256": "6011fad1d2aeb1fa2deb5892c7625978c0a2398fd316b8bd53b51e9eeb7cea3f",
+      "git_blob_sha1": "7b49c4c8fff1f39ddb3958bd354a142d72fd1b6b"
+    },
+    "actual_r4_component_reference": {
+      "run_id": 43145616377,
+      "job_id": 130942602806,
+      "originals_commit": "9025476ab382e9baf459bb71f75ee0f046a006ca",
+      "HIA_sha256": "2a8b2180cb15947c90961a55927241e8198f32a046484127d83b16fa880e9303",
+      "image_sha256": "a98b066da08dd29757fe4ef801704c66be69f0aed350290e8672aca6e9a59555",
+      "bridge_was_executed_in_that_run": false
+    }
+  },
+  "checks": [
+    {
+      "id": "explicit_new_byte_domain",
+      "finding": "The new public method admits exact bytes and explicitly requires previously admitted compact UTF-8 JSON. It does not claim to implement either original CLI object/text domain."
+    },
+    {
+      "id": "status_before_extent",
+      "finding": "_success_extent validates the actual return first; it may then inspect error_offset and diagnostic at offsets 16 and 24. Every nonzero status raises without reading the output-length field at offset 8. Status zero additionally requires zero diagnostics before admitting the length."
+    },
+    {
+      "id": "early_refusal_contract",
+      "finding": "The reviewed r4 HIA f0 refusal path writes the diagnostic fields through f5; the output length may remain stale. The bridge's status-first path does not admit that stale length. Its public workspace always has the required 161-byte extent."
+    },
+    {
+      "id": "private_workspace_and_same_input",
+      "finding": "Each invocation allocates a private 161-byte workspace and retains the same immutable exact-bytes input across both synchronous calls. The same workspace is used in mode 0 measurement followed by mode 1 emission. The image object is reusable; per-call workspace is not a shared instance attribute."
+    },
+    {
+      "id": "measurement_allocation",
+      "finding": "Only a successful HIA measurement controls output allocation. Values above sys.maxsize are refused before allocation; otherwise max(1, measured) supplies backing memory and measured remains the actual output descriptor extent. There is no added 8 MiB output cap."
+    },
+    {
+      "id": "emission_equality",
+      "finding": "The emission must independently return success and the identical measured extent before ctypes.string_at copies the result. Failed output and failed output length are discarded."
+    },
+    {
+      "id": "actual_existing_ABI",
+      "finding": "The selected NativeHiaJsonImage uses the same three pointer/extent pair ABI already used by the actual r4 component controls. The f0 u32 return is read through that existing entry interface; no new native invocation was made during this review."
+    },
+    {
+      "id": "mechanical_boundary",
+      "finding": "The bridge moves exact bytes and buffers. It performs no graph traversal, JSON parsing, key sorting, escaping, newline policy, printing, destination choice, directory creation, or file publication. It does not hook the current CLI."
+    },
+    {
+      "id": "loader_boundary",
+      "finding": "installed_json_pretty delegates to the existing source-bound manifest loader using the explicit new source and schema. Package resource installation, fresh installed-image acceptance, public integration, and source-drift controls remain to be executed."
+    },
+    {
+      "id": "planned_denominator",
+      "finding": "The plan preserves the original 37 component cases and proposes six separately identified bridge controls. The original child 5 s, owner 180/3 s, compiler 20 wall/10 CPU s are stated unchanged. These 43 are planned, not executed."
+    }
+  ],
+  "necessary_future_observations": [
+    "Actual bridge execution for all six new controls, including concurrent live private workspace addresses.",
+    "Actual >8 MiB output expansion through the bridge; the 131199-byte to 8593534-byte fixture is currently a separate V8 construction.",
+    "Fresh installation/resource/source admission and any later production selector or CLI integration."
+  ],
+  "no_inherited_qualification": {
+    "prior_component_37_is_not_bridge_pass": true,
+    "python_parse_performed": false,
+    "native_execution_performed": false,
+    "installation_executed": false,
+    "CLI_replaced": false,
+    "cold_qualified": false,
+    "whole_native_delivery_qualified": false,
+    "old_owner_deleted": false
+  },
+  "limitations": [
+    "This is a static code/ABI review of the exact pinned draft, not a proof of all foreign behavior or memory/resource failure paths.",
+    "The original HIA 8 MiB input and 129-entry stack profile remain. The method's admitted compact-wire precondition is explicit and cannot replace the broader original CLI domains.",
+    "No lock across pathname execution or package installation is claimed."
+  ]
+}
