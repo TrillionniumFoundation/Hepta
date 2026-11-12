@@ -1,0 +1,258 @@
+{
+  "schema": "hia.cli-json.graph-continuation-design.v1",
+  "status": "DESIGN_ONLY_NOT_EXECUTABLE",
+  "base": {
+    "head": "b7c2f79e04965e53a1c198703f20b1ff22df4765",
+    "tree": "dc29b16468d5ae1e558f317c7ab360b31ac2a002"
+  },
+  "public_operation": "print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))",
+  "default_selection_changed": false,
+  "host_serialization_fallback_added": false,
+  "versions": [
+    {
+      "runtime": "CPython 3.12.14",
+      "entry": "root Python isinstance; Python _make_iterencode because indent is non-None",
+      "list": "truth -> marker -> iterator -> versioned scalar branches -> close text -> marker delete",
+      "dict": "truth -> marker -> open/newline -> items() binding/call -> sorted full entries -> Python unpack -> key conversion -> value",
+      "status": "PENDING_FULL_CONTROLLER"
+    },
+    {
+      "runtime": "CPython 3.14.4",
+      "entry": "root Python isinstance; otherwise C encoder type/singleton checks",
+      "list": "recursive-enter -> Sequence_Fast -> empty -> marker -> '['/indent -> current size/item -> separator -> child -> close -> release fast -> recursive-leave",
+      "dict": "recursive-enter -> raw size -> marker -> '{'/indent-cache -> Mapping_Items -> no-key list sort -> validate item tuple -> key/value -> release items -> marker delete -> close",
+      "item_lifetime": "original borrowed loop references; do not silently replace with 3.14.10 policy",
+      "status": "PENDING_FULL_CONTROLLER"
+    },
+    {
+      "runtime": "CPython 3.14.10",
+      "entry": "same top-level dispatch as 3.14.4",
+      "list": "3.14.4 order plus owned current object across each separator/child, decref on success and failure",
+      "dict": "3.14.4 order plus owned current item tuple across validation/key/value, decref on all exits",
+      "status": "PENDING_FULL_CONTROLLER"
+    }
+  ],
+  "owner_state": {
+    "storage": "HIA explicit dynamically growing frame/marker/sort/output buffers",
+    "public_limits": "original runtime recursion and integer limits; no substitute node/depth/8MiB bound",
+    "slots": [
+      "actual runtime profile",
+      "return continuation",
+      "current object capability",
+      "container capability",
+      "owned-reference release plan",
+      "indent level",
+      "current index",
+      "first-item state",
+      "actual marker capability",
+      "actual sorted-item capability",
+      "current key capability",
+      "current value capability",
+      "pending raised exception capability",
+      "ambient handled exception capability",
+      "private output extent",
+      "pending one-use effect and response serial"
+    ],
+    "foreign_roots": "Only references held at the corresponding original phase. Do not keep every visited object in a Python dictionary."
+  },
+  "phases": [
+    {
+      "id": "ENTRY_BIND_PRINT",
+      "decision_owner": "HIA public call plan",
+      "primitive": "load original print binding before dumps argument evaluation",
+      "next": "ENTRY_BIND_DUMPS"
+    },
+    {
+      "id": "ENTRY_BIND_DUMPS",
+      "decision_owner": "HIA public call plan",
+      "primitive": "observe json/dumps binding once at original point; distinguish fixed implementation from required foreign callback without silent cache",
+      "next": "ENCODER_SETUP"
+    },
+    {
+      "id": "ENCODER_SETUP",
+      "decision_owner": "HIA",
+      "primitive": "exact observed encoder/class/default/string-encoder bindings and recursion context",
+      "next": "ROOT_ISINSTANCE"
+    },
+    {
+      "id": "ROOT_ISINSTANCE",
+      "decision_owner": "HIA",
+      "primitive": "original Python isinstance(o,str) semantics including __class__ observation",
+      "next": "SCALAR_OR_GRAPH"
+    },
+    {
+      "id": "SCALAR_OR_GRAPH",
+      "decision_owner": "versioned HIA",
+      "primitive": "singleton/type flags or specified Python isinstance leaves, one at a time",
+      "next": "TYPE_BRANCH"
+    },
+    {
+      "id": "STRING_OBSERVE",
+      "decision_owner": "HIA",
+      "primitive": "raw immutable Unicode code points; no Python str conversion or JSON escape function",
+      "next": "LEXEME"
+    },
+    {
+      "id": "INTEGER_OBSERVE",
+      "decision_owner": "HIA",
+      "primitive": "raw sign/limbs/runtime policy observations; no repr/str serialization shortcut",
+      "next": "INTEGER_POLICY"
+    },
+    {
+      "id": "INTEGER_POLICY",
+      "decision_owner": "versioned HIA",
+      "primitive": "early estimate check; later actual digit limit; error allocation/release at original points",
+      "next": "LEXEME"
+    },
+    {
+      "id": "FLOAT_OBSERVE",
+      "decision_owner": "versioned HIA",
+      "primitive": "raw IEEE bits in C profile; original foreign comparisons before base format in Python profile",
+      "next": "LEXEME"
+    },
+    {
+      "id": "LEXEME",
+      "decision_owner": "HIA scalar text",
+      "primitive": "immutable data transport and capacity growth only",
+      "next": "RETURN_VALUE"
+    },
+    {
+      "id": "SEQUENCE_ENTRY",
+      "decision_owner": "versioned HIA",
+      "primitive": "actual Sequence_Fast or original truth/iterator leaves",
+      "next": "MARKER"
+    },
+    {
+      "id": "DICTIONARY_ENTRY",
+      "decision_owner": "versioned HIA",
+      "primitive": "raw size or original truth leaf; empty fast path before later observations",
+      "next": "MARKER"
+    },
+    {
+      "id": "MARKER",
+      "decision_owner": "HIA",
+      "primitive": "object identity, marker storage allocation/movement; HIA chooses circular error/insertion/deletion",
+      "next": "CONTAINER_OPEN"
+    },
+    {
+      "id": "CONTAINER_OPEN",
+      "decision_owner": "HIA",
+      "primitive": "private text storage; HIA selects brackets/newline/indent-cache changes",
+      "next": "ITERATE_OR_SORT"
+    },
+    {
+      "id": "MAPPING_ITEMS",
+      "decision_owner": "versioned HIA",
+      "primitive": "exact raw mapping-items operations and reference transfers; do not prescan or normalize entries",
+      "next": "SORT_DETACH"
+    },
+    {
+      "id": "SORT_DETACH",
+      "decision_owner": "HIA sort",
+      "primitive": "raw fixed-runtime list storage detachment, empty visible size and allocation sentinel",
+      "next": "SORT_SELECT"
+    },
+    {
+      "id": "SORT_SELECT",
+      "decision_owner": "HIA sort",
+      "primitive": "actual types, exact tuple status, lengths, first slots, representation metadata",
+      "next": "SORT_RUN"
+    },
+    {
+      "id": "SORT_RUN",
+      "decision_owner": "HIA sort",
+      "primitive": "one named comparison, truth, pointer move or release; no host sort API",
+      "next": "SORT_RESTORE"
+    },
+    {
+      "id": "SORT_RESTORE",
+      "decision_owner": "HIA sort",
+      "primitive": "restore original list/permutation first; release newly appended entries in original order; retain existing error priority",
+      "next": "ITEM_VALIDATE"
+    },
+    {
+      "id": "ITEM_VALIDATE",
+      "decision_owner": "versioned HIA",
+      "primitive": "C path actual tuple flag/size; Python path original two-value unpack leaves",
+      "next": "KEY_CONVERT"
+    },
+    {
+      "id": "KEY_CONVERT",
+      "decision_owner": "versioned HIA",
+      "primitive": "classification/constant/magnitude/bits observations; error before value; no collision preflight",
+      "next": "ITEM_SEPARATOR"
+    },
+    {
+      "id": "ITEM_SEPARATOR",
+      "decision_owner": "HIA",
+      "primitive": "private output storage",
+      "next": "KEY_QUOTE"
+    },
+    {
+      "id": "KEY_QUOTE",
+      "decision_owner": "HIA",
+      "primitive": "raw code point buffer; release temporary key string at the original point",
+      "next": "VALUE"
+    },
+    {
+      "id": "VALUE",
+      "decision_owner": "HIA graph",
+      "primitive": "requested child capability and required borrowed/owned semantics",
+      "next": "RETURN_VALUE"
+    },
+    {
+      "id": "ERROR_NOTE",
+      "decision_owner": "versioned HIA",
+      "primitive": "requested type/key repr and note operations while preserving primary raised and ambient handled exceptions",
+      "next": "UNWIND"
+    },
+    {
+      "id": "UNWIND",
+      "decision_owner": "HIA",
+      "primitive": "ordered individual release/marker/container/recursion operations with raw exception transport",
+      "next": "TERMINAL_ERROR"
+    },
+    {
+      "id": "CONTAINER_CLOSE",
+      "decision_owner": "versioned HIA",
+      "primitive": "HIA-selected marker deletion, text close and reference-release order",
+      "next": "RETURN_VALUE"
+    },
+    {
+      "id": "FINISH_TEXT",
+      "decision_owner": "HIA",
+      "primitive": "exact UTF-32-to-Unicode materialization only after successful complete graph",
+      "next": "CALL_BOUND_PRINT"
+    },
+    {
+      "id": "CALL_BOUND_PRINT",
+      "decision_owner": "HIA public call plan",
+      "primitive": "call originally bound print with completed string; preserve actual stdout/newline/errors",
+      "next": "DISCARD_PRINT_RESULT"
+    },
+    {
+      "id": "DISCARD_PRINT_RESULT",
+      "decision_owner": "HIA public call plan",
+      "primitive": "release return result at original point, return None",
+      "next": "TERMINAL_SUCCESS"
+    }
+  ],
+  "non_negotiable": [
+    "No graph preflight followed by a second foreign traversal",
+    "No host-normalized complete JSON graph or layout",
+    "No duplicate-converted-key policy absent from original",
+    "No builtins-only profile refusal replacing original subclass behavior",
+    "No host sorted/list.sort/PyList_Sort in the replacement algorithm",
+    "No old TimSort UNKNOWN job is queried or replayed",
+    "No public selector before complete source/native/trace and installed evidence"
+  ],
+  "blocking": [
+    "Graph HIA source not implemented",
+    "Raw CPython object/list-storage and exception shim not implemented",
+    "No-key TimSort mutation/failure/refcount adaptation not implemented or tested",
+    "Python 3.12 iterator versus C 3.14 observations and 3.14.10 reference-protection deltas not executed",
+    "Integer limit, large-number conversion, signal/allocation order unresolved",
+    "Dynamic public/global callback and encoder binding behavior unresolved",
+    "No generated image or actual compiler-cap report"
+  ]
+}

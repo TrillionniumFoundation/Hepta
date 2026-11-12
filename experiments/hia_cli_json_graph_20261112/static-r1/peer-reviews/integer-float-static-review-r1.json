@@ -1,0 +1,78 @@
+{
+  "schema": "hepta.hia.independent-static-review.v1",
+  "reviewer": "hia_remote_audit",
+  "subject": "CLI JSON scalar integer_text / float_text f49f8c91",
+  "status": "STATIC_CLEAR_WITHIN_TWO_FUNCTION_SCOPE",
+  "inputs": [
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/inputs/tools/generate_hia_cli_json_text.py",
+      "size": 12581,
+      "sha256": "f49f8c91abaa25c818dace87e1dfdfb78778594860a14b613295ee2e9f7f7805",
+      "git_blob_sha1": "96c81ea0a72dfde1ec1ac1a4911c0433d3e6e2e5"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/combined-native-v87-r1/tools/generate_hia_worker_request.py",
+      "size": 14222,
+      "sha256": "6616f3a11a0c77823444980764dc0a2d84b1166f93a21584d529a7d0a1806c4a",
+      "git_blob_sha1": "691a5ac7cc3fe2fda0e517d8570369f5c35e55d7"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/combined-native-v87-r1/tools/generate_hia_agent_binary64_format.py",
+      "size": 9906,
+      "sha256": "043429e166c9696f08276636b4527af566c5b44f0a1f2af007973f1c7c3a07ae",
+      "git_blob_sha1": "593a1539d9f3caa89d1a5fb40439050ef31d2041"
+    }
+  ],
+  "scope": {
+    "integer_text": true,
+    "float_text": true,
+    "immediate_workspace_and_formatter_contract": true,
+    "whole_formatter_algorithm_revalidated": false,
+    "graph_owner_reviewed": false,
+    "product_mutated": false,
+    "authoring_executed": false,
+    "Core_VM_executed": false,
+    "native_executed": false,
+    "CPython_comparison_executed": false
+  },
+  "observations": [
+    {
+      "id": "integer-long-division",
+      "finding": "The base1e9 repeated division carries the remainder between high-to-low uint32 limbs. Per-bit carry is below2e9, quotient remains32bits, and the remainder stays below1e9. Low decimal chunks retain exactly9 positions while the highest chunk stops when its carry is exhausted.",
+      "kind": "static arithmetic reasoning"
+    },
+    {
+      "id": "integer-decimal-digit-reciprocal",
+      "finding": "For the remainder domain below1e9, multiplication by3435973837 then right shift35 implements division by10 without uint64 product overflow. Digit scratch capacity10*initial_words+1 bounds ceil(32*words*log10(2)), including zero.",
+      "kind": "static arithmetic reasoning"
+    },
+    {
+      "id": "integer-address-bounds",
+      "finding": "words first equals(length(s)-64)>>2, so the validated top-limb read stays inside the input. Maximum658812288346769097 makes14*words+8449 exactly2^63-1. Digit storage follows the copied limb region; subsequent output count<=length(o)>>2 admission bounds every four-byte point write.",
+      "kind": "static arithmetic reasoning"
+    },
+    {
+      "id": "workspace-zero-case",
+      "finding": "The common minimum8448 bytes is supplemented by the integer-specific formula; zero requires8449 due to its one decimal byte. The function rejects smaller integer scratch before a digit write. An eventual allocator must use this documented kind-specific formula.",
+      "kind": "observed source contract"
+    },
+    {
+      "id": "float-scratch-relocation",
+      "finding": "The actual format_program substitutes original=get(w,8000) then relocates byte/store accesses bylength(w)-8192. The caller writes bits atlength(w)-192 and reads output atlength(w)-2048, exactly those positions. Minimum8448 keeps formatter scratch disjoint from the256-byte leading area.",
+      "kind": "cross-file static observation"
+    },
+    {
+      "id": "ieee-special-and-finite-control",
+      "finding": "Exponent2047 is classified before invoking the finite formatter. Nonzero fraction returnsNaN independently of the sign; zero fraction selectsInfinity/-Infinity. Finite values retain the existing formatter, including its negative-zero control path; u32 formatter length is explicitly widened before use.",
+      "kind": "observed source path"
+    }
+  ],
+  "remaining_open": [
+    "CPython integer digit-limit early refusal, late refusal and _pylong strategy/evaluation timing are not equivalent merely because this HIA output algorithm is valid.",
+    "The whole integer magnitude and decimal scratch remain linear-sized hosted representations, and repeated base1e9 division has quadratic worst-case limb cost; no native timings or large-integer measurements were made.",
+    "Integer representation admission, graph traversal, dictionary sort comparisons, caller binding/exception order, reference lifetime/finalizers and public-entry integration were outside this review.",
+    "No claim that the entire finite formatter algorithm or whole CLI JSON output semantics were requalified."
+  ],
+  "source_after_read_sha256": "f49f8c91abaa25c818dace87e1dfdfb78778594860a14b613295ee2e9f7f7805",
+  "no_new_concrete_blocker_in_scope": true
+}

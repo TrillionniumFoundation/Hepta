@@ -1,0 +1,98 @@
+{
+  "schema": "hia.cli-json.source-findings.v1",
+  "scope": "Static source reading, exact raw identities and AST checks only",
+  "findings": [
+    {
+      "id": "F01",
+      "claim": "Existing bounded wire plus admitted-byte pretty is not a complete output_json path",
+      "basis": [
+        "hepta/hia_json_wire_native.py:ORDINARY_PROFILE/MAXIMUM/REASONS",
+        "tools/generate_hia_json_wire.py:wire traversal and sort phases",
+        "hepta/hia_json_pretty_native.py:NativeJsonPretty.format_admitted_compact"
+      ],
+      "implication": "Reuse algorithms, not their narrower public admission and error policy."
+    },
+    {
+      "id": "F02",
+      "claim": "The ordinary indent=2 call takes Python iteration in 3.12.14 and the C encoder in 3.14.4/3.14.10",
+      "basis": [
+        "reference/cpython-v3.12.14/encoder.py:JSONEncoder.iterencode",
+        "reference/cpython-v3.14.4/encoder.py:JSONEncoder.iterencode",
+        "reference/cpython-v3.14.10/encoder.py:JSONEncoder.iterencode"
+      ],
+      "implication": "Distinct traversal/type/foreign observation plans are required."
+    },
+    {
+      "id": "F03",
+      "claim": "Sorting is over whole items before later pair validation/unpacking, not over a key-only projection",
+      "basis": [
+        "reference/cpython-v3.12.14/encoder.py:_iterencode_dict",
+        "reference/cpython-v3.14.4/_json.c:encoder_listencode_dict",
+        "reference/cpython-v3.14.4/listobject.c:unsafe_tuple_compare"
+      ],
+      "implication": "Equal keys can induce value comparison; bad pair shapes cannot be pre-rejected."
+    },
+    {
+      "id": "F04",
+      "claim": "The C items list can be externally aliased, and its no-key sort detaches storage and restores a failure permutation",
+      "basis": [
+        "reference/cpython-v3.14.4/abstract.c:method_output_as_list/PyMapping_Items",
+        "reference/cpython-v3.14.4/listobject.c:list_sort_impl"
+      ],
+      "implication": "The existing ELF array/key observer needs a new actual-list capability and cleanup plan."
+    },
+    {
+      "id": "F05",
+      "claim": "3.14.10 adds current-item/object protection absent in 3.14.4",
+      "basis": [
+        "CPYTHON-3.14.4-TO-3.14.10-_json-c.diff",
+        "reference/cpython-v3.14.10/_json.c:encoder_listencode_dict/encoder_listencode_list"
+      ],
+      "implication": "Finalizer observations are version-specific; no cross-version lifetime equivalence is claimed."
+    },
+    {
+      "id": "F06",
+      "claim": "ensure_ascii=False preserves Unicode text including surrogates; output is complete before print",
+      "basis": [
+        "hepta/cli.py:output_json",
+        "reference/cpython-v3.14.4/_json.c:encoder_encode_string and encode_basestring implementation",
+        "reference/cpython-v3.14.4/encoder.py:JSONEncoder.encode"
+      ],
+      "implication": "Use text code points, preserve originally bound print, and defer stdout encoding/newline/errors."
+    },
+    {
+      "id": "F07",
+      "claim": "Integer decimal conversion includes early/late policy checks and an optional _pylong path, not only a final count",
+      "basis": [
+        "reference/cpython-v3.14.4/longobject.c:long_to_decimal_string_internal"
+      ],
+      "implication": "The new scalar late check is not yet full integer conversion policy; timing/allocation/signal behavior remains open."
+    },
+    {
+      "id": "F08",
+      "claim": "Public output_json is dynamically looked up at ordinary opcode22 and existing tests mutate its argument",
+      "basis": [
+        "hepta/hia_cli_native.py:effect22",
+        "tests/test_hia_cli_native.py:CliNativeTests.test_output_precedes_result_truth_and_query_read_errors"
+      ],
+      "implication": "Preserve the callback seam and subsequent caller observation; do not cache or bypass it."
+    },
+    {
+      "id": "F09",
+      "claim": "The original admitted-byte pretty output has no 8MiB output cap but still an 8MiB input and 129-entry stack",
+      "basis": [
+        "hepta/hia_json_pretty_native.py:module contract and NativeJsonPretty"
+      ],
+      "implication": "Its output measurement discipline is reusable; its input/depth profile is not a full graph replacement."
+    },
+    {
+      "id": "F10",
+      "claim": "The frozen TimSort source has only recovered source identity here; original launch/ingress remains UNKNOWN",
+      "basis": [
+        "REFERENCE-PINS.json:timsort",
+        "reference/elf-timsort-078d/tools/hia_machine_elf_sort_algorithm.py"
+      ],
+      "implication": "No native/full-sort/JSON equivalence results are inherited."
+    }
+  ]
+}

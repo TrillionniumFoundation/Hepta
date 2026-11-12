@@ -1,0 +1,274 @@
+{
+  "schema": "hia.cli-json.future-trace-plan.v1",
+  "status": "PLANNED_NOT_LOADED_NOT_EXECUTED",
+  "candidate_default_selected": false,
+  "oracle": "Saved original output_json code and original observed environment for each actual runtime; no lookup from an already replaced wrapper",
+  "runtime_profiles": [
+    "CPython 3.12.14",
+    "CPython 3.14.4",
+    "CPython 3.14.10"
+  ],
+  "evidence_per_case": [
+    "exact input construction and original/candidate source/image identities",
+    "complete Python text as code points or exact exception type/message/cause/context/notes",
+    "ordered foreign operation/result/release ledger",
+    "stdout calls and exact returned or raised object identity where relevant",
+    "native mode/image/operation/actual normal-return ledger",
+    "final reference ownership/permission state"
+  ],
+  "groups": [
+    {
+      "name": "scalar",
+      "cases": [
+        {
+          "id": "scalar.none_bool_constants",
+          "obligation": "None, False, True retain their exact text and are classified before integer conversion.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "scalar.all_json_controls",
+          "obligation": "Every U+0000..U+001F, quote and backslash has exact ordinary ensure_ascii=False escaping; no escaped slash is introduced.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "scalar.unicode_and_surrogate_units",
+          "obligation": "ASCII, Latin1, BMP, supplementary code points and every isolated surrogate remain the same Python str code points.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "scalar.integer_zero_sign_limbs",
+          "obligation": "Zero, both signs, uint32 limb boundaries and carries preserve complete decimal text.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "scalar.integer_digit_limit_edges",
+          "obligation": "Current positive limit below/at/above output length, disabled limit, threshold and early-estimate cases preserve exception timing.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "scalar.integer_large_pylong_boundary",
+          "obligation": "Values around the pinned raw digit-count threshold preserve accepted output and observed failure/limit behavior without introducing a size cap.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "scalar.binary64_finite_reference_suite",
+          "obligation": "Run the complete existing finite formatter method bodies with the actual new image separately identified; do not inherit old results.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "scalar.nan_infinity_payloads",
+          "obligation": "NaN payload/sign variants and infinities match allow_nan=True spellings, including negative zero for finite bits.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "scalar.numeric_subclass_hooks",
+          "obligation": "Integer/float repr overrides are ignored where the original base conversion ignores them; Python-profile float comparison hooks retain their actual order.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "scalar.nonzero_workspace_refusal",
+          "obligation": "Failed status is checked before stale length/output, including short workspace and reuse after success.",
+          "status": "NOT_RUN"
+        }
+      ]
+    },
+    {
+      "name": "graph",
+      "cases": [
+        {
+          "id": "graph.empty_container_subclass",
+          "obligation": "Compare actual empty fast paths against subclass bool/len/items/iter overrides separately on each runtime.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "graph.root_fake_class",
+          "obligation": "Root isinstance __class__ effects and the subsequent actual string-encoder rejection remain distinct.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "graph.nested_fake_class",
+          "obligation": "Python-profile isinstance observations versus nested C raw type flags remain version-specific.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "graph.deep_beyond_128",
+          "obligation": "A graph beyond old wire depth128 follows the original runtime recursion behavior rather than a new admission refusal.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "graph.bytes_beyond_8MiB",
+          "obligation": "Valid strings and nested output larger than old wire bounds are fully compared, not truncated or rejected by a new byte budget.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "graph.shared_children",
+          "obligation": "Shared acyclic containers are encoded at each original occurrence without a global deduplication/collision policy.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "graph.cycles_and_error_priority",
+          "obligation": "List, dict, and default-result cycles retain marker timing and the first original exception.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "graph.list_subclass_sequence_fast",
+          "obligation": "C profile iterator/length-hint and Python profile truth/iteration are traced independently.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "graph.iteration_growth_shrink",
+          "obligation": "List-size observation and future-element mutation match the actual reference path without a whole-graph snapshot.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "graph.dict_items_iterator_conversion",
+          "obligation": "items() return list, tuple, iterator and failing iterator follow Mapping_Items versus Python sorted conversion.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "graph.default_type_error_name",
+          "obligation": "Default object __class__/__name__ observation and exception construction preserve the original callback sequence.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "graph.default_return_nested",
+          "obligation": "A supplied observed encoder-default extension returning another graph preserves marker and recursion order; no custom default is silently added.",
+          "status": "NOT_RUN"
+        }
+      ]
+    },
+    {
+      "name": "sort",
+      "cases": [
+        {
+          "id": "sort.raw_items_not_keys",
+          "obligation": "Equal-comparing foreign keys force value comparison where full tuple sorting does so; key-only projection is rejected.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "sort.none_numeric_mixed_key_failure",
+          "obligation": "Actual incomparable mixed keys fail before value encoding at the same comparison.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "sort.nan_identity_and_equality",
+          "obligation": "NaN and tuple identity-shortcut cases retain original comparison results/order.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "sort.cached_slot_notimplemented",
+          "obligation": "Cached richcompare slot, NotImplemented fallback, truth and decref are matched in the full event ledger.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "sort.mutable_type_slot",
+          "obligation": "A slot change during earlier comparison preserves fallback selection at later comparisons.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "sort.run_gallop_power_trace",
+          "obligation": "Ascending/descending/equal runs, insertion, galloping and merge-power boundaries match every actual comparison, not only final order.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "sort.invalid_item_after_sort",
+          "obligation": "C two-tuple check and Python two-value unpack occur after original sorting and retain distinct errors.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "sort.aliased_items_empty_during_sort",
+          "obligation": "An items() result list retained by user code appears empty during comparisons on the C no-key sort path.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "sort.mutation_then_success",
+          "obligation": "Aliased-list mutation produces the original mutation error and restores the sorted original permutation.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "sort.mutation_then_comparison_error",
+          "obligation": "An existing comparison exception retains priority over later mutation detection; new entries are released in the original order.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "sort.failure_permutation_and_finalizers",
+          "obligation": "Every comparison failure point preserves all items, actual partial permutation and destructor observations.",
+          "status": "NOT_RUN"
+        }
+      ]
+    },
+    {
+      "name": "entry_and_lifetime",
+      "cases": [
+        {
+          "id": "entry.output_callback_seam",
+          "obligation": "The current self.cli.output_json lookup and caller result mutation remain visible before later truth evaluation.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "entry.bound_print_before_dumps",
+          "obligation": "A dumps or comparison callback replacing print does not change the already bound print for this invocation.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "entry.stdout_after_dumps",
+          "obligation": "A callback replacing stdout is observed by the original bound print only after complete serialization.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "entry.dumps_binding_and_encoder_methods",
+          "obligation": "Observed replacements of json.dumps/JSONEncoder methods are not silently treated as the pinned ordinary algorithm.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "entry.no_partial_stdout_on_encode_error",
+          "obligation": "Dumps failure performs no print write even when an internal output prefix exists.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "entry.stdout_surrogate_policy",
+          "obligation": "Strict, surrogatepass/backslashreplace and failing stdout policies apply at final print, after graph success.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "entry.print_result_and_error",
+          "obligation": "Print return-value discard, None return, write failure and active exception context match the original.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "lifetime.current_item_314_patch_difference",
+          "obligation": "3.14.4 borrowed loop references and 3.14.10 added INCREF/DECREF observations are separate reference traces, never merged.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "lifetime.mapping_and_key_temporaries",
+          "obligation": "Items iterator/list/current tuple/keystr/value references are released at the original success and failure phases.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "lifetime.active_raised_and_handled",
+          "obligation": "Destructor sys.exception/context/cause during comparison, note formatting and unwind preserves both exception channels.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "lifetime.note_repr_reentrancy",
+          "obligation": "Failing nested value and foreign key repr in the C error note retain order and exception precedence.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "lifetime.permission_after_return_failure",
+          "obligation": "An exception after native return and before observer bookkeeping makes that capability terminal with no effect replay.",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "lifetime.allocation_and_interrupt",
+          "obligation": "Explicit allocation/interrupt controls remain required; identical text alone cannot qualify these traces.",
+          "status": "NOT_RUN"
+        }
+      ]
+    }
+  ],
+  "planned_case_count": 46,
+  "existing_population": "Original CLI test module identities are recorded separately in SOURCE-AUDIT.json; no methods are removed, renamed or asserted executed here.",
+  "budgets": "No new run, altered product deadline, benchmark result or qualification gate is created by this plan."
+}
