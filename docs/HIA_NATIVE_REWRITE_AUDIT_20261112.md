@@ -1,10 +1,28 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW41）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW42）
 
 ## 当前结论
 
 **整套仍为 OPEN。普通补丁协调器已有完整独立 CI 通过；Function、wrapper 和命名空间若干域已有明确进展。完整 Emitter、Worker、普通 Store/SQL、安装与全部公开入口仍未闭合。当前生产入口仍依赖 Python，本提交不激活新生产入口、不删除旧实现。**
 
-FOLLOW37恢复点为e3ea7f33f1d7bf3350e4b54a9a8d3522746223c7，树f13b040a6f98ee39bef6f4db81f60d33a0dbd098、5,249文件。FOLLOW38已发布为86c3e60966085f9aefde1170fbbb737c20a52422，树fc5737b2d001163aba37d57f2e1244668feeddd8、5,366文件；FOLLOW39已发布为f3d17aac2caabd1a077fee0848707f3a50ac3b46，树e01d092ffe2dbba5aba01f62a7be77ab0f0fb0a2、5,546文件；FOLLOW40已发布为3a230c96c7ab0c0c12ed8caa552691ab226bcd05，树00331bbcfa30977f1d7ecd6578be0cdc51662e9e、5,680文件；本轮FOLLOW41以FOLLOW40为唯一父提交。独立完整基线始终固定为 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5，树 6ef9e1713065436a3b1886fe9edcf0a4a1120773，共2,798文件。FOLLOW37完整新增/恢复文件身份见 ci-followup-r37/publication-manifest.json；FOLLOW38、FOLLOW39及本轮新增/替换源码分别见对应ci-followup目录中的publication-manifest.json。
+## FOLLOW42 最新状态（2026-11-12 09:30:41 UTC）
+
+本提交以 FOLLOW41 `3eaba785ca9a9b31795b3c3ca39a546ec5c5ffea`、树 `1df2005cb5e91989931774249c554515820314e2` 的完整5,799文件为唯一父状态。整套 OPEN、生产激活0、删除0；下列最新状态更新后文历史提交的“待执行”描述，原失败原件不改写。
+
+- FOLLOW41 源码语法 run43189935524 已 SUCCESS。该结果不等于原生语义通过。
+- FOLLOW40 Worker P16/P17/P18 job131079272197 实际 FAIL，首错为 namespace package 的 `_NamespacePath` 没有 `insert`。尚未生成或编译新 HIA，实际0 B3、0 native案例。本提交仅将路径操作改为保留全部原路径的 list prepend，并同步精确index/CI摘要。完整338,668字节原日志与失败观察保留在worker-program-services-r2/observations。仍要求6次新B3、5组113案例、83实际ELF进程/38私有入口，全部原预算保持。
+- FOLLOW41 issued-FS job131086387406 实际 FAIL：10项精确DMS9源控制已执行，6个角色全部真实B3完成；随后packer对执行器摘要的严格检查拒绝旧R6绑定，因此实际0 packer入口、0物理案例。新r4仅修正两份packer的FS8执行器精确摘要及传递依赖，并加入全字节反向恢复控制。仍要求42物理组、33packer控制、84组三方对照和6+1次新B3；原90/180/1GiB与900秒总墙钟不变。完整382,894字节原日志与6项原始/派生证据保留。不能将本轮计作42组已通过。
+- FOLLOW41 Emitter job131086387011 实际 FAIL；正在保存完整原件并修正下一处参考夹具。完整新结果须以其精确交付读回为准；旧44组/670案例不改写成新整轮通过。
+- FOLLOW41 ordinary-impact job131086386743、FS8原件reader131086386894、FOLLOW40 reuse/adopt原件reader131079272150尚无已读取终态。完整保留回归43180758665/job131055860427仍未取得最终报告；原4,157项FAIL/HOLD不变。
+
+### 已恢复的完整影响分析原件与公共诊断源
+
+FOLLOW40 impact/diagnostic reader131079272223取到了70份完整原件（46份UTF8、24份二进制），随后因最后要求了不存在的`generate_hia_program_driver.py`而FAIL。实际原始诊断驱动明确引用`generate_hia_program_admission_driver.py`。本提交保存606,247字节完整原日志、原样发出的summary及全部70原件，逐件完整验证GitSHA、SHA256、字节；24份二进制通过不可变暂存提交`70f1fdafdfb4fe17d73b453c3b2e4d08cbe1916d`实际GET读回。原始JSON不经JS解析再编码。旧reader在最终输入after-check前触发错误，不能声称其before/after完整通过；新reader改正真实文件名，并将全部输入after-check放入finally，仍0目标执行。
+
+完整原件证实：六个正常返回的影响分析案例中，candidate及receipt原字节均等于原oracle，impact完整对象相等但字段序列不同。原合同要求canonical，FOLLOW41仅修正测试的错误序列化；旧结果仍FAIL。另两项large-valid和graph-long-report的native子进程确实返回-9，分别经过90,023,926,570及90,017,284,820纳秒，stdout/stderr均为空；它们实际碰到90秒CPU门，不只是外围计时。FOLLOW41 SHA32字访问优化是否足够仍须该真实运行的终态。
+
+公共A入口原生root已确认对部分group1..6/9只保留编号而拒绝完整文本输出。已完整取得与role40源码摘要一致的原lower-main作者，以及原Core诊断驱动、消息表与text作者；正在将实际错误路由与原完整文本接入HIA生成器/返回链。该工作没有被当成公共诊断或安装闭合。
+
+FOLLOW37恢复点为e3ea7f33f1d7bf3350e4b54a9a8d3522746223c7，树f13b040a6f98ee39bef6f4db81f60d33a0dbd098、5,249文件。FOLLOW38已发布为86c3e60966085f9aefde1170fbbb737c20a52422，树fc5737b2d001163aba37d57f2e1244668feeddd8、5,366文件；FOLLOW39已发布为f3d17aac2caabd1a077fee0848707f3a50ac3b46，树e01d092ffe2dbba5aba01f62a7be77ab0f0fb0a2、5,546文件；FOLLOW40已发布为3a230c96c7ab0c0c12ed8caa552691ab226bcd05，树00331bbcfa30977f1d7ecd6578be0cdc51662e9e、5,680文件；此前FOLLOW41以FOLLOW40为唯一父提交。独立完整基线始终固定为 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5，树 6ef9e1713065436a3b1886fe9edcf0a4a1120773，共2,798文件。FOLLOW37完整新增/恢复文件身份见 ci-followup-r37/publication-manifest.json；FOLLOW38、FOLLOW39及本轮新增/替换源码分别见对应ci-followup目录中的publication-manifest.json。
 
 本地计算环境在本轮工作中容量耗尽，随后正式 unavailable。失联前未取得终态的任务保持 UNKNOWN，不重放或推断成功。已落入 Git 的源码/证据继续用于独立 CI；尚未完成封包的本地记录不被描述为完整可恢复证据。
 

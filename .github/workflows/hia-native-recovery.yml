@@ -7256,7 +7256,7 @@ jobs:
           retention-days: 90
           compression-level: 0
 
-  worker_program_services_r1:
+  worker_program_services_r2:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       !contains(github.event.head_commit.message, '[hia-ci:') ||
@@ -7306,7 +7306,7 @@ jobs:
         env:
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-worker-program-services-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-program-services-r1/worker_program_service_ci_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-program-services-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-program-services-r2/worker_program_service_ci_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-program-services-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -7394,7 +7394,7 @@ jobs:
       !contains(github.event.head_commit.message, '[hia-ci:') ||
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:impact-and-diagnostic-originals]')
-    name: Read complete failed impact buffers and exact archived diagnostic authors
+    name: Read complete failed impact buffers and actual named program admission diagnostic authors
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -7434,7 +7434,7 @@ jobs:
         env:
           HIA_IMPACT39_DIR: ${{ runner.temp }}/hia-impact39-original
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-impact-diagnostic-original-readback
-        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r40/read_impact39_and_diagnostic_authors_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-impact-diagnostic-original-readback-driver.log"
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r42/read_impact39_and_diagnostic_authors_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-impact-diagnostic-original-readback-driver.log"
       - name: Preserve exact original buffer and source readback
         if: always()
         uses: actions/upload-artifact@v4
@@ -7447,7 +7447,7 @@ jobs:
           retention-days: 90
           compression-level: 0
 
-  namespace_issued_fs_request_bridge_r3:
+  namespace_issued_fs_request_bridge_r4:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       !contains(github.event.head_commit.message, '[hia-ci:') ||
@@ -7506,7 +7506,7 @@ jobs:
         env:
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-issued-fs-request-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/issued-fs-bridge-r3/ci_namespace_issued_fs_r3.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-issued-fs-request-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/issued-fs-bridge-r4/ci_namespace_issued_fs_r4.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-issued-fs-request-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4

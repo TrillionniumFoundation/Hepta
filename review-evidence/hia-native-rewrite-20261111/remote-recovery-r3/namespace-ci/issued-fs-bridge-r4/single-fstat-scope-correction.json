@@ -1,0 +1,67 @@
+{
+  "schema": "hia.namespace.scope-correction.v1",
+  "status": "SOURCE_REVIEW_ONLY",
+  "subject": {
+    "repository": "TrillionniumFoundation/Hepta",
+    "path": "namespace-db-join-r1-generator.py",
+    "git_blob": "92f06c473bd42fe5f3f16666c4e9aa9b3cebadcf",
+    "bytes": 40272,
+    "sha256": "c2d2d5f522febe4956db2ccd5d7b8003014fedb16b915c751c0e3a810008ba7b"
+  },
+  "correction": {
+    "previous_assumption": "A separate global inode directory or a completed-FSTAT adoption command was needed to avoid a second registration FSTAT.",
+    "finding": "The existing six-role outer already owns the device/inode directory and carries the one actual registration FSTAT request/result into the existing DB-node register continuation. That prior assumption is withdrawn.",
+    "scope": "This concerns the registration FSTAT only. SQLite verifyDbFile may subsequently issue additional FSTAT/STAT warnings; it is not a claim that complete unixOpen performs just one stat syscall."
+  },
+  "source_evidence": [
+    {
+      "functions": [
+        "j_node_key",
+        "j_pre_stat"
+      ],
+      "detail": "j_pre_stat validates the actual gateway stat result, selects an existing live node by device/inode or creates a node, and saves the exact 256-byte actual FS request plus complete result payload in a private source blob."
+    },
+    {
+      "functions": [
+        "j_user",
+        "j_accept_dms",
+        "j_pre_stat"
+      ],
+      "detail": "Registration saves the pre-FSTAT FS call/syscall watermarks at workspace offsets 336/344. A new DB node starts from these previous watermarks, while the outer accepts the completed current DMS/FS receipt."
+    },
+    {
+      "functions": [
+        "j_register_start",
+        "j_db_pending"
+      ],
+      "detail": "The DB register request is sent to the same native child. At its exact first FSTAT pending action, the outer checks command/stage/op/token/zero arguments, builds an ACK with the saved original request/result, consumes the saved blob, and resumes the DB child. This branch does not issue another FS gateway action."
+    },
+    {
+      "functions": [
+        "j_gateway_frame",
+        "j_stat_frame",
+        "j_child_shape",
+        "j_db_completed"
+      ],
+      "detail": "The actual-child channel is correlated to the pending source bytes, role/node/generation/action and native workspace; stat duplicate fields are cross-checked. Completion synchronizes the issued file row and live reference count."
+    }
+  ],
+  "provenance_boundary": "These are private fixed-carrier-issued channels. Byte headers/nonces by themselves are not external authentication, and this static review does not add execution counts.",
+  "adopt_r4": {
+    "delivery_blob": "0cf0605e28aa2e4a5f50e383e2f6ad5f2c54c549",
+    "status": "NEW_UNEXECUTED_DRAFT",
+    "interpretation": "A more explicit completed-receipt component interface. It is not a fix for an observed duplicate syscall in the current six-role outer and is not used to replace current physical qualification."
+  },
+  "next_required_work": [
+    "Extend the existing outer with source-bound findReusableFd/TAKE_UNUSED selection and deferred-token consumption.",
+    "Join complete unixOpen creation modes, read-only fallback and actual FS7 primitives while preserving error and side-effect order.",
+    "Keep the complete physical gates, ordinary Store/31-SQL and migration work separate from component passes."
+  ],
+  "new_execution": {
+    "ast": 0,
+    "vm": 0,
+    "b3": 0,
+    "native": 0,
+    "os_syscalls": 0
+  }
+}
