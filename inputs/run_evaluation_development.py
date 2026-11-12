@@ -300,7 +300,7 @@ def component(source,output):
     environment=env();environment.update(HEPTA_HIA_SERVICE_EVALUATION_DEVELOPMENT_MANIFEST=str(output/'candidate/development-manifest.json'),
                                       HEPTA_HIA_SERVICE_EVALUATION_EVIDENCE=str(output/'component-evidence'))
     receipt=command(source,output,'native-components',[sys.executable,'-I','-B',str(INPUTS/'run_controls.py'),
-        '--source',str(source),'--output',str(output/'native-components'),'--expected','12',
+        '--source',str(source),'--output',str(output/'native-components'),'--expected','14',
         'tests.test_hia_service_evaluation_native.ServiceEvaluationNativeTests'],environment)
     current_source(source,output)
     require(sha((output/'retained-development-compiler.bin').read_bytes())==COMPILER_SHA,'compiler changed after component')

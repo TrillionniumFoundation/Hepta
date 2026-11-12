@@ -1,9 +1,22 @@
-# R6: guarded complete fresh source scan
+# Evaluation R8 independent CPython 3.14.4 development
 
-Independent CPython 3.14.4 development. Authentic product checkout remains 4b; the exact 794d joint recipe is only a development input. The Evaluation nine bodies and native HIA bytes are unchanged from R5.
+The source is the exact published 4b tree plus the pinned 794d joint development
+recipe and this finite Evaluation overlay. The authenticated checkout HEAD is
+4b; the resulting authored/generated source tree is reported separately.
 
-The only new product implementation is a standard-provider fast path for the existing complete ordered source scan, plus additive tests. It removes lexical Path joins/relative computations and retains actual `open -> read -> close -> hash` order and the actual runtime buffering protocol. Unknown or changed Path/io/hash providers use the original function. No cross-call file/digest/inventory cache, smaller source map, removed public admission, or budget change is introduced.
+R8 preserves the complete nine policy bodies, all original test methods and
+the original 48 / 35 / 48 caller groups and deadlines. It changes only fixed
+adjacent literal primitives and adds two native lifecycle/foreign-observation
+controls and one Source control. Local CPython 3.12.14 ran 57 Source and 14
+Native controls; those results are not transferred to this independent job.
 
-R5 actual 3.14 run 43286586760 remains FAIL: the full namespace35 and ledger48 each had three original failures. R6 local 3.12 Source56 and Native12 passed. The targeted local six-case harness refused missing clang-20 before running any case; those observations are HOLD. They are not six business failures or passes.
+All 88 prior generators plus two Evaluation generators run. Each compilation
+retains its original 20-second limit, each external group its 1800-second limit.
+Each group is attempted independently after a successful new native build.
+The original ABI observer stays active. Every original failure is retained.
 
-This workflow keeps the exact R5 driver, complete 88 original plus two Evaluation generators, all source/adapter/helper/native controls, and independent original Agent48, namespace35, ledger48 groups. All original 1800s group / 20s compiler / 3000ms total and 1000ms native per-case budgets remain unchanged. Every stage and raw failure is retained even when another stage fails. Current-cold, whole-native, and default activation remain false.
+The compiler is retained 81b6 development input, not matching current cold.
+No default selection or product reference is changed. Complete source identity
+is rechecked before/after each stage. The phase diagnostic's preparation cases
+had zero Evaluation entries: this candidate does not claim to repair that
+separate full-fresh-source preparation bottleneck.
