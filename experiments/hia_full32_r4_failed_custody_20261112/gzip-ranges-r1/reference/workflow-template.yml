@@ -1,0 +1,66 @@
+name: HIA v89 complete original ZIP in bounded artifacts
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  retain_original:
+    name: Retain one historical ZIP as a fixed complete partition
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-v89-full32-failed-original-parts-run-r1-20261112-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the exact reviewed custody control without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: CONTROL_COMMIT_PLACEHOLDER
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Set up the fixed custody interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Verify frozen controls and create new private custody roots
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_v89_full32_failed_custody_20261112/multipart-r1/controller.py prepare --root "$RUNNER_TEMP/hia-v89-full32-failed-parts-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+      - name: Read the one sealed original ZIP and create the fixed partition under the original 900-second guardian
+        id: owned_collection
+        timeout-minutes: 16
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_v89_full32_failed_custody_20261112/multipart-r1/controller.py run --root "$RUNNER_TEMP/hia-v89-full32-failed-parts-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+      - name: Independently retain every fixed part and controls after closed ECHILD
+        if: always()
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_v89_full32_failed_custody_20261112/multipart-r1/controller.py finalize --root "$RUNNER_TEMP/hia-v89-full32-failed-parts-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+UPLOAD_STEPS_PENDING_ACTUAL_COUNT

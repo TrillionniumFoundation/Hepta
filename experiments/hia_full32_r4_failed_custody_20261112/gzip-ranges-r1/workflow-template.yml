@@ -1,0 +1,83 @@
+name: HIA full32 r4 failed originals as gzip ranges and small diagnostics
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  retain_original:
+    name: Read original failed evidence, retain lossless ZIP ranges
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-full32-r4-gzip-originals-run-r1-20261112-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the exact reviewed custody control without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: CONTROL_COMMIT_PLACEHOLDER
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /experiments/hia_full32_r4_failed_custody_20261112/gzip-ranges-r1/
+            /.github/workflows/hia-core.yml
+            /.github/workflows/hia-ndu-feedback.yml
+            /.github/workflows/hia-source-custody.yml
+      - name: Set up the fixed custody interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Verify frozen controls and create new private custody roots
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_full32_r4_failed_custody_20261112/gzip-ranges-r1/controller.py prepare --root "$RUNNER_TEMP/hia-full32-r4-gzip-originals-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+      - name: Read the one sealed original ZIP and create the fixed partition under the original 900-second guardian
+        id: owned_collection
+        timeout-minutes: 16
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_full32_r4_failed_custody_20261112/gzip-ranges-r1/controller.py run --root "$RUNNER_TEMP/hia-full32-r4-gzip-originals-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+      - name: Independently retain every fixed part and controls after closed ECHILD
+        if: always()
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_full32_r4_failed_custody_20261112/gzip-ranges-r1/controller.py finalize --root "$RUNNER_TEMP/hia-full32-r4-gzip-originals-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+      - name: Preserve whole failure receipts, small originals, and complete inventories first
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-full32-r4-small-originals-${{ github.run_id }}-1
+          path: '${{ runner.temp }}/hia-full32-r4-gzip-originals-public-r1/small/'
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          retention-days: 14
+          overwrite: false
+UPLOAD_STEPS_PENDING_ACTUAL_COUNT

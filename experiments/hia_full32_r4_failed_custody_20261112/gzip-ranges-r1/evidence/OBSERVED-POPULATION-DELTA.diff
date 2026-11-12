@@ -1,0 +1,142 @@
+--- old-unexecuted/gzip_evidence.py
++++ observed-denominator/gzip_evidence.py
+@@ -376,23 +376,24 @@
+                     'declared_total_bytes': declared_bytes, 'members': catalog,
+                     'body_hashes_are_in_separate_full_read_inventory': True})
+                 infos = archive.infolist()
+-                require(len(infos) == 48 and all(not x.is_dir() for x in infos),
+-                        'original uploaded 48-file outer population differs')
++                require(4 <= len(infos) <= 256, 'bounded observed outer population differs')
+                 require(sum(x.file_size for x in infos) <= MAX_OUTER_BYTES, 'outer expanded bytes exceed bound')
+                 names = {x.filename: x for x in infos}
+-                require(all(name in names for name in (TAR_NAME, CAT_NAME, CUSTODY_NAME, FINAL_NAME)),
++                require(all(name in names and not names[name].is_dir()
++                            for name in (TAR_NAME, CAT_NAME, CUSTODY_NAME, FINAL_NAME)),
+                         'four fixed original custody members missing')
+                 # Read identity-defining originals first; preserve them even if later payload inspection fails.
+                 ordered = [names[n] for n in (CAT_NAME, CUSTODY_NAME, FINAL_NAME)] + [
+                     x for x in infos if x.filename not in {CAT_NAME, CUSTODY_NAME, FINAL_NAME, TAR_NAME}]
+                 parsed = {}
+                 for info in ordered:
+-                    safe_path(info.filename)
+-                    keep = '/wheels/' not in info.filename
++                    safe_path(info.filename.rstrip('/') if info.is_dir() else info.filename)
++                    keep = not info.is_dir() and '/wheels/' not in info.filename
+                     with archive.open(info) as stream:
+                         item = body(stream, info.file_size, 'OUTER', info.filename, keep,
+                                     MAX_CATALOG if info.filename == CAT_NAME else 16 << 20)
+-                    outer.append({**item, 'crc32': '%08x' % info.CRC})
++                    outer.append({**item, 'kind': 'directory' if info.is_dir() else 'regular',
++                                  'crc32': '%08x' % info.CRC})
+                     if info.filename in (CAT_NAME, CUSTODY_NAME, FINAL_NAME):
+                         selected = next((x for x in captures if x['scope'] == 'OUTER' and x['path'] == info.filename), None)
+                         require(selected is not None, 'required identity original was omitted')
+@@ -491,14 +492,17 @@
+                     require(counted.count == info.file_size
+                             and counted.digest.hexdigest() == custody['archive']['sha256'],
+                             'whole inner gzip original SHA/CRC differs')
+-                    outer.append({'path': TAR_NAME, 'bytes': counted.count,
++                    outer.append({'path': TAR_NAME, 'kind': 'regular', 'bytes': counted.count,
+                                   'sha256': counted.digest.hexdigest(), 'crc32': '%08x' % info.CRC})
+                 require(seen == set(expected) | {MANIFEST} and custody.get('archive_members') == len(seen)
+                         and custody.get('regular_bytes') == total_regular,
+                         'complete selected TAR population or bytes differ')
+                 require(len(outer) == len(infos) and {x['path'] for x in outer} == set(names),
+                         'complete outer original CRC/SHA population differs')
+-                result.update(outer_files=len(outer), outer_bytes=sum(x['bytes'] for x in outer),
++                result.update(outer_entries=len(outer),
++                    outer_files=sum(x['kind'] == 'regular' for x in outer),
++                    outer_directories=sum(x['kind'] == 'directory' for x in outer),
++                    outer_bytes=sum(x['bytes'] for x in outer),
+                     typed_originals=len(rows), inner_archive_members=len(seen), inner_regular_bytes=total_regular,
+                     original_final_status=historical_final.get('status'),
+                     original_complete_custody=historical_final.get('complete_custody'),
+--- old-unexecuted/controller.py
++++ observed-denominator/controller.py
+@@ -755,10 +755,37 @@
+                 and physical.get('all_available_original_bodies_independently_read') is True
+                 and physical.get('qualification_executed') is False
+                 and physical.get('original_results_reclassified') is False
+-                and physical.get('outer_files') == 48
+                 and physical.get('whole_originals_omitted_for_transport') == []
+                 and index.get('critical_originals') == physical.get('critical_originals'),
+                 'whole original physical readback differs')
++        directory, _ = document(private / 'DIRECTORY.json', 8 << 20)
++        inventory, _ = document(private / 'OUTER-INVENTORY.json', 8 << 20)
++        same_original_record(physical.get('directory'), file_record(private / 'DIRECTORY.json', 8 << 20))
++        same_original_record(physical.get('outer_inventory'), file_record(private / 'OUTER-INVENTORY.json', 8 << 20))
++        declared, actual_rows = directory.get('members'), inventory.get('files')
++        require(type(declared) is list and type(actual_rows) is list
++                and 4 <= len(declared) <= 256 and inventory.get('complete') is True
++                and len(declared) == len(actual_rows) == physical.get('outer_entries'),
++                'complete observed original ZIP denominator differs')
++        by_name = {row.get('name'): row for row in declared}
++        actual_names = {row.get('path') for row in actual_rows}
++        require(len(by_name) == len(declared) and len(actual_names) == len(actual_rows)
++                and set(by_name) == actual_names
++                and all(name in by_name and by_name[name].get('kind') == 'regular' for name in
++                        (GZIP_HELPER.TAR_NAME, GZIP_HELPER.CAT_NAME, GZIP_HELPER.CUSTODY_NAME, GZIP_HELPER.FINAL_NAME)),
++                'full observed outer member set or four mandatory originals differ')
++        for row in actual_rows:
++            declared_row = by_name[row['path']]
++            require(row.get('kind') == declared_row.get('kind')
++                    and type(row.get('bytes')) is int and row['bytes'] == declared_row.get('uncompressed_bytes')
++                    and row.get('crc32') == '%08x' % declared_row['crc32_from_directory']
++                    and type(row.get('sha256')) is str and re.fullmatch('[0-9a-f]{64}', row['sha256']),
++                    'actual full outer CRC/SHA/size record differs from observed directory')
++        require(sum(row['bytes'] for row in actual_rows) == directory.get('declared_total_bytes')
++                == physical.get('outer_bytes')
++                and sum(row['kind'] == 'regular' for row in actual_rows) == physical.get('outer_files')
++                and sum(row['kind'] == 'directory' for row in actual_rows) == physical.get('outer_directories'),
++                'observed outer full-body totals differ')
+         critical = physical.get('critical_originals')
+         require(type(critical) is list and [x.get('path') for x in critical] == list(GZIP_HELPER.CRITICAL_INNER)
+                 and all(x.get('status') in ('PRESENT', 'ORIGINAL_MISSING', 'ORIGINAL_UNREADABLE') for x in critical),
+--- old-unexecuted/policy.json
++++ observed-denominator/policy.json
+@@ -21,9 +21,9 @@
+   "capacity_scope": "Original ZIP plus one complete gzip-range copy only; raw decompression is streamed into hashes. After closed ECHILD, range files relocate on the same filesystem. Original 8 GiB/100000 inodes remain required. The gzip expansion allowance, private/public bounded small originals, actual allocated blocks, final document reserves, one 320 MiB serial upload workspace and 512 MiB filesystem reserve are explicitly checked. No local acceptance is inferred from unavailable capacity.",
+   "control_files": {
+     "controller.py": {
+-      "bytes": 63570,
+-      "git_blob": "c2887e16ecd53740815382e041407355f874bb2c",
+-      "sha256": "42ddbf56ed498e8f6dbe322059815e7dbe0ab69c23712e3ca86c739e07c39556"
++      "bytes": 65803,
++      "git_blob": "463dca14d01ff0035461845c46912e63e7ba3d6b",
++      "sha256": "95a9c71a96e6679e273ea697c0a5826cbc948445d5dcbdbce92e75308cc50a62"
+     },
+     "guardian.py": {
+       "bytes": 10257,
+@@ -31,9 +31,9 @@
+       "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023"
+     },
+     "gzip_evidence.py": {
+-      "bytes": 30408,
+-      "git_blob": "1c65d2c1b67df71a039fb8e525fcc41db82ee615",
+-      "sha256": "6a5a312306b4227d0a9baea66c8f7f4e08cd2adf844808178f53bf3fcda11d3f"
++      "bytes": 30757,
++      "git_blob": "9a6fa1d0147bbf90026667c5dff5258e81cb66ce",
++      "sha256": "ccbf7598e43cbe07802a80fd52e93f3ee26cbae9921946eaea23272754a471de"
+     },
+     "original_receiver.py": {
+       "bytes": 25558,
+@@ -157,6 +157,7 @@
+   "schema": "hia.actions.failed-full32-gzip-parts-policy.v1",
+   "slice_publication": "RELOCATE_SAME_FILESYSTEM_AFTER_CLOSED_ECHILD",
+   "small_diagnostics": {
++    "actual_complete_directory_and_body_SHA_set_must_join_exactly": true,
+     "fixed_outer_required": [
+       "hia-v87-full-public/ORIGINAL-CATALOG.json",
+       "hia-v87-full-public/CUSTODY.json",
+@@ -166,8 +167,10 @@
+     "inner_container": "hia-v87-full-public/full-retained-originals.tar.gz",
+     "maximum_public_bytes": 234881024,
+     "missing_original_not_invented": true,
+-    "outer_files_from_original_upload_log": 48,
++    "original_directory_maximum_entries": 256,
++    "outer_files_predicted_by_current_r4_upload_log": 48,
+     "oversized_or_budget_originals_omitted_whole": true,
++    "prediction_is_not_a_hard_original_ZIP_count": true,
+     "root_apt_owned_directories": [
+       "supply/evidence/apt-owned-update/",
+       "supply/evidence/apt-owned-install/"

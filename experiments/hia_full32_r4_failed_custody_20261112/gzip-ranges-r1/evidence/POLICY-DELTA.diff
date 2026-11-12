@@ -1,0 +1,234 @@
+--- previous-successful-transport/policy.json
++++ new-r4-originals/control/policy.json
+@@ -1,35 +1,40 @@
+ {
+   "actual_full32_inputs": {
+-    "control_commit": "7b184c92396cb2afcfd9667c9e520831cb3cd98d",
++    "control_commit": "58b216cfe4c65c98df2a0d1001367e4d009e1492",
+     "source_commit": "784f088fcc5ad81c65de541d54e26d380c86293c",
+     "source_tests_reexecuted_by_receiver": false,
+     "source_tree": "d9e8407c70e44a3ea0152b8b4c5eb2ed3833d790"
+   },
+   "artifact": {
+-    "bytes": 818594350,
+-    "checkout_commit": "aa90c740a39d9437fc423dfb1f0545dc4da48e87",
+-    "checkout_tree": "bad5783abc7bb1ccc8919b1446529aef0619178c",
++    "bytes": 3010752230,
++    "checkout_commit": "f5cadd86148c67d6a7eb36d1bd75412fa76401bb",
++    "checkout_tree": "788bb63dd714b10f48b07004e890e425a373205e",
+     "event": "create",
+-    "id": 13974465966,
+-    "job_id": 131409039204,
++    "id": 13982129929,
++    "job_id": 131485819365,
+     "run_attempt": 1,
+-    "run_id": 43283027193,
+-    "sha256": "9da285831263db03d5e24e26e427f867763f39d1d607ccf34f21ef519163785d",
++    "run_id": 43305002328,
++    "sha256": "4f5b0439a47f873e90fb6382c0232d9e3ae99b0dd05eb5b5e01132eeec4c9380",
+     "workflow_terminal": "failure"
+   },
+   "artifact_carrier_scope": "source.head/tree identify the exact artifact workflow carrier. The unchanged v89 contract fields identify files present in that carrier; no full32 success or whole native closure is asserted.",
+-  "capacity_scope": "At most 3 GiB original plus one complete partitioned copy, followed by same-filesystem relocation after bound ECHILD. At most 10 parts, 312 MiB payload each; 320 MiB complete public directory cap. Actual closed storage is inventoried, private metadata capped at 64 MiB, and future document/upload/filesystem reserves checked before COMPLETE. Original 8 GiB/100000 inode preflight is unchanged.",
++  "capacity_scope": "Original ZIP plus one complete gzip-range copy only; raw decompression is streamed into hashes. After closed ECHILD, range files relocate on the same filesystem. Original 8 GiB/100000 inodes remain required. The gzip expansion allowance, private/public bounded small originals, actual allocated blocks, final document reserves, one 320 MiB serial upload workspace and 512 MiB filesystem reserve are explicitly checked. No local acceptance is inferred from unavailable capacity.",
+   "control_files": {
+     "controller.py": {
+-      "bytes": 55320,
+-      "git_blob": "f9e5e6318e8e3ecc53353556ae52ec3116596ddc",
+-      "sha256": "0d3a0c71a2e15e46af02982d757e02fa25697106d91613f7e6dfef23af974e90"
++      "bytes": 65803,
++      "git_blob": "463dca14d01ff0035461845c46912e63e7ba3d6b",
++      "sha256": "95a9c71a96e6679e273ea697c0a5826cbc948445d5dcbdbce92e75308cc50a62"
+     },
+     "guardian.py": {
+       "bytes": 10257,
+       "git_blob": "1a7b8588871d1a0eb485dacc2dac2f1fe373b8a7",
+       "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023"
+     },
++    "gzip_evidence.py": {
++      "bytes": 30757,
++      "git_blob": "9a6fa1d0147bbf90026667c5dff5258e81cb66ce",
++      "sha256": "ccbf7598e43cbe07802a80fd52e93f3ee26cbae9921946eaea23272754a471de"
++    },
+     "original_receiver.py": {
+       "bytes": 25558,
+       "git_blob": "708d384d3728efcbf88908e497e5b91004cd179d",
+@@ -41,29 +46,36 @@
+       "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+     },
+     "worker.py": {
+-      "bytes": 21753,
+-      "git_blob": "00db017526faaead78ff3dd813222c53d0abd9df",
+-      "sha256": "308959de8ff59d5163b416350d992b817eb309abf4b8043ef341f0abacf22c77"
++      "bytes": 21205,
++      "git_blob": "8cd84e0f85bc935c66f7804e73c4a865492312fa",
++      "sha256": "73b349ec6b7abea5b9d6e5252c994d3cc4cd67e7337304c71cd4d6ae1c0bcaf0"
+     }
+   },
+-  "control_prefix": "experiments/hia_v89_full32_failed_custody_20261112/multipart-r1",
+-  "downstream_acceptance": "Require the one frozen current receiver run/attempt/head/control/policy, natural900/3 lifecycle, all exactN official part artifacts, identical FINAL metadata and ordered PART ranges, each fullslice SHA, and reconstructed complete original external size/SHA. Do not infer product qualification or accept a partial/failed receiver solely from a FINAL status.",
++  "control_prefix": "experiments/hia_full32_r4_failed_custody_20261112/gzip-ranges-r1",
++  "downstream_acceptance": "Require this unique receiver run/attempt/head/control/policy and original900/3 natural ECHILD. Read small artifact first. Then all ten official part artifacts must join identical FINAL/PART metadata and exact fixed raw offsets, individual complete compressed SHA/size, single-stream gzip CRC/end, complete raw-range SHA/size and concatenated original external size/SHA. Original failed full32 results and unreadable/missing originals are never reclassified.",
++  "evidence_decompression_scope": "Only authenticated original ZIP/TAR evidence; no executable member imported, extracted, or invoked.",
+   "full_5400_retained_suite_executed": false,
+   "historical_custody_results_reclassified": false,
+   "input_pins_frozen": true,
+   "interpreter": "3.14.4",
+   "limits": {
+     "cleanup_seconds": 3,
++    "compressed_part_bytes": 328204288,
+     "controller_seconds": 900,
+     "diagnostic_bytes_per_part": 2097152,
+     "document_bytes_per_part": 3145728,
++    "inner_stream_bytes": 17179869184,
+     "maximum_original_bytes": 3221225472,
+     "maximum_parts": 10,
+     "minimum_free_bytes": 8589934592,
+     "minimum_free_inodes": 100000,
++    "outer_stream_bytes": 4294967296,
+     "part_bytes": 327155712,
+     "private_metadata_reserve_bytes": 67108864,
+     "public_part_bytes": 335544320,
++    "small_derived_bytes": 33554432,
++    "small_original_bytes": 167772160,
++    "small_public_bytes": 234881024,
+     "transfer_seconds": 720
+   },
+   "new_product_execution": false,
+@@ -71,39 +83,118 @@
+   "parts": [
+     {
+       "bytes": 327155712,
+-      "name": "part-00.bin",
++      "name": "part-00.bin.gz",
+       "offset": 0,
+       "ordinal": 0
+     },
+     {
+       "bytes": 327155712,
+-      "name": "part-01.bin",
++      "name": "part-01.bin.gz",
+       "offset": 327155712,
+       "ordinal": 1
+     },
+     {
+-      "bytes": 164282926,
+-      "name": "part-02.bin",
++      "bytes": 327155712,
++      "name": "part-02.bin.gz",
+       "offset": 654311424,
+       "ordinal": 2
++    },
++    {
++      "bytes": 327155712,
++      "name": "part-03.bin.gz",
++      "offset": 981467136,
++      "ordinal": 3
++    },
++    {
++      "bytes": 327155712,
++      "name": "part-04.bin.gz",
++      "offset": 1308622848,
++      "ordinal": 4
++    },
++    {
++      "bytes": 327155712,
++      "name": "part-05.bin.gz",
++      "offset": 1635778560,
++      "ordinal": 5
++    },
++    {
++      "bytes": 327155712,
++      "name": "part-06.bin.gz",
++      "offset": 1962934272,
++      "ordinal": 6
++    },
++    {
++      "bytes": 327155712,
++      "name": "part-07.bin.gz",
++      "offset": 2290089984,
++      "ordinal": 7
++    },
++    {
++      "bytes": 327155712,
++      "name": "part-08.bin.gz",
++      "offset": 2617245696,
++      "ordinal": 8
++    },
++    {
++      "bytes": 66350822,
++      "name": "part-09.bin.gz",
++      "offset": 2944401408,
++      "ordinal": 9
+     }
+   ],
+   "proxy_policy": "USE_CONFIGURED_ENVIRONMENT_PROXIES",
+-  "public_root_name": "hia-v89-full32-failed-parts-public-r1",
++  "public_root_name": "hia-full32-r4-gzip-originals-public-r1",
++  "range_encoding": {
++    "compressed_output_size_or_ratio_known_before_execution": false,
++    "compresslevel": 1,
++    "method": "gzip",
++    "mtime": 0,
++    "one_stream_per_fixed_raw_range": true,
++    "raw_ZIP_bytes_repacked_or_regenerated": false
++  },
+   "repository": "TrillionniumFoundation/Hepta",
+   "runner_label_requested": "ubuntu-latest",
+-  "schema": "hia.actions.v88-full-original-parts-policy.v1",
++  "schema": "hia.actions.failed-full32-gzip-parts-policy.v1",
+   "slice_publication": "RELOCATE_SAME_FILESYSTEM_AFTER_CLOSED_ECHILD",
++  "small_diagnostics": {
++    "actual_complete_directory_and_body_SHA_set_must_join_exactly": true,
++    "fixed_outer_required": [
++      "hia-v87-full-public/ORIGINAL-CATALOG.json",
++      "hia-v87-full-public/CUSTODY.json",
++      "hia-v87-full-public/FINAL.json"
++    ],
++    "inner_catalog": ".FULL-RETAINED-TYPED-MANIFEST.json",
++    "inner_container": "hia-v87-full-public/full-retained-originals.tar.gz",
++    "maximum_public_bytes": 234881024,
++    "missing_original_not_invented": true,
++    "original_directory_maximum_entries": 256,
++    "outer_files_predicted_by_current_r4_upload_log": 48,
++    "oversized_or_budget_originals_omitted_whole": true,
++    "prediction_is_not_a_hard_original_ZIP_count": true,
++    "root_apt_owned_directories": [
++      "supply/evidence/apt-owned-update/",
++      "supply/evidence/apt-owned-install/"
++    ],
++    "root_apt_owned_exact_six_each": [
++      "config.json",
++      "root-process.json",
++      "environment.json",
++      "guardian.json",
++      "child.stdout.log",
++      "child.stderr.log"
++    ],
++    "small_artifact_uploaded_before_large_parts": true
++  },
+   "source": {
+     "cold_source_count": 841,
+     "contract_sha256": "2b2bb227cf1e4d3aa2cab96f388cb62b09bd75807ffc413f459bd0822f8a8c2b",
+-    "head": "aa90c740a39d9437fc423dfb1f0545dc4da48e87",
++    "head": "f5cadd86148c67d6a7eb36d1bd75412fa76401bb",
+     "profile": "selfhost-core-linux-x86_64-v89-unpack-bounded-read-sha-word-access-publication-observer-isolation-development",
+     "source_manifest_canonical_sha256": "3707d095fc6060e29461601dfbfa31934ce848a7c5f47259c3f6f96018b33525",
+-    "tree": "bad5783abc7bb1ccc8919b1446529aef0619178c"
++    "tree": "788bb63dd714b10f48b07004e890e425a373205e"
+   },
+   "status": "FROZEN_OFFICIAL_TRANSPORT_INPUTS_UNEXECUTED",
+-  "trigger_branch": "codex/hia-v89-full32-failed-original-parts-run-r1-20261112-e26e",
++  "trigger_branch": "codex/hia-full32-r4-gzip-originals-run-r1-20261112-e26e",
+   "unchanged_original_workflows": {
+     ".github/workflows/hia-core.yml": {
+       "bytes": 36906,
+@@ -121,6 +212,6 @@
+       "sha256": "193686d4cf309db63b6e96d30a26641cb7b8a3b7e299470772b3a84b9fc4a06b"
+     }
+   },
+-  "whole_ZIP_members_decompressed": false,
+-  "work_root_name": "hia-v89-full32-failed-parts-r1"
++  "whole_ZIP_members_decompressed": true,
++  "work_root_name": "hia-full32-r4-gzip-originals-r1"
+ }

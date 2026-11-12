@@ -1,0 +1,841 @@
+﻿2026-11-12T20:55:02.4385285Z Current runner version: '2.338.2'
+2026-11-12T20:55:02.4405554Z ##[group]Runner Image Provisioner
+2026-11-12T20:55:02.4406097Z Hosted Compute Agent
+2026-11-12T20:55:02.4406551Z Version: 20261028.624
+2026-11-12T20:55:02.4406975Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-12T20:55:02.4407407Z Build Date: 2026-10-28T21:51:42Z
+2026-11-12T20:55:02.4407847Z Worker ID: {6480938a-0c04-4659-a7d9-ca6c8ef58d3c}
+2026-11-12T20:55:02.4408291Z Region: westus2
+2026-11-12T20:55:02.4408647Z Cloud: Azure
+2026-11-12T20:55:02.4409023Z ##[endgroup]
+2026-11-12T20:55:02.4409979Z ##[group]Operating System
+2026-11-12T20:55:02.4410398Z Ubuntu
+2026-11-12T20:55:02.4410714Z 24.04.5
+2026-11-12T20:55:02.4411013Z LTS
+2026-11-12T20:55:02.4411405Z ##[endgroup]
+2026-11-12T20:55:02.4411739Z ##[group]Runner Image
+2026-11-12T20:55:02.4412124Z Image: ubuntu-24.04
+2026-11-12T20:55:02.4412510Z Version: 20261101.360.1
+2026-11-12T20:55:02.4413264Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-12T20:55:02.4414179Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-12T20:55:02.4414792Z ##[endgroup]
+2026-11-12T20:55:02.4415431Z ##[group]GITHUB_TOKEN Permissions
+2026-11-12T20:55:02.4416883Z Contents: read
+2026-11-12T20:55:02.4417240Z Metadata: read
+2026-11-12T20:55:02.4417568Z ##[endgroup]
+2026-11-12T20:55:02.4418976Z Secret source: Actions
+2026-11-12T20:55:02.4419507Z Cache mode: write
+2026-11-12T20:55:02.4420191Z Prepare workflow directory
+2026-11-12T20:55:02.4675869Z Prepare all required actions
+2026-11-12T20:55:02.4709165Z Getting action download info
+2026-11-12T20:55:02.8315912Z Download action repository 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-12T20:55:02.9310512Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-11-12T20:55:03.0672807Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-12T20:55:03.3301976Z Complete job name: full-retained
+2026-11-12T20:55:03.3964641Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+2026-11-12T20:55:03.3965177Z with:
+2026-11-12T20:55:03.3965441Z   ref: 58b216cfe4c65c98df2a0d1001367e4d009e1492
+2026-11-12T20:55:03.3965764Z   path: capsule
+2026-11-12T20:55:03.3966003Z   fetch-depth: 1
+2026-11-12T20:55:03.3966241Z   fetch-tags: false
+2026-11-12T20:55:03.3966496Z   persist-credentials: false
+2026-11-12T20:55:03.3966883Z   sparse-checkout: experiments/hia_v89_full_retained_capsule_20261112/r1
+
+2026-11-12T20:55:03.3967317Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T20:55:03.3969790Z   token: ***
+2026-11-12T20:55:03.3970064Z   ssh-strict: true
+2026-11-12T20:55:03.3970307Z   ssh-user: git
+2026-11-12T20:55:03.3970537Z   clean: true
+2026-11-12T20:55:03.3970785Z   sparse-checkout-cone-mode: true
+2026-11-12T20:55:03.3971102Z   show-progress: true
+2026-11-12T20:55:03.3971368Z   lfs: false
+2026-11-12T20:55:03.3971594Z   submodules: false
+2026-11-12T20:55:03.3971843Z   set-safe-directory: true
+2026-11-12T20:55:03.3972148Z   allow-unsafe-pr-checkout: false
+2026-11-12T20:55:03.3972521Z env:
+2026-11-12T20:55:03.3972756Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T20:55:03.3973036Z   PYTHONUNBUFFERED: 1
+2026-11-12T20:55:03.3973395Z   HIA_CONTROL_PREFIX: experiments/hia_v89_full_retained_capsule_20261112/r1
+2026-11-12T20:55:03.3973795Z ##[endgroup]
+2026-11-12T20:55:03.6176185Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T20:55:03.6177370Z ##[group]Getting Git version info
+2026-11-12T20:55:03.6177758Z Working directory is '/home/runner/work/Hepta/Hepta/capsule'
+2026-11-12T20:55:03.6178508Z [command]/usr/bin/git version
+2026-11-12T20:55:03.6262012Z git version 2.56.0
+2026-11-12T20:55:03.6275488Z ##[endgroup]
+2026-11-12T20:55:03.6287302Z Temporarily overriding HOME='/home/runner/work/_temp/8fb259d5-9f94-4912-8754-1e140f01e05c' before making global git config changes
+2026-11-12T20:55:03.6288947Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T20:55:03.6298179Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/capsule
+2026-11-12T20:55:03.6351922Z ##[group]Initializing the repository
+2026-11-12T20:55:03.6354984Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/capsule
+2026-11-12T20:55:03.6563787Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T20:55:03.6564680Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T20:55:03.6565478Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T20:55:03.6565997Z hint: call:
+2026-11-12T20:55:03.6566335Z hint:
+2026-11-12T20:55:03.6566761Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T20:55:03.6567213Z hint:
+2026-11-12T20:55:03.6567640Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T20:55:03.6568309Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T20:55:03.6568837Z hint:
+2026-11-12T20:55:03.6569179Z hint: 	git branch -m <name>
+2026-11-12T20:55:03.6569548Z hint:
+2026-11-12T20:55:03.6570187Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T20:55:03.6574268Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/capsule/.git/
+2026-11-12T20:55:03.6586348Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T20:55:03.6638410Z ##[endgroup]
+2026-11-12T20:55:03.6639117Z ##[group]Disabling automatic garbage collection
+2026-11-12T20:55:03.6641464Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T20:55:03.6684338Z ##[endgroup]
+2026-11-12T20:55:03.6684836Z ##[group]Setting up auth
+2026-11-12T20:55:03.6685359Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T20:55:03.6725715Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T20:55:03.7054401Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T20:55:03.7094900Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T20:55:03.7290082Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T20:55:03.7327740Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T20:55:03.7520053Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T20:55:03.7561479Z ##[endgroup]
+2026-11-12T20:55:03.7562075Z ##[group]Fetching the repository
+2026-11-12T20:55:03.7570329Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --filter=blob:none --depth=1 origin 58b216cfe4c65c98df2a0d1001367e4d009e1492
+2026-11-12T20:55:04.1614845Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T20:55:04.1615504Z  * branch            58b216cfe4c65c98df2a0d1001367e4d009e1492 -> FETCH_HEAD
+2026-11-12T20:55:04.1617586Z ##[endgroup]
+2026-11-12T20:55:04.1618094Z ##[group]Determining the checkout info
+2026-11-12T20:55:04.1619564Z ##[endgroup]
+2026-11-12T20:55:04.1620213Z ##[group]Setting up sparse checkout
+2026-11-12T20:55:04.1624764Z [command]/usr/bin/git sparse-checkout set experiments/hia_v89_full_retained_capsule_20261112/r1
+2026-11-12T20:55:04.1692704Z ##[endgroup]
+2026-11-12T20:55:04.1693389Z ##[group]Checking out the ref
+2026-11-12T20:55:04.1694164Z [command]/usr/bin/git checkout --progress --force 58b216cfe4c65c98df2a0d1001367e4d009e1492
+2026-11-12T20:55:04.6521866Z Note: switching to '58b216cfe4c65c98df2a0d1001367e4d009e1492'.
+2026-11-12T20:55:04.6522980Z 
+2026-11-12T20:55:04.6523912Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-12T20:55:04.6525353Z changes and commit them, and you can discard any commits you make in this
+2026-11-12T20:55:04.6526828Z state without impacting any branches by switching back to a branch.
+2026-11-12T20:55:04.6527669Z 
+2026-11-12T20:55:04.6528235Z If you want to create a new branch to retain commits you create, you may
+2026-11-12T20:55:04.6529801Z do so (now or later) by using -c with the switch command. Example:
+2026-11-12T20:55:04.6530588Z 
+2026-11-12T20:55:04.6530941Z   git switch -c <new-branch-name>
+2026-11-12T20:55:04.6531545Z 
+2026-11-12T20:55:04.6531908Z Or undo this operation with:
+2026-11-12T20:55:04.6532431Z 
+2026-11-12T20:55:04.6532732Z   git switch -
+2026-11-12T20:55:04.6533145Z 
+2026-11-12T20:55:04.6533830Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-12T20:55:04.6534846Z 
+2026-11-12T20:55:04.6536118Z HEAD is now at 58b216c [skip ci] Freeze v89 full32 APT root ownership repair with unchanged product gates and actual source IO custody
+2026-11-12T20:55:04.6540099Z ##[endgroup]
+2026-11-12T20:55:04.6580764Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T20:55:04.6612971Z 58b216cfe4c65c98df2a0d1001367e4d009e1492
+2026-11-12T20:55:04.6620710Z ##[group]Removing auth
+2026-11-12T20:55:04.6623342Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T20:55:04.6660323Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T20:55:04.6865539Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T20:55:04.6899769Z http.https://github.com/.extraheader
+2026-11-12T20:55:04.6907635Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T20:55:04.6946605Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T20:55:04.7143616Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T20:55:04.7178383Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T20:55:04.7377574Z ##[endgroup]
+2026-11-12T20:55:04.7651804Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+2026-11-12T20:55:04.7652750Z with:
+2026-11-12T20:55:04.7653316Z   ref: 784f088fcc5ad81c65de541d54e26d380c86293c
+2026-11-12T20:55:04.7654067Z   path: source-input
+2026-11-12T20:55:04.7654623Z   fetch-depth: 1
+2026-11-12T20:55:04.7655152Z   fetch-tags: false
+2026-11-12T20:55:04.7655723Z   persist-credentials: false
+2026-11-12T20:55:04.7656369Z   submodules: false
+2026-11-12T20:55:04.7656979Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T20:55:04.7663086Z   token: ***
+2026-11-12T20:55:04.7663610Z   ssh-strict: true
+2026-11-12T20:55:04.7664141Z   ssh-user: git
+2026-11-12T20:55:04.7664663Z   clean: true
+2026-11-12T20:55:04.7665214Z   sparse-checkout-cone-mode: true
+2026-11-12T20:55:04.7665891Z   show-progress: true
+2026-11-12T20:55:04.7666447Z   lfs: false
+2026-11-12T20:55:04.7666976Z   set-safe-directory: true
+2026-11-12T20:55:04.7667622Z   allow-unsafe-pr-checkout: false
+2026-11-12T20:55:04.7668276Z env:
+2026-11-12T20:55:04.7668823Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T20:55:04.7669464Z   PYTHONUNBUFFERED: 1
+2026-11-12T20:55:04.7670378Z   HIA_CONTROL_PREFIX: experiments/hia_v89_full_retained_capsule_20261112/r1
+2026-11-12T20:55:04.7671343Z ##[endgroup]
+2026-11-12T20:55:04.8230582Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T20:55:04.8232920Z ##[group]Getting Git version info
+2026-11-12T20:55:04.8234759Z Working directory is '/home/runner/work/Hepta/Hepta/source-input'
+2026-11-12T20:55:04.8251656Z [command]/usr/bin/git version
+2026-11-12T20:55:04.8314661Z git version 2.56.0
+2026-11-12T20:55:04.8326776Z ##[endgroup]
+2026-11-12T20:55:04.8335738Z Temporarily overriding HOME='/home/runner/work/_temp/c25b6cf0-395f-489e-81a8-fafae865557a' before making global git config changes
+2026-11-12T20:55:04.8338849Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T20:55:04.8341513Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/source-input
+2026-11-12T20:55:04.8373005Z ##[group]Initializing the repository
+2026-11-12T20:55:04.8376625Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/source-input
+2026-11-12T20:55:04.8484428Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T20:55:04.8486814Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T20:55:04.8489000Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T20:55:04.8490801Z hint: call:
+2026-11-12T20:55:04.8491736Z hint:
+2026-11-12T20:55:04.8493062Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T20:55:04.8494298Z hint:
+2026-11-12T20:55:04.8495054Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T20:55:04.8496293Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T20:55:04.8497215Z hint:
+2026-11-12T20:55:04.8497738Z hint: 	git branch -m <name>
+2026-11-12T20:55:04.8498872Z hint:
+2026-11-12T20:55:04.8500195Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T20:55:04.8502315Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/source-input/.git/
+2026-11-12T20:55:04.8505884Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T20:55:04.8528820Z ##[endgroup]
+2026-11-12T20:55:04.8530382Z ##[group]Disabling automatic garbage collection
+2026-11-12T20:55:04.8540518Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T20:55:04.8561238Z ##[endgroup]
+2026-11-12T20:55:04.8562593Z ##[group]Setting up auth
+2026-11-12T20:55:04.8565772Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T20:55:04.8595776Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T20:55:04.8804545Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T20:55:04.8843211Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T20:55:04.9026761Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T20:55:04.9061992Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T20:55:04.9243971Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T20:55:04.9375927Z ##[endgroup]
+2026-11-12T20:55:04.9381708Z ##[group]Fetching the repository
+2026-11-12T20:55:04.9383315Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 784f088fcc5ad81c65de541d54e26d380c86293c
+2026-11-12T20:55:14.2475762Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T20:55:14.2476188Z  * branch            784f088fcc5ad81c65de541d54e26d380c86293c -> FETCH_HEAD
+2026-11-12T20:55:14.2490608Z ##[endgroup]
+2026-11-12T20:55:14.2490953Z ##[group]Determining the checkout info
+2026-11-12T20:55:14.2491313Z ##[endgroup]
+2026-11-12T20:55:14.2491536Z [command]/usr/bin/git sparse-checkout disable
+2026-11-12T20:55:14.2535806Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-12T20:55:14.2570600Z ##[group]Checking out the ref
+2026-11-12T20:55:14.2573622Z [command]/usr/bin/git checkout --progress --force 784f088fcc5ad81c65de541d54e26d380c86293c
+2026-11-12T20:55:14.9955869Z Note: switching to '784f088fcc5ad81c65de541d54e26d380c86293c'.
+2026-11-12T20:55:14.9956263Z 
+2026-11-12T20:55:14.9956442Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-12T20:55:14.9956866Z changes and commit them, and you can discard any commits you make in this
+2026-11-12T20:55:14.9957345Z state without impacting any branches by switching back to a branch.
+2026-11-12T20:55:14.9957619Z 
+2026-11-12T20:55:14.9957801Z If you want to create a new branch to retain commits you create, you may
+2026-11-12T20:55:14.9958210Z do so (now or later) by using -c with the switch command. Example:
+2026-11-12T20:55:14.9958432Z 
+2026-11-12T20:55:14.9958551Z   git switch -c <new-branch-name>
+2026-11-12T20:55:14.9958731Z 
+2026-11-12T20:55:14.9958820Z Or undo this operation with:
+2026-11-12T20:55:14.9958971Z 
+2026-11-12T20:55:14.9959049Z   git switch -
+2026-11-12T20:55:14.9959199Z 
+2026-11-12T20:55:14.9959394Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-12T20:55:14.9959864Z 
+2026-11-12T20:55:14.9960057Z HEAD is now at 784f088 Run original HIA standard gates on frozen combined v89 source
+2026-11-12T20:55:15.0055009Z ##[endgroup]
+2026-11-12T20:55:15.0106967Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T20:55:15.0140800Z 784f088fcc5ad81c65de541d54e26d380c86293c
+2026-11-12T20:55:15.0148094Z ##[group]Removing auth
+2026-11-12T20:55:15.0150988Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T20:55:15.0186164Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T20:55:15.0390054Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T20:55:15.0419269Z http.https://github.com/.extraheader
+2026-11-12T20:55:15.0425047Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T20:55:15.0464741Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T20:55:15.0660981Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T20:55:15.0693444Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T20:55:15.0884193Z ##[endgroup]
+2026-11-12T20:55:15.1041850Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+2026-11-12T20:55:15.1042085Z with:
+2026-11-12T20:55:15.1042225Z   python-version: 3.14.4
+2026-11-12T20:55:15.1042354Z   architecture: x64
+2026-11-12T20:55:15.1042475Z   check-latest: false
+2026-11-12T20:55:15.1044051Z   token: ***
+2026-11-12T20:55:15.1044175Z   update-environment: true
+2026-11-12T20:55:15.1044312Z   allow-prereleases: false
+2026-11-12T20:55:15.1044440Z   freethreaded: false
+2026-11-12T20:55:15.1044555Z env:
+2026-11-12T20:55:15.1044670Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T20:55:15.1044806Z   PYTHONUNBUFFERED: 1
+2026-11-12T20:55:15.1044988Z   HIA_CONTROL_PREFIX: experiments/hia_v89_full_retained_capsule_20261112/r1
+2026-11-12T20:55:15.1045195Z ##[endgroup]
+2026-11-12T20:55:15.1968035Z ##[group]Installed versions
+2026-11-12T20:55:15.1985335Z Version 3.14.4 was not found in the local cache
+2026-11-12T20:55:16.1609934Z Version 3.14.4 is available for downloading
+2026-11-12T20:55:16.1611058Z Download from "https://github.com/actions/python-versions/releases/download/3.14.4-25113653268/python-3.14.4-linux-24.04-x64.tar.gz"
+2026-11-12T20:55:16.7748533Z Extract downloaded archive
+2026-11-12T20:55:16.7861976Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/e30a38dc-aa5e-4883-890c-77f6fc83ab6e -f /home/runner/work/_temp/557392d4-1fda-461f-a84c-ef5f2694dd2b
+2026-11-12T20:55:18.4330626Z Execute installation script
+2026-11-12T20:55:18.4431845Z Check if Python hostedtoolcache folder exist...
+2026-11-12T20:55:18.4436641Z Create Python 3.14.4 folder
+2026-11-12T20:55:18.4442949Z Copy Python binaries to hostedtoolcache folder
+2026-11-12T20:55:18.8181633Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-12T20:55:18.8216330Z Upgrading pip...
+2026-11-12T20:55:20.9869321Z Looking in links: /tmp/tmp16zagwji
+2026-11-12T20:55:20.9871592Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/site-packages (26.0.1)
+2026-11-12T20:55:22.7211025Z Collecting pip
+2026-11-12T20:55:22.7912613Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-12T20:55:22.8481928Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-12T20:55:22.9683107Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 19.5 MB/s  0:00:00
+2026-11-12T20:55:22.9683376Z 
+2026-11-12T20:55:22.9769552Z Installing collected packages: pip
+2026-11-12T20:55:22.9780547Z Attempting uninstall: pip
+2026-11-12T20:55:22.9785193Z Found existing installation: pip 26.0.1
+2026-11-12T20:55:22.9965474Z Uninstalling pip-26.0.1:
+2026-11-12T20:55:23.0000964Z Successfully uninstalled pip-26.0.1
+2026-11-12T20:55:23.7527584Z Successfully installed pip-26.3
+2026-11-12T20:55:23.8085505Z Create complete file
+2026-11-12T20:55:23.8113917Z Successfully set up CPython (3.14.4)
+2026-11-12T20:55:23.8114893Z ##[endgroup]
+2026-11-12T20:55:23.8291203Z ##[group]Run set -euo pipefail
+2026-11-12T20:55:23.8291457Z [36;1mset -euo pipefail[0m
+2026-11-12T20:55:23.8291591Z [36;1mumask 077[0m
+2026-11-12T20:55:23.8291819Z [36;1munset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH[0m
+2026-11-12T20:55:23.8292115Z [36;1mmkdir "$RUNNER_TEMP/hia-v87-bootstrap-originals"[0m
+2026-11-12T20:55:23.8292329Z [36;1mmkdir "$RUNNER_TEMP/hia-v87-bootstrap-originals/wheels"[0m
+2026-11-12T20:55:23.8292593Z [36;1mpython -I -S -B -c 'import sys; assert sys.version_info[:3] == (3,14,4), sys.version' \[0m
+2026-11-12T20:55:23.8292882Z [36;1m  > "$RUNNER_TEMP/hia-v87-bootstrap-originals/version.stdout.log" \[0m
+2026-11-12T20:55:23.8293132Z [36;1m  2> "$RUNNER_TEMP/hia-v87-bootstrap-originals/version.stderr.log"[0m
+2026-11-12T20:55:23.8293364Z [36;1mpython -I -S -B -m venv "$RUNNER_TEMP/hia-v87-python" \[0m
+2026-11-12T20:55:23.8293588Z [36;1m  > "$RUNNER_TEMP/hia-v87-bootstrap-originals/venv.stdout.log" \[0m
+2026-11-12T20:55:23.8293848Z [36;1m  2> "$RUNNER_TEMP/hia-v87-bootstrap-originals/venv.stderr.log"[0m
+2026-11-12T20:55:23.8294137Z [36;1m"$RUNNER_TEMP/hia-v87-python/bin/python" -I -B -m pip --disable-pip-version-check download \[0m
+2026-11-12T20:55:23.8294424Z [36;1m  --dest "$RUNNER_TEMP/hia-v87-bootstrap-originals/wheels" \[0m
+2026-11-12T20:55:23.8294674Z [36;1m  setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0 \[0m
+2026-11-12T20:55:23.8294936Z [36;1m  > "$RUNNER_TEMP/hia-v87-bootstrap-originals/download.stdout.log" \[0m
+2026-11-12T20:55:23.8295190Z [36;1m  2> "$RUNNER_TEMP/hia-v87-bootstrap-originals/download.stderr.log"[0m
+2026-11-12T20:55:23.8295479Z [36;1m"$RUNNER_TEMP/hia-v87-python/bin/python" -I -B -m pip --disable-pip-version-check install \[0m
+2026-11-12T20:55:23.8295786Z [36;1m  --no-index --find-links "$RUNNER_TEMP/hia-v87-bootstrap-originals/wheels" \[0m
+2026-11-12T20:55:23.8296060Z [36;1m  setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0 \[0m
+2026-11-12T20:55:23.8296315Z [36;1m  > "$RUNNER_TEMP/hia-v87-bootstrap-originals/install.stdout.log" \[0m
+2026-11-12T20:55:23.8296557Z [36;1m  2> "$RUNNER_TEMP/hia-v87-bootstrap-originals/install.stderr.log"[0m
+2026-11-12T20:55:23.8296813Z [36;1m"$RUNNER_TEMP/hia-v87-python/bin/python" -I -B -m pip inspect --local \[0m
+2026-11-12T20:55:23.8297264Z [36;1m  > "$RUNNER_TEMP/hia-v87-bootstrap-originals/pip-inspect.original.json" \[0m
+2026-11-12T20:55:23.8297529Z [36;1m  2> "$RUNNER_TEMP/hia-v87-bootstrap-originals/pip-inspect.stderr.log"[0m
+2026-11-12T20:55:23.8297759Z [36;1m"$RUNNER_TEMP/hia-v87-python/bin/python" -I -B -c \[0m
+2026-11-12T20:55:23.8298598Z [36;1m  'import hashlib,json,os,pathlib,sys; p=pathlib.Path(os.environ["RUNNER_TEMP"])/"hia-v87-bootstrap-originals"; rows={str(f.relative_to(p)):{"bytes":f.stat().st_size,"sha256":hashlib.file_digest(f.open("rb"),"sha256").hexdigest()} for f in sorted(p.rglob("*")) if f.is_file()}; (p/"BOOTSTRAP-BYTES.json").write_text(json.dumps({"python":sys.version,"executable":sys.executable,"files":rows,"qualification_executed":False},sort_keys=True,indent=2)+"\n")'[0m
+2026-11-12T20:55:23.8320563Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T20:55:23.8320747Z env:
+2026-11-12T20:55:23.8320876Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T20:55:23.8321011Z   PYTHONUNBUFFERED: 1
+2026-11-12T20:55:23.8321190Z   HIA_CONTROL_PREFIX: experiments/hia_v89_full_retained_capsule_20261112/r1
+2026-11-12T20:55:23.8321424Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:55:23.8321646Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T20:55:23.8321860Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:55:23.8322061Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:55:23.8322256Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:55:23.8322454Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T20:55:23.8322826Z ##[endgroup]
+2026-11-12T20:55:33.5839412Z ##[group]Run set -euo pipefail
+2026-11-12T20:55:33.5839868Z [36;1mset -euo pipefail[0m
+2026-11-12T20:55:33.5840069Z [36;1mumask 077[0m
+2026-11-12T20:55:33.5840406Z [36;1munset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH[0m
+2026-11-12T20:55:33.5840846Z [36;1mmkdir "$RUNNER_TEMP/hia-v87-controller-logs"[0m
+2026-11-12T20:55:33.5841143Z [36;1m"$RUNNER_TEMP/hia-v87-python/bin/python" -B \[0m
+2026-11-12T20:55:33.5841529Z [36;1m  "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/control/controller.py" prepare \[0m
+2026-11-12T20:55:33.5842007Z [36;1m  --policy "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/plan/policy.json" \[0m
+2026-11-12T20:55:33.5842670Z [36;1m  --policy-sha256 a83c8981f56b3d7b24fe22e3b8299e45985de967c6977437351f41ed8d177c93 --control-commit 58b216cfe4c65c98df2a0d1001367e4d009e1492 \[0m
+2026-11-12T20:55:33.5843270Z [36;1m  --source-input "$GITHUB_WORKSPACE/source-input" \[0m
+2026-11-12T20:55:33.5843679Z [36;1m  --public "$RUNNER_TEMP/hia-v87-full-public" \[0m
+2026-11-12T20:55:33.5844024Z [36;1m  > "$RUNNER_TEMP/hia-v87-controller-logs/prepare.stdout.log" \[0m
+2026-11-12T20:55:33.5844400Z [36;1m  2> "$RUNNER_TEMP/hia-v87-controller-logs/prepare.stderr.log"[0m
+2026-11-12T20:55:33.5864022Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T20:55:33.5864203Z env:
+2026-11-12T20:55:33.5864323Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T20:55:33.5864459Z   PYTHONUNBUFFERED: 1
+2026-11-12T20:55:33.5864638Z   HIA_CONTROL_PREFIX: experiments/hia_v89_full_retained_capsule_20261112/r1
+2026-11-12T20:55:33.5864877Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:55:33.5865105Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T20:55:33.5865329Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:55:33.5865529Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:55:33.5865734Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:55:33.5865935Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T20:55:33.5866112Z ##[endgroup]
+2026-11-12T20:55:34.6420579Z ##[group]Run set -euo pipefail
+2026-11-12T20:55:34.6420777Z [36;1mset -euo pipefail[0m
+2026-11-12T20:55:34.6421152Z [36;1munset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH[0m
+2026-11-12T20:55:34.6421429Z [36;1m"$RUNNER_TEMP/hia-v87-python/bin/python" -B \[0m
+2026-11-12T20:55:34.6421672Z [36;1m  "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/control/controller.py" run \[0m
+2026-11-12T20:55:34.6421968Z [36;1m  --policy "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/plan/policy.json" \[0m
+2026-11-12T20:55:34.6422396Z [36;1m  --policy-sha256 a83c8981f56b3d7b24fe22e3b8299e45985de967c6977437351f41ed8d177c93 --control-commit 58b216cfe4c65c98df2a0d1001367e4d009e1492 \[0m
+2026-11-12T20:55:34.6422781Z [36;1m  > "$RUNNER_TEMP/hia-v87-controller-logs/full.stdout.log" \[0m
+2026-11-12T20:55:34.6423013Z [36;1m  2> "$RUNNER_TEMP/hia-v87-controller-logs/full.stderr.log"[0m
+2026-11-12T20:55:34.6439954Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T20:55:34.6440137Z env:
+2026-11-12T20:55:34.6440254Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T20:55:34.6440397Z   PYTHONUNBUFFERED: 1
+2026-11-12T20:55:34.6440579Z   HIA_CONTROL_PREFIX: experiments/hia_v89_full_retained_capsule_20261112/r1
+2026-11-12T20:55:34.6440815Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:55:34.6441039Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T20:55:34.6441265Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:55:34.6441465Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:55:34.6441664Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:55:34.6441865Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T20:55:34.6442040Z ##[endgroup]
+2026-11-12T20:58:10.5922932Z ##[error]Process completed with exit code 1.
+2026-11-12T20:58:10.5958573Z ##[group]Run set -euo pipefail
+2026-11-12T20:58:10.5958759Z [36;1mset -euo pipefail[0m
+2026-11-12T20:58:10.5958989Z [36;1munset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH[0m
+2026-11-12T20:58:10.5959271Z [36;1mmkdir -p "$RUNNER_TEMP/hia-v87-controller-logs"[0m
+2026-11-12T20:58:10.5959463Z [36;1m"$RUNNER_TEMP/hia-v87-python/bin/python" -B \[0m
+2026-11-12T20:58:10.5959884Z [36;1m  "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/control/controller.py" capture \[0m
+2026-11-12T20:58:10.5960173Z [36;1m  --policy "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/plan/policy.json" \[0m
+2026-11-12T20:58:10.5960588Z [36;1m  --policy-sha256 a83c8981f56b3d7b24fe22e3b8299e45985de967c6977437351f41ed8d177c93 --control-commit 58b216cfe4c65c98df2a0d1001367e4d009e1492 \[0m
+2026-11-12T20:58:10.5960966Z [36;1m  > "$RUNNER_TEMP/hia-v87-controller-logs/capture.stdout.log" \[0m
+2026-11-12T20:58:10.5961224Z [36;1m  2> "$RUNNER_TEMP/hia-v87-controller-logs/capture.stderr.log"[0m
+2026-11-12T20:58:10.5977663Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T20:58:10.5977838Z env:
+2026-11-12T20:58:10.5977964Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T20:58:10.5978101Z   PYTHONUNBUFFERED: 1
+2026-11-12T20:58:10.5978275Z   HIA_CONTROL_PREFIX: experiments/hia_v89_full_retained_capsule_20261112/r1
+2026-11-12T20:58:10.5978507Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:58:10.5978727Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T20:58:10.5978944Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:58:10.5979138Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:58:10.5979330Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:58:10.5979526Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T20:58:10.5979880Z ##[endgroup]
+2026-11-12T20:59:50.8275189Z ##[group]Run set -euo pipefail
+2026-11-12T20:59:50.8275492Z [36;1mset -euo pipefail[0m
+2026-11-12T20:59:50.8275854Z [36;1munset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH[0m
+2026-11-12T20:59:50.8276285Z [36;1mmkdir -p "$RUNNER_TEMP/hia-v87-controller-logs"[0m
+2026-11-12T20:59:50.8276807Z [36;1m"$RUNNER_TEMP/hia-v87-python/bin/python" -B \[0m
+2026-11-12T20:59:50.8277213Z [36;1m  "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/control/controller.py" finish \[0m
+2026-11-12T20:59:50.8277690Z [36;1m  --policy "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/plan/policy.json" \[0m
+2026-11-12T20:59:50.8278374Z [36;1m  --policy-sha256 a83c8981f56b3d7b24fe22e3b8299e45985de967c6977437351f41ed8d177c93 --control-commit 58b216cfe4c65c98df2a0d1001367e4d009e1492 \[0m
+2026-11-12T20:59:50.8278998Z [36;1m  > "$RUNNER_TEMP/hia-v87-controller-logs/finish.stdout.log" \[0m
+2026-11-12T20:59:50.8279418Z [36;1m  2> "$RUNNER_TEMP/hia-v87-controller-logs/finish.stderr.log"[0m
+2026-11-12T20:59:50.8301241Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T20:59:50.8301523Z env:
+2026-11-12T20:59:50.8301698Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T20:59:50.8301908Z   PYTHONUNBUFFERED: 1
+2026-11-12T20:59:50.8302192Z   HIA_CONTROL_PREFIX: experiments/hia_v89_full_retained_capsule_20261112/r1
+2026-11-12T20:59:50.8302568Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:59:50.8302918Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T20:59:50.8303268Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:59:50.8303584Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:59:50.8303889Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:59:50.8304208Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T20:59:50.8304474Z ##[endgroup]
+2026-11-12T20:59:52.8000858Z ##[error]Process completed with exit code 1.
+2026-11-12T20:59:52.8054407Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-11-12T20:59:52.8054625Z with:
+2026-11-12T20:59:52.8054749Z   name: hia-v87-full-retained-43305002328-1
+2026-11-12T20:59:52.8055114Z   path: /home/runner/work/_temp/hia-v87-full-public/
+/home/runner/work/_temp/hia-v87-controller-logs/
+/home/runner/work/_temp/hia-v87-bootstrap-originals/
+
+2026-11-12T20:59:52.8055477Z   include-hidden-files: true
+2026-11-12T20:59:52.8055615Z   if-no-files-found: error
+2026-11-12T20:59:52.8055742Z   compression-level: 0
+2026-11-12T20:59:52.8055860Z   retention-days: 7
+2026-11-12T20:59:52.8055969Z   overwrite: false
+2026-11-12T20:59:52.8056078Z env:
+2026-11-12T20:59:52.8056188Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T20:59:52.8056318Z   PYTHONUNBUFFERED: 1
+2026-11-12T20:59:52.8056494Z   HIA_CONTROL_PREFIX: experiments/hia_v89_full_retained_capsule_20261112/r1
+2026-11-12T20:59:52.8056724Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:59:52.8056966Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-12T20:59:52.8057182Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:59:52.8057377Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:59:52.8057569Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-12T20:59:52.8057771Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-12T20:59:52.8057938Z ##[endgroup]
+2026-11-12T20:59:52.9190496Z (node:9626) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T20:59:52.9191100Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T20:59:52.9285489Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-12T20:59:52.9286900Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+2026-11-12T20:59:52.9300972Z With the provided path, there will be 48 files uploaded
+2026-11-12T20:59:52.9302078Z Artifact name is valid!
+2026-11-12T20:59:52.9302305Z Root directory input is valid!
+2026-11-12T20:59:53.3358582Z Beginning upload of artifact content to blob storage
+2026-11-12T20:59:53.3677570Z (node:9626) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-12T20:59:54.3440240Z Uploaded bytes 8388608
+2026-11-12T20:59:54.3743691Z Uploaded bytes 16777216
+2026-11-12T20:59:54.3820202Z Uploaded bytes 25165824
+2026-11-12T20:59:54.4498162Z Uploaded bytes 33554432
+2026-11-12T20:59:54.6362611Z Uploaded bytes 41943040
+2026-11-12T20:59:54.6764200Z Uploaded bytes 50331648
+2026-11-12T20:59:54.6890699Z Uploaded bytes 58720256
+2026-11-12T20:59:54.7126461Z Uploaded bytes 67108864
+2026-11-12T20:59:54.9425970Z Uploaded bytes 75497472
+2026-11-12T20:59:54.9511276Z Uploaded bytes 83886080
+2026-11-12T20:59:54.9831232Z Uploaded bytes 92274688
+2026-11-12T20:59:55.0128276Z Uploaded bytes 100663296
+2026-11-12T20:59:55.2439121Z Uploaded bytes 109051904
+2026-11-12T20:59:55.2512412Z Uploaded bytes 117440512
+2026-11-12T20:59:55.2792028Z Uploaded bytes 125829120
+2026-11-12T20:59:55.3253617Z Uploaded bytes 134217728
+2026-11-12T20:59:55.5780426Z Uploaded bytes 142606336
+2026-11-12T20:59:55.6216872Z Uploaded bytes 150994944
+2026-11-12T20:59:55.6281122Z Uploaded bytes 159383552
+2026-11-12T20:59:55.6336980Z Uploaded bytes 167772160
+2026-11-12T20:59:55.8949263Z Uploaded bytes 176160768
+2026-11-12T20:59:55.9064954Z Uploaded bytes 184549376
+2026-11-12T20:59:55.9228781Z Uploaded bytes 192937984
+2026-11-12T20:59:55.9310390Z Uploaded bytes 201326592
+2026-11-12T20:59:56.1862175Z Uploaded bytes 209715200
+2026-11-12T20:59:56.1951474Z Uploaded bytes 218103808
+2026-11-12T20:59:56.2338213Z Uploaded bytes 226492416
+2026-11-12T20:59:56.2450621Z Uploaded bytes 234881024
+2026-11-12T20:59:56.4685792Z Uploaded bytes 243269632
+2026-11-12T20:59:56.5129859Z Uploaded bytes 251658240
+2026-11-12T20:59:56.5188485Z Uploaded bytes 260046848
+2026-11-12T20:59:56.5446825Z Uploaded bytes 268435456
+2026-11-12T20:59:56.7703853Z Uploaded bytes 276824064
+2026-11-12T20:59:56.8353964Z Uploaded bytes 285212672
+2026-11-12T20:59:56.8412541Z Uploaded bytes 293601280
+2026-11-12T20:59:56.8940887Z Uploaded bytes 301989888
+2026-11-12T20:59:57.0399987Z Uploaded bytes 310378496
+2026-11-12T20:59:57.1248610Z Uploaded bytes 318767104
+2026-11-12T20:59:57.1675227Z Uploaded bytes 327155712
+2026-11-12T20:59:57.1847777Z Uploaded bytes 335544320
+2026-11-12T20:59:57.3162508Z Uploaded bytes 343932928
+2026-11-12T20:59:57.4148942Z Uploaded bytes 352321536
+2026-11-12T20:59:57.4545461Z Uploaded bytes 360710144
+2026-11-12T20:59:57.4981034Z Uploaded bytes 369098752
+2026-11-12T20:59:57.5866976Z Uploaded bytes 377487360
+2026-11-12T20:59:57.6847730Z Uploaded bytes 385875968
+2026-11-12T20:59:57.7501298Z Uploaded bytes 394264576
+2026-11-12T20:59:57.8377378Z Uploaded bytes 402653184
+2026-11-12T20:59:57.9358826Z Uploaded bytes 411041792
+2026-11-12T20:59:57.9818419Z Uploaded bytes 419430400
+2026-11-12T20:59:58.0306728Z Uploaded bytes 427819008
+2026-11-12T20:59:58.1109879Z Uploaded bytes 436207616
+2026-11-12T20:59:58.2643608Z Uploaded bytes 444596224
+2026-11-12T20:59:58.2973359Z Uploaded bytes 452984832
+2026-11-12T20:59:58.3138971Z Uploaded bytes 461373440
+2026-11-12T20:59:58.3763963Z Uploaded bytes 469762048
+2026-11-12T20:59:58.5797787Z Uploaded bytes 478150656
+2026-11-12T20:59:58.5911130Z Uploaded bytes 486539264
+2026-11-12T20:59:58.6105506Z Uploaded bytes 494927872
+2026-11-12T20:59:58.7211603Z Uploaded bytes 503316480
+2026-11-12T20:59:58.8642671Z Uploaded bytes 511705088
+2026-11-12T20:59:58.9019993Z Uploaded bytes 520093696
+2026-11-12T20:59:58.9218597Z Uploaded bytes 528482304
+2026-11-12T20:59:58.9980705Z Uploaded bytes 536870912
+2026-11-12T20:59:59.1376889Z Uploaded bytes 545259520
+2026-11-12T20:59:59.1733044Z Uploaded bytes 553648128
+2026-11-12T20:59:59.2484853Z Uploaded bytes 562036736
+2026-11-12T20:59:59.2614459Z Uploaded bytes 570425344
+2026-11-12T20:59:59.4698056Z Uploaded bytes 578813952
+2026-11-12T20:59:59.4786936Z Uploaded bytes 587202560
+2026-11-12T20:59:59.5567950Z Uploaded bytes 595591168
+2026-11-12T20:59:59.6077440Z Uploaded bytes 603979776
+2026-11-12T20:59:59.7679196Z Uploaded bytes 612368384
+2026-11-12T20:59:59.8027258Z Uploaded bytes 620756992
+2026-11-12T20:59:59.8534908Z Uploaded bytes 629145600
+2026-11-12T20:59:59.9139056Z Uploaded bytes 637534208
+2026-11-12T21:00:00.0608408Z Uploaded bytes 645922816
+2026-11-12T21:00:00.0751440Z Uploaded bytes 654311424
+2026-11-12T21:00:00.1649879Z Uploaded bytes 662700032
+2026-11-12T21:00:00.2251840Z Uploaded bytes 671088640
+2026-11-12T21:00:00.3502130Z Uploaded bytes 679477248
+2026-11-12T21:00:00.4671370Z Uploaded bytes 687865856
+2026-11-12T21:00:00.4831539Z Uploaded bytes 696254464
+2026-11-12T21:00:00.5176309Z Uploaded bytes 704643072
+2026-11-12T21:00:00.6339730Z Uploaded bytes 713031680
+2026-11-12T21:00:00.7871192Z Uploaded bytes 721420288
+2026-11-12T21:00:00.8067054Z Uploaded bytes 729808896
+2026-11-12T21:00:00.8225725Z Uploaded bytes 738197504
+2026-11-12T21:00:00.9449528Z Uploaded bytes 746586112
+2026-11-12T21:00:01.0836453Z Uploaded bytes 754974720
+2026-11-12T21:00:01.1097916Z Uploaded bytes 763363328
+2026-11-12T21:00:01.1348186Z Uploaded bytes 771751936
+2026-11-12T21:00:01.2676510Z Uploaded bytes 780140544
+2026-11-12T21:00:01.3668320Z Uploaded bytes 788529152
+2026-11-12T21:00:01.4238352Z Uploaded bytes 796917760
+2026-11-12T21:00:01.4398395Z Uploaded bytes 805306368
+2026-11-12T21:00:01.5821417Z Uploaded bytes 813694976
+2026-11-12T21:00:01.6532235Z Uploaded bytes 822083584
+2026-11-12T21:00:01.7307075Z Uploaded bytes 830472192
+2026-11-12T21:00:01.7764532Z Uploaded bytes 838860800
+2026-11-12T21:00:01.8727362Z Uploaded bytes 847249408
+2026-11-12T21:00:02.0227689Z Uploaded bytes 855638016
+2026-11-12T21:00:02.0548995Z Uploaded bytes 864026624
+2026-11-12T21:00:02.0665635Z Uploaded bytes 872415232
+2026-11-12T21:00:02.1930715Z Uploaded bytes 880803840
+2026-11-12T21:00:02.3104295Z Uploaded bytes 889192448
+2026-11-12T21:00:02.3344280Z Uploaded bytes 897581056
+2026-11-12T21:00:02.4647699Z Uploaded bytes 905969664
+2026-11-12T21:00:02.5250516Z Uploaded bytes 914358272
+2026-11-12T21:00:02.6276682Z Uploaded bytes 922746880
+2026-11-12T21:00:02.6331756Z Uploaded bytes 931135488
+2026-11-12T21:00:02.8109305Z Uploaded bytes 939524096
+2026-11-12T21:00:02.8745153Z Uploaded bytes 947912704
+2026-11-12T21:00:02.9189839Z Uploaded bytes 956301312
+2026-11-12T21:00:02.9633028Z Uploaded bytes 964689920
+2026-11-12T21:00:03.0996952Z Uploaded bytes 973078528
+2026-11-12T21:00:03.2022835Z Uploaded bytes 981467136
+2026-11-12T21:00:03.2127456Z Uploaded bytes 989855744
+2026-11-12T21:00:03.2364914Z Uploaded bytes 998244352
+2026-11-12T21:00:03.4116282Z Uploaded bytes 1006632960
+2026-11-12T21:00:03.4826625Z Uploaded bytes 1015021568
+2026-11-12T21:00:03.4950963Z Uploaded bytes 1023410176
+2026-11-12T21:00:03.5465397Z Uploaded bytes 1031798784
+2026-11-12T21:00:03.6987666Z Uploaded bytes 1040187392
+2026-11-12T21:00:03.7866164Z Uploaded bytes 1048576000
+2026-11-12T21:00:03.8172422Z Uploaded bytes 1056964608
+2026-11-12T21:00:03.8693942Z Uploaded bytes 1065353216
+2026-11-12T21:00:04.0142356Z Uploaded bytes 1073741824
+2026-11-12T21:00:04.1208779Z Uploaded bytes 1082130432
+2026-11-12T21:00:04.1320838Z Uploaded bytes 1090519040
+2026-11-12T21:00:04.2352091Z Uploaded bytes 1098907648
+2026-11-12T21:00:04.3230678Z Uploaded bytes 1107296256
+2026-11-12T21:00:04.3940926Z Uploaded bytes 1115684864
+2026-11-12T21:00:04.4317582Z Uploaded bytes 1124073472
+2026-11-12T21:00:04.5268491Z Uploaded bytes 1132462080
+2026-11-12T21:00:04.6325203Z Uploaded bytes 1140850688
+2026-11-12T21:00:04.7400846Z Uploaded bytes 1149239296
+2026-11-12T21:00:04.7847262Z Uploaded bytes 1157627904
+2026-11-12T21:00:04.8140480Z Uploaded bytes 1166016512
+2026-11-12T21:00:04.8956190Z Uploaded bytes 1174405120
+2026-11-12T21:00:05.0373697Z Uploaded bytes 1182793728
+2026-11-12T21:00:05.1046479Z Uploaded bytes 1191182336
+2026-11-12T21:00:05.1212573Z Uploaded bytes 1199570944
+2026-11-12T21:00:05.1748293Z Uploaded bytes 1207959552
+2026-11-12T21:00:05.3724775Z Uploaded bytes 1216348160
+2026-11-12T21:00:05.3979827Z Uploaded bytes 1224736768
+2026-11-12T21:00:05.4340320Z Uploaded bytes 1233125376
+2026-11-12T21:00:05.4554314Z Uploaded bytes 1241513984
+2026-11-12T21:00:05.6579953Z Uploaded bytes 1249902592
+2026-11-12T21:00:05.6822074Z Uploaded bytes 1258291200
+2026-11-12T21:00:05.7576810Z Uploaded bytes 1266679808
+2026-11-12T21:00:05.7636898Z Uploaded bytes 1275068416
+2026-11-12T21:00:05.9631168Z Uploaded bytes 1283457024
+2026-11-12T21:00:06.0054059Z Uploaded bytes 1291845632
+2026-11-12T21:00:06.0367993Z Uploaded bytes 1300234240
+2026-11-12T21:00:06.0424852Z Uploaded bytes 1308622848
+2026-11-12T21:00:06.2544919Z Uploaded bytes 1317011456
+2026-11-12T21:00:06.3123309Z Uploaded bytes 1325400064
+2026-11-12T21:00:06.3368777Z Uploaded bytes 1333788672
+2026-11-12T21:00:06.3911650Z Uploaded bytes 1342177280
+2026-11-12T21:00:06.5266765Z Uploaded bytes 1350565888
+2026-11-12T21:00:06.6015693Z Uploaded bytes 1358954496
+2026-11-12T21:00:06.6427606Z Uploaded bytes 1367343104
+2026-11-12T21:00:06.7084446Z Uploaded bytes 1375731712
+2026-11-12T21:00:06.8570508Z Uploaded bytes 1384120320
+2026-11-12T21:00:06.9060550Z Uploaded bytes 1392508928
+2026-11-12T21:00:06.9116636Z Uploaded bytes 1400897536
+2026-11-12T21:00:07.0872163Z Uploaded bytes 1409286144
+2026-11-12T21:00:07.1918363Z Uploaded bytes 1417674752
+2026-11-12T21:00:07.2055369Z Uploaded bytes 1426063360
+2026-11-12T21:00:07.2709868Z Uploaded bytes 1434451968
+2026-11-12T21:00:07.4028552Z Uploaded bytes 1442840576
+2026-11-12T21:00:07.4677554Z Uploaded bytes 1451229184
+2026-11-12T21:00:07.4811724Z Uploaded bytes 1459617792
+2026-11-12T21:00:07.6353129Z Uploaded bytes 1468006400
+2026-11-12T21:00:07.6819060Z Uploaded bytes 1476395008
+2026-11-12T21:00:07.7632930Z Uploaded bytes 1484783616
+2026-11-12T21:00:07.8515500Z Uploaded bytes 1493172224
+2026-11-12T21:00:07.9111328Z Uploaded bytes 1501560832
+2026-11-12T21:00:07.9847391Z Uploaded bytes 1509949440
+2026-11-12T21:00:08.1208312Z Uploaded bytes 1518338048
+2026-11-12T21:00:08.1440622Z Uploaded bytes 1526726656
+2026-11-12T21:00:08.2350013Z Uploaded bytes 1535115264
+2026-11-12T21:00:08.3240800Z Uploaded bytes 1543503872
+2026-11-12T21:00:08.4392192Z Uploaded bytes 1551892480
+2026-11-12T21:00:08.5080589Z Uploaded bytes 1560281088
+2026-11-12T21:00:08.5607694Z Uploaded bytes 1568669696
+2026-11-12T21:00:08.6003448Z Uploaded bytes 1577058304
+2026-11-12T21:00:08.7232295Z Uploaded bytes 1585446912
+2026-11-12T21:00:08.7895088Z Uploaded bytes 1593835520
+2026-11-12T21:00:08.8516357Z Uploaded bytes 1602224128
+2026-11-12T21:00:08.9171883Z Uploaded bytes 1610612736
+2026-11-12T21:00:09.0568782Z Uploaded bytes 1619001344
+2026-11-12T21:00:09.0733621Z Uploaded bytes 1627389952
+2026-11-12T21:00:09.1671641Z Uploaded bytes 1635778560
+2026-11-12T21:00:09.2157926Z Uploaded bytes 1644167168
+2026-11-12T21:00:09.3550744Z Uploaded bytes 1652555776
+2026-11-12T21:00:09.3608419Z Uploaded bytes 1660944384
+2026-11-12T21:00:09.4450874Z Uploaded bytes 1669332992
+2026-11-12T21:00:09.5753199Z Uploaded bytes 1677721600
+2026-11-12T21:00:09.6325859Z Uploaded bytes 1686110208
+2026-11-12T21:00:09.6683441Z Uploaded bytes 1694498816
+2026-11-12T21:00:09.7374212Z Uploaded bytes 1702887424
+2026-11-12T21:00:09.8821522Z Uploaded bytes 1711276032
+2026-11-12T21:00:09.9374933Z Uploaded bytes 1719664640
+2026-11-12T21:00:09.9464312Z Uploaded bytes 1728053248
+2026-11-12T21:00:10.0525572Z Uploaded bytes 1736441856
+2026-11-12T21:00:10.1778237Z Uploaded bytes 1744830464
+2026-11-12T21:00:10.2286558Z Uploaded bytes 1753219072
+2026-11-12T21:00:10.2517300Z Uploaded bytes 1761607680
+2026-11-12T21:00:10.3512633Z Uploaded bytes 1769996288
+2026-11-12T21:00:10.4959358Z Uploaded bytes 1778384896
+2026-11-12T21:00:10.5070466Z Uploaded bytes 1786773504
+2026-11-12T21:00:10.5233022Z Uploaded bytes 1795162112
+2026-11-12T21:00:10.6354778Z Uploaded bytes 1803550720
+2026-11-12T21:00:10.7857021Z Uploaded bytes 1811939328
+2026-11-12T21:00:10.8056432Z Uploaded bytes 1820327936
+2026-11-12T21:00:10.8140548Z Uploaded bytes 1828716544
+2026-11-12T21:00:10.9581835Z Uploaded bytes 1837105152
+2026-11-12T21:00:11.0955272Z Uploaded bytes 1845493760
+2026-11-12T21:00:11.1188862Z Uploaded bytes 1853882368
+2026-11-12T21:00:11.1270460Z Uploaded bytes 1862270976
+2026-11-12T21:00:11.3087894Z Uploaded bytes 1870659584
+2026-11-12T21:00:11.4055704Z Uploaded bytes 1879048192
+2026-11-12T21:00:11.4496860Z Uploaded bytes 1887436800
+2026-11-12T21:00:11.5965483Z Uploaded bytes 1895825408
+2026-11-12T21:00:11.6022593Z Uploaded bytes 1904214016
+2026-11-12T21:00:11.6875053Z Uploaded bytes 1912602624
+2026-11-12T21:00:11.7439506Z Uploaded bytes 1920991232
+2026-11-12T21:00:11.8854023Z Uploaded bytes 1929379840
+2026-11-12T21:00:11.9417729Z Uploaded bytes 1937768448
+2026-11-12T21:00:11.9878444Z Uploaded bytes 1946157056
+2026-11-12T21:00:12.0466196Z Uploaded bytes 1954545664
+2026-11-12T21:00:12.2232886Z Uploaded bytes 1962934272
+2026-11-12T21:00:12.2507187Z Uploaded bytes 1971322880
+2026-11-12T21:00:12.2565926Z Uploaded bytes 1979711488
+2026-11-12T21:00:12.3142767Z Uploaded bytes 1988100096
+2026-11-12T21:00:12.5395824Z Uploaded bytes 1996488704
+2026-11-12T21:00:12.5480216Z Uploaded bytes 2004877312
+2026-11-12T21:00:12.5834985Z Uploaded bytes 2013265920
+2026-11-12T21:00:12.5988625Z Uploaded bytes 2021654528
+2026-11-12T21:00:12.8670017Z Uploaded bytes 2030043136
+2026-11-12T21:00:12.8760443Z Uploaded bytes 2038431744
+2026-11-12T21:00:12.9096415Z Uploaded bytes 2046820352
+2026-11-12T21:00:12.9220604Z Uploaded bytes 2055208960
+2026-11-12T21:00:13.1515240Z Uploaded bytes 2063597568
+2026-11-12T21:00:13.2308813Z Uploaded bytes 2071986176
+2026-11-12T21:00:13.2377775Z Uploaded bytes 2080374784
+2026-11-12T21:00:13.2436031Z Uploaded bytes 2088763392
+2026-11-12T21:00:13.4527340Z Uploaded bytes 2097152000
+2026-11-12T21:00:13.5146950Z Uploaded bytes 2105540608
+2026-11-12T21:00:13.5270830Z Uploaded bytes 2113929216
+2026-11-12T21:00:13.6114632Z Uploaded bytes 2122317824
+2026-11-12T21:00:13.7281153Z Uploaded bytes 2130706432
+2026-11-12T21:00:13.8102643Z Uploaded bytes 2139095040
+2026-11-12T21:00:13.8163637Z Uploaded bytes 2147483648
+2026-11-12T21:00:13.8988421Z Uploaded bytes 2155872256
+2026-11-12T21:00:14.0194110Z Uploaded bytes 2164260864
+2026-11-12T21:00:14.0982436Z Uploaded bytes 2172649472
+2026-11-12T21:00:14.1313694Z Uploaded bytes 2181038080
+2026-11-12T21:00:14.1994713Z Uploaded bytes 2189426688
+2026-11-12T21:00:14.3234157Z Uploaded bytes 2197815296
+2026-11-12T21:00:14.3975287Z Uploaded bytes 2206203904
+2026-11-12T21:00:14.4340575Z Uploaded bytes 2214592512
+2026-11-12T21:00:14.4890044Z Uploaded bytes 2222981120
+2026-11-12T21:00:14.6226698Z Uploaded bytes 2231369728
+2026-11-12T21:00:14.7003289Z Uploaded bytes 2239758336
+2026-11-12T21:00:14.7379157Z Uploaded bytes 2248146944
+2026-11-12T21:00:14.7869524Z Uploaded bytes 2256535552
+2026-11-12T21:00:14.9415033Z Uploaded bytes 2264924160
+2026-11-12T21:00:14.9659276Z Uploaded bytes 2273312768
+2026-11-12T21:00:15.0729741Z Uploaded bytes 2281701376
+2026-11-12T21:00:15.1083927Z Uploaded bytes 2290089984
+2026-11-12T21:00:15.2161133Z Uploaded bytes 2298478592
+2026-11-12T21:00:15.3343456Z Uploaded bytes 2306867200
+2026-11-12T21:00:15.4335733Z Uploaded bytes 2315255808
+2026-11-12T21:00:15.4874620Z Uploaded bytes 2323644416
+2026-11-12T21:00:15.5838357Z Uploaded bytes 2332033024
+2026-11-12T21:00:15.6541753Z Uploaded bytes 2340421632
+2026-11-12T21:00:15.7122384Z Uploaded bytes 2348810240
+2026-11-12T21:00:15.7798158Z Uploaded bytes 2357198848
+2026-11-12T21:00:15.8679296Z Uploaded bytes 2365587456
+2026-11-12T21:00:15.9595862Z Uploaded bytes 2373976064
+2026-11-12T21:00:16.0503534Z Uploaded bytes 2382364672
+2026-11-12T21:00:16.0626342Z Uploaded bytes 2390753280
+2026-11-12T21:00:16.1994899Z Uploaded bytes 2399141888
+2026-11-12T21:00:16.2757133Z Uploaded bytes 2407530496
+2026-11-12T21:00:16.3460415Z Uploaded bytes 2415919104
+2026-11-12T21:00:16.3590721Z Uploaded bytes 2424307712
+2026-11-12T21:00:16.4976355Z Uploaded bytes 2432696320
+2026-11-12T21:00:16.5429824Z Uploaded bytes 2441084928
+2026-11-12T21:00:16.6231019Z Uploaded bytes 2449473536
+2026-11-12T21:00:16.6321510Z Uploaded bytes 2457862144
+2026-11-12T21:00:16.7806569Z Uploaded bytes 2466250752
+2026-11-12T21:00:16.8426127Z Uploaded bytes 2474639360
+2026-11-12T21:00:16.9036334Z Uploaded bytes 2483027968
+2026-11-12T21:00:16.9397588Z Uploaded bytes 2491416576
+2026-11-12T21:00:17.0468567Z Uploaded bytes 2499805184
+2026-11-12T21:00:17.1846811Z Uploaded bytes 2508193792
+2026-11-12T21:00:17.1906486Z Uploaded bytes 2516582400
+2026-11-12T21:00:17.2163764Z Uploaded bytes 2524971008
+2026-11-12T21:00:17.3397664Z Uploaded bytes 2533359616
+2026-11-12T21:00:17.4906340Z Uploaded bytes 2541748224
+2026-11-12T21:00:17.5485913Z Uploaded bytes 2550136832
+2026-11-12T21:00:17.5615385Z Uploaded bytes 2558525440
+2026-11-12T21:00:17.6394624Z Uploaded bytes 2566914048
+2026-11-12T21:00:17.7819321Z Uploaded bytes 2575302656
+2026-11-12T21:00:17.8537858Z Uploaded bytes 2583691264
+2026-11-12T21:00:17.9189341Z Uploaded bytes 2592079872
+2026-11-12T21:00:17.9247128Z Uploaded bytes 2600468480
+2026-11-12T21:00:18.0704556Z Uploaded bytes 2608857088
+2026-11-12T21:00:18.1500436Z Uploaded bytes 2617245696
+2026-11-12T21:00:18.2140178Z Uploaded bytes 2625634304
+2026-11-12T21:00:18.2260508Z Uploaded bytes 2634022912
+2026-11-12T21:00:18.3597915Z Uploaded bytes 2642411520
+2026-11-12T21:00:18.4397960Z Uploaded bytes 2650800128
+2026-11-12T21:00:18.5104910Z Uploaded bytes 2659188736
+2026-11-12T21:00:18.5265900Z Uploaded bytes 2667577344
+2026-11-12T21:00:18.6697877Z Uploaded bytes 2675965952
+2026-11-12T21:00:18.7275014Z Uploaded bytes 2684354560
+2026-11-12T21:00:18.8218735Z Uploaded bytes 2692743168
+2026-11-12T21:00:18.8971821Z Uploaded bytes 2701131776
+2026-11-12T21:00:19.0005267Z Uploaded bytes 2709520384
+2026-11-12T21:00:19.0061203Z Uploaded bytes 2717908992
+2026-11-12T21:00:19.1426597Z Uploaded bytes 2726297600
+2026-11-12T21:00:19.2058316Z Uploaded bytes 2734686208
+2026-11-12T21:00:19.3683956Z Uploaded bytes 2743074816
+2026-11-12T21:00:19.4055049Z Uploaded bytes 2751463424
+2026-11-12T21:00:19.4588350Z Uploaded bytes 2759852032
+2026-11-12T21:00:19.5080050Z Uploaded bytes 2768240640
+2026-11-12T21:00:19.6623680Z Uploaded bytes 2776629248
+2026-11-12T21:00:19.7020348Z Uploaded bytes 2785017856
+2026-11-12T21:00:19.7500967Z Uploaded bytes 2793406464
+2026-11-12T21:00:19.8114281Z Uploaded bytes 2801795072
+2026-11-12T21:00:19.9416331Z Uploaded bytes 2810183680
+2026-11-12T21:00:20.0290370Z Uploaded bytes 2818572288
+2026-11-12T21:00:20.0813578Z Uploaded bytes 2826960896
+2026-11-12T21:00:20.1032175Z Uploaded bytes 2835349504
+2026-11-12T21:00:20.2561454Z Uploaded bytes 2843738112
+2026-11-12T21:00:20.3527452Z Uploaded bytes 2852126720
+2026-11-12T21:00:20.3700576Z Uploaded bytes 2860515328
+2026-11-12T21:00:20.4044391Z Uploaded bytes 2868903936
+2026-11-12T21:00:20.5447420Z Uploaded bytes 2877292544
+2026-11-12T21:00:20.6480340Z Uploaded bytes 2885681152
+2026-11-12T21:00:20.6590812Z Uploaded bytes 2894069760
+2026-11-12T21:00:20.7033187Z Uploaded bytes 2902458368
+2026-11-12T21:00:20.8407842Z Uploaded bytes 2910846976
+2026-11-12T21:00:20.9405972Z Uploaded bytes 2919235584
+2026-11-12T21:00:20.9541620Z Uploaded bytes 2927624192
+2026-11-12T21:00:21.0060865Z Uploaded bytes 2936012800
+2026-11-12T21:00:21.1622387Z Uploaded bytes 2944401408
+2026-11-12T21:00:21.2258392Z Uploaded bytes 2952790016
+2026-11-12T21:00:21.2404015Z Uploaded bytes 2961178624
+2026-11-12T21:00:21.3245876Z Uploaded bytes 2969567232
+2026-11-12T21:00:21.4651151Z Uploaded bytes 2977955840
+2026-11-12T21:00:21.5206474Z Uploaded bytes 2986344448
+2026-11-12T21:00:21.5786027Z Uploaded bytes 2994733056
+2026-11-12T21:00:21.5995270Z Uploaded bytes 3003121664
+2026-11-12T21:00:21.8614375Z Uploaded bytes 3010752230
+2026-11-12T21:00:21.9489320Z Finished uploading artifact content to blob storage!
+2026-11-12T21:00:21.9491058Z SHA256 digest of uploaded artifact zip is 4f5b0439a47f873e90fb6382c0232d9e3ae99b0dd05eb5b5e01132eeec4c9380
+2026-11-12T21:00:21.9492635Z Finalizing artifact upload
+2026-11-12T21:00:22.5675129Z Artifact hia-v87-full-retained-43305002328-1.zip successfully finalized. Artifact ID 13982129929
+2026-11-12T21:00:22.5675918Z Artifact hia-v87-full-retained-43305002328-1 has been successfully uploaded! Final size is 3010752230 bytes. Artifact ID is 13982129929
+2026-11-12T21:00:22.5681214Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/43305002328/artifacts/13982129929
+2026-11-12T21:00:22.5955390Z Post job cleanup.
+2026-11-12T21:00:22.6564019Z [command]/usr/bin/git version
+2026-11-12T21:00:22.6633540Z git version 2.56.0
+2026-11-12T21:00:22.6666368Z Temporarily overriding HOME='/home/runner/work/_temp/756d28fc-98ce-4564-b4be-e777b9be1624' before making global git config changes
+2026-11-12T21:00:22.6667367Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T21:00:22.6669474Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/source-input
+2026-11-12T21:00:22.6724428Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T21:00:22.6762702Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T21:00:22.7005177Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T21:00:22.7052152Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T21:00:22.7299926Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T21:00:22.7340848Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T21:00:22.7691784Z Post job cleanup.
+2026-11-12T21:00:22.8379346Z [command]/usr/bin/git version
+2026-11-12T21:00:22.8460259Z git version 2.56.0
+2026-11-12T21:00:22.8506296Z Temporarily overriding HOME='/home/runner/work/_temp/ba693f25-61e7-4e62-9fc7-0c557037d6ab' before making global git config changes
+2026-11-12T21:00:22.8507385Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T21:00:22.8513252Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/capsule
+2026-11-12T21:00:22.8562009Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T21:00:22.8596884Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T21:00:22.8840777Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T21:00:22.8879518Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T21:00:22.9118391Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T21:00:22.9158530Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T21:00:22.9497802Z Cleaning up orphan processes
+2026-11-12T21:00:22.9747397Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11d5960a326750d5838078e36cf38b85af677262, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
