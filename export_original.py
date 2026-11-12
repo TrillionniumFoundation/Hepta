@@ -59,14 +59,12 @@ def main():
     output = Path('original-proof-readback')
     output.mkdir(mode=0o700, exist_ok=False)
     with api('/actions/artifacts/' + str(ARTIFACT)) as response:
-        original_metadata = response.read()
-    info = json.loads(original_metadata)
-    if (info['id'] != ARTIFACT or info['name'] != ARTIFACT_NAME
-            or info['size_in_bytes'] != BYTES or info['digest'] != 'sha256:' + SHA
-            or info['expired'] is not False
-            or info['workflow_run']['id'] != RUN or info['workflow_run']['head_sha'] != HEAD):
-        raise ValueError('authoritative original artifact identity differs')
-    (output / 'original-artifact-metadata.json').write_bytes(original_metadata)
+        info = json.loads(response.read())
+    if (info['id'] != ARTIFACT or info['size_in_bytes'] != BYTES
+            or info['digest'] != 'sha256:' + SHA
+            or info['workflow_run']['id'] != RUN
+            or info['workflow_run']['head_sha'] != HEAD):
+        raise ValueError('original artifact identity differs')
     try:
         response = api('/actions/artifacts/' + str(ARTIFACT) + '/zip')
     except urllib.error.HTTPError as error:
@@ -74,108 +72,25 @@ def main():
             raise
         location = error.headers['Location']
         if urllib.parse.urlsplit(location).scheme != 'https':
-            raise ValueError('artifact redirect must use HTTPS')
-        # The repository token is deliberately not forwarded to blob storage.
-        response = urllib.request.urlopen(urllib.request.Request(
-            location, headers={'User-Agent': 'hia-proof-original-artifact-readback'}), timeout=60)
-    original_zip = output / 'original-artifact.zip'
-    received = 0
-    checksum = sha256()
-    with response, original_zip.open('xb') as target:
-        while True:
-            block = response.read(1 << 20)
-            if not block:
-                break
-            received += len(block)
-            if received > BYTES:
-                raise ValueError('original ZIP exceeds frozen extent')
-            checksum.update(block)
-            target.write(block)
-    if received != BYTES or checksum.hexdigest() != SHA:
-        raise ValueError('complete original ZIP bytes differ')
-    members = {}
-    exported = {}
-    tar_name = PREFIX + 'complete-development-source.tar.gz'
-    manifest_name = PREFIX + 'frozen-source.json'
-    with zipfile.ZipFile(original_zip) as archive:
-        names = archive.namelist()
-        if len(names) != len(set(names)):
-            raise ValueError('duplicate original ZIP member')
-        for item in archive.infolist():
-            name = safe(item.filename.rstrip('/'))
-            if item.is_dir():
-                continue
-            # ZipFile.read checks each original CRC; no extraction executes code.
-            raw = archive.read(item)
-            members[name] = dict(meta(raw), crc32=format(item.CRC, '08x'),
-                transport_mode=format((item.external_attr >> 16) & 0o777, '04o'))
-            if not name.startswith(PREFIX):
-                continue
-            relative = name[len(PREFIX):]
-            parts = PurePosixPath(relative).parts
-            selected = (len(parts) <= 2 and relative.endswith(('.log', '.json')))
-            if relative.endswith('.source.json') or relative.startswith('source-'):
-                selected = False
-            if relative == 'ARTIFACT-FILES.json':
-                selected = False
-            if relative in ('REPORT.json', 'frozen-source.json', 'actual-table.json',
-                            'component-85/REPORT.json', 'original-proof-40/report.json'):
-                selected = True
-            if selected:
-                text = raw.decode('utf-8', 'strict')
-                exported[name] = dict(meta(raw), text=text, source='original ZIP bytes')
-        frozen = json.loads(archive.read(manifest_name))
-        source_count = 0
-        source_names = set()
-        with archive.open(tar_name) as compressed:
-            with tarfile.open(fileobj=compressed, mode='r|gz') as source_tar:
-                for item in source_tar:
-                    name = safe(item.name)
-                    if not name.startswith('source/') or not item.isfile():
-                        raise ValueError('original complete-source member type differs')
-                    relative = safe(name[len('source/'):])
-                    if relative in source_names or relative not in frozen:
-                        raise ValueError('original complete-source member inventory differs')
-                    source_names.add(relative)
-                    raw = source_tar.extractfile(item).read()
-                    expected = frozen[relative]
-                    observed = meta(raw)
-                    if (any(observed[key] != expected[key] for key in observed)
-                            or format(item.mode & 0o777, '04o') != expected['posix_mode']):
-                        raise ValueError('original full source bytes/mode differs: ' + relative)
-                    source_count += 1
-                    if relative in SELECTED_SOURCES:
-                        exported['complete-source/' + relative] = dict(observed,
-                            text=raw.decode('utf-8', 'strict'),
-                            mode=format(item.mode & 0o777, '04o'),
-                            source='original complete-development-source.tar.gz')
-        if source_names != set(frozen) or source_count != 3201:
-            raise ValueError('complete original3201 source identity differs')
-    report = {'schema': 'hia.proof-recovery.original-artifact-readback.v79.r1',
-              'scope': 'READ_ONLY_NO_PROJECT_IMPORT_OR_TEST_OR_COMPILATION',
-              'original_run': RUN, 'original_head': HEAD, 'original_artifact': ARTIFACT,
-              'original_zip': {'bytes': BYTES, 'sha256': SHA},
-              'all_zip_members': members, 'source_files_verified': source_count,
-              'original_failure_retained': True, 'current_source_cold': False,
-              'whole_stack_native': False, 'files': exported}
-    raw = wire(report)
-    (output / 'READBACK.json').write_bytes(raw)
-    compressed = zlib.compress(raw, 9)
-    encoded = base64.b64encode(compressed).decode('ascii')
-    capsule = {'schema': 'hia.zlib-source-capsule.v1', 'encoding': 'zlib+base64',
-               'source_packet': dict(meta(raw), mode='100644'), 'payload': encoded}
-    body = wire(capsule)
-    (output / 'READBACK.zlib.json').write_bytes(body)
-    header = {'capsule': meta(body), 'packet': meta(raw),
-              'payload_chars': len(encoded), 'chunks': (len(encoded) + 15999) // 16000,
-              'original_zip_verified': True, 'all_zip_members': len(members),
-              'source_files_verified': source_count}
-    print('HIA_PROOF_READBACK_HEADER ' + json.dumps(header, sort_keys=True), flush=True)
-    for index, start in enumerate(range(0, len(encoded), 16000)):
-        print('HIA_PROOF_READBACK_CHUNK ' + str(index) + ' ' + encoded[start:start + 16000],
-              flush=True)
-    print('HIA_PROOF_READBACK_COMPLETE ' + digest(body), flush=True)
-    # Keep the byte-identical original ZIP as an independently downloadable artifact.
+            raise ValueError('HTTPS redirect required')
+        response = urllib.request.urlopen(location, timeout=60)
+    raw = response.read(BYTES + 1)
+    response.close()
+    if len(raw) != BYTES or digest(raw) != SHA:
+        raise ValueError('original whole ZIP differs')
+    result = {'schema': 'hia.proof-recovery.original-whitespace-readback.v79.r1',
+              'scope': 'READ_ONLY_NO_PROJECT_EXECUTION',
+              'run': RUN, 'head': HEAD, 'artifact': ARTIFACT,
+              'original_zip': {'bytes': BYTES, 'sha256': SHA}, 'files': {}}
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        for name in ('source-whitespace.stdout.log', 'source-whitespace.stderr.log',
+                     'source-whitespace.terminal.json'):
+            value = archive.read(PREFIX + name)
+            result['files'][name] = dict(meta(value), text=value.decode('utf-8', 'strict'))
+    body = wire(result)
+    (output / 'WHITESPACE-READBACK.json').write_bytes(body)
+    print('HIA_PROOF_WHITESPACE_READBACK ' + base64.b64encode(body).decode('ascii'), flush=True)
+    print('HIA_PROOF_WHITESPACE_SHA256 ' + digest(body), flush=True)
     return 0
 
 if __name__ == '__main__':
