@@ -1,0 +1,311 @@
+
+/tmp/hia-cli-json-c-runtime-lifetime-actual-r1-20261112-e26e/work/c-build/cli-json.so:     file format elf64-x86-64
+
+
+Disassembly of section .plt:
+
+Disassembly of section .plt.got:
+
+Disassembly of section .text:
+
+0000000000004910 <cj312_do_raise>:
+    4910:	41 57                	push   %r15
+    4912:	41 56                	push   %r14
+    4914:	41 55                	push   %r13
+    4916:	41 54                	push   %r12
+    4918:	49 89 fc             	mov    %rdi,%r12
+    491b:	55                   	push   %rbp
+    491c:	53                   	push   %rbx
+    491d:	48 83 ec 18          	sub    $0x18,%rsp
+    4921:	48 85 f6             	test   %rsi,%rsi
+    4924:	0f 84 e6 02 00 00    	je     4c10 <cj312_do_raise+0x300>
+    492a:	4c 8b 76 08          	mov    0x8(%rsi),%r14
+    492e:	48 89 f3             	mov    %rsi,%rbx
+    4931:	48 89 d5             	mov    %rdx,%rbp
+    4934:	4d 8b ae a8 00 00 00 	mov    0xa8(%r14),%r13
+    493b:	41 f7 c5 00 00 00 80 	test   $0x80000000,%r13d
+    4942:	74 0d                	je     4951 <cj312_do_raise+0x41>
+    4944:	f6 86 ab 00 00 00 40 	testb  $0x40,0xab(%rsi)
+    494b:	0f 85 37 01 00 00    	jne    4a88 <cj312_do_raise+0x178>
+    4951:	41 f7 c5 00 00 00 40 	test   $0x40000000,%r13d
+    4958:	0f 84 a2 00 00 00    	je     4a00 <cj312_do_raise+0xf0>
+    495e:	41 8b 06             	mov    (%r14),%eax
+    4961:	83 c0 01             	add    $0x1,%eax
+    4964:	74 03                	je     4969 <cj312_do_raise+0x59>
+    4966:	41 89 06             	mov    %eax,(%r14)
+    4969:	49 89 dd             	mov    %rbx,%r13
+    496c:	4c 89 f3             	mov    %r14,%rbx
+    496f:	48 85 ed             	test   %rbp,%rbp
+    4972:	74 39                	je     49ad <cj312_do_raise+0x9d>
+    4974:	4c 8b 7d 08          	mov    0x8(%rbp),%r15
+    4978:	4d 8b b7 a8 00 00 00 	mov    0xa8(%r15),%r14
+    497f:	41 f7 c6 00 00 00 80 	test   $0x80000000,%r14d
+    4986:	74 0d                	je     4995 <cj312_do_raise+0x85>
+    4988:	f6 85 ab 00 00 00 40 	testb  $0x40,0xab(%rbp)
+    498f:	0f 85 db 01 00 00    	jne    4b70 <cj312_do_raise+0x260>
+    4995:	41 f7 c6 00 00 00 40 	test   $0x40000000,%r14d
+    499c:	0f 84 b6 00 00 00    	je     4a58 <cj312_do_raise+0x148>
+    49a2:	48 89 ee             	mov    %rbp,%rsi
+    49a5:	4c 89 ef             	mov    %r13,%rdi
+    49a8:	e8 43 eb ff ff       	call   34f0 <PyException_SetCause@plt>
+    49ad:	4c 89 ea             	mov    %r13,%rdx
+    49b0:	48 89 de             	mov    %rbx,%rsi
+    49b3:	4c 89 e7             	mov    %r12,%rdi
+    49b6:	e8 35 ea ff ff       	call   33f0 <_PyErr_SetObject@plt>
+    49bb:	49 8b 45 00          	mov    0x0(%r13),%rax
+    49bf:	85 c0                	test   %eax,%eax
+    49c1:	78 0e                	js     49d1 <cj312_do_raise+0xc1>
+    49c3:	48 83 e8 01          	sub    $0x1,%rax
+    49c7:	49 89 45 00          	mov    %rax,0x0(%r13)
+    49cb:	0f 84 97 02 00 00    	je     4c68 <cj312_do_raise+0x358>
+    49d1:	48 8b 03             	mov    (%rbx),%rax
+    49d4:	85 c0                	test   %eax,%eax
+    49d6:	78 0d                	js     49e5 <cj312_do_raise+0xd5>
+    49d8:	48 83 e8 01          	sub    $0x1,%rax
+    49dc:	48 89 03             	mov    %rax,(%rbx)
+    49df:	0f 84 7b 01 00 00    	je     4b60 <cj312_do_raise+0x250>
+    49e5:	48 83 c4 18          	add    $0x18,%rsp
+    49e9:	31 c0                	xor    %eax,%eax
+    49eb:	5b                   	pop    %rbx
+    49ec:	5d                   	pop    %rbp
+    49ed:	41 5c                	pop    %r12
+    49ef:	41 5d                	pop    %r13
+    49f1:	41 5e                	pop    %r14
+    49f3:	41 5f                	pop    %r15
+    49f5:	c3                   	ret
+    49f6:	66 2e 0f 1f 84 00 00 	cs nopw 0x0(%rax,%rax,1)
+    49fd:	00 00 00 
+    4a00:	48 8b 03             	mov    (%rbx),%rax
+    4a03:	85 c0                	test   %eax,%eax
+    4a05:	78 11                	js     4a18 <cj312_do_raise+0x108>
+    4a07:	48 83 e8 01          	sub    $0x1,%rax
+    4a0b:	48 89 03             	mov    %rax,(%rbx)
+    4a0e:	75 08                	jne    4a18 <cj312_do_raise+0x108>
+    4a10:	48 89 df             	mov    %rbx,%rdi
+    4a13:	e8 78 e9 ff ff       	call   3390 <_Py_Dealloc@plt>
+    4a18:	48 8b 05 19 b5 00 00 	mov    0xb519(%rip),%rax        # ff38 <PyExc_TypeError>
+    4a1f:	48 8d 15 ca 7c 00 00 	lea    0x7cca(%rip),%rdx        # c6f0 <hia_cli_json_bind_runtime_312_control+0xc50>
+    4a26:	4c 89 e7             	mov    %r12,%rdi
+    4a29:	48 8b 30             	mov    (%rax),%rsi
+    4a2c:	e8 af e8 ff ff       	call   32e0 <_PyErr_SetString@plt>
+    4a31:	48 85 ed             	test   %rbp,%rbp
+    4a34:	74 af                	je     49e5 <cj312_do_raise+0xd5>
+    4a36:	48 8b 45 00          	mov    0x0(%rbp),%rax
+    4a3a:	85 c0                	test   %eax,%eax
+    4a3c:	78 a7                	js     49e5 <cj312_do_raise+0xd5>
+    4a3e:	48 83 e8 01          	sub    $0x1,%rax
+    4a42:	48 89 45 00          	mov    %rax,0x0(%rbp)
+    4a46:	75 9d                	jne    49e5 <cj312_do_raise+0xd5>
+    4a48:	48 89 ef             	mov    %rbp,%rdi
+    4a4b:	e8 40 e9 ff ff       	call   3390 <_Py_Dealloc@plt>
+    4a50:	eb 93                	jmp    49e5 <cj312_do_raise+0xd5>
+    4a52:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
+    4a58:	48 3b 2d 69 b4 00 00 	cmp    0xb469(%rip),%rbp        # fec8 <_Py_NoneStruct>
+    4a5f:	0f 85 13 02 00 00    	jne    4c78 <cj312_do_raise+0x368>
+    4a65:	48 8b 45 00          	mov    0x0(%rbp),%rax
+    4a69:	85 c0                	test   %eax,%eax
+    4a6b:	78 0e                	js     4a7b <cj312_do_raise+0x16b>
+    4a6d:	48 83 e8 01          	sub    $0x1,%rax
+    4a71:	48 89 45 00          	mov    %rax,0x0(%rbp)
+    4a75:	0f 84 75 02 00 00    	je     4cf0 <cj312_do_raise+0x3e0>
+    4a7b:	31 ed                	xor    %ebp,%ebp
+    4a7d:	e9 20 ff ff ff       	jmp    49a2 <cj312_do_raise+0x92>
+    4a82:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
+    4a88:	66 48 8d 3d 40 b5 00 	data16 lea 0xb540(%rip),%rdi        # ffd0 <_Py_tss_tstate>
+    4a8f:	00 
+    4a90:	66 66 48 e8 08 e7 ff 	data16 data16 rex.W call 31a0 <__tls_get_addr@plt>
+    4a97:	ff 
+    4a98:	4c 8b 38             	mov    (%rax),%r15
+    4a9b:	41 f7 c5 00 08 00 00 	test   $0x800,%r13d
+    4aa2:	0f 84 58 02 00 00    	je     4d00 <cj312_do_raise+0x3f0>
+    4aa8:	48 89 df             	mov    %rbx,%rdi
+    4aab:	e8 30 e7 ff ff       	call   31e0 <PyCallable_Check@plt>
+    4ab0:	85 c0                	test   %eax,%eax
+    4ab2:	0f 84 9d ee ff ff    	je     3955 <cj312_do_raise.cold+0x3e>
+    4ab8:	49 8b 46 38          	mov    0x38(%r14),%rax
+    4abc:	48 85 c0             	test   %rax,%rax
+    4abf:	0f 8e 71 ee ff ff    	jle    3936 <cj312_do_raise.cold+0x1f>
+    4ac5:	48 8b 04 03          	mov    (%rbx,%rax,1),%rax
+    4ac9:	48 85 c0             	test   %rax,%rax
+    4acc:	0f 84 2e 02 00 00    	je     4d00 <cj312_do_raise+0x3f0>
+    4ad2:	31 c9                	xor    %ecx,%ecx
+    4ad4:	31 d2                	xor    %edx,%edx
+    4ad6:	31 f6                	xor    %esi,%esi
+    4ad8:	48 89 df             	mov    %rbx,%rdi
+    4adb:	ff d0                	call   *%rax
+    4add:	31 c9                	xor    %ecx,%ecx
+    4adf:	48 89 de             	mov    %rbx,%rsi
+    4ae2:	4c 89 ff             	mov    %r15,%rdi
+    4ae5:	48 89 c2             	mov    %rax,%rdx
+    4ae8:	e8 93 e6 ff ff       	call   3180 <_Py_CheckFunctionResult@plt>
+    4aed:	49 89 c5             	mov    %rax,%r13
+    4af0:	4d 85 ed             	test   %r13,%r13
+    4af3:	74 46                	je     4b3b <cj312_do_raise+0x22b>
+    4af5:	4d 8b 45 08          	mov    0x8(%r13),%r8
+    4af9:	41 f6 80 ab 00 00 00 	testb  $0x40,0xab(%r8)
+    4b00:	40 
+    4b01:	0f 85 68 fe ff ff    	jne    496f <cj312_do_raise+0x5f>
+    4b07:	48 8b 05 2a b4 00 00 	mov    0xb42a(%rip),%rax        # ff38 <PyExc_TypeError>
+    4b0e:	48 89 d9             	mov    %rbx,%rcx
+    4b11:	48 8d 15 90 7b 00 00 	lea    0x7b90(%rip),%rdx        # c6a8 <hia_cli_json_bind_runtime_312_control+0xc08>
+    4b18:	4c 89 e7             	mov    %r12,%rdi
+    4b1b:	48 8b 30             	mov    (%rax),%rsi
+    4b1e:	31 c0                	xor    %eax,%eax
+    4b20:	e8 7b e7 ff ff       	call   32a0 <_PyErr_Format@plt>
+    4b25:	49 8b 45 00          	mov    0x0(%r13),%rax
+    4b29:	85 c0                	test   %eax,%eax
+    4b2b:	78 0e                	js     4b3b <cj312_do_raise+0x22b>
+    4b2d:	48 83 e8 01          	sub    $0x1,%rax
+    4b31:	49 89 45 00          	mov    %rax,0x0(%r13)
+    4b35:	0f 84 85 01 00 00    	je     4cc0 <cj312_do_raise+0x3b0>
+    4b3b:	48 8b 03             	mov    (%rbx),%rax
+    4b3e:	85 c0                	test   %eax,%eax
+    4b40:	0f 88 eb fe ff ff    	js     4a31 <cj312_do_raise+0x121>
+    4b46:	48 83 e8 01          	sub    $0x1,%rax
+    4b4a:	48 89 03             	mov    %rax,(%rbx)
+    4b4d:	0f 85 de fe ff ff    	jne    4a31 <cj312_do_raise+0x121>
+    4b53:	48 89 df             	mov    %rbx,%rdi
+    4b56:	e8 35 e8 ff ff       	call   3390 <_Py_Dealloc@plt>
+    4b5b:	e9 d1 fe ff ff       	jmp    4a31 <cj312_do_raise+0x121>
+    4b60:	48 89 df             	mov    %rbx,%rdi
+    4b63:	e8 28 e8 ff ff       	call   3390 <_Py_Dealloc@plt>
+    4b68:	e9 78 fe ff ff       	jmp    49e5 <cj312_do_raise+0xd5>
+    4b6d:	0f 1f 00             	nopl   (%rax)
+    4b70:	66 48 8d 3d 58 b4 00 	data16 lea 0xb458(%rip),%rdi        # ffd0 <_Py_tss_tstate>
+    4b77:	00 
+    4b78:	66 66 48 e8 20 e6 ff 	data16 data16 rex.W call 31a0 <__tls_get_addr@plt>
+    4b7f:	ff 
+    4b80:	48 8b 00             	mov    (%rax),%rax
+    4b83:	48 89 44 24 08       	mov    %rax,0x8(%rsp)
+    4b88:	41 f7 c6 00 08 00 00 	test   $0x800,%r14d
+    4b8f:	0f 84 8b 01 00 00    	je     4d20 <cj312_do_raise+0x410>
+    4b95:	48 89 ef             	mov    %rbp,%rdi
+    4b98:	e8 43 e6 ff ff       	call   31e0 <PyCallable_Check@plt>
+    4b9d:	85 c0                	test   %eax,%eax
+    4b9f:	0f 84 b0 ed ff ff    	je     3955 <cj312_do_raise.cold+0x3e>
+    4ba5:	49 8b 47 38          	mov    0x38(%r15),%rax
+    4ba9:	48 85 c0             	test   %rax,%rax
+    4bac:	0f 8e 84 ed ff ff    	jle    3936 <cj312_do_raise.cold+0x1f>
+    4bb2:	48 8b 44 05 00       	mov    0x0(%rbp,%rax,1),%rax
+    4bb7:	48 85 c0             	test   %rax,%rax
+    4bba:	0f 84 60 01 00 00    	je     4d20 <cj312_do_raise+0x410>
+    4bc0:	31 c9                	xor    %ecx,%ecx
+    4bc2:	31 d2                	xor    %edx,%edx
+    4bc4:	31 f6                	xor    %esi,%esi
+    4bc6:	48 89 ef             	mov    %rbp,%rdi
+    4bc9:	ff d0                	call   *%rax
+    4bcb:	48 8b 7c 24 08       	mov    0x8(%rsp),%rdi
+    4bd0:	31 c9                	xor    %ecx,%ecx
+    4bd2:	48 89 ee             	mov    %rbp,%rsi
+    4bd5:	48 89 c2             	mov    %rax,%rdx
+    4bd8:	e8 a3 e5 ff ff       	call   3180 <_Py_CheckFunctionResult@plt>
+    4bdd:	49 89 c6             	mov    %rax,%r14
+    4be0:	4d 85 f6             	test   %r14,%r14
+    4be3:	0f 84 57 01 00 00    	je     4d40 <cj312_do_raise+0x430>
+    4be9:	48 8b 45 00          	mov    0x0(%rbp),%rax
+    4bed:	85 c0                	test   %eax,%eax
+    4bef:	78 0e                	js     4bff <cj312_do_raise+0x2ef>
+    4bf1:	48 83 e8 01          	sub    $0x1,%rax
+    4bf5:	48 89 45 00          	mov    %rax,0x0(%rbp)
+    4bf9:	0f 84 79 01 00 00    	je     4d78 <cj312_do_raise+0x468>
+    4bff:	4c 89 f5             	mov    %r14,%rbp
+    4c02:	e9 9b fd ff ff       	jmp    49a2 <cj312_do_raise+0x92>
+    4c07:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
+    4c0e:	00 00 
+    4c10:	e8 8b e7 ff ff       	call   33a0 <_PyErr_GetTopmostException@plt>
+    4c15:	48 8b 30             	mov    (%rax),%rsi
+    4c18:	48 3b 35 a9 b2 00 00 	cmp    0xb2a9(%rip),%rsi        # fec8 <_Py_NoneStruct>
+    4c1f:	0f 84 ab 00 00 00    	je     4cd0 <cj312_do_raise+0x3c0>
+    4c25:	48 85 f6             	test   %rsi,%rsi
+    4c28:	0f 84 a2 00 00 00    	je     4cd0 <cj312_do_raise+0x3c0>
+    4c2e:	8b 06                	mov    (%rsi),%eax
+    4c30:	83 c0 01             	add    $0x1,%eax
+    4c33:	74 02                	je     4c37 <cj312_do_raise+0x327>
+    4c35:	89 06                	mov    %eax,(%rsi)
+    4c37:	48 8b 46 08          	mov    0x8(%rsi),%rax
+    4c3b:	f6 80 ab 00 00 00 40 	testb  $0x40,0xab(%rax)
+    4c42:	0f 84 cf ec ff ff    	je     3917 <cj312_do_raise.cold>
+    4c48:	4c 89 e7             	mov    %r12,%rdi
+    4c4b:	e8 80 e5 ff ff       	call   31d0 <_PyErr_SetRaisedException@plt>
+    4c50:	48 83 c4 18          	add    $0x18,%rsp
+    4c54:	b8 01 00 00 00       	mov    $0x1,%eax
+    4c59:	5b                   	pop    %rbx
+    4c5a:	5d                   	pop    %rbp
+    4c5b:	41 5c                	pop    %r12
+    4c5d:	41 5d                	pop    %r13
+    4c5f:	41 5e                	pop    %r14
+    4c61:	41 5f                	pop    %r15
+    4c63:	c3                   	ret
+    4c64:	0f 1f 40 00          	nopl   0x0(%rax)
+    4c68:	4c 89 ef             	mov    %r13,%rdi
+    4c6b:	e8 20 e7 ff ff       	call   3390 <_Py_Dealloc@plt>
+    4c70:	e9 5c fd ff ff       	jmp    49d1 <cj312_do_raise+0xc1>
+    4c75:	0f 1f 00             	nopl   (%rax)
+    4c78:	48 8b 05 b9 b2 00 00 	mov    0xb2b9(%rip),%rax        # ff38 <PyExc_TypeError>
+    4c7f:	48 8d 15 9a 7a 00 00 	lea    0x7a9a(%rip),%rdx        # c720 <hia_cli_json_bind_runtime_312_control+0xc80>
+    4c86:	4c 89 e7             	mov    %r12,%rdi
+    4c89:	48 8b 30             	mov    (%rax),%rsi
+    4c8c:	e8 4f e6 ff ff       	call   32e0 <_PyErr_SetString@plt>
+    4c91:	49 8b 45 00          	mov    0x0(%r13),%rax
+    4c95:	85 c0                	test   %eax,%eax
+    4c97:	0f 88 b3 00 00 00    	js     4d50 <cj312_do_raise+0x440>
+    4c9d:	48 83 e8 01          	sub    $0x1,%rax
+    4ca1:	49 89 45 00          	mov    %rax,0x0(%r13)
+    4ca5:	74 19                	je     4cc0 <cj312_do_raise+0x3b0>
+    4ca7:	48 8b 03             	mov    (%rbx),%rax
+    4caa:	85 c0                	test   %eax,%eax
+    4cac:	0f 89 94 fe ff ff    	jns    4b46 <cj312_do_raise+0x236>
+    4cb2:	e9 7f fd ff ff       	jmp    4a36 <cj312_do_raise+0x126>
+    4cb7:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
+    4cbe:	00 00 
+    4cc0:	4c 89 ef             	mov    %r13,%rdi
+    4cc3:	e8 c8 e6 ff ff       	call   3390 <_Py_Dealloc@plt>
+    4cc8:	e9 6e fe ff ff       	jmp    4b3b <cj312_do_raise+0x22b>
+    4ccd:	0f 1f 00             	nopl   (%rax)
+    4cd0:	48 8b 05 e9 b1 00 00 	mov    0xb1e9(%rip),%rax        # fec0 <PyExc_RuntimeError>
+    4cd7:	48 8d 15 42 79 00 00 	lea    0x7942(%rip),%rdx        # c620 <hia_cli_json_bind_runtime_312_control+0xb80>
+    4cde:	4c 89 e7             	mov    %r12,%rdi
+    4ce1:	48 8b 30             	mov    (%rax),%rsi
+    4ce4:	e8 f7 e5 ff ff       	call   32e0 <_PyErr_SetString@plt>
+    4ce9:	e9 f7 fc ff ff       	jmp    49e5 <cj312_do_raise+0xd5>
+    4cee:	66 90                	xchg   %ax,%ax
+    4cf0:	48 89 ef             	mov    %rbp,%rdi
+    4cf3:	31 ed                	xor    %ebp,%ebp
+    4cf5:	e8 96 e6 ff ff       	call   3390 <_Py_Dealloc@plt>
+    4cfa:	e9 a3 fc ff ff       	jmp    49a2 <cj312_do_raise+0x92>
+    4cff:	90                   	nop
+    4d00:	45 31 c0             	xor    %r8d,%r8d
+    4d03:	31 c9                	xor    %ecx,%ecx
+    4d05:	31 d2                	xor    %edx,%edx
+    4d07:	48 89 de             	mov    %rbx,%rsi
+    4d0a:	4c 89 ff             	mov    %r15,%rdi
+    4d0d:	e8 6e e7 ff ff       	call   3480 <_PyObject_MakeTpCall@plt>
+    4d12:	49 89 c5             	mov    %rax,%r13
+    4d15:	e9 d6 fd ff ff       	jmp    4af0 <cj312_do_raise+0x1e0>
+    4d1a:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
+    4d20:	48 8b 7c 24 08       	mov    0x8(%rsp),%rdi
+    4d25:	45 31 c0             	xor    %r8d,%r8d
+    4d28:	31 c9                	xor    %ecx,%ecx
+    4d2a:	31 d2                	xor    %edx,%edx
+    4d2c:	48 89 ee             	mov    %rbp,%rsi
+    4d2f:	e8 4c e7 ff ff       	call   3480 <_PyObject_MakeTpCall@plt>
+    4d34:	49 89 c6             	mov    %rax,%r14
+    4d37:	e9 a4 fe ff ff       	jmp    4be0 <cj312_do_raise+0x2d0>
+    4d3c:	0f 1f 40 00          	nopl   0x0(%rax)
+    4d40:	49 8b 45 00          	mov    0x0(%r13),%rax
+    4d44:	85 c0                	test   %eax,%eax
+    4d46:	0f 89 51 ff ff ff    	jns    4c9d <cj312_do_raise+0x38d>
+    4d4c:	0f 1f 40 00          	nopl   0x0(%rax)
+    4d50:	48 8b 03             	mov    (%rbx),%rax
+    4d53:	85 c0                	test   %eax,%eax
+    4d55:	0f 88 db fc ff ff    	js     4a36 <cj312_do_raise+0x126>
+    4d5b:	48 83 e8 01          	sub    $0x1,%rax
+    4d5f:	48 89 03             	mov    %rax,(%rbx)
+    4d62:	0f 85 ce fc ff ff    	jne    4a36 <cj312_do_raise+0x126>
+    4d68:	48 89 df             	mov    %rbx,%rdi
+    4d6b:	e8 20 e6 ff ff       	call   3390 <_Py_Dealloc@plt>
+    4d70:	e9 c1 fc ff ff       	jmp    4a36 <cj312_do_raise+0x126>
+    4d75:	0f 1f 00             	nopl   (%rax)
+    4d78:	48 89 ef             	mov    %rbp,%rdi
+    4d7b:	e8 10 e6 ff ff       	call   3390 <_Py_Dealloc@plt>
+    4d80:	e9 7a fe ff ff       	jmp    4bff <cj312_do_raise+0x2ef>

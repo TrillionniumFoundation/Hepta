@@ -1,0 +1,33 @@
+--- r1/hepta/hia_cli_json_cpython312_errors.inc
++++ r2/hepta/hia_cli_json_cpython312_errors.inc
+@@ -1,7 +1,8 @@
+ /* Exact CPython v3.12.14 runtime error helpers. PSF License.
+  * Source/whole-body inverse pins: RUNTIME-ERRORS-DERIVATION.json.
+- * Only two local function identifiers change. No JSON traversal,
+- * message selection, normalization or lifetime body is rewritten.
++ * Two function names are local. The r2 call sites additionally use the
++ * already-held tstate, preserving EVAL_CALL_API bookkeeping and Vectorcall.
++ * This avoids importing private TLS; error and ownership order are unchanged.
+  * Private development ABI; not compiled or executed.
+  */
+ 
+@@ -32,7 +33,8 @@
+ 
+     if (PyExceptionClass_Check(exc)) {
+         type = exc;
+-        value = _PyObject_CallNoArgs(exc);
++        EVAL_CALL_STAT_INC_IF_FUNCTION(EVAL_CALL_API, exc);
++        value = _PyObject_CallNoArgsTstate(tstate, exc);
+         if (value == NULL)
+             goto raise_error;
+         if (!PyExceptionInstance_Check(value)) {
+@@ -63,7 +65,8 @@
+     if (cause) {
+         PyObject *fixed_cause;
+         if (PyExceptionClass_Check(cause)) {
+-            fixed_cause = _PyObject_CallNoArgs(cause);
++            EVAL_CALL_STAT_INC_IF_FUNCTION(EVAL_CALL_API, cause);
++            fixed_cause = _PyObject_CallNoArgsTstate(tstate, cause);
+             if (fixed_cause == NULL)
+                 goto raise_error;
+             Py_DECREF(cause);

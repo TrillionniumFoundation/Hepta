@@ -1,0 +1,108 @@
+{
+  "actual_TLS_relocations": [
+    "000000000000ffd0  0000007200000010 R_X86_64_DTPMOD64      0000000000000000 _Py_tss_tstate + 0",
+    "000000000000ffd8  0000007200000011 R_X86_64_DTPOFF64      0000000000000000 _Py_tss_tstate + 0"
+  ],
+  "actual_do_raise_TLS_reference_lines": [
+    "    4a88:\t66 48 8d 3d 40 b5 00 \tdata16 lea 0xb540(%rip),%rdi        # ffd0 <_Py_tss_tstate>",
+    "    4b70:\t66 48 8d 3d 58 b4 00 \tdata16 lea 0xb458(%rip),%rdi        # ffd0 <_Py_tss_tstate>"
+  ],
+  "diagnostic_commands": [
+    {
+      "command": [
+        "/usr/bin/objdump",
+        "-dr",
+        "--disassemble=cj312_do_raise",
+        "/tmp/hia-cli-json-c-runtime-lifetime-actual-r1-20261112-e26e/work/c-build/cli-json.so"
+      ],
+      "cwd": "/",
+      "does_not_execute_or_load_examined_DSO": true,
+      "elapsed_ns": 4493959,
+      "environment": {
+        "LANG": "C",
+        "LC_ALL": "C",
+        "PATH": ""
+      },
+      "readonly_diagnostic_timeout_seconds": 10,
+      "returncode": 0,
+      "stderr": {
+        "bytes": 0,
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+        "path": "/tmp/hia-cli-json-c-runtime-lifetime-plan-r2b-20261112-e26e/proof/do-raise-disassembly.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 17016,
+        "git_blob": "778b264e6458bac54d5f8d53c1edc516de876d9a",
+        "path": "/tmp/hia-cli-json-c-runtime-lifetime-plan-r2b-20261112-e26e/proof/do-raise-disassembly.original.txt",
+        "sha256": "f24e3e25503cf8f199be11ed3cdfc1b43e2edaf76acc9aa11b0fa6d792b19c98"
+      },
+      "tool": {
+        "bytes": 396336,
+        "git_blob": "adf9d6cfa9d6d590a505ed5f842327a0b0a90209",
+        "path": "/usr/bin/x86_64-linux-gnu-objdump",
+        "sha256": "96afb8521834982d0e711b5d6e9785252bf82129fb0106b93a6bd54d83fae11f"
+      }
+    },
+    {
+      "command": [
+        "/usr/bin/readelf",
+        "-Wr",
+        "/tmp/hia-cli-json-c-runtime-lifetime-actual-r1-20261112-e26e/work/c-build/cli-json.so"
+      ],
+      "cwd": "/",
+      "does_not_execute_or_load_examined_DSO": true,
+      "elapsed_ns": 1685268,
+      "environment": {
+        "LANG": "C",
+        "LC_ALL": "C",
+        "PATH": ""
+      },
+      "readonly_diagnostic_timeout_seconds": 10,
+      "returncode": 0,
+      "stderr": {
+        "bytes": 0,
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+        "path": "/tmp/hia-cli-json-c-runtime-lifetime-plan-r2b-20261112-e26e/proof/dynamic-relocations.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 12169,
+        "git_blob": "9f5dc6ad74500e94fd8265596399b95eca595f1f",
+        "path": "/tmp/hia-cli-json-c-runtime-lifetime-plan-r2b-20261112-e26e/proof/dynamic-relocations.original.txt",
+        "sha256": "b45a903c4991e4231548a084bea029fe310df8bf851c1eb2bb91fb10d1fe3308"
+      },
+      "tool": {
+        "bytes": 777864,
+        "git_blob": "7e63bc416af5a272804ae637975a80cb63ad378c",
+        "path": "/usr/bin/x86_64-linux-gnu-readelf",
+        "sha256": "4a387d80a70e6e97ef940a666fab59d5c38e7cf19ff907192fa983cb8505a7de"
+      }
+    }
+  ],
+  "does_not_fabricate_TLS_or_function_addresses": true,
+  "explicit_getter_called_at_each_original_current_state_observation_point": true,
+  "global_core_module_macro_not_modified": true,
+  "new_DSO_loaded": false,
+  "new_runtime_and_lifetime_results": "UNKNOWN_UNEXECUTED",
+  "new_source_compiled": false,
+  "official_getter_body_returns_same_runtime_private_TLS": true,
+  "official_urls": [
+    "https://raw.githubusercontent.com/python/cpython/v3.12.14/Include/internal/pycore_call.h",
+    "https://raw.githubusercontent.com/python/cpython/v3.12.14/Include/internal/pycore_pystate.h",
+    "https://raw.githubusercontent.com/python/cpython/v3.12.14/Python/pystate.c"
+  ],
+  "official_version": "CPython v3.12.14",
+  "original_HOLD_not_reclassified": true,
+  "original_failed_DSO": {
+    "bytes": 72448,
+    "git_blob": "722ecef4203dd15164857a3cbfa76d8694e120b8",
+    "path": "/tmp/hia-cli-json-c-runtime-lifetime-actual-r1-20261112-e26e/work/c-build/cli-json.so",
+    "sha256": "efec9ed66bab1e5a97b1838fbf94f2416bff97e392b0920effc3aeddd374d316"
+  },
+  "remaining___tls_get_addr_for_local_owned_TLS_is_not_this_private_external_TLS_failure": true,
+  "same_statistics_before_same_no_arg_Vectorcall": true,
+  "schema": "hia.cli-json.original-TLS-readonly-mechanism.v1",
+  "shim_own_local_thread_local_active_frame_not_removed": true,
+  "status": "READONLY_ORIGINAL_MECHANISM_MATCHES"
+}
