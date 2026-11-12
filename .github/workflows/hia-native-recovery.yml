@@ -25,11 +25,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:candidate]')
     name: Remaining candidate private 44 and byte boundaries 2
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -73,11 +83,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:program]')
     name: New private native report inspect and normalize projector
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -121,11 +141,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cli]')
     name: Corrected actual CLI seven-image entry only
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -169,11 +199,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace]')
     name: Namespace filesystem VM and actual native owner
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -217,7 +257,7 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-carrier]')
     name: New filesystem syscall carrier and physical kernel controls
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
@@ -225,6 +265,16 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -276,11 +326,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker]')
     name: Remaining worker journal boundary and protocol gates
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -320,7 +380,7 @@ jobs:
   diagnostic:
     name: Read exact original CLI generation failure
     if: contains(github.event.head_commit.message, '[hia-ci:diagnostic]')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
@@ -328,6 +388,16 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic source
         uses: actions/checkout@v4
         with:
@@ -361,11 +431,21 @@ jobs:
   contract_audit:
     name: Read-only current Selfhost-Core source contract diagnosis
     if: contains(github.event.head_commit.message, '[hia-ci:contract]')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out exact submitted source
         uses: actions/checkout@v4
         with:
@@ -395,7 +475,7 @@ jobs:
   namespace_readback:
     name: Read exact completed filesystem carrier evidence
     if: contains(github.event.head_commit.message, '[hia-ci:namespace-readback]')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
@@ -403,6 +483,16 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted readback source
         uses: actions/checkout@v4
         with:
@@ -445,11 +535,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:call-control]')
     name: New complete worker call control with explicit foreign fixtures
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -489,7 +589,7 @@ jobs:
   b433_readback:
     name: Read completed cold and projector evidence
     if: contains(github.event.head_commit.message, '[hia-ci:b433-readback]')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
@@ -497,6 +597,16 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted readback source
         uses: actions/checkout@v4
         with:
@@ -551,11 +661,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:program-service]')
     name: New A service root original-limit compile and private native controls
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -599,7 +719,7 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-inode]')
     name: New inode WAL policy VM native and physical provider controls
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
@@ -607,6 +727,16 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -654,12 +784,22 @@ jobs:
   cli_fault_readback:
     name: Read exact observed CLI private rejection
     if: contains(github.event.head_commit.message, '[hia-ci:cli-fault-readback]')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted readback source
         uses: actions/checkout@v4
         with:
@@ -690,7 +830,7 @@ jobs:
   cold_phase_readback:
     name: Read original cold phase and receipt timings
     if: contains(github.event.head_commit.message, '[hia-ci:cold-phase-readback]')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
@@ -698,6 +838,16 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out exact readback manifest and script
         uses: actions/checkout@v4
         with:
@@ -740,11 +890,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:finite-carrier]')
     name: Finite CLI carrier mechanics and actual program child chains
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -788,11 +948,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker-components]')
     name: New native DataJSON value and fixed schema pattern components
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -836,11 +1006,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:installed-resources]')
     name: Complete actual source sdist wheel and installed resource tests
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted package source
         uses: actions/checkout@v4
         with:
@@ -877,7 +1057,7 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-getlk]')
     name: New F_GETLK kernel and complete physical filesystem carrier
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
@@ -885,6 +1065,16 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -937,7 +1127,7 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:program-integration]')
     name: Actual A admission projection and wire through native carrier
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
@@ -945,6 +1135,16 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -1003,12 +1203,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:inode-readback]')
     name: Read exact original inode policy and physical provider evidence
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out exact submitted reader
         uses: actions/checkout@v4
         with:
@@ -1051,12 +1261,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cold-current-readback]')
     name: Read exact current original cold failure
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted reader
         uses: actions/checkout@v4
         with:
@@ -1097,12 +1317,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker-component-readback]')
     name: Read exact completed worker component evidence
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted reader
         uses: actions/checkout@v4
         with:
@@ -1142,12 +1372,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cli-entry-readback]')
     name: Read exact 193 CLI entries and 176 reference equivalents
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted reader
         uses: actions/checkout@v4
         with:
@@ -1188,12 +1428,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:a-fault]')
     name: Reproduce exact first A native failure and capture original rejection
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -1235,12 +1485,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:getlk-installed-readback]')
     name: Read exact successful GETLK and all installed resource results
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -1291,11 +1551,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cli-publication]')
     name: Actual HIA verified publication component and physical filesystem controls
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -1340,11 +1610,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker-complete-schema]')
     name: Complete HIA fixed catalog schema with actual wire and pattern peers
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -1389,11 +1669,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:edit-terminal-relay]')
     name: Actual HIA edit return through root and 87 plus 2 complete cases
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -1438,7 +1728,7 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-fencing]')
     name: Actual fixed HIA FS inode and fencing coordination
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
@@ -1446,6 +1736,16 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -1511,12 +1811,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:a-follow12-readback]')
     name: Read exact A Core cases and first Composite issuer compile failure
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -1558,12 +1868,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:publication-readback]')
     name: Read exact native publication transactions and syscall counts
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -1603,11 +1923,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cli-fixed-publication]')
     name: Actual fixed native publication HIA owners and 22 filesystem primitives
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -1653,12 +1983,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:contract-regenerate]')
     name: Regenerate current support identity using the unchanged authoritative generator
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -1692,11 +2032,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker-schema-remaining]')
     name: Remaining native schema ASCII differential full large inputs and protocol controls
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -1742,11 +2092,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cli-publication-path]')
     name: Actual native CLI publication path prefix and physical filesystem controls
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -1792,11 +2152,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker-default-json]')
     name: Complete default DataJSON prefix and original ordered errors
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -1842,11 +2212,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-dms]')
     name: New HIA DMS lifetime protocol with complete VM native buffer equality
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -1892,7 +2272,7 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:public-cli-A]')
     name: Actual public argv file A service and formatted output
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
@@ -1900,6 +2280,16 @@ jobs:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -1960,12 +2350,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cold-follow16-readback]')
     name: Read exact current cold timeout and every original phase receipt
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -2005,12 +2405,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:publication-follow16-readback]')
     name: Read original fixed publication and Path complete bytes and counters
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -2058,12 +2468,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:edit-public-service]')
     name: Generate native E public service and locate original full boundary hotspot
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -2111,12 +2531,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:schema-follow16-readback]')
     name: Locate exact native large schema frontier from unchanged original evidence
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -2156,11 +2586,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cli-stage-writer]')
     name: Native staging write flush fsync close semantics and physical files
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -2206,11 +2646,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-shm-map]')
     name: New HIA shared memory mapping protocol with full VM native byte equality
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -2256,11 +2706,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker-fixed-default-json]')
     name: Actual fixed native default DataJSON through all seven semantic peers
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -2306,11 +2766,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cli-temporary-directory]')
     name: Actual HIA temporary directory creation and complete FD safe cleanup
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -2356,12 +2826,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-originals]')
     name: Read complete original 31 operation namespace ABI without execution
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -2395,7 +2875,7 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:public-cli-E]')
     name: Actual public E edit query and apply through complete native service
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
       PYTHONDONTWRITEBYTECODE: '1'
@@ -2403,6 +2883,16 @@ jobs:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -2469,11 +2959,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-memory-lease]')
     name: New HIA memory lease registry with full VM native buffer equality
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -2524,6 +3024,16 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out exact submitted source
         uses: actions/checkout@v4
         with:
@@ -2570,11 +3080,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker-complete-read]')
     name: Complete HIA read semantics with actual wire and hash peers
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -2620,7 +3140,7 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cli-full-publication]')
     name: Actual complete native publication parent with A output and private query controls
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
@@ -2628,6 +3148,16 @@ jobs:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -2688,12 +3218,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker-originals]')
     name: Read complete original Worker archive and exact Graph merge sources
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -2727,12 +3267,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-dms-map-readback]')
     name: Read exact DMS VM failure and shared memory map original counters
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -2783,11 +3333,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cli-assembly-syntax]')
     name: Complete original assembly syntax with actual native ordered values and diagnostics
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -2833,11 +3393,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:assembly-object-prefix]')
     name: Actual issued assembly object snapshot and byte gates before complete Core admission
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -2883,11 +3453,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker-initialization-values]')
     name: Complete original Worker initialization values with actual HIA Graph wire peers
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -2933,11 +3513,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-fixed-join]')
     name: Actual fixed DMS mapping memory and filesystem with complete context replay
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -2988,11 +3578,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:patch-originals]')
     name: Read exact original complete candidate authors without execution
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -3038,11 +3638,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cli-assembly-render]')
     name: Complete admitted Core assembly text with original late roundtrip boundaries
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -3088,11 +3698,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker-initialization-sequence]')
     name: Complete HIA initializer ordering and partial attributes with nineteen explicit foreign peers
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -3138,11 +3758,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:static-impact]')
     name: Complete native static impact receipts both call graphs and exact report hashes
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -3188,12 +3818,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:default-cold-readback]')
     name: Read complete failed default cold owner source manifest and phase archives
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -3237,11 +3877,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-db-node]')
     name: Actual complete main database inode state compared with exact SQLite control
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -3294,7 +3944,7 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:cli-assembly-service]')
     name: Actual complete public assembly syntax Core roundtrip and publication
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
@@ -3302,6 +3952,16 @@ jobs:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -3380,12 +4040,22 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:namespace-engine-original-sources]')
     name: Read complete four original namespace engines without target execution
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       actions: read
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted diagnostic or reader
         uses: actions/checkout@v4
         with:
@@ -3420,11 +4090,21 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker-initialization-maps]')
     name: Actual ordered native initializer maps with full original value identities
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
         with:
@@ -3469,3 +4149,188 @@ jobs:
           compression-level: 0
 
 
+
+  machine_elf_writer_r1:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:machine-elf]')
+    name: Actual original ELF64 ET_REL values errors and complete object bytes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Verify exact selected source syntax before target generation
+        shell: bash
+        env:
+          HIA_SOURCE_GATE_OUTPUT: ${{ runner.temp }}/hia-selected-source-syntax
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/check_active_source_syntax_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-source-syntax-driver.log"
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Execute new bounded independent component qualification
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-machine-elf-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1/ci/ci_machine_elf_writer_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-machine-elf-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-machine-elf-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-selected-source-syntax
+            ${{ runner.temp }}/hia-source-syntax-driver.log
+            ${{ runner.temp }}/hia-machine-elf-recovery
+            ${{ runner.temp }}/hia-machine-elf-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+
+
+  default_cold_follow23_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:default-cold-follow23-readback]')
+    name: Read complete default cold follow23 raw owner source and phase evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
+      - name: Check out submitted diagnostic or reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact default cold original artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13911626793'
+          run-id: '43144028930'
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/hia-default-cold-follow23-original
+      - name: Execute bounded independent evidence task
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_ORIGINAL_COLD_ARTIFACT: ${{ runner.temp }}/hia-default-cold-follow23-original
+          HIA_COLD_READBACK_OUTPUT: ${{ runner.temp }}/hia-default-cold-follow23-readback
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_follow23_default_cold_originals_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-default-cold-follow23-readback-driver.log"
+      - name: Retain original input and complete new evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-default-cold-follow23-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-default-cold-follow23-readback
+            ${{ runner.temp }}/hia-default-cold-follow23-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  default_cold_follow24_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:default-cold-follow24-readback]')
+    name: Read complete default cold follow24 raw owner source and phase evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
+      - name: Check out submitted diagnostic or reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact default cold original artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13912320155'
+          run-id: '43145817519'
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/hia-default-cold-follow24-original
+      - name: Execute bounded independent evidence task
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_ORIGINAL_COLD_ARTIFACT: ${{ runner.temp }}/hia-default-cold-follow24-original
+          HIA_COLD_READBACK_OUTPUT: ${{ runner.temp }}/hia-default-cold-follow24-readback
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_follow24_default_cold_originals_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-default-cold-follow24-readback-driver.log"
+      - name: Retain original input and complete new evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-default-cold-follow24-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-default-cold-follow24-readback
+            ${{ runner.temp }}/hia-default-cold-follow24-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0

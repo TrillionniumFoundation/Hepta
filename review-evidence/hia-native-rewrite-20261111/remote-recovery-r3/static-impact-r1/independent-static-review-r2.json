@@ -1,0 +1,45 @@
+{
+  "schema": "hia-static-impact-independent-review-v1",
+  "status": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_STATIC_SCOPE",
+  "reviewed_source": {
+    "gitsha": "10fd6493cece709385c661a18482b9bf481b254b",
+    "bytes": 27281,
+    "sha256": "95cdee2d444109f29240124a70956f1b384c80198a6382ba9a953d961436c481"
+  },
+  "reference_sources": [
+    {
+      "path": "hepta/hia_patch_impact.py",
+      "gitsha": "0d270c59bcf6f844dd8fe4e48f67ce8722362474",
+      "bytes": 8527,
+      "sha256": "b61710dc320c4b65206a2e6efed67ac525e900a782886be6c289e8acc681e3a1"
+    },
+    {
+      "path": "tools/generate_hia_core_patch.py",
+      "gitsha": "136eb04f3da61ecf3cdfccafa1095bdbc5c1dd6f",
+      "bytes": 25925,
+      "sha256": "091d6d4b7d7c7c9088a79dc0104672ec679f3088f0f21131542543cc26e0a39f"
+    },
+    {
+      "path": "tools/generate_hia_core_json_frontend.py",
+      "gitsha": "7359bf71993753fbef35d9b43fbdd054132659b0",
+      "bytes": 14935,
+      "sha256": "167f1731d717b1f184995e210a2156095d18813a5988efb2ac04fe60275e0cf7"
+    }
+  ],
+  "observations": [
+    "Input and measured transport allocation are bounded before decode; actual decoded used extent aligned upward by at most 7 bytes precedes separate 331776-byte scratch.",
+    "Scratch areas do not overlap: SHA0..1087, digest1088..1119 and saved1200/1232/1264; inventory old4096..12287/new12288..20479; 1024 entries20480..53247; two1024x128-byte bitmaps61440..192511 and192512..323583; unique BFS queue323584..331775.",
+    "Strict receipt v1/v2 field/claim masks and exact true/false kinds precede inventory. Positive edits reads validated integer digits without u64 conversion. Actual before/after canonical digests and original-input identity are checked.",
+    "Removed function rejection precedes actual changed-interface list, migration policy and graph scans. Default missing return_loans versus explicit all-null uses the retained exact Core patch helper.",
+    "Sorted new names include all retained old names, caller/callee edges are collected separately for old/new and deduplicated by bit. Union reverse traversal marks before enqueue, so each of at most1024 vertices enters the8192-byte queue once.",
+    "Report field order and caller/callee order match the original canonical report. First complete report without sha256 is hashed; the second exact rendering adds76bytes for its own sha256 field.",
+    "Output counting increments even beyond capacity and routes to GROW before a capacity-failure flag can become semantic refusal; replay recomputes against the same immutable private input.",
+    "Complete old/new function canonical comparison and interface comparison are retained; this owner does not replace actual old admission, patch application, fresh new admission or canonical-byte equality."
+  ],
+  "limits": [
+    "Static code and exact reference review only:0 AST generation,0 B3,0 VM,0 native executions,0 measured performance.",
+    "Input must be the private pipeline's actual admitted canonical Core trees plus actual issued patch receipt and original identity. Headers/digests alone do not authenticate arbitrary external input.",
+    "The full source generator closure and actual compiler profile still require the scheduled fresh gate; referenced SHA/decoder private adaptations were read as source, not independently executed.",
+    "The result is advisory static call graph impact. No behavior equivalence, external caller validation, native execution or device qualification is asserted."
+  ]
+}

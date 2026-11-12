@@ -19,9 +19,19 @@ concurrency:
 jobs:
   syntax:
     name: Exact selected authoring and driver syntax only
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
       - name: Check out submitted sources
         uses: actions/checkout@v4
         with:
