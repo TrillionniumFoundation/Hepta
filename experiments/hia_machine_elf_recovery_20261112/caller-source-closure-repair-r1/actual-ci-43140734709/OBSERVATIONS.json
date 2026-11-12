@@ -1,0 +1,119 @@
+{
+  "schema": "hepta.hia.compiler-caller-closure-ci-originals.v1",
+  "status": "EXACT_REPAIR_CI_SOURCE_AND_NATIVE_SUCCESS_ARTIFACT_AUDIT_PENDING",
+  "run_id": 43140734709,
+  "attempt": 1,
+  "event": "push",
+  "branch": "codex/hia-compiler-caller-source-closure-20261112-e26e",
+  "actual_head": "9704596acc4470bd0042838586602e26bac7b3d1",
+  "tree": "c3ca94c57f9bd75f22f2c694e32bca2dfc6b329b",
+  "source": {
+    "job_id": 130926793909,
+    "status": "completed",
+    "conclusion": "success",
+    "full_log": {
+      "bytes": 129861,
+      "sha256": "bd317b3ee53865c0505ddf0bca1521d545d14e4d3f4cf8d2bd190a9550a978ee",
+      "git_blob_sha1": "919fc729faaa8c8cf02fb17021d2cb87c23adee4"
+    },
+    "loaded_log_test_ids": 401,
+    "unique_log_test_ids": 401,
+    "all_logged_outcomes_ok": true,
+    "unittest_wall_seconds": 423.801,
+    "source_log_records": 401,
+    "source_generation_and_derived_contract_check_commands_unchanged": true
+  },
+  "native": {
+    "job_id": 130926793248,
+    "status": "completed",
+    "conclusion": "success",
+    "full_log": {
+      "bytes": 369313,
+      "sha256": "3bd6305fb1fec2f93411110651aacc45ea5e37f69bd716c25fc8464529fb7c09",
+      "git_blob_sha1": "7c6bee3d53235788ae41e541f04892477fd69a30"
+    },
+    "step_count_including_cleanup": 42,
+    "all_original_steps_success": true,
+    "compiler_owner_gate_stdout": [
+      {
+        "line": 2236,
+        "timestamp": "2026-11-12T03:08:33.8255972Z",
+        "owner": "state",
+        "operation": "owned-callers",
+        "status": "PASS",
+        "report": "/home/runner/work/_temp/hia-machine-state-gate.json"
+      },
+      {
+        "line": 2255,
+        "timestamp": "2026-11-12T03:09:26.6423698Z",
+        "owner": "instructions",
+        "operation": "owned-callers",
+        "status": "PASS",
+        "report": "/home/runner/work/_temp/hia-machine-instructions-gate.json"
+      },
+      {
+        "line": 2274,
+        "timestamp": "2026-11-12T03:11:47.3084148Z",
+        "owner": "core",
+        "operation": "owned-callers",
+        "status": "PASS",
+        "report": "/home/runner/work/_temp/hia-core-lowering-gate.json"
+      },
+      {
+        "line": 2293,
+        "timestamp": "2026-11-12T03:13:05.4471200Z",
+        "owner": "elf",
+        "operation": "owned-component",
+        "status": "PASS",
+        "report": "/home/runner/work/_temp/hia-machine-elf-component-gate.json"
+      },
+      {
+        "line": 2312,
+        "timestamp": "2026-11-12T03:13:29.9557863Z",
+        "owner": "elf",
+        "operation": "owned-callers",
+        "status": "PASS",
+        "report": "/home/runner/work/_temp/hia-machine-elf-caller-gate.json"
+      }
+    ],
+    "original_ELF_step38_success": true
+  },
+  "official_artifact": {
+    "id": 13911977275,
+    "name": "hia-core-native-9704596acc4470bd0042838586602e26bac7b3d1-1",
+    "size_in_bytes": 599427251,
+    "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13911977275",
+    "archive_download_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13911977275/zip",
+    "expired": false,
+    "created_at": "2026-11-12T03:14:14Z",
+    "expires_at": "2026-11-19T03:13:32Z",
+    "updated_at": "2026-11-12T03:14:14Z",
+    "digest": "sha256:40e81308484173d36153f6a3014293a78705aa28e8f8f7718dcdd3d87c03f580",
+    "workflow_run": {
+      "id": 43140734709,
+      "repository_id": 1432132756,
+      "head_repository_id": 1432132756,
+      "head_branch": "codex/hia-compiler-caller-source-closure-20261112-e26e",
+      "head_sha": "9704596acc4470bd0042838586602e26bac7b3d1"
+    }
+  },
+  "original_failure_preservation": {
+    "push_run": 43117621509,
+    "pr_run": 43117632066,
+    "original_status": "FAILURE_WITH_ELF_CALLER_READER_HOLD",
+    "changed": false,
+    "cause": "Original cold source map omitted three original caller test modules; the selected 51-test inner runs themselves passed. Three additional source edits repair seven missing declared modules and an existing source test/derived support map, without removing gate membership or reducing denominators."
+  },
+  "custody_scope": {
+    "full_source_job_log": true,
+    "full_native_job_log": true,
+    "terminal_run_and_jobs_and_artifact_API_receipts": true,
+    "original_artifact_zip_downloaded_here": false,
+    "original_cold_JSON_read_here": false,
+    "original_compiled_gate_JSONs_read_here": false,
+    "native_step_duration_not_used_as_cold_elapsed": true
+  },
+  "next_evidence_owner": "/root/cold_ci_closure: independent fixed official artifact recovery/audit; no product rerun.",
+  "whole_native_delivery_qualified": false,
+  "interpretation": "The exact isolated source repair passed the existing source/native workflow, including original ELF caller step 38. It does not erase the prior failures, qualify arbitrary foreign TimSort behavior, close remaining Python/Rust owners, or substitute for independent inspection of the original cold/gate receipts in the official artifact."
+}
