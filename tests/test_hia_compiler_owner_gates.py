@@ -60,9 +60,11 @@ def toy_code():
 
 
 def toy_core():
-    modes = ['_reject'] + ['mode' + str(index) for index in range(1, 27)] + ['_native_globals']
-    abi = {'units': ['core_lowering_' + format(i, '03d') for i in range(31)],
-           'modes': {name: {'number': index + 1, 'arity': 1} for index, name in enumerate(modes)}}
+    # Use the checked-in ABI inventory, with inert image identities only. Lazy
+    # generators deliberately have real step rows but no invoke() attempt rows.
+    abi = json.loads((ROOT / 'hepta/hia_core_lowering_abi.json').read_bytes())
+    modes = abi['modes']
+    generators = set(abi['generator_modes'])
     builds = {}
     for role in ('caller', 'component'):
         names = ['core_lowering_pool', *abi['units']]
@@ -77,16 +79,22 @@ def toy_core():
                       for name in names},
         }
     roles = {'component': 'component', 'original-machine': 'caller', 'original-core': 'caller'}
-    report = {'native_step_ledger_schema': 'hepta.hia.core-lowering-native-step-returns.v1',
+    report = {'native_step_ledger_schema': 'hepta.hia.core-lowering-native-step-returns.v2',
         'native_step_return_semantics': gates.CORE_STEP_SEMANTICS,
         'native_step_unit_index_basis': gates.CORE_STEP_INDEX_BASIS,
         'native_mode_entries_are_attempts': True, 'group_bundle_roles': roles,
         'bundle_observations': {}, 'native_step_returns': [],
         'group_native_mode_attempts': [], 'native_mode_normal_returns': [],
         'native_mode_entries': {}, 'actual_native_step_statuses': {},
-        'public_control_mode_count': 27, 'abi_control_mode_count': 28,
+        'public_control_mode_count': 33, 'abi_control_mode_count': 36,
         'private_fixture_modes': ['_native_globals'],
-        'private_fixture_mode_has_actual_step_returns': True}
+        'private_generator_modes': list(abi['generator_modes']),
+        'private_fixture_mode_has_actual_step_returns': True,
+        'all_required_modes_attempted': True,
+        'all_required_modes_have_actual_step_returns': True,
+        'all_generator_modes_have_actual_step_returns': True,
+        'all_generator_modes_have_actual_yield_returns': True,
+        'all_native_step_statuses_observed': True}
     for role, binding in builds.items():
         files = [*binding['bundle_files'], binding['build_file']]
         names = binding['unit_order']
@@ -100,7 +108,7 @@ def toy_core():
             'input_bindings_before': files, 'input_bindings_after': files, 'stable': True}
         report[role + '_bundle_stable'] = True
     for group, mode, status in (
-            *[('component', name, 0) for name in modes],
+            *[('component', name, 3 if name in generators else 0) for name in modes],
             ('original-machine', '_reject', 1), ('original-core', '_reject', 2)):
         binding = builds[roles[group]]
         row = {'group': group, 'mode': mode, 'mode_number': abi['modes'][mode]['number'],
@@ -109,10 +117,11 @@ def toy_core():
             'abi_sha256': binding['bundle']['abi_sha256'],
             'bundle_sha256': binding['bundle_files'][0]['sha256'], 'status': status, 'count': 1}
         report['native_step_returns'].append(row)
-        report['group_native_mode_attempts'].append({'group': group, 'mode': mode, 'count': 1})
-        if mode != '_reject':
-            report['native_mode_normal_returns'].append({'group': group, 'mode': mode, 'count': 1})
-        report['native_mode_entries'][mode] = report['native_mode_entries'].get(mode, 0) + 1
+        if mode not in generators:
+            report['group_native_mode_attempts'].append({'group': group, 'mode': mode, 'count': 1})
+            if mode != '_reject':
+                report['native_mode_normal_returns'].append({'group': group, 'mode': mode, 'count': 1})
+            report['native_mode_entries'][mode] = report['native_mode_entries'].get(mode, 0) + 1
         report['actual_native_step_statuses'][str(status)] = report['actual_native_step_statuses'].get(str(status), 0) + 1
     return abi, builds, report
 
@@ -195,6 +204,76 @@ class CompilerOwnerGateTests(unittest.TestCase):
         self.assertFalse(actual['reject_mode_required_to_return_a_method_value'])
         self.assertFalse(actual['each_group_claimed_to_cover_every_mode'])
         self.assertNotIn('_reject', {row['mode'] for row in report['native_mode_normal_returns']})
+        self.assertEqual(actual['generator_modes_with_component_yield_returns'], abi['generator_modes'])
+        self.assertFalse(actual['generator_invoke_attempts_required'])
+        self.assertFalse(actual['yield_status_is_method_or_product_success'])
+        self.assertTrue(set(abi['generator_modes']).isdisjoint(report['native_mode_entries']))
+        self.assertEqual(set(actual['actual_status_totals']), {'0', '1', '2', '3'})
+
+    def test_core_v2_requires_both_actual_generator_yields_from_component(self):
+        abi, builds, report = toy_core()
+        cases = {}
+        missing = deepcopy(report)
+        missing['native_step_returns'] = [row for row in missing['native_step_returns']
+                                          if row['mode'] != '_native_generator_1']
+        missing['actual_native_step_statuses']['3'] -= 1
+        cases['one missing generator despite true coverage flags'] = missing
+        attempted = deepcopy(missing)
+        attempted['native_mode_entries']['_native_generator_1'] = 1
+        attempted['group_native_mode_attempts'].append(
+            {'group': 'component', 'mode': '_native_generator_1', 'count': 1})
+        cases['attempt without admitted generator step'] = attempted
+        no_yield = deepcopy(report)
+        next(row for row in no_yield['native_step_returns']
+             if row['mode'] == '_native_generator_1')['status'] = 0
+        no_yield['actual_native_step_statuses']['3'] -= 1
+        no_yield['actual_native_step_statuses']['0'] += 1
+        cases['ordinary return cannot substitute for yield'] = no_yield
+        wrong_group = deepcopy(report)
+        row = next(row for row in wrong_group['native_step_returns']
+                   if row['mode'] == '_native_generator_1')
+        row['group'] = 'original-core'
+        row['image_sha256'] = builds['caller']['units'][row['unit_name']]['manifest']['image_sha256']
+        row['bundle_sha256'] = builds['caller']['bundle_files'][0]['sha256']
+        cases['correct caller image cannot substitute for component generator'] = wrong_group
+        wrong_mode = deepcopy(report)
+        row = next(row for row in wrong_mode['native_step_returns']
+                   if row['mode'] == '_native_generator_1')
+        row['mode'] = '_Emitter.render'
+        row['mode_number'] = abi['modes']['_Emitter.render']['number']
+        cases['ordinary mode yield cannot substitute for generator mode'] = wrong_mode
+        for label, value in cases.items():
+            with self.subTest(label=label), self.assertRaises(ValueError):
+                gates.validate_core_steps(value, builds, abi)
+
+    def test_core_v2_refuses_old_inventory_false_flags_and_noninteger_status(self):
+        abi, builds, report = toy_core()
+        mutations = [
+            ('native_step_ledger_schema', 'hepta.hia.core-lowering-native-step-returns.v1'),
+            ('public_control_mode_count', 27), ('abi_control_mode_count', 28),
+            ('private_generator_modes', ['_native_generator_0']),
+            *[(key, False) for key in (
+                'private_fixture_mode_has_actual_step_returns', 'all_required_modes_attempted',
+                'all_required_modes_have_actual_step_returns',
+                'all_generator_modes_have_actual_step_returns',
+                'all_generator_modes_have_actual_yield_returns', 'all_native_step_statuses_observed')],
+        ]
+        for key, value in mutations:
+            with self.subTest(field=key), self.assertRaises(ValueError):
+                gates.validate_core_steps({**report, key: value}, builds, abi)
+        for value in (True, 3.0, 4, -1):
+            changed = deepcopy(report)
+            changed['native_step_returns'][0]['status'] = value
+            with self.subTest(status=value), self.assertRaises(ValueError):
+                gates.validate_core_steps(changed, builds, abi)
+        for field, value in (('units', abi['units'][:-1]),
+                             ('generator_modes', list(reversed(abi['generator_modes'])))):
+            with self.subTest(abi_field=field), self.assertRaises(ValueError):
+                gates.validate_core_steps(report, builds, {**abi, field: value})
+        wrong_private = deepcopy(abi)
+        wrong_private['modes']['_native_globals']['number'] = 34
+        with self.assertRaises(ValueError):
+            gates.validate_core_steps(report, builds, wrong_private)
 
     def test_core_pool_index_wrong_group_bundle_and_duplicate_steps_refuse(self):
         abi, builds, report = toy_core()
@@ -323,7 +402,13 @@ class CompilerOwnerGateTests(unittest.TestCase):
         self.assertEqual(ledger['cold_seconds'], 180)
         self.assertEqual((ledger['cold_workers'], ledger['cold_phases']), (2, 38))
         self.assertEqual(ledger['new_denominators'], {
-            'state': [12, 51], 'instructions': [12, 51], 'core': [12, 51, 50], 'elf': [20, 51]})
+            'state': [12, 51], 'instructions': [12, 51], 'core': [15, 51, 50], 'elf': [20, 51]})
+        self.assertEqual((ledger['core_public_modes'], ledger['core_abi_modes'],
+                          ledger['core_complete_units']), (33, 36, 39))
+        self.assertEqual(ledger['core_original_component_denominator'], 12)
+        self.assertEqual(ledger['core_private_generator_modes'], ['_native_generator_0', '_native_generator_1'])
+        self.assertEqual(ledger['core_generator_yield_required_group'], 'component')
+        self.assertFalse(ledger['core_generator_invoke_attempts_required'])
         self.assertEqual(ledger['elf_boundary_cases'], 11)
         self.assertEqual(ledger['elf_full_decoded_archives'], 12)
         self.assertFalse(ledger['default_activation_or_whole_native_delivery_claimed'])

@@ -113,10 +113,10 @@ OWNERS = {
         'kinds': ('instructions', 'state', 'encoding'), 'gates': COMPILER_GATES[2:4],
     },
     'core': {
-        'module': 'tests.test_hia_core_lowering_native', 'component_count': 12,
+        'module': 'tests.test_hia_core_lowering_native', 'component_count': 15,
         'prefix': 'HEPTA_HIA_CORE_LOWERING', 'development_suffix': '_DEVELOPMENT_MANIFEST',
         'qualifier': 'tools.qualify_hia_core_lowering_callers',
-        'caller_schema': 'hepta.hia.core-lowering-selected-callers.v1',
+        'caller_schema': 'hepta.hia.core-lowering-selected-callers.v2',
         'gates': COMPILER_GATES[4:7],
     },
     'elf': {
@@ -536,16 +536,16 @@ def core_build(folder, context):
     source_record(ABI_SOURCE, context)
     abi = checked_abi(abi_raw)
     names = ('core_lowering_pool', *abi['units'])
-    require(len(names) == 32 and len(set(names)) == 32, 'complete Core 32-unit denominator differs')
+    require(len(names) == 39 and len(set(names)) == 39, 'complete Core 39-unit denominator differs')
     bundle = json_file(folder / 'manifest.json')
     expected_paths = {name: name + '/manifest.json' for name in names}
     require(set(bundle) == {'schema', 'abi_sha256', 'compiler_sha256', 'unit_manifests'}
-            and bundle['schema'] == 'hepta.hia.core-lowering-native.v1'
+            and bundle['schema'] == 'hepta.hia.core-lowering-native.v2'
             and bundle['abi_sha256'] == sha256(abi_raw).hexdigest()
             and bundle['compiler_sha256'] == context['compiler_sha256']
             and bundle['unit_manifests'] == expected_paths, 'complete Core bundle identity differs')
     build = json_file(folder / 'build.json')
-    require(build.get('schema') == 'hepta.hia.core-lowering-build.v1'
+    require(build.get('schema') == 'hepta.hia.core-lowering-build.v2'
             and build.get('status') == 'NATIVE_CANDIDATE_BUILT'
             and build.get('source_manifest') == context['source_manifest']
             and build.get('cold_report_sha256') == context['cold_sha256']
@@ -553,9 +553,15 @@ def core_build(folder, context):
             and build.get('bundle') == bundle and build.get('abi_sha256') == bundle['abi_sha256']
             and build.get('production_activated') is False
             and build.get('complete_Function_methods') == 22
+            and build.get('complete_Emitter_methods') == 6
             and build.get('complete_shared_helpers') == 5
-            and build.get('hosted_object_primitive_kinds') == 18
-            and build.get('expected_unit_count') == 32 == build.get('actual_unit_count'),
+            and build.get('hosted_object_primitive_kinds') == 19
+            and build.get('ordinary_entry_requires_explicit_selector') is True
+            and build.get('Emitter_control_owned_by_HIA') is True
+            and build.get('native_object_runtime_and_byte_wrapper_policy_still_hosted') is True
+            and build.get('native_persistence_or_linking_claimed') is False
+            and build.get('whole_stack_rewritten_in_hia') is False
+            and build.get('expected_unit_count') == 39 == build.get('actual_unit_count'),
             'actual complete Core current-cold build differs')
     receipts = build.get('units')
     require(type(receipts) is list and [row.get('name') for row in receipts] == list(names),
@@ -565,7 +571,7 @@ def core_build(folder, context):
         source = 'examples/hia_bootstrap/' + name + '.hiaasm'
         path = child_path(folder, expected_paths[name])
         manifest, image = previous.manifest_image(
-            path, 'hepta.hia.core-lowering-unit-native.v1', source, context)
+            path, 'hepta.hia.core-lowering-unit-native.v2', source, context)
         require(set(manifest) == {'schema', 'source_sha256', 'image_path', 'image_sha256', 'compiler_sha256'}
                 and Path(manifest['image_path']).name == manifest['image_path']
                 and image.parent == path.parent and row.get('source') == source
@@ -599,7 +605,7 @@ def inspect_core_observations(evidence, context, component):
     observed = json_file(case / 'report.json')
     require(observed == json_file(case / 'installed-execution.stdout')
             and observed.get('status') == 'INSTALLED_CORE_LOWERING_PASS'
-            and observed.get('units') == 32 and type(observed.get('units')) is int,
+            and observed.get('units') == 39 and type(observed.get('units')) is int,
             'installed complete Core report differs')
     for flag in ('retained_lowering_forbidden', 'authoring_forbidden', 'isolated_without_site', 'empty_PATH'):
         require(observed.get(flag) is True, 'installed Core boundary missing: ' + flag)
@@ -850,13 +856,20 @@ def require_successor_gates(gates):
     return True
 
 
-CORE_STEP_SEMANTICS = 'Actual admitted HIA unit entry and output framing returned status0/1/2; not method or product success.'
+CORE_STEP_SEMANTICS = 'Actual admitted HIA unit entry and output framing returned status0/1/2/3; status3 is HIA yield, not method or product success.'
 CORE_STEP_INDEX_BASIS = 'owner.images excludes literal pool; unit_index0 is core_lowering_000; bundle_image_index is unit_index+1; complete bundle index0 is core_lowering_pool.'
 
 
 def validate_core_steps(report, builds, abi):
     roles = {'component': 'component', 'original-machine': 'caller', 'original-core': 'caller'}
-    require(report.get('native_step_ledger_schema') == 'hepta.hia.core-lowering-native-step-returns.v1'
+    generators = ['_native_generator_0', '_native_generator_1']
+    require(abi.get('units') == ['core_lowering_' + format(i, '03d') for i in range(38)]
+            and len(abi['modes']) == 36 and abi.get('generator_modes') == generators
+            and abi['modes']['_native_globals']['number'] == 28
+            and [abi['modes'][name]['number'] for name in generators] == [35, 36],
+            'complete Core v2 ABI unit/private/generator inventory differs')
+    require(set(builds) == {'caller', 'component'}, 'both complete Core builds required')
+    require(report.get('native_step_ledger_schema') == 'hepta.hia.core-lowering-native-step-returns.v2'
             and report.get('native_step_return_semantics') == CORE_STEP_SEMANTICS
             and report.get('native_step_unit_index_basis') == CORE_STEP_INDEX_BASIS
             and report.get('native_mode_entries_are_attempts') is True
@@ -868,7 +881,9 @@ def validate_core_steps(report, builds, abi):
         observation = observations[role]
         files = [*binding['bundle_files'], binding['build_file']]
         names = binding['unit_order']
-        require(observation.get('scope') == 'MATCHING_SOURCE_COLD_BUILD'
+        require(names == ['core_lowering_pool', *abi['units']]
+                and set(binding['units']) == set(names)
+                and observation.get('scope') == 'MATCHING_SOURCE_COLD_BUILD'
                 and observation.get('manifest') == files[0]['path']
                 and observation.get('manifest_sha256') == files[0]['sha256']
                 and observation.get('bundle_sha256') == files[0]['sha256']
@@ -915,7 +930,7 @@ def validate_core_steps(report, builds, abi):
     for row in steps:
         require(type(row) is dict and set(row) == fields and row['group'] in roles
                 and row['mode'] in abi['modes'] and type(row['count']) is int and row['count'] > 0
-                and type(row['status']) is int and row['status'] in (0, 1, 2),
+                and type(row['status']) is int and row['status'] in (0, 1, 2, 3),
                 'Core step row or actual frame-return status differs')
         index = row['unit_index']
         require(type(index) is int and 0 <= index < len(abi['units'])
@@ -936,31 +951,44 @@ def validate_core_steps(report, builds, abi):
         groups.add(row['group'])
         modes.add(row['mode'])
         status_totals[str(row['status'])] = status_totals.get(str(row['status']), 0) + row['count']
-    require(report.get('public_control_mode_count') == 27
-            and report.get('abi_control_mode_count') == 28
+    require(report.get('public_control_mode_count') == 33
+            and report.get('abi_control_mode_count') == 36
             and report.get('private_fixture_modes') == ['_native_globals']
-            and len(abi['modes']) == 28
-            and abi['modes']['_native_globals']['number'] == 28
+            and report.get('private_generator_modes') == generators
             and report.get('private_fixture_mode_has_actual_step_returns') is True
             and any(row['group'] == 'component' and row['mode'] == '_native_globals'
                     and row['mode_number'] == 28 for row in steps),
             'Core component private ABI fixture lacks a real returned step')
-    required_modes = set(abi['modes']) - {'_native_globals'}
-    require(len(required_modes) == 27 and required_modes <= set(attempts)
+    required_modes = set(abi['modes']) - {'_native_globals', *generators}
+    require(len(required_modes) == 33 and required_modes <= set(attempts)
             and required_modes <= modes and groups == set(roles),
             'complete original mode union or actual group steps missing')
-    positive_counts(status_totals, ('0', '1', '2'))
+    # Generator sessions enter directly, without an ordinary invoke() attempt.
+    # Only actual component image returns can establish the two lazy HIA yields.
+    component_yields = {row['mode'] for row in steps
+                        if row['group'] == 'component' and row['status'] == 3}
+    require(set(generators) <= component_yields,
+            'both Core generator modes require actual component HIA yield returns')
+    for flag in ('all_required_modes_attempted', 'all_required_modes_have_actual_step_returns',
+                 'all_generator_modes_have_actual_step_returns',
+                 'all_generator_modes_have_actual_yield_returns', 'all_native_step_statuses_observed'):
+        require(report.get(flag) is True, 'Core actual coverage flag missing: ' + flag)
+    positive_counts(status_totals, ('0', '1', '2', '3'))
     require(report.get('actual_native_step_statuses') == status_totals,
             'Core global step counts differ from actual group/unit ledger')
     return {'step_ledger': steps, 'actual_status_totals': status_totals,
             'required_mode_union': sorted(required_modes), 'group_bundle_roles': roles,
             'attempts': rows, 'normal_method_returns': normal,
+            'generator_modes_with_component_yield_returns': sorted(set(generators) & component_yields),
+            'generator_invoke_attempts_required': False,
+            'yield_status_is_method_or_product_success': False,
             'reject_mode_required_to_return_a_method_value': False,
             'each_group_claimed_to_cover_every_mode': False}
 
 
 def inspect_core_callers(evidence, context, expected):
     from hepta.hia_core_lowering_selection import ABI_SOURCE, checked_abi
+    from tools.qualify_hia_core_lowering_callers import COMPONENT_IDS, ORIGINAL_COMPONENT_IDS
     evidence = Path(evidence).resolve(strict=True)
     report = json_file(evidence / 'report.json')
     require(report.get('schema') == OWNERS['core']['caller_schema']
@@ -975,12 +1003,21 @@ def inspect_core_callers(evidence, context, expected):
     validate_groups(report.get('groups'), expected)
     for row, wanted in zip(report['groups'][1:], expected[1:]):
         require(row.get('frozen_original_ids') == wanted['ids'], 'Core original frozen caller IDs differ')
-    require(report.get('component_denominator') == 12
+    require(report.get('component_denominator') == 15
+            and report.get('original_component_denominator') == 12
+            and report.get('original_component_ids') == ORIGINAL_COMPONENT_IDS
+            and report.get('added_Emitter_component_ids') == [
+                name for name in COMPONENT_IDS if name not in ORIGINAL_COMPONENT_IDS]
+            and len(ORIGINAL_COMPONENT_IDS) == 12 and len(COMPONENT_IDS) == 15
+            and set(ORIGINAL_COMPONENT_IDS) <= set(COMPONENT_IDS)
+            and expected[0]['ids'] == COMPONENT_IDS
             and report.get('original_machine_denominator') == 51
             and report.get('original_core_denominator') == 50
             and report.get('original_methods_modified') is False
-            and report.get('hosted_primitive_kinds') == 18
-            and report.get('Emitter_control_still_hosted') is True
+            and report.get('hosted_primitive_kinds') == 19
+            and report.get('Emitter_control_still_hosted') is False
+            and report.get('generator_object_suspension_transport_still_hosted') is True
+            and report.get('native_byte_ABI_wrapper_policy_still_hosted') is True
             and report.get('default_activated') is False and report.get('whole_native_claimed') is False,
             'Core denominator or declared hosted boundary differs')
     require(report.get('retained_owner_entries') == []
