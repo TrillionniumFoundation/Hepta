@@ -1,0 +1,12 @@
+--- v78_physical_audit_r2.py
++++ v78_physical_audit_r3.py
+@@ -470,7 +470,8 @@
+                                 inputs = phase_request["inputs"]
+                                 a.check(set(inputs) == {"compiler", "source", "modified_source", "sample",
+                                                          "native_observer", "linked_observer"} |
+-                                           ({"reference"} if family in reference_files else set()),
++                                           ({"reference"} if family in reference_files else set()) |
++                                           ({"sample_image"} if family == "elf" else set()),
+                                         "phase exact input denominator differs")
+                                 for key, item in inputs.items():
+                                     rec = a.absolute_record(item["path"])
