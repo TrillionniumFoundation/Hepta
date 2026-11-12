@@ -1,0 +1,116 @@
+--- r2/workflow-template.yml
++++ r3/workflow-template.yml
+@@ -1,4 +1,4 @@
+-name: HIA isolated Core Emitter native development r2
++name: HIA isolated Core Emitter native development r3
+ 
+ on: [create]
+ 
+@@ -10,7 +10,7 @@
+       ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+           github.event_name == 'create' &&
+           github.event.ref_type == 'branch' &&
+-          github.event.ref == 'codex/hia-core-emitter-native-development-run-r2-20261112-e26e' &&
++          github.event.ref == 'codex/hia-core-emitter-native-development-run-r3-20261112-e26e' &&
+           github.run_attempt == '1' }}
+     runs-on: ubuntu-latest
+     timeout-minutes: 30
+@@ -75,11 +75,11 @@
+               ;;
+           esac
+           unset LD_LIBRARY_PATH
+-          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r2/runtime_metadata.py before --policy-sha256 3b20ce87f4cdd8e85bbdd10812b72a091471bcb41dc343938fe387f8e99ed08d --control-commit __CONTROL_COMMIT__
++          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r3/runtime_metadata.py before --policy-sha256 8a76ca513d306c09587b215393abe62438b0fef8b328f7db282564e65400bc8c --control-commit __CONTROL_COMMIT__
+           umask 022
+           python -I -B -m pip install --force-reinstall --no-input --disable-pip-version-check setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+-          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r2/runtime_metadata.py after --policy-sha256 3b20ce87f4cdd8e85bbdd10812b72a091471bcb41dc343938fe387f8e99ed08d --control-commit __CONTROL_COMMIT__
+-          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r2/runtime_metadata.py admit --policy-sha256 3b20ce87f4cdd8e85bbdd10812b72a091471bcb41dc343938fe387f8e99ed08d --control-commit __CONTROL_COMMIT__
++          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r3/runtime_metadata.py after --policy-sha256 8a76ca513d306c09587b215393abe62438b0fef8b328f7db282564e65400bc8c --control-commit __CONTROL_COMMIT__
++          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r3/runtime_metadata.py admit --policy-sha256 8a76ca513d306c09587b215393abe62438b0fef8b328f7db282564e65400bc8c --control-commit __CONTROL_COMMIT__
+       - name: Verify exact full source and create one preparation request
+         id: prepare
+         timeout-minutes: 5
+@@ -103,7 +103,7 @@
+               ;;
+           esac
+           unset LD_LIBRARY_PATH
+-          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r2/controller.py prepare --root "$RUNNER_TEMP/hia-core-emitter-native-development-r2" --source "$GITHUB_WORKSPACE/source" --policy-sha256 3b20ce87f4cdd8e85bbdd10812b72a091471bcb41dc343938fe387f8e99ed08d --control-commit __CONTROL_COMMIT__ > "$RUNNER_TEMP/hia-core-emitter-native-prepare.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-prepare.stderr.log"
++          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r3/controller.py prepare --root "$RUNNER_TEMP/hia-core-emitter-native-development-r3" --source "$GITHUB_WORKSPACE/source" --policy-sha256 8a76ca513d306c09587b215393abe62438b0fef8b328f7db282564e65400bc8c --control-commit __CONTROL_COMMIT__ > "$RUNNER_TEMP/hia-core-emitter-native-prepare.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-prepare.stderr.log"
+       - name: Build B0 B1 B2 and all 39 units under one original 180-second owner
+         id: run_preparation
+         timeout-minutes: 4
+@@ -127,7 +127,7 @@
+               ;;
+           esac
+           unset LD_LIBRARY_PATH
+-          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r2/controller.py run-preparation --root "$RUNNER_TEMP/hia-core-emitter-native-development-r2" --source "$GITHUB_WORKSPACE/source" --policy-sha256 3b20ce87f4cdd8e85bbdd10812b72a091471bcb41dc343938fe387f8e99ed08d --control-commit __CONTROL_COMMIT__ > "$RUNNER_TEMP/hia-core-emitter-native-run-preparation.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-run-preparation.stderr.log"
++          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r3/controller.py run-preparation --root "$RUNNER_TEMP/hia-core-emitter-native-development-r3" --source "$GITHUB_WORKSPACE/source" --policy-sha256 8a76ca513d306c09587b215393abe62438b0fef8b328f7db282564e65400bc8c --control-commit __CONTROL_COMMIT__ > "$RUNNER_TEMP/hia-core-emitter-native-run-preparation.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-run-preparation.stderr.log"
+       - name: Bind actual complete compiler originals and create the test request
+         id: admit_preparation
+         timeout-minutes: 5
+@@ -151,7 +151,7 @@
+               ;;
+           esac
+           unset LD_LIBRARY_PATH
+-          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r2/controller.py admit-preparation --root "$RUNNER_TEMP/hia-core-emitter-native-development-r2" --source "$GITHUB_WORKSPACE/source" --policy-sha256 3b20ce87f4cdd8e85bbdd10812b72a091471bcb41dc343938fe387f8e99ed08d --control-commit __CONTROL_COMMIT__ > "$RUNNER_TEMP/hia-core-emitter-native-admit-preparation.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-admit-preparation.stderr.log"
++          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r3/controller.py admit-preparation --root "$RUNNER_TEMP/hia-core-emitter-native-development-r3" --source "$GITHUB_WORKSPACE/source" --policy-sha256 8a76ca513d306c09587b215393abe62438b0fef8b328f7db282564e65400bc8c --control-commit __CONTROL_COMMIT__ > "$RUNNER_TEMP/hia-core-emitter-native-admit-preparation.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-admit-preparation.stderr.log"
+       - name: Run the default complete 15 plus 51 plus 50 methods under one original 180-second owner
+         id: run_tests
+         timeout-minutes: 4
+@@ -175,7 +175,7 @@
+               ;;
+           esac
+           unset LD_LIBRARY_PATH
+-          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r2/controller.py run-tests --root "$RUNNER_TEMP/hia-core-emitter-native-development-r2" --source "$GITHUB_WORKSPACE/source" --policy-sha256 3b20ce87f4cdd8e85bbdd10812b72a091471bcb41dc343938fe387f8e99ed08d --control-commit __CONTROL_COMMIT__ > "$RUNNER_TEMP/hia-core-emitter-native-run-tests.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-run-tests.stderr.log"
++          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r3/controller.py run-tests --root "$RUNNER_TEMP/hia-core-emitter-native-development-r3" --source "$GITHUB_WORKSPACE/source" --policy-sha256 8a76ca513d306c09587b215393abe62438b0fef8b328f7db282564e65400bc8c --control-commit __CONTROL_COMMIT__ > "$RUNNER_TEMP/hia-core-emitter-native-run-tests.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-run-tests.stderr.log"
+       - name: Require both naturally closed owners and exact complete native originals
+         if: always()
+         id: finalize
+@@ -200,7 +200,7 @@
+               ;;
+           esac
+           unset LD_LIBRARY_PATH
+-          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r2/controller.py finalize --root "$RUNNER_TEMP/hia-core-emitter-native-development-r2" --source "$GITHUB_WORKSPACE/source" --policy-sha256 3b20ce87f4cdd8e85bbdd10812b72a091471bcb41dc343938fe387f8e99ed08d --control-commit __CONTROL_COMMIT__ > "$RUNNER_TEMP/hia-core-emitter-native-finalize.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-finalize.stderr.log"
++          python -I -B control/experiments/hia_core_emitter_20261111/native-development-r3/controller.py finalize --root "$RUNNER_TEMP/hia-core-emitter-native-development-r3" --source "$GITHUB_WORKSPACE/source" --policy-sha256 8a76ca513d306c09587b215393abe62438b0fef8b328f7db282564e65400bc8c --control-commit __CONTROL_COMMIT__ > "$RUNNER_TEMP/hia-core-emitter-native-finalize.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-finalize.stderr.log"
+       - name: Preserve full bounded diagnostic frames in an artifact file after phase cleanup
+         if: always()
+         timeout-minutes: 3
+@@ -224,7 +224,7 @@
+           esac
+           unset LD_LIBRARY_PATH
+           set -o noclobber
+-          python -I -S -B control/experiments/hia_core_emitter_20261111/native-development-r2/diagnostics.py --policy-sha256 3b20ce87f4cdd8e85bbdd10812b72a091471bcb41dc343938fe387f8e99ed08d --control-commit __CONTROL_COMMIT__ > "$RUNNER_TEMP/hia-core-emitter-native-full-diagnostics.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-full-diagnostics.stderr.log"
++          python -I -S -B control/experiments/hia_core_emitter_20261111/native-development-r3/diagnostics.py --policy-sha256 8a76ca513d306c09587b215393abe62438b0fef8b328f7db282564e65400bc8c --control-commit __CONTROL_COMMIT__ > "$RUNNER_TEMP/hia-core-emitter-native-full-diagnostics.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-native-full-diagnostics.stderr.log"
+       - name: Print a smaller whole-file custody channel without changing product results
+         if: always()
+         timeout-minutes: 3
+@@ -247,14 +247,14 @@
+               ;;
+           esac
+           unset LD_LIBRARY_PATH
+-          python -I -S -B control/experiments/hia_core_emitter_20261111/native-development-r2/small_diagnostics.py --policy-sha256 3b20ce87f4cdd8e85bbdd10812b72a091471bcb41dc343938fe387f8e99ed08d --control-commit __CONTROL_COMMIT__
++          python -I -S -B control/experiments/hia_core_emitter_20261111/native-development-r3/small_diagnostics.py --policy-sha256 8a76ca513d306c09587b215393abe62438b0fef8b328f7db282564e65400bc8c --control-commit __CONTROL_COMMIT__
+       - name: Preserve all development originals including failed or partial phases
+         if: always()
+         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+         with:
+           name: hia-core-emitter-native-development-${{ github.run_id }}-1
+           path: |
+-            ${{ runner.temp }}/hia-core-emitter-native-development-r2/
++            ${{ runner.temp }}/hia-core-emitter-native-development-r3/
+             ${{ runner.temp }}/hia-core-emitter-native-prepare.stdout.log
+             ${{ runner.temp }}/hia-core-emitter-native-prepare.stderr.log
+             ${{ runner.temp }}/hia-core-emitter-native-run-preparation.stdout.log
+@@ -271,9 +271,9 @@
+             ${{ runner.temp }}/hia-core-emitter-native-small-diagnostics.derived.json
+             ${{ runner.temp }}/hia-core-emitter-native-small-diagnostics.manifest.json
+             ${{ runner.temp }}/hia-core-emitter-native-small-diagnostics.RESULT.json
+-            ${{ runner.temp }}/hia-core-emitter-runtime-metadata-r2-before.json
+-            ${{ runner.temp }}/hia-core-emitter-runtime-metadata-r2-after.json
+-            ${{ runner.temp }}/hia-core-emitter-runtime-metadata-r2-admit.json
++            ${{ runner.temp }}/hia-core-emitter-runtime-metadata-r3-before.json
++            ${{ runner.temp }}/hia-core-emitter-runtime-metadata-r3-after.json
++            ${{ runner.temp }}/hia-core-emitter-runtime-metadata-r3-admit.json
+           if-no-files-found: error
+           include-hidden-files: true
+           compression-level: 0

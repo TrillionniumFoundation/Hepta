@@ -1,0 +1,215 @@
+--- r2/runtime_metadata.py
++++ r3/runtime_metadata.py
+@@ -25,7 +25,7 @@
+ from common import (PREFIX, REPO, create, identity, parent_descriptor, read,
+                     require, wire)
+ 
+-TRIGGER = 'codex/hia-core-emitter-native-development-run-r2-20261112-e26e'
++TRIGGER = 'codex/hia-core-emitter-native-development-run-r3-20261112-e26e'
+ PACKAGES = {'setuptools': '78.1.1', 'wheel': '0.46.3',
+             'z3-solver': '4.15.4.0', 'jsonschema': '4.26.0'}
+ STAGES = ('before', 'after', 'admit')
+@@ -33,7 +33,52 @@
+ MAX_REPORT = 128 << 10
+ MAX_STDOUT = 192 << 10
+ FRAME = 8192
+-NAME = 'hia-core-emitter-runtime-metadata-r2-'
++NAME = 'hia-core-emitter-runtime-metadata-r3-'
++
++# Fixed identities: the original controller selects all matching vendored entries too.
++OWN_DIST_INFO = {'setuptools': 'setuptools-78.1.1.dist-info',
++ 'wheel': 'wheel-0.46.3.dist-info',
++ 'z3-solver': 'z3_solver-4.15.4.0.dist-info',
++ 'jsonschema': 'jsonschema-4.26.0.dist-info'}
++FIXED_METADATA_FILES = {'setuptools': ('setuptools/_vendor/autocommand-2.2.2.dist-info/METADATA',
++                'setuptools/_vendor/autocommand-2.2.2.dist-info/RECORD',
++                'setuptools/_vendor/backports.tarfile-1.2.0.dist-info/METADATA',
++                'setuptools/_vendor/backports.tarfile-1.2.0.dist-info/RECORD',
++                'setuptools/_vendor/importlib_metadata-8.0.0.dist-info/METADATA',
++                'setuptools/_vendor/importlib_metadata-8.0.0.dist-info/RECORD',
++                'setuptools/_vendor/inflect-7.3.1.dist-info/METADATA',
++                'setuptools/_vendor/inflect-7.3.1.dist-info/RECORD',
++                'setuptools/_vendor/jaraco.collections-5.1.0.dist-info/METADATA',
++                'setuptools/_vendor/jaraco.collections-5.1.0.dist-info/RECORD',
++                'setuptools/_vendor/jaraco.context-5.3.0.dist-info/METADATA',
++                'setuptools/_vendor/jaraco.context-5.3.0.dist-info/RECORD',
++                'setuptools/_vendor/jaraco.functools-4.0.1.dist-info/METADATA',
++                'setuptools/_vendor/jaraco.functools-4.0.1.dist-info/RECORD',
++                'setuptools/_vendor/jaraco.text-3.12.1.dist-info/METADATA',
++                'setuptools/_vendor/jaraco.text-3.12.1.dist-info/RECORD',
++                'setuptools/_vendor/more_itertools-10.3.0.dist-info/METADATA',
++                'setuptools/_vendor/more_itertools-10.3.0.dist-info/RECORD',
++                'setuptools/_vendor/packaging-24.2.dist-info/METADATA',
++                'setuptools/_vendor/packaging-24.2.dist-info/RECORD',
++                'setuptools/_vendor/platformdirs-4.2.2.dist-info/METADATA',
++                'setuptools/_vendor/platformdirs-4.2.2.dist-info/RECORD',
++                'setuptools/_vendor/tomli-2.0.1.dist-info/METADATA',
++                'setuptools/_vendor/tomli-2.0.1.dist-info/RECORD',
++                'setuptools/_vendor/typeguard-4.3.0.dist-info/METADATA',
++                'setuptools/_vendor/typeguard-4.3.0.dist-info/RECORD',
++                'setuptools/_vendor/typing_extensions-4.12.2.dist-info/METADATA',
++                'setuptools/_vendor/typing_extensions-4.12.2.dist-info/RECORD',
++                'setuptools/_vendor/wheel-0.45.1.dist-info/METADATA',
++                'setuptools/_vendor/wheel-0.45.1.dist-info/RECORD',
++                'setuptools/_vendor/zipp-3.19.2.dist-info/METADATA',
++                'setuptools/_vendor/zipp-3.19.2.dist-info/RECORD',
++                'setuptools-78.1.1.dist-info/METADATA',
++                'setuptools-78.1.1.dist-info/RECORD'),
++ 'wheel': ('wheel-0.46.3.dist-info/METADATA', 'wheel-0.46.3.dist-info/RECORD'),
++ 'z3-solver': ('z3_solver-4.15.4.0.dist-info/METADATA', 'z3_solver-4.15.4.0.dist-info/RECORD'),
++ 'jsonschema': ('jsonschema-4.26.0.dist-info/METADATA', 'jsonschema-4.26.0.dist-info/RECORD')}
++EXPECTED_METADATA_ORIGINALS = sum(map(len, FIXED_METADATA_FILES.values()))
++SETUPTOOLS_WHEEL_SHA256 = 'c3a9c4211ff4c309edb8b8c4f1cbfa7ae324c4ba9f91ff254e3d305b9fd54561'
+ 
+ def pin(raw):
+     return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest(),
+@@ -176,8 +221,66 @@
+                   'run_id': int(os.environ['GITHUB_RUN_ID']), 'run_attempt': 1,
+                   'trigger_branch': TRIGGER}
+ 
++
++def selected_metadata(dist, package, observation):
++    files = list(dist.files or ())
++    chosen = sorted(item for item in files if item.name in ('METADATA', 'RECORD')
++                    and item.parent.name.endswith('.dist-info'))
++    entries = [str(item) for item in chosen]
++    own = [str(item) for item in chosen if item.parent.as_posix() == OWN_DIST_INFO[package]]
++    observation.update({'package': package, 'actual_version': dist.version,
++                        'selected_distribution_directory': OWN_DIST_INFO[package],
++                        'controller_metadata_entries': entries,
++                        'own_distribution_entries': own,
++                        'vendored_metadata_entries': [entry for entry in entries if entry not in own]})
++    expected_own = [OWN_DIST_INFO[package] + '/' + name for name in ('METADATA', 'RECORD')]
++    require(own == expected_own, 'selected distribution own metadata pair differs')
++    require(len(entries) == len(set(entries)), 'duplicate controller metadata entry')
++    require(tuple(entries) == FIXED_METADATA_FILES[package],
++            'fixed complete controller metadata inventory differs')
++    return chosen
++
++
++def compact_report(report):
++    # Lossless dictionary encoding only; every observation is retained.
++    records = []
++    indices = {}
++    chain_names = {'lexical_lstat_chain', 'lexical_lstat_chain_after', 'lstat_chain'}
++    def visit(value):
++        if isinstance(value, list):
++            return [visit(item) for item in value]
++        if not isinstance(value, dict):
++            return value
++        result = {}
++        for name, item in sorted(value.items()):
++            if name == 'lexical_path' and value.get('resolved_path') == item:
++                result[name] = {'same_as_resolved_path': True}
++            elif name == 'after_original' and value.get('original') == item:
++                result[name] = {'same_as_original': True}
++            elif name in chain_names:
++                references = []
++                for observation in item:
++                    key = json.dumps(observation, sort_keys=True, separators=(',', ':'))
++                    if key not in indices:
++                        indices[key] = len(records)
++                        records.append(observation)
++                    references.append(indices[key])
++                result[name] = {'record_indices': references}
++            else:
++                result[name] = visit(item)
++        return result
++    result = visit(report)
++    result['lstat_chain_encoding'] = 'exact-observation-record-indices.v1'
++    result['equal_field_encoding'] = 'same-dict-resolved-path-and-original.v1'
++    result['lstat_observation_records'] = records
++    return result
++
++
++def report_bytes(report):
++    return (json.dumps(compact_report(report), sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8')
++
+ def emit(report, destination):
+-    raw = wire(report)
++    raw = report_bytes(report)
+     require(len(raw) <= MAX_REPORT, 'fixed metadata diagnostic report too large')
+     stored = create(destination, raw)
+     require({key: stored[key] for key in pin(raw)} == pin(raw), 'metadata report readback differs')
+@@ -204,7 +307,7 @@
+     parser.add_argument('--control-commit', required=True)
+     args = parser.parse_args()
+     temp, operation = context(args)
+-    report = {'schema': 'hia.core-emitter-runtime-metadata-provisioning.v1',
++    report = {'schema': 'hia.core-emitter-runtime-metadata-provisioning.v2',
+               'stage': args.stage, 'operation': operation, 'status': 'HOLD',
+               'current_uid': os.getuid(), 'current_euid': os.geteuid(),
+               'current_gid': os.getgid(), 'current_egid': os.getegid(),
+@@ -212,7 +315,10 @@
+                                              'size', 'mtime_ns', 'ctime_ns'],
+               'system_runtime_predicate_unchanged': True, 'fixed_packages': PACKAGES,
+               'old_run_exact_failing_stat_unknown': True, 'project_or_system_binary_modified': False,
+-              'phase_owner_or_product_executed': False, 'rows': [], 'errors': []}
++              'phase_owner_or_product_executed': False, 'rows': [], 'errors': [],
++              'distributions': [], 'expected_metadata_original_count': EXPECTED_METADATA_ORIGINALS,
++              'fixed_metadata_files': FIXED_METADATA_FILES, 'own_dist_info': OWN_DIST_INFO,
++              'setuptools_wheel_sha256': SETUPTOOLS_WHEEL_SHA256}
+     expected = {}
+     try:
+         report['python'] = {}
+@@ -223,28 +329,33 @@
+             previous_raw, previous_pin = read(temp / (NAME + 'after.json'), MAX_REPORT)
+             previous = json.loads(previous_raw)
+             require(previous['operation'] == operation and previous['stage'] == 'after'
+-                    and previous['fixed_packages'] == PACKAGES and previous['complete_eight_originals'],
++                    and previous['fixed_packages'] == PACKAGES
++                    and previous['fixed_metadata_files'] == {k: list(v) for k, v in FIXED_METADATA_FILES.items()}
++                    and previous['own_dist_info'] == OWN_DIST_INFO
++                    and previous['complete_controller_metadata_originals'],
+                     'post-install runtime metadata observation incomplete')
+             report['post_install_report_original'] = previous_pin
+-            expected = {(row['package'], row['metadata_name']): row for row in previous['rows']}
+-            require(len(expected) == 8, 'post-install metadata denominator differs')
++            expected = {(row['package'], row['distribution_entry']): row for row in previous['rows']}
++            require(len(previous['rows']) == len(expected) == EXPECTED_METADATA_ORIGINALS
++                    and set(expected) == {(package, entry) for package, entries in FIXED_METADATA_FILES.items()
++                                          for entry in entries},
++                    'post-install complete controller metadata denominator differs')
+         for package, version in PACKAGES.items():
+             try:
+                 dist = importlib.metadata.distribution(package)
+-                files = list(dist.files or ())
+-                chosen = sorted(item for item in files if item.name in ('METADATA', 'RECORD')
+-                                and item.parent.name.endswith('.dist-info'))
+-                require(len(chosen) == 2 and {item.name for item in chosen} == {'METADATA', 'RECORD'},
+-                        'exact distribution metadata pair missing')
++                selection = {'package': package}
++                report['distributions'].append(selection)
++                chosen = selected_metadata(dist, package, selection)
+                 for item in chosen:
+                     row = {'package': package, 'expected_version': version, 'actual_version': dist.version,
+-                           'metadata_name': item.name, 'distribution_entry': str(item)}
++                           'metadata_name': item.name, 'distribution_entry': str(item),
++                           'own_distribution_metadata': item.parent.as_posix() == OWN_DIST_INFO[package]}
+                     report['rows'].append(row)
+                     try:
+                         require(args.stage == 'before' or dist.version == version,
+                                 'fresh pinned package version differs')
+                         observe_file(Path(dist.locate_file(item)), repair=args.stage == 'admit',
+-                                     expected=expected.get((package, item.name)), observation=row)
++                                     expected=expected.get((package, str(item))), observation=row)
+                         row['status'] = 'OBSERVED'
+                     except BaseException as error:
+                         row['status'] = 'HOLD'
+@@ -252,9 +363,13 @@
+             except BaseException as error:
+                 report['errors'].append({'package': package, 'type': type(error).__name__,
+                                          'message': str(error)[:2048]})
+-        report['complete_eight_originals'] = len(report['rows']) == 8 and not report['errors'] and all(
+-            row.get('status') == 'OBSERVED' for row in report['rows'])
+-        report['original_metadata_predicate_passes'] = report['complete_eight_originals'] and all(
++        report['complete_controller_metadata_originals'] = (len(report['rows']) == EXPECTED_METADATA_ORIGINALS
++            and len({(row['package'], row['distribution_entry']) for row in report['rows']}) == EXPECTED_METADATA_ORIGINALS
++            and not report['errors'] and all(
++            row.get('status') == 'OBSERVED' for row in report['rows']))
++        report['own_metadata_original_count'] = sum(bool(row['own_distribution_metadata']) for row in report['rows'])
++        report['vendored_metadata_original_count'] = len(report['rows']) - report['own_metadata_original_count']
++        report['original_metadata_predicate_passes'] = report['complete_controller_metadata_originals'] and all(
+             row['predicate_after']['all'] for row in report['rows'])
+         report['first_metadata_predicate_rejection'] = next((
+             {'package': row['package'], 'path': row['resolved_path'], 'stat': row['after'],
