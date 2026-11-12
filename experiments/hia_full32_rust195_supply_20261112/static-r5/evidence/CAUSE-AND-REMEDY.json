@@ -1,0 +1,216 @@
+{
+  "cause": {
+    "CI_and_RUSTUP_CI_absent": true,
+    "HOME_unchanged": "/home/runner",
+    "command": [
+      "/home/runner/.cargo/bin/rustup",
+      "toolchain",
+      "install",
+      "1.95.0",
+      "--profile",
+      "minimal"
+    ],
+    "command_ordinal": 56,
+    "next_which_payload_verify_version_stages_executed": false,
+    "original_supply_run": 43305002328,
+    "process_group_closed": true,
+    "recorded_CARGO_HOME": "/home/runner/hf43305002328a1/supply/rustup195-cargo",
+    "recorded_RUSTUP_HOME": "/home/runner/hf43305002328a1/supply/rustup195",
+    "recorded_rustup_sha256": "5be191e8c70a5007074254cb74d78dbfdd25cd5a61c27de7b8e5410122ec24f4",
+    "reported_rustup_version": "1.29.2 (d8c92c676 2026-10-21)",
+    "returncode": 1,
+    "rustup_binary_locally_reread": false,
+    "source_call": "Supply.rust195, actual original line 1528",
+    "stdout_install_message_is_not_success_acceptance": true,
+    "timed_out": false,
+    "wall_seconds": 6.275462164999993
+  },
+  "execution": {
+    "APT": false,
+    "AST_parse_only": true,
+    "Rustup": false,
+    "full32": false,
+    "receiver_rerun": false,
+    "source_controls": false,
+    "supplier": false
+  },
+  "final_current_product_source": null,
+  "independent_selected_audit": {
+    "bytes": 104074,
+    "checks": 27122,
+    "path": "/tmp/hia-full32-r4-gzip-actual-43319690424-r1/audit/SUPPLY-FAILURE-AUDIT-r2.json",
+    "sha256": "eab18f7ab02fd15eeda8b2b19f8e220833914d4e900f48ad98e78112c196feb5"
+  },
+  "official_source": {
+    "annotated_tag": "f4f7c055e24e77f41662e9f9034b0d4285768585",
+    "call_chain": [
+      {
+        "file": "src/cli/rustup_mode.rs",
+        "lines": [
+          453,
+          455
+        ],
+        "meaning": "UpdateOpts supports a no_self_update boolean long option for toolchain install."
+      },
+      {
+        "file": "src/cli/rustup_mode.rs",
+        "lines": [
+          751,
+          752
+        ],
+        "meaning": "toolchain install delegates to update(opts,true)."
+      },
+      {
+        "file": "src/cli/rustup_mode.rs",
+        "lines": [
+          1042,
+          1121
+        ],
+        "meaning": "opts.no_self_update is negated into should_self_update. Actual toolchain install, printing channel status, and setting default precede SelfUpdateMode.update."
+      },
+      {
+        "file": "src/cli/self_update.rs",
+        "lines": [
+          474,
+          487
+        ],
+        "meaning": "Absent CI and absent configured auto_self_update use Enable. This actual sanitized request did not contain CI or RUSTUP_CI."
+      },
+      {
+        "file": "src/cli/self_update.rs",
+        "lines": [
+          507,
+          545
+        ],
+        "meaning": "Enable with should_self_update false returns success from the optional self-update component before permission/prepare_update. CheckOnly still performs its check in this exact version; the draft does not claim all configurations skip every self-check."
+      },
+      {
+        "file": "src/cli/self_update.rs",
+        "lines": [
+          1165,
+          1172
+        ],
+        "meaning": "prepare_update requires CARGO_HOME/bin/rustup to exist and otherwise returns NotSelfInstalled."
+      },
+      {
+        "file": "src/cli/errors.rs",
+        "lines": [
+          13,
+          19
+        ],
+        "meaning": "NotSelfInstalled formats the exact observed error."
+      }
+    ],
+    "commit": "d8c92c6765f85625b20482e165066bf1e98e7297",
+    "official_docs": "https://rust-lang.github.io/rustup/basics.html",
+    "provider_tag_signature_verified": true,
+    "repository": "https://github.com/rust-lang/rustup",
+    "source_correspondence_scope": "Exact upstream commit selected by the actual version string; not a reproducible rebuild or independent local binary verification.",
+    "tag": "1.29.2",
+    "tree": "bed3abc43b6be0833c122ffd62d9a1c09c32fc4d"
+  },
+  "original_failure_unchanged": true,
+  "original_source": {
+    "files": 4076,
+    "head": "784f088fcc5ad81c65de541d54e26d380c86293c",
+    "pure": "e4fc00a775dab323758d77a2ef4918fd35585cdc",
+    "tree": "d9e8407c70e44a3ea0152b8b4c5eb2ed3833d790"
+  },
+  "originals": [
+    {
+      "bytes": 425429,
+      "git_blob": "2f541d202149d8212f93c1660b25fffc8357c5db",
+      "local_path": "originals/SUPPLY.original.json",
+      "original_path": "supply/SUPPLY.json",
+      "sha256": "44fa3995d5873449271124f48ba6c3bb06f9c9891e1284dc3ee6037ce33a6ef2",
+      "small_saved_name": "I000049.original"
+    },
+    {
+      "bytes": 1813,
+      "git_blob": "40a7a8b8b9f870ab32e1c306fa7a99b6b253a94f",
+      "local_path": "originals/056-rust195-install.request.original.json",
+      "original_path": "supply/requests/056-rust195-install.json",
+      "sha256": "dd431b88775b0b0cd24c80e9afd9ff0a295d63db4defd984dde4954ba12340f5",
+      "small_saved_name": "I000393.original"
+    },
+    {
+      "bytes": 895,
+      "git_blob": "a24b8ddc3935668e9e3d35de664d0f3c75f2deb6",
+      "local_path": "originals/056-rust195-install.receipt.original.json",
+      "original_path": "supply/logs/056-rust195-install.receipt.json",
+      "sha256": "380afedb5c6fc8eea11f70461fb205c84cbf2f27f2a7b2eb7553a78b3df88211",
+      "small_saved_name": "I000225.original"
+    },
+    {
+      "bytes": 84,
+      "git_blob": "21aedc52e70bd612b8f574abfd2abec5a4daa7f4",
+      "local_path": "originals/056-rust195-install.stdout.original",
+      "original_path": "supply/logs/056-rust195-install.stdout",
+      "sha256": "fcd9045ed92f6159c49adccbca00fc138f21b838994a7eec4bfcacbe47829bc3",
+      "small_saved_name": "I000227.original"
+    },
+    {
+      "bytes": 324,
+      "git_blob": "762d57b2f80407aab08445d3a86895017244f701",
+      "local_path": "originals/056-rust195-install.stderr.original",
+      "original_path": "supply/logs/056-rust195-install.stderr",
+      "sha256": "a1402455ae022ce8b13d70ad02ea0ca421807b08d9b2db46f8c9de304f1ccc6d",
+      "small_saved_name": "I000226.original"
+    },
+    {
+      "bytes": 4731,
+      "git_blob": "ad94877b44549c7cb39a0a7017c026f28c389bf3",
+      "local_path": "originals/056-rust195-install.completed.original.json",
+      "original_path": "supply/reports/056-rust195-install.completed.json",
+      "sha256": "d93cf0302c8e2cf0cff4aef16875f2699c01788cb7e4b1de6e6a180a0ec9c1fd",
+      "small_saved_name": "I000292.original"
+    },
+    {
+      "bytes": 37,
+      "git_blob": "adf33ac10f27f3e77d755c789d80b67db5c03f19",
+      "local_path": "originals/055-rustup-version.stdout.original",
+      "original_path": "supply/logs/055-rustup-version.stdout",
+      "sha256": "9d0fa5abe0036a64d33be57d0945ac3cb1a44507774f93c5f70ca1a848307b40",
+      "small_saved_name": "I000224.original"
+    },
+    {
+      "bytes": 168,
+      "git_blob": "8a28abb79ef23b4951da113808b52dabd1115771",
+      "local_path": "originals/055-rustup-version.stderr.original",
+      "original_path": "supply/logs/055-rustup-version.stderr",
+      "sha256": "a253db0656b031001e9db559a443dd2af2afc0cc1314fe21176d7f83408bcc51",
+      "small_saved_name": "I000223.original"
+    }
+  ],
+  "reason_final_source_pending": "Root will select matching v92 source and standard-CI/cold identities separately. This draft is an exact diff against observed v89 full32 r4 and is not current-v92 qualification.",
+  "receiver_HOLD_unchanged": true,
+  "remaining_transport_gap": {
+    "full_original_zip_locally_verified": false,
+    "original_64MiB_limit_unchanged": true,
+    "ranges_downloaded": 0,
+    "recovery_HOLD_not_reclassified": true,
+    "whole_omitted_stdout_paths": [
+      "supply/logs/018-qemu-data-tar.stdout",
+      "supply/logs/021-boost-data-tar.stdout"
+    ]
+  },
+  "remedy": {
+    "budgets_and_other_function_bodies_byte_identical": true,
+    "delta": "One new argv literal --no-self-update on the existing rust195-install call.",
+    "does_not_ignore_nonzero_install": true,
+    "manager_update_suppressed_explicitly": true,
+    "new_environment_entries": 0,
+    "new_external_command_count": 0,
+    "retained_checks": [
+      "official version-specific channel checksum",
+      "three official component URL/hash/payload inputs",
+      "rustup which fixed private prefix",
+      "three complete verify_rust payload comparisons",
+      "actual cargo/rustc 1.95.0 versions",
+      "original manager identity before/after",
+      "installed inventory"
+    ]
+  },
+  "schema": "hia.full32.rust195-r5-cause-and-remedy.v1",
+  "status": "STATIC_REMEDY_PENDING_SOURCE_AND_EXECUTION_REVIEW"
+}

@@ -1,0 +1,11 @@
+--- originals/supply_v87.py
++++ candidate/supply_v87.py
+@@ -1525,7 +1525,7 @@
+                    RUSTUP_UPDATE_ROOT="https://static.rust-lang.org/rustup")
+         # The exact feedback entry is preserved.  No earlier Rust 1.95 receipt
+         # or version string is substituted for the resulting binary bytes.
+-        self.step("rust195-install", [rustup, "toolchain", "install", "1.95.0", "--profile", "minimal"], env=env, seconds=1200)
++        self.step("rust195-install", [rustup, "toolchain", "install", "1.95.0", "--profile", "minimal", "--no-self-update"], env=env, seconds=1200)
+         cargo_out = self.step("rust195-which", [rustup, "which", "--toolchain", "1.95.0", "cargo"], env=env, seconds=30)
+         _, raw = file_record(cargo_out, body=True, limit=4096)
+         cargo = Path(raw.decode().strip())
