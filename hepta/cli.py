@@ -56,7 +56,7 @@ def publish_json_view(value, destination):
     return {"schema": "hepta.hia.json-view-output.v1", "ok": True,
             "output": str(target), "view_schema": value["schema"], "publication": receipt}
 
-def hia_main(argv=None):
+def _reference_hia_main(argv=None):
     parser = argparse.ArgumentParser(prog="hia", description="HIA Core Agent interface")
     parser.add_argument("--version", action="version", version="hia " + __version__)
     actions = parser.add_subparsers(dest="hia_action", required=True)
@@ -206,5 +206,12 @@ def hia_main(argv=None):
     except (OSError, ValueError, UnicodeError, subprocess.SubprocessError) as error:
         output_json({"ok":False,"status":"error","diagnostics":[{"code":"E_DRIVER","message":str(error),"phase":"driver"}]})
         return 2
+
+def hia_main(argv=None):
+    selected = os.environ.get("HEPTA_HIA_CLI_MANIFEST")
+    if selected is not None:
+        from .hia_cli_native import installed_cli
+        return installed_cli(selected).run(argv, sys.modules[__name__])
+    return _reference_hia_main(argv)
 
 main = hia_main

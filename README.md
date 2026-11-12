@@ -24,7 +24,13 @@ hia check-assembly examples/hia_bootstrap/bytesum.hepta
 hia verify examples/hia_program/counter.hepta
 ```
 
-The `hia` entry is currently a Python-hosted bridge. The independently built
+The `hia` entry is currently a Python-hosted bridge. An explicitly selected
+[two-image HIA CLI owner](docs/HIA_NATIVE_CLI_CONTROL_RECOVERY_20261111.md)
+now controls all fifteen actions, argument/help/error presentation, sequencing
+and current selfhost-build selection. Semantic action bodies, file policy and
+successful JSON presentation remain named foreign owners; this is not a
+standalone wholly native CLI.
+The independently built
 HIA-native stdio application supports `capabilities`, `verify`, `compile`,
 `render-assembly` and direct HIA-source `assemble` on
 Linux x86-64 without Python at runtime; see [native stdio](docs/HIA_AGENT_STDIO_NATIVE.md).

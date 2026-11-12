@@ -6,9 +6,39 @@ integration entry remains [draft PR #893](https://github.com/TrillionniumFoundat
 
 **Whole-product native replacement is incomplete.**
 `whole_native_delivery_qualified=false`, `old_stack_can_be_removed=false`, and
-`production_activated=false`. The v72 source contract identifies the actual
+`production_activated=false`. The v73 source contract identifies the actual
 inputs; it is not an execution receipt. Current-source cold, installed/native,
 complete retained regression, and running-worker adoption are separate gates.
+
+## Current continuation: v73 selected fifteen-action CLI
+
+The detached continuation imports the explicitly selected two-image CLI owner
+from `04ba46ad16310ebbfbf327a143b577445d40ba7d` onto the exact
+`9a12b6cd13ba103fc7495aa8d5decf8cd5948143` source tree. Both new source files
+use `.hepta`; installed-resource bindings name their actual shared `SOURCES`
+bridge. No native implementation or original regression group was removed.
+
+HIA now admits the current native/selfhost backend choices and both operator
+pin arguments, produces the original root-parser constraint errors before
+semantic IO, and issues a distinct selfhost-build effect without a direct
+emitter fallback. Help includes the current pin descriptions and HIA owns the
+ASCII-hyphen wrap boundary. All 160 terminal widths were compared to the
+independent ordinary parser. The original CLI body remains byte/AST equivalent
+apart from its private reference name. Semantic compilation/publication, file
+reading and successful pretty-JSON output remain explicit foreign effects.
+
+Development source controls passed 3 tests. Actual native CLI controls passed
+17 tests, including all fifteen real action branches, current selfhost options,
+the original Agent-entry regression and a built/extracted wheel with the
+retained CLI, parser and authoring imports forbidden. An earlier run failed
+six new help-wrap subcases and one incomplete installed fixture; its records
+remain outside the product tree. The corrected fixture supplies every current
+source/compiler/publication resource, not a reduced package.
+
+Those development results are not matching-source cold acceptance for v73.
+Current-source cold, all existing native groups and complete retained regression
+must still run after the source contract is frozen. Native worker/state/runtime
+replacement, default activation and old-owner retirement remain open.
 
 ## Naming and repository audit
 

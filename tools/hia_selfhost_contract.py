@@ -13,8 +13,18 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v72-native-check-selection-and-live-slots'
+PROFILE = 'selfhost-core-linux-x86_64-v73-native-cli-current-build'
 SOURCE_FILES = (
+    'hepta/hia_cli_native.py',
+    'tools/build_hia_cli_native.py',
+    'tools/generate_hia_cli_control.py',
+    'tools/generate_hia_cli_format.py',
+    'tools/hia_cli_control_phases.py',
+    'tools/hia_cli_unicode_tables.json',
+    'tests/test_hia_cli_native.py',
+    'examples/hia_bootstrap/cli_control.hepta',
+    'examples/hia_bootstrap/cli_format.hepta',
+    'docs/HIA_NATIVE_CLI_CONTROL_RECOVERY_20261111.md',
     'tools/qualify_hia_original_select_fragments.py',
     'tools/replay_hia_original_select_fragments.py',
     'tests/test_hia_complete_output_observation.py',
