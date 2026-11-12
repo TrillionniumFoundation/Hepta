@@ -115,8 +115,8 @@ class InstalledExecutionTests(unittest.TestCase):
         cls.source = cls.folder / 'source'
         cls.source.mkdir()
         shutil.copytree(ROOT / 'hepta', cls.source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
-        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES
+        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES
         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
             target = cls.source / name
             target.parent.mkdir(parents=True, exist_ok=True)

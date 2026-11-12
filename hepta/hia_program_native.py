@@ -76,7 +76,11 @@ def _implementation_hash():
     for name in (
         "hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py",
         "hia_json_preflight.py", "hia_program_composite.py", "hia_program_native.py",
-        "hia_machine_x64.py", "hia_machine_elf.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
+        "hia_machine_x64.py", "hia_machine_encoding_native.py",
+        "hia_machine_state_native.py", "hia_machine_instructions_native.py",
+        "hia_machine_transport.py", "hia_json_preflight_native.py",
+        "hia_exception_delivery.py",
+        "hia_machine_elf.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
         "hia_heap_bound.py", "artifact_publication.py",
         "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
         "object_structure.py", "native_tool_identity.py",
@@ -84,6 +88,8 @@ def _implementation_hash():
         digest.update(name.encode() + b"\0" + (root / name).read_bytes() + b"\0")
     from .hia_checker_identity import checker_digest
     digest.update(checker_digest().encode())
+    from .hia_machine_x64 import native_implementation_identity as encoding_identity
+    digest.update(b'native-machine-encoding\0' + encoding_identity() + b'\0')
     return digest.hexdigest()
 
 
@@ -681,30 +687,32 @@ def emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_b
     from .hia_program import VerifiedProgram, verify_program
     if target != TARGET:
         _reject("direct machine backend supports only x86_64 Linux", "E_HIA_PROGRAM_TARGET")
-    before = _implementation_hash()
-    if not isinstance(program, VerifiedProgram):
-        _reject("an immutable VerifiedProgram from verify_program is required")
-    checked = verify_program(program)
-    if (checked.canonical_bytes != program.canonical_bytes
-            or checked.input_sha256 != program.input_sha256):
-        _reject("verified program identity changed", "E_HIA_PROGRAM_ORIGIN")
-    from .hia_native_byte_abi import normalize_exports, PROFILE as BYTE_PROFILE
-    byte_exports = normalize_exports(foreign_buffer_exports, checked)
-    plan = None if machine_plan is None else validate_block_layout_plan(checked, machine_plan)
-    plan_hash = None if plan is None else sha256(json.dumps(
-        plan, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
-    emitter = _Emitter(checked.as_dict(), checked.scalar_entrypoints,
-                       None if plan is None else plan["block_order"], byte_exports, plan)
-    text, obj = emitter.render()
-    if len(obj) > MAX_ARTIFACT_BYTES:
-        _reject("object exceeds artifact byte budget", "E_HIA_PROGRAM_LIMIT")
-    exports = tuple(sorted(emitter.exports))
-    _inspect_object(obj, exports)
-    if _implementation_hash() != before:
-        _reject("verifier/emitter changed during generation", "E_HIA_PROGRAM_STALE")
-    return HIAProgramMachine(obj, text, sha256(obj).hexdigest(), checked.sha256,
-                             before, exports, BYTE_PROFILE if byte_exports else PROFILE, target, checked.input_sha256,
-                             tuple(emitter.frames), plan_hash, byte_exports)
+    from .hia_machine_x64 import native_encoding_scope
+    with native_encoding_scope():
+        before = _implementation_hash()
+        if not isinstance(program, VerifiedProgram):
+            _reject("an immutable VerifiedProgram from verify_program is required")
+        checked = verify_program(program)
+        if (checked.canonical_bytes != program.canonical_bytes
+                or checked.input_sha256 != program.input_sha256):
+            _reject("verified program identity changed", "E_HIA_PROGRAM_ORIGIN")
+        from .hia_native_byte_abi import normalize_exports, PROFILE as BYTE_PROFILE
+        byte_exports = normalize_exports(foreign_buffer_exports, checked)
+        plan = None if machine_plan is None else validate_block_layout_plan(checked, machine_plan)
+        plan_hash = None if plan is None else sha256(json.dumps(
+            plan, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
+        emitter = _Emitter(checked.as_dict(), checked.scalar_entrypoints,
+                           None if plan is None else plan["block_order"], byte_exports, plan)
+        text, obj = emitter.render()
+        if len(obj) > MAX_ARTIFACT_BYTES:
+            _reject("object exceeds artifact byte budget", "E_HIA_PROGRAM_LIMIT")
+        exports = tuple(sorted(emitter.exports))
+        _inspect_object(obj, exports)
+        if _implementation_hash() != before:
+            _reject("verifier/emitter changed during generation", "E_HIA_PROGRAM_STALE")
+        return HIAProgramMachine(obj, text, sha256(obj).hexdigest(), checked.sha256,
+                                 before, exports, BYTE_PROFILE if byte_exports else PROFILE, target, checked.input_sha256,
+                                 tuple(emitter.frames), plan_hash, byte_exports)
 
 
 def _inspect_object(data, exports):

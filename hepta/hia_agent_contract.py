@@ -27,6 +27,11 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/cli_control.hiaasm',
+    'examples/hia_bootstrap/cli_format.hiaasm',
+    'examples/hia_bootstrap/machine_encoding.hiaasm',
+    'examples/hia_bootstrap/machine_state.hiaasm',
+    'examples/hia_bootstrap/machine_instructions.hiaasm',
     'examples/hia_bootstrap/source_admission.hiaasm',
     'examples/hia_bootstrap/worker_request.hiaasm',
     'examples/hia_bootstrap/agent_identity.hiaasm',

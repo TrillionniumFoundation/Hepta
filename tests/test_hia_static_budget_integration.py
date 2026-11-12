@@ -189,7 +189,7 @@ class InstalledStaticBudgetTests(unittest.TestCase):
             raise unittest.SkipTest('an explicit cold report or retained development compiler is required')
         from tools.build_hia_json_preflight import build, admit_cold_build, current_sources
         from tools.qualify_hia_selfhost import compile_stage
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES
         from hepta.hia_native_helpers import SCHEMA, TARGET, ABI
         cls.cold_bytes = None
         if cold:
@@ -235,7 +235,7 @@ class InstalledStaticBudgetTests(unittest.TestCase):
         cls.source = cls.folder / 'source'
         cls.source.mkdir()
         shutil.copytree(ROOT / 'hepta', cls.source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
-        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
+        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES
         cls.resources = {name: (ROOT / name).read_bytes() for name in resources}
         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
             target = cls.source / name

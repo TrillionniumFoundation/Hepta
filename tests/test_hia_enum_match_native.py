@@ -524,11 +524,11 @@ int main(void){
         self.assertTrue(all(result == results[0] for result in results))
 
     def test_installed_wheel_route_without_reference_or_authoring_modules(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES
         self.assertIn('examples/hia_bootstrap/enum_match.hiaasm', NATIVE_SOURCE_FILES)
         source = self.folder / 'wheel-source'; source.mkdir()
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
+        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES
         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, destination)

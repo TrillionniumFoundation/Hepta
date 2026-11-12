@@ -22,7 +22,53 @@ been removed from the active product tree before this work.
 
 ## Audit coverage
 
-### Current v69 ownership boundary
+### Current v75 r2 audit boundary
+
+The first combined V75 source run executed every declared generator and all
+689 source tests: 77 generators passed and exactly one test errored because
+two newly registered CLI assets share one runtime module. R2 supplies those
+two explicit inventory bindings while preserving all original test methods
+and assertions. Its bounded original four resource source controls passed;
+the new complete run, source-matched cold replay, native panels and full
+retained discovery remain required before product-level completion.
+
+The independent original C-reference obstacle now has new byte-identical
+reproduction evidence. GCC 15.2.0 in a fixed official container and a private
+host prefix both reproduce the original required 260-byte e82fd51964ce2599
+image from unchanged source and flags. GCC 12/13/14 and Clang 18 mismatches
+are retained as separate real results. Reproduction does not establish old
+file provenance or historical compiler identity, and the reference was not
+executed by those diagnostic runs. See the current execution status for
+exact runs, hashes and the failed source-run record.
+
+Whole HIA-native closure remains false. Original production defaults and
+unreplaced owners are still present. Component development and new reference
+reproduction do not authorize claiming the full retained suite passed.
+
+### Prior v75 r1 audit boundary
+
+This integration starts from published 7e9c5a796a29746d169f9db97392ec774f627c03,
+tree 79843bddc6df7306299f0be6475a2fcd187b4d97. Its independent
+[complete scan](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43161178877)
+checked 3,084 tracked files, all 1,269 Python files and 60 packaging/resource
+candidates. Zero syntax errors and exact byte/Git/mode agreement establish
+inventory integrity, not complete semantic or dynamic-call closure.
+
+| Boundary | Actual progress | Remaining requirement |
+| --- | --- | --- |
+| CLI | Explicit HIA route for all 15 actions within ordinary-string argv; 38 development methods passed with original negative observations retained. | Integrated-source cold/native checks, full public input compatibility and ordinary-entry migration. |
+| Code | The 37/6/41 operations compose under pinned selection; 44 component and 51 original caller methods passed on one source. | Target interpreter and new source qualification; backend planning and other emitter owners remain separate. |
+| Exception delivery | HIA produces the fixed 69-byte CPython API mechanism. Local complete VM/native and mechanism controls include concurrency and interrupted-close repairs. | Target Python 3.14.4 and each actual owner's release permission; CPython remains a declared physical boundary. |
+| Resources | All packaging candidates reviewed; 27 wheel fixtures repaired. Macro worker identity now includes all five groups and rejects disagreeing duplicate observations. | Complete native, bindings and campaign panels on integrated source; two wheel methods and nine bounded macro controls do not replace them. |
+| Evidence | All original 7e9 source bytes recovered and verified. Final Code reports and original failure chains have separate immutable packets. | The explicitly missing older Code archive suffix and historical B reference remain gaps. |
+| Remaining product | Existing HIA owners and ordinary routes remain while service context, backend/ELF, authoring and physical boundaries continue. | Complete operation coverage, current-source qualification, ordinary-entry migration and removal of replaced production owners. |
+
+The [status page](HIA_NATIVE_REWRITE_STATUS_20261111.md) records actual jobs,
+packets, failures and limits. Core retains every original step and adds the
+new complete owner groups. No old test, resource limit, cold family or ordinary
+route is removed to make a panel pass.
+
+### Prior v69 ownership boundary
 
 The current integration retains published v68 `e03c82d1`, adds the complete
 explicit HIA Core execution owner and installed worker bindings, and joins

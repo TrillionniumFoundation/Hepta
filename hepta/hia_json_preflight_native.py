@@ -52,6 +52,7 @@ class NativeHiaJsonImage:
                 or sha256(image).hexdigest() != expected_sha256):
             raise ValueError('native HIA JSON executable identity mismatch')
         self.image_sha256 = expected_sha256
+        self._admitted_source_sha256 = None
         mapped = mmap.mmap(-1, len(image), prot=mmap.PROT_READ | mmap.PROT_WRITE)
         mapped.write(image)
         address = ctypes.addressof(ctypes.c_char.from_buffer(mapped))
@@ -64,6 +65,20 @@ class NativeHiaJsonImage:
             raise OSError(code, 'mprotect native HIA JSON preflight')
         self._mapping = mapped
         self._entry = ctypes.CFUNCTYPE(ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3))(address)
+
+    @property
+    def admitted_source_sha256(self):
+        """Source admitted together with this immutable executable mapping."""
+        return self._admitted_source_sha256
+
+    def _bind_manifest_source(self, source_sha):
+        if (type(source_sha) is not str or len(source_sha) != 64
+                or any(character not in '0123456789abcdef' for character in source_sha)):
+            raise ValueError('invalid native HIA image source admission')
+        if (self._admitted_source_sha256 is not None
+                and self._admitted_source_sha256 != source_sha):
+            raise ValueError('native HIA image source admission changed')
+        self._admitted_source_sha256 = source_sha
 
 
 class NativeJsonPreflight(NativeHiaJsonImage):
@@ -122,7 +137,10 @@ def _load_manifest(path: str, raw: bytes, source_sha: str, schema: str, factory)
     image_path = Path(path).parent / value['image_path']
     with image_path.open('rb') as handle:
         image = handle.read(MAX_IMAGE_BYTES + 1)
-    return factory(image, value['image_sha256'])
+    loaded = factory(image, value['image_sha256'])
+    if issubclass(type(loaded), NativeHiaJsonImage):
+        loaded._bind_manifest_source(source_sha)
+    return loaded
 
 
 def _installed_json_image(manifest_path: str, source: Path, schema: str, factory):

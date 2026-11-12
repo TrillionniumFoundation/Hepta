@@ -28,6 +28,9 @@ MAX_SOURCE_BYTES = 8 << 20
 # Composed heap dependencies are admitted as one complete selector set below.
 # Other multi-image and external executable contracts need separate closure.
 HELPERS = {
+    "HEPTA_HIA_MACHINE_ENCODING_MANIFEST": ("hia_machine_encoding_native", "NativeMachineEncoding"),
+    "HEPTA_HIA_MACHINE_STATE_MANIFEST": ("hia_machine_state_native", "NativeMachineState"),
+    "HEPTA_HIA_MACHINE_INSTRUCTIONS_MANIFEST": ("hia_machine_instructions_native", "NativeMachineInstructions"),
     "HEPTA_HIA_PROGRAM_EXECUTION_MANIFEST": ("hia_program_execution_native", "NativeProgramExecution"),
     "HEPTA_HIA_STATIC_BUDGET_MANIFEST": ("hia_static_budget_native", "NativeStaticBudget"),
     "HEPTA_HIA_HEAP_BOUND_MANIFEST": ("hia_heap_bound_native", "NativeHeapController"),
@@ -138,6 +141,13 @@ class NativeHelpersBinding:
             entries[entry["selector"]] = (_path(entry["manifest_path"], bundle.path.parent), entry["manifest_sha256"])
         # Refuse an incomplete transitive executable set before importing any
         # selected adapter or creating any executable mapping.
+        if ("HEPTA_HIA_MACHINE_STATE_MANIFEST" in entries
+                and "HEPTA_HIA_MACHINE_ENCODING_MANIFEST" not in entries):
+            raise ValueError("native Code state requires its pinned instruction-byte helper")
+        if ("HEPTA_HIA_MACHINE_INSTRUCTIONS_MANIFEST" in entries and not {
+                "HEPTA_HIA_MACHINE_STATE_MANIFEST",
+                "HEPTA_HIA_MACHINE_ENCODING_MANIFEST"} <= entries.keys()):
+            raise ValueError("native Code instructions require both pinned state and byte helpers")
         patch_entry = entries.get("HEPTA_HIA_CORE_PATCH_MANIFEST")
         admission_entry = entries.get("HEPTA_HIA_CORE_ADMISSION_MANIFEST")
         if patch_entry is not None and (admission_entry is None
@@ -169,6 +179,11 @@ class NativeHelpersBinding:
             if sha256(image.raw).hexdigest() != record["image_sha256"]:
                 raise ValueError("native helper executable identity mismatch")
             mapped = factory(image.raw, record["image_sha256"])
+            # Bind the same source bytes already admitted with this image;
+            # selected callers must not infer custody from a later file read.
+            from .hia_json_preflight_native import NativeHiaJsonImage
+            if issubclass(type(mapped), NativeHiaJsonImage):
+                mapped._bind_manifest_source(record["source_sha256"])
             key = (str(manifest_path.resolve(strict=True)), str(module.SOURCE.resolve(strict=True)), module.SCHEMA, factory)
             if key in self.images:
                 raise ValueError("duplicate native helper image binding")

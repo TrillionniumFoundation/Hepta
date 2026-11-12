@@ -120,13 +120,13 @@ class InstalledHeapBoundTests(HeapBuildFixture, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES
         from hepta.hia_native_helpers import SCHEMA, TARGET, ABI
         cls.package_source=cls.folder/'package-source'
         cls.package_source.mkdir()
         shutil.copytree(ROOT/'hepta',cls.package_source/'hepta',
                         ignore=shutil.ignore_patterns('__pycache__'))
-        resources=tuple('docs/'+name for name in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES
+        resources=tuple('docs/'+name for name in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES
         cls.resources={name:(ROOT/name).read_bytes() for name in resources}
         for name in (*resources,'setup.py','pyproject.toml','MANIFEST.in'):
             target=cls.package_source/name

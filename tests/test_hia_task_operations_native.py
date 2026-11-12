@@ -700,13 +700,13 @@ int main(void){
             self.assertEqual(len(observed[0][1]), failed_call or 3)
 
     def test_installed_wheel_source_custody_without_authoring_or_reference(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES
         from hepta.hia_task_helpers_native import SELECTOR as HELPER_SELECTOR
         support = self.supporting(helpers, helpers.TaskHelpersNativeTests)
         self.assertIn('examples/hia_bootstrap/task_operations.hiaasm', NATIVE_SOURCE_FILES)
         source = self.folder / 'wheel-source'; source.mkdir()
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
+        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES
         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, destination)

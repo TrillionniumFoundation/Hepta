@@ -858,10 +858,10 @@ class ArtifactNamespaceNativeTests(unittest.TestCase):
 
     def test_actual_installed_wheel_namespace_request_atomicity_and_restart_without_authoring(self):
         import shutil
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES
         source = self.case / 'source'; source.mkdir()
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
-        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
+        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES
         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)

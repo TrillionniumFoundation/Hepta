@@ -8,6 +8,8 @@ ROOT=Path(__file__).resolve().parents[1]
 RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES
 # Actual runtime bindings include single-image aliases and shared source tables.
 BUNDLED_SOURCE_BINDINGS={
+    'cli_control':('hepta.hia_cli_native','SOURCES','control'),
+    'cli_format':('hepta.hia_cli_native','SOURCES','format'),
     'composite_function_admit':('hepta.hia_composite_functions_native','SOURCES','admit'),
     'composite_function_records':('hepta.hia_composite_functions_native','SOURCES','records'),
     'composite_function_advanced':('hepta.hia_composite_functions_native','SOURCES','advanced'),

@@ -707,11 +707,11 @@ class TaskHelperCacheNativeTests(unittest.TestCase):
             helpers.TaskHelpersNativeTests.test_actual_native_task_state_machine_allocator_and_protocol_aborts(self)
 
     def test_installed_wheel_without_checkout_and_changed_source_refusals(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES
         self.assertIn('examples/hia_bootstrap/task_helper_cache.hiaasm', NATIVE_SOURCE_FILES)
         source = self.folder / 'wheel-source'; source.mkdir()
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
+        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES
         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, destination)

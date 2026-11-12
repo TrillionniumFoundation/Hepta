@@ -6,7 +6,170 @@ remain unfinished. The source audit and remaining ownership boundaries are in
 [the audit](HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md). File counts are an
 inventory, not a native-completion percentage.
 
-## Current v74 source-generation follow-up
+## Current v75 r2: source binding repair and exact reference reproduction
+
+The product branch still points to 7e9c5a796a29746d169f9db97392ec774f627c03.
+This combined revision has not yet received source-matched cold, complete
+native or full retained qualification. Whole native closure remains false.
+
+The first combined [source run 43164226506](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43164226506)
+completed all 77 generators and executed all 689 tests from 147 selectors.
+It retained one error, zero assertion failures, zero skips, zero expected
+failures and zero unexpected successes. The error was the installed resource
+binding inventory deriving nonexistent per-asset CLI module names. Both CLI
+assets are owned by the existing shared hepta.hia_cli_native.SOURCES table.
+The original report is 1,085,426 bytes, SHA256
+3c6cdf521d06e10eb65e11c0c06014fbca10d1cff0ab0261fc1788752b7deadd.
+Its original artifact is 13920706764, SHA256
+dfac4b5bd6daa1a4694eb14cac8cad79c082927bd999b0c6c0cc77789eb9d4fb.
+The failed source run is not a passing source publication.
+
+R2 adds only two literal CLI entries to that inventory. Every original
+function/class AST and assertion in the test module remains unchanged.
+The complete original four installed-resource source controls passed on
+development Python 3.12.14, with all 3,120 source files unchanged during the
+execution. A fresh complete R2 source run must qualify the combined revision.
+The original failed run and its partial generated source are retained.
+
+An independent reference investigation also resolved the missing byte
+reproduction prerequisite. The unchanged original 1,298-byte C source,
+183-byte linker script and original compile flags produced different bytes
+under GCC 12/13/14 and Clang 18 in [run 43165923524](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43165923524).
+Those four observed differences remain retained. Fixed Docker Official
+GCC 15.2.0 then produced exactly the required 260-byte SHA256
+e82fd51964ce25990f24e723fb0b3270b2e8b69c7fdc2e1b3999648df070db61
+in [run 43166782548](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43166782548).
+A private extracted host GCC 15.2.0, reached by the original cc lookup and
+using the actual Ubuntu host linker, reproduced the same bytes in
+[run 43167896880](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43167896880).
+No original test, expected hash or compile timeout was changed. These are
+new reproducible compilations; they do not recover the original historical
+file provenance, prove the historical cc identity, execute the native
+reference, or grant full retained qualification.
+
+## Prior v75 r1 integration: CLI, Code and complete resource coverage
+
+This revision starts from published product 7e9c5a796a29746d169f9db97392ec774f627c03,
+tree 79843bddc6df7306299f0be6475a2fcd187b4d97. The combined source still
+requires its own generation, cold replay, native panels and retained full
+qualification. Component development results are not transferred to a future
+source commit.
+
+### Observed v74 results and complete audit
+
+[Source generation 43153009209](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43153009209)
+passed all 72 generators and 660 tests under the complete 138 selectors, with
+zero failures, errors, skips or expected failures. Its independently verified
+generated tree was published as exact 7e9.
+
+[Core 43155631133](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43155631133)
+passed the source job's 595 tests and all 11 outer cold-replay checks. Its
+native job later failed the original installed-wheel Core patch method:
+the fixture omitted the new source-build/compiler resources.
+[Candidate bindings 43155639437](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43155639437)
+independently exposed the same omission in the worker-request method.
+These original failed jobs remain failed.
+
+[Complete read-only audit 43161178877](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43161178877)
+verified all 3,084 tracked files against the actual Git tree, parsed all 1,269
+Python files without a syntax error, and exported all 60 packaging/resource
+candidates for review. Bytes, modes and Git blobs remained unchanged.
+The first audit failed because its runner lacked ripgrep; the successful
+successor recorded that fact and used tracked Git search before its complete
+Python scan. Every candidate was reviewed: there are 27 incomplete wheel
+fixtures and one additional macro worker-inventory defect. This establishes
+file and candidate coverage, not every dynamic call or semantic source line.
+
+The original report is 4,750,582 bytes, SHA-256
+4627d6015c51d3d0e91e6dc50795169cdd00e9c41bec87492fd797163cb280e3.
+The complete source ZIP is 66,485,070 bytes, SHA-256
+2414618fc6beb8e5ce42e81ef2bf2cdb51a3c3d2e10daf5fefc8b1e4e8d6f822.
+All members were independently verified against 7e9; no synthetic checkout
+or historical Git identity was created.
+
+### New owners and repairs
+
+The CLI contribution gives HIA control of all 15 existing actions within the
+documented ordinary-string argv profile, including parsing, formatting,
+foreign claims, continuation order and temporary release. Its complete
+38-method development panel passed, including actual installed-wheel and
+nested original agent-entry controls. The original default body remains
+unchanged after its reference-name extraction. Earlier error ordering,
+help formatting and reused-claim counterexamples are preserved. A monotone
+process nonce prevents a new session from accepting a completed session's claim.
+
+Code composes the 37 byte-encoding operations, six state operations and 41
+instruction operations. The final 44-method component panel and original
+51-caller panel passed on the same frozen development source. The qualifier
+also repeats 12 instruction component methods; they are not counted as
+additional coverage beyond the 44. Original callers and the retained default
+Code body remain intact. The original emitter body is unchanged after removing
+only the explicit native pinning scope, and the checker digest remains bound.
+
+A real prior Code counterexample showed temporary destructors observing the
+wrong handled exception. The correction releases only HIA-authorized operands
+after leaving the foreign handler, then uses an HIA-emitted fixed CPython
+delivery mechanism. It preserves the exception instance, cause, context, notes
+and StopIteration value. The shared mechanism remains an explicit hosted
+CPython/Linux boundary. Nineteen complete VM/native comparisons and eighteen
+mechanism controls passed on local Python 3.12.14. The independent exact
+[Python 3.14.4 workflow](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43162197253)
+has its own outcome; this authored revision does not assert its terminal result.
+
+Each of the 27 wheel fixes changes only one import and one resource union.
+Every other original test byte, assertion and timeout remains unchanged.
+The two original failed methods separately passed with their original
+B0/B1/B2 setup and actual wheel build.
+
+The macro helper originally returned 198 entries while production installation
+identity covered 267, omitting 69 current resources. It now reads the same five
+groups with the original bounded read and evidence operations, and rejects
+disagreeing observations of a file used in both module and resource roles.
+The first complete-resource draft's silent overwrite was actually observed
+and retained before correction. Nine bounded controls passed: six unchanged
+journal/native-observation methods and three new inventory methods. All
+nineteen original methods in the full macro module remain unchanged; its
+thirteen campaign-integrity methods were not run by that bounded panel.
+
+The integrated resource union has 86 distinct paths: 11 discovery documents,
+67 native sources, three source-build resources, one compiler-build resource
+and four publication resources. SOURCE_FILES explicitly lists 747 paths and
+retains the fresh package-source closure. Both shared exception files and both
+macro helper/test files are bound. Core gains five generators, nine source
+selectors, complete 38/44 native panels and the original Code caller qualifier.
+Every original native step, source selector, generator and time limit remains.
+
+### Evidence and remaining closure
+
+Frozen source packets are CLI 1cd7b1c7136e760ba1f9da7b650d0dd884f332c7,
+Code R4 93eae21429bed2d3e2f529be4de683a6153f8920,
+shared delivery 538b30f50a052130c5c84c82bb50062e83f6a030, and
+resource repair cf09a4438ca3897c6475325576dc94f00f02bb53.
+The complete final Code component and original caller raw reports are preserved
+by 094955faaeae93a03aadb0f9ffbd4b5b0fd05d04 and
+a562d7632f34f72f2ba512de9acebab9a30d68c1. Root removes two whitespace
+defects from the frozen Python files; both ASTs are identical, and the new
+candidate must qualify its actual resulting bytes.
+
+The executor loss did not restore the older Code R3 archive's missing suffix.
+Its observed outcomes and exact custody gap remain distinct; the new complete
+R4 raw reports do not reconstruct that older evidence. The standalone delivery
+CI kit's original string/bytes snapshot bug is also preserved, with its repair
+checked against an actual small Git repository and byte/mode/link drift.
+
+[Retained full run 43155966434](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43155966434)
+is bound to earlier exact 7e9, with six prerequisite bridges, proof tools and
+original limits. It is not qualification of this new integration. The historical
+260-byte B reference remains unrecovered; the independently produced 261-byte
+reference has a different digest and is not substituted.
+
+Service context, remaining backend planning/emission, ELF lifetime and sort
+events, hosted authoring, physical process/database/provider boundaries, full
+ordinary-entry migration and old-owner removal remain open. Whole-native
+delivery, default migration and legacy deletion are false. The user's requested
+deletion remains authorized when these engineering requirements are complete.
+
+## Prior v74 first source-generation follow-up
 
 The first complete generation run is now available:
 [run 43149993963](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43149993963),
