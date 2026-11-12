@@ -13,8 +13,15 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v77-native-machine-kernels'
+PROFILE = 'selfhost-core-linux-x86_64-v78-native-machine-plan'
 SOURCE_FILES = (
+    'docs/HIA_MACHINE_PLAN_NATIVE.md',
+    'examples/hia_bootstrap/machine_plan.hepta',
+    'tests/test_hia_machine_plan_native.py',
+    'tools/build_hia_machine_plan.py',
+    'tools/generate_hia_machine_plan.py',
+    'tools/qualify_hia_machine_plan_native_callers.py',
+
     'docs/HIA_MACHINE_ENCODING_NATIVE.md',
     'examples/hia_bootstrap/machine_encoding.hepta',
     'tests/test_hia_machine_encoding_native.py',
