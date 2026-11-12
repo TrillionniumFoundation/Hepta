@@ -1,0 +1,309 @@
+--- executed-970/controller.py
++++ unexecuted-v79/controller.py
+@@ -18,7 +18,7 @@
+                   'qualification_exit_observed', 'owned_child_reaped'}
+ PARTS = [
+     {'ordinal': 0, 'offset': 0, 'bytes': 314572800, 'name': 'part-00.bin'},
+-    {'ordinal': 1, 'offset': 314572800, 'bytes': 284854451, 'name': 'part-01.bin'},
++    {'ordinal': 1, 'offset': 314572800, 'bytes': 299648266, 'name': 'part-01.bin'},
+ ]
+ 
+ class Refusal(RuntimeError):
+@@ -110,7 +110,7 @@
+     control = Path(__file__).resolve().parent
+     raw = read(control / 'policy.json', 1 << 20, args.policy_sha256)
+     policy = json.loads(raw)
+-    require(policy.get('schema') == 'hia.actions.970-full-original-two-parts-policy.v1'
++    require(policy.get('schema') == 'hia.actions.v79-full-original-two-parts-policy.v1'
+             and policy.get('repository') == REPO
+             and re.fullmatch(r'[0-9a-f]{40}', args.control_commit) is not None,
+             'fixed policy/commit differs')
+@@ -150,7 +150,7 @@
+     require(args.root.is_absolute() and args.root == root
+             and not any(x.is_symlink() for x in (temp, *temp.parents)),
+             'new runner root or ancestor differs')
+-    context = {'schema': 'hia.actions.970-full-original-two-parts-context.v1',
++    context = {'schema': 'hia.actions.v79-full-original-two-parts-context.v1',
+         'repository': REPO, 'event': 'create', 'event_ref': event['ref'], 'event_ref_type': 'branch',
+         'event_sha256': sha256(event_raw).hexdigest(), 'run_attempt': 1,
+         'run_id': int(os.environ['GITHUB_RUN_ID']), 'run_number': int(os.environ['GITHUB_RUN_NUMBER']),
+@@ -199,7 +199,7 @@
+               'command': command, 'cwd': str(root), 'source_identities': identities}
+     config_raw = wire(config)
+     create(root / 'guard/request.json', config_raw)
+-    setup = {'schema': 'hia.actions.970-full-original-two-parts-setup.v1',
++    setup = {'schema': 'hia.actions.v79-full-original-two-parts-setup.v1',
+         'status': 'PREPARED_NOT_EXECUTED', 'context': context,
+         'guardian_config_sha256': sha256(config_raw).hexdigest(),
+         'source_identities': identities, 'command': command,
+@@ -258,7 +258,7 @@
+     command = [context['python']['resolved'], '-I', '-S', '-B',
+                str(root / 'control/worker.py'), '--root', str(root),
+                '--policy-sha256', context['policy_sha256']]
+-    require(setup.get('schema') == 'hia.actions.970-full-original-two-parts-setup.v1'
++    require(setup.get('schema') == 'hia.actions.v79-full-original-two-parts-setup.v1'
+             and setup.get('status') == 'PREPARED_NOT_EXECUTED'
+             and setup.get('context') == context and setup.get('command') == command
+             and setup.get('source_identities') == expected_setup_identities(context, policy, root)
+@@ -345,12 +345,12 @@
+ 
+ def fixed_policy(policy):
+     pin = policy['artifact']
+-    require(policy['parts'] == PARTS and pin['id'] == 13911977275
+-            and pin['bytes'] == 599427251
+-            and pin['sha256'] == '40e81308484173d36153f6a3014293a78705aa28e8f8f7718dcdd3d87c03f580'
+-            and pin['run_id'] == 43140734709 and pin['run_attempt'] == 1
+-            and pin['checkout_commit'] == '9704596acc4470bd0042838586602e26bac7b3d1'
+-            and pin['checkout_tree'] == 'c3ca94c57f9bd75f22f2c694e32bca2dfc6b329b'
++    require(policy['parts'] == PARTS and pin['id'] == 13929074168
++            and pin['bytes'] == 614221066
++            and pin['sha256'] == 'b2a546f720b3a29b71a3f6372cd0f122adb1c6bbe4593aaee3b9d135175aa471'
++            and pin['run_id'] == 43182678063 and pin['run_attempt'] == 1
++            and pin['checkout_commit'] == '9739fb896037aedd9f29dae178c6ae1c8bc31827'
++            and pin['checkout_tree'] == '83a43be6fd510e55c4843cfa8a00aa4889b246cf'
+             and policy['limits'] == {'controller_seconds': 900, 'cleanup_seconds': 3,
+                 'transfer_seconds': 720, 'part_bytes': 314572800,
+                 'public_part_bytes': 335544320, 'diagnostic_bytes_per_part': 2097152},
+@@ -367,7 +367,7 @@
+ 
+ def accept_worker(report, policy, setup, root):
+     pin = fixed_policy(policy)
+-    require(report.get('schema') == 'hia.actions.970-full-original-two-parts-worker.v1'
++    require(report.get('schema') == 'hia.actions.v79-full-original-two-parts-worker.v1'
+             and report.get('status') == 'TWO_SEALED_PARTS_PENDING_NATURAL_GUARDIAN'
+             and report.get('root') == str(root)
+             and report.get('policy_sha256') == setup['context']['policy_sha256']
+@@ -533,7 +533,7 @@
+         directory = public / ('part-%02d' % item['ordinal'])
+         directory.mkdir(mode=0o700)
+         (directory / 'controls').mkdir(mode=0o700)
+-    result = {'schema': 'hia.actions.970-full-original-two-parts-final.v1',
++    result = {'schema': 'hia.actions.v79-full-original-two-parts-final.v1',
+               'status': 'FULL_ZIP_CUSTODY_HOLD', 'context': context, 'artifact': pin,
+               'expected_parts': PARTS, 'parts': [], 'errors': [], 'missing_originals': [],
+               'typed_download_observations': [], 'captured_controls': [],
+@@ -630,7 +630,7 @@
+                  'guard/child.stdout.log', 'guard/child.stderr.log',
+                  'supervisor.stdout.log', 'supervisor.stderr.log',
+                  'recovery.json', 'recovery-terminal.json',
+-                 'api/artifact-13911977275.metadata.original.json']
++                 'api/artifact-13929074168.metadata.original.json']
+         diagnostic_bytes = 0
+         for name in fixed:
+             path = root / name
+@@ -668,7 +668,7 @@
+     for item in PARTS:
+         directory = public / ('part-%02d' % item['ordinal'])
+         member = next((x for x in result['parts'] if x['ordinal'] == item['ordinal']), None)
+-        part_doc = {'schema': 'hia.970-original-zip-part.v1', 'artifact': pin,
++        part_doc = {'schema': 'hia.v79-original-zip-part.v1', 'artifact': pin,
+                     'expected': item, 'observed': member, 'status': result['status'],
+                     'run_id': context['run_id'], 'run_attempt': 1,
+                     'workflow_commit': context['actual_workflow_commit'],
+--- executed-970/worker.py
++++ unexecuted-v79/worker.py
+@@ -1,4 +1,4 @@
+-"""Read and split one exact970 historical artifact; never execute product payloads."""
++"""Read and split one exact v79 historical artifact; never execute product payloads."""
+ from __future__ import annotations
+ 
+ from hashlib import sha256
+@@ -249,7 +249,7 @@
+     expected = policy['parts']
+     require(expected == [
+         {'ordinal': 0, 'offset': 0, 'bytes': 314572800, 'name': 'part-00.bin'},
+-        {'ordinal': 1, 'offset': 314572800, 'bytes': 284854451, 'name': 'part-01.bin'},
++        {'ordinal': 1, 'offset': 314572800, 'bytes': 299648266, 'name': 'part-01.bin'},
+     ], 'fixed two original ranges differ')
+     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+     combined, total, parts = sha256(), 0, []
+@@ -300,16 +300,16 @@
+     control = root / 'control'
+     policy_raw = read(control / 'policy.json', 1 << 20, args.policy_sha256)
+     policy = json.loads(policy_raw)
+-    require(policy.get('schema') == 'hia.actions.970-full-original-two-parts-policy.v1',
++    require(policy.get('schema') == 'hia.actions.v79-full-original-two-parts-policy.v1',
+             'two-part policy schema differs')
+     require(root == Path(os.environ['RUNNER_TEMP']).resolve() / policy['work_root_name'],
+             'private runner root differs')
+     pin = policy['artifact']
+-    require(pin['id'] == 13911977275 and pin['bytes'] == 599427251
+-            and pin['sha256'] == '40e81308484173d36153f6a3014293a78705aa28e8f8f7718dcdd3d87c03f580'
+-            and pin['run_id'] == 43140734709 and pin['run_attempt'] == 1
+-            and pin['checkout_commit'] == '9704596acc4470bd0042838586602e26bac7b3d1'
+-            and pin['checkout_tree'] == 'c3ca94c57f9bd75f22f2c694e32bca2dfc6b329b',
++    require(pin['id'] == 13929074168 and pin['bytes'] == 614221066
++            and pin['sha256'] == 'b2a546f720b3a29b71a3f6372cd0f122adb1c6bbe4593aaee3b9d135175aa471'
++            and pin['run_id'] == 43182678063 and pin['run_attempt'] == 1
++            and pin['checkout_commit'] == '9739fb896037aedd9f29dae178c6ae1c8bc31827'
++            and pin['checkout_tree'] == '83a43be6fd510e55c4843cfa8a00aa4889b246cf',
+             'external original artifact pins differ')
+     require(policy['limits']['controller_seconds'] == 900
+             and policy['limits']['cleanup_seconds'] == 3
+@@ -320,7 +320,7 @@
+     helper = load_helper(control, policy, root)
+     started = time.monotonic_ns()
+     deadline = started + 720 * 1000000000
+-    report = {'schema': 'hia.actions.970-full-original-two-parts-worker.v1',
++    report = {'schema': 'hia.actions.v79-full-original-two-parts-worker.v1',
+               'status': 'FULL_ZIP_CUSTODY_HOLD', 'root': str(root),
+               'policy_sha256': args.policy_sha256,
+               'source': policy['source'], 'artifact': pin,
+--- executed-970/policy.json
++++ unexecuted-v79/policy.json
+@@ -1,21 +1,21 @@
+ {
+   "artifact": {
+-    "bytes": 599427251,
+-    "checkout_commit": "9704596acc4470bd0042838586602e26bac7b3d1",
+-    "checkout_tree": "c3ca94c57f9bd75f22f2c694e32bca2dfc6b329b",
++    "bytes": 614221066,
++    "checkout_commit": "9739fb896037aedd9f29dae178c6ae1c8bc31827",
++    "checkout_tree": "83a43be6fd510e55c4843cfa8a00aa4889b246cf",
+     "event": "push",
+-    "id": 13911977275,
+-    "job_id": 130926793248,
++    "id": 13929074168,
++    "job_id": 131062237309,
+     "run_attempt": 1,
+-    "run_id": 43140734709,
+-    "sha256": "40e81308484173d36153f6a3014293a78705aa28e8f8f7718dcdd3d87c03f580",
++    "run_id": 43182678063,
++    "sha256": "b2a546f720b3a29b71a3f6372cd0f122adb1c6bbe4593aaee3b9d135175aa471",
+     "workflow_terminal": "success"
+   },
+   "control_files": {
+     "controller.py": {
+       "bytes": 40020,
+-      "git_blob": "13a1bfaa5df1cfd17de151ea43cd5f618a9c54ab",
+-      "sha256": "21b68cdb406915697b5cce80278a2e1a542f0511fd61e6210d4467d790f4a0c9"
++      "git_blob": "3e10f0f747cd48d35eb530cb1d4f8deec7bea8f9",
++      "sha256": "ce426bb28461ae373df98b31604edc21dd9c33b5dc053530a9d6d5de194bd1da"
+     },
+     "guardian.py": {
+       "bytes": 10257,
+@@ -33,13 +33,13 @@
+       "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+     },
+     "worker.py": {
+-      "bytes": 18307,
+-      "git_blob": "49efb0827f1a35455dbd8a1b6de4743a46155ec8",
+-      "sha256": "8c2afe170b7ce04079f01a45c165877493cc9e608a7919503cb4514a28b69479"
++      "bytes": 18308,
++      "git_blob": "3d426bf0e0c602d052ea6767db4c28367662c77e",
++      "sha256": "fb64732631c92a5375b0e207fdccea6449df65f24a7eeda40fceb122aa7ee8f4"
+     }
+   },
+-  "control_prefix": "experiments/hia_970_ci_original_custody_20261112/full-zip-two-parts-r1",
+-  "downstream_acceptance": "Require both actual artifact packages, their matching FINAL/context/run/attempt/control/workflow identities, exact part lengths and SHA256, contiguous offsets, and reconstructed original 599427251-byte external SHA256. This supplies the original ZIP bytes; it does not itself verify the unselected inner physical evidence or claim product qualification.",
++  "control_prefix": "experiments/hia_v79_ci_original_custody_20261112/full-zip-two-parts-r1",
++  "downstream_acceptance": "Require both actual artifact packages, their matching FINAL/context/run/attempt/control/workflow identities, exact part lengths and SHA256, contiguous offsets, and reconstructed original 614221066-byte external SHA256. This supplies the original ZIP bytes; it does not itself verify the unselected inner physical evidence or claim product qualification.",
+   "full_5400_retained_suite_executed": false,
+   "historical_custody_results_reclassified": false,
+   "interpreter": "3.14.4",
+@@ -61,25 +61,25 @@
+       "ordinal": 0
+     },
+     {
+-      "bytes": 284854451,
++      "bytes": 299648266,
+       "name": "part-01.bin",
+       "offset": 314572800,
+       "ordinal": 1
+     }
+   ],
+-  "public_root_name": "hia-970-full-original-two-parts-public-r1",
++  "public_root_name": "hia-v79-full-original-two-parts-public-r1",
+   "repository": "TrillionniumFoundation/Hepta",
+   "runner_label_requested": "ubuntu-latest",
+-  "schema": "hia.actions.970-full-original-two-parts-policy.v1",
++  "schema": "hia.actions.v79-full-original-two-parts-policy.v1",
+   "source": {
+-    "cold_source_count": 787,
+-    "contract_sha256": "29f113e1aef4fb2a72e2081b3608e47c094cd4972594d5e082716cebc8a293a2",
+-    "head": "9704596acc4470bd0042838586602e26bac7b3d1",
+-    "profile": "selfhost-core-linux-x86_64-v74-native-stack-development",
+-    "source_manifest_canonical_sha256": "7d7c89008c59cbd7bd30e2311c5246d134fb8df7d80f8432bea46de8cf049190",
+-    "tree": "c3ca94c57f9bd75f22f2c694e32bca2dfc6b329b"
++    "cold_source_count": 798,
++    "contract_sha256": "bcf3b58762879d2602b5bd5ca41ddf1592e2ccdb8d200b025c47db318003f071",
++    "head": "9739fb896037aedd9f29dae178c6ae1c8bc31827",
++    "profile": "selfhost-core-linux-x86_64-v79-native-core-emitter-json-pretty-installed-resources-development",
++    "source_manifest_canonical_sha256": "2bed5c5efe6c4de6aa097b46519e768bdd6a72c363654476ed575da07e634d92",
++    "tree": "83a43be6fd510e55c4843cfa8a00aa4889b246cf"
+   },
+-  "trigger_branch": "codex/hia-970-full-original-two-parts-run-r1-20261112-e26e",
++  "trigger_branch": "codex/hia-v79-full-original-two-parts-run-r1-20261112-e26e",
+   "unchanged_original_workflows": {
+     ".github/workflows/hia-core.yml": {
+       "bytes": 34747,
+@@ -98,5 +98,5 @@
+     }
+   },
+   "whole_ZIP_members_decompressed": false,
+-  "work_root_name": "hia-970-full-original-two-parts-r1"
++  "work_root_name": "hia-v79-full-original-two-parts-r1"
+ }
+--- executed-970/workflow-template.yml
++++ unexecuted-v79/workflow-template.yml
+@@ -1,4 +1,4 @@
+-name: HIA 970 complete original ZIP in two bounded artifacts
++name: HIA v79 complete original ZIP in two bounded artifacts
+ 
+ on: [create]
+ 
+@@ -11,7 +11,7 @@
+       ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+           github.event_name == 'create' &&
+           github.event.ref_type == 'branch' &&
+-          github.event.ref == 'codex/hia-970-full-original-two-parts-run-r1-20261112-e26e' &&
++          github.event.ref == 'codex/hia-v79-full-original-two-parts-run-r1-20261112-e26e' &&
+           github.run_attempt == '1' }}
+     runs-on: ubuntu-latest
+     timeout-minutes: 25
+@@ -43,7 +43,7 @@
+           HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+         run: |
+           unset LD_LIBRARY_PATH LD_PRELOAD
+-          python -I -S -B control/experiments/hia_970_ci_original_custody_20261112/full-zip-two-parts-r1/controller.py prepare --root "$RUNNER_TEMP/hia-970-full-original-two-parts-r1" --policy-sha256 840fa84af6254d1685064ce5e4b1d4561a5377bfca10fcee5778b27a555616b1 --control-commit CONTROL_COMMIT_PLACEHOLDER
++          python -I -S -B control/experiments/hia_v79_ci_original_custody_20261112/full-zip-two-parts-r1/controller.py prepare --root "$RUNNER_TEMP/hia-v79-full-original-two-parts-r1" --policy-sha256 4b97d5f876ef2e72ec5a2119001cb1acca422ab4266426c7f1125f64f644a044 --control-commit CONTROL_COMMIT_PLACEHOLDER
+       - name: Read the one sealed original ZIP and create two parts under the original 900-second guardian
+         id: owned_collection
+         timeout-minutes: 16
+@@ -53,7 +53,7 @@
+           HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+         run: |
+           unset LD_LIBRARY_PATH LD_PRELOAD
+-          python -I -S -B control/experiments/hia_970_ci_original_custody_20261112/full-zip-two-parts-r1/controller.py run --root "$RUNNER_TEMP/hia-970-full-original-two-parts-r1" --policy-sha256 840fa84af6254d1685064ce5e4b1d4561a5377bfca10fcee5778b27a555616b1 --control-commit CONTROL_COMMIT_PLACEHOLDER
++          python -I -S -B control/experiments/hia_v79_ci_original_custody_20261112/full-zip-two-parts-r1/controller.py run --root "$RUNNER_TEMP/hia-v79-full-original-two-parts-r1" --policy-sha256 4b97d5f876ef2e72ec5a2119001cb1acca422ab4266426c7f1125f64f644a044 --control-commit CONTROL_COMMIT_PLACEHOLDER
+       - name: Independently retain both parts and controls after closed ECHILD
+         if: always()
+         timeout-minutes: 5
+@@ -62,13 +62,13 @@
+           HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+         run: |
+           unset LD_LIBRARY_PATH LD_PRELOAD
+-          python -I -S -B control/experiments/hia_970_ci_original_custody_20261112/full-zip-two-parts-r1/controller.py finalize --root "$RUNNER_TEMP/hia-970-full-original-two-parts-r1" --policy-sha256 840fa84af6254d1685064ce5e4b1d4561a5377bfca10fcee5778b27a555616b1 --control-commit CONTROL_COMMIT_PLACEHOLDER
++          python -I -S -B control/experiments/hia_v79_ci_original_custody_20261112/full-zip-two-parts-r1/controller.py finalize --root "$RUNNER_TEMP/hia-v79-full-original-two-parts-r1" --policy-sha256 4b97d5f876ef2e72ec5a2119001cb1acca422ab4266426c7f1125f64f644a044 --control-commit CONTROL_COMMIT_PLACEHOLDER
+       - name: Preserve original ZIP range zero and complete small controls
+         if: always()
+         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+         with:
+-          name: hia-970-full-original-part-00-${{ github.run_id }}-1
+-          path: '${{ runner.temp }}/hia-970-full-original-two-parts-public-r1/part-00/'
++          name: hia-v79-full-original-part-00-${{ github.run_id }}-1
++          path: '${{ runner.temp }}/hia-v79-full-original-two-parts-public-r1/part-00/'
+           if-no-files-found: error
+           include-hidden-files: false
+           compression-level: 0
+@@ -78,8 +78,8 @@
+         if: always()
+         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+         with:
+-          name: hia-970-full-original-part-01-${{ github.run_id }}-1
+-          path: '${{ runner.temp }}/hia-970-full-original-two-parts-public-r1/part-01/'
++          name: hia-v79-full-original-part-01-${{ github.run_id }}-1
++          path: '${{ runner.temp }}/hia-v79-full-original-two-parts-public-r1/part-01/'
+           if-no-files-found: error
+           include-hidden-files: false
+           compression-level: 0
