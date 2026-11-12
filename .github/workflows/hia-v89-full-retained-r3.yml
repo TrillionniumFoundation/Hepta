@@ -1,0 +1,154 @@
+# Exact v89 control A and policy were reviewed before this one create trigger.
+# Original source/native terminal records and all original execution limits are bound.
+name: HIA v89 original full-retained qualification
+on:
+  create:
+permissions:
+  contents: read
+jobs:
+  full-retained:
+    if: >-
+      github.event.ref_type == 'branch' &&
+      github.ref == 'refs/heads/codex/hia-v89-full-retained-run-r3-20261112-e26e' &&
+      github.run_attempt == 1
+    runs-on: ubuntu-latest
+    # Hosting/setup/custody allowance; the original guardian still enforces10800
+    # and original full discovery still enforces5400. This is not their budget.
+    timeout-minutes: 300
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      HIA_CONTROL_PREFIX: experiments/hia_v89_full_retained_capsule_20261112/r1
+    steps:
+      - name: Fetch immutable reviewed control A
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 7b184c92396cb2afcfd9667c9e520831cb3cd98d
+          path: capsule
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout: |
+            experiments/hia_v89_full_retained_capsule_20261112/r1
+
+      - name: Fetch exact same-head standard-CI Git input
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 784f088fcc5ad81c65de541d54e26d380c86293c
+          path: source-input
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+
+      - name: Provide fixed Python 3.14.4
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          architecture: x64
+
+      - name: Bootstrap new owned venv and original four package pins
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH
+          mkdir "$RUNNER_TEMP/hia-v87-bootstrap-originals"
+          mkdir "$RUNNER_TEMP/hia-v87-bootstrap-originals/wheels"
+          python -I -S -B -c 'import sys; assert sys.version_info[:3] == (3,14,4), sys.version' \
+            > "$RUNNER_TEMP/hia-v87-bootstrap-originals/version.stdout.log" \
+            2> "$RUNNER_TEMP/hia-v87-bootstrap-originals/version.stderr.log"
+          python -I -S -B -m venv "$RUNNER_TEMP/hia-v87-python" \
+            > "$RUNNER_TEMP/hia-v87-bootstrap-originals/venv.stdout.log" \
+            2> "$RUNNER_TEMP/hia-v87-bootstrap-originals/venv.stderr.log"
+          "$RUNNER_TEMP/hia-v87-python/bin/python" -I -B -m pip --disable-pip-version-check download \
+            --dest "$RUNNER_TEMP/hia-v87-bootstrap-originals/wheels" \
+            setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0 \
+            > "$RUNNER_TEMP/hia-v87-bootstrap-originals/download.stdout.log" \
+            2> "$RUNNER_TEMP/hia-v87-bootstrap-originals/download.stderr.log"
+          "$RUNNER_TEMP/hia-v87-python/bin/python" -I -B -m pip --disable-pip-version-check install \
+            --no-index --find-links "$RUNNER_TEMP/hia-v87-bootstrap-originals/wheels" \
+            setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0 \
+            > "$RUNNER_TEMP/hia-v87-bootstrap-originals/install.stdout.log" \
+            2> "$RUNNER_TEMP/hia-v87-bootstrap-originals/install.stderr.log"
+          "$RUNNER_TEMP/hia-v87-python/bin/python" -I -B -m pip inspect --local \
+            > "$RUNNER_TEMP/hia-v87-bootstrap-originals/pip-inspect.original.json" \
+            2> "$RUNNER_TEMP/hia-v87-bootstrap-originals/pip-inspect.stderr.log"
+          "$RUNNER_TEMP/hia-v87-python/bin/python" -I -B -c \
+            'import hashlib,json,os,pathlib,sys; p=pathlib.Path(os.environ["RUNNER_TEMP"])/"hia-v87-bootstrap-originals"; rows={str(f.relative_to(p)):{"bytes":f.stat().st_size,"sha256":hashlib.file_digest(f.open("rb"),"sha256").hexdigest()} for f in sorted(p.rglob("*")) if f.is_file()}; (p/"BOOTSTRAP-BYTES.json").write_text(json.dumps({"python":sys.version,"executable":sys.executable,"files":rows,"qualification_executed":False},sort_keys=True,indent=2)+"\n")'
+
+      - name: Prepare create-only capsule and exact guardian request
+        id: prepare
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH
+          mkdir "$RUNNER_TEMP/hia-v87-controller-logs"
+          "$RUNNER_TEMP/hia-v87-python/bin/python" -B \
+            "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/control/controller.py" prepare \
+            --policy "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/plan/policy.json" \
+            --policy-sha256 bb8f282c67d5fff462dd7ee9fee9ace585129be8c92e3a3f365ec676aab5a11d --control-commit 7b184c92396cb2afcfd9667c9e520831cb3cd98d \
+            --source-input "$GITHUB_WORKSPACE/source-input" \
+            --public "$RUNNER_TEMP/hia-v87-full-public" \
+            > "$RUNNER_TEMP/hia-v87-controller-logs/prepare.stdout.log" \
+            2> "$RUNNER_TEMP/hia-v87-controller-logs/prepare.stderr.log"
+
+      - name: New supply, fresh original preparation, and original v10 full
+        timeout-minutes: 185
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH
+          "$RUNNER_TEMP/hia-v87-python/bin/python" -B \
+            "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/control/controller.py" run \
+            --policy "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/plan/policy.json" \
+            --policy-sha256 bb8f282c67d5fff462dd7ee9fee9ace585129be8c92e3a3f365ec676aab5a11d --control-commit 7b184c92396cb2afcfd9667c9e520831cb3cd98d \
+            > "$RUNNER_TEMP/hia-v87-controller-logs/full.stdout.log" \
+            2> "$RUNNER_TEMP/hia-v87-controller-logs/full.stderr.log"
+
+      - name: Always retain complete closed owned originals
+        if: always()
+        timeout-minutes: 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH
+          mkdir -p "$RUNNER_TEMP/hia-v87-controller-logs"
+          "$RUNNER_TEMP/hia-v87-python/bin/python" -B \
+            "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/control/controller.py" capture \
+            --policy "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/plan/policy.json" \
+            --policy-sha256 bb8f282c67d5fff462dd7ee9fee9ace585129be8c92e3a3f365ec676aab5a11d --control-commit 7b184c92396cb2afcfd9667c9e520831cb3cd98d \
+            > "$RUNNER_TEMP/hia-v87-controller-logs/capture.stdout.log" \
+            2> "$RUNNER_TEMP/hia-v87-controller-logs/capture.stderr.log"
+
+      - name: Preserve separate qualification and custody outcomes
+        if: always()
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH
+          mkdir -p "$RUNNER_TEMP/hia-v87-controller-logs"
+          "$RUNNER_TEMP/hia-v87-python/bin/python" -B \
+            "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/control/controller.py" finish \
+            --policy "$GITHUB_WORKSPACE/capsule/$HIA_CONTROL_PREFIX/plan/policy.json" \
+            --policy-sha256 bb8f282c67d5fff462dd7ee9fee9ace585129be8c92e3a3f365ec676aab5a11d --control-commit 7b184c92396cb2afcfd9667c9e520831cb3cd98d \
+            > "$RUNNER_TEMP/hia-v87-controller-logs/finish.stdout.log" \
+            2> "$RUNNER_TEMP/hia-v87-controller-logs/finish.stderr.log"
+
+      - name: Always upload actual originals, including HOLD and partial custody
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-v87-full-retained-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-v87-full-public/
+            ${{ runner.temp }}/hia-v87-controller-logs/
+            ${{ runner.temp }}/hia-v87-bootstrap-originals/
+          include-hidden-files: true
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
