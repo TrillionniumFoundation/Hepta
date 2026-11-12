@@ -76,14 +76,14 @@ def packed(types, functions):
     return v4(types, *functions)
 
 
-@unittest.skipUnless(all(os.environ.get(key) for key in (BUNDLE, TYPES, HELPERS)),
-                     'source-bound full function/type/helper development images required')
 class NativeFunctionTermsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.bundle = installed_composite_functions(os.environ[BUNDLE])
-        cls.types_image = installed_composite_types(os.environ[TYPES])
-        cls.helpers_image = installed_task_helpers(os.environ[HELPERS])
+        from tests.hia_composite_function_fixture import composite_function_fixture
+        fixture = composite_function_fixture()
+        cls.bundle = fixture.bundle
+        cls.types_image = fixture.types_image
+        cls.helpers_image = fixture.helpers_image
         cls.evidence = Path(os.environ[EVIDENCE]) if os.environ.get(EVIDENCE) else None
         if cls.evidence is not None:
             cls.evidence.mkdir(parents=True, exist_ok=True)

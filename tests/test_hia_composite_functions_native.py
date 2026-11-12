@@ -15,6 +15,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -44,6 +45,204 @@ def absent(*args, **kwargs):
 
 
 class FunctionSourceTests(unittest.TestCase):
+    def test_bootstrap_source_or_seed_change_cannot_relabel_the_compiled_input(self):
+        from tests import hia_composite_function_fixture as fixture
+        # These compiler stand-ins inject file races; no executable is loaded.
+        for fault in (None, 'source', 'seed'):
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as directory:
+                folder = Path(directory)
+                types, helpers = folder / 'types.hiaasm', folder / 'helpers.hiaasm'
+                sources = {name: folder / (name + '.hiaasm') for name in KERNELS}
+                constructors = {name: folder / ('constructor-' + name + '.hiaasm')
+                                for name in fixture.CONSTRUCTOR_KERNELS}
+                outers = {name: folder / ('outer-' + name + '.hiaasm') for name in fixture.OUTER_KERNELS}
+                compiler_source = folder / 'selfhost.hiaasm'
+                for path in (types, helpers, compiler_source, *sources.values(),
+                             *constructors.values(), *outers.values()):
+                    path.write_bytes(('non-executable source ' + path.name).encode())
+                original = types.read_bytes()
+
+                def seed(output, *, source):
+                    path = output / 'B0.so'; path.write_bytes(b'non-executable seed')
+                    receipt = dict(source_sha256=sha256(source).hexdigest(),
+                                   artifact_sha256=sha256(path.read_bytes()).hexdigest(),
+                                   artifact_bytes=path.stat().st_size)
+                    if fault == 'seed':
+                        path.write_bytes(b'replaced non-executable seed')
+                    return path, receipt
+
+                def compile_stage(output, label, image, raw, **options):
+                    path = output / (label + '.image.bin')
+                    path.write_bytes(b'non-executable fixed point' if label in ('B1', 'B2')
+                                     else b'non-executable image for ' + raw)
+                    if fault == 'source' and label == 'function-fixture-types':
+                        types.write_bytes(b'different non-executable source')
+                    return path, dict(input_sha256=sha256(raw).hexdigest(),
+                        source_sha256=sha256(raw).hexdigest(), source_unchanged=True,
+                        artifact_sha256=sha256(image.read_bytes()).hexdigest(),
+                        produced_sha256=sha256(path.read_bytes()).hexdigest())
+
+                with ExitStack() as stack:
+                    for name, value in (('TYPE_SOURCE', types), ('HELPER_SOURCE', helpers), ('SOURCES', sources),
+                                        ('CONSTRUCTOR_SOURCES', constructors), ('OUTER_SOURCES', outers)):
+                        stack.enter_context(patch.object(fixture, name, value))
+                    stack.enter_context(patch('tools.qualify_hia_selfhost.build_seed', new=seed))
+                    stack.enter_context(patch('tools.qualify_hia_selfhost.compile_stage', new=compile_stage))
+                    if fault:
+                        message = ('source changed during compilation' if fault == 'source'
+                                   else 'seed image differs from its publication receipt')
+                        with self.assertRaisesRegex(ValueError, message):
+                            fixture._bootstrap_development(folder)
+                        self.assertFalse((folder / 'manifest.json').exists())
+                    else:
+                        _, manifest, _, _, _ = fixture._bootstrap_development(folder)
+                        self.assertEqual(json.loads(manifest.read_bytes())['source_sha256'],
+                                         sha256(original).hexdigest())
+
+    def test_fixture_disk_image_drift_refuses_before_or_during_cached_loading(self):
+        from types import SimpleNamespace
+        from tests import hia_composite_function_fixture as fixture
+        # Explicit immutable-image stand-ins model a warm loader cache. They
+        # carry hashes only and cannot execute the non-code byte fixtures.
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            rows = fixture.source_rows()
+            manifests, images, loaded = {}, {}, {}
+            for name, source, schema in rows:
+                image = folder / (name + '.bin'); image.write_bytes(('non-code ' + name).encode())
+                digest = sha256(image.read_bytes()).hexdigest()
+                manifest = folder / (name + '.json')
+                manifest.write_text(json.dumps(dict(schema=schema,
+                    source_sha256=sha256(source.read_bytes()).hexdigest(), image_path=image.name,
+                    image_sha256=digest, compiler_sha256='0' * 64)))
+                manifests[name], images[name], loaded[name] = manifest, image, SimpleNamespace(image_sha256=digest)
+            bundle = folder / 'bundle.json'
+            bundle.write_text(json.dumps(dict(schema=fixture.SCHEMA,
+                kernels={name: manifests[name].name for name in KERNELS},
+                types_source_sha256=sha256(fixture.TYPE_SOURCE.read_bytes()).hexdigest(),
+                helpers_source_sha256=sha256(fixture.HELPER_SOURCE.read_bytes()).hexdigest())))
+            constructor = folder / 'constructor.json'
+            constructor.write_text(json.dumps(dict(schema=fixture.CONSTRUCTOR_SCHEMA,
+                kernels={name: manifests['constructor-' + name].name for name in fixture.CONSTRUCTOR_KERNELS},
+                types_source_sha256=sha256(fixture.TYPE_SOURCE.read_bytes()).hexdigest())))
+            outer = folder / 'outer.json'
+            outer.write_text(json.dumps(dict(schema=fixture.OUTER_SCHEMA,
+                kernels={name: manifests['outer-' + name].name for name in fixture.OUTER_KERNELS},
+                types_source_sha256=sha256(fixture.TYPE_SOURCE.read_bytes()).hexdigest(),
+                helpers_source_sha256=sha256(fixture.HELPER_SOURCE.read_bytes()).hexdigest(),
+                function_sources_sha256={name: sha256(SOURCES[name].read_bytes()).hexdigest() for name in KERNELS})))
+            paths = tuple(map(str, (bundle, manifests['types'], manifests['helpers'], constructor, outer)))
+            originals = {name: path.read_bytes() for name, path in images.items()}
+            for changed, when in ((name, when) for name in images for when in ('before', 'during')):
+                for name, path in images.items():
+                    path.write_bytes(originals[name])
+                with self.subTest(image=changed, when=when), ExitStack() as stack:
+                    if when == 'before':
+                        images[changed].write_bytes(b'changed non-code bytes')
+                        stack.enter_context(patch.object(fixture, 'installed_composite_functions', new=absent))
+                        message = 'image differs from its manifest'
+                    else:
+                        stack.enter_context(patch.object(fixture, 'installed_composite_functions',
+                            new=lambda path: SimpleNamespace(images={name: loaded[name] for name in KERNELS})))
+                        stack.enter_context(patch.object(fixture, 'installed_composite_types',
+                            new=lambda path: loaded['types']))
+                        stack.enter_context(patch.object(fixture, 'installed_task_helpers',
+                            new=lambda path: loaded['helpers']))
+                        stack.enter_context(patch.object(fixture, 'installed_composite_constructor',
+                            new=lambda path: SimpleNamespace(images={name: loaded['constructor-' + name]
+                                for name in fixture.CONSTRUCTOR_KERNELS})))
+                        def load_outer(path):
+                            images[changed].write_bytes(b'changed non-code bytes')
+                            return SimpleNamespace(images={name: loaded['outer-' + name]
+                                for name in fixture.OUTER_KERNELS})
+                        stack.enter_context(patch.object(fixture, 'installed_composite_outer', new=load_outer))
+                        message = 'fixture changed'
+                    with self.assertRaisesRegex(ValueError, message):
+                        fixture._build_fixture('DEVELOPMENT_ONLY', paths)
+
+    def test_fixture_rejects_mixed_or_partial_provenance_before_build(self):
+        from tests.hia_composite_function_fixture import (
+            COLD_KEYS, DEVELOPMENT_KEYS, composite_function_fixture, configuration)
+        development = dict(zip(DEVELOPMENT_KEYS,
+            ('functions.json', 'types.json', 'helpers.json', 'constructor.json', 'outer.json')))
+        invalid = [dict(list(development.items())[index] for index in range(5) if mask & (1 << index))
+                   for mask in range(1, 31)]
+        invalid += [{**development, key: 'cold.json'} for key in COLD_KEYS]
+        invalid += [{COLD_KEYS[0]: 'first.json', COLD_KEYS[1]: 'second.json'}]
+        for selected in invalid:
+            with self.subTest(selected=selected), patch.dict(os.environ,
+                    {**dict.fromkeys((*COLD_KEYS, *DEVELOPMENT_KEYS), ''), **selected}), \
+                    patch('tests.hia_composite_function_fixture._build_fixture', new=absent):
+                with self.assertRaises(ValueError):
+                    composite_function_fixture()
+        self.assertEqual(configuration({}), ('BOOTSTRAP_DEVELOPMENT_ONLY', ()))
+        self.assertEqual(configuration(development)[0], 'DEVELOPMENT_ONLY')
+        self.assertEqual(configuration(dict.fromkeys(COLD_KEYS, 'cold.json'))[0],
+                         'MATCHING_SOURCE_COLD_BUILD')
+
+    def test_failed_build_raw_evidence_and_cleanup_never_replace_original_failure(self):
+        from tests import hia_composite_function_fixture as fixture
+        # No image is executed: these are explicit partial-build custody
+        # controls, with an injected failure before any manifest is admitted.
+        for mode in ('capture', 'capture-fails', 'cleanup-fails'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory, ExitStack() as stack:
+                evidence = Path(directory) / 'evidence'
+                original = RuntimeError('original incomplete compiler build')
+                temporary = []
+                def failed(folder):
+                    temporary.append(folder)
+                    artifact = folder / 'partial-original.bin'
+                    artifact.write_bytes(b'explicit non-code failed-build control')
+                    artifact.chmod(0o600)
+                    raise original
+                stack.enter_context(patch.object(fixture, '_bootstrap_development', new=failed))
+                if mode == 'capture-fails':
+                    def capture_failed(*args):
+                        raise OSError('injected evidence copy failure')
+                    stack.enter_context(patch.object(fixture, '_copy_build_evidence', new=capture_failed))
+                if mode == 'cleanup-fails':
+                    cleanup = tempfile.TemporaryDirectory.cleanup
+                    def cleanup_failed(instance):
+                        cleanup(instance)
+                        raise OSError('injected cleanup failure after real removal')
+                    stack.enter_context(patch.object(tempfile.TemporaryDirectory, 'cleanup', new=cleanup_failed))
+                try:
+                    fixture._build_fixture('BOOTSTRAP_DEVELOPMENT_ONLY', (),
+                                           evidence_destination=str(evidence))
+                except RuntimeError as held:
+                    self.assertIs(held, original)
+                else:
+                    self.fail('failed compiler build published a fixture')
+                self.assertEqual(len(temporary), 1)
+                self.assertFalse(temporary[0].exists())
+                self.assertFalse((evidence / 'custody.json').exists())
+                if mode == 'capture-fails':
+                    self.assertFalse((evidence / 'failure-custody.json').exists())
+                    self.assertIn('failure evidence capture', original.__notes__[0])
+                else:
+                    value = json.loads((evidence / 'failure-custody.json').read_bytes())
+                    self.assertEqual(value['status'], 'BUILD_FAILED_RAW_ONLY')
+                    self.assertFalse(value['fixture_usable'])
+                    self.assertFalse(value['matching_source_cold_build_qualified'])
+                    self.assertEqual(value['files'][0]['mode'], 0o600)
+                    self.assertEqual((evidence / value['files'][0]['path']).read_bytes(),
+                                     b'explicit non-code failed-build control')
+                if mode == 'cleanup-fails':
+                    self.assertIn('temporary build cleanup', original.__notes__[0])
+
+    def test_warm_fixture_cannot_silently_discard_changed_evidence_destination(self):
+        from types import SimpleNamespace
+        from tests import hia_composite_function_fixture as fixture
+        cached = SimpleNamespace(evidence_destination='', check_custody=lambda: None)
+        with patch.dict(fixture._FIXTURES, {('BOOTSTRAP_DEVELOPMENT_ONLY', ()): cached}, clear=True), \
+                patch.dict(os.environ, dict.fromkeys((*fixture.DEVELOPMENT_KEYS, *fixture.COLD_KEYS,
+                                                      fixture.EVIDENCE_KEY), '')), \
+                patch.object(fixture, '_build_fixture', new=absent):
+            self.assertIs(fixture.composite_function_fixture(), cached)
+            with patch.dict(os.environ, {fixture.EVIDENCE_KEY: 'new-evidence-after-build'}):
+                with self.assertRaisesRegex(ValueError, 'evidence destination changed'):
+                    fixture.composite_function_fixture()
+
     def test_five_sources_reproduce_with_unchanged_compiler_limits(self):
         from hepta.hia_agent_assembly import render_assembly
         from tools.generate_hia_composite_functions import document
@@ -85,60 +284,15 @@ class FunctionSourceTests(unittest.TestCase):
 class CompleteNativeFunctionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        development = [os.environ.get(n) for n in (DEVELOPMENT, TYPE_DEVELOPMENT, HELPER_DEVELOPMENT)]
-        cold = os.environ.get(COLD_REPORT)
-        if cold and any(development):
-            raise AssertionError('development images cannot override cold qualification')
-        if any(development) and not all(development):
-            raise AssertionError('development owner requires all three exact manifests')
-        temporary = tempfile.TemporaryDirectory(prefix='hia-function-fixture-')
-        cls.addClassCleanup(temporary.cleanup)
-        folder = Path(temporary.name)
-        if all(development):
-            cls.manifest, cls.type_manifest, cls.helper_manifest = map(Path, development)
-            cls.fixture_scope = 'DEVELOPMENT_ONLY'
-        elif cold:
-            from tools.build_hia_composite_functions import build as build_functions
-            from tools.build_hia_json_preflight import build
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
-            cls.manifest = build_functions(folder / 'functions', compiler, Path(cold))
-            cls.type_manifest = build(folder / 'types', compiler, Path(cold), candidate='composite-types')
-            cls.helper_manifest = build(folder / 'helpers', compiler, Path(cold), candidate='task-helpers')
-            cls.fixture_scope = 'MATCHING_SOURCE_COLD_BUILD'
-        else:
-            from tools.qualify_hia_selfhost import build_seed, compile_stage
-            from hepta.hia_composite_types_native import SOURCE as TYPE_SOURCE, SCHEMA as TYPE_SCHEMA
-            from hepta.hia_task_helpers_native import SOURCE as HELPER_SOURCE, SCHEMA as HELPER_SCHEMA
-            from hepta.hia_composite_functions_native import SCHEMA
-            seed, _ = build_seed(folder)
-            source = TYPE_SOURCE.with_name('selfhost.hiaasm').read_bytes()
-            first, _ = compile_stage(folder, 'B1', seed, source, image_format='seed-shared')
-            compiler, _ = compile_stage(folder, 'B2', first, source)
-            assert first.read_bytes() == compiler.read_bytes()
-            rows = [('types', TYPE_SOURCE, TYPE_SCHEMA), ('helpers', HELPER_SOURCE, HELPER_SCHEMA)]
-            rows += [(n, SOURCES[n], 'hepta.hia.composite-function-' + n + '-native.v1') for n in KERNELS]
-            manifests = {}
-            for name, path, schema in rows:
-                image, receipt = compile_stage(folder, 'function-fixture-' + name, compiler, path.read_bytes())
-                target = folder / (name + '.manifest.json')
-                target.write_text(json.dumps(dict(schema=schema, source_sha256=sha256(path.read_bytes()).hexdigest(),
-                    image_path=image.name, image_sha256=sha256(image.read_bytes()).hexdigest(),
-                    compiler_sha256=sha256(compiler.read_bytes()).hexdigest())))
-                (folder / (name + '.development-compile.json')).write_text(json.dumps(receipt, indent=2))
-                manifests[name] = target.name
-            cls.type_manifest, cls.helper_manifest = folder / manifests['types'], folder / manifests['helpers']
-            cls.manifest = folder / 'manifest.json'
-            cls.manifest.write_text(json.dumps(dict(schema=SCHEMA,
-                kernels={n: manifests[n] for n in KERNELS},
-                types_source_sha256=sha256(TYPE_SOURCE.read_bytes()).hexdigest(),
-                helpers_source_sha256=sha256(HELPER_SOURCE.read_bytes()).hexdigest())))
-            cls.fixture_scope = 'BOOTSTRAP_DEVELOPMENT_ONLY'
-        cls.bundle = installed_composite_functions(cls.manifest)
-        cls.env = {SELECTOR: str(cls.manifest), TYPE_SELECTOR: str(cls.type_manifest),
-                   HELPER_SELECTOR: str(cls.helper_manifest)}
-        cls.reference_env = {SELECTOR: '', TYPE_SELECTOR: '', HELPER_SELECTOR: ''}
+        from tests.hia_composite_function_fixture import composite_function_fixture
+        fixture = composite_function_fixture()
+        cls.manifest = fixture.manifest
+        cls.type_manifest = fixture.type_manifest
+        cls.helper_manifest = fixture.helper_manifest
+        cls.fixture_scope = fixture.scope
+        cls.bundle = fixture.bundle
+        cls.env = fixture.environment
+        cls.reference_env = fixture.reference_environment
 
     def native(self, document):
         with ExitStack() as stack:
@@ -212,7 +366,7 @@ class CompleteNativeFunctionTests(unittest.TestCase):
                 self.assertEqual((actual.exception.code, str(actual.exception)),
                                  (expected.exception.code, str(expected.exception)))
 
-    def test_real_installed_wheel_and_each_source_or_image_custody_refusal(self):
+    def test_real_sdist_to_installed_wheel_and_each_source_or_image_custody_refusal(self):
         from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
         resource_names = tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
         for name in KERNELS:
@@ -224,9 +378,18 @@ class CompleteNativeFunctionTests(unittest.TestCase):
             for name in (*resource_names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
                 target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT / name, target)
-            wheels, installed = folder / 'wheels', folder / 'installed'
+            sdists, wheels, installed = folder / 'sdist', folder / 'wheels', folder / 'installed'
+            run = subprocess.run([sys.executable, '-B', 'setup.py', 'sdist', '--dist-dir', str(sdists)],
+                cwd=source, capture_output=True, timeout=120,
+                env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            archive, = sdists.glob('*.tar.gz')
+            with tarfile.open(archive) as package:
+                prefix = package.getnames()[0].split('/')[0] + '/'
+                for name in resource_names:
+                    self.assertEqual(package.extractfile(prefix + name).read(), (ROOT / name).read_bytes())
             for command in ([sys.executable, '-B', '-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation',
-                             '--wheel-dir', str(wheels), str(source)],):
+                             '--wheel-dir', str(wheels), str(archive)],):
                 run = subprocess.run(command, cwd=folder, capture_output=True, timeout=120,
                                      env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
                 self.assertEqual(run.returncode, 0, run.stdout + run.stderr)

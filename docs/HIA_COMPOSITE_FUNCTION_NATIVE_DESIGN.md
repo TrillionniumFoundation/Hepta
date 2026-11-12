@@ -78,6 +78,24 @@ returns actual native results. Malformed framing, kind/sequence mismatch,
 replay, unissued IDs and invalid transport state poison the session; source
 semantic refusals preserve their original partial state.
 
+The public `elaborate_program` boundary owns the sessions it creates. It closes
+both native sessions in a `finally` block, including a rejection after type
+initialization but before the nominal constructor completes. Each native
+session also closes any buffers it allocated if its own initializer fails
+before returning the session to that owner. Closing is idempotent and performs
+no HIA operation; the function session clears its existing reference tables
+without allocating replacement dictionaries. This releases the 192 MiB
+function workspace, 64 KiB stream output, 128 MiB types state and 64 MiB types
+output even while a caller retains an exception and its traceback.
+
+Private `_Elaborator` callers still explicitly own session lifetime. A private
+`function` refusal preserves its counters, helpers, type observations and live
+state for subsequent calls. Public cleanup does not alter the private methods,
+HIA sources, image ABI, first-refusal order or successful Core bytes. The
+dedicated public-lifecycle test module is included in the strict native group;
+it uses real selected images and weak references, with partially allocated
+buffer failures separately labelled as allocation fault injection.
+
 The private control frame is `HIAFAD01`; first-pass responses are `HIAFRS01`,
 later typed responses are `HIAFLR01`. Native function selection uses `HIAFNX01`,
 the final metadata request/report use `HIAFMQ01`/`HIAFMD01`, and generic stream
@@ -242,12 +260,109 @@ first native workspace; a control importing no HIA code was also killed while
 allocating a 192 MiB ctypes buffer. The exact killer was not established. No
 quota was changed and these attempts were never counted as passes.
 
+## Post-restart tests and v63 integration
+
+The complete 22-file recovery candidate was independently checkpointed before
+new execution. Seven reconstructed protocol properties passed in 8.441 seconds
+with 50 actual kernel entries. The reconstructed codec, admission and complete
+owner suites then passed all 15 tests in 74.520 seconds. The 22 source files and
+41 recovered input/image/manifest files remained byte-identical. These are
+development-image results, not matching-source cold qualification. The fresh
+protocol archive has SHA-256
+`beab7d9c64b7cf6349f71ae365dc1d18ef9e0a9a9630755ab99430a0fa9649de`;
+the 15-test archive has SHA-256
+`25d2d310be924d473cc642b5025cf6043695044ac16fac20e21cb9beb8f2b7d5`.
+
+The v63 test integration is a subsequent source revision. All six function and
+public-lifecycle test modules use `tests/hia_composite_function_fixture.py`. One process shares
+a complete three-manifest development selection, a five-kernel and two-service
+build admitted by the same exact cold report, or an explicitly labelled real
+B0/B1/B2 bootstrap development fixture. Partial development selections, mixed
+development/cold inputs and different cold reports refuse before building.
+Every fixture reuse rechecks its source, manifest and image pins. None of the
+native classes skips because a development-only variable is absent.
+Bootstrap inputs are frozen before B0; the published seed and every native
+compile receipt are checked against those exact bytes before manifest creation.
+The fixture checks disk images against their manifests before entering a warm
+immutable-image cache, then checks the loaded image identities and all original
+pins again. Pure non-executing fault controls reject seed/source replacement
+and image drift before or during loading.
+
+The source workflow includes only the new source/codec/protocol-codec classes;
+the strict native group requires all six modules alongside the retained types,
+origins, signatures and helper tests. The source release and installed resource
+lists include all five HIA kernels. The installation control builds an actual
+sdist, checks every packaged resource, builds the wheel from that sdist, and
+runs the installed owner with isolated Python, no tools package and empty PATH.
+The workflow also retains the language evidence directory cited by its reports.
+
+After the fixture custody review, all **33 tests in the five function modules**
+passed from one actual B0/B1/B2 bootstrap and seven freshly compiled images,
+with no development manifests or cold reports selected. The tests took 110.374
+seconds; the complete build and run took 120.177 seconds. There were no failures,
+errors, skips, expected failures or unexpected successes. The process observed
+21,449 native entries across the function, types and helper images; installed
+child execution is validated separately by the installation test. Peak process
+RSS was 686,104 KiB, which is not the compiler-child address-space budget.
+
+The fresh B1 and B2 bytes both have SHA-256
+`0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8`.
+All five freshly compiled function images equal the recovered images listed
+above. The complete compiler/image/input/receipt archive contains 81 members,
+15,793,894 uncompressed bytes, with SHA-256
+`ac721ceaf174591f77db7f85db446941edba7a1d35809c0285e9cf7e42fbe457`.
+All source and build-artifact pins were unchanged through the run. The tested
+32-file integration snapshot and complete logs are retained in the integration
+archive, SHA-256
+`f31276d0690f1a16e4b9d4fbaf672212db6617f30822236356cb358f4f89a9f1`.
+This run is explicitly **bootstrap development**, not a cold-qualified release.
+
+The original integrated source CI group passed 290 tests before the fixture
+custody corrections. The final 26 targeted source, codec, packaging-resource,
+contract and workflow controls also passed. The earlier stale-contract failures
+and the non-executing source-race counterexample remain in the same archive.
+
+### Public session lifetime regression
+
+A subsequent public-boundary fix leaves every private `_Elaborator` method and
+all five HIA kernel sources unchanged. The original `blocks=None` public
+rejection retained approximately 384 MiB of native buffers through its held
+exception. An independent replay now observes both sessions closed and all four
+buffers collected while retaining the same exception code and text.
+
+The new three-test lifecycle module passed using the seven source-bound images
+restored from the complete 81-member bootstrap archive. Its two success cases
+and six public rejection cases compare complete canonical/structured Core or
+the complete exception code and text against the retained function owner with
+the same native types/helpers. Actual selected runs disable the hosted semantic
+owners. Weak observers retain no session or buffer strongly. The two separate
+allocation fault controls hold the exact injected `MemoryError` after real
+earlier buffers were allocated; they are not claims of operating-system OOM.
+The private failure control repeats a refusal with live state and compares
+counters, helpers and type observations, exercising fresh names through a
+two-field nominal parameter. Real `close()` is called twice in the observations.
+
+All three tests passed in 7.240 seconds, with 1,402 actual in-process native
+entries and ten successful weak-reference observations. The first attempt's
+single failure was an incorrect test expectation that primitive-only values
+allocate fresh names: old and new state were equal, with serial zero and
+increasing value slots. That original test and log are preserved; the revised
+control adds a nominal parameter and retains the complete equality assertions.
+No production change was required by that test correction.
+
+The original 33 function tests then passed again on the lifetime-fixed source:
+138.497 seconds of tests, 21,449 in-process native entries, and peak RSS of
+668,588 KiB. Neither run had skips, expected failures or unexpected successes.
+Source and native-artifact hashes were unchanged during each successful run.
+Both runs are explicitly **development-image regression evidence**; they do not
+qualify the final published source for cold execution. The new module is part
+of the complete required native module set in CI and the external full runner.
+
 ## Remaining acceptance work
 
-Recover/rebuild the missing tests and integration files with explicit revision
-identity; rerun the raw protocol/admission/codec gates against actual restored
-images; complete the independent function/CFG mutation panel; integrate the
-full source contract/profile/runner; then obtain fresh exact-source cold
-qualification. The formal builder has only a negative qualification-gate result
-so far. The default remains unchanged, and no constructor, outer-lower,
-compiler/runtime/installation, or whole-stack closure is implied by this owner.
+The final published revision still requires positive matching-source cold
+builds and the complete strict workflow/full regression. Independent
+public/legacy and function/CFG mutation audits are separate evidence and do not
+turn these source declarations into an all-input proof. The default remains
+unchanged, and no constructor, outer-lower, compiler/runtime/installation or
+whole-stack closure is implied by this owner.

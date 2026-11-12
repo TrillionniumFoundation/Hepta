@@ -1,0 +1,277 @@
+{
+  "B3_limits": {
+    "address_bytes": 268435456,
+    "cpu_seconds": 10,
+    "output_capacity": 1048576,
+    "wall_seconds": 20,
+    "workspace_capacity": 1048576
+  },
+  "gate_preservation": {
+    "CI_body_identical_except_exact_source_manifest": true,
+    "changed_method_names": [
+      "test_12_actual_SQLite_WAL_writer_shared_namespace_lifecycle"
+    ],
+    "full_18_pending_new_CI": true,
+    "new_VM": 84,
+    "new_native": 84,
+    "no_test_removed": true,
+    "old_VM": 84,
+    "packer_controls": 33,
+    "packer_three_way_cases": 84,
+    "physical_tests": 18,
+    "unchanged_test_method_count": 17
+  },
+  "memory_policy": {
+    "action_scope": "Starts at 1 per new call; same-call strict advancement retained.",
+    "call_is_monotone": "Per memory context; calls may have no primitive, so gaps allowed.",
+    "context_specific": true,
+    "metadata_context_bytes": 4096,
+    "metadata_offset": 2480,
+    "old_call_zero_call_same_action_rejected_before_syscalls": true,
+    "original_HIA_owner_unchanged": true,
+    "primitive_sequence_NOT_reset": true,
+    "private_issuer_not_external_auth": true
+  },
+  "native_process_limits": {
+    "address_bytes": 1073741824,
+    "core_bytes": 0,
+    "cpu_seconds": 90,
+    "wall_seconds": 180
+  },
+  "new_local_actual": {
+    "build": "6 fresh B3 role compiles + packer B3 + 33 packer entries PASS; zero relocations.",
+    "cold_qualification": false,
+    "focused": "Only original test10 and corrected test12; 322 actual HIA entries and 322 full retained VM replays PASS.",
+    "local_ptrace": "EPERM; no claim for four strace fault groups",
+    "new_control": "Same actual request sequence with corrected template mmap + DB close exits0.",
+    "old_control": "Same original sealed ELF still exits110 without wall kill.",
+    "ordinary_Store_closed": false,
+    "packer": "84 old-VM/new-VM/new-native cases, complete buffers/canaries/source unchanged PASS.",
+    "sqlite_local": "3.53.1",
+    "sqlite_original": "3.45.1"
+  },
+  "observer_policy": {
+    "child_address_bytes": 268435456,
+    "child_cpu_seconds": 10,
+    "child_wall_seconds": 20,
+    "new_observer": "Fresh isolated Python process; no inherited SQLite fd; actual read and F_GETLK before/after; parent never opens -shm.",
+    "new_parent_DMS_lock_assertion": true,
+    "original_full_bytes_equality_preserved": true,
+    "original_test12_problem": "Same-process open/read/close(-shm) drops all parent POSIX record locks on that inode."
+  },
+  "original_failure": {
+    "artifact_id": 13920641096,
+    "elf_sha256": "4fc09dba93b970adc69b23516d60be4129d384f2be9ef2cca6b3b744a5e17db6",
+    "first_memory_exit": 110,
+    "head": "2544ec88203992d5d8590b4ab09fb0231066be72",
+    "job_id": 131005901231,
+    "run_id": 43165373215,
+    "status": "FAIL_UNCHANGED",
+    "whole_aggregate_signal": 7
+  },
+  "original_profile_limits": {
+    "blocks": 1536,
+    "functions": 128,
+    "max_block_params": 16,
+    "max_blocks": 256,
+    "ops": 8192
+  },
+  "scope": "NEW_PHYSICAL_R6_MECHANICAL_FIX_AND_OBSERVER_FIX",
+  "source_changes": [
+    {
+      "name": "four-role-base.S",
+      "new": {
+        "blob": "fd7ed1070fa4e9bd93805f4ad0babe0ab762010b",
+        "bytes": 53632,
+        "name": "four-role-base.S",
+        "sha256": "23d7be3dcda3c46a61fa43f8dc9aed83fe4be26088bda86c6c07556ebfbd0582",
+        "target": null
+      },
+      "old": {
+        "blob": "5a64e9d2d51bd991077c9ee0607be62a8a4c5d5b",
+        "bytes": 52928,
+        "name": "four-role-base.S",
+        "sha256": "308b3b0f9d785e71493def82a43ceb4d8aa2891e79ef73e63a4d620657900406",
+        "target": null
+      }
+    },
+    {
+      "name": "compose-namespace-db-join-r2.py",
+      "new": {
+        "blob": "f17929728426ee5c566d860ddf9016b37bb348d9",
+        "bytes": 14008,
+        "name": "compose-namespace-db-join-r2.py",
+        "sha256": "5d35ff33c37cabfcc31d0b3d04b5efe591f9832feb246a4263872af8cc3f3c96",
+        "target": null
+      },
+      "old": {
+        "blob": "e1f52ab172fe5f385e5aa1300f6cb12ede4ebbbf",
+        "bytes": 14008,
+        "name": "compose-namespace-db-join-r2.py",
+        "sha256": "875536d8db421606f3f7fa8ee8f8a126eaf213d9240900e5baec858cf1a6bf44",
+        "target": null
+      }
+    },
+    {
+      "name": "namespace-db-join-r2-executor.S",
+      "new": {
+        "blob": "a1d68041c8c25e92855844b5174837e582856c49",
+        "bytes": 64323,
+        "name": "namespace-db-join-r2-executor.S",
+        "sha256": "8876c8172b3f2166e1482e53f0698517dad1fde164c4b59bd481186d437b2224",
+        "target": null
+      },
+      "old": {
+        "blob": "35c28fc0dd6ec2125453668f2bb21d3298bd0455",
+        "bytes": 63619,
+        "name": "namespace-db-join-r2-executor.S",
+        "sha256": "098bf0c3fcea4aeeb8f2b0a4f9aae62a634734c4c94bdafb0695a2624c3f55a8",
+        "target": null
+      }
+    },
+    {
+      "name": "namespace-db-join-r3-packer.py",
+      "new": {
+        "blob": "599a68532e177e68562ca708a3173bd691300456",
+        "bytes": 5254,
+        "name": "namespace-db-join-r3-packer.py",
+        "sha256": "7f01bf037ef627017306cfc1ec836d7309e884d05cbb50949102a52cf7cda9b4",
+        "target": null
+      },
+      "old": {
+        "blob": "e016b5a8e8b63d9f3cfc25bbbfc3322e3a97f21a",
+        "bytes": 5254,
+        "full_text_readback": true,
+        "name": "namespace-db-join-r3-packer.py",
+        "sha256": "7ee31252530dfd1e45ae2e447626f11de6dd516f2c2f86f8d56cd9f86e56e211",
+        "target": null
+      }
+    },
+    {
+      "name": "namespace-db-join-r6-build.py",
+      "new": {
+        "blob": "f9b300c55fee189835df7c4435eb562fe228eac3",
+        "bytes": 24136,
+        "name": "namespace-db-join-r6-build.py",
+        "sha256": "d131868545641fe534f0f0f5ec8219a88937bcf0ca6a0db58b9c7b2f164a7761",
+        "target": null
+      },
+      "old": {
+        "blob": "d5a72128ba2c5f0b328e6d916d0e56ad3ad10042",
+        "bytes": 24136,
+        "full_text_readback": true,
+        "name": "namespace-db-join-r6-build.py",
+        "sha256": "073046361ab75463a54f6bdc34fa535b22f4cd4293d83cae1f98c64684d41980",
+        "target": null
+      }
+    },
+    {
+      "name": "namespace-db-join-r1-physical.py",
+      "new": {
+        "blob": "ea1bc3da7d58fe6ad5bc68cb324601cacbd4e175",
+        "bytes": 48707,
+        "name": "namespace-db-join-r1-physical.py",
+        "sha256": "bc56d2c488f5b83127762a4ff43b1837954b92e6a50e733cdeeb0235e31412d7",
+        "target": null
+      },
+      "old": {
+        "blob": "4d22804b3daeabf28fea5066aaec46e50c04f273",
+        "bytes": 44590,
+        "name": "namespace-db-join-r1-physical.py",
+        "sha256": "a14f0e30c22399c2868d273c157c8aa0c07ccb290e6fd0a70e0bb1640054c20b",
+        "target": null
+      }
+    },
+    {
+      "name": "namespace-db-join-r2-packer.reference.py",
+      "new": {
+        "blob": "f8cc9ac750dd926f5bdee2164504620161801a52",
+        "bytes": 5631,
+        "name": "namespace-db-join-r2-packer.reference.py",
+        "sha256": "c202f7a769132850d0b58b6525dc0104f3be6e18f8aa430d7b635fb40f1aabf5",
+        "target": null
+      },
+      "old": {
+        "blob": "5849c58932cd0b324b875b3a0c5c12e877a2322b",
+        "bytes": 5631,
+        "name": "namespace-db-join-r2-packer.reference.py",
+        "sha256": "571d421e5ffbcf4df571e32ee4305013615e6c49f7dd2785ff39f54fd590ecd6",
+        "target": null
+      }
+    },
+    {
+      "name": "namespace-packer-three-way-r1.py",
+      "new": {
+        "blob": "5fd6f484cd65f9e2177efb6476f8327bbcf6ea55",
+        "bytes": 12414,
+        "name": "namespace-packer-three-way-r1.py",
+        "sha256": "18abd61c4a696ec576c5c45ca6e5d5022b457a8973d76b7e29687358b76db947",
+        "target": null
+      },
+      "old": {
+        "blob": "d52f61250c83e5b3399432475386d276c7085090",
+        "bytes": 12414,
+        "full_text_readback": true,
+        "name": "namespace-packer-three-way-r1.py",
+        "sha256": "a0fbcc43b410c9d9ed6ac976d77f90de3e67d69af93afbeed76087ee4d5a8d6e",
+        "target": null
+      }
+    }
+  ],
+  "unchanged_source_files": {
+    "four-role-original-replay.py": {
+      "blob": "96762602378d98db79755759b4ad3f4e6a8662bf",
+      "bytes": 20780,
+      "mode": "100644",
+      "sha256": "0b9bab8e16b0174c54062d56c5042afdaea35a1e936932bbd31ade04f06436a6"
+    },
+    "namespace-db-join-r1-client.py": {
+      "blob": "c489da3fc832d9caecaa271069bfc3608746ffec",
+      "bytes": 22281,
+      "mode": "100644",
+      "sha256": "e5cad29b23957856c3a3ae08645eb7a14a62f6b0263fe67720a9560b88e58270"
+    },
+    "namespace-db-join-r1-generator.py": {
+      "blob": "92f06c473bd42fe5f3f16666c4e9aa9b3cebadcf",
+      "bytes": 40272,
+      "mode": "100644",
+      "sha256": "c2d2d5f522febe4956db2ccd5d7b8003014fedb16b915c751c0e3a810008ba7b"
+    },
+    "namespace-db-join-r1-replay.py": {
+      "blob": "38b7813e00ddf13f047cff6fdd9b407d1d2acce1",
+      "bytes": 17457,
+      "mode": "100644",
+      "sha256": "3886e4af2d36ec42c7db076e954dd4ab7459f065c64e5847e83bb470b83db570"
+    },
+    "namespace-db-node-r2-generator.py": {
+      "blob": "a63842ae07fa8769b585705ae100d7181a4d6084",
+      "bytes": 31678,
+      "mode": "100644",
+      "sha256": "cd51f698ba9e522b0b2411bdaa1e2fb9f9308f95503b78f35d7f28d21995ae52"
+    },
+    "namespace-dms-map-join-r8-generator.py": {
+      "blob": "9ba36ef7fe77ce697a78720e4d7d0039116c386c",
+      "bytes": 72876,
+      "mode": "100644",
+      "sha256": "4063dfbcd35c7b3c3b3b4a8baaf6037e1f32e9c133afdd12ca35cd6638ace1d8"
+    },
+    "namespace-fs5-generator.py": {
+      "blob": "8dd0e6557cdbd1b42b932f682c2c6c396e57e598",
+      "bytes": 22419,
+      "mode": "100644",
+      "sha256": "d1bc8721c3cd5f3276024c239a11060a005161b8d9f23114495cec04d68c48a6"
+    },
+    "namespace-memory-r2-generator.py": {
+      "blob": "7711bad8273121820a1fa169250acf9f6d43a726",
+      "bytes": 22372,
+      "mode": "100644",
+      "sha256": "e9f5e580bbd69149f51f577f9246fb3f553b1574726e945bd0af0a31f7996560"
+    },
+    "namespace-shm-map-r3-generator.py": {
+      "blob": "58f0b8db47774ac75d073336b9fc1160d34d3fd2",
+      "bytes": 23289,
+      "mode": "100644",
+      "sha256": "1ac940af6b31b8e7cc02ada063a46fc5a28ee04f524bb60d5bfeb5fde109fcde"
+    }
+  }
+}

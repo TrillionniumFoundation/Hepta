@@ -53,21 +53,14 @@ class TokenCodecTests(unittest.TestCase):
                     decoder.feed(struct.pack('<2Q', 4, 0), final=True)
 
 
-@unittest.skipUnless(all(os.environ.get(name) for name in (
-    'HEPTA_HIA_COMPOSITE_FUNCTIONS_DEVELOPMENT_MANIFEST',
-    'HEPTA_HIA_COMPOSITE_TYPES_DEVELOPMENT_MANIFEST',
-    'HEPTA_HIA_TASK_HELPERS_DEVELOPMENT_MANIFEST')), 'explicit exact native bundle/dependencies required')
 class NativeStreamTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from hepta.hia_composite_functions_native import SELECTOR
-        from hepta.hia_composite_types_native import SELECTOR as TYPE_SELECTOR
-        from hepta.hia_task_helpers_native import SELECTOR as HELPER_SELECTOR
-        cls.environment = {
-            SELECTOR: os.environ['HEPTA_HIA_COMPOSITE_FUNCTIONS_DEVELOPMENT_MANIFEST'],
-            TYPE_SELECTOR: os.environ['HEPTA_HIA_COMPOSITE_TYPES_DEVELOPMENT_MANIFEST'],
-            HELPER_SELECTOR: os.environ['HEPTA_HIA_TASK_HELPERS_DEVELOPMENT_MANIFEST']}
-        cls.reference_environment = dict.fromkeys(cls.environment, '')
+        from tests.hia_composite_function_fixture import composite_function_fixture
+        fixture = composite_function_fixture()
+        cls.manifest = fixture.manifest
+        cls.environment = fixture.environment
+        cls.reference_environment = fixture.reference_environment
 
     def test_actual_complete_function_stream_exceeds_public_output_limits(self):
         from hepta import hia_program_composite as composite
@@ -116,8 +109,7 @@ class NativeStreamTests(unittest.TestCase):
 
     def test_actual_render_rejects_short_output_or_workspace(self):
         from hepta.hia_composite_functions_native import installed_composite_functions, WORKSPACE_BYTES
-        manifest = os.environ['HEPTA_HIA_COMPOSITE_FUNCTIONS_DEVELOPMENT_MANIFEST']
-        image = installed_composite_functions(manifest).images['render']
+        image = installed_composite_functions(self.manifest).images['render']
         source = ctypes.create_string_buffer(1)
         output = ctypes.create_string_buffer(65536)
         workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)

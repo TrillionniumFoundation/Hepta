@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import os
 import random
 import unittest
 from unittest.mock import patch
@@ -15,28 +14,13 @@ class HIAPreflightTests(unittest.TestCase):
     def admit(self, text, *, nodes=262144, depth=64):
         preflight_hia_json(text, max_nodes=nodes, max_depth=depth)
 
-    def assert_syntax_refusal_routes(self, text, reference_reason):
-        # The span optimization preserves the independent scanner's exact
-        # diagnostic. The selected native ABI separately promises status 1's
-        # existing syntax/Unicode diagnostic; it does not encode each English
-        # scanner reason. Exercise both routes instead of hiding the selector.
-        with self.assertRaises(ValueError) as reference:
-            _preflight_hia_json_reference(text, max_nodes=1, max_depth=0)
-        self.assertEqual(str(reference.exception),
-                         'HIA JSON preflight: ' + reference_reason)
-        try:
-            wire = text.encode('utf-8')
-        except UnicodeEncodeError:
-            # These caller-owned strings remain outside the native wire ABI.
-            native_wire = False
-        else:
-            self.assertLessEqual(len(wire), 8388608)
-            native_wire = True
-        expected = ('invalid JSON syntax or Unicode' if native_wire and
-                    os.environ.get('HEPTA_HIA_JSON_PREFLIGHT_MANIFEST') else reference_reason)
-        with self.assertRaises(ValueError) as dispatched:
-            self.admit(text, nodes=1, depth=0)
-        self.assertEqual(str(dispatched.exception), 'HIA JSON preflight: ' + expected)
+    def assert_syntax_refusal_routes(self, text, reason):
+        # The explicit native selector preserves the ordinary API's exact
+        # diagnostic. Exercise both routes with the same original assertion.
+        for admit in (_preflight_hia_json_reference, preflight_hia_json):
+            with self.assertRaises(ValueError) as caught:
+                admit(text, max_nodes=1, max_depth=0)
+            self.assertEqual(str(caught.exception), 'HIA JSON preflight: ' + reason)
 
     def test_valid_json_and_scalar_shape_coverage(self):
         examples = [

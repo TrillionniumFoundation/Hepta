@@ -126,12 +126,14 @@ class ConstructorFrameTests(unittest.TestCase):
                     invocation._frame(64)
 
 
-@unittest.skipUnless(os.environ.get(DEVELOPMENT) and os.environ.get(TYPES),
-                     'exact source-bound development constructor and type images required')
 class NativeConstructorTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.bundle = installed_composite_constructor(os.environ[DEVELOPMENT])
+        from tests.hia_composite_function_fixture import composite_function_fixture
+        fixture = composite_function_fixture()
+        cls.fixture_scope = fixture.scope
+        cls.bundle = fixture.constructor_bundle
+        cls.env = fixture.constructor_environment
         cls.evidence = Path(os.environ[EVIDENCE]) if os.environ.get(EVIDENCE) else None
         if cls.evidence is not None:
             cls.evidence.mkdir(parents=True, exist_ok=True)
@@ -153,7 +155,8 @@ class NativeConstructorTests(unittest.TestCase):
             (cls.evidence/'summary.json').write_text(json.dumps({
                 'comparisons': len(cls.rows), 'native_entries': cls.entries,
                 'equal': sum(row['equal'] for row in cls.rows),
-                'scope': 'DEVELOPMENT_ONLY_WITH_EXISTING_NATIVE_TYPES_NOT_COLD_QUALIFICATION'}, indent=2)+'\n')
+                'fixture_scope': cls.fixture_scope,
+                'scope': 'ACTUAL_CONSTRUCTOR_COMPONENT_TEST_NOT_WHOLE_STACK_QUALIFICATION'}, indent=2)+'\n')
 
     def compare(self, label, source, *, legacy=False):
         before = canonical(source)
@@ -177,7 +180,7 @@ class NativeConstructorTests(unittest.TestCase):
                 return result
             try:
                 with ExitStack() as stack:
-                    stack.enter_context(patch.dict(os.environ, {TYPE_SELECTOR: os.environ[TYPES], SELECTOR: ''}))
+                    stack.enter_context(patch.dict(os.environ, {**self.env, SELECTOR: ''}))
                     stack.enter_context(patch('hepta.hia_composite_functions_native.selected_composite_functions',
                                               new=lambda: None))
                     stack.enter_context(patch.object(NativeCompositeTypeSession, '_command', new=command))
@@ -327,7 +330,7 @@ class NativeConstructorTests(unittest.TestCase):
         def fresh():
             owner = composite._Elaborator.__new__(composite._Elaborator)
             return NativeConstructorInvocation(self.measured.images, owner, simple())
-        with patch.dict(os.environ, {TYPE_SELECTOR: os.environ[TYPES]}):
+        with patch.dict(os.environ, self.env):
             for mode in ('request', 'kind', 'status', 'trailing', 'replay', 'unissued'):
                 invocation = fresh()
                 try:

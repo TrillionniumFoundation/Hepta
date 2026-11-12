@@ -31,6 +31,7 @@ def independent_reference():
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program import execute_program
     from tools.generate_hia_native_observer import reference_image
+    source = PACKER.read_bytes()
     image = reference_image()
     from tools.hia_selfhost_bulk import Body
     observations = []
@@ -55,13 +56,15 @@ def independent_reference():
         wrapper=('hia-asm.v1 hepta.hia.program.v8 observer_reference\n'
             +'fn reference_entry() -> ('+returns+') effects(alloc,read,write,trap) entry(b0)\n'
             +'block b0()\n'+body.text()+'  ret('+','.join(values)+')\nend\n'
-            +PACKER.read_text().split('\n',1)[1])
+            +source.decode().split('\n',1)[1])
         checked=assemble_program(wrapper.encode())
         observed=execute_program(checked,'reference_entry',[])
         if observed.get('status')!='returned' or observed['values']!=[len(image),*image[begin:end]]:
             raise AssertionError('independent VM did not reproduce exact observer ELF window')
         observations.append({'begin':begin,'end':end,'vm_core_sha256':checked.sha256,'result':observed})
-    return {'before_B0':True, 'packer_source_sha256':digest(PACKER.read_bytes()),
+    if PACKER.read_bytes() != source:
+        raise AssertionError('native observer reference source changed during VM observation')
+    return {'before_B0':True, 'packer_source_sha256':digest(source),
         'vm_windows':observations, 'expected_image_sha256':digest(image),
         'expected_image_bytes':len(image), 'every_output_byte_compared':True,
         'whole_stack_rewritten_in_hia':False, 'all_input_equivalence_proved':False}
@@ -70,18 +73,44 @@ def independent_reference():
 def build(directory, compiler, reference):
     from tools.qualify_hia_selfhost import compile_stage, invoke
     directory = Path(directory)
-    packer, compilation = compile_stage(directory, 'native-observer-packer', compiler, PACKER.read_bytes())
+    compiler = Path(compiler)
+    source, compiler_bytes = PACKER.read_bytes(), compiler.read_bytes()
+    source_sha, compiler_sha = digest(source), digest(compiler_bytes)
+    if reference.get('packer_source_sha256') != source_sha:
+        raise AssertionError('native observer reference source differs from compilation input')
+    packer, compilation = compile_stage(directory, 'native-observer-packer', compiler, source)
+    packer_bytes = packer.read_bytes()
+    packer_sha = digest(packer_bytes)
+    if (compilation.get('input_sha256') != source_sha
+            or compilation.get('image_sha256') != compiler_sha
+            or compilation.get('artifact_sha256') != compiler_sha
+            or compilation.get('produced_sha256') != packer_sha
+            or compilation.get('produced_bytes') != len(packer_bytes)):
+        raise AssertionError('native observer actual compilation input/output binding differs')
+    if PACKER.read_bytes() != source or compiler.read_bytes() != compiler_bytes:
+        raise AssertionError('native observer source or compiler changed during build')
     execution, output = invoke(directory, 'native-observer-emit', packer, b'')
     size = reference['expected_image_bytes']
     if (execution.get('status') != 'returned' or execution.get('abi_status') != 0
             or execution.get('core_u32') != size or not execution.get('source_unchanged')
+            or execution.get('artifact_sha256') != packer_sha
+            or execution.get('image_sha256') != packer_sha
+            or execution.get('input_sha256') != digest(b'')
             or digest(output[:size]) != reference['expected_image_sha256']):
         raise AssertionError('HIA packer output differs from independent VM')
+    if (PACKER.read_bytes() != source or compiler.read_bytes() != compiler_bytes
+            or packer.read_bytes() != packer_bytes):
+        raise AssertionError('native observer immutable build inputs changed before publication')
     executable = directory/'native-observer.elf'
     executable.write_bytes(output[:size])
     executable.chmod(0o700)
-    receipt = {'compiler_sha256':digest(Path(compiler).read_bytes()),
-        'source_sha256':digest(PACKER.read_bytes()), 'executable_sha256':digest(output[:size]),
+    if executable.read_bytes() != output[:size]:
+        raise AssertionError('native observer executable publication readback differs')
+    receipt = {'compiler_sha256':compiler_sha,
+        'source_sha256':source_sha, 'executable_sha256':digest(output[:size]),
+        'emitter_image_sha256':packer_sha,
+        'actual_compile_and_emit_inputs_match':True,
+        'immutable_source_compiler_and_emitter_read_back':True,
         'independent_reference_before_B0':reference['before_B0'],
         'native_compilation':compilation, 'native_emission':execution,
         'production_activated':False, 'whole_stack_rewritten_in_hia':False}
@@ -89,7 +118,7 @@ def build(directory, compiler, reference):
     return executable, receipt
 
 
-def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
+def _validate_frame_fields(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
     if (not isinstance(image, bytes) or not 0 < len(image) <= 4*LIMIT
             or not isinstance(source, bytes) or len(source) > LIMIT
             or type(capacity) is not int or not 0 <= capacity <= LIMIT
@@ -97,6 +126,10 @@ def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=Non
             or type(workspace_fill) is not int or not 0 <= workspace_fill <= 255
             or (output_fd is not None and (type(output_fd) is not int or not 3 <= output_fd <= 2147483647))):
         raise ValueError('native observer frame exceeds the unchanged byte ABI limits')
+
+
+def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
+    _validate_frame_fields(image, source, capacity, workspace_size, workspace_fill, output_fd)
     return b'HIAOBS02'+struct.pack('<6Q',len(image),len(source),capacity,workspace_size,workspace_fill,
         (1<<64)-1 if output_fd is None else output_fd)+image+source
 
@@ -156,7 +189,11 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
     directory, image, observer = Path(directory), Path(image), Path(observer)
     image_bytes, executable = image.read_bytes(), observer.read_bytes()
     # Validate before creating a file descriptor or serializing large buffers.
-    frame(image_bytes,source,capacity,workspace_size,workspace_fill)
+    if type(image_bytes) is bytes and type(source) is bytes:
+        _validate_frame_fields(image_bytes,source,capacity,workspace_size,workspace_fill)
+    else:
+        # Preserve accepted byte subclasses' concatenation hooks and errors.
+        frame(image_bytes,source,capacity,workspace_size,workspace_fill)
     initial = b'\xa5'*capacity if output_initial is None else output_initial
     if not isinstance(initial,bytes) or len(initial)!=capacity:
         raise ValueError('output preimage must match the capacity')
@@ -201,16 +238,16 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                         returned, elapsed = struct.unpack_from('<2Q',raw,8)
                         actual_source = raw[24:24+len(source)]
                         output = raw[24+len(source):24+len(source)+capacity]
-                        workspace = raw[24+len(source)+capacity:]
+                        workspace_start = 24+len(source)+capacity
                         output_path.write_bytes(output)
                         if actual_source != source:
                             (directory/(label+'.modified-source.bin')).write_bytes(actual_source)
                         result = {'status':'returned','result_u64':returned,'abi_status':returned>>32,
                             'return_encoding':'zero-extended-u32','core_u32':returned & 0xffffffff,
-                            'source_sha256':digest(source),'image_sha256':digest(image_bytes),
+                            'source_sha256':request['source_sha256'],'image_sha256':request['image_sha256'],
                             'output_sha256':digest(output),'source_unchanged':actual_source==source,
                             'output_unchanged':output==initial,
-                            'workspace_header':{str(at):int.from_bytes(workspace[at:at+8],'little')
+                            'workspace_header':{str(at):int.from_bytes(raw[workspace_start+at:workspace_start+at+8],'little')
                                 for at in WORKSPACE_FIELDS if workspace_size>=at+8},
                             'native_elapsed_ns':elapsed,'forbidden_compiler_modules_loaded':[],
                             'loader_operations':'HIA-emitted static ELF; sealed exec; RW-to-RX image; fixed ABI call',
@@ -231,8 +268,8 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                 'available':True,'initial_sha256':digest(initial),'observed_sha256':digest(output),
                 'observed_bytes':len(output),'unchanged':output==initial,
                 'capture_origin':'parent-owned size-sealed memfd, mapped by actual native child'}
-        result.update(case=label,input_sha256=digest(source),input_bytes=len(source),
-            artifact_sha256=digest(image_bytes),format='flat-x86-64',runner_sha256=digest(executable),
+        result.update(case=label,input_sha256=request['source_sha256'],input_bytes=len(source),
+            artifact_sha256=request['image_sha256'],format='flat-x86-64',runner_sha256=request['observer_sha256'],
             wall_elapsed_ns=time.monotonic_ns()-began,transport=request['transport'],
             fresh_native_exec=True,successor_process_reuse=False)
         if observer.read_bytes()!=executable or image.read_bytes()!=image_bytes or input_path.read_bytes()!=source:

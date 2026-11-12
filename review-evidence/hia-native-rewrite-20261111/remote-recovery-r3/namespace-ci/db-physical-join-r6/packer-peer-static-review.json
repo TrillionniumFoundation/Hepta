@@ -1,0 +1,41 @@
+{
+  "schema": "hia-independent-static-review-v1",
+  "reviewer": "native_checker",
+  "scope": "NARROW_SIX_ROLE_PACKER_SOURCE_PROGRAM_THREE_PASS_EQUIVALENCE",
+  "original": {
+    "blob": "5849c58932cd0b324b875b3a0c5c12e877a2322b",
+    "bytes": 5631,
+    "sha256": "571d421e5ffbcf4df571e32ee4305013615e6c49f7dd2785ff39f54fd590ecd6"
+  },
+  "revised": {
+    "blob": "e016b5a8e8b63d9f3cfc25bbbfc3322e3a97f21a",
+    "bytes": 5254,
+    "sha256": "7ee31252530dfd1e45ae2e447626f11de6dd516f2c2f86f8d56cd9f86e56e211"
+  },
+  "complete_source_read": true,
+  "outside_source_program_exact_equal": true,
+  "confirmation": "No confirmed blocker within reviewed source_program scope",
+  "findings": [
+    "Common magic/version/count/input-extent/reserved-field checks are textually preserved.",
+    "checked_total visits roles 1..6 in the original order and preserves each 24-byte-header, role, reserved, nonzero-size, 1 MiB/image and remaining-input check. Trailing bytes are rejected before any output write.",
+    "Let p1=align16(prefix bytes). Each pass uses p(i+1)=align16(pi+sizei). checked_total returns p6+size6; publish_tables writes the same six base+pi values; publish_images reproduces all original inter-image zeros and exact input slices.",
+    "The original full validation precedes the output-capacity GROW gate. Both retain output and workspace unchanged on validation refusal or GROW.",
+    "Prefix literals then ELF length words then all table addresses then all zero padding/image copies preserve the original output write sequence. Subsequent reads rely on the same actual immutable input lease.",
+    "New authoring assertion is about the fixed pinned template: start+6*(MAX_IMAGE+15)<2^32. It proves u32-return/u64-address arithmetic for the existing input domain; it is not a new runtime input quota.",
+    "The workspace remains unused by both publisher functions. No namespace selection or SQL policy was moved into this mechanical image publisher."
+  ],
+  "actual_execution": {
+    "AST": 0,
+    "generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "limitations": [
+    "No claim that the revised block-parameter profile fits until actual generation/B3.",
+    "No fresh old-VM/new-VM/native full-buffer comparison performed by this reviewer.",
+    "Unchanged ObjectBuilder/VALUES implementations and the complete carrier were not re-reviewed in this narrow pass."
+  ],
+  "source_edits_by_reviewer": false,
+  "refs_modified": false
+}
