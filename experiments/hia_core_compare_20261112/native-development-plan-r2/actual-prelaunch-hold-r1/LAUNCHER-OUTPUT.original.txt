@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "/workspace/scratch/e26ed3e2edcf/core-numeric-native-plan-r2/control/launch.py", line 131, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/workspace/scratch/e26ed3e2edcf/core-numeric-native-plan-r2/control/launch.py", line 43, in main
+    before = frozen(ROOT, policy)
+             ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/e26ed3e2edcf/core-numeric-native-plan-r2/control/common.py", line 147, in frozen
+    actual = pin(Path(row['path']), row['size'])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/e26ed3e2edcf/core-numeric-native-plan-r2/control/common.py", line 96, in pin
+    return read_file(path, maximum, raw_required=False)[1]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/e26ed3e2edcf/core-numeric-native-plan-r2/control/common.py", line 70, in read_file
+    require(initial.st_uid in (0, os.geteuid()) and not initial.st_mode & 0o022,
+  File "/workspace/scratch/e26ed3e2edcf/core-numeric-native-plan-r2/control/common.py", line 18, in require
+    raise ValueError(message)
+ValueError: input ownership or writable mode differs: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12
