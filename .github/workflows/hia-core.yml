@@ -118,6 +118,7 @@ jobs:
               'tests.test_hia_machine_object_native.MachineObjectSourceTests',
               'tests.test_hia_execution_observation_native.ExecutionObservationSourceTests',
               'tests.test_hia_continuation_native.ContinuationSourceTests',
+              'tests.test_hia_worker_scheduling_bundle.WorkerSchedulingSourceTests',
               'tests.test_hia_installed_fixture_resources',
               'tests.test_hia_machine_plan_native.MachinePlanSourceTests',
               'tests.test_hia_machine_encoding_native.MachineEncodingSourceTests',
@@ -231,6 +232,11 @@ jobs:
         env:
           HEPTA_HIA_NATIVE_CONTINUATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_continuation_native
+      - name: Five-family native in-process worker scheduling custody
+        env:
+          HEPTA_HIA_WORKER_SCHEDULING_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_SCHEDULING_FIXTURE_EVIDENCE: ${{ runner.temp }}/worker-scheduling-fixture
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_worker_scheduling_bundle
       - name: All original runtime callers with HIA-owned internal scheduling
         run: python -B tools/qualify_hia_execution_observation_callers.py --native-continuation --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/native-continuation-callers"
       - name: Original runtime callers through in-process HIA native scheduling

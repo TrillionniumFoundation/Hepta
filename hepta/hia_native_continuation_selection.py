@@ -39,7 +39,10 @@ _FAMILIES={
 
 
 def installed_native_continuation(manifest_path,namespace,*,kind='execution-observation'):
-    from .hia_native_helpers import check_native_scheduling_scope
+    from .hia_native_helpers import check_native_scheduling_scope, pinned_scheduling
+    captured = pinned_scheduling(manifest_path, kind, namespace)
+    if captured is not None:
+        return captured
     check_native_scheduling_scope()
     from .hia_agent_contract import CONTINUATION_BUILD_FILES
     from importlib import import_module

@@ -64,6 +64,7 @@ FACTORY_VIEWS = {
 _ACTIVE = None
 _SCOPE_LOCK = threading.Lock()
 _SCOPE_OWNER = None
+_SCHEDULER_BUILD = None
 
 
 def _digest(value):
@@ -119,7 +120,8 @@ def _read(path, limit):
 
 
 
-def check_native_scheduling_scope():
+def check_native_scheduling_scope(owner=None, *, engine=None, constructing=False,
+                                  host_scheduler=False, observing=False):
     """The existing v1/v2 worker pins do not register these five schedulers.
 
     Keep standalone explicit scheduling unchanged. A worker scope must refuse
@@ -128,8 +130,33 @@ def check_native_scheduling_scope():
     registered worker-report/wire companions use their existing v2 custody.
     """
     _check_scope_owner()
+    bound = getattr(owner, '_worker_scheduling_binding', None)
+    if bound is not None and (bound is not _ACTIVE or _SCOPE_OWNER is None):
+        raise ValueError('native scheduling owner belongs to its original worker scope')
     if _SCOPE_OWNER is not None:
+        if constructing and _SCHEDULER_BUILD is not None:
+            binding, selected = _SCHEDULER_BUILD
+            binding.check_owner()
+            if owner is selected and owner is not None:
+                return
+        if not constructing and _ACTIVE is not None:
+            check = getattr(_ACTIVE, 'check_scheduling', None)
+            if check is not None and owner is not None:
+                check(owner, engine=engine, host_scheduler=host_scheduler,
+                      observing=observing)
+                return
         raise ValueError('native scheduling bundle is outside the pinned worker bundle')
+
+
+def pinned_scheduling(manifest_path, kind, namespace):
+    """Only the v3 administrator capsule registers these five fixed owners."""
+    _check_scope_owner()
+    if _SCOPE_OWNER is None:
+        return None
+    lookup = getattr(_ACTIVE, 'scheduling_owner', None)
+    if lookup is None:
+        raise ValueError('native scheduling bundle is outside the pinned worker bundle')
+    return lookup(manifest_path, kind, namespace)
 
 
 def _manifest_environment():
@@ -258,7 +285,10 @@ def native_helpers_scope(path=None, expected_sha256=None):
         if sha256(captured.raw).hexdigest() != expected_sha256:
             raise ValueError("native helper bundle identity mismatch")
         record = _decode(captured.raw)
-        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v2':
+        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v3':
+            from .hia_worker_scheduling_bundle import NativeWorkerSchedulingBinding
+            binding = NativeWorkerSchedulingBinding(captured, expected_sha256)
+        elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v2':
             from .hia_worker_bundle import NativeWorkerBundleBinding
             binding = NativeWorkerBundleBinding(captured, expected_sha256)
         else:

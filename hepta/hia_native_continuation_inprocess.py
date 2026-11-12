@@ -29,8 +29,8 @@ def _protect(address, size, protection):
 
 
 class InProcessContinuation:
-    def __init__(self, raw, expected_sha256, *, pool_bytes):
-        check_native_scheduling_scope()
+    def __init__(self, raw, expected_sha256, *, pool_bytes, owner=None):
+        check_native_scheduling_scope(owner, constructing=True)
         if (type(raw) is not bytes or not ENTRY < len(raw) <= 64 << 20
                 or type(expected_sha256) is not str
                 or sha256(raw).hexdigest() != expected_sha256):
@@ -68,7 +68,7 @@ class InProcessContinuation:
         session._native_started = True
         source = None
         try:
-            check_native_scheduling_scope()
+            check_native_scheduling_scope(session.owner, engine=self)
             owner = session.owner
             if not 128 <= owner.output_bytes <= OUTPUT:
                 raise ValueError('native in-process owner output extent differs')

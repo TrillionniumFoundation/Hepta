@@ -134,7 +134,10 @@ def installed_core_emitter(manifest_path, namespace):
     cache key. A new unit manifest key forces fresh image admission. Source and
     ABI bytes are read on every selection, including a warm loaded bundle.
     """
-    from .hia_native_helpers import check_native_scheduling_scope
+    from .hia_native_helpers import check_native_scheduling_scope, pinned_scheduling
+    captured = pinned_scheduling(manifest_path, 'core-emitter', namespace)
+    if captured is not None:
+        return captured
     check_native_scheduling_scope()
     if type(namespace) is not dict:
         raise TypeError('native Core emitter requires an actual module namespace')

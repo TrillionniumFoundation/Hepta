@@ -96,7 +96,7 @@ class LoweringSession:
     """One private, single-use HIA continuation; handles keep objects alive."""
 
     def __init__(self, owner, mode, arguments):
-        check_native_scheduling_scope()
+        check_native_scheduling_scope(owner)
         if type(mode) is not int or type(arguments) is not tuple or len(arguments) > 4:
             raise TypeError('exact native lowering invocation frame required')
         self.owner = owner
@@ -145,15 +145,16 @@ class LoweringSession:
     def _close(self):
         self.finished, self.pending, self.request = True, False, None
 
-    def _check_worker_scope(self):
+    def _check_worker_scope(self, *, host_scheduler=False, observing=False):
         try:
-            check_native_scheduling_scope()
+            check_native_scheduling_scope(self.owner, host_scheduler=host_scheduler or (observing and not getattr(self, '_native_started', False)),
+                observing=observing and getattr(self, '_native_started', False))
         except BaseException:
             self._close()
             raise
 
     def step(self, packet):
-        self._check_worker_scope()
+        self._check_worker_scope(host_scheduler=True)
         if self.finished:
             raise RuntimeError('native lowering session is closed')
         if type(packet) is not bytes or len(packet) != 128:
@@ -198,7 +199,7 @@ class LoweringSession:
             raise
 
     def handoff(self):
-        self._check_worker_scope()
+        self._check_worker_scope(host_scheduler=True)
         if self.finished or not self.pending or self.status != 2:
             self._close()
             raise RuntimeError('native lowering handoff is not pending')
@@ -212,7 +213,7 @@ class LoweringSession:
             raise
 
     def observe(self):
-        self._check_worker_scope()
+        self._check_worker_scope(observing=True)
         if self.finished or not self.pending or self.status != 1:
             self._close()
             raise RuntimeError('native lowering observation is not pending')
@@ -343,7 +344,7 @@ class LoweringSession:
         raise RuntimeError('native lowering unknown primitive')
 
     def run(self):
-        self._check_worker_scope()
+        self._check_worker_scope(host_scheduler=True)
         packet = self.initial
         while True:
             status = self.step(packet)
@@ -358,7 +359,7 @@ class NativeCoreLowering:
     ABI_SCHEMA = 'hepta.hia.core-lowering-abi.v1'
 
     def __init__(self, images, pool, abi, namespace):
-        check_native_scheduling_scope()
+        check_native_scheduling_scope(self, constructing=True)
         if type(abi) is not dict or abi.get('schema') != self.ABI_SCHEMA:
             raise ValueError('native lowering ABI metadata differs')
         if abi.get('protocol_magic') != MAGIC or abi.get('pool_magic') != POOL_MAGIC or abi.get('packet_bytes') != 128:
@@ -410,7 +411,7 @@ class NativeCoreLowering:
             raise NameError("name '" + name + "' is not defined") from None
 
     def invoke(self, name, arguments):
-        check_native_scheduling_scope()
+        check_native_scheduling_scope(self, host_scheduler=True)
         mode = self.modes[name]
         if len(arguments) != mode['arity']:
             raise RuntimeError('native lowering bound argument count differs')
