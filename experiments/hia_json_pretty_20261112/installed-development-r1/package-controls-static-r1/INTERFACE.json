@@ -1,0 +1,222 @@
+{
+  "schema": "hia.json-pretty.package-control-static-interface.v1",
+  "status": "STATIC_UNEXECUTED",
+  "source_changes": false,
+  "python_parse_performed": false,
+  "native_executed": false,
+  "installation_executed": false,
+  "remote_dispatch_performed": false,
+  "resource_baseline": {
+    "commit": "325d28bf8857696132b22a86dab0d551a3ce87bf",
+    "tree": "5739697d49188ce0e4cc809980d42a314a0a2787",
+    "role": "Resource identity baseline only. It is not asserted as the runtime HEAD."
+  },
+  "current_parent_reported_candidate": {
+    "commit": "a74a030680bb73da9a4599567962d01a9d6bcac0",
+    "tree": "2d47e3af79e558d2651d5f43f0759a02a404b6a5",
+    "role": "Root supplied successor with linked coverage/support corrections; the outer frozen policy must independently bind its actual full tree and derive both JSON documents."
+  },
+  "interface": {
+    "signature": "run(source, evidence, python, image, compiler, child_script, *, source_sha256, bridge_sha256, child_sha256) -> dict",
+    "returns_on": "DEVELOPMENT_INSTALLATION_PASS only",
+    "fails_with": "Writes package-report.json as HOLD when the installation root was created, then raises RuntimeError. Missing or unclosed child outputs remain missing; they are never synthesized.",
+    "source_head": "Reads and rechecks actual detached .git/HEAD before/after. No guessed current tree.",
+    "installed_root": "evidence/installation/installed",
+    "bridge_path": "evidence/installation/installed/hepta/hia_json_pretty_native.py",
+    "manifest_path": "evidence/installation/native/manifest.json",
+    "original_output_files": [
+      "evidence/installation/package-report.json",
+      "evidence/installation/installed-request.json",
+      "evidence/installation/installed-cases.json",
+      "evidence/installation/installed-child.stdout.log",
+      "evidence/installation/installed-child.stderr.log"
+    ]
+  },
+  "sources": [
+    {
+      "path": "package_helper.py",
+      "bytes": 39882,
+      "sha256": "fd5b1b014dd48b333be2cf3ed878e585661e29d282462c18911d2c4922e7fa25",
+      "git_blob_sha1": "c592021c5295e346ad8d9aecce2a0cc5610262f7"
+    },
+    {
+      "path": "installed_cases.py",
+      "bytes": 31087,
+      "sha256": "200a92b8f6a59149fd251a69063a6de2b1bf1b8ed710874f09e36688e8abae9c",
+      "git_blob_sha1": "b5e9d25f481a7772946000eb504e6d69bf3bb7d2"
+    }
+  ],
+  "required_sibling": {
+    "path": "process_owner_impl.py",
+    "bytes": 17601,
+    "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+  },
+  "declared_input_population": {
+    "hepta_files": 170,
+    "production_python": 169,
+    "abi_json": 1,
+    "DISCOVERY_FILES": 11,
+    "NATIVE_SOURCE_FILES": 81,
+    "PUBLICATION_BUILD_FILES": 4,
+    "unique_resource_union": 96,
+    "unique_packaging_inputs": 268
+  },
+  "pipeline": [
+    "Own 15-second installed packaging version probe.",
+    "Copy all actual packaging inputs into a create-only source directory.",
+    "Own 120-second setup.py sdist process; fully read gzip CRC, tar members and required input identities.",
+    "Own 120-second no-index/no-build-isolation/no-deps pip wheel from the actual sdist; fully read ZIP CRC and member identities.",
+    "Own 120-second no-index/no-deps/no-compile pip --target installation from the actual wheel.",
+    "Inspect every installed regular file and exact 169 Python / 96 source-resource namespaces.",
+    "Copy this run's already freshly compiled actual image, bind actual source/image/compiler SHA in a development manifest.",
+    "Own a distinct five-second -I -S -B empty-PATH consumer for all nine exact controls.",
+    "Recheck the original source inputs, actual source HEAD, immutable image/compiler/controls, built archives and restored installed bytes/modes."
+  ],
+  "packaging_tools": {
+    "setuptools": "78.1.1",
+    "wheel": "0.46.3",
+    "pip": "Actual installed version recorded; no network installation performed."
+  },
+  "budgets": {
+    "outer_qualification_seconds": 180,
+    "outer_cleanup_seconds": 3,
+    "packaging_tools_seconds": 15,
+    "sdist_seconds": 120,
+    "wheel_seconds": 120,
+    "install_seconds": 120,
+    "installed_cases_seconds": 5,
+    "all_step_cleanup_seconds": 3,
+    "note": "Per-process ceilings do not extend the unchanged outer deadline. Original 43/108 remains a separate child under its original five-second ceiling."
+  },
+  "original_process_files_per_step": [
+    "<label>.stdout.log",
+    "<label>.stderr.log",
+    "<label>.process-owner.json",
+    "<label>.process-owner.json.request.json",
+    "<label>.process-owner.json.stdout.log",
+    "<label>.process-owner.json.stderr.log"
+  ],
+  "process_labels": [
+    "packaging-tools",
+    "sdist",
+    "wheel",
+    "install",
+    "installed-child"
+  ],
+  "derived_process_note": "<label>.step.json is a derived seventh summary, not a seventh original. Actual disk receipt is hashed before JSON parsing; returned run_owned fields are independently reconciled with raw receipt and request.",
+  "closed_read_boundary": "Returned cleanup must show complete, ECHILD, leader_reaped, no remaining children, no errors and no cleanup deadline overrun before helper reads any step output. Otherwise it records the returned metadata plus fixed deferred paths and does not read source/installed after-state. Root's external guardian/finalizer may collect those originals only after its own bound cleanup.",
+  "natural_process_boundary": "A successful process additionally requires original request argv/cwd/env/paths/limits/owner SHA, raw receipt SHA, exit0, no timeout, no owner_error, no interruptions, no overflow and no kill events; actual started/exit-observed/reaped events must all be present.",
+  "installed_report": {
+    "schema": "hia.json-pretty.installed-cases.v1",
+    "success": "DEVELOPMENT_INSTALLED_CASES_PASS",
+    "expected_test_ids": [
+      "installed_package_sources_and_native_output",
+      "invalid_manifest_schema",
+      "invalid_manifest_source_hash",
+      "invalid_manifest_image_hash",
+      "invalid_manifest_shape_and_compiler_field",
+      "warm_source_mutation_rejected_and_restored",
+      "warm_source_missing_rejected_and_restored",
+      "missing_data_root_refuses_checkout_and_cwd_fallback",
+      "manifest_size_duplicate_keys_and_reentry"
+    ],
+    "tests_run": 9,
+    "expected_native_completions": 14,
+    "exceptions": [
+      {
+        "name": "failures",
+        "expected": 0
+      },
+      {
+        "name": "errors",
+        "expected": 0
+      },
+      {
+        "name": "skipped",
+        "expected": 0
+      },
+      {
+        "name": "expected_failures",
+        "expected": 0
+      },
+      {
+        "name": "unexpected_successes",
+        "expected": 0
+      }
+    ],
+    "native_call_distribution": [
+      2,
+      0,
+      0,
+      0,
+      0,
+      2,
+      2,
+      2,
+      6
+    ]
+  },
+  "package_report": {
+    "schema": "hia.json-pretty.development-installation.v1",
+    "success": "DEVELOPMENT_INSTALLATION_PASS",
+    "major_keys": [
+      "candidate_commit",
+      "source_head",
+      "source_head_original",
+      "source_head_after",
+      "source_inputs_before",
+      "source_inputs_after",
+      "actual_resource_declarations",
+      "immutable_inputs_before",
+      "immutable_inputs_after",
+      "sdist",
+      "sdist_members",
+      "wheel",
+      "wheel_members",
+      "installed_root",
+      "bridge_path",
+      "manifest_path",
+      "manifest",
+      "native_image",
+      "executed_child",
+      "installed_request",
+      "installed_cases",
+      "installed_before",
+      "installed_after",
+      "processes",
+      "source_and_inputs_stable",
+      "installed_bytes_and_modes_restored",
+      "errors"
+    ]
+  },
+  "compiler_manifest_boundary": "The loader requires valid compiler SHA syntax; it does not independently compare a second syntactically valid compiler hash. The malformed syntax control is explicitly scoped. The parent must bind actual compiler bytes to its fresh B0/B1/B2 build, image and package manifest.",
+  "restoration_boundary": "Warm mutation/missing-source controls intentionally change installed inode/timestamps. Final success requires all installed bytes and modes restored; no claim is made that those test-mutated identities never changed. Immutable native image and manifest identities remain stable.",
+  "forbidden_paths": "During formatting, host JSON layout functions are blocked and actual entry completions counted. Child imports no tools/tests/setuptools/pip/wheel; all loaded hepta modules originate under the explicit installed root.",
+  "acceptance_not_claimed": [
+    "formal cold qualification",
+    "whole native delivery",
+    "CLI graph/object equivalence",
+    "all-input proof",
+    "actual installation or test pass before execution"
+  ],
+  "historical_drafts": [
+    {
+      "path": "unexecuted-drafts/package_helper-325d-r1.py",
+      "bytes": 38052,
+      "sha256": "7da4035a2ece5d5471f09ec8b6c0589cd768d7aebfee0310bdf55750e040d763",
+      "git_blob_sha1": "4f3b93e435edd6343fbaffb728de2b8d2c2a949f"
+    },
+    {
+      "path": "unexecuted-drafts/package_helper-actual-head-r2.py",
+      "bytes": 38461,
+      "sha256": "f4be30d53b41fba7e88ec5f2997c94dd364c83cafff4351a0d9b62270a8bbf81",
+      "git_blob_sha1": "4b75fcd65b5d8e1a89538087da009d819ca51d03"
+    }
+  ],
+  "parent_integration_cross_read": {
+    "commit": "0db7df355fdc2c8bf104a93f73f36ca735b23ac3",
+    "path": "experiments/hia_json_pretty_20261112/installed-development-r1/static-integration-r1/authoring.py",
+    "sha256": "d1caf79b6c1e6820e5a13966db75126617d890a42e176004710f4c24e188bd1a",
+    "result": "Actual call signature was read and matches this interface. Parent controller independently accepts raw artifacts; this document is not execution evidence."
+  }
+}
