@@ -198,6 +198,14 @@ class HeapLiveEngineSourceTests(unittest.TestCase):
         self.assertEqual((original._FINITE_MAX_CONTEXTS, original._FINITE_MAX_TRANSFER_STEPS,
                           original._FINITE_MAX_ANALYSIS_DEPTH), (1024, 32768, 64))
 
+    def test_every_actual_input_is_in_fresh_cold_source_closure(self):
+        from tools.hia_selfhost_contract import file_digests
+        declared = file_digests(ROOT)
+        self.assertEqual(set(INPUT_NAMES) - set(declared), set())
+        for name in INPUT_NAMES:
+            with self.subTest(path=name):
+                self.assertEqual(declared[name], sha256((ROOT / name).read_bytes()).hexdigest())
+
     def test_cold_and_development_conflict_before_input_read(self):
         with patch.dict(os.environ, {COLD_REPORT: '/unread-cold', DEVELOPMENT: '/unread-development'}), patch.object(
                 Path, 'read_bytes', side_effect=AssertionError('read before conflicting fixture refusal')):

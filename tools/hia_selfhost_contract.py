@@ -78,6 +78,7 @@ SOURCE_FILES = (
     'tests/hia_heap_native_fixture.py',
     'tests/hia_heap_public_controls.py',
     'tests/test_hia_borrowed_extent_heap.py',
+    'tests/test_hia_rust_finite_heap.py',
     'tests/test_hia_heap_bound_integration.py',
     'tests/test_hia_heap_bound_native.py',
     'tests/test_hia_heap_live_engine_native.py',
