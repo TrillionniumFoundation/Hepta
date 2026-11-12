@@ -1,0 +1,59 @@
+{
+  "schema": "hia-worker-map-authoring-compatibility-observation-r1",
+  "status": "NEW_STATIC_CORRECTION_UNEXECUTED",
+  "old": {
+    "path": "tools/generate_hia_agent_worker_init_maps.py",
+    "bytes": 19555,
+    "sha256": "019e66bb90a9e8122d2406680891890496783fd042646d5522b5cbcdb3b1a52a",
+    "gitsha": "05f1d12e5cab3bd01834152520be51a2c5b05d16"
+  },
+  "new": {
+    "path": "tools/generate_hia_agent_worker_init_maps.py",
+    "bytes": 19560,
+    "sha256": "8a837ae4acaf11a68054c030c51d6d667d93dee4c825c8fee5bb324b9a6fc2fb",
+    "gitsha": "275a8c3a5d63a94241d0651adf425ae2530d2380"
+  },
+  "change": {
+    "from": {
+      "path": "tools/generate_hia_agent_worker_init_maps.py",
+      "bytes": 19555,
+      "sha256": "019e66bb90a9e8122d2406680891890496783fd042646d5522b5cbcdb3b1a52a",
+      "gitsha": "05f1d12e5cab3bd01834152520be51a2c5b05d16"
+    },
+    "before": "    if not found:\n",
+    "after": "    if found == False:\n",
+    "scope": "NEW_UNEXECUTED_BOOLEAN_AUTHORING_COMPATIBILITY_ONLY",
+    "limits_changed": false
+  },
+  "basis": {
+    "builder_gitsha": "540de9366827900d0b82b4893922ffd383c44fef",
+    "copy_builder_gitsha": "f7d123bdb2bf65b25182b571f024299cb0342828",
+    "copy_builder_sha256": "555472263213f15deb239fcf3bf8e5b273a28caf3a67bb29ffd037f171d7ae5c",
+    "facts": [
+      "Exact Builder.expr has no ast.UnaryOp case.",
+      "Exact CopyBuilder.expr adds only copy_bytes before delegating to Builder.",
+      "im_update found starts as False and is assigned only True; compare with False preserves the boolean condition exactly."
+    ]
+  },
+  "source_changed_outside_single_condition": false,
+  "actual_AST": 0,
+  "actual_generation": 0,
+  "actual_B3": 0,
+  "actual_native": 0,
+  "old_queued_jobs_cancelled": false,
+  "old_queued_status_reclassified": false,
+  "tests_unchanged": {
+    "path": "development/test_worker_init_maps_ci_r2.py",
+    "bytes": 27098,
+    "sha256": "320870f96f70590deacdfa0a7e5ed603fd54c35eb0fb1609c3a4a92ca1a91c2a",
+    "gitsha": "9cbdd11f46677e11e66e4c6593520fd8d44269ea"
+  },
+  "abi_changed": false,
+  "limits_changed": false,
+  "own_other_components": {
+    "values_not_operators_in_BODY": 0,
+    "sequence_not_operators_in_BODY": 0,
+    "pure_drafts_two_boolean_conditions_updated_without_execution": true
+  },
+  "scope": "No ordinary initializer or Worker qualification; new CI must preserve original full tests and compiler/resource gates."
+}

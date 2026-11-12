@@ -113,7 +113,7 @@ def ml_read(s:readbuf, at:u64) -> u64:
     return read64(s, at + 64)
 
 def ml_byte(s:readbuf, at:u64) -> u64:
-    return widen(load(s, at + 64))
+    return byte(s, at + 64)
 
 def ml_zero(w:mutbuf, at:u64, count:u64) -> u64:
     end = at + count

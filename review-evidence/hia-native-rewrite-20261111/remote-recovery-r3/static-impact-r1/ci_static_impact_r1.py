@@ -17,7 +17,7 @@ FILES=[
   ],
   [
     "build_static_impact_ci_r1.py",
-    "4ba21460de3d8cdceed6f515d6bc89c5b7e5b023"
+    "d5490db84132574313d2b5aff8404106108b7dd2"
   ],
   [
     "test_static_impact_ci_r1.py",
@@ -37,7 +37,7 @@ try:
     for name,pin in FILES:
         paths[name]=common.materialize(R3+"static-impact-r1/"+name,pin,common.BASE/name)
     common.materialize(R3+"assembly-object-prefix-r1/generate_assembly_object_prefix_r1.py",
-        "1ae1f374ce0f3ab027ff09b7748ee877570a3a4b",common.BASE/"issued_object_prefix_reference.py")
+        "90d7242bdc2ab328280b2c760f988cff3ad21d10",common.BASE/"issued_object_prefix_reference.py")
     common.run("static-impact-build",[sys.executable,"-B",paths[FILES[1][0]],paths[FILES[0][0]]],timeout=180)
     build=json.loads((ROOT/"development/build-r1/summary.json").read_bytes())
     assert build["status"]=="PASS" and build["actual_native_compiles"]==1

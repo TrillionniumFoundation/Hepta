@@ -1,0 +1,162 @@
+{
+  "schema": "hepta.actual-cli-authoring-blocker-supplement.v1",
+  "status": "NEW_SOURCE_RETRY_UNEXECUTED",
+  "previous_report": {
+    "blob": "d42af1fbc9bdbd3a2291ac73e2d74bd21a1a9332",
+    "bytes": 10828,
+    "sha256": "89d1a8986355153f1111537a3c75b1d44b6ca31b025118858d85cc96c078b417"
+  },
+  "actual_failures": [
+    {
+      "run": 43148645083,
+      "job": 130952352389,
+      "scope": "full publication",
+      "failure": "presentation authoring Break",
+      "actual_new_B3_compilations": 0,
+      "actual_native_processes": 0,
+      "full_log": {
+        "blob": "ff8060265cdf6eb20b40f95e44a52dcbe94cb3e3",
+        "bytes": 69883,
+        "sha256": "f8d698304999490af000e939262ef4fb1d57c7d1e0429c388a817ae7cdc702bb"
+      }
+    },
+    {
+      "run": 43149177895,
+      "job": 130954037888,
+      "scope": "complete assembly",
+      "failure": "presentation authoring Break",
+      "actual_native_processes": 0,
+      "full_log": {
+        "blob": "c812e99a6efd044e50c96e187385f87d3f79c991",
+        "bytes": 143552,
+        "sha256": "9224eaa1518890ee3d9289e6501377bbb07e6ddd28ca43f333e8f610eb7b9430"
+      }
+    },
+    {
+      "run": 43149177895,
+      "job": 130954037884,
+      "scope": "ELF writer",
+      "failure": "UnaryOp(Not, alpha)",
+      "actual_compilations": 0,
+      "actual_native_semantic_entries": 0,
+      "full_log": {
+        "blob": "1cc837e1784130c1a011cdfe0063c6e1a90cacae",
+        "bytes": 127236,
+        "sha256": "ab44dfeb9e9d6da63bf5f5b90c9fb7817d26a7869d93b8cad7f27104daae00de"
+      }
+    }
+  ],
+  "source_repairs": [
+    {
+      "from": "fullpub.presentation.r1.exact",
+      "to": "fullpub.presentation.r2",
+      "old": {
+        "blob": "a827a9e70936c063bad3bc96c250b752197c8888",
+        "bytes": 16836,
+        "sha256": "76d89a33b8e09f3e58a70c13f44c73a165943a1c6ca34a369ac25b1d918dea98"
+      },
+      "new": {
+        "blob": "6a92e0a0fd271a311c383b7723f09b8a6c335e7d",
+        "bytes": 16910,
+        "sha256": "ab4249320935a78377340faef471663955cfccb1535ce2fc4766726274a82822"
+      },
+      "changes": [
+        {
+          "old": "                    if cp < 55296 or cp > 57343:\n                        break\n                    at = get(w, NEXT)",
+          "new": "                    if cp < 55296 or cp > 57343:\n                        put(w, ENCODE_END, position)\n                        return encode_error(w)\n                    at = get(w, NEXT)"
+        },
+        {
+          "old": "            if part < 128 or part > 191:\n                count = 0\n                break\n            result = (result << 6) | (part & 63)\n            i = i + 1",
+          "new": "            if part < 128 or part > 191:\n                count = 0\n            else:\n                result = (result << 6) | (part & 63)\n                i = i + 1"
+        }
+      ]
+    },
+    {
+      "from": "assembly.publication.presentation.r3.draft",
+      "to": "assembly.publication.presentation.r4",
+      "old": {
+        "blob": "90327275e0949c0f43e9e6573dc547ef307990ac",
+        "bytes": 17029,
+        "sha256": "26a92a2d05cc6cc64280151bb2ae614eb350aef1c08e832e09b743dbbf3d6821"
+      },
+      "new": {
+        "blob": "258f415c0a98d461b269b61d573d20ddc2afb5dc",
+        "bytes": 17103,
+        "sha256": "16540795eb2ed5e004d6b01113c21cfcbd2a2e5552c4c24817521f2d45e6dc8f"
+      },
+      "changes": [
+        {
+          "old": "                    if cp < 55296 or cp > 57343:\n                        break\n                    at = get(w, NEXT)",
+          "new": "                    if cp < 55296 or cp > 57343:\n                        put(w, ENCODE_END, position)\n                        return encode_error(w)\n                    at = get(w, NEXT)"
+        },
+        {
+          "old": "            if part < 128 or part > 191:\n                count = 0\n                break\n            result = (result << 6) | (part & 63)\n            i = i + 1",
+          "new": "            if part < 128 or part > 191:\n                count = 0\n            else:\n                result = (result << 6) | (part & 63)\n                i = i + 1"
+        }
+      ]
+    },
+    {
+      "from": "assembly.service.control.r2.draft",
+      "to": "assembly.service.control.r3",
+      "old": {
+        "blob": "dc7693227f0b5c508995f8dcb23f7a8c4ab19ea9",
+        "bytes": 32560,
+        "sha256": "71738985440fa4b7f83ea2c0011f9cd53bec46330689047a016c45c3c19a397a"
+      },
+      "new": {
+        "blob": "a1dd3d84ce16b7038cd28badefee00c4f714e75a",
+        "bytes": 32542,
+        "sha256": "2f7c3c02507b0dadb268618b204e1e8e0dbceda5fc7ced0f44bb48abb07893fe"
+      },
+      "changes": [
+        {
+          "old": "        while index < count:\n            part = byte(w, OBS + index)\n            if part == 58:\n                break\n            if (part < 65 or part > 90)",
+          "new": "        while index < count and byte(w, OBS + index) != 58:\n            part = byte(w, OBS + index)\n            if (part < 65 or part > 90)"
+        }
+      ]
+    },
+    {
+      "from": "elf.writer.owner.r1.draft",
+      "to": "elf.writer.owner.r2",
+      "old": {
+        "blob": "ec262028c52d8f76ba1834212388c741d4ce3a7b",
+        "bytes": 28952,
+        "sha256": "4c93bc5fc97852bcd9c5fcc6c582ff79efa64af0124c01ee4b1054df95547458"
+      },
+      "new": {
+        "blob": "3f92d9e185f17f6df8b45d91a4201ce968723073",
+        "bytes": 28963,
+        "sha256": "84bbd81168ca645807ce0095755bb6e74efb1ffd9419cec3473a439e34dca985"
+      },
+      "changes": [
+        {
+          "old": "if not alpha and (i == 0 or part < 48 or part > 57):",
+          "new": "if alpha == False and (i == 0 or part < 48 or part > 57):"
+        },
+        {
+          "old": "sift: two break",
+          "new": "sift: two return 0"
+        }
+      ]
+    }
+  ],
+  "additional_static_repairs": "The same unsupported Break statement was also found at two ELF sift exits and one assembly code-prefix scan. These are proactive source rewrites of the same unsupported construct, not claimed as already-reached runtime failures.",
+  "preserved": {
+    "all_cases_and_assertions": true,
+    "all_B3_and_test_limits": true,
+    "source_issuer_and_lifetime_policies": true,
+    "compiler_unchanged": true
+  },
+  "current_paths": {
+    "full_publication_CI": "cli-full-publication-r2/ci/ci_cli_full_publication_r2.py",
+    "full_publication_source": "cli-full-publication-r1/tools/cli_publication_presentation_owner.py",
+    "complete_assembly_CI": "cli-assembly-service-r1/ci/ci_complete_public_assembly_r1.py"
+  },
+  "verification": {
+    "all_10_blobs_readback_exact": true,
+    "new_Python_AST": 0,
+    "new_generation": 0,
+    "new_B3": 0,
+    "new_native": 0
+  }
+}

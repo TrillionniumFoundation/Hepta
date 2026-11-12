@@ -7,21 +7,21 @@ SOURCE_PREFIX=R3+"machine-elf-writer-r1/"
 FILES=[
   {
     "path": "tools/hia_machine_elf_writer.py",
-    "gitsha": "ec262028c52d8f76ba1834212388c741d4ce3a7b",
-    "bytes": 28952,
-    "sha256": "4c93bc5fc97852bcd9c5fcc6c582ff79efa64af0124c01ee4b1054df95547458"
+    "gitsha": "3f92d9e185f17f6df8b45d91a4201ce968723073",
+    "bytes": 28963,
+    "sha256": "84bbd81168ca645807ce0095755bb6e74efb1ffd9419cec3473a439e34dca985"
   },
   {
     "path": "tools/build_hia_machine_elf_writer.py",
-    "gitsha": "8ced3a32755cf72c9f3101f13ebbf8e1227b14f6",
+    "gitsha": "9fda99bce633b363f4bd68378e31ac4e986743e8",
     "bytes": 7240,
-    "sha256": "6e168fa5f155245ffc388344e7ec2d6776cc26fc836e2589bd7380f84eec2b60"
+    "sha256": "8c21d6fd581ba3e0945b27c7070c444f803d8f26609efe58b1fe14565ca47c0d"
   },
   {
     "path": "tests/test_hia_machine_elf_writer.py",
-    "gitsha": "bc9935e256fe3f9adef06417cf0caed4fe13829d",
+    "gitsha": "78ddb619597883aa1e13a3b8138504e0b4755f6b",
     "bytes": 28616,
-    "sha256": "fa2d20200efd993d79213c84248c5db4baac4d64d0976008193d1d5356de54a6"
+    "sha256": "8b0c3d2b08397d136931da9618ae8060bd4f3ad1d699a5b91b059506cd199e84"
   },
   {
     "path": "docs/HIA_MACHINE_ELF_WRITER_NATIVE.md",

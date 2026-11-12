@@ -9,7 +9,7 @@ ROOT=WORK/"native-assembly-object-prefix-r1"
 OUT=ROOT/"development/build-r1"
 COMPILER=WORK/"native-edit-candidate-next/development/build-r1/source/1/B3.image.bin"
 AUTHOR=Path(sys.argv[1]).resolve()
-AUTHOR_SHA="1ae1f374ce0f3ab027ff09b7748ee877570a3a4b"
+AUTHOR_SHA="90d7242bdc2ab328280b2c760f988cff3ad21d10"
 REFERENCE_PINS={
   "tools/generate_hia_json_preflight.py": {
     "bytes": 13718,

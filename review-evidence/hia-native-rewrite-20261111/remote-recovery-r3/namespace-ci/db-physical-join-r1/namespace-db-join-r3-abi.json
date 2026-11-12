@@ -1,0 +1,269 @@
+{
+  "schema": "hia.namespace-main-db-shared-fs-join.authoring.v3",
+  "status": "NEW_SOURCES_NO_AST_GENERATION_AS_VM_B3_NATIVE_OR_OS_EXECUTION",
+  "source": {
+    "path": "tools/generate_hia_agent_namespace_db_fixed_join_r1.py",
+    "bytes": 40272,
+    "sha256": "c2d2d5f522febe4956db2ccd5d7b8003014fedb16b915c751c0e3a810008ba7b",
+    "status": "NEW_SOURCE_ONLY_ZERO_AST_GENERATION_VM_B3_NATIVE_OS",
+    "symbols_text_only": 39,
+    "git_blob": "92f06c473bd42fe5f3f16666c4e9aa9b3cebadcf",
+    "readback_exact": true
+  },
+  "components": [
+    {
+      "role": 1,
+      "owner": "actual FS5",
+      "source_blob": "8dd0e6557cdbd1b42b932f682c2c6c396e57e598",
+      "source_sha256": "d1bc8721c3cd5f3276024c239a11060a005161b8d9f23114495cec04d68c48a6",
+      "source_bytes": 22419
+    },
+    {
+      "role": 2,
+      "owner": "Map3",
+      "source_blob": "58f0b8db47774ac75d073336b9fc1160d34d3fd2",
+      "source_sha256": "1ac940af6b31b8e7cc02ada063a46fc5a28ee04f524bb60d5bfeb5fde109fcde",
+      "source_bytes": 23289
+    },
+    {
+      "role": 3,
+      "owner": "memory2 byte-read source correction",
+      "source_sha256": "e9f5e580bbd69149f51f577f9246fb3f553b1574726e945bd0af0a31f7996560",
+      "source_bytes": 22372
+    },
+    {
+      "role": 4,
+      "owner": "DMS8 mandatory-new-inode FS counter preflight",
+      "source_blob": "5a63a53fb9fe1c221c1b7092c40414425695ba06",
+      "source_sha256": "1e687d80d69d4ea69a5be15add0a41f18c0119ee721d6dda1e8dcd7450d0ea8d",
+      "source_bytes": 72759
+    },
+    {
+      "role": 5,
+      "owner": "main DB inode r2 internal u32/u64 loop type lift",
+      "source_blob": "a63842ae07fa8769b585705ae100d7181a4d6084",
+      "source_sha256": "cd51f698ba9e522b0b2411bdaa1e2fb9f9308f95503b78f35d7f28d21995ae52",
+      "source_bytes": 31678
+    },
+    {
+      "role": 6,
+      "owner": "new outer HIA continuation",
+      "source_blob": "92f06c473bd42fe5f3f16666c4e9aa9b3cebadcf",
+      "source_sha256": "c2d2d5f522febe4956db2ccd5d7b8003014fedb16b915c751c0e3a810008ba7b",
+      "source_bytes": 40272
+    }
+  ],
+  "private_input": {
+    "channel": "HIANDJX1",
+    "header_bytes": 128,
+    "fields": [
+      "magic",
+      "origin1USER/2CHILD/3RETIRE",
+      "role",
+      "actual u32 return",
+      "original request bytes",
+      "complete output capacity",
+      "complete workspace capacity",
+      "actual entry serial",
+      "context identity",
+      "actual context generation",
+      "current parent action",
+      "kernel page size4096",
+      "actual retirement sequence",
+      "zero",
+      "zero",
+      "zero"
+    ],
+    "issuer": "Fixed executor supplies USER only for raw stdin; every CHILD is copied from the actual selected immutable REQUEST/O/W and every RETIRE follows actual descriptor retirement. Bytes alone do not authenticate outside inputs.",
+    "growth": "Fixed executor replays the same immutable current descriptor. HIA revalidates the complete child source plus exact context/generation/action and extents. Before first user payload allocation, source immutability is an issuer precondition; the fixed header alone is not an external payload authentication claim."
+  },
+  "request": {
+    "magic": "HIANDJ01",
+    "bytes": 256,
+    "words": [
+      "magic",
+      "command",
+      "nonce low",
+      "nonce high",
+      "strict caller sequence",
+      "zero",
+      "nonzero caller lease exceptINIT",
+      "global file handle",
+      "arg0",
+      "arg1",
+      "arg2",
+      "arg3",
+      "arg4",
+      "arg5",
+      "payload bytes",
+      "17 zero qwords"
+    ],
+    "commands": {
+      "1": "INIT DMS4 and its only FS1, with explicit actual FS nonce",
+      "2": "FS gateway for tokens not owned by registered DB files; DMS independently excludes its internal SHM/attached tokens",
+      "3": "REGISTER actual issued live FS token and flags; precisely one actual FSTAT",
+      "4": "main DB LOCK target1/2/4",
+      "5": "main DB UNLOCK target0/1",
+      "6": "main DB CHECK_RESERVED",
+      "7": "DMS detach if present, then actual main DB CLOSE and per-inode context retirement",
+      "8": "DMS attach using actual DB inode, flags and private canonical path lease",
+      "9": "typed DMS retry/snapshot/WAL lock/unlock/detach/map/barrier suboperation"
+    },
+    "no_claim": "Raw token REGISTER is a private predecessor boundary. Full unixOpen, path admission and findReusableFd are not implemented here."
+  },
+  "output": {
+    "magic": "HIANDJ01",
+    "bytes": 256,
+    "statuses": {
+      "0": "terminal",
+      "1": "invoke actual child4 or5",
+      "2": "same-source GROW",
+      "3": "retire actual DB5 context",
+      "4294967293": "persistent refusal"
+    },
+    "fields": [
+      "magic",
+      "status",
+      "root nonce low",
+      "root nonce high",
+      "caller",
+      "strict parent action",
+      "role",
+      "context ID",
+      "child source bytes",
+      "create bit",
+      "minimum child workspace",
+      "minimum child output",
+      "stage",
+      "caller lease",
+      "global file ID",
+      "business code",
+      "payload bytes",
+      "raw errno",
+      "required outer workspace",
+      "required outer output",
+      "actual device",
+      "actual inode",
+      "version1",
+      "poison reason",
+      "retirement sequence",
+      "context generation",
+      "six zero qwords"
+    ]
+  },
+  "records": {
+    "minimum_workspace": 4096,
+    "allocation": "Dynamic aligned records, reclaimed through checked move_within; natural u64/actual allocation failures, no global row or byte quota.",
+    "kinds": {
+      "inode": 192,
+      "file": 128,
+      "temporary_blob": "40+align8(bytes)"
+    },
+    "file_states": "1 live, 2 pending registration or logically closed deferred token, 0 retired",
+    "inode_states": "2 newly issued,1 live,3 awaiting actual context retirement,0 retired"
+  },
+  "one_fstat": [
+    "Outer HIA dispatches DMS command16/FSTAT15 with actual token, source-bound parent action and FS lease1; DMS owns the shared FS caller/sysseq.",
+    "Complete actual DMS input/output/workspace is received through a fixed child channel. The retained FS request and full FS output are correlated with exact token, operation, nonce, call, sysseq and actual entry serial; stat144 duplicate fields are checked.",
+    "Only the resulting device/inode selects the dynamic DB5 context. New DB INIT uses the watermarks preceding this exact FSTAT.",
+    "The unchanged DB r1 REGISTER first requests op15/action1. HIA consumes the saved actual receipt once and constructs the full DB ACK. There is no second FSTAT syscall.",
+    "GROW never re-enters DMS or repeats the FSTAT producer. The cached result is not a reusable correctness cache and is dropped at its single consumption.",
+    "Known FSTAT failure returns the original selected findInodeInfo IOERR10 and raw errno before any new inode/file is committed; full unixOpen cleanup remains a future owner."
+  ],
+  "shared_chain": [
+    "All later DB fcntl/GETLK/deferred CLOSE requests pass through the same DMS command16 FS session; parent HIA does not own a second caller counter.",
+    "DB ACK contains the actual DMS retained FS request and complete actual FS output. The unchanged DB image validates it again.",
+    "Global file rows are reconciled with the actual completed DB workspace, preserving live and deferred state and preventing raw gateway access to those tokens.",
+    "DMS detachment precedes main DB close. Known ignored close/unlock errors remain visible in the original DB output; unknown/malformed replies never become success.",
+    "Last reference requests actual context retirement; terminal success is delayed until a fixed issuer returns the matching context/generation/parent action and next retirement sequence."
+  ],
+  "missing": [
+    "Actual assembler validation, six-role packer/build and complete fixed issuer controls; new mechanical source is present but unexecuted",
+    "actual source generation/profile and B3 limits",
+    "all-buffer VM/native replay and real fcntl/strace physical controls",
+    "open/findReusableFd path policy and exceptional error cleanup",
+    "DB mmap/nFetchOut and warning observations",
+    "full31SQL row/log/transaction/views/commit and migration ordinary Store/worker"
+  ],
+  "budgets": {
+    "B3": {
+      "cpu": 10,
+      "wall": 20,
+      "address_bytes": 268435456,
+      "output_bytes": 1048576,
+      "workspace_bytes": 1048576
+    },
+    "planned_fixed_each_process": {
+      "cpu": 90,
+      "wall": 180,
+      "address_bytes": 1073741824,
+      "core_bytes": 0,
+      "mandatory_exact_wait4": true
+    }
+  },
+  "qualification": "No inherited namespace/native counts. Original 0ef full FAIL/HOLD remains; NDU deletion actor UNKNOWN.",
+  "mechanical_source": {
+    "composer": {
+      "git_blob": "793ec691a910b642fc4f448f757af5b1052232d0",
+      "bytes": 13823,
+      "sha256": "4d15a5913e37770577265b74a21b75e7e8c0f1da15b5a31a2674a346c727d976",
+      "status": "NEW_UNASSEMBLED_UNEXECUTED",
+      "readback_exact": true
+    },
+    "composed": {
+      "git_blob": "d1dc951159eb0a940fe2b2c22254ac3482b56bd2",
+      "bytes": 63587,
+      "sha256": "733baf89f39e859bccb20c812c85412ab7d0cee49c7544a0e635879dbff90862",
+      "status": "NEW_UNASSEMBLED_UNEXECUTED",
+      "readback_exact": true
+    },
+    "reversed_base_text_exact": true,
+    "declared_replacements": 4,
+    "execution": 0
+  },
+  "corrected_metadata": "Initial ABI0c19cf14 appended a spurious trailing digit to memory1 and DMS7 Git blob IDs; this revision takes all four predecessor IDs/bytes/SHA256 directly from the verified fixed-join-r2 delivery index. No production source or execution claim changed.",
+  "observed_predecessor_failures": {
+    "memory1": "follow25 generation KeyError load; zero B3/VM/native; memory2 changes only unsupported widen(load(...)) to original byte(...)",
+    "DMS4": "28 VM tests,3 subtest failures: new inode GROW before mandatory FS counter exhaustion; zero B3/native/actualOS. Original28 methods preserved in independentDMS5 pluscached/first-error test29",
+    "DBnode1": "follow26 generation E_HIA_CFG u32/u64 loop result, zero B3/VM/native; newr2 only explicit HIA scalar widen",
+    "old_fixed_four_role_gate": "Never inherited; no four-role PASS claimed."
+  },
+  "planned_actual_gate": {
+    "build": {
+      "six_fresh_roles": true,
+      "fresh_HIA_packer": true,
+      "actual_packer_controls": 33,
+      "process_cpu_seconds": 90,
+      "process_wall_seconds": 180,
+      "address_bytes": 1073741824,
+      "original_B3_limits_unchanged": true
+    },
+    "physical": {
+      "tests": 18,
+      "tests_are_planned_not_observed": true,
+      "per_native_process": {
+        "cpu_seconds": 90,
+        "wall_seconds": 180,
+        "address_bytes": 1073741824,
+        "core_bytes": 0,
+        "mandatory_exact_wait4": true
+      },
+      "aggregate_wall_seconds": 900,
+      "required_strace": true,
+      "complete_record_partition_and_all_six_VM_replay": true,
+      "old_four_role_verifier_byte_identical": true,
+      "actual_syscalls_not_reissued_by_VM": true,
+      "three_separate_pure_abort_cleanup_controls": true,
+      "fixtures_outside_archive": "Complete regular bytes CAS, lstat modes/uid/gid/inode/hardlinks/symlink targets preserved; live fixture tree is not archived."
+    },
+    "counts": "UNKNOWN UNTIL ACTUAL EXECUTION",
+    "old_ROG": "FAIL/HOLD; NDU deletion actor UNKNOWN"
+  },
+  "builder_r2": {
+    "blob": "8c243156ccdbeec1ff9bea701dc9eb751713b704",
+    "bytes": 22884,
+    "sha256": "823a2a76f8941907da4c2131bf2ffff75e215ad69917b7667705193df9167f1d",
+    "mode": "100644",
+    "full_readback": true
+  }
+}

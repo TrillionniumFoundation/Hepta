@@ -12,9 +12,9 @@ FILES=[
   },
   {
     "path": "tools/cli_publication_cleanup_owner.py",
-    "gitsha": "29db0cf5cca88719117111a6401fdbd4f38c8669",
-    "bytes": 28555,
-    "sha256": "cc14196016a7726431d560c44aaf8c7a0b763c031c51f7e5b3cefa945de0d515"
+    "gitsha": "776161521c424afc2908cb9c667e7ec7d7bad4e3",
+    "bytes": 28738,
+    "sha256": "cf8a3f9b73c1dc1c18f0309fe311935856a73932fd4a7a57fe92e0bd512dd4e4"
   },
   {
     "path": "tests/test_hia_cli_temporary_directory.py",

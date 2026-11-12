@@ -1,0 +1,1138 @@
+{
+  "schema": "hia.namespace.follow25.authoritative-evidence-and-memory-source-fix.v1",
+  "status": "READBACK_COMPLETE_WITH_PRIOR_FAILURES_PRESERVED_NEW_FIX_UNEXECUTED",
+  "head": "df7f8cfab21687c32de6366724e955335b068ec4",
+  "recovery_run": 43148645083,
+  "memory": {
+    "job": 130952352418,
+    "status": "FAIL",
+    "first_failed_step": "memory-lease-r1-source-generation",
+    "first_exception": "KeyError: 'load'",
+    "original_source": {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/memory-lease-r1/namespace-memory-lease-r1-generator.py",
+      "blob": "660eb5e54344c3007a984ccd609c06e0b8ab4a20",
+      "bytes": 22379,
+      "sha256": "353f2ec8e9e95ce4186ea404893ea2f599e6963a29d541894e0613740ebef2c7",
+      "mode": "100644",
+      "role": "tools/generate_hia_agent_namespace_memory_leases.py"
+    },
+    "new_source": {
+      "git_blob": "7711bad8273121820a1fa169250acf9f6d43a726",
+      "bytes": 22372,
+      "sha256": "e9f5e580bbd69149f51f577f9246fb3f553b1574726e945bd0af0a31f7996560",
+      "readback_exact": true,
+      "status": "NEW_GENERATION_FIX_UNEXECUTED",
+      "diff": "Only return widen(load(s, at + 64)) -> return byte(s, at + 64)"
+    },
+    "exact_diff": "return widen(load(s, at + 64)) -> return byte(s, at + 64)",
+    "reason": "Exact reference0ef Builder.expr byte returns cast(buffer.load(..., u8), u64); no load or widen authoring builtin exists.",
+    "independent_review": {
+      "agent": "native_checker",
+      "scope": "the exact one expression and exact reference byte builtin only",
+      "reference_builder_blob": "540de9366827900d0b82b4893922ffd383c44fef",
+      "execution": 0
+    },
+    "retained_tests": 28,
+    "retained_VM_steps": 4000000,
+    "retained_VM_arena_bytes": 33554432,
+    "retained_B3_limits": {
+      "cpu_seconds": 10,
+      "wall_seconds": 20,
+      "address_bytes": 268435456,
+      "output_bytes": 1048576,
+      "workspace_bytes": 1048576
+    },
+    "previous_B3_compiles": 0,
+    "previous_native_entries": 0,
+    "new_generation": 0,
+    "new_VM": 0,
+    "new_native": 0,
+    "raw_artifact": {
+      "id": 13913012181,
+      "zip_bytes": 44589330,
+      "inner_tar_bytes": 5204760,
+      "inner_tar_sha256": "c844d4079b719e2db3000a7ace3622687556aa2db3e60c8396586818618e9836",
+      "members": 45,
+      "original_bytes": 39444689
+    },
+    "tests_and_validator_byte_identical": true,
+    "scope_and_resource_gates_unchanged": true
+  },
+  "dms_original": {
+    "actual_physical_syscalls": 0,
+    "compile_receipts": {},
+    "entries_by_role": {
+      "dms": {
+        "native": 0,
+        "vm": 642
+      },
+      "fs": {
+        "native": 0,
+        "vm": 942
+      }
+    },
+    "images": {},
+    "ledger_lines": 1974,
+    "native_entries": 0,
+    "status": "FAIL",
+    "synthetic_kernel_acks": 390,
+    "tests": {
+      "vm": {
+        "errors": [],
+        "expected_failures": [],
+        "failures": [
+          [
+            "__main__.RecordedVM.test_26_natural_u64_counters_never_wrap (index=5)",
+            "Traceback (most recent call last):\n  File \"/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-dms-r4/working-source/tests/test_hia_agent_namespace_dms_lifetime.py\", line 385, in test_26_natural_u64_counters_never_wrap\n    self.refuse(c,channel(raw))\n  File \"/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-dms-r4/working-source/tests/test_hia_agent_namespace_dms_lifetime.py\", line 198, in refuse\n    self.assertEqual(code,REFUSED)\nAssertionError: 2 != 4294967293\n"
+          ],
+          [
+            "__main__.RecordedVM.test_26_natural_u64_counters_never_wrap (index=6)",
+            "Traceback (most recent call last):\n  File \"/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-dms-r4/working-source/tests/test_hia_agent_namespace_dms_lifetime.py\", line 385, in test_26_natural_u64_counters_never_wrap\n    self.refuse(c,channel(raw))\n  File \"/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-dms-r4/working-source/tests/test_hia_agent_namespace_dms_lifetime.py\", line 198, in refuse\n    self.assertEqual(code,REFUSED)\nAssertionError: 2 != 4294967293\n"
+          ],
+          [
+            "__main__.RecordedVM.test_26_natural_u64_counters_never_wrap (index=7)",
+            "Traceback (most recent call last):\n  File \"/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-dms-r4/working-source/tests/test_hia_agent_namespace_dms_lifetime.py\", line 385, in test_26_natural_u64_counters_never_wrap\n    self.refuse(c,channel(raw))\n  File \"/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-dms-r4/working-source/tests/test_hia_agent_namespace_dms_lifetime.py\", line 198, in refuse\n    self.assertEqual(code,REFUSED)\nAssertionError: 2 != 4294967293\n"
+          ]
+        ],
+        "passed": false,
+        "skipped": [],
+        "test_ids": [
+          "__main__.RecordedVM.test_01_regeneration_and_original_bootstrap_limits",
+          "__main__.RecordedVM.test_02_first_node_exclusive_truncate_three_shared",
+          "__main__.RecordedVM.test_03_same_inode_cached_node_has_no_extra_open_or_stat",
+          "__main__.RecordedVM.test_04_shared_reference_unlock_keeps_other_connection",
+          "__main__.RecordedVM.test_05_local_exclusive_busy_has_no_syscall_or_mutation",
+          "__main__.RecordedVM.test_06_all_selected_setlk_errno_leave_masks_unchanged",
+          "__main__.RecordedVM.test_07_foreign_dms_writer_does_not_attempt_shared",
+          "__main__.RecordedVM.test_08_readonly_cantinit_attaches_and_remains_live",
+          "__main__.RecordedVM.test_09_cached_readonly_node_returns_ok_and_retry_uses_same_fd",
+          "__main__.RecordedVM.test_10_rw_error_falls_back_to_readonly_existing_file",
+          "__main__.RecordedVM.test_11_both_open_errors_preserve_last_cantopen_and_session",
+          "__main__.RecordedVM.test_12_uid_zero_owns_fchown_decision_and_ignored_failure",
+          "__main__.RecordedVM.test_13_open_and_truncate_eintr_retry_are_specific",
+          "__main__.RecordedVM.test_14_low_descriptor_fillers_match_original_open_loop",
+          "__main__.RecordedVM.test_15_database_fstat_error_precedes_node_and_open",
+          "__main__.RecordedVM.test_16_permission_stat_and_chmod_failure_are_ignored",
+          "__main__.RecordedVM.test_17_truncate_error_survives_cleanup_close_error",
+          "__main__.RecordedVM.test_18_dms_getlk_and_both_setlk_errors_have_exact_classes",
+          "__main__.RecordedVM.test_19_nonlast_delete_does_not_unlink_and_last_no_delete_keeps_path",
+          "__main__.RecordedVM.test_20_last_close_ignored_error_consumes_connection_once",
+          "__main__.RecordedVM.test_21_private_user_cannot_issue_child_or_unknown_channel",
+          "__main__.RecordedVM.test_22_ack_nonce_source_role_serial_and_action_are_bound",
+          "__main__.RecordedVM.test_23_grow_keeps_immutable_input_and_does_not_reissue_peer",
+          "__main__.RecordedVM.test_24_short_buffers_and_permanent_poison",
+          "__main__.RecordedVM.test_25_malformed_later_arena_and_stage_op_are_permanent",
+          "__main__.RecordedVM.test_26_natural_u64_counters_never_wrap",
+          "__main__.RecordedVM.test_27_process_lock_node_bypasses_physical_shm_only",
+          "__main__.RecordedVM.test_28_duplicate_db_binding_and_unknown_outcome_do_not_publish"
+        ],
+        "tests_loaded": 28,
+        "tests_run": 28,
+        "unexpected_successes": []
+      }
+    },
+    "vm_entries": 1584
+  },
+  "map_original": {
+    "actual_physical_syscalls": 0,
+    "compile_receipts": {
+      "map": {
+        "abi_status": 0,
+        "artifact_sha256": "35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b",
+        "case": "namespace-shm-map-r3",
+        "core_u32": 215385,
+        "forbidden_compiler_modules_loaded": [],
+        "format": "flat-x86-64",
+        "image_sha256": "35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b",
+        "input_bytes": 141552,
+        "input_sha256": "16368edc7488f98fd28eb284b6c1f18b46255c078466baab63e4949a9ac0a5c6",
+        "limits": {
+          "address_bytes": 268435456,
+          "core_dumpable": false,
+          "cpu_seconds": 10,
+          "output_capacity": 1048576,
+          "stack_bytes": 8388608,
+          "workspace_bytes": 1048576
+        },
+        "loader_operations": "copy; sealed shared loader or RW-to-RX mmap; fixed ABI call",
+        "native_elapsed_ns": 217835355,
+        "output_sha256": "07d89d2a2e41e9dc3624518064756d558606e81ff576334e390ff05ec1e7661d",
+        "output_unchanged": false,
+        "produced_bytes": 215385,
+        "produced_image": "/home/runner/work/_temp/hia-namespace-shm-map-recovery/namespace-shm-map-r3/validation-r1/compile/namespace-shm-map-r3.image.bin",
+        "produced_sha256": "54f5a49124b588fdb66580b95e10c0d6267692a3ec872b6e407c3763db065d21",
+        "result_u64": 215385,
+        "return_encoding": "zero-extended-u32",
+        "runner_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+        "source_sha256": "16368edc7488f98fd28eb284b6c1f18b46255c078466baab63e4949a9ac0a5c6",
+        "source_unchanged": true,
+        "status": "returned",
+        "wall_elapsed_ns": 335530384,
+        "workspace_header": {
+          "0": 141552,
+          "8": 0,
+          "16": 0,
+          "24": 141552,
+          "40": 0,
+          "48": 2,
+          "56": 215385,
+          "64": 26,
+          "72": 25,
+          "80": 656,
+          "88": 655,
+          "96": 4,
+          "104": 0,
+          "112": 2251,
+          "224": 1375,
+          "248": 38773,
+          "1024": 26
+        }
+      }
+    },
+    "entries_by_role": {
+      "map": {
+        "native": 459,
+        "vm": 918
+      }
+    },
+    "images": {
+      "map": {
+        "bytes": 215385,
+        "mode": 420,
+        "path": "/home/runner/work/_temp/hia-namespace-shm-map-recovery/namespace-shm-map-r3/validation-r1/compile/namespace-shm-map-r3.image.bin",
+        "sha256": "54f5a49124b588fdb66580b95e10c0d6267692a3ec872b6e407c3763db065d21"
+      }
+    },
+    "ledger_lines": 1953,
+    "native_entries": 459,
+    "status": "PASS",
+    "synthetic_kernel_acks": 576,
+    "tests": {
+      "paired": {
+        "errors": [],
+        "expected_failures": [],
+        "failures": [],
+        "passed": true,
+        "skipped": [],
+        "test_ids": [
+          "__main__.Paired.test_01_regeneration_original_source_limits",
+          "__main__.Paired.test_02_first_map_writes_every_page_then_realloc_and_mmap",
+          "__main__.Paired.test_03_no_extend_small_file_returns_null_without_allocation",
+          "__main__.Paired.test_04_readonly_results_and_actual_requested_protection",
+          "__main__.Paired.test_05_cached_mapping_has_no_new_peer_and_same_view",
+          "__main__.Paired.test_06_partial_mmap_failure_keeps_previous_region_and_recovers",
+          "__main__.Paired.test_07_process_lock_heap_zero_and_allocation_error_classes",
+          "__main__.Paired.test_08_realloc_failure_preserves_old_table_and_mapping",
+          "__main__.Paired.test_09_pwrite_eintr_retries_only_the_same_current_page",
+          "__main__.Paired.test_10_zero_write_stops_without_later_page_or_memory_call",
+          "__main__.Paired.test_11_stat_error_commits_size_before_failure",
+          "__main__.Paired.test_12_last_purge_ignores_known_unmap_errors_and_retires_once",
+          "__main__.Paired.test_13_virtual_64k_page_groups_regions_and_purge_nominal_length",
+          "__main__.Paired.test_14_known_growth_allocation_failure_keeps_written_file_and_session",
+          "__main__.Paired.test_15_ack_session_action_role_serial_and_source_binding",
+          "__main__.Paired.test_16_unknown_outcome_retains_uncertain_pending_and_refuses",
+          "__main__.Paired.test_17_short_views_do_not_write_beyond_minimum",
+          "__main__.Paired.test_18_state_records_and_pending_shape_reject_before_use",
+          "__main__.Paired.test_19_new_mapping_handle_cannot_alias_table_or_old_mapping",
+          "__main__.Paired.test_20_realloc_same_vector_identity_is_legal",
+          "__main__.Paired.test_21_invalid_user_fields_and_foreign_channels_permanently_refuse",
+          "__main__.Paired.test_22_natural_counters_and_address_arithmetic_do_not_wrap",
+          "__main__.Paired.test_23_barrier_is_separate_native_memory_continuation",
+          "__main__.Paired.test_24_file_tail_rounding_and_growth_after_partial_mapping"
+        ],
+        "tests_loaded": 24,
+        "tests_run": 24,
+        "unexpected_successes": []
+      },
+      "vm": {
+        "errors": [],
+        "expected_failures": [],
+        "failures": [],
+        "passed": true,
+        "skipped": [],
+        "test_ids": [
+          "__main__.RecordedVM.test_01_regeneration_original_source_limits",
+          "__main__.RecordedVM.test_02_first_map_writes_every_page_then_realloc_and_mmap",
+          "__main__.RecordedVM.test_03_no_extend_small_file_returns_null_without_allocation",
+          "__main__.RecordedVM.test_04_readonly_results_and_actual_requested_protection",
+          "__main__.RecordedVM.test_05_cached_mapping_has_no_new_peer_and_same_view",
+          "__main__.RecordedVM.test_06_partial_mmap_failure_keeps_previous_region_and_recovers",
+          "__main__.RecordedVM.test_07_process_lock_heap_zero_and_allocation_error_classes",
+          "__main__.RecordedVM.test_08_realloc_failure_preserves_old_table_and_mapping",
+          "__main__.RecordedVM.test_09_pwrite_eintr_retries_only_the_same_current_page",
+          "__main__.RecordedVM.test_10_zero_write_stops_without_later_page_or_memory_call",
+          "__main__.RecordedVM.test_11_stat_error_commits_size_before_failure",
+          "__main__.RecordedVM.test_12_last_purge_ignores_known_unmap_errors_and_retires_once",
+          "__main__.RecordedVM.test_13_virtual_64k_page_groups_regions_and_purge_nominal_length",
+          "__main__.RecordedVM.test_14_known_growth_allocation_failure_keeps_written_file_and_session",
+          "__main__.RecordedVM.test_15_ack_session_action_role_serial_and_source_binding",
+          "__main__.RecordedVM.test_16_unknown_outcome_retains_uncertain_pending_and_refuses",
+          "__main__.RecordedVM.test_17_short_views_do_not_write_beyond_minimum",
+          "__main__.RecordedVM.test_18_state_records_and_pending_shape_reject_before_use",
+          "__main__.RecordedVM.test_19_new_mapping_handle_cannot_alias_table_or_old_mapping",
+          "__main__.RecordedVM.test_20_realloc_same_vector_identity_is_legal",
+          "__main__.RecordedVM.test_21_invalid_user_fields_and_foreign_channels_permanently_refuse",
+          "__main__.RecordedVM.test_22_natural_counters_and_address_arithmetic_do_not_wrap",
+          "__main__.RecordedVM.test_23_barrier_is_separate_native_memory_continuation",
+          "__main__.RecordedVM.test_24_file_tail_rounding_and_growth_after_partial_mapping"
+        ],
+        "tests_loaded": 24,
+        "tests_run": 24,
+        "unexpected_successes": []
+      }
+    },
+    "vm_entries": 918
+  },
+  "raw_exports": {
+    "complete": [
+      {
+        "key": "dms-follow17/control/custody.json",
+        "bytes": 577,
+        "sha256": "87660039971911455daf78c8250ac65c2e094fef51e8d5c0bb91d9c3a50115ad"
+      },
+      {
+        "key": "dms-follow17/control/evidence-members.json",
+        "bytes": 34602,
+        "sha256": "debf13f27d4458634f7fc33aedffa2ecfd2bc2bfe62e9f3cb603e6f1c7503b91"
+      },
+      {
+        "key": "dms-follow17/run/namespace-dms-r4/generation-r1/result.json",
+        "bytes": 7823,
+        "sha256": "f79e7442910df4ff93fdd5d7e554050bf66d160867521b677eba3dd46282c6d0"
+      },
+      {
+        "key": "dms-follow17/run/namespace-dms-r4/validation-r1/result.json",
+        "bytes": 29548,
+        "sha256": "3e542126f60525000eb76e9344a0b1fe8f6aa8b56bd42e4577e2a0939f2c548c"
+      },
+      {
+        "key": "dms-follow17/run/namespace-dms-r4/validation-r1/vm.json",
+        "bytes": 4310,
+        "sha256": "ee638063e94681d543c39477c8501726cda0655544bf967043e36aec808bb7c0"
+      },
+      {
+        "key": "dms-follow17/run/namespace-dms-r4/validation-r1/vm.stdout.log",
+        "bytes": 6657,
+        "sha256": "962865215d685fd46ee4900c54b17dbb952094e9a7583a5f7af38fd70128ffdf"
+      },
+      {
+        "key": "dms-follow17/run/steps/checkout-pinned-baseline/process.json",
+        "bytes": 684,
+        "sha256": "35c852ac54301424208cedaf04f0ad9ae476a0532f87baf035487c4d82f531ed"
+      },
+      {
+        "key": "dms-follow17/run/steps/checkout-pinned-baseline/stderr.log",
+        "bytes": 44,
+        "sha256": "68ae5f70c237ae7992fb3f4387fee163afa3b015e6423d519f5c78049b084fd3"
+      },
+      {
+        "key": "dms-follow17/run/steps/checkout-pinned-baseline/stdout.log",
+        "bytes": 88,
+        "sha256": "594f75c379807db304f1716bc5a8f3ec537fa7622a59e469fc2a34e4adbe70cd"
+      },
+      {
+        "key": "dms-follow17/run/steps/dms-r4-fs5-source-generation/process.json",
+        "bytes": 895,
+        "sha256": "f5d80d1a307afde7c429daf86fef3da793578b4e6851651466557ffc9c4e9a2c"
+      },
+      {
+        "key": "dms-follow17/run/steps/dms-r4-fs5-source-generation/stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "key": "dms-follow17/run/steps/dms-r4-fs5-source-generation/stdout.log",
+        "bytes": 7091,
+        "sha256": "c6be7752f5d62de2b6798b782a0c097502440e20140aabbadec9967d4fdcd42a"
+      },
+      {
+        "key": "dms-follow17/run/steps/dms-r4-fs5-vm-b3-paired/process.json",
+        "bytes": 793,
+        "sha256": "84c720a59c036cb4496416e24b52c6a8eb746ec2c268859c517c4d575447c205"
+      },
+      {
+        "key": "dms-follow17/run/steps/dms-r4-fs5-vm-b3-paired/stderr.log",
+        "bytes": 387,
+        "sha256": "07f8011e0cf8bb13679411b4117d59b6c95e4f6f03aef53e29da1a4ede7aa52c"
+      },
+      {
+        "key": "dms-follow17/run/steps/dms-r4-fs5-vm-b3-paired/stdout.log",
+        "bytes": 4697,
+        "sha256": "ea363d5f43286841e441e4927b2144f989f26860bd4f9f3ae7751a43e5f6945d"
+      },
+      {
+        "key": "dms-follow17/run/steps/import-exact-reference-objects/process.json",
+        "bytes": 726,
+        "sha256": "e6b0f115aa16fb30bdc1201cd5cb1ecd8e6bc11b062e76321c7b67a2ea862d2d"
+      },
+      {
+        "key": "dms-follow17/run/steps/import-exact-reference-objects/stderr.log",
+        "bytes": 133,
+        "sha256": "56ff0a3b92ba81bbe09cc20fbb17de2c81d8212ddaa1a45c8b84ebd39b30e6b0"
+      },
+      {
+        "key": "dms-follow17/run/steps/import-exact-reference-objects/stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "key": "dms-follow17/run/steps/restore-exact-published-root-archives/process.json",
+        "bytes": 685,
+        "sha256": "5feea6b22dddd94d6c8ced4f21de16b1736cfcc88bb68fa5f833790f801f6b12"
+      },
+      {
+        "key": "dms-follow17/run/steps/restore-exact-published-root-archives/stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "key": "dms-follow17/run/steps/restore-exact-published-root-archives/stdout.log",
+        "bytes": 6095,
+        "sha256": "ba9230c78143dc504929a7986d3e71e222c9b8e688f398db51c6318a219e5b6e"
+      },
+      {
+        "key": "dms-follow17/run/steps/restore-exact-reference/process.json",
+        "bytes": 672,
+        "sha256": "a21b0209a1184d4e8dc6fce8899904a5e057fe804336e91b5cfabcc05e15a381"
+      },
+      {
+        "key": "dms-follow17/run/steps/restore-exact-reference/stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "key": "dms-follow17/run/steps/restore-exact-reference/stdout.log",
+        "bytes": 909,
+        "sha256": "a9b5cc9537d91ac8769a1c97b9a89a5523a16ab627a8179f0d5ae58b8757fee7"
+      },
+      {
+        "key": "dms-follow17/run/summary.json",
+        "bytes": 62122,
+        "sha256": "0dcb46f91c9d0b9e4c43ad6324d92c28f34712612f389aadf45c32108d80d845"
+      },
+      {
+        "key": "map-follow18/control/custody.json",
+        "bytes": 576,
+        "sha256": "808f2ead865eeb64dac53cc8e35481b0202e0eb0848f7e40a1158b7c1db4d131"
+      },
+      {
+        "key": "map-follow18/control/evidence-members.json",
+        "bytes": 36217,
+        "sha256": "075c30154c6fecdce1c223775170c67b4ea59d1e69d8dc7b05007198f5621430"
+      },
+      {
+        "key": "map-follow18/run/namespace-shm-map-r3/generation-r1/result.json",
+        "bytes": 6599,
+        "sha256": "7d6360d931cc6afbd6f7397401a7277919e0798acb5980ec6690b22a10e5c8b2"
+      },
+      {
+        "key": "map-follow18/run/namespace-shm-map-r3/validation-r1/paired.json",
+        "bytes": 2132,
+        "sha256": "c13a68ef337b70e9851b7474bb6d06285c859d6304070556760a0dd10da011ab"
+      },
+      {
+        "key": "map-follow18/run/namespace-shm-map-r3/validation-r1/paired.stdout.log",
+        "bytes": 3480,
+        "sha256": "a20a8147657e7587213e74c2855c2e3dab7e411b3e33b78d99380e67db5a9861"
+      },
+      {
+        "key": "map-follow18/run/namespace-shm-map-r3/validation-r1/result.json",
+        "bytes": 30349,
+        "sha256": "81f49be955de2f974799aae6478ae06b80c0b4e9b2ab824ff90fdacdbb8c5a15"
+      },
+      {
+        "key": "map-follow18/run/namespace-shm-map-r3/validation-r1/vm.json",
+        "bytes": 2228,
+        "sha256": "486a58221f7964b81795f828521de4ea8ef59749b2e03c68f41f20c333bbd56b"
+      },
+      {
+        "key": "map-follow18/run/namespace-shm-map-r3/validation-r1/vm.stdout.log",
+        "bytes": 3576,
+        "sha256": "493b5b999205441e41a9ad5441d1ad62f1fd5013896ff0aa62d8a7633af54a8c"
+      },
+      {
+        "key": "map-follow18/run/steps/checkout-pinned-baseline/process.json",
+        "bytes": 684,
+        "sha256": "82446a3d917a50fec828df016f4ea6b76d41cf1d4ecc227d06cc2c8ccef3604d"
+      },
+      {
+        "key": "map-follow18/run/steps/checkout-pinned-baseline/stderr.log",
+        "bytes": 44,
+        "sha256": "68ae5f70c237ae7992fb3f4387fee163afa3b015e6423d519f5c78049b084fd3"
+      },
+      {
+        "key": "map-follow18/run/steps/checkout-pinned-baseline/stdout.log",
+        "bytes": 88,
+        "sha256": "594f75c379807db304f1716bc5a8f3ec537fa7622a59e469fc2a34e4adbe70cd"
+      },
+      {
+        "key": "map-follow18/run/steps/import-exact-reference-objects/process.json",
+        "bytes": 727,
+        "sha256": "318a36c4ec8fea1a03f2e933abf6fb8d977e865b9e3800e13d217b42711ffcaa"
+      },
+      {
+        "key": "map-follow18/run/steps/import-exact-reference-objects/stderr.log",
+        "bytes": 133,
+        "sha256": "56ff0a3b92ba81bbe09cc20fbb17de2c81d8212ddaa1a45c8b84ebd39b30e6b0"
+      },
+      {
+        "key": "map-follow18/run/steps/import-exact-reference-objects/stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "key": "map-follow18/run/steps/restore-exact-published-root-archives/process.json",
+        "bytes": 693,
+        "sha256": "ad76e49d97b5965e57f88a42fad15a6cf834447ed0fdc9d2088f4d0f4317fe71"
+      },
+      {
+        "key": "map-follow18/run/steps/restore-exact-published-root-archives/stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "key": "map-follow18/run/steps/restore-exact-published-root-archives/stdout.log",
+        "bytes": 6095,
+        "sha256": "d054acc6c1bd29821b16069d40712a51a62c7476fcf099b2b5da82b4a12c762d"
+      },
+      {
+        "key": "map-follow18/run/steps/restore-exact-reference/process.json",
+        "bytes": 672,
+        "sha256": "fcd310962474fe3d5bb2fd7ff721c98a5e3b7a73768430716729926d05ecea34"
+      },
+      {
+        "key": "map-follow18/run/steps/restore-exact-reference/stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "key": "map-follow18/run/steps/restore-exact-reference/stdout.log",
+        "bytes": 910,
+        "sha256": "e0164b91f5da5a4db2f7a5c2b6536c34dea52f3c4309af01400048ff32d7a40f"
+      },
+      {
+        "key": "map-follow18/run/steps/shm-map-r3-source-generation/process.json",
+        "bytes": 911,
+        "sha256": "c10cdd32fa0f857d732378f85e3293593e4231bb232d383ef893629ca5f76179"
+      },
+      {
+        "key": "map-follow18/run/steps/shm-map-r3-source-generation/stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "key": "map-follow18/run/steps/shm-map-r3-source-generation/stdout.log",
+        "bytes": 6009,
+        "sha256": "0dd410db7a80a7162906cf5e114f49046a4fdecd6811b5c5a7807885927677b9"
+      },
+      {
+        "key": "map-follow18/run/steps/shm-map-r3-vm-b3-paired/process.json",
+        "bytes": 796,
+        "sha256": "9579b11bd4b6ebe36c104eb8cf656a25724c464aa96012fd13a02956b8e2e751"
+      },
+      {
+        "key": "map-follow18/run/steps/shm-map-r3-vm-b3-paired/stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "key": "map-follow18/run/steps/shm-map-r3-vm-b3-paired/stdout.log",
+        "bytes": 626,
+        "sha256": "dbcffeee50be2053ee3d940958609d976b17c375eada63275c177e9781dbdbaf"
+      },
+      {
+        "key": "map-follow18/run/summary.json",
+        "bytes": 52126,
+        "sha256": "77b58d7cb260f3cdcaebfa7bdbb3d0a59d1b87b550cc91f7001829b8d07d6a5b"
+      }
+    ],
+    "incomplete": [],
+    "nonparse": 0
+  },
+  "four_engine_originals": {
+    "summary": {
+      "actual_VM_entries": 0,
+      "actual_native_entries": 0,
+      "all_prior_failures_preserved": true,
+      "archives": {
+        "commit": {
+          "all_archive_bytes": 14603347,
+          "all_archive_members": 103,
+          "archive": {
+            "bytes": 2162412,
+            "git_blob": "800349b90e10ff70e454c4df84131bb2327a0d41",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r14/namespace-commit/development.tar.xz",
+            "sha256": "5434f4ca606ba0437fd9ec91928d8ad3209e90b3b22d68dd0b9c902c0c22557f"
+          },
+          "custody": {
+            "bytes": 50423,
+            "git_blob": "cfd31d62a081e41206c18ec1c21a7fa4ef14a5c4",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r14/namespace-commit/custody.json",
+            "sha256": "87e9e9ebab1ef970dedca4c1fb1cef37736d03de3de91d028b8398a0ecf6e66a"
+          },
+          "every_original_member_byte_mode_sha_equal": true,
+          "extra_original_manifest_bound_by_archive_git": [
+            {
+              "bytes": 50423,
+              "git_blob": "cfd31d62a081e41206c18ec1c21a7fa4ef14a5c4",
+              "mode": 420,
+              "name": "CUSTODY.json",
+              "sha256": "87e9e9ebab1ef970dedca4c1fb1cef37736d03de3de91d028b8398a0ecf6e66a"
+            }
+          ],
+          "historical_custody_scope": "DEVELOPMENT immutable commit component checkpoint. Full actual-file positive path in VM and actual B3 r1/r2 images; explicit three private-state r1 counterexamples and r2 permanent refusal; 22 additional actual-file fence/commit/error/replay cases (900 paired entries/782 real syscalls), with explicit injected errno/ACK-loss controls rather than a physical power-loss claim. Controlled private lock/pending/head predecessors and Python mechanical syscall transport; no fixed executor, complete multiwriter, migration, ordinary namespace or qualification closure.",
+          "original_payload_bytes": 14552924,
+          "original_payload_members": 102,
+          "selected": [
+            {
+              "bytes": 28098,
+              "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/commit/source/0/generate_hia_agent_namespace_commit.py",
+              "git_blob": "e7d74887aa8867af88ff23583c7e878e570bfc2e",
+              "mode": 420,
+              "name": "commit/authoring-r2/source/tools/generate_hia_agent_namespace_commit.py",
+              "sha256": "36ca9a5a52e72769fb02f2090fbec8e53e9f29431705b8de35b773ea7d825fe9"
+            },
+            {
+              "bytes": 8923,
+              "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/commit/source/1/HIA_AGENT_NAMESPACE_COMMIT.md",
+              "git_blob": "e19617d2135793c1d598ab10ab5a439a4e67c3bb",
+              "mode": 420,
+              "name": "commit/authoring-r2/source/docs/HIA_AGENT_NAMESPACE_COMMIT.md",
+              "sha256": "c9bdc9d790e332aa189a1338505e28a740cc5bdfe5c2821b092b9d1f15601397"
+            }
+          ],
+          "whole_archive_git_identity_equal": true
+        },
+        "log": {
+          "all_archive_bytes": 9224778,
+          "all_archive_members": 103,
+          "archive": {
+            "bytes": 2175548,
+            "git_blob": "6f72cee652911ecb02cbddd227d2b0a26517241c",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r12/namespace-log/development.tar.xz",
+            "sha256": "31c72917aeeeea05d0ae746cd0474d9eebef7aaac86d26336e785df4325f6db4"
+          },
+          "custody": {
+            "bytes": 50069,
+            "git_blob": "2149ab7e75d2db15e8af51b570dda78f4fe2ed0a",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r12/namespace-log/custody.json",
+            "sha256": "4ea4a181564adf4d86868b90659ceb98f10c2725fd0c4b2d3ec91d30ee216e24"
+          },
+          "every_original_member_byte_mode_sha_equal": true,
+          "extra_original_manifest_bound_by_archive_git": [
+            {
+              "bytes": 50069,
+              "git_blob": "2149ab7e75d2db15e8af51b570dda78f4fe2ed0a",
+              "mode": 384,
+              "name": "CUSTODY.json",
+              "sha256": "4ea4a181564adf4d86868b90659ceb98f10c2725fd0c4b2d3ec91d30ee216e24"
+            }
+          ],
+          "historical_custody_scope": "Streaming physical record codec only, all ten schemas/five classes. Actual immutable commit/view/index/rowid/migration/ordinary-store composition remains open. Private source leases are required; header validation is not external authentication. No cold/full qualification claim.",
+          "original_payload_bytes": 9174709,
+          "original_payload_members": 102,
+          "selected": [
+            {
+              "bytes": 17269,
+              "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/log/source/0/generate_hia_agent_namespace_log.py",
+              "git_blob": "e80792c3ff9cf7494b51e01ff1ab7d642ad590a4",
+              "mode": 420,
+              "name": "log/authoring-r2/source/tools/generate_hia_agent_namespace_log.py",
+              "sha256": "5634b5f126cd32e30956f54825c756ad68f634f33e60b975a9de072b28ae29e8"
+            },
+            {
+              "bytes": 7917,
+              "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/log/source/1/HIA_AGENT_NAMESPACE_PHYSICAL.md",
+              "git_blob": "694f46b105b87ce78aec19db6f248c96a4f3bac4",
+              "mode": 420,
+              "name": "log/authoring-r2/source/docs/HIA_AGENT_NAMESPACE_PHYSICAL.md",
+              "sha256": "428e1cd13484d27d95b43ec618e5e1906ddfa57aa4846ca8f52fe4852e462779"
+            },
+            {
+              "bytes": 14600,
+              "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/log/source/2/test_hia_agent_namespace_log.py",
+              "git_blob": "161a25a58a8caf0ba768d82bb6b823746a05046a",
+              "mode": 420,
+              "name": "log/authoring-r2/source/tests/test_hia_agent_namespace_log.py",
+              "sha256": "80fd94ca0fb6c828694ff8bafdc4e19ad1d69d75f91bcf9f7c1a454e2a8f91f6"
+            }
+          ],
+          "whole_archive_git_identity_equal": true
+        },
+        "transactions": {
+          "all_archive_bytes": 8793125,
+          "all_archive_members": 96,
+          "archive": {
+            "bytes": 3839412,
+            "git_blob": "610d42ed4bea8900b7ef795d762660b765a051a6",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r7/namespace-transactions-r3.tar.xz",
+            "sha256": "c62b45c93c43c61ab8c5f2fa63495be4c80b4d369ff860853f43b8a8c22bdd8f"
+          },
+          "custody": {
+            "bytes": 49900,
+            "git_blob": "afdba10b037564625918f8fe5ff5d1a3404b0336",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r7/namespace-transactions-r3-custody.json",
+            "sha256": "019d612a81e87e7d751bfd9efd320a0c04a977bc9a575dbb7566dbd749b1f663"
+          },
+          "every_original_member_byte_mode_sha_equal": true,
+          "extra_original_manifest_bound_by_archive_git": [
+            {
+              "bytes": 49900,
+              "git_blob": "afdba10b037564625918f8fe5ff5d1a3404b0336",
+              "mode": 384,
+              "name": "CUSTODY.json",
+              "sha256": "019d612a81e87e7d751bfd9efd320a0c04a977bc9a575dbb7566dbd749b1f663"
+            }
+          ],
+          "historical_custody_scope": "Development transaction state owner only. All physical/value/log peers remain references; no actual durable native database, installed owner, migration or cold/full qualification claim.",
+          "original_payload_bytes": 8743225,
+          "original_payload_members": 95,
+          "selected": [
+            {
+              "bytes": 20643,
+              "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/transactions/source/0/generate_hia_agent_namespace_transactions.py",
+              "git_blob": "463245f001da88e428f51604c778440a5d42dfc0",
+              "mode": 420,
+              "name": "transactions/local-native-r2/compile/source/tools/generate_hia_agent_namespace_transactions.py",
+              "sha256": "07daa89c57d049cab5b874128ec95dacdf9a42d762e333b9e8aac31c08f50db3"
+            },
+            {
+              "bytes": 10496,
+              "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/transactions/source/1/HIA_AGENT_NAMESPACE_TRANSACTIONS.md",
+              "git_blob": "1f94699addc636c2dc8e82680a95dbfeb83ed35c",
+              "mode": 420,
+              "name": "transactions/local-native-r2/compile/source/docs/HIA_AGENT_NAMESPACE_TRANSACTIONS.md",
+              "sha256": "293f18a61ff0a34d7a09258f641e8b127e95fc6264369416263de02ae036c887"
+            }
+          ],
+          "whole_archive_git_identity_equal": true
+        },
+        "views": {
+          "all_archive_bytes": 11072741,
+          "all_archive_members": 97,
+          "archive": {
+            "bytes": 2572864,
+            "git_blob": "bce24d49664ae72bdb020159a1008651594157a2",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r13/namespace-views/development.tar.xz",
+            "sha256": "08d906217c2d0b3dafc6f264b2306cd833f44d6c30b66e81ad1e0ddf2598bd52"
+          },
+          "custody": {
+            "bytes": 47724,
+            "git_blob": "d4c86ea603aa8f60fbd36a8f39ed62d6529adb95",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r13/namespace-views/custody.json",
+            "sha256": "54cc93a93baef2ca8406b3b9ca2e3917bff6e079242c8a1902e44180ae4d17b7"
+          },
+          "every_original_member_byte_mode_sha_equal": true,
+          "extra_original_manifest_bound_by_archive_git": [
+            {
+              "bytes": 47724,
+              "git_blob": "d4c86ea603aa8f60fbd36a8f39ed62d6529adb95",
+              "mode": 420,
+              "name": "CUSTODY.json",
+              "sha256": "54cc93a93baef2ca8406b3b9ca2e3917bff6e079242c8a1902e44180ae4d17b7"
+            }
+          ],
+          "historical_custody_scope": "Native paged record view only; ten schemas, two existing orders, five classes, actual file range reads. No complete rowid allocator/immutable commit/migration/ordinary store/cold/full qualification claim. Next commit document is explicitly an unexecuted draft.",
+          "original_payload_bytes": 11025017,
+          "original_payload_members": 96,
+          "selected": [
+            {
+              "bytes": 22801,
+              "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/views/source/0/generate_hia_agent_namespace_views.py",
+              "git_blob": "89f1f5c15d2df53ece28503d722689207bcb4c48",
+              "mode": 420,
+              "name": "views/authoring-r2/source/tools/generate_hia_agent_namespace_views.py",
+              "sha256": "50b387993a0dcc5316503deb4c286c642e2a278e5dba6441b1774e2828226588"
+            },
+            {
+              "bytes": 11090,
+              "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/views/source/1/HIA_AGENT_NAMESPACE_VIEWS.md",
+              "git_blob": "c09ba137720b98d04cd696aac5fd057efbf3f1ea",
+              "mode": 420,
+              "name": "views/authoring-r2/source/docs/HIA_AGENT_NAMESPACE_VIEWS.md",
+              "sha256": "8924dc8a6624b37a165ad25c3424fac099888a2b189d2d479e4ca89b8eaf7f2a"
+            },
+            {
+              "bytes": 21375,
+              "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/views/source/2/test_hia_agent_namespace_views.py",
+              "git_blob": "2398836a247f30062cced9a44a6c3983ff74f77a",
+              "mode": 420,
+              "name": "views/authoring-r2/source/tests/test_hia_agent_namespace_views.py",
+              "sha256": "7cd1db8908d0d896e77e8268ccf4a17351da265ad10cbd3eae8b2335fe466f60"
+            }
+          ],
+          "whole_archive_git_identity_equal": true
+        }
+      },
+      "commit": "df7f8cfab21687c32de6366724e955335b068ec4",
+      "limits": {
+        "address_bytes": 1073741824,
+        "core_bytes": 0,
+        "cpu_seconds": 90,
+        "wall_seconds": 180
+      },
+      "ordinary_Store_closed": false,
+      "original_counts_inherited": false,
+      "original_qualification": "0ef FAIL/HOLD unchanged; NDU deletion actor UNKNOWN",
+      "run_id": "43148645083",
+      "schema": "hia.namespace-four-original-engines-readonly-export.v1",
+      "scope": "Archive identity and full member byte/mode verification, then exact source export only",
+      "selected": [
+        {
+          "bytes": 20643,
+          "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/transactions/source/0/generate_hia_agent_namespace_transactions.py",
+          "git_blob": "463245f001da88e428f51604c778440a5d42dfc0",
+          "label": "transactions",
+          "mode": 420,
+          "name": "transactions/local-native-r2/compile/source/tools/generate_hia_agent_namespace_transactions.py",
+          "sha256": "07daa89c57d049cab5b874128ec95dacdf9a42d762e333b9e8aac31c08f50db3"
+        },
+        {
+          "bytes": 10496,
+          "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/transactions/source/1/HIA_AGENT_NAMESPACE_TRANSACTIONS.md",
+          "git_blob": "1f94699addc636c2dc8e82680a95dbfeb83ed35c",
+          "label": "transactions",
+          "mode": 420,
+          "name": "transactions/local-native-r2/compile/source/docs/HIA_AGENT_NAMESPACE_TRANSACTIONS.md",
+          "sha256": "293f18a61ff0a34d7a09258f641e8b127e95fc6264369416263de02ae036c887"
+        },
+        {
+          "bytes": 17269,
+          "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/log/source/0/generate_hia_agent_namespace_log.py",
+          "git_blob": "e80792c3ff9cf7494b51e01ff1ab7d642ad590a4",
+          "label": "log",
+          "mode": 420,
+          "name": "log/authoring-r2/source/tools/generate_hia_agent_namespace_log.py",
+          "sha256": "5634b5f126cd32e30956f54825c756ad68f634f33e60b975a9de072b28ae29e8"
+        },
+        {
+          "bytes": 7917,
+          "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/log/source/1/HIA_AGENT_NAMESPACE_PHYSICAL.md",
+          "git_blob": "694f46b105b87ce78aec19db6f248c96a4f3bac4",
+          "label": "log",
+          "mode": 420,
+          "name": "log/authoring-r2/source/docs/HIA_AGENT_NAMESPACE_PHYSICAL.md",
+          "sha256": "428e1cd13484d27d95b43ec618e5e1906ddfa57aa4846ca8f52fe4852e462779"
+        },
+        {
+          "bytes": 14600,
+          "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/log/source/2/test_hia_agent_namespace_log.py",
+          "git_blob": "161a25a58a8caf0ba768d82bb6b823746a05046a",
+          "label": "log",
+          "mode": 420,
+          "name": "log/authoring-r2/source/tests/test_hia_agent_namespace_log.py",
+          "sha256": "80fd94ca0fb6c828694ff8bafdc4e19ad1d69d75f91bcf9f7c1a454e2a8f91f6"
+        },
+        {
+          "bytes": 22801,
+          "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/views/source/0/generate_hia_agent_namespace_views.py",
+          "git_blob": "89f1f5c15d2df53ece28503d722689207bcb4c48",
+          "label": "views",
+          "mode": 420,
+          "name": "views/authoring-r2/source/tools/generate_hia_agent_namespace_views.py",
+          "sha256": "50b387993a0dcc5316503deb4c286c642e2a278e5dba6441b1774e2828226588"
+        },
+        {
+          "bytes": 11090,
+          "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/views/source/1/HIA_AGENT_NAMESPACE_VIEWS.md",
+          "git_blob": "c09ba137720b98d04cd696aac5fd057efbf3f1ea",
+          "label": "views",
+          "mode": 420,
+          "name": "views/authoring-r2/source/docs/HIA_AGENT_NAMESPACE_VIEWS.md",
+          "sha256": "8924dc8a6624b37a165ad25c3424fac099888a2b189d2d479e4ca89b8eaf7f2a"
+        },
+        {
+          "bytes": 21375,
+          "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/views/source/2/test_hia_agent_namespace_views.py",
+          "git_blob": "2398836a247f30062cced9a44a6c3983ff74f77a",
+          "label": "views",
+          "mode": 420,
+          "name": "views/authoring-r2/source/tests/test_hia_agent_namespace_views.py",
+          "sha256": "7cd1db8908d0d896e77e8268ccf4a17351da265ad10cbd3eae8b2335fe466f60"
+        },
+        {
+          "bytes": 28098,
+          "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/commit/source/0/generate_hia_agent_namespace_commit.py",
+          "git_blob": "e7d74887aa8867af88ff23583c7e878e570bfc2e",
+          "label": "commit",
+          "mode": 420,
+          "name": "commit/authoring-r2/source/tools/generate_hia_agent_namespace_commit.py",
+          "sha256": "36ca9a5a52e72769fb02f2090fbec8e53e9f29431705b8de35b773ea7d825fe9"
+        },
+        {
+          "bytes": 8923,
+          "export_path": "/home/runner/work/_temp/hia-namespace-engine-original-sources/commit/source/1/HIA_AGENT_NAMESPACE_COMMIT.md",
+          "git_blob": "e19617d2135793c1d598ab10ab5a439a4e67c3bb",
+          "label": "commit",
+          "mode": 420,
+          "name": "commit/authoring-r2/source/docs/HIA_AGENT_NAMESPACE_COMMIT.md",
+          "sha256": "c9bdc9d790e332aa189a1338505e28a740cc5bdfe5c2821b092b9d1f15601397"
+        }
+      ],
+      "source_checks": [
+        {
+          "after": {
+            "bytes": 3839412,
+            "git_blob": "610d42ed4bea8900b7ef795d762660b765a051a6",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r7/namespace-transactions-r3.tar.xz",
+            "sha256": "c62b45c93c43c61ab8c5f2fa63495be4c80b4d369ff860853f43b8a8c22bdd8f"
+          },
+          "before": {
+            "bytes": 3839412,
+            "git_blob": "610d42ed4bea8900b7ef795d762660b765a051a6",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r7/namespace-transactions-r3.tar.xz",
+            "sha256": "c62b45c93c43c61ab8c5f2fa63495be4c80b4d369ff860853f43b8a8c22bdd8f"
+          },
+          "unchanged": true
+        },
+        {
+          "after": {
+            "bytes": 49900,
+            "git_blob": "afdba10b037564625918f8fe5ff5d1a3404b0336",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r7/namespace-transactions-r3-custody.json",
+            "sha256": "019d612a81e87e7d751bfd9efd320a0c04a977bc9a575dbb7566dbd749b1f663"
+          },
+          "before": {
+            "bytes": 49900,
+            "git_blob": "afdba10b037564625918f8fe5ff5d1a3404b0336",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r7/namespace-transactions-r3-custody.json",
+            "sha256": "019d612a81e87e7d751bfd9efd320a0c04a977bc9a575dbb7566dbd749b1f663"
+          },
+          "unchanged": true
+        },
+        {
+          "after": {
+            "bytes": 2175548,
+            "git_blob": "6f72cee652911ecb02cbddd227d2b0a26517241c",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r12/namespace-log/development.tar.xz",
+            "sha256": "31c72917aeeeea05d0ae746cd0474d9eebef7aaac86d26336e785df4325f6db4"
+          },
+          "before": {
+            "bytes": 2175548,
+            "git_blob": "6f72cee652911ecb02cbddd227d2b0a26517241c",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r12/namespace-log/development.tar.xz",
+            "sha256": "31c72917aeeeea05d0ae746cd0474d9eebef7aaac86d26336e785df4325f6db4"
+          },
+          "unchanged": true
+        },
+        {
+          "after": {
+            "bytes": 50069,
+            "git_blob": "2149ab7e75d2db15e8af51b570dda78f4fe2ed0a",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r12/namespace-log/custody.json",
+            "sha256": "4ea4a181564adf4d86868b90659ceb98f10c2725fd0c4b2d3ec91d30ee216e24"
+          },
+          "before": {
+            "bytes": 50069,
+            "git_blob": "2149ab7e75d2db15e8af51b570dda78f4fe2ed0a",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r12/namespace-log/custody.json",
+            "sha256": "4ea4a181564adf4d86868b90659ceb98f10c2725fd0c4b2d3ec91d30ee216e24"
+          },
+          "unchanged": true
+        },
+        {
+          "after": {
+            "bytes": 2572864,
+            "git_blob": "bce24d49664ae72bdb020159a1008651594157a2",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r13/namespace-views/development.tar.xz",
+            "sha256": "08d906217c2d0b3dafc6f264b2306cd833f44d6c30b66e81ad1e0ddf2598bd52"
+          },
+          "before": {
+            "bytes": 2572864,
+            "git_blob": "bce24d49664ae72bdb020159a1008651594157a2",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r13/namespace-views/development.tar.xz",
+            "sha256": "08d906217c2d0b3dafc6f264b2306cd833f44d6c30b66e81ad1e0ddf2598bd52"
+          },
+          "unchanged": true
+        },
+        {
+          "after": {
+            "bytes": 47724,
+            "git_blob": "d4c86ea603aa8f60fbd36a8f39ed62d6529adb95",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r13/namespace-views/custody.json",
+            "sha256": "54cc93a93baef2ca8406b3b9ca2e3917bff6e079242c8a1902e44180ae4d17b7"
+          },
+          "before": {
+            "bytes": 47724,
+            "git_blob": "d4c86ea603aa8f60fbd36a8f39ed62d6529adb95",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r13/namespace-views/custody.json",
+            "sha256": "54cc93a93baef2ca8406b3b9ca2e3917bff6e079242c8a1902e44180ae4d17b7"
+          },
+          "unchanged": true
+        },
+        {
+          "after": {
+            "bytes": 2162412,
+            "git_blob": "800349b90e10ff70e454c4df84131bb2327a0d41",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r14/namespace-commit/development.tar.xz",
+            "sha256": "5434f4ca606ba0437fd9ec91928d8ad3209e90b3b22d68dd0b9c902c0c22557f"
+          },
+          "before": {
+            "bytes": 2162412,
+            "git_blob": "800349b90e10ff70e454c4df84131bb2327a0d41",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r14/namespace-commit/development.tar.xz",
+            "sha256": "5434f4ca606ba0437fd9ec91928d8ad3209e90b3b22d68dd0b9c902c0c22557f"
+          },
+          "unchanged": true
+        },
+        {
+          "after": {
+            "bytes": 50423,
+            "git_blob": "cfd31d62a081e41206c18ec1c21a7fa4ef14a5c4",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r14/namespace-commit/custody.json",
+            "sha256": "87e9e9ebab1ef970dedca4c1fb1cef37736d03de3de91d028b8398a0ecf6e66a"
+          },
+          "before": {
+            "bytes": 50423,
+            "git_blob": "cfd31d62a081e41206c18ec1c21a7fa4ef14a5c4",
+            "mode": 420,
+            "path": "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/reconstructed-components-r14/namespace-commit/custody.json",
+            "sha256": "87e9e9ebab1ef970dedca4c1fb1cef37736d03de3de91d028b8398a0ecf6e66a"
+          },
+          "unchanged": true
+        }
+      ],
+      "source_pins": {},
+      "status": "PASS"
+    },
+    "files": [
+      {
+        "bytes": 20643,
+        "git_blob": "463245f001da88e428f51604c778440a5d42dfc0",
+        "label": "transactions",
+        "mode": 420,
+        "name": "transactions/local-native-r2/compile/source/tools/generate_hia_agent_namespace_transactions.py",
+        "sha256": "07daa89c57d049cab5b874128ec95dacdf9a42d762e333b9e8aac31c08f50db3",
+        "readback_complete": true,
+        "git_create_equals_original_git_sha": true,
+        "git_full_text_readback": true
+      },
+      {
+        "bytes": 10496,
+        "git_blob": "1f94699addc636c2dc8e82680a95dbfeb83ed35c",
+        "label": "transactions",
+        "mode": 420,
+        "name": "transactions/local-native-r2/compile/source/docs/HIA_AGENT_NAMESPACE_TRANSACTIONS.md",
+        "sha256": "293f18a61ff0a34d7a09258f641e8b127e95fc6264369416263de02ae036c887",
+        "readback_complete": true,
+        "git_create_equals_original_git_sha": true,
+        "git_full_text_readback": true
+      },
+      {
+        "bytes": 17269,
+        "git_blob": "e80792c3ff9cf7494b51e01ff1ab7d642ad590a4",
+        "label": "log",
+        "mode": 420,
+        "name": "log/authoring-r2/source/tools/generate_hia_agent_namespace_log.py",
+        "sha256": "5634b5f126cd32e30956f54825c756ad68f634f33e60b975a9de072b28ae29e8",
+        "readback_complete": true,
+        "git_create_equals_original_git_sha": true,
+        "git_full_text_readback": true
+      },
+      {
+        "bytes": 7917,
+        "git_blob": "694f46b105b87ce78aec19db6f248c96a4f3bac4",
+        "label": "log",
+        "mode": 420,
+        "name": "log/authoring-r2/source/docs/HIA_AGENT_NAMESPACE_PHYSICAL.md",
+        "sha256": "428e1cd13484d27d95b43ec618e5e1906ddfa57aa4846ca8f52fe4852e462779",
+        "readback_complete": true,
+        "git_create_equals_original_git_sha": true,
+        "git_full_text_readback": true
+      },
+      {
+        "bytes": 14600,
+        "git_blob": "161a25a58a8caf0ba768d82bb6b823746a05046a",
+        "label": "log",
+        "mode": 420,
+        "name": "log/authoring-r2/source/tests/test_hia_agent_namespace_log.py",
+        "sha256": "80fd94ca0fb6c828694ff8bafdc4e19ad1d69d75f91bcf9f7c1a454e2a8f91f6",
+        "readback_complete": true,
+        "git_create_equals_original_git_sha": true,
+        "git_full_text_readback": true
+      },
+      {
+        "bytes": 22801,
+        "git_blob": "89f1f5c15d2df53ece28503d722689207bcb4c48",
+        "label": "views",
+        "mode": 420,
+        "name": "views/authoring-r2/source/tools/generate_hia_agent_namespace_views.py",
+        "sha256": "50b387993a0dcc5316503deb4c286c642e2a278e5dba6441b1774e2828226588",
+        "readback_complete": true,
+        "git_create_equals_original_git_sha": true,
+        "git_full_text_readback": true
+      },
+      {
+        "bytes": 11090,
+        "git_blob": "c09ba137720b98d04cd696aac5fd057efbf3f1ea",
+        "label": "views",
+        "mode": 420,
+        "name": "views/authoring-r2/source/docs/HIA_AGENT_NAMESPACE_VIEWS.md",
+        "sha256": "8924dc8a6624b37a165ad25c3424fac099888a2b189d2d479e4ca89b8eaf7f2a",
+        "readback_complete": true,
+        "git_create_equals_original_git_sha": true,
+        "git_full_text_readback": true
+      },
+      {
+        "bytes": 21375,
+        "git_blob": "2398836a247f30062cced9a44a6c3983ff74f77a",
+        "label": "views",
+        "mode": 420,
+        "name": "views/authoring-r2/source/tests/test_hia_agent_namespace_views.py",
+        "sha256": "7cd1db8908d0d896e77e8268ccf4a17351da265ad10cbd3eae8b2335fe466f60",
+        "readback_complete": true,
+        "git_create_equals_original_git_sha": true,
+        "git_full_text_readback": true
+      },
+      {
+        "bytes": 28098,
+        "git_blob": "e7d74887aa8867af88ff23583c7e878e570bfc2e",
+        "label": "commit",
+        "mode": 420,
+        "name": "commit/authoring-r2/source/tools/generate_hia_agent_namespace_commit.py",
+        "sha256": "36ca9a5a52e72769fb02f2090fbec8e53e9f29431705b8de35b773ea7d825fe9",
+        "readback_complete": true,
+        "git_create_equals_original_git_sha": true,
+        "git_full_text_readback": true
+      },
+      {
+        "bytes": 8923,
+        "git_blob": "e19617d2135793c1d598ab10ab5a439a4e67c3bb",
+        "label": "commit",
+        "mode": 420,
+        "name": "commit/authoring-r2/source/docs/HIA_AGENT_NAMESPACE_COMMIT.md",
+        "sha256": "c9bdc9d790e332aa189a1338505e28a740cc5bdfe5c2821b092b9d1f15601397",
+        "readback_complete": true,
+        "git_create_equals_original_git_sha": true,
+        "git_full_text_readback": true
+      }
+    ],
+    "target_generation": 0,
+    "target_VM": 0,
+    "target_native": 0
+  },
+  "scope": "Original selected raw text readback and fresh source fix only. Synthetic primitive ACKs are not actual OS calls; ordinary Store and full31SQL remain OPEN. Original0ef full remains FAIL/HOLD; deletion actor UNKNOWN."
+}

@@ -7,9 +7,9 @@ R3="review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/"
 FILES=[
   {
     "path": "tools/assembly_syntax_owner.py",
-    "blob": "73aab0b48d612fb037ccf0e4d0b46a54890afa0e",
-    "bytes": 37446,
-    "sha256": "4bc7fc5bd7b696e92b0f08a225dea2153790d7770d0ad2667f3d3ce8dc996857"
+    "blob": "227e06a56e8da7091d72004c83daeea7d24ee884",
+    "bytes": 37844,
+    "sha256": "365d8460c6d502685815ad0039e0d5de5503326abf58db13cd922605d097d11e"
   },
   {
     "path": "tests/test_hia_assembly_syntax_native.py",

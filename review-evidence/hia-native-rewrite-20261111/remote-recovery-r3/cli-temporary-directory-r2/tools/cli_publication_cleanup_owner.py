@@ -46,13 +46,13 @@ def entry(s:readbuf, r:readbuf, w:mutbuf) -> u32:
     if get(w, PHASE) == 1:
         if length(r) != 0:
             return refused(w)
-        v = initial(s, w)
+        v = status_wide(initial(s, w))
         if v != 0:
             return v
     elif get(w, PENDING) != 0:
         if reply_valid(r, w) == 0:
             return refused(w)
-        v = response(r, w)
+        v = status_wide(response(r, w))
         if v != 0:
             return v
     else:
@@ -74,21 +74,21 @@ def entry(s:readbuf, r:readbuf, w:mutbuf) -> u32:
         phase = get(w, c + C_PHASE)
         v = 0
         if phase == 1:
-            v = next_job(w)
+            v = status_wide(next_job(w))
         elif phase == 2:
-            v = begin_walk(w)
+            v = status_wide(begin_walk(w))
         elif phase == 20:
-            v = entry_next(w)
+            v = status_wide(entry_next(w))
         elif phase == 100:
-            v = callback_begin(w)
+            v = status_wide(callback_begin(w))
         elif phase == 110:
-            v = reset_start(w)
+            v = status_wide(reset_start(w))
         elif phase == 120:
-            v = callback_unlink(w)
+            v = status_wide(callback_unlink(w))
         elif phase == 130:
-            v = callback_recurse(w)
+            v = status_wide(callback_recurse(w))
         elif phase == 150:
-            v = abort_next(w)
+            v = status_wide(abort_next(w))
         else:
             return refused(w)
         if v != 0:
@@ -871,4 +871,7 @@ def put(w:mutbuf, at:u64, value:u64) -> u64:
         store(w, at + i, (value >> (i * 8)) & 255)
         i = i + 1
     return 0
+def status_wide(value:u32) -> u64:
+    return value
+
 '''

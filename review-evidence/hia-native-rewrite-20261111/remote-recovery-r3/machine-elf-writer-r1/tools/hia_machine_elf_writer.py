@@ -367,7 +367,7 @@ def name(s:readbuf, w:mutbuf, identifier:u64) -> u64:
     while i < size:
         part = byte(s, begin + i)
         alpha = (part >= 65 and part <= 90) or (part >= 97 and part <= 122) or part == 95
-        if not alpha and (i == 0 or part < 48 or part > 57):
+        if alpha == False and (i == 0 or part < 48 or part > 57):
             return semantic(w, 5)
         i = i + 1
     if word(s, at + 48) != size:
@@ -612,12 +612,12 @@ def sift(w:mutbuf, base:u64, count:u64, start:u64) -> u64:
     while root < count:
         child = root * 2 + 1
         if child >= count:
-            break
+            return 0
         if child + 1 < count:
             if pair_greater(w, base, child + 1, child) != 0:
                 child = child + 1
         if pair_greater(w, base, root, child) != 0:
-            break
+            return 0
         pair_swap(w, base, root, child)
         root = child
     return 0

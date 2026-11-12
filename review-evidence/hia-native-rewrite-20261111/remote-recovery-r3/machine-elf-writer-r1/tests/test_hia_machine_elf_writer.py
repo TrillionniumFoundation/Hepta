@@ -12,7 +12,7 @@ BAD=0xfffffffd
 GROW=0xfffffffe
 CANARY=bytes(range(160,176))
 REFERENCE_SHA="c77cc453d33058ccbeea9e056191001982892a3e59386958090122ccf487c101"
-OWNER_SHA="4c93bc5fc97852bcd9c5fcc6c582ff79efa64af0124c01ee4b1054df95547458"
+OWNER_SHA="84bbd81168ca645807ce0095755bb6e74efb1ffd9419cec3473a439e34dca985"
 def digest(raw):return sha256(raw).hexdigest()
 def save(path,value):
     path.parent.mkdir(parents=True,exist_ok=True)

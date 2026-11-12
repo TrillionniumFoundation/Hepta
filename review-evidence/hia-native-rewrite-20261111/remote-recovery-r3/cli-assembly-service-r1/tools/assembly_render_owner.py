@@ -219,13 +219,12 @@ def measure(s:readbuf, w:mutbuf) -> u64:
             nodes = nodes + 1
             at = at + 1
             closed = 0
-            while at < length(s):
+            while at < length(s) and closed == 0:
                 c = byte(s, at)
                 at = at + 1
                 if c == 34:
                     closed = 1
-                    break
-                if c == 92:
+                elif c == 92:
                     if at == length(s):
                         return 0
                     at = at + 1
@@ -244,11 +243,13 @@ def measure(s:readbuf, w:mutbuf) -> u64:
             at = at + 1
         else:
             nodes = nodes + 1
-            while at < length(s):
+            scanning = 1
+            while at < length(s) and scanning != 0:
                 c = byte(s, at)
                 if c == 34 or c == 91 or c == 93 or c == 123 or c == 125 or c == 44 or c == 58 or c == 32 or c == 9 or c == 10 or c == 13:
-                    break
-                at = at + 1
+                    scanning = 0
+                else:
+                    at = at + 1
     if depth != 0 or nodes == 0:
         return 0
     put(w, UPPER_NODES, nodes)

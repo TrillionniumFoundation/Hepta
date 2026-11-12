@@ -13,9 +13,9 @@ FILES=[
   },
   {
     "path": "tools/cli_publication_presentation_owner.py",
-    "gitsha": "a827a9e70936c063bad3bc96c250b752197c8888",
-    "bytes": 16836,
-    "sha256": "76d89a33b8e09f3e58a70c13f44c73a165943a1c6ca34a369ac25b1d918dea98"
+    "gitsha": "6a92e0a0fd271a311c383b7723f09b8a6c335e7d",
+    "bytes": 16910,
+    "sha256": "ab4249320935a78377340faef471663955cfccb1535ce2fc4766726274a82822"
   },
   {
     "path": "tools/cli_publication_policy2_fixture.py",
@@ -91,7 +91,7 @@ DEPS=[
   ],
   [
     "cli-temporary-directory-r2/tools/cli_publication_cleanup_owner.py",
-    "29db0cf5cca88719117111a6401fdbd4f38c8669",
+    "776161521c424afc2908cb9c667e7ec7d7bad4e3",
     "tools/cli_publication_cleanup_owner.py"
   ],
   [

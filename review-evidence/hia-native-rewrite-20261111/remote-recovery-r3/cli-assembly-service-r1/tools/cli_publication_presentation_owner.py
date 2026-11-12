@@ -259,7 +259,8 @@ def encoded_text(s:readbuf, w:mutbuf) -> u64:
                     if cp == MAX:
                         return 0
                     if cp < 55296 or cp > 57343:
-                        break
+                        put(w, ENCODE_END, position)
+                        return encode_error(w)
                     at = get(w, NEXT)
                     position = position + 1
                 put(w, ENCODE_END, position)
@@ -318,9 +319,9 @@ def point(s:readbuf, w:mutbuf, at:u64, raw:u64) -> u64:
             part = byte(s, at + i)
             if part < 128 or part > 191:
                 count = 0
-                break
-            result = (result << 6) | (part & 63)
-            i = i + 1
+            else:
+                result = (result << 6) | (part & 63)
+                i = i + 1
         if count != 0:
             minimum = 128
             if count == 3:

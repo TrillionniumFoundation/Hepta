@@ -11,8 +11,8 @@ common.PINS[COMMON]=raw;common.PINS[Path(__file__).resolve()]=Path(__file__).rea
 R3="review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/"
 ROOT=common.BASE/"root-recovery/workspace/native-assembly-object-prefix-r1"
 FILES=[
- ("generate_assembly_object_prefix_r1.py","1ae1f374ce0f3ab027ff09b7748ee877570a3a4b"),
- ("build_assembly_object_prefix_ci_r1.py","82f7e2b69d70047a465cc7fcdadb1ebc102d7639"),
+ ("generate_assembly_object_prefix_r1.py","90d7242bdc2ab328280b2c760f988cff3ad21d10"),
+ ("build_assembly_object_prefix_ci_r1.py","ba3c2a387be4ff92a83eeebeceaf2d58db6773be"),
  ("test_assembly_object_prefix_r2.py","cc493fc40c284df22866a825467866c98a889c8c")]
 GROUPS=("semantic","unicode","depth","nodes-at","nodes-over","bytes-at","bytes-over",
     "snapshot-before-bytes","escaped-at","escaped-over","unicode-at","unicode-over","private")

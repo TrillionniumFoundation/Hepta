@@ -3,7 +3,7 @@ from pathlib import Path
 from hashlib import sha256
 import argparse,ast,importlib.util,json,os,resource,stat,sys,time,traceback
 sys.dont_write_bytecode=True
-OWNER_SHA="4c93bc5fc97852bcd9c5fcc6c582ff79efa64af0124c01ee4b1054df95547458"
+OWNER_SHA="84bbd81168ca645807ce0095755bb6e74efb1ffd9419cec3473a439e34dca985"
 AUTHOR_SHA="717d3bbd4bfc22bcca68aea7375787bfe9b0a355d74279c7258437dda2a4851b"
 HELPER_SHA="555472263213f15deb239fcf3bf8e5b273a28caf3a67bb29ffd037f171d7ae5c"
 COMPILER_SHA="35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"

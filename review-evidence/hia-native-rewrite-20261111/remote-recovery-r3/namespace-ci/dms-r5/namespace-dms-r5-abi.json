@@ -1,0 +1,365 @@
+{
+  "schema": "hia-namespace-dms-lifetime-private-abi-v1",
+  "revision": "source-r5",
+  "status": "AUTHORING_ONLY_R5_COUNTER_PREFLIGHT_FIX_NOT_GENERATED_OR_EXECUTED",
+  "source": {
+    "generator_blob": "10c95eaeec93daf7f31d152c64e729c27cb697a7",
+    "bytes": 37241,
+    "sha256": "be988047e48b30cb85db48a43486b3397ceadec01c65c8fa486811eccb6b9da5"
+  },
+  "selected_reference": {
+    "repository": "sqlite/sqlite",
+    "ref": "version-3.46.1",
+    "files": [
+      "src/os_unix.c",
+      "src/sqlite.h.in"
+    ],
+    "policy": [
+      "ordinary Linux x86-64 unix VFS",
+      "SQLITE_ENABLE_SETLK_TIMEOUT absent",
+      "O_CLOEXEC present",
+      "HAVE_FCHOWN present",
+      "minimum real file descriptor 3",
+      "default file mode 0644",
+      "normal database-path '-shm' suffix",
+      "no SQLITE_SHM_DIRECTORY or 8.3 suffix compile option"
+    ]
+  },
+  "scope": {
+    "node_connection_lifecycle_source": true,
+    "wal_masks_source": true,
+    "deadman_lock_source": true,
+    "all_shared_memory_mappings": false,
+    "memory_regions": false,
+    "ordinary_AgentStore": false,
+    "migration": false,
+    "namespace_root_admission": false,
+    "complete_native_store": false,
+    "whole_stack": false,
+    "current_fixed_fencing_result_does_not_qualify_this_revision": true
+  },
+  "channels": {
+    "header_bytes": 64,
+    "magic": "HIANDX01",
+    "u64_little_endian": [
+      [
+        "q0",
+        "magic"
+      ],
+      [
+        "q1",
+        "origin 1 user / 2 actual FS completion / 3 unknown FS outcome"
+      ],
+      [
+        "q2",
+        "role 0 user / 1 FS"
+      ],
+      [
+        "q3",
+        "actual child return, zero for user/unknown"
+      ],
+      [
+        "q4",
+        "exact raw payload bytes"
+      ],
+      [
+        "q5",
+        "actual child invocation serial; zero for user/unknown"
+      ],
+      [
+        "q6..q7",
+        "zero"
+      ]
+    ],
+    "contract": "The fixed dispatcher must wrap raw external input as USER and wrap only actual issued child invocations as FS. These private byte headers are not arbitrary external authentication.",
+    "immutable_resume": "After GROW the fixed dispatcher must preserve and reuse the same complete readonly input view. Header comparison is continuity checking within that immutable lease, not authentication of replacement bytes."
+  },
+  "request": {
+    "header_bytes": 256,
+    "magic": "HIANDM01",
+    "qwords": [
+      [
+        "0",
+        "magic"
+      ],
+      [
+        "1",
+        "command"
+      ],
+      [
+        "2,3",
+        "DMS session nonces"
+      ],
+      [
+        "4",
+        "next call sequence for user; current call for FS ACK"
+      ],
+      [
+        "5",
+        "zero for user; exact issued action for FS ACK"
+      ],
+      [
+        "6",
+        "nonzero current source lease for user and ACK"
+      ],
+      [
+        "7",
+        "connection handle, or role 1 in ACK"
+      ],
+      [
+        "8..12",
+        "command-dependent fields"
+      ],
+      [
+        "13",
+        "WAL kind 1 shared/2 exclusive"
+      ],
+      [
+        "14",
+        "WAL offset"
+      ],
+      [
+        "15",
+        "WAL count"
+      ],
+      [
+        "16",
+        "exact payload bytes after 256"
+      ],
+      [
+        "17",
+        "delete flag on DETACH, otherwise zero"
+      ],
+      [
+        "18..31",
+        "zero"
+      ]
+    ],
+    "commands": [
+      {
+        "id": 1,
+        "name": "INIT",
+        "fields": "q8/q9 issued FS session nonces; q10/q11/q12 actual current FS call/system/invocation sequences; q13=3 q14=420 q15=1; no payload or user sequence/lease",
+        "effect": "adopt an exclusively issued FS session view; owner does not initialize or forge a prior session"
+      },
+      {
+        "id": 2,
+        "name": "ATTACH",
+        "fields": "q7=0; q8 issued DB FD token; q9 DB dev; q10 DB inode; q11 readonly_shm; q12 process-lock bit; payload canonical DB path without NUL",
+        "effect": "allocate connection first; share node by DB identity; fresh node performs original database FSTAT then SHM open/DMS sequence; reject an already attached DB descriptor token before allocation, matching the retained caller's one-pShm invariant"
+      },
+      {
+        "id": 3,
+        "name": "RETRY_DMS",
+        "fields": "q7 connection; remaining arguments zero",
+        "effect": "native unixShmMap prelude only; retry node.isUnlocked then clear only after successful SHARED DMS receipt"
+      },
+      {
+        "id": 4,
+        "name": "WAL_LOCK",
+        "fields": "q7 connection; q13 kind; q14 offset<8; q15 count in 1..8-offset; shared count exactly1",
+        "effect": "native local sibling masks then exact F_SETLK120+offset if required"
+      },
+      {
+        "id": 5,
+        "name": "WAL_UNLOCK",
+        "fields": "as WAL_LOCK",
+        "effect": "shared reference last-holder semantics; successful real unlock precedes mask commit"
+      },
+      {
+        "id": 6,
+        "name": "DETACH",
+        "fields": "q7 connection or0; q17 delete flag0/1",
+        "effect": "require original valid caller's released masks; remove connection, decrement node refcount; last node optional unlink then one close"
+      },
+      {
+        "id": 7,
+        "name": "DESCRIBE",
+        "fields": "q7 connection; other arguments zero",
+        "effect": "private observation only; no physical syscall"
+      },
+      {
+        "id": 8,
+        "name": "FS_ACK",
+        "fields": "q7=1; q8 exact FS input bytes; q9 full output capacity; q10 full workspace capacity; q11 actual native return; q12 actual invocation serial; payload exact source+full output+full workspace",
+        "effect": "accept only current pending operation, exact source/header/nonce/call/system sequence and full FS3 completed shape"
+      },
+      {
+        "id": 9,
+        "name": "FS_UNKNOWN",
+        "fields": "exact current call/action/lease; empty payload",
+        "effect": "permanent refusal with pending state retained; no invented success/retry/close"
+      }
+    ]
+  },
+  "output": {
+    "bytes": 256,
+    "statuses": {
+      "0": "complete private operation; SQLite code q6 and errno q7",
+      "1": "yield exact FS request at output256; full FS input bytes q8/q16",
+      "2": "GROW required workspace q10 and output q11, resume identical input",
+      "4294967293": "persistent protocol refusal"
+    },
+    "terminal": {
+      "q8": "connection handle",
+      "q9": "node handle",
+      "q10": "node refcount",
+      "q11": "readonly",
+      "q12": "isUnlocked",
+      "q13": "DMS held",
+      "q14": "connection shared mask",
+      "q15": "connection exclusive mask",
+      "q17": "last ignored cleanup errno",
+      "q18": "process-lifetime low-FD filler count"
+    }
+  },
+  "workspace": {
+    "minimum_bytes": 2048,
+    "arena_begin": 2048,
+    "record_header": "span,kind,monotonic identity,live0dead/1published/2pending",
+    "kinds": {
+      "node": {
+        "kind": 1,
+        "bytes": "160+align8(path bytes)",
+        "fields": "DB dev/ino; one SHM token/raw fd; nRef; readonly/unlocked/DMS flags; first path; original DB mode/uid/gid; process-lock bit; reserved mapping fields stay zero"
+      },
+      "connection": {
+        "kind": 2,
+        "bytes": 96,
+        "fields": "node identity, issued DB token, shared/exclusive masks, predecessor lease"
+      },
+      "pending_path": {
+        "kind": 3,
+        "bytes": "32+align8(original path bytes)",
+        "fields": "one immutable copied current path, retired at every known terminal outcome"
+      }
+    },
+    "retirement": "dead records compact without changing identities; no fixed global row/path/count quota; no ID reuse/wrap",
+    "structural_validation": "complete arena span/ID/kind bounds pass before cross-record lookup; then referential, refcount and local lock-conflict validation",
+    "stages": {
+      "100": 15,
+      "110": 1,
+      "112": 8,
+      "113": 1,
+      "114": 15,
+      "115": 21,
+      "116": 16,
+      "117": 24,
+      "120": 23,
+      "121": 17,
+      "122": 5,
+      "123": 17,
+      "130": 8,
+      "150": 17,
+      "160": 9,
+      "161": 8
+    }
+  },
+  "preservation": [
+    "Only fresh nodes do database permission FSTAT and SHM open; cached nodes retain the first filename and one descriptor.",
+    "RW|CREATE|NOFOLLOW|CLOEXEC open falls back to RO|NOFOLLOW|CLOEXEC. EINTR retry belongs to the HIA robust-open sequence.",
+    "FD below3 is consumed/closed once, /dev/null is opened without extra CLOEXEC as in original robust_open, and the original SHM attempt repeats. Filler descriptors stay process-lifetime owned by FS.",
+    "Nonzero DB mode causes the original successful-empty-FSTAT conditional chmod; failed FSTAT/chmod are ignored in this robust-open substep.",
+    "geteuid decides root-only FCHOWN; FCHOWN result is ignored; the same inode's real UID/GID come from completed DB FSTAT.",
+    "GETLK at128: observed writer returns BUSY with no shared attempt; unlocked writable obtains EXCLUSIVE then truncates exactly3, retrying truncate EINTR only, then SHARED; readonly unlocked returns READONLY_CANTINIT while attaching the node/connection.",
+    "DMS remains live at node lifetime even while all WAL masks are zero. Last connection closes the single descriptor.",
+    "All selected SETLK errors map BUSY; no generic busy-handler retry was introduced.",
+    "Original primary failures are preserved across ignored close errors. Known cleanup closes once. Unknown outcomes permanently refuse.",
+    "Fresh-inode ATTACH preflights its mandatory first FSTAT counters before GROW. Duplicate DB binding and allocation-identity/address overflow retain their earlier rejection order. A cached same-inode ATTACH does not consume or require free FS counters."
+  ],
+  "prerequisites_open": [
+    "Public DB identity/path lease issuance by the actual predecessor, including bound original fd lifetime.",
+    "A fixed dispatcher for this new DMS channel; the earlier passed fixed fencing binary is not this dispatcher.",
+    "Known allocation-failure continuation and original NOMEM/IOERR_NOMEM classification; current GROW has no arbitrary hard cap but not yet the full allocation-error contract.",
+    "Native SHM region allocation/mapping/unmapping, page-by-page extension and memory barriers.",
+    "Ordinary namespace root/database admission, ten-table row/log/view transaction engine, migration and AgentStore integration."
+  ],
+  "evidence": {
+    "r1": {
+      "blob": "91206deaefa5f5e376085b7dc261a554fd7ff26a",
+      "generation": "FAIL E_HIA_LOAN: parent view is suspended until child loans end; full raw retained in currently unavailable local environment",
+      "vm_entries": 0,
+      "native_entries": 0
+    },
+    "r2": {
+      "blob": "e7f09c4c77ff4cc07cd4ae1a4928f600cf880b0d",
+      "first_generation": "Core document completed, reporting harness failed KeyError instructions; original result retained",
+      "corrected_harness": "observed process exit0; complete generated bytes/profile/SHA not yet read due environment disconnection",
+      "vm_entries": 0,
+      "native_entries": 0
+    },
+    "r3": {
+      "generator_blob": "b288da9c8e574d07a041ada2b9ae694e667cc89e",
+      "generation": "NOT_RUN",
+      "vm_entries": 0,
+      "native_entries": 0
+    },
+    "original_ROG_full": "FAIL/HOLD unchanged; NDU deletion actor UNKNOWN",
+    "r4": {
+      "generator_blob": "9019897acff302041b93eba78184c89556cad4d4",
+      "generation": "ACTUAL_PASS_IN_FOLLOW17_COMPONENT",
+      "vm_entries": 1584,
+      "native_entries": 0,
+      "observed_via": {
+        "run_id": 43148645083,
+        "reader_job_id": 130952352149,
+        "raw_job_log_blob": "ce8c218c9d1daf04c90394c47c07a8f69103d777"
+      },
+      "tests": 28,
+      "failed_subtests": 3,
+      "failed_test": "test_26_natural_u64_counters_never_wrap",
+      "failed_indices": [
+        5,
+        6,
+        7
+      ],
+      "actual_return": 2,
+      "expected_return": 4294967293,
+      "vm_entries_by_role": {
+        "dms": 642,
+        "fs": 942
+      },
+      "synthetic_kernel_acks": 390,
+      "B3_compilations": 0,
+      "actual_OS_syscalls": 0,
+      "failure": "A fresh ATTACH emitted GROW before the already exhausted mandatory first-FSTAT action/call/system counters were checked. No actual OS operation or counter wrap was observed."
+    },
+    "r5": {
+      "generator_blob": "10c95eaeec93daf7f31d152c64e729c27cb697a7",
+      "generation": "NOT_RUN",
+      "AST": 0,
+      "vm_entries": 0,
+      "B3_compilations": 0,
+      "native_entries": 0,
+      "actual_OS_syscalls": 0
+    }
+  },
+  "planned_fresh_validation": {
+    "protocol_blob": "1d511d7453674dd52cace82b4cffe357ce8b5294",
+    "validator_blob": "f63f298c6fd85025eddc9547cfaa8f410a78f593",
+    "loaded_tests_per_group": 29,
+    "groups": [
+      "VM",
+      "fresh B3 FS5+DMS5 and complete buffer paired native"
+    ],
+    "synthetic_kernel_replies": true,
+    "actual_OS_syscalls": 0,
+    "does_not_reuse_earlier_component_counts": true,
+    "source_b3_limits_unchanged": {
+      "cpu_seconds": 10,
+      "wall_seconds": 20,
+      "address_bytes": 268435456,
+      "output_bytes": 1048576,
+      "workspace_bytes": 1048576
+    },
+    "source_quota_unchanged": {
+      "functions": 128,
+      "blocks": 1536,
+      "blocks_per_function": 256,
+      "ops": 8192,
+      "block_params": 16
+    },
+    "retained_original_test_bodies": 28,
+    "additional_control": "Cached pure attach at exhausted FS counters remains accepted with all FS state/events unchanged; allocation overflow and duplicate binding retain first-error priority."
+  }
+}

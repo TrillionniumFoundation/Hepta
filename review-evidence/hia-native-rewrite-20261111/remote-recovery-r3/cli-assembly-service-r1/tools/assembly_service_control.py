@@ -485,10 +485,8 @@ def assembly_diagnostic_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 62011:
         count = minimum(get(w, AS_ERROR_BYTES), 64)
         index = 0
-        while index < count:
+        while index < count and byte(w, OBS + index) != 58:
             part = byte(w, OBS + index)
-            if part == 58:
-                break
             if (part < 65 or part > 90) and part != 95 and (part < 48 or part > 57):
                 return refuse(w, 7115)
             store(w, AS_CODE + index, part)

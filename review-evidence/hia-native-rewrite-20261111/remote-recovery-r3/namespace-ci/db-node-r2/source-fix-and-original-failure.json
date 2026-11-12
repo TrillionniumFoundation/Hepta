@@ -1,0 +1,79 @@
+{
+  "schema": "hia-db-node-generation-type-and-seal-fix-v1",
+  "status": "NEW_SOURCE_ZERO_EXECUTION",
+  "original": {
+    "head": "136f29422076ee2cafe50c3e5553e993a5c625d7",
+    "run": 43149177895,
+    "job": 130954037883,
+    "log": {
+      "blob": "40facfeeb91548fef8e84677099230de03189a1b",
+      "bytes": 123220,
+      "sha256": "ae366252a777473c37dc7cc0ed39a6b1eeb586c35fb27fd61f746a08ba1b9de6",
+      "mode": "100644",
+      "full_readback": true
+    },
+    "generation": "FAIL E_HIA_CFG edge values do not match block parameter types",
+    "secondary_sealing": "FAIL OUTPUT subdirectory rejected as roots additional entry",
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "OS": 0
+  },
+  "fixes": {
+    "type": {
+      "original": "def db_drive(o:mutbuf, w:mutbuf) -> u32:\n    result = 3\n    while result == 3:\n        stage = get(w, 232)\n        if stage == 90:\n            error = get(w, 320)\n            if error == 0:\n                put(w, 96, 1)\n                put(w, 80, get(w, 80) + 1)\n            put(w, 232, get(w, 336))\n            put(w, 336, 0)\n        elif stage >= 10 and stage < 20:\n            result = db_lock_step(o, w)\n        elif stage >= 20 and stage < 30:\n            result = db_unlock_step(o, w)\n        elif stage >= 30 and stage < 40:\n            result = db_close_step(o, w)\n        elif stage == 40 or stage == 41:\n            result = db_drain_step(o, w)\n        elif stage == 50 or stage == 51:\n            result = db_reserved_step(o, w)\n        else:\n            result = db_reject(o, w, 34)\n    return result\n\n",
+      "revised": "def db_status_u64(code:u32) -> u64:\n    # The loop phi is u64, like its sentinel literal. Keep every step's\n    # existing u32 result and widen only at this internal scalar boundary.\n    return code\n\ndef db_drive(o:mutbuf, w:mutbuf) -> u32:\n    result = 3\n    while result == 3:\n        stage = get(w, 232)\n        if stage == 90:\n            error = get(w, 320)\n            if error == 0:\n                put(w, 96, 1)\n                put(w, 80, get(w, 80) + 1)\n            put(w, 232, get(w, 336))\n            put(w, 336, 0)\n        elif stage >= 10 and stage < 20:\n            result = db_status_u64(db_lock_step(o, w))\n        elif stage >= 20 and stage < 30:\n            result = db_status_u64(db_unlock_step(o, w))\n        elif stage >= 30 and stage < 40:\n            result = db_status_u64(db_close_step(o, w))\n        elif stage == 40 or stage == 41:\n            result = db_status_u64(db_drain_step(o, w))\n        elif stage == 50 or stage == 51:\n            result = db_status_u64(db_reserved_step(o, w))\n        else:\n            result = db_status_u64(db_reject(o, w, 34))\n    return result\n\n",
+      "semantic_step_calls_unchanged": true,
+      "only_type_lift": true,
+      "executions": 0
+    },
+    "evidence": "common.finish already archives all of OUTPUT; additional root now contains the complete working source under common BASE, never an invalid nested OUTPUT root.",
+    "diagnostics": "Save complete uncompacted authoring graph, then call the exact original verifier/compactor; never bypass it."
+  },
+  "unchanged": {
+    "original32_test_body_and_entire_protocol_blob": "88db473aeeb2038dbe54257bf0e0fc31c65ca393",
+    "original14_C_functions": true,
+    "source_quota": {
+      "functions": 128,
+      "blocks": 1536,
+      "blocks_per_function": 256,
+      "ops": 8192,
+      "params": 16
+    },
+    "generation": {
+      "cpu": 90,
+      "wall": 180,
+      "address_bytes": 1073741824
+    },
+    "C_compile": {
+      "cpu": 10,
+      "wall": 20,
+      "address_bytes": 268435456
+    },
+    "B3": {
+      "cpu": 10,
+      "wall": 20,
+      "address_bytes": 268435456,
+      "output_workspace_bytes": 1048576
+    },
+    "component": {
+      "wall": 900,
+      "VM_entry_steps": 4000000,
+      "VM_arena_bytes": 33554432,
+      "all_complete_buffers": true,
+      "all32_tests_both_groups": true,
+      "zero_skip_xfail_xpass": true
+    }
+  },
+  "new_execution": {
+    "AST": 0,
+    "generation": 0,
+    "C_compile": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "actual_OS": 0
+  },
+  "ordinary_Store_closed": false,
+  "original_ROG": "FAIL/HOLD; NDU deletion actor UNKNOWN"
+}

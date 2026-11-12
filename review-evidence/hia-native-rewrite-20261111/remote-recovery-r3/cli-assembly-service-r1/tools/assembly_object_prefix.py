@@ -108,7 +108,7 @@ def measure_transport(s:readbuf, w:mutbuf) -> u64:
             nodes = nodes + 1
             index = index + 1
             done = False
-            while index < length(s) and not done:
+            while index < length(s) and done == False:
                 ch = byte(s, index)
                 index = index + 1
                 if ch == 92:
@@ -117,7 +117,7 @@ def measure_transport(s:readbuf, w:mutbuf) -> u64:
                     index = index + 1
                 elif ch == 34:
                     done = True
-            if not done:
+            if done == False:
                 return 0
         elif ch == 91 or ch == 123:
             nodes = nodes + 1

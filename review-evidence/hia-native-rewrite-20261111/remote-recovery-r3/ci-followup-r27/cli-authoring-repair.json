@@ -1,0 +1,216 @@
+{
+  "schema": "hepta.actual-cli-authoring-blocker-repair.v1",
+  "status": "NEW_SOURCE_ONLY_NATIVE_RETRY_PENDING",
+  "source26_AST_120_pass_does_not_validate_these_new_revisions": true,
+  "observed": [
+    {
+      "job": 130952352314,
+      "run": 43148645083,
+      "scope": "assembly syntax",
+      "stage": "original Builder generation",
+      "error": "ValueError: Break()",
+      "native_entries": 0,
+      "log": {
+        "blob": "7e5dc5a25bd25dda635982ecf8dd73f228c9b8e1",
+        "bytes": 56008,
+        "sha256": "52e2864d76c658790fb09a9b8bbadb01e29e0c329f5c7d530073338e63e80f05"
+      }
+    },
+    {
+      "job": 130952352988,
+      "run": 43148645083,
+      "scope": "assembly renderer",
+      "stage": "original Builder generation",
+      "error": "ValueError: Break()",
+      "native_entries": 0,
+      "log": {
+        "blob": "06eecfc9c02ff73096ae2264d93e3c2128562dc0",
+        "bytes": 57443,
+        "sha256": "33d11ef2dc1e1c82e3d62ead6274886430214110f339aac7005164643fdbd157"
+      }
+    },
+    {
+      "job": 130952352664,
+      "run": 43148645083,
+      "scope": "TemporaryDirectory cleanup",
+      "stage": "original compact HIA type verification",
+      "error": "E_HIA_TYPE: compare.ne u32 phase return versus u64 zero",
+      "native_entries": 0,
+      "creation_compile_count": "Create precedes cleanup in original harness. Exact completed B3 count requires original archive readback; not asserted zero.",
+      "log": {
+        "blob": "8d458a1f2ec06d5ca0201206b322f6b262fa2002",
+        "bytes": 58881,
+        "sha256": "b12353a96867bb57975d74f3b6619c48e40f4753ac426215c7a7f659fb659e89"
+      }
+    }
+  ],
+  "changes": {
+    "syntax": {
+      "old": {
+        "blob": "73aab0b48d612fb037ccf0e4d0b46a54890afa0e",
+        "bytes": 37446,
+        "sha256": "4bc7fc5bd7b696e92b0f08a225dea2153790d7770d0ad2667f3d3ce8dc996857"
+      },
+      "new": {
+        "blob": "227e06a56e8da7091d72004c83daeea7d24ee884",
+        "bytes": 37844,
+        "sha256": "365d8460c6d502685815ad0039e0d5de5503326abf58db13cd922605d097d11e"
+      },
+      "breaks_removed": 10,
+      "regions": [
+        {
+          "why": "prefix last line exact exit",
+          "old": "        if end == length(s):\n            break\n        begin = end + 1",
+          "new": "        if end == length(s):\n            put(w, PREFIX_OK, 1)\n            return 1\n        begin = end + 1"
+        },
+        {
+          "why": "header whitespace loop flag",
+          "old": "    while p < b:\n        u = point(s, p, b, 0)\n        if space(u & 4294967295) != 0:\n            break\n        p = u >> 32\n    capture(w, 0, start, p)",
+          "new": "    scanning = 1\n    while p < b and scanning != 0:\n        u = point(s, p, b, 0)\n        if space(u & 4294967295) != 0:\n            scanning = 0\n        else:\n            p = u >> 32\n    capture(w, 0, start, p)"
+        },
+        {
+          "why": "name_end exact post-loop result",
+          "old": "        if letter(c) == 0 and (c < 48 or c > 57) and (opcode == 0 or c != 46):\n            break\n        p = p + 1",
+          "new": "        if letter(c) == 0 and (c < 48 or c > 57) and (opcode == 0 or c != 46):\n            if p - at > 128:\n                return MAX\n            return p\n        p = p + 1"
+        },
+        {
+          "why": "space0 exact return",
+          "old": "        if space(u & 4294967295) == 0:\n            break\n        at = u >> 32",
+          "new": "        if space(u & 4294967295) == 0:\n            return at\n        at = u >> 32"
+        },
+        {
+          "why": "integer_values quoted-string termination",
+          "old": "            while at < b:\n                c = byte(s, at)\n                at = at + 1\n                if c == 34:\n                    break\n                if c == 92:\n                    at = at + 1",
+          "new": "            closed = 0\n            while at < b and closed == 0:\n                c = byte(s, at)\n                at = at + 1\n                if c == 34:\n                    closed = 1\n                elif c == 92:\n                    at = at + 1"
+        },
+        {
+          "why": "origins decoded-name termination",
+          "old": "            while True:\n                unit = jp_decoded(s, w, relative)\n                cp = unit & 4294967295\n                relative = unit >> 32\n                if cp == 1114112:\n                    break\n                if cp == 1114113 or (n == 0 and letter(cp) == 0):\n                    return 0\n                if letter(cp) == 0 and (cp < 48 or cp > 57):\n                    return 0\n                n = n + 1\n                if n > 128:\n                    return 0",
+          "new": "            closed = 0\n            while closed == 0:\n                unit = jp_decoded(s, w, relative)\n                cp = unit & 4294967295\n                relative = unit >> 32\n                if cp == 1114112:\n                    closed = 1\n                else:\n                    if cp == 1114113 or (n == 0 and letter(cp) == 0):\n                        return 0\n                    if letter(cp) == 0 and (cp < 48 or cp > 57):\n                        return 0\n                    n = n + 1\n                    if n > 128:\n                        return 0"
+        },
+        {
+          "why": "ascii_space exact return",
+          "old": "        if c != 32 and c != 9 and c != 10 and c != 13:\n            break\n        at = at + 1",
+          "new": "        if c != 32 and c != 9 and c != 10 and c != 13:\n            return at\n        at = at + 1"
+        },
+        {
+          "why": "decimal scale stop without overflow/speculation",
+          "old": "    scale = 1\n    while scale <= value >> 1:\n        if scale > MAX >> 4:\n            break\n        next = scale * 10\n        if next > value:\n            break\n        scale = next",
+          "new": "    scale = 1\n    scanning = 1\n    while scale <= value >> 1 and scanning != 0:\n        if scale > MAX >> 4:\n            scanning = 0\n        else:\n            next = scale * 10\n            if next > value:\n                scanning = 0\n            else:\n                scale = next"
+        },
+        {
+          "why": "decimal final digit exact return",
+          "old": "        if scale == 1:\n            break\n        old = scale",
+          "new": "        if scale == 1:\n            return 1\n        old = scale"
+        }
+      ]
+    },
+    "renderer": {
+      "old": {
+        "blob": "1ef18bc030f26b6d66c6cf8415609901227f8564",
+        "bytes": 29584,
+        "sha256": "b8035aafccce294d9a37e768b9e978a51bd1e1511d977039bad95afc01e2f555"
+      },
+      "new": {
+        "blob": "030f921e725eaa1bc798f884f9801848e95c6f34",
+        "bytes": 29652,
+        "sha256": "8eaaf5a0b209f8a9e8a573fe2943912e45116414747ab6eef6c97b55384518d5"
+      },
+      "breaks_removed": 2,
+      "regions": [
+        {
+          "why": "quoted-string stop using existing closed flag",
+          "old": "            while at < length(s):\n                c = byte(s, at)\n                at = at + 1\n                if c == 34:\n                    closed = 1\n                    break\n                if c == 92:\n                    if at == length(s):\n                        return 0\n                    at = at + 1",
+          "new": "            while at < length(s) and closed == 0:\n                c = byte(s, at)\n                at = at + 1\n                if c == 34:\n                    closed = 1\n                elif c == 92:\n                    if at == length(s):\n                        return 0\n                    at = at + 1"
+        },
+        {
+          "why": "token delimiter stops without advancing delimiter",
+          "old": "            while at < length(s):\n                c = byte(s, at)\n                if c == 34 or c == 91 or c == 93 or c == 123 or c == 125 or c == 44 or c == 58 or c == 32 or c == 9 or c == 10 or c == 13:\n                    break\n                at = at + 1",
+          "new": "            scanning = 1\n            while at < length(s) and scanning != 0:\n                c = byte(s, at)\n                if c == 34 or c == 91 or c == 93 or c == 123 or c == 125 or c == 44 or c == 58 or c == 32 or c == 9 or c == 10 or c == 13:\n                    scanning = 0\n                else:\n                    at = at + 1"
+        }
+      ]
+    },
+    "cleanup": {
+      "old": {
+        "blob": "29db0cf5cca88719117111a6401fdbd4f38c8669",
+        "bytes": 28555,
+        "sha256": "cc14196016a7726431d560c44aaf8c7a0b763c031c51f7e5b3cefa945de0d515"
+      },
+      "new": {
+        "blob": "776161521c424afc2908cb9c667e7ec7d7bad4e3",
+        "bytes": 28738,
+        "sha256": "cf8a3f9b73c1dc1c18f0309fe311935856a73932fd4a7a57fe92e0bd512dd4e4"
+      },
+      "status_wide_calls": [
+        {
+          "fn": "initial",
+          "old": "        v = initial(s, w)"
+        },
+        {
+          "fn": "response",
+          "old": "        v = response(r, w)"
+        },
+        {
+          "fn": "next_job",
+          "old": "            v = next_job(w)"
+        },
+        {
+          "fn": "begin_walk",
+          "old": "            v = begin_walk(w)"
+        },
+        {
+          "fn": "entry_next",
+          "old": "            v = entry_next(w)"
+        },
+        {
+          "fn": "callback_begin",
+          "old": "            v = callback_begin(w)"
+        },
+        {
+          "fn": "reset_start",
+          "old": "            v = reset_start(w)"
+        },
+        {
+          "fn": "callback_unlink",
+          "old": "            v = callback_unlink(w)"
+        },
+        {
+          "fn": "callback_recurse",
+          "old": "            v = callback_recurse(w)"
+        },
+        {
+          "fn": "abort_next",
+          "old": "            v = abort_next(w)"
+        }
+      ],
+      "new_helper": "def status_wide(value:u32) -> u64: return value",
+      "external_entry_u32_unchanged": true,
+      "phase_return_signatures_unchanged": true
+    },
+    "object_dependency": {
+      "author": "root",
+      "old": "1ae1f374ce0f3ab027ff09b7748ee877570a3a4b",
+      "new": "90d7242bdc2ab328280b2c760f988cff3ad21d10",
+      "bytes": 14115,
+      "sha256": "e230b246ed2a410cc3a8f252525cff065b340606ba7cb168f70655bb02da7d4a",
+      "scope": "Root's two exact bool not expressions replaced with == False. This report makes no execution claim."
+    }
+  },
+  "preserved": {
+    "all_tests_unchanged": true,
+    "all_resource_limits_unchanged": true,
+    "reference_and_B3_unchanged": true,
+    "no_compiler_changes": true,
+    "no_original_failure_deleted": true
+  },
+  "execution": {
+    "AST": 0,
+    "generation": 0,
+    "B3": 0,
+    "native": 0
+  },
+  "readback": {
+    "new_source_and_CI_and_logs": 11,
+    "exact": true
+  }
+}

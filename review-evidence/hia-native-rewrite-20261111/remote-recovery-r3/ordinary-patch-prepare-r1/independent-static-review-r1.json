@@ -1,0 +1,153 @@
+{
+  "schema": "hepta.hia.independent-static-review.v1",
+  "scope": "ordinary patch preparation: complete _prepare_program_patch ordering/transformation and native diagnostic payload",
+  "reviewer": "audit_selfhost",
+  "status": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_STATIC_SCOPE",
+  "execution": {
+    "ast_parse": 0,
+    "generation": 0,
+    "core_vm": 0,
+    "b3_compile": 0,
+    "native_entries": 0,
+    "ordinary_cli": 0,
+    "source_modifications": 0
+  },
+  "latest": {
+    "bytes": 19269,
+    "sha256": "348965a5bbce5ca2f7eeb93e0033bf1ee58c9d52a0b71aa9452f30b6b1ef2726",
+    "gitsha": "572cc1f39841b9c142040ba8fba9ec99fc99d77e"
+  },
+  "previous_candidate": {
+    "bytes": 17832,
+    "sha256": "568f773cb854da1b6cad5040cebf671e40692522cd7b4efb1180f6692d095523",
+    "gitsha": "0a123085ed841d05e34a0ac4b83a1db11fd591a0"
+  },
+  "reference": {
+    "path": "hepta/hia_program_tools.py",
+    "function": "_prepare_program_patch",
+    "bytes": 22198,
+    "sha256": "a1b42262d8a00fbce9057e40dd081210ad274ecad8fc0c126ffafe8c3568436a",
+    "gitsha": "c2be38ffe2871ca199783103d4dfa9867771df10"
+  },
+  "dependencies_read": [
+    {
+      "gitsha": "136eb04f3da61ecf3cdfccafa1095bdbc5c1dd6f",
+      "scope": "same_text/named/exact_index/replace_node/append_node/lower_nibble from existing patch authoring"
+    },
+    {
+      "gitsha": "7359bf71993753fbef35d9b43fbdd054132659b0",
+      "scope": "field/shape/kind/count, canonical fragment traversal and insertion variant"
+    },
+    {
+      "gitsha": "1ae1f374ce0f3ab027ff09b7748ee877570a3a4b",
+      "scope": "measure_transport"
+    },
+    {
+      "gitsha": "54607f809bdbd8cd68c4e423749c40623fe54a69",
+      "scope": "decoder framing and private combined-envelope bounds"
+    },
+    {
+      "gitsha": "d9da0321b5aab3cfebb8549b237bce336600a422",
+      "scope": "canonical traversal dependency"
+    },
+    {
+      "gitsha": "b59c2259f038eab830c16bf498b14a5d15556ee4",
+      "scope": "SHA fragment adaptation and scratch"
+    }
+  ],
+  "latest_delta": {
+    "outside_prepare_event_diagnostic_functions_and_call_insertion_byte_equal": true,
+    "identical_remainder_bytes": 17257,
+    "old_draft_dc91419_not_executed": true
+  },
+  "findings": [
+    {
+      "area": "request prefix",
+      "result": "The source preserves structured-request, schema-specific exact keys, v2 policy, complete 64-character lowercase hexadecimal spelling, stale digest, then 1..64 edits checks. It scans all expected digest characters before comparing any digest byte. Base canonicalization/hash is confined to the independently admitted base subtree."
+    },
+    {
+      "area": "edit dispatch",
+      "result": "Action type precedes dispatch; known action exact keys precede function-name type and lookup. add_function detects an existing name before definition validation; other actions require one current function. Prior successful transforms preserve function-name uniqueness, so named() returning NIL for ambiguity does not alter the admitted-domain add path."
+    },
+    {
+      "area": "whole versus local precedence",
+      "result": "For both whole actions, the replacement definition must be a map with the same string name before whole/local overlap is tested. For local actions, prior whole replacement overlap is checked before the block identity type or lookup. Recording only completed edits is sufficient because any failed edit terminates this pure invocation; no partially built candidate is published."
+    },
+    {
+      "area": "local duplicate checks",
+      "result": "Operation index must be a native integer, nonnegative and in range before duplicate-operation lookup. exact_index accepts -0 as zero and excludes boolean. Terminator duplicates are distinct from operation indices. The complete (function name, block name, action/index) history uses at most 64 entries."
+    },
+    {
+      "area": "four transformations",
+      "result": "replace_function, add_function, replace_operation and replace_terminator rewire unique replacement subtrees inside a private decoded JSON tree. This is equivalent to reference deepcopy at the published candidate boundary because base/request and all JSON subtree occurrences are detached and have no object aliases. Top-level edit traversal is untouched. Same-edit fields needed later are retained before rewiring; later history comparisons inspect stable text nodes rather than displaced sibling chains."
+    },
+    {
+      "area": "output order and late gates",
+      "result": "The insertion renderer differs from canonical render_fragment only by removal of sort_object. Only the base is canonically sorted before editing; request replacement object key order survives into the candidate. No whole Core verification, interface-preserve decision, candidate bounded-snapshot check or candidate 8 MiB cap is moved into this leaf. Their original later positions remain caller obligations."
+    },
+    {
+      "area": "scratch and re-entry",
+      "result": "The admitted private combined transport is bounded by 16,777,219 bytes. Workspace sizing reserves decoded node storage, source bytes, alignment and 8,192 scratch bytes. SHA scratch [0,1088), digest [1088,1120), metadata [1200,1256), active edit [1280,1328), and history [2048,4096) are disjoint relative to aligned scratch. The output requirement also covers decoder depth/duplicate-key workspace. GROW reruns a pure transformation from the same immutable input, with no Store, patch publication or other effectful callback."
+    },
+    {
+      "area": "native diagnostic payload",
+      "result": "The latest prepare_event resolves all 22 texts through native literal helpers. All exact strings agree with the reference E_HIA_EDIT prefix and _keys suffix. Maximum message length is 91 bytes. For action 2, it computes size first and checks 128 + size before any diagnostic payload store. Insufficient output becomes GROW with reason zero and sufficient need_o; the same immutable input recomputes the original first error. Success writes bytes at offset 128 and publishes their exact length in the 128-byte event."
+    },
+    {
+      "area": "diagnostic chunk writes",
+      "result": "Generated chunks are at most 8 bytes, with exact final-short-chunk count. diagnostic_chunk accesses count bytes and shifts only 0..56. UTF-8 literals are generated at authoring time; no Python reason-to-business-text translation is needed at runtime. Unknown diagnostic IDs return BAD, but all language refusal branches emit one of the defined 1..22 IDs."
+    }
+  ],
+  "diagnostic_messages": {
+    "1": "E_HIA_EDIT: patch must be a structured request",
+    "2": "E_HIA_EDIT: patch requires exactly its declared fields; unknown or missing fields",
+    "3": "E_HIA_EDIT: v2 interface_policy must be preserve or migrate",
+    "4": "E_HIA_EDIT: unsupported patch schema",
+    "5": "E_HIA_EDIT: invalid expected snapshot digest",
+    "6": "E_HIA_EDIT: stale base snapshot",
+    "7": "E_HIA_EDIT: patch needs 1..64 edits",
+    "8": "E_HIA_EDIT: edit needs an action",
+    "9": "E_HIA_EDIT: function edit requires exactly its declared fields; unknown or missing fields",
+    "10": "E_HIA_EDIT: operation edit requires exactly its declared fields; unknown or missing fields",
+    "11": "E_HIA_EDIT: terminator edit requires exactly its declared fields; unknown or missing fields",
+    "12": "E_HIA_EDIT: unknown edit action",
+    "13": "E_HIA_EDIT: function identity must be a string",
+    "14": "E_HIA_EDIT: added function already exists",
+    "15": "E_HIA_EDIT: function not found",
+    "16": "E_HIA_EDIT: function edit must retain its declared identity",
+    "17": "E_HIA_EDIT: overlapping whole-function and local edits",
+    "18": "E_HIA_EDIT: block identity must be a string",
+    "19": "E_HIA_EDIT: block not found",
+    "20": "E_HIA_EDIT: invalid operation index",
+    "21": "E_HIA_EDIT: duplicate operation edit",
+    "22": "E_HIA_EDIT: duplicate terminator edit"
+  },
+  "qualification_boundaries": [
+    "Static source review only; no executed AST, generated HIA, compiler, native, full-workspace or resource-limit evidence is claimed.",
+    "The first input value must be an actual admitted immutable canonical base; the independently admitted request retains insertion order and the original integer JSON profile. An arbitrary external tree/header is not granted this authority.",
+    "The original per-input raw decode, duplicate-key/UTF-8/integer, node/depth and 8 MiB gates must occur before construction of this private combined envelope.",
+    "Native BAD/private framing refusal is separate from the 22 public edit errors. The leaf does not replace the complete public patch/controller contract or certify later Core/interface/receipt handling.",
+    "Pointer-rewiring reasoning depends on a detached JSON tree with unique subtree occurrences. It is not a claim of equivalence for arbitrary aliased private Python objects.",
+    "Independent runtime comparison of GROW, message bytes, candidate order, decoder/source immutability and maximum boundaries remains required; root's proposed tests were not executed by this review."
+  ],
+  "suggested_existing_panel_focus": [
+    "Malformed whole definition after an earlier local edit must fail declared identity before overlap.",
+    "Malformed block identity after a whole replacement must fail overlap first.",
+    "A digest with an invalid final character and a stale prefix must fail invalid spelling, not stale snapshot.",
+    "An existing add_function name must be rejected before malformed definition contents.",
+    "Reversed nested replacement-object insertion orders must survive candidate production and reach the original later snapshot/Core gates unchanged.",
+    "Output capacity just below the complete diagnostic extent must GROW, then publish the same first message after re-entry."
+  ],
+  "source_readback": [
+    {
+      "name": "latest",
+      "gitsha": "572cc1f39841b9c142040ba8fba9ec99fc99d77e",
+      "unchanged": true
+    },
+    {
+      "name": "reference",
+      "gitsha": "c2be38ffe2871ca199783103d4dfa9867771df10",
+      "unchanged": true
+    }
+  ]
+}

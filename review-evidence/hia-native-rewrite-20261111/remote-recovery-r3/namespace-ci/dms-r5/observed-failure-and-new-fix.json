@@ -1,0 +1,129 @@
+{
+  "schema": "hia-namespace-dms5-observed-failure-and-new-fix-v1",
+  "old_result": {
+    "run_id": 43148645083,
+    "readback_job": 130952352149,
+    "full_original_log_blob": "ce8c218c9d1daf04c90394c47c07a8f69103d777",
+    "observed_status": "FAIL",
+    "vm_tests": 28,
+    "failed_subtests": [
+      {
+        "test": "test_26_natural_u64_counters_never_wrap",
+        "index": 5
+      },
+      {
+        "test": "test_26_natural_u64_counters_never_wrap",
+        "index": 6
+      },
+      {
+        "test": "test_26_natural_u64_counters_never_wrap",
+        "index": 7
+      }
+    ],
+    "actual_return": 2,
+    "expected_return": 4294967293,
+    "VM_entries": 1584,
+    "B3_compilations": 0,
+    "native_entries": 0,
+    "actual_OS_syscalls": 0
+  },
+  "new_source": {
+    "generator": {
+      "blob": "10c95eaeec93daf7f31d152c64e729c27cb697a7",
+      "bytes": 37241,
+      "sha256": "be988047e48b30cb85db48a43486b3397ceadec01c65c8fa486811eccb6b9da5",
+      "mode": "100644",
+      "full_readback": true,
+      "execution_counts": {
+        "AST": 0,
+        "VM": 0,
+        "B3": 0,
+        "native": 0,
+        "actual_OS": 0
+      }
+    },
+    "protocol": {
+      "blob": "1d511d7453674dd52cace82b4cffe357ce8b5294",
+      "bytes": 26323,
+      "sha256": "da0eefc45740c6f6765b9b6e678df66d7baf578d350334194f34314e3ec1d786",
+      "mode": "100644",
+      "full_readback": true,
+      "execution_counts": {
+        "AST": 0,
+        "VM": 0,
+        "B3": 0,
+        "native": 0,
+        "actual_OS": 0
+      }
+    },
+    "validator": {
+      "blob": "f63f298c6fd85025eddc9547cfaa8f410a78f593",
+      "bytes": 14640,
+      "sha256": "f4dd28183b12addbdbc5df36519377761ef6ac793fed0fabbf03259f7cbf01d9",
+      "mode": "100644",
+      "full_readback": true,
+      "execution_counts": {
+        "AST": 0,
+        "VM": 0,
+        "B3": 0,
+        "native": 0,
+        "actual_OS": 0
+      }
+    },
+    "ABI": {
+      "blob": "ffdf6154db64138e66cb79fb55cb4576c917c573",
+      "bytes": 13530,
+      "sha256": "47efaebbf8091ab10d2f4e7af8ae4d04ea275cd391a6358082f9f88ec8ad7830",
+      "mode": "100644",
+      "full_readback": true
+    },
+    "CI": {
+      "blob": "0151d3e68f240cd0066ab5acc35e214b46d86967",
+      "bytes": 14643,
+      "sha256": "b9c38c9a85140893c63bffeec3cf1ac3b16cf032cd5ab6a30c76101db1966ff4",
+      "mode": "100644",
+      "full_readback": true
+    }
+  },
+  "semantic_change": "Preflight only the unavoidable first-FSTAT counters for a new inode before a GROW response. Cached same-inode ATTACH does not require new FS counter values. Duplicate binding and allocation overflow retain earlier first-error positions.",
+  "original_28_test_method_bodies_byte_identical": true,
+  "added_test29": "Three exhausted counters, with cached pure attach accepted and FS buffers/events unchanged; mixed allocation-overflow and duplicate-token cases retain reason16/reason50.",
+  "unchanged_gates": {
+    "generation_wall_seconds": 180,
+    "component_aggregate_wall_seconds": 900,
+    "B3_CPU_seconds": 10,
+    "B3_wall_seconds": 20,
+    "B3_address_bytes": 268435456,
+    "B3_output_workspace_bytes": 1048576,
+    "VM_steps": 4000000,
+    "complete_return_output_workspace_canaries": true,
+    "zero_skip_xfail_xpass": true
+  },
+  "new_execution": {
+    "AST": 0,
+    "HIA_generation": 0,
+    "VM": 0,
+    "B3": 0,
+    "native": 0,
+    "actual_OS": 0
+  },
+  "join_sync": {
+    "generator": {
+      "blob": "5a63a53fb9fe1c221c1b7092c40414425695ba06",
+      "bytes": 72759,
+      "sha256": "1e687d80d69d4ea69a5be15add0a41f18c0119ee721d6dda1e8dcd7450d0ea8d",
+      "mode": "100644",
+      "full_readback": true,
+      "execution_counts": {
+        "AST": 0,
+        "VM": 0,
+        "B3": 0,
+        "native": 0,
+        "actual_OS": 0
+      }
+    },
+    "only_change": "Same preflight source and revision/path r7 to r8; no executed qualification."
+  },
+  "scope": "Private component with explicit synthetic syscall replies. Neither the ordinary AgentStore nor full native namespace is closed.",
+  "original_ROG_full": "FAIL/HOLD; NDU deletion actor UNKNOWN"
+}

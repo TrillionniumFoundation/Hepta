@@ -77,7 +77,7 @@ try:
     read(__file__);author=read(AUTHOR);assert gitsha(author)==AUTHOR_SHA
     ast.parse(author,filename=str(AUTHOR))
     measure=read(AUTHOR.with_name("issued_object_prefix_reference.py"))
-    assert gitsha(measure)=="1ae1f374ce0f3ab027ff09b7748ee877570a3a4b"
+    assert gitsha(measure)=="90d7242bdc2ab328280b2c760f988cff3ad21d10"
     for path,row in REFERENCE_PINS.items():
         raw=read(REF/path)
         assert (len(raw),gitsha(raw),sha256(raw).hexdigest())==(row["bytes"],row["gitsha"],row["sha256"])

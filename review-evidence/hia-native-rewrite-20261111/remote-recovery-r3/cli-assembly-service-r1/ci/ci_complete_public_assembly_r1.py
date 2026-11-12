@@ -7,15 +7,15 @@ R3="review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/"
 FILES=[
   {
     "path": "tools/assembly_service_control.py",
-    "gitsha": "dc7693227f0b5c508995f8dcb23f7a8c4ab19ea9",
-    "bytes": 32560,
-    "sha256": "71738985440fa4b7f83ea2c0011f9cd53bec46330689047a016c45c3c19a397a"
+    "gitsha": "a1dd3d84ce16b7038cd28badefee00c4f714e75a",
+    "bytes": 32542,
+    "sha256": "2f7c3c02507b0dadb268618b204e1e8e0dbceda5fc7ced0f44bb48abb07893fe"
   },
   {
     "path": "tools/generate_hia_assembly_service.py",
-    "gitsha": "bf16a03c52c94fd33a2e6d6bd3406f160ba15325",
+    "gitsha": "57c7c8f9c5d006b20e57b4e239b16d328d649a6f",
     "bytes": 11510,
-    "sha256": "c63b1ce6b8ac72521613adb69d77770b792d0e50ef347c51afd84816d5a23a96"
+    "sha256": "2ff23251e65f46061abb329f09868855116de524ccd6a7f47458ab202e488914"
   },
   {
     "path": "tools/compose_cli_assembly_carrier.py",
@@ -33,9 +33,9 @@ FILES=[
   },
   {
     "path": "tools/cli_publication_presentation_owner.py",
-    "gitsha": "90327275e0949c0f43e9e6573dc547ef307990ac",
-    "bytes": 17029,
-    "sha256": "26a92a2d05cc6cc64280151bb2ae614eb350aef1c08e832e09b743dbbf3d6821",
+    "gitsha": "258f415c0a98d461b269b61d573d20ddc2afb5dc",
+    "bytes": 17103,
+    "sha256": "16540795eb2ed5e004d6b01113c21cfcbd2a2e5552c4c24817521f2d45e6dc8f",
     "scope": "NEW_AUTHORING_UNEXECUTED"
   },
   {
@@ -89,9 +89,9 @@ FILES=[
   },
   {
     "path": "tools/assembly_object_prefix.py",
-    "gitsha": "1ae1f374ce0f3ab027ff09b7748ee877570a3a4b",
-    "bytes": 14105,
-    "sha256": "7ef1b35f595c920797815314adf65c4c453291922aac8cf13ab3822d29b3eb92",
+    "gitsha": "90d7242bdc2ab328280b2c760f988cff3ad21d10",
+    "bytes": 14115,
+    "sha256": "e230b246ed2a410cc3a8f252525cff065b340606ba7cb168f70655bb02da7d4a",
     "scope": "EXACT_RETAINED_SOURCE_ALIAS_NO_RESULT_INHERITANCE"
   },
   {
@@ -103,16 +103,16 @@ FILES=[
   },
   {
     "path": "tools/assembly_syntax_owner.py",
-    "gitsha": "73aab0b48d612fb037ccf0e4d0b46a54890afa0e",
-    "bytes": 37446,
-    "sha256": "4bc7fc5bd7b696e92b0f08a225dea2153790d7770d0ad2667f3d3ce8dc996857",
+    "gitsha": "227e06a56e8da7091d72004c83daeea7d24ee884",
+    "bytes": 37844,
+    "sha256": "365d8460c6d502685815ad0039e0d5de5503326abf58db13cd922605d097d11e",
     "scope": "EXACT_RETAINED_SOURCE_ALIAS_NO_RESULT_INHERITANCE"
   },
   {
     "path": "tools/assembly_render_owner.py",
-    "gitsha": "1ef18bc030f26b6d66c6cf8415609901227f8564",
-    "bytes": 29584,
-    "sha256": "b8035aafccce294d9a37e768b9e978a51bd1e1511d977039bad95afc01e2f555",
+    "gitsha": "030f921e725eaa1bc798f884f9801848e95c6f34",
+    "bytes": 29652,
+    "sha256": "8eaaf5a0b209f8a9e8a573fe2943912e45116414747ab6eef6c97b55384518d5",
     "scope": "EXACT_RETAINED_SOURCE_ALIAS_NO_RESULT_INHERITANCE"
   },
   {
@@ -168,7 +168,7 @@ DEPS=[
   ],
   [
     "cli-temporary-directory-r2/tools/cli_publication_cleanup_owner.py",
-    "29db0cf5cca88719117111a6401fdbd4f38c8669",
+    "776161521c424afc2908cb9c667e7ec7d7bad4e3",
     "tools/cli_publication_cleanup_owner.py"
   ],
   [

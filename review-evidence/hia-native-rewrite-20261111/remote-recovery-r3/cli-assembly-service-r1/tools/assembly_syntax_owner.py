@@ -262,7 +262,8 @@ def source_gate(s:readbuf, w:mutbuf) -> u64:
                 return fail(w, 7, line)
             at = at + 1
         if end == length(s):
-            break
+            put(w, PREFIX_OK, 1)
+            return 1
         begin = end + 1
         line = line + 1
     put(w, PREFIX_OK, 1)
@@ -503,11 +504,13 @@ def header(s:readbuf, w:mutbuf, a:u64, b:u64) -> u64:
     if p == MAX:
         return 0
     start = p
-    while p < b:
+    scanning = 1
+    while p < b and scanning != 0:
         u = point(s, p, b, 0)
         if space(u & 4294967295) != 0:
-            break
-        p = u >> 32
+            scanning = 0
+        else:
+            p = u >> 32
     capture(w, 0, start, p)
     schema = 0
     if exact(s, w, start, p, L_schema6) != 0:
@@ -734,7 +737,9 @@ def name_end(s:readbuf, at:u64, end:u64, opcode:u64) -> u64:
     while p < end:
         c = byte(s, p)
         if letter(c) == 0 and (c < 48 or c > 57) and (opcode == 0 or c != 46):
-            break
+            if p - at > 128:
+                return MAX
+            return p
         p = p + 1
     if p - at > 128:
         return MAX
@@ -756,7 +761,7 @@ def space0(s:readbuf, at:u64, end:u64) -> u64:
     while at < end:
         u = point(s, at, end, 0)
         if space(u & 4294967295) == 0:
-            break
+            return at
         at = u >> 32
     return at
 
@@ -898,12 +903,13 @@ def integer_values(s:readbuf, w:mutbuf, a:u64, b:u64) -> u64:
         c = byte(s, at)
         if c == 34:
             at = at + 1
-            while at < b:
+            closed = 0
+            while at < b and closed == 0:
                 c = byte(s, at)
                 at = at + 1
                 if c == 34:
-                    break
-                if c == 92:
+                    closed = 1
+                elif c == 92:
                     at = at + 1
         elif c >= 48 and c <= 57:
             first = at
@@ -929,19 +935,21 @@ def origins(s:readbuf, w:mutbuf, at:u64, end:u64) -> u64:
         if byte(s, at) == 34:
             relative = at - get(w, JSON_START) + 1
             n = 0
-            while True:
+            closed = 0
+            while closed == 0:
                 unit = jp_decoded(s, w, relative)
                 cp = unit & 4294967295
                 relative = unit >> 32
                 if cp == 1114112:
-                    break
-                if cp == 1114113 or (n == 0 and letter(cp) == 0):
-                    return 0
-                if letter(cp) == 0 and (cp < 48 or cp > 57):
-                    return 0
-                n = n + 1
-                if n > 128:
-                    return 0
+                    closed = 1
+                else:
+                    if cp == 1114113 or (n == 0 and letter(cp) == 0):
+                        return 0
+                    if letter(cp) == 0 and (cp < 48 or cp > 57):
+                        return 0
+                    n = n + 1
+                    if n > 128:
+                        return 0
             if n == 0:
                 return 0
             at = get(w, JSON_START) + relative
@@ -962,7 +970,7 @@ def ascii_space(s:readbuf, at:u64, end:u64) -> u64:
     while at < end:
         c = byte(s, at)
         if c != 32 and c != 9 and c != 10 and c != 13:
-            break
+            return at
         at = at + 1
     return at
 
@@ -1037,13 +1045,16 @@ def quote(s:readbuf, w:mutbuf, a:u64, b:u64) -> u64:
 
 def decimal(w:mutbuf, value:u64) -> u64:
     scale = 1
-    while scale <= value >> 1:
+    scanning = 1
+    while scale <= value >> 1 and scanning != 0:
         if scale > MAX >> 4:
-            break
-        next = scale * 10
-        if next > value:
-            break
-        scale = next
+            scanning = 0
+        else:
+            next = scale * 10
+            if next > value:
+                scanning = 0
+            else:
+                scale = next
     while scale != 0:
         digit = 0
         while value >= scale:
@@ -1051,7 +1062,7 @@ def decimal(w:mutbuf, value:u64) -> u64:
             digit = digit + 1
         append(w, 48 + digit)
         if scale == 1:
-            break
+            return 1
         old = scale
         scale = 0
         # Decimal scales in this owner are bounded by MAX_LINES, so this
