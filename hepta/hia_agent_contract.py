@@ -83,6 +83,11 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/composite_constructor_render.hiaasm',
     'examples/hia_bootstrap/composite_outer_owner.hiaasm',
     'examples/hia_bootstrap/composite_outer_render.hiaasm',
+    'examples/hia_bootstrap/core_json_bytes.hiaasm',
+    'examples/hia_bootstrap/nominal_json.hiaasm',
+    'examples/hia_bootstrap/program_normalization.hiaasm',
+    'examples/hia_bootstrap/cpython_note_packer.hiaasm',
+    'hepta/hia_program_normalization_notes.py',
 )
 
 

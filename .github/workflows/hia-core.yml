@@ -7,11 +7,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.14.4'
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection enum_operations record_operations record_transitions retirement_state task_operations composite_functions composite_constructor composite_outer call_primitive nominal_terminators nominal_module nominal_admission execution_budget request_journal task_helper_cache artifact_namespace slot_ledger program_execution static_budget heap_bound heap_kernels; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection enum_operations record_operations record_transitions retirement_state task_operations composite_functions composite_constructor composite_outer call_primitive nominal_terminators nominal_module nominal_admission execution_budget request_journal task_helper_cache artifact_namespace slot_ledger program_execution static_budget heap_bound heap_kernels core_json_bytes nominal_json cpython_note_packer program_normalization linked_observer; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -144,6 +144,14 @@ jobs:
               'tests.test_hia_heap_graphs_native.HeapGraphSourceTests',
               'tests.test_hia_native_binary_graph',
               'tests.test_hia_worker_native_helpers.NativeWorkerHelperFixtureTests',
+              'tests.test_hia_program_normalization_native.ProgramNormalizationSourceTests',
+              'tests.test_hia_program_normalization_native.ProgramNormalizationAdapterTests',
+              'tests.test_hia_cpython_note_packer_native.CPythonNotePackerSourceTests',
+              'tests.test_hia_core_json_bytes_native.CoreJSONBytesSourceTests',
+              'tests.test_hia_nominal_json_native.NominalJSONSourceTests',
+              'tests.test_hia_selfhost_linked_observer.LinkedObserverSourceTests',
+              'tests.test_hia_agent_identity_source_binding.AgentIdentitySourceBindingTests',
+              'tests.test_hia_original_select_fragments.OriginalSelectFragmentTests',
               'tests.test_hia_checker_identity',
           )
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
@@ -155,7 +163,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.14.4'
       - name: Install qualified Clang 20 native execution prerequisites
         run: |
           set -euo pipefail
@@ -170,6 +178,48 @@ jobs:
       - run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
       - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
+      - name: Native linked loader and compiler receipt bindings
+        run: |
+          python -B - <<'PYBINDINGS'
+          from hashlib import sha256
+          import json
+          import os
+          from pathlib import Path
+          import unittest
+          from tools.build_hia_json_preflight import admit_cold_build
+          cold_path = Path(os.environ['HEPTA_HIA_LINKED_OBSERVER_COLD_REPORT'])
+          cold_bytes = cold_path.read_bytes()
+          cold = json.loads(cold_bytes)
+          nested_bytes = Path(cold['nested_report']).read_bytes()
+          if sha256(nested_bytes).hexdigest() != cold['nested_report_sha256']:
+              raise ValueError('current cold nested report changed before receipt controls')
+          nested = json.loads(nested_bytes)
+          compiler = Path(nested['generations'][-1]['produced_image'])
+          compiler_bytes = compiler.read_bytes()
+          admit_cold_build(compiler_bytes, cold_bytes)
+          os.environ['HEPTA_HIA_COMPILE_RECEIPT_COMPILER'] = str(compiler)
+          os.environ['HEPTA_HIA_COMPILE_RECEIPT_COMPILER_SHA256'] = sha256(compiler_bytes).hexdigest()
+          names = (
+              'tests.test_hia_selfhost_linked_observer.LinkedObserverNativeTests',
+              'tests.test_hia_original_select_fragments.CompleteOutputObservationTests',
+              'tests.test_hia_compile_receipt_binding.CompileReceiptNativeTests',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          if suite.countTestCases() != 37:
+              raise AssertionError('complete linked-loader and receipt control inventory changed')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          unchanged = (compiler.read_bytes() == compiler_bytes
+                       and cold_path.read_bytes() == cold_bytes
+                       and Path(cold['nested_report']).read_bytes() == nested_bytes)
+          passed = (result.wasSuccessful() and result.testsRun == 37 and unchanged
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          raise SystemExit(0 if passed else 1)
+          PYBINDINGS
+        env:
+          HEPTA_HIA_LINKED_OBSERVER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_LINKED_OBSERVER_EVIDENCE: ${{ runner.temp }}/hia-linked-observer
+          HEPTA_HIA_COMPILE_RECEIPT_OBSERVATIONS: ${{ runner.temp }}/hia-compile-receipts
       - name: Native applications and actual Core memory controls
         run: |
           python -B - <<'PYTEST'
@@ -478,5 +528,7 @@ jobs:
             ${{ runner.temp }}/hia-static-graphs/
             ${{ runner.temp }}/hia-heap-bound/
             ${{ runner.temp }}/hia-heap-live-engine/
+            ${{ runner.temp }}/hia-linked-observer/
+            ${{ runner.temp }}/hia-compile-receipts/
             ${{ runner.temp }}/hia-release-install/
             ${{ runner.temp }}/hia-release-selection/
