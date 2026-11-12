@@ -1,0 +1,10 @@
+{
+  "status": "HOLD",
+  "scope": "readonly audit, after already successful diagnostic execution",
+  "failure": "ValueError: original unchanged:/tmp/hia-publication-compiler-pair-v85-r1/owner.json.stderr.log",
+  "cause": "Reader compared full os.stat_result including atime; reading an original can update atime. All content, owner execution and original files remain unchanged.",
+  "native_or_application_rerun": false,
+  "observed_tool_traceback_retained_in_session": true,
+  "exact_before_after_stat_values_retained": false,
+  "qualification": "Full stat equality included atime as a static code fact; the original failure did not print individual fields. No precise observed atime delta is asserted."
+}
