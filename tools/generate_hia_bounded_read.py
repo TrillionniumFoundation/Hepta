@@ -3,10 +3,11 @@
 STATIC CANDIDATE: generation, compilation and differential validation have not
 run. The original Python API remains the oracle until the independent gates
 record actual results. Foreign Path/IO/context operations are explicit effects.
-Revision 4 supplies explicit ownership masks and local-root plans. Foreign
+Revision 4b supplies explicit ownership masks and local-root plans. Foreign
 expression operands move out of the opaque table before their original CPython
 operation. HIA schedules reverse temporary unwinding before exception matching,
-and local release before an ordinary return. All changes are static authoring
+and reverse-fast-local release before an ordinary return, matching CPython3.14.4
+_PyFrame_ClearLocals. All changes are static authoring
 inputs; no earlier revision's execution evidence applies.
 """
 from __future__ import annotations
@@ -220,20 +221,20 @@ def failed_after(o:mutbuf, w:mutbuf) -> u32:
 
 def lifetime_plan(w:mutbuf) -> u64:
     bits = get(w, 184)
-    put(w, 304, get(w, 64))
-    put(w, 312, get(w, 72))
+    put(w, 304, 0)
+    put(w, 312, 0)
     put(w, 320, 0)
     put(w, 328, 0)
-    put(w, 336, 0)
-    put(w, 344, 0)
-    if (bits & 4) != 0:
-        put(w, 320, get(w, 80))
-    if (bits & 8) != 0:
-        put(w, 328, get(w, 96))
-    if (bits & 16) != 0:
-        put(w, 336, get(w, 112))
+    put(w, 336, get(w, 72))
+    put(w, 344, get(w, 64))
     if (bits & 32) != 0:
-        put(w, 344, get(w, 120))
+        put(w, 304, get(w, 120))
+    if (bits & 16) != 0:
+        put(w, 312, get(w, 112))
+    if (bits & 8) != 0:
+        put(w, 320, get(w, 96))
+    if (bits & 4) != 0:
+        put(w, 328, get(w, 80))
     return 0
 
 def reject(w:mutbuf, which:u64) -> u32:

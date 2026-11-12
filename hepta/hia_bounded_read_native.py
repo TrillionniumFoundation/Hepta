@@ -239,9 +239,9 @@ class BoundedReadSession:
                 self.release(handle)
 
     def _release_return_locals(self):
-        # HIA emits the original co_varnames order: path, limit, flags,
-        # stream, info, payload. The actual return value is protected by
-        # finish() while these ordinary-function local references disappear.
+        # HIA emits the CPython3.14.4 reverse-fast-local cleanup order:
+        # payload, info, stream, flags, limit, path. finish() protects the
+        # actual returned value while these original local roots disappear.
         for handle in self._local_plan():
             if handle:
                 self.release(handle)
