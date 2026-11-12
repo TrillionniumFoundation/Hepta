@@ -1,0 +1,82 @@
+{
+  "schema": "hia.970.original-ci-custody-terminal-observation.v1",
+  "status": "ORIGINAL_CUSTODY_HOLD_NO_FRAMES_RECOVERED",
+  "scope": "READ_ONLY_ORIGINAL_ACTIONS_RUN_AND_LOG_NO_PRODUCT",
+  "run": {
+    "id": 43150215535,
+    "event": "create",
+    "attempt": 1,
+    "head": "896cb5ceaf8a34c9263b26e8131886285042cea6",
+    "branch": "codex/hia-970-ci-original-custody-run-r1-20261112-e26e",
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 130957353294
+  },
+  "control": {
+    "commit": "1e45e6b02c28b388cd78ff3ca1ef62d6155d1925",
+    "policy_sha256": "fba55b13e835a55c5c2419ac7e09a5a31fa37a62ae1689f01bfed05da4f7e502",
+    "workflow_commit": "896cb5ceaf8a34c9263b26e8131886285042cea6"
+  },
+  "product": {
+    "commit": "9704596acc4470bd0042838586602e26bac7b3d1",
+    "tree": "c3ca94c57f9bd75f22f2c694e32bca2dfc6b329b",
+    "original_run_id": 43140734709,
+    "original_artifact_id": 13911977275,
+    "original_artifact_bytes": 599427251,
+    "original_artifact_sha256": "40e81308484173d36153f6a3014293a78705aa28e8f8f7718dcdd3d87c03f580"
+  },
+  "log": {
+    "bytes": 24516,
+    "sha256": "fb510d3acf0f50b981f650d24fe6dd79e241af6e129ce216d42f22540ca0b007",
+    "git_blob": "5c535a66ee76c573b42282007b301cba5bce4ef1"
+  },
+  "observed_steps": {
+    "prepare": "success",
+    "owned_download": "failure_exit_1",
+    "finalize": "failure_exit_1_CUSTODY_HOLD",
+    "frames": "failure_exit_1_FRAMING_HOLD",
+    "upload": "success"
+  },
+  "printed_final": {
+    "status": "CUSTODY_HOLD",
+    "public_files": 16,
+    "public_bytes": 22383795,
+    "receipt_sha256": "afc25dc9c884a935441b75c276760e6e6455085ddc2c34186fed237fc65d1345"
+  },
+  "printed_frame_failure": {
+    "status": "FRAMING_HOLD",
+    "error_type": "Refusal",
+    "safe_refusal": "all original frame sources exceed the fixed output bound",
+    "original_product_statuses_reclassified": false
+  },
+  "retained_artifact": {
+    "id": 13913382201,
+    "name": "hia-970-original-ci-custody-43150215535-1",
+    "bytes": 22390611,
+    "sha256": "58424f2690a09f10e2f06557985648aa89d0dab1c37be89833b0f2653344976d",
+    "created_at": "2026-11-12T03:45:32Z",
+    "expires_at": "2026-11-26T03:45:30Z",
+    "uploaded_files_printed": 17
+  },
+  "custody": {
+    "original_frames": 0,
+    "original_files_recovered": 0,
+    "selected_original_target_count": 354,
+    "current_receipt_target_count": 6,
+    "complete_manifest_present": false,
+    "complete_terminal_present": false,
+    "worker_exit_cause": "UNKNOWN_PENDING_ACTUAL_SMALL_ARTIFACT_ORIGINALS",
+    "natural_guardian_original": "NOT_YET_RECOVERED",
+    "full_original_zip_recovered_here": false
+  },
+  "qualification_executed": false,
+  "original_CI_rerun": false,
+  "prior_product_results_reclassified": false,
+  "full_retained_5400_executed_or_proven_by_this_operation": false,
+  "interpretation": [
+    "The framing limit refusal is directly printed by the original log. It is not evidence of the earlier worker exit cause.",
+    "The new artifact metadata and original upload log agree on its exact size and SHA; its bytes have not yet been independently received in this recovery.",
+    "The frozen strict V8 decoder rejected this actual log because no complete manifest/terminal exists. Zero original source report files were recovered.",
+    "A separately frozen read-only small-artifact recovery may inspect these retained originals without downloading the 599 MB original again."
+  ]
+}
