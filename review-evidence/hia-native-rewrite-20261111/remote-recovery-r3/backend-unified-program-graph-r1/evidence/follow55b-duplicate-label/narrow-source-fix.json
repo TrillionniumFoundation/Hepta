@@ -1,0 +1,55 @@
+{
+  "schema": "hia-one-label-uniqueness-fix-v1",
+  "scope": "unified",
+  "actual_failed_head": "de603dd85b9c2aa9065a929bc1f2e0fcd5dfa3f1",
+  "actual_failed_run": 43262275264,
+  "actual_failed_job": 131336455150,
+  "original_log": {
+    "gitsha": "88c10f125a72bca734f0cad573876d32f250df75",
+    "bytes": 822215,
+    "sha256": "6d58bc149b385103c3e403db4de9c5f2c02890d36ac064c501a4f520565767f6"
+  },
+  "cause": "Two different decoder-event mutations (offset 120,value 127) and (offset 120,value 18446744073709551615) used the same label decoder-event-120; final uniqueness assertion failed.",
+  "change": {
+    "before": "private_case(\"decoder-event-\"+str(at),ack(w),w)",
+    "after": "private_case(\"decoder-event-\"+str(at)+\"-\"+str(value),ack(w),w)",
+    "occurrences": 1
+  },
+  "before_test": {
+    "bytes": 41848,
+    "gitsha": "da05138c38e088064555e16d4bfb95bd77d23f22",
+    "sha256": "71fce27abe1f05e11d28a339551580b15b2d6f5d71cbfe4909982665e7608dd1"
+  },
+  "after_test": {
+    "bytes": 41863,
+    "gitsha": "5e39211cdd3b71b13b747378cd5a0073e14325cd",
+    "sha256": "df11b190b9a9156a1a4076bea505200432044d5d9a95d137696dd994d6cbc6f6"
+  },
+  "before_index": {
+    "bytes": 24829,
+    "gitsha": "666e49a02e17ae98a04299a5cf478063042d9d3f",
+    "sha256": "704c3e905c684895db29d8568bcde7495023c7499a386c67114282afe93ad690"
+  },
+  "after_index": {
+    "bytes": 24829,
+    "gitsha": "d634984f9109877bcf7d756ab420a30527b1bbac",
+    "sha256": "c3ee635e5c46258bd528f1c205e66f1750e00744d77ba7fae247682f39c57259"
+  },
+  "before_ci": {
+    "bytes": 26778,
+    "gitsha": "b1e75c7032005c115b0028a65ae7960988bc6018",
+    "sha256": "c761531dfc2cf49b16a3db47d27aab3bc15da0cd5c6e557c4a61e282c6d0759b"
+  },
+  "after_ci": {
+    "bytes": 26778,
+    "gitsha": "96a34f8d8846997563566806a809d3c9498c538b",
+    "sha256": "afe9504126078f78cb1387dbb0956dd0ee9e623b85e418635df874f2da86d696"
+  },
+  "complete_test_inverse_equal": true,
+  "test_stimulus_values_and_order_unchanged": true,
+  "all_expectation_and_budget_code_unchanged": true,
+  "HIA_source_or_image_changed": false,
+  "actual_private_55b_target_status": "FAIL",
+  "new_target_executions": 0,
+  "whole_stack_closed": false
+}

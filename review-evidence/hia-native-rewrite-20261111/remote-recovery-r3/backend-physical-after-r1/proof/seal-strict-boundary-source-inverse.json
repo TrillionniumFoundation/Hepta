@@ -1,0 +1,39 @@
+{
+  "schema": "hia-physical-after-seal-strict-boundary-source-proof-v1",
+  "status": "NEW_SOURCE_ONLY_0_AST_0_SEAL_0_TARGET_EXECUTION",
+  "old": {
+    "bytes": 12302,
+    "sha256": "e74aaa4648fc406628e3dc0530e20b28c2da65a8ff304e9fa90ec85568208724",
+    "gitsha": "084a98a1d42e3081612b817e909eb50443d8a924"
+  },
+  "new": {
+    "key": "transaction.physical_after.seal.r4",
+    "bytes": 12300,
+    "sha256": "fe9d985afd78d642198f9bbedd850f086025bc1ba94d7a6d7e5e7de2ad50c67c",
+    "gitsha": "469fbcde38e6a909da911d91c733ab7840c31726"
+  },
+  "edits": [
+    {
+      "old": "assert time.monotonic()-started<=180",
+      "new": "assert time.monotonic()-started<180"
+    },
+    {
+      "old": "assert time.process_time()<=90",
+      "new": "assert time.process_time()<90"
+    },
+    {
+      "old": "child_cpu+parent_used<=90 and elapsed<=180",
+      "new": "child_cpu+parent_used<90 and elapsed<180"
+    },
+    {
+      "old": "if final_wall>180 or final_cpu>90:",
+      "new": "if final_wall>=180 or final_cpu>=90:"
+    }
+  ],
+  "entire_original_source_restored_by_inverse": true,
+  "algorithm_and_all_streamed_bytes_readback_unchanged": true,
+  "new_success_strict_cpu_seconds": 90,
+  "new_success_strict_wall_seconds": 180,
+  "installed": false,
+  "old_seal_166_CPU_measured_boundary_not_rewritten": true
+}

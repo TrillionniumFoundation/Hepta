@@ -1,0 +1,50 @@
+{
+  "schema": "hia-peer-review-DMS10-dense-SSA-source-only-v1",
+  "status": "NO_CONFIRMED_BLOCKER_WITHIN_SPECIFIED_STATIC_SCOPE",
+  "reviewer": "native_checker",
+  "old": {
+    "bytes": 72889,
+    "sha256": "268a55deb3912d658b4fdb9952fbfeff8cedd168bcda18da611d4ae4d664567f",
+    "gitsha": "3e82ef42b28e1bd34cf760c2ad229acbafe03e08"
+  },
+  "candidate": {
+    "bytes": 76176,
+    "sha256": "7198fd77427b45fc5de80b06290de5cbd524bb9752ef9509241fd3095a4a1c33",
+    "gitsha": "d44bc02375b6b8be297569638219013236e4b426"
+  },
+  "scope": [
+    "Only the new _dense_dms_steady_ssa function and the compacted-document return wrapper were reviewed.",
+    "The72KB DMS DSL policies, whole qualifier, semantic test corpus, and target execution are outside this review."
+  ],
+  "source_inverse": {
+    "helper_insertions": 1,
+    "document_return_wrappers": 1,
+    "entire_candidate_inverse_equals_old": true,
+    "all_other_source_bytes_equal": true
+  },
+  "findings": [
+    "One exact named function is selected after compact_authoring_cfg. Module/schema are fixed, the function and block/op dictionaries are checked for exact known shapes, and the entry block parameters must equal the function signature.",
+    "Definitions are collected from every block parameter and every op output, checked for unique canonical ASCII v+decimal spelling. Their original numeric order maps bijectively to v0..vN-1. The inverse has exactly the same cardinality, and every new numeric suffix is independently asserted below2048. The original SSA cap is retained.",
+    "The same mapping changes the function parameters, all block parameters, op.args and op.out names, ret.values, jump.args, branch.cond and both edge.args. References absent from the complete definition map fail; no local SSA reference category in the admitted ret/jump/branch vocabulary is omitted.",
+    "Return types, effect lists, block identifiers, block edge targets, operation opcode/attrs including integer/string literals and callee names remain untouched. Unsupported terminator shapes reject instead of being guessed.",
+    "Both directions deep-copy their input. An exact structural inverse of the rewritten function must equal its original function. The outer complete document is copied and only that one function slot is replaced; all71other functions are source-equivalent by construction.",
+    "The exact source-level inverse was independently evaluated in JavaScript: remove the one inserted helper and undo the one return wrapper, then compare every original byte. This does not execute Python, regenerate HIA, or establish a native profile."
+  ],
+  "premises": [
+    "Actual builder/Core semantics still must validate the renamed document and original def-use ownership.",
+    "No target runtime evidence was read by this review. Reported observed oldmax2128/newmax1522 is not independently re-executed or re-certified here.",
+    "The helper fails closed if the targeted function uses an unexpected terminator or malformed definition/reference."
+  ],
+  "executions": {
+    "Python_AST": 0,
+    "HIA_generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "mutations": {
+    "sources_modified": false,
+    "refs_changed": false,
+    "limits_changed": false
+  }
+}

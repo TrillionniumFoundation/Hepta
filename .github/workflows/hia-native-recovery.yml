@@ -9637,7 +9637,15 @@ jobs:
         run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/check_active_source_syntax_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-source-syntax-driver.log"
       - name: Install the declared development solver
         run: python -m pip install z3-solver==4.15.4.0
+      - name: Download and verify complete original53 ZIP for the unified Graph route
+        if: contains(github.event.head_commit.message, '[hia-ci:backend-unified-program-graph]')
+        shell: bash
+        env:
+          HIA_ARTIFACT_TOKEN: ${{ github.token }}
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-unified-program-graph-r1/ci/fetch_follow53_original_zip.py --output "$RUNNER_TEMP/hia-unified53-transport/original53.zip"
+
       - name: Download exact current P16 original type-context artifact
+        if: ${{ !contains(github.event.head_commit.message, '[hia-ci:backend-unified-program-graph]') }}
         uses: actions/download-artifact@v4
         with:
           artifact-ids: '13950967281'
@@ -9650,6 +9658,7 @@ jobs:
         shell: bash
         env:
           HIA_CURRENT_P16_ORIGINALS: ${{ runner.temp }}/backend-current-P16-originals
+          HIA_UNIFIED53_ZIP: ${{ runner.temp }}/hia-unified53-transport/original53.zip
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-backend-current-program-graph-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
         run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/ci/backend_current_program_graph_ci.py 2>&1 | tee "$RUNNER_TEMP/hia-backend-current-program-graph-driver.log"
@@ -9663,6 +9672,7 @@ jobs:
             ${{ runner.temp }}/hia-source-syntax-driver.log
             ${{ runner.temp }}/hia-backend-current-program-graph-recovery
             ${{ runner.temp }}/hia-backend-current-program-graph-driver.log
+            ${{ runner.temp }}/hia-unified53-transport
           if-no-files-found: error
           retention-days: 90
           compression-level: 0

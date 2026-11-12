@@ -1,0 +1,54 @@
+{
+  "schema": "hia-static-narrow-peer-review-v1",
+  "reviewer": "native_checker",
+  "scope": "DB reuse r3 sparse SSA spelling, only new alpha helper and final document return",
+  "inputs": [
+    {
+      "bytes": 37468,
+      "sha256": "3ac08c7729c30ff3705c008416020b2ee0b1388785a279200f52abeb5a6f83a7",
+      "gitsha": "5ae34ed44e1067be78512c6b22b621d1eb626cea"
+    },
+    {
+      "bytes": 34186,
+      "sha256": "f5e4d87baf5046db3b1ec77300b057010b94529a3ea11408bb99abd15fc3f0b3",
+      "gitsha": "ba5452a46daa5532cb6a83f0a0ecf2e780f35959"
+    },
+    {
+      "bytes": 76176,
+      "sha256": "7198fd77427b45fc5de80b06290de5cbd524bb9752ef9509241fd3095a4a1c33",
+      "gitsha": "d44bc02375b6b8be297569638219013236e4b426"
+    }
+  ],
+  "observed": {
+    "source_inverse_two_unique_edits_exact": true,
+    "helper_identical_to_previously_reviewed_DMS_helper_after_only_function_and_module_name_substitution": true,
+    "DB_expected_module": "agent_namespace_db_node_reuse_r3",
+    "DMS_expected_module": "agent_namespace_dms_map_join_r10",
+    "definitions_numeric_unique_and_dense_map_limit_explicit": true,
+    "all_argument_return_branch_jump_references_rewritten": true,
+    "literal_attrs_call_targets_block_ids_and_types_unchanged": true,
+    "exact_function_inverse_assertion": true,
+    "only_selected_function_replaced_in_deep_copied_document": true,
+    "all_original_source_program_and_other_authoring_text_unchanged": true
+  },
+  "judgment": "No confirmed blocker in this narrow static scope. Existing true Core/profile/B3/VM/native gates remain required.",
+  "not_executed": {
+    "Python_AST": true,
+    "generation": true,
+    "normalizer_invocation": true,
+    "Core_verification": true,
+    "B3": true,
+    "VM": true,
+    "native": true
+  },
+  "limitations": [
+    "The caller-provided function_name is selected from names[db_steady] after original CFG compaction, not a global rename.",
+    "The reported original1208 definitions/max2257 and new profile were not independently recomputed here.",
+    "No validation of the DB locking policy or full12-role composition is claimed.",
+    "No prior DMS or DB execution result is inherited."
+  ],
+  "reference_previous_review": {
+    "gitsha": "84051ac896cfb9fc98d9a4e65ec1cb078807246a",
+    "scope": "same helper control and inverse, original DMS owner only"
+  }
+}

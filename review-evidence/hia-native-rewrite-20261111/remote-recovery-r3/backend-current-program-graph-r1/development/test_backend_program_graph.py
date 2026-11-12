@@ -446,7 +446,7 @@ def private():
   private_case("finished-field-"+name,ack(w),w)
  for at,value in ((0,0),(8,1),(16,42),(24,38),(104,1),(112,MAX),(120,127),(120,MAX)):
   w=finished_state(91001);put(w,"S_RESULT_EVENT",value,at)
-  private_case("decoder-event-"+str(at),ack(w),w)
+  private_case("decoder-event-"+str(at)+"-"+str(value),ack(w),w)
  for at,value in ((0,0),(8,42),(16,0),(24,0),(24,MAX),(32,MAX),(40,MAX),(48,len(graph)+1),(56,1)):
   w=finished_state(91005);head=bytearray(graph[:64]);struct.pack_into("<Q",head,at,value)
   private_case("Graph-header-"+str(at)+"-"+str(value),ack(w,head),w)

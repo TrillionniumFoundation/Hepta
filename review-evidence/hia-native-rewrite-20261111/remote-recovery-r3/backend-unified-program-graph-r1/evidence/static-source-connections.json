@@ -1,0 +1,206 @@
+{
+  "schema": "hia-unified-program-Graph-exact-source-connection-review-v1",
+  "status": "SOURCE_STATIC_ONLY_ZERO_AST_REFERENCE_GENERATION_B3_VM_NATIVE",
+  "index": {
+    "bytes": 24829,
+    "sha256": "5bbf01dc82b623eebadbdfd908582285c5edfef4d0ab820acd2f8012dbe03a27",
+    "gitsha": "6bb25ae2b9a439994dd77d4303a08a912d1ce915"
+  },
+  "source_rows": 43,
+  "all_rows_full_text_in_function_store": true,
+  "all_rows_sources_from_exact_full_Git_GET": true,
+  "graph_extensions": {
+    "latest": {
+      "bytes": 17340,
+      "sha256": "5812129aebea5e0ef2e972cc43b2e8c3db2f7b6b6b0f63d53fe1f7d6c0f1a33e",
+      "gitsha": "71a581e92b78f79fee306cb229acb1167a1e3ec2"
+    },
+    "predecessor_source": [
+      293304,
+      "42c09f173d185133de7c9a661c7798aa24c66a01583f0d36a777942ccdde0902"
+    ],
+    "mode_contract": "Keep original1..4/tree; extend only successful1/0"
+  },
+  "test": {
+    "base": {
+      "bytes": 33278,
+      "sha256": "5490e3b7c97c04c3129d54206f15e51b32437ccb5324fda5ded1e5e606f7e75b",
+      "gitsha": "2d8414ea44bd7a0ab1603a94219a23b78eebb882"
+    },
+    "first": {
+      "bytes": 41305,
+      "sha256": "4a87d8edb1b21b7786fbd66497115b89eb17338b8063d962715477ee3ce74e09",
+      "gitsha": "d4db98e2ce143e1f30c0b20d912d07c4ea23e51d"
+    },
+    "final": {
+      "bytes": 41619,
+      "sha256": "16f83749c7c7561d880d905097c60232ba3a0456586096c39959114fb751ebc7",
+      "gitsha": "24c5bde330655e278ff9577ceb5b3b9f23c09283"
+    },
+    "first_exact_literal_edits": [
+      {
+        "before": "\"\"\"New actual P16/Core admission -> issued integer Core Graph qualification.",
+        "after": "\"\"\"Unified current type/late-Core/P16 modes -> actual integer Core Graph qualification."
+      },
+      {
+        "before": "GROUPS={\"semantic\":26,\"raw-boundary\":1,\"functions\":1,\"private\":54,\n \"fixed-errors\":34,\"type-context\":4,\"type-names\":24,\"type-shapes\":9,\"type-order\":17,\n \"helper-budget\":1,\"late-inventory\":1}",
+        "after": "GROUPS={\"semantic\":26,\"raw-boundary\":1,\"functions\":1,\"private\":60,\n \"fixed-errors\":34,\"type-context\":4,\"type-names\":24,\"type-shapes\":9,\"type-order\":17,\n \"helper-budget\":1,\"late-inventory\":1,\n \"compat-semantic\":23,\"compat-assembly\":22,\"compat-object\":6,\n \"late-node-below\":1,\"late-node-equal\":1,\"late-node-over\":1,\n \"late-byte-below\":1,\"late-byte-equal\":1,\"late-byte-over\":1,\n \"late-depth-and-order\":6,\"late-private-protocol\":38}"
+      },
+      {
+        "before": "p.add_argument(\"--issued-sample\",type=Path)\n",
+        "after": "p.add_argument(\"--issued-sample\",type=Path)\np.add_argument(\"--predecessor-control\",action=\"store_true\")\np.add_argument(\"--control-results\",type=Path)\n"
+      },
+      {
+        "before": "ELF_PROCESSES=0;WIRE_ENTRIES=0;PRIVATE_ENTRIES=0;PRIVATE_CASES=0\n",
+        "after": "ELF_PROCESSES=0;ORIGINAL_ELF_PROCESSES=0;WIRE_ENTRIES=0;PRIVATE_ENTRIES=0;PRIVATE_CASES=0\nPREDECESSOR_PRIVATE_ENTRIES=0;PRIVATE_RECORDS=0;RUN_EXECUTABLE=None;RUN_EXECUTABLE_SHA=None\nEXTRAS=None;P16=None\n"
+      },
+      {
+        "before": "def actual(label,data,args=()):\n global ELF_PROCESSES\n",
+        "after": "def actual(label,data,args=()):\n global ELF_PROCESSES,ORIGINAL_ELF_PROCESSES\n"
+      },
+      {
+        "before": "save(OUT/\"pending-process.json\",dict(label=label,input=cas(data),executable_sha256=BUNDLE[\"executable_sha256\"]))",
+        "after": "save(OUT/\"pending-process.json\",dict(label=label,input=cas(data),executable_sha256=RUN_EXECUTABLE_SHA,predecessor_control=a.predecessor_control))"
+      },
+      {
+        "before": "process=subprocess.Popen([BUNDLE[\"executable_path\"],*args],stdin=fi,stdout=fo,stderr=fe,env=env,",
+        "after": "process=subprocess.Popen([RUN_EXECUTABLE,*args],stdin=fi,stdout=fo,stderr=fe,env=env,"
+      },
+      {
+        "before": "   ELF_PROCESSES+=1\n",
+        "after": "   if a.predecessor_control:ORIGINAL_ELF_PROCESSES+=1\n   else:ELF_PROCESSES+=1\n"
+      },
+      {
+        "before": "input=cas(data),stdout=cas(stdout),stderr=cas(stderr),executable_sha256=BUNDLE[\"executable_sha256\"],\n",
+        "after": "input=cas(data),stdout=cas(stdout),stderr=cas(stderr),executable_sha256=RUN_EXECUTABLE_SHA,\n   predecessor_control=a.predecessor_control,\n"
+      },
+      {
+        "before": "def semantic():\n plan()\n assert len(PLAN)==GROUPS[a.group]\n pin_reference_modules()\n saved=[]\n for row in PLAN:\n  ref=dict(row[\"expected\"])\n  for name in (\"core\",\"text\"):\n   if name in ref:ref[name]=cas(ref[name])\n  saved.append(dict(label=row[\"label\"],digits=row[\"digits\"],input=cas(row[\"raw\"]),expected=ref))\n save(OUT/\"planned-corpus.json\",saved)\n # All public reference work is complete before the native target loop.\n for index,row in enumerate(PLAN):\n  lease=0x42504701+index*4;request=index+1\n  process,stdout,stderr,where=actual(row[\"label\"],packet(row[\"raw\"],lease,request,row[\"digits\"]))\n  result=parse_result(process,stdout,stderr,row,lease,request,where)\n  ROWS.append(dict(label=row[\"label\"],status=\"PASS\",process=process,result=result))\n  save(OUT/\"cases-completed.json\",ROWS)\n",
+        "after": "def evidence_value(value):\n if type(value) is bytes:return cas(value)\n if type(value) is dict:return {key:evidence_value(item) for key,item in value.items()}\n if type(value) is list:return [evidence_value(item) for item in value]\n return value\ndef control_original(label):\n assert a.control_results is not None\n root=a.control_results.resolve()\n summary=json.loads(pin(root/\"summary.json\"))\n assert summary[\"schema\"]==\"hia-unified-program-Graph-actual-v1\" and summary[\"status\"]==\"PASS\"\n assert summary[\"predecessor_control_only\"] and summary[\"group\"]==a.group\n assert summary[\"completed_cases\"]==GROUPS[a.group] and summary[\"actual_ELF_processes\"]==0\n assert summary[\"actual_predecessor_ELF_processes\"]==GROUPS[a.group]\n assert summary[\"source_image_inputs_before_after_equal\"] and not summary[\"finalization_errors\"]\n assert summary[\"limits\"]==dict(cpu=90,wall=180,address=1<<30,core=0)\n assert summary[\"parent_plus_children_CPU_seconds\"]<90 and summary[\"elapsed_seconds\"]<180\n where=root/\"cases\"/label;process=json.loads(pin(where/\"process.json\"))\n assert process[\"predecessor_control\"] and not process[\"timed_out\"]\n assert process[\"executable_sha256\"]==BUNDLE[\"original_executable_identity\"][\"sha256\"]\n values={field:pin(where/(field+\".bin\")) for field in (\"input\",\"stdout\",\"stderr\")}\n for field,raw in values.items():\n  assert (len(raw),digest(raw))==(process[field][\"bytes\"],process[field][\"sha256\"])\n return process,values\ndef retained_late_original(label):\n value=BUNDLE[\"original_six_public_cases\"][label]\n result={}\n for field in (\"input\",\"stdout\",\"stderr\"):\n  item=value[field];raw=pin(item[\"path\"])\n  assert (len(raw),digest(raw),gitsha(raw))==(item[\"bytes\"],item[\"sha256\"],item[\"gitsha\"])\n  result[field]=raw\n process=json.loads(pin(value[\"process_path\"]))\n assert process[\"returncode\"]==value[\"returncode\"]==2 and not process[\"timed_out\"]\n return process,result\ndef semantic():\n compatibility=a.group.startswith(\"compat-\")\n if a.group in EXTRAS.COUNTS:EXTRAS.plan(globals(),a.group)\n else:plan()\n assert len(PLAN)==GROUPS[a.group]\n if a.predecessor_control:\n  assert compatibility and a.control_results is None\n elif compatibility:\n  assert a.control_results is not None\n pin_reference_modules()\n saved=[]\n for row in PLAN:\n  saved.append(dict(label=row[\"label\"],mode=row.get(\"mode\",1),tree=row.get(\"tree\",0),\n   digits=row[\"digits\"],input=cas(row[\"raw\"]),expected=evidence_value(row[\"expected\"])))\n save(OUT/\"planned-corpus.json\",saved)\n # Every original public oracle finishes before any target invocation.\n for index,row in enumerate(PLAN):\n  mode,tree=row.get(\"mode\",1),row.get(\"tree\",0)\n  lease=0x42504701+index*4;request=index+1\n  original=None\n  if a.group in BUNDLE[\"original_six_public_cases\"]:\n   old_process,original=retained_late_original(row[\"label\"])\n   header=struct.unpack_from(\"<8Q\",original[\"input\"])\n   assert header[0]==magic(\"HIAWPI01\") and header[3]==row[\"digits\"]\n   assert header[4]==len(row[\"raw\"]) and header[5:]==(mode,tree,0)\n   lease,request=header[1:3]\n  data=packet(row[\"raw\"],lease,request,row[\"digits\"],mode,tree)\n  if original is not None:assert data==original[\"input\"]\n  if compatibility and not a.predecessor_control:\n   old_process,original=control_original(row[\"label\"])\n   assert data==original[\"input\"]\n  process,stdout,stderr,where=actual(row[\"label\"],data)\n  if mode==1 and tree==0:\n   assert not a.predecessor_control\n   result=parse_result(process,stdout,stderr,row,lease,request,where)\n  else:\n   original_planned=dict(row,expected=row[\"p16_expected\"])\n   complete=P16[\"parse_result\"](process,stdout,stderr,original_planned,lease,request)\n   result=dict(kind=row[\"expected\"][\"kind\"],original_HIAWPE01=True,\n     complete_original_payload_receipt_Core_and_error_equal=True,full_result=cas(complete))\n  if original is not None:\n   assert process[\"returncode\"]==old_process[\"returncode\"]\n   assert stdout==original[\"stdout\"] and stderr==original[\"stderr\"]\n   result[\"complete_predecessor_input_stdout_stderr_exit_equal\"]=True\n   result[\"predecessor_control\"]=a.group.startswith(\"compat-\")\n   result[\"prior_six_original_case_readback\"]=a.group in BUNDLE[\"original_six_public_cases\"]\n  ROWS.append(dict(label=row[\"label\"],status=\"PASS\",mode=mode,tree=tree,process=process,result=result))\n  save(OUT/\"cases-completed.json\",ROWS)\n"
+      },
+      {
+        "before": "def private_entry(command,workspace,label,output_size=128,advertised_work=None):\n global PRIVATE_ENTRIES\n",
+        "after": "def private_entry(command,workspace,label,output_size=128,advertised_work=None,predecessor=False):\n global PRIVATE_ENTRIES,PREDECESSOR_PRIVATE_ENTRIES,PRIVATE_RECORDS\n"
+      },
+      {
+        "before": "  returned=int(IMAGES[\"root\"]._entry(s.ptr,s.size,o.ptr,output_size,w.ptr,\n",
+        "after": "  image=IMAGES[\"predecessor-root\" if predecessor else \"root\"]\n  returned=int(image._entry(s.ptr,s.size,o.ptr,output_size,w.ptr,\n"
+      },
+      {
+        "before": "  PRIVATE_ENTRIES+=1\n",
+        "after": "  if predecessor:PREDECESSOR_PRIVATE_ENTRIES+=1\n  else:PRIVATE_ENTRIES+=1\n  PRIVATE_RECORDS+=1\n"
+      },
+      {
+        "before": "save(OUT/\"private-entries\"/(str(PRIVATE_ENTRIES).zfill(5)+\".json\"),\n   dict(label=label,entry=PRIVATE_ENTRIES,returned=returned,before=before,",
+        "after": "save(OUT/\"private-entries\"/(str(PRIVATE_RECORDS).zfill(5)+\".json\"),\n   dict(label=label,entry=PRIVATE_RECORDS,target_entry=PRIVATE_ENTRIES,\n     predecessor_entry=PREDECESSOR_PRIVATE_ENTRIES,predecessor_control=predecessor,\n     returned=returned,before=before,"
+      },
+      {
+        "before": "def private():\n global PRIVATE_CASES\n",
+        "after": "def private_mode_compatibility(label,command,initial):\n global PRIVATE_CASES\n old=private_entry(command,bytes(initial),label+\"-original\",predecessor=True)\n new=private_entry(command,bytes(initial),label+\"-unified\")\n assert old==new and old[0]==128,(label,old[0],new[0])\n PRIVATE_CASES+=1\n ROWS.append(dict(label=label,status=\"PASS\",private_synthetic_context=True,\n  valid_original_mode_tree_preserved=True,complete_return_output_workspace_equal=True,\n  predecessor_entries=1,new_entries=1))\ndef private():\n global PRIVATE_CASES\n"
+      },
+      {
+        "before": "  private_case(\"initial-header-\"+str(at)+\"-\"+str(value),bytes(raw),initial)\n",
+        "after": "  label=\"initial-header-\"+str(at)+\"-\"+str(value)\n  if (at,value) in ((40,2),(48,1)):\n   private_mode_compatibility(label,bytes(raw),initial)\n  else:private_case(label,bytes(raw),initial)\n for at,value in ((40,5),(48,2)):\n  raw=bytearray(command);struct.pack_into(\"<Q\",raw,at,value)\n  private_case(\"new-invalid-header-\"+str(at)+\"-\"+str(value),bytes(raw),initial)\n"
+      },
+      {
+        "before": " save(OUT/\"cases-completed.json\",ROWS)\n assert PRIVATE_CASES==54,(PRIVATE_CASES,PRIVATE_ENTRIES)\n",
+        "after": " for name,value in ((\"WP_MODE\",2),(\"WP_MODE\",3),(\"WP_TREE\",1),(\"WP_TREE\",2)):\n  w=finished_state(91005);put(w,name,value)\n  private_case(\"active-Graph-view-mode-tree-\"+name+\"-\"+str(value),ack(w,graph[:64]),w)\n save(OUT/\"cases-completed.json\",ROWS)\n assert (PRIVATE_CASES,PRIVATE_ENTRIES,PREDECESSOR_PRIVATE_ENTRIES,PRIVATE_RECORDS)==(60,138,2,140)\n"
+      },
+      {
+        "before": "assert BUNDLE[\"schema\"]==\"hia-backend-current-program-Graph-fixed-v2\" and BUNDLE[\"status\"]==\"BUILT_ONLY\"",
+        "after": "assert BUNDLE[\"schema\"]==\"hia-unified-program-Graph-fixed-v1\" and BUNDLE[\"status\"]==\"BUILT_ONLY\""
+      },
+      {
+        "before": " assert BUNDLE[\"actual_current_P16_head\"]==\"122a6640aee2666d23563910578ef66858c01d88\"\n",
+        "after": " assert BUNDLE[\"actual_current_P16_head\"]==\"8f27671ad748dc7c081a1eaad897b057d8d9f42e\"\n assert BUNDLE[\"current_late_Core_group6_routes_preserved\"] and BUNDLE[\"full_original_P16_modes_and_tree_preserved\"]\n assert BUNDLE[\"Graph_only_on_mode1_tree0_success\"] and BUNDLE[\"original_other_modes_use_HIAWPE01\"]\n"
+      },
+      {
+        "before": " CONSTANTS=json.loads(pin(BUNDLE[\"constants_path\"]))\n",
+        "after": " prior=BUNDLE[\"original_root_binding\"]\n assert (prior[\"source_bytes\"],prior[\"source_sha256\"])==(293304,\"42c09f173d185133de7c9a661c7798aa24c66a01583f0d36a777942ccdde0902\")\n assert (prior[\"image_bytes\"],prior[\"image_sha256\"])==(381135,\"0f3745a833a17bae7c42c9017f6b8f944f7069200db876119ba434f93cc06d9d\")\n for kind in (\"source\",\"image\"):\n  raw=pin(prior[kind+\"_path\"])\n  assert (len(raw),digest(raw))==(prior[kind+\"_bytes\"],prior[kind+\"_sha256\"])\n RUN_EXECUTABLE=BUNDLE[\"executable_path\"];RUN_EXECUTABLE_SHA=BUNDLE[\"executable_sha256\"]\n if a.predecessor_control:\n  assert a.group.startswith(\"compat-\") and a.control_results is None\n  RUN_EXECUTABLE=BUNDLE[\"original_executable_path\"]\n  original=pin(RUN_EXECUTABLE);ident=BUNDLE[\"original_executable_identity\"]\n  assert (len(original),digest(original),gitsha(original))==(ident[\"bytes\"],ident[\"sha256\"],ident[\"gitsha\"])\n  RUN_EXECUTABLE_SHA=ident[\"sha256\"]\n CONSTANTS=json.loads(pin(BUNDLE[\"constants_path\"]))\n"
+      },
+      {
+        "before": " from hepta.hia_program import verify_program,HIAProgramRejected\n",
+        "after": " from hepta.hia_program import verify_program,HIAProgramRejected\n from hepta.hia_agent_assembly import render_assembly,assemble_program,diagnose_assembly,HIAAssemblyRejected\n"
+      },
+      {
+        "before": " pin_reference_modules()\n if a.group==\"private\":\n",
+        "after": " helper=PROJECT/\"tests/unified_program_graph_extra_cases.py\";raw=pin(helper)\n assert (len(raw),digest(raw))==(5172,\"40ed7084f37b32a7393359cbf82c3c572b4b70fc1a54ded7dc03407e0625ca7f\")\n spec=importlib.util.spec_from_file_location(\"unified_program_exact_extra_fixtures\",helper)\n EXTRAS=importlib.util.module_from_spec(spec);spec.loader.exec_module(EXTRAS)\n P16=EXTRAS.prepare(globals())\n pin_reference_modules()\n if a.group==\"private\":\n"
+      },
+      {
+        "before": "  IMAGES[\"root\"]=NativeHiaJsonImage(pin(row[\"image_path\"]),expected_sha256=row[\"image_sha256\"])\n  private()\n else:\n",
+        "after": "  IMAGES[\"root\"]=NativeHiaJsonImage(pin(row[\"image_path\"]),expected_sha256=row[\"image_sha256\"])\n  IMAGES[\"predecessor-root\"]=NativeHiaJsonImage(pin(prior[\"image_path\"]),expected_sha256=prior[\"image_sha256\"])\n  private()\n elif a.group==\"late-private-protocol\":\n  assert not a.predecessor_control and a.control_results is None\n  original_private=EXTRAS.private(globals())\n  save(OUT/\"original-late-private-result.json\",original_private)\n else:\n"
+      },
+      {
+        "before": " if a.group==\"private\":assert PRIVATE_ENTRIES==128 and ELF_PROCESSES==0\n else:assert ELF_PROCESSES==GROUPS[a.group] and PRIVATE_ENTRIES==0\n",
+        "after": " if a.group==\"private\":\n  assert (PRIVATE_ENTRIES,PREDECESSOR_PRIVATE_ENTRIES,ELF_PROCESSES,ORIGINAL_ELF_PROCESSES)==(138,2,0,0)\n elif a.group==\"late-private-protocol\":\n  assert (PRIVATE_CASES,PRIVATE_ENTRIES,PREDECESSOR_PRIVATE_ENTRIES,ELF_PROCESSES,ORIGINAL_ELF_PROCESSES)==(38,105,0,0,0)\n elif a.predecessor_control:\n  assert (ELF_PROCESSES,ORIGINAL_ELF_PROCESSES,PRIVATE_ENTRIES)==(0,GROUPS[a.group],0)\n else:\n  assert (ELF_PROCESSES,ORIGINAL_ELF_PROCESSES,PRIVATE_ENTRIES)==(GROUPS[a.group],0,0)\n"
+      },
+      {
+        "before": "report=dict(schema=\"hia-backend-current-program-Graph-actual-v2\",status=STATUS,error=FAILURE,cleanup_errors=cleanup,",
+        "after": "report=dict(schema=\"hia-unified-program-Graph-actual-v1\",status=STATUS,error=FAILURE,cleanup_errors=cleanup,"
+      },
+      {
+        "before": "  actual_wire_native_entries=WIRE_ENTRIES,actual_private_native_entries=PRIVATE_ENTRIES,\n",
+        "after": "  actual_wire_native_entries=WIRE_ENTRIES,actual_private_native_entries=PRIVATE_ENTRIES,\n  actual_predecessor_ELF_processes=ORIGINAL_ELF_PROCESSES,predecessor_control_only=a.predecessor_control,\n  actual_predecessor_private_entries=PREDECESSOR_PRIVATE_ENTRIES,complete_private_entry_records=PRIVATE_RECORDS,\n"
+      },
+      {
+        "before": "actual_program_admission_and_integer_Graph_issuance=any(row.get(\"result\",{}).get(\"kind\")==1 for row in ROWS),\n  current_P16_52a_HIA_source_binding_required=True,retained_type_diagnostic_cases_not_inherited=True,",
+        "after": "actual_program_admission_and_integer_Graph_issuance=any(\"Graph_wire\" in row.get(\"result\",{}) for row in ROWS),\n  current_P16_late_Core_HIA_source_binding_required=True,full_original_mode_tree_contract=True,\n  retained_type_and_late_diagnostic_cases_not_inherited=True,"
+      },
+      {
+        "before": "_finish_receipt(report,\"PASS\",\"HIA_BACKEND_PREFIX_GROUP_ORIGINAL\")",
+        "after": "_finish_receipt(report,\"PASS\",\"HIA_UNIFIED_PROGRAM_GRAPH_GROUP_ORIGINAL\")"
+      }
+    ],
+    "final_control_evidence_edits": [
+      {
+        "before": " assert summary[\"parent_plus_children_CPU_seconds\"]<90 and summary[\"elapsed_seconds\"]<180\n where=root/\"cases\"/label;process=json.loads(pin(where/\"process.json\"))\n",
+        "after": " assert summary[\"parent_plus_children_CPU_seconds\"]<90 and summary[\"elapsed_seconds\"]<180\n for phase in (\"pre_receipt_budget\",\"post_output_budget\"):\n  assert summary[phase][\"parent_plus_children_CPU_seconds\"]<90 and summary[phase][\"elapsed_seconds\"]<180\n source_after=json.loads(pin(root/\"source-after.json\"))\n assert source_after and all(item[\"same\"] and item[\"error\"] is None for item in source_after)\n where=root/\"cases\"/label;process=json.loads(pin(where/\"process.json\"))\n"
+      }
+    ],
+    "inverse": "Every recorded ordered edit has a unique match and reverse restores full original bytes; this was computed in JavaScript, not a Python AST or execution."
+  },
+  "new_test_counts": {
+    "current_public": 122,
+    "compatibility": 51,
+    "late_public": 12,
+    "Graph_private_cases": 60,
+    "Graph_private_entries": 138,
+    "late_private_cases": 38,
+    "late_private_entries": 105,
+    "old_compatibility_ELF": 51,
+    "old_private_entries": 2,
+    "total_new_cases": 283,
+    "total_new_ELF": 185,
+    "total_new_private_entries": 243
+  },
+  "scope_limits": [
+    "This is static text and complete Git identity validation only.",
+    "All handwritten/generated Python remains unparsed here. Runtime syntax, fixture references, actual HIA profiles and targets remain fresh CI gates.",
+    "New private initial-mode controls intentionally preserve original public mode2/tree1 while adding invalidmode5/tree2 and four in-flight mode/tree poison cases.",
+    "Actual FOLLOW54 late Core private105 belongs exclusively to private38; old public six separate."
+  ],
+  "reference_preservation": [
+    "Exact original b77ed6 oracle and non-target-mode fixture functions are extracted unchanged in development testing.",
+    "Exact e10 public late-Core and e8 private38 fixtures are retained unchanged.",
+    "Current public/type fixture paths and hashes remain exact."
+  ],
+  "first_known_static_draft_repairs": [
+    {
+      "scope": "adapter",
+      "old": {
+        "bytes": 20705,
+        "sha256": "f21e154d4f34c66dc927efcf9cef1f6e16d9a862cd75fc511adc152bc8d6bea9",
+        "gitsha": "05cfe3942328b7d42354083ed7c93beb609488a0"
+      },
+      "current": {
+        "bytes": 20732,
+        "sha256": "f691198523a798df8ba398de6537d5b1061ad45320b5cabfb75f34561575c6b3",
+        "gitsha": "38d495b8ec7b9809a9618151b4c21aef4b1df1a8"
+      },
+      "description": "Renamed case_prefix/field_info only to avoid overwriting actual carrier prefix/identity. Prior unexecuted draft is retained."
+    }
+  ],
+  "compiler_limits_unchanged": true,
+  "original_core_public_limits_not_replaced_by_bootstrap_profile": true,
+  "ref_mutations": 0
+}

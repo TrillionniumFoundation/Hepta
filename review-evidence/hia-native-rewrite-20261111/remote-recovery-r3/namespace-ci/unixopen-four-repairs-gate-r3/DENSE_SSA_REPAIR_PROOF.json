@@ -1,0 +1,252 @@
+{
+  "schema": "hia.namespace.unix9.dms10-dense-ssa-repair-proof.v1",
+  "status": "LOCAL_DEVELOPMENT_VERIFIED_NOT_NEW_CI_QUALIFICATION",
+  "original_failure": {
+    "head": "de603dd85b9c2aa9065a929bc1f2e0fcd5dfa3f1",
+    "run": 43262275264,
+    "job": 131336455273,
+    "first_error": "role4 generated document max numeric SSA suffix 2128 violates original <2048 profile",
+    "DMS10_original_source": "3e82ef42b28e1bd34cf760c2ad229acbafe03e08",
+    "original_document": {
+      "blob": "9be8e185fbf86c0cf709dee4db586889bff67f5b",
+      "bytes": 1042495,
+      "sha256": "a6eca09e2a03e8cc606df7a1c95ef6519089ff6d3dba1052b9943ae8576b7df1",
+      "mode": "100644"
+    },
+    "full_original_log": {
+      "blob": "468cb0c48961c1c300e28283b4b31da61267308f",
+      "bytes": 665618,
+      "sha256": "6621edad8d614aa3619ee6ee24a8b24a06e3f15fadff2644404b853412190d03",
+      "mode": "100644"
+    },
+    "B3": 0,
+    "packer": 0,
+    "physical": 0,
+    "status": "FAIL",
+    "subject_phase_ns": 4631503149
+  },
+  "transformation": {
+    "function": "dms_steady",
+    "canonical_name": "f16",
+    "operation": "Dense numeric alpha-renaming of existing function-local SSA definitions and all actual use sites after unchanged compact_authoring_cfg",
+    "bijection_order": "ascending original numeric suffix",
+    "old_definitions": 1434,
+    "old_max_suffix": 2128,
+    "new_max_suffix": 1433,
+    "overall_new_max_suffix": 1522,
+    "other_71_functions_unchanged": true,
+    "op_order_values_attrs_targets_callees_types_unchanged": true,
+    "source_DSL_byte_identical": true,
+    "original_guard_original_10_controls_unchanged": true,
+    "unhandled_terminator_fails_closed": true,
+    "unresolved_or_duplicate_names_fail_closed": true,
+    "exact_entry_and_function_params_equal": true,
+    "per_function_inverse_exact_complete_original": true,
+    "why_semantics_preserved": "Names identify function-local bound values. The bijection preserves each definition-to-use edge and type. Operation order, branch targets, literal values, attributes, call targets and all buffer operations remain byte-identical outside the renamed fields. Induction over each original execution step gives identical values, control flow, writes and resource/step accounting. This claim does not authenticate private external frames or prove ordinary Store completion."
+  },
+  "profile": {
+    "unchanged": {
+      "functions": 72,
+      "blocks": 1524,
+      "ops": 6956,
+      "max_blocks": 142,
+      "max_block_params": 12
+    },
+    "original_limits": {
+      "functions": 128,
+      "blocks": 1536,
+      "ops": 8192,
+      "max_blocks": 256,
+      "max_block_params": 16,
+      "max_ssa_numeric_suffix_exclusive": 2048
+    },
+    "no_limit_changes": true
+  },
+  "exact_text_inverse": [
+    {
+      "path": "namespace-dms-map-r10.py",
+      "old_git": "3e82ef42b28e1bd34cf760c2ad229acbafe03e08",
+      "new": {
+        "blob": "d44bc02375b6b8be297569638219013236e4b426",
+        "bytes": 76176,
+        "sha256": "7198fd77427b45fc5de80b06290de5cbd524bb9752ef9509241fd3095a4a1c33",
+        "mode": "100644"
+      },
+      "edits": [
+        {
+          "before": "def document():",
+          "after": "def _dense_dms_steady_ssa(document, function_name):\n    \"\"\"Alpha-rename only dms_steady after CFG compaction; preserve every operation.\"\"\"\n    import copy\n    assert document[\"schema\"] == \"hepta.hia.program.v8\"\n    assert document[\"module\"] == \"agent_namespace_dms_map_join_r10\"\n    indices = [i for i, fn in enumerate(document[\"functions\"]) if fn[\"name\"] == function_name]\n    assert len(indices) == 1\n    index = indices[0]\n    original = document[\"functions\"][index]\n    assert set(original) == {\"name\", \"params\", \"returns\", \"effects\", \"entry\", \"blocks\"}\n    entries = [block for block in original[\"blocks\"] if block[\"id\"] == original[\"entry\"]]\n    assert len(entries) == 1 and original[\"params\"] == entries[0][\"params\"]\n    definitions = {}\n    for block in original[\"blocks\"]:\n        assert set(block) == {\"id\", \"params\", \"ops\", \"term\"}\n        values = list(block[\"params\"])\n        for op in block[\"ops\"]:\n            assert set(op) == {\"op\", \"args\", \"out\", \"attrs\"}\n            values.extend(op[\"out\"])\n        for value in values:\n            assert set(value) == {\"name\", \"type\"}\n            name = value[\"name\"]\n            assert type(name) is str and name.startswith(\"v\") and name[1:]\n            assert name[1:].isascii() and name[1:].isdigit()\n            assert name == \"v\" + str(int(name[1:])) and name not in definitions\n            definitions[name] = value[\"type\"]\n    ordered = sorted(definitions, key=lambda name: int(name[1:]))\n    mapping = {name: \"v\" + str(i) for i, name in enumerate(ordered)}\n    inverse = {new: old for old, new in mapping.items()}\n    assert len(mapping) == len(inverse) == len(definitions)\n    assert all(int(name[1:]) < 2048 for name in inverse)\n\n    def renamed(fn, table):\n        fn = copy.deepcopy(fn)\n        def refs(values):\n            assert type(values) is list and all(type(x) is str and x in table for x in values)\n            return [table[x] for x in values]\n        def params(values):\n            for value in values:\n                value[\"name\"] = table[value[\"name\"]]\n        params(fn[\"params\"])\n        for block in fn[\"blocks\"]:\n            params(block[\"params\"])\n            for op in block[\"ops\"]:\n                op[\"args\"] = refs(op[\"args\"])\n                params(op[\"out\"])\n            term = block[\"term\"]\n            if term[\"op\"] == \"ret\":\n                assert set(term) == {\"op\", \"values\"}\n                term[\"values\"] = refs(term[\"values\"])\n            elif term[\"op\"] == \"jump\":\n                assert set(term) == {\"op\", \"target\", \"args\"}\n                term[\"args\"] = refs(term[\"args\"])\n            elif term[\"op\"] == \"branch\":\n                assert set(term) == {\"op\", \"cond\", \"then\", \"else\"}\n                term[\"cond\"] = table[term[\"cond\"]]\n                for edge_name in (\"then\", \"else\"):\n                    edge = term[edge_name]\n                    assert set(edge) == {\"target\", \"args\"}\n                    edge[\"args\"] = refs(edge[\"args\"])\n            else:\n                raise ValueError(\"unexpected dms_steady terminator\")\n        return fn\n\n    rewritten = renamed(original, mapping)\n    assert renamed(rewritten, inverse) == original\n    result = copy.deepcopy(document)\n    result[\"functions\"][index] = rewritten\n    return result\n\ndef document():"
+        },
+        {
+          "before": "    return compact_authoring_cfg({\"schema\":\"hepta.hia.program.v8\",\"module\":\"agent_namespace_dms_map_join_r10\",\"functions\":functions})",
+          "after": "    return _dense_dms_steady_ssa(compact_authoring_cfg({\"schema\":\"hepta.hia.program.v8\",\"module\":\"agent_namespace_dms_map_join_r10\",\"functions\":functions}), names[\"dms_steady\"])"
+        }
+      ]
+    },
+    {
+      "path": "validate-dms10-header-proof.py",
+      "old_git": "119dbeab473291acab2b183ffa293563f5d49090",
+      "new": {
+        "blob": "7ebbcef09828594a78d5d7a929a5bc261d98ab37",
+        "bytes": 9705,
+        "sha256": "0a88b2e6f319a20a44cebea0c390fcb2a91700dab7fa8317334df615ae72b3bd",
+        "mode": "100644"
+      },
+      "edits": [
+        {
+          "before": "3e82ef42b28e1bd34cf760c2ad229acbafe03e08",
+          "after": "d44bc02375b6b8be297569638219013236e4b426"
+        },
+        {
+          "before": "268a55deb3912d658b4fdb9952fbfeff8cedd168bcda18da611d4ae4d664567f",
+          "after": "7198fd77427b45fc5de80b06290de5cbd524bb9752ef9509241fd3095a4a1c33"
+        },
+        {
+          "before": "\\\"bytes\\\":72889",
+          "after": "\\\"bytes\\\":76176"
+        }
+      ]
+    },
+    {
+      "path": "build_actual_unixopen.py",
+      "old_git": "1cf712db5f9e726b12d21fe2d6ee12537a69d6a3",
+      "new": {
+        "blob": "7d06a32eccaf0958bdf95fa061c0d8af25e8287f",
+        "bytes": 29049,
+        "sha256": "c20db4a71df40b2264faa6036d4c4c9862df425c59411b937df20308afb48a3f",
+        "mode": "100644"
+      },
+      "edits": [
+        {
+          "before": "268a55deb3912d658b4fdb9952fbfeff8cedd168bcda18da611d4ae4d664567f",
+          "after": "7198fd77427b45fc5de80b06290de5cbd524bb9752ef9509241fd3095a4a1c33"
+        }
+      ]
+    },
+    {
+      "path": "inputs.json",
+      "old_git": "fc4ff42997e672fd6df2675545c9e9bd998505c4",
+      "new": {
+        "blob": "0cfb1d4831cde5db23ec152bb41eaf2d1ba3dd96",
+        "bytes": 13372,
+        "sha256": "ad88c7529a7406588c9d2bd779133f86022e5dd867e89bf0d5fe2df93c47dead",
+        "mode": "100644"
+      },
+      "edits": [
+        {
+          "before": "3e82ef42b28e1bd34cf760c2ad229acbafe03e08",
+          "after": "d44bc02375b6b8be297569638219013236e4b426"
+        },
+        {
+          "before": "268a55deb3912d658b4fdb9952fbfeff8cedd168bcda18da611d4ae4d664567f",
+          "after": "7198fd77427b45fc5de80b06290de5cbd524bb9752ef9509241fd3095a4a1c33"
+        },
+        {
+          "before": "\"bytes\": 72889",
+          "after": "\"bytes\": 76176"
+        },
+        {
+          "before": "119dbeab473291acab2b183ffa293563f5d49090",
+          "after": "7ebbcef09828594a78d5d7a929a5bc261d98ab37"
+        },
+        {
+          "before": "e187c563b9adf8cb8c64718cff8f1dcabaadb66ec55a3ffa493f15af8c928a00",
+          "after": "0a88b2e6f319a20a44cebea0c390fcb2a91700dab7fa8317334df615ae72b3bd"
+        },
+        {
+          "before": "1cf712db5f9e726b12d21fe2d6ee12537a69d6a3",
+          "after": "7d06a32eccaf0958bdf95fa061c0d8af25e8287f"
+        },
+        {
+          "before": "5d838a94e9807ab26b0b319340f2ed61c8e406ff4ec24e18be6979d3f63cc578",
+          "after": "c20db4a71df40b2264faa6036d4c4c9862df425c59411b937df20308afb48a3f"
+        }
+      ]
+    },
+    {
+      "path": "ci_actual_unixopen.py",
+      "old_git": "f3a704a39724c2467dae487718dcd03de7369220",
+      "new": {
+        "blob": "10eb850a9f573448b1ccf7fb1a28c194a6c75ca8",
+        "bytes": 25390,
+        "sha256": "8bdc3a2d41862359dc4fa6463d44a4c6986296d93a7331b5079dafbbef4b58f5",
+        "mode": "100644"
+      },
+      "edits": [
+        {
+          "before": "fc4ff42997e672fd6df2675545c9e9bd998505c4",
+          "after": "0cfb1d4831cde5db23ec152bb41eaf2d1ba3dd96"
+        },
+        {
+          "before": "d51e50345b557b66def979cb93300162cc5b4afc315d4c55d6c5a6a769134d78",
+          "after": "ad88c7529a7406588c9d2bd779133f86022e5dd867e89bf0d5fe2df93c47dead"
+        }
+      ]
+    }
+  ],
+  "local_evidence": {
+    "summary": {
+      "blob": "f999e3733fcc511cb01b4e055db5cc588c87e011",
+      "bytes": 16963,
+      "sha256": "83bfbf4213c54ce718d1ca4fe9d623fffcbd705240a19ca04e5817a18f60dc50",
+      "mode": "100644"
+    },
+    "complete_archive": {
+      "blob": "5640428ac1ff02a81dc870216bf5bcb07ebf6421",
+      "bytes": 470728,
+      "sha256": "82d3fd903e15ee69df2cd2dbfa2a58944185ec313824088f4730fbdc810f3dd3",
+      "mode": "100644"
+    },
+    "members": 174,
+    "raw_bytes": 14950209,
+    "archive_all_member_readback": true,
+    "independent_static_review": {
+      "blob": "84051ac896cfb9fc98d9a4e65ec1cb078807246a",
+      "bytes": 3232,
+      "sha256": "a0ef772f23c51a226799b9c22236d4e3eeff07aa0b7be384eff49151a97d7ad4",
+      "mode": "100644"
+    },
+    "r1_actual_B3": 1,
+    "r1_harness_schema_failure_preserved": true,
+    "r2_actual_B3": 1,
+    "r2_old_VM": 46,
+    "r2_new_VM": 46,
+    "r2_new_native": 46,
+    "additional_direct_old_VM": 3,
+    "additional_direct_new_VM": 3,
+    "full_return_output_workspace_canaries_equal": true,
+    "old_new_steps_resources_equal": true,
+    "original_fail_document_fresh_generation_byte_equal": true,
+    "no_namespace_physical_syscalls": true,
+    "original_CI_case_counts_inherited": false
+  },
+  "next_CI": {
+    "fresh_B3_roles": 9,
+    "fresh_B3_packer": 1,
+    "packer_controls": 45,
+    "physical_process_cases": 28,
+    "groups": {
+      "raw-prefix": 12,
+      "parent-refusal": 8,
+      "transport": 8
+    },
+    "source_proof_controls": 10,
+    "subject_wall_seconds": 900,
+    "runtime_CPU_seconds": 90,
+    "runtime_wall_seconds": 180,
+    "address_bytes": 1073741824,
+    "B3_CPU_seconds": 10,
+    "B3_wall_seconds": 20,
+    "B3_address_bytes": 268435456,
+    "B3_output_bytes": 1048576,
+    "B3_workspace_bytes": 1048576,
+    "VM_steps": 4000000,
+    "VM_arena_bytes": 33554432,
+    "VM_depth": 64,
+    "independent_seal_CPU_seconds": 90,
+    "independent_seal_wall_seconds": 180,
+    "all_prior_tests_mechanics_masks_and_budget_assertions_byte_identical": true,
+    "new_CI_executed": false
+  },
+  "ordinary_Store_SQL31_closed": false
+}

@@ -4,14 +4,47 @@ Source-only development driver. The current predecessor is fully read back;
 only a new root is compiled, and all new cases execute the current 47-image
 combination. Historical component counts are never inherited.
 """
+
+# BEGIN HIA EXPLICIT SOURCE ENTRY ROUTE R1
+if __name__ == "__main__":
+    def _hia_explicit_source_entry_r1():
+        import hashlib as _hashlib
+        import json as _json
+        import os as _os
+        from pathlib import Path as _Path
+        import stat as _stat
+        import types as _types
+        if _os.environ.get("GITHUB_EVENT_NAME") != "push":
+            return
+        _event_raw = _Path(_os.environ["GITHUB_EVENT_PATH"]).read_bytes()
+        _event = _json.loads(_event_raw)
+        if "[hia-ci:backend-unified-program-graph]" not in _event.get("head_commit", {}).get("message", ""):
+            return
+        _root = _Path(_os.environ["GITHUB_WORKSPACE"]).resolve(strict=True)
+        _helper = _root / "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/explicit_gate_entry_router_r1.py"
+        _mode = _helper.lstat().st_mode
+        if _helper.is_symlink() or not _stat.S_ISREG(_mode) or _stat.S_IMODE(_mode) != 0o644:
+            raise RuntimeError("explicit entry helper must be regular mode 100644")
+        _raw = _helper.read_bytes()
+        if (len(_raw), _hashlib.sha1(b"blob " + str(len(_raw)).encode("ascii") + b"\0" + _raw).hexdigest(), _hashlib.sha256(_raw).hexdigest()) != (7494, "25282eda1b7b97627d7791a47fe2c2bc21bcd6a3", "662bc010dd5893a046b9353b528902e33b6fd8d79b4a76e5e6cea99843c742c1"):
+            raise RuntimeError("explicit entry helper full pin mismatch")
+        _module = _types.ModuleType("hia_explicit_source_entry_router_r1")
+        _module.__file__ = str(_helper)
+        exec(compile(_raw, str(_helper), "exec"), _module.__dict__)
+        _module.dispatch({"job":"backend_current_program_graph","selector":"[hia-ci:backend-unified-program-graph]","scope":"One actual type/late-Core/P16/Graph role56; fresh26 groups283 cases and three separate original-mode51 ELF controls","caller_path":"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/ci/backend_current_program_graph_ci.py","target":{"path":"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-unified-program-graph-r1/ci/backend_unified_program_graph_ci.py","mode":"100644","bytes":26778,"gitsha":"96a34f8d8846997563566806a809d3c9498c538b","sha256":"afe9504126078f78cb1387dbb0956dd0ee9e623b85e418635df874f2da86d696"}}, __file__, _event_raw, _raw)
+        raise RuntimeError("selected explicit route returned without an exit")
+    _hia_explicit_source_entry_r1()
+    del _hia_explicit_source_entry_r1
+# END HIA EXPLICIT SOURCE ENTRY ROUTE R1
+
 from pathlib import Path
 from hashlib import sha1,sha256
 import ast,base64,json,os,re,stat,sys,traceback,types
 sys.dont_write_bytecode=True
 COMMON_GIT="61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e"
 SEAL_GIT="084a98a1d42e3081612b817e909eb50443d8a924"
-INDEX_GIT="0d3d02b6aeb1b93a6cb6ff0babe4b7fdaebda2f8"
-INDEX_SHA="acac8039bca29f3180eda8482d96aa75aee81180be7f065a3cc6c0d76a594402"
+INDEX_GIT="bf9835f22276fbf993be51b4216c31cb49518985"
+INDEX_SHA="f6fe5e6cedb61d9b17a6dd57e8d99718003c64845b3154a70102c13f648e3ab6"
 INDEX_BYTES=19000
 NEW_COMPILER="35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"
 OLD_COMPILER="0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8"

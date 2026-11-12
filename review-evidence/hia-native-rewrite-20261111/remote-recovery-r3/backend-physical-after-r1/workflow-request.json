@@ -1,0 +1,112 @@
+{
+  "schema": "hia-backend-physical-after-workflow-request-v1",
+  "status": "INACTIVE_NEW_SOURCE_ONLY_ZERO_AST_GENERATION_B3_C_VM_NATIVE",
+  "parent_observed_head": "de603dd85b9c2aa9065a929bc1f2e0fcd5dfa3f1",
+  "requested_followup": "NEXT_ROOT_CHECKPOINT_AFTER_SOURCE_REVIEW",
+  "job_id": "backend_physical_after",
+  "tag": "backend-physical-after",
+  "name": "Actual implementation-file read after complete native backend",
+  "timeout_minutes": 110,
+  "permissions": {
+    "contents": "read"
+  },
+  "reuse_existing_steps": [
+    "exact candidate checkout",
+    "exact0ef reference checkout",
+    "CPython3.12.14",
+    "exact project Z3 requirement",
+    "Ubuntu24.04 x86_64 ImageOSubuntu24 guard",
+    "selected full active-source syntax gate"
+  ],
+  "source_prefix": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-physical-after-r1",
+  "driver": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-physical-after-r1/ci/backend_physical_after_ci.py",
+    "bytes": 27659,
+    "sha256": "2d36c4239ab85c640ca0d6428406401304b863f79a945686681aa953162de8e4",
+    "gitsha": "ca35c326e498fb9ec401dab8bbbfda980b4bd96d"
+  },
+  "source_index": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-physical-after-r1/source-index.json",
+    "bytes": 24352,
+    "sha256": "d7ab46a86529a4c8615c7cdbacfcb59c51c64cd723a3bc812c8a06685b6f5feb",
+    "gitsha": "881451edd18c2b5f266e60c744425facc5aad770"
+  },
+  "qualification": {
+    "run": "python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-physical-after-r1/ci/backend_physical_after_ci.py",
+    "env_scope": "STEP_ONLY_NOT_JOB",
+    "env": {
+      "HIA_CI_COMMON": "${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py",
+      "HIA_CI_OUTPUT": "${{ runner.temp }}/hia-backend-physical-after-recovery"
+    },
+    "common_git": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+    "separate_bounded_seal_git": "469fbcde38e6a909da911d91c733ab7840c31726"
+  },
+  "upload": {
+    "if": "always()",
+    "uses": "actions/upload-artifact@v4",
+    "with": {
+      "name": "hia-backend-physical-after-recovery",
+      "path": "${{ runner.temp }}/hia-backend-physical-after-recovery",
+      "include_hidden_files": false,
+      "if_no_files_found": "error"
+    }
+  },
+  "gates": {
+    "new_fresh_B3": 23,
+    "unchanged_backend_peer_source_image_pairs": 20,
+    "old_parent_source_reproduction_before_new_edit": true,
+    "original_files_source_image_exact": true,
+    "new_table_roles": 23,
+    "new_parent_role": 20,
+    "unchanged_file_role": 22,
+    "new_forwarder_role": 23,
+    "new_system_C_builds": 2,
+    "new_groups": 20,
+    "new_cases": 47,
+    "new_ordinary_cases": 25,
+    "new_private_cases": 22,
+    "new_full_CAS_cases": 25,
+    "new_C_CAS_crosschecks": 3,
+    "zero_target_readback_groups": 20,
+    "actual_before_native_processes_expected": 35,
+    "actual_backend_native_processes_expected": 25,
+    "complete_lossless_raw_files_expected": 120,
+    "native_entries": "actual complete trace counts only; never predicted",
+    "subject": {
+      "strict_parent_plus_reaped_children_CPU_seconds": 90,
+      "strict_whole_process_wall_seconds": 180,
+      "address_bytes": 1073741824,
+      "core_bytes": 0
+    },
+    "B3": {
+      "CPU_seconds": 10,
+      "wall_seconds": 20,
+      "address_bytes": 268435456,
+      "compiler_bytes": 669556,
+      "compiler_sha256": "35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"
+    },
+    "seal": "separate strict90CPU/180wall/1GiB, complete streamed archive/member readback; no target executions"
+  },
+  "source_syntax_inventory": {
+    "active_python": 66,
+    "closure_files": 77,
+    "history_excluded": true
+  },
+  "inputs": {
+    "external_workflow_artifacts": [],
+    "all_sources": "exact Git source-index; original common prepare frozen archives; no moving main",
+    "before_digest": "actual fixed two-HIA file/SHA process",
+    "admitted_Core_Graph": "explicit reference-issued private fixture; full public native admission remains OPEN",
+    "after_digest": "not accepted as input; actual HIA file child runs after actual ELF inspection"
+  },
+  "not_claimed": [
+    "whole public build",
+    "native public Core admission in this new component",
+    "complete public OS error rendering",
+    "second independent compile emission",
+    "publication",
+    "installed",
+    "cold",
+    "old semantic results inherited"
+  ]
+}

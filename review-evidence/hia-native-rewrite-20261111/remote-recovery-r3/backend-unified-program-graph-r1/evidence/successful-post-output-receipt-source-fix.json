@@ -1,0 +1,110 @@
+{
+  "schema": "hia-unified-Graph-successful-post-output-receipt-source-fix-v1",
+  "status": "NEW_UNEXECUTED_STATIC_CONSUMER_CONTRACT_FIX",
+  "observed_from_exact_sources": {
+    "CI": {
+      "bytes": 26778,
+      "gitsha": "974250df97a8d0fea4ad4084a181238ee6778067",
+      "sha256": "87c186d1dbe77bd3a7d78985195bb7184224e69a6d4677a758f4471dac22b61b"
+    },
+    "test": {
+      "bytes": 41619,
+      "gitsha": "24c5bde330655e278ff9577ceb5b3b9f23c09283",
+      "sha256": "16f83749c7c7561d880d905097c60232ba3a0456586096c39959114fb751ebc7"
+    },
+    "consumer": "for phase in (\"pre_receipt_budget\",\"post_output_budget\"): value[phase] ...",
+    "producer": "Original PASS path saves and prints the summary before measure(post_output_budget), and never saves the successful measured report. The file therefore lacks that key; the first otherwise successful group would be rejected by its new CI consumer.",
+    "runtime_failure_observed": false
+  },
+  "test_edit": {
+    "old": {
+      "bytes": 41619,
+      "gitsha": "24c5bde330655e278ff9577ceb5b3b9f23c09283",
+      "sha256": "16f83749c7c7561d880d905097c60232ba3a0456586096c39959114fb751ebc7"
+    },
+    "new": {
+      "bytes": 41848,
+      "gitsha": "da05138c38e088064555e16d4bfb95bd77d23f22",
+      "sha256": "71fce27abe1f05e11d28a339551580b15b2d6f5d71cbfe4909982665e7608dd1"
+    },
+    "edits": [
+      {
+        "before": " measure(\"post_output_budget\")\n # A post-output failure must replace any earlier provisional PASS receipt.",
+        "after": " measure(\"post_output_budget\")\n # Persist the measured successful budget before CI consumes this receipt.\n # The original return budget below includes this extra write.\n sync()\n _final_attempt(\"save_post_output_summary\",lambda:save(OUT/\"summary.json\",report))\n # A post-output failure must replace any earlier provisional PASS receipt."
+      }
+    ],
+    "unique": true,
+    "complete_inverse": true
+  },
+  "index_edits": {
+    "old": {
+      "bytes": 24829,
+      "gitsha": "6bb25ae2b9a439994dd77d4303a08a912d1ce915",
+      "sha256": "5bbf01dc82b623eebadbdfd908582285c5edfef4d0ab820acd2f8012dbe03a27"
+    },
+    "new": {
+      "bytes": 24829,
+      "gitsha": "666e49a02e17ae98a04299a5cf478063042d9d3f",
+      "sha256": "704c3e905c684895db29d8568bcde7495023c7499a386c67114282afe93ad690"
+    },
+    "edits": [
+      {
+        "before": "\"bytes\": 41619",
+        "after": "\"bytes\": 41848"
+      },
+      {
+        "before": "24c5bde330655e278ff9577ceb5b3b9f23c09283",
+        "after": "da05138c38e088064555e16d4bfb95bd77d23f22"
+      },
+      {
+        "before": "16f83749c7c7561d880d905097c60232ba3a0456586096c39959114fb751ebc7",
+        "after": "71fce27abe1f05e11d28a339551580b15b2d6f5d71cbfe4909982665e7608dd1"
+      }
+    ],
+    "complete_inverse": true
+  },
+  "CI_edits": {
+    "old": {
+      "bytes": 26778,
+      "gitsha": "974250df97a8d0fea4ad4084a181238ee6778067",
+      "sha256": "87c186d1dbe77bd3a7d78985195bb7184224e69a6d4677a758f4471dac22b61b"
+    },
+    "new": {
+      "bytes": 26778,
+      "gitsha": "b1e75c7032005c115b0028a65ae7960988bc6018",
+      "sha256": "c761531dfc2cf49b16a3db47d27aab3bc15da0cd5c6e557c4a61e282c6d0759b"
+    },
+    "edits": [
+      {
+        "before": "INDEX_GIT=\"6bb25ae2b9a439994dd77d4303a08a912d1ce915\"",
+        "after": "INDEX_GIT=\"666e49a02e17ae98a04299a5cf478063042d9d3f\""
+      },
+      {
+        "before": "INDEX_SHA=\"5bbf01dc82b623eebadbdfd908582285c5edfef4d0ab820acd2f8012dbe03a27\"",
+        "after": "INDEX_SHA=\"704c3e905c684895db29d8568bcde7495023c7499a386c67114282afe93ad690\""
+      }
+    ],
+    "complete_inverse": true
+  },
+  "preserved": {
+    "HIA_owner": true,
+    "HIA_source_shape": true,
+    "all26_new_groups283_cases": true,
+    "all3_predecessor_control_groups51_ELF_and2_private": true,
+    "all_expected_results": true,
+    "subject_strict90CPU180wall1GiB": true,
+    "B3_limits": true,
+    "first_exception": true,
+    "late_budget_FAIL_rewrite": true,
+    "return_budget_covers_new_success_summary_write": true
+  },
+  "independent_HIA_review_input_unchanged": "71a581e92b78f79fee306cb229acb1167a1e3ec2",
+  "new_execution": {
+    "AST": 0,
+    "HIA_Core": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "whole_stack_closed": false
+}

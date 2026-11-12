@@ -1,0 +1,74 @@
+{
+  "schema": "hia-physical-subject-finalization-source-inverse-v1",
+  "status": "NEW_0_AST_0_EXECUTION",
+  "old": {
+    "bytes": 7691,
+    "sha256": "d676827c9275c6b0d4185c5e635c67bc6cc35c924c0253fa4c3fef371d0d312f",
+    "gitsha": "8c4a4ca260f89bef8ba398acee21ccf088498418"
+  },
+  "new": {
+    "key": "transaction.physical_after.subject.r2",
+    "bytes": 8383,
+    "sha256": "386c110c77ef3b89a5f3e72c54737dff60c8b8625f3e544b0cc2acb242e7a3b3",
+    "gitsha": "1045660539fd60da316405523fb14f6a433a17c1"
+  },
+  "edits": [
+    {
+      "old": "    def finish(self,success):\n        self.attempt(\"freeze\",self.freeze)\n        if self.primary is None and self.report[\"status\"]!=success:\n            self.failure(AssertionError(\"subject did not reach \"+success),\"missing-success\")\n        self.measure(\"pre_output_budget\");self._sync()\n        self.attempt(\"summary-first-write\",lambda:save(self.out/\"summary.json\",self.report))\n        self.attempt(\"summary-first-stdout\",lambda:print(json.dumps(self.report,sort_keys=True),flush=True))\n        self.measure(\"post_output_budget\");self._sync()\n        # Always persist the successful post-output observation. The first\n        # write predates that field and cannot serve as its durable receipt.\n        self.attempt(\"summary-post-output-write\",lambda:save(self.out/\"summary.json\",self.report))\n        self.measure(\"post_persist_budget\");self._sync()\n        self.attempt(\"summary-final-write\",lambda:save(self.out/\"summary.json\",self.report))\n        before_return=self.measure(\"return_budget\");self._sync()\n        # All final metadata writes are inside the returning subject. A late\n        # refusal gets a final FAIL receipt, never an unchanged PASS receipt.\n        if self.primary is not None:\n            self.attempt(\"summary-failure-write\",lambda:save(self.out/\"summary.json\",self.report))\n            self.attempt(\"summary-failure-stdout\",lambda:print(json.dumps(self.report,sort_keys=True),flush=True))\n        signal.alarm(0);signal.signal(signal.SIGALRM,self.previous_alarm)\n        if self.primary is not None:raise self.primary\n        assert self.report[\"status\"]==success\n        assert before_return[\"cpu_seconds\"]<90 and before_return[\"wall_seconds\"]<180\n        return self.report\n",
+      "new": "    def finish(self,success):\n        self.attempt(\"freeze\",self.freeze)\n        if self.primary is None and self.report[\"status\"]!=success:\n            self.failure(AssertionError(\"subject did not reach \"+success),\"missing-success\")\n        # Even a delivered alarm or a metadata failure during finalization\n        # remains a recorded first failure. Each later write/check is isolated.\n        self.attempt(\"pre-output-measure\",lambda:self.measure(\"pre_output_budget\"))\n        self.attempt(\"pre-output-sync\",self._sync)\n        self.attempt(\"summary-first-write\",lambda:save(self.out/\"summary.json\",self.report))\n        self.attempt(\"summary-first-stdout\",lambda:print(json.dumps(self.report,sort_keys=True),flush=True))\n        self.attempt(\"post-output-measure\",lambda:self.measure(\"post_output_budget\"))\n        self.attempt(\"post-output-sync\",self._sync)\n        # Persist the post-output measurement on successful paths as well.\n        self.attempt(\"summary-post-output-write\",lambda:save(self.out/\"summary.json\",self.report))\n        self.attempt(\"post-persist-measure\",lambda:self.measure(\"post_persist_budget\"))\n        self.attempt(\"post-persist-sync\",self._sync)\n        self.attempt(\"summary-final-write\",lambda:save(self.out/\"summary.json\",self.report))\n        before_return=self.attempt(\"return-measure\",lambda:self.measure(\"return_budget\"))\n        self.attempt(\"return-sync\",self._sync)\n        if self.primary is not None:\n            self.attempt(\"summary-failure-write\",lambda:save(self.out/\"summary.json\",self.report))\n            self.attempt(\"summary-failure-stdout\",lambda:print(json.dumps(self.report,sort_keys=True),flush=True))\n        self.attempt(\"disable-owned-alarm\",lambda:signal.alarm(0))\n        self.attempt(\"restore-alarm-handler\",lambda:signal.signal(signal.SIGALRM,self.previous_alarm))\n        if self.primary is not None:\n            # A cleanup error after the first FAIL write still gets a final\n            # attempt at the same failure receipt without replacing its cause.\n            self.attempt(\"final-failure-sync\",self._sync)\n            self.attempt(\"final-failure-receipt\",lambda:save(self.out/\"summary.json\",self.report))\n            raise self.primary\n        assert self.report[\"status\"]==success and before_return is not None\n        assert before_return[\"cpu_seconds\"]<90 and before_return[\"wall_seconds\"]<180\n        return self.report\n"
+    }
+  ],
+  "dependent_pin_only_replacements": [
+    {
+      "old": {
+        "bytes": 13536,
+        "sha256": "fba12e13911e8ed738e4b50002ce8af607b70b06cadd64a27bf90d9f762b8477",
+        "gitsha": "3d4b9117f1375bb1f2703593aa410c3a16b3493d"
+      },
+      "new": {
+        "key": "transaction.physical_after.builder.r2",
+        "bytes": 13536,
+        "sha256": "05b94032b9a339e9dbe04f622eef65baeb9bc41b6530019c63a46a85fd7ddbc5",
+        "gitsha": "47fc33833ae09c9724b906300db520fb508fa9f1"
+      },
+      "replaced_sha256": "d676827c9275c6b0d4185c5e635c67bc6cc35c924c0253fa4c3fef371d0d312f",
+      "replacement_sha256": "386c110c77ef3b89a5f3e72c54737dff60c8b8625f3e544b0cc2acb242e7a3b3",
+      "occurrences": 1
+    },
+    {
+      "old": {
+        "bytes": 42604,
+        "sha256": "701af56b8e8546f979268d4c684ebd48ade26789259cdec2cd132b4092ee95ac",
+        "gitsha": "b5c4c7ea2236e61692cd01fdf0e52c0004686b04"
+      },
+      "new": {
+        "key": "transaction.physical_after.test.r2",
+        "bytes": 42604,
+        "sha256": "3e8a70ed5b2864947c931d517ef77bd99b92150e30f75de54731242d607343fd",
+        "gitsha": "d2d4729eb5a5359442459d1cbc775b4213318fd5"
+      },
+      "replaced_sha256": "d676827c9275c6b0d4185c5e635c67bc6cc35c924c0253fa4c3fef371d0d312f",
+      "replacement_sha256": "386c110c77ef3b89a5f3e72c54737dff60c8b8625f3e544b0cc2acb242e7a3b3",
+      "occurrences": 1
+    },
+    {
+      "old": {
+        "bytes": 22989,
+        "sha256": "03a9e68bdcd8807bcf6a302f346de462e73d552c34c849167337fd5e3c6226e5",
+        "gitsha": "dc0710e89915c216f5ef55cab99e71a0d31cb3f3"
+      },
+      "new": {
+        "key": "transaction.physical_after.readback.r2",
+        "bytes": 22989,
+        "sha256": "143eef643ecec2f6baf89a26e363678cdbf03753bc2cda5191991e9f917899f4",
+        "gitsha": "6d4ba44db1cc0a460f1524569b1c33ec64152df6"
+      },
+      "replaced_sha256": "d676827c9275c6b0d4185c5e635c67bc6cc35c924c0253fa4c3fef371d0d312f",
+      "replacement_sha256": "386c110c77ef3b89a5f3e72c54737dff60c8b8625f3e544b0cc2acb242e7a3b3",
+      "occurrences": 1
+    }
+  ],
+  "entire_original_restored_by_unique_inverse": true,
+  "subject_case_body_HIA_algorithms_original_limits_unchanged": true,
+  "production_execution_observations": 0
+}

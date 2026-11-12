@@ -1,0 +1,55 @@
+import pathlib,json,hashlib,zipfile,ast,yaml,sys
+base=pathlib.Path("/workspace/scratch/9acdfa9f5639");stage=base/"follow56-source-stage";root=stage/"exact-source";root.mkdir(exist_ok=True)
+def ident(b):return {"bytes":len(b),"gitsha":hashlib.sha1(b"blob "+str(len(b)).encode()+b"\0"+b).hexdigest(),"sha256":hashlib.sha256(b).hexdigest()}
+old=json.loads((stage/"old-active.json").read_bytes());current=json.loads((stage/"active-final.json").read_bytes())
+z=zipfile.ZipFile(base/"artifacts/follow55b-current-program-graph.zip");prefix="hia-selected-source-syntax/exact-source/"
+for row in old:
+ b=z.read(prefix+row["path"]);pin=ident(b);assert all(pin[k]==row[k] for k in pin),row["path"]
+ p=root/row["path"];p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(b);p.chmod(int(row["mode"][-3:],8))
+records=[]
+for row in current:
+ overlay=stage/"overlay-final"/row["path"];p=root/row["path"]
+ if not overlay.exists():overlay=stage/"overlay"/row["path"]
+ if overlay.exists():p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(overlay.read_bytes());p.chmod(int(row["mode"][-3:],8))
+ b=p.read_bytes();pin=ident(b);assert all(pin[k]==row[k] for k in pin),row["path"];assert p.stat().st_mode&0o777==int(row["mode"][-3:],8)
+ ast.parse(b,filename=row["path"]);records.append({**row,"status":"PASS"})
+before=yaml.load((stage/"workflow-before.yml").read_text(),Loader=yaml.BaseLoader);after=yaml.load((stage/"workflow-after.yml").read_text(),Loader=yaml.BaseLoader)
+assert len(before["jobs"])==len(after["jobs"])==155 and set(before["jobs"])==set(after["jobs"])
+changed=[k for k in before["jobs"] if before["jobs"][k]!=after["jobs"][k]];assert changed==["backend_current_program_graph"]
+for k in before:
+ if k!="jobs":assert before[k]==after[k],k
+job=after["jobs"]["backend_current_program_graph"];oldjob=before["jobs"]["backend_current_program_graph"]
+for k in job:
+ if k!="steps":assert job[k]==oldjob[k],k
+assert job["timeout-minutes"]=="110" and job["permissions"]=={"contents":"read","actions":"read"}
+steps=job["steps"];oldsteps=oldjob["steps"];assert len(steps)==len(oldsteps)+1
+new=[s for s in steps if s["name"]=="Download and verify complete original53 ZIP for the unified Graph route"];assert len(new)==1
+new=new[0];assert new["if"]=="contains(github.event.head_commit.message, '[hia-ci:backend-unified-program-graph]')" and new["env"]=={"HIA_ARTIFACT_TOKEN":"\u0024{{ github.token }}"}
+differences=[]
+for old_step in oldsteps:
+ new_step=next(s for s in steps if s["name"]==old_step["name"])
+ if new_step!=old_step:differences.append(old_step["name"])
+assert differences==["Download exact current P16 original type-context artifact","Execute new bounded independent component qualification","Preserve complete independent success or failure evidence"],differences
+baseline_download=next(s for s in steps if s["name"]==differences[0]);assert baseline_download["if"]=="\u0024{{ !contains(github.event.head_commit.message, '[hia-ci:backend-unified-program-graph]') }}"
+assert {k:v for k,v in baseline_download.items() if k!="if"}==next(s for s in oldsteps if s["name"]==differences[0])
+execute=next(s for s in steps if s["name"]==differences[1]);oldexecute=next(s for s in oldsteps if s["name"]==differences[1])
+assert execute["run"]==oldexecute["run"] and execute["env"]["HIA_UNIFIED53_ZIP"]=="\u0024{{ runner.temp }}/hia-unified53-transport/original53.zip"
+assert {k:v for k,v in execute["env"].items() if k!="HIA_UNIFIED53_ZIP"}==oldexecute["env"]
+upload=next(s for s in steps if s["name"]==differences[2]);oldupload=next(s for s in oldsteps if s["name"]==differences[2])
+assert upload["with"]["path"]==oldupload["with"]["path"]+"\u0024{{ runner.temp }}/hia-unified53-transport\n"
+proofs=json.loads((stage/"route-proofs-final.json").read_bytes())
+for proof in proofs:
+ route=proof["route"] if "route" in proof else {"target":proof["new_target"],"job":"namespace_unixopen_native_parent_r1"}
+ b=(root/route["target"]["path"]).read_bytes()
+ assert all(ident(b)[k]==route["target"][k] for k in ("bytes","gitsha","sha256"))
+ assert route["job"] in after["jobs"]
+import re
+before_raw=(stage/"workflow-before.yml").read_text();after_raw=(stage/"workflow-after.yml").read_text()
+def job_section(raw):
+ start=raw.index("\n  backend_current_program_graph:\n");match=re.search(r"\n  [A-Za-z0-9_]+:\n",raw[start+1:])
+ end=start+1+match.start() if match else len(raw)
+ return start,end
+bs,be=job_section(before_raw);ns,ne=job_section(after_raw)
+assert before_raw[:bs]+after_raw[ns:ne]+before_raw[be:]==after_raw
+report={"schema":"hia-follow56-local-complete-source-and-workflow-check-v1","status":"PASS_SOURCE_ONLY","python":sys.version,"old_active":len(old),"active_files":len(current),"all_file_size_mode_SHA_Git_and_AST_equal":True,"all_original_979_paths_preserved":set(r["path"] for r in old)<=set(r["path"] for r in current),"workflow_jobs":155,"changed_workflow_jobs":changed,"new_workflow_jobs":0,"all_other154_jobs_byte_semantics_equal":True,"Graph_outer_minutes":110,"workflow_permissions_unchanged":True,"only_graph_archive_transport_and_environment_changed":True,"selected_native_jobs":["backend_current_program_graph","implementation_files"],"Unix9_saved_not_selected":True,"all_other154_job_source_text_exact":True,"target_executions_in_this_check":0,"whole_stack_closed":False,"files":records}
+(stage/"source-and-workflow-check.final.json").write_text(json.dumps(report,indent=2)+"\n");print(json.dumps({k:v for k,v in report.items() if k!="files"}))

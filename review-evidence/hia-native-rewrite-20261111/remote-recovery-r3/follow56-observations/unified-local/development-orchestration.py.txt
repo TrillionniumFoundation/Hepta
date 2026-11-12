@@ -1,0 +1,62 @@
+"""Local development orchestration only; separate from the Ubuntu 24 qualification."""
+import ast,hashlib,json,os,pathlib,platform,resource,signal,subprocess,sys,time
+BASE=pathlib.Path("/workspace/scratch/9acdfa9f5639/unified-graph-development")
+REF=pathlib.Path("/workspace/scratch/9acdfa9f5639/reference0ef")
+OUT=pathlib.Path("/dev/shm/hia-root-unified-graph56-local-r1")
+OUT.mkdir(parents=True,exist_ok=False)
+os.sched_setaffinity(0,{4})
+source=BASE/"development/test_unified_program_graph.py"
+ci=BASE/"ci/backend_unified_program_graph_ci.py"
+assert hashlib.sha256(source.read_bytes()).hexdigest()=="df11b190b9a9156a1a4076bea505200432044d5d9a95d137696dd994d6cbc6f6"
+schedule=next(ast.literal_eval(n.value) for n in ast.parse(ci.read_bytes()).body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=="SCHEDULE" for t in n.targets))
+controls={"compat-semantic":23,"compat-assembly":22,"compat-object":6}
+records=[];sample=None
+def run(group,variant,count,control=False,control_results=None):
+    label=("predecessor-" if control else "")+group+"-"+str(variant)
+    dest=OUT/label
+    args=[sys.executable,"-B",str(source),"--bundle",str(BASE/"build-local-r2/bundle.json"),"--reference",str(REF),"--out",str(dest),"--group",group,"--variant",str(variant)]
+    if control:args.append("--predecessor-control")
+    if control_results is not None:args+=["--control-results",str(control_results)]
+    if group=="private":assert sample and sample.is_file();args+=["--issued-sample",str(sample)]
+    env={**os.environ,"PYTHONDONTWRITEBYTECODE":"1","PYTHONPATH":str(REF),"LC_ALL":"C.UTF-8","LANG":"C.UTF-8"}
+    before=resource.getrusage(resource.RUSAGE_CHILDREN);start=time.monotonic_ns();timed_out=False
+    with (OUT/(label+".stdout.log")).open("wb") as stdout,(OUT/(label+".stderr.log")).open("wb") as stderr:
+        p=subprocess.Popen(args,cwd=BASE,env=env,stdout=stdout,stderr=stderr,start_new_session=True)
+        try:rc=p.wait(timeout=180)
+        except subprocess.TimeoutExpired:
+            timed_out=True;os.killpg(p.pid,signal.SIGKILL);rc=p.wait()
+    after=resource.getrusage(resource.RUSAGE_CHILDREN)
+    cpu=after.ru_utime+after.ru_stime-before.ru_utime-before.ru_stime;wall=time.monotonic_ns()-start
+    process={"label":label,"args":args,"returncode":rc,"timed_out":timed_out,"child_tree_CPU_seconds":cpu,"elapsed_ns":wall,"limits":{"CPU_success_exclusive":90,"wall_success_exclusive":180,"address":1073741824},"status":"PASS" if rc==0 and not timed_out and cpu<90 and wall<180000000000 else "FAIL"}
+    (OUT/(label+".process.json")).write_text(json.dumps(process,indent=2)+"\n")
+    row=dict(process,summary_path=str(dest/"summary.json"),local_development_only=True)
+    records.append(row);(OUT/"processes.json").write_text(json.dumps(records,indent=2)+"\n")
+    print(json.dumps({k:process[k] for k in ("label","returncode","timed_out","child_tree_CPU_seconds","elapsed_ns","status")}),flush=True)
+    assert process["status"]=="PASS",(label,"process failure")
+    raw=(dest/"summary.json").read_bytes();s=json.loads(raw)
+    assert s["status"]=="PASS" and s["group"]==group and s["variant"]==variant
+    assert s["completed_cases"]==s["planned_cases"]==count
+    assert s["source_image_inputs_before_after_equal"] and not s["cleanup_errors"] and not s["finalization_errors"]
+    for name in ("pre_receipt_budget","post_output_budget"):
+        b=s[name];assert b["parent_plus_children_CPU_seconds"]<90 and b["elapsed_seconds"]<180
+    after_rows=json.loads((dest/"source-after.json").read_bytes());assert after_rows and all(x["same"] and x["error"] is None for x in after_rows)
+    if control:assert s["predecessor_control_only"] and s["actual_predecessor_ELF_processes"]==count and s["actual_ELF_processes"]==s["actual_private_native_entries"]==0
+    elif group=="private":assert (s["private_cases"],s["actual_private_native_entries"],s["actual_predecessor_private_entries"],s["complete_private_entry_records"])==(60,138,2,140)
+    elif group=="late-private-protocol":assert (s["private_cases"],s["actual_private_native_entries"],s["actual_ELF_processes"])==(38,105,0)
+    else:assert s["actual_ELF_processes"]==count and s["private_cases"]==s["actual_private_native_entries"]==s["actual_predecessor_private_entries"]==0
+    row.update(summary_sha256=hashlib.sha256(raw).hexdigest(),summary_bytes=len(raw),actual_ELF=s["actual_ELF_processes"],actual_old_ELF=s["actual_predecessor_ELF_processes"],private_cases=s["private_cases"],private_entries=s["actual_private_native_entries"],old_private_entries=s["actual_predecessor_private_entries"],wire_entries=s["actual_wire_native_entries"],completed_cases=s["completed_cases"],control_only=control)
+    (OUT/"processes.json").write_text(json.dumps(records,indent=2)+"\n")
+    return dest
+try:
+    for group,variant,count in schedule:
+        old=None
+        if group in controls:old=run(group,variant,count,True)
+        dest=run(group,variant,count,False,old)
+        if group=="semantic":sample=dest/"cases/verify-v6/issued-sample.json"
+    counts={"groups":len([r for r in records if not r["control_only"]]),"controls":len([r for r in records if r["control_only"]]),"new_cases":sum(r["completed_cases"] for r in records if not r["control_only"]),"new_ELF":sum(r["actual_ELF"] for r in records),"private_cases":sum(r["private_cases"] for r in records),"private_entries":sum(r["private_entries"] for r in records),"old_ELF":sum(r["actual_old_ELF"] for r in records),"old_private_entries":sum(r["old_private_entries"] for r in records),"wire_entries":sum(r["wire_entries"] for r in records)}
+    assert tuple(counts[k] for k in ("groups","controls","new_cases","new_ELF","private_cases","private_entries","old_ELF","old_private_entries"))==(26,3,283,185,98,243,51,2)
+    result={"status":"PASS_LOCAL_DEVELOPMENT_ONLY","environment":platform.platform(),"python":sys.version,"qualification_environment_claimed":False,"whole_stack_closed":False,"counts":counts,"groups":records}
+    (OUT/"summary.json").write_text(json.dumps(result,indent=2)+"\n");print(json.dumps({"status":result["status"],"counts":counts}),flush=True)
+except BaseException as exc:
+    (OUT/"failure.json").write_text(json.dumps({"error_class":type(exc).__name__,"error":str(exc),"completed_processes":len(records),"environment":platform.platform(),"qualification_claimed":False},indent=2)+"\n")
+    raise

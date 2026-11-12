@@ -1,0 +1,31 @@
+import pathlib,zipfile,tarfile,hashlib,json
+root=pathlib.Path("/workspace/scratch/9acdfa9f5639");out=root/"identity55b-original";out.mkdir(exist_ok=True)
+z=zipfile.ZipFile(root/"artifacts/follow55b-ordinary-identity-failure.zip");pref="hia-ordinary-impact-ascii-fast-r1-recovery/";outer=[]
+for m in z.infolist():
+ h=hashlib.sha256();n=0
+ with z.open(m) as f:
+  for b in iter(lambda:f.read(1048576),b""):h.update(b);n+=len(b)
+ assert n==m.file_size
+ outer.append({"name":m.filename,"bytes":n,"sha256":h.hexdigest(),"CRC32":m.CRC,"mode":(m.external_attr>>16)&0o7777})
+ar=next(x for x in outer if x["name"]==pref+"evidence.tar.xz");assert (ar["bytes"],ar["sha256"])==(41169916,"78933292988559e62a9a00a39f15c378f9b27f6316c7bcaf5adcd5c870b8f5ab")
+for name in ["custody.json","summary.json","steps.json","evidence-members.json"]:
+ b=z.read(pref+name);(out/name).write_bytes(b)
+raw=(out/"evidence-members.json").read_bytes();assert len(raw)==1583838 and hashlib.sha256(raw).hexdigest()=="809ffb6b340d765fb952b68e269a362ef067391771929497129a360ea55330e1"
+expected=json.loads(raw)
+if isinstance(expected,dict):expected=expected["members"]
+expected={x["name"]:x for x in expected};actual=[];selected=[]
+with z.open(pref+"evidence.tar.xz") as compressed,tarfile.open(fileobj=compressed,mode="r|xz") as t:
+ for m in t:
+  assert m.isfile() and m.name in expected,m.name
+  e=expected.pop(m.name);h=hashlib.sha256();n=0
+  keep=(m.name.endswith(("summary.json","profile-before-gates.json")) and "/development/" in m.name) or (m.name.endswith(("pending-0001.json","process-0001.json")) and any(s in m.name for s in ("native-large-valid/","native-graph-long-report/")))
+  parts=[];f=t.extractfile(m)
+  for b in iter(lambda:f.read(1048576),b""):h.update(b);n+=len(b);parts.extend([b] if keep else [])
+  assert (n,h.hexdigest(),m.mode)==(e["bytes"],e["sha256"],e["mode"]),m.name
+  row={"name":m.name,"bytes":n,"sha256":h.hexdigest(),"mode":m.mode};actual.append(row)
+  if keep:
+   p=out/"retained"/m.name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(b"".join(parts));p.chmod(m.mode);selected.append(row)
+assert not expected and len(actual)==3576 and sum(x["bytes"] for x in actual)==265452215
+(out/"root-full-ZIP-readback-index.json").write_text(json.dumps(outer,indent=2)+"\n");(out/"root-full-inner-readback-index.json").write_text(json.dumps(actual,indent=2)+"\n")
+summary={"schema":"hia-root-follow55b-identity-complete-original-readback-v1","outer_members":len(outer),"outer_member_bytes":sum(x["bytes"] for x in outer),"all_ZIP_CRC_and_SHA_read":True,"inner_members":len(actual),"inner_bytes":sum(x["bytes"] for x in actual),"all_inner_size_SHA_mode_read":True,"original_target_status":"FAIL","actual_new_target_replays":0,"whole_stack_closed":False,"retained":selected}
+(out/"root-full-readback-summary.json").write_text(json.dumps(summary,indent=2)+"\n");print(json.dumps({k:v for k,v in summary.items() if k!="retained"}));print(json.dumps({"retained":[x["name"] for x in selected]}))

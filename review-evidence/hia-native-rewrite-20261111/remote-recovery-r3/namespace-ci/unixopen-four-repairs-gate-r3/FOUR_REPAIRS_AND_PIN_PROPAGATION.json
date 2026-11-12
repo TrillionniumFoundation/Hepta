@@ -1,0 +1,497 @@
+{
+  "schema": "hia-namespace-nine-role-four-repairs-final-source-proof-v1",
+  "scope": "EXACT_SOURCE_AND_PROPAGATION_ONLY",
+  "status": "PASS",
+  "previous_delivery": {
+    "blob": "9967ec863cdb15d6b09a64e71be81a7aaa5a4f1f",
+    "bytes": 38727,
+    "sha256": "51972e30f9b649293a7096fcba3d8586e6c2361cdb6f9e29f779386dd23d2eed",
+    "mode": "100644"
+  },
+  "new_CI": {
+    "blob": "7e168881dd60687ec7aa6687d63c4d4661c21013",
+    "bytes": 25390,
+    "sha256": "8dfd90c9d10e79e4bfeae25803365f750e3b2ae0529b67a86b6da3bdb8427d11",
+    "mode": "100644"
+  },
+  "new_inputs": {
+    "blob": "ddfcff94c9de56b762d6f4807b45de58166b022e",
+    "bytes": 13372,
+    "sha256": "278b920707ef5debcdf4e83af912a974dc1b14889e30c8470a95c25a97a22c8c",
+    "mode": "100644"
+  },
+  "chains": [
+    {
+      "key": "namespace_db_reuse_dense_alpha",
+      "old": {
+        "blob": "ba5452a46daa5532cb6a83f0a0ecf2e780f35959",
+        "bytes": 34186,
+        "sha256": "f5e4d87baf5046db3b1ec77300b057010b94529a3ea11408bb99abd15fc3f0b3",
+        "mode": "100644"
+      },
+      "current": {
+        "blob": "5ae34ed44e1067be78512c6b22b621d1eb626cea",
+        "bytes": 37468,
+        "sha256": "3ac08c7729c30ff3705c008416020b2ee0b1388785a279200f52abeb5a6f83a7",
+        "mode": "100644"
+      },
+      "exact_edits": [
+        {
+          "before": "def document():",
+          "after": "def _dense_db_steady_ssa(document, function_name):\n    \"\"\"Alpha-rename only db_steady after CFG compaction; preserve every operation.\"\"\"\n    import copy\n    assert document[\"schema\"] == \"hepta.hia.program.v8\"\n    assert document[\"module\"] == \"agent_namespace_db_node_reuse_r3\"\n    indices = [i for i, fn in enumerate(document[\"functions\"]) if fn[\"name\"] == function_name]\n    assert len(indices) == 1\n    index = indices[0]\n    original = document[\"functions\"][index]\n    assert set(original) == {\"name\", \"params\", \"returns\", \"effects\", \"entry\", \"blocks\"}\n    entries = [block for block in original[\"blocks\"] if block[\"id\"] == original[\"entry\"]]\n    assert len(entries) == 1 and original[\"params\"] == entries[0][\"params\"]\n    definitions = {}\n    for block in original[\"blocks\"]:\n        assert set(block) == {\"id\", \"params\", \"ops\", \"term\"}\n        values = list(block[\"params\"])\n        for op in block[\"ops\"]:\n            assert set(op) == {\"op\", \"args\", \"out\", \"attrs\"}\n            values.extend(op[\"out\"])\n        for value in values:\n            assert set(value) == {\"name\", \"type\"}\n            name = value[\"name\"]\n            assert type(name) is str and name.startswith(\"v\") and name[1:]\n            assert name[1:].isascii() and name[1:].isdigit()\n            assert name == \"v\" + str(int(name[1:])) and name not in definitions\n            definitions[name] = value[\"type\"]\n    ordered = sorted(definitions, key=lambda name: int(name[1:]))\n    mapping = {name: \"v\" + str(i) for i, name in enumerate(ordered)}\n    inverse = {new: old for old, new in mapping.items()}\n    assert len(mapping) == len(inverse) == len(definitions)\n    assert all(int(name[1:]) < 2048 for name in inverse)\n\n    def renamed(fn, table):\n        fn = copy.deepcopy(fn)\n        def refs(values):\n            assert type(values) is list and all(type(x) is str and x in table for x in values)\n            return [table[x] for x in values]\n        def params(values):\n            for value in values:\n                value[\"name\"] = table[value[\"name\"]]\n        params(fn[\"params\"])\n        for block in fn[\"blocks\"]:\n            params(block[\"params\"])\n            for op in block[\"ops\"]:\n                op[\"args\"] = refs(op[\"args\"])\n                params(op[\"out\"])\n            term = block[\"term\"]\n            if term[\"op\"] == \"ret\":\n                assert set(term) == {\"op\", \"values\"}\n                term[\"values\"] = refs(term[\"values\"])\n            elif term[\"op\"] == \"jump\":\n                assert set(term) == {\"op\", \"target\", \"args\"}\n                term[\"args\"] = refs(term[\"args\"])\n            elif term[\"op\"] == \"branch\":\n                assert set(term) == {\"op\", \"cond\", \"then\", \"else\"}\n                term[\"cond\"] = table[term[\"cond\"]]\n                for edge_name in (\"then\", \"else\"):\n                    edge = term[edge_name]\n                    assert set(edge) == {\"target\", \"args\"}\n                    edge[\"args\"] = refs(edge[\"args\"])\n            else:\n                raise ValueError(\"unexpected db_steady terminator\")\n        return fn\n\n    rewritten = renamed(original, mapping)\n    assert renamed(rewritten, inverse) == original\n    result = copy.deepcopy(document)\n    result[\"functions\"][index] = rewritten\n    return result\n\ndef document():"
+        },
+        {
+          "before": "    return compact_authoring_cfg({\"schema\":\"hepta.hia.program.v8\",\"module\":\"agent_namespace_db_node_reuse_r3\",\"functions\":functions})",
+          "after": "    return _dense_db_steady_ssa(compact_authoring_cfg({\"schema\":\"hepta.hia.program.v8\",\"module\":\"agent_namespace_db_node_reuse_r3\",\"functions\":functions}), names[\"db_steady\"])"
+        }
+      ],
+      "forward_full_bytes_equal": true,
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "key": "namespace_unix9_constant_prefix_fix",
+      "old": {
+        "blob": "abbb7f40338e7b099e855281d7dab9ff64834eed",
+        "bytes": 23325,
+        "sha256": "3a11772f74ea991e9a5bec700d581ff94b9e26e714de951653b29b24bbc1e390",
+        "mode": "100644"
+      },
+      "current": {
+        "blob": "33c3bde4fdae6781ae33a20be776a22ea29222f8",
+        "bytes": 23378,
+        "sha256": "2e50a50bc205d208adc79a62f68e3270d26ea54c874d2380bba6f1cfb6393e12",
+        "mode": "100644"
+      },
+      "exact_edits": [
+        {
+          "before": "    for name,value in CONSTANTS.items():",
+          "after": "    for name,value in sorted(CONSTANTS.items(), key=lambda item: len(item[0]), reverse=True):"
+        }
+      ],
+      "forward_full_bytes_equal": true,
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "key": "namespace_nine_double_alpha_builder",
+      "old": {
+        "blob": "7d06a32eccaf0958bdf95fa061c0d8af25e8287f",
+        "bytes": 29049,
+        "sha256": "c20db4a71df40b2264faa6036d4c4c9862df425c59411b937df20308afb48a3f",
+        "mode": "100644"
+      },
+      "current": {
+        "blob": "65bfba2dd19baee8d2b40021d19da16af3d06bcd",
+        "bytes": 29049,
+        "sha256": "3774788febd999d7c28a00fbebef5353efcd39c38ed1df0d0f36c81d22f3c2d0",
+        "mode": "100644"
+      },
+      "exact_edits": [
+        {
+          "before": "f5e4d87baf5046db3b1ec77300b057010b94529a3ea11408bb99abd15fc3f0b3",
+          "after": "3ac08c7729c30ff3705c008416020b2ee0b1388785a279200f52abeb5a6f83a7"
+        }
+      ],
+      "forward_full_bytes_equal": true,
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "key": "namespace_nine_all_profile_builder",
+      "old": {
+        "blob": "65bfba2dd19baee8d2b40021d19da16af3d06bcd",
+        "bytes": 29049,
+        "sha256": "3774788febd999d7c28a00fbebef5353efcd39c38ed1df0d0f36c81d22f3c2d0",
+        "mode": "100644"
+      },
+      "current": {
+        "blob": "9cce7f6ae2b6fb75eabd26393efd11906f05dcac",
+        "bytes": 29049,
+        "sha256": "a0c17a50b7ee0ac465f19ca42dcd3a7fc0fca1d32aac21c297f7ad5886e39e3a",
+        "mode": "100644"
+      },
+      "exact_edits": [
+        {
+          "before": "3a11772f74ea991e9a5bec700d581ff94b9e26e714de951653b29b24bbc1e390",
+          "after": "2e50a50bc205d208adc79a62f68e3270d26ea54c874d2380bba6f1cfb6393e12"
+        }
+      ],
+      "forward_full_bytes_equal": true,
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "key": "namespace_nine_trace_magic_fix",
+      "old": {
+        "blob": "625dcb194b2f28c6b05c5ab1551e9d21f93ee45d",
+        "bytes": 19692,
+        "sha256": "d91c2b292e7df6494f0c9cd84553b35f8c5e19293be767ba78f5640b99f8977b",
+        "mode": "100644"
+      },
+      "current": {
+        "blob": "b8854ced763c3df029137ae0e82e586e5f20ea55",
+        "bytes": 19692,
+        "sha256": "9a313f7038e96eeba1dfc0add9514ed5d14bc803ee5a7258eadd651f8eac9f3b",
+        "mode": "100644"
+      },
+      "exact_edits": [
+        {
+          "before": "magic(b\"HIAUPT01\"):7",
+          "after": "magic(b\"HIAPUT01\"):7"
+        }
+      ],
+      "forward_full_bytes_equal": true,
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "key": "namespace_nine_trace_magic_test",
+      "old": {
+        "blob": "f7d2e588a4e3b22edc183ef729ec2f27fd847165",
+        "bytes": 16118,
+        "sha256": "5a2fb16ae65cb1f136616cacf7b13c2174fdf3e1021ac9a93ad6bd35738ddd43",
+        "mode": "100644"
+      },
+      "current": {
+        "blob": "833391fb684119b33c7134fabfadf357668d6a24",
+        "bytes": 16118,
+        "sha256": "8254134e32913407b148fb34e0396fce34ce23fca9e16b5bfe8355a06ea7e901",
+        "mode": "100644"
+      },
+      "exact_edits": [
+        {
+          "before": "d91c2b292e7df6494f0c9cd84553b35f8c5e19293be767ba78f5640b99f8977b",
+          "after": "9a313f7038e96eeba1dfc0add9514ed5d14bc803ee5a7258eadd651f8eac9f3b"
+        }
+      ],
+      "forward_full_bytes_equal": true,
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "key": "namespace_nine_double_alpha_inputs",
+      "old": {
+        "blob": "0cfb1d4831cde5db23ec152bb41eaf2d1ba3dd96",
+        "bytes": 13372,
+        "sha256": "ad88c7529a7406588c9d2bd779133f86022e5dd867e89bf0d5fe2df93c47dead",
+        "mode": "100644"
+      },
+      "current": {
+        "blob": "dc5dfe7cba57ce9ebfccd6c8d9eacc2d8bc062cd",
+        "bytes": 13372,
+        "sha256": "c5a2fd7b1c5d83146781be7278b0576bd4f8f059b278818d911a963e51eedf87",
+        "mode": "100644"
+      },
+      "exact_edits": [
+        {
+          "before": "ba5452a46daa5532cb6a83f0a0ecf2e780f35959",
+          "after": "5ae34ed44e1067be78512c6b22b621d1eb626cea"
+        },
+        {
+          "before": "f5e4d87baf5046db3b1ec77300b057010b94529a3ea11408bb99abd15fc3f0b3",
+          "after": "3ac08c7729c30ff3705c008416020b2ee0b1388785a279200f52abeb5a6f83a7"
+        },
+        {
+          "before": "\"bytes\": 34186",
+          "after": "\"bytes\": 37468"
+        },
+        {
+          "before": "7d06a32eccaf0958bdf95fa061c0d8af25e8287f",
+          "after": "65bfba2dd19baee8d2b40021d19da16af3d06bcd"
+        },
+        {
+          "before": "c20db4a71df40b2264faa6036d4c4c9862df425c59411b937df20308afb48a3f",
+          "after": "3774788febd999d7c28a00fbebef5353efcd39c38ed1df0d0f36c81d22f3c2d0"
+        }
+      ],
+      "forward_full_bytes_equal": true,
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "key": "namespace_nine_all_profile_inputs",
+      "old": {
+        "blob": "dc5dfe7cba57ce9ebfccd6c8d9eacc2d8bc062cd",
+        "bytes": 13372,
+        "sha256": "c5a2fd7b1c5d83146781be7278b0576bd4f8f059b278818d911a963e51eedf87",
+        "mode": "100644"
+      },
+      "current": {
+        "blob": "1c1e52003561751cfe3f5b682cbb854e8a8d50ea",
+        "bytes": 13372,
+        "sha256": "2c86de83f225935157789df7ab4be0ab00ec385deda0b4f67451c3b8176a5462",
+        "mode": "100644"
+      },
+      "exact_edits": [
+        {
+          "before": "abbb7f40338e7b099e855281d7dab9ff64834eed",
+          "after": "33c3bde4fdae6781ae33a20be776a22ea29222f8"
+        },
+        {
+          "before": "3a11772f74ea991e9a5bec700d581ff94b9e26e714de951653b29b24bbc1e390",
+          "after": "2e50a50bc205d208adc79a62f68e3270d26ea54c874d2380bba6f1cfb6393e12"
+        },
+        {
+          "before": "\"bytes\": 23325",
+          "after": "\"bytes\": 23378"
+        },
+        {
+          "before": "65bfba2dd19baee8d2b40021d19da16af3d06bcd",
+          "after": "9cce7f6ae2b6fb75eabd26393efd11906f05dcac"
+        },
+        {
+          "before": "3774788febd999d7c28a00fbebef5353efcd39c38ed1df0d0f36c81d22f3c2d0",
+          "after": "a0c17a50b7ee0ac465f19ca42dcd3a7fc0fca1d32aac21c297f7ad5886e39e3a"
+        }
+      ],
+      "forward_full_bytes_equal": true,
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "key": "namespace_nine_ready_inputs",
+      "old": {
+        "blob": "1c1e52003561751cfe3f5b682cbb854e8a8d50ea",
+        "bytes": 13372,
+        "sha256": "2c86de83f225935157789df7ab4be0ab00ec385deda0b4f67451c3b8176a5462",
+        "mode": "100644"
+      },
+      "current": {
+        "blob": "ddfcff94c9de56b762d6f4807b45de58166b022e",
+        "bytes": 13372,
+        "sha256": "278b920707ef5debcdf4e83af912a974dc1b14889e30c8470a95c25a97a22c8c",
+        "mode": "100644"
+      },
+      "exact_edits": [
+        {
+          "before": "625dcb194b2f28c6b05c5ab1551e9d21f93ee45d",
+          "after": "b8854ced763c3df029137ae0e82e586e5f20ea55"
+        },
+        {
+          "before": "d91c2b292e7df6494f0c9cd84553b35f8c5e19293be767ba78f5640b99f8977b",
+          "after": "9a313f7038e96eeba1dfc0add9514ed5d14bc803ee5a7258eadd651f8eac9f3b"
+        },
+        {
+          "before": "f7d2e588a4e3b22edc183ef729ec2f27fd847165",
+          "after": "833391fb684119b33c7134fabfadf357668d6a24"
+        },
+        {
+          "before": "5a2fb16ae65cb1f136616cacf7b13c2174fdf3e1021ac9a93ad6bd35738ddd43",
+          "after": "8254134e32913407b148fb34e0396fce34ce23fca9e16b5bfe8355a06ea7e901"
+        }
+      ],
+      "forward_full_bytes_equal": true,
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "key": "namespace_nine_double_alpha_ci",
+      "old": {
+        "blob": "10eb850a9f573448b1ccf7fb1a28c194a6c75ca8",
+        "bytes": 25390,
+        "sha256": "8bdc3a2d41862359dc4fa6463d44a4c6986296d93a7331b5079dafbbef4b58f5",
+        "mode": "100644"
+      },
+      "current": {
+        "blob": "a5d0ceac1fd6a78b8438f3609c521a7afbfa1d52",
+        "bytes": 25390,
+        "sha256": "86e95a7f6300af44af3f598566ce00185d543ad66e10d1c36f341cfe9737a13c",
+        "mode": "100644"
+      },
+      "exact_edits": [
+        {
+          "before": "0cfb1d4831cde5db23ec152bb41eaf2d1ba3dd96",
+          "after": "dc5dfe7cba57ce9ebfccd6c8d9eacc2d8bc062cd"
+        },
+        {
+          "before": "ad88c7529a7406588c9d2bd779133f86022e5dd867e89bf0d5fe2df93c47dead",
+          "after": "c5a2fd7b1c5d83146781be7278b0576bd4f8f059b278818d911a963e51eedf87"
+        }
+      ],
+      "forward_full_bytes_equal": true,
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "key": "namespace_nine_all_profile_ci",
+      "old": {
+        "blob": "a5d0ceac1fd6a78b8438f3609c521a7afbfa1d52",
+        "bytes": 25390,
+        "sha256": "86e95a7f6300af44af3f598566ce00185d543ad66e10d1c36f341cfe9737a13c",
+        "mode": "100644"
+      },
+      "current": {
+        "blob": "476807364f1160f06aaad4d0c344529232d27a17",
+        "bytes": 25390,
+        "sha256": "6a17a57dd45b5cc9034e296d3233f6db9fed0b9f58151a698c15e9def310f0ff",
+        "mode": "100644"
+      },
+      "exact_edits": [
+        {
+          "before": "dc5dfe7cba57ce9ebfccd6c8d9eacc2d8bc062cd",
+          "after": "1c1e52003561751cfe3f5b682cbb854e8a8d50ea"
+        },
+        {
+          "before": "c5a2fd7b1c5d83146781be7278b0576bd4f8f059b278818d911a963e51eedf87",
+          "after": "2c86de83f225935157789df7ab4be0ab00ec385deda0b4f67451c3b8176a5462"
+        }
+      ],
+      "forward_full_bytes_equal": true,
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "key": "namespace_nine_ready_ci",
+      "old": {
+        "blob": "476807364f1160f06aaad4d0c344529232d27a17",
+        "bytes": 25390,
+        "sha256": "6a17a57dd45b5cc9034e296d3233f6db9fed0b9f58151a698c15e9def310f0ff",
+        "mode": "100644"
+      },
+      "current": {
+        "blob": "7e168881dd60687ec7aa6687d63c4d4661c21013",
+        "bytes": 25390,
+        "sha256": "8dfd90c9d10e79e4bfeae25803365f750e3b2ae0529b67a86b6da3bdb8427d11",
+        "mode": "100644"
+      },
+      "exact_edits": [
+        {
+          "before": "1c1e52003561751cfe3f5b682cbb854e8a8d50ea",
+          "after": "ddfcff94c9de56b762d6f4807b45de58166b022e"
+        },
+        {
+          "before": "2c86de83f225935157789df7ab4be0ab00ec385deda0b4f67451c3b8176a5462",
+          "after": "278b920707ef5debcdf4e83af912a974dc1b14889e30c8470a95c25a97a22c8c"
+        }
+      ],
+      "forward_full_bytes_equal": true,
+      "inverse_full_bytes_equal": true
+    }
+  ],
+  "input_changes": [
+    {
+      "path": "namespace-db-reuse-r3.py",
+      "old": {
+        "path": "namespace-db-reuse-r3.py",
+        "blob": "ba5452a46daa5532cb6a83f0a0ecf2e780f35959",
+        "bytes": 34186,
+        "sha256": "f5e4d87baf5046db3b1ec77300b057010b94529a3ea11408bb99abd15fc3f0b3",
+        "mode": "100644",
+        "working_alias": "tools/generate_hia_agent_namespace_db_reuse_r3.py",
+        "purpose": "Exact production authoring dependency; no predecessor execution inherited"
+      },
+      "current": {
+        "path": "namespace-db-reuse-r3.py",
+        "blob": "5ae34ed44e1067be78512c6b22b621d1eb626cea",
+        "bytes": 37468,
+        "sha256": "3ac08c7729c30ff3705c008416020b2ee0b1388785a279200f52abeb5a6f83a7",
+        "mode": "100644",
+        "working_alias": "tools/generate_hia_agent_namespace_db_reuse_r3.py",
+        "purpose": "Exact production authoring dependency; no predecessor execution inherited"
+      }
+    },
+    {
+      "path": "generate_hia_unixopen_issued_raw_join.py",
+      "old": {
+        "path": "generate_hia_unixopen_issued_raw_join.py",
+        "blob": "abbb7f40338e7b099e855281d7dab9ff64834eed",
+        "bytes": 23325,
+        "sha256": "3a11772f74ea991e9a5bec700d581ff94b9e26e714de951653b29b24bbc1e390",
+        "mode": "100644",
+        "working_alias": "tools/generate_hia_unixopen_issued_raw_join.py",
+        "purpose": "New native issuance decisions; other ten peers stay pending."
+      },
+      "current": {
+        "path": "generate_hia_unixopen_issued_raw_join.py",
+        "blob": "33c3bde4fdae6781ae33a20be776a22ea29222f8",
+        "bytes": 23378,
+        "sha256": "2e50a50bc205d208adc79a62f68e3270d26ea54c874d2380bba6f1cfb6393e12",
+        "mode": "100644",
+        "working_alias": "tools/generate_hia_unixopen_issued_raw_join.py",
+        "purpose": "New native issuance decisions; other ten peers stay pending."
+      }
+    },
+    {
+      "path": "build_actual_unixopen.py",
+      "old": {
+        "path": "build_actual_unixopen.py",
+        "blob": "7d06a32eccaf0958bdf95fa061c0d8af25e8287f",
+        "bytes": 29049,
+        "sha256": "c20db4a71df40b2264faa6036d4c4c9862df425c59411b937df20308afb48a3f",
+        "mode": "100644",
+        "working_alias": null,
+        "purpose": "Nine fresh role B3 builds plus one fresh packer under unchanged limits."
+      },
+      "current": {
+        "path": "build_actual_unixopen.py",
+        "blob": "9cce7f6ae2b6fb75eabd26393efd11906f05dcac",
+        "bytes": 29049,
+        "sha256": "a0c17a50b7ee0ac465f19ca42dcd3a7fc0fca1d32aac21c297f7ad5886e39e3a",
+        "mode": "100644",
+        "working_alias": null,
+        "purpose": "Nine fresh role B3 builds plus one fresh packer under unchanged limits."
+      }
+    },
+    {
+      "path": "actual-unixopen-replay.py",
+      "old": {
+        "path": "actual-unixopen-replay.py",
+        "blob": "625dcb194b2f28c6b05c5ab1551e9d21f93ee45d",
+        "bytes": 19692,
+        "sha256": "d91c2b292e7df6494f0c9cd84553b35f8c5e19293be767ba78f5640b99f8977b",
+        "mode": "100644",
+        "working_alias": null,
+        "purpose": "Every actual native window fresh CoreVM full bytes plus actual capsule/ACK correlation."
+      },
+      "current": {
+        "path": "actual-unixopen-replay.py",
+        "blob": "b8854ced763c3df029137ae0e82e586e5f20ea55",
+        "bytes": 19692,
+        "sha256": "9a313f7038e96eeba1dfc0add9514ed5d14bc803ee5a7258eadd651f8eac9f3b",
+        "mode": "100644",
+        "working_alias": null,
+        "purpose": "Every actual native window fresh CoreVM full bytes plus actual capsule/ACK correlation."
+      }
+    },
+    {
+      "path": "test-actual-unixopen.py",
+      "old": {
+        "path": "test-actual-unixopen.py",
+        "blob": "f7d2e588a4e3b22edc183ef729ec2f27fd847165",
+        "bytes": 16118,
+        "sha256": "5a2fb16ae65cb1f136616cacf7b13c2174fdf3e1021ac9a93ad6bd35738ddd43",
+        "working_alias": null,
+        "purpose": "New 12 raw-prefix, 8 persistent-parent-refusal, 8 fixed-transport-refusal cases.",
+        "mode": "100644"
+      },
+      "current": {
+        "path": "test-actual-unixopen.py",
+        "blob": "833391fb684119b33c7134fabfadf357668d6a24",
+        "bytes": 16118,
+        "sha256": "8254134e32913407b148fb34e0396fce34ce23fca9e16b5bfe8355a06ea7e901",
+        "working_alias": null,
+        "purpose": "New 12 raw-prefix, 8 persistent-parent-refusal, 8 fixed-transport-refusal cases.",
+        "mode": "100644"
+      }
+    }
+  ],
+  "all_other_input_fields_and_budgets_and_case_counts_unchanged": true,
+  "original_DMS10_repair_proof": {
+    "blob": "199cd1358750c1e84f26aefeb0bfa0137aee5de4",
+    "bytes": 12742,
+    "sha256": "cbcf06d99f182154e941d1466d8809cb5e4d292c6c8158d8565521619d0c0b90",
+    "mode": "100644"
+  },
+  "DB_alpha_review": {
+    "blob": "9787479360120adfcf1cbcd68420f38c073ffd8f",
+    "bytes": 2324,
+    "sha256": "cc8e9686dac64974d957b7fe42d16912d4b3e88bfc5f4a378e6b963f1a11f888",
+    "mode": "100644"
+  },
+  "physical_cases_unchanged": 28,
+  "groups": {
+    "raw-prefix": 12,
+    "parent-refusal": 8,
+    "transport": 8
+  },
+  "packer_controls_unchanged": 45,
+  "source_proof_controls_unchanged": 10,
+  "no_quota_or_budget_expansion": true,
+  "original42_rerun": false,
+  "full_unixOpen_or_Store_closed": false,
+  "AST_in_this_JS_proof": 0,
+  "B3": 0,
+  "VM": 0,
+  "native": 0,
+  "fixed_mechanical_executor_ASM_unchanged": true
+}

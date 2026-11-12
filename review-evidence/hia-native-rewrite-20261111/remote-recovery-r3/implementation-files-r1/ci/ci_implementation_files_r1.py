@@ -3,6 +3,39 @@ No prior Emitter, compiler-component or private-header result is inherited.
 Only the operator's common output/source inputs are used; no external artifact
 input or host semantic filesystem policy is supplied to the target.
 """
+
+# BEGIN HIA EXPLICIT SOURCE ENTRY ROUTE R1
+if __name__ == "__main__":
+    def _hia_explicit_source_entry_r1():
+        import hashlib as _hashlib
+        import json as _json
+        import os as _os
+        from pathlib import Path as _Path
+        import stat as _stat
+        import types as _types
+        if _os.environ.get("GITHUB_EVENT_NAME") != "push":
+            return
+        _event_raw = _Path(_os.environ["GITHUB_EVENT_PATH"]).read_bytes()
+        _event = _json.loads(_event_raw)
+        if "[hia-ci:backend-physical-after]" not in _event.get("head_commit", {}).get("message", ""):
+            return
+        _root = _Path(_os.environ["GITHUB_WORKSPACE"]).resolve(strict=True)
+        _helper = _root / "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/explicit_gate_entry_router_r1.py"
+        _mode = _helper.lstat().st_mode
+        if _helper.is_symlink() or not _stat.S_ISREG(_mode) or _stat.S_IMODE(_mode) != 0o644:
+            raise RuntimeError("explicit entry helper must be regular mode 100644")
+        _raw = _helper.read_bytes()
+        if (len(_raw), _hashlib.sha1(b"blob " + str(len(_raw)).encode("ascii") + b"\0" + _raw).hexdigest(), _hashlib.sha256(_raw).hexdigest()) != (7494, "25282eda1b7b97627d7791a47fe2c2bc21bcd6a3", "662bc010dd5893a046b9353b528902e33b6fd8d79b4a76e5e6cea99843c742c1"):
+            raise RuntimeError("explicit entry helper full pin mismatch")
+        _module = _types.ModuleType("hia_explicit_source_entry_router_r1")
+        _module.__file__ = str(_helper)
+        exec(compile(_raw, str(_helper), "exec"), _module.__dict__)
+        _module.dispatch({"job":"implementation_files","selector":"[hia-ci:backend-physical-after]","scope":"Fresh23 HIA roles; physical after-digests from inspected ELF, 20groups47cases and separate zero-target readback gates","caller_path":"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/implementation-files-r1/ci/ci_implementation_files_r1.py","target":{"path":"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-physical-after-r1/ci/backend_physical_after_ci.py","mode":"100644","bytes":27659,"gitsha":"ca35c326e498fb9ec401dab8bbbfda980b4bd96d","sha256":"2d36c4239ab85c640ca0d6428406401304b863f79a945686681aa953162de8e4"}}, __file__, _event_raw, _raw)
+        raise RuntimeError("selected explicit route returned without an exit")
+    _hia_explicit_source_entry_r1()
+    del _hia_explicit_source_entry_r1
+# END HIA EXPLICIT SOURCE ENTRY ROUTE R1
+
 from pathlib import Path
 from hashlib import sha256,sha1
 import ast,base64,json,os,re,stat,sys,traceback,types

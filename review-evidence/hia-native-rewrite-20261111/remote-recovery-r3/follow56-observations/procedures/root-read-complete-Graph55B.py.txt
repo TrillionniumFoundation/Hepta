@@ -1,0 +1,32 @@
+import pathlib,zipfile,tarfile,hashlib,json,time,collections
+root=pathlib.Path("/workspace/scratch/9acdfa9f5639");out=root/"graph55b-original";start=time.monotonic()
+z=zipfile.ZipFile(root/"artifacts/follow55b-current-program-graph.zip");outer=[]
+for info in z.infolist():
+ h=hashlib.sha256();n=0
+ with z.open(info) as f:
+  for b in iter(lambda:f.read(1048576),b""):h.update(b);n+=len(b)
+ assert n==info.file_size
+ outer.append({"name":info.filename,"bytes":n,"sha256":h.hexdigest(),"CRC32":info.CRC,"mode":(info.external_attr>>16)&0o7777})
+ledger=(out/"evidence-members.jsonl").read_bytes();assert len(ledger)==2876202 and hashlib.sha256(ledger).hexdigest()=="b1ef7ca892dd921019a2763d2e70c37e1c59abfbdc684ca8198e07d2a68dc195"
+expected={row["name"]:row for row in map(json.loads,ledger.splitlines())};actual=[];retained=[]
+with tarfile.open(out/"evidence.tar.xz","r|xz") as t:
+ for m in t:
+  assert m.isfile() and m.name in expected,m.name
+  x=expected.pop(m.name);h=hashlib.sha256();n=0;keep=m.name.startswith("current-program-Graph/development/") and (m.name.endswith(("summary.json","cases-completed.json","post-output-budget.json","profile-before-gates.json","bundle.json","extension-proof.json")) or m.name.endswith("compiled/root56/source.hiaasm"))
+  chunks=[]
+  f=t.extractfile(m)
+  for b in iter(lambda:f.read(1048576),b""):h.update(b);n+=len(b);chunks.extend([b] if keep else [])
+  assert (n,h.hexdigest(),m.mode)==(x["bytes"],x["sha256"],x["mode"]),(m.name,"ledger mismatch")
+  row={"name":m.name,"bytes":n,"sha256":h.hexdigest(),"mode":m.mode};actual.append(row)
+  if keep:
+   p=out/"retained"/m.name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(b"".join(chunks));p.chmod(m.mode);retained.append(row)
+assert not expected and len(actual)==6238 and sum(x["bytes"] for x in actual)==389909994
+(out/"root-all-ZIP-member-readback.json").write_text(json.dumps(outer,indent=2)+"\n")
+(out/"root-all-inner-member-readback.json").write_text(json.dumps(actual,indent=2)+"\n")
+casepath=out/"retained/current-program-Graph/development/native-private-0-r1/cases-completed.json"
+cases=json.loads(casepath.read_bytes())
+counts=collections.Counter(x["label"] for x in cases)
+dup={k:v for k,v in counts.items() if v>1}
+summary={"schema":"hia-root-follow55b-graph-artifact-readback-v1","outer_zip_members":len(outer),"outer_member_bytes":sum(x["bytes"] for x in outer),"full_ZIP_crc_and_sha_read":True,"inner_members":len(actual),"inner_member_bytes":sum(x["bytes"] for x in actual),"full_inner_size_mode_SHA_equal":True,"actual_private_completed_rows":len(cases),"actual_duplicate_labels":dup,"target_original_status":"FAIL","no_target_replay":True,"elapsed_seconds":time.monotonic()-start,"retained":retained,"whole_stack_closed":False}
+(out/"root-full-readback-summary.json").write_text(json.dumps(summary,indent=2)+"\n");print(json.dumps({k:v for k,v in summary.items() if k!="retained"}))
+print(json.dumps({"duplicate_rows":[x for x in cases if counts[x["label"]]>1]},indent=2))

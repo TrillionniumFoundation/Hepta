@@ -1,0 +1,88 @@
+{
+  "schema": "hia-physical-after-full-CAS-source-delta-v1",
+  "status": "SOURCE_TEXT_ONLY",
+  "original_backend": {
+    "bytes": 8853,
+    "sha256": "f481be27e3988e2f92a90c9dd34dea90958c60e1d9b29e52791217e3f890f198",
+    "gitsha": "d255ffd8147d4658ed555c54ac5c79ccf8779973"
+  },
+  "original_files": {
+    "bytes": 11927,
+    "sha256": "9d57ba12ab5f8b648faae7bb370b6719d527a6197a2cecbe36802966c4d289f4",
+    "gitsha": "f3743e4f91832b6ca6455ae9fe76a7528752c6ec"
+  },
+  "candidate": {
+    "bytes": 12295,
+    "sha256": "15f3261db9b18efad5159598083d5a753de89efb0d7a098a36f591c6c8f97965",
+    "gitsha": "a298f85fa15c759c57e8067655fa3b896c6e523b"
+  },
+  "edits": [
+    {
+      "old": "\"\"\"Development fixed mechanics for the twenty-one actual native backend images.",
+      "new": "\"\"\"Development fixed mechanics for the 23-role physical-after backend."
+    },
+    {
+      "old": "import ctypes,importlib.util,json,struct,sys,time,types",
+      "new": "import ctypes,importlib.util,json,os,struct,sys,time,types"
+    },
+    {
+      "old": "CONTROLLERS=frozenset((11,16,20))",
+      "new": "CONTROLLERS=frozenset((11,16,20,22,23))"
+    },
+    {
+      "old": "self.calls={i:0 for i in range(1,22)}",
+      "new": "self.calls={i:0 for i in range(1,24)}"
+    },
+    {
+      "old": "  doc=json.loads(self.evidence.pin(assets))",
+      "new": "  self.owned=-1;self.syscalls=0\n  libc=self.buffers.libc\n  libc.openat.argtypes=[ctypes.c_int,ctypes.c_void_p,ctypes.c_int];libc.openat.restype=ctypes.c_int\n  libc.read.argtypes=[ctypes.c_int,ctypes.c_void_p,ctypes.c_size_t];libc.read.restype=ctypes.c_ssize_t\n  libc.fstat.argtypes=[ctypes.c_int,ctypes.c_void_p];libc.fstat.restype=ctypes.c_int\n  libc.close.argtypes=[ctypes.c_int];libc.close.restype=ctypes.c_int\n  doc=json.loads(self.evidence.pin(assets))"
+    },
+    {
+      "old": "doc[\"schema\"]==\"hia-backend-join-runtime-assets-v1\" and set(map(int,doc[\"roles\"]))==set(range(1,22))",
+      "new": "doc[\"schema\"]==\"hia-backend-physical-after-assets-v1\" and set(map(int,doc[\"roles\"]))==set(range(1,24))"
+    },
+    {
+      "old": "  self.release_slots()\n  self.slots=",
+      "new": "  self.close_owned()\n  self.release_slots()\n  self.slots="
+    },
+    {
+      "old": "  first=self.slots[1];sequence=0;lease=None",
+      "new": "  first=self.slots[1];sequence=0;lease=None;driver=20"
+    },
+    {
+      "old": "    result=self.native(20,(first,self.slots[3],self.slots[2])",
+      "new": "    assert driver in(20,23)\n    result=self.native(driver,(first,self.slots[3],self.slots[2])"
+    },
+    {
+      "old": "    assert current_sequence==sequence\n",
+      "new": "    assert driver==20 and current_sequence==sequence and self.owned<0\n"
+    },
+    {
+      "old": "    assert 1<=role<=21 and role!=20 and reserved==0 and len({src,second,work})==3 and work>=4 and observe_n<=256",
+      "new": "    assert ((driver==20 and 1<=role<=21 and role!=20) or (driver==23 and role in(19,22))) and reserved==0 and len({src,second,work})==3 and work>=4 and observe_n<=256"
+    },
+    {
+      "old": "   elif op==14:\n",
+      "new": "   elif op==8:\n    assert a[1:]==(0,)*11 and self.owned<0 and (driver,a[0]) in((20,23),(23,20))\n    driver=a[0]\n   elif op==14:\n"
+    },
+    {
+      "old": "   else:raise AssertionError((\"unsupported mechanical opcode\",op))",
+      "new": "   elif op==19:\n    assert driver==23\n    returned,observed=self.syscall(a,event)\n   else:raise AssertionError((\"unsupported mechanical opcode\",op))"
+    },
+    {
+      "old": " def close(self):\n  if self.closed:return\n  self.closed=True;first=None\n  try:self.release_slots()\n  except BaseException as e:first=e\n  for image in self.images.values():\n   try:image._mapping.close()\n   except BaseException as e:\n    if first is None:first=e\n    else:first.add_note(repr(e))\n  result=self.evidence.finish()\n  if first:raise first\n  return result\n",
+      "new": " def close_owned(self):\n  if self.owned<0:return\n  descriptor=self.owned;self.owned=-1\n  ctypes.set_errno(0);result=self.buffers.libc.close(descriptor);error=ctypes.get_errno() if result<0 else 0\n  self.evidence.entry(dict(status=\"PRIVATE_ABORT_FD_CLEANUP\",fd=descriptor,raw_result=result,errno=error))\n  if result<0:raise OSError(error,\"private descriptor cleanup\")\n def syscall(self,a,event):\n  libc=self.buffers.libc;primitive=a[0];before=self.owned;observed=b\"\";payload=b\"\"\n  ctypes.set_errno(0)\n  if primitive==1:\n   _,source,at,n,flags,*reserved=a\n   assert self.owned<0 and n>0 and flags==os.O_CLOEXEC and reserved==[0]*7\n   view,parent=self.span(source,at,n);assert parent[\"readonly\"]\n   path=self.read(source,at,n);assert path[-1:]==b\"\\0\" and b\"\\0\" not in path[:-1]\n   payload=path\n   raw=int(libc.openat(-100,view[\"address\"],flags));error=ctypes.get_errno() if raw<0 else 0\n   if raw>=0:self.owned=raw;returned=1\n   else:returned=(-error)&((1<<64)-1)\n  elif primitive==2:\n   _,token,target,at,n,*reserved=a\n   assert self.owned>=0 and token==1 and target>=4 and n<1<<63 and reserved==[0]*7\n   view,parent=self.span(target,at,n);assert not parent[\"readonly\"]\n   raw=int(libc.read(self.owned,view[\"address\"],n));error=ctypes.get_errno() if raw<0 else 0\n   returned=((-error)&((1<<64)-1)) if raw<0 else raw\n   self.buffers.check(parent)\n   if raw>=0:payload=self.read(target,at,raw)\n  elif primitive==3:\n   assert self.owned>=0 and a[1]==1 and a[2:]==(0,)*10\n   descriptor=self.owned;self.owned=-1\n   raw=int(libc.close(descriptor));error=ctypes.get_errno() if raw<0 else 0\n   returned=((-error)&((1<<64)-1)) if raw<0 else raw\n  elif primitive==4:\n   _,token,target,at,n,*reserved=a\n   assert self.owned>=0 and token==1 and target>=4 and n==144 and reserved==[0]*7\n   view,parent=self.span(target,at,n);assert not parent[\"readonly\"]\n   ctypes.memset(view[\"address\"],0,n)\n   raw=int(libc.fstat(self.owned,view[\"address\"]));error=ctypes.get_errno() if raw<0 else 0\n   returned=((-error)&((1<<64)-1)) if raw<0 else raw\n   self.buffers.check(parent);observed=self.read(target,at,n);payload=observed\n  else:raise AssertionError((\"unknown fixed syscall\",primitive))\n  self.syscalls+=1\n  self.evidence.entry(dict(status=\"RAW_SYSCALL\",number=self.syscalls,event_hex=event.hex(),\n      primitive=primitive,fd_before=before,raw_result=raw,errno=error,returned=returned,\n      fd_after=self.owned,full_payload=self.evidence.raw(payload)))\n  return returned,observed\n def close(self):\n  if self.closed:return\n  self.closed=True;first=None\n  try:self.close_owned()\n  except BaseException as e:first=e\n  try:self.release_slots()\n  except BaseException as e:\n   if first is None:first=e\n   else:first.add_note(repr(e))\n  for image in self.images.values():\n   try:image._mapping.close()\n   except BaseException as e:\n    if first is None:first=e\n    else:first.add_note(repr(e))\n  result=None\n  try:result=self.evidence.finish()\n  except BaseException as e:\n   if first is None:first=e\n   else:first.add_note(repr(e))\n  if first:raise first\n  return result\n"
+    }
+  ],
+  "full_reverse_to_original_backend": true,
+  "file_syscall_methods_from_exact_original": true,
+  "only_extra_path_check": "reject embedded NUL before real openat",
+  "all_original_per_entry_before_after_full_buffers_guards_and_RO_checks_preserved": true,
+  "old_default_finite_event_limit_unchanged": true,
+  "AST": 0,
+  "C_compile": 0,
+  "B3": 0,
+  "VM": 0,
+  "native": 0,
+  "installed": false
+}

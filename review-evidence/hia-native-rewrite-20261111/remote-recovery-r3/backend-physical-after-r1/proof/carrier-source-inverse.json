@@ -1,0 +1,118 @@
+{
+  "schema": "hia-physical-after-carrier-static-inverse-v1",
+  "status": "TEXT_ONLY_ZERO_AST_C_BUILD_TARGET",
+  "base": {
+    "bytes": 10431,
+    "sha256": "dae66f88b96826384c6c278e4f391754acdd43c51c989f963bd90e6bc83d764c",
+    "gitsha": "9a0770eb18dd1a9b0a1777db1645d47aef5c3794"
+  },
+  "filesystem": {
+    "bytes": 12516,
+    "sha256": "0886ad565d13beb22e62e81652ba98b68e83bf841d4f9f8048c1f27d77de533b",
+    "gitsha": "294fe43871dd11c06e6f01c7d21caf4b976b04e2"
+  },
+  "candidate": {
+    "bytes": 13137,
+    "sha256": "8070c7f76d780781ef1b4297a25e948a61f3121352e7352b36d3fe55caf4e728",
+    "gitsha": "7c9f123cc6bf06b67481ae8348af519b202a3772"
+  },
+  "edits": [
+    {
+      "old": "/* Development-only fixed backend-join image runner.\n * No Graph/Code/ELF interpretation. All policies and instructions are HIA.",
+      "new": "/* Development-only fixed physical-after backend image runner.\n * New source only: no C compilation or target execution is claimed.\n * No Graph/Code/ELF/path-name/hash interpretation. All policies are HIA."
+    },
+    {
+      "old": "static Image images[22];",
+      "new": "static Image images[24];\nstatic int owned_file=-1;\nstatic U raw_syscalls=0,driver=20;"
+    },
+    {
+      "old": " _exit(126);",
+      "new": " if(owned_file>=0){int doomed=owned_file;owned_file=-1;(void)close(doomed);}\n _exit(126);"
+    },
+    {
+      "old": "require(role>=1&&role<=21&&images[role].entry,23);",
+      "new": "require(role>=1&&role<=23&&images[role].entry,23);"
+    },
+    {
+      "old": "if(role!=7&&role!=11&&role!=16&&role!=19&&role!=20)require(b->ro,27);else require(!b->ro,28);",
+      "new": "if(role!=7&&role!=11&&role!=16&&role!=19&&role!=20&&role!=22&&role!=23)require(b->ro,27);else require(!b->ro,28);"
+    },
+    {
+      "old": "Buffer *event=(role==11||role==16||role==20)?b:w;U extent=(role==11||role==16||role==20)?bn:wn;",
+      "new": "Buffer *event=(role==11||role==16||role==20||role==22||role==23)?b:w;U extent=(role==11||role==16||role==20||role==22||role==23)?bn:wn;"
+    },
+    {
+      "old": "require(argc==26,30);",
+      "new": "require(argc==28,30);"
+    },
+    {
+      "old": "require(sizeof(void *)==8&&sizeof(U)==8,31);",
+      "new": "require(sizeof(void *)==8&&sizeof(U)==8&&sizeof(struct stat)==144,31);"
+    },
+    {
+      "old": "strtoul(argv[25],&parent_end,10)",
+      "new": "strtoul(argv[27],&parent_end,10)"
+    },
+    {
+      "old": "parent_end!=argv[25]",
+      "new": "parent_end!=argv[27]"
+    },
+    {
+      "old": "for(U i=1;i<=21;i++)load_image(i,argv[3+i]);",
+      "new": "for(U i=1;i<=23;i++)load_image(i,argv[3+i]);"
+    },
+    {
+      "old": "returned=call_image(20,first,0,first->size,&slots[3],128,&slots[2],1<<20,first==&reply?64:1,3,2);",
+      "new": "require(driver==20||driver==23,56);\n  returned=call_image(driver,first,0,first->size,&slots[3],128,&slots[2],1<<20,first==&reply?64:1,3,2);"
+    },
+    {
+      "old": "require(event[3]==sequence&&slot(a[2])->ro,41);",
+      "new": "require(driver==20&&owned_file<0&&event[3]==sequence&&slot(a[2])->ro,41);"
+    },
+    {
+      "old": "require(role>=1&&role<=21&&role!=20&&src!=second&&src!=work&&second!=work&&work>=4&&a[10]<=256&&a[11]==0,43);",
+      "new": "require(((driver==20&&role>=1&&role<=21&&role!=20)||(driver==23&&(role==19||role==22)))&&src!=second&&src!=work&&second!=work&&work>=4&&a[10]<=256&&a[11]==0,43);"
+    },
+    {
+      "old": "int two_read=role!=7&&role!=11&&role!=16&&role!=19;",
+      "new": "int two_read=role!=7&&role!=11&&role!=16&&role!=19&&role!=22;"
+    },
+    {
+      "old": "  }else if(op==14){",
+      "new": "  }else if(op==8){\n   require(zeros(a,1)&&owned_file<0&&((driver==20&&a[0]==23)||(driver==23&&a[0]==20)),57);\n   driver=a[0];\n  }else if(op==14){"
+    },
+    {
+      "old": "  }else fatal(53);",
+      "new": "  }else if(op==19){\n   require(driver==23,58);\n   U primitive=a[0],result=0,prior=(U)(int64_t)owned_file;\n   int saved_errno=0;const unsigned char *syscall_payload=0;U syscall_payload_n=0;\n   if(primitive==1){\n    require(owned_file<0&&a[3]>0&&a[4]==O_CLOEXEC&&zeros(a,5),60);\n    Buffer *p=slot(a[1]);require(p->ro,61);\n    unsigned char *name=span(a[1],a[2],a[3]);require(name[a[3]-1]==0&&memchr(name,0,(size_t)a[3]-1)==0,62);\n    syscall_payload=name;syscall_payload_n=a[3];\n    int fd=openat(AT_FDCWD,(const char *)name,(int)a[4]);saved_errno=fd<0?errno:0;\n    result=(U)(int64_t)fd;\n    if(fd>=0){owned_file=fd;answer=1;}else answer=0-(U)saved_errno;\n   }else if(primitive==2){\n    require(owned_file>=0&&a[1]==1&&a[2]>=4&&a[4]<=(U)SSIZE_MAX&&zeros(a,5),63);\n    Buffer *b=slot(a[2]);require(!b->ro,64);unsigned char *target=span(a[2],a[3],a[4]);\n    ssize_t got=read(owned_file,target,(size_t)a[4]);saved_errno=got<0?errno:0;\n    result=(U)(int64_t)got;answer=got<0?0-(U)saved_errno:(U)got;check(b);\n    if(got>=0){syscall_payload=target;syscall_payload_n=(U)got;}\n   }else if(primitive==3){\n    require(owned_file>=0&&a[1]==1&&zeros(a,2),65);\n    int fd=owned_file;owned_file=-1;\n    int code=close(fd);saved_errno=code<0?errno:0;result=(U)(int64_t)code;\n    answer=code<0?0-(U)saved_errno:(U)code;\n   }else if(primitive==4){\n    require(owned_file>=0&&a[1]==1&&a[2]>=4&&a[4]==144&&zeros(a,5),66);\n    Buffer *b=slot(a[2]);require(!b->ro,67);unsigned char *target=span(a[2],a[3],144);\n    memset(target,0,144);\n    int code=fstat(owned_file,(struct stat *)(void *)target);saved_errno=code<0?errno:0;\n    result=(U)(int64_t)code;answer=code<0?0-(U)saved_errno:(U)code;check(b);\n    observed=144;memcpy(bytes,target,144);syscall_payload=target;syscall_payload_n=144;\n   }else fatal(68);\n   raw_syscalls++;U raw[8]={raw_syscalls,sequence,primitive,prior,result,(U)saved_errno,answer,(U)(int64_t)owned_file};\n   record(9,raw,sizeof(raw));record(11,syscall_payload,syscall_payload_n);\n  }else fatal(53);"
+    },
+    {
+      "old": " for(U i=0;i<64;i++)closebuffer(&slots[i]);closebuffer(&reply);",
+      "new": " if(owned_file>=0){int fd=owned_file;owned_file=-1;int code=close(fd);U raw[4]={1,(U)(int64_t)fd,(U)(int64_t)code,code<0?(U)errno:0};record(10,raw,sizeof(raw));}\n for(U i=0;i<64;i++)closebuffer(&slots[i]);closebuffer(&reply);"
+    },
+    {
+      "old": "for(U i=1;i<=21;i++){void *p=images[i].map;",
+      "new": "for(U i=1;i<=23;i++){void *p=images[i].map;"
+    }
+  ],
+  "scope": {
+    "fixed_switch_edges": [
+      [
+        20,
+        23
+      ],
+      [
+        23,
+        20
+      ]
+    ],
+    "file_root": 22,
+    "file_sha": 19,
+    "per_image_calls_guard_RO_unchanged": true,
+    "raw_4_fs_primitives_copied": true,
+    "raw_close_consumes_once": true,
+    "raw_fd0_supported": true,
+    "full_paths_NUL_checked": true,
+    "arbitrary_role_dispatch": false,
+    "source_counts_not_execution": true
+  }
+}

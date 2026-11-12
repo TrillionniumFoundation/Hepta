@@ -1,0 +1,133 @@
+{
+  "schema": "hia-unified-full-P16-late-Core-Graph-workflow-request-v1",
+  "status": "INACTIVE_NEW_SOURCE_ONLY_ZERO_AST_REFERENCE_GENERATION_B3_VM_NATIVE",
+  "parent_observed_head": "c6b8c01415473e68faed37e6c39ccf1d0f35d981",
+  "requested_followup": "AFTER_ROOT_FOLLOW55_WHEN_SOURCE_CLOSURE_REVIEWED",
+  "job_id": "backend_unified_program_graph",
+  "tag": "backend-unified-program-graph",
+  "name": "One complete type late-Core P16 root and actual Core Graph",
+  "timeout_minutes": 110,
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "reuse_existing_steps": [
+    "exact candidate checkout",
+    "exact0ef reference checkout",
+    "CPython3.12.14",
+    "exact project Z3 requirement",
+    "Ubuntu24.04 x86_64 ImageOSubuntu24 guard",
+    "selected full active-source syntax gate"
+  ],
+  "source_prefix": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-unified-program-graph-r1",
+  "driver": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-unified-program-graph-r1/ci/backend_unified_program_graph_ci.py",
+    "bytes": 26778,
+    "sha256": "87c186d1dbe77bd3a7d78985195bb7184224e69a6d4677a758f4471dac22b61b",
+    "gitsha": "974250df97a8d0fea4ad4084a181238ee6778067"
+  },
+  "source_index": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-unified-program-graph-r1/sources.json",
+    "bytes": 24829,
+    "sha256": "5bbf01dc82b623eebadbdfd908582285c5edfef4d0ab820acd2f8012dbe03a27",
+    "gitsha": "6bb25ae2b9a439994dd77d4303a08a912d1ce915"
+  },
+  "transport": {
+    "run": "python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-unified-program-graph-r1/ci/fetch_follow53_original_zip.py --output \"$HIA_UNIFIED53_ZIP\"",
+    "source": {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-unified-program-graph-r1/ci/fetch_follow53_original_zip.py",
+      "bytes": 7563,
+      "sha256": "d01d7ad501180abc9311075f6e1868567cde852dd629de124d5fbf1c23a82960",
+      "gitsha": "e4ae383ca011de024b72cc0225883c56b444f315"
+    },
+    "env_scope": "STEP_ONLY_NOT_JOB",
+    "env": {
+      "HIA_ARTIFACT_TOKEN": "${{ github.token }}",
+      "HIA_UNIFIED53_ZIP": "${{ runner.temp }}/hia-unified-original53/original.zip"
+    },
+    "expected": {
+      "head": "8f27671ad748dc7c081a1eaad897b057d8d9f42e",
+      "run": 43237029243,
+      "artifact": 13952974167,
+      "bytes": 100633717,
+      "sha256": "36f8063dd97c8fffeed958797a22d38e091d9185ef1c90604c75ff509b70093d"
+    },
+    "wholeZIPnotExtractedDownload": true,
+    "failure_blocks_qualification": true
+  },
+  "qualification": {
+    "run": "python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-unified-program-graph-r1/ci/backend_unified_program_graph_ci.py",
+    "env_scope": "STEP_ONLY_NOT_JOB",
+    "env": {
+      "HIA_CI_COMMON": "${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py",
+      "HIA_CI_OUTPUT": "${{ runner.temp }}/hia-backend-unified-program-graph-recovery",
+      "HIA_UNIFIED53_ZIP": "${{ runner.temp }}/hia-unified-original53/original.zip"
+    },
+    "common_git": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+    "separate_bounded_seal_git": "084a98a1d42e3081612b817e909eb50443d8a924"
+  },
+  "upload": {
+    "if": "always()",
+    "uses": "actions/upload-artifact@v4",
+    "with": {
+      "name": "hia-backend-unified-program-graph-recovery",
+      "path": "${{ runner.temp }}/hia-backend-unified-program-graph-recovery\n${{ runner.temp }}/hia-unified-original53",
+      "include_hidden_files": false,
+      "if_no_files_found": "error"
+    }
+  },
+  "gates": {
+    "full_predecessorZIP_and_members": 756,
+    "all_original_source_image_pairs": 43,
+    "whole_original_ELF_equal": true,
+    "fresh_B3": 1,
+    "actual_native_HIA_packer_entries": 1,
+    "new_table_nonzero": 47,
+    "changed": [
+      56
+    ],
+    "added": [
+      31,
+      32,
+      33,
+      58
+    ],
+    "unchanged_images": 42,
+    "new_groups": 26,
+    "new_cases": 283,
+    "new_ELF": 185,
+    "new_private_cases": 98,
+    "new_private_entries": 243,
+    "original_control_groups": 3,
+    "original_control_ELF": 51,
+    "original_control_private_entries": 2,
+    "total_group_invocations": 29,
+    "GraphWire_entries": "measured only",
+    "subject": {
+      "strict aggregate CPU": 90,
+      "strict wall": 180,
+      "address": 1073741824,
+      "core": 0
+    },
+    "B3": {
+      "cpu": 10,
+      "wall": 20,
+      "address": 268435456
+    },
+    "seal": "separate strict90CPU180wall evidence only; no subject replay"
+  },
+  "syntax_inventory": {
+    "active_python": 40,
+    "source_files_excluding_driver_index": 43,
+    "history_excluded": true
+  },
+  "not_claimed": [
+    "new qualification before actual CI",
+    "previous narrow176 or old group6 passes inherited",
+    "group9 complete diagnostics",
+    "implementation fingerprint plus backend transaction in one owner",
+    "installed CLI build",
+    "whole15actions or11tools",
+    "arbitrary foreign private header authority"
+  ]
+}

@@ -1,0 +1,50 @@
+import pathlib,json,hashlib,zlib,datetime,subprocess,os
+base=pathlib.Path("/workspace/scratch/9acdfa9f5639");repo=base/"reference0ef";m=json.loads((base/"reference0ef-object-inputs.json").read_text());c=m["commit"]
+subprocess.run(["git","init","-q",str(repo)],check=True)
+obj=repo/".git/objects"
+def oid(kind,b):return hashlib.sha1(kind.encode()+b" "+str(len(b)).encode()+b"\0"+b).hexdigest()
+def put(kind,b,wanted):
+    actual=oid(kind,b)
+    assert actual==wanted,(kind,actual,wanted)
+    p=obj/actual[:2]/actual[2:];p.parent.mkdir(parents=True,exist_ok=True)
+    packed=zlib.compress(kind.encode()+b" "+str(len(b)).encode()+b"\0"+b)
+    if p.exists():assert zlib.decompress(p.read_bytes())==zlib.decompress(packed)
+    else:p.write_bytes(packed)
+dirs={"":c["tree"]}
+for x in m["entries"]:
+    if x["type"]=="tree":dirs[x["path"]]=x["sha"]
+for path,wanted in sorted(dirs.items(),key=lambda kv:(-kv[0].count("/"),kv[0])):
+    prefix=path+"/" if path else ""
+    rows=[x for x in m["entries"] if x["path"].startswith(prefix) and "/" not in x["path"][len(prefix):]]
+    rows.sort(key=lambda x:(x["path"][len(prefix):]+("/" if x["type"]=="tree" else "")).encode())
+    b=b""
+    for x in rows:
+        name=x["path"][len(prefix):].encode();mode=b"40000" if x["type"]=="tree" else x["mode"].encode()
+        b+=mode+b" "+name+b"\0"+bytes.fromhex(x["sha"])
+    put("tree",b,wanted)
+found=None
+seconds=int(datetime.datetime.fromisoformat(c["author"]["date"].replace("Z","+00:00")).timestamp())
+tzs=["+0000","+0800","-0800","+0100"]
+tzs+= [("-" if n<0 else "+")+f"{abs(n)//60:02d}{abs(n)%60:02d}" for n in range(-14*60,14*60+1,15)]
+for tz in dict.fromkeys(tzs):
+ for newline in ("\n",""):
+    s=f'tree {c["tree"]}\n'+"".join(f"parent {p}\n" for p in c["parents"])
+    s+=f'author {c["author"]["name"]} <{c["author"]["email"]}> {seconds} {tz}\ncommitter {c["committer"]["name"]} <{c["committer"]["email"]}> {seconds} {tz}\n\n'+c["message"]+newline
+    b=s.encode()
+    if oid("commit",b)==c["sha"]:found=b;break
+ if found:break
+assert found is not None,"No byte-exact commit reconstruction; no alternate commit used"
+put("commit",found,c["sha"])
+count=0;total=0
+for x in m["entries"]:
+ if x["type"]!="blob":continue
+ p=repo/x["path"]
+ if not p.is_file() or p.is_symlink():continue
+ b=p.read_bytes();put("blob",b,x["sha"]);count+=1;total+=len(b)
+(repo/".git/HEAD").write_text(c["sha"]+"\n")
+(repo/".git/shallow").write_text(c["sha"]+"\n")
+raw=subprocess.check_output(["git","ls-tree","-rz","--full-tree","-r",c["sha"]],cwd=repo,env={**os.environ,"GIT_NO_LAZY_FETCH":"1"})
+listed=raw.split(b"\0")[:-1];assert len(listed)==sum(x["type"]=="blob" for x in m["entries"])
+report={"reference_commit":c["sha"],"reference_tree":c["tree"],"byte_exact_commit_object":True,"byte_exact_trees":len(dirs),"byte_exact_blobs_present":count,"byte_exact_blob_bytes":total,"full_tree_blob_count":len(listed),"missing_reference_blobs":len(listed)-count,"full_checkout_claimed":False,"network_fetches":0,"repository":str(repo)}
+(base/"reference0ef-local-git-object-proof.json").write_text(json.dumps(report,indent=2)+"\n")
+print(json.dumps(report))
