@@ -1,0 +1,122 @@
+{
+  "schema": "hepta.peer-review.privileged-apt-external-owner.v1",
+  "status": "CORE_SUPPLIER_STATIC_CLEAR_SOURCE_IO_REQUEST_HOLD",
+  "reviewed_commit": "a548b87e2500f5cfa2adfb02acab99b563995925",
+  "reviewed_tree": "4ea129a728a8e1c1cb529aa36a53deac349927f2",
+  "prefix": "experiments/hia_v89_full32_supply_owner_20261112/static-r1/",
+  "local": "/tmp/hia-full32-privileged-apt-owner-r1-20261112-e26e",
+  "verification": {
+    "commit": "a548b87e2500f5cfa2adfb02acab99b563995925",
+    "tree": "4ea129a728a8e1c1cb529aa36a53deac349927f2",
+    "leaves": 4711,
+    "local_files": 29,
+    "total_local_bytes": 479627,
+    "local_bytes_sha1_sha256_and_tree_paths_matched": true
+  },
+  "supplier": {
+    "bytes": 111870,
+    "sha256": "cb25fcc04be3414afce234e8842247639e6390d825198a329bb7460c089a4321",
+    "git_blob": "31938c9bcc3e3b12b20ed477bea9295f02c840e4"
+  },
+  "source_io_request": {
+    "bytes": 7581,
+    "sha256": "32b149bc17193a5b0a6c3f3cc919da3322150758e7d7e6b442b419b41043e330",
+    "git_blob": "f324200b0517428de70bcbcb48b660ceb51ba773",
+    "expected_methods": 22,
+    "executed": false
+  },
+  "explicit_blocker": {
+    "scope": "new finite source/IO request and its synthetic environment setup only",
+    "observation": "SOURCE-IO-REQUEST.environment assigns HOME to the fresh operation root; launch_source_io passes that mapping to the original owner. Two new synthetic context constructions also assign a temporary HOME.",
+    "reason": "The active session instruction forbids repurposing HOME. This was not authorized by the APT repair request.",
+    "correction": "Preserve a548 as unexecuted. Freeze a new source/IO revision without HOME overrides, including the two synthetic environment constructions, while retaining the supplier bytes, original guardian/owner, all 22 IDs and limits.",
+    "acknowledged_by_author": true,
+    "runtime_reproduction": false
+  },
+  "checks": [
+    {
+      "id": "canonical-local-byte-join",
+      "result": "PASS",
+      "detail": "All 29 local files (479627 bytes) match their SHA256, Git blob SHA1 and 100644 entries in the independently reconstructed full 4711-leaf canonical tree."
+    },
+    {
+      "id": "original-functions",
+      "result": "PASS",
+      "detail": "AST spans including decorators find 44 original functions/methods: 40 complete source bodies are byte-identical; exactly worker_main, Supply.__init__, Supply.apt_supply and Supply.run differ; no original function removed. Nine new functions/methods are explicit."
+    },
+    {
+      "id": "original-plan-and-pins",
+      "result": "PASS",
+      "detail": "Removing privileged_apt_owner and restoring the original control pin reconstructs the original plan value exactly. All 32 fixed source input pins are unchanged."
+    },
+    {
+      "id": "original-guardians",
+      "result": "PASS",
+      "detail": "guardian.py (10257 B, d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023) and process_owner_impl.py (17601 B, 36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2) are byte-identical to the originals. Actual definitions of execute, supervise and run_owned were read."
+    },
+    {
+      "id": "privileged-entry",
+      "result": "PASS",
+      "detail": "Only fixed update/install requests enter a fresh sudo -n root worker; it requires actual uid=euid=0 before context/evidence creation. The unchanged external guardian.execute invokes the original supervise directly. The cold run_owned 180-second admission is not relaxed."
+    },
+    {
+      "id": "request-and-runtime",
+      "result": "PASS",
+      "detail": "apt_context binds the runner-owned 0700 canonical supply root; exact worker, external request and result paths; exact command/environment and script/config/source SHA pins; fixed apt/sudo/python paths; actual runtime records preserve the original root-or-runner owner and non-writable executable predicate."
+    },
+    {
+      "id": "budgets",
+      "result": "PASS",
+      "detail": "Original external update600/install900 remain. Inner deadlines use the actual remaining allowance minus10 (maximum590/890); cleanup3, cache handoff180, supply3600, external workflow10800 and product cold180 are unchanged. Exhausted or enlarged inner request admission refuses before guardian entry."
+    },
+    {
+      "id": "outer-closure",
+      "result": "PASS",
+      "detail": "Parent apt_owned_step first requires the actual original outer group's closed return, then independently reads/binds that raw receipt and both root-worker stream hashes. sudo return code0 alone does not authorize inner reads or cache ownership."
+    },
+    {
+      "id": "inner-closure",
+      "result": "PASS",
+      "detail": "The new inner reader binds exact config/environment and current source identities; root uid/euid and lifecycle supervisor/parent PID; original schema/implementation; started subreaper; no overflow; cleanup complete/ECHILD/leader reaped/no remaining children/no errors/no expired cleanup deadline. Child stdout/stderr reads by this new reader occur only after that conjunction."
+    },
+    {
+      "id": "natural-vs-closed",
+      "result": "PASS",
+      "detail": "Natural success additionally requires original leader start/observe/exit/reap identity, monotonic events, status0 and no timeout/interruption/owner_error/SIGKILL. Closed nonzero ownership is useful only for custody and never becomes successful APT supply."
+    },
+    {
+      "id": "six-originals",
+      "result": "PASS",
+      "detail": "Fixed config/root-process/environment/guardian/stdout/stderr inventory is exact. Root evidence handoff holds descriptor chains, requires root-owned ordinary single-link files on the same device, records per-file before/after, and rereads every byte/hash; only owner/group and explicit owner mode bits may change. Parent independently rejoins all six raw current files against root-before and returned-after records before granting cache handoff."
+    },
+    {
+      "id": "cache-and-errors",
+      "result": "PASS",
+      "detail": "Original return_apt_cache_to_owner body is unchanged and remains a separate 180-second operation after both closures. Unknown outer/inner proof keeps pending_group true. The original workflow_process EPERM path is unchanged, never mapped to ESRCH. A secondary evidence/cache error does not replace a propagating primary APT failure."
+    },
+    {
+      "id": "source-io-controls",
+      "result": "STATIC_ONLY",
+      "detail": "Read all 22 methods; exact static IDs equal the frozen request. Its 19 referenced input files match full size/SHA/Git pins. Actual ordinary file checks cover corruption/link/inventory; root UID/lifecycle and successful privileged handoff records are explicitly synthetic. Test Popen/network poisons do not confer real root ownership or APT qualification."
+    },
+    {
+      "id": "source-io-launcher",
+      "result": "STATIC_ONLY",
+      "detail": "Original 180/3 run_owned wrapper projection, raw receipt SHA and original request are independently bound before closed is accepted; child test report is opened only after ECHILD/empty remaining/error checks. Nonzero and missing proof remain HOLD. HOME blocker above prevents CLEAR for this exact source/IO request."
+    }
+  ],
+  "inherited_scope_note": "The unchanged external guardian itself hashes stdout/stderr after supervise returns, even on a HOLD receipt. The child-stream-before-ECHILD claim above is limited to the NEW acceptance reader and handoff logic, not a new claim that the frozen guardian performs no post-supervise I/O on an unclosed outcome.",
+  "history_note": "The historical failure proves killpg(pid,0) raised EPERM before the original command receipt. The exact full process-group composition was not observed; descriptive root-owned-group wording is an inference, not additional actual process evidence.",
+  "no_source_controls_executed": true,
+  "no_APT_or_sudo_executed": true,
+  "no_native_or_full32_executed": true,
+  "qualifications_granted": false,
+  "product_source_modified": false,
+  "local_static_mechanics_only": [
+    "UTF8 byte reads",
+    "SHA256/Git blob hashing",
+    "AST span extraction without importing supplier",
+    "canonical Git GET and full tree hashing"
+  ]
+}
+
