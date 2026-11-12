@@ -13,8 +13,9 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v87-unpack-bounded-read-sha-word-access-publication-custody-development'
+PROFILE = 'selfhost-core-linux-x86_64-v88-unpack-bounded-read-sha-word-access-publication-custody-ingress-development'
 SOURCE_FILES = (
+    'tests/test_hia_publication_custody_ingress.py',
     'tools/hia_artifact_publication_custody.py',
     'tools/qualify_hia_artifact_publication_tests.py',
     'tools/generate_hia_core_unpack.py',

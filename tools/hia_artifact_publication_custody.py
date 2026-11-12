@@ -129,6 +129,113 @@ def read_file(path, maximum=None):
     return b''.join(chunks), identity(before)
 
 
+@contextmanager
+def _cold_evidence_input(path, maximum, expected_bytes=None):
+    """Bound one immutable regular cold-evidence input by its actual size."""
+    if type(maximum) is not int or maximum < 0:
+        raise ValueError('nonnegative cold-evidence byte budget required')
+    if expected_bytes is not None and (type(expected_bytes) is not int or expected_bytes < 0):
+        raise ValueError('integer cold-evidence size required')
+    with parent_fd(path) as (parent, name):
+        before = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or
+                before.st_size > maximum or
+                (expected_bytes is not None and before.st_size != expected_bytes)):
+            raise ValueError('cold evidence must be regular, single-link and within its byte budget: '
+                             + str(path) + '; size=' + str(before.st_size)
+                             + '; maximum=' + str(maximum))
+        leaf = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, dir_fd=parent)
+        try:
+            if identity(os.fstat(leaf)) != identity(before):
+                raise ValueError('cold evidence changed while opening')
+            yield leaf, identity(before)
+            if (identity(os.fstat(leaf)) != identity(before) or
+                    identity(os.stat(name, dir_fd=parent, follow_symlinks=False)) != identity(before)):
+                raise ValueError('cold evidence identity or name changed while reading')
+        finally:
+            os.close(leaf)
+
+
+def observe_cold_evidence(path, maximum, *, expected_bytes=None, expected_sha256=None):
+    """Read all actual bytes in fixed chunks, including an explicit EOF check."""
+    with _cold_evidence_input(path, maximum, expected_bytes) as (leaf, before):
+        digest = sha256()
+        remaining = before['size']
+        while remaining:
+            chunk = os.read(leaf, min(1 << 20, remaining))
+            if not chunk:
+                raise ValueError('short cold evidence read')
+            remaining -= len(chunk)
+            digest.update(chunk)
+        if os.read(leaf, 1):
+            raise ValueError('cold evidence grew beyond its admitted size')
+        actual = digest.hexdigest()
+        if expected_sha256 is not None and actual != expected_sha256:
+            raise ValueError('cold evidence SHA256 differs')
+    return {'path': str(path), 'bytes': before['size'], 'sha256': actual, 'identity': before}
+
+
+def copy_cold_evidence(source, destination, maximum, *, expected_bytes=None, expected_sha256=None):
+    """Retain full bytes with bounded memory; failed partial output is preserved.
+
+    This is evidence custody, not a product input/output limit. The source and
+    new destination are held by descriptor, their complete byte hashes are
+    joined, and every named link is rechecked before success can be returned.
+    """
+    with _cold_evidence_input(source, maximum, expected_bytes) as (incoming, before):
+        with parent_fd(destination) as (parent, name):
+            target = os.open(name, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                             0o600, dir_fd=parent)
+            try:
+                os.fchmod(target, 0o600)
+                digest = sha256()
+                remaining = before['size']
+                while remaining:
+                    chunk = os.read(incoming, min(1 << 20, remaining))
+                    if not chunk:
+                        raise ValueError('short cold evidence copy')
+                    remaining -= len(chunk)
+                    digest.update(chunk)
+                    view = memoryview(chunk)
+                    while view:
+                        count = os.write(target, view)
+                        if count <= 0:
+                            raise OSError('short cold evidence write')
+                        view = view[count:]
+                if os.read(incoming, 1):
+                    raise ValueError('cold evidence grew beyond its admitted size')
+                os.fsync(target)
+                copied = identity(os.fstat(target))
+                actual = digest.hexdigest()
+                if (copied['size'] != before['size'] or copied['nlink'] != 1 or
+                        copied['uid'] != os.geteuid() or stat.S_IMODE(copied['mode']) != 0o600):
+                    raise ValueError('cold evidence destination identity differs')
+                os.lseek(target, 0, os.SEEK_SET)
+                readback = sha256()
+                remaining = copied['size']
+                while remaining:
+                    chunk = os.read(target, min(1 << 20, remaining))
+                    if not chunk:
+                        raise ValueError('short cold evidence readback')
+                    remaining -= len(chunk)
+                    readback.update(chunk)
+                if (os.read(target, 1) or readback.hexdigest() != actual or
+                        identity(os.fstat(target)) != copied or
+                        identity(os.stat(name, dir_fd=parent, follow_symlinks=False)) != copied):
+                    raise ValueError('cold evidence retained bytes or name differ')
+                if expected_sha256 is not None and actual != expected_sha256:
+                    raise ValueError('cold evidence SHA256 differs')
+                os.fsync(parent)
+            finally:
+                os.close(target)
+    return {'source': str(source), 'original_identity': before,
+            'retained': {'path': str(destination), 'bytes': before['size'],
+                         'sha256': actual, 'identity': copied},
+            'stream_copy': {'chunk_bytes': 1 << 20, 'maximum_bytes': maximum,
+                            'expected_bytes': expected_bytes, 'expected_sha256': expected_sha256,
+                            'complete_source_and_destination_readback': True}}
+
+
 def process_identity(pid):
     """Linux PID identity only; no assertion of a full process-tree owner."""
     try:

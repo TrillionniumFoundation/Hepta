@@ -13,6 +13,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import sys
 import tarfile
@@ -21,7 +22,8 @@ import traceback
 import unittest
 
 from tools.hia_artifact_publication_custody import (
-    Session, create_directory, direct_child_custody_closed, identity, parent_fd, process_identity,
+    Session, copy_cold_evidence, create_directory, direct_child_custody_closed, identity,
+    observe_cold_evidence, parent_fd, process_identity,
     read_file, write_json, write_new,
 )
 
@@ -86,6 +88,100 @@ SOURCE_INPUTS = (
     'tools/hia_artifact_publication_syscalls.S',
 )
 
+# New custody-only aggregate for the three complete cold input originals.
+# The original product's 64 MiB quota, subprocess timeouts and test population
+# do not use this value. The outer report and compiler keep their 8/1 MiB bounds.
+COLD_INPUT_CUSTODY_BYTES = 256 << 20
+
+
+def copied_json(record):
+    raw, observed = read_file(Path(record['path']), record['bytes'])
+    if observed != record['identity'] or sha256(raw).hexdigest() != record['sha256']:
+        raise ValueError('retained cold JSON changed before parsing')
+    def unique(items):
+        value = {}
+        for key, item in items:
+            if key in value:
+                raise ValueError('duplicate cold JSON key: ' + key)
+            value[key] = item
+        return value
+    return json.loads(raw, object_pairs_hook=unique)
+
+
+def cold_digest(value):
+    if type(value) is not str or re.fullmatch('[0-9a-f]{64}', value) is None:
+        raise ValueError('cold evidence requires an actual SHA256 digest')
+    return value
+
+
+def copy_cold_inputs(cold_path, directory, *, maximum_bytes=COLD_INPUT_CUSTODY_BYTES):
+    """Preserve complete outer/nested/B3 originals before loading any tests."""
+    if type(maximum_bytes) is not int or not 0 < maximum_bytes <= COLD_INPUT_CUSTODY_BYTES:
+        raise ValueError('cold evidence aggregate exceeds its custody budget')
+    directory = Path(directory)
+    rows = []
+    used = 0
+    def retain(source, name, maximum, *, expected_bytes=None, expected_sha256=None):
+        nonlocal used
+        row = copy_cold_evidence(source, directory / name, min(maximum, maximum_bytes - used),
+                                 expected_bytes=expected_bytes, expected_sha256=expected_sha256)
+        rows.append(row)
+        used += row['retained']['bytes']
+        return row['retained']
+    outer_record = retain(Path(cold_path).absolute(), 'cold-report.json', 8 << 20)
+    cold = copied_json(outer_record)
+    if type(cold) is not dict or cold.get('schema') != 'hepta.hia.selfhost-cold-replay.v1':
+        raise ValueError('original cold replay schema required for input custody')
+    if type(cold.get('nested_report')) is not str:
+        raise ValueError('original cold nested-report path required')
+    nested_path = Path(cold['nested_report'])
+    nested_record = retain(nested_path, 'cold-qualification.json', maximum_bytes,
+                           expected_sha256=cold_digest(cold.get('nested_report_sha256')))
+    nested = copied_json(nested_record)
+    if (type(nested) is not dict or nested.get('schema') != 'hepta.hia.selfhost-qualification.v6' or
+            nested.get('source_manifest') != cold.get('source_manifest') or
+            type(nested.get('source_manifest')) is not dict or
+            nested.get('profile') != cold.get('profile') or type(nested.get('profile')) is not str):
+        raise ValueError('original nested qualification schema/source/profile binding differs')
+    generations = nested.get('generations')
+    if (type(generations) is not list or len(generations) != 3 or
+            any(type(row) is not dict for row in generations) or
+            [row.get('case') for row in generations] != ['B1', 'B2', 'B3']):
+        raise ValueError('original B1/B2/B3 generation records required')
+    digests = [cold_digest(row.get('produced_sha256')) for row in generations]
+    if cold.get('generation_sha256') != digests:
+        raise ValueError('outer and nested generation hashes differ')
+    generation = generations[-1]
+    count = generation.get('produced_bytes')
+    if (type(count) is not int or not 0 < count <= 1 << 20 or
+            type(generation.get('produced_image')) is not str):
+        raise ValueError('bounded B3 actual byte count and path required')
+    compiler_path = Path(generation['produced_image'])
+    compiler_record = retain(compiler_path, 'compiler.image.bin', 1 << 20,
+                             expected_bytes=count, expected_sha256=digests[-1])
+    # Re-observe every original and every retained byte after all three copies.
+    # This joins the final B3 to the same outer/nested originals used above.
+    for row in rows:
+        record = row['retained']
+        for path, expected_identity in ((Path(row['source']), row['original_identity']),
+                                        (Path(record['path']), record['identity'])):
+            current = observe_cold_evidence(path, record['bytes'], expected_bytes=record['bytes'],
+                                            expected_sha256=record['sha256'])
+            if current['identity'] != expected_identity:
+                raise ValueError('cold evidence identity changed after the complete input chain')
+    binding = {'schema': 'hepta.hia.publication-cold-input-custody.v1',
+               'status': 'FULL_COLD_INPUT_BYTES_RETAINED_AND_BOUND',
+               'evidence_only': True, 'product_or_cold_result_reclassified': False,
+               'raw_original_count': 3, 'raw_original_bytes': used,
+               'aggregate_custody_maximum_bytes': maximum_bytes,
+               'outer_report_maximum_bytes': 8 << 20, 'compiler_maximum_bytes': 1 << 20,
+               'outer_report': outer_record, 'nested_report': nested_record,
+               'nested_report_expected_sha256': cold['nested_report_sha256'],
+               'compiler': compiler_record, 'generation': generation,
+               'cold_status_observed': cold.get('status'), 'nested_status_observed': nested.get('status')}
+    write_json(directory / 'cold-binding.json', binding)
+    return rows
+
 
 def flatten(suite):
     for item in suite:
@@ -121,18 +217,7 @@ def copy_inputs(session):
         rows.append({'source': name, 'original_identity': observed, 'retained': saved})
     cold_path = os.environ.get('HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT')
     if cold_path:
-        raw, observed = read_file(Path(cold_path).absolute(), 8 << 20)
-        rows.append({'source': cold_path, 'original_identity': observed,
-                     'retained': write_new(session.root / 'inputs' / 'cold-report.json', raw)})
-        cold = json.loads(raw)
-        nested_path = Path(cold['nested_report'])
-        nested, observed = read_file(nested_path, 16 << 20)
-        rows.append({'source': str(nested_path), 'original_identity': observed,
-                     'retained': write_new(session.root / 'inputs' / 'cold-qualification.json', nested)})
-        compiler_path = Path(json.loads(nested)['generations'][-1]['produced_image'])
-        compiler, observed = read_file(compiler_path, 1 << 20)
-        rows.append({'source': str(compiler_path), 'original_identity': observed,
-                     'retained': write_new(session.root / 'inputs' / 'compiler.image.bin', compiler)})
+        rows.extend(copy_cold_inputs(cold_path, session.root / 'inputs'))
     write_json(session.root / 'INPUTS.json', rows)
     return rows
 
