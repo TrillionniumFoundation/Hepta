@@ -1,0 +1,32 @@
+--- frozen-r1/check_static_delta.py
++++ candidate-r2/check_static_delta.py
+@@ -82,7 +82,28 @@
+         require(bool(remaining), 'version projection keeps original condition')
+         return remaining[0] if len(remaining) == 1 else ast.BoolOp(node.op, remaining)
+ 
+-require(dump(RemoveVersionFour().visit(new_functions['json_wire'])) == dump(old_functions['json_wire']),
++# The original authoring Builder cannot carry a previously computed BinOp
++# temporary across a later short-circuit expression. Reverse exactly the
++# new two-statement extent spelling before applying the old version projection.
++main_projection = ast.parse(ast.unparse(new_functions['json_wire'])).body[0]
++initial = [node for node in main_projection.body if isinstance(node, ast.If)
++           and ast.unparse(node.test) == 'get(w, 0) == 0']
++require(len(initial) == 1, 'one unchanged initialization branch')
++extent = [(index, node) for index, node in enumerate(initial[0].body)
++          if isinstance(node, ast.Assign) and ast.unparse(node.targets[0]) == 'required']
++require(len(extent) == 1, 'one split workspace extent assignment')
++index, assignment_node = extent[0]
++extension = initial[0].body[index + 1]
++require(dump(assignment_node.value) == dump(ast.parse('limbs + ((maximum * 4 + 31) >> 5) * 4 + 64 + 8192', mode='eval').body),
++        'unchanged base extent computation before the version observation')
++require(isinstance(extension, ast.If) and not extension.orelse and len(extension.body) == 1
++        and ast.unparse(extension.test) == 'read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC'
++        and ast.unparse(extension.body[0]) == 'required = required + CACHE_BYTES',
++        'only the original cache extent is added after its version guard')
++assignment_node.value = ast.BinOp(assignment_node.value, ast.Add(),
++    ast.Call(ast.Name('choose', ast.Load()), [extension.test, ast.Name('CACHE_BYTES', ast.Load()), ast.Constant(0)], []))
++del initial[0].body[index + 1]
++require(dump(RemoveVersionFour().visit(main_projection)) == dump(old_functions['json_wire']),
+         'complete main HIA body reverse projection')
+ for name in ('source_program', 'document'):
+     require(ast.get_source_segment(old_gen, funcs(old_tree)[name]) ==

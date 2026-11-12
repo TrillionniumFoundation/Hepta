@@ -1,0 +1,25 @@
+--- frozen-r1/control/source6_launch.py
++++ candidate-r2/control/source6_launch.py
+@@ -115,6 +115,8 @@
+         after = {name: record(name)[0] for name in before}
+         save(output / 'INPUTS-AFTER.json', after)
+         final['report'] = report_pin
++        final['child_status'] = report.get('status')
++        final['child_error'] = report.get('error')
+         source_before_pin, source_before_raw = record(output / 'SOURCE-BEFORE.json')
+         source_after_pin, source_after_raw = record(output / 'SOURCE-AFTER.json')
+         source_before, source_after = json.loads(source_before_raw), json.loads(source_after_raw)
+@@ -131,6 +133,13 @@
+                 actual_files[str(path.relative_to(source))] = record(path)[0]
+         require(source_after == {'files': actual_files, 'directories': actual_dirs},
+                 'full source subset differs from actual post-owner bytes')
++        require(all(actual_files.get(name) == pin for name, pin in source_before['files'].items())
++                and set(actual_files) - set(source_before['files']) <= {'examples/hia_bootstrap/json_wire.hiaasm'},
++                'original frozen source changed or an unexpected source file appeared')
++        final['source_before'] = source_before_pin
++        final['source_after'] = source_after_pin
++        require(before == after and natural and report.get('status') == 'SOURCE6_PASS_ONLY',
++                'source/Core-VM child did not pass; retain its original error and zero/uncompleted denominator')
+         expected_files = dict(source_before['files'])
+         generated = source / 'examples/hia_bootstrap/json_wire.hiaasm'
+         generated_pin, generated_raw = record(generated)

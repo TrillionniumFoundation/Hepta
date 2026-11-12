@@ -1,0 +1,21 @@
+--- frozen-r1/freeze_source6.py
++++ candidate-r2/freeze_source6.py
+@@ -10,7 +10,7 @@
+ ROOT = Path(__file__).resolve().parent
+ BASE = Path('/workspace/scratch/e26ed3e2edcf/combined-native-v88-r1')
+ SOURCE = ROOT / 'source'
+-OUTPUT = Path('/tmp/hia-wire-key-summary-source6-r1-output-20261112-e26e')
++OUTPUT = Path('/tmp/hia-wire-key-summary-source6-r2-output-20261112-e26e')
+ FIELDS = ('st_dev', 'st_ino', 'st_mode', 'st_uid', 'st_gid', 'st_nlink',
+           'st_size', 'st_mtime_ns', 'st_ctime_ns')
+ 
+@@ -111,6 +111,9 @@
+     request = {
+         'schema': 'hepta.hia.json-wire-key-summary.source6-request.v1',
+         'status': 'UNEXECUTED_ROOT_REVIEW_REQUIRED', 'qualification_seconds': 180, 'cleanup_seconds': 3,
++        'prior_r1_request_commit': '66176c4ea878364b3a6b13319e3922d7e96f9000',
++        'prior_r1_request_sha256': 'e67ee35685027d7ef562258939f7fcc6ac902704b1b92e36019cd792ebb2407f',
++        'prior_r1_actual_outcome': 'HOLD: E_HIA_SSA f0/b74 undefined/nonlocal v595; zero source methods executed',
+         'operation_root': str(OUTPUT), 'source_root': str(SOURCE), 'owner_path': str(owner_path),
+         'command': [str(runtime), '-I', '-S', '-B', str(ROOT / 'control/source6_worker.py')],
+         'environment': {'PATH': '', 'PYTHONHASHSEED': '0', 'PYTHONDONTWRITEBYTECODE': '1',

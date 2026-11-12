@@ -1,0 +1,13 @@
+--- frozen-r1/inputs/tools/generate_hia_json_wire.py
++++ candidate-r2/inputs/tools/generate_hia_json_wire.py
+@@ -92,7 +92,9 @@
+         temp_a = table + slots * 8
+         temp_b = temp_a + maximum + 64
+         limbs = temp_b + maximum + 64
+-        required = limbs + ((maximum * 4 + 31) >> 5) * 4 + 64 + 8192 + choose(read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC, CACHE_BYTES, 0)
++        required = limbs + ((maximum * 4 + 31) >> 5) * 4 + 64 + 8192
++        if read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC:
++            required = required + CACHE_BYTES
+         if length(w) != required or length(o) < maximum:
+             return 199
+         put(w, 0, read64(s, 0))
