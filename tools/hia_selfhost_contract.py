@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v75-native-core-emitter-development'
+PROFILE = 'selfhost-core-linux-x86_64-v76-native-core-emitter-json-pretty-development'
 SOURCE_FILES = (
     'tools/hia_compiler_owner_gates.py',
     'tools/qualify_hia_compiler_owner_ci.py',
@@ -144,6 +144,9 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/linked_observer_policy.hiaasm',
     'examples/hia_bootstrap/linked_observer_packer.hiaasm',
     'tests/test_hia_selfhost_linked_observer.py',
+    'tools/build_hia_json_pretty.py',
+    'examples/hia_bootstrap/json_pretty.hiaasm',
+    'docs/HIA_JSON_PRETTY_NATIVE.md',
     'tools/generate_hia_json_wire.py',
     'tools/build_hia_json_wire.py',
     'examples/hia_bootstrap/json_wire.hiaasm',
@@ -1069,6 +1072,24 @@ def support_contract(root=ROOT):
             'native_AgentStore_replaced': False,
             'default_service_changed': False,
             'whole_native_delivery_qualified': False,
+        },
+        'json_pretty_application': {
+            "source": "examples/hia_bootstrap/json_pretty.hiaasm",
+            "byte_adapter": "hepta/hia_json_pretty_native.py",
+            "builder": "tools/build_hia_json_pretty.py",
+            "manifest_schema": "hepta.hia.json-pretty-native.v1",
+            "entry_return": "zero-extended-u32",
+            "admitted_input": "compact UTF-8 JSON bytes; graph admission remains caller-owned",
+            "maximum_input_bytes": 8388608,
+            "workspace_bytes": 161,
+            "stack_entries": 129,
+            "output_extent": "successful native measurement; no additional 8 MiB output cap",
+            "nonzero_status_discards_output_and_length": True,
+            "final_newline_appended": False,
+            "installed_source_resource_explicit": True,
+            "original_CLI_object_and_text_domain_replaced": False,
+            "default_service_changed": False,
+            "whole_native_delivery_qualified": False,
         },
         'json_preflight_diagnostics': {
             'source': 'examples/hia_bootstrap/json_preflight.hiaasm',
