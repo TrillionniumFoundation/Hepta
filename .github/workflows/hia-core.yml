@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -116,6 +116,7 @@ jobs:
               'tests.test_hia_core_emitter_native.CoreEmitterSourceTests',
               'tests.test_hia_byte_wrapper_native.ByteWrapperSourceTests',
               'tests.test_hia_machine_object_native.MachineObjectSourceTests',
+              'tests.test_hia_execution_observation_native.ExecutionObservationSourceTests',
               'tests.test_hia_machine_plan_native.MachinePlanSourceTests',
               'tests.test_hia_machine_encoding_native.MachineEncodingSourceTests',
               'tests.test_hia_machine_state_native.MachineStateSourceTests',
@@ -224,6 +225,21 @@ jobs:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_SOURCE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_NOMINAL_JSON_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native execution ledger policy and installed real runtime callers
+        run: |
+          python -B - <<'PYOBSERVE'
+          import unittest
+          suite=unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_execution_observation_native')
+          expected=suite.countTestCases()
+          result=unittest.TextTestRunner(verbosity=2).run(suite)
+          clean=not(result.errors or result.failures or result.skipped or result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if expected>0 and result.testsRun==expected and clean and result.wasSuccessful() else 1)
+          PYOBSERVE
+        env:
+          HEPTA_HIA_EXECUTION_OBSERVATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_EXECUTION_OBSERVATION_FIXTURE_EVIDENCE: ${{ runner.temp }}/execution-observation-fixture
+      - name: Actual original runtime callers with retained ledger policy forbidden
+        run: python -B tools/qualify_hia_execution_observation_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/execution-observation-callers"
       - name: Native ELF object writer and actual source-bound installed controls
         run: |
           python -B - <<'PYMACHINE'

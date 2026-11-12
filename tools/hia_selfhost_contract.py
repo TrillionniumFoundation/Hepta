@@ -13,8 +13,26 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v84-native-machine-object'
+PROFILE = 'selfhost-core-linux-x86_64-v85-native-execution-observation'
 SOURCE_FILES = (
+    'docs/HIA_EXECUTION_OBSERVATION_NATIVE.md',
+    'docs/HIA_EXECUTION_OBSERVATION_ABI.json',
+    'tests/test_hia_execution_observation_native.py',
+    'tests/fixtures/hia_opcodes_99d6567.py.txt',
+    'tools/hia_execution_observation_policy.py',
+    'tools/hia_execution_observation_ir.py',
+    'tools/generate_hia_execution_observation.py',
+    'tools/build_hia_execution_observation.py',
+    'tools/qualify_hia_execution_observation_callers.py',
+    'examples/hia_bootstrap/execution_observation_pool.hepta',
+    'examples/hia_bootstrap/execution_observation_000.hepta',
+    'examples/hia_bootstrap/execution_observation_001.hepta',
+    'examples/hia_bootstrap/execution_observation_002.hepta',
+    'examples/hia_bootstrap/execution_observation_003.hepta',
+    'examples/hia_bootstrap/execution_observation_004.hepta',
+    'examples/hia_bootstrap/execution_observation_005.hepta',
+    'examples/hia_bootstrap/execution_observation_006.hepta',
+
     'examples/hia_bootstrap/machine_object_011.hepta',
 
     'docs/HIA_MACHINE_OBJECT_NATIVE.md',
