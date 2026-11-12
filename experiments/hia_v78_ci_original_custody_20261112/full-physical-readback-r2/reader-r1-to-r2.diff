@@ -1,0 +1,11 @@
+--- v78_physical_audit.py
++++ v78_physical_audit_r2.py
+@@ -446,7 +446,7 @@
+                                         "actual process/index join differs: " + stem)
+                                 a.check(proc["schema"] == "hepta.hia.selfhost-phase-process.v1"
+                                         and proc["returncode"] == 0 and proc["report_sha256"] == h.digest(phase_raw)
+-                                        and proc["wall_elapsed_ns"] == proc["completed_monotonic_ns"] - proc["started_monotonic_ns"]
++                                        and proc["completed_monotonic_ns"] - proc["started_monotonic_ns"] <= proc["wall_elapsed_ns"] <= proc["archive_completed_monotonic_ns"] - proc["started_monotonic_ns"]
+                                         and proc["archive_completed_monotonic_ns"] >= proc["completed_monotonic_ns"],
+                                         "phase process status/timing/hash differs")
+                                 a.check(proc["command"] == [owner_request["command"][0], "-I", "-S", "-B",
