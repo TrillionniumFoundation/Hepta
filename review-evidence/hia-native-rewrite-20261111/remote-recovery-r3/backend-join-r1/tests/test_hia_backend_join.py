@@ -18,7 +18,7 @@ PINS={
  "function_frame_test_reference.py":"b3d590336e647df0804ef51c62b73ca2236abdfe8774161d4fd155cf0a5fbee6",
  "function_lowering_test_reference.py":"e08023ddab7501313a45825e5e2cdbba40d3524fee3e4a0f9ad33ba65335bc17",
  "wrapper_test_reference.py":"30950bd89da646f64061fc55bd0b855178c7e20fd214485b58b20ad86b4bd470"}
-CONTROL_SHA="76c400917d060f2c83e5118bce1ed3ba50863cfa1795e4bbb350837bb572f30c"
+CONTROL_SHA="35ce9e9fccfb0601d3d000834c241ae9140eb70449fabc2747ae19e84c1d2a05"
 REF_PINS={
  "hepta/hia_program_native.py":"bf953a8b85d1ebc6b9d7a90fbbcaa4137e40ed214c2ede2af1a13cfc01b1c07c",
  "hepta/hia_machine_x64.py":"8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9",

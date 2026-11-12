@@ -12,7 +12,7 @@ sys.dont_write_bytecode=True
 import hashlib,importlib.util,json,os,stat,time,traceback
 from pathlib import Path
 COMMON_SHA="3f18cec28f522722ae11216a9a94c6752d67d29120da2be9525db40ef31f8ae0"
-INPUT_SHA="26936f044b668b2b62d370add86be6b4b6a4c7c036fe119360229aa1e33c089f"
+INPUT_SHA="5cb83e4e996bcceeec20d2abc54866bafe5b74fdb749f01d8483f3d998e599c6"
 B3="35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"
 def sha(raw):return hashlib.sha256(raw).hexdigest()
 def git(raw):return hashlib.sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest()

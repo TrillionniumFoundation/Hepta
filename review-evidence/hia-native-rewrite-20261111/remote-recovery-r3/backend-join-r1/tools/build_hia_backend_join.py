@@ -4,7 +4,7 @@ canonical source, document, actual image and receipts. It is not a public build.
 """
 from pathlib import Path
 from hashlib import sha256
-import argparse,importlib.abc,importlib.util,json,resource,stat,sys,time,traceback
+import argparse,ast,importlib.abc,importlib.util,json,resource,stat,sys,time,traceback
 sys.dont_write_bytecode=True
 COMPILER_SHA="35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"
 ROLES={"post":18,"hash":19,"controller":20,"command":21}
@@ -15,10 +15,10 @@ def save(path,value):
  path.parent.mkdir(parents=True,exist_ok=True)
  path.write_text(json.dumps(value,sort_keys=True,indent=2)+"\n")
 PINS={
-  "tools/hia_backend_controller.py": "76c400917d060f2c83e5118bce1ed3ba50863cfa1795e4bbb350837bb572f30c",
+  "tools/hia_backend_controller.py": "35ce9e9fccfb0601d3d000834c241ae9140eb70449fabc2747ae19e84c1d2a05",
   "tools/hia_backend_child_forwarder.py": "d089e80fc78c8c3e2d2234aea587c38bbd5caa757178bf1f93845b15c2fe474c",
-  "tools/hia_backend_post.py": "7cbf29c3b28dacbf55f5f3d1d59710cb9dadbc677fb2a83d90c0f53bdaa46145",
-  "tools/hia_backend_command_issuer.py": "2046f965457f502ad093c9e6df04f66ab572788d9bfaa5d0f2a2417303b56c35",
+  "tools/hia_backend_post.py": "955ede388d85f85e4651637ad9b3051e607d2eeef55548ea5b7dc2d721f01e45",
+  "tools/hia_backend_command_issuer.py": "97fb41eb1d4215b081a341b91b26502182ed4592871ccc79ec70b8137af1d17a",
   "tools/hia_composite_lowering_driver_common.py": "fe63327671ea51ca950b955512a0f574d706176a4a8d050e3f8f12c83ef5e3a1",
   "tools/function_authoring_reference.py": "717d3bbd4bfc22bcca68aea7375787bfe9b0a355d74279c7258437dda2a4851b",
   "tools/hia_agent_edit_source_views.py": "555472263213f15deb239fcf3bf8e5b273a28caf3a67bb29ffd037f171d7ae5c",
@@ -111,6 +111,23 @@ def main():
       for f in document["functions"])
   profile["max_ssa_index"]=profile["max_function_values"]-1
   save(out/"document.json",document);save(out/"profile-before-gates.json",profile)
+  # Preserve the exact responsible function/block before any profile refusal.
+  # This is evidence only; all existing aggregate compiler gates remain below.
+  nodes=ast.parse(expanded).body
+  shift=int(nodes[0].args.args[1].annotation.id=="readbuf")
+  names={"f"+str(i+shift):node.name for i,node in enumerate(nodes)}
+  if shift:names["f0"]="private_RRW_ABI_wrapper"
+  function_profiles=[]
+  for fn in document["functions"]:
+   values=[v for block in fn["blocks"] for v in block["params"]+[item for op in block["ops"] for item in op["out"]]]
+   function_profiles.append(dict(function=fn["name"],author_function=names[fn["name"]],
+      blocks=len(fn["blocks"]),ops=sum(len(block["ops"]) for block in fn["blocks"]),
+      max_params=max(len(block["params"]) for block in fn["blocks"]),
+      max_ssa_index=max(int(v["name"][1:]) for v in values),
+      parameter_gate_blocks=[dict(block=block["id"],count=len(block["params"]),params=block["params"])
+                            for block in fn["blocks"] if len(block["params"])>16]))
+  save(out/"profile-functions-before-gates.json",dict(functions=function_profiles,
+      parameter_limit=16,ssa_suffix_limit_exclusive=2048,original_limits_unchanged=True))
   assert profile["functions"]<=128 and profile["blocks"]<=1536 and profile["ops"]<=8192
   assert profile["max_blocks"]<=256 and profile["max_params"]<=16 and profile["max_ssa_index"]<2048
   from hepta.hia_agent_assembly import render_assembly,assemble_program

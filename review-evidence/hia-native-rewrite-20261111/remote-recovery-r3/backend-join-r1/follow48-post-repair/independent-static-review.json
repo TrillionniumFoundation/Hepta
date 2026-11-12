@@ -1,0 +1,83 @@
+{
+  "schema": "hia.independent.backend-post-helper-extraction.static-review.v1",
+  "reviewer": "audit_runtime",
+  "old": {
+    "git_blob": "13fc4520cd87cc8a5c0a2d51f07e2d1779826516",
+    "bytes": 18663,
+    "sha256": "7cbf29c3b28dacbf55f5f3d1d59710cb9dadbc677fb2a83d90c0f53bdaa46145"
+  },
+  "new": {
+    "git_blob": "1bffd7eef205f04f803255b347edc4b7dcfd4a6d",
+    "bytes": 19344,
+    "sha256": "955ede388d85f85e4651637ad9b3051e607d2eeef55548ea5b7dc2d721f01e45"
+  },
+  "read_scope": "Full two authoring text blobs and complete line difference; semantic reasoning confined to extraction of five validators and their two caller bodies.",
+  "changed_existing_definitions": [
+    "private_header",
+    "registry_rows"
+  ],
+  "added_definitions": [
+    "private_names",
+    "private_foreign",
+    "registry_scalar",
+    "registry_function",
+    "registry_global"
+  ],
+  "unchanged_existing_definitions": [
+    "magic",
+    "backend_post",
+    "abi",
+    "semantic",
+    "object_budget",
+    "row_name_equal",
+    "row_less",
+    "sort_globals",
+    "expected_command",
+    "implementation_unchanged",
+    "output_byte",
+    "output_literal",
+    "output_decimal",
+    "div10",
+    "output_name",
+    "output_hash",
+    "export_names",
+    "foreign_names",
+    "function_frames",
+    "emit_metadata",
+    "metadata",
+    "post_event",
+    "source"
+  ],
+  "conclusion": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_STATIC_SCOPE",
+  "checks": [
+    "private_names remains before plan/version, reserved bytes, registry and foreign checks. The original names/pool/cursor algorithm and abi reason 8 are unchanged; return 0 propagates the helper's existing sticky ABI reason.",
+    "private_foreign stays after the complete registry header and reserved words, before any lease/mode/count/phase publication. Original rows and duplicate function-index order retain reasons18/19.",
+    "The caller's S_POOL remains the registry pool 256 + (functions+globals)*64. Moving the earlier command-name pool into private_names does not change that subsequently recomputed value.",
+    "registry_scalar executes the original scalar shape/bounds/frame checks in reason order20,21,22 before function/global selection. Earlier removal of the unused globals local has no state effect.",
+    "registry_function keeps kind/frame before duplicate-function-index checks23/24. registry_global keeps kind25, name match33, duplicate name26, foreign correspondence27 in original order.",
+    "Functions/global counts and S_FOREIGN_N are already committed, bounded, in the checked minimum8192-byte workspace. Successful validators do not modify these fields; reading them again is stable under the documented private immutable input/disjoint live workspace preconditions.",
+    "Every row is within the earlier validated registry extent. Consequently moving or rereading row fields does not expose an earlier out-of-bounds read under the admitted private header.",
+    "Borrowed count increments only after successful kind2 global validation. SORT is still written afterward, then cursor advances, with phase2 committed only after borrowed count and full extent agree.",
+    "Existing sort/serializer/event/object-budget/publication code is byte-for-byte unchanged by the full line difference."
+  ],
+  "assumptions": [
+    "Actual source and command are the same immutable private borrowed inputs for the call, and writable workspace does not alias them.",
+    "This review does not authenticate arbitrary external private frames.",
+    "Current helpers word/get/put and ABI guard behavior are retained as in the submitted author; their complete implementation is not newly audited here."
+  ],
+  "actual_execution": {
+    "AST": 0,
+    "generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "limits": "Original max16 block-parameter gate must still run. No assertion that the new actual profile fits or whole semantic corpus has passed.",
+  "not_reviewed": [
+    "New compiled profile",
+    "Full post-Emitter semantic oracle",
+    "Whole child-carrier/source lease custody",
+    "Unrelated serialization correctness"
+  ],
+  "refs_changed": false
+}

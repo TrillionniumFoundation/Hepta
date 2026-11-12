@@ -513,7 +513,7 @@ def document():
     total=total_scalar_functions(nodes)
     functions=[{"name":"f0","params":[{"name":"s","type":"readbuf"},{"name":"peer","type":"mutbuf"},{"name":"w","type":"mutbuf"}],
         "returns":["u32"],"effects":["read","write","trap"],"entry":"b0",
-        "blocks":[{"id":"b0","params":[],"ops":[
+        "blocks":[{"id":"b0","params":[{"name":"s","type":"readbuf"},{"name":"peer","type":"mutbuf"},{"name":"w","type":"mutbuf"}],"ops":[
             {"op":"borrow.read","args":["peer"],"out":[{"name":"r","type":"readbuf"}],"attrs":{}},
             {"op":"call","args":["s","r","w"],"out":[{"name":"status","type":"u32"}],"attrs":{"function":names["unixopen_fs_framer"]}},
             {"op":"loan.end","args":["r"],"out":[],"attrs":{}}],

@@ -1,0 +1,122 @@
+{
+  "schema": "hia.peer.core48-reader.narrow-repair-review.v1",
+  "reviewer": "audit_runtime",
+  "original": "f43b2608b6651398c21691dc6872df50f5cb0f8f",
+  "new": {
+    "blob": "3f1256154c512984b52d4a14d5518269d4b430c5",
+    "bytes": 40655,
+    "sha256": "4d84adc009eacdc9b4ffc56edb4777b45e8db81444258536da1a45e61109df8c"
+  },
+  "original_report": {
+    "blob": "5f1f1d579c87471ccf5be08fe81fcbebf149104e",
+    "bytes": 3974,
+    "sha256": "b1159b9015b764cb20d5c15b0ef9c6f4c386a88a8226f291d934c061baa5fdf8",
+    "mode": "100644"
+  },
+  "finding": "BOTH_REPORTED_STATIC_FAILURE_CUSTODY_GAPS_CLOSED_IN_EXACT_DIFF",
+  "checks": [
+    "retained_zip is now defined before the try, entered into pending_writes before opening/copying, and removed only after register performs complete identity readback.",
+    "Each materialized original is still checked independently. The complete ZIP flag is set only after that retained ZIP's actual final identity equality passes.",
+    "Any pending copy path remains in the final report and is a FAIL cause; an incomplete ZIP is no longer unconditionally reported complete.",
+    "Only the summary's owner projection is made safe for non-dict original values. The full facts object and original owner_facts rejection/primary error remain unchanged.",
+    "The entire Reader class including scan_inner/stream_member/manifest checks is byte-identical; complete owner_facts is byte-identical.",
+    "All other changes in the full line diff are the r2 summary schema name and the related reporting fields; target budgets and source/ZIP pins are unchanged."
+  ],
+  "full_line_diff": [
+    {
+      "new_line": 589,
+      "add": "    retained_zip = args.out / \"core48-original-artifact.zip\""
+    },
+    {
+      "old_line": 599,
+      "remove": "        retained_zip = args.out / \"core48-original-artifact.zip\""
+    },
+    {
+      "new_line": 600,
+      "add": "        reader.pending_writes.add(str(retained_zip))"
+    },
+    {
+      "new_line": 606,
+      "add": "        reader.pending_writes.remove(str(retained_zip))"
+    },
+    {
+      "new_line": 681,
+      "add": "        complete_retained_zip_after_checked = False"
+    },
+    {
+      "new_line": 688,
+      "add": "                    if scope == \"materialized-original\" and path == str(retained_zip):"
+    },
+    {
+      "new_line": 689,
+      "add": "                        complete_retained_zip_after_checked = True"
+    },
+    {
+      "new_line": 726,
+      "add": "        returned_owner = facts.get(\"process_owner\")"
+    },
+    {
+      "new_line": 727,
+      "add": "        owner_summary = returned_owner if type(returned_owner) is dict else {}"
+    },
+    {
+      "old_line": 722,
+      "remove": "            \"schema\": \"hia-core48-original-readback-r1\", \"status\": status,"
+    },
+    {
+      "new_line": 729,
+      "add": "            \"schema\": \"hia-core48-original-readback-r2\", \"status\": status,"
+    },
+    {
+      "old_line": 727,
+      "remove": "            \"original_owner_status\": facts.get(\"process_owner\", {}).get(\"status\"),"
+    },
+    {
+      "old_line": 728,
+      "remove": "            \"original_owner_timed_out\": facts.get(\"process_owner\", {}).get(\"timed_out\"),"
+    },
+    {
+      "old_line": 729,
+      "remove": "            \"original_owner_cleanup\": facts.get(\"process_owner\", {}).get(\"cleanup\"),"
+    },
+    {
+      "new_line": 734,
+      "add": "            \"original_owner_status\": owner_summary.get(\"status\"),"
+    },
+    {
+      "new_line": 735,
+      "add": "            \"original_owner_timed_out\": owner_summary.get(\"timed_out\"),"
+    },
+    {
+      "new_line": 736,
+      "add": "            \"original_owner_cleanup\": owner_summary.get(\"cleanup\"),"
+    },
+    {
+      "old_line": 749,
+      "remove": "            \"complete_originals_are_in_artifact\": True,"
+    },
+    {
+      "new_line": 756,
+      "add": "            \"complete_originals_are_in_artifact\": complete_retained_zip_after_checked,"
+    },
+    {
+      "new_line": 757,
+      "add": "            \"original_ZIP_copy_complete_after_checked\": complete_retained_zip_after_checked,"
+    },
+    {
+      "new_line": 758,
+      "add": "            \"incomplete_original_materialization_paths\": sorted(reader.pending_writes),"
+    }
+  ],
+  "actual_execution": {
+    "AST": 0,
+    "project_import": 0,
+    "HIA": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "artifact_readback": 0
+  },
+  "original_actual_failure_cause": "NOT_INFERRED",
+  "refs_changed": false
+}

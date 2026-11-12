@@ -145,8 +145,8 @@ FILES=[
     "path": "tests/test_hia_backend_join.py",
     "mode": "100644",
     "bytes": 34032,
-    "sha256": "78bd0b8535726cc6f1524771ad46fd68e13fe7611d4f02a7f5b284ed5224129a",
-    "gitsha": "8e9db14166b46abf50ffa712989820c795dcae87"
+    "sha256": "7f3062a520bc546258f3bf4d715025a63a657d14232d3fc9cbed0c62f8a17095",
+    "gitsha": "cdf5a6c0c43963d4f5e1f636443092c12d62877e"
   },
   {
     "path": "tests/wrapper_test_reference.py",
@@ -172,9 +172,9 @@ FILES=[
   {
     "path": "tools/build_hia_backend_join.py",
     "mode": "100644",
-    "bytes": 11766,
-    "sha256": "0fa0d578ba9e93caf98db00acad626a364ca590c836c79e084c34b9e9db77422",
-    "gitsha": "d9268ea1906ef6454f9c5686780b395039df50c6"
+    "bytes": 12976,
+    "sha256": "290a22eaaf8d19345c21ac0c6e483cd6387b7462cb32547a186d6dcbc364d078",
+    "gitsha": "8af91893431486bed1b92b019c3ceb4a754ce46b"
   },
   {
     "path": "tools/build_hia_checked_plan.py",
@@ -236,22 +236,22 @@ FILES=[
     "path": "tools/hia_backend_command_issuer.py",
     "mode": "100644",
     "bytes": 7716,
-    "sha256": "2046f965457f502ad093c9e6df04f66ab572788d9bfaa5d0f2a2417303b56c35",
-    "gitsha": "94a5b25eeeacf2127830ed2973a010687bb3496d"
+    "sha256": "97fb41eb1d4215b081a341b91b26502182ed4592871ccc79ec70b8137af1d17a",
+    "gitsha": "b74f6207064efbf45ce64f56caedb2909fa027c7"
   },
   {
     "path": "tools/hia_backend_controller.py",
     "mode": "100644",
     "bytes": 35648,
-    "sha256": "76c400917d060f2c83e5118bce1ed3ba50863cfa1795e4bbb350837bb572f30c",
-    "gitsha": "6ff7ffb04f1cbfe09d9e69c7a9c85db84e359969"
+    "sha256": "35ce9e9fccfb0601d3d000834c241ae9140eb70449fabc2747ae19e84c1d2a05",
+    "gitsha": "7041aff7dd3111c996da0fac870a213667e6f693"
   },
   {
     "path": "tools/hia_backend_post.py",
     "mode": "100644",
-    "bytes": 18663,
-    "sha256": "7cbf29c3b28dacbf55f5f3d1d59710cb9dadbc677fb2a83d90c0f53bdaa46145",
-    "gitsha": "13fc4520cd87cc8a5c0a2d51f07e2d1779826516"
+    "bytes": 19344,
+    "sha256": "955ede388d85f85e4651637ad9b3051e607d2eeef55548ea5b7dc2d721f01e45",
+    "gitsha": "1bffd7eef205f04f803255b347edc4b7dcfd4a6d"
   },
   {
     "path": "tools/hia_checked_machine_plan.py",
@@ -849,6 +849,7 @@ def main():
      for path in sorted(set(build.rglob("*.stderr"))|set(build.rglob("*.stderr.log"))):
       original(path,"HIA_BACKEND_NESTED_STDERR")
      for path in sorted(build.rglob("profile-before-gates.json")):original(path,"HIA_BACKEND_PROFILE_ORIGINAL")
+     for path in sorted(build.rglob("profile-functions-before-gates.json")):original(path,"HIA_BACKEND_FUNCTION_PROFILE_ORIGINAL")
    value=report["builds"][label]
    assert value["status"]=="PASS_BUILD_ONLY" and value["compilations"]==1 and value["native_semantic_entries"]==0
    assert value.get("actual_limits",value.get("limits"))==LIMITS and value["source_pins_unchanged"]

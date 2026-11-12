@@ -1,0 +1,26 @@
+Traceback (most recent call last):
+  File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-raw-fs-framer-r1-source/inputs/build-framer.py", line 55, in main
+    document=author.document()
+             ^^^^^^^^^^^^^^^^^
+  File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-raw-fs-framer-r1-source/tools/generate_hia_unixopen_raw_fs_framer.py", line 525, in document
+    return compact_authoring_cfg({"schema":"hepta.hia.program.v8",
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/generate_hia_selfhost.py", line 2071, in compact_authoring_cfg
+    verify_program(document)
+  File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program.py", line 956, in verify_program
+    functions, block_maps = _primitive_structure(data)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program.py", line 840, in _primitive_structure
+    return _reference_primitive_structure(data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program.py", line 860, in _reference_primitive_structure
+    blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"),
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program.py", line 519, in _function_shape
+    return _reference_function_shape(fn,recursive_chain=recursive_chain,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program.py", line 583, in _reference_function_shape
+    _reject("entry parameters must equal the function signature", "E_HIA_CFG")
+  File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program.py", line 61, in _reject
+    raise HIAProgramRejected(message, code)
+hepta.hia_program.HIAProgramRejected: E_HIA_CFG: entry parameters must equal the function signature

@@ -84,21 +84,8 @@ def private_header(s:readbuf,r:readbuf,w:mutbuf)->u64:
         return abi(w,4)
     if word(r,128) != 512 or word(r,136) != foreign*32:
         return abi(w,5)
-    names = 512+foreign*32
-    pool = names+functions*16
-    if word(r,168) != names or word(r,176) != pool or word(r,184) != length(r) or pool > length(r):
-        return abi(w,8)
-    cursor = pool
-    i = 0
-    while i < functions:
-        at = names+i*16
-        size = word(r,at+8)
-        if word(r,at) != cursor or size == 0 or size > 128 or size > length(r)-cursor:
-            return abi(w,8)
-        cursor = cursor+size
-        i = i+1
-    if cursor != length(r):
-        return abi(w,8)
+    if private_names(r,w,functions,foreign) == 0:
+        return 0
     plan = word(r,144)
     version = word(r,152)
     if plan > 1 or word(r,160) > 1:
@@ -136,6 +123,38 @@ def private_header(s:readbuf,r:readbuf,w:mutbuf)->u64:
         if word(s,at) != 0:
             return abi(w,17)
         at = at+8
+    if private_foreign(r,w,functions,foreign) == 0:
+        return 0
+    put(w,S_LEASE,word(r,24))
+    put(w,S_REQUEST,word(r,32))
+    put(w,S_MODE,mode)
+    put(w,S_FN_N,functions)
+    put(w,S_GLOBAL_N,globals)
+    put(w,S_FOREIGN_N,foreign)
+    put(w,S_RECORD_N,count)
+    put(w,S_POOL,pool)
+    put(w,S_PHASE,1)
+    return 1
+
+def private_names(r:readbuf,w:mutbuf,functions:u64,foreign:u64)->u64:
+    names = 512+foreign*32
+    pool = names+functions*16
+    if word(r,168) != names or word(r,176) != pool or word(r,184) != length(r) or pool > length(r):
+        return abi(w,8)
+    cursor = pool
+    i = 0
+    while i < functions:
+        at = names+i*16
+        size = word(r,at+8)
+        if word(r,at) != cursor or size == 0 or size > 128 or size > length(r)-cursor:
+            return abi(w,8)
+        cursor = cursor+size
+        i = i+1
+    if cursor != length(r):
+        return abi(w,8)
+    return 1
+
+def private_foreign(r:readbuf,w:mutbuf,functions:u64,foreign:u64)->u64:
     i = 0
     while i < foreign:
         at = 512+i*32
@@ -147,15 +166,6 @@ def private_header(s:readbuf,r:readbuf,w:mutbuf)->u64:
                 return abi(w,19)
             j = j+1
         i = i+1
-    put(w,S_LEASE,word(r,24))
-    put(w,S_REQUEST,word(r,32))
-    put(w,S_MODE,mode)
-    put(w,S_FN_N,functions)
-    put(w,S_GLOBAL_N,globals)
-    put(w,S_FOREIGN_N,foreign)
-    put(w,S_RECORD_N,count)
-    put(w,S_POOL,pool)
-    put(w,S_PHASE,1)
     return 1
 
 def object_budget(r:readbuf,w:mutbuf)->u64:
@@ -174,64 +184,88 @@ def row_name_equal(s:readbuf,left:u64,right:u64)->u64:
         i = i+1
     return 1
 
+def registry_scalar(s:readbuf,r:readbuf,w:mutbuf,at:u64,cursor:u64)->u64:
+    functions = get(w,S_FN_N)
+    index = word(s,at)
+    name_at = word(s,at+16)
+    name_n = word(s,at+24)
+    begin = word(s,at+32)
+    end = word(s,at+40)
+    frame = word(s,at+48)
+    if index >= functions or name_at != cursor or name_n == 0 or name_n > 128 or name_n > length(s)-cursor or word(s,at+56) != 0:
+        return abi(w,20)
+    if begin > end or end > word(r,80):
+        return abi(w,21)
+    if frame > 65536 or frame & 15 != 0:
+        return abi(w,22)
+    return 1
+
+def registry_function(s:readbuf,w:mutbuf,i:u64)->u64:
+    at = 256+i*64
+    index = word(s,at)
+    kind = word(s,at+8)
+    frame = word(s,at+48)
+    if kind != 0 or frame == 0:
+        return abi(w,23)
+    j = 0
+    while j < i:
+        if word(s,256+j*64) == index:
+            return abi(w,24)
+        j = j+1
+    return 1
+
+def registry_global(s:readbuf,r:readbuf,w:mutbuf,i:u64)->u64:
+    at = 256+i*64
+    index = word(s,at)
+    kind = word(s,at+8)
+    name_at = word(s,at+16)
+    name_n = word(s,at+24)
+    if kind == 0 or kind > 2:
+        return abi(w,25)
+    row = word(r,168)+index*16
+    if word(r,row+8) != name_n:
+        return abi(w,33)
+    j = 0
+    while j < name_n:
+        if byte(r,word(r,row)+j) != byte(s,name_at+j):
+            return abi(w,33)
+        j = j+1
+    j = get(w,S_FN_N)
+    while j < i:
+        if row_name_equal(s,at,256+j*64) != 0:
+            return abi(w,26)
+        j = j+1
+    if kind == 2:
+        found = 0
+        j = 0
+        while j < get(w,S_FOREIGN_N):
+            if word(r,520+j*32) == index:
+                found = found+1
+            j = j+1
+        if found != 1:
+            return abi(w,27)
+    return 1
+
 def registry_rows(s:readbuf,r:readbuf,w:mutbuf)->u64:
     functions = get(w,S_FN_N)
-    globals = get(w,S_GLOBAL_N)
     count = get(w,S_RECORD_N)
     cursor = get(w,S_POOL)
     borrowed = 0
     i = 0
     while i < count:
         at = 256+i*64
-        index = word(s,at)
-        kind = word(s,at+8)
-        name_at = word(s,at+16)
-        name_n = word(s,at+24)
-        begin = word(s,at+32)
-        end = word(s,at+40)
-        frame = word(s,at+48)
-        if index >= functions or name_at != cursor or name_n == 0 or name_n > 128 or name_n > length(s)-cursor or word(s,at+56) != 0:
-            return abi(w,20)
-        if begin > end or end > word(r,80):
-            return abi(w,21)
-        if frame > 65536 or frame & 15 != 0:
-            return abi(w,22)
+        if registry_scalar(s,r,w,at,cursor) == 0:
+            return 0
         if i < functions:
-            if kind != 0 or frame == 0:
-                return abi(w,23)
-            j = 0
-            while j < i:
-                if word(s,256+j*64) == index:
-                    return abi(w,24)
-                j = j+1
+            if registry_function(s,w,i) == 0:
+                return 0
         else:
-            if kind == 0 or kind > 2:
-                return abi(w,25)
-            row = word(r,168)+index*16
-            if word(r,row+8) != name_n:
-                return abi(w,33)
-            j = 0
-            while j < name_n:
-                if byte(r,word(r,row)+j) != byte(s,name_at+j):
-                    return abi(w,33)
-                j = j+1
-            j = functions
-            while j < i:
-                if row_name_equal(s,at,256+j*64) != 0:
-                    return abi(w,26)
-                j = j+1
-            if kind == 2:
-                found = 0
-                j = 0
-                while j < get(w,S_FOREIGN_N):
-                    if word(r,520+j*32) == index:
-                        found = found+1
-                    j = j+1
-                if found != 1:
-                    return abi(w,27)
+            if registry_global(s,r,w,i) == 0:
+                return 0
+            if word(s,at+8) == 2:
                 borrowed = borrowed+1
             put(w,SORT+(i-functions)*8,i)
-        cursor = cursor+name_n
+        cursor = cursor+word(s,at+24)
         i = i+1
     if borrowed != get(w,S_FOREIGN_N) or cursor != length(s):
         return abi(w,28)

@@ -1,0 +1,45 @@
+{
+  "schema": "hia-independent-unixopen-framer-entry-params-static-review-v1",
+  "reviewer": "native_checker",
+  "old": {
+    "bytes": 20819,
+    "sha256": "e5682dd85164edda7f7e2a6adcc7f8a567f72c9dcc9626b06b95afa47024e83b",
+    "gitsha": "18f176eb647fe70710b0b4ae39f442052041e02c"
+  },
+  "new": {
+    "bytes": 20909,
+    "sha256": "a716b4b6773fba9358efadf6d789bfaeab6899b8e4fe994e3eff0710328f1ab4",
+    "gitsha": "01f7821998991a296f81d398670a4a0be8423d42"
+  },
+  "reference": {
+    "bytes": 45247,
+    "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92",
+    "gitsha": "5d0027f4453759e4156a3496e64215c441a727e4"
+  },
+  "scope": "Full old/new UTF-8 bytes were fetched and compared. Semantic review is confined to the unique hand-written f0 entry parameter list and the exact original Core equality check.",
+  "finding": "NO_CONFIRMED_BLOCKER_IN_THIS_UNIQUE_DELTA",
+  "checks": [
+    "The entire new source is inverted byte-for-byte to the old source by replacing the single b0 params list with the original empty list; no other source bytes change.",
+    "The new b0 params equal the existing f0 function signature in names, order and types: s/readbuf, peer/mutbuf, w/mutbuf.",
+    "The fixed entry remains b0 and the function signature remains unchanged; the patch supplies the required in-function definitions of those same operands.",
+    "The original Core checks both entry existence and exact by_id[fn.entry].params equality with fn.params, then emits E_HIA_CFG for a mismatch. The previous empty list necessarily failed this check.",
+    "borrow.read(peer)->r/readbuf, the call(s,r,w), loan.end(r), and ret(status) remain byte-identical. No new mutable alias or new memory operation is added.",
+    "All ObjectBuilder-generated callee definitions, their order, and compact_authoring_cfg invocation remain byte-identical."
+  ],
+  "actual_execution": {
+    "AST": 0,
+    "Core": 0,
+    "generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "not_claimed": [
+    "That the complete framer now generates or compiles.",
+    "That other authoring/profile gates pass.",
+    "Any fresh filesystem operation or physical authority proof.",
+    "Complete caller/protocol/lifetime review."
+  ],
+  "source_changed_by_reviewer": false,
+  "refs_changed": false
+}

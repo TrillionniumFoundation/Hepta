@@ -1,0 +1,47 @@
+{
+  "schema": "hia-backend-post-block-parameter-refactor-source-delta-v1",
+  "status": "NEW_UNEXECUTED",
+  "old": {
+    "bytes": 18663,
+    "sha256": "7cbf29c3b28dacbf55f5f3d1d59710cb9dadbc677fb2a83d90c0f53bdaa46145",
+    "gitsha": "13fc4520cd87cc8a5c0a2d51f07e2d1779826516"
+  },
+  "new": {
+    "bytes": 19344,
+    "sha256": "955ede388d85f85e4651637ad9b3051e607d2eeef55548ea5b7dc2d721f01e45",
+    "gitsha": "1bffd7eef205f04f803255b347edc4b7dcfd4a6d"
+  },
+  "edits": [
+    {
+      "label": "separate private name-span loop",
+      "before": "    names = 512+foreign*32\n    pool = names+functions*16\n    if word(r,168) != names or word(r,176) != pool or word(r,184) != length(r) or pool > length(r):\n        return abi(w,8)\n    cursor = pool\n    i = 0\n    while i < functions:\n        at = names+i*16\n        size = word(r,at+8)\n        if word(r,at) != cursor or size == 0 or size > 128 or size > length(r)-cursor:\n            return abi(w,8)\n        cursor = cursor+size\n        i = i+1\n    if cursor != length(r):\n        return abi(w,8)\n",
+      "after": "    if private_names(r,w,functions,foreign) == 0:\n        return 0\n"
+    },
+    {
+      "label": "separate private foreign-row loop",
+      "before": "    i = 0\n    while i < foreign:\n        at = 512+i*32\n        if word(r,at) == 0 or word(r,at+8) >= functions or word(r,at+16) == 0 or word(r,at+16) > 1048576 or word(r,at+24) != 0:\n            return abi(w,18)\n        j = 0\n        while j < i:\n            if word(r,512+j*32+8) == word(r,at+8):\n                return abi(w,19)\n            j = j+1\n        i = i+1\n",
+      "after": "    if private_foreign(r,w,functions,foreign) == 0:\n        return 0\n"
+    },
+    {
+      "label": "add extracted header helpers",
+      "before": "\ndef object_budget(r:readbuf,w:mutbuf)->u64:\n",
+      "after": "\ndef private_names(r:readbuf,w:mutbuf,functions:u64,foreign:u64)->u64:\n    names = 512+foreign*32\n    pool = names+functions*16\n    if word(r,168) != names or word(r,176) != pool or word(r,184) != length(r) or pool > length(r):\n        return abi(w,8)\n    cursor = pool\n    i = 0\n    while i < functions:\n        at = names+i*16\n        size = word(r,at+8)\n        if word(r,at) != cursor or size == 0 or size > 128 or size > length(r)-cursor:\n            return abi(w,8)\n        cursor = cursor+size\n        i = i+1\n    if cursor != length(r):\n        return abi(w,8)\n    return 1\n\ndef private_foreign(r:readbuf,w:mutbuf,functions:u64,foreign:u64)->u64:\n    i = 0\n    while i < foreign:\n        at = 512+i*32\n        if word(r,at) == 0 or word(r,at+8) >= functions or word(r,at+16) == 0 or word(r,at+16) > 1048576 or word(r,at+24) != 0:\n            return abi(w,18)\n        j = 0\n        while j < i:\n            if word(r,512+j*32+8) == word(r,at+8):\n                return abi(w,19)\n            j = j+1\n        i = i+1\n    return 1\n\ndef object_budget(r:readbuf,w:mutbuf)->u64:\n"
+    },
+    {
+      "label": "separate same-order scalar/function/global row checks",
+      "before": "def registry_rows(s:readbuf,r:readbuf,w:mutbuf)->u64:\n    functions = get(w,S_FN_N)\n    globals = get(w,S_GLOBAL_N)\n    count = get(w,S_RECORD_N)\n    cursor = get(w,S_POOL)\n    borrowed = 0\n    i = 0\n    while i < count:\n        at = 256+i*64\n        index = word(s,at)\n        kind = word(s,at+8)\n        name_at = word(s,at+16)\n        name_n = word(s,at+24)\n        begin = word(s,at+32)\n        end = word(s,at+40)\n        frame = word(s,at+48)\n        if index >= functions or name_at != cursor or name_n == 0 or name_n > 128 or name_n > length(s)-cursor or word(s,at+56) != 0:\n            return abi(w,20)\n        if begin > end or end > word(r,80):\n            return abi(w,21)\n        if frame > 65536 or frame & 15 != 0:\n            return abi(w,22)\n        if i < functions:\n            if kind != 0 or frame == 0:\n                return abi(w,23)\n            j = 0\n            while j < i:\n                if word(s,256+j*64) == index:\n                    return abi(w,24)\n                j = j+1\n        else:\n            if kind == 0 or kind > 2:\n                return abi(w,25)\n            row = word(r,168)+index*16\n            if word(r,row+8) != name_n:\n                return abi(w,33)\n            j = 0\n            while j < name_n:\n                if byte(r,word(r,row)+j) != byte(s,name_at+j):\n                    return abi(w,33)\n                j = j+1\n            j = functions\n            while j < i:\n                if row_name_equal(s,at,256+j*64) != 0:\n                    return abi(w,26)\n                j = j+1\n            if kind == 2:\n                found = 0\n                j = 0\n                while j < get(w,S_FOREIGN_N):\n                    if word(r,520+j*32) == index:\n                        found = found+1\n                    j = j+1\n                if found != 1:\n                    return abi(w,27)\n                borrowed = borrowed+1\n            put(w,SORT+(i-functions)*8,i)\n        cursor = cursor+name_n\n        i = i+1\n    if borrowed != get(w,S_FOREIGN_N) or cursor != length(s):\n        return abi(w,28)\n    put(w,S_PHASE,2)\n    return 1\n",
+      "after": "def registry_scalar(s:readbuf,r:readbuf,w:mutbuf,at:u64,cursor:u64)->u64:\n    functions = get(w,S_FN_N)\n    index = word(s,at)\n    name_at = word(s,at+16)\n    name_n = word(s,at+24)\n    begin = word(s,at+32)\n    end = word(s,at+40)\n    frame = word(s,at+48)\n    if index >= functions or name_at != cursor or name_n == 0 or name_n > 128 or name_n > length(s)-cursor or word(s,at+56) != 0:\n        return abi(w,20)\n    if begin > end or end > word(r,80):\n        return abi(w,21)\n    if frame > 65536 or frame & 15 != 0:\n        return abi(w,22)\n    return 1\n\ndef registry_function(s:readbuf,w:mutbuf,i:u64)->u64:\n    at = 256+i*64\n    index = word(s,at)\n    kind = word(s,at+8)\n    frame = word(s,at+48)\n    if kind != 0 or frame == 0:\n        return abi(w,23)\n    j = 0\n    while j < i:\n        if word(s,256+j*64) == index:\n            return abi(w,24)\n        j = j+1\n    return 1\n\ndef registry_global(s:readbuf,r:readbuf,w:mutbuf,i:u64)->u64:\n    at = 256+i*64\n    index = word(s,at)\n    kind = word(s,at+8)\n    name_at = word(s,at+16)\n    name_n = word(s,at+24)\n    if kind == 0 or kind > 2:\n        return abi(w,25)\n    row = word(r,168)+index*16\n    if word(r,row+8) != name_n:\n        return abi(w,33)\n    j = 0\n    while j < name_n:\n        if byte(r,word(r,row)+j) != byte(s,name_at+j):\n            return abi(w,33)\n        j = j+1\n    j = get(w,S_FN_N)\n    while j < i:\n        if row_name_equal(s,at,256+j*64) != 0:\n            return abi(w,26)\n        j = j+1\n    if kind == 2:\n        found = 0\n        j = 0\n        while j < get(w,S_FOREIGN_N):\n            if word(r,520+j*32) == index:\n                found = found+1\n            j = j+1\n        if found != 1:\n            return abi(w,27)\n    return 1\n\ndef registry_rows(s:readbuf,r:readbuf,w:mutbuf)->u64:\n    functions = get(w,S_FN_N)\n    count = get(w,S_RECORD_N)\n    cursor = get(w,S_POOL)\n    borrowed = 0\n    i = 0\n    while i < count:\n        at = 256+i*64\n        if registry_scalar(s,r,w,at,cursor) == 0:\n            return 0\n        if i < functions:\n            if registry_function(s,w,i) == 0:\n                return 0\n        else:\n            if registry_global(s,r,w,i) == 0:\n                return 0\n            if word(s,at+8) == 2:\n                borrowed = borrowed+1\n            put(w,SORT+(i-functions)*8,i)\n        cursor = cursor+word(s,at+24)\n        i = i+1\n    if borrowed != get(w,S_FOREIGN_N) or cursor != length(s):\n        return abi(w,28)\n    put(w,S_PHASE,2)\n    return 1\n"
+    }
+  ],
+  "complete_inverse_original_text_equal": true,
+  "unchanged_16_parameter_gate": true,
+  "unchanged_ABI_literal_table_output_sort_and_metadata": true,
+  "actual_original_max_block_parameters": 17,
+  "actual_new_max_block_parameters": null,
+  "read_only_reloads_require_same_private_immutable_s_and_r": true,
+  "same_first_error_checks_and_persistent_SORT_write_order": true,
+  "independent_semantic_proof_not_claimed": true,
+  "new_AST": 0,
+  "new_B3": 0,
+  "new_native": 0
+}

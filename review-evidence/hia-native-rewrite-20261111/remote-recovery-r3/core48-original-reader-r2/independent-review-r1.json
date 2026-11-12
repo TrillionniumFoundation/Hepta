@@ -1,0 +1,58 @@
+{
+  "schema": "hia.peer.core48-reader.narrow-static-review.v1",
+  "reviewer": "audit_runtime",
+  "source": {
+    "blob": "f43b2608b6651398c21691dc6872df50f5cb0f8f",
+    "bytes": 40052,
+    "sha256": "5df7db36348552fd95f548b1d9fb66afb9b3f1b517c7c457217ad5babe8b14f7"
+  },
+  "scope": [
+    "Reader.scan_inner and its stream_member/register/keep/raw helpers",
+    "owner_facts",
+    "main initial original ZIP copy and unconditional finally evidence accounting"
+  ],
+  "actual_execution": {
+    "AST": 0,
+    "project_import": 0,
+    "HIA": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "artifact_readback": 0
+  },
+  "findings": [
+    {
+      "id": "C48-R-1",
+      "classification": "CONFIRMED_STATIC_FAILURE_REPORTING_PATH",
+      "condition": "An otherwise parsed cold report has process_owner=None or another non-dict; not claimed for the actual pinned artifact.",
+      "evidence": "owner_facts first requires type(returned) is dict; main catches that error. finally then calls facts.get('process_owner', {}).get(...) three times without guarding the stored value's type.",
+      "effect": "A secondary AttributeError can prevent summary.json and HIA_CORE48_READBACK from being emitted, replacing the caught primary failure in the caller's terminal trace.",
+      "minimal_repair": "Derive a safe dictionary projection solely for final summary fields. Preserve the full producer facts and primary error unchanged; never reinterpret malformed producer data as a valid owner."
+    },
+    {
+      "id": "C48-R-2",
+      "classification": "CONFIRMED_STATIC_PARTIAL_COPY_CUSTODY_GAP",
+      "condition": "Failure while copying or validating retained_zip before reader.register completes; not claimed as an actual observed copy failure.",
+      "evidence": "Initial original ZIP copy is outside pending_writes tracking. Successful registration alone populates materialized. finally always emits complete_originals_are_in_artifact=True.",
+      "effect": "An incomplete/unregistered original ZIP can be absent from both after-check inventories while the summary unconditionally claims completeness.",
+      "minimal_repair": "Track retained_zip as pending before opening the output; retire only after complete identity validation. Expose an explicit registered/after-verified flag and keep complete-originals false on partial copy or failed after-check. Keep any partial bytes."
+    }
+  ],
+  "no_confirmed_blocker_in_reviewed_paths": [
+    "Every regular entry of each directly embedded ZIP is streamed through ZipFile and SHA256/Git length hashing, with canonical names, duplicate rejection and non-symlink ordinary modes.",
+    "Lossless-manifest archives require exact member inventory, original byte sizes/SHA/modes, bounded total and exact canonical manifest digest; existing publication receipts are fully correlated.",
+    "Missing publication receipts are explicitly reported, not silently treated as present or verified.",
+    "Original owner late disk receipt and returned OWNER_UNCONFIRMED_HOLD are both preserved; that branch does not upgrade the original HOLD or assert run_owned augmentation.",
+    "For confirmed original owners, request/implementation SHA and unchanged180/3 budgets are checked against the original records.",
+    "Already registered originals are independently after-checked per item; one after-check error does not skip subsequent items.",
+    "Console omission is all-or-nothing per full original and is recorded; the code does not truncate a JSON and call it complete."
+  ],
+  "boundaries": [
+    "No qualification/native/correctness result inferred from a readback PASS.",
+    "No current artifact malformed-owner or partial-copy counterexample executed.",
+    "No exact original-source tree replay or phase_facts/full causal diagnosis reviewed.",
+    "One level of directly embedded ZIP scanning was read; this is not a claim of arbitrary recursive ZIP inspection."
+  ],
+  "refs_changed": false,
+  "source_changed_by_reviewer": false
+}

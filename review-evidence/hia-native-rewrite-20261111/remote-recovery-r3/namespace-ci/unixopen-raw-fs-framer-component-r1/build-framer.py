@@ -9,7 +9,7 @@ sys.dont_write_bytecode=True
 import argparse,hashlib,importlib.util,json,resource,signal,stat,time,traceback
 from pathlib import Path
 B3="35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"
-AUTHOR="e5682dd85164edda7f7e2a6adcc7f8a567f72c9dcc9626b06b95afa47024e83b"
+AUTHOR="a716b4b6773fba9358efadf6d789bfaeab6899b8e4fe994e3eff0710328f1ab4"
 VALUES="7c3f0299291cf4b99d5c2296351dcfd5e471507d4903ab9da171420c126c5c50"
 OBJECTS="2320a0363d312f1f07b48cc370f06ac7dbaedefa28437c28230fff6fba4dc3de"
 def sha(raw):return hashlib.sha256(raw).hexdigest()

@@ -9,7 +9,7 @@ import ast
 def magic(s):return int.from_bytes(s.encode("ascii"),"little")
 COMMON_SHA="fe63327671ea51ca950b955512a0f574d706176a4a8d050e3f8f12c83ef5e3a1"
 PREPARE_SHA="da2a957ed48c1fce78c7b931b6b6e3833522271d0fe0578b248e367820ebfb3f"
-POST_SHA="7cbf29c3b28dacbf55f5f3d1d59710cb9dadbc677fb2a83d90c0f53bdaa46145"
+POST_SHA="955ede388d85f85e4651637ad9b3051e607d2eeef55548ea5b7dc2d721f01e45"
 CONSTANTS=dict(MAX=(1<<64)-1,BAD=0xfffffffd,GROW=0xfffffffe,MIN_WORK=8192,
  QUERY=magic("HIABCQ01"),COMMAND=magic("HIABPC01"),EVENT=magic("HIABQE01"),
  GRAPH=magic("HIAGRF01"),INVENTORY=magic("HIAEMP01"),BASE=8192)
