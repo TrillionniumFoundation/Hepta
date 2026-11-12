@@ -1,0 +1,41 @@
+name: Byte ABI native development on CPython 3.14.4
+on:
+  push:
+    branches: [codex/hia-byte-abi-development-v78-20261112-dda7]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  byte-abi-development:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Fixed original prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc
+          python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Exact Byte ABI source, component and original caller controls
+        run: python -B harness/inputs/run_byte_abi_development.py --source source --input harness/inputs --output byte-abi-evidence
+      - name: Preserve every completed original input and observation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-byte-abi-development-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            byte-abi-evidence/
+            harness/inputs/
+          include-hidden-files: true
+          if-no-files-found: error
