@@ -1,0 +1,67 @@
+{
+  "archive": {
+    "schema": "hia.root.original-zip-reader-static-and-vector-review.v1",
+    "scope": "Evidence byte reader only; no product implementation dependency or source qualification",
+    "vendor": {
+      "repository": "nodeca/pako",
+      "tag": "2.1.0",
+      "commit": "3c06216518c259b569a5168dee867e6dabbe5160",
+      "path": "dist/pako_inflate.js",
+      "bytes": 111926,
+      "sha256": "62f7e0c38526cf3505ebb2f01d1786dcad0df61cbae68d1258fc8d77f225aefc",
+      "modified": false,
+      "license": "MIT AND Zlib; full original notices retained"
+    },
+    "reader": {
+      "bytes": 6991,
+      "sha256": "b739dd53f0defc72627937177257bf34128a53614c32d25612fcc839b3e2a2cd"
+    },
+    "vectors": [
+      {
+        "name": "stored final DEFLATE hello",
+        "pass": true
+      },
+      {
+        "name": "fixed Huffman hello world",
+        "pass": true
+      },
+      {
+        "name": "standard CRC32 vector",
+        "pass": true
+      },
+      {
+        "name": "bounded output overflow rejected",
+        "pass": true
+      },
+      {
+        "name": "short output refused",
+        "pass": true
+      },
+      {
+        "name": "truncated DEFLATE refused",
+        "pass": true
+      },
+      {
+        "name": "trailing compressed bytes refused",
+        "pass": true
+      }
+    ],
+    "actual_original_ZIP_received": false,
+    "actual_archive_decompressed": false,
+    "qualification_executed": false
+  },
+  "UTF8": {
+    "schema": "hia.root.bounded-UTF8-original-decoder.v1",
+    "bytes": 994,
+    "sha256": "71f95b4c18cd8fe7fbe33248251df811a4c41565032eea17327364fe0300392f",
+    "maximum_codepoints_per_transient_chunk": 8192,
+    "tests": {
+      "mixed_scalars": true,
+      "rejects_overlong": true,
+      "rejects_surrogate": true,
+      "rejects_out_of_range": true,
+      "rejects_truncated": true
+    },
+    "actual_large_original_received": false
+  }
+}
