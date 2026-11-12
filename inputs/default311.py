@@ -18,14 +18,14 @@ def check(source, packet_path, output, report):
         raise ValueError('an actual Python 3.11 interpreter is required')
     sys.path.insert(0, str(source))
     from hepta import hia_agent_service as api
-    from hepta import hia_service_requests_native as native
+    from hepta import hia_service_artifacts_native as native
     from hepta import hia_machine_plan_control_native as control
     from hepta.hia_exception_delivery import ExceptionDeliveryUnavailable
-    watched = ('hepta.hia_service_requests_foreign', 'hepta.hia_native_build_foreign',
+    watched = ('hepta.hia_service_artifacts_foreign', 'hepta.hia_native_build_foreign',
                'hepta.hia_native_byte_abi_foreign', 'hepta.hia_proof_contract_foreign',
-               'hepta.hia_service_verification_foreign')
+               'hepta.hia_service_verification_foreign', 'hepta.hia_service_requests_foreign')
     imported = [name for name in watched if name in sys.modules]
-    before = native._mapped_requests.cache_info()._asdict()
+    before = native._mapped_artifacts.cache_info()._asdict()
     report.update(default_imported_native_ports=imported, default_mapping_cache=before)
     if imported or before['currsize']:
         raise ValueError('default import entered fixed native ABI ports or mapping')
@@ -46,7 +46,7 @@ def check(source, packet_path, output, report):
     save(path, manifest)
     observed = {'initializers': 0, 'actual_machine_entries': 0, 'business_effects': []}
     original_initialize = control.NativeMachinePlanControl._initialize_control
-    original_effect = native.RequestsFrame._effect
+    original_effect = native.ArtifactsFrame._effect
 
     def initialize(self):
         observed['initializers'] += 1
@@ -67,10 +67,10 @@ def check(source, packet_path, output, report):
         raise AssertionError('unsupported ABI entered business effects')
 
     control.NativeMachinePlanControl._initialize_control = initialize
-    native.RequestsFrame._effect = effect
+    native.ArtifactsFrame._effect = effect
     caught_error = None
     try:
-        native.installed_requests(path)
+        native.installed_artifacts(path)
     except BaseException as caught:
         caught_error = caught
         report['selected_native_refusal'] = {'type': type(caught).__name__,
@@ -78,15 +78,15 @@ def check(source, packet_path, output, report):
             'traceback': traceback.format_exc()}
     finally:
         control.NativeMachinePlanControl._initialize_control = original_initialize
-        native.RequestsFrame._effect = original_effect
+        native.ArtifactsFrame._effect = original_effect
         report.update(selection_observations=observed,
-                      mapping_cache_after=native._mapped_requests.cache_info()._asdict())
+                      mapping_cache_after=native._mapped_artifacts.cache_info()._asdict())
         # Persist the actual error before asserting it, including failed cases.
         save(output/'ATTEMPT.json', report)
     expected = 'native frame transport requires a reviewed CPython 3.12, 3.13 or 3.14 ABI'
     if (type(caught_error) is not ExceptionDeliveryUnavailable or str(caught_error) != expected
             or observed != {'initializers': 1, 'actual_machine_entries': 0, 'business_effects': []}
-            or native._mapped_requests.cache_info().currsize != 0):
+            or native._mapped_artifacts.cache_info().currsize != 0):
         raise AssertionError('unsupported ABI did not refuse before real machine entry and effects')
     report.update(status='PASS', selected_abi_supported=False,
                   failed_admission_cached=False, default_import_native_ports=False)

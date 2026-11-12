@@ -1,23 +1,25 @@
-# Requests R2 actual interpreter development
+# Exact six-method artifact owner development
 
-This independent harness checks out the real published 65ceb711 source and
-verifies all 3257 Git paths, modes, bytes, commit, tree and parent before applying
-the complete frozen Requests R2 delta. No old production path is deleted.
+All three jobs check out published source 65ceb711 and verify its complete
+3257-file Git commit/tree/parent/bytes/modes before applying the exact 3306-file
+candidate. They never manufacture Git metadata for an export or delete a
+production path. The frozen source includes the 3291-file Core/front/Requests
+union plus the explicit six-method artifact owner and complete registrations.
 
-R2 composes the original eight Requests bodies with the published GLOBAL repair,
-explicit source/install registration and four lazy fixed-port import changes.
-Actual Python 3.14.4 runs all 40 source controls, 27 source controls for the four
-changed compatibility modules (one overlaps the 40), the original 11 native component
-controls, a fresh build under 20 seconds, and unchanged original 48/35/48 callers.
-Actual Python 3.11 runs the original eight default callers and an exact native
-ABI refusal check with real entry/effect observations. Original 1800-second work
-limits and all inner business budgets are preserved. Failures do not skip later
-caller groups. Hidden source files are included in both retained artifacts.
+Actual CPython 3.14.4 executes all 95 generators and all 930 source tests in a
+separate source job, preserving the original ordered 901 tests. The native job
+runs 45 artifact/registration controls, all 27 affected compatibility controls,
+one fresh original-limit build, all 12 native artifact controls, and the complete
+original 48 Agent / 35 namespace / 48 ledger callers with poisoned old bodies.
+All original 1800-second group, 20-second compiler and inner business budgets
+remain. A caller-group failure does not omit the following groups.
 
-R1 failures remain recorded in run 43304848915: namespace 33/35 and ledger 45/48
-on actual 3.14.4; default original eight errors and a separate harness message
-predicate failure on actual 3.11.18. No R1 result is transferred to R2.
+Actual Python 3.11 separately checks default imports/examples, all original
+eight ArtifactContract callers, and exact unsupported native ABI refusal before
+any real machine entry or business effect. Six watched fixed-port modules must
+remain unimported. Both source and raw evidence include hidden paths.
 
-This is component development evidence. Current-source cold bootstrap, complete
-installed replacement, default native activation and whole-native closure are
-not claimed. The old production tree and exact original test bodies remain.
+Local functional checks are explicitly Python 3.12.14 development observations.
+They do not transfer to these actual interpreter jobs. Cold bootstrap, installed
+whole-runtime replacement, default native activation and whole-native closure
+remain unqualified. Previous Requests/Core/full cold failures remain intact.
