@@ -1,0 +1,113 @@
+{
+  "schema": "hia.pretty-installed-language-link-independent-review.v1",
+  "status": "STATIC_DERIVATION_CLEAR_RUNTIME_REGENERATION_REQUIRED",
+  "reviewer": "cold_ci_closure",
+  "candidate_commit": "a74a030680bb73da9a4599567962d01a9d6bcac0",
+  "candidate_tree": "2d47e3af79e558d2651d5f43f0759a02a404b6a5",
+  "sole_parent": "325d28bf8857696132b22a86dab0d551a3ce87bf",
+  "full_git_tree": {
+    "before": 4027,
+    "after": 4027,
+    "changed": [
+      {
+        "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "06566e655753ef17f6a99e790190c0e359bc1796",
+        "size": 172825,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/blobs/06566e655753ef17f6a99e790190c0e359bc1796"
+      },
+      {
+        "path": "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "dea8009e3e45ac53113dd5eb40ab9de1e83b5601",
+        "size": 176633,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/blobs/dea8009e3e45ac53113dd5eb40ab9de1e83b5601"
+      }
+    ],
+    "removed": []
+  },
+  "exact_raw_delta": {
+    "coverage_single_exact_raw_replace": true,
+    "support_single_exact_raw_replace": true,
+    "oldSemanticOccurrences": 1,
+    "oldCoverageDigestOccurrences": 1
+  },
+  "semantic_hash_observations": [
+    {
+      "name": "original970",
+      "raw_bytes": 171537,
+      "raw_sha256": "29f113e1aef4fb2a72e2081b3608e47c094cd4972594d5e082716cebc8a293a2",
+      "canonical_bytes": 67292,
+      "semantic_sha256": "02238f5081ed8f69e8ef68236054be96678eeef9a1dea2de82eb31a338c1b854",
+      "numbers": 254,
+      "large_integer_tokens": 1,
+      "nonascii_keys": 0,
+      "omitted_top_level": [
+        "source_identity"
+      ]
+    },
+    {
+      "name": "candidate325d",
+      "raw_bytes": 172825,
+      "raw_sha256": "b429dd2ce8401cf5c90c6f87ecf14a6c0160954db4666333c6f42c0d538b30b5",
+      "canonical_bytes": 68033,
+      "semantic_sha256": "0a31727fc6c9253a1b277a6fd1853ff7499c4ba4308c5649585a3332bc2170df",
+      "numbers": 257,
+      "large_integer_tokens": 1,
+      "nonascii_keys": 0,
+      "omitted_top_level": [
+        "source_identity"
+      ]
+    },
+    {
+      "name": "candidateA74",
+      "raw_bytes": 172825,
+      "raw_sha256": "54a44cea1d69f7528714883f1a5482d506010e48651301e0a1d54d48f79f713e",
+      "canonical_bytes": 68033,
+      "semantic_sha256": "0a31727fc6c9253a1b277a6fd1853ff7499c4ba4308c5649585a3332bc2170df",
+      "numbers": 257,
+      "large_integer_tokens": 1,
+      "nonascii_keys": 0,
+      "omitted_top_level": [
+        "source_identity"
+      ]
+    }
+  ],
+  "linked_fields": {
+    "new_semantics_without_pretty_equals_970": true,
+    "raw_coverage_sha256": "7fd2470f93c30f6f214d3917e0dcf13b375d772d6e87e19d971034f70be02cc3",
+    "support_bound_coverage": "7fd2470f93c30f6f214d3917e0dcf13b375d772d6e87e19d971034f70be02cc3",
+    "coverage_field": "0a31727fc6c9253a1b277a6fd1853ff7499c4ba4308c5649585a3332bc2170df",
+    "coverage_projection": [
+      "source_identity"
+    ]
+  },
+  "actual_producer": {
+    "path": "tests/test_hia_selfhost_language_coverage.py",
+    "blob": "e280e0ba4052abb12a9c5b682025826b5c279152",
+    "semantic_projection": "all top-level keys except source_identity",
+    "canonical": "json.dumps(sort_keys=True,separators=(',',':'),ensure_ascii=True)"
+  },
+  "findings": [
+    "Independent full recursive trees contain4027 leaves before and after, with exactly the support and language-coverage JSON changed. All4025 other leaf bytes/modes/sizes and all paths remain identical.",
+    "The entire coverage byte stream is exactly its prior byte stream with one old semantic digest replaced. No reserialization occurred. The entire support byte stream is exactly its prior byte stream with one coverage-file digest replaced.",
+    "Independent V8 parsing retains each numeric lexeme, never round-trips semantic integer tokens through JavaScript Number. Both original and new semantic projections contain one integer outside the safe Number range.",
+    "The independent ASCII JSON canonicalizer first reproduces the original970 semantic digest02238f exactly, then reproduces both325d and a74 semantic digest0a31727 exactly using the actual producer projection. All map keys were observed ASCII, so code-point/UTF16 sorting distinctions do not arise.",
+    "Removing only json_pretty_application in addition to source_identity from the new semantic projection reproduces the original970 semantic digest. The added Pretty declaration is the sole semantic difference relevant to this correction.",
+    "The language coverage now stores the recomputed0a31727 digest. Its actual raw SHA7fd2470f is exactly the new support.source_identity.files binding. Changes inside the excluded source_identity do not create a semantic digest cycle.",
+    "This checks the exact static linkage and preserves the older stale candidate and its reports. It does not claim that a Python generator or product/installed control was executed."
+  ],
+  "execution": {
+    "git_full_tree_and_blob_readback": true,
+    "independent_V8_lossless_hash_reproduction": true,
+    "Python_regeneration": false,
+    "Python_parse": false,
+    "product_execution": false,
+    "Actions_trigger": false,
+    "h": false
+  },
+  "remaining_gate": "Run actual coverage_manifest and validate_inventory and compare canonical coverage bytes, and actual support_contract/validate_contract bytes, under the frozen current candidate before installation success.",
+  "original_results_reclassified": false
+}
