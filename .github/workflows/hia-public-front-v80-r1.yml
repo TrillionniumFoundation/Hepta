@@ -1,0 +1,68 @@
+name: Isolated public front development v80 r1
+on:
+  push:
+    branches:
+      - codex/hia-public-front-development-v80-20261112-dda7
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-front-development:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Verify actual Linux Ubuntu 24.04 x86_64 runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, platform
+          release = platform.freedesktop_os_release()
+          observed = {
+              "system": platform.system(),
+              "architecture": platform.machine(),
+              "distribution": release.get("ID"),
+              "version_id": release.get("VERSION_ID"),
+          }
+          Path("runner-platform.json").write_text(json.dumps(observed, sort_keys=True, indent=2) + "\n")
+          print(json.dumps(observed, sort_keys=True))
+          if observed != {"system": "Linux", "architecture": "x86_64", "distribution": "ubuntu", "version_id": "24.04"}:
+              raise RuntimeError("public front development requires actual Linux Ubuntu 24.04 x86_64")
+          PY
+      - name: Checkout isolated harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Checkout exact current product source
+        uses: actions/checkout@v4
+        with:
+          ref: 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+          path: source
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Install original pinned Python prerequisites
+        run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: New source generation and actual thirteen-entry differential
+        run: >-
+          python -B harness/inputs/run_front_development.py
+          --source source --inputs harness/inputs --output public-front-development-evidence
+      - name: Export completed original text without rerunning tests
+        if: always()
+        run: >-
+          python -B harness/inputs/export_text_evidence.py
+          --source source --output public-front-development-evidence
+      - name: Retain complete original evidence and exact inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-public-front-v80-r1-development-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            public-front-development-evidence
+            harness/inputs
+            runner-platform.json
+          if-no-files-found: error
