@@ -13,8 +13,33 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v83-native-byte-wrapper'
+PROFILE = 'selfhost-core-linux-x86_64-v84-native-machine-object'
 SOURCE_FILES = (
+    'examples/hia_bootstrap/machine_object_011.hepta',
+
+    'docs/HIA_MACHINE_OBJECT_NATIVE.md',
+    'docs/HIA_MACHINE_OBJECT_ABI.json',
+    'tests/test_hia_machine_object_native.py',
+    'tests/fixtures/hia_machine_elf_0e96229.py.txt',
+    'tests/fixtures/hia_machine_object_cases_04ba.json',
+    'tools/hia_machine_object_policy.py',
+    'tools/hia_machine_object_ir.py',
+    'tools/generate_hia_machine_object.py',
+    'tools/build_hia_machine_object.py',
+    'tools/qualify_hia_machine_object_callers.py',
+    'examples/hia_bootstrap/machine_object_pool.hepta',
+    'examples/hia_bootstrap/machine_object_000.hepta',
+    'examples/hia_bootstrap/machine_object_001.hepta',
+    'examples/hia_bootstrap/machine_object_002.hepta',
+    'examples/hia_bootstrap/machine_object_003.hepta',
+    'examples/hia_bootstrap/machine_object_004.hepta',
+    'examples/hia_bootstrap/machine_object_005.hepta',
+    'examples/hia_bootstrap/machine_object_006.hepta',
+    'examples/hia_bootstrap/machine_object_007.hepta',
+    'examples/hia_bootstrap/machine_object_008.hepta',
+    'examples/hia_bootstrap/machine_object_009.hepta',
+    'examples/hia_bootstrap/machine_object_010.hepta',
+
     'docs/HIA_BYTE_WRAPPER_NATIVE.md',
     'docs/HIA_BYTE_WRAPPER_ABI.json',
     'tests/test_hia_byte_wrapper_native.py',

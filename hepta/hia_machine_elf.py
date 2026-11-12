@@ -18,17 +18,17 @@ class MachineObjectError(ValueError):
     """An object description is outside the admitted ELF64 profile."""
 
 
-def _name(value):
+def _reference_name(value):
     if type(value) is not str or _NAME.fullmatch(value) is None:
         raise MachineObjectError("invalid ELF symbol name")
     return value
 
 
-def _exact_int(value, lower, upper):
+def _reference_exact_int(value, lower, upper):
     return type(value) is int and lower <= value < upper
 
 
-def write_elf_object(code, symbols, relocations, *, text_alignment=16):
+def _reference_write_elf_object(code, symbols, relocations, *, text_alignment=16):
     """Encode one machine-code image as Linux x86-64 ET_REL.
 
     ``symbols`` is a list of ``{name, offset, size, global}`` records. Private
@@ -138,3 +138,27 @@ def write_elf_object(code, symbols, relocations, *, text_alignment=16):
     image[:64] = struct.pack("<16sHHIQQQIHHHHHH", ident, 1, 62, 1, 0, 0,
                              shoff, 0, 64, 0, 0, 64, len(headers), 5)
     return bytes(image)
+
+
+def _name(value):
+    from .hia_machine_object_selection import active_machine_object
+    owner = active_machine_object()
+    return _reference_name(value) if owner is None else owner.invoke('_name', (value,))
+
+
+def _exact_int(value, lower, upper):
+    from .hia_machine_object_selection import active_machine_object
+    owner = active_machine_object()
+    return _reference_exact_int(value, lower, upper) if owner is None else owner.invoke('_exact_int', (value, lower, upper))
+
+
+def write_elf_object(code, symbols, relocations, *, text_alignment=16):
+    from .hia_machine_object_selection import native_machine_object_scope, active_machine_object
+    with native_machine_object_scope(globals()):
+        owner = active_machine_object()
+        if owner is None:
+            return _reference_write_elf_object(code, symbols, relocations, text_alignment=text_alignment)
+        return owner.invoke('write_elf_object', (code, symbols, relocations, text_alignment))
+
+
+write_elf_object.__doc__ = _reference_write_elf_object.__doc__

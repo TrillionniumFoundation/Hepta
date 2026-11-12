@@ -11,6 +11,7 @@ import builtins
 import ctypes
 import operator
 import struct
+from types import MappingProxyType
 
 MAGIC = int.from_bytes(b'HIALOW01', 'little')
 POOL_MAGIC = int.from_bytes(b'HIALIT01', 'little')
@@ -96,8 +97,17 @@ class LoweringSession:
         if type(mode) is not int or type(arguments) is not tuple or len(arguments) > 4:
             raise TypeError('exact native lowering invocation frame required')
         self.owner = owner
-        self.values = [None, *owner.literals]
-        self.handles = {id(value): index for index, value in enumerate(self.values) if index}
+        literals = owner.literals
+        self.values = [None, *literals]
+        # The admitted literal tuple contains only immutable exact primitives.
+        # Copy the identity index, never mutable session handles or decisions.
+        # Replacing the tuple retains the original per-invocation observation.
+        indexes = getattr(owner, '_literal_indexes', None)
+        if (getattr(owner, '_literal_index_values', None) is literals
+                and type(indexes) is MappingProxyType):
+            self.handles = indexes.copy()
+        else:
+            self.handles = {id(value): index for index, value in enumerate(self.values) if index}
         self.state = ctypes.create_string_buffer(owner.workspace_bytes)
         self.output = ctypes.create_string_buffer(owner.output_bytes)
         self.input = ctypes.create_string_buffer(128)
@@ -353,6 +363,9 @@ class NativeCoreLowering:
         if count != abi['pool_bytes']:
             raise RuntimeError('native lowering literal image refused')
         self.literals = _decode_pool(ctypes.string_at(output, count), abi['literal_count'])
+        self._literal_index_values = self.literals
+        self._literal_indexes = MappingProxyType({id(value): index
+            for index, value in enumerate(self.literals, 1)})
         self._classes = {}
         # These wrappers bind the original helper signatures; every body is
         # another HIA invocation, never the retained helper implementation.
