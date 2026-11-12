@@ -1,0 +1,70 @@
+{
+  "schema": "hia.bounded-read-finish-independent-static-review.v1",
+  "status": "STATIC_CLEAR_NARROW_DELTA_ONLY",
+  "before_commit": "7d5a4c4a8551807b6722116af0a5364741151080",
+  "after_commit": "54c9f04cfd3e15d23aafdfdfa62943c568fc1086",
+  "after_tree": "090d81a041037d042d422b671221cab3dd52c6eb",
+  "scope": "One terminal-result permission: initialize, grant after real native return and accounting, consume before finish effects, invalidate on exception/close",
+  "sources": {
+    "before": {
+      "bytes": 11528,
+      "sha256": "fff265e435a3aea4c83158a401c117c5e3964ea6890a506c4178e92e5172536f",
+      "git_blob_sha1": "032a5390456bfa01482ee3e637208fd21dccbca9"
+    },
+    "after": {
+      "bytes": 12139,
+      "sha256": "73bb61c65daf6efb45c3d246aa3385d0d250b15043aad1baa8801ac220d45708",
+      "git_blob_sha1": "1d5c4166c76fe3849732b5a6c3418c78ccb8c046"
+    },
+    "delta": {
+      "bytes": 1130,
+      "sha256": "7fc1afc84ecf5aa85b001cc005d277263c6c252fa301953ab7898632bca6abd3",
+      "git_blob_sha1": "96585cb2c28260b0fca67abb0e0e3b4cc216f711"
+    },
+    "validation_plan": {
+      "bytes": 12115,
+      "sha256": "6ed2f6bc03cd107f2ea5831d647c755a9b434a292c634b73e30b9e64e7b95421",
+      "git_blob_sha1": "ee8a0d90e421641149dd1564fe2a43aa4a1a2688"
+    },
+    "design": {
+      "bytes": 8394,
+      "sha256": "4c136aa9ae5759682ece16b55926a81d10b4fea1d7c7edceb4aecf24f8832d14",
+      "git_blob_sha1": "6cdc10ecf5f47fba4d657551f6c8be75bdd84972"
+    }
+  },
+  "unchanged_regions": [
+    {
+      "name": "context_capsule",
+      "bytes": 2371,
+      "sha256": "4179a98d93ddca69e765f2d54c2dddbc0b76cad87e6a1dd6331da0aad912ced1",
+      "text_equal": true
+    },
+    {
+      "name": "observe_and_effect",
+      "bytes": 3437,
+      "sha256": "368df7b0b740168708f307805e3855bbf205d55a3127434ddeb7d1aefa854901",
+      "text_equal": true
+    },
+    {
+      "name": "close_and_public_read",
+      "bytes": 1507,
+      "sha256": "1ba03fb981aa05cf38a4fcb2ab589b1d931e0d2b473a6faed2abec5b8836430b",
+      "text_equal": true
+    }
+  ],
+  "unchanged_generator_blob": "32e08e3bf298557cfdffd74b1d41e9b74502bd15",
+  "observations": [
+    "finish_pending starts false and _seal clears it alongside pending/prepared.",
+    "Only the status-zero branch after _entry and transitions accounting grants finish permission.",
+    "finish checks and consumes permission before unpack, object/literal lookup, exception restoration or constructor invocation.",
+    "Every finish BaseException seals and bare-raises; repeated finish, finish after close, malformed envelope and native/accounting failure cannot regrant the consumed result.",
+    "The public read method still closes on exceptions and again in finally; close seals before its existing context cleanup."
+  ],
+  "limits": [
+    "Text-only review; no Python parser, generation, HIA/VM/native execution, runtime fault injection or public API control was performed.",
+    "The ten validation cases are planned and were not reported as actual passes.",
+    "Dynamic _reject-return behavior and full public foreign compatibility remain explicitly open.",
+    "This does not clear the whole reader, grant current-cold qualification, or change the acffa product."
+  ],
+  "old_elf_failure_task_priority_preserved": true
+}
