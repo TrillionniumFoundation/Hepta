@@ -1,0 +1,79 @@
+name: Exact R6 retained budget phase diagnostic
+on:
+  push:
+    branches: [codex/hia-evaluation-budget-phase-v82-r1-20261112-dda7]
+permissions:
+  contents: read
+jobs:
+  development:
+    name: Actual CPython 3.14.4 three retained original budget observations
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout independent immutable harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout authentic published 4b source
+        uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+          path: source
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout exact saved joint development recipe
+        uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 794d441e1b44e3478f779c900d1fbf5319b8c2c5
+          path: joint
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.4"
+      - name: Explicit original development prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc strace clang-20
+          python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Admit exact previously generated R6 bytes
+        id: prepare
+        run: python -B harness/inputs/run_budget_profile.py --stage prepare --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/evaluation-budget-phase-r1"
+      - name: Fresh development Evaluation build original compile20
+        id: build
+        if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
+        run: python -B harness/inputs/run_budget_profile.py --stage build --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/evaluation-budget-phase-r1"
+      - name: Observe unchanged expired case and every fresh admission
+        id: expired
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: python -B harness/inputs/run_budget_profile.py --stage expired --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/evaluation-budget-phase-r1"
+      - name: Observe unchanged native-timeout case and native returns
+        id: timeout
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: python -B harness/inputs/run_budget_profile.py --stage timeout --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/evaluation-budget-phase-r1"
+      - name: Observe unchanged reference-loop preparation and original deadline
+        id: loop
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: python -B harness/inputs/run_budget_profile.py --stage loop --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/evaluation-budget-phase-r1"
+      - name: Preserve all actual observations and failures
+        id: finish
+        if: ${{ always() }}
+        run: python -B harness/inputs/run_budget_profile.py --stage finish --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/evaluation-budget-phase-r1"
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: evaluation-budget-phase-r1-original-evidence
+          path: |
+            ${{ runner.temp }}/evaluation-budget-phase-r1
+            harness/inputs
+            harness/README.md
+            harness/STATIC-REVIEW.json
+          if-no-files-found: error
+          retention-days: 90
