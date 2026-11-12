@@ -1,0 +1,13 @@
+--- r1/control/trace.py
++++ r2/control/trace.py
+@@ -179,6 +179,10 @@
+             and index['chunk_bound'] == CHUNK_BYTES
+             and index['stream_closed'] is True and index['pending_entry'] is None
+             and index['all_cases_complete'] is True, 'native trace is incomplete or bound elsewhere')
++    require(type(index['cases']) is list and len(index['cases']) == 185
++            and all(type(row) is dict and type(row.get('case_id')) is int
++                    and row['case_id'] == position for position, row in enumerate(index['cases'], 1)),
++            'original trace case list is not the exact ordered unique185 population')
+     cases = {row['case_id']: row for row in index['cases']}
+     require(list(cases) == list(range(1, len(cases) + 1)), 'trace cases are not complete and unique')
+     expected_files = {'INDEX.json', *(row['path'] for row in index['chunks'])}

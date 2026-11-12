@@ -1,0 +1,69 @@
+--- r2/control/common.py
++++ r3/control/common.py
+@@ -11,6 +11,13 @@
+ import os
+ from pathlib import Path
+ import stat
++
++
++# One already byte-pinned system interpreter is owned by the managed runtime
++# account. No other pathname receives this role, including same-owner files.
++PINNED_INTERPRETER_PATH = '/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12'
++PINNED_INTERPRETER_METADATA = (65534, 65534, 0o755, 30894944)
++PINNED_INTERPRETER_SHA256 = 'fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7'
+ 
+ 
+ def require(value, message):
+@@ -61,14 +68,20 @@
+     """Reject special leaves before reading; retain all ancestor descriptors."""
+     digest = sha256()
+     chunks = []
++    system_interpreter = str(path) == PINNED_INTERPRETER_PATH
+     with parent_fd(path) as (parent, name):
+         fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
+         try:
+             initial = os.fstat(fd)
+             require(stat.S_ISREG(initial.st_mode) and initial.st_nlink == 1,
+                     'input must be a singly linked regular file: ' + str(path))
+-            require(initial.st_uid in (0, os.geteuid()) and not initial.st_mode & 0o022,
+-                    'input ownership or writable mode differs: ' + str(path))
++            if system_interpreter:
++                require((initial.st_uid, initial.st_gid, stat.S_IMODE(initial.st_mode), initial.st_size)
++                        == PINNED_INTERPRETER_METADATA,
++                        'pinned system interpreter metadata differs: ' + str(path))
++            else:
++                require(initial.st_uid in (0, os.geteuid()) and not initial.st_mode & 0o022,
++                        'input ownership or writable mode differs: ' + str(path))
+             require(initial.st_size <= maximum, 'input exceeds its declared bound: ' + str(path))
+             require(identity(initial) == identity(os.stat(name, dir_fd=parent, follow_symlinks=False)),
+                     'leaf link changed before read')
+@@ -89,6 +102,9 @@
+     result = {'path': str(path), 'size': initial.st_size,
+               'mode': stat.S_IMODE(initial.st_mode), 'sha256': digest.hexdigest(),
+               'identity': identity(initial)}
++    if system_interpreter:
++        require(result['sha256'] == PINNED_INTERPRETER_SHA256,
++                'pinned system interpreter bytes differ: ' + str(path))
+     return (b''.join(chunks) if raw_required else None), result
+ 
+ 
+--- r2/control/launch.py
++++ r3/control/launch.py
+@@ -31,7 +31,7 @@
+     require(sha256(raw).hexdigest() == args.sha256, 'launch request identity differs')
+     request = json.loads(raw)
+     require(request['schema'] == 'hepta.hia.numeric-native-development-request.v1'
+-            and request['operation_key'] == 'hia-e26e-core-compare-native-development-r2',
++            and request['operation_key'] == 'hia-e26e-core-compare-native-development-r3',
+             'finite development operation differs')
+     policy_raw, _ = read_file(ROOT / request['policy_path'], 262144)
+     require(sha256(policy_raw).hexdigest() == request['policy_sha256'], 'launch policy differs')
+@@ -42,7 +42,7 @@
+             and list(sys.version_info[:3]) == policy['python_version'], 'launcher runtime differs')
+     before = frozen(ROOT, policy)
+     folder = Path(request['operation_root'])
+-    require(folder == Path('/tmp/hia-core-compare-native-development-r2'), 'fixed operation root differs')
++    require(folder == Path('/tmp/hia-core-compare-native-development-r3'), 'fixed operation root differs')
+     disk = shutil.disk_usage(folder.parent)
+     space = os.statvfs(folder.parent)
+     resource_observation = {'schema': 'hepta.hia.numeric-native-resource-observation.v1',
