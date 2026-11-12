@@ -1,0 +1,1122 @@
+--- before/.github/workflows/hia-core.yml
++++ after/.github/workflows/hia-core.yml
+@@ -120,6 +120,7 @@
+               'tests.test_hia_core_lowering_native.CoreLoweringSourceTests',
+               'tests.test_hia_core_unpack_native.UnpackCompositionSourceTests',
+               'tests.test_hia_core_unpack_gates',
++              'tests.test_hia_core_unpack_progress.UnpackQualificationProgressTests',
+               'tests.test_hia_compiler_owner_gates',
+           )
+           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
+--- /dev/null
++++ after/tests/test_hia_core_unpack_progress.py
+@@ -0,0 +1,379 @@
++"""Real unittest/descriptor controls with inert fixtures and no native entry."""
++from __future__ import annotations
++
++import ast
++from contextlib import contextmanager, ExitStack
++from copy import deepcopy
++from hashlib import sha256
++import io
++import json
++import os
++from pathlib import Path
++import sys
++import tempfile
++from types import ModuleType
++import unittest
++from unittest.mock import patch
++
++from tools import hia_core_unpack_progress as progress
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++def flatten(suite):
++    for test in suite:
++        if isinstance(test, unittest.TestCase):
++            yield test
++        else:
++            yield from flatten(test)
++
++
++@contextmanager
++def fixture_modules(*, failure=None, shape=None, unrelated=False):
++    """Two real modules/four classes; all nested suites come from the loader."""
++    trace, modules = [], {}
++    names = ('_hia_unpack_progress_first', '_hia_unpack_progress_second')
++    auxiliary_name = '_hia_unpack_progress_auxiliary'
++    def event(kind, subject):
++        trace.append([kind, subject])
++        if failure is not None and failure[0:2] == (kind, subject):
++            raise failure[2]
++    for name in names:
++        module = ModuleType(name)
++        module.setUpModule = lambda name=name: event('module_setup', name)
++        module.tearDownModule = lambda name=name: event('module_teardown', name)
++        for label in ('Alpha', 'Beta'):
++            full = name + '.' + label
++            def method(self, full=full):
++                event('method', full + '.test_body')
++                if unrelated:
++                    loader = unittest.TestLoader()
++                    inner = loader.loadTestsFromNames([auxiliary_name])
++                    result = unittest.TextTestRunner(stream=io.StringIO()).run(inner)
++                    if not result.wasSuccessful():
++                        raise AssertionError('unrelated inert inner suite failed')
++            def setup(cls, full=full):
++                event('class_setup', full)
++            def teardown(cls, full=full):
++                event('class_teardown', full)
++            cls = type(label, (unittest.TestCase,), {'__module__': name, '__qualname__': label,
++                'test_body': method, 'setUpClass': classmethod(setup), 'tearDownClass': classmethod(teardown)})
++            setattr(module, label, cls)
++        def load_tests(loader, suite, pattern, name=name):
++            if shape == 'uncovered' and name == names[0]:
++                return unittest.TestSuite([suite])
++            if shape == 'reordered' and name == names[0]:
++                return loader.suiteClass(list(suite)[::-1])
++            return loader.suiteClass([suite])
++        module.load_tests = load_tests
++        modules[name] = module
++    if unrelated:
++        auxiliary = ModuleType(auxiliary_name)
++        auxiliary.Auxiliary = type('Auxiliary', (unittest.TestCase,), {
++            '__module__': auxiliary_name, '__qualname__': 'Auxiliary',
++            'setUpClass': classmethod(lambda cls: event('unrelated_setup', auxiliary_name)),
++            'tearDownClass': classmethod(lambda cls: event('unrelated_teardown', auxiliary_name)),
++            'test_body': lambda self: event('unrelated_method', auxiliary_name)})
++        modules[auxiliary_name] = auxiliary
++    ids = [name + '.' + label + '.test_body' for name in names for label in ('Alpha', 'Beta')]
++    groups = [{'label': 'synthetic', 'modules': list(names), 'ids': ids}]
++    with patch.dict(sys.modules, modules):
++        yield groups, trace
++
++
++def run_original_group(group):
++    loader = unittest.TestLoader()
++    suite = loader.loadTestsFromNames(group['modules'])
++    loaded = [test.id() for test in flatten(suite)]
++    result = unittest.TextTestRunner(stream=io.StringIO(), verbosity=2).run(suite)
++    return loaded, result
++
++
++def original_report(directory):
++    path = directory / 'core-callers/report.json'
++    path.parent.mkdir(exist_ok=True)
++    path.write_bytes(progress.wire({'schema': 'hepta.synthetic-progress-control.v1',
++        'native_executed': False, 'qualification_claimed': False}))
++    return progress.plain_pin(progress.read_file(path)[1])
++
++
++def replace_original(path, raw):
++    path.chmod(0o600)
++    path.write_bytes(raw)
++    path.chmod(0o400)
++
++
++class UnpackQualificationProgressTests(unittest.TestCase):
++    def setUp(self):
++        self.folders = []
++
++    def folder(self):
++        root = os.environ.get('HEPTA_PROGRESS_CONTROL_EVIDENCE')
++        if root:
++            value = Path(root) / self._testMethodName / str(len(self.folders))
++            value.mkdir(parents=True, exist_ok=False)
++        else:
++            temporary = tempfile.TemporaryDirectory(prefix='hia-unpack-progress-')
++            self.addCleanup(temporary.cleanup)
++            value = Path(temporary.name)
++        self.folders.append(value)
++        return value
++
++    def completed(self, directory):
++        with fixture_modules(unrelated=True) as (groups, trace):
++            recorder = progress.ProgressRecorder(directory, groups, lambda: 0)
++            with recorder.observe():
++                loaded, result = run_original_group(groups[0])
++            self.assertTrue(result.wasSuccessful())
++            self.assertEqual(loaded, groups[0]['ids'])
++            pin = original_report(directory)
++            binding = recorder.finish(complete=True, original_report=pin)
++        self.assertTrue(binding['complete'])
++        return groups, pin, binding, trace
++
++    def test_nested_suite_fixture_order_and_original_callbacks(self):
++        with fixture_modules(unrelated=True) as (groups, trace):
++            loaded, baseline = run_original_group(groups[0])
++            expected = list(trace)
++            trace.clear()
++            folder = self.folder()
++            recorder = progress.ProgressRecorder(folder, groups, lambda: 0)
++            with recorder.observe():
++                actual_ids, actual = run_original_group(groups[0])
++            pin = original_report(folder)
++            binding = recorder.finish(complete=True, original_report=pin)
++            self.assertEqual(trace, expected)
++            self.assertEqual(loaded, actual_ids)
++            self.assertEqual(actual.testsRun, baseline.testsRun)
++            self.assertTrue(actual.wasSuccessful() and baseline.wasSuccessful())
++            self.assertEqual(progress.inspect_progress(folder, groups, pin), binding)
++            rows = [json.loads(line) for line in (folder / progress.LOG_NAME).read_bytes().splitlines()]
++            begin = next(row for row in rows if row['event'] == 'group_begin')
++            self.assertGreaterEqual(begin['detail']['nested_suite_count'], 7)
++            self.assertEqual([row['subject'] for row in rows if row['event'] == 'test_start'], loaded)
++            self.assertEqual([row['subject'] for row in rows if row['event'] == 'test_stop'], loaded)
++            kinds = {row['detail']['kind'] for row in rows if row['event'] == 'fixture_begin'}
++            self.assertEqual(kinds, progress.FIXTURES)
++            self.assertTrue(all(row['detail']['outcome'] == 'normal_return' for row in rows
++                                if row['event'] == 'fixture_end'))
++            self.assertTrue(all(row['native_returns'] == 0 for row in rows))
++            self.assertFalse(any('auxiliary' in row['subject'] for row in rows))
++
++    def test_fixture_failures_and_baseexceptions_are_distinct(self):
++        for kind, subject in (
++            ('class_setup', '_hia_unpack_progress_first.Alpha'),
++            ('class_teardown', '_hia_unpack_progress_first.Alpha'),
++            ('module_setup', '_hia_unpack_progress_first'),
++            ('module_teardown', '_hia_unpack_progress_first')):
++            for failure in (RuntimeError('original inert fixture'), MemoryError('caught by unittest')):
++                with self.subTest(kind=kind, failure=type(failure).__name__):
++                    with fixture_modules(failure=(kind, subject, failure)) as (groups, trace):
++                        folder = self.folder()
++                        recorder = progress.ProgressRecorder(folder, groups, lambda: 0)
++                        with recorder.observe():
++                            _, result = run_original_group(groups[0])
++                        self.assertFalse(result.wasSuccessful())
++                        self.assertTrue(result.errors)
++                        binding = recorder.finish(complete=False)
++                        rows = [json.loads(line) for line in (folder / progress.LOG_NAME).read_bytes().splitlines()]
++                        outcomes = [row['detail']['outcome'] for row in rows if row['event'] == 'fixture_end']
++                        self.assertIn('fixture_error', outcomes)
++                        self.assertNotIn('base_exception', outcomes)
++                        self.assertFalse(binding['complete'])
++                        self.assertEqual(binding['status'], 'HOLD')
++                        with self.assertRaises(ValueError):
++                            progress.inspect_progress(folder, groups, None)
++        for kind, subject in (
++            ('class_setup', '_hia_unpack_progress_first.Alpha'),
++            ('class_teardown', '_hia_unpack_progress_first.Alpha'),
++            ('module_setup', '_hia_unpack_progress_first'),
++            ('module_teardown', '_hia_unpack_progress_first')):
++            for exception in (KeyboardInterrupt('fixture'), SystemExit('fixture')):
++                with fixture_modules(failure=(kind, subject, exception)) as (groups, _):
++                    folder = self.folder()
++                    recorder = progress.ProgressRecorder(folder, groups, lambda: 0)
++                    with self.assertRaises(type(exception)) as caught:
++                        with recorder.observe():
++                            run_original_group(groups[0])
++                    self.assertIs(caught.exception, exception)
++                    binding = recorder.finish(complete=False)
++                    rows = [json.loads(line) for line in (folder / progress.LOG_NAME).read_bytes().splitlines()]
++                    self.assertTrue(any(row['event'] == 'fixture_end' and
++                        row['detail']['outcome'] == 'base_exception' for row in rows))
++                    self.assertFalse(binding['complete'])
++
++    def test_diagnostic_failure_preserves_original_exception(self):
++        for exception in (KeyboardInterrupt('same original object'), SystemExit('same original object')):
++            with fixture_modules(failure=('class_setup', '_hia_unpack_progress_first.Alpha', exception)) as (groups, _):
++                folder = self.folder()
++                recorder = progress.ProgressRecorder(folder, groups, lambda: 0)
++                write = progress.os.write
++                def fail_end(fd, raw):
++                    if fd == recorder.fd and b'"event":"fixture_end"' in raw:
++                        raise OSError('secondary progress failure')
++                    return write(fd, raw)
++                with patch.object(progress.os, 'write', fail_end):
++                    with self.assertRaises(type(exception)) as caught:
++                        with recorder.observe():
++                            run_original_group(groups[0])
++                self.assertIs(caught.exception, exception)
++                binding = recorder.finish(complete=False)
++                receipt = json.loads((folder / progress.RECEIPT_NAME).read_bytes())
++                self.assertFalse(binding['complete'])
++                self.assertTrue(receipt['logging_errors'])
++                self.assertEqual(receipt['status'], 'HOLD')
++        with fixture_modules(failure=('class_setup', '_hia_unpack_progress_first.Alpha',
++                                      RuntimeError('caught original fixture'))) as (groups, _):
++            folder = self.folder()
++            recorder = progress.ProgressRecorder(folder, groups, lambda: 0)
++            write = progress.os.write
++            def fail_caught_end(fd, raw):
++                if fd == recorder.fd and b'"outcome":"fixture_error"' in raw:
++                    raise OSError('secondary after result already holds original error')
++                return write(fd, raw)
++            with patch.object(progress.os, 'write', fail_caught_end):
++                # Diagnostic failure must not replace the caught fixture error.
++                with recorder.observe():
++                    _, result = run_original_group(groups[0])
++            self.assertIn('caught original fixture', result.errors[0][1])
++            self.assertFalse(recorder.finish(complete=False)['complete'])
++
++    def test_uncovered_or_reordered_inner_suite_is_rejected(self):
++        for shape in ('uncovered', 'reordered'):
++            with fixture_modules(shape=shape) as (groups, trace):
++                folder = self.folder()
++                recorder = progress.ProgressRecorder(folder, groups, lambda: 0)
++                with self.assertRaisesRegex(ValueError, 'inner suite|loader IDs'):
++                    with recorder.observe():
++                        run_original_group(groups[0])
++                self.assertEqual(trace, [])
++                self.assertFalse(recorder.finish(complete=False)['complete'])
++
++    def test_complete_readback_rejects_missing_truncated_duplicated_events(self):
++        folder = self.folder()
++        groups, pin, _, _ = self.completed(folder)
++        raw = (folder / progress.LOG_NAME).read_bytes()
++        lines = raw.splitlines(keepends=True)
++        for invalid in (raw[:-1], b''.join(lines[:-1]), lines[0] + raw, b''.join(lines[1:])):
++            with self.assertRaises(ValueError):
++                progress.validate_events(invalid, groups, True, pin)
++        rows = [json.loads(line) for line in lines]
++        missing_stop = next(index for index, row in enumerate(rows) if row['event'] == 'test_stop')
++        del rows[missing_stop]
++        for index, row in enumerate(rows):
++            row['sequence'] = index
++        with self.assertRaises(ValueError):
++            progress.validate_events(b''.join(progress.wire(row) for row in rows), groups, True, pin)
++        duplicate_end = [json.loads(line) for line in lines]
++        duplicate_end.append(deepcopy(duplicate_end[-1]))
++        duplicate_end[-1]['sequence'] += 1
++        with self.assertRaises(ValueError):
++            progress.validate_events(b''.join(progress.wire(row) for row in duplicate_end), groups, True, pin)
++
++    def test_receipt_cannot_substitute_original_report_or_current_bytes(self):
++        for change in ('missing', 'truncated', 'receipt_only', 'report', 'forged_bytes'):
++            with self.subTest(change=change):
++                folder = self.folder()
++                groups, pin, binding, _ = self.completed(folder)
++                log, receipt_path = folder / progress.LOG_NAME, folder / progress.RECEIPT_NAME
++                if change == 'missing':
++                    log.unlink()
++                elif change == 'truncated':
++                    replace_original(log, log.read_bytes()[:-1])
++                elif change == 'receipt_only':
++                    log.unlink()
++                    replace_original(receipt_path, progress.wire(binding))
++                elif change == 'report':
++                    (folder / 'core-callers/report.json').write_text('{"different":true}\n')
++                else:
++                    rows = [json.loads(line) for line in log.read_bytes().splitlines()]
++                    rows.insert(1, deepcopy(rows[0]))
++                    for index, row in enumerate(rows):
++                        row['sequence'] = index
++                    forged = b''.join(progress.wire(row) for row in rows)
++                    replace_original(log, forged)
++                    receipt = json.loads(receipt_path.read_bytes())
++                    receipt.update(progress=progress.read_file(log, progress.MAX_BYTES, owned=True)[1],
++                        writer_bytes=len(forged), writer_sha256=sha256(forged).hexdigest(),
++                        writer_event_count=len(rows))
++                    replace_original(receipt_path, progress.wire(receipt))
++                with self.assertRaises((ValueError, OSError)):
++                    progress.inspect_progress(folder, groups, pin)
++
++    def test_bounds_and_write_failures_leave_hold_originals(self):
++        for failure in ('bounds', 'event_count', 'total_bytes', 'short_write'):
++            folder = self.folder()
++            with fixture_modules() as (groups, trace):
++                recorder = progress.ProgressRecorder(folder, groups, lambda: 0)
++                write = progress.os.write
++                def short(fd, raw):
++                    if fd == recorder.fd:
++                        return write(fd, raw[:2])
++                    return write(fd, raw)
++                bounds = {'bounds': ('MAX_EVENT_BYTES', 1), 'event_count': ('MAX_EVENTS', 1),
++                          'total_bytes': ('MAX_BYTES', 1)}
++                context = (patch.object(progress, *bounds[failure]) if failure in bounds
++                           else patch.object(progress.os, 'write', short))
++                with context:
++                    with self.assertRaises(ValueError):
++                        with recorder.observe():
++                            run_original_group(groups[0])
++                self.assertEqual(trace, [])
++                self.assertFalse(recorder.finish(complete=False)['complete'])
++                self.assertTrue((folder / progress.LOG_NAME).is_file())
++                self.assertTrue((folder / progress.RECEIPT_NAME).is_file())
++        self.assertEqual((progress.MAX_BYTES, progress.MAX_EVENT_BYTES, progress.MAX_EVENTS,
++                          progress.MAX_RECEIPT_BYTES), (524288, 1024, 1024, 131072))
++
++    def test_unpack_wrapper_keeps_default_main_and_old_gate_paths(self):
++        source = ast.parse((ROOT / 'tools/qualify_hia_core_unpack_callers.py').read_bytes())
++        calls = [node for node in ast.walk(source) if isinstance(node, ast.Call)
++                 and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name)
++                 and node.func.value.id == 'original' and node.func.attr == 'main']
++        self.assertEqual(len(calls), 1)
++        self.assertEqual((calls[0].args, calls[0].keywords), ([], []))
++        observations = [node for node in ast.walk(source) if isinstance(node, ast.Call)
++                        and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name)
++                        and node.func.value.id == 'progress' and node.func.attr == 'observe']
++        self.assertEqual(len(observations), 1)
++        original = (ROOT / 'tools/qualify_hia_core_lowering_callers.py').read_text()
++        self.assertNotIn('hia_core_unpack_progress', original)
++        self.assertNotIn('ProgressRecorder', original)
++        previous = (ROOT / 'tools/hia_compiler_owner_gates.py').read_text()
++        self.assertNotIn('hia_core_unpack_progress', previous)
++        from tools import hia_core_unpack_gates as gates
++        self.assertEqual(gates.SUCCESSOR_GATES[:30], gates.previous.SUCCESSOR_GATES)
++        self.assertEqual(len(gates.previous.SUCCESSOR_GATES), 30)
++        self.assertIn('tools/hia_core_unpack_progress.py', gates.SOURCE_FILES)
++        self.assertIn('tests/test_hia_core_unpack_progress.py', gates.SOURCE_FILES)
++
++    def test_new_gate_rereads_progress_and_cannot_accept_summary_alone(self):
++        from tools import hia_core_unpack_gates as gates
++        base = self.folder()
++        folder = base / 'callers'
++        folder.mkdir()
++        groups, original_pin, binding, _ = self.completed(folder)
++        installed = folder / 'core-callers/component-fixture/installed-control/report.json'
++        installed.parent.mkdir(parents=True)
++        installed.write_bytes(progress.wire({'unpack_observations': {'synthetic': True}}))
++        producer = {'original_report': original_pin, 'progress': binding,
++            'installed_report': gates.size_pin(installed), 'installed_observation': {'synthetic': True},
++            'actual_UNPACK_step_returns': []}
++        (folder / 'report.json').write_bytes(progress.wire(producer))
++        companion = {'files': [{'path': '/fixed/inert/manifest.json'}]}
++        with ExitStack() as stack:
++            for target, name, value in (
++                (gates, 'admit_dependencies', None), (gates, 'caller_groups', groups),
++                (gates, 'companion_build', companion), (gates, 'validate_callers', {}),
++                (gates.previous, 'inspect_core_callers', {}), (gates, 'validate_installed', {}),
++                (gates, 'source_now', None)):
++                stack.enter_context(patch.object(target, name, return_value=value))
++            observed = gates.inspect_callers(base, Path('/fixed/inert/cold.json'), {})
++            self.assertEqual(observed['progress'], binding)
++            (folder / progress.LOG_NAME).unlink()
++            with self.assertRaises(OSError):
++                gates.inspect_callers(base, Path('/fixed/inert/cold.json'), {})
++
++
++if __name__ == '__main__':
++    unittest.main()
+--- before/tools/hia_core_unpack_gates.py
++++ after/tools/hia_core_unpack_gates.py
+@@ -15,6 +15,7 @@
+ import sys
+ 
+ from tools import hia_compiler_owner_gates as previous
++from tools import hia_core_unpack_progress as progress
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ require = previous.require
+@@ -31,7 +32,7 @@
+ LEDGER_MEANING = 'Actual UnpackSession._step returned; neither an attempt nor whole-method success.'
+ OUTER_MEANING = 'Opcode14 primitive dispatch returns before outer ACK registration; not whole method success.'
+ COMPILE_SUFFIXES = ('.receipt.json', '.stdout.log', '.stderr.log', '.request.json', '.input.bin', '.output.bin')
+-ERROR_FIELDS = ('error', 'preservation_error', 'final_identity_error')
++ERROR_FIELDS = ('error', 'preservation_error', 'final_identity_error', 'progress_error')
+ FINITE_CONTROL = 'tools/hia_core_unpack_controls/finite_controls.py'
+ FINITE_LAUNCHER = 'tools/hia_core_unpack_controls/finite_launcher.py'
+ FINITE_PINS = {FINITE_CONTROL: '7c6712585c81dc27561637e206c2c109cdb9f4cf082e3eda227ed6984e525d03',
+@@ -46,6 +47,7 @@
+         'test_generic_next_count_and_release_order', 'test_noniterable_and_iter_errors')]}
+ SOURCE_FILES = (
+     'tools/hia_core_unpack_gates.py', 'tools/qualify_hia_core_unpack_ci.py',
++    'tools/hia_core_unpack_progress.py', 'tests/test_hia_core_unpack_progress.py',
+     'tools/qualify_hia_core_unpack_callers.py', 'tools/build_hia_core_unpack.py',
+     'tools/hia_core_unpack_transaction.S', 'tools/hia_compiler_owner_gates.py',
+     'tools/qualify_hia_core_lowering_callers.py', 'tools/hia_store_page_gates.py',
+@@ -366,6 +368,11 @@
+                                         unpack_manifest=companion['files'][0]['path'])
+     require(report.get('original_report') == size_pin(evidence / 'core-callers/report.json'),
+             'UNPACK original Core116 report pin differs')
++    progress_binding = progress.inspect_progress(evidence, groups, report['original_report'])
++    require(report.get('progress') == progress_binding
++            and progress_binding['native_step_returns'] == sum(
++                row['count'] for row in report['actual_UNPACK_step_returns']),
++            'UNPACK complete progress bytes or actual return count differs')
+     installed_path = evidence / 'core-callers/component-fixture/installed-control/report.json'
+     value = json_file(installed_path).get('unpack_observations')
+     require(report.get('installed_report') == size_pin(installed_path)
+@@ -374,7 +381,7 @@
+     source_now(context)
+     return {'producer': file_record(evidence / 'report.json'), 'groups': groups,
+             'complete_method_count': 116, 'companion': companion, 'core': core,
+-            'ledger': ledger, 'installed': installed}
++            'ledger': ledger, 'installed': installed, 'progress': progress_binding}
+ 
+ 
+ def component_binding(callers):
+--- /dev/null
++++ after/tools/hia_core_unpack_progress.py
+@@ -0,0 +1,597 @@
++"""Bounded observations around the UNPACK qualifier's unchanged unittest run.
++
++This module never invokes a product primitive or counts a progress transition
++as a method PASS. The complete original report and the original owner deadline
++remain mandatory. Only the explicit UNPACK wrapper installs these hooks.
++"""
++from __future__ import annotations
++
++from contextlib import contextmanager, ExitStack
++from hashlib import sha256
++import json
++import os
++from pathlib import Path
++import stat
++import sys
++import threading
++import time
++import unittest
++import unittest.suite
++from unittest.mock import patch
++
++SCHEMA = 'hepta.hia.core-unpack-qualification-progress.v1'
++RECEIPT_SCHEMA = 'hepta.hia.core-unpack-qualification-progress-receipt.v1'
++SUMMARY_SCHEMA = 'hepta.hia.core-unpack-qualification-progress-binding.v1'
++LOG_NAME, RECEIPT_NAME = 'progress.jsonl', 'progress.receipt.json'
++MAX_BYTES, MAX_EVENT_BYTES, MAX_EVENTS, MAX_RECEIPT_BYTES = 524288, 1024, 1024, 131072
++# The whole official file is byte-identical in CPython 3.12.14 and 3.14.4.
++SUITE_SOURCE_SHA256 = 'ed2da92bc9f97c53403ee2d3d12cc53b16a96e85d596ebc887b5a93458f3f6bc'
++RUNTIMES = ((3, 12, 14), (3, 14, 4))
++FIELDS = {'sequence', 'event', 'group', 'subject', 'monotonic_ns', 'native_returns', 'detail'}
++FIXTURES = {'class_setup', 'class_teardown', 'module_fixture', 'module_teardown'}
++OUTCOMES = {'normal_return', 'fixture_error', 'base_exception'}
++
++
++def require(condition, message):
++    if not condition:
++        raise ValueError(message)
++
++
++def wire(value):
++    return (json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True) + '\n').encode('ascii')
++
++
++def digest(value):
++    return sha256(wire(value)).hexdigest()
++
++
++def pairs(items):
++    result = {}
++    for key, value in items:
++        require(key not in result, 'duplicate progress JSON key')
++        result[key] = value
++    return result
++
++
++def parsed(raw):
++    return json.loads(raw, object_pairs_hook=pairs)
++
++
++def identity(info):
++    return {key: getattr(info, 'st_' + key) for key in
++            ('dev', 'ino', 'mode', 'uid', 'gid', 'nlink', 'size', 'mtime_ns', 'ctime_ns')}
++
++
++def directory_identity(info):
++    return tuple(getattr(info, 'st_' + key) for key in ('dev', 'ino', 'mode', 'uid', 'gid'))
++
++
++def stable_chain(chain):
++    for parent, name, child, before in chain[1:]:
++        require(directory_identity(os.fstat(child)) == before == directory_identity(
++            os.stat(name, dir_fd=parent, follow_symlinks=False)), 'progress directory chain changed')
++
++
++def open_parent(path):
++    path = Path(path).absolute()
++    require(path.parts[0] == '/' and all(part not in ('.', '..') for part in path.parts[1:]),
++            'fixed absolute progress path required')
++    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
++    fd = os.open('/', flags)
++    chain = [(None, None, fd, directory_identity(os.fstat(fd)))]
++    try:
++        for name in path.parts[1:-1]:
++            child = os.open(name, flags, dir_fd=fd)
++            chain.append((fd, name, child, directory_identity(os.fstat(child))))
++            fd = child
++        stable_chain(chain)
++        return path, chain
++    except BaseException:
++        for _, _, held, _ in reversed(chain):
++            os.close(held)
++        raise
++
++
++def close_chain(chain):
++    for _, _, fd, _ in reversed(chain):
++        os.close(fd)
++
++
++def regular(info, owned):
++    require(stat.S_ISREG(info.st_mode) and (not owned or
++            (info.st_uid == os.geteuid() and info.st_nlink == 1)), 'progress leaf must be a fixed ordinary file')
++
++
++def read_file(path, maximum=None, *, owned=False, contents=True):
++    path, chain = open_parent(path)
++    fd = None
++    try:
++        parent = chain[-1][2]
++        fd = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, dir_fd=parent)
++        before = os.fstat(fd)
++        regular(before, owned)
++        require(maximum is None or before.st_size <= maximum, 'progress file exceeds its fixed bound')
++        result, hashed, total = [], sha256(), 0
++        while total < before.st_size:
++            part = os.read(fd, min(65536, before.st_size - total))
++            require(bool(part), 'progress file truncated during reading')
++            total += len(part)
++            hashed.update(part)
++            if contents:
++                result.append(part)
++        require(os.read(fd, 1) == b'', 'progress file grew during reading')
++        require(identity(before) == identity(os.fstat(fd)) == identity(
++            os.stat(path.name, dir_fd=parent, follow_symlinks=False)), 'progress leaf identity changed')
++        stable_chain(chain)
++        return b''.join(result), {'path': str(path), 'size': total, 'sha256': hashed.hexdigest(),
++                                  'identity': identity(before)}
++    finally:
++        if fd is not None:
++            os.close(fd)
++        close_chain(chain)
++
++
++def plain_pin(value):
++    return {key: value[key] for key in ('path', 'size', 'sha256')}
++
++
++def create_file(path, raw, maximum):
++    require(type(raw) is bytes and len(raw) <= maximum, 'bounded progress receipt bytes required')
++    path, chain = open_parent(path)
++    fd = None
++    try:
++        parent = chain[-1][2]
++        fd = os.open(path.name, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
++                     0o600, dir_fd=parent)
++        regular(os.fstat(fd), True)
++        require(os.write(fd, raw) == len(raw), 'short progress receipt write')
++        os.fsync(fd)
++        os.fchmod(fd, 0o400)
++        before = os.fstat(fd)
++        os.lseek(fd, 0, os.SEEK_SET)
++        actual = bytearray()
++        while len(actual) < len(raw):
++            part = os.read(fd, len(raw) - len(actual))
++            require(bool(part), 'short progress receipt readback')
++            actual.extend(part)
++        require(bytes(actual) == raw and os.read(fd, 1) == b'', 'progress receipt readback differs')
++        require(identity(before) == identity(os.fstat(fd)) == identity(
++            os.stat(path.name, dir_fd=parent, follow_symlinks=False)), 'progress receipt leaf changed')
++        stable_chain(chain)
++    finally:
++        if fd is not None:
++            os.close(fd)
++        close_chain(chain)
++    return read_file(path, maximum, owned=True)[1]
++
++
++def specifications(groups):
++    require(type(groups) in (list, tuple) and groups, 'progress groups are required')
++    result, all_ids, labels, module_sets = [], set(), set(), set()
++    for group in groups:
++        require(type(group) is dict, 'progress group must be a dictionary')
++        label, modules, ids = (group.get(key) for key in ('label', 'modules', 'ids'))
++        require(type(label) is str and 0 < len(label) <= 64 and label not in labels,
++                'progress group label differs')
++        require(type(modules) in (list, tuple) and modules and all(
++            type(name) is str and 0 < len(name) <= 256 for name in modules), 'progress module names differ')
++        require(tuple(modules) not in module_sets and len(set(modules)) == len(modules),
++                'duplicate progress module inventory')
++        require(type(ids) in (list, tuple) and ids and all(type(name) is str and 0 < len(name) <= 384
++            for name in ids) and len(set(ids)) == len(ids) and not all_ids.intersection(ids),
++            'progress frozen test IDs differ')
++        labels.add(label); module_sets.add(tuple(modules)); all_ids.update(ids)
++        result.append({'label': label, 'modules': list(modules), 'ids': list(ids)})
++    return result
++
++
++def runtime_source():
++    require(sys.implementation.name == 'cpython' and tuple(sys.version_info[:3]) in RUNTIMES,
++            'progress hooks require a specifically admitted CPython runtime')
++    _, value = read_file(Path(unittest.suite.__file__), 65536)
++    require(value['sha256'] == SUITE_SOURCE_SHA256, 'actual unittest TestSuite source differs')
++    return {'implementation': 'CPython', 'version': list(sys.version_info[:3]), 'suite_source': value}
++
++
++def source_pin():
++    return read_file(Path(__file__), 262144, contents=False)[1]
++
++
++def checked_suite(suite, suite_type):
++    ids, count, tests, suites = [], 0, {}, []
++    def visit(item):
++        nonlocal count
++        if isinstance(item, unittest.TestCase):
++            name = item.id()
++            ids.append(name)
++            tests[id(item)] = name
++        else:
++            require(type(item) is suite_type, 'an inner suite is not covered by progress hooks')
++            count += 1
++            suites.append(item)
++            for child in item:
++                visit(child)
++    visit(suite)
++    return ids, count, tests, suites
++
++
++def class_name(value):
++    return value.__module__ + '.' + value.__qualname__
++
++
++def anomaly_count(result):
++    return sum(len(getattr(result, key)) for key in
++               ('errors', 'failures', 'skipped', 'expectedFailures', 'unexpectedSuccesses'))
++
++
++class ProgressRecorder:
++    def __init__(self, directory, groups, native_returns):
++        self.directory = Path(directory).absolute()
++        self.groups = specifications(groups)
++        self.native_returns = native_returns
++        self.source_before, self.runtime_before = source_pin(), runtime_source()
++        self.pid, self.thread = os.getpid(), threading.get_ident()
++        self.count = self.size = 0
++        self.hashed = sha256()
++        self.current_group = ''
++        self.loaded = []
++        self.tests = {}
++        self.errors = []
++        self.broken = self.finished = self.active = False
++        self.path, self.chain = open_parent(self.directory / LOG_NAME)
++        self.fd = None
++        try:
++            self.fd = os.open(self.path.name, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
++                              0o600, dir_fd=self.chain[-1][2])
++            regular(os.fstat(self.fd), True)
++            self.event('operation_begin', detail={'specifications_sha256': digest(self.groups)})
++        except BaseException:
++            if self.fd is not None:
++                os.close(self.fd)
++            close_chain(self.chain)
++            raise
++
++    def here(self):
++        # Once a secondary log failure has been retained, continue only the
++        # original unittest work. finish() records HOLD without another write
++        # replacing the already caught original fixture error.
++        return (self.active and not self.broken and os.getpid() == self.pid
++                and threading.get_ident() == self.thread)
++
++    def event(self, event, subject='', detail=None):
++        require(not self.broken and not self.finished, 'progress writer is not active')
++        try:
++            steps = self.native_returns()
++            require(type(steps) is int and steps >= 0, 'progress native-return summary differs')
++            row = {'sequence': self.count, 'event': event, 'group': self.current_group,
++                   'subject': subject, 'monotonic_ns': time.monotonic_ns(),
++                   'native_returns': steps, 'detail': {} if detail is None else detail}
++            raw = wire(row)
++            require(len(raw) <= MAX_EVENT_BYTES and self.size + len(raw) <= MAX_BYTES
++                    and self.count < MAX_EVENTS, 'progress event inventory exceeds its fixed bound')
++            require(os.write(self.fd, raw) == len(raw), 'short progress event write')
++            self.hashed.update(raw); self.size += len(raw); self.count += 1
++        except BaseException as error:
++            self.broken = True
++            self.errors.append(type(error).__module__ + '.' + type(error).__qualname__)
++            raise
++
++    def secondary_event(self, *args, **kwargs):
++        # Called only while preserving an already active original exception.
++        # The original bare raise has priority over a diagnostic failure.
++        try:
++            self.event(*args, **kwargs)
++        except BaseException:
++            pass
++
++    def fixture(self, kind, subject, result, call, failed):
++        self.event('fixture_begin', subject, {'kind': kind})
++        before = anomaly_count(result)
++        try:
++            value = call()
++        except BaseException as error:
++            self.secondary_event('fixture_end', subject, {'kind': kind, 'outcome': 'base_exception',
++                'exception_type': type(error).__module__ + '.' + type(error).__qualname__})
++            raise
++        fixture_failed = failed() or anomaly_count(result) != before
++        # A caught unittest fixture error is already present in result. Preserve
++        # that original result if recording its outcome also fails.
++        emit = self.secondary_event if fixture_failed else self.event
++        emit('fixture_end', subject, {'kind': kind,
++            'outcome': 'fixture_error' if fixture_failed else 'normal_return', 'exception_type': None})
++        return value
++
++    @contextmanager
++    def observe(self):
++        require(not self.active and not self.finished, 'progress observation cannot be nested')
++        owner = self
++        base_suite, base_loader = unittest.TestSuite, unittest.TestLoader
++        base_start, base_stop = unittest.TestResult.startTest, unittest.TestResult.stopTest
++        class TracedSuite(base_suite):
++            def run(self, result, debug=False):
++                group = getattr(self, '_unpack_progress_group', None)
++                if not owner.here() or group is None:
++                    return super().run(result, debug)
++                require(not owner.current_group, 'progress group runs cannot be nested')
++                owner.current_group = group['label']
++                try:
++                    owner.event('group_begin', detail={'loaded_count': len(group['ids']),
++                        'loaded_ids_sha256': digest(group['ids']), 'nested_suite_count': self._unpack_suite_count})
++                    value = super().run(result, debug)
++                except BaseException as error:
++                    owner.secondary_event('group_end', detail={'outcome': 'base_exception',
++                        'exception_type': type(error).__module__ + '.' + type(error).__qualname__})
++                    raise
++                else:
++                    emit = owner.secondary_event if anomaly_count(result) else owner.event
++                    emit('group_end', detail={'outcome': 'normal_return', 'exception_type': None})
++                    return value
++                finally:
++                    owner.tests.clear()
++                    owner.current_group = ''
++
++            def _handleClassSetUp(self, test, result):
++                current = test.__class__
++                call = lambda: super(TracedSuite, self)._handleClassSetUp(test, result)
++                if (not owner.here() or not getattr(self, '_unpack_progress_selected', False)
++                        or not owner.current_group
++                        or current == getattr(result, '_previousTestClass', None)
++                        or result._moduleSetUpFailed or getattr(current, '__unittest_skip__', False)):
++                    return call()
++                return owner.fixture('class_setup', class_name(current), result, call,
++                    lambda: bool(getattr(current, '_classSetupFailed', False)))
++
++            def _tearDownPreviousClass(self, test, result):
++                previous = getattr(result, '_previousTestClass', None)
++                call = lambda: super(TracedSuite, self)._tearDownPreviousClass(test, result)
++                if (not owner.here() or not getattr(self, '_unpack_progress_selected', False)
++                        or not owner.current_group or previous is None
++                        or previous == test.__class__ or getattr(previous, '_classSetupFailed', False)
++                        or getattr(result, '_moduleSetUpFailed', False)
++                        or getattr(previous, '__unittest_skip__', False)):
++                    return call()
++                return owner.fixture('class_teardown', class_name(previous), result, call, lambda: False)
++
++            def _handleModuleFixture(self, test, result):
++                current = test.__class__.__module__
++                call = lambda: super(TracedSuite, self)._handleModuleFixture(test, result)
++                if (not owner.here() or not getattr(self, '_unpack_progress_selected', False)
++                        or not owner.current_group or current == self._get_previous_module(result)):
++                    return call()
++                return owner.fixture('module_fixture', current, result, call,
++                    lambda: bool(getattr(result, '_moduleSetUpFailed', False)))
++
++            def _handleModuleTearDown(self, result):
++                previous = self._get_previous_module(result)
++                call = lambda: super(TracedSuite, self)._handleModuleTearDown(result)
++                if (not owner.here() or not getattr(self, '_unpack_progress_selected', False)
++                        or not owner.current_group or previous is None
++                        or getattr(result, '_moduleSetUpFailed', False)):
++                    return call()
++                return owner.fixture('module_teardown', previous, result, call, lambda: False)
++
++        class TracedLoader(base_loader):
++            suiteClass = TracedSuite
++            def loadTestsFromNames(self, names, module=None):
++                suite = super().loadTestsFromNames(names, module)
++                matched = [group for group in owner.groups if list(names) == group['modules']]
++                if owner.here() and not owner.current_group and matched:
++                    group = matched[0]
++                    require(owner.loaded == [item['label'] for item in owner.groups[:len(owner.loaded)]]
++                            and len(owner.loaded) < len(owner.groups)
++                            and group == owner.groups[len(owner.loaded)], 'progress loader group order differs')
++                    ids, count, tests, suites = checked_suite(suite, TracedSuite)
++                    require(ids == group['ids'], 'progress loader IDs differ from the unchanged originals')
++                    for selected in suites:
++                        selected._unpack_progress_selected = True
++                    owner.tests.update(tests)
++                    owner.loaded.append(group['label'])
++                    suite._unpack_progress_group = group
++                    suite._unpack_suite_count = count
++                return suite
++
++        def start(result, test):
++            name = owner.tests.get(id(test))
++            if owner.here() and owner.current_group and name is not None:
++                owner.event('test_start', name)
++            return base_start(result, test)
++
++        def stop(result, test):
++            name = owner.tests.pop(id(test), None)
++            active_exception = sys.exc_info()[0] is not None
++            try:
++                value = base_stop(result, test)
++            except BaseException as error:
++                if owner.here() and owner.current_group and name is not None:
++                    owner.secondary_event('test_stop', name, {'callback': 'stopTest',
++                        'exception_type': type(error).__module__ + '.' + type(error).__qualname__})
++                raise
++            if owner.here() and owner.current_group and name is not None:
++                function = owner.secondary_event if active_exception or anomaly_count(result) else owner.event
++                function('test_stop', name, {'callback': 'stopTest', 'exception_type': None})
++            return value
++
++        self.active = True
++        try:
++            with ExitStack() as stack:
++                stack.enter_context(patch.object(unittest, 'TestLoader', TracedLoader))
++                stack.enter_context(patch.object(unittest.TestResult, 'startTest', start))
++                stack.enter_context(patch.object(unittest.TestResult, 'stopTest', stop))
++                yield self
++        finally:
++            self.active = False
++
++    def finish(self, *, complete, original_report=None):
++        require(type(complete) is bool and not self.finished and not self.active,
++                'progress finish requires a closed observation scope')
++        error = None
++        try:
++            if not self.broken:
++                self.event('operation_end', detail={'complete': complete,
++                    'original_report_sha256': None if original_report is None else original_report['sha256']})
++        except BaseException as caught:
++            error = type(caught).__module__ + '.' + type(caught).__qualname__
++        try:
++            os.fsync(self.fd)
++            os.fchmod(self.fd, 0o400)
++            stable_chain(self.chain)
++        finally:
++            self.finished = True
++            os.close(self.fd)
++            close_chain(self.chain)
++        raw, log_pin = read_file(self.path, MAX_BYTES, owned=True)
++        source_after, runtime_after = source_pin(), runtime_source()
++        receipt = {'schema': RECEIPT_SCHEMA, 'status': 'HOLD', 'complete': False,
++            'specifications': self.groups, 'progress': log_pin, 'original_report': original_report,
++            'source_before': self.source_before, 'source_after': source_after,
++            'runtime_before': self.runtime_before, 'runtime_after': runtime_after,
++            'writer_event_count': self.count, 'writer_bytes': self.size,
++            'writer_sha256': self.hashed.hexdigest(), 'logging_errors': list(self.errors),
++            'error': error, 'semantic': None, 'method_pass_claimed_by_progress': False}
++        try:
++            require(not self.broken and not self.errors and error is None, 'progress logging failed')
++            require(len(raw) == self.size and sha256(raw).hexdigest() == self.hashed.hexdigest(),
++                    'complete progress bytes differ from writes')
++            require(self.source_before == source_after and self.runtime_before == runtime_after,
++                    'progress implementation/runtime changed')
++            receipt['semantic'] = validate_events(raw, self.groups, complete, original_report)
++            receipt['complete'] = complete
++            receipt['status'] = 'COMPLETE' if complete else 'HOLD'
++        except BaseException as caught:
++            receipt['error'] = type(caught).__module__ + '.' + type(caught).__qualname__
++        receipt_pin = create_file(self.directory / RECEIPT_NAME, wire(receipt), MAX_RECEIPT_BYTES)
++        return {'schema': SUMMARY_SCHEMA, 'complete': receipt['complete'], 'status': receipt['status'],
++                'progress': log_pin, 'receipt': receipt_pin,
++                'native_step_returns': None if receipt['semantic'] is None
++                    else receipt['semantic']['final_native_returns']}
++
++
++def validate_events(raw, groups, require_complete, original_report):
++    groups = specifications(groups)
++    require(type(require_complete) is bool, 'progress completeness must be explicit')
++    require(type(raw) is bytes and 0 < len(raw) <= MAX_BYTES and raw.endswith(b'\n'),
++            'complete bounded progress bytes required')
++    lines = raw.splitlines(keepends=True)
++    require(len(lines) <= MAX_EVENTS and all(len(row) <= MAX_EVENT_BYTES for row in lines),
++            'progress event extent differs')
++    rows = [parsed(row) for row in lines]
++    current, index, fixtures, running_test = None, 0, [], None
++    started, stopped, previous_time, previous_native, bad = [], [], -1, -1, False
++    begun = ended = False
++    for number, row in enumerate(rows):
++        require(type(row) is dict and set(row) == FIELDS and type(row['sequence']) is int
++                and row['sequence'] == number and type(row['monotonic_ns']) is int
++                and row['monotonic_ns'] >= 0 and row['monotonic_ns'] >= previous_time
++                and type(row['native_returns']) is int and row['native_returns'] >= 0
++                and row['native_returns'] >= previous_native and type(row['detail']) is dict
++                and type(row['event']) is str
++                and type(row['group']) is str and type(row['subject']) is str,
++                'progress event shape, order or counters differ')
++        previous_time, previous_native = row['monotonic_ns'], row['native_returns']
++        event, detail = row['event'], row['detail']
++        require(not ended, 'events follow complete progress end')
++        if event == 'operation_begin':
++            require(number == 0 and not begun and row['group'] == row['subject'] == ''
++                    and detail == {'specifications_sha256': digest(groups)}, 'progress begin differs')
++            begun = True
++        elif event == 'group_begin':
++            require(begun and current is None and index < len(groups) and not fixtures and running_test is None,
++                    'progress group begin is out of order')
++            current = groups[index]
++            require(row['group'] == current['label'] and row['subject'] == ''
++                    and set(detail) == {'loaded_count', 'loaded_ids_sha256', 'nested_suite_count'}
++                    and type(detail['loaded_count']) is int and detail['loaded_count'] == len(current['ids'])
++                    and detail['loaded_ids_sha256'] == digest(current['ids'])
++                    and type(detail['nested_suite_count']) is int and detail['nested_suite_count'] > 0,
++                    'progress loaded suite inventory differs')
++            started, stopped = [], []
++        elif event == 'fixture_begin':
++            require(current is not None and row['group'] == current['label'] and row['subject']
++                    and set(detail) == {'kind'} and detail['kind'] in FIXTURES and running_test is None,
++                    'fixture begin differs')
++            fixtures.append((detail['kind'], row['subject']))
++        elif event == 'fixture_end':
++            require(current is not None and row['group'] == current['label'] and fixtures
++                    and set(detail) == {'kind', 'outcome', 'exception_type'}
++                    and fixtures.pop() == (detail['kind'], row['subject']) and detail['outcome'] in OUTCOMES
++                    and ((detail['outcome'] == 'base_exception' and type(detail['exception_type']) is str)
++                         or (detail['outcome'] != 'base_exception' and detail['exception_type'] is None)),
++                    'fixture end does not match its actual begin/outcome')
++            bad |= detail['outcome'] != 'normal_return'
++        elif event == 'test_start':
++            require(current is not None and row['group'] == current['label'] and not fixtures
++                    and running_test is None and detail == {} and row['subject'] in current['ids']
++                    and (not started or current['ids'].index(row['subject']) > current['ids'].index(started[-1])),
++                    'test start differs from original order')
++            running_test = row['subject']; started.append(running_test)
++        elif event == 'test_stop':
++            require(current is not None and row['group'] == current['label'] and not fixtures
++                    and running_test == row['subject'] and set(detail) == {'callback', 'exception_type'}
++                    and detail['callback'] == 'stopTest' and (detail['exception_type'] is None
++                         or type(detail['exception_type']) is str), 'test stop lacks its matching original start')
++            stopped.append(running_test); running_test = None
++            bad |= detail['exception_type'] is not None
++        elif event == 'group_end':
++            require(current is not None and row['group'] == current['label'] and row['subject'] == ''
++                    and not fixtures and running_test is None
++                    and set(detail) == {'outcome', 'exception_type'}
++                    and detail['outcome'] in ('normal_return', 'base_exception')
++                    and ((detail['outcome'] == 'normal_return' and detail['exception_type'] is None)
++                         or (detail['outcome'] == 'base_exception' and type(detail['exception_type']) is str)),
++                    'group end differs')
++            if require_complete:
++                require(started == current['ids'] == stopped and detail['outcome'] == 'normal_return',
++                        'progress cannot replace complete original test callbacks')
++            bad |= detail['outcome'] != 'normal_return'
++            current = None; index += 1
++        elif event == 'operation_end':
++            require(begun and number == len(rows) - 1 and current is None and not fixtures
++                    and running_test is None and row['group'] == row['subject'] == ''
++                    and set(detail) == {'complete', 'original_report_sha256'}
++                    and type(detail['complete']) is bool and detail['complete'] is require_complete
++                    and detail['original_report_sha256'] == (None if original_report is None
++                                                           else original_report['sha256']),
++                    'complete progress end or original-report binding differs')
++            if require_complete:
++                require(index == len(groups) and not bad and original_report is not None,
++                        'progress fixture/group completion is missing or failed')
++            ended = True
++        else:
++            raise ValueError('unknown progress event')
++    require(begun and ended, 'progress is truncated before a complete end')
++    return {'event_count': len(rows), 'group_count': index,
++            'test_start_count': sum(row['event'] == 'test_start' for row in rows),
++            'test_stop_count': sum(row['event'] == 'test_stop' for row in rows),
++            'fixture_error_or_exception_seen': bad, 'final_native_returns': previous_native,
++            'method_pass_claimed_by_progress': False}
++
++
++def inspect_progress(directory, groups, original_report):
++    """Actual file reader used by new UNPACK gates, never by the old thirty."""
++    directory = Path(directory).absolute()
++    raw_receipt, receipt_pin = read_file(directory / RECEIPT_NAME, MAX_RECEIPT_BYTES, owned=True)
++    receipt = parsed(raw_receipt)
++    raw, log_pin = read_file(directory / LOG_NAME, MAX_BYTES, owned=True)
++    expected_groups = specifications(groups)
++    require(type(receipt) is dict and receipt.get('schema') == RECEIPT_SCHEMA
++            and receipt.get('status') == 'COMPLETE' and receipt.get('complete') is True
++            and receipt.get('logging_errors') == [] and receipt.get('error') is None
++            and receipt.get('method_pass_claimed_by_progress') is False,
++            'progress HOLD or missing completion cannot qualify')
++    _, actual_original = read_file(directory / 'core-callers/report.json', contents=False)
++    require(plain_pin(actual_original) == original_report == receipt.get('original_report'),
++            'progress is bound to another original complete report')
++    actual_source, actual_runtime = source_pin(), runtime_source()
++    require(receipt.get('specifications') == expected_groups and receipt.get('progress') == log_pin
++            and receipt.get('source_before') == actual_source == receipt.get('source_after')
++            and receipt.get('runtime_before') == actual_runtime == receipt.get('runtime_after')
++            and type(receipt.get('writer_bytes')) is int and receipt['writer_bytes'] == len(raw)
++            and receipt.get('writer_sha256') == sha256(raw).hexdigest(),
++            'progress bytes, runtime or implementation identity differs')
++    semantic = validate_events(raw, expected_groups, True, original_report)
++    require(type(receipt.get('writer_event_count')) is int
++            and receipt['writer_event_count'] == semantic['event_count']
++            and receipt.get('semantic') == semantic, 'progress complete semantic receipt differs')
++    return {'schema': SUMMARY_SCHEMA, 'complete': True, 'status': 'COMPLETE',
++            'progress': log_pin, 'receipt': receipt_pin,
++            'native_step_returns': semantic['final_native_returns']}
+--- before/tools/hia_selfhost_contract.py
++++ after/tools/hia_selfhost_contract.py
+@@ -20,6 +20,8 @@
+     'tools/build_hia_core_unpack.py',
+     'tools/qualify_hia_core_unpack_callers.py',
+     'tools/hia_core_unpack_gates.py',
++    'tools/hia_core_unpack_progress.py',
++    'tests/test_hia_core_unpack_progress.py',
+     'tools/qualify_hia_core_unpack_ci.py',
+     'tools/hia_core_unpack_controls/finite_controls.py',
+     'tools/hia_core_unpack_controls/finite_launcher.py',
+@@ -755,6 +757,14 @@
+         },
+         'matching_cold_core_unpack_qualification_requirements': {
+             'reader': 'tools/hia_core_unpack_gates.py',
++            'progress_reader': 'tools/hia_core_unpack_progress.py',
++            'complete_progress_and_original_report_both_required': True,
++            'progress_is_method_pass': False,
++            'progress_only_in_UNPACK_wrapper_within_original_180_seconds': True,
++            'progress_max_bytes': 524288,
++            'progress_max_event_bytes': 1024,
++            'progress_max_events': 1024,
++            'progress_max_receipt_bytes': 131072,
+             'ci_adapter': 'tools/qualify_hia_core_unpack_ci.py',
+             'full_runner': 'experiments/hia_native_successor_runner_20261111/run_hia_qualification_v10.py',
+             'old_mandatory_gates_preserved': 30,
+--- before/tools/qualify_hia_core_unpack_callers.py
++++ after/tools/qualify_hia_core_unpack_callers.py
+@@ -83,6 +83,7 @@
+     from hepta import hia_core_unpack_native as primitive
+     from hepta import hia_core_unpack_selection as selection
+     from tools import qualify_hia_core_lowering_callers as original
++    from tools.hia_core_unpack_progress import ProgressRecorder
+     directory = args.evidence.resolve()
+     directory.mkdir(parents=True, exist_ok=False)
+     report = {'schema': 'hepta.hia.core-unpack-selected-callers.v1', 'status': 'STARTED',
+@@ -99,6 +100,7 @@
+     started = time.monotonic()
+     source_before = original.source_pins()
+     companion_before, files = [], []
++    progress = None
+     context = ContextVar('hia_unpack_qualification_current_effect', default=None)
+     test_context = ['outside-test', 'outside-group']
+     groups = {test: label for label, ids in (
+@@ -161,6 +163,12 @@
+         report['identity_before'] = sha256(selection.implementation_identity(companion)).hexdigest()
+         argv = ['qualify_hia_core_lowering_callers.py', *original_args, '--evidence', str(directory / 'core-callers')]
+         report['original_qualifier_argv'] = argv
++        progress_groups = [dict(label=label, modules=list(modules), ids=list(ids))
++            for label, modules, ids in (
++                ('component', original.COMPONENT_MODULES, original.COMPONENT_IDS),
++                ('original-machine', original.ORIGINAL_MODULES, original.ORIGINAL_IDS),
++                ('original-core', original.CORE_MODULES, original.CORE_IDS))]
++        progress = ProgressRecorder(directory, progress_groups, lambda: sum(returns.values()))
+         with ExitStack() as stack:
+             stack.enter_context(patch.dict(os.environ, {selection.SELECTOR: str(manifest)}))
+             stack.enter_context(patch.object(sys, 'argv', argv))
+@@ -168,6 +176,7 @@
+             stack.enter_context(patch.object(outer.LoweringSession, '_primitive', outer_primitive))
+             stack.enter_context(patch.object(primitive.UnpackSession, '_step', unpack_step))
+             stack.enter_context(patch.object(unittest.TextTestResult, 'startTest', start))
++            stack.enter_context(progress.observe())
+             result = original.main()
+         original_path = directory / 'core-callers/report.json'
+         report['original_report'] = pin(original_path)
+@@ -231,6 +240,16 @@
+         except BaseException:
+             report['status'] = 'FAIL'
+             report['preservation_error'] = traceback.format_exc()
++        try:
++            if progress is None:
++                raise ValueError('UNPACK qualification progress was never admitted')
++            report['progress'] = progress.finish(complete=report['status'] == 'PASS',
++                original_report=report.get('original_report'))
++            if report['status'] == 'PASS' and report['progress']['complete'] is not True:
++                raise ValueError('complete UNPACK progress receipt is required')
++        except BaseException:
++            report['status'] = 'FAIL'
++            report['progress_error'] = traceback.format_exc()
+         report['seconds'] = time.monotonic() - started
+         (directory / 'report.json').write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
+         print(json.dumps({name: report.get(name) for name in ('schema', 'scope', 'status', 'seconds', 'stable', 'error')}, sort_keys=True))
