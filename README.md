@@ -1,10 +1,10 @@
-# Independent Proof recovery revision, v79 r1
+# Independent Proof recovery revision, v79 r2
 
 This branch is an isolated development harness. It checks out actual product
 4b19af89a766593f7d5f1cc2db256e81aba7afcb / tree
 1bc7c90996e1910ad66ba771b0bfee1d5bfa655c, verifies all 3153 Git blobs and modes,
 then applies acknowledged Verification R6 (41 paths, complete 3186-file map)
-and the new 21-path Proof recovery overlay. The authored snapshot has 3200 files.
+and the new 25-path Proof recovery overlay. The authored snapshot has 3200 files.
 Only the Proof HIA asset and existing support document may be generated; the
 final full snapshot has 3201 files and is independently exported and checked.
 
@@ -21,7 +21,7 @@ The old actual 81b6 B3 compiler is decompressed and checked at exactly 669494
 bytes. It is a development input, not current-source cold authority. Its
 original receipt and artifact provenance are retained.
 
-Six small harness controls execute on real temporary Git/filesystem inputs
+Seven small harness controls execute on real temporary Git/filesystem inputs
 before the actual source reconstruction. New Proof53 plus preserved
 Verification Source32 run as an explicitly enumerated85 component gate.
 The unchanged original22 Proof and18 machine-validation callers run in a
@@ -44,3 +44,16 @@ The workflow uploads every raw log, source tar, source-before/after, input
 manifest, wheel, original compiler, request, native image and result even on
 failure. Original authored pre-execution mistakes are retained in the history
 input; no failed raw is rewritten or reclassified as successful.
+
+## Retained R1 failure and R2 delta
+
+R1 run43262449848 completed all85 controls and original40 callers successfully,
+but its overall status remains FAIL because the unchanged git whitespace gate
+reported four extra final LF bytes. The exact original284-byte log and terminal
+are retained at blob ed428a61e04ac08bfc7a20c876b30e66be170903. This revision
+removes precisely one final LF from each named file, checks complete actual
+Python AST including positions before publication, regenerates support, and
+executes the same85 and40 groups again. No original test definition is removed.
+The Proof business/control/foreign source remains byte-identical to R1.
+The read-only always step additionally prints completed text evidence so a
+failed future run is immediately inspectable without rerunning any business.

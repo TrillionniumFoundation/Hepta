@@ -7,6 +7,7 @@ inherited. Component85 and unchanged original22+18 remain separate gates.
 from __future__ import annotations
 
 import argparse
+import ast
 import base64
 from hashlib import sha1, sha256
 import importlib.metadata
@@ -31,8 +32,8 @@ BASE_FILES = 3153
 OVERLAY_SHA = '1f6e199a21b0a0dac0197b18dd63947244f779919e6d223ff99afb84391836f8'
 OVERLAY_BYTES = 2449043
 OVERLAY_SOURCE_SHA = 'f7c6242157adefbd5c8a3e2dca36eb3b42de92298e853c794b3e5c5ec8479af4'
-PROOF_PACKET_SHA = '567baf1ffa67a7a994db164bf8f58194a0d1fbc989a630d994a5f032c5932fa3'
-PROOF_PACKET_BYTES = 625476
+PROOF_PACKET_SHA = '7318eedbd0abf0d86819857d60f0a7e348ce65216b384286048adb6cd2038f98'
+PROOF_PACKET_BYTES = 726657
 COMPONENT_SHA = '35b8ad4a6494dd71c69a1972af036954b6e38be6eea7648262c0b217197e31ac'
 COMPILER_PACKET_SHA = 'df542582525e52f7855f2746ae9dc7501f6835e41aa46b209e59f2e121177b8b'
 COMPILER_SHA = '81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109'
@@ -178,10 +179,10 @@ def read_proof_overlay(path):
     if len(raw) != PROOF_PACKET_BYTES or digest(raw) != PROOF_PACKET_SHA:
         raise ValueError('complete new Proof source packet differs')
     value = json.loads(raw)
-    if (value['schema'] != 'hia.proof-contract.new-recovery-overlay.v79.r1'
+    if (value['schema'] != 'hia.proof-contract.new-recovery-overlay.v79.r2'
             or value['base_commit'] != BASE or value['base_tree'] != TREE
             or value['parent_source_count'] != 3186 or value['deleted'] != []
-            or len(value['files']) != 21 or value['lost64_qualification_inherited'] is not False
+            or len(value['files']) != 25 or value['lost64_qualification_inherited'] is not False
             or value['generated_outputs'] != [SOURCE_NAME, 'docs/HIA_SELFHOST_CORE_SUPPORT.json']):
         raise ValueError('new Proof recovery source boundary differs')
     for name, row in value['files'].items():
@@ -192,6 +193,33 @@ def read_proof_overlay(path):
                 or sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() != row['git_blob_sha']):
             raise ValueError('new Proof file bytes differ: ' + name)
     return value
+
+
+def admit_whitespace_repairs(value, originals):
+    names = (
+        'tests/hia_service_verification_lifetimes.py',
+        'tests/test_hia_service_emission_lifetimes.py',
+        'tests/test_hia_service_emission_native.py',
+        'tools/hia_service_verification_policy.py',
+    )
+    repairs = value['whitespace_repairs']
+    if [row['path'] for row in repairs] != list(names):
+        raise ValueError('the four original whitespace failures must remain exact')
+    observations = []
+    for row in repairs:
+        name = row['path']
+        before = originals[name]
+        after = value['files'][name]['text']
+        if (not before.endswith('\n\n') or before.endswith('\n\n\n')
+                or after != before[:-1] or not after.endswith('\n')
+                or row['removed_bytes'] != 1):
+            raise ValueError('whitespace repair changed nonterminal bytes: ' + name)
+        if ast.dump(ast.parse(before), include_attributes=True) != ast.dump(
+                ast.parse(after), include_attributes=True):
+            raise ValueError('complete AST including source positions changed: ' + name)
+        observations.append({'path': name, 'before': row['before'], 'after': row['after'],
+                             'removed_bytes': 1, 'complete_ast_including_positions_equal': True})
+    return observations
 
 
 def apply_files(root, rows):
@@ -230,7 +258,7 @@ def main():
     args = parser.parse_args()
     root, inputs = args.source.resolve(strict=True), args.inputs.resolve(strict=True)
     out = args.output.absolute(); out.mkdir(mode=0o700, exist_ok=False)
-    report = {'schema': 'hia.proof-contract.new-recovery.development-ci.v79.r1', 'status': 'STARTED',
+    report = {'schema': 'hia.proof-contract.new-recovery.development-ci.v79.r2', 'status': 'STARTED',
         'base_commit': BASE, 'base_tree': TREE, 'base_parent': BASE_PARENT,
         'python': sys.version, 'platform': platform.platform(), 'commands': [],
         'scope': 'NEW_RECOVERY_DEVELOPMENT_ONLY', 'lost64_qualification_inherited': False,
@@ -325,6 +353,9 @@ def main():
         write(out / 'source-r6-reconstructed.json', wire(reconstructed))
         proof = read_proof_overlay(inputs / 'proof-recovery-overlay.json')
         admit_overlay_base(proof, reconstructed)
+        report['whitespace_repairs'] = admit_whitespace_repairs(proof, {
+            row['path']: (root / row['path']).read_bytes().decode('utf-8', 'strict')
+            for row in proof['whitespace_repairs']})
         apply_files(root, proof['files'])
         authored = files(root)
         wanted = {name: source_identity(row) for name, row in reconstructed.items()}

@@ -1,8 +1,8 @@
-name: Isolated Proof recovery development v79 r1
+name: Isolated Proof recovery development v79 r2
 on:
   push:
     branches:
-      - codex/hia-proof-contract-recovery-v79-r1-20261112-dda7
+      - codex/hia-proof-contract-recovery-v79-r2-20261112-dda7
   workflow_dispatch:
 permissions:
   contents: read
@@ -62,11 +62,16 @@ jobs:
         run: >-
           python -B harness/inputs/run_proof_development.py
           --source source --inputs harness/inputs --output proof-recovery-development-evidence
+      - name: Export completed original text without rerunning tests
+        if: always()
+        run: >-
+          python -B harness/inputs/export_text_evidence.py
+          --source source --output proof-recovery-development-evidence
       - name: Retain complete original evidence and exact inputs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hia-proof-recovery-v79-r1-development-${{ github.run_id }}-${{ github.run_attempt }}
+          name: hia-proof-recovery-v79-r2-development-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             proof-recovery-development-evidence
             harness/inputs

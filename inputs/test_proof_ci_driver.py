@@ -46,7 +46,7 @@ class HarnessControls(unittest.TestCase):
 
     def test_new_packet_and_expected_inputs_are_distinct_from_lost_candidate(self):
         value = driver.read_proof_overlay(HERE / 'proof-recovery-overlay.json')
-        self.assertEqual(len(value['files']), 21)
+        self.assertEqual(len(value['files']), 25)
         self.assertIs(value['lost64_qualification_inherited'], False)
         self.assertFalse(value['lost3202_recovered'])
         original = driver.read_overlay(HERE / 'verification-r6-overlay.json')['source_manifest']
@@ -63,6 +63,20 @@ class HarnessControls(unittest.TestCase):
             with self.assertRaises(ValueError): driver.read_proof_overlay(path)
             path.write_bytes(raw[:-1] + b' ')
             with self.assertRaises(ValueError): driver.read_proof_overlay(path)
+
+    def test_exact_four_lf_repairs_preserve_real_python_ast_and_reject_semantic_edits(self):
+        value = driver.read_proof_overlay(HERE / 'proof-recovery-overlay.json')
+        original = driver.read_overlay(HERE / 'verification-r6-overlay.json')
+        inputs = {row['path']: original['files'][row['path']]['text']
+                  for row in value['whitespace_repairs']}
+        result = driver.admit_whitespace_repairs(value, inputs)
+        self.assertEqual(len(result), 4)
+        self.assertTrue(all(row['complete_ast_including_positions_equal'] for row in result))
+        for row in value['whitespace_repairs']:
+            changed = deepcopy(value)
+            changed['files'][row['path']]['text'] += 'different = True\n'
+            with self.assertRaises(ValueError):
+                driver.admit_whitespace_repairs(changed, inputs)
 
     def test_export_verifies_real_bytes_and_modes_without_git_claim(self):
         with tempfile.TemporaryDirectory(prefix='proof-recovery-export-') as directory:
