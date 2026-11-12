@@ -1,0 +1,35 @@
+{
+  "schema": "hia.core-original-source-partition-budget.v1",
+  "static_calculation": true,
+  "partition_count": 20,
+  "source_count": 40,
+  "source_total_bytes": 7089249,
+  "maximum_source_budget_bytes": 393216,
+  "largest_actual_fixed_group_bytes": 393097,
+  "control_budget_bytes": 131072,
+  "total_raw_budget_bytes": 524288,
+  "stdout_budget_bytes": 1048576,
+  "frame_bytes": 8192,
+  "maximum_files": 7,
+  "maximum_frame_count": 70,
+  "maximum_per_frame_header_bytes": 305,
+  "conservative_base64_bytes": 699332,
+  "manifest_line_upper_bound": 87896,
+  "END_line_reserved_bytes": 4096,
+  "conservative_total_application_stdout_bound": 812674,
+  "bound_below_cap": true,
+  "actual_reference": {
+    "run_id": 43157292390,
+    "scope": "Five actual control originals from the prior small diagnostic job, not a prediction that new controls have the same size",
+    "control_raw_bytes": 101385,
+    "with_largest_new_source_group": 494482
+  },
+  "runtime_enforcement": {
+    "source_bytes": "<=384KiB and exact two source pins",
+    "controls": "all five whole files together <=128KiB; no truncation",
+    "manifest": "<=64KiB",
+    "all_stdout": "actual byte counter including END <=1MiB",
+    "oversized_original": "HOLD, preserve complete/partial ZIP after closed ownership, do not enlarge any budget"
+  },
+  "Python_parse_or_actual_partition_run": false
+}
