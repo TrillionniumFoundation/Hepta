@@ -5036,3 +5036,217 @@ jobs:
           if-no-files-found: error
           retention-days: 90
           compression-level: 0
+
+  machine_x64_encoder_r1:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:machine-x64]')
+    name: Actual complete x64 instruction encoder labels fixups and original ISA corpus
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Verify exact selected source syntax before target generation
+        shell: bash
+        env:
+          HIA_SOURCE_GATE_OUTPUT: ${{ runner.temp }}/hia-selected-source-syntax
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/check_active_source_syntax_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-source-syntax-driver.log"
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Execute new bounded independent component qualification
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-machine-x64-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-x64-encoder-r1/ci/ci_machine_x64_encoder_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-machine-x64-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-machine-x64-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-selected-source-syntax
+            ${{ runner.temp }}/hia-source-syntax-driver.log
+            ${{ runner.temp }}/hia-machine-x64-recovery
+            ${{ runner.temp }}/hia-machine-x64-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+
+
+  worker_initializer_graph_registry_r2:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:worker-initialization-registry]')
+    name: Actual eight image Worker initializer Graph import relocation and wire configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Verify exact selected source syntax before target generation
+        shell: bash
+        env:
+          HIA_SOURCE_GATE_OUTPUT: ${{ runner.temp }}/hia-selected-source-syntax
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/check_active_source_syntax_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-source-syntax-driver.log"
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Execute new bounded independent component qualification
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-worker-initialization-registry-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-registry-r2/worker_initialization_registry_ci_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-initialization-registry-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-worker-initialization-registry-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-selected-source-syntax
+            ${{ runner.temp }}/hia-source-syntax-driver.log
+            ${{ runner.temp }}/hia-worker-initialization-registry-recovery
+            ${{ runner.temp }}/hia-worker-initialization-registry-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+
+
+  namespace_three_components_follow27_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:namespace-components-follow27-readback]')
+    name: Read all original successful memory DMS5 and DB2 component evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
+      - name: Check out submitted evidence reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact original memory artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13913923606'
+          run-id: '43151734029'
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/namespace-follow27-memory-original
+      - name: Download exact original dms5 artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13913519303'
+          run-id: '43151734029'
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/namespace-follow27-dms5-original
+      - name: Download exact original db2 artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13915165562'
+          run-id: '43151734029'
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/namespace-follow27-db2-original
+      - name: Independently read complete original evidence under original bounds
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_NAMESPACE_MEMORY_ORIGINAL_DIR: ${{ runner.temp }}/namespace-follow27-memory-original
+          HIA_NAMESPACE_DMS5_ORIGINAL_DIR: ${{ runner.temp }}/namespace-follow27-dms5-original
+          HIA_NAMESPACE_DB2_ORIGINAL_DIR: ${{ runner.temp }}/namespace-follow27-db2-original
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-components-follow27-readback
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/follow27-memory-dms5-originals/read-three-originals.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-components-follow27-readback-driver.log"
+      - name: Preserve complete success or failure evidence and exact original input
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-namespace-components-follow27-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/namespace-follow27-memory-original
+            ${{ runner.temp }}/namespace-follow27-dms5-original
+            ${{ runner.temp }}/namespace-follow27-db2-original
+            ${{ runner.temp }}/hia-namespace-components-follow27-readback
+            ${{ runner.temp }}/hia-namespace-components-follow27-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0

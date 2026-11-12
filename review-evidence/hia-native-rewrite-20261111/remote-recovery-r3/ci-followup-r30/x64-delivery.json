@@ -1,0 +1,172 @@
+{
+  "schema": "hepta.machine-x64-native-leaf-delivery.v1",
+  "status": "NEW_AUTHORING_UNEXECUTED",
+  "reference_commit": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+  "reference_blob": "8e87bd317c5f61e00993bb0bf8d803c5385d6556",
+  "reference_sha256": "8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9",
+  "files": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-x64-encoder-r1/tools/hia_machine_x64_encoder.py",
+      "gitsha": "817443cde4a81402e850086b80ac5de985b62183",
+      "bytes": 51420,
+      "sha256": "92070ffcb9e12bce1825c3f3361a97aadc8279f1041c4d2ed16dfadf350ec55a",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-x64-encoder-r1/tools/build_hia_machine_x64_encoder.py",
+      "gitsha": "d93628147205a793ca90c8b56635b1664077bc4c",
+      "bytes": 8208,
+      "sha256": "adfb7ef53197cf9911a8937bc74e315670f181fe9b5f17b19bce4c3d919d5c41",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-x64-encoder-r1/tests/test_hia_machine_x64_encoder.py",
+      "gitsha": "18aa77e90c3047da6035e32f58725851286eca28",
+      "bytes": 45704,
+      "sha256": "61dbf40a99220f2f5b6db7950ee8e3a53299530d385fee70877ade6a0e387c11",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-x64-encoder-r1/docs/HIA_MACHINE_X64_ENCODER_NATIVE.md",
+      "gitsha": "eeca0e0b9fc572a6d4160d265ae1493b00ce936e",
+      "bytes": 10504,
+      "sha256": "4373e54db4a532d7b289769278c44953aacaf4dee116c90c3839632a51d73e58",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-x64-encoder-r1/tools/x64_authoring_reference.py",
+      "gitsha": "6f1bffe8bd815a068f9834489960006cbaad6fac",
+      "bytes": 2112,
+      "sha256": "717d3bbd4bfc22bcca68aea7375787bfe9b0a355d74279c7258437dda2a4851b",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-x64-encoder-r1/tools/hia_agent_edit_source_views.py",
+      "gitsha": "f7d123bdb2bf65b25182b571f024299cb0342828",
+      "bytes": 23950,
+      "sha256": "555472263213f15deb239fcf3bf8e5b273a28caf3a67bb29ffd037f171d7ae5c",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-x64-encoder-r1/reference/hia_machine_x64.py",
+      "gitsha": "8e87bd317c5f61e00993bb0bf8d803c5385d6556",
+      "bytes": 11057,
+      "sha256": "8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-x64-encoder-r1/reference/test_hia_machine_x64.py",
+      "gitsha": "64bf109f7679197f57a29f13e94bb6ee103bac7d",
+      "bytes": 14678,
+      "sha256": "1ba1a51995c38ae93e5ce1a748a0b2bf3d2d6a19c0c48dfb9043c1ef639e094f",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-x64-encoder-r1/ci/ci_machine_x64_encoder_r1.py",
+      "gitsha": "24e9890c4936e20637a91d1936578aafad282883",
+      "bytes": 10613,
+      "sha256": "4af9beccb729ec3f3d5d5270d7252c067029a43987520c75efca82b7d2b08584",
+      "mode": "100644"
+    }
+  ],
+  "entrypoints": {
+    "builder": "tools/build_hia_machine_x64_encoder.py --reference EXACT_REFERENCE --compiler EXACT_B3 --out FRESH_BUILD",
+    "tests": "tests/test_hia_machine_x64_encoder.py --bundle FRESH_BUILD/bundle.json --reference EXACT_REFERENCE --out FRESH_RUN --group GROUP [--variant N]",
+    "ci": "ci/ci_machine_x64_encoder_r1.py",
+    "environment": "HIA_CI_COMMON exact existing61373 absolute path; HIA_CI_OUTPUT fresh output; CPython3.12.14 and existing Z3. Existing source/reference/common.prepare contracts retained.",
+    "workflow": "New selected machine-x64 job under existing Ubuntu24.04/x86_64/ImageOSubuntu24 guard. Suggested tag [hia-ci:machine-x64]. Keep existing parent30minute ceiling; all inner limits remain fixed."
+  },
+  "boundaries": {
+    "native_kernels": 2,
+    "encoder": "R/W/W private command, persistent code arena, persistent metadata",
+    "finalizer": "R/R/W actual code, actual metadata, fresh output Graph",
+    "full_public_operations": 46,
+    "constructor_included": true,
+    "error_ids": 17,
+    "instruction_bytes_fixups_relocations_all_in_HIA": true,
+    "partial_writes_preserved_on_original_semantic_errors": true,
+    "persistent_labels_and_names_copied_to_native_grow_arena": true,
+    "code_bytes_limit": 67108864,
+    "finalized_copy_original_partial_extension": 67108868,
+    "no_added_total_calls_labels_relocations_or_bytes_quota": true,
+    "arbitrary_foreign_Python_callbacks_and_private_internal_mutation_closed": false,
+    "Graph_headers_authenticate_external_input": false,
+    "fixed_issuer_immutable_GROW_input_required": true
+  },
+  "planned_tests": {
+    "groups": {
+      "constructor": 54,
+      "registers": 5388,
+      "memory": 6404,
+      "immediates": 8004,
+      "conditions": 8710,
+      "invalid": 298,
+      "labels": 1599,
+      "private": 65,
+      "execution": 1
+    },
+    "separate_boundary_process_cases": [
+      7,
+      5,
+      5,
+      5,
+      5,
+      5,
+      7,
+      5
+    ],
+    "total_cases": 30567,
+    "total_private_controls": 106,
+    "original_unittest_cases": 7,
+    "original_unittest_skips": 0,
+    "full_state_and_output_bytes_each_operation": true,
+    "all_original_tests_byte_unchanged": true,
+    "original_reference_ELF_writer_only_development_link_container": true,
+    "native_ISA_executable_and_readelf_objdump_original_assertions_retained": true,
+    "paged_lossless_CAS_full_mutable_buffers_each_entry": true
+  },
+  "limits": {
+    "B3": {
+      "cpu": 10,
+      "wall": 20,
+      "address": 268435456
+    },
+    "test_process": {
+      "cpu": 90,
+      "wall": 180,
+      "address": 1073741824
+    },
+    "profile": {
+      "functions": 128,
+      "blocks": 1536,
+      "ops": 8192,
+      "blocks_per_function": 256,
+      "block_parameters": 16,
+      "source_bytes": 1048576
+    }
+  },
+  "checks": {
+    "new_AST": 0,
+    "new_generation": 0,
+    "new_B3": 0,
+    "new_native": 0,
+    "lexical_only": {
+      "rawFunctions": 60,
+      "duplicateNames": [],
+      "unknownCalls": [],
+      "AST": false,
+      "generated": false,
+      "choose": "Exact0ef Builder builtin observed"
+    },
+    "all_source_blobs_complete_fetch_readback": true,
+    "all_hardcoded_owner_reference_compiler_sha_closed": true
+  },
+  "claims": {
+    "general_Core_to_machine_lowering_closed": false,
+    "production_ELF_join_closed": false,
+    "complete_build_closed": false,
+    "installed_closed": false,
+    "cold_qualified": false,
+    "refs_changed": false
+  }
+}
