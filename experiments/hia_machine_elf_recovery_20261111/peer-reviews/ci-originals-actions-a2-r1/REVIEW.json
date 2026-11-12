@@ -1,0 +1,92 @@
+{
+  "schema": "hia.independent-static-review.v1",
+  "status": "STATIC_CLEAR_FOR_A2_CUSTODY_DELTA_NOT_EXECUTION",
+  "reviewer": "/root/native_install_owner",
+  "candidate": {
+    "control_commit": "4126571681bfcbee2dbc65cc71d844e16dbae19c",
+    "control_tree": "c0718baf25c05bd6893fb7209dd2acab9329d1da",
+    "workflow_commit": "2c26958e14e5b84e03c02811a4f081dd9adc3ac1",
+    "workflow_tree": "8a1ad441a03391e193dbb194d5ce11b5b7b0d17c"
+  },
+  "actual_readback": {
+    "controller": {
+      "bytes": 35510,
+      "sha256": "c3fe5bed3eaccc936123ea005755edeca0b903077ed679bcf91ef490716e2cb7",
+      "git_blob_sha1": "cb3cb35594cfb153dbb66765dfa4a97728d09ee7"
+    },
+    "policy": {
+      "bytes": 6681,
+      "sha256": "26e37ca1cda26363318163ce369d6d0f7deb53b98800f9cb8632ef5e9f5a96df",
+      "git_blob_sha1": "6c1fa8f33c7a11ce0755d5c1e88d1afdda117af1"
+    },
+    "workflow": {
+      "bytes": 3487,
+      "sha256": "47c59fcf0929c51023b9ee78d27e76d2b4a3b63c152a66b306e13120da4ff887",
+      "git_blob_sha1": "0c10f60f74180bae335aee12f912f8b9103b7342"
+    },
+    "original_worker": {
+      "bytes": 15837,
+      "sha256": "77dec7a3dafa17cfd69e7c6128acd5ea5712ba5a4517164847140aeb7e851b33",
+      "git_blob_sha1": "8c07bc7342945e6c193b75fa722c470f443c48ab"
+    },
+    "original_custody_helper": {
+      "bytes": 29584,
+      "sha256": "24d8aadb1ab9630e8168c0b61c10e0934b7ad22d5cf58b92b56a7af1e88519c6",
+      "git_blob_sha1": "f53a3ed128f38a766028ce543bb3045ec80e2e71"
+    }
+  },
+  "scope": [
+    "Read the complete actual A2 controller, actual policy, and workflow B; compare with the actual A1 worker and original receiver producers.",
+    "The original partial-ZIP finding remains recorded in commit 4ad0ee4173b6f7597d95fac15c71b6f2b9eff097; A1 is not rewritten.",
+    "No local Python parsing, no remote process, no original ZIP download, no native compilation or product testing was performed by this review."
+  ],
+  "checks": [
+    {
+      "name": "partial_zip_does_not_hide_raw_members",
+      "result": "STATIC_CLEAR",
+      "evidence": "valid_selected_archive only permits raw omission after the exact original CUSTODY schema/artifact/count/completion flags and actual selected ZIP size/SHA/full identity match. Otherwise fixed_capture_paths retains an existing selected ZIP and each of the seventeen fixed raw paths."
+    },
+    {
+      "name": "complete_success_binds_actual_retained_originals",
+      "result": "STATIC_CLEAR",
+      "evidence": "required_successful_originals re-reads the setup, guardian, both terminal/checkpoint report bytes, both directory/selection/selected-ZIP objects and API metadata; actual CUSTODY and OBSERVATIONS bytes are compared to reconstructed producer values, then final captured rows must contain every mandatory original with equal size/SHA/source identity."
+    },
+    {
+      "name": "custody_producer_reconstruction",
+      "result": "STATIC_CLEAR",
+      "evidence": "The unchanged helper writes CUSTODY before setting header_observations. The worker later appends zip_before, zip_after, official_metadata. Removing only those three appended fields and restoring header_observations=None reproduces the actual helper wire value; recovery.json is checkpointed from the same final report as recovery-terminal.json."
+    },
+    {
+      "name": "read_boundary_binds_this_owned_operation",
+      "result": "STATIC_CLEAR",
+      "evidence": "closed_guardian verifies the current guardian/lifecycle schemas, command, cwd, 900-second controller, 3-second cleanup, implementation SHA and source-before identities before allowing capture. Natural success additionally requires complete ECHILD/reaped cleanup, no residual children/errors/timeout/interruption/kill events, unchanged inputs, and actual child log SHA."
+    },
+    {
+      "name": "credential_and_original_seal_boundaries",
+      "result": "UNCHANGED_FROM_A1_REVIEW",
+      "evidence": "The worker and original receiver byte hashes equal the original reviewed inputs. Official API requests alone receive the step token; a separate anonymous client receives the validated HTTPS storage redirect. Original size/SHA and two complete ZIP reads remain required. Original CI product failures are not reclassified."
+    },
+    {
+      "name": "workflow_pins_and_permissions",
+      "result": "STATIC_CLEAR",
+      "evidence": "Workflow B has exact A2 as its sole parent and checks out exact A2. Its three controller invocations bind policy SHA26e37ca1cda26363318163ce369d6d0f7deb53b98800f9cb8632ef5e9f5a96df. The read token is configured only on the collection step; preparation/finalization lack it. Permissions are contents:read/actions:read; finalize/upload retain always behavior."
+    }
+  ],
+  "limits": {
+    "original_controller_seconds": 900,
+    "cleanup_seconds": 3,
+    "checked_transfer_seconds": 720,
+    "socket_seconds": 30,
+    "maximum_public_payload_bytes": 503316480,
+    "maximum_public_files_including_final": 65,
+    "connector_maximum_bytes": 536870912
+  },
+  "conclusions": {
+    "new_static_blocker_observed": false,
+    "actual_execution": false,
+    "whole_native_delivery_qualified": false,
+    "original_ELF_caller_failure_cause_known": false,
+    "original_CI_rerun": false
+  },
+  "remaining": "The original two CI gate/report/owner records are still required to diagnose Step38. This static review is neither successful custody nor product qualification."
+}
