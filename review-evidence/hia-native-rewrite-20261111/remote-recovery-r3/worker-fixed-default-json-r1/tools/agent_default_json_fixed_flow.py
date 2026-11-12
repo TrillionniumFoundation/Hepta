@@ -1,10 +1,14 @@
 """Actual-peer orchestration for the default DataJSON fixed native component.
 
-NEW UNEXECUTED. Every peer command is copied from its real HIA issuer; every
+Revision 2: explicit lossless u32-to-u64 dispatch result conversion.
+Every peer command is copied from its real HIA issuer; every
 continuation carries the actual return and actual same-invocation output view.
 No Python parser, numeric formatter or Graph materializer is a runtime peer.
 """
 FLOW=r'''
+def fd_widen_result(value:u32) -> u64:
+    return value
+
 def fd_move(w:mutbuf, target:u64, source:u64, size:u64) -> u64:
     index = 0
     while index < size:
@@ -479,15 +483,15 @@ def fd_entry(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         phase = fd_get(w, F_PHASE)
         result = FD_BAD
         if phase < 100:
-            result = fd_start_step(o, w)
+            result = fd_widen_result(fd_start_step(o, w))
         elif phase < 200:
-            result = fd_prefix_step(o, w)
+            result = fd_widen_result(fd_prefix_step(o, w))
         elif phase < 300:
-            result = fd_simple_step(o, w)
+            result = fd_widen_result(fd_simple_step(o, w))
         elif phase < 400:
-            result = fd_values_step(o, w)
+            result = fd_widen_result(fd_values_step(o, w))
         elif phase < 500:
-            result = fd_finish_step(o, w)
+            result = fd_widen_result(fd_finish_step(o, w))
         else:
             return fd_refuse(w, 153)
         if result != 0:

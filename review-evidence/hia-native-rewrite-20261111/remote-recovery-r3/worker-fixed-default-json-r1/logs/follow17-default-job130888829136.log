@@ -1,0 +1,493 @@
+﻿2026-11-12T01:31:31.6634847Z Current runner version: '2.338.2'
+2026-11-12T01:31:31.6650890Z ##[group]Runner Image Provisioner
+2026-11-12T01:31:31.6651452Z Hosted Compute Agent
+2026-11-12T01:31:31.6651813Z Version: 20261028.624
+2026-11-12T01:31:31.6652183Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-12T01:31:31.6652944Z Build Date: 2026-10-28T21:51:42Z
+2026-11-12T01:31:31.6653349Z Worker ID: {53e5925a-bfd3-4a27-bb7a-7c40853b4626}
+2026-11-12T01:31:31.6653813Z Region: centralus
+2026-11-12T01:31:31.6654156Z Cloud: Azure
+2026-11-12T01:31:31.6654478Z ##[endgroup]
+2026-11-12T01:31:31.6655272Z ##[group]Operating System
+2026-11-12T01:31:31.6655631Z Ubuntu
+2026-11-12T01:31:31.6655934Z 24.04.5
+2026-11-12T01:31:31.6656301Z LTS
+2026-11-12T01:31:31.6656612Z ##[endgroup]
+2026-11-12T01:31:31.6656983Z ##[group]Runner Image
+2026-11-12T01:31:31.6657347Z Image: ubuntu-24.04
+2026-11-12T01:31:31.6657709Z Version: 20261101.360.1
+2026-11-12T01:31:31.6658453Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-12T01:31:31.6659585Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-12T01:31:31.6660147Z ##[endgroup]
+2026-11-12T01:31:31.6660835Z ##[group]GITHUB_TOKEN Permissions
+2026-11-12T01:31:31.6661986Z Contents: read
+2026-11-12T01:31:31.6662342Z Metadata: read
+2026-11-12T01:31:31.6662735Z ##[endgroup]
+2026-11-12T01:31:31.6663942Z Secret source: Actions
+2026-11-12T01:31:31.6664517Z Cache mode: write
+2026-11-12T01:31:31.6664951Z Prepare workflow directory
+2026-11-12T01:31:31.6894446Z Prepare all required actions
+2026-11-12T01:31:31.6926493Z Getting action download info
+2026-11-12T01:31:31.9696526Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-12T01:31:32.0664520Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-12T01:31:32.1576416Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-12T01:31:32.3780353Z Complete job name: Complete default DataJSON prefix and original ordered errors
+2026-11-12T01:31:32.4253824Z ##[group]Run actions/checkout@v4
+2026-11-12T01:31:32.4254203Z with:
+2026-11-12T01:31:32.4254419Z   fetch-depth: 0
+2026-11-12T01:31:32.4254660Z   persist-credentials: false
+2026-11-12T01:31:32.4254941Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T01:31:32.4257003Z   token: ***
+2026-11-12T01:31:32.4257219Z   ssh-strict: true
+2026-11-12T01:31:32.4257447Z   ssh-user: git
+2026-11-12T01:31:32.4257664Z   clean: true
+2026-11-12T01:31:32.4257895Z   sparse-checkout-cone-mode: true
+2026-11-12T01:31:32.4258167Z   fetch-tags: false
+2026-11-12T01:31:32.4258396Z   show-progress: true
+2026-11-12T01:31:32.4258628Z   lfs: false
+2026-11-12T01:31:32.4258968Z   submodules: false
+2026-11-12T01:31:32.4259200Z   set-safe-directory: true
+2026-11-12T01:31:32.4259460Z   allow-unsafe-pr-checkout: false
+2026-11-12T01:31:32.4259793Z env:
+2026-11-12T01:31:32.4260016Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T01:31:32.4260285Z ##[endgroup]
+2026-11-12T01:31:32.6356993Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T01:31:32.6357955Z ##[group]Getting Git version info
+2026-11-12T01:31:32.6358291Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-12T01:31:32.6358975Z [command]/usr/bin/git version
+2026-11-12T01:31:32.6447730Z git version 2.56.0
+2026-11-12T01:31:32.6488116Z ##[endgroup]
+2026-11-12T01:31:32.6492167Z Temporarily overriding HOME='/home/runner/work/_temp/9c8cbb70-f5d5-4d43-80ad-75b3ba074b9b' before making global git config changes
+2026-11-12T01:31:32.6493376Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T01:31:32.6496918Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-12T01:31:32.6529814Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-12T01:31:32.6535454Z ##[group]Initializing the repository
+2026-11-12T01:31:32.6538409Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-12T01:31:32.6636148Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T01:31:32.6636840Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T01:31:32.6637325Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T01:31:32.6637704Z hint: call:
+2026-11-12T01:31:32.6637916Z hint:
+2026-11-12T01:31:32.6638195Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T01:31:32.6638516Z hint:
+2026-11-12T01:31:32.6638963Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T01:31:32.6639697Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T01:31:32.6640285Z hint:
+2026-11-12T01:31:32.6640616Z hint: 	git branch -m <name>
+2026-11-12T01:31:32.6640977Z hint:
+2026-11-12T01:31:32.6641301Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T01:31:32.6651428Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-12T01:31:32.6660034Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T01:31:32.6700798Z ##[endgroup]
+2026-11-12T01:31:32.6701437Z ##[group]Disabling automatic garbage collection
+2026-11-12T01:31:32.6703675Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T01:31:32.6743179Z ##[endgroup]
+2026-11-12T01:31:32.6743841Z ##[group]Setting up auth
+2026-11-12T01:31:32.6746865Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T01:31:32.6795418Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T01:31:32.7351905Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T01:31:32.7426673Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T01:31:32.7737436Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T01:31:32.7774267Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T01:31:32.7957668Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T01:31:32.7996464Z ##[endgroup]
+2026-11-12T01:31:32.7996872Z ##[group]Fetching the repository
+2026-11-12T01:31:32.8006647Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-11-12T01:32:17.7586561Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T01:32:17.7591994Z  * [new branch]        codex/hia-608-cold-record-custody-r2-20261111-e26e -> origin/codex/hia-608-cold-record-custody-r2-20261111-e26e
+2026-11-12T01:32:17.7593039Z  * [new branch]        codex/hia-608-independent-owner-audit-20261111-e26e -> origin/codex/hia-608-independent-owner-audit-20261111-e26e
+2026-11-12T01:32:17.7593877Z  * [new branch]        codex/hia-6e-ci-originals-20261111-e26e -> origin/codex/hia-6e-ci-originals-20261111-e26e
+2026-11-12T01:32:17.7594826Z  * [new branch]        codex/hia-acffa-elf-ci-original-custody-control-r1-20261112-e26e -> origin/codex/hia-acffa-elf-ci-original-custody-control-r1-20261112-e26e
+2026-11-12T01:32:17.7595542Z  * [new branch]        codex/hia-acffa-elf-ci-original-custody-run-r1-20261112-e26e -> origin/codex/hia-acffa-elf-ci-original-custody-run-r1-20261112-e26e
+2026-11-12T01:32:17.7596165Z  * [new branch]        codex/hia-acffa-elf-ci-original-frames-run-r1-20261112-e26e -> origin/codex/hia-acffa-elf-ci-original-frames-run-r1-20261112-e26e
+2026-11-12T01:32:17.7596792Z  * [new branch]        codex/hia-acffa-source-original-custody-20261111-e26e -> origin/codex/hia-acffa-source-original-custody-20261111-e26e
+2026-11-12T01:32:17.7597682Z  * [new branch]        codex/hia-artifact-page-draft-checkpoint-20261111-e26e -> origin/codex/hia-artifact-page-draft-checkpoint-20261111-e26e
+2026-11-12T01:32:17.7598203Z  * [new branch]        codex/hia-cold-causal-audit-r2-20261111-e26e -> origin/codex/hia-cold-causal-audit-r2-20261111-e26e
+2026-11-12T01:32:17.7598678Z  * [new branch]        codex/hia-cold-prefix-ab-actual-r1-20261111-e26e -> origin/codex/hia-cold-prefix-ab-actual-r1-20261111-e26e
+2026-11-12T01:32:17.7599771Z  * [new branch]        codex/hia-cold-prefix-native-observer-r1-20261111-e26e -> origin/codex/hia-cold-prefix-native-observer-r1-20261111-e26e
+2026-11-12T01:32:17.7600562Z  * [new branch]        codex/hia-cold-throughput-evidence-20261111-e26e -> origin/codex/hia-cold-throughput-evidence-20261111-e26e
+2026-11-12T01:32:17.7601479Z  * [new branch]        codex/hia-core-emitter-authoring-r2-run-20261112-e26e -> origin/codex/hia-core-emitter-authoring-r2-run-20261112-e26e
+2026-11-12T01:32:17.7602374Z  * [new branch]        codex/hia-core-json-front-v68-20261111-7420 -> origin/codex/hia-core-json-front-v68-20261111-7420
+2026-11-12T01:32:17.7603196Z  * [new branch]        codex/hia-core-lowering-development-controls-20261111-e26e -> origin/codex/hia-core-lowering-development-controls-20261111-e26e
+2026-11-12T01:32:17.7603957Z  * [new branch]        codex/hia-d2-ci-originals-20261111-e26e -> origin/codex/hia-d2-ci-originals-20261111-e26e
+2026-11-12T01:32:17.7604691Z  * [new branch]        codex/hia-desktop-development-preparation-20261111-e26e -> origin/codex/hia-desktop-development-preparation-20261111-e26e
+2026-11-12T01:32:17.7605505Z  * [new branch]        codex/hia-e8-ci-original-custody-20261111-e26e -> origin/codex/hia-e8-ci-original-custody-20261111-e26e
+2026-11-12T01:32:17.7606199Z  * [new branch]        codex/hia-git-object-package-20261111-e26e -> origin/codex/hia-git-object-package-20261111-e26e
+2026-11-12T01:32:17.7606619Z  * [new branch]        codex/hia-heap-source-v71-20261112-dda7 -> origin/codex/hia-heap-source-v71-20261112-dda7
+2026-11-12T01:32:17.7607174Z  * [new branch]        codex/hia-hepta-suffix-20261111-7420 -> origin/codex/hia-hepta-suffix-20261111-7420
+2026-11-12T01:32:17.7607628Z  * [new branch]        codex/hia-instructions-actions-r5-result-43091589236-1 -> origin/codex/hia-instructions-actions-r5-result-43091589236-1
+2026-11-12T01:32:17.7608198Z  * [new branch]        codex/hia-instructions-actions-r5-run-20261111-e26e -> origin/codex/hia-instructions-actions-r5-run-20261111-e26e
+2026-11-12T01:32:17.7608664Z  * [new branch]        codex/hia-journal-ack-review-20261111-e26e -> origin/codex/hia-journal-ack-review-20261111-e26e
+2026-11-12T01:32:17.7609294Z  * [new branch]        codex/hia-json-pretty-native-r1-run-20261112-e26e -> origin/codex/hia-json-pretty-native-r1-run-20261112-e26e
+2026-11-12T01:32:17.7609765Z  * [new branch]        codex/hia-linked-native-observer-20261111-e26e -> origin/codex/hia-linked-native-observer-20261111-e26e
+2026-11-12T01:32:17.7610224Z  * [new branch]        codex/hia-machine-elf-authoring-20261111-e26e -> origin/codex/hia-machine-elf-authoring-20261111-e26e
+2026-11-12T01:32:17.7610715Z  * [new branch]        codex/hia-machine-elf-reconstructed-static-20261111-e26e -> origin/codex/hia-machine-elf-reconstructed-static-20261111-e26e
+2026-11-12T01:32:17.7611344Z  * [new branch]        codex/hia-machine-instructions-generated-r5-20261111-e26e -> origin/codex/hia-machine-instructions-generated-r5-20261111-e26e
+2026-11-12T01:32:17.7612055Z  * [new branch]        codex/hia-machine-instructions-native-20261111-e26e -> origin/codex/hia-machine-instructions-native-20261111-e26e
+2026-11-12T01:32:17.7612521Z  * [new branch]        codex/hia-machine-state-native-20261111-e26e -> origin/codex/hia-machine-state-native-20261111-e26e
+2026-11-12T01:32:17.7612956Z  * [new branch]        codex/hia-native-artifact-read-20261111-e26e -> origin/codex/hia-native-artifact-read-20261111-e26e
+2026-11-12T01:32:17.7613519Z  * [new branch]        codex/hia-native-budget-cleanup-20261111-ddc2 -> origin/codex/hia-native-budget-cleanup-20261111-ddc2
+2026-11-12T01:32:17.7613990Z  * [new branch]        codex/hia-native-cli-control-recovery-20261111-e26e -> origin/codex/hia-native-cli-control-recovery-20261111-e26e
+2026-11-12T01:32:17.7614438Z  * [new branch]        codex/hia-native-closure-20261111-e26e -> origin/codex/hia-native-closure-20261111-e26e
+2026-11-12T01:32:17.7614847Z  * [new branch]        codex/hia-native-core-emitter-20261111-e26e -> origin/codex/hia-native-core-emitter-20261111-e26e
+2026-11-12T01:32:17.7615357Z  * [new branch]        codex/hia-native-core-emitter-v2-authoring-input-20261111-e26e -> origin/codex/hia-native-core-emitter-v2-authoring-input-20261111-e26e
+2026-11-12T01:32:17.7615873Z  * [new branch]        codex/hia-native-core-lowering-20261111-e26e -> origin/codex/hia-native-core-lowering-20261111-e26e
+2026-11-12T01:32:17.7616346Z  * [new branch]        codex/hia-native-core-lowering-product-20261111-e26e -> origin/codex/hia-native-core-lowering-product-20261111-e26e
+2026-11-12T01:32:17.7616819Z  * [new branch]        codex/hia-native-evidence-v63-20261111-e26e -> origin/codex/hia-native-evidence-v63-20261111-e26e
+2026-11-12T01:32:17.7617373Z  * [new branch]        codex/hia-native-integration-20261111-7420 -> origin/codex/hia-native-integration-20261111-7420
+2026-11-12T01:32:17.7618064Z  * [new branch]        codex/hia-native-integration-v67-20261111-dda7 -> origin/codex/hia-native-integration-v67-20261111-dda7
+2026-11-12T01:32:17.7618606Z  * [new branch]        codex/hia-native-integration-v68-20261111-dda7 -> origin/codex/hia-native-integration-v68-20261111-dda7
+2026-11-12T01:32:17.7677937Z  * [new branch]        codex/hia-native-integration-v69-20261111-dda7 -> origin/codex/hia-native-integration-v69-20261111-dda7
+2026-11-12T01:32:17.7678678Z  * [new branch]        codex/hia-native-json-wire-20261111-e26e -> origin/codex/hia-native-json-wire-20261111-e26e
+2026-11-12T01:32:17.7679281Z  * [new branch]        codex/hia-native-machine-encoding-20261111-e26e -> origin/codex/hia-native-machine-encoding-20261111-e26e
+2026-11-12T01:32:17.7679995Z  * [new branch]        codex/hia-native-machine-plan-v65-20261111-e26e -> origin/codex/hia-native-machine-plan-v65-20261111-e26e
+2026-11-12T01:32:17.7680452Z  * [new branch]        codex/hia-native-recovery-v66-20261111-dda7 -> origin/codex/hia-native-recovery-v66-20261111-dda7
+2026-11-12T01:32:17.7680876Z  * [new branch]        codex/hia-native-self-rewrite-20261111-dda7 -> origin/codex/hia-native-self-rewrite-20261111-dda7
+2026-11-12T01:32:17.7681295Z  * [new branch]        codex/hia-native-source-build-20261111-7420 -> origin/codex/hia-native-source-build-20261111-7420
+2026-11-12T01:32:17.7681727Z  * [new branch]        codex/hia-native-source-package-20261111-e26e -> origin/codex/hia-native-source-package-20261111-e26e
+2026-11-12T01:32:17.7682226Z  * [new branch]        codex/hia-native-stack-integration-fixes-r1-20261111-e26e -> origin/codex/hia-native-stack-integration-fixes-r1-20261111-e26e
+2026-11-12T01:32:17.7682752Z  * [new branch]        codex/hia-native-stack-integration-r1-20261111-e26e -> origin/codex/hia-native-stack-integration-r1-20261111-e26e
+2026-11-12T01:32:17.7683249Z  * [new branch]        codex/hia-native-stack-integration-r2-20261111-e26e -> origin/codex/hia-native-stack-integration-r2-20261111-e26e
+2026-11-12T01:32:17.7683749Z  * [new branch]        codex/hia-native-stack-source-r1-result-43110682350-1 -> origin/codex/hia-native-stack-source-r1-result-43110682350-1
+2026-11-12T01:32:17.7684251Z  * [new branch]        codex/hia-native-stack-source-r1-run-20261111-e26e -> origin/codex/hia-native-stack-source-r1-run-20261111-e26e
+2026-11-12T01:32:17.7684746Z  * [new branch]        codex/hia-native-stack-source-r2-result-43116276591-1 -> origin/codex/hia-native-stack-source-r2-result-43116276591-1
+2026-11-12T01:32:17.7685236Z  * [new branch]        codex/hia-native-stack-source-r2-run-20261111-e26e -> origin/codex/hia-native-stack-source-r2-run-20261111-e26e
+2026-11-12T01:32:17.7685794Z  * [new branch]        codex/hia-native-state-owner-20261111-e26e -> origin/codex/hia-native-state-owner-20261111-e26e
+2026-11-12T01:32:17.7686230Z  * [new branch]        codex/hia-native-store-authority-20261111-e26e -> origin/codex/hia-native-store-authority-20261111-e26e
+2026-11-12T01:32:17.7686694Z  * [new branch]        codex/hia-native-successor-gates-v9-20261111-e26e -> origin/codex/hia-native-successor-gates-v9-20261111-e26e
+2026-11-12T01:32:17.7687175Z  * [new branch]        codex/hia-native-v65-state-observer-20261111-9acdfa -> origin/codex/hia-native-v65-state-observer-20261111-9acdfa
+2026-11-12T01:32:17.7687699Z  * [new branch]        codex/hia-native-v66-integration-checkpoint-20261111-e26e -> origin/codex/hia-native-v66-integration-checkpoint-20261111-e26e
+2026-11-12T01:32:17.7688224Z  * [new branch]        codex/hia-native-v66-linked-observer-20261111-9acdfa -> origin/codex/hia-native-v66-linked-observer-20261111-9acdfa
+2026-11-12T01:32:17.7688730Z  * [new branch]        codex/hia-native-v66-source-controls-20261111-e26e -> origin/codex/hia-native-v66-source-controls-20261111-e26e
+2026-11-12T01:32:17.7689378Z  * [new branch]        codex/hia-native-v67-call-fixed-point-20261111-9acdfa -> origin/codex/hia-native-v67-call-fixed-point-20261111-9acdfa
+2026-11-12T01:32:17.7690041Z  * [new branch]        codex/hia-native-wire-entry-20261111-e26e -> origin/codex/hia-native-wire-entry-20261111-e26e
+2026-11-12T01:32:17.7690478Z  * [new branch]        codex/hia-native-wire-interruption-20261111-e26e -> origin/codex/hia-native-wire-interruption-20261111-e26e
+2026-11-12T01:32:17.7691105Z  * [new branch]        codex/hia-native-wire-key-cache-20261111-e26e -> origin/codex/hia-native-wire-key-cache-20261111-e26e
+2026-11-12T01:32:17.7691826Z  * [new branch]        codex/hia-native-wire-lifecycle-20261111-e26e -> origin/codex/hia-native-wire-lifecycle-20261111-e26e
+2026-11-12T01:32:17.7692499Z  * [new branch]        codex/hia-native-wire-r7-cloud-development-20261111-e26e -> origin/codex/hia-native-wire-r7-cloud-development-20261111-e26e
+2026-11-12T01:32:17.7693274Z  * [new branch]        codex/hia-native-worker-report-next-20261111-e26e -> origin/codex/hia-native-worker-report-next-20261111-e26e
+2026-11-12T01:32:17.7693739Z  * [new branch]        codex/hia-nominal-json-native-20261111-7420 -> origin/codex/hia-nominal-json-native-20261111-7420
+2026-11-12T01:32:17.7694170Z  * [new branch]        codex/hia-nominal-tokens-native-20261111-7420 -> origin/codex/hia-nominal-tokens-native-20261111-7420
+2026-11-12T01:32:17.7694619Z  * [new branch]        codex/hia-preflight-diagnostics-20261111-e26e -> origin/codex/hia-preflight-diagnostics-20261111-e26e
+2026-11-12T01:32:17.7695084Z  * [new branch]        codex/hia-qualification-v7-evidence-20261111-e26e -> origin/codex/hia-qualification-v7-evidence-20261111-e26e
+2026-11-12T01:32:17.7695549Z  * [new branch]        codex/hia-source-custody-acffa-r1-20261111-e26e -> origin/codex/hia-source-custody-acffa-r1-20261111-e26e
+2026-11-12T01:32:17.7696003Z  * [new branch]        codex/hia-source-custody-v67-608157e5-20261111 -> origin/codex/hia-source-custody-v67-608157e5-20261111
+2026-11-12T01:32:17.7696436Z  * [new branch]        codex/hia-source-harness-v71-20261112-dda7 -> origin/codex/hia-source-harness-v71-20261112-dda7
+2026-11-12T01:32:17.7696894Z  * [new branch]        codex/hia-static-budget-recovery-v69-20261111-dda7 -> origin/codex/hia-static-budget-recovery-v69-20261111-dda7
+2026-11-12T01:32:17.7697586Z  * [new branch]        codex/hia-store-page-integration-20261111-e26e -> origin/codex/hia-store-page-integration-20261111-e26e
+2026-11-12T01:32:17.7698023Z  * [new branch]        codex/hia-strict-code-callers-20261111-e26e -> origin/codex/hia-strict-code-callers-20261111-e26e
+2026-11-12T01:32:17.7698447Z  * [new branch]        codex/hia-support-domain-docs-20261111-f9aa -> origin/codex/hia-support-domain-docs-20261111-f9aa
+2026-11-12T01:32:17.7699034Z  * [new branch]        codex/hia-three-loop-closure-20261111-1ac5 -> origin/codex/hia-three-loop-closure-20261111-1ac5
+2026-11-12T01:32:17.7699585Z  * [new branch]        codex/hia-three-loop-receipt-closure-20261111-f9aa -> origin/codex/hia-three-loop-receipt-closure-20261111-f9aa
+2026-11-12T01:32:17.7700112Z  * [new branch]        codex/hia-v67-all-originals-20261111-e26e -> origin/codex/hia-v67-all-originals-20261111-e26e
+2026-11-12T01:32:17.7700531Z  * [new branch]        codex/hia-v67-full-controller-20261111-e26e -> origin/codex/hia-v67-full-controller-20261111-e26e
+2026-11-12T01:32:17.7700967Z  * [new branch]        codex/hia-v67-ndu-fixture-supply-20261111-e26e -> origin/codex/hia-v67-ndu-fixture-supply-20261111-e26e
+2026-11-12T01:32:17.7701434Z  * [new branch]        codex/hia-v67-official-source-ingress-20261111-e26e -> origin/codex/hia-v67-official-source-ingress-20261111-e26e
+2026-11-12T01:32:17.7701902Z  * [new branch]        codex/hia-v8-independent-review-20261111-e26e -> origin/codex/hia-v8-independent-review-20261111-e26e
+2026-11-12T01:32:17.7702359Z  * [new branch]        codex/hia-worker-exception-context-20261111-e26e -> origin/codex/hia-worker-exception-context-20261111-e26e
+2026-11-12T01:32:17.7702856Z  * [new branch]        codex/hia-workflow-source-fixture-fix-e8-20261111-e26e -> origin/codex/hia-workflow-source-fixture-fix-e8-20261111-e26e
+2026-11-12T01:32:17.7703330Z  * [new branch]        evidence/hia-receipt-closure-20261111-f9aa -> origin/evidence/hia-receipt-closure-20261111-f9aa
+2026-11-12T01:32:17.7703735Z  * [new branch]        evidence/hia-three-loop-20261111-1ac5 -> origin/evidence/hia-three-loop-20261111-1ac5
+2026-11-12T01:32:17.7704026Z  * [new branch]        main       -> origin/main
+2026-11-12T01:32:17.7704319Z  * [new branch]        recovery/hia-function-9acdfa-20261111 -> origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T01:32:17.7704726Z  * [new branch]        review/library-hia-rational-static-20261110 -> origin/review/library-hia-rational-static-20261110
+2026-11-12T01:32:17.7705657Z [command]/usr/bin/git branch --list --remote origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T01:32:17.7705988Z   origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T01:32:17.7706584Z [command]/usr/bin/git rev-parse refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T01:32:17.7706925Z d521b0df870f153a992a4bef937add65f85a9058
+2026-11-12T01:32:17.7707618Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules origin +bfc30ce5c77fc5541cd0900015cf2e64f5568457:refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T01:32:17.7776732Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T01:32:17.7777853Z  + d521b0df...bfc30ce5 bfc30ce5c77fc5541cd0900015cf2e64f5568457 -> origin/recovery/hia-function-9acdfa-20261111  (forced update)
+2026-11-12T01:32:17.7782555Z ##[endgroup]
+2026-11-12T01:32:17.7782975Z ##[group]Determining the checkout info
+2026-11-12T01:32:17.7783931Z ##[endgroup]
+2026-11-12T01:32:17.7787419Z [command]/usr/bin/git sparse-checkout disable
+2026-11-12T01:32:17.7842456Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-12T01:32:17.7874078Z ##[group]Checking out the ref
+2026-11-12T01:32:17.7876492Z [command]/usr/bin/git checkout --progress --force -B recovery/hia-function-9acdfa-20261111 refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T01:32:18.4408057Z Switched to a new branch 'recovery/hia-function-9acdfa-20261111'
+2026-11-12T01:32:18.4409909Z branch 'recovery/hia-function-9acdfa-20261111' set up to track 'origin/recovery/hia-function-9acdfa-20261111'.
+2026-11-12T01:32:18.4529033Z ##[endgroup]
+2026-11-12T01:32:18.4572636Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T01:32:18.4602753Z bfc30ce5c77fc5541cd0900015cf2e64f5568457
+2026-11-12T01:32:18.4610478Z ##[group]Removing auth
+2026-11-12T01:32:18.4612826Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T01:32:18.4644406Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T01:32:18.4829633Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T01:32:18.4855142Z http.https://github.com/.extraheader
+2026-11-12T01:32:18.4860539Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T01:32:18.4894985Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T01:32:18.5073622Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T01:32:18.5103327Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T01:32:18.5282194Z ##[endgroup]
+2026-11-12T01:32:18.5470635Z ##[group]Run actions/checkout@v4
+2026-11-12T01:32:18.5470821Z with:
+2026-11-12T01:32:18.5470978Z   ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+2026-11-12T01:32:18.5471170Z   path: ci-reference-source
+2026-11-12T01:32:18.5471333Z   fetch-depth: 1
+2026-11-12T01:32:18.5471477Z   persist-credentials: false
+2026-11-12T01:32:18.5471652Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T01:32:18.5473115Z   token: ***
+2026-11-12T01:32:18.5473250Z   ssh-strict: true
+2026-11-12T01:32:18.5473387Z   ssh-user: git
+2026-11-12T01:32:18.5473523Z   clean: true
+2026-11-12T01:32:18.5473667Z   sparse-checkout-cone-mode: true
+2026-11-12T01:32:18.5473832Z   fetch-tags: false
+2026-11-12T01:32:18.5473974Z   show-progress: true
+2026-11-12T01:32:18.5474133Z   lfs: false
+2026-11-12T01:32:18.5474303Z   submodules: false
+2026-11-12T01:32:18.5474445Z   set-safe-directory: true
+2026-11-12T01:32:18.5474605Z   allow-unsafe-pr-checkout: false
+2026-11-12T01:32:18.5474771Z env:
+2026-11-12T01:32:18.5474940Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T01:32:18.5475096Z ##[endgroup]
+2026-11-12T01:32:18.5999232Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T01:32:18.6001531Z ##[group]Getting Git version info
+2026-11-12T01:32:18.6001950Z Working directory is '/home/runner/work/Hepta/Hepta/ci-reference-source'
+2026-11-12T01:32:18.6032556Z [command]/usr/bin/git version
+2026-11-12T01:32:18.6056789Z git version 2.56.0
+2026-11-12T01:32:18.6067712Z ##[endgroup]
+2026-11-12T01:32:18.6076024Z Temporarily overriding HOME='/home/runner/work/_temp/c228dfc9-6141-4b5d-bf22-b6954c59d4d0' before making global git config changes
+2026-11-12T01:32:18.6076803Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T01:32:18.6079037Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/ci-reference-source
+2026-11-12T01:32:18.6107775Z ##[group]Initializing the repository
+2026-11-12T01:32:18.6110614Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/ci-reference-source
+2026-11-12T01:32:18.6145223Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T01:32:18.6145872Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T01:32:18.6146675Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T01:32:18.6147345Z hint: call:
+2026-11-12T01:32:18.6147717Z hint:
+2026-11-12T01:32:18.6148753Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T01:32:18.6149339Z hint:
+2026-11-12T01:32:18.6149783Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T01:32:18.6150388Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T01:32:18.6150942Z hint:
+2026-11-12T01:32:18.6151291Z hint: 	git branch -m <name>
+2026-11-12T01:32:18.6151712Z hint:
+2026-11-12T01:32:18.6152179Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T01:32:18.6152865Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/ci-reference-source/.git/
+2026-11-12T01:32:18.6154524Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T01:32:18.6183568Z ##[endgroup]
+2026-11-12T01:32:18.6186982Z ##[group]Disabling automatic garbage collection
+2026-11-12T01:32:18.6187231Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T01:32:18.6213556Z ##[endgroup]
+2026-11-12T01:32:18.6213930Z ##[group]Setting up auth
+2026-11-12T01:32:18.6218500Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T01:32:18.6244389Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T01:32:18.6445400Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T01:32:18.6477885Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T01:32:18.6686145Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T01:32:18.6723078Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T01:32:18.6905938Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T01:32:18.6945189Z ##[endgroup]
+2026-11-12T01:32:18.6945592Z ##[group]Fetching the repository
+2026-11-12T01:32:18.6950728Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+2026-11-12T01:32:20.7261715Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T01:32:20.7262188Z  * branch            0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5 -> FETCH_HEAD
+2026-11-12T01:32:20.7264951Z ##[endgroup]
+2026-11-12T01:32:20.7265245Z ##[group]Determining the checkout info
+2026-11-12T01:32:20.7266857Z ##[endgroup]
+2026-11-12T01:32:20.7271699Z [command]/usr/bin/git sparse-checkout disable
+2026-11-12T01:32:20.7318285Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-12T01:32:20.7372175Z ##[group]Checking out the ref
+2026-11-12T01:32:20.7374660Z [command]/usr/bin/git checkout --progress --force 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+2026-11-12T01:32:20.9759012Z Note: switching to '0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5'.
+2026-11-12T01:32:20.9759276Z 
+2026-11-12T01:32:20.9759453Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-12T01:32:20.9759827Z changes and commit them, and you can discard any commits you make in this
+2026-11-12T01:32:20.9760198Z state without impacting any branches by switching back to a branch.
+2026-11-12T01:32:20.9760413Z 
+2026-11-12T01:32:20.9760581Z If you want to create a new branch to retain commits you create, you may
+2026-11-12T01:32:20.9760950Z do so (now or later) by using -c with the switch command. Example:
+2026-11-12T01:32:20.9761151Z 
+2026-11-12T01:32:20.9761240Z   git switch -c <new-branch-name>
+2026-11-12T01:32:20.9761380Z 
+2026-11-12T01:32:20.9761473Z Or undo this operation with:
+2026-11-12T01:32:20.9761603Z 
+2026-11-12T01:32:20.9761676Z   git switch -
+2026-11-12T01:32:20.9761771Z 
+2026-11-12T01:32:20.9761938Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-12T01:32:20.9762175Z 
+2026-11-12T01:32:20.9762376Z HEAD is now at 0ef9541 Keep native cold binding and call-graph evidence in one CI environment
+2026-11-12T01:32:20.9787498Z ##[endgroup]
+2026-11-12T01:32:20.9829928Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T01:32:20.9858082Z 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+2026-11-12T01:32:20.9864938Z ##[group]Removing auth
+2026-11-12T01:32:20.9867073Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T01:32:20.9898713Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T01:32:21.0083955Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T01:32:21.0110074Z http.https://github.com/.extraheader
+2026-11-12T01:32:21.0114784Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T01:32:21.0148677Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T01:32:21.0330662Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T01:32:21.0363440Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T01:32:21.0556972Z ##[endgroup]
+2026-11-12T01:32:21.0716646Z ##[group]Run actions/setup-python@v5
+2026-11-12T01:32:21.0716796Z with:
+2026-11-12T01:32:21.0716911Z   python-version: 3.12.14
+2026-11-12T01:32:21.0717042Z   check-latest: false
+2026-11-12T01:32:21.0718572Z   token: ***
+2026-11-12T01:32:21.0718687Z   update-environment: true
+2026-11-12T01:32:21.0719020Z   allow-prereleases: false
+2026-11-12T01:32:21.0719147Z   freethreaded: false
+2026-11-12T01:32:21.0719262Z env:
+2026-11-12T01:32:21.0719370Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T01:32:21.0719503Z ##[endgroup]
+2026-11-12T01:32:21.1527892Z ##[group]Installed versions
+2026-11-12T01:32:21.1541283Z Version 3.12.14 was not found in the local cache
+2026-11-12T01:32:21.1671474Z (node:2412) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T01:32:21.1671974Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T01:32:22.0396716Z Version 3.12.14 is available for downloading
+2026-11-12T01:32:22.0397525Z Download from "https://github.com/actions/python-versions/releases/download/3.12.14-31661455385/python-3.12.14-linux-24.04-x64.tar.gz"
+2026-11-12T01:32:22.9107142Z Extract downloaded archive
+2026-11-12T01:32:22.9200551Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/d837bb7d-7688-4eb3-84d0-04d35f840f24 -f /home/runner/work/_temp/8c2abc36-aec4-4309-b602-0c7557d296e8
+2026-11-12T01:32:24.3076165Z Execute installation script
+2026-11-12T01:32:24.3164962Z Check if Python hostedtoolcache folder exist...
+2026-11-12T01:32:24.3165294Z Create Python 3.12.14 folder
+2026-11-12T01:32:24.3175183Z Copy Python binaries to hostedtoolcache folder
+2026-11-12T01:32:24.6521178Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-12T01:32:24.6554395Z Upgrading pip...
+2026-11-12T01:32:25.8331395Z Collecting pip
+2026-11-12T01:32:25.8896776Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-12T01:32:25.9052643Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-12T01:32:25.9974081Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 28.0 MB/s eta 0:00:00
+2026-11-12T01:32:25.9974516Z 
+2026-11-12T01:32:26.0090253Z Installing collected packages: pip
+2026-11-12T01:32:26.0090872Z Attempting uninstall: pip
+2026-11-12T01:32:26.0103119Z Found existing installation: pip 25.0.1
+2026-11-12T01:32:26.0293853Z Uninstalling pip-25.0.1:
+2026-11-12T01:32:26.0329554Z Successfully uninstalled pip-25.0.1
+2026-11-12T01:32:26.6178945Z Successfully installed pip-26.3
+2026-11-12T01:32:26.6569328Z Create complete file
+2026-11-12T01:32:26.6599302Z Successfully set up CPython (3.12.14)
+2026-11-12T01:32:26.6599656Z ##[endgroup]
+2026-11-12T01:32:26.6945956Z ##[group]Run python -m pip install z3-solver==4.15.4.0
+2026-11-12T01:32:26.6949767Z [36;1mpython -m pip install z3-solver==4.15.4.0[0m
+2026-11-12T01:32:26.6995092Z shell: /usr/bin/bash -e {0}
+2026-11-12T01:32:26.6995286Z env:
+2026-11-12T01:32:26.6995430Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T01:32:26.6995767Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T01:32:26.6996002Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-12T01:32:26.6996223Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T01:32:26.6996427Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T01:32:26.6996634Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T01:32:26.6996839Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-12T01:32:26.6997019Z ##[endgroup]
+2026-11-12T01:32:27.4770829Z Collecting z3-solver==4.15.4.0
+2026-11-12T01:32:27.5335218Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-12T01:32:27.5462921Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-12T01:32:28.2211270Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 45.0 MB/s  0:00:00
+2026-11-12T01:32:28.2709657Z Installing collected packages: z3-solver
+2026-11-12T01:32:28.5999562Z Successfully installed z3-solver-4.15.4.0
+2026-11-12T01:32:28.6445031Z ##[group]Run python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-default-json-r1/worker_default_json_ci_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-default-json-driver.log"
+2026-11-12T01:32:28.6445746Z [36;1mpython -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-default-json-r1/worker_default_json_ci_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-default-json-driver.log"[0m
+2026-11-12T01:32:28.6463757Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T01:32:28.6463931Z env:
+2026-11-12T01:32:28.6464043Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T01:32:28.6464207Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T01:32:28.6464426Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-12T01:32:28.6464649Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T01:32:28.6464867Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T01:32:28.6465081Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T01:32:28.6465283Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-12T01:32:28.6465511Z   HIA_CI_OUTPUT: /home/runner/work/_temp/hia-worker-default-json-recovery
+2026-11-12T01:32:28.6465876Z   HIA_CI_COMMON: /home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+2026-11-12T01:32:28.6466183Z ##[endgroup]
+2026-11-12T01:32:29.5621555Z {"label": "checkout-pinned-baseline", "timeout_seconds": 300, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 668082678, "child_cpu_seconds": 0.6274209999999999, "children_cumulative_maxrss_kib": 80980, "stdout_bytes": 88, "stdout_sha256": "594f75c379807db304f1716bc5a8f3ec537fa7622a59e469fc2a34e4adbe70cd", "stderr_bytes": 44, "stderr_sha256": "68ae5f70c237ae7992fb3f4387fee163afa3b015e6423d519f5c78049b084fd3"}
+2026-11-12T01:35:00.4230137Z {"label": "restore-exact-published-root-archives", "timeout_seconds": 600, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 150244561784, "child_cpu_seconds": 101.93968699999999, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 6090, "stdout_sha256": "19fd8292cd0a9efbfb312b8c84f92843b5eccaa4a497c81748ecfcb57b2badb3", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:00.5426555Z {"label": "import-exact-reference-objects", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 115188543, "child_cpu_seconds": 0.027289000000010333, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 0, "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stderr_bytes": 133, "stderr_sha256": "56ff0a3b92ba81bbe09cc20fbb17de2c81d8212ddaa1a45c8b84ebd39b30e6b0"}
+2026-11-12T01:35:01.7629877Z {"label": "restore-exact-reference", "timeout_seconds": 300, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 1218990750, "child_cpu_seconds": 1.1157580000000067, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 909, "stdout_sha256": "abd8276876ec8995749fba507c8b4cd42bdcdd07dfde55dd4d08e23a0ff81bf3", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:03.9810768Z {"label": "worker-default-json-exact-dependency-restore", "timeout_seconds": 300, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 2068757170, "child_cpu_seconds": 2.053073999999995, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 192, "stdout_sha256": "83c5804a93fc2f11998e0c0a48bb160b31b99faa8ce1eed1c57c38474c8bde31", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:08.6575967Z {"label": "worker-default-json-generation-and-original-bounded-B3", "timeout_seconds": 300, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 4675739938, "child_cpu_seconds": 4.642572000000008, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 12600, "stdout_sha256": "d3cc2e478e55ec1caf24180ac58d7f84d01fdf9a011fbdf1d3c09f2f71152b71", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:08.6599474Z {"actual_successful_process": true, "event": "DEFAULT_JSON_PANEL", "label": "worker-default-json-generation-and-original-bounded-B3", "original_summary": {"actual_compiles": 7, "attempts": [{"manifest": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": {"blocks": 829, "functions": 38, "instructions": 2362, "max_block_parameters": 10, "max_function_blocks": 95}, "image_bytes": 150427, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/default_json_raw.image.bin", "image_sha256": "ff0129c066d52e162ea5b6911ff1293b059ed277934e7e3d9349e14f8a06d395", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/default_json_raw.receipt.json", "role": "default_json_raw", "source_bytes": 134275, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-default-json-next/examples/hia_bootstrap/default_json_raw.hiaasm", "source_sha256": "9462607e03df05a48dc59c54ec9156e17d0a63ba1c5eec5e52d124cbcf336db6"}, "role": "default_json_raw", "status": "PASS"}, {"manifest": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": {"blocks": 895, "functions": 35, "instructions": 2559, "max_block_parameters": 10, "max_function_blocks": 95}, "image_bytes": 166117, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/default_json_services.image.bin", "image_sha256": "72a07cbb2022ef553931c74dd466ab9d10efb0f13ce5cbc189b8344328fd0df8", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/default_json_services.receipt.json", "role": "default_json_services", "source_bytes": 145095, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-default-json-next/examples/hia_bootstrap/default_json_services.hiaasm", "source_sha256": "2f8d0d2fe9246136c7b14ed78e7a5c5c2e629fd9aa933ad4c59a48e9eb8d2278"}, "role": "default_json_services", "status": "PASS"}, {"manifest": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": {"blocks": 985, "functions": 47, "instructions": 2817, "max_block_parameters": 10, "max_function_blocks": 95}, "image_bytes": 194683, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/default_json_late.image.bin", "image_sha256": "01ed646dcb8b5cf5adef6a885061bc51bb23ac821a7f3eb076a52096c6491297", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/default_json_late.receipt.json", "role": "default_json_late", "source_bytes": 163216, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-default-json-next/examples/hia_bootstrap/default_json_late.hiaasm", "source_sha256": "5eb45d61556d7159cfbb2bdcaa62864444ba5ed8e4b88691cf2021edcec6cf91"}, "role": "default_json_late", "status": "PASS"}, {"manifest": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": {"blocks": 435, "functions": 36, "instructions": 2178, "max_block_parameters": 14, "max_function_blocks": 63}, "image_bytes": 192965, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/data_graph.image.bin", "image_sha256": "06a0694369ed0c93a2789f1546bb2cd8e69586f6e74d208f8526f95ce1a459df", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/data_graph.receipt.json", "role": "data_graph", "source_bytes": 131057, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-default-json-next/examples/hia_bootstrap/agent_data_graph.hiaasm", "source_sha256": "06f7cf6b2ac4a9f323f28aa485f442bc311decbb4d6f72147364e23e03cf8e0b"}, "role": "data_graph", "status": "PASS"}, {"manifest": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": null, "image_bytes": 131977, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/decoder.image.bin", "image_sha256": "c84b865a6ffe497bab96a3de1fcb3a8c3c26c3ec483b0e824966bc5f7a09abbd", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/decoder.receipt.json", "role": "decoder", "source_bytes": 92926, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/Hepta-agent-edit-native/examples/hia_bootstrap/agent_data_json.hiaasm", "source_sha256": "bfb36b20e6e2def7a484c794b71f6ff7a202ecdc5452605bc0ad63251b03308e"}, "role": "decoder", "status": "PASS"}, {"manifest": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": null, "image_bytes": 68566, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/binary64.image.bin", "image_sha256": "66ac6b33006c2666642a05ab04271691a5044ee10405cd3c627d31e655f1714a", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/binary64.receipt.json", "role": "binary64", "source_bytes": 43647, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/Hepta-agent-edit-native/examples/hia_bootstrap/agent_binary64.hiaasm", "source_sha256": "6aa2b2cd944cbcd3b5d5b19f9b275db060b63bd8b1e1d73cc1a6973b52000515"}, "role": "binary64", "status": "PASS"}, {"manifest": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": null, "image_bytes": 87476, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/preflight.image.bin", "image_sha256": "bb3e0fdbf320a1f9b83b222e31a1c83c4a3ceea735996c8f6810223901677d2c", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/preflight.receipt.json", "role": "preflight", "source_bytes": 61397, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/Hepta-agent-edit-native/examples/hia_bootstrap/json_preflight.hiaasm", "source_sha256": "6bb6f6cd0ff22c919fb4e8f8f7b08471d4552b06156050f267275b0b63715b20"}, "role": "preflight", "status": "PASS"}], "bundle": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "components": {"binary64": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": null, "image_bytes": 68566, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/binary64.image.bin", "image_sha256": "66ac6b33006c2666642a05ab04271691a5044ee10405cd3c627d31e655f1714a", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/binary64.receipt.json", "role": "binary64", "source_bytes": 43647, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/Hepta-agent-edit-native/examples/hia_bootstrap/agent_binary64.hiaasm", "source_sha256": "6aa2b2cd944cbcd3b5d5b19f9b275db060b63bd8b1e1d73cc1a6973b52000515"}, "data_graph": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": {"blocks": 435, "functions": 36, "instructions": 2178, "max_block_parameters": 14, "max_function_blocks": 63}, "image_bytes": 192965, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/data_graph.image.bin", "image_sha256": "06a0694369ed0c93a2789f1546bb2cd8e69586f6e74d208f8526f95ce1a459df", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/data_graph.receipt.json", "role": "data_graph", "source_bytes": 131057, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-default-json-next/examples/hia_bootstrap/agent_data_graph.hiaasm", "source_sha256": "06f7cf6b2ac4a9f323f28aa485f442bc311decbb4d6f72147364e23e03cf8e0b"}, "decoder": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": null, "image_bytes": 131977, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/decoder.image.bin", "image_sha256": "c84b865a6ffe497bab96a3de1fcb3a8c3c26c3ec483b0e824966bc5f7a09abbd", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/decoder.receipt.json", "role": "decoder", "source_bytes": 92926, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/Hepta-agent-edit-native/examples/hia_bootstrap/agent_data_json.hiaasm", "source_sha256": "bfb36b20e6e2def7a484c794b71f6ff7a202ecdc5452605bc0ad63251b03308e"}, "default_json_late": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": {"blocks": 985, "functions": 47, "instructions": 2817, "max_block_parameters": 10, "max_function_blocks": 95}, "image_bytes": 194683, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/default_json_late.image.bin", "image_sha256": "01ed646dcb8b5cf5adef6a885061bc51bb23ac821a7f3eb076a52096c6491297", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/default_json_late.receipt.json", "role": "default_json_late", "source_bytes": 163216, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-default-json-next/examples/hia_bootstrap/default_json_late.hiaasm", "source_sha256": "5eb45d61556d7159cfbb2bdcaa62864444ba5ed8e4b88691cf2021edcec6cf91"}, "default_json_raw": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": {"blocks": 829, "functions": 38, "instructions": 2362, "max_block_parameters": 10, "max_function_blocks": 95}, "image_bytes": 150427, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/default_json_raw.image.bin", "image_sha256": "ff0129c066d52e162ea5b6911ff1293b059ed277934e7e3d9349e14f8a06d395", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/default_json_raw.receipt.json", "role": "default_json_raw", "source_bytes": 134275, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-default-json-next/examples/hia_bootstrap/default_json_raw.hiaasm", "source_sha256": "9462607e03df05a48dc59c54ec9156e17d0a63ba1c5eec5e52d124cbcf336db6"}, "default_json_services": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": {"blocks": 895, "functions": 35, "instructions": 2559, "max_block_parameters": 10, "max_function_blocks": 95}, "image_bytes": 166117, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/default_json_services.image.bin", "image_sha256": "72a07cbb2022ef553931c74dd466ab9d10efb0f13ce5cbc189b8344328fd0df8", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/default_json_services.receipt.json", "role": "default_json_services", "source_bytes": 145095, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-default-json-next/examples/hia_bootstrap/default_json_services.hiaasm", "source_sha256": "2f8d0d2fe9246136c7b14ed78e7a5c5c2e629fd9aa933ad4c59a48e9eb8d2278"}, "preflight": {"compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8", "counts": null, "image_bytes": 87476, "image_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/preflight.image.bin", "image_sha256": "bb3e0fdbf320a1f9b83b222e31a1c83c4a3ceea735996c8f6810223901677d2c", "receipt_path": "/home/runner/work/_temp/hia-worker-default-json-recovery/default-json-compile/preflight.receipt.json", "role": "preflight", "source_bytes": 61397, "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/Hepta-agent-edit-native/examples/hia_bootstrap/json_preflight.hiaasm", "source_sha256": "6bb6f6cd0ff22c919fb4e8f8f7b08471d4552b06156050f267275b0b63715b20"}}, "schema": "hia-agent-default-json-development-bundle-v1", "scope": "DEFAULT_DATAJSON_COMPLETE_PREFIX_AND_EXACT_PEERS_DEVELOPMENT", "status": "PASS", "whole_worker_closed": false}, "elapsed_ns": 4527536309, "failures": [], "native_entries": 0, "original_compiler_limits": {"address_space_bytes": 268435456, "cpu_seconds": 10, "wall_seconds": 20}, "production_activation": false, "scope": "DEFAULT_DATAJSON_COMPLETE_PREFIX_AND_EXACT_PEERS_DEVELOPMENT", "source_unchanged": true, "status": "PASS", "whole_worker_closed": false}}
+2026-11-12T01:35:10.0277325Z {"label": "worker-default-json-semantic", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 1369179823, "child_cpu_seconds": 1.1090059999999937, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 38684, "stdout_sha256": "5f27eabbcbc9a9d6b7b429475d3f976dd763e3c894dda8a0ccec1e54c918bce1", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:10.0281346Z {"actual_successful_process": true, "event": "DEFAULT_JSON_PANEL", "label": "worker-default-json-semantic", "original_summary": {"cases": 183, "compressed_cas_objects": 2460, "elapsed_ns": 1001387023, "entries": {"binary64": 107, "data_graph": 476, "decoder": 139, "default_json_late": 34, "default_json_raw": 365, "default_json_services": 600, "preflight": 175}, "failure": null, "fixed_native_worker": false, "group": "semantic", "hosted_parser_and_materializer_disabled_in_native_intervals": true, "original_limits": {"address_space_bytes": 1073741824, "cpu_seconds": 90}, "planned_cases": 183, "production_activation": false, "python_reference_fixture_and_mechanical_event_executor_only": true, "scope": "COMPLETE_DEFAULT_DATAJSON_PREFIX_WITH_ACTUAL_PEERS", "selected_agent_data_json_profile_equivalence": false, "source_unchanged": true, "status": "PASS", "total_actual_entries": 1896, "whole_worker_closed": false}}
+2026-11-12T01:35:11.0968692Z {"label": "worker-default-json-unicode", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 1068257704, "child_cpu_seconds": 0.8999079999999964, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 67046, "stdout_sha256": "af1ff386501a1345296798ef1784956f6e50411777cb62c401c19f10c74cca7d", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:11.0971526Z {"actual_successful_process": true, "event": "DEFAULT_JSON_PANEL", "label": "worker-default-json-unicode", "original_summary": {"cases": 336, "compressed_cas_objects": 1364, "elapsed_ns": 665374906, "entries": {"binary64": 1, "data_graph": 37, "decoder": 12, "default_json_late": 0, "default_json_raw": 672, "default_json_services": 310, "preflight": 143}, "failure": null, "fixed_native_worker": false, "group": "unicode", "hosted_parser_and_materializer_disabled_in_native_intervals": true, "original_limits": {"address_space_bytes": 1073741824, "cpu_seconds": 90}, "planned_cases": 336, "production_activation": false, "python_reference_fixture_and_mechanical_event_executor_only": true, "scope": "COMPLETE_DEFAULT_DATAJSON_PREFIX_WITH_ACTUAL_PEERS", "selected_agent_data_json_profile_equivalence": false, "source_unchanged": true, "status": "PASS", "total_actual_entries": 1175, "whole_worker_closed": false}}
+2026-11-12T01:35:11.6643527Z {"label": "worker-default-json-digits", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 566647940, "child_cpu_seconds": 0.5039569999999927, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 6086, "stdout_sha256": "91f24bdcafaa3206aacb332512f7af8873c7986b1079381c999b06c5537931c6", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:11.6650485Z {"actual_successful_process": true, "event": "DEFAULT_JSON_PANEL", "label": "worker-default-json-digits", "original_summary": {"cases": 24, "compressed_cas_objects": 428, "elapsed_ns": 207519795, "entries": {"binary64": 3, "data_graph": 57, "decoder": 22, "default_json_late": 8, "default_json_raw": 48, "default_json_services": 84, "preflight": 24}, "failure": null, "fixed_native_worker": false, "group": "digits", "hosted_parser_and_materializer_disabled_in_native_intervals": true, "original_limits": {"address_space_bytes": 1073741824, "cpu_seconds": 90}, "planned_cases": 24, "production_activation": false, "python_reference_fixture_and_mechanical_event_executor_only": true, "scope": "COMPLETE_DEFAULT_DATAJSON_PREFIX_WITH_ACTUAL_PEERS", "selected_agent_data_json_profile_equivalence": false, "source_unchanged": true, "status": "PASS", "total_actual_entries": 246, "whole_worker_closed": false}}
+2026-11-12T01:35:12.0812048Z {"label": "worker-default-json-depth", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 415932219, "child_cpu_seconds": 0.3956100000000049, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 3352, "stdout_sha256": "a05078e7d4e17cf52d6383ff026dc3e5e3f7b00a52a1445ffb8e57703a48099d", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:12.0818560Z {"actual_successful_process": true, "event": "DEFAULT_JSON_PANEL", "label": "worker-default-json-depth", "original_summary": {"cases": 13, "compressed_cas_objects": 215, "elapsed_ns": 81385581, "entries": {"binary64": 0, "data_graph": 24, "decoder": 8, "default_json_late": 0, "default_json_raw": 26, "default_json_services": 42, "preflight": 13}, "failure": null, "fixed_native_worker": false, "group": "depth", "hosted_parser_and_materializer_disabled_in_native_intervals": true, "original_limits": {"address_space_bytes": 1073741824, "cpu_seconds": 90}, "planned_cases": 13, "production_activation": false, "python_reference_fixture_and_mechanical_event_executor_only": true, "scope": "COMPLETE_DEFAULT_DATAJSON_PREFIX_WITH_ACTUAL_PEERS", "selected_agent_data_json_profile_equivalence": false, "source_unchanged": true, "status": "PASS", "total_actual_entries": 113, "whole_worker_closed": false}}
+2026-11-12T01:35:13.8000952Z {"label": "worker-default-json-large-utf8", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 1717981501, "child_cpu_seconds": 1.6963039999999978, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 1735, "stdout_sha256": "2804133b0211ac13390571b870fdc212a9463dde3ce171c529625e9e9066eda2", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:13.8004587Z {"actual_successful_process": true, "event": "DEFAULT_JSON_PANEL", "label": "worker-default-json-large-utf8", "original_summary": {"cases": 4, "compressed_cas_objects": 12, "elapsed_ns": 1364141689, "entries": {"binary64": 0, "data_graph": 0, "decoder": 0, "default_json_late": 0, "default_json_raw": 8, "default_json_services": 0, "preflight": 0}, "failure": null, "fixed_native_worker": false, "group": "large-utf8", "hosted_parser_and_materializer_disabled_in_native_intervals": true, "original_limits": {"address_space_bytes": 1073741824, "cpu_seconds": 90}, "planned_cases": 4, "production_activation": false, "python_reference_fixture_and_mechanical_event_executor_only": true, "scope": "COMPLETE_DEFAULT_DATAJSON_PREFIX_WITH_ACTUAL_PEERS", "selected_agent_data_json_profile_equivalence": false, "source_unchanged": true, "status": "PASS", "total_actual_entries": 8, "whole_worker_closed": false}}
+2026-11-12T01:35:20.1794240Z {"label": "worker-default-json-large-values", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 6378167447, "child_cpu_seconds": 6.348589000000004, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 1236, "stdout_sha256": "2bed61ce0ba74e0dded0f8238e9a848661efff546fbfdd28a0718cfb401fa074", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:20.1796439Z {"actual_successful_process": true, "event": "DEFAULT_JSON_PANEL", "label": "worker-default-json-large-values", "original_summary": {"cases": 2, "compressed_cas_objects": 39, "elapsed_ns": 6019253063, "entries": {"binary64": 0, "data_graph": 6, "decoder": 2, "default_json_late": 0, "default_json_raw": 4, "default_json_services": 8, "preflight": 2}, "failure": null, "fixed_native_worker": false, "group": "large-values", "hosted_parser_and_materializer_disabled_in_native_intervals": true, "original_limits": {"address_space_bytes": 1073741824, "cpu_seconds": 90}, "planned_cases": 2, "production_activation": false, "python_reference_fixture_and_mechanical_event_executor_only": true, "scope": "COMPLETE_DEFAULT_DATAJSON_PREFIX_WITH_ACTUAL_PEERS", "selected_agent_data_json_profile_equivalence": false, "source_unchanged": true, "status": "PASS", "total_actual_entries": 22, "whole_worker_closed": false}}
+2026-11-12T01:35:25.6053806Z {"label": "worker-default-json-large-nodes", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 5425271193, "child_cpu_seconds": 5.3415979999999905, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 1412, "stdout_sha256": "dd1bdc3e94ba1ae7355b5ea81c20c37d0c1aa454b0c5dacb3befc962f7f8de47", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:25.6056019Z {"actual_successful_process": true, "event": "DEFAULT_JSON_PANEL", "label": "worker-default-json-large-nodes", "original_summary": {"cases": 3, "compressed_cas_objects": 43, "elapsed_ns": 5077442950, "entries": {"binary64": 0, "data_graph": 3, "decoder": 1, "default_json_late": 0, "default_json_raw": 6, "default_json_services": 8, "preflight": 3}, "failure": null, "fixed_native_worker": false, "group": "large-nodes", "hosted_parser_and_materializer_disabled_in_native_intervals": true, "original_limits": {"address_space_bytes": 1073741824, "cpu_seconds": 90}, "planned_cases": 3, "production_activation": false, "python_reference_fixture_and_mechanical_event_executor_only": true, "scope": "COMPLETE_DEFAULT_DATAJSON_PREFIX_WITH_ACTUAL_PEERS", "selected_agent_data_json_profile_equivalence": false, "source_unchanged": true, "status": "PASS", "total_actual_entries": 21, "whole_worker_closed": false}}
+2026-11-12T01:35:27.5740984Z {"label": "worker-default-json-large-digits", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 1967730578, "child_cpu_seconds": 1.9308289999999815, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 1021, "stdout_sha256": "3638c24e3208c2119a801d8f1ad199bd630298a97d3fdc6efc87968a409a4641", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:27.5747303Z {"actual_successful_process": true, "event": "DEFAULT_JSON_PANEL", "label": "worker-default-json-large-digits", "original_summary": {"cases": 1, "compressed_cas_objects": 27, "elapsed_ns": 1601075317, "entries": {"binary64": 0, "data_graph": 3, "decoder": 1, "default_json_late": 0, "default_json_raw": 2, "default_json_services": 4, "preflight": 1}, "failure": null, "fixed_native_worker": false, "group": "large-digits", "hosted_parser_and_materializer_disabled_in_native_intervals": true, "original_limits": {"address_space_bytes": 1073741824, "cpu_seconds": 90}, "planned_cases": 1, "production_activation": false, "python_reference_fixture_and_mechanical_event_executor_only": true, "scope": "COMPLETE_DEFAULT_DATAJSON_PREFIX_WITH_ACTUAL_PEERS", "selected_agent_data_json_profile_equivalence": false, "source_unchanged": true, "status": "PASS", "total_actual_entries": 11, "whole_worker_closed": false}}
+2026-11-12T01:35:28.0914519Z {"label": "worker-default-json-protocol", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 516407374, "child_cpu_seconds": 0.4523789999999934, "children_cumulative_maxrss_kib": 299912, "stdout_bytes": 5764, "stdout_sha256": "ead99490519e1765ae6154d41839b8bafdf8b9f14c709bda96402151c3767917", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-12T01:35:28.0917936Z {"actual_successful_process": true, "event": "DEFAULT_JSON_PANEL", "label": "worker-default-json-protocol", "original_summary": {"cases": 64, "compressed_cas_objects": 172, "elapsed_ns": 163893974, "entries": {"binary64": 19, "data_graph": 68, "decoder": 27, "default_json_late": 6, "default_json_raw": 127, "default_json_services": 132, "preflight": 44}, "failure": null, "fixed_native_worker": false, "group": "protocol", "hosted_parser_and_materializer_disabled_in_native_intervals": true, "original_limits": {"address_space_bytes": 1073741824, "cpu_seconds": 90}, "planned_cases": 64, "production_activation": false, "python_reference_fixture_and_mechanical_event_executor_only": true, "scope": "COMPLETE_DEFAULT_DATAJSON_PREFIX_WITH_ACTUAL_PEERS", "selected_agent_data_json_profile_equivalence": false, "source_unchanged": true, "status": "PASS", "total_actual_entries": 423, "whole_worker_closed": false}}
+2026-11-12T01:35:32.0240533Z {"all_original_and_tar_member_bytes_sha256_modes_readback": true, "archive": "/home/runner/work/_temp/hia-worker-default-json-recovery/evidence.tar.xz", "bytes": 7422936, "member_index_bytes": 2379739, "member_index_sha256": "986b06fa512051a379cd955c9cb968539745734cd1b5a218d8004e45b3932305", "members": 5009, "original_bytes": 61544673, "schema": "hia-independent-ci-artifact-custody-v1", "scope": "worker-default-datajson-complete-prefix-development-r1", "sha256": "7a0010f3919cbe74ab5590a1082a20dc0333f08acdf549ae91179b0dfd2cf779", "status": "PASS", "whole_stack_closed": false}
+2026-11-12T01:35:32.0519827Z ##[group]Run actions/upload-artifact@v4
+2026-11-12T01:35:32.0519988Z with:
+2026-11-12T01:35:32.0520140Z   name: hia-worker-default-json-recovery-43129195254-1
+2026-11-12T01:35:32.0520475Z   path: /home/runner/work/_temp/hia-worker-default-json-recovery
+/home/runner/work/_temp/hia-worker-default-json-driver.log
+
+2026-11-12T01:35:32.0520774Z   if-no-files-found: error
+2026-11-12T01:35:32.0520898Z   retention-days: 90
+2026-11-12T01:35:32.0521013Z   compression-level: 0
+2026-11-12T01:35:32.0521133Z   overwrite: false
+2026-11-12T01:35:32.0521249Z   include-hidden-files: false
+2026-11-12T01:35:32.0521376Z env:
+2026-11-12T01:35:32.0521485Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T01:35:32.0521647Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T01:35:32.0521867Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-12T01:35:32.0522085Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T01:35:32.0522300Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T01:35:32.0522497Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T01:35:32.0522825Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-12T01:35:32.0522994Z ##[endgroup]
+2026-11-12T01:35:32.1658034Z (node:2602) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T01:35:32.1658702Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T01:35:32.2021852Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-12T01:35:32.2023471Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+2026-11-12T01:35:32.2023954Z With the provided path, there will be 181 files uploaded
+2026-11-12T01:35:32.2027705Z Artifact name is valid!
+2026-11-12T01:35:32.2028155Z Root directory input is valid!
+2026-11-12T01:35:32.4709711Z Beginning upload of artifact content to blob storage
+2026-11-12T01:35:32.5261731Z (node:2602) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-12T01:35:32.9347775Z Uploaded bytes 8388608
+2026-11-12T01:35:33.0252547Z Uploaded bytes 16777216
+2026-11-12T01:35:33.0394340Z Uploaded bytes 25165824
+2026-11-12T01:35:33.0759016Z Uploaded bytes 33554432
+2026-11-12T01:35:33.1449521Z Uploaded bytes 41943040
+2026-11-12T01:35:33.1718451Z Uploaded bytes 50331648
+2026-11-12T01:35:33.1947337Z Uploaded bytes 58720256
+2026-11-12T01:35:33.2552748Z Uploaded bytes 61383735
+2026-11-12T01:35:33.2936483Z Finished uploading artifact content to blob storage!
+2026-11-12T01:35:33.2937009Z SHA256 digest of uploaded artifact zip is e77d697c7e957003c7494eded529c017006cbaa092c395793ccf8e63a21b01a1
+2026-11-12T01:35:33.2938003Z Finalizing artifact upload
+2026-11-12T01:35:33.6623337Z Artifact hia-worker-default-json-recovery-43129195254-1.zip successfully finalized. Artifact ID 13907336820
+2026-11-12T01:35:33.6624151Z Artifact hia-worker-default-json-recovery-43129195254-1 has been successfully uploaded! Final size is 61383735 bytes. Artifact ID is 13907336820
+2026-11-12T01:35:33.6628687Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/43129195254/artifacts/13907336820
+2026-11-12T01:35:33.6847581Z Post job cleanup.
+2026-11-12T01:35:33.7646720Z (node:2616) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T01:35:33.7647129Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T01:35:33.7823975Z Post job cleanup.
+2026-11-12T01:35:33.8423013Z [command]/usr/bin/git version
+2026-11-12T01:35:33.8456616Z git version 2.56.0
+2026-11-12T01:35:33.8480709Z Temporarily overriding HOME='/home/runner/work/_temp/ac624488-ec9f-4678-8293-6533cff5ab23' before making global git config changes
+2026-11-12T01:35:33.8481420Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T01:35:33.8483750Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/ci-reference-source
+2026-11-12T01:35:33.8526791Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T01:35:33.8559233Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T01:35:33.8793631Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T01:35:33.8850436Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T01:35:33.9096505Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T01:35:33.9138339Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T01:35:33.9481268Z Post job cleanup.
+2026-11-12T01:35:34.0030908Z [command]/usr/bin/git version
+2026-11-12T01:35:34.0064601Z git version 2.56.0
+2026-11-12T01:35:34.0090100Z Temporarily overriding HOME='/home/runner/work/_temp/55a9a81c-84ea-4cab-9ba4-a43e4aea92ae' before making global git config changes
+2026-11-12T01:35:34.0093993Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T01:35:34.0094494Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-12T01:35:34.0131265Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T01:35:34.0161568Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T01:35:34.0401857Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T01:35:34.0460499Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T01:35:34.0679690Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T01:35:34.0708459Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T01:35:34.1053465Z Cleaning up orphan processes
+2026-11-12T01:35:34.1361001Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

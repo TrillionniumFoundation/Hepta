@@ -2284,7 +2284,7 @@ jobs:
         env:
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-worker-fixed-default-json-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/worker_default_json_fixed_ci_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-fixed-default-json-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-fixed-default-json-r1/worker_default_json_fixed_ci_r3.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-fixed-default-json-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -2612,3 +2612,166 @@ jobs:
           compression-level: 0
 
 
+
+  cli_full_publication:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:cli-full-publication]')
+    name: Actual complete native publication parent with A output and private query controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Download exact original public argv and file assets
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13899330292'
+          run-id: '43115476503'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-full-publication-assets/cli
+      - name: Download exact original 75-case A assets
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13902950213'
+          run-id: '43122922476'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-full-publication-assets/a75
+      - name: Execute new bounded independent component qualification
+        shell: bash
+        env:
+          HIA_PUBLIC_A_DOWNLOAD_DIR: ${{ runner.temp }}/hia-full-publication-assets
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-cli-full-publication-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r1/ci/ci_cli_full_publication_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-cli-full-publication-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-cli-full-publication-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-cli-full-publication-recovery
+            ${{ runner.temp }}/hia-cli-full-publication-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+
+
+  worker_original_sources:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:worker-originals]')
+    name: Read complete original Worker archive and exact Graph merge sources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out submitted diagnostic or reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Execute bounded independent evidence task
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_worker_original_sources_r1.py --repo "$GITHUB_WORKSPACE" --out "$RUNNER_TEMP/hia-worker-original-sources" 2>&1 | tee "$RUNNER_TEMP/hia-worker-originals-driver.log"
+      - name: Retain original input and complete new evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-worker-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-worker-original-sources
+            ${{ runner.temp }}/hia-worker-originals-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  namespace_dms_map_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:namespace-dms-map-readback]')
+    name: Read exact DMS VM failure and shared memory map original counters
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out submitted diagnostic or reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact original DMS failure
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13906529297'
+          run-id: '43129195254'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-dms-original
+      - name: Download exact original Map component
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13907333148'
+          run-id: '43130809110'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-map-original
+      - name: Execute bounded independent evidence task
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_NAMESPACE_DMS_ARTIFACT_DIR: ${{ runner.temp }}/hia-dms-original
+          HIA_NAMESPACE_MAP_ARTIFACT_DIR: ${{ runner.temp }}/hia-map-original
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-dms-map-original-readback
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/dms-map-follow17-18-readback-r4.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-dms-map-readback-driver.log"
+      - name: Retain original input and complete new evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-namespace-dms-map-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-dms-map-original-readback
+            ${{ runner.temp }}/hia-namespace-dms-map-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
