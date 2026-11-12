@@ -1,0 +1,66 @@
+{
+  "schema": "hia.namespace.unixopen.follow45.original-reader.delivery.v1",
+  "parent_head": "19c9343da44ef5822c02209638b4f24a5dd7e1c2",
+  "files": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/unixopen-follow45-original-readback/read_unixopen_follow45.py",
+      "blob": "0ba89721277326216838a778b11a51e0b256ff2c",
+      "bytes": 6477,
+      "sha256": "3a74ded744cdeec3139f75ab5bbe3b16a6f5e328796394185d9cb29d9077ff6f",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/unixopen-follow45-original-readback/SCOPE.md",
+      "blob": "b03468bff66b7b0271de180ce2fc8f1cf854b93d",
+      "bytes": 983,
+      "sha256": "0167798c5e11beb38dd3c9eec1254b4f379cc118b57239c66bbf44b2e788b196",
+      "mode": "100644"
+    }
+  ],
+  "status": "NEW_READER_UNEXECUTED",
+  "workflow": {
+    "tag": "namespace-unixopen-follow45-readback",
+    "entry": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/unixopen-follow45-original-readback/read_unixopen_follow45.py",
+    "syntax_files": [
+      "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/unixopen-follow45-original-readback/read_unixopen_follow45.py"
+    ],
+    "python": "3.12.14",
+    "common_required": false,
+    "dependency": {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/issued-fs-follow42-readback/read_issued_fs_follow42.py",
+      "blob": "3c7bb308de6b4481eee44e9bcbe82810d196872c",
+      "sha256": "a2d0b36d9c739afc202785b2fc3acc488c55c126dac53b78e0a9f41c998b9866",
+      "bytes": 21159,
+      "already_published_follow44": true
+    },
+    "download": {
+      "action": "actions/download-artifact@v4",
+      "artifact_ids": "13935987059",
+      "run_id": 43201563676,
+      "github_token": "${{ github.token }}",
+      "destination": "${{ runner.temp }}/hia-unixopen-follow45-originals"
+    },
+    "environment": {
+      "HIA_NAMESPACE_UNIXOPEN45_ORIGINALS": "${{ runner.temp }}/hia-unixopen-follow45-originals",
+      "HIA_NAMESPACE_UNIXOPEN45_READBACK_OUTPUT": "${{ runner.temp }}/hia-unixopen-follow45-readback"
+    },
+    "command": "timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/unixopen-follow45-original-readback/read_unixopen_follow45.py",
+    "always_artifact_paths": [
+      "${{ runner.temp }}/hia-unixopen-follow45-readback",
+      "${{ runner.temp }}/hia-unixopen-follow45-readback-driver.log"
+    ],
+    "limits": {
+      "CPU_seconds": 90,
+      "wall_seconds": 180,
+      "address_bytes": 1073741824,
+      "core_bytes": 0
+    }
+  },
+  "whole_original_archive_members": 47,
+  "whole_original_raw_bytes": 39092043,
+  "exact_original_complete_summary_bytes": 4954,
+  "all_files_full_Git_GET_readback": true,
+  "no_ref_changes": true,
+  "no_original_target_rerun": true,
+  "new_HIA_B3_VM_native_entries": 0
+}

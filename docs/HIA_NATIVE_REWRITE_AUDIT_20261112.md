@@ -1,8 +1,37 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW46）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW47）
 
 ## 当前结论
 
-**整套仍为 OPEN。完整保留版4,157项回归和固定Worker程序服务实际通过；Emitter三轮原件已覆盖55组732案。impact大输入CPU、issuedFS整组、公开诊断、Store/SQL、完整公开工具链、各平台/API和HIA原生安装仍未闭合。生产入口仍依赖Python；生产激活0、旧实现删除0。**
+**整套仍为 OPEN。完整保留版4,157项回归原件已完整核实；固定程序服务、UnixOpen父层和P16私有controls已在各自限定范围通过，Emitter三轮覆盖55组732案。真实FS/Store/SQL、公开上下文、impact大输入CPU、完整工具链/平台/API和HIA原生安装仍待闭合。生产激活0、旧实现删除0。**
+
+## FOLLOW47 最新状态（2026-11-12 11:16:49 UTC）
+
+父状态FOLLOW46 `293e80c81056345b846c42005c45b980fbc5d6fc` / tree `c8b09ac702e61cef04c120b12b7098ced93f8005` /6,383文件。整套仍OPEN、生产激活0、旧实现删除0。以下实际结果与本轮尚未执行的新源码分别记录。
+
+### 完整原件和实际通过的范围
+
+- 全保留回归37的只读reader46 job131135269906正式SUCCESS/PASS_READ_ONLY。原33,465成员、30,113普通文件、3,713,148,003B全量逐字/mode验证，输入before/after相等。根从完整原log无损恢复原QUALIFICATION 1,054,407B（Git51853be69fcb15deaf293dc1ac1a0e68466902e1，SHA25612ee5cb997e3aec1a4c1d235d207d3165ed347231a25f7c9fcb7915d1e3d336f）和原regression178B（Gite9834a7961509fce2f0ae0bb98c0d422c5d55b83），两原文本再次完整Git回读。gzip完整流、CRC32、ISIZE、编码及原始SHA256均核实，没有JSON重序列化。原件明确4,157/4,157、五种非成功列表全空、28阶段全部0退出/无超时，cold_qualified=true，whole_native_delivery_qualified=false。43/45 reader的旧失败及最初187errors/1failure/18skips原FAIL保持不变；本轮不再重跑回归或reader。
+- P16剩余17个私有controls job131135269681正式SUCCESS：7次fresh B3、1次HIA packer，17案/65次私有native入口（role51=8、role56=57），0个ELF/public案例；整组实际0.801874 CPU秒。七source/image与45实际原件逐项相同。完整459,596B原log及两段原JSON均保存。45已完成83案/630入口、44其它177成功案仍是各自原结果；四个公开诊断全文失败与groups6/9仍OPEN。本轮只存证，不重复这17案。
+- UnixOpen父层job131135272610正式SUCCESS：1次fresh B3、85语义案、42protocol controls、88次原C参考调用，833 VM与833 native入口逐次一致（694 semantic+139protocol），所有源pin不变。新HIA profile为33functions/578blocks/2419ops/max93blocks-per-function/13params。11个目标子进程合计96.33401 CPU/102.170697511 wall，明确是跨进程合计；各原90CPU/180wall及整套900wall门未改。该父层仍有18个foreign effects、实际namespace syscalls=0，不能据此宣布真实文件系统、普通Store或SQL闭合。完整452,771B原log与原console投影已封存，151成员工件的完整disk summaries另由本轮只读reader提取。
+- Namespace成本job131135272544正式SUCCESS/PASS_COST_DIAGNOSTIC_ONLY：18个确定性原窗口、6角色、36次fresh原VM执行，0B3/0native。整个诊断19.20321699999998 CPU秒/19,263,307,646ns。未profile的采样子段中，原VM invoke3.631170283CPU秒，首次Machine构造含decode0.142095635秒，第二次as_dict0.175736005秒，完整比较0.001001047秒，hex/JSON0.004003615秒，完整gzip0.015997337秒。gzip细分与总量有重叠，不得重复相加。样本主要在VM执行；这不是对原900秒整套的加权归因，更不能声称去掉第二decode即可解决超时。完整438,276B原log保全，18份cProfile原件待本轮204成员只读读回；没有激活候选优化，也没有重跑原900秒套件。
+
+### 已定位的失败与精确修复
+
+- checked-plan46 job131135270126实际五核B3全部PASS，随后shape0在加载测试依赖时仍硬绑定旧builder摘要而失败，实际semantic entry=0。完整1,300,682B原log、五份完整build JSON及原shape0失败保存。本轮仅改测试BUILD_SHA为已实际使用builder的完整摘要，并同步CI该测试的两身份常量；生产作者、测试体、55组679案119私有controls、全部门不变。
+- Type-context46 job131135272555实际3次B3全部PASS，但7组均在进入native前导入错误旧名hepta.hia_composite失败，0完整case/0semantic entry。真正原模块是hepta.hia_program_composite，原Gitb06d009e403e77288a19eb929e6296bf68532db3和SHA256cc5ab4…本来正确。r2只改测试的import与路径两处拼写，逆替换必须逐字恢复旧9,233B；在任何restore/B3前先核原composite/program完整bytes/mode/Git/SHA，三fresh源/像必须与46实际原件相同。原7组118案（54public oracle+64private controls）及所有workspace/output/context比较门不减。
+- Worker bridge r3修正实际decoder返回后scratch契约：使用自身保存的issued config，核实际cursor、nodecount、poolend和finaldepth；不再把被原decoder作为key/stack复用的workspace48/56误当保留的入参。旧错误depth私有反例改查实际depth96；原input/type/program/decoder/DataGraph均不改。仍需23fresh B3、3+3+2+121=129案、27实际program ELF及原全缓冲比较，本轮提交前无新执行。
+
+### 大输入性能诊断和后续接线
+
+新增机械timing入口先只读impact41完整3,090成员/150,697,441B，绑定原63个HIA语义源/镜像，逐字复现原prefix与整个旧ELF。四处调用前后hook仅改机械执行器，逆变换必须恢复原全部汇编。只新编译1个原限额HIA packer，并用其真实入口生成新完整ELF、核全部操作数和canary。
+
+采集仅执行三个实际ELF进程：原ELF的小原案、带计时ELF的同案，两者返回码/stdout/stderr都必须逐字等于原件；然后在精确8,370,475B large-valid输入上执行一次带计时ELF。原63语义像不改，不重跑原未计时大案。整采集父子聚合CPU仍<90、wall<180、1GiB；子进程只获剩余额度向下取整再减4秒保全余量，小校准另限12CPU。全部raw stdin/stdout/stderr和128B timing frames保全，独立只读分析器再核每帧/配对/全文件前后摘要。before→after含hook开销；缺失after只能说明没有完整记录，不能断言精确在途HIA调用。三个窄静态审阅均0执行，不冒完整63核验收。任何测量仍不能改写原large-valid的90秒/-9失败；性能修复之后还须回到原未计时13组329案验收。
+
+本轮另只读UnixOpen45原47成员，以及46成本204成员+UnixOpen151成员；不执行被读HIA/B3/VM/native。新FS9空C字符串aliases、raw FS framer和registered-file只读FSTAT续接只作inactive源码检查点，0AST/生成/B3/VM/native。r2元数据次序与r3 generation递增假设的已发现问题均明确保留；后续修订和真实固定issuer、其余10个peer及联测仍在开发，没有接入当前执行门。
+
+本次精确选择6tag：Worker桥、checked-plan、type-context、impact计时、UnixOpen45原件、namespace46原件。136个workflow job保留136个Ubuntu24.04/x86_64域门；663个活动Python源严格ASCII码点有序，新增/替代源中的直接hepta模块引用已静态对照当前原模块路径，未发现悬空名称。50个旧活动路径退出选择，但旧文件、原失败和未执行草稿全部仍在Git。原资源/Profile门、公共1024函数与Bootstrap容量界线均未变。
+
+参考：[FOLLOW46实际CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43204248178)、[完整保留回归37](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43180758665)。完整公开编译/CLI、Worker实际错误上下文与namespace/Store/SQL、各平台/API、HIA安装/恢复和原生冷启动仍须闭合；本轮不删除旧整套。
 
 ## FOLLOW46 最新状态（2026-11-12 10:48:42 UTC）
 

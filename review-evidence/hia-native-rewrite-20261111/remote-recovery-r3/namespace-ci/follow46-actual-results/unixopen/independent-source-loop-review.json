@@ -1,0 +1,29 @@
+{
+  "schema": "hia-unixopen-scan-loop-narrow-static-review-v1",
+  "reviewer": "native_checker",
+  "scope": "Only exact whole-source one-loop replacement; no Builder reread or target execution",
+  "old": {
+    "bytes": 25163,
+    "sha256": "bd38479ecb1532634e975c9a882b96bf03fb9c14c01d78e285b832443465ddb0",
+    "gitsha": "3938a46974e38474a15a1f2b1816870590795532"
+  },
+  "new": {
+    "bytes": 25129,
+    "sha256": "85ef7614c08e85b15ccc585adabf0b6635a6ddc948e3409e3e9e475d98900bc4",
+    "gitsha": "27868b292476e4049dd1b4194c3524041ea89953"
+  },
+  "exact_unique_replacement": {
+    "before": "        while pos + size < n:\n            if byte(s, 512 + pos + size) == 0:\n                break\n            size = size + 1\n",
+    "after": "        while pos + size < n and byte(s, 512 + pos + size) != 0:\n            size = size + 1\n",
+    "whole_inverse_equal": true
+  },
+  "finding": "No blocker in the reviewed source-level transformation. Both loops test pos+size<n before reading, stop at the same first NUL without incrementing that index, increment only nonzero bytes, and preserve the following size==n-pos refusal and all other bytes. Short-circuit lowering is a stated Builder premise, not independently re-proven by this review.",
+  "execution": {
+    "AST": 0,
+    "generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "full_unixOpen_or_FS_review": false
+}

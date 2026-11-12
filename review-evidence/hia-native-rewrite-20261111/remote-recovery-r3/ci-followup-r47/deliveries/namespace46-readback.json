@@ -1,0 +1,75 @@
+{
+  "schema": "hia-source-delivery-v1",
+  "base_head": "293e80c81056345b846c42005c45b980fbc5d6fc",
+  "status": "NEW_READONLY_SOURCE_UNEXECUTED",
+  "files": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/follow46-originals-readback/read_follow46_originals.py",
+      "blob": "d42284cf5fc5da61862f04220977275b4cf9f471",
+      "bytes": 15900,
+      "sha256": "f09166ed5f3f8215b09eedf7915c4c2d142ed13bae2859866a790c4be8dc24f9",
+      "mode": "100644"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/follow46-originals-readback/SCOPE.md",
+      "blob": "7c95536b426b5a68d18e18788734a99743f7c9ba",
+      "bytes": 2612,
+      "sha256": "255310115b9b9a94d1e4b939955306534b95d36c822b36473842c23d135a7cfb",
+      "mode": "100644"
+    }
+  ],
+  "workflow": {
+    "tag": "namespace-follow46-originals-readback",
+    "name": "Read complete recorded cost profiles and unixOpen originals without execution",
+    "python": "3.12.14",
+    "run": "timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/follow46-originals-readback/read_follow46_originals.py",
+    "downloads": [
+      {
+        "artifact_id": 13937805819,
+        "run_id": 43204248178,
+        "dir_env": "HIA_NAMESPACE_COST46_ORIGINALS",
+        "original_artifact_name": "hia-namespace-reference-cost-diagnostic-recovery-43204248178-1"
+      },
+      {
+        "artifact_id": 13937242217,
+        "run_id": 43204248178,
+        "dir_env": "HIA_NAMESPACE_UNIXOPEN46_ORIGINALS",
+        "original_artifact_name": "hia-namespace-unixopen-native-parent-recovery-43204248178-1"
+      }
+    ],
+    "step_env": {
+      "HIA_NAMESPACE_COST46_ORIGINALS": "${{ runner.temp }}/hia-namespace-cost46-original",
+      "HIA_NAMESPACE_UNIXOPEN46_ORIGINALS": "${{ runner.temp }}/hia-namespace-unixopen46-original",
+      "HIA_NAMESPACE_FOLLOW46_READBACK_OUTPUT": "${{ runner.temp }}/hia-namespace-follow46-original-readback"
+    },
+    "required_repo_files": [
+      {
+        "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/issued-fs-follow42-readback/read_issued_fs_follow42.py",
+        "blob": "3c7bb308de6b4481eee44e9bcbe82810d196872c",
+        "bytes": 21159,
+        "sha256": "a2d0b36d9c739afc202785b2fc3acc488c55c126dac53b78e0a9f41c998b9866"
+      }
+    ],
+    "syntax_files": [
+      "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/follow46-originals-readback/read_follow46_originals.py"
+    ],
+    "upload_path": "${{ runner.temp }}/hia-namespace-follow46-original-readback",
+    "upload_always": true,
+    "requirements": "stdlib only; no common.prepare, no HIA import, no native prerequisites",
+    "limits": {
+      "CPU_seconds": 90,
+      "wall_seconds": 180,
+      "address_bytes": 1073741824,
+      "core_bytes": 0
+    },
+    "console_bytes_cap": 1048576
+  },
+  "new_execution": {
+    "AST": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "no_ref_write": true,
+  "no_source_or_evidence_deletion": true
+}

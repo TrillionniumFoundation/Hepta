@@ -1,0 +1,90 @@
+{
+  "schema": "hia.namespace.raw-framer.r3.metadata-correction.v1",
+  "status": "STATIC_FINDING_NO_EXECUTION",
+  "original": {
+    "blob": "41c2b2cb2aa149e21122dcd3d1a1733298926334",
+    "bytes": 20615,
+    "sha256": "e20e69baf87965123e8d8aad77734b9a343c9ed18faf2e0c59b4867908edfccd",
+    "mode": "100644"
+  },
+  "replacement": {
+    "blob": "6b5cc2ce0cfd8b08f7be9ef1fe7d41ddd8642925",
+    "bytes": 20819,
+    "sha256": "dead36dc28c0a9c3e5281eb3f639ee85ab2377f0cf76b299f2b53d6d9e3220fa",
+    "mode": "100644"
+  },
+  "parent_reference": {
+    "source_git": "27868b292476e4049dd1b4194c3524041ea89953",
+    "fixture_git": "feb06cbec0b1acf43ddbd43863cbf74a4bd55d28",
+    "source_function": "up_reply_shape",
+    "fixture_function": "ack"
+  },
+  "fields": [
+    {
+      "offset": 152,
+      "required": "peer_context",
+      "old": "result/workspace lease",
+      "new": "actual R.context at40"
+    },
+    {
+      "offset": 160,
+      "required": "generation",
+      "old": "actual context",
+      "new": "actual R.generation at48"
+    },
+    {
+      "offset": 168,
+      "required": "entry_serial",
+      "old": "actual generation",
+      "new": "actual R.entry_serial at72"
+    },
+    {
+      "offset": 176,
+      "required": "source_lease",
+      "old": "outer USER call",
+      "new": "complete lower request source lease, checked against actual FS result caller"
+    }
+  ],
+  "new_descriptor": {
+    "72": "actual completed outer entry serial, nonzero and strictly greater at completion",
+    "80": "actual process lease, exactly the immutable original parent request process lease"
+  },
+  "replacements": [
+    {
+      "old": "    at = 72\n    while at < 128:\n        if read64(r, at) != 0:",
+      "new": "    if read64(r, 72) == 0 or read64(r, 80) != read64(s, 560):\n        return 0\n    at = 88\n    while at < 128:\n        if read64(r, at) != 0:",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "    put(w, 208, ack)\n    copy_input(w, s, 512, 0, size)",
+      "new": "    put(w, 208, ack)\n    put(w, 224, read64(r, 72))\n    copy_input(w, s, 512, 0, size)",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "    at = 216\n    while at < 256:\n        if get(w, at) != 0:",
+      "new": "    if get(w, 216) != 0 or get(w, 224) == 0:\n        return 0\n    at = 232\n    while at < 256:\n        if get(w, at) != 0:",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "    if read64(r, 40) != get(w, 64) or read64(r, 48) <= get(w, 72):",
+      "new": "    if read64(r, 40) != get(w, 64) or read64(r, 48) <= get(w, 72) or read64(r, 72) <= get(w, 224):",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "    put(w, ack + 152, read64(r, 64))\n    put(w, ack + 160, read64(r, 40))\n    put(w, ack + 168, read64(r, 48))\n    put(w, ack + 176, get(w, 96))",
+      "new": "    put(w, ack + 152, read64(r, 40))\n    put(w, ack + 160, read64(r, 48))\n    put(w, ack + 168, read64(r, 72))\n    put(w, ack + 176, get(w, 56))",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "agent_namespace_unixopen_fs_framer_r2",
+      "new": "agent_namespace_unixopen_fs_framer_r3",
+      "expected_occurrences": 2
+    }
+  ],
+  "new_execution": {
+    "AST": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  }
+}

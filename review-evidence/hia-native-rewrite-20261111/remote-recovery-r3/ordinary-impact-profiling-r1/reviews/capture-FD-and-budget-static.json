@@ -1,0 +1,55 @@
+{
+  "schema": "hia-static-review-v1",
+  "status": "NARROW_STATIC_DIFF_REVIEW_ONLY",
+  "reviewed": [
+    {
+      "role": "capture-r2",
+      "bytes": 15517,
+      "sha256": "323b22b0abb0d981324ec1cc2f70145ffa80e7801bafe96ba4c3ac1f299999a4",
+      "gitsha": "8e87caf987704a19ece7bbb8a2c70e35f9d2cbf5"
+    },
+    {
+      "role": "builder-r2",
+      "bytes": 11675,
+      "sha256": "14143efb7ff04f1e1212d1e4f8f9c273d426202d4c97837cf46061c4f32aad3e",
+      "gitsha": "5f64b81801e56585a098fb0bc889f8c470016a44"
+    }
+  ],
+  "historical_sources": [
+    {
+      "role": "capture-r1",
+      "bytes": 13843,
+      "sha256": "4c5ca8a704d51f845857deffba63f3119e07425e3a71cac042ea00c4e9da45e0",
+      "gitsha": "73e046673a3a7fdc4281f0ec4a31b8ef11cb454a"
+    },
+    {
+      "role": "builder-r1",
+      "bytes": 11309,
+      "sha256": "72b8b3005a2a8d284f78dbc60214e84dc968ab01d78a6a512c5674d4e448b072",
+      "gitsha": "a143101b2ca328af85104f4d6ec962ebf702f30c"
+    }
+  ],
+  "scope": [
+    "FD198 reservation before opening streams; owned close and child cleanup",
+    "Final parent plus reaped children CPU and wall accounting"
+  ],
+  "observations": [
+    "The private trace descriptor is checked vacant, reserved with an owned /dev/null mapping before any of the four streams opens, and explicitly excluded from all four stream descriptors before duplication. Thus a stream cannot accidentally acquire 198 between the vacancy check and duplication in this single-threaded capture.",
+    "Owned descriptor state is consumed before close. Close exceptions are collected; independent kill and a finally wait attempt still execute. The changed control flow repairs the two previously identified source-level gaps. This was not an executed fault reproduction.",
+    "Both finalizers perform source/image after-checks before the final aggregate CPU/wall measurement. A mismatch, aggregate CPU >=90 or elapsed >=180 seconds forces FAIL. Existing per-child limits and complete calibration comparisons are unchanged.",
+    "The timing capture remains diagnostic: same 63 semantic images, two calibration processes and one actual large input process. Timing hooks/layout overhead are not hidden or counted as an original semantic qualification."
+  ],
+  "failure_evidence_scope": [
+    "cleanup-errors.json is written after child cleanup. If that evidence write itself raises, it can mask a pre-existing primary exception; the child cleanup attempts have already occurred. No claim is made that all filesystem-write failures preserve the original exception object.",
+    "The review does not prove successful runtime FD behavior, timing observations, packer results, or a complete publication/CLI chain."
+  ],
+  "executions": {
+    "AST": 0,
+    "assembler": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "source_changes_by_reviewer": 0,
+  "refs_changed": 0
+}

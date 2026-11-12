@@ -1,0 +1,20 @@
+{
+  "schema": "hia-static-review-addendum-v1",
+  "parent_review": "57e416d424e7fc2381b5387d042562927b685ee5",
+  "source": {
+    "bytes": 15818,
+    "sha256": "77d8fcd5257ee43cb0a29a4678268618b08324de8fff58a83b9074eec1ea8887",
+    "gitsha": "17ebe4ec4b33f11a0f04d0a3148d9eec2c658509"
+  },
+  "exact_delta_only": "            try:save(label+\"/cleanup-errors.json\",cleanup_errors)\n            except BaseException as report_error:\n                cleanup_errors.append(dict(operation=\"preserve-cleanup-observations\",error=repr(report_error)))\n                if primary_error is None:raise AssertionError((\"diagnostic cleanup evidence failed\",cleanup_errors)) from report_error\n",
+  "complete_reverse_bytes_equal": true,
+  "conclusion": "The noted cleanup evidence-write exception can no longer replace an already active primary exception on the reviewed path. The write is caught independently, then its observation is attached to the primary. Without a primary, cleanup failure still raises. Child cleanup remains before this path. No further source changes observed.",
+  "scope": "Only the explicit cleanup observation write delta; prior FD198/final budget review remains limited to its stated scope.",
+  "executions": {
+    "AST": 0,
+    "assembler": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  }
+}

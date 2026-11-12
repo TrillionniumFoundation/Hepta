@@ -1,0 +1,190 @@
+[
+  {
+    "file": "generate_hia_agent_namespace_filesystem.py",
+    "base": "5c64683dff44a779a8f1217c37f565e625b10910",
+    "changes": [
+      [
+        "\"\"\"Raw FS8 adds STAT_CSTR opcode29 to the frozen FS7 owner.\n\nOnly this new opcode accepts an empty stat pathname; original op18 behavior,\nall 1..28 calls, result framing, descriptor issuance and limits are preserved.\nA controlled provider is not an actual OS syscall. NEW, not yet executed.\n\"\"\"",
+        "\"\"\"NEW FS9 adds ACCESS_CSTR30 and UNLINK_CSTR31 for selected unixOpen.\n\nThe original1..29 policy is retained. New aliases send an empty C string to\nactual access/unlinkat instead of inventing an errno in the parent adapter.\nThis is source-only authoring, not executed or an activated Store path.\n\"\"\""
+      ],
+      [
+        "if get(w, 48) > 29 or get(w, 144) > 1:",
+        "if get(w, 48) > 31 or get(w, 144) > 1:"
+      ],
+      [
+        "if op == 0 or op > 29 or n > 9223372036854775807:",
+        "if op == 0 or op > 31 or n > 9223372036854775807:"
+      ],
+      [
+        "if op == 1 or op == 25 or op == 28 or op == 9 or op == 10 or op == 18 or op == 19 or op == 22 or op == 27 or op == 29:",
+        "if op == 1 or op == 25 or op == 28 or op == 9 or op == 10 or op == 18 or op == 19 or op == 22 or op == 27 or op == 29 or op == 30 or op == 31:"
+      ],
+      [
+        "((op != 28 and op != 29) or n != 0)",
+        "((op != 28 and op != 29 and op != 30 and op != 31) or n != 0)"
+      ],
+      [
+        "if op == 27:\n",
+        "if op == 27 or op == 30:\n"
+      ],
+      [
+        "elif op == 9 or op == 10 or op == 18 or op == 19 or op == 22 or op == 27 or op == 29:",
+        "elif op == 9 or op == 10 or op == 18 or op == 19 or op == 22 or op == 27 or op == 29 or op == 30 or op == 31:"
+      ],
+      [
+        "\"module\":\"agent_namespace_filesystem_r8\"",
+        "\"module\":\"agent_namespace_filesystem_r9\""
+      ],
+      [
+        "agent_namespace_filesystem_r8.hiaasm",
+        "agent_namespace_filesystem_r9.hiaasm"
+      ]
+    ],
+    "before": {
+      "blob": "5c64683dff44a779a8f1217c37f565e625b10910",
+      "bytes": 23046,
+      "sha256": "465014690a19e3910448769a90c38b2b10acbfb4d52ed5e13e91e28d6f409520"
+    },
+    "after": {
+      "blob": "f4f8cb15d40089b98040032367ba53b03bca8b2a",
+      "bytes": 23161,
+      "sha256": "68fd862d217656bd33b4ecebe8f502b424a34bdc978f07d6a7f4965fc1c7780b"
+    }
+  },
+  {
+    "file": "namespace_fixed_fs_executor.S",
+    "base": "f90bbc7cbdff24135df2e4e0b7e1f0592c9723ba",
+    "changes": [
+      [
+        "    cmp rax,29\n    ja protocol_failure",
+        "    cmp rax,31\n    ja protocol_failure"
+      ],
+      [
+        "    cmp eax,28\n    je primitive_openat\n    jmp primitive_statat",
+        "    cmp eax,28\n    je primitive_openat\n    cmp eax,29\n    je primitive_statat\n    cmp eax,30\n    je primitive_access\n    jmp primitive_unlinkat"
+      ]
+    ],
+    "before": {
+      "blob": "f90bbc7cbdff24135df2e4e0b7e1f0592c9723ba",
+      "bytes": 64899,
+      "sha256": "fc47cfc647affed2db900351834845b819c4c07f838dcb701a3a03f418813b9b"
+    },
+    "after": {
+      "blob": "ceb21c40b4287b1eff4e998d61fdfcfa59fb3110",
+      "bytes": 64979,
+      "sha256": "dd33f23d901ecd8ecb85b65b71d672d9865855f5eb3308b7cb9735d52cd66d3a"
+    }
+  },
+  {
+    "file": "generate_hia_agent_namespace_dms_map_join.py",
+    "base": "47beb3764f3774acab90883ee202cf5c03b8643d",
+    "changes": [
+      [
+        "dms_read(s, 64) > 29",
+        "dms_read(s, 64) > 31"
+      ],
+      [
+        "agent_namespace_dms_map_join_r9",
+        "agent_namespace_dms_map_join_r10"
+      ],
+      [
+        "integrated private join draft r8.",
+        "integrated private join source revision r10."
+      ]
+    ],
+    "before": {
+      "blob": "47beb3764f3774acab90883ee202cf5c03b8643d",
+      "bytes": 72876,
+      "sha256": "963445ac091c3a6ba08df05d8436e5936c616f7dd77cf9626c0ec5f0197c3117"
+    },
+    "after": {
+      "blob": "3e82ef42b28e1bd34cf760c2ad229acbafe03e08",
+      "bytes": 72889,
+      "sha256": "268a55deb3912d658b4fdb9952fbfeff8cedd168bcda18da611d4ae4d664567f"
+    }
+  },
+  {
+    "file": "hia_namespace_dms_fixed_header_builder.py",
+    "base": "96e6d51e1008770b3d5060f13812179a1b6da6c8",
+    "changes": [
+      [
+        "DMS9",
+        "DMS10"
+      ],
+      [
+        "95e13ccf13d9780c06e089773133479a44fd83e6d9fc9fe5f0a40820c7946e3e",
+        "be06bdfccb352998a53eb09f572f0f77fc00c6bc76d98060537d85442cd9491e"
+      ],
+      [
+        "bound,24 to29",
+        "bound,24 to31"
+      ],
+      [
+        "new='dms_read(s, 64) > 29'",
+        "new='dms_read(s, 64) > 31'"
+      ]
+    ],
+    "before": {
+      "blob": "96e6d51e1008770b3d5060f13812179a1b6da6c8",
+      "bytes": 5807,
+      "sha256": "dce0bf0ba466b84cfffdb8b40921c6d8522fb0e631b4b647adf490176f3338be"
+    },
+    "after": {
+      "blob": "6bbf64463f93e1e010f2e975a2de047fd883a4d6",
+      "bytes": 5811,
+      "sha256": "686d3e61ebb09a164bbe2af2ed2c9298700c124d706dffe8fcff64869a45c82a"
+    }
+  },
+  {
+    "file": "generate_hia_agent_namespace_db_issued_fs.py",
+    "base": "eb61e1e2b4d7f4fe3f28126968c414ca650fad27",
+    "changes": [
+      [
+        "if op < 1 or op > 29:",
+        "if op < 1 or op > 31:"
+      ],
+      [
+        "read64(s, 192) > 29",
+        "read64(s, 192) > 31"
+      ],
+      [
+        "\"module\":\"agent_namespace_db_issued_fs_r2\"",
+        "\"module\":\"agent_namespace_db_issued_fs_r3\""
+      ],
+      [
+        "agent_namespace_db_issued_fs_r2.hiaasm",
+        "agent_namespace_db_issued_fs_r3.hiaasm"
+      ]
+    ],
+    "before": {
+      "blob": "eb61e1e2b4d7f4fe3f28126968c414ca650fad27",
+      "bytes": 49740,
+      "sha256": "7ffa1c1d8cd357417e08ca6a5d2a44590c63e0444080425921855612d00ba56f"
+    },
+    "after": {
+      "blob": "a85c4f67459db3e74927bd1dc3871aa6f0a81ea8",
+      "bytes": 49740,
+      "sha256": "f75d7f8198820bed9855e546309f58b07ca01941ab1c6c006c110241fdcc8a32"
+    }
+  },
+  {
+    "file": "namespace_fs_trace_replay.py",
+    "base": "b6f1eee12f5c3a0b7f25262365d29cfd924c2570",
+    "changes": [
+      [
+        "25:257,26:39,27:21,28:257,29:262}",
+        "25:257,26:39,27:21,28:257,29:262,30:21,31:263}"
+      ]
+    ],
+    "before": {
+      "blob": "b6f1eee12f5c3a0b7f25262365d29cfd924c2570",
+      "bytes": 20813,
+      "sha256": "ec3b3ce5f7d03b05c8fd4bf4ac17170cb75a3c47b6373ace8bf04b8d6ec8c30f"
+    },
+    "after": {
+      "blob": "74736dfc2621bf8276daac20e83e91381c449f4b",
+      "bytes": 20826,
+      "sha256": "d2b12ec4b92324e8d659954c384166aff64636289d72172f3546909724ca7741"
+    }
+  }
+]

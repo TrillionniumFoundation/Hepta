@@ -1,0 +1,13 @@
+# FOLLOW46 exact original readback
+
+This new stdlib-only reader replays the complete 204-member cost diagnostic archive and the complete 151-member unixOpen archive. It executes no HIA, VM, native image, compiler, original test or diagnostic again. Both original archives/indexes are copied and read back before any tar/semantic parsing. Every member is checked by size, mode, SHA256 and Git blob identity against its exact pinned index.
+
+Cost originals include all 18 per-window full cProfile JSON files, original full.prof files, timed/profiled records, complete summary, all six actual source/image identities and the exact retained-reference module pins. It never executes or unmarshals a profile. Whole original JSON bytes are emitted with individually verified lossless gzip/base64 chunks before interpreting semantic fields. Per-role timings and self/cumulative profile tables are derived only after preserving the originals; cumulative caller/callee times overlap and are not added as distinct elapsed time. These samples do not identify an unobserved original in-flight operation and do not close a 900-second suite.
+
+The unixOpen full top-level report and all 11 component summaries are preserved. The reader verifies 85 semantic cases, 42 protocol controls, 88 original C calls and 833 VM/833 native entries, plus one fresh B3 compile. Exact generated .hiaasm, canonical document and actual native image are exported by their original report identities, with no regeneration. All 18 effect types remain foreign; no ordinary Store or actual parent-to-namespace success is inferred.
+
+The provider ZIP digests are declared transport identities; this reader receives actions/download-artifact directories and independently verifies the complete inner archives. It does not claim an additional byte/CRC replay of the outer ZIPs.
+
+Limits are 90 CPU seconds, 180 wall seconds, 1 GiB AS, no core. Workflow must additionally enforce timeout --signal=TERM --kill-after=5s 180s. Console raw payload is losslessly compressed with a hard overall 1 MiB framing budget; it never truncates a JSON or passes an incomplete archive as complete. If the complete final derived report is too large for the remaining console budget, only that console projection is replaced by an explicitly labelled full-report pin; the complete report remains sealed in the output archive. Original raw per-window JSON was already emitted before semantic interpretation.
+
+Authorship status: new source, zero AST/runtime executions. No existing job is retried, cancelled, or replaced. All original failure and pass scopes remain unchanged.

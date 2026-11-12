@@ -1,0 +1,72 @@
+{
+  "schema": "hia.namespace.raw-framer.source-revision.v1",
+  "original": {
+    "blob": "118584f99cc4e97ff2906e6d240835cbdfe3365d",
+    "bytes": 19613,
+    "sha256": "a997792570d9318df128b71e3e70fcb972aa9c8dd967f4b40e316ad0195f4a28",
+    "mode": "100644"
+  },
+  "current": {
+    "blob": "41c2b2cb2aa149e21122dcd3d1a1733298926334",
+    "bytes": 20615,
+    "sha256": "e20e69baf87965123e8d8aad77734b9a343c9ed18faf2e0c59b4867908edfccd",
+    "mode": "100644"
+  },
+  "replacements": [
+    {
+      "old": "\"term\":{\"op\":\"return\",\"values\":[\"status\"]}",
+      "new": "\"term\":{\"op\":\"ret\",\"values\":[\"status\"]}",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "copy_workspace(w, w, at + 640, 1152, size)",
+      "new": "move_workspace(w, at + 640, 1152, size)",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "copy_workspace(w, w, ack + 16, 656, 48)",
+      "new": "move_workspace(w, ack + 16, 656, 48)",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "copy_workspace(w, w, ack + 256, 896, 256)",
+      "new": "move_workspace(w, ack + 256, 896, 256)",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "def uf_fs_op(s:readbuf) -> u64:\n    op = read64(s, 176)\n    n = length(s) - 640\n",
+      "new": "def uf_fs_op(s:readbuf) -> u64:\n    return uf_code(read64(s, 176), length(s) - 640)\n\ndef uf_code(op:u64, n:u64) -> u64:\n",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "    if length(w) < need:\n        put(w, 40, need)\n        return uf_emit(w, 2, 0, 0, need, read64(s, 32))",
+      "new": "    if length(w) < need:\n        put(w, 8, 1)\n        put(w, 40, need)\n        return uf_emit(w, 2, 0, 0, need, read64(s, 32))",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "    if get(w, 152) != 11 and get(w, 152) != 12:\n        return 0\n",
+      "new": "    if get(w, 16) != get(w, 528) or get(w, 24) != get(w, 536) or get(w, 32) != get(w, 544):\n        return 0\n    if get(w, 56) != get(w, 560) or get(w, 64) != get(w, 568):\n        return 0\n    if get(w, 80) != get(w, 1048) or get(w, 88) != get(w, 1056) or get(w, 80) == 18446744073709551615 or get(w, 88) == 18446744073709551615:\n        return 0\n    if get(w, 120) != get(w, 1032) or get(w, 128) != get(w, 1040) or get(w, 136) != get(w, 688):\n        return 0\n    if get(w, 144) != uf_code(get(w, 136), get(w, 168)) or get(w, 144) == 0 or get(w, 176) != get(w, 712):\n        return 0\n    if get(w, 96) == 0 or (get(w, 104) | get(w, 112)) == 0:\n        return 0\n    at = 216\n    while at < 256:\n        if get(w, at) != 0:\n            return 0\n        at = at + 8\n    if get(w, 152) != 11 and get(w, 152) != 12:\n        return 0\n",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "    if (get(w, 152) == 11 and get(w, 160) != 0) or (get(w, 152) == 12 and (get(w, 160) == 0 or get(w, 136) != 15)):\n        return 0\n",
+      "new": "    if (get(w, 152) == 11 and get(w, 160) != 0) or (get(w, 152) == 12 and (get(w, 160) == 0 or get(w, 136) != 15)):\n        return 0\n    if get(w, 136) == 15 and get(w, 800) != 0:\n        if get(w, 152) != 12 or get(w, 160) != get(w, 800):\n            return 0\n    elif get(w, 152) != 11:\n        return 0\n",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "    put(w, 328, get(w, 56))\n    put(w, 336, get(w, 64))\n    put(w, 344, get(w, 216))\n    put(w, 352, get(w, 152))\n    put(w, 360, get(w, 96))\n    if get(w, 8) == 2 or get(w, 8) == 3:",
+      "new": "    put(w, 344, get(w, 216))\n    if get(w, 8) == 2 or get(w, 8) == 3:\n        put(w, 328, get(w, 56))\n        put(w, 336, get(w, 64))\n        put(w, 352, get(w, 152))\n        put(w, 360, get(w, 96))",
+      "expected_occurrences": 1
+    },
+    {
+      "old": "agent_namespace_unixopen_fs_framer_r1",
+      "new": "agent_namespace_unixopen_fs_framer_r2",
+      "expected_occurrences": 2
+    }
+  ],
+  "forward_rebuild_exact": true,
+  "status": "AUTHORING_ONLY",
+  "no_execution": true,
+  "reason": "Before execution, correct manual wrapper ret spelling, avoid aliased read/write copy by move_within, check saved offsets and suppress old lease metadata on a new GROW. Original authoring draft preserved.",
+  "source_check_note": "Initial metadata checker expected every old string once; module name intentionally appears twice. Corrected checker requires exact occurrence count two only for that final rename. Production source was unchanged."
+}

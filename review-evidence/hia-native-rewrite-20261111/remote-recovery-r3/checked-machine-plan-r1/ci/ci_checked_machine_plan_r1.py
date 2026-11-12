@@ -48,8 +48,8 @@ FILES=[
     "path": "tests/test_hia_checked_plan.py",
     "mode": "100644",
     "bytes": 49766,
-    "sha256": "b1fb477e41de349f42b5415df3fa55e59b661b30c593408a82e836d21019b52d",
-    "gitsha": "95387905e26d741ccd94812432421f3e667d2faf"
+    "sha256": "26c2ccc3f7d6da64934eaeb0547b84df10a515790f404e103e59777d2402b2d2",
+    "gitsha": "f0abb87090dd2d24b73e4e760a483622dac589a7"
   },
   {
     "path": "docs/HIA_CHECKED_MACHINE_PLAN_NATIVE.md",

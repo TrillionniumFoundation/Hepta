@@ -1,0 +1,69 @@
+{
+  "schema": "hia-worker-core-decoder-postcondition-repair-r3",
+  "source_refs": [
+    {
+      "path": "tools/generate_hia_json_decode.py",
+      "mode": "100644",
+      "bytes": 8178,
+      "sha256": "fffc97c704cc75ad88239fe79d7b7f83418199a732364f834e006ebfd5f8548f",
+      "gitsha": "54607f809bdbd8cd68c4e423749c40623fe54a69",
+      "reference_commit": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+      "scope": "EXACT_ORIGINAL_SOURCE_READ_ONLY_CONTRACT_EVIDENCE"
+    },
+    {
+      "path": "tools/generate_hia_agent_data_json.py",
+      "mode": "100644",
+      "bytes": 4587,
+      "sha256": "10b951aa18635268a726d8d57636ba46afc5f560bfefe38c7650cb1cd15a6096",
+      "gitsha": "2f83dc7ccaa6dd3d0b210aca003f48c6065747d5",
+      "reference_commit": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+      "scope": "EXACT_ORIGINAL_SOURCE_READ_ONLY_CONTRACT_EVIDENCE"
+    },
+    {
+      "path": "hepta/hia_json_decode_native.py",
+      "mode": "100644",
+      "bytes": 6765,
+      "sha256": "92bb24aa401f10341a39a2ba4b3c2550fbeecd4d73546e87558cac958bbc9d9e",
+      "gitsha": "e1c1fccc902e58fede9d05e929d14d30f3b6755f",
+      "reference_commit": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+      "scope": "EXACT_ORIGINAL_SOURCE_READ_ONLY_CONTRACT_EVIDENCE"
+    }
+  ],
+  "actual_decoder_source_sha256": "bfb36b20e6e2def7a484c794b71f6ff7a202ecdc5452605bc0ad63251b03308e",
+  "actual_decoder_image_sha256": "c84b865a6ffe497bab96a3de1fcb3a8c3c26c3ec483b0e824966bc5f7a09abbd",
+  "exact_source_observation": "decode_json first copies input48/56 from workspace to output then calls preflight(s,w,o), using original workspace as key slots. The same workspace is then reused for container traversal. It guarantees final cursor=length(source), counter=count, poolend=returned extent and depth0, not unchanged48/56.",
+  "required_fixed_issuer": "The original native decoder is invoked on the retained exact canonical Core and its original private config, and returns actual output plus actual scratch without substitution. This ownership premise is not an arbitrary arena authenticator.",
+  "new_native_output": {
+    "path": "tools/worker_initializer_program_bridge_output.py",
+    "mode": "100644",
+    "bytes": 14756,
+    "sha256": "034925ae38747908e948c6e584dd76991d3a56a4a037c5694086393bbe9eaeeb",
+    "gitsha": "8b290480e88e57c9ccfe4dd92c9017dfd2a81cba",
+    "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+  },
+  "inverse": {
+    "only_output_condition_block_changed": true,
+    "other_output_authoring_bytes_equal": true,
+    "one_private_mutation_only_corrected_from_input_only56_to_finaldepth96": true,
+    "complete_four_group_cases_unchanged": [
+      3,
+      3,
+      2,
+      121
+    ],
+    "no_new_execution": true
+  },
+  "old_tests_preserved": true,
+  "corrected_test": "program-decoder-depth mutates true final-depth96 to65; old56 was an input-only slot reused internally and was not an exported limit.",
+  "original_FOLLOW45_result_delivery": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/follow45-worker-original-results/DELIVERY.json",
+    "mode": "100644",
+    "bytes": 2963,
+    "sha256": "35cb78ba17c95d6242fbb0ec8b730bdd7f4f3f4e4f6d0e7a39acd6e7cef06beb",
+    "gitsha": "76a7cd5f6d89be2ab0f75ef09e98b39db1d56d16",
+    "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+  },
+  "new_AST": 0,
+  "new_B3": 0,
+  "new_native": 0
+}

@@ -1,0 +1,64 @@
+{
+  "schema": "hia.namespace.registered-fstat-source-patch.v1",
+  "status": "AUTHORING_ONLY_UNEXECUTED",
+  "base": {
+    "blob": "a85c4f67459db3e74927bd1dc3871aa6f0a81ea8",
+    "bytes": 49740,
+    "sha256": "f75d7f8198820bed9855e546309f58b07ca01941ab1c6c006c110241fdcc8a32"
+  },
+  "new": {
+    "blob": "de8629320367e7e630d671fea433894e4cd0ee28",
+    "bytes": 52435,
+    "sha256": "e1db950cab971e7dd22b554d120afd491ff20ec9f1215f41b0f0d780fd303d19",
+    "mode": "100644"
+  },
+  "replacements": [
+    [
+      "\"\"\"NEW r4 six-image main DB / DMS / map / memory / filesystem continuation.",
+      "\"\"\"NEW r5 six-image main DB / DMS / map / memory / filesystem continuation."
+    ],
+    [
+      "The DMS policy is unchanged. A fixed native",
+      "Command 12 permits only FSTAT through an actual live file handle with the same\nregistered FS token. It does not relax the generic gateway or permit lock,\nwrite, CLOSE or arbitrary descriptor access. The DMS policy is unchanged. A fixed native"
+    ],
+    [
+      "def j_peer_fs_start(o:mutbuf, w:mutbuf, size:u64) -> u32:\n",
+      "def j_registered_fstat_shape(s:readbuf, w:mutbuf) -> u64:\n    if read64(s, 240) != 256:\n        return 0\n    at = 192\n    while at < 240:\n        if read64(s, at) != 0:\n            return 0\n        at = at + 8\n    file = j_find(w, read64(s, 184), 2)\n    if file == 0 or get(w, file + 24) != 1:\n        return 0\n    node = j_find(w, get(w, file + 32), 1)\n    if node == 0 or get(w, node + 24) != 1:\n        return 0\n    request = 384\n    if read64(s, request) != FS_MAGIC or read64(s, request + 8) != 2:\n        return 0\n    if read64(s, request + 16) != get(w, 80) or read64(s, request + 24) != get(w, 88):\n        return 0\n    if get(w, 216) == 18446744073709551615 or read64(s, request + 32) != get(w, 216) + 1:\n        return 0\n    if (read64(s, request + 40) | read64(s, request + 56)) != 0 or read64(s, request + 104) == 0:\n        return 0\n    if read64(s, request + 48) != 15 or read64(s, request + 64) != get(w, file + 48):\n        return 0\n    if j_token(w, read64(s, request + 64)) != file:\n        return 0\n    if (read64(s, request + 72) | read64(s, request + 80) | read64(s, request + 88) | read64(s, request + 96)) != 0:\n        return 0\n    at = 112\n    while at < 256:\n        if read64(s, request + at) != 0:\n            return 0\n        at = at + 8\n    return 1\n\ndef j_registered_fstat_pending(w:mutbuf, request:u64) -> u64:\n    file = j_find(w, get(w, 128), 2)\n    node = j_find(w, get(w, 120), 1)\n    if file == 0 or node == 0 or get(w, file + 24) != 1 or get(w, node + 24) != 1:\n        return 0\n    if get(w, file + 16) != get(w, 568) or get(w, file + 32) != get(w, node + 16):\n        return 0\n    if get(w, request + 48) != 15 or get(w, request + 64) != get(w, file + 48):\n        return 0\n    if j_token(w, get(w, request + 64)) != file or get(w, request + 96) != 0:\n        return 0\n    return 1\n\ndef j_peer_fs_start(o:mutbuf, w:mutbuf, size:u64) -> u32:\n"
+    ],
+    [
+      "    request = source + 296\n    path_size = size - 256\n    j_dms_header(w, 16, get(w, request + 104), 0, path_size)",
+      "    request = source + 296\n    path_size = size - 256\n    if get(w, 136) == 12:\n        file = j_find(w, get(w, 568), 2)\n        if file == 0 or get(w, file + 24) != 1:\n            return j_reject(o, w, 76)\n        put(w, 128, get(w, file + 16))\n        put(w, 120, get(w, file + 32))\n        if j_registered_fstat_pending(w, request) == 0:\n            return j_reject(o, w, 76)\n    j_dms_header(w, 16, get(w, request + 104), 0, path_size)"
+    ],
+    [
+      "    if get(w, 136) != 11 or (get(w, 120) | get(w, 128) | get(w, 248)) != 0:\n        return j_reject(o, w, 71)\n    if source == 0 or get(w, source + 32) < 512:\n        return j_reject(o, w, 71)\n    request = source + 296\n    path_size = get(w, source + 32) - 512",
+      "    if get(w, 248) != 0:\n        return j_reject(o, w, 71)\n    if get(w, 136) == 11:\n        if (get(w, 120) | get(w, 128)) != 0:\n            return j_reject(o, w, 71)\n    elif get(w, 136) != 12:\n        return j_reject(o, w, 71)\n    if source == 0 or get(w, source + 32) < 512:\n        return j_reject(o, w, 71)\n    request = source + 296\n    path_size = get(w, source + 32) - 512\n    if get(w, 136) == 12:\n        if path_size != 0 or j_registered_fstat_pending(w, request) == 0:\n            return j_reject(o, w, 76)"
+    ],
+    [
+      "    if cmd < 2 or cmd > 11 or read64(s, 168) != 0:",
+      "    if cmd < 2 or cmd > 12 or read64(s, 168) != 0:"
+    ],
+    [
+      "    if cmd == 11:\n        return j_peer_fs_shape(s, w)\n",
+      "    if cmd == 11:\n        return j_peer_fs_shape(s, w)\n    if cmd == 12:\n        return j_registered_fstat_shape(s, w)\n"
+    ],
+    [
+      "    if cmd == 11:\n        child_size = 64 + size",
+      "    if cmd == 11 or cmd == 12:\n        child_size = 64 + size"
+    ],
+    [
+      "    if cmd == 11:\n        return j_peer_fs_start(o, w, size)",
+      "    if cmd == 11 or cmd == 12:\n        return j_peer_fs_start(o, w, size)"
+    ],
+    [
+      "\"module\":\"agent_namespace_db_issued_fs_r3\"",
+      "\"module\":\"agent_namespace_db_issued_fs_r4\""
+    ],
+    [
+      "agent_namespace_db_issued_fs_r3.hiaasm",
+      "agent_namespace_db_issued_fs_r4.hiaasm"
+    ]
+  ],
+  "forward_rebuild_exact": true,
+  "policy": "Existing cmd11 registered-token rejection unchanged. New cmd12 authorizes only actual FSTAT on the same live file handle/node/token with full request correlation.",
+  "scope": "Zero AST/VM/native. No claim that a byte header authenticates an external provider."
+}

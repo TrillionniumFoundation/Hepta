@@ -1,0 +1,58 @@
+{
+  "schema": "hia-impact-entry-timing-narrow-static-review-v1",
+  "status": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_SCOPE",
+  "reviewer": "native_checker",
+  "sources": {
+    "author": {
+      "bytes": 5379,
+      "sha256": "3c8a4a5dbf78c21f1b95b4c96635531c3ffa49d9eae2b3d57a0fa256c747298e",
+      "gitsha": "bce0fc69dbd381f21f4b37c885e6ac32ee8d5677"
+    },
+    "original_executor": {
+      "bytes": 32233,
+      "sha256": "659afe0dc2dcb4975e823fe96c4c3287450cca9428929e7a7211fe023212757d",
+      "gitsha": "aeaf61efa6fde911dd5a031adaa55b865e407518"
+    }
+  },
+  "scope": [
+    "Four before/after hooks only",
+    "GPR and flags preservation",
+    "Stack arithmetic and original return value location",
+    "Original control-flow continuation and read/write side effects",
+    "Full inverse source proof in authoring"
+  ],
+  "observed_execution": {
+    "AST": 0,
+    "assembler": 0,
+    "VM": 0,
+    "B3": 0,
+    "native": 0
+  },
+  "findings": [
+    {
+      "subject": "Stack arithmetic",
+      "conclusion": "At trace frame base: original RAX +240, saved flags +248, return address +256. pushfq, RAX, fourteen remaining GPR saves and 128-byte frame are restored in exact reverse order; hooks return with original stack pointer."
+    },
+    {
+      "subject": "ABI preservation",
+      "conclusion": "The hook uses no SIMD/FPU instructions and calls no library code. The original executor has no red-zone operands. Both syscall-clobbered RCX and R11 are saved. Flags are saved before stage assignment and restored after the final pops; original EAX reaches the existing comparison/zero extension."
+    },
+    {
+      "subject": "Memory",
+      "conclusion": "Each 128-byte record word is assigned. Hook reads the current r12 event and r15 context and writes only its fresh stack frame and trace FD. No HIA operand, command, descriptor, slot, lease or role table is mutated."
+    },
+    {
+      "subject": "Control flow",
+      "conclusion": "Unique replacement and inverse-byte equality are explicit authoring assertions. This review did not execute those assertions, assemble or test the revised executor."
+    }
+  ],
+  "qualifications": [
+    "FD 198 must be a separate owned trace output established by the test harness. Opening/duplication/lifecycle of that FD is outside the reviewed author.",
+    "The before timestamp precedes the remainder of its hook, including the monotonic-clock syscall and trace write. A before-to-after difference includes that before-hook overhead; it is not isolated HIA execution time.",
+    "Clock failure or trace write failure causes diagnostic-only exit 71. Trace writes can block; full run limits and cleanup remain the harness responsibility.",
+    "This adds up to 264 transient stack bytes at a hook call, changes code layout and resource use, and cannot establish unchanged timing qualification.",
+    "No complete 63-image identity, packer, ELF, lifecycle, or original semantic qualification has been independently executed by this review."
+  ],
+  "no_source_changes": true,
+  "no_ref_mutation": true
+}
