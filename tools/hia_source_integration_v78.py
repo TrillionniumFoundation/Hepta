@@ -32,10 +32,11 @@ BASE_COMMIT = "4b19af89a766593f7d5f1cc2db256e81aba7afcb"
 BASE_TREE = "1bc7c90996e1910ad66ba771b0bfee1d5bfa655c"
 PROTECTED_SOURCE_PATHS = frozenset(("tools/check_hia_core_only.py",))
 BASE_FILE_COUNT = 3153
-FROZEN_CANDIDATE_TREE = "344f747642bf8b96acbd9788860ac80e45709f1f"
-EXPECTED_GENERATORS = 82
-EXPECTED_SELECTORS = 157
-EXPECTED_TESTS = 764
+HARNESS_CONFIG = json.loads((Path(__file__).resolve().parents[1] / "inputs" / "CONFIG.json").read_bytes())
+FROZEN_INPUT_TREE = HARNESS_CONFIG["frozen_input_tree"]
+EXPECTED_GENERATORS = HARNESS_CONFIG["expected_generators"]
+EXPECTED_SELECTORS = HARNESS_CONFIG["expected_selectors"]
+EXPECTED_TESTS = HARNESS_CONFIG["expected_tests"]
 SCHEMA = "hepta.hia.source-generation-v78.v1"
 OVERLAY_SCHEMA = "hepta.hia.source-overlay.v1"
 STEP_SECONDS = 1800
@@ -44,27 +45,14 @@ PACKAGES = {
     "setuptools": "78.1.1", "wheel": "0.46.3",
     "z3-solver": "4.15.4.0", "jsonschema": "4.26.0",
 }
-GENERATED_HIA = (
-    "examples/hia_bootstrap/cli_control.hiaasm",
-    "examples/hia_bootstrap/cli_format.hiaasm",
-    "examples/hia_bootstrap/machine_encoding.hiaasm",
-    "examples/hia_bootstrap/machine_state.hiaasm",
-    "examples/hia_bootstrap/machine_instructions.hiaasm",
-    "examples/hia_bootstrap/machine_elf.hiaasm",
-    "examples/hia_bootstrap/machine_plan.hiaasm",
-    "examples/hia_bootstrap/service_context.hiaasm",
-    "examples/hia_bootstrap/heap_live_engine.hiaasm",
-    "examples/hia_bootstrap/core_lowering.hiaasm",
-    "examples/hia_bootstrap/service_emission.hiaasm",
-)
+GENERATED_HIA = tuple(HARNESS_CONFIG["generated_sources"])
 GENERATED_DOCS = (
     "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json",
     "docs/HIA_SELFHOST_CORE_SUPPORT.json",
     "docs/HIA_NATIVE_REWRITE_INVENTORY.json",
 )
 MAX_GENERATED_PATHS = frozenset((*GENERATED_HIA, *GENERATED_DOCS))
-EXTRA_GENERATORS = ("cli_control", "cli_format", "machine_encoding", "machine_state", "machine_instructions",
-                    "machine_elf", "machine_plan", "service_context", "core_lowering", "service_emission")
+EXTRA_GENERATORS = tuple(HARNESS_CONFIG["extra_generators"])
 MANDATORY_CONTROLS = (
     'tests.test_hia_core_lowering_native.CoreLoweringSourceTests',
     'tests.test_hia_service_emission_native.ServiceEmissionSourceTests',
@@ -96,6 +84,7 @@ MANDATORY_CONTROLS = (
     "tests.test_hia_selfhost_contract.SelfhostContractTests",
     'tests.test_hia_service_context_qualifier.ServiceContextQualifierSourceTests',
 )
+MANDATORY_CONTROLS = (*MANDATORY_CONTROLS, *HARNESS_CONFIG["new_source_selectors"])
 EXTRA_CONTROL_MAX = frozenset((*MANDATORY_CONTROLS,
     "tests.test_hia_integrated_workflow.CoreWorkflowContractTests",
     "tests.test_hia_program_normalization_native.ProgramNormalizationSourceTests",
@@ -130,7 +119,11 @@ import unittest
 
 source, target = Path(sys.argv[1]).resolve(strict=True), Path(sys.argv[2])
 names = json.loads(sys.argv[3])
-expected_ids = json.loads(Path(sys.argv[4]).read_text())["ordered_ids"]
+frozen_ids = json.loads(Path(sys.argv[4]).read_text())
+expected_ids = frozen_ids["ordered_ids"]
+original_ids = frozen_ids["original_ordered_ids"]
+original_id_set = set(original_ids)
+new_id_set = set(expected_ids) - original_id_set
 sys.path.insert(0, str(source))
 record = {"schema": "hepta.hia.source-control-observations.v78",
           "status": "LOADING", "selectors": names, "events": [], "loaded_ids": []}
@@ -195,8 +188,13 @@ try:
                   duplicated_test_ids=duplicated)
     loading_ok = (not loader.errors and bool(ids) and not duplicated
                   and all(number > 0 for number in counts.values()))
-    if ids != expected_ids or len(ids) != 764:
-        raise AssertionError("complete764 ordered source test IDs differ from frozen original/current inventory")
+    if (ids != expected_ids or len(ids) != frozen_ids["count"]
+            or [value for value in ids if value in original_id_set] != original_ids):
+        raise AssertionError("complete original764 and independently frozen additional source IDs differ")
+    record["original_source_controls"] = {"count": len(original_ids), "ordered_ids": original_ids}
+    record["additional_source_controls"] = {
+        "count": len(new_id_set), "groups": frozen_ids["new_groups"],
+        "ordered_ids": [value for value in ids if value in new_id_set]}
     record["status"] = "RUNNING"
     save()
     result = unittest.TextTestRunner(verbosity=2, resultclass=RecordingResult).run(suite)
@@ -207,6 +205,13 @@ try:
                   failures=len(result.failures), errors=len(result.errors),
                   skips=len(result.skipped), expected_failures=len(result.expectedFailures),
                   unexpected_successes=len(result.unexpectedSuccesses))
+    completed = [event["test"] for event in record["events"]
+                 if event["event"] in ("success", "failure", "error", "skip",
+                                        "expected_failure", "unexpected_success")]
+    record["original_source_controls"]["completed"] = [value for value in completed if value in original_id_set]
+    record["additional_source_controls"]["completed"] = [value for value in completed if value in new_id_set]
+    if record["original_source_controls"]["completed"] != original_ids:
+        raise AssertionError("original764 completion order/count differs")
     exit_code = 0 if success else 1
 except BaseException:
     record["status"] = "FAIL"
@@ -674,10 +679,22 @@ def check_harness_inputs():
     paths = {
         "driver": Path(__file__).resolve(),
         "workflow_process": Path(workflow_process.__file__).resolve(),
-        "workflow": Path(__file__).resolve().parents[1] / ".github" / "workflows" / "hia-source-generation-v78.yml",
+        "workflow": Path(__file__).resolve().parents[1] / ".github" / "workflows" / "hia-recoverable-owner-source-v78.yml",
         "overlay": Path(REPORT["overlay_input"]["path"]),
         "expected_source_ids": Path(__file__).resolve().parents[1] / "overlay" / "expected-source-ids.json",
     }
+    harness = Path(__file__).resolve().parents[1]
+    paths["composition_driver"] = harness / "tools" / "compose_recoverable_owners.py"
+    paths["input_index"] = harness / "inputs" / "INPUTS.json"
+    paths["merge_plan"] = harness / "inputs" / "MERGE-PLAN.json"
+    paths["config"] = harness / "inputs" / "CONFIG.json"
+    paths["external_finish_fixture"] = harness / "inputs" / "probe_native_finish.py"
+    paths["harness_readme"] = harness / "README.md"
+    index = json.loads(paths["input_index"].read_bytes(), object_pairs_hook=strict_pairs)
+    for key, entry in {**index["owners"], "derived": index["derived"]}.items():
+        path = harness / entry["path"]
+        require(identity(path.read_bytes()) == entry["identity"], "input source packet differs: " + key)
+        paths["packet_" + key] = path
     require(paths["workflow_process"] == paths["driver"].with_name("workflow_process.py"),
             "workflow supervisor is not adjacent to this driver")
     require(digest(paths["workflow_process"].read_bytes()) == SUPERVISOR_SHA256,
@@ -789,6 +806,11 @@ def perform(args):
         "path": "prerequisites-before.json", **file_identity(OUT / "prerequisites-before.json")}
     post_overlay = apply_overlay()
     GENERATOR_BASELINE = post_overlay
+    initial_allowed = {row["path"] for row in OVERLAY["files"]}
+    stage_known("frozen-authored-overlay", initial_allowed)
+    require(git_bytes("authored-overlay-write-tree", "write-tree").decode().strip() == FROZEN_INPUT_TREE,
+            "complete authored input tree differs before any generation")
+    REPORT["authored_input_tree"] = FROZEN_INPUT_TREE
     current_workflow = (SOURCE / ".github/workflows/hia-core.yml").read_text(encoding="utf-8")
     generators, current_shell = parse_generator_step(current_workflow)
     preserve_subsequence(original_generators, generators, "generator inventory")
@@ -801,7 +823,7 @@ def perform(args):
     require(len(generators) == EXPECTED_GENERATORS, "complete generator denominator differs")
     require(len(controls["executed_selectors"]) == EXPECTED_SELECTORS
             and controls["executed_selectors"] == controls["workflow_names"],
-            "all157 original and new selectors must be in the normal workflow")
+            "all original and explicitly added selectors must be in the normal workflow")
     REPORT["generator_inventory"] = {
         "original": original_generators, "actual_workflow": parse_generator_step(current_workflow)[0],
         "construction_order": generators, "original_order_preserved": True,
@@ -810,6 +832,17 @@ def perform(args):
         "construction_pass": "each original module in original order, then missing approved extra modules",
         "reproduction_pass": "exact source-owned shell including original git diff; missing extras checked separately",
     }
+    frozen_control_ids = json.loads(
+        (Path(__file__).resolve().parents[1] / "overlay" / "expected-source-ids.json").read_bytes(),
+        object_pairs_hook=strict_pairs)
+    preserve_subsequence(frozen_control_ids["original_selectors"],
+                         controls["executed_selectors"], "previous successful 157 source selectors")
+    require(len(frozen_control_ids["original_selectors"]) == 157
+            and len(frozen_control_ids["original_ordered_ids"]) == 764
+            and len(frozen_control_ids["ordered_ids"]) == EXPECTED_TESTS,
+            "original/new frozen source inventory denominator differs")
+    controls["previous_successful_joint_selectors"] = frozen_control_ids["original_selectors"]
+    controls["previous_successful_joint_selector_order_preserved"] = True
     REPORT["source_control_inventory"] = controls
     (OUT / "workflow-after-overlay.yml").write_text(current_workflow, encoding="utf-8")
     (OUT / "generator-original-shell.sh").write_text(original_shell, encoding="utf-8")
@@ -847,8 +880,10 @@ def perform(args):
     REPORT["generated_support"] = support_snapshot()
     allowed = {row["path"] for row in OVERLAY["files"]} | MAX_GENERATED_PATHS
     stage_known("pre-inventory", allowed)
-    require(git_bytes("frozen-source-write-tree", "write-tree").decode().strip() == FROZEN_CANDIDATE_TREE,
-            "authentic regenerated source differs from the frozen3181-file joint candidate")
+    REPORT["genuinely_generated_pre_inventory_tree"] = git_bytes(
+        "generated-source-write-tree", "write-tree").decode().strip()
+    REPORT["generation_changes_from_authored_inputs"] = changes(post_overlay, snapshot())
+    REPORT["generated_tree_was_not_previously_qualified"] = True
     inventory_context = context("native-inventory-generation")
     require(inventory_context["git_head"] == args.expected_commit
             and inventory_context["git_head_tree"] == args.expected_tree,
