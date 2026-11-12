@@ -1,0 +1,42 @@
+{
+  "actual_error": "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/hia-numeric-source83-actions-r1-43261208151-1/control/child.py\", line 61, in main\n    runpy.run_module(module, run_name='__main__')\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen runpy>\", line 229, in run_module\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/runner/work/_temp/hia-numeric-source83-actions-r1-43261208151-1/source/tools/generate_hia_artifact_publication.py\", line 464, in <module>\n    if __name__=='__main__':main()\n                            ~~~~^^\n  File \"/home/runner/work/_temp/hia-numeric-source83-actions-r1-43261208151-1/source/tools/generate_hia_artifact_publication.py\", line 460, in main\n    for name,source in [('artifact_publication_policy',POLICY_SOURCE),('artifact_publication_packer',packer_source())]:\n                                                                                                     ~~~~~~~~~~~~~^^\n  File \"/home/runner/work/_temp/hia-numeric-source83-actions-r1-43261208151-1/source/tools/generate_hia_artifact_publication.py\", line 431, in packer_source\n    prefix,holes=template()\n                 ~~~~~~~~^^\n  File \"/home/runner/work/_temp/hia-numeric-source83-actions-r1-43261208151-1/source/tools/generate_hia_artifact_publication.py\", line 413, in template\n    subprocess.run(['as','--64',str(ROOT/'tools/hia_artifact_publication_syscalls.S'),'-o',str(obj)],check=True,capture_output=True)\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/subprocess.py\", line 555, in run\n    with Popen(*popenargs, **kwargs) as process:\n         ~~~~~^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/hia-numeric-source83-actions-r1-43261208151-1/control/child.py\", line 39, in forbidden\n    raise AssertionError('source-only operation attempted native/compiler/subprocess execution')\nAssertionError: source-only operation attempted native/compiler/subprocess execution\n",
+  "actual_generator_seconds": 0.13123793100000114,
+  "artifact_bytes": 12162315,
+  "artifact_id": 13963368322,
+  "artifact_sha256": "4dabb0b7ddcf5c0cc8d4582c2da1ca5fa55e347a95fb010ea14cea4ef3b984d3",
+  "diagnosis": "The source child intercepted subprocess.Popen reached by artifact_publication.template -> subprocess.run(as).",
+  "head": "cde3642d238f7f89e8e0a7608b7a1542cc5f598a",
+  "job": 131332684167,
+  "native_numeric_failure_claimed": false,
+  "old_originals_canonical": "31c026602c188ab03c737051ce2a4d91fd9fafee",
+  "raw_pin_checks": [
+    {
+      "bytes": 3057,
+      "git_blob_sha1": "b17df02cbd4af01f4bbb0234d771bcd2ea1486ba",
+      "path": "/workspace/scratch/e26ed3e2edcf/root/numeric83-remote-actual-r1/original-generator-32-artifact_publication.report.json",
+      "sha256": "3f1b58d0b2ec08c6dd467809efa80036918af4c17ec34cce8b813b0fa9bc1eeb"
+    },
+    {
+      "bytes": 2194,
+      "git_blob_sha1": "2312a407a33594afbaef4d7e6e286832404ec6d8",
+      "path": "/workspace/scratch/e26ed3e2edcf/root/numeric83-remote-actual-r1/original-generator-32-artifact_publication.stdout.log",
+      "sha256": "d3fb5ba2c96e09d210f542c4d642093efa41cc38457603c3ab2f5ff85415f145"
+    },
+    {
+      "bytes": 0,
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "path": "/workspace/scratch/e26ed3e2edcf/root/numeric83-remote-actual-r1/original-generator-32-artifact_publication.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "reader_correction": {
+    "cause": "The readonly metadata display treated MATERIALIZATION.files (integer1653) as a list; records is the list.",
+    "command_chunk": "4c93cb",
+    "error": "TypeError: int object is not subscriptable",
+    "source_or_product_executed": false
+  },
+  "run": 43261208151,
+  "schema": "hepta.hia.source83-generator-failure-analysis.v1",
+  "static_correction": "Initial rg found a third subprocess definition in linked_observer; its main path does not call that independent oracle. Direct-local main closure reaches only generators32 and45.",
+  "timeout_claimed": false
+}
