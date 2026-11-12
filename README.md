@@ -67,3 +67,15 @@ replacement function, None, callable object, deletion and metadata-faulting obje
 This records the new source-review hypothesis as actual evidence. It does not
 apply a product fix or turn expected differences into PASS; all later original
 groups still run independently after a successful build.
+
+## R3 first authoring correction
+
+Original R2 run43275158954 completed all88 original generators, then the new
+Evaluation author refused Break(). No new image or business tests ran. Complete
+281 text members and full job log are indexed by
+be32cf7d5d813ec3f23b723308f35ab67ce22549. R3 uses source packet
+7333cb05fbcaa9addf3b1ce9ee147c0c3fbce1c0: the only source delta from7972 is
+Evaluation-local for-loop exhaustion/break/continue/else control and iterator
+retirement. Original nine bodies, shared compilers, prior tests and limits are
+unchanged. The separate pre/post helper-binding hypothesis remains unfixed so
+this run can observe it on an actual native image before a later correction.

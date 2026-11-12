@@ -1,7 +1,7 @@
 name: Service evaluation P1 independent development
 on:
   push:
-    branches: [codex/hia-service-evaluation-v79-cpython314-r2-20261112-dda7]
+    branches: [codex/hia-service-evaluation-v79-cpython314-r3-20261112-dda7]
 permissions:
   contents: read
 jobs:
@@ -45,49 +45,49 @@ jobs:
           python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
       - name: Admit complete Git trees and finite frozen source overlay
         id: prepare
-        run: python -B harness/inputs/run_evaluation_development.py --stage prepare --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r2"
+        run: python -B harness/inputs/run_evaluation_development.py --stage prepare --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r3"
       - name: Generate all original assets and two new Evaluation assets
         id: generate
         if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
-        run: python -B harness/inputs/run_evaluation_development.py --stage generate --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r2"
+        run: python -B harness/inputs/run_evaluation_development.py --stage generate --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r3"
       - name: Complete new source and adapter groups plus original resource contracts
         id: source
         if: ${{ !cancelled() && steps.generate.outcome == 'success' }}
-        run: python -B harness/inputs/run_evaluation_development.py --stage source --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r2"
+        run: python -B harness/inputs/run_evaluation_development.py --stage source --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r3"
       - name: Actual HIA build with original 20-second compiler limit
         id: build
         if: ${{ !cancelled() && steps.generate.outcome == 'success' }}
-        run: python -B harness/inputs/run_evaluation_development.py --stage build --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r2"
+        run: python -B harness/inputs/run_evaluation_development.py --stage build --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r3"
       - name: Actual original pre/post-admission helper binding observations
         id: helper_bindings
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: python -B harness/inputs/run_evaluation_development.py --stage helper-binding --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r2"
+        run: python -B harness/inputs/run_evaluation_development.py --stage helper-binding --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r3"
       - name: Complete new native permissions and independent VM controls
         id: component
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: python -B harness/inputs/run_evaluation_development.py --stage component --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r2"
+        run: python -B harness/inputs/run_evaluation_development.py --stage component --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r3"
       - name: Original Agent 48 complete caller group (1800 seconds)
         id: agent
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: python -B harness/inputs/run_evaluation_development.py --stage agent --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r2"
+        run: python -B harness/inputs/run_evaluation_development.py --stage agent --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r3"
       - name: Original namespace wrapper and all 35 nested callers (1800 seconds)
         id: namespace
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: python -B harness/inputs/run_evaluation_development.py --stage namespace --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r2"
+        run: python -B harness/inputs/run_evaluation_development.py --stage namespace --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r3"
       - name: Original ledger wrapper and all 48 nested callers (1800 seconds)
         id: ledger
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: python -B harness/inputs/run_evaluation_development.py --stage ledger --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r2"
+        run: python -B harness/inputs/run_evaluation_development.py --stage ledger --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r3"
       - name: Preserve all actual outcomes and lossless evidence
         id: finish
         if: ${{ always() }}
-        run: python -B harness/inputs/run_evaluation_development.py --stage finish --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r2"
+        run: python -B harness/inputs/run_evaluation_development.py --stage finish --source "$GITHUB_WORKSPACE/source" --joint "$GITHUB_WORKSPACE/joint" --output "$RUNNER_TEMP/service-evaluation-r3"
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: service-evaluation-r2-original-evidence
+          name: service-evaluation-r3-original-evidence
           path: |
-            ${{ runner.temp }}/service-evaluation-r2
+            ${{ runner.temp }}/service-evaluation-r3
             harness/inputs
             harness/README.md
             harness/STATIC-REVIEW.json
