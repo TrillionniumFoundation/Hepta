@@ -1,0 +1,31 @@
+{
+  "schema": "hepta.hia.core-unpack-static-candidate.v1",
+  "status": "STATIC_UNEXECUTED",
+  "base_commit": "d0e110e19f9433baaf202a0f605671c7205b4cff",
+  "base_tree": "6381daf9beb11d873d4608c26facc0b9e5bc747f",
+  "experiment": "independent HIA UNPACK control with transitional CPython single-call leaves",
+  "profiles": [
+    "CPython 3.12.14 GIL LP64 Linux x86_64",
+    "CPython 3.14.4 GIL LP64 Linux x86_64"
+  ],
+  "source_parse": false,
+  "assembly_generation": false,
+  "native_compilation": false,
+  "shim_execution": false,
+  "native_unpacked_values": false,
+  "ordinary_116": false,
+  "old_116_not_inherited": true,
+  "default_activation": false,
+  "resource_or_contract_edits": false,
+  "caps_and_budgets_changed": false,
+  "whole_python_object_runtime_in_hia": false,
+  "planned_additional_controls": {
+    "shim": 4,
+    "native": 6
+  },
+  "notes": [
+    "The original complete Python unpack owner remains an independent oracle and is not called by the experiment.",
+    "Infrastructure abort failures, resource/GC scheduling and general C-extension invalid error conventions remain explicit OPEN domains.",
+    "All normal iteration/error/cardinality/release decisions are authored in HIA; raw objects/C-API/ref effects remain hosted."
+  ]
+}
