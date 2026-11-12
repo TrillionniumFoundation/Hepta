@@ -1,0 +1,154 @@
+def cli_json_py312_lifetime(s: readbuf, o: mutbuf, w: mutbuf) -> u32:
+    if length(w) != 512 or get(w, 0) != 3550609225284338504 or get(w, 112) != 0:
+        return 4294967293
+    if get(w, 24) != 0:
+        if get(w, 32) != get(w, 16) or get(w, 40) != get(w, 64):
+            return 4294967293
+        put(w, 24, 0)
+    elif get(w, 8) != 0:
+        return 4294967293
+    if get(w, 8) == 0:
+        if get(w, 120) == 0 or get(w, 128) == 0 or get(w, 152) > 2 or (get(w, 176) > 1):
+            return 4294967293
+        if get(w, 152) == 1:
+            if get(w, 320) != 0 or get(w, 48) == 0:
+                return 4294967293
+        elif get(w, 320) == 0 or get(w, 48) != 0:
+            return 4294967293
+        put(w, 8, 1)
+    while True:
+        phase = get(w, 8)
+        if phase < 20:
+            status = prepare(w, phase)
+        elif phase < 30:
+            status = release_stack(w, phase)
+        else:
+            status = finish(w, phase)
+        if status != 4:
+            return status
+    return 4294967293
+
+def prepare(w: mutbuf, phase: u64) -> u64:
+    if phase == 1:
+        return request(w, 95, get(w, 120), 0, 0, 0, 0, 2)
+    if phase == 2:
+        if answer(w, 0) != get(w, 128):
+            return 4294967293
+        if answer(w, 6) != 18446744073709551614 and answer(w, 6) != 18446744073709551615:
+            return 4294967293
+        locals = answer(w, 2)
+        top = answer(w, 4)
+        if top < locals or top - locals > answer(w, 3):
+            return 4294967293
+        put(w, 160, locals)
+        put(w, 168, top)
+        mode = get(w, 152)
+        if mode == 2:
+            return request(w, 107, get(w, 120), get(w, 144), 0, 0, 0, 50)
+        if mode == 1:
+            if get(w, 176) != 0:
+                put(w, 8, 20)
+                return 4
+            return request(w, 97, get(w, 120), get(w, 144), 0, 0, 0, 20)
+        if top != locals:
+            return 4294967293
+        return request(w, 17, 0, 0, 0, 0, 0, 10)
+    if phase == 10:
+        if get(w, 320) != answer(w, 6) or get(w, 48) != 0:
+            return 4294967293
+        return request(w, 96, get(w, 120), get(w, 136), 0, 0, 0, 30)
+    return 4294967293
+
+def release_stack(w: mutbuf, phase: u64) -> u64:
+    if phase == 20:
+        if get(w, 48) == 0 or get(w, 320) != 0:
+            return 4294967293
+        if get(w, 168) == get(w, 160):
+            return request(w, 96, get(w, 120), get(w, 136), 0, 0, 0, 30)
+        return request(w, 100, get(w, 120), 0, 0, 0, 0, 21)
+    if phase == 21:
+        if answer(w, 1) + 1 != get(w, 168) or answer(w, 1) < get(w, 160):
+            return 4294967293
+        put(w, 168, answer(w, 1))
+        if answer(w, 2) != 0:
+            if get(w, 320) == 0 or get(w, 320) != answer(w, 0):
+                return 4294967293
+            return request(w, 6, 0, 0, 0, 0, 0, 22)
+        if get(w, 320) != 0 or answer(w, 0) != 0:
+            return 4294967293
+        put(w, 8, 20)
+        return 4
+    if phase == 22:
+        if get(w, 320) != 0 or get(w, 48) == 0:
+            return 4294967293
+        put(w, 8, 20)
+        return 4
+    return 4294967293
+
+def finish(w: mutbuf, phase: u64) -> u64:
+    if phase == 30:
+        if answer(w, 0) != 4:
+            return 4294967293
+        if get(w, 152) == 0:
+            if get(w, 320) == 0 or get(w, 48) != 0:
+                return 4294967293
+            return request(w, 6, 0, 0, 0, 0, 0, 31)
+        if get(w, 320) != 0 or get(w, 48) == 0:
+            return 4294967293
+        put(w, 8, 31)
+        return 4
+    if phase == 31:
+        if get(w, 320) != 0:
+            return 4294967293
+        return request(w, 106, get(w, 120), 0, 0, 0, 0, 32)
+    if phase == 32:
+        if get(w, 320) != 0:
+            return 4294967293
+        if get(w, 152) == 1:
+            if get(w, 48) == 0:
+                return 4294967293
+            put(w, 112, 2)
+            return 1
+        if get(w, 48) != 0:
+            return 4294967293
+        put(w, 112, 1)
+        return 0
+    if phase == 50:
+        if answer(w, 0) != 18446744073709551615 or get(w, 320) == 0 or get(w, 48) != 0:
+            return 4294967293
+        put(w, 112, 4)
+        return 3
+    return 4294967293
+
+def request(w: mutbuf, operation: u64, a: u64, b: u64, c: u64, d: u64, e: u64, following: u64) -> u64:
+    sequence = get(w, 16)
+    if sequence == 18446744073709551615:
+        return 4294967293
+    put(w, 16, sequence + 1)
+    put(w, 24, 1)
+    put(w, 64, operation)
+    put(w, 72, a)
+    put(w, 72 + 8, b)
+    put(w, 72 + 16, c)
+    put(w, 72 + 24, d)
+    put(w, 72 + 32, e)
+    put(w, 8, following)
+    return 2
+
+def answer(w: mutbuf, index: u64) -> u64:
+    return get(w, 256 + index * 8)
+
+def get(w: mutbuf, at: u64) -> u64:
+    value = 0
+    index = 0
+    while index < 8:
+        value = value | byte(w, at + index) << index * 8
+        index = index + 1
+    return value
+
+def put(w: mutbuf, at: u64, value: u64) -> u64:
+    index = 0
+    while index < 8:
+        store(w, at + index, value >> index * 8 & 255)
+        index = index + 1
+    return 0

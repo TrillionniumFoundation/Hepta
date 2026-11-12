@@ -1,0 +1,57 @@
+{
+  "schema": "hia.cli-json.r4c.binary-transport.v1",
+  "original_raw_blobs_present": true,
+  "binary_readback_tool_errors": [
+    {
+      "content": [
+        {
+          "type": "text",
+          "text": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xee in position 8: invalid continuation byte"
+        }
+      ],
+      "structuredContent": {
+        "error": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xee in position 8: invalid continuation byte",
+        "error_code": "UNKNOWN"
+      },
+      "isError": true
+    },
+    {
+      "content": [
+        {
+          "type": "text",
+          "text": "HTTPError: 400: GitHub Fetch only accepts UTF-8 text. (Response: None)"
+        }
+      ],
+      "structuredContent": {
+        "error": "HTTPError: 400: GitHub Fetch only accepts UTF-8 text. (Response: None)",
+        "error_code": "INVALID_ARGUMENT"
+      },
+      "isError": true
+    }
+  ],
+  "transport": "Three additional complete base64 text representations, independently decoded and Git-blob joined to the actual raw packet and tree entry. GitHub connector accepts UTF-8 content only; no product or packet authoring replay.",
+  "copies": [
+    {
+      "path": "transport-packets/iterencode.packet.bin.base64",
+      "bytes": 18177,
+      "git_blob": "9c9cc88c2e477fbddc73e558372c423a283f98a0",
+      "original_git_blob": "52b027a503356a6b5a44a352dba6068e8f17b2d4",
+      "original_bytes": 13632
+    },
+    {
+      "path": "transport-packets/iterencode_dict.packet.bin.base64",
+      "bytes": 36781,
+      "git_blob": "979447a32fee996b8d193180f6590623be1094ae",
+      "original_git_blob": "4783fe53c6e03f3ebcd16ecb1afce0279971bdeb",
+      "original_bytes": 27584
+    },
+    {
+      "path": "transport-packets/iterencode_list.packet.bin.base64",
+      "bytes": 24321,
+      "git_blob": "81d416dfa8473eb26db44895bc6d8ecc61ffd308",
+      "original_git_blob": "86e9a3798f347d381fa66995abe6e945512c0366",
+      "original_bytes": 18240
+    }
+  ],
+  "raw_binary_direct_fetch_verified": false
+}

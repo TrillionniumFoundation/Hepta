@@ -1,0 +1,70 @@
+{
+  "schema": "hia.cli-json.r4d-lifetime-pump.peer-review.v1",
+  "reviewer": "cold_ci_closure",
+  "status": "STATIC_CLEAR_LIMITED_SCOPE",
+  "pins": [
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/implementation-r4d/inputs/hepta/hia_cli_json_cpython312_pump.inc",
+      "bytes": 16578,
+      "sha256": "8742f5d622752eb5ef7302161eebb8361c157ab5ab96e8b3715566e86ba13bd7",
+      "git_blob": "4bda1953940c3b511699f4b7fa9af769efb5c743"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/implementation-r4d/inputs/hepta/hia_cli_json_py312_pump_native.py",
+      "bytes": 8949,
+      "sha256": "b5dc693789a38d1ca6acc25a1ff0bdc8ac37652c5499e838f0113460e308e008",
+      "git_blob": "29f2c2a345b1a7b0e7a00a0b6a4479744e5a021f"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/implementation-r4c/inputs/hepta/hia_cli_json_py312_lifetime_native.py",
+      "bytes": 8068,
+      "sha256": "723aacf3e5146d132f497b65bc60c857987fd5a27211e2a59975763819cba9c9",
+      "git_blob": "97a7461f3c910931969b7f290dbb91a8b631fdda"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/implementation-r4d/inputs/hepta/hia_cli_json_cpython.c",
+      "bytes": 63456,
+      "sha256": "8f136007bdc07f269ebda9c867265d7b9375cf1bf2ac9415433f7f81b6c892cf",
+      "git_blob": "ee92126f254878045809585892d5ba3c49b4dddf"
+    }
+  ],
+  "read_scope": {
+    "pump": "entire source",
+    "wrapper": "entire source",
+    "lifetime_parent": "constructor, failure seal and existing step/observe/run paths",
+    "raw_leaves": "CJ_DROP_SLOT, CJ_FRAME_INFO/CLEAR/TRACEBACK, leaf status capture, framed-leaf permission"
+  },
+  "checks": [
+    {
+      "id": "consume-before-native",
+      "finding": "Fresh C request is consumed NEW to RUNNING before the first HIA call; wrapper refuses busy, finished, quarantined or returned sessions."
+    },
+    {
+      "id": "consume-before-leaf",
+      "finding": "Issued sequence is exactly prior plus one and greater than consumed; consumed is set before leaf invocation. Refusal never replays a leaf."
+    },
+    {
+      "id": "actual-counters",
+      "finding": "Native and leaf attempts and returns, issued and consumed, last return and terminal status, and written plus omitted rows are cross-checked after the returned boundary."
+    },
+    {
+      "id": "trace-cap-does-not-limit-product",
+      "finding": "Full trace buffer increments omitted count without stopping the lifetime plan. The receipt preserves omission. Finite qualification must independently require zero omissions."
+    },
+    {
+      "id": "failure-originals",
+      "finding": "C refusal preserves committed raw/frame owners. Unexpected C exceptions are held separately in ctx.external or request word42; they do not replace ctx.raised. Python bookkeeping failures quarantine the same session without guessing a release order."
+    },
+    {
+      "id": "terminal",
+      "finding": "C requires phase acknowledgement closed, correct mode/status/owned slot or exception, and terminal generator state; Python checks complete returned request and actual raw ownership."
+    }
+  ],
+  "limits": [
+    "The caller must retain actual generator, parent, admitted images and buffers for the invocation and any quarantine. The wrapper intentionally stores borrowed addresses and is not an independent object registry/owner.",
+    "No qualification of body CALL/SEND/UNPACK, evaluator entry, monitoring, complete frame semantics, original17/46 callers, or public CLI follows from this review.",
+    "No parsing, compilation, project import, native execution, synthetic fault control or finite qualification was performed.",
+    "Initial pointer/image admission is a precondition; address-span arithmetic alone is not a proof of live object ownership."
+  ],
+  "task_files_modified": false
+}
