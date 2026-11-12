@@ -1,0 +1,74 @@
+[
+  {
+    "path": "hepta/hia_agent_contract.py",
+    "label": "preserve-both-notes-resource-copies",
+    "removed": "        entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()",
+    "added": "        # A Python file can be both an imported module and a packaged source\n        # resource. Preserve the existing identity key only when both actual\n        # copies agree; a data copy cannot replace a missing/changed module.\n        package_source = native_source.startswith(\"hepta/\") and native_source.endswith(\".py\")\n        if package_source and native_source not in entries:\n            raise ValueError(\"installed source resource has no package module: \" + native_source)\n        resource_digest = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()\n        if package_source and entries[native_source] != resource_digest:\n            raise ValueError(\"installed package module and source resource differ: \" + native_source)\n        entries[native_source] = resource_digest"
+  },
+  {
+    "path": "tests/test_hia_agent_installed_resources.py",
+    "label": "installed-test-complete-five-group-import",
+    "removed": "from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,PUBLICATION_BUILD_FILES,installation_manifest",
+    "added": "from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,SOURCE_BUILD_FILES,COMPILER_BUILD_FILES,PUBLICATION_BUILD_FILES,installation_manifest"
+  },
+  {
+    "path": "tests/test_hia_agent_installed_resources.py",
+    "label": "installed-test-complete-five-group-resources",
+    "removed": "RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES",
+    "added": "RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES"
+  },
+  {
+    "path": "tests/test_hia_program_normalization_native.py",
+    "label": "normalization-real-wheel-complete-five-group-resources",
+    "removed": "for name in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','PUBLICATION_BUILD_FILES'):",
+    "added": "for name in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES'):"
+  },
+  {
+    "path": "tests/test_hia_source_admission_native.py",
+    "label": "source-admission-real-wheel-complete-five-group-resources",
+    "removed": "for symbol in ('DISCOVERY_FILES', 'NATIVE_SOURCE_FILES', 'PUBLICATION_BUILD_FILES'):",
+    "added": "for symbol in ('DISCOVERY_FILES', 'NATIVE_SOURCE_FILES', 'SOURCE_BUILD_FILES', 'COMPILER_BUILD_FILES', 'PUBLICATION_BUILD_FILES'):"
+  },
+  {
+    "path": "hepta/hia_agent_contract.py",
+    "label": "permanent-source-admission-installed-asset",
+    "removed": "NATIVE_SOURCE_FILES = (",
+    "added": "NATIVE_SOURCE_FILES = (\n    'examples/hia_bootstrap/source_admission.hiaasm',"
+  },
+  {
+    "path": "MANIFEST.in",
+    "label": "permanent-source-admission-manifest",
+    "removed": "include examples/hia_bootstrap/source_build_policy.hiaasm",
+    "added": "include examples/hia_bootstrap/source_admission.hiaasm\ninclude examples/hia_bootstrap/source_build_policy.hiaasm"
+  },
+  {
+    "path": "tools/hia_selfhost_contract.py",
+    "label": "complete-source-admission-explicit-source-closure",
+    "removed": "SOURCE_FILES = (",
+    "added": "SOURCE_FILES = (\n    'docs/HIA_SOURCE_ADMISSION_NATIVE.md',\n    'examples/hia_bootstrap/source_admission.hiaasm',\n    'tests/fixtures/hia_source_admission_reference.hiaasm',\n    'tests/test_hia_source_admission_native.py',\n    'tools/build_hia_source_admission.py',\n    'tools/generate_hia_source_admission.py',"
+  },
+  {
+    "path": ".github/workflows/hia-core.yml",
+    "label": "check-all-new-generators",
+    "removed": "program_normalization linked_observer; do",
+    "added": "program_normalization linked_observer source_build source_admission; do"
+  },
+  {
+    "path": ".github/workflows/hia-core.yml",
+    "label": "retain-original-129-and-append-five-source-controls",
+    "removed": "              'tests.test_hia_checker_identity',\n          )",
+    "added": "              'tests.test_hia_checker_identity',\n              'tests.test_hia_source_build.SourceBuilderSourceTests',\n              'tests.test_hia_program_selfhost.SelfhostBuildSourceTests',\n              'tests.test_hia_source_release_integration.SourceReleaseIntegrationSourceTests',\n              'tests.test_hia_source_release_integration.PublicationUnionCustodyTests',\n              'tests.test_hia_source_admission_native.SourceAdmissionSourceTests',\n          )"
+  },
+  {
+    "path": ".github/workflows/hia-core.yml",
+    "label": "fresh-cold-complete-new-owner-native-controls",
+    "removed": "      - name: Preserve actual cold failure and stage evidence",
+    "added": "      - name: Native source admission build and explicit public compiler\n        run: |\n          python -B - <<'PYSOURCEBUILD'\n          import unittest\n          suite = unittest.defaultTestLoader.loadTestsFromNames((\n              'tests.test_hia_source_build',\n              'tests.test_hia_program_selfhost',\n              'tests.test_hia_source_release_integration',\n              'tests.test_hia_source_admission_native',\n          ))\n          result = unittest.TextTestRunner(verbosity=2).run(suite)\n          passed = (result.wasSuccessful() and not result.skipped\n                    and not result.expectedFailures and not result.unexpectedSuccesses)\n          raise SystemExit(0 if passed else 1)\n          PYSOURCEBUILD\n        env:\n          HEPTA_HIA_SOURCE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json\n          HEPTA_HIA_SOURCE_BUILD_OBSERVATIONS: ${{ runner.temp }}/hia-source-build\n          HEPTA_HIA_SELFHOST_BUILD_EVIDENCE: ${{ runner.temp }}/hia-selfhost-build\n          HEPTA_HIA_SOURCE_ADMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json\n          HEPTA_HIA_SOURCE_ADMISSION_EVIDENCE: ${{ runner.temp }}/hia-source-admission\n      - name: Preserve actual cold failure and stage evidence"
+  },
+  {
+    "path": ".github/workflows/hia-core.yml",
+    "label": "retain-new-owner-native-evidence",
+    "removed": "            ${{ runner.temp }}/hia-release-selection/\n",
+    "added": "            ${{ runner.temp }}/hia-release-selection/\n            ${{ runner.temp }}/hia-source-build/\n            ${{ runner.temp }}/hia-selfhost-build/\n            ${{ runner.temp }}/hia-source-admission/\n"
+  }
+]

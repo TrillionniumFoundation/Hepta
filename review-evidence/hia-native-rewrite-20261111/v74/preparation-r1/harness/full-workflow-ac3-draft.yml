@@ -1,0 +1,145 @@
+name: Exact ac3 retained qualification v8-r2
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  retained:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Exact complete product checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ac3fb576419d9ec36841822b4be0fca420268f1b
+          path: source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Exact hosted interpreter
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Read exact external harness and prerequisite packets
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs'), path = require('path'), crypto = require('crypto');
+            const root = process.env.RUNNER_TEMP;
+            const specs = [
+              {sha:'d49c6a0790aae788835714e0d927816573c8fb0b',
+               size:210266, digest:'9c4552e05ffb69a85709829048984ec9a7146c3f61d28d500b278d18480c63a2',
+               directory:'hia-v8-harness', files:19},
+              {sha:'4054785131a6ccc90b7020a07c91c8f8b9ef143c',
+               size:62525, digest:'ce8d5926943ca1002b1e32dfa84c63e4122840a9b116342a5eb1426abacacfbe',
+               directory:'hia-v8-kit', files:7},
+            ];
+            for (const spec of specs) {
+              const result = await github.rest.git.getBlob({
+                owner:'TrillionniumFoundation', repo:'Hepta', file_sha:spec.sha
+              });
+              if (result.data.encoding !== 'base64') throw Error('unexpected Git blob encoding');
+              const raw = Buffer.from(result.data.content, 'base64');
+              const digest = crypto.createHash('sha256').update(raw).digest('hex');
+              const git = crypto.createHash('sha1').update(Buffer.from('blob '+raw.length+'\0')).update(raw).digest('hex');
+              if (raw.length !== spec.size || digest !== spec.digest || git !== spec.sha || result.data.sha !== spec.sha) {
+                throw Error('exact external packet identity mismatch');
+              }
+              const packet = JSON.parse(raw.toString('utf8'));
+              const entries = Object.entries(packet.files);
+              if (entries.length !== spec.files) throw Error('packet file inventory mismatch');
+              const destination = path.join(root, spec.directory);
+              fs.mkdirSync(destination, {mode:0o700});
+              fs.writeFileSync(path.join(destination, 'SOURCE-PACKET.json'), raw, {flag:'wx', mode:0o600});
+              for (const [name, item] of entries) {
+                const parts = name.split('/');
+                if (!name || path.isAbsolute(name) || parts.some(p=>!p || p==='.' || p==='..') ||
+                    name.includes('\\') || !['100644','100755'].includes(item.mode) ||
+                    typeof item.content !== 'string') throw Error('invalid packet member');
+                const bytes = Buffer.from(item.content, 'utf8');
+                if (bytes.length !== item.bytes ||
+                    crypto.createHash('sha256').update(bytes).digest('hex') !== item.sha256) {
+                  throw Error('packet member byte identity mismatch: '+name);
+                }
+                const target = path.join(destination, ...parts);
+                fs.mkdirSync(path.dirname(target), {recursive:true, mode:0o700});
+                fs.writeFileSync(target, bytes, {flag:'wx', mode:item.mode==='100755'?0o755:0o644});
+              }
+              core.info(JSON.stringify({packet:spec.sha, bytes:raw.length, sha256:digest,
+                                        members:entries.length, destination}));
+            }
+      - name: Syntax and source inventory validation only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast, os
+          from pathlib import Path
+          for directory in ('hia-v8-harness', 'hia-v8-kit'):
+              for path in sorted((Path(os.environ['RUNNER_TEMP']) / directory).glob('*.py')):
+                  raw = path.read_bytes()
+                  compile(raw, str(path), 'exec')
+                  ast.parse(raw, filename=str(path))
+                  print(path.name)
+          PY
+          python -B "$RUNNER_TEMP/hia-v8-harness/validate_v8_r2_static.py" \
+            --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/hia-v8-static.json"
+      - name: Install declared system toolchain prerequisites
+        shell: bash
+        run: bash "$RUNNER_TEMP/hia-v8-kit/install_system_prerequisites.sh"
+      - name: Create actual pinned user-owned Python environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv "$RUNNER_TEMP/hia-v8-venv"
+          "$RUNNER_TEMP/hia-v8-venv/bin/python" -m pip install --disable-pip-version-check \
+            setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0 \
+            zstandard==0.25.0 PyYAML==6.0.2
+          "$RUNNER_TEMP/hia-v8-venv/bin/python" -m pip freeze --all > "$RUNNER_TEMP/hia-v8-packages.txt"
+      - name: New source-pinned six-bridge and proof prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/hia-v8-venv/bin/python" -B "$RUNNER_TEMP/hia-v8-kit/prepare_full_ci_prerequisites.py" \
+            --source "$GITHUB_WORKSPACE/source" \
+            --workspace "$RUNNER_TEMP/hia-v8-prepared" \
+            --temporary-root "/tmp/hq-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            --rustup "$(command -v rustup)"
+      - name: Complete unchanged-limit qualification and full retained discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/hia-v8-venv/bin/python" -B "$RUNNER_TEMP/hia-v8-kit/launch_prepared_v8.py" \
+            --prepared "$RUNNER_TEMP/hia-v8-prepared" \
+            --harness "$RUNNER_TEMP/hia-v8-harness" \
+            --source "$GITHUB_WORKSPACE/source" \
+            --output "$RUNNER_TEMP/hia-v8-qualification"
+      - name: Preserve original preparation and qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-ac3-v8-r2-raw-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-v8-harness
+            ${{ runner.temp }}/hia-v8-kit
+            ${{ runner.temp }}/hia-v8-static.json
+            ${{ runner.temp }}/hia-v8-packages.txt
+            ${{ runner.temp }}/hia-v8-system-prerequisites
+            ${{ runner.temp }}/hia-v8-prepared/CI-PREPARATION.json
+            ${{ runner.temp }}/hia-v8-prepared/source-before.json
+            ${{ runner.temp }}/hia-v8-prepared/source-after.json
+            ${{ runner.temp }}/hia-v8-prepared/candidate-environment.json
+            ${{ runner.temp }}/hia-v8-prepared/commands-progress.json
+            ${{ runner.temp }}/hia-v8-prepared/commands
+            ${{ runner.temp }}/hia-v8-prepared/preparation
+            ${{ runner.temp }}/hia-v8-prepared/qualification-launch-intent.json
+            ${{ runner.temp }}/hia-v8-prepared/prerequisites/evidence
+            ${{ runner.temp }}/hia-v8-prepared/prerequisites/cargo-targets/ranking/debug/hia-ndu-bridge
+            ${{ runner.temp }}/hia-v8-prepared/prerequisites/cargo-targets/raw/release/hia-ndu-bridge
+            ${{ runner.temp }}/hia-v8-prepared/prerequisites/cargo-targets/dynamic/release/hia-ndu-bridge
+            ${{ runner.temp }}/hia-v8-qualification
