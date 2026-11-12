@@ -1,0 +1,58 @@
+{
+  "schema": "hia.970.small-recovery-unexecuted-review-correction.v1",
+  "original_draft": {
+    "controller": {
+      "sha": "45b6a417c700b65f0e27c442680e4a653e65abe1",
+      "bytes": 40442,
+      "sha256": "12c7ec733063eb228f2bcffccd0c34973342504df235b38d5c0b09cef6094eaa",
+      "git_blob_sha1": "45b6a417c700b65f0e27c442680e4a653e65abe1"
+    },
+    "policy": {
+      "sha": "b66fed13a5f1f0503979b260908e31bd5aaf91c6",
+      "bytes": 30780,
+      "sha256": "e41d80a405f4ffa229024180eff2d8747cc2c340be5b0c6d627b3a8ead5ea29c",
+      "git_blob_sha1": "b66fed13a5f1f0503979b260908e31bd5aaf91c6"
+    }
+  },
+  "intermediate": {
+    "controller": {
+      "sha": "cee2d6b4cfb379da926718d9f8578cd07b2594c1",
+      "bytes": 40967,
+      "sha256": "40698baaba435b4970ba25407eaea97279e5cb2474a64b99f72ce768044a9ce5",
+      "git_blob_sha1": "cee2d6b4cfb379da926718d9f8578cd07b2594c1"
+    },
+    "policy": {
+      "sha": "9fa3a3c06117e0d6fcda9a38ec80b2f82485d5f4",
+      "bytes": 30780,
+      "sha256": "a8c1fa7bb927b205955d4800826bb0b41ac4d943681d66b9c4017f0b8ae0514a",
+      "git_blob_sha1": "9fa3a3c06117e0d6fcda9a38ec80b2f82485d5f4"
+    }
+  },
+  "findings": [
+    {
+      "reviewer": "native_install_owner",
+      "kind": "static missing-success-conjunction",
+      "finding": "The first draft allowed complete recovery without an actual retained complete smallZIP if that source disappeared.",
+      "fix": "Successful new recovery requires the actual independent copied/read-back complete smallZIP and external size/SHA. Archive absence/failure remains HOLD and does not suppress other diagnostics."
+    },
+    {
+      "reviewer": "native_install_owner",
+      "kind": "static failure-custody-gap",
+      "finding": "A failed HTTP transfer can leave a fixed.partial not copied by the first draft.",
+      "fix": "The two fixed download names have typed observations; bounded owned single-link.partial bytes are retained separately. A two-link window stays refused and cannot satisfy successful custody."
+    },
+    {
+      "reviewer": "root",
+      "kind": "static early-artifact-identity-check",
+      "finding": "The first small reader copied the older successful small-reader metadata code, which only recorded provider head; its controller checked head later. The newer direct970 protocol already rejected a mismatched head before storageGET.",
+      "fix": "Restore direct970 metadata head_sha == pin.checkout_commit before any storageGET and retain the later acceptance check.",
+      "unexecuted_prior_worker": {
+        "sha": "255f780a65661eee664b92f798029c3438f08737",
+        "bytes": 34101,
+        "sha256": "6eae0b9682ba99a2dcbe35d49c90211d16295369b78b413836e69870e2840779",
+        "git_blob_sha1": "255f780a65661eee664b92f798029c3438f08737"
+      }
+    }
+  ],
+  "scope": "All drafts unexecuted; no reproduced runtime counterexample or old product status change is claimed."
+}
