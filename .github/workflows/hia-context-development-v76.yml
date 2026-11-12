@@ -1,0 +1,53 @@
+name: Isolated service context development v76
+on:
+  push:
+    branches:
+      - codex/hia-context-development-v76-20261112-dda7
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  context-development:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout isolated harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Checkout exact current product source
+        uses: actions/checkout@v4
+        with:
+          ref: f8d9680a9b0ae609850c006480a7d1f68ea00979
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Install original Clang 20 native execution prerequisites
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace
+          printf 'CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n' >> "$GITHUB_ENV"
+      - name: Install original pinned Python prerequisites
+        run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Actual context component and complete original Agent controls
+        run: >-
+          python -B harness/inputs/run_context_development.py
+          --source source --inputs harness/inputs --output context-development-evidence
+      - name: Retain complete original evidence and exact inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-context-v76-development-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            context-development-evidence
+            harness/inputs
+          if-no-files-found: error
