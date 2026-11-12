@@ -19,9 +19,9 @@ FILES=[
   },
   {
     "path": "tests/test_hia_machine_elf_writer.py",
-    "gitsha": "356787bfbd517310f064a9d184bc87e4a46dfc93",
-    "bytes": 28612,
-    "sha256": "bd0d7b27bf20bbb5964b69a1ce539609defebb0b8bdd0988405c948cea06b8b6"
+    "gitsha": "bc9935e256fe3f9adef06417cf0caed4fe13829d",
+    "bytes": 28616,
+    "sha256": "fa2d20200efd993d79213c84248c5db4baac4d64d0976008193d1d5356de54a6"
   },
   {
     "path": "docs/HIA_MACHINE_ELF_WRITER_NATIVE.md",

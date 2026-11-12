@@ -272,14 +272,14 @@ def ordinary_cases(group):
             yield ("symbols-"+str(i),16,b"\xc3",value,[])
             if value!=[]:yield ("relocations-"+str(i),16,b"\xc3",[symbol()],value)
         for i,value in enumerate((None,True,0,1.0,"",b"x",(),[],set(),{},{"name":"f"},{"name":"f","offset":0,"size":1,"global":True,"extra":0})):
-            yield ("symbol-record-"+str(i),16,b"\xc3",[value],[]
+            yield ("symbol-record-"+str(i),16,b"\xc3",[value],[])
         for i,name in enumerate(("", "1bad","a-b","a.b","bad\n","bad\0","é","a😀","a"*193,"_","\ud800",0,True,None,b"f",["f"])):
-            yield ("symbol-name-"+str(i),16,b"\xc3",[symbol(name)],[]
+            yield ("symbol-name-"+str(i),16,b"\xc3",[symbol(name)],[])
         for field in("offset","size","global"):
             values=(None,True,False,-1,0,1,2,1<<32,1<<64,1<<200,0.0,"1",b"1",[],{})
             for i,value in enumerate(values):
                 row=symbol();row[field]=value
-                yield ("symbol-"+field+"-"+str(i),16,b"\xc3",[row],[]
+                yield ("symbol-"+field+"-"+str(i),16,b"\xc3",[row],[])
         for i,value in enumerate((None,True,0,1.0,"",b"x",(),[],{},{"offset":1},{"offset":1,"symbol":"f","type":4,"addend":-4,"extra":1})):
             yield ("reloc-record-"+str(i),16,b"\xe8\0\0\0\0",[symbol(size=5)],[value])
         for field in("offset","type","addend"):
@@ -371,7 +371,7 @@ def ordinary_cases(group):
     if group=="objects":
         for count in(67108215,67108216,67108217,67108864,67108865):
             code=b"\x90"*(count-1)+b"\xc3"
-            yield ("object-bytes-"+str(count),64,code,[symbol("f",0,1,True)],[]
+            yield ("object-bytes-"+str(count),64,code,[symbol("f",0,1,True)],[])
         return
     raise AssertionError(group)
 

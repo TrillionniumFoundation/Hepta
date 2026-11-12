@@ -1,6 +1,6 @@
 {
   "schema": "hepta.native-component-source-delivery.v1",
-  "status": "NEW_AUTHORING_AND_UNEXECUTED_TESTS",
+  "status": "MINIMAL_SYNTAX_REPAIR_NEW_REVISION_UNEXECUTED",
   "repository": "TrillionniumFoundation/Hepta",
   "suggested_prefix": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/machine-elf-writer-r1",
   "owner": "native_checker",
@@ -26,9 +26,9 @@
     },
     {
       "path": "tests/test_hia_machine_elf_writer.py",
-      "gitsha": "356787bfbd517310f064a9d184bc87e4a46dfc93",
-      "bytes": 28612,
-      "sha256": "bd0d7b27bf20bbb5964b69a1ce539609defebb0b8bdd0988405c948cea06b8b6"
+      "gitsha": "bc9935e256fe3f9adef06417cf0caed4fe13829d",
+      "bytes": 28616,
+      "sha256": "fa2d20200efd993d79213c84248c5db4baac4d64d0976008193d1d5356de54a6"
     },
     {
       "path": "docs/HIA_MACHINE_ELF_WRITER_NATIVE.md",
@@ -62,9 +62,21 @@
     },
     {
       "path": "ci/ci_machine_elf_writer_r1.py",
-      "gitsha": "365765b9b500157872a1e0323111422e8621a732",
+      "gitsha": "7623359710d6ddb547b253707538f901e357a67b",
       "bytes": 7537,
-      "sha256": "2f4bdbd2aa1929b30e0dd86f39edf1f3711c311f6ec0c9b76d89181ffd6774e8"
+      "sha256": "f5bc94b9cbe65d8c457bf9ee4fbf8f99c9c48ceefab2d8aca31085893b4d2d57"
+    },
+    {
+      "path": "evidence/follow25-source-syntax-original.log",
+      "gitsha": "8dd43cd5bfa82702f5ac12d36a3875b26f93ac3f",
+      "bytes": 89343,
+      "sha256": "94c64a334aa97b46a2221e8c7524bb580d08a8bab41ee99ccbe50c9cd8e3b454"
+    },
+    {
+      "path": "evidence/follow25-syntax-minimal-repair.json",
+      "gitsha": "f8c90f18a0017136f9aaab860ee4a53dfa42be35",
+      "bytes": 1843,
+      "sha256": "df1d5bbced36b9f70a0311305b6f6e1c0ba15d9f41bf6cd93847cfb8dfa2ba85"
     }
   ],
   "workflow": {
@@ -157,7 +169,7 @@
     "native": 0
   },
   "open_boundaries": [
-    "Actual generation/profile, B3 and all native gates are not yet run.",
+    "This repaired source has not run Python AST, generation, B3 or native. Original follow25 test failed Python AST before generation.",
     "The ordinary complete Core machine lowering, shared linker and installed CLI remain separate owners.",
     "Graph lease/header are private correlation, not authentication of external data.",
     "Full foreign Python callbacks/subclass-key equivalence and incremental bounded public object capture are not claimed by this private typed input.",
@@ -168,5 +180,42 @@
       "gitsha": "ff78153d9de42629c5f2096f6f62d1daf5b42fe0",
       "reason": "Reworded planned coverage to validation stages and explicit first-error pairs, without claiming exhaustive pairwise cases."
     }
-  ]
+  ],
+  "previous_delivery": {
+    "gitsha": "8fffcc53956243e126530da2669372978d210177",
+    "bytes": 5885,
+    "sha256": "f1b080cdbe13cacd0db249dc2b1e2c6dbe3bf3d97ca647ee4f88713487af79fd"
+  },
+  "preserved_originals": [
+    {
+      "path": "superseded/test_hia_machine_elf_writer-r1.py",
+      "gitsha": "356787bfbd517310f064a9d184bc87e4a46dfc93",
+      "bytes": 28612,
+      "sha256": "bd0d7b27bf20bbb5964b69a1ce539609defebb0b8bdd0988405c948cea06b8b6"
+    },
+    {
+      "path": "superseded/ci_machine_elf_writer-r1.py",
+      "gitsha": "365765b9b500157872a1e0323111422e8621a732",
+      "bytes": 7537,
+      "sha256": "2f4bdbd2aa1929b30e0dd86f39edf1f3711c311f6ec0c9b76d89181ffd6774e8"
+    }
+  ],
+  "syntax_repair": {
+    "insertions": 4,
+    "lines": [
+      275,
+      277,
+      282,
+      374
+    ],
+    "unchanged_cases_and_limits": true,
+    "Python_AST_recheck_pending": true
+  },
+  "observed_previous_syntax": {
+    "files_passed": 119,
+    "files_total": 120,
+    "B3": 0,
+    "native": 0,
+    "scope": "Follow25 selected120; original test first syntax error line276."
+  }
 }
