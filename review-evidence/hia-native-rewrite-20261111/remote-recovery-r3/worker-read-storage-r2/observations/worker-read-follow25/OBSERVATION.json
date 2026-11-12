@@ -1,0 +1,542 @@
+{
+  "schema": "hia-worker-read-follow25-first-failures-v1",
+  "head": "df7f8cfab21687c32de6366724e955335b068ec4",
+  "run": 43148645083,
+  "job": 130952352570,
+  "full_log": {
+    "path": "observations/worker-read-follow25/full-job.log",
+    "bytes": 72154,
+    "sha256": "cf8b516969d8f2ea295905442c928cf513ae0fe38cbe07abf4547d860fd0a10d",
+    "gitsha": "38a4e8ef5d88635c4842e7eb3c43b9d946b51470"
+  },
+  "full_git_log_readback": true,
+  "actual_successful_groups": {
+    "semantic": {
+      "cases": 115,
+      "entries": 3146
+    },
+    "unicode": {
+      "cases": 106,
+      "entries": 3786
+    },
+    "large": {
+      "cases": 2,
+      "entries": 72
+    },
+    "protocol": {
+      "cases": 46,
+      "entries": 272
+    }
+  },
+  "successful_groups_total": {
+    "cases": 269,
+    "entries": 7276
+  },
+  "storage": {
+    "status": "FAIL",
+    "passed_cases_before_first_failure": 9,
+    "entries_through_failure": 58,
+    "planned_cases": 20,
+    "label": "identity-artifact_id-NoneType",
+    "expected": {
+      "error_class": "AgentRejected",
+      "error": "cursor is not bound to this exact artifact"
+    },
+    "actual": {
+      "error_class": "AgentRejected",
+      "error": "E_HIA_CURSOR: cursor is not bound to this exact artifact"
+    },
+    "first_cause": "HIA literal 20 incorrectly included the code prefix. Exact AgentRejected.__init__ passes only message to ValueError; .code is a separate attribute.",
+    "fix": {
+      "path": "tools/agent_read_common.py",
+      "bytes": 13628,
+      "sha256": "f989401c1f530b4510aa8ea50cdb9a8e3e29d8e72db4ab416d89342fcdb53a38",
+      "gitsha": "ff2dab342c2873d7f8b039d27a838dd1ce039e15"
+    },
+    "oracle_unchanged": true,
+    "full_original_storage_group_retained": true
+  },
+  "wire": {
+    "status": "OPEN_ORIGINAL_SIGKILL",
+    "process": {
+      "label": "worker-read-wire",
+      "timeout_seconds": 180,
+      "status": "FAIL",
+      "returncode": -9,
+      "timed_out": false,
+      "elapsed_ns": 90231605748,
+      "child_cpu_seconds": 89.95997800000005,
+      "children_cumulative_maxrss_kib": 299736,
+      "stdout_bytes": 5056,
+      "stdout_sha256": "0ee5ef4d9b573bc5fe6dc8da6dda6086352928bb83259b44847f1e4b8902f097",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "terminal_summary": "MISSING",
+    "completed_case_and_pending_entry_counts": "NOT_YET_READ_FROM_ORIGINAL_ARTIFACT",
+    "no_budget_change": true,
+    "no_hotspot_inference": true
+  },
+  "original_panels": [
+    {
+      "actual_successful_process": true,
+      "label": "worker-read-generation-and-original-bounded-B3",
+      "original_summary": {
+        "actual_compiles": 5,
+        "attempts": [
+          {
+            "manifest": {
+              "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+              "counts": {
+                "blocks": 814,
+                "functions": 53,
+                "instructions": 3664,
+                "max_block_parameters": 11,
+                "max_function_blocks": 81
+              },
+              "image_bytes": 279036,
+              "image_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/agent_read_flow.image.bin",
+              "image_sha256": "1a44a1b650be4a4416b900cf9298937b8cf31a058dd2a6f3deedc10404a644db",
+              "receipt_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/agent_read_flow.receipt.json",
+              "role": "agent_read_flow",
+              "source_bytes": 207043,
+              "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-read-next/examples/hia_bootstrap/agent_read_flow.hiaasm",
+              "source_sha256": "fe0b3e044138e4eaeccb70e0b4835460dbae6e663673fdf95a63b1265e479785"
+            },
+            "role": "agent_read_flow",
+            "status": "PASS"
+          },
+          {
+            "manifest": {
+              "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+              "counts": {
+                "blocks": 561,
+                "functions": 33,
+                "instructions": 2783,
+                "max_block_parameters": 11,
+                "max_function_blocks": 81
+              },
+              "image_bytes": 200181,
+              "image_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/agent_read_values.image.bin",
+              "image_sha256": "0b9438fcda3660c76904a0cb5a3210edae4d079975a76e841e6c5299992c298d",
+              "receipt_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/agent_read_values.receipt.json",
+              "role": "agent_read_values",
+              "source_bytes": 154460,
+              "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-read-next/examples/hia_bootstrap/agent_read_values.hiaasm",
+              "source_sha256": "5069cb714ac9f1cff654e67fd074c556c0f2a3d1b7e67b14dab6b6d394ea799c"
+            },
+            "role": "agent_read_values",
+            "status": "PASS"
+          },
+          {
+            "manifest": {
+              "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+              "counts": null,
+              "image_bytes": 215282,
+              "image_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/scan.image.bin",
+              "image_sha256": "3545a6c60334b5f7e92eda8df582472a2a493c74b814e5ac9158cdd2e866b026",
+              "receipt_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/scan.receipt.json",
+              "role": "scan",
+              "source_bytes": 147822,
+              "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-edit-render-next/examples/hia_bootstrap/graph_json_wire_scan.hiaasm",
+              "source_sha256": "c1cb49c1df3c4c653dfd37beebba12b3baf57a28a7d77c257157d2cc7e58cde3"
+            },
+            "role": "scan",
+            "status": "PASS"
+          },
+          {
+            "manifest": {
+              "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+              "counts": null,
+              "image_bytes": 256019,
+              "image_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/emit.image.bin",
+              "image_sha256": "9b69271adb5c3024842fc065e294b9a3550077801b76e43046c4eb09e3925a80",
+              "receipt_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/emit.receipt.json",
+              "role": "emit",
+              "source_bytes": 173680,
+              "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-edit-render-next/examples/hia_bootstrap/graph_json_wire_emit.hiaasm",
+              "source_sha256": "9ad72bddb7eaa3d9118155a056e4c5faa7ff3e015e45fbc2d09dae14e2cfb7a2"
+            },
+            "role": "emit",
+            "status": "PASS"
+          },
+          {
+            "manifest": {
+              "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+              "counts": null,
+              "image_bytes": 37158,
+              "image_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/sha256_stream.image.bin",
+              "image_sha256": "e9b0c18a52518af8d9e9909451d8174a02b7d6adc2910f8ca68d1b284a7093cb",
+              "receipt_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/sha256_stream.receipt.json",
+              "role": "sha256_stream",
+              "source_bytes": 30784,
+              "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/Hepta-agent-edit-native/examples/hia_bootstrap/sha256_stream.hiaasm",
+              "source_sha256": "7fdc436867514b3d1dd741e3c3d86c0b95cc19d5b69907d5df9febf29639cb68"
+            },
+            "role": "sha256_stream",
+            "status": "PASS"
+          }
+        ],
+        "bundle": {
+          "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+          "components": {
+            "agent_read_flow": {
+              "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+              "counts": {
+                "blocks": 814,
+                "functions": 53,
+                "instructions": 3664,
+                "max_block_parameters": 11,
+                "max_function_blocks": 81
+              },
+              "image_bytes": 279036,
+              "image_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/agent_read_flow.image.bin",
+              "image_sha256": "1a44a1b650be4a4416b900cf9298937b8cf31a058dd2a6f3deedc10404a644db",
+              "receipt_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/agent_read_flow.receipt.json",
+              "role": "agent_read_flow",
+              "source_bytes": 207043,
+              "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-read-next/examples/hia_bootstrap/agent_read_flow.hiaasm",
+              "source_sha256": "fe0b3e044138e4eaeccb70e0b4835460dbae6e663673fdf95a63b1265e479785"
+            },
+            "agent_read_values": {
+              "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+              "counts": {
+                "blocks": 561,
+                "functions": 33,
+                "instructions": 2783,
+                "max_block_parameters": 11,
+                "max_function_blocks": 81
+              },
+              "image_bytes": 200181,
+              "image_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/agent_read_values.image.bin",
+              "image_sha256": "0b9438fcda3660c76904a0cb5a3210edae4d079975a76e841e6c5299992c298d",
+              "receipt_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/agent_read_values.receipt.json",
+              "role": "agent_read_values",
+              "source_bytes": 154460,
+              "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-read-next/examples/hia_bootstrap/agent_read_values.hiaasm",
+              "source_sha256": "5069cb714ac9f1cff654e67fd074c556c0f2a3d1b7e67b14dab6b6d394ea799c"
+            },
+            "emit": {
+              "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+              "counts": null,
+              "image_bytes": 256019,
+              "image_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/emit.image.bin",
+              "image_sha256": "9b69271adb5c3024842fc065e294b9a3550077801b76e43046c4eb09e3925a80",
+              "receipt_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/emit.receipt.json",
+              "role": "emit",
+              "source_bytes": 173680,
+              "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-edit-render-next/examples/hia_bootstrap/graph_json_wire_emit.hiaasm",
+              "source_sha256": "9ad72bddb7eaa3d9118155a056e4c5faa7ff3e015e45fbc2d09dae14e2cfb7a2"
+            },
+            "scan": {
+              "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+              "counts": null,
+              "image_bytes": 215282,
+              "image_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/scan.image.bin",
+              "image_sha256": "3545a6c60334b5f7e92eda8df582472a2a493c74b814e5ac9158cdd2e866b026",
+              "receipt_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/scan.receipt.json",
+              "role": "scan",
+              "source_bytes": 147822,
+              "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-edit-render-next/examples/hia_bootstrap/graph_json_wire_scan.hiaasm",
+              "source_sha256": "c1cb49c1df3c4c653dfd37beebba12b3baf57a28a7d77c257157d2cc7e58cde3"
+            },
+            "sha256_stream": {
+              "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+              "counts": null,
+              "image_bytes": 37158,
+              "image_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/sha256_stream.image.bin",
+              "image_sha256": "e9b0c18a52518af8d9e9909451d8174a02b7d6adc2910f8ca68d1b284a7093cb",
+              "receipt_path": "/home/runner/work/_temp/hia-worker-complete-read-recovery/read-compile/sha256_stream.receipt.json",
+              "role": "sha256_stream",
+              "source_bytes": 30784,
+              "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/Hepta-agent-edit-native/examples/hia_bootstrap/sha256_stream.hiaasm",
+              "source_sha256": "7fdc436867514b3d1dd741e3c3d86c0b95cc19d5b69907d5df9febf29639cb68"
+            }
+          },
+          "namespace_binding": {
+            "compile_time_only": true,
+            "operations": [
+              {
+                "bind_count": 1,
+                "operation_id": 14,
+                "sql": "SELECT * FROM cursors WHERE id=?",
+                "sql_field": "sql_reference",
+                "symbol": "OP_CURSOR_SELECT",
+                "table_id": 6
+              },
+              {
+                "bind_count": 4,
+                "operation_id": 15,
+                "sql": "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+                "sql_field": "sql_reference",
+                "symbol": "OP_CURSOR_INSERT",
+                "table_id": 6
+              }
+            ],
+            "row_columns": [
+              "id",
+              "artifact_id",
+              "sha256",
+              "offset"
+            ],
+            "runtime_host_sql_selection": false,
+            "schema": "hia-read-fixed-namespace-binding-v1",
+            "source_bytes": 51264,
+            "source_sha256": "c15222c99cb04ef8bc6a7f13108a7e90adb0bc908876d663eb4329fd14563c04"
+          },
+          "ordinary_namespace_closed": false,
+          "schema": "hia-agent-read-development-bundle-v1",
+          "scope": "COMPLETE_HIA_READ_WITH_PENDING_NAMESPACE_DEVELOPMENT",
+          "status": "PASS",
+          "whole_worker_closed": false
+        },
+        "compiler_limits": {
+          "address_space_bytes": 268435456,
+          "cpu_seconds": 10,
+          "wall_seconds": 20
+        },
+        "elapsed_ns": 5969142812,
+        "failures": [],
+        "namespace_binding": {
+          "compile_time_only": true,
+          "operations": [
+            {
+              "bind_count": 1,
+              "operation_id": 14,
+              "sql": "SELECT * FROM cursors WHERE id=?",
+              "sql_field": "sql_reference",
+              "symbol": "OP_CURSOR_SELECT",
+              "table_id": 6
+            },
+            {
+              "bind_count": 4,
+              "operation_id": 15,
+              "sql": "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+              "sql_field": "sql_reference",
+              "symbol": "OP_CURSOR_INSERT",
+              "table_id": 6
+            }
+          ],
+          "row_columns": [
+            "id",
+            "artifact_id",
+            "sha256",
+            "offset"
+          ],
+          "runtime_host_sql_selection": false,
+          "schema": "hia-read-fixed-namespace-binding-v1",
+          "source_bytes": 51264,
+          "source_sha256": "c15222c99cb04ef8bc6a7f13108a7e90adb0bc908876d663eb4329fd14563c04"
+        },
+        "native_entries": 0,
+        "ordinary_namespace_closed": false,
+        "production_activation": false,
+        "scope": "COMPLETE_HIA_READ_WITH_PENDING_NAMESPACE_DEVELOPMENT",
+        "source_unchanged": true,
+        "status": "PASS",
+        "whole_worker_closed": false
+      }
+    },
+    {
+      "actual_successful_process": true,
+      "label": "worker-read-semantic",
+      "original_summary": {
+        "cases": 115,
+        "compressed_cas_objects": 3341,
+        "elapsed_ns": 43227054078,
+        "entries": {
+          "agent_read_flow": 1332,
+          "agent_read_values": 196,
+          "emit": 955,
+          "scan": 504,
+          "sha256_stream": 159
+        },
+        "failure": null,
+        "group": "semantic",
+        "host_read_wire_codec_materializer_disabled_in_native_execution": true,
+        "namespace_get_select_insert_are_foreign_fixtures": true,
+        "ordinary_namespace_closed": false,
+        "original_limits": {
+          "address_space_bytes": 1073741824,
+          "cpu_seconds": 90
+        },
+        "planned_cases": 115,
+        "production_activation": false,
+        "real_graph_wire_and_sha": true,
+        "scope": "COMPLETE_HIA_READ_ACTUAL_COMPUTATION_WITH_FOREIGN_NAMESPACE_FIXTURES",
+        "source_unchanged": true,
+        "status": "PASS",
+        "total_actual_entries": 3146,
+        "whole_worker_closed": false
+      }
+    },
+    {
+      "actual_successful_process": true,
+      "label": "worker-read-unicode",
+      "original_summary": {
+        "cases": 106,
+        "compressed_cas_objects": 3855,
+        "elapsed_ns": 44745851951,
+        "entries": {
+          "agent_read_flow": 1524,
+          "agent_read_values": 153,
+          "emit": 1161,
+          "scan": 633,
+          "sha256_stream": 315
+        },
+        "failure": null,
+        "group": "unicode",
+        "host_read_wire_codec_materializer_disabled_in_native_execution": true,
+        "namespace_get_select_insert_are_foreign_fixtures": true,
+        "ordinary_namespace_closed": false,
+        "original_limits": {
+          "address_space_bytes": 1073741824,
+          "cpu_seconds": 90
+        },
+        "planned_cases": 106,
+        "production_activation": false,
+        "real_graph_wire_and_sha": true,
+        "scope": "COMPLETE_HIA_READ_ACTUAL_COMPUTATION_WITH_FOREIGN_NAMESPACE_FIXTURES",
+        "source_unchanged": true,
+        "status": "PASS",
+        "total_actual_entries": 3786,
+        "whole_worker_closed": false
+      }
+    },
+    {
+      "actual_successful_process": false,
+      "label": "worker-read-storage",
+      "original_summary": {
+        "cases": 9,
+        "compressed_cas_objects": 50,
+        "elapsed_ns": 66484709,
+        "entries": {
+          "agent_read_flow": 49,
+          "agent_read_values": 9,
+          "emit": 0,
+          "scan": 0,
+          "sha256_stream": 0
+        },
+        "failure": {
+          "error": "('identity-artifact_id-NoneType', {'error_class': 'AgentRejected', 'error': 'cursor is not bound to this exact artifact'}, {'error_class': 'AgentRejected', 'error': 'E_HIA_CURSOR: cursor is not bound to this exact artifact'})",
+          "error_class": "AssertionError"
+        },
+        "group": "storage",
+        "host_read_wire_codec_materializer_disabled_in_native_execution": true,
+        "namespace_get_select_insert_are_foreign_fixtures": true,
+        "ordinary_namespace_closed": false,
+        "original_limits": {
+          "address_space_bytes": 1073741824,
+          "cpu_seconds": 90
+        },
+        "planned_cases": 20,
+        "production_activation": false,
+        "real_graph_wire_and_sha": true,
+        "scope": "COMPLETE_HIA_READ_ACTUAL_COMPUTATION_WITH_FOREIGN_NAMESPACE_FIXTURES",
+        "source_unchanged": true,
+        "status": "FAIL",
+        "total_actual_entries": 58,
+        "whole_worker_closed": false
+      }
+    },
+    {
+      "actual_successful_process": false,
+      "label": "worker-read-wire",
+      "original_summary": {
+        "status": "MISSING_TERMINAL_SUMMARY"
+      }
+    },
+    {
+      "actual_successful_process": true,
+      "label": "worker-read-large",
+      "original_summary": {
+        "cases": 2,
+        "compressed_cas_objects": 135,
+        "elapsed_ns": 9189370229,
+        "entries": {
+          "agent_read_flow": 28,
+          "agent_read_values": 4,
+          "emit": 22,
+          "scan": 12,
+          "sha256_stream": 6
+        },
+        "failure": null,
+        "group": "large",
+        "host_read_wire_codec_materializer_disabled_in_native_execution": true,
+        "namespace_get_select_insert_are_foreign_fixtures": true,
+        "ordinary_namespace_closed": false,
+        "original_limits": {
+          "address_space_bytes": 1073741824,
+          "cpu_seconds": 90
+        },
+        "planned_cases": 2,
+        "production_activation": false,
+        "real_graph_wire_and_sha": true,
+        "scope": "COMPLETE_HIA_READ_ACTUAL_COMPUTATION_WITH_FOREIGN_NAMESPACE_FIXTURES",
+        "source_unchanged": true,
+        "status": "PASS",
+        "total_actual_entries": 72,
+        "whole_worker_closed": false
+      }
+    },
+    {
+      "actual_successful_process": true,
+      "label": "worker-read-protocol",
+      "original_summary": {
+        "cases": 46,
+        "compressed_cas_objects": 122,
+        "elapsed_ns": 2013885893,
+        "entries": {
+          "agent_read_flow": 174,
+          "agent_read_values": 47,
+          "emit": 34,
+          "scan": 17,
+          "sha256_stream": 0
+        },
+        "failure": null,
+        "group": "protocol",
+        "host_read_wire_codec_materializer_disabled_in_native_execution": true,
+        "namespace_get_select_insert_are_foreign_fixtures": true,
+        "ordinary_namespace_closed": false,
+        "original_limits": {
+          "address_space_bytes": 1073741824,
+          "cpu_seconds": 90
+        },
+        "planned_cases": 46,
+        "production_activation": false,
+        "real_graph_wire_and_sha": true,
+        "scope": "COMPLETE_HIA_READ_ACTUAL_COMPUTATION_WITH_FOREIGN_NAMESPACE_FIXTURES",
+        "source_unchanged": true,
+        "status": "PASS",
+        "total_actual_entries": 272,
+        "whole_worker_closed": false
+      }
+    }
+  ],
+  "original_custody": [
+    {
+      "all_original_and_tar_member_bytes_sha256_modes_readback": true,
+      "archive": "/home/runner/work/_temp/hia-worker-complete-read-recovery/evidence.tar.xz",
+      "bytes": 10717668,
+      "member_index_bytes": 4607230,
+      "member_index_sha256": "e4eef36fdcce3e6cbc816bf0e18db438a331847919b570f7945b0017f02e251f",
+      "members": 9965,
+      "original_bytes": 101822617,
+      "schema": "hia-independent-ci-artifact-custody-v1",
+      "scope": "worker-complete-hia-read-business-development-r1",
+      "sha256": "f73691dda6c34f337f391ac9a2c2e5bc119ec1dc061f8a9581e593d4a494c513",
+      "status": "FAIL",
+      "whole_stack_closed": false
+    }
+  ],
+  "artifact": {
+    "id": 13913401010,
+    "zip_bytes": 65270962,
+    "zip_sha256": "93bf932de85332c8b1c67ce14fbe7e5268dc9846d207f8e90044ea2e797946a1"
+  },
+  "current_code_status": "NEW_LITERAL_FIX_UNEXECUTED",
+  "whole_worker_closed": false,
+  "ordinary_namespace_closed": false,
+  "high_level_namespace_peers": "FOREIGN",
+  "new_storage_execution_does_not_inherit_prior_pass": true
+}
