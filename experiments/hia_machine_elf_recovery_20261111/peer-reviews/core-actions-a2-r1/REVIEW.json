@@ -1,0 +1,121 @@
+{
+  "schema": "hia.independent-core-source-actions-delta-review.v1",
+  "reviewed_at_utc": "2026-11-12 00:55:25 UTC",
+  "reviewer": "native_install_owner",
+  "status": "STATIC_CLEAR_FOR_EXACT_A2_B2_AND_REVIEWED_B3_LOADER_DELTA",
+  "A1": "67e459e4fcff5691e99e6ac5583aecc93ebf66bf",
+  "B1": "b1d4331562b3476e54096ad8179570235b2019ce",
+  "A2": "9473e0fca206dc27ed87122f4a5d45a905d8b35c",
+  "A2_tree": "8dcd922fd7f836de8aed74d9fa11fa773cf054f5",
+  "B2": "89a69f2eee0af7452eb3eaa01cacf179685621f3",
+  "B2_tree": "5a35b388524aba1d02ce4de73a172aa8410eab9f",
+  "original_review_correction": "The reviewer initially reported A1 STATIC CLEAR on its enumerated authoring/custody boundaries. Root then found life['owner_error'] was absent in normal original369 receipts. That runnable conclusion was explicitly withdrawn to HOLD. This report does not rewrite A1 as correct or claim the reviewer discovered that bug.",
+  "observed_source_scope": {
+    "candidate": "80ec04ae7489209b122c874531d194c67b30dfed",
+    "tree": "963e980c2486e1f7c74fa42bc8132ef6b1b8b690",
+    "leaf_count": 4023,
+    "old_desktop_fake_HEAD_not_used": true
+  },
+  "files": {
+    "authoring.py": {
+      "bytes": 21790,
+      "sha256": "f2648647c0500b107944a84ff083db38547e336ca9b5718b636f4558f0d407af",
+      "git_blob_sha1": "7825b115e11e6921da59a41c1effd08cedfaf5bc"
+    },
+    "controller.py": {
+      "bytes": 26512,
+      "sha256": "fa79e93cd10f7a7515c7c6bb3f22a9d12c0e9cfc2fcb24fc5e890934b5cd3a3b",
+      "git_blob_sha1": "ff86b3232aff548fe36c4b7f4853cb89024dccfe"
+    },
+    "diagnostics.py": {
+      "bytes": 12784,
+      "sha256": "d0e4fe8d114fdf6958c558370ec5deac6a3b5d03892fdd8457c1aee71c0c9814",
+      "git_blob_sha1": "aeb40dc4b626abf8787a9814160e6d6e4ac6c44c"
+    },
+    "policy.json": {
+      "bytes": 5024,
+      "sha256": "0cf91131f947850badb125537249c94229f5cf0590653363702b378913a84dcf",
+      "git_blob_sha1": "ffbbf4fde2ede76f63f272664d99b4ec1f23b57c"
+    },
+    "workflow.yml": {
+      "bytes": 4714,
+      "sha256": "59af8eb5cc9f0cf27a8c4a7bbeb95cabac84c13abd803bcdb3d8e143db9702e5",
+      "git_blob_sha1": "249144edf61255eb409a852327e47540ba41f80b"
+    }
+  },
+  "comparison_proof": {
+    "controller_exact_three_replacements": true,
+    "author_exact_one_replacement": true,
+    "controls": [
+      {
+        "name": "authoring.py",
+        "bytes": 21790,
+        "sha256": "f2648647c0500b107944a84ff083db38547e336ca9b5718b636f4558f0d407af",
+        "git_blob_sha1": "7825b115e11e6921da59a41c1effd08cedfaf5bc",
+        "matches": true
+      },
+      {
+        "name": "controller.py",
+        "bytes": 26512,
+        "sha256": "fa79e93cd10f7a7515c7c6bb3f22a9d12c0e9cfc2fcb24fc5e890934b5cd3a3b",
+        "git_blob_sha1": "ff86b3232aff548fe36c4b7f4853cb89024dccfe",
+        "matches": true
+      },
+      {
+        "name": "guardian.py",
+        "bytes": 10257,
+        "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023",
+        "git_blob_sha1": "1a7b8588871d1a0eb485dacc2dac2f1fe373b8a7",
+        "matches": true
+      },
+      {
+        "name": "process_owner_impl.py",
+        "bytes": 17601,
+        "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+        "git_blob_sha1": "6f600ab75894859b9840c0311cc8891a67b6c53a",
+        "matches": true
+      },
+      {
+        "name": "diagnostics.py",
+        "bytes": 12784,
+        "sha256": "d0e4fe8d114fdf6958c558370ec5deac6a3b5d03892fdd8457c1aee71c0c9814",
+        "git_blob_sha1": "aeb40dc4b626abf8787a9814160e6d6e4ac6c44c",
+        "matches": true
+      }
+    ]
+  },
+  "checks": [
+    "A2 authoring is byte-identical to A1 after removing the one except-handler status=HOLD assignment.",
+    "A2 controller is byte-identical to A1 after reversing exactly three replacements: optional owner_error.get, rejection of nonnull worker error/preservation_error, and except-handler status=HOLD.",
+    "All five policy control-file byte counts, SHA256 and Git blob IDs were independently recomputed, including unchanged original guardian and process owner.",
+    "The original369 supervise producer initializes the remaining required normal lifecycle fields and fills remaining_direct_children in finally. owner_error is assigned only on exception; A2 accesses it with get.",
+    "Diagnostics contains exactly six fixed stage logs and eight fixed operation records. It neither scans directories nor opens paths supplied by report payloads.",
+    "Worker originals are printed only after the exact context/setup/request/command/cwd/control sources/candidate180+3/guardian schema/cleanup ECHILD boundary is established.",
+    "Four MiB of cumulative original-byte reservations bounds reads including failed attempts. Complete files are emitted as 8192-byte base64 frames with raw SHA and explicit missing, refusal, budget-omission and terminal observations.",
+    "Diagnostics preserves original source-only status, has no project/native/VM execution or token use, and is independent of qualification results.",
+    "Actual B2 workflow checks out fixed A2 and actual80ec, uses the recomputed policy SHA, retains read-only contents permissions, and always finalizes, diagnoses and uploads; no write token is granted.",
+    "B2 Git commit metadata was independently read and shows A2 as its sole parent. Root's complete workflow-only tree proof is separate; this review did not reconstruct all B2 leaf objects."
+  ],
+  "no_python_parse": true,
+  "no_HIA_generation_or_execution": true,
+  "no_h_request": true,
+  "no_product_or_qualification_claim": true,
+  "prior_A1_B1_unexecuted_defect_preserved": true,
+  "B3": {
+    "commit": "4d508b8e7b66d8f2801e76f6b6bb4794eb4bdac7",
+    "tree": "ac4fb5a9c4d877b096293ee20074347e7d6c3beb",
+    "sole_parent": "89a69f2eee0af7452eb3eaa01cacf179685621f3",
+    "workflow": {
+      "bytes": 6522,
+      "sha256": "42b8157113c2e579c957f02f6ce6716c20540d4ef6f91431d22de3ffcb33482c",
+      "git_blob_sha1": "125f3431f2bbe4c8d835e72f6d379116a31b8c77"
+    },
+    "status": "STATIC_CLEAR_FOR_EXACT_FOUR_WORKFLOW_BLOCKS",
+    "source_control_A2_unchanged": true,
+    "exact_restoration_proof": {
+      "count": 4,
+      "exact_old_after_removing_four_blocks": true
+    },
+    "scope": "Only the observed setup-python LD_LIBRARY_PATH is admitted as empty or the exact nonempty pythonLocation/lib value, then removed before each of four Python commands. Other LD settings remain subject to the original controller. No claim is made that earlier shell/action loader activity is undone. No execution was performed by this reviewer."
+  }
+}

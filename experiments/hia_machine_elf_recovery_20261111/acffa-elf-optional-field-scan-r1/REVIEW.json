@@ -1,0 +1,50 @@
+{
+  "schema": "hia.acffa.elf-original51-optional-field-static-scan.v1",
+  "status": "NO_PROVEN_OPTIONAL_FIELD_BUG_FOUND_INTERNAL_CI_CAUSE_STILL_UNKNOWN",
+  "source_commit": "acffa9262f31d073f8f0a6f0201eae201039f619",
+  "source_tree": "22a095436c94efc87b1a89aca912c8caab2eed80",
+  "files": [
+    {
+      "path": "tools/qualify_hia_machine_elf.py",
+      "bytes": 16712,
+      "sha256": "e7c3421851cf3a5f4b829e4b8ee23987c66df011f85e1a31399322c9ab7b7b8d",
+      "git_blob_sha1": "9e0e31839059744cde533fc33ed1f261b8700fb3"
+    },
+    {
+      "path": "tools/build_hia_machine_elf.py",
+      "bytes": 5528,
+      "sha256": "15befacdb9fc37e1cd01728e4f1ca41f59cc7c18eda3cffed1fb550f27b9d0cd",
+      "git_blob_sha1": "c102668c6802a5aa1e6b8ad17280b522b053565a"
+    },
+    {
+      "path": "tools/hia_compiler_owner_gates.py",
+      "bytes": 66955,
+      "sha256": "c72e5ada081138651bbe76ecf3ce2eb7185103292b289f3228209eed4af709e9",
+      "git_blob_sha1": "4a2695aff6953b0b0312d001e933b8dbb42e4256"
+    },
+    {
+      "path": "tools/qualify_hia_compiler_owner_ci.py",
+      "bytes": 13598,
+      "sha256": "0c133bb93ebeff0df5f97e9f46cbde67b4cc12ca108ffab3650ce50a5f57c15b",
+      "git_blob_sha1": "c9b52faea0034ccdbed65054e7b8cca90ab7d58c"
+    }
+  ],
+  "observations": [
+    "The actual original51 qualifier, ELF builder, compiler-owner reader and CI adapter were read; there was no consumer direct[] read of owner_error or other identified fields produced only on failure.",
+    "The reader checks optional owner_error by key absence/get and cleanup with get; original369 and actualf74 normal receipts omit owner_error.",
+    "ELF file-observation producer and consumer agree on path/bytes/SHA and the six physical identity fields.",
+    "The exact51 original module sources/IDs are retained; this static scan found no demonstrated denominator change.",
+    "No candidate product fix, retry, new timeout or reduced denominator follows from this scan."
+  ],
+  "related_failure": {
+    "push_run": 43117621509,
+    "PR_run": 43117632066,
+    "step": 38,
+    "original_product_result": "HOLD",
+    "internal_gate_report_received": false
+  },
+  "evidence_scope": "Static source/schema comparison only. It does not establish the internal failure cause, nor replace the original CI gate and retained caller reports.",
+  "no_execution": true,
+  "no_h_request": true,
+  "no_qualification_claim": true
+}
