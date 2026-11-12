@@ -18,6 +18,7 @@ if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
+from hepta.hia_core_admission_native import SCHEMA as CORE_ADMISSION_SCHEMA
 from tools.generate_hia_core_patch_cli import MAGIC, BUNDLE_LIMIT
 from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
 from tools.qualify_hia_selfhost import compile_stage
@@ -82,7 +83,7 @@ def build(output, compiler, cold_report):
     manifests = {}
     for name, source, schema, filename in (
         ('patch', SOURCE, 'hepta.hia.core-patch-native.v1', 'manifest.json'),
-        ('admission', ADMISSION, 'hepta.hia.core-admission-native.v1', 'admission-manifest.json')):
+        ('admission', ADMISSION, CORE_ADMISSION_SCHEMA, 'admission-manifest.json')):
         path, data = images[name]
         value = {'schema': schema, 'source_sha256': sha256(pins[source]).hexdigest(),
                  'image_path': path.name, 'image_sha256': sha256(data).hexdigest(),

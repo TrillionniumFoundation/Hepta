@@ -117,7 +117,10 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
             or image.read_bytes() != image_bytes):
         raise ValueError('native candidate build inputs changed')
     protocol_version = '2' if candidate == 'agent-journal' else '1'
-    manifest = {'schema': 'hepta.hia.' + protocol + '-native.v' + protocol_version,
+    schema = 'hepta.hia.' + protocol + '-native.v' + protocol_version
+    if candidate == 'core-admission':
+        from hepta.hia_core_admission_native import SCHEMA as schema
+    manifest = {'schema': schema,
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
                 'image_sha256': sha256(image_bytes).hexdigest(), 'compiler_sha256': compiler_sha}
     path = output / 'manifest.json'

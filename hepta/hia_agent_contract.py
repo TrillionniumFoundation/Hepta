@@ -36,6 +36,8 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/worker_request.hepta',
     'examples/hia_bootstrap/agent_identity.hepta',
     'examples/hia_bootstrap/agent_slice.hepta',
+    'examples/hia_bootstrap/agent_query.hepta',
+    'examples/hia_bootstrap/agent_native_metadata.hepta',
     'examples/hia_bootstrap/agent_data_json.hepta',
     'examples/hia_bootstrap/agent_binary64.hepta',
     'examples/hia_bootstrap/agent_snapshot_json.hepta',

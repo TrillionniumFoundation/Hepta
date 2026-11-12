@@ -36,6 +36,15 @@ def _now():
 
 
 def _signatures(program, foreign_buffer_exports=()):
+    from .hia_agent_native_metadata_native import (selected_agent_metadata,
+                                            call_admitted_metadata_object_image)
+    native = selected_agent_metadata()
+    if native is not None:
+        return call_admitted_metadata_object_image(native, program, foreign_buffer_exports)["signatures"]
+    return _reference_signatures(program, foreign_buffer_exports)
+
+
+def _reference_signatures(program, foreign_buffer_exports=()):
     from .hia_program_native import WIDTHS
     from .hia_native_byte_abi import normalize_exports
     from .hia_agent_buffers import PROFILE as BUFFER_PROFILE

@@ -35,6 +35,8 @@ HELPERS = {
     "HEPTA_HIA_AGENT_BINARY64_MANIFEST": ("hia_agent_binary64_native", "NativeAgentBinary64"),
     "HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST": ("hia_agent_binary64_format_native", "NativeAgentBinary64Format"),
     "HEPTA_HIA_AGENT_SLICE_MANIFEST": ("hia_agent_slice_native", "NativeAgentSlice"),
+    "HEPTA_HIA_AGENT_QUERY_MANIFEST": ("hia_agent_query_native", "NativeAgentQuery"),
+    "HEPTA_HIA_AGENT_NATIVE_METADATA_MANIFEST": ("hia_agent_native_metadata_native", "NativeAgentMetadata"),
     "HEPTA_HIA_JSON_PREFLIGHT_MANIFEST": ("hia_json_preflight_native", "NativeJsonPreflight"),
     "HEPTA_HIA_JSON_DECODE_MANIFEST": ("hia_json_decode_native", "NativeJsonDecoder"),
     "HEPTA_HIA_JSON_CANONICAL_MANIFEST": ("hia_json_canonical_native", "NativeJsonCanonicalizer"),

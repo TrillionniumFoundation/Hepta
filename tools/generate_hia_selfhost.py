@@ -808,32 +808,46 @@ def check_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
 
 def check_calls(w:mutbuf) -> u64:
     n = get(w, 64)
+    if n == 0:
+        return 0
     step = 0
     f = 0
     target = 0
     ready = 0
+    resolved = 0
+    previous = 0
+    # compile() clears every CSTATE word before discovering this fixed graph.
+    # A ready row has already checked all 128 columns and only names ready
+    # dependencies; those facts cannot change as the ready set grows.
     while step < n:
+        previous = resolved
         f = 0
         while f < n:
-            ready = 1
-            target = 0
-            while target < 128:
-                if byte(w, CBASE + f * 128 + target) != 0:
-                    if target >= n:
-                        return fail(w, 55)
-                    if get(w, CSTATE + target * 8) == 0:
-                        ready = 0
-                target = target + 1
-            if ready == 1:
-                put(w, CSTATE + f * 8, 1)
+            if get(w, CSTATE + f * 8) == 0:
+                ready = 1
+                target = 0
+                # Scan every column even after finding an unresolved target.
+                # An out-of-range edge must still fail before cycle refusal.
+                while target < 128:
+                    if byte(w, CBASE + f * 128 + target) != 0:
+                        if target >= n:
+                            return fail(w, 55)
+                        if get(w, CSTATE + target * 8) == 0:
+                            ready = 0
+                    target = target + 1
+                if ready == 1:
+                    put(w, CSTATE + f * 8, 1)
+                    resolved = resolved + 1
             f = f + 1
-        step = step + 1
-    f = 0
-    while f < n:
-        if get(w, CSTATE + f * 8) == 0:
+        if resolved == n:
+            return 0
+        # No change after a complete row sweep is the same least fixed point
+        # that the remaining original sweeps would repeat without progress.
+        if resolved == previous:
             return fail(w, 56)
-        f = f + 1
-    return 0
+        step = step + 1
+    return fail(w, 56)
+
 
 def wrapper(o:mutbuf, w:mutbuf) -> u64:
     emit(o, w, 85)

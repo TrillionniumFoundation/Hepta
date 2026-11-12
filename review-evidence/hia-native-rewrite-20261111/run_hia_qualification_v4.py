@@ -77,10 +77,13 @@ development_selectors = ('HEPTA_HIA_AGENT_CANDIDATE_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_COMPOSITE_OUTER_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_SOURCE_BUILD_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_SELFHOST_BUILD_DEVELOPMENT_COMPILER',
+                         'HEPTA_HIA_CORE_DIAGNOSTICS_DEVELOPMENT_COMPILER',
                          'HEPTA_HIA_EXECUTION_BUDGET_DEVELOPMENT_COMPILER',
                          'HEPTA_HIA_CANDIDATE_BUDGET_DEVELOPMENT_COMPILER',
                          'HEPTA_HIA_SLOT_LEDGER_DEVELOPMENT_COMPILER',
                          'HEPTA_HIA_AGENT_READ_DEVELOPMENT_COMPILER',
+                         'HEPTA_HIA_AGENT_QUERY_DEVELOPMENT_COMPILER',
+                         'HEPTA_HIA_AGENT_NATIVE_METADATA_DEVELOPMENT_COMPILER',
                          'HEPTA_HIA_WORKER_HELPERS_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_WORKER_REQUEST_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_AGENT_JOURNAL_DEVELOPMENT_MANIFEST',
@@ -98,6 +101,8 @@ production_selectors = ('HEPTA_HIA_COMPOSITE_TYPES_MANIFEST',
                         'HEPTA_HIA_SLOT_LEDGER_MANIFEST',
                         'HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST',
                         'HEPTA_HIA_AGENT_READ_MANIFEST',
+                        'HEPTA_HIA_AGENT_QUERY_MANIFEST',
+                        'HEPTA_HIA_AGENT_NATIVE_METADATA_MANIFEST',
                         'HEPTA_HIA_AGENT_JOURNAL_MANIFEST',
                         'HEPTA_HIA_RETIREMENT_STATE_MANIFEST')
 discarded_production_selectors = [name for name in production_selectors if name in environment]
@@ -106,12 +111,12 @@ for production_selector in production_selectors:
 cold = out / 'cold.json'
 for name in ('AGENT_STDIO', 'CORE_MODULE_GRAPH', 'CAPABILITY_RENAMING',
              'FUNCTION_SHAPE', 'PROGRAM_SHAPE', 'INSTRUCTION_POLICY',
-             'ARTIFACT_PUBLICATION', 'CORE_ADMISSION', 'CORE_ADMISSION_CLI',
+             'ARTIFACT_PUBLICATION', 'CORE_ADMISSION', 'CORE_DIAGNOSTICS', 'CORE_ADMISSION_CLI',
              'CORE_PATCH', 'CORE_PATCH_CLI', 'CORE_PATCH_RESULT_CLI', 'COMPOSITE_TYPES',
              'TASK_HELPERS', 'COMPOSITE_FUNCTIONS', 'COMPOSITE_CONSTRUCTOR', 'COMPOSITE_OUTER',
              'WORKER_REQUEST', 'WORKER_HELPERS', 'AGENT_JOURNAL', 'RELEASE_INSTALL', 'RELEASE_SELECTION',
              'SOURCE_BUILD', 'NOMINAL_JSON', 'EXECUTION_BUDGET', 'CANDIDATE_BUDGET', 'RETIREMENT_STATE',
-             'SLOT_LEDGER', 'AGENT_READ'):
+             'SLOT_LEDGER', 'AGENT_READ', 'AGENT_QUERY', 'AGENT_NATIVE_METADATA'):
     environment['HEPTA_HIA_' + name + '_COLD_REPORT'] = str(cold)
 steps = []
 suite_outcomes = {}
@@ -131,10 +136,13 @@ def run(name, args, *, timeout=1800):
     step_environment['HEPTA_HIA_RETIREMENT_STATE_EVIDENCE'] = str(out / (name + '-retirement-state'))
     step_environment['HEPTA_HIA_SOURCE_BUILD_OBSERVATIONS'] = str(out / (name + '-source-build'))
     step_environment['HEPTA_HIA_SELFHOST_BUILD_EVIDENCE'] = str(out / (name + '-selfhost-build'))
+    step_environment['HEPTA_HIA_CORE_DIAGNOSTICS_EVIDENCE'] = str(out / (name + '-core-diagnostics'))
     step_environment['HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE'] = str(out / (name + '-execution-budget'))
     step_environment['HEPTA_HIA_CANDIDATE_BUDGET_EVIDENCE'] = str(out / (name + '-candidate-budget'))
     step_environment['HEPTA_HIA_SLOT_LEDGER_EVIDENCE'] = str(out / (name + '-slot-ledger'))
     step_environment['HEPTA_HIA_AGENT_READ_EVIDENCE'] = str(out / (name + '-agent-read'))
+    step_environment['HEPTA_HIA_AGENT_QUERY_EVIDENCE'] = str(out / (name + '-agent-query'))
+    step_environment['HEPTA_HIA_AGENT_NATIVE_METADATA_EVIDENCE'] = str(out / (name + '-agent-native-metadata'))
     step_environment['HEPTA_HIA_NOMINAL_JSON_EVIDENCE'] = str(out / (name + '-nominal-json'))
     step_environment['HEPTA_HIA_NOMINAL_JSON_INGRESS_EVIDENCE'] = str(out / (name + '-nominal-json-ingress'))
     owner = run_workflow_step(result['command'], cwd=root, env=step_environment,
@@ -236,9 +244,111 @@ if ROOT.resolve()!=Path(COPY).resolve():
 before=_source_state()
 if before!=expected or before['status']:
     raise SystemExit('reproduction copy differs from the pinned HEAD/tree/blob/mode snapshot')
+explicit_generator_proofs=[]
 for name in GENERATORS:
     print(json.dumps({'generator':name}),flush=True)
-    subprocess.run([sys.executable,'-B','-m','tools.generate_hia_'+name],cwd=COPY,check=True)
+    command=[sys.executable,'-B','-m','tools.generate_hia_'+name]
+    if name=='agent_query':
+        directory=Path(RESULT).parent
+        command+=['--output',str(directory/'hia-agent-query-source.hepta'),
+                  '--inventory',str(directory/'hia-agent-query-source-inventory.json')]
+    elif name=='agent_native_metadata':
+        directory=Path(RESULT).parent
+        command+=['--output',str(directory/'hia-agent-native-metadata-source.hepta'),
+                  '--inventory',str(directory/'hia-agent-native-metadata-source-inventory.json')]
+    subprocess.run(command,cwd=COPY,check=True)
+    if name=='agent_query':
+        from hashlib import sha256
+        from pathlib import Path
+        import json
+        directory = directory.resolve()
+        source_root = Path.cwd().resolve()
+        if directory == source_root or directory.is_relative_to(source_root):
+            raise SystemExit('query reproduction outputs must be outside the source tree')
+        paths = {
+            'tracked_source': source_root / 'examples/hia_bootstrap/agent_query.hepta',
+            'generated_source': directory / 'hia-agent-query-source.hepta',
+            'generator': source_root / 'tools/generate_hia_agent_query.py',
+            'inventory': directory / 'hia-agent-query-source-inventory.json',
+        }
+        captured = {name: path.read_bytes() for name, path in paths.items()}
+        if captured['tracked_source'] != captured['generated_source']:
+            raise SystemExit('generated query source differs from the complete tracked bytes')
+        inventory = json.loads(captured['inventory'])
+        if (type(inventory.get('assembly_bytes')) is not int
+                or inventory['assembly_bytes'] != len(captured['generated_source'])
+                or inventory.get('static_generated_profile_within_existing_limits') is not True
+                or inventory.get('native_compile_executed') is not False
+                or inventory.get('native_image_bytes') is not None
+                or inventory.get('native_relocations') is not None
+                or inventory.get('status') != 'GENERATED_STRUCTURE_ONLY_NOT_NATIVE_OR_COLD_QUALIFIED'):
+            raise SystemExit('query generator inventory does not describe this static source reproduction')
+        proof = {
+            'schema': 'hepta.hia.agent-query-source-reproduction.v1',
+            'status': 'SOURCE_REPRODUCTION_PASS_NOT_NATIVE_QUALIFIED',
+            'files': {name: {'path': str(paths[name]), 'bytes': len(raw),
+                             'sha256': sha256(raw).hexdigest()}
+                      for name, raw in captured.items()},
+            'generated_profile': {key: value for key, value in inventory.items()
+                                  if key != 'per_function'},
+        }
+        if any(path.read_bytes() != captured[name] for name, path in paths.items()):
+            raise SystemExit('query source reproduction inputs or outputs changed')
+        proof_path = directory / 'hia-agent-query-source-reproduction.json'
+        with proof_path.open('x', encoding='utf-8') as stream:
+            stream.write(json.dumps(proof, indent=2, sort_keys=True) + '\\n')
+        proof_raw = proof_path.read_bytes()
+        query_reproduction = {'path': str(proof_path), 'bytes': len(proof_raw),
+                              'sha256': sha256(proof_raw).hexdigest()}
+        print(json.dumps({'query_reproduction': query_reproduction,
+                          'status': proof['status']}, sort_keys=True))
+        explicit_generator_proofs.append(query_reproduction)
+    elif name=='agent_native_metadata':
+        from hashlib import sha256
+        from pathlib import Path
+        import json
+        directory = directory.resolve()
+        source_root = Path.cwd().resolve()
+        if directory == source_root or directory.is_relative_to(source_root):
+            raise SystemExit('metadata reproduction outputs must be outside the source tree')
+        paths = {
+            'tracked_source': source_root / 'examples/hia_bootstrap/agent_native_metadata.hepta',
+            'generated_source': directory / 'hia-agent-native-metadata-source.hepta',
+            'generator': source_root / 'tools/generate_hia_agent_native_metadata.py',
+            'inventory': directory / 'hia-agent-native-metadata-source-inventory.json',
+        }
+        captured = {name: path.read_bytes() for name, path in paths.items()}
+        if captured['tracked_source'] != captured['generated_source']:
+            raise SystemExit('generated metadata source differs from the complete tracked bytes')
+        inventory = json.loads(captured['inventory'])
+        if (type(inventory.get('assembly_bytes')) is not int
+                or inventory['assembly_bytes'] != len(captured['generated_source'])
+                or inventory.get('static_generated_profile_within_existing_limits') is not True
+                or inventory.get('native_compile_executed') is not False
+                or inventory.get('native_image_bytes') is not None
+                or inventory.get('native_relocations') is not None
+                or inventory.get('status') != 'GENERATED_STRUCTURE_ONLY_NOT_NATIVE_OR_COLD_QUALIFIED'):
+            raise SystemExit('metadata generator inventory does not describe this static source reproduction')
+        proof = {
+            'schema': 'hepta.hia.agent-native-metadata-source-reproduction.v1',
+            'status': 'SOURCE_REPRODUCTION_PASS_NOT_NATIVE_QUALIFIED',
+            'files': {name: {'path': str(paths[name]), 'bytes': len(raw),
+                             'sha256': sha256(raw).hexdigest()}
+                      for name, raw in captured.items()},
+            'generated_profile': {key: value for key, value in inventory.items()
+                                  if key != 'per_function'},
+        }
+        if any(path.read_bytes() != captured[name] for name, path in paths.items()):
+            raise SystemExit('metadata source reproduction inputs or outputs changed')
+        proof_path = directory / 'hia-agent-native-metadata-source-reproduction.json'
+        with proof_path.open('x', encoding='utf-8') as stream:
+            stream.write(json.dumps(proof, indent=2, sort_keys=True) + '\\n')
+        proof_raw = proof_path.read_bytes()
+        metadata_reproduction = {'path': str(proof_path), 'bytes': len(proof_raw),
+                              'sha256': sha256(proof_raw).hexdigest()}
+        print(json.dumps({'metadata_reproduction': metadata_reproduction,
+                          'status': proof['status']}, sort_keys=True))
+        explicit_generator_proofs.append(metadata_reproduction)
 subprocess.run([sys.executable,'-B','tests/test_hia_selfhost_language_coverage.py','--generate-inventory'],cwd=COPY,check=True)
 after=_source_state()
 if after!=expected or after['status']:
@@ -248,7 +358,8 @@ receipt={'schema':'hepta.hia.complete-source-reproduction.v1',
          'git_history_scope':'exact immutable commit and its complete tracked source tree',
          'expected_snapshot_sha256':EXPECTED_SHA256,
          'before':before,'after':after,'identical_to_tested_source':True,
-         'raw_git_tree_blobs_and_modes_checked':True}
+         'raw_git_tree_blobs_and_modes_checked':True,
+         'explicit_generator_proofs':explicit_generator_proofs}
 Path(RESULT).write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\\n')
 print(json.dumps({'generators':len(GENERATORS),'head':after['head'],
                   'tree':after['tree'],'identical_to_tested_source':True}),flush=True)
@@ -262,6 +373,7 @@ ok = run('source-reproduction', ['-c', reproduce_code])
 ok = run('source-contract', ['tools/generate_hia_selfhost_contract.py', '--check']) and ok
 ok = run('source-scope', ['tools/check_hia_core_only.py']) and ok
 ok = suite('source-tests', named[0]) and ok
+ok = suite('bootstrap-ascii-oracle', ['tests.test_hia_bootstrap_components.BootstrapSourceTests.test_ascii_reference_lexer_handles_long_escaped_strings']) and ok
 cold_completed = run('cold', ['tools/replay_hia_selfhost_cold.py', '--output', str(cold)], timeout=240)
 cold_error = None
 try:
@@ -287,6 +399,10 @@ if cold_ok:
                         'tests.test_hia_slot_ledger_native_integration'],
         'agent-read': ['tests.test_hia_agent_read_native',
                        'tests.test_hia_agent_read_native_integration'],
+        'agent-query': ['tests.test_hia_agent_query_native',
+                        'tests.test_hia_agent_query_native_integration'],
+        'agent-native-metadata': ['tests.test_hia_agent_native_metadata',
+                                  'tests.test_hia_agent_native_metadata_integration'],
         'release-install': ['tests.test_hia_release_install'],
         'release-selection': ['tests.test_hia_release_selection',
                               'tests.test_hia_release_selection_review'],
@@ -302,7 +418,7 @@ if cold_ok:
         'program-shape': ['tests.test_hia_program_shape_native'],
         'instruction-policy': ['tests.test_hia_instruction_policy_native'],
         'publication': ['tests.test_hia_artifact_publication_native', 'tests.test_hia_artifact_publication_route', 'tests.test_hia_agent_artifact_store_native'],
-        'core-admission': ['tests.test_hia_core_admission_native'],
+        'core-admission': ['tests.test_hia_core_admission_native', 'tests.test_hia_core_admission_diagnostics', 'tests.test_hia_core_body_diagnostics', 'tests.test_hia_core_declaration_diagnostics'],
         'core-cli': ['tests.test_hia_core_admission_cli'],
         'patch': ['tests.test_hia_core_patch_native', 'tests.test_hia_core_patch_cli'],
         'agent-candidate': ['tests.test_hia_agent_candidate_native'],
