@@ -1,0 +1,69 @@
+{
+  "schema": "hia.normalization.v70.notes-coordinator-r6-original-failure.v1",
+  "source_packet": "3441a43ca324148bd9455214d606479d66994246",
+  "stage_packet": "9807d74eb06c71dec253748011ebaf07003d344b",
+  "start": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-B\",\n      \"-c\",\n      \"import sys,json,hashlib,os\\nfrom pathlib import Path\\nraw=sys.stdin.buffer.read()\\nassert hashlib.sha256(raw).hexdigest()==sys.argv[3]\\np=json.loads(raw)\\nassert p['schema']=='hia.normalization.v70.two-file-stage.v1'\\nfor target,text in [(sys.argv[1],p['driver']),(sys.argv[2],p['package'])]:\\n data=text.encode('utf-8')\\n with Path(target).open('xb') as f:f.write(data);f.flush();os.fsync(f.fileno())\\n os.chmod(target,0o600)\\nos.execv(sys.executable,[sys.executable,'-B',sys.argv[1]])\\n\",\n      \"/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/helpers/notes_coordinator_r6.py\",\n      \"/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/helpers/notes_coordinator_r6_input.json\",\n      \"c640bea24dbeeb5770eeb4651e2b6d06502d1f46c17ba35a3f1544b296c4766f\"\n    ],\n    \"created_unix_ms\": 1794437325757,\n    \"cwd\": \"/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1\",\n    \"env_keys\": [],\n    \"executable\": \"/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1cccca3bd-2564-107f\",\n    \"idempotency_key\": \"hia-dda7-normalization-v70-notes-coordinator-r6-20261111\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1cccca3bd-2564-107f\",\n    \"request_digest\": \"4585e5e4823464d81885e721378336da24d7b208aea47a6bb04a797d027806c2\",\n    \"request_fingerprint\": 5009662930119320792,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1cccca3bd-2564-107f\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1cccca3bd-2564-107f\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "status": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"at_unix_ms\": 1794437330031,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 1,\n  \"job_id\": \"1a1cccca3bd-2564-107f\",\n  \"launch_nonce\": \"d905ab8ab36d4546a2c943b64fb40794\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 455,\n      \"stored\": 455\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"failed\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "process_read": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1cccca3bd-2564-107f\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b226279746573223a203133393039312c2022646966666572656e636573223a205b226e6f74655f636f6e746578745f6f757465725f6b65795f726570725f696e74657272757074222c20226e6f74655f636f6e746578745f6e65737465645f6b65795f726570725f696e74657272757074225d2c202266756c6c5f6d617463686573223a2037312c202266756c6c5f6f776e65725f7175616c6966696564223a2066616c73652c20226e65775f636f6d70696c655f636f756e74223a20312c20226f62736572766174696f6e73223a2037332c2022726573756c74223a20222f686f6d652f71712f6869612d6e61746976652d73656c662d726577726974652d32303236313131312d646461372f6e6f726d616c697a6174696f6e2d7637302d72312f65766964656e63652f6e6f7465732d636f6f7264696e61746f722d72362f524553554c542e6a736f6e222c2022736861323536223a202261626337336338396135643265383237653662643535363335386534373233323836663132313965616561666561316131623763303462656639363434393437222c2022737461747573223a20224641494c45445f43414e4449444154455f4f525f4841524e455353227d0a\",\n    \"eof\": true,\n    \"next_offset\": 455,\n    \"offset\": 0,\n    \"size\": 455,\n    \"text\": \"{\\\"bytes\\\": 139091, \\\"differences\\\": [\\\"note_context_outer_key_repr_interrupt\\\", \\\"note_context_nested_key_repr_interrupt\\\"], \\\"full_matches\\\": 71, \\\"full_owner_qualified\\\": false, \\\"new_compile_count\\\": 1, \\\"observations\\\": 73, \\\"result\\\": \\\"/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/evidence/notes-coordinator-r6/RESULT.json\\\", \\\"sha256\\\": \\\"abc73c89a5d2e827e6bd556358e4723286f1219eaeafea1a1b7c04bef9644947\\\", \\\"status\\\": \\\"FAILED_CANDIDATE_OR_HARNESS\\\"}\\n\"\n  }\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "raw_result": {
+    "blob": "a2663c03e7002088466ad53190d69ed30e18be22",
+    "bytes": 139091,
+    "sha256": "abc73c89a5d2e827e6bd556358e4723286f1219eaeafea1a1b7c04bef9644947",
+    "version": "66306:67155676:139091:1794437329966397273:1794437329966397273",
+    "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/evidence/notes-coordinator-r6/RESULT.json"
+  },
+  "recorded_observations": 73,
+  "matching": 71,
+  "additional_executed_failure": "replacement lifetime True assertion failed before its row was recorded",
+  "not_reached_controls": 4,
+  "full_owner_qualified": false,
+  "physical_recursion_qualified": false,
+  "overlap": "Functional development single HIA compile after exact673 cold terminal; remaining full retained suite may overlap. No new timing/cold qualification claim.",
+  "original_read_timeouts": [
+    {
+      "content": [
+        {
+          "type": "text",
+          "text": "tool call error: tool call failed for `codex_apps/h.binary_read`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+        }
+      ],
+      "isError": true
+    },
+    {
+      "content": [
+        {
+          "type": "text",
+          "text": "tool call error: tool call failed for `codex_apps/h.binary_read`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+        }
+      ],
+      "isError": true
+    }
+  ]
+}

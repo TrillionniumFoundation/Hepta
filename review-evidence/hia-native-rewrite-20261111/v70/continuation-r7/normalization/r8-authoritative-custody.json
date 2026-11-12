@@ -1,0 +1,95 @@
+{
+  "schema": "hia.normalization.v70.late-errors-r8-authoritative-evidence.v1",
+  "scope": {
+    "development_only": true,
+    "full_owner_qualified": false,
+    "physical_recursion_qualified": false,
+    "current_source_cold_qualified": false,
+    "hosted_CPython_ABI_dependency_retained": true,
+    "production_c_compiler_used": false
+  },
+  "input": {
+    "source_packet_blob": "b554bb265867e505949c8d1eff0fbd2396cdae63",
+    "source_packet_bytes": 201437,
+    "source_packet_sha256": "0b797e49eff8f985593c5c8c41144fa04727f5eebae9bf82c29df1b83e7cd59f",
+    "stage_blob": "52a4d9e284c811ae5f253aeb0e2bbe1487186faf",
+    "stage_bytes": 247010,
+    "stage_sha256": "42ac61cc28b0dbc0d6b09e93846d796b48472684bc381e0bc165f93b7e9b8a68",
+    "intent": {
+      "host": "ai395",
+      "executable": "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+      "args": [
+        "-B",
+        "-c",
+        "import sys,json,hashlib,os\nfrom pathlib import Path\nraw=sys.stdin.buffer.read()\nassert hashlib.sha256(raw).hexdigest()==sys.argv[3]\np=json.loads(raw)\nassert p['schema']=='hia.normalization.v70.two-file-stage.v1'\nfor target,text in [(sys.argv[1],p['driver']),(sys.argv[2],p['package'])]:\n data=text.encode('utf-8')\n with Path(target).open('xb') as f:f.write(data);f.flush();os.fsync(f.fileno())\n os.chmod(target,0o600)\nos.execv(sys.executable,[sys.executable,'-B',sys.argv[1]])\n",
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/helpers/late_errors_r8.py",
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/helpers/late_errors_r8_input.json",
+        "42ac61cc28b0dbc0d6b09e93846d796b48472684bc381e0bc165f93b7e9b8a68"
+      ],
+      "cwd": "/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1",
+      "idempotency_key": "hia-dda7-normalization-v70-late-errors-r8-20261111",
+      "timeout_seconds": 180
+    }
+  },
+  "start": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-B\",\n      \"-c\",\n      \"import sys,json,hashlib,os\\nfrom pathlib import Path\\nraw=sys.stdin.buffer.read()\\nassert hashlib.sha256(raw).hexdigest()==sys.argv[3]\\np=json.loads(raw)\\nassert p['schema']=='hia.normalization.v70.two-file-stage.v1'\\nfor target,text in [(sys.argv[1],p['driver']),(sys.argv[2],p['package'])]:\\n data=text.encode('utf-8')\\n with Path(target).open('xb') as f:f.write(data);f.flush();os.fsync(f.fileno())\\n os.chmod(target,0o600)\\nos.execv(sys.executable,[sys.executable,'-B',sys.argv[1]])\\n\",\n      \"/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/helpers/late_errors_r8.py\",\n      \"/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/helpers/late_errors_r8_input.json\",\n      \"42ac61cc28b0dbc0d6b09e93846d796b48472684bc381e0bc165f93b7e9b8a68\"\n    ],\n    \"created_unix_ms\": 1794440324522,\n    \"cwd\": \"/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1\",\n    \"env_keys\": [],\n    \"executable\": \"/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1ccfa65aa-2564-112e\",\n    \"idempotency_key\": \"hia-dda7-normalization-v70-late-errors-r8-20261111\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1ccfa65aa-2564-112e\",\n    \"request_digest\": \"e5865efd489b9958b833018ca23bab2d7e30360bba7957a9750f95e3193af5da\",\n    \"request_fingerprint\": 16539011123502618968,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1ccfa65aa-2564-112e\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1ccfa65aa-2564-112e\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "status": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"at_unix_ms\": 1794440328609,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1ccfa65aa-2564-112e\",\n  \"launch_nonce\": \"691819a4b69fad611ebf4a7f72c0ab73\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 397,\n      \"stored\": 397\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "read": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1ccfa65aa-2564-112e\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b226279746573223a203138393037342c2022646966666572656e636573223a205b5d2c202266756c6c5f6d617463686573223a203130382c202266756c6c5f6f776e65725f7175616c6966696564223a2066616c73652c20226e65775f636f6d70696c655f636f756e74223a20312c20226f62736572766174696f6e73223a203130382c2022726573756c74223a20222f686f6d652f71712f6869612d6e61746976652d73656c662d726577726974652d32303236313131312d646461372f6e6f726d616c697a6174696f6e2d7637302d72312f65766964656e63652f6c6174652d6572726f72732d72382f524553554c542e6a736f6e222c2022736861323536223a202261333734666436356430623464393464383464646134363065363664353166636333343162333136666466393731616664313933323366333833613339316231222c2022737461747573223a2022504153535f53454c45435445445f4c4154455f4552524f52535f4849415f4e4f5445535f414e445f4c49464554494d45535f4f4e4c59227d0a\",\n    \"eof\": true,\n    \"next_offset\": 397,\n    \"offset\": 0,\n    \"size\": 397,\n    \"text\": \"{\\\"bytes\\\": 189074, \\\"differences\\\": [], \\\"full_matches\\\": 108, \\\"full_owner_qualified\\\": false, \\\"new_compile_count\\\": 1, \\\"observations\\\": 108, \\\"result\\\": \\\"/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/evidence/late-errors-r8/RESULT.json\\\", \\\"sha256\\\": \\\"a374fd65d0b4d94d84dda460e66d51fcc341b316fdf971afd19323f383a391b1\\\", \\\"status\\\": \\\"PASS_SELECTED_LATE_ERRORS_HIA_NOTES_AND_LIFETIMES_ONLY\\\"}\\n\"\n  }\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "result": {
+    "blob": "129023c903241a2048b070843b7f5c231da2a672",
+    "bytes": 189074,
+    "sha256": "a374fd65d0b4d94d84dda460e66d51fcc341b316fdf971afd19323f383a391b1"
+  },
+  "source_identity": {
+    "bytes": 118108,
+    "files": 780,
+    "path": "/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/evidence/late-errors-r8/SOURCE_IDENTITY.json",
+    "sha256": "65000324b943183f56cc8b3136a62ca7c0052a9c19343a12411d6ce12e33e682"
+  },
+  "observations": 108,
+  "all_match": true,
+  "original_78_definitions_and_order_unchanged": true,
+  "original_14_case_definitions_unchanged": true,
+  "additional": {
+    "true_integer_keys": 4,
+    "held_exception_lifetime": 2,
+    "unknown_ACK_and_no_replay": 4,
+    "production_receipt_admission": 6
+  },
+  "original_failure": {
+    "result_blob": "b1f72946d28b4fcde8947db0e1a6cfba78ba7950",
+    "bytes": 21635,
+    "sha256": "5d24efc09a6dba1a6665423dc1430f57d22f3f17e9bb419c0127b19da52905d9",
+    "matching": 5,
+    "differences": 9,
+    "preserved": true
+  },
+  "original_C302_reference_preserved": true,
+  "HIA298_independent_controls_blob": "d28aa4299abde5cccbd10544835e682d68348efb"
+}
