@@ -1,0 +1,179 @@
+name: Exact joint HIA static and full retained qualification v80
+"on":
+  push:
+    branches: [codex/hia-full-retained-v80-r1-20261112-dda7]
+  workflow_dispatch:
+    inputs:
+      run_full:
+        description: Run the original full qualification after static admission
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  exact-source-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Observe the actual original platform
+        run: |
+          set -euo pipefail
+          cat /etc/os-release
+          uname -a
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+      - name: Check out the exact product source
+        uses: actions/checkout@v4
+        with:
+          ref: 65ceb711e47548f85ecf6b2ec2ae90f11dd50743
+          fetch-depth: 1
+          persist-credentials: false
+          path: source
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Materialize the independently frozen external harness
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const crypto = require('crypto');
+            const zlib = require('zlib');
+            const expected = {
+              blob: '5997960a817ac3be8655a872c1e7554ec478a701',
+              bytes: 1207843,
+              sha256: 'adb65e28e24bcfd26eba06a2e71df1207c43fe47618c43873618810d6854c7bc',
+              files: 255,
+            };
+            const reply = await github.rest.git.getBlob({owner: 'TrillionniumFoundation', repo: 'Hepta', file_sha: expected.blob});
+            if (reply.data.encoding !== 'base64' || reply.data.sha !== expected.blob) throw new Error('wrong harness blob response');
+            const raw = Buffer.from(reply.data.content.replace(/\s/g, ''), 'base64');
+            const digest = crypto.createHash('sha256').update(raw).digest('hex');
+            const blob = crypto.createHash('sha1').update(Buffer.from(`blob ${raw.length}\0`)).update(raw).digest('hex');
+            if (raw.length !== expected.bytes || digest !== expected.sha256 || blob !== expected.blob) throw new Error('harness packet identity differs');
+            const transfer = JSON.parse(raw.toString('utf8'));
+            if (transfer.schema !== 'hepta.hia.full-qualification-v79-transfer.v1' || transfer.encoding !== 'zlib+base64' || typeof transfer.data !== 'string') throw new Error('wrong harness transfer schema');
+            const compressed = Buffer.from(transfer.data, 'base64');
+            if (compressed.toString('base64') !== transfer.data || compressed.length !== transfer.compressed_bytes || crypto.createHash('sha256').update(compressed).digest('hex') !== transfer.compressed_sha256) throw new Error('compressed harness bytes differ');
+            const source = zlib.inflateSync(compressed);
+            if (source.length !== transfer.bytes || crypto.createHash('sha256').update(source).digest('hex') !== transfer.sha256 || !Buffer.from(source.toString('utf8'), 'utf8').equals(source)) throw new Error('expanded harness bytes differ');
+            const value = JSON.parse(source.toString('utf8'));
+            if (value.schema !== 'hepta.hia.full-qualification-v79-source-packet.v1' || value.files.length !== expected.files) throw new Error('wrong harness packet schema/count');
+            const root = path.join(process.env.RUNNER_TEMP, 'hia-v79-harness');
+            if (fs.existsSync(root)) throw new Error('harness directory already exists');
+            fs.mkdirSync(root, {mode: 0o700});
+            const seen = new Set();
+            for (const row of value.files) {
+              if (typeof row.path !== 'string' || row.path.startsWith('/') || row.path.includes('\\') || row.path.includes('\0') || row.path.split('/').some(p => !p || p === '.' || p === '..') || seen.has(row.path)) throw new Error('invalid harness path');
+              seen.add(row.path);
+              if (row.encoding !== 'utf-8' || typeof row.content !== 'string' || ![0o600, 0o644, 0o700, 0o755].includes(row.mode)) throw new Error('invalid harness representation');
+              const bytes = Buffer.from(row.content, 'utf8');
+              if (bytes.toString('utf8') !== row.content || bytes.length !== row.bytes || crypto.createHash('sha256').update(bytes).digest('hex') !== row.sha256) throw new Error('harness member differs: ' + row.path);
+              const memberBlob = crypto.createHash('sha1').update(Buffer.from(`blob ${bytes.length}\0`)).update(bytes).digest('hex');
+              if (memberBlob !== row.git_blob_sha1) throw new Error('harness member Git identity differs: ' + row.path);
+              const target = path.join(root, row.path);
+              fs.mkdirSync(path.dirname(target), {recursive: true, mode: 0o700});
+              fs.writeFileSync(target, bytes, {flag: 'wx', mode: row.mode});
+              fs.chmodSync(target, row.mode);
+            }
+            fs.writeFileSync(path.join(root, 'PACKET-TRANSFER.json'), raw, {flag: 'wx', mode: 0o600});
+            fs.writeFileSync(path.join(root, 'PACKET-INPUT.json'), source, {flag: 'wx', mode: 0o600});
+            fs.writeFileSync(path.join(root, 'PACKET-ADMISSION.json'), JSON.stringify({...expected, observed_sha256: digest, observed_git_blob: blob, files: seen.size, source_qualification_claimed: false}, null, 2) + '\n', {flag: 'wx', mode: 0o600});
+            core.info(`Admitted ${seen.size} exact external harness files; no qualification run yet.`);
+      - name: Prepare the exact original Python environment
+        run: |
+          set -euo pipefail
+          python -m venv "$RUNNER_TEMP/hia-full-venv"
+          "$RUNNER_TEMP/hia-full-venv/bin/python" -m pip install --disable-pip-version-check \
+            setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 \
+            jsonschema==4.26.0 zstandard==0.25.0 PyYAML==6.0.2
+          "$RUNNER_TEMP/hia-full-venv/bin/python" -m pip freeze --all > "$RUNNER_TEMP/hia-v79-python-packages.txt"
+      - name: Validate original limits deltas and actual complete loader inventories
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/hia-full-venv/bin/python" -B \
+            "$RUNNER_TEMP/hia-v79-harness/run_v79_static_gate.py" \
+            --source "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/hia-v79-static"
+      - name: Refuse unresolved source readiness before an explicit full attempt
+        if: github.event_name == 'workflow_dispatch' && inputs.run_full
+        run: |
+          python -B - "$RUNNER_TEMP/hia-v79-harness/V79-CONFIGURATION.json" <<'PY'
+          import json, sys
+          value=json.load(open(sys.argv[1]))
+          if value['current_full_start_blockers']:
+              raise RuntimeError('Explicit full attempt remains blocked: ' + repr(value['current_full_start_blockers']))
+          PY
+      - name: Install the unchanged original system prerequisites
+        if: github.event_name == 'workflow_dispatch' && inputs.run_full
+        run: bash "$RUNNER_TEMP/hia-v79-harness/install_system_prerequisites.sh"
+      - name: Build fresh original prerequisites and run unchanged v2 admission
+        if: github.event_name == 'workflow_dispatch' && inputs.run_full
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/hia-full-venv/bin/python" -B \
+            "$RUNNER_TEMP/hia-v79-harness/prepare_full_ci_prerequisites_v10r2.py" \
+            --source "$GITHUB_WORKSPACE/source" \
+            --workspace "$RUNNER_TEMP/hia-v79-prepared" \
+            --temporary-root "/tmp/hq-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            --rustup "$(command -v rustup)"
+      - name: Prepare pinned real GCC15 after original v2 READY
+        if: github.event_name == 'workflow_dispatch' && inputs.run_full
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/hia-full-venv/bin/python" -B \
+            "$RUNNER_TEMP/hia-v79-harness/prepare_pinned_gcc15.py" \
+            --source "$GITHUB_WORKSPACE/source" \
+            --prepared "$RUNNER_TEMP/hia-v79-prepared" \
+            --output "$RUNNER_TEMP/hia-v79-gcc15"
+      - name: Run the new exact-source qualification once with original limits
+        if: github.event_name == 'workflow_dispatch' && inputs.run_full
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/hia-full-venv/bin/python" -B \
+            "$RUNNER_TEMP/hia-v79-harness/launch_prepared_v79.py" \
+            --prepared "$RUNNER_TEMP/hia-v79-prepared" \
+            --harness "$RUNNER_TEMP/hia-v79-harness" \
+            --source "$GITHUB_WORKSPACE/source" \
+            --gcc15-receipt "$RUNNER_TEMP/hia-v79-gcc15/RESULT.json" \
+            --output "$RUNNER_TEMP/hia-v79-qualification"
+      - name: Retain the six original bridge inputs outside their prepared tree
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.run_full
+        run: |
+          set -euo pipefail
+          python -B "$RUNNER_TEMP/hia-v79-harness/retain_six_bridge_inputs.py" \
+            --prepared "$RUNNER_TEMP/hia-v79-prepared" \
+            --output "$RUNNER_TEMP/hia-v79-prerequisite-inputs"
+      - name: Export completed small reports losslessly without running missing gates
+        if: always()
+        run: |
+          python -B "$RUNNER_TEMP/hia-v79-harness/export_v79_reports.py" --root "$RUNNER_TEMP"
+      - name: Preserve all original observations and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-full-v80-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-v79-harness/
+            ${{ runner.temp }}/hia-v79-static/
+            ${{ runner.temp }}/hia-v79-python-packages.txt
+            ${{ runner.temp }}/hia-v8-system-prerequisites/
+            ${{ runner.temp }}/hia-v79-prepared/*.json
+            ${{ runner.temp }}/hia-v79-prepared/commands/
+            ${{ runner.temp }}/hia-v79-prepared/preparation/
+            ${{ runner.temp }}/hia-v79-prepared/prerequisites/evidence/
+            ${{ runner.temp }}/hia-v79-prerequisite-inputs/
+            ${{ runner.temp }}/hia-v79-gcc15/RESULT.json
+            ${{ runner.temp }}/hia-v79-gcc15/commands-progress.json
+            ${{ runner.temp }}/hia-v79-gcc15/commands/
+            ${{ runner.temp }}/hia-v79-gcc15/held-inputs/
+            ${{ runner.temp }}/hia-v79-qualification/
