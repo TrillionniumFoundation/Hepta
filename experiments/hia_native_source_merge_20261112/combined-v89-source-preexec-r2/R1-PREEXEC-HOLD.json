@@ -1,0 +1,17 @@
+{
+  "schema": "hia.v89.source-preexecution-r1-hold.v1",
+  "status": "HOLD_BEFORE_REQUEST_OR_OWNER",
+  "cause": "Preparation invocation omitted -B; importing common.py created __pycache__, which the unchanged regular-only preexecution admission correctly refused.",
+  "original_sdk": {
+    "chunk_id": "2b2fd0",
+    "wall_time_seconds": 1.8938979900000001,
+    "exit_code": 1,
+    "original_token_count": 76,
+    "output": "Traceback (most recent call last):\n  File \"/workspace/scratch/e26ed3e2edcf/root/combined-native-v89-r1/source-controls-r1/prepare.py\", line 71, in <module>\n    raise RuntimeError('Preexecution control folder contains nonregular input')\nRuntimeError: Preexecution control folder contains nonregular input\n"
+  },
+  "source_methods_executed": 0,
+  "guardian_started": false,
+  "native_or_compiler_executed": false,
+  "original_limits_changed": false,
+  "correction": "Preserve r1 folder and failure. Copy only the same frozen control input files to new source-controls-r2 and invoke preparation with -I -S -B; keep regular-only admission unchanged."
+}
