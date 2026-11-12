@@ -1,0 +1,47 @@
+--- r2/control/worker.py
++++ r3/control/worker.py
+@@ -18,13 +18,16 @@
+     folder.mkdir(mode=0o700)
+     started = time.monotonic()
+     report = {'schema': 'hepta.hia.core-compare-integration-source-run.v1', 'status': 'HOLD',
+-        'scope': 'LOCAL_EXACT_PARTIAL_SOURCE_GENERATION_AND_SOURCE_VM_CONTROLS_ONLY',
++        'scope': 'LOCAL_EXACT_PARTIAL_SOURCE_GENERATION_SOURCE_VM_AND_FOUR_NEGATIVE_ADMISSION_COMMANDS',
+         'base_commit': policy['base_commit'], 'base_tree': policy['base_tree'],
+         'actual_git_HEAD_claimed': False, 'runtime': runtime(policy['runtime']),
+         'original61_prefix': policy['generator_names'][:61], 'generator_count': len(policy['generator_names']),
+         'expected_ids': policy['expected_ids'], 'commands': [], 'allowed_derived_changes': policy['allowed_derived_changes'],
+         'native_executed': False, 'complete18_executed': False, 'complete116_executed': False,
+-        'cold_executed': False, 'installed_executed': False, 'remote_triggered': False}
++        'cold_executed': False, 'installed_executed': False, 'remote_triggered': False,
++        'source_child_process_policy': policy['source_child_process_policy'],
++        'allowed_negative_processes': 0, 'forbidden_attempts': [],
++        'zero_process_scope_claimed': False}
+     before = snapshot(source)
+     save(folder / 'source-before.json', before)
+     derived = None
+@@ -43,6 +46,10 @@
+         result_path = folder / ('source-tests.json' if operation == 'tests' else label + '.report.json')
+         row['report'] = pin(result_path)
+         observed = json.loads(result_path.read_bytes())
++        if operation == 'tests':
++            report['allowed_negative_processes'] = observed.get('allowed_negative_processes')
++            report['forbidden_attempts'] = observed.get('forbidden_attempts')
++            report['actual_source_test_report'] = row['report']
+         require(result.returncode == 0 and observed.get('status') == 'SOURCE_CHILD_PASS'
+                 and observed.get('native_or_compiler_or_process_attempts') == [],
+                 'frozen source child failed: ' + label)
+@@ -74,6 +81,14 @@
+         observed = execute('source-tests', 'tests')
+         require(observed['expected_ids'] == observed['loaded_ids'] == observed['executed_ids'] == policy['expected_ids'],
+                 'complete source test IDs differ at final readback')
++        require(type(observed['allowed_negative_processes']) is int
++                and observed['allowed_negative_processes'] == 4
++                and observed['forbidden_attempts'] == [] and observed['forbidden_attempt_count'] == 0
++                and observed['source_child_process_policy'] == policy['source_child_process_policy']
++                and observed['zero_process_scope_claimed'] is False,
++                'four original negative command permissions differ')
++        report['allowed_negative_processes'] = observed['allowed_negative_processes']
++        report['forbidden_attempts'] = observed['forbidden_attempts']
+         require(content(snapshot(source)) == content(derived), 'source changed during source-only tests')
+         report['tests'] = observed
+         report['status'] = 'SOURCE_INTEGRATION_PASS'

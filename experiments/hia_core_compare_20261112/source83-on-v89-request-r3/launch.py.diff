@@ -1,0 +1,31 @@
+--- r2/control/launch.py
++++ r3/control/launch.py
+@@ -40,7 +40,10 @@
+         'qualification_seconds': 180, 'cleanup_seconds': 3,
+         'request': pin(HERE / 'REQUEST.json'), 'command': command,
+         'native_executed': False, 'complete18_executed': False, 'complete116_executed': False,
+-        'cold_executed': False, 'installed_executed': False}
++        'cold_executed': False, 'installed_executed': False,
++        'source_child_process_policy': policy['source_child_process_policy'],
++        'allowed_negative_processes': None, 'forbidden_attempts': None,
++        'zero_process_scope_claimed': False}
+     closed = False
+     parent_pins = [pin(folder / 'RESOURCE-OBSERVATION.json')]
+     try:
+@@ -127,6 +130,16 @@
+                 and all(tests[key] == [] for key in ('loader_errors', 'errors', 'failures', 'skipped',
+                     'expectedFailures', 'unexpectedSuccesses', 'native_or_compiler_or_process_attempts')),
+                 'source final complete denominator or anomalies differ')
++        require(type(tests['allowed_negative_processes']) is int
++                and tests['allowed_negative_processes'] == report['allowed_negative_processes'] == 4
++                and tests['forbidden_attempts'] == report['forbidden_attempts'] == []
++                and tests['forbidden_attempt_count'] == 0
++                and tests['zero_process_scope_claimed'] is report['zero_process_scope_claimed'] is False
++                and tests['source_child_process_policy'] == report['source_child_process_policy']
++                    == policy['source_child_process_policy'],
++                'source final negative-command scope differs')
++        final['allowed_negative_processes'] = tests['allowed_negative_processes']
++        final['forbidden_attempts'] = tests['forbidden_attempts']
+         final['status'] = 'SOURCE_INTEGRATION_PASS'
+     except BaseException:
+         final['status'] = 'HOLD'
