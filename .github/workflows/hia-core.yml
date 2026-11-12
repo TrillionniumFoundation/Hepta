@@ -117,6 +117,8 @@ jobs:
               'tests.test_hia_byte_wrapper_native.ByteWrapperSourceTests',
               'tests.test_hia_machine_object_native.MachineObjectSourceTests',
               'tests.test_hia_execution_observation_native.ExecutionObservationSourceTests',
+              'tests.test_hia_continuation_native.ContinuationSourceTests',
+              'tests.test_hia_installed_fixture_resources',
               'tests.test_hia_machine_plan_native.MachinePlanSourceTests',
               'tests.test_hia_machine_encoding_native.MachineEncodingSourceTests',
               'tests.test_hia_machine_state_native.MachineStateSourceTests',
@@ -225,6 +227,16 @@ jobs:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_SOURCE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_NOMINAL_JSON_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native HIA multi-image scheduling and source-bound installed entry
+        env:
+          HEPTA_HIA_NATIVE_CONTINUATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_continuation_native
+      - name: All original runtime callers with HIA-owned internal scheduling
+        run: python -B tools/qualify_hia_execution_observation_callers.py --native-continuation --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/native-continuation-callers"
+      - name: Original runtime callers through in-process HIA native scheduling
+        run: python -B tools/qualify_hia_execution_observation_callers.py --native-continuation --in-process --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/native-inprocess-continuation-callers"
+      - name: Original no-child compiler scripts through four in-process HIA schedulers
+        run: python -B tools/qualify_hia_continuation_no_child.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/native-no-child-continuation-callers"
       - name: Native execution ledger policy and installed real runtime callers
         run: |
           python -B - <<'PYOBSERVE'

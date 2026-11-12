@@ -142,6 +142,9 @@ def installed_core_emitter(manifest_path, namespace):
     abi = checked_abi(abi_raw)
     # Do not follow manifest-controlled paths before admitting its fixed shape.
     bundle = _json(raw)
+    if type(bundle) is dict and bundle.get('schema')=='hepta.hia.native-continuation-inprocess.v1':
+        from .hia_native_continuation_selection import installed_native_continuation
+        return installed_native_continuation(path,namespace,kind='core-emitter')
     names = ('core_emitter_pool', *abi['units'])
     paths = {name: name + '/manifest.json' for name in names}
     if (type(bundle) is not dict or set(bundle) != {
@@ -211,4 +214,6 @@ def native_implementation_identity(namespace):
         if source_sha != expected_sources[name]:
             raise ValueError('native Core emitter source identity mismatch')
         values.extend((relative, source_sha, image.image_sha256))
+    continuation=getattr(owner,'_native_continuation_identity',b'')
+    if continuation:values.append(continuation.hex())
     return ('\0'.join(values)).encode('ascii')

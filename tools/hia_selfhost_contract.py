@@ -13,8 +13,23 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v86-native-execution-custody'
+PROFILE = 'selfhost-core-linux-x86_64-v88-native-continuation'
 SOURCE_FILES = (
+    'docs/HIA_NATIVE_CONTINUATION_DEVELOPMENT.md',
+    'docs/HIA_NATIVE_CONTINUATION_ABI.json',
+    'tests/test_hia_continuation_native.py',
+    'tests/test_hia_installed_fixture_resources.py',
+    'tools/generate_hia_continuation.py',
+    'tools/hia_continuation_syscalls.S',
+    'tools/hia_continuation_inprocess.S',
+    'tools/qualify_hia_continuation_no_child.py',
+    'hepta/hia_native_continuation_inprocess.py',
+    'examples/hia_bootstrap/continuation_inprocess_packer.hepta',
+    'tools/build_hia_native_continuation.py',
+    'tools/hia_continuation_pack_child.py',
+    'examples/hia_bootstrap/continuation_policy.hepta',
+    'examples/hia_bootstrap/continuation_packer.hepta',
+
     'docs/HIA_EXECUTION_OBSERVATION_NATIVE.md',
     'docs/HIA_EXECUTION_OBSERVATION_ABI.json',
     'tests/test_hia_execution_observation_native.py',

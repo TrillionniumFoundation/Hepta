@@ -159,6 +159,8 @@ BYTE_WRAPPER_BUILD_FILES = (
 )
 
 # Exact execution-result ledger policy resources; not a runtime replacement.
+CONTINUATION_BUILD_FILES = ('docs/HIA_NATIVE_CONTINUATION_ABI.json', 'examples/hia_bootstrap/continuation_policy.hepta', 'examples/hia_bootstrap/continuation_packer.hepta', 'examples/hia_bootstrap/continuation_inprocess_packer.hepta')
+
 EXECUTION_OBSERVATION_BUILD_FILES = ('docs/HIA_EXECUTION_OBSERVATION_ABI.json', 'examples/hia_bootstrap/execution_observation_pool.hepta', 'examples/hia_bootstrap/execution_observation_000.hepta', 'examples/hia_bootstrap/execution_observation_001.hepta', 'examples/hia_bootstrap/execution_observation_002.hepta', 'examples/hia_bootstrap/execution_observation_003.hepta', 'examples/hia_bootstrap/execution_observation_004.hepta', 'examples/hia_bootstrap/execution_observation_005.hepta', 'examples/hia_bootstrap/execution_observation_006.hepta')
 
 # Exact source-bound ELF object writer resources, separate from prior roles.
@@ -208,7 +210,7 @@ def installation_manifest():
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
-    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES):
+    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES):
         entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
     from .hia_program_native import _implementation_hash
     from .hia_native_helpers import native_helpers_identity
