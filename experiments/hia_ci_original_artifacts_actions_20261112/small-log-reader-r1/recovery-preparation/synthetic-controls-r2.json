@@ -1,0 +1,67 @@
+{
+  "schema": "hia.original-log-decoder-synthetic-controls.v1",
+  "status": "DECODER_CONTROLS_ONLY",
+  "actual_workflow_executed": false,
+  "actual_original_files_recovered": false,
+  "synthetic_input_sha256": "0cb768b9c65d7d29f860b69e6d388c004f5e40da2ae062cfea91b63d009375e7",
+  "outcomes": [
+    {
+      "case": "two_frames_non_ascii_zero_byte_and_empty_file_in_explicit_HOLD",
+      "accepted": true,
+      "raw_bytes": 28000
+    },
+    {
+      "case": "missing_END",
+      "rejected": true,
+      "message": "frames missing first manifest or final END"
+    },
+    {
+      "case": "duplicate_frame",
+      "rejected": true,
+      "message": "frame ordering/gap/overlap/length"
+    },
+    {
+      "case": "offset_gap",
+      "rejected": true,
+      "message": "frame ordering/gap/overlap/length"
+    },
+    {
+      "case": "frame_SHA_mismatch",
+      "rejected": true,
+      "message": "frame exact bytes/hash"
+    },
+    {
+      "case": "unknown_frame_path",
+      "rejected": true,
+      "message": "frame header"
+    },
+    {
+      "case": "END_bytes_mismatch",
+      "rejected": true,
+      "message": "END aggregate binding"
+    },
+    {
+      "case": "scope_reclassification",
+      "rejected": true,
+      "message": "END scope/original status"
+    }
+  ],
+  "decoder": {
+    "bytes": 8976,
+    "sha256": "956d05d398e5dec180716e3a6abbb52517cb9625fafb1b9223aea77ed6832430",
+    "git_blob_sha1": "8f5d8457702960b0dd0ce6e69c92d55a630cdf16",
+    "scope": "V8 exact original log-frame decoder, not yet applied to a real framing run"
+  },
+  "control_source": {
+    "bytes": 3811,
+    "sha256": "6d0f6eef2ef1a1f5968151c6af5ebe02528e532353c0734302e519a6b5ddd499"
+  },
+  "previous_attempt_preserved": {
+    "schema": "hia.original-log-decoder-local-control-attempt.v1",
+    "status": "CONTROL_SCRIPT_ERROR",
+    "error": "ReferenceError: structuredClone is not defined",
+    "scope": "synthetic V8 decoder controls only; no workflow or product call",
+    "original_error_preserved": true,
+    "real_files_recovered": false
+  }
+}

@@ -1,0 +1,1 @@
+function b64(a){const c="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";let s="";for(let i=0;i<a.length;i+=3){const n=(a[i]<<16)|((a[i+1]??0)<<8)|(a[i+2]??0);s+=c[n>>>18]+c[(n>>>12)&63]+(i+1<a.length?c[(n>>>6)&63]:"=")+(i+2<a.length?c[n&63]:"=");}return s;}
