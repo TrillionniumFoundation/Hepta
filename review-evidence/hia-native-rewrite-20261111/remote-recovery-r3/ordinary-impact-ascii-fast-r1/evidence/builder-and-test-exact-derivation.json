@@ -1,0 +1,65 @@
+{
+  "old_builder": {
+    "bytes": 18676,
+    "gitsha": "c9da67c5ac99dcc42b388acb66e9cec82aa440c9",
+    "sha256": "fb55cfd935672d28795fbfb63da591a5b6d51c8601aad8895fa163c5f94796ae"
+  },
+  "new_builder": {
+    "bytes": 21295,
+    "gitsha": "efe65ddb66dd4e1d5a3557450e0952ff9abe43d5",
+    "sha256": "f0747925aefa645b0497b192f09e7bacd30ee81ac7fb9e74b8069fb5e02b34f4"
+  },
+  "check_inline_changes_body_exact_except_function_name": true,
+  "one_added_ASCII_proof_wrapper": "def check_changes(old,new,row):\n    check_pin(new,row[\"candidate\"])\n    prior=inline_proof_rows[row[\"role\"]]\n    assert row[\"original\"]==prior[\"original\"]\n    assert row[\"input_inline\"]==prior[\"candidate\"]\n    old_header,old_fns=split_functions(old);new_header,new_fns=split_functions(new)\n    helper=row[\"helper\"];name=helper[\"name\"];decode=row[\"caller\"]\n    assert name==\"f%d\"%(max(int(n[1:]) for n in old_fns)+1)\n    assert list(new_fns)==list(old_fns)+[name] and new_header==old_header\n    assert decode==prior[\"proof\"][\"mapping\"][\"decode_string\"]\n    assert row[\"original_unicode_reader\"]==prior[\"proof\"][\"mapping\"][\"decoded\"]\n    check_pin(new_fns[name],helper)\n    assert new_fns[name]==helper[\"source\"].encode(\"ascii\")\n    check_pin(new_fns[row[\"original_unicode_reader\"]],row[\"unicode_reader\"])\n    changed=new_fns[decode]\n    check_pin(changed,row[\"caller_after\"])\n    before=row[\"old_call\"].encode(\"ascii\");after=row[\"new_call\"].encode(\"ascii\")\n    assert changed.count(after)==1 and before not in changed\n    original_target=('{\"function\":\"'+row[\"original_unicode_reader\"]+'\"}').encode(\"ascii\")\n    new_target=('{\"function\":\"'+name+'\"}').encode(\"ascii\")\n    assert before.count(original_target)==1 and after==before.replace(original_target,new_target)\n    restored_caller=changed.replace(after,before)\n    check_pin(restored_caller,row[\"caller_before\"])\n    reconstructed=new_header+b\"\".join(restored_caller if n==decode else new_fns[n] for n in old_fns)\n    check_pin(reconstructed,row[\"input_inline\"])\n    check_inline_changes(old,reconstructed,prior)\n    source_checks[-1].update(candidate=pin(new),input_inline=pin(reconstructed),\n        exact_ASCII_call_and_appended_function_inverse=True,ASCII_helper=name,\n        ASCII_helper_pin=pin(new_fns[name]),every_other_inline_function_byte_identical=True,\n        original_unicode_reader_pin=pin(new_fns[row[\"original_unicode_reader\"]]),\n        no_bulk_access_or_cross_scalar_cursor_cache=True)\n",
+  "old_source_proof_block": "    proof_raw=read(SUBMITTED/\"evidence/source-transform-proof.json\")\n    check_pin(proof_raw,dict(bytes=202873,gitsha=\"3cfa3d613205fb07db028fceee8d8ee1da3e2595\",\n        sha256=\"64faa076ecb678d671aae86ca67de191d8cf15dfc32309d213d3be85512b5d5f\"))\n    proof=json.loads(proof_raw)\n    assert [r[\"role\"] for r in proof[\"roles\"]]==list(CHANGED)\n",
+  "new_source_proof_block": "    inline_proof_raw=read(SUBMITTED/\"evidence/inline-source-transform-proof.original.json\")\n    check_pin(inline_proof_raw,dict(bytes=202873,gitsha=\"3cfa3d613205fb07db028fceee8d8ee1da3e2595\",\n        sha256=\"64faa076ecb678d671aae86ca67de191d8cf15dfc32309d213d3be85512b5d5f\"))\n    inline_proof=json.loads(inline_proof_raw)\n    assert [r[\"role\"] for r in inline_proof[\"roles\"]]==list(CHANGED)\n    inline_proof_rows={r[\"role\"]:r for r in inline_proof[\"roles\"]}\n    proof_raw=read(SUBMITTED/\"evidence/source-transform-proof.json\")\n    check_pin(proof_raw,dict(bytes=94747,gitsha=\"92781bd45591f622d544e54faa9842adf8438826\",\n        sha256=\"e0487d5b78def8ba34fa5ef8eef2c5f4233a4ad09655c802880e045dd53abc06\"))\n    proof=json.loads(proof_raw)\n    assert proof[\"prior_inline_proof\"]==dict(bytes=202873,gitsha=\"3cfa3d613205fb07db028fceee8d8ee1da3e2595\",sha256=\"64faa076ecb678d671aae86ca67de191d8cf15dfc32309d213d3be85512b5d5f\")\n    assert [r[\"role\"] for r in proof[\"roles\"]]==list(CHANGED)\n",
+  "literal_edits": [
+    [
+      "native-ordinary-impact-json-inline-r1",
+      "native-ordinary-impact-ascii-fast-r1"
+    ],
+    [
+      "FRESH_ORIGINAL_LIMIT_B3_EXACT_HIA_INLINE",
+      "FRESH_ORIGINAL_LIMIT_B3_ASCII_FAST_JSON_READER"
+    ],
+    [
+      "hia-ordinary-impact-seven-HIA-inline-build-v1",
+      "hia-ordinary-impact-seven-HIA-ASCII-reader-build-v1"
+    ],
+    [
+      "SEVEN_ACTUAL_HIA_INLINE_IMAGES_AND_FRESH_FIXED_ELF",
+      "SEVEN_ACTUAL_HIA_ASCII_READER_IMAGES_AND_FRESH_FIXED_ELF"
+    ],
+    [
+      "HIA_ORDINARY_INLINE_",
+      "HIA_ORDINARY_ASCII_"
+    ]
+  ],
+  "full_builder_inverse_equal": true,
+  "old_test": {
+    "bytes": 19431,
+    "gitsha": "d545fb32db9c0e49f4a01f41abf1f09c0bfcf6e6",
+    "sha256": "05cdbfca74851534bf2060f7b4f5de573853a25cf771f9a0db656afa9f1ce6a2"
+  },
+  "new_test": {
+    "bytes": 19430,
+    "gitsha": "e23763ed1b118141bf8fc797e2f31664155fc676",
+    "sha256": "b6cf9a7e9d0ec7c185a1b5865a4690be880cdbdbeb7861573936d37684adf6d7"
+  },
+  "test_change_only_output_directory": true,
+  "all_original_329_fixtures_oracles_limits_error_order_and_assertions_byte_identical": true,
+  "new_AST": 0,
+  "new_HIA_Core": 0,
+  "new_B3": 0,
+  "new_native": 0,
+  "docstring_exact_edit": [
+    "\"\"\"Seven exact HIA source replacements, original 63 roles and unchanged ELF carrier.",
+    "\"\"\"Seven exact ASCII reader additions, original 63 roles and unchanged ELF carrier."
+  ],
+  "check_function_rename": [
+    "def check_changes(",
+    "def check_inline_changes("
+  ],
+  "recorded_old_builder_full_inverse_executed_again": true,
+  "metadata_omission_disclosed": "Initial derivation omitted the first docstring-line metadata replacement. Builder source has not changed; this record now includes that exact replacement."
+}

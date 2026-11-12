@@ -1,0 +1,104 @@
+{
+  "schema": "hia-backend-Core-Graph-prefix-narrow-independent-static-review-r1",
+  "reviewer": "audit_selfhost",
+  "status": "NO_CONFIRMED_BLOCKER_WITHIN_STATED_NARROW_STATIC_SCOPE",
+  "subjects": [
+    {
+      "role": "new owner",
+      "gitsha": "9ed83897677bc67fd33978924652d1cd39f7fde7",
+      "bytes": 11715,
+      "sha256": "99871d937aa486ef1a38e3fbd1d767c8653d3d5f22436c3e899f8a74ecd22b2b"
+    },
+    {
+      "role": "new ABI",
+      "gitsha": "2db23b01c019bcd7c2753c5bd8475c377cd6e111",
+      "bytes": 9871,
+      "sha256": "d64bd9778c4115d68e471fb72138e47aaeb8b204a96ef94844fb68d1ab1c301c"
+    },
+    {
+      "role": "retained P16 owner",
+      "gitsha": "3b30222922e916829e2f761c28bb9fbb5411edb4",
+      "bytes": 15172,
+      "sha256": "c7575f39085d09c05df5999087657f2825d9219e6d1512beba21d77c3551a3e4"
+    },
+    {
+      "role": "retained P16 generator",
+      "gitsha": "e303909a68fb9ac0c4c0fc4fa3905c74e601905c",
+      "bytes": 10774,
+      "sha256": "f73573a25b040920ff2f9b006a0fbc92e5e63616e64b550db92b4574b375a7b9"
+    },
+    {
+      "role": "retained program root author",
+      "gitsha": "e572e1273fcd55518f7395071cc56534f2771fc6",
+      "bytes": 33675,
+      "sha256": "f378c5cd7ef6a053ec63090cc3b3322929f54ef566a29fbaa3f687318c6779d9"
+    },
+    {
+      "role": "retained lower common",
+      "gitsha": "e56539a9cb76f95010ea6ca995737f40ab6e1850",
+      "bytes": 17781,
+      "sha256": "fe63327671ea51ca950b955512a0f574d706176a4a8d050e3f8f12c83ef5e3a1"
+    }
+  ],
+  "scope": [
+    "new phases 91000..91007 and S_RESULT_EVENT borrowing",
+    "B_GRAPH copy/protect/view before peer slots32..49 release",
+    "new result append against exact retained worker_result_step phases88004..88008",
+    "unchanged lower ACK correlation and bytes/offset arithmetic used by those paths"
+  ],
+  "observations": [
+    {
+      "area": "actual entry order",
+      "finding": "The extension reaches backend_graph_begin only through the unique mode1 phase12 branch after the retained actual child receipt capture, complete Core copy, readonly protection and actual Core SHA comparison. It requires mode1/tree0 again, receipt present, actual Core slot/extent equality and an empty dedicated Graph slot. This is a routing observation, not a fresh admission qualification."
+    },
+    {
+      "area": "borrowed actual decoder event",
+      "finding": "At91001 the root validates completed service2/kind2, return128/event128, exact HIAJDE01 action0/lease41/request/error0, actual result capacity and the full Graph extent. The complete event is copied to private BG_SAVED_EVENT. The following grow/copy/protect/view calls only update pending-operation state/OBS/caps; they do not reenter service58 or overwrite the retained S_RESULT_SLOT. The actual decoder workspace therefore remains live through the complete Graph copy."
+    },
+    {
+      "area": "Graph lifetime",
+      "finding": "91002 copies all bytes from actual service result into distinct B_GRAPH.91003 protects it readonly;91004/91005 observes and validates the actual copied64B header. Only then91006 releases32..49. The loop advances a stored slot before issuing release, while the common ACK binds operation/lease/sequence/count and commits C_PHASE and cap retirement; empty slots advance locally. B_GRAPH is statically required outside32..58 and distinct from Core/program/frame/controller/result. No further service call appears in this interval."
+    },
+    {
+      "area": "layout arithmetic",
+      "finding": "The Graph header checks root1..nodes and actual extent. nodes*64 and edges*8 are each prebounded by the remaining u64 room before addition; scalar bytes must equal the residual exact extent. These checks are consistency after actual native issuance, not full foreign-arena validation or authority. The output append also checks GraphBytes<=MAX-oldEnd."
+    },
+    {
+      "area": "final readonly frame",
+      "finding": "In exact retained P16,88004 copies the complete256B receipt,88005 copies all Core bytes, and88006 kind1 formerly skipped directly to88007. The unique replacement adds the complete B_GRAPH copy at88006;88007 remains the original readonly protection of the whole result and88008 remains the final terminal. The copied receipt/Core are not overwritten because GraphAt is the old exact end=512+CoreBytes; output total extends by allGraphBytes."
+    },
+    {
+      "area": "refusal route",
+      "finding": "The new layout wrapper returns the original layout unchanged for resultkind4. Graph work begins only after admission succeeds. This does not extend the frozen predecessor's public error-text coverage; known groups must remain independently qualified."
+    },
+    {
+      "area": "state separation",
+      "finding": "The new source reserves79000..79231 and asserts it follows the saved-code area and lies inside originalMIN_WORK. The explicit saved-event area and result header/receipt areas are disjoint in the read source. Existing e572 helper imports are preserved; this review did not regenerate the complete constants/AST closure."
+    }
+  ],
+  "required_preconditions": [
+    "Original fixed executor must deliver ACK only for the actual issued operation and preserve private source lease identity and immutable bytes. Equal public headers are not authentication.",
+    "Actual source-bound service58 and decoder31/32/33 must be added as the documented four original peers to the41-image P16 table; the original table does not already contain them.",
+    "Success Graph must come from that exact actual decoder invocation on the saved readonly admitted Core; arbitrary Graph fixtures do not prove this relation.",
+    "Fresh compilation, profile checks, full actual Core/receipt/Graph byte comparisons, GraphWire roundtrip, protocol faults and source/image custody remain required."
+  ],
+  "not_reviewed": [
+    "new build helper and complete45-image/63-row table generation",
+    "fixed executor implementation or physical mprotect behavior",
+    "all service58/decoder31/32/33 internal semantics",
+    "arbitrary plan/foreign binary64 ingress",
+    "whole backend checked-plan/Emitter/publication integration",
+    "the original full public program error domain"
+  ],
+  "execution": {
+    "Python_AST": 0,
+    "HIA_generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "ELF": 0,
+    "original_artifact_readback": 0,
+    "source_modified": 0
+  },
+  "conclusion": "No confirmed lifetime or append-order blocker was found in the specified source scope. This is not an execution PASS, not a complete dependency audit, and not a public backend or Worker closure."
+}

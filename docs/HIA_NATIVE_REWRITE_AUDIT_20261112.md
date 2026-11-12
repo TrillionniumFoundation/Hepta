@@ -1,4 +1,70 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW53）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW54）
+
+## 当前结论
+
+**整套仍为 OPEN。156 个生产 Python 模块尚未完成原生安装替换；生产激活 0，旧实现删除 0。** 本轮先保存第53轮全部实际终态与完整原文，再提交六个明确限定的执行入口。公开编译的同一入口组合、完整 backend transaction、实现文件前后指纹、实际 UnixOpen 发行链、ordinary Worker/Store/SQL、全部 CLI/API、安装和旧业务不可调用环境下的全回归仍须闭合。组件通过、静态源码审查、只读原件读取均不能代替整套验收。
+
+父提交是 `8f27671ad748dc7c081a1eaad897b057d8d9f42e`，tree `e76b4fe1237414ae3d30ba475bc19ea66d966f6c`，7,799 文件。以下终态属于明确标识的原运行；本轮全部新源码提交前仍是 0 Python AST、0 HIA Core、0 B3、0 VM、0 native 执行。原始 JSON/u64 字节以全文或完整 base64 恢复后保留，派生观察另存，没有用 JavaScript 数字重编码替代原件。
+
+## 第53轮真实终态与原件
+
+| 实际任务 | 已核实的结果 | 仍然开放的范围 |
+| --- | --- | --- |
+| late-Core / group6，job131248772749 | FAIL；13 fresh B3 与1次 HIA packer完成。六个原 node/byte below/equal/over 实际公共 ELF 案完整通过，每组保留原90CPU/180wall门。depth组0目标，private组1次入口、0完整控制 | 首个未完成公开夹具错误要求 unchanged-small-P17 成功，但原 renderer 明确拒绝该 primitive-v1 profile。private夹具随后缺失 PREFIX_TEXT。12公共+38private的50项整门未通过；六项不可计作新一轮执行，私有partial1也不是合格案例 |
+| backend，job131248772659 | FAIL；21 fresh B3及机械 C build完成。cross组2案/12,748入口完整通过；scalar组11案前缀/28,116入口后，unit夹具在新目标前错误要求成功 | 原 Core 允许unit scalar，原 native wrapper不接受unit参数，最终原1..128 admitted入口门拒绝。不是预算失败；scalar整组及完整22组133案仍未通过 |
+| type50 原件 reader，job131248773749 | SUCCESS，0新目标；完整98,664,861B ZIP、907外包文件、3,554内包成员/189,178,620B、1,201 CAS/429,710,202 logical bytes全部读取 | 四份实际32B stderr确认为HIAXER01/code3/role43/sequence72；两次private VIEW为128和59字节。旧目标FAIL保持，private事件不授予公共权限 |
+| impact51 原件 reader，job131248773759 | SUCCESS，0新目标；全99,436,852B ZIP、902外包文件、3,538内包成员/260,366,769B、1,551压缩CAS/205,633,677 logical bytes；63 source/image对、13编译收据、329实际process完整读取 | 327完整案例的全输出重新比较；另两项确为returncode -9、timed_out false、stdout/stderr各0B，没有terminal。完整329门仍FAIL，不推断每role耗时或SIGKILL的独立来源 |
+| explicit R9 原件 reader，job131248774207 | SUCCESS，0新目标；2,949成员/2,389文件/71,724,847B全部读取，223份选定完整原件保留。根从控制台逐字还原31份/372,234B；5输入和231完成输出after-check无错误 | 实际37-image组合、executor和bundle身份已恢复；没有执行原AST/import/test/B3/native，未把旧122公共或33私有案例计作本轮资格。group9必须接原独立owner的真实role28/29/47续接 |
+| FOLLOW53 源码门，job131247009482 | SUCCESS；根在完整522,564B日志中逐条核对888项path/order/mode/bytes/Git/SHA | 仅AST/source syntax，0 HIA/B3/VM/native资格 |
+| Core53，run43237029270/native131247009417 | FAIL；完整41,874B日志报告cold检查6/11、generation数组为空、exit1 | 具体首个失败环节仍UNKNOWN，等待原54,205,895B ZIP及hia-cold.json/子过程原件。后续language及普通caller阶段未执行；空generation列表不能证明0 native入口，也不能用Core52/52a通过覆盖这次失败 |
+
+group6完整635,628B日志和9个原控制台JSON正文已逐字匹配。原错误为 `HIAAssemblyRejected`、phase representation、完整文本 `E_HIA_ASSEMBLY_PROFILE: render requires explicit primitive v6/v7/v8 Core; use the existing adapter first`。修订保留原输入、顺序和案例，仅按精确0ef原renderer要求这次拒绝；private的PREFIX_TEXT从原e572e127…作者唯一CONSTANTS keyword literal读取，不猜地址，不改HIA业务函数。
+
+backend完整817,924B日志、77份原JSON共145,696B和1,001B首个stderr均完整保存。根直接匹配52份原正文，并从原base64完整解码另外25份profile，分别核字节数/Git/SHA。unit仍是十二种scalar中的原输入，新增原oracle的完整class+text断言，随后继续原完整native错误/terminal/slot比较。原入口上限128不变，未删用例。cross2可独立记录；scalar11前缀不能冒称整组，下一轮133全部fresh。
+
+impact两个实际ELF区间分别为90,018,738,413ns和90,020,514,796ns；两份process记录的child CPU增量分别89.940918与89.94184800000001秒。全组原最终CPU仍为先前FAIL数值，不能以单一ELF区间代替全组门。读取器保存全部原资料；根另还原21份完整原JSON，含两份process、两份pending、13组和两份manifest及两份build summary，所有原字节身份相等。读取PASS没有增加目标通过数。
+
+## Core52、Core52a 与当前冷启动边界
+
+Core52 run43229931580/native131222245731和Core52a run43230668685/native131224808578均实际SUCCESS。根保存完整256,475B与257,097B日志、API jobs/artifacts和原控制台摘要。两次cold都是11/11、language都是1,242/1,242；17次printed unittest invocations合计791次，最后94项普通callers覆盖11工具。791不是独立test identities的声明。
+
+正常三代编译器hash均为35ee92b…，修改输入第一代4aa0556e…、后两代cb3052a…；这些是各自原HEAD的实际结果，且仍在开发/参考环境中。两份完整产物ZIP尚未由根独立下载，因此不扩展成全归档或仅HIA安装结论。当前Core53单独FAIL，原冷启动入口源码0d53ccbd…保持一致；源码一致不能解释失败原因。
+
+## FOLLOW54 六项实际执行计划
+
+1. **七个HIA ASCII字符快路径，原13组329案全部fresh。** 在roles24/26/27/57/59/60/63中，各只改一个decode_string调用目标并追加1个4block/23op函数。对32..127但非quote/backslash的字节，返回原packed position/codepoint；其他字节委托完整原Unicode reader。超界位置在任何buffer load之前委托原reader。保持每个原可变cursor/O/W读写顺序，无bulk访问或跨scalar缓存；不声称任意fuel耗尽逐步等价。先完整复现原63 source/image和ELF（6 fresh B3+1 HIA packer），再7 fresh B3+1实际packer；原327不继承。role27文本profile为79fn/1445blocks/6901ops/maxSSA2000，实际Core/B3门仍必须执行。独审发现的两条旧证据repository_path已恢复到原inline目录；原阻断源码与报告均留存。builder/test/所有原329输入、oracle、完整输出/错误顺序和预算没有放宽。
+
+2. **当前类型上下文43-image→Core/Graph47-image组合，15组176案。** 以第52a实际类型组合为基线，完整读取其4,783成员/190,964,237B原包；只更换统一role56并补31/32/33/58，其他42个source/image精确保留。计划1 fresh35ee B3及1次实际保留HIA packer，122实际ELF案和54private/128入口。保留kind0→50的41/43调用权限、原类型诊断和独立Graph scratch区；新状态不覆盖原WD/WC。实际typed P16结果形成HIAPRV256B，再比较完整Core/Graph和GraphWire字节。此门尚未集成group6 late-Core、implementation前后指纹或整个backend，不称完整公开事务；下一步必须组合进同一56入口。
+
+3. **group6原六项完整原件读取＋fresh同生产字节＋剩余44。** 严格下载原artifact13952974167的100,633,717B ZIP；全978外包文件、756内包成员/195,136,808B、全部CAS和六案完整input/stdout/stderr/expected/source/image/mode重新读取。随后13 fresh B3与1packer的43份HIA/image以及完整ELF须与实际53逐字、逐mode相等，才运行6个depth/order实际ELF和38private控制。任何前置失败都不会进入44。全部通过后，只能称“旧6＋新44两轮覆盖并集50”，不能称一次50案整轮成功，原53 FAIL和private partial1永久分账。修订reader/transport仅保护首异常、独立after-check/报告输出和末端预算失败收据；所有读取/比较正文和目标门保持。
+
+4. **后端22组133案、72private控制全部fresh。** 保留21个业务HIA核、原C mechanics、所有输入和比较规则。只修unit夹具的原正确拒绝预期，以及CI对应测试的bytes/Git/SHA三个身份；完整测试和CI均可精确逆回原53全文。21 fresh B3、原每组90CPU/180wall/1GiB与B3 10CPU/20wall/256MiB保留。原cross2和scalar11均不继承为这一轮新结果。
+
+5. **原42完整只读门，0新目标。** 针对第52a成功原artifact13950943449，完整读取24,234,948B内包和2,399,283B index，核4,706成员/334,479,715B、7份HIA/image/编译收据、60实际trace、5,011全buffer、33packer、84三方比较及原900秒聚合阶段。此门使用actions下载的原件；外ZIP只有API/producer元数据，不冒称独立outer ZIP CRC。所有原buffer、原JSON和source/image均保存；r2仅修失败时“已完整复制”标记的前置条件。原42 PASS和旧900.00965wall FAIL分别保留，读取不是新的42目标重跑。
+
+6. **Core53完整失败原件读取，0新目标。** 独立下载并校验artifact13954345082的54,205,895B ZIP/SHA；预计3,881外包文件，以实际生产上传count为门。完整stream/CRC/hash每个外成员，读取每个外包中的嵌入ZIP及其全部成员、HIA manifest和原封存收据；原source export绑定确切53 Git树。保存hia-cold.json、owner/request、phase/generation和失败stdout/stderr原字节。仅stdlib AST读取原QUALIFICATION_FAMILIES literal，不import/执行原项目。不得从旧Core48原因或当前6/11推断原因。原生产者180秒cold/3秒cleanup政策不变；新的transport和reader分别执行独立90CPU/180wall/1GiB及post-output最终门。
+
+Graph四份finalizer、group6两份finalizer以及Core53新增报告路径均保留首异常；写报告、flush、after-check和封存失败分别记录，并尝试重写FAIL。实际OS硬终止或证据介质不可写不能保证报告成功落盘，但不会因此返回成功。旧稿和原静态阻断报告全部保存。源码审查仍然不等于故障注入或实际运行验证。
+
+## 当前真实集成路径与保存但未选择的源码
+
+后续统一编译入口必须是：**当前类型上下文→late-Core诊断→实际Core/Graph→实现文件完整前后指纹→完整backend**。同一个role56拥有状态与续接；并列的独立56候选不构成统一事务。group9另接实际legacy owner三个真实失败返回点，不放到没有import_step的普通P16路径。动态原错误文本、阶段/顺序、权限、原对象/程序输出、文件副作用仍按原公共oracle逐字比较。
+
+UnixOpen新源码已推进到真实parent7→issuer9→framer8→同sharedFS6→512B BACK→parent7续接，保留完整REQUEST/O/W，不能由外部ACK或注入capsule替代发行权。本提交只保存已交15文件的inactive checkpoint；其余十个peer、完整重放、实际发行/ordinary Store仍OPEN。group9八文件checkpoint同样inactive；即使作者交付元数据列出未来active路径，也未加入本轮活动语法清单或选择运行。它们没有获得AST/B3/native资格。
+
+## 发布身份与删除条件
+
+本轮提交前集合 433 文件、15291032B，429 新增、4 替换、0删除；其中432份UTF-8全文Git身份已核，1份722,432B二进制归档由已完整Git回读缓存重新解码并核完整SHA256/Git SHA1。本数包含workflow、source manifest和独立审查，尚不含随后生成的本审计、checkpoint、root-static及publication manifest；最终完整集合以publication manifest为准。准备时间：2026-11-12 15:14:19 UTC。发布顺序仍为所有blob全文身份→完整Git tree→commit回读→expected-head CAS→ref复核。
+
+活动Python清单931份：833份与第53轮已实际AST通过的精确身份相同，96条新路径、2条现有backend身份改变。旧group6的53条只退出活动选择，文件仍留存；新remaining44为56条。固定status继续为 `SOURCE_SYNTAX_ONLY_NO_SEMANTIC_QUALIFICATION`。155个恢复jobs均有Ubuntu24.04/x86_64域门；150个旧job全文不变，仅group6 job追加原件下载/step env、换driver及完整输入输出保存，新增ASCII、FS42、当前Graph和Core53 reader四job。六tag精确选择，不重复原42/413/90已通过的目标组件。workflow外层50/110分钟等调度限制不等同于每个主体的90/180门。
+
+全部原限制保持：B3 10CPU/20wall/256MiB，source/output/work各≤1MiB；bootstrap128fn/1536blocks/8192ops/每函数256blocks/16block参数/SSA<2048，没有新增128ops-per-block门；公共1024fn是另一层。配对主体完整进程树90CPU/180wall/1GiB，原42聚合900wall；封存各自记账，不给旧checked-plan49 seal追溯新90/180门。丢失的h/ROG结果仍UNKNOWN，不重放、不推断通过。
+
+**只有全套原生安装和公开运行闭合后，才执行用户要求的旧整套清理。当前旧业务实现删除仍为0。** 最终必须在旧Python/C业务不可调用的环境验完整CLI/API、错误顺序、状态/文件副作用、冷启动、自举与跨平台行为。保留版4,157项回归和局部组件结果都是各自范围内的证据，不能宣布全栈完成。
+
+## FOLLOW53 及更早的历史提交前记录
+
+## FOLLOW53 历史提交前审计
 
 ## 当前结论
 

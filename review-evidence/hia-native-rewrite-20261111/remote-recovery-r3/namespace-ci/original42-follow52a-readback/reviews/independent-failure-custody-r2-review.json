@@ -1,0 +1,66 @@
+{
+  "schema": "hia-namespace-original42-follow52a-reader-independent-static-review-r2",
+  "reviewer": "audit_selfhost",
+  "status": "PRIOR_FAILURE_RECEIPT_FINDING_CLOSED_IN_NARROW_STATIC_DIFF",
+  "prior_report": {
+    "gitsha": "e9f15c424c019ff60a1addc282cd64594fb611f9",
+    "bytes": 10706,
+    "sha256": "d489b61838cb30f077bae2de89d391326e7c780d3bfcf2d47002035ed6920f75"
+  },
+  "comparison": {
+    "edits": 5,
+    "forward_exact": true,
+    "inverse_exact": true,
+    "before": {
+      "bytes": 43342,
+      "gitsha": "705d4725d7d018b46ad71f5c5b27c07ee621d540",
+      "sha256": "7727b1250235623bce86bd24d9bc9e07ed047e78754ac10381c0ed4b446d755e"
+    },
+    "after": {
+      "bytes": 44060,
+      "gitsha": "ce7e684864f1c0d8b1a81237a7b6083c09fadf71",
+      "sha256": "641f858692f486f579d7c3a2617db9bcd535b9ccf3c64602e6dab40395e131a4"
+    }
+  },
+  "author_delta_gitsha": "edc456df8109a282bd9a63b6a650ed7b314fc597",
+  "scope": "Only five exact edits to the previously fully read reader; no original artifact or target execution",
+  "observations": [
+    {
+      "area": "Early failure",
+      "finding": "main initializes custody=None. complete_original can becomeTrue only after complete archive and index copies both succeeded, extract_exact returned the complete4706 entries totaling334479715 bytes, original_archive_verified was set, every available tracked input/copy/expanded-member aftercheck passed and no earlycopy remained pending. A spec,locate,copy or member-validation failure therefore cannot produce the old unconditionalTrue."
+    },
+    {
+      "area": "Sealer boundary",
+      "finding": "seal_payload now receives an actual boolean and writes that value into the complete-original custody field. All original tar member writes/readbacks, hashes, modes and sealer identity checks are otherwise byte-identical. A semantic/report verification failure after complete original member preservation may still truthfully retainTrue for custody while the overall status remainsFAIL."
+    },
+    {
+      "area": "Late aftercheck",
+      "finding": "The later post-seal input/self/copy checks still set overallFAIL on any mismatch. The new code then clears the custody flag if after_errors or pending are present and writes/readbacks the revised custody before summary and stdout. The console holds that same custody mapping; a previously issued true value is not silently carried through a late failed check."
+    },
+    {
+      "area": "Original failures and budgets",
+      "finding": "Primary exceptions are not replaced or cleared. The original5011 buffers,84-way comparisons,source/image/mode checks,exact900-phase and90CPU/180wall gates are unchanged. The extra custody write/readback occurs before the existing final post-output measurements. No project/source execution was added."
+    },
+    {
+      "area": "Complete inverse",
+      "finding": "Independently applied each of the five declared unique before-to-after edits to all43342 original bytes and obtained all44060 revised bytes. Applying the five reverse edits in reverse order restores the complete original exactly. This is a text/hash comparison in the tool runtime, not a Python AST or target execution."
+    }
+  ],
+  "remaining_confirmed_findings": [],
+  "limitations": [
+    "No Python AST/import/generation/B3/VM/native execution.",
+    "No independent originalZIP,innerarchive orledger bytes have been read in this static review.",
+    "Does not prove actual reader runtime cost or requalify the original42 tests.",
+    "Prior static observations retain their stated scope; this review closes onlyR1 and does not add wholeStore/SQL31/UnixOpen authority."
+  ],
+  "execution": {
+    "Python_AST": 0,
+    "project_imports": 0,
+    "HIA_generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "original_archive_readback": 0,
+    "source_modifications": 0
+  }
+}

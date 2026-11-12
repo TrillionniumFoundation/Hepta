@@ -186,11 +186,13 @@ class Suite:
    for exc in errors:first.add_note("backend evidence cleanup: "+repr(exc))
    if primary is None:raise first
  def exact(self,label,document,plan=None,foreign=(),*,bind_plan=True,stale=False,
-           corrupt=None,backend="native",cross=False,expect_success=None):
+           corrupt=None,backend="native",cross=False,expect_success=None,expect_rejection=None):
   case=self.out/"cases"/("%04d"%len(self.cases));case.mkdir(parents=True)
   checked,doc,plan,before,after,expected,error,domain,plan_bytes,metadata=self.oracle(
       document,plan,foreign,bind_plan=bind_plan,stale=stale,corrupt=corrupt)
   if expect_success is not None:assert (error is None)==expect_success,(label,type(error).__name__,str(error))
+  if expect_rejection is not None:
+   assert error is not None and (type(error).__name__,str(error))==expect_rejection,(label,error,expect_rejection)
   graph=self.F.capture([doc,plan,foreign],17);wire=initial(graph,checked,before,after,digits=sys.get_int_max_str_digits())
   (case/"initial.bin").write_bytes(wire)
   expected_error=None if error is None else dict(type=type(error).__name__,text=str(error),domain=domain)
@@ -309,7 +311,18 @@ class Suite:
   self.exact("checked-plan-retired-before-emitter-all-slots",doc,plan,backend="python",cross=True,expect_success=True)
  def scalar_group(self):
   for typ in("bool","i8","u8","i16","u16","i32","u32","i64","u64","isize","usize","unit"):
-   self.exact("scalar-"+typ,self.simple("scalar_"+typ,typ),expect_success=True)
+   doc=self.simple("scalar_"+typ,typ)
+   if typ=="unit":
+    # Core admits unit, but the original native C wrapper excludes unit parameters.
+    # Preserve the identical valid Core fixture and require the original late
+    # zero-entrypoint rejection before issuing any target command for this case.
+    assert typ in self.core.SCALARS and typ not in set(self.original.WIDTHS)|{"bool"}
+    assert "exports" not in doc and len(doc["functions"])==1
+    assert doc["functions"][0]["params"]==[{"name":"x","type":"unit"}]
+    assert doc["functions"][0]["returns"]==["unit"]
+    self.exact("scalar-unit",doc,expect_success=False,expect_rejection=(
+      "HIAProgramNativeRejected","E_HIA_PROGRAM_NATIVE: native profile requires between 1 and 128 admitted entrypoints"))
+   else:self.exact("scalar-"+typ,doc,expect_success=True)
  def plan_group(self):
   doc=self.simple()
   for version in(1,2,3,4):

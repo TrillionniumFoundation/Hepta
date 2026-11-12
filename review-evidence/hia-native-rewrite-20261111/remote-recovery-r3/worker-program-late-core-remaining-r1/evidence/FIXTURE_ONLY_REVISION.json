@@ -1,0 +1,36 @@
+{
+  "schema": "hia-group6-exact-fixture-only-revision-r1",
+  "status": "SOURCE_ONLY_0_AST_0_TARGET_EXECUTION",
+  "base_head": "8f27671ad748dc7c081a1eaad897b057d8d9f42e",
+  "old_plan_gitsha": "e52e0dfa2c54fc8194eb785014b199387d7160a0",
+  "old_private_gitsha": "4b436e4fe97fcfecc17555e92ab85475d515e966",
+  "edits": [
+    {
+      "old": "        for mode,label in ((1,\"unchanged-small-P16\"),(2,\"unchanged-small-P17\")):\n            ns[\"add\"](label,mode,valid,accept=True)\n            evidence.append({\"label\":label,\"source\":ns[\"cas\"](ns[\"PLAN\"][-1][\"source\"]),\n                \"scope\":\"ACTUAL_ACCEPTED_CORE_AND_RENDER_REGRESSION\",\n                \"original_public_success_required_before_native\":True})",
+      "new": "        for mode,label in ((1,\"unchanged-small-P16\"),(2,\"unchanged-small-P17\")):\n            ns[\"add\"](label,mode,valid,accept=(mode==1))\n            expected=ns[\"PLAN\"][-1][\"expected\"]\n            classification={\"scope\":\"ACTUAL_ACCEPTED_CORE_REGRESSION\",\n                \"original_public_success_required_before_native\":True}\n            if mode==2:\n                message=(\"E_HIA_ASSEMBLY_PROFILE: render requires explicit primitive \"\n                         \"v6/v7/v8 Core; use the existing adapter first\")\n                # Keep this original composite-v1 input. Its admitted Core is\n                # primitive-v1; the original public renderer rejects that profile.\n                try:ns[\"render_assembly\"](ns[\"PLAN\"][-1][\"source\"])\n                except ns[\"HIAAssemblyRejected\"] as exc:\n                    assert type(exc) is ns[\"HIAAssemblyRejected\"]\n                    assert exc.code==\"E_HIA_ASSEMBLY_PROFILE\" and exc.phase==\"representation\"\n                    assert str(exc)==message\n                else:raise AssertionError(\"original render unexpectedly accepted primitive-v1\")\n                assert {key:expected[key] for key in (\"kind\",\"domain\",\"phase\",\"line\",\"code\",\"program\")}=={\n                    \"kind\":4,\"domain\":2,\"phase\":3,\"line\":0,\n                    \"code\":\"E_HIA_ASSEMBLY_PROFILE\",\"program\":None}\n                assert expected[\"payload\"]==message.encode(\"utf-8\")\n                classification={\"scope\":\"ACTUAL_ORIGINAL_PUBLIC_RENDER_PROFILE_REFUSAL\",\n                    \"original_public_exception_class\":\"HIAAssemblyRejected\",\n                    \"original_public_phase\":\"representation\",\"original_public_full_text\":message,\n                    \"original_public_success_required_before_native\":False}\n            evidence.append(dict(label=label,source=ns[\"cas\"](ns[\"PLAN\"][-1][\"source\"]),\n                                 **classification))",
+      "occurrences": 1
+    },
+    {
+      "old": "import ctypes,json,struct",
+      "new": "import ast,ctypes,json,struct",
+      "occurrences": 1
+    },
+    {
+      "old": "    c=dict(fixed[\"constants\"]);c.update(context[\"new_constants\"])",
+      "new": "    c=dict(fixed[\"constants\"]);c.update(context[\"new_constants\"])\n    # Recover the fixture address from the exact retained source keyword, not\n    # from an assumed public offset or the diagnostic report's partial table.\n    prefix_raw=pin(ns[\"PROJECT\"]/\"tools/program_service_root_reference.py\")\n    assert ns[\"digest\"](prefix_raw)==\"f378c5cd7ef6a053ec63090cc3b3322929f54ef566a29fbaa3f687318c6779d9\"\n    assignments=[node for node in ast.parse(prefix_raw).body\n        if isinstance(node,ast.Assign) and any(isinstance(t,ast.Name) and t.id==\"CONSTANTS\"\n                                             for t in node.targets)]\n    assert len(assignments)==1 and isinstance(assignments[0].value,ast.Call)\n    expression=assignments[0].value\n    assert isinstance(expression.func,ast.Name) and expression.func.id==\"dict\"\n    keywords=[item for item in expression.keywords if item.arg==\"PREFIX_TEXT\"]\n    assert len(keywords)==1\n    c[\"PREFIX_TEXT\"]=ast.literal_eval(keywords[0].value)\n    assert type(c[\"PREFIX_TEXT\"]) is int and 0<c[\"PREFIX_TEXT\"]<=c[\"MIN_WORK\"]-128",
+      "occurrences": 1
+    }
+  ],
+  "complete_inverse_equal": true,
+  "public_fifty_labels_inputs_order_and_case_counts_unchanged": true,
+  "private_38_plan_and_assertions_unchanged": true,
+  "only_changed_expected_outcome": "unchanged-small-P17 now requires the exact original HIAAssemblyRejected class, representation phase and full profile text",
+  "original_prefix_keyword_identity": {
+    "gitsha": "e572e1273fcd55518f7395071cc56534f2771fc6",
+    "sha256": "f378c5cd7ef6a053ec63090cc3b3322929f54ef566a29fbaa3f687318c6779d9"
+  },
+  "production_HIA_authoring_changed": false,
+  "production_executor_changed": false,
+  "limits_changed": false,
+  "whole_worker_closed": false
+}

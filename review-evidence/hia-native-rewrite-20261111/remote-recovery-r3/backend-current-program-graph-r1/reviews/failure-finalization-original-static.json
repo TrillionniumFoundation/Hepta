@@ -1,0 +1,91 @@
+{
+  "schema": "hia-independent-narrow-static-review-v1",
+  "reviewer": "audit_runtime",
+  "status": "TWO_CONFIRMED_STATIC_FAILURE_REPORTING_GAPS_NO_TARGET_EXECUTION",
+  "source_files": [
+    {
+      "blob": "0f52a92ca8feeee95fa33b06097b195823eac2c7",
+      "bytes": 16377,
+      "sha256": "db0e893eaac777f9ce0d898a91853a418d7ac1f78d5fc7734ddfb54caa0cbacf"
+    },
+    {
+      "blob": "70ea5aacc28df013749db08df97657dd3a5660a4",
+      "bytes": 16948,
+      "sha256": "9590dbac6c4c6d1e7bd14e41612345dfc85f86862158b1a05286ec229e353a65"
+    }
+  ],
+  "root_delivery": "961d65a54d1398b467e8c8e10ef3be8f179f1edb",
+  "scope": {
+    "read": "Complete two files, restricted judgment to recorded-byte/source/image identities, old/new case separation, per-process budget gates, failure evidence and final after checks.",
+    "not_read": [
+      "New root/builder58a4337ee33a436a588996c9ca952e342d753e7b semantics",
+      "New actual test body f9c02b4477a849b0ee0288811219c5b41ff9121f",
+      "Actual original artifact ZIP/tar/member bytes",
+      "Bounded seal body084a98a1d42e3081612b817e909eb50443d8a924 in this review"
+    ],
+    "new_execution": {
+      "AST": 0,
+      "Python_target": 0,
+      "artifact_reads": 0,
+      "B3": 0,
+      "VM": 0,
+      "HIA": 0,
+      "native": 0
+    }
+  },
+  "findings": [
+    {
+      "id": "P16-READER-FINAL-FAILURE-CUSTODY",
+      "kind": "Confirmed source control-flow failure path, not an executed target counterexample",
+      "file": "0f52a92ca8feeee95fa33b06097b195823eac2c7",
+      "locations": [
+        "finally report save/print",
+        "final CPU/wall check after report"
+      ],
+      "exact_condition": "After STATUS='PASS', the reader saves and prints the PASS report, then measures final_cpu/final_wall. If either final limit is reached, it raises TimeoutError without changing STATUS or writing a FAIL report. Separately, save() or print() in finally is unprotected and can replace an earlier failure exception.",
+      "impact": "The actual process exit remains unsuccessful, but the last on-disk summary can still claim PASS. A reporting I/O failure may replace the original parse/custody error as the raised cause. No source/target success should be inferred from that stale summary.",
+      "requested_fix": "Preserve the existing primary FAILURE and independently record summary/output/final-budget errors. On final >=90 CPU or >=180 wall reject and update FAIL report best-effort; do not leave the only final report as PASS. Include the reporting work before the success gate; preserve all original source/byte checks and limits."
+    },
+    {
+      "id": "P16-CI-RUN-GATE-PRIMARY",
+      "kind": "Confirmed source control-flow failure path, not an executed target counterexample",
+      "file": "70ea5aacc28df013749db08df97657dd3a5660a4",
+      "locations": [
+        "run_gate try common.run / finally original_summary",
+        "Original summary parsing precedes stderr/process output"
+      ],
+      "exact_condition": "common.run may fail, and a summary file may exist but contain truncated or invalid JSON. The finally block calls original_summary(), which parses JSON before printing. That exception replaces the earlier common.run failure and skips the following stderr.log/process.json exports.",
+      "impact": "The recorded files may remain available in the eventual archive, but the CI's reported first failure and console exports can miss the original failed process. Equivalent unprotected final-summary calls in build/group finally blocks should be handled consistently.",
+      "requested_fix": "Capture the primary run exception, independently emit/preserve original summary bytes and actual stderr/process bytes before schema interpretation, then parse separately. Retain primary precedence with secondary notes/records; keep current success/status/90CPU180wall assertions."
+    }
+  ],
+  "reviewed_positive_points": [
+    {
+      "name": "Original complete member custody",
+      "details": "The pinned 27,481,296 B archive and 2,125,044 B ledger are copied before semantic parse. All4,783 unique safe regular members, exact sizes/modes/SHA,190,964,237 raw bytes and extracted copies are checked. All accumulated originals/copies/extracted rows are independently revisited in finally. Outer ZIP body is explicitly not claimed."
+    },
+    {
+      "name": "Current43-image predecessor and new47-image plan",
+      "details": "The reader fixes the original bundle schema,13 original compiled records,43 actual role bindings/unused table slots and the exact current root56 source+image hashes. It binds31 retained map roles and actual source/image bytes; four decoder roles31/32/33/58 are declared additions. Current root56 is replaced only in the new combination, while roles29/30 remain test-only wire assets."
+    },
+    {
+      "name": "Fresh result distinction",
+      "details": "The15 original panels and413 old cases are readback evidence only. The CI independently requires15 new groups/176 new cases/122 actual ELF/54 private cases/128 private entries. Old413, file90, group6FOLLOW53, installation/cold/wholebackend claims remain false."
+    },
+    {
+      "name": "New source and image custody",
+      "details": "The source index fixes37 unique sorted files; submitted and materialized bytes/SHA/Git/modes are compared before and after. New root receipt binds actual35ee compiler, exact runner, actual source/image/result counts and original10CPU256MiB compile limit; document profile is recomputed with128fn1536blocks8192ops256blocks/fn16params and SSA<2048. Per-block op maximum is recorded without a new bound."
+    },
+    {
+      "name": "Actual target budgets",
+      "details": "run_gate uses common.run(timeout180), requires actual successful process receipt childCPU<90 and elapsed_ns<180e9, and checks the subject's original90/180/1GiB/core0 report. Per-group files/ELF identities are checked. Bounded seal084a is independently loaded by exact Git identity and called after final source/image checks. Its complete implementation was not re-reviewed here."
+    }
+  ],
+  "limits_and_assumptions": [
+    "No historical qualification was changed, repeated or promoted.",
+    "Original recorded artifacts were not downloaded/read by this static review.",
+    "Full host/process cleanup and the builder/test semantic comparison are outside this two-file scope.",
+    "Later fixed sources must be reviewed by exact delta; this report does not apply automatically to them."
+  ],
+  "root_single_ref_writer": true
+}

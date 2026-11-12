@@ -1,0 +1,71 @@
+{
+  "schema": "hia-group6-remaining-driver-derivation-r1",
+  "original_gitsha": "51b1bb74b78da17247973014e2007fee7ec77301",
+  "complete_inverse_equal": true,
+  "edits": [
+    {
+      "old": "\"\"\"Actual ordinary P16 late-Core diagnostics; full public oracle and private controls.\n\nSource-only at submission.  This separate candidate retains the repaired\ntype-context transport and the exact historical final-Core visitor.  It does\nnot rerun or inherit the old 413-case type-context result, and never treats\na private forced status as a public caller path.\n\"\"\"\n",
+      "new": "\"\"\"Fixture-only remaining44 after complete immutable FOLLOW53 evidence readback.\n\nNo old result is counted as a new execution. A two-run union is allowed only\nafter the complete old six-case bytes and fresh43-role HIA/image/ELF bytes\nhave been checked. Original FOLLOW53 overall FAIL is preserved.\n\"\"\"\n"
+    },
+    {
+      "old": "INDEX_PIN={\n  \"path\": \"sources.json\",\n  \"mode\": \"100644\",\n  \"bytes\": 26990,\n  \"sha256\": \"1399e27fa123903aae7c464e57d23da95cfa72c65c2f441f44ae88c7dd8e63a8\",\n  \"gitsha\": \"5837ee4555c371cdcdf8f76205ca3e008ae9b090\"\n}",
+      "new": "INDEX_PIN={\n  \"path\": \"sources.json\",\n  \"mode\": \"100644\",\n  \"bytes\": 27985,\n  \"sha256\": \"766832d21d77d3006126d3ccec4f2045756296f345595d3cb103747f4c44ffec\",\n  \"gitsha\": \"8037442875bcfc76390facfb3e9db29978710d3d\"\n}\nREADER_PIN={\n  \"path\": \"read_group6_follow53_originals_r1.py\",\n  \"mode\": \"100644\",\n  \"bytes\": 31978,\n  \"sha256\": \"0b5d8411290dae9bfe1c3899323325c324dd95721dae05bc0a92e0c6949378a0\",\n  \"gitsha\": \"bda3bdd9c372f70da31e42f053a0d2a8e04e9f51\"\n}\nSELECTED_GROUPS=(\"late-depth-and-order\",\"late-private-protocol\")\n"
+    },
+    {
+      "old": "schema=\"hia-worker-ordinary-late-Core-diagnostics-ci-r2\"",
+      "new": "schema=\"hia-worker-ordinary-late-Core-remaining44-ci-r1\""
+    },
+    {
+      "old": "scope=\"ACTUAL_ORDINARY_P16_ORIGINAL_FINAL_CORE_VISITOR_AND_NATIVE_FULL_TEXT\"",
+      "new": "scope=\"SAME_PRODUCTION_REMAINING44_WITH_COMPLETE_FOLLOW53_SIX_CASE_READBACK\""
+    },
+    {
+      "old": " selected_planned_cases=50,selected_groups=8,planned_public_ELF_cases=12,",
+      "new": " selected_planned_cases=44,selected_groups=2,planned_public_ELF_cases=6,\n original_50_case_census_unchanged=True,old_six_cases_counted_as_new=False,\n original_FOLLOW53_overall_status=\"FAIL\",original_private_partial_entry_not_complete=True,"
+    },
+    {
+      "old": "try:\n    context=common.prepare();output=Path(context[\"output\"])\n",
+      "new": "def identical_original_production(bundle,original,reader_out):\n    proof=json.loads((reader_out/\"verified-original-build.json\").read_bytes())\n    assert proof[\"status\"]==\"PASS\" and proof[\"original_build_pass\"]\n    assert proof[\"compiler_sha256\"]==bundle[\"compiler_sha256\"]\n    assert set(proof[\"role_bindings\"])==set(bundle[\"role_bindings\"])\n    rows=[]\n    def exact(path,old):\n        raw=Path(path).read_bytes()\n        key=old.get(\"frozen_member\",old.get(\"member\"))\n        assert isinstance(key,str) and not Path(key).is_absolute() and \"..\" not in Path(key).parts\n        frozen=reader_out/\"members\"/key\n        prior=frozen.read_bytes()\n        assert raw==prior,(str(path),\"fresh versus complete original bytes\")\n        assert (len(raw),digest(raw),stat.S_IMODE(frozen.stat().st_mode))==(\n            old[\"bytes\"],old[\"sha256\"],old[\"mode\"])\n        assert stat.S_IMODE(Path(path).stat().st_mode)==old[\"mode\"]\n        return dict(path=str(path),original_member=key,bytes=len(raw),sha256=digest(raw),\n                    mode=old[\"mode\"],full_bytes_equal=True)\n    for role,current in bundle[\"role_bindings\"].items():\n        before=proof[\"role_bindings\"][role]\n        pair=dict(role=int(role))\n        for which in (\"source\",\"image\"):\n            assert (current[which+\"_bytes\"],current[which+\"_sha256\"])==(\n                before[which][\"bytes\"],before[which][\"sha256\"])\n            pair[which]=exact(current[which+\"_path\"],before[which])\n        rows.append(pair)\n    executable=exact(bundle[\"executable_path\"],proof[\"executable\"])\n    old_compiled=proof[\"compiled\"]\n    assert len(old_compiled)==len(bundle[\"compiled\"])==13\n    frozen_sources=json.loads((reader_out/\"verified-original-source-pins.json\").read_bytes())\n    by_identity={}\n    for r in frozen_sources:\n        key=(r[\"bytes\"],r[\"sha256\"])\n        by_identity.setdefault(key,[]).append(r)\n    compiled=[]\n    for old,new in zip(old_compiled,bundle[\"compiled\"],strict=True):\n        assert old[\"label\"]==new[\"label\"]\n        entry=dict(label=new[\"label\"])\n        for which in (\"source\",\"image\"):\n            assert old[which+\"_sha256\"]==new[which+\"_sha256\"]\n            matches=by_identity[(new[which+\"_bytes\"],new[which+\"_sha256\"])]\n            # Multiple exact frozen aliases are permitted; all were fully read.\n            bound=matches[0]\n            entry[which]=exact(new[which+\"_path\"],dict(bound,frozen_member=bound[\"member\"]))\n        compiled.append(entry)\n    assert original[\"facts\"][\"completed_original_public_cases\"]==6\n    assert original[\"facts\"][\"original_target_status\"]==\"FAIL\"\n    return dict(status=\"PASS\",roles=rows,executable=executable,compiled=compiled,\n        same_compiler=True,same_complete_ELF=True,same_complete_HIA_and_images=True,\n        original_cases=6,new_completed_cases_at_this_gate=0,\n        production_authoring_and_executor_unchanged=True,original_overall_FAIL_preserved=True)\n\ntry:\n    context=common.prepare();output=Path(context[\"output\"])\n"
+    },
+    {
+      "old": "    own=Path(context[\"base\"])/\"worker-late-Core-ci-source-r1\";own.mkdir()\n",
+      "new": "    own=Path(context[\"base\"])/\"worker-late-Core-ci-source-remaining-r1\";own.mkdir()\n"
+    },
+    {
+      "old": "    index=json.loads(index_path.read_bytes())\n",
+      "new": "    index=json.loads(index_path.read_bytes())\n    assert index[\"continuation\"][\"selected_new_groups\"]==list(SELECTED_GROUPS)\n    assert index[\"continuation\"][\"selected_new_cases\"]==44\n"
+    },
+    {
+      "old": "    restore_path=project/index[\"restore\"]\n",
+      "new": "    # Read the complete original artifact before any new target/build execution.\n    reader_path=materialize(READER_PIN,own/READER_PIN[\"path\"])\n    reader_out=output/\"follow53-complete-original-readback\"\n    archive=Path(os.environ[\"HIA_GROUP6_FOLLOW53_ZIP\"]).resolve()\n    process=common.run(\"worker-late-Core-original53-readback\",\n        [sys.executable,\"-B\",reader_path,\"--zip\",archive,\"--out\",reader_out,\n         \"--repo\",context[\"source\"]],timeout=180)\n    assert 0<=process[\"child_cpu_seconds\"]<90 and 0<=process[\"elapsed_ns\"]<180_000_000_000\n    original=json.loads((reader_out/\"summary.json\").read_bytes())\n    assert original[\"status\"]==\"PASS\" and original[\"original_target_status\"]==\"FAIL\"\n    assert original[\"complete_original_ZIP_retained_and_after_verified\"] is True\n    assert original[\"all_756_original_members_retained_and_after_verified\"] is True\n    assert original[\"new_target_entries\"]==original[\"new_compiler_entries\"]==0\n    assert original[\"facts\"][\"completed_original_public_cases\"]==6\n    details[\"original53_full_readback\"]=dict(status=\"PASS\",artifact=13952974167,\n        members=756,completed_cases=6,original_target_status=\"FAIL\",new_target_entries=0,\n        original_summary_sha256=digest((reader_out/\"summary.json\").read_bytes()))\n    restore_path=project/index[\"restore\"]\n"
+    },
+    {
+      "old": "        details[\"retained_scoped_type_reader_dispatch\"]=mask\n",
+      "new": "        details[\"retained_scoped_type_reader_dispatch\"]=mask\n        identical=identical_original_production(bundle,original,reader_out)\n        save(output/\"fresh-versus-original-full-production-bytes.json\",identical)\n        details[\"complete_original_source_image_ELF_equality\"]=dict(status=\"PASS\",\n            roles=43,fresh_compiles=13,actual_HIA_packer_entries=1,complete_byte_comparison=True)\n"
+    },
+    {
+      "old": "        for group in index[\"groups\"]:\n",
+      "new": "        for group in index[\"groups\"][-2:]:\n            assert group[\"name\"] in SELECTED_GROUPS\n"
+    },
+    {
+      "old": "            assert len(details[\"groups\"])==9\n",
+      "new": "            assert len(details[\"groups\"])==3\n"
+    },
+    {
+      "old": "            assert details[\"completed_cases\"]==50 and details[\"actual_native_processes\"]==12\n",
+      "new": "            assert details[\"completed_cases\"]==44 and details[\"actual_native_processes\"]==6\n"
+    },
+    {
+      "old": "            status=\"PASS\"\n",
+      "new": "            details[\"two_run_coverage_union\"]=dict(status=\"PASS\",\n                old_follow53_completed_public_cases=6,new_completed_cases=44,total_cases=50,\n                old_follow53_overall_status=\"FAIL\",all_original_50_labels_and_order_preserved=True,\n                original_six_whole_artifact_readback=True,production_bytes_identical=True,\n                one_run_50_PASS_claimed=False,original_private_partial_entry_counted=False)\n            status=\"PASS\"\n"
+    },
+    {
+      "old": "    common.finish(\"worker-ordinary-late-Core-native-full-text-r1\",status,details,roots=roots)\n",
+      "new": "    common.finish(\"worker-late-Core-same-production-remaining44-r1\",status,details,roots=roots)\n"
+    },
+    {
+      "old": "    archive=Path(os.environ[\"HIA_GROUP6_FOLLOW53_ZIP\"]).resolve()\n",
+      "new": "    archive=Path(os.environ[\"HIA_GROUP6_FOLLOW53_ZIP\"]).resolve()\n    transport_dir=output/\"original53-transport\";transport_dir.mkdir()\n    transport_records={}\n    for suffix in (\".metadata.json\",\".receipt.json\"):\n        origin=archive.with_name(archive.name+suffix)\n        raw=origin.read_bytes();mode=stat.S_IMODE(origin.stat().st_mode)\n        assert not origin.is_symlink()\n        submitted[origin]=(raw,mode)\n        target=transport_dir/origin.name;target.write_bytes(raw);target.chmod(mode)\n        submitted[target]=(raw,mode);transport_records[suffix]=json.loads(raw)\n    transport_receipt=transport_records[\".receipt.json\"]\n    assert transport_receipt[\"status\"]==\"PASS\"\n    assert (transport_receipt[\"run\"],transport_receipt[\"artifact\"],transport_receipt[\"head\"])==(\n        43237029243,13952974167,\"8f27671ad748dc7c081a1eaad897b057d8d9f42e\")\n    assert transport_receipt[\"self_sha256\"]==\"092dbb73dab44bf351a6ae3ceace27bf7292094b298e91ee56bbf97f3c4bca91\"\n    assert transport_receipt[\"self_unchanged\"] and not transport_receipt[\"repository_token_forwarded_to_storage\"]\n    assert transport_receipt[\"project_imports\"]==transport_receipt[\"native_entries\"]==0\n"
+    }
+  ]
+}

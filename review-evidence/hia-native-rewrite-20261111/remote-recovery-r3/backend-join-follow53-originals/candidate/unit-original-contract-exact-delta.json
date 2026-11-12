@@ -1,0 +1,135 @@
+{
+  "schema": "hia-backend-scalar-unit-fixture-exact-original-contract-repair-v1",
+  "status": "NEW_TEST_SOURCE_ONLY_ZERO_AST_OR_TARGET_EXECUTION",
+  "actual_failure": {
+    "head": "8f27671ad748dc7c081a1eaad897b057d8d9f42e",
+    "run": 43237029243,
+    "job": 131248772659,
+    "log": {
+      "bytes": 817924,
+      "sha256": "fe6f9b8b7b5b87ccf00c15b97c9ec37e46dc7614808be700b1223df9c752b3da",
+      "gitsha": "9166e5dd0b9810247e07de68720a7368a8d919ad"
+    },
+    "stderr": {
+      "bytes": 1001,
+      "sha256": "41248cf25da1c969451e8a439fc2c7b3d527170437f0b94fe1209db36f15dc3e",
+      "gitsha": "27a15353e81be79531bfe27c4f7a5886f33b2a84"
+    },
+    "failed_label": "scalar-unit",
+    "unit_target_entries": 0,
+    "reason": "predeclared expect_success=True contradicted the actual original public oracle"
+  },
+  "old_test": {
+    "bytes": 34032,
+    "sha256": "55f585aebae5b96f3abc7b31e6eda59d86be27a8d45670524ad4355c80dbcfb1",
+    "gitsha": "c22029a73799772f27d759dfa64ce304baedaf7a"
+  },
+  "new_test": {
+    "bytes": 34947,
+    "sha256": "293b599f1e2845b719df5eb95e9747be657b00263ebec59001db53584a9a1c2d",
+    "gitsha": "69dce61d53da0cb96c3b0482182463e4e5850d8d"
+  },
+  "originals": [
+    {
+      "path": "hepta/hia_opcodes.py",
+      "bytes": 19813,
+      "sha256": "7c3e1a531b790883da2f74ca0e06e37b18073a594063afb9aeb07be9bd34fd65",
+      "gitsha": "dafe100fdc3ffe7edf0f60b97079066ca070803b",
+      "role": "SCALARS includes unit; Core allows unit as a scalar type"
+    },
+    {
+      "path": "hepta/hia_program.py",
+      "bytes": 45247,
+      "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92",
+      "gitsha": "5d0027f4453759e4156a3496e64215c441a727e4",
+      "role": "VerifiedProgram.scalar_entrypoints admits no-explicit-exports scalar unit signature"
+    },
+    {
+      "path": "hepta/hia_program_native.py",
+      "bytes": 46917,
+      "sha256": "bf953a8b85d1ebc6b9d7a90fbbcaa4137e40ed214c2ede2af1a13cfc01b1c07c",
+      "gitsha": "1d0e0344f8300b11b5dd505cbea655170aba5be1",
+      "role": "_Emitter.wrapper excludes unit arguments, permits unit results; render rejects zero C exports"
+    },
+    {
+      "path": "tests/function_lowering_test_reference.py",
+      "bytes": 48120,
+      "sha256": "e08023ddab7501313a45825e5e2cdbba40d3524fee3e4a0f9ad33ba65335bc17",
+      "gitsha": "cb42b8e725bc16471c1cd9fd965c0bdd7f704405",
+      "role": "p/fn/doc actual functions used by self.simple; no explicit exports"
+    }
+  ],
+  "fixture_source_unchanged": {
+    "label": "scalar-unit",
+    "name": "scalar_unit",
+    "schema": "hepta.hia.program.v8",
+    "module": "native_function_lowering",
+    "parameters": [
+      {
+        "name": "x",
+        "type": "unit"
+      }
+    ],
+    "returns": [
+      "unit"
+    ],
+    "operations": [],
+    "terminator": {
+      "op": "ret",
+      "values": [
+        "x"
+      ]
+    },
+    "explicit_exports": false
+  },
+  "pre_target_requirement": {
+    "error_class": "HIAProgramNativeRejected",
+    "complete_text": "E_HIA_PROGRAM_NATIVE: native profile requires between 1 and 128 admitted entrypoints",
+    "original_expected_native_domain": 2
+  },
+  "patch_scope": {
+    "exact_unique_reversible_edits": 3,
+    "edits": [
+      [
+        "           corrupt=None,backend=\"native\",cross=False,expect_success=None):",
+        "           corrupt=None,backend=\"native\",cross=False,expect_success=None,expect_rejection=None):"
+      ],
+      [
+        "  if expect_success is not None:assert (error is None)==expect_success,(label,type(error).__name__,str(error))\n  graph=",
+        "  if expect_success is not None:assert (error is None)==expect_success,(label,type(error).__name__,str(error))\n  if expect_rejection is not None:\n   assert error is not None and (type(error).__name__,str(error))==expect_rejection,(label,error,expect_rejection)\n  graph="
+      ],
+      [
+        " def scalar_group(self):\n  for typ in(\"bool\",\"i8\",\"u8\",\"i16\",\"u16\",\"i32\",\"u32\",\"i64\",\"u64\",\"isize\",\"usize\",\"unit\"):\n   self.exact(\"scalar-\"+typ,self.simple(\"scalar_\"+typ,typ),expect_success=True)\n",
+        " def scalar_group(self):\n  for typ in(\"bool\",\"i8\",\"u8\",\"i16\",\"u16\",\"i32\",\"u32\",\"i64\",\"u64\",\"isize\",\"usize\",\"unit\"):\n   doc=self.simple(\"scalar_\"+typ,typ)\n   if typ==\"unit\":\n    # Core admits unit, but the original native C wrapper excludes unit parameters.\n    # Preserve the identical valid Core fixture and require the original late\n    # zero-entrypoint rejection before issuing any target command for this case.\n    assert typ in self.core.SCALARS and typ not in set(self.original.WIDTHS)|{\"bool\"}\n    assert \"exports\" not in doc and len(doc[\"functions\"])==1\n    assert doc[\"functions\"][0][\"params\"]==[{\"name\":\"x\",\"type\":\"unit\"}]\n    assert doc[\"functions\"][0][\"returns\"]==[\"unit\"]\n    self.exact(\"scalar-unit\",doc,expect_success=False,expect_rejection=(\n      \"HIAProgramNativeRejected\",\"E_HIA_PROGRAM_NATIVE: native profile requires between 1 and 128 admitted entrypoints\"))\n   else:self.exact(\"scalar-\"+typ,doc,expect_success=True)\n"
+      ]
+    ],
+    "all_unmodified_text_exact": true,
+    "new_optional_argument_only_adds_original_oracle_assertion_before_native": true
+  },
+  "corpus": {
+    "original_scalar_cases": 12,
+    "new_scalar_cases": 12,
+    "same_twelve_type_sequence": true,
+    "same_all_input_programs": true,
+    "positive_cases": 11,
+    "unit_case_retained_as_original_correct_negative": true,
+    "removed_cases": 0
+  },
+  "comparisons": {
+    "full_original_error_before_target": true,
+    "whole_actual_native_error_bytes_equal_original": true,
+    "terminal_and_slot_permissions_unchanged": true,
+    "entries_calls_commands_ACKs_final_slots_unchanged": true
+  },
+  "production_source_changes": 0,
+  "source_image_or_compiler_budget_changes": 0,
+  "max_C_entrypoints_still_128": true,
+  "completed_results_not_promoted": {
+    "whole_cross_group_cases": 2,
+    "failed_scalar_prefix_cases": 11,
+    "unit_native_case": 0,
+    "whole_133_qualified": false
+  },
+  "original_head_preserved": true,
+  "ref_changes": 0
+}

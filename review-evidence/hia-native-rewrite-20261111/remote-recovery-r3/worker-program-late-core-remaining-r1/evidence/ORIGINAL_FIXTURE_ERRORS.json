@@ -1,0 +1,77 @@
+{
+  "schema": "hia-group6-original-fixture-errors-source-observation-r1",
+  "original_head": "8f27671ad748dc7c081a1eaad897b057d8d9f42e",
+  "original_job": 131248772749,
+  "original_overall_status": "FAIL",
+  "new_target_execution": 0,
+  "render_reference": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-program-late-core-remaining-r1/original-reference/hia_agent_assembly.py",
+    "mode": "100644",
+    "bytes": 15216,
+    "sha256": "e37095496bf159ad573a31214d4d73e916648b4f0664edb541014f54681fbc03",
+    "gitsha": "aa4462d5ee8cd29df1a9cd9762e1edcb6dd00a3f",
+    "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE",
+    "original_commit": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+    "original_path": "hepta/hia_agent_assembly.py",
+    "function": "render_assembly",
+    "lines": [
+      {
+        "line": 291,
+        "text": "def render_assembly(document) -> str:"
+      },
+      {
+        "line": 292,
+        "text": "    \"\"\"Canonical compact text whose exact primitive Core round trip is checked.\"\"\""
+      },
+      {
+        "line": 293,
+        "text": "    checked = verify_program(document)"
+      },
+      {
+        "line": 294,
+        "text": "    data = checked.as_dict()"
+      },
+      {
+        "line": 295,
+        "text": "    if checked.structured_bytes is not None or data[\"schema\"] not in CORE_SCHEMAS:"
+      },
+      {
+        "line": 296,
+        "text": "        raise HIAAssemblyRejected(\"render requires explicit primitive v6/v7/v8 Core; use the existing adapter first\","
+      },
+      {
+        "line": 297,
+        "text": "                                  \"E_HIA_ASSEMBLY_PROFILE\", phase=\"representation\")"
+      },
+      {
+        "line": 298,
+        "text": "    rendered = _render_assembly_document(data)"
+      },
+      {
+        "line": 299,
+        "text": "    if assemble_program(rendered).canonical_bytes != checked.canonical_bytes:"
+      },
+      {
+        "line": 300,
+        "text": "        raise HIAAssemblyRejected(\"renderer changed canonical Core\", \"E_HIA_ASSEMBLY_ROUNDTRIP\","
+      }
+    ],
+    "expected_exact_exception_class": "HIAAssemblyRejected",
+    "expected_phase": "representation",
+    "expected_complete_message": "E_HIA_ASSEMBLY_PROFILE: render requires explicit primitive v6/v7/v8 Core; use the existing adapter first",
+    "change": "Keep the original composite-v1 input and original order; require this original public rejection instead of incorrectly requiring render acceptance."
+  },
+  "prefix_reference": {
+    "original_path": "tools/program_service_root_reference.py",
+    "gitsha": "e572e1273fcd55518f7395071cc56534f2771fc6",
+    "sha256": "f378c5cd7ef6a053ec63090cc3b3322929f54ef566a29fbaa3f687318c6779d9",
+    "line50": "CONSTANTS=dict(constants,CORE_DIAGNOSTIC=magic(\"HIACDT01\"),PREFIX_TEXT=17344,",
+    "change": "Extract the exact literal keyword from this pinned author's CONSTANTS AST for the private fixture; no business function imported or executed."
+  },
+  "old_private_actual_entries": 1,
+  "old_private_completed_controls": 0,
+  "original_six_large_public_cases_complete": 6,
+  "planned_new_remaining_cases": 44,
+  "production_changes": 0,
+  "all_limits_unchanged": true
+}

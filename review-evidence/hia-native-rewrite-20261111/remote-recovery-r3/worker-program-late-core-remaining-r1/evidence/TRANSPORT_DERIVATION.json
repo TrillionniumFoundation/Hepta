@@ -1,0 +1,45 @@
+{
+  "schema": "hia-exact-artifact-transport-derivation-r1",
+  "original_gitsha": "49ffabd56fcb53692f83346e27cf33df9d0a93bb",
+  "edits": [
+    {
+      "old": "Core48",
+      "new": "Group6 FOLLOW53"
+    },
+    {
+      "old": "RUN=43210143623",
+      "new": "RUN=43237029243"
+    },
+    {
+      "old": "ARTIFACT=13940703193",
+      "new": "ARTIFACT=13952974167"
+    },
+    {
+      "old": "HEAD=\"e035dfd0e2603adcf2bfcb28958afaddffe9fb62\"",
+      "new": "HEAD=\"8f27671ad748dc7c081a1eaad897b057d8d9f42e\""
+    },
+    {
+      "old": "SIZE=54245802",
+      "new": "SIZE=100633717"
+    },
+    {
+      "old": "SHA=\"4eec8d75658d48abe01c9518efa4362ba97b9b534576cc1d5b9deacde4a514cc\"",
+      "new": "SHA=\"36f8063dd97c8fffeed958797a22d38e091d9185ef1c90604c75ff509b70093d\""
+    },
+    {
+      "old": "hia-core48-original-zip-transport-v1",
+      "new": "hia-group6-follow53-original-zip-transport-r1"
+    },
+    {
+      "old": "HIA_CORE48_ZIP_TRANSPORT",
+      "new": "HIA_GROUP6_53_ZIP_TRANSPORT"
+    },
+    {
+      "old": "        signal.setitimer(signal.ITIMER_REAL,0)\n",
+      "new": "        final_elapsed=time.monotonic_ns()-started;final_used=time.process_time()-cpu\n        if not (0<=final_elapsed<180000000000 and 0<=final_used<90):\n            status=\"FAIL\";receipt[\"status\"]=\"FAIL\"\n            receipt[\"post_output_budget_failure\"]={\"elapsed_ns\":str(final_elapsed),\"CPU_seconds\":final_used}\n            output.with_name(output.name+\".receipt.json\").write_text(json.dumps(receipt,sort_keys=True,indent=2)+\"\\n\")\n        signal.setitimer(signal.ITIMER_REAL,0)\n"
+    }
+  ],
+  "complete_inverse_equal": true,
+  "project_imports": 0,
+  "target_entries": 0
+}

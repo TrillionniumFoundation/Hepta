@@ -1,0 +1,108 @@
+{
+  "schema": "hia-new-current-P16-Core-Graph-workflow-request-v1",
+  "status": "NEW_SOURCE_ONLY_ZERO_AST_GENERATION_B3_VM_NATIVE",
+  "parent_head": "8f27671ad748dc7c081a1eaad897b057d8d9f42e",
+  "requested_followup": "FOLLOW54",
+  "job_id": "backend_current_program_graph",
+  "tag": "backend-current-program-graph",
+  "name": "Actual current type-context program admission and complete Core Graph prefix",
+  "timeout_minutes": 110,
+  "permissions": {
+    "contents": "read",
+    "actions": "read"
+  },
+  "use_existing_common_checkout_reference_python_solver_domain_guard_steps": true,
+  "required_domain": {
+    "os": "Ubuntu 24.04",
+    "arch": "x86_64",
+    "image_os": "ubuntu24",
+    "python": "3.12.14"
+  },
+  "required_reference": "0ef9541 reference used by common61373; no floating main or replacement",
+  "source_prefix": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1",
+  "source_index": "sources.json",
+  "driver": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/ci/backend_current_program_graph_ci.py",
+    "gitsha": "70ea5aacc28df013749db08df97657dd3a5660a4",
+    "bytes": 16948,
+    "sha256": "9590dbac6c4c6d1e7bd14e41612345dfc85f86862158b1a05286ec229e353a65"
+  },
+  "dependency_download": {
+    "before": "qualification",
+    "uses": "actions/download-artifact@v4",
+    "with": {
+      "artifact-ids": "13950967281",
+      "run-id": "43230668215",
+      "github-token": "${{ github.token }}",
+      "path": "${{ runner.temp }}/backend-current-P16-originals"
+    },
+    "exact_predecessor_head": "122a6640aee2666d23563910578ef66858c01d88",
+    "source_artifact_outer_ZIP_metadata_only": {
+      "bytes": 100254467,
+      "sha256": "c2825455aa098ebec269227398b4aad5f4fa63f04900e82d5ffaac44e37793b6"
+    },
+    "full_inner_readback": {
+      "bytes": 27481296,
+      "sha256": "36bef9ae4320cf7ac07009abaff8ed6736e3c1c1c3636c390146e07042e80caa",
+      "ledger_bytes": 2125044,
+      "ledger_sha256": "300196dbe3d77a5513f4b8c55d8b75026e09e7e0b9a654fea195d727500ad1f3",
+      "members": 4783,
+      "original_bytes": 190964237
+    }
+  },
+  "qualification": {
+    "run": "python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-current-program-graph-r1/ci/backend_current_program_graph_ci.py",
+    "env_scope": "STEP_ONLY_NOT_JOB",
+    "env": {
+      "HIA_CI_COMMON": "${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py",
+      "HIA_CI_OUTPUT": "${{ runner.temp }}/hia-backend-current-program-graph-recovery",
+      "HIA_CURRENT_P16_ORIGINALS": "${{ runner.temp }}/backend-current-P16-originals"
+    },
+    "common_git": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+    "bounded_seal_git": "084a98a1d42e3081612b817e909eb50443d8a924"
+  },
+  "upload": {
+    "if": "always()",
+    "path": "${{ runner.temp }}/hia-backend-current-program-graph-recovery",
+    "name": "hia-backend-current-program-graph-recovery",
+    "include_hidden_files": false,
+    "if_no_files_found": "error"
+  },
+  "gates": {
+    "new_B3": 1,
+    "retained_native_HIA_packer_calls": 1,
+    "new_nonzero_images": 47,
+    "retained_current_images": 42,
+    "groups": 15,
+    "cases": 176,
+    "fixed_ELF": 122,
+    "private_cases": 54,
+    "private_entries": 128,
+    "GraphWire_entries": "measured",
+    "compiler": {
+      "cpu": 10,
+      "wall": 20,
+      "address": 268435456
+    },
+    "per_group": {
+      "aggregate_cpu_exclusive": 90,
+      "wall_exclusive": 180,
+      "address": 1073741824,
+      "core": 0
+    },
+    "seal": "separate bounded evidence-only stage; no subject replay"
+  },
+  "syntax_inventory": {
+    "active_python": 34,
+    "previous_unexecuted_drafts_excluded": true
+  },
+  "not_claimed": [
+    "FOLLOW53 group6 qualification",
+    "whole public backend",
+    "implementation fingerprints inside this prefix",
+    "installation",
+    "cold qualification",
+    "private header as external authority",
+    "outer ZIP full byte readback"
+  ]
+}

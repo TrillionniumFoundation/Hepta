@@ -1,0 +1,83 @@
+{
+  "schema": "hia-backend-current-Core-Graph-prefix-narrow-static-review-r2",
+  "reviewer": "audit_selfhost",
+  "status": "NO_CONFIRMED_BLOCKER_WITHIN_STATED_NARROW_STATIC_SCOPE",
+  "subject": {
+    "bytes": 14439,
+    "gitsha": "2d8a42f4448bdd5d84a0dde2d42e96cc4394de17",
+    "sha256": "5d966d95e594be0b72a9569a3e2ba84ced0ac286cc1f565c3c636fade6ec970d",
+    "oldProtocolFunctionsByteEqual": {
+      "backend_graph_frame": true,
+      "backend_graph_header": true,
+      "backend_graph_step": true,
+      "worker_result_layout": true
+    }
+  },
+  "prior_review": {
+    "gitsha": "2cc3062e3ab3b2db13d610664f4a5237d41edec6",
+    "scope": "9ed838 old42 Core-Graph copy/protect/view/release/append only; not automatically latest52a routing"
+  },
+  "references": [
+    {
+      "gitsha": "3b30222922e916829e2f761c28bb9fbb5411edb4",
+      "role": "original P16 top, result layout and input guard"
+    },
+    {
+      "gitsha": "6a9b6142e56353111db7bfbf77b2cf930ba5247e",
+      "role": "fixed-diagnostic attach, WD fields and87500 dispatch"
+    },
+    {
+      "gitsha": "4c4ca2b76ccb92ff1f2b5e2e5b872d225ff0a242",
+      "role": "actual type-context attach, WC fields and87600 dispatch"
+    }
+  ],
+  "scope": [
+    "New complete-current-top derivation and exact inverse assertions",
+    "New Core-Graph state range against saved-code, WD and WC ranges",
+    "Unchanged91000..91007 protocol and result append relative to previous narrowly reviewed source"
+  ],
+  "observations": [
+    {
+      "area": "Complete top derivation",
+      "finding": "The new entry is copied from generator.working['worker_program_service']; it is not the old reduced handwritten dispatch. Four uniquely matched substitutions rename the entry, restrict the initial immutable command to64bytes/mode1/tree0, repeat mode/tree checks on resumed entries before original acknowledge, and add91000..91099 before88000. The textual inverse must equal the complete original ast.unparse string. Original87500/87600 and assembly dispatch branches remain present. This is a source-reading conclusion; the assert has not been executed in this review."
+    },
+    {
+      "area": "Original validation preserved",
+      "finding": "The added initial guard precedes the original worker_program_begin. That original method still checks command magic/reserved, nonzero request and lease, exact input capacity, original buffer inventory and zero initialization. Resumed state and actual mechanical ACK validation remain in the copied original condition, with two extra restrictive mode/tree clauses. The chosen mode1/tree0 entry does not grant mode2/assembly semantics."
+    },
+    {
+      "area": "State separation",
+      "finding": "The read exact attachments reserve saved code[78592,78656), WD[79000,79168), WC[79616,79808). New BG occupies[81000,81232), including its complete128-byte saved event[81104,81232). These four ranges are disjoint. The author asserts all ranges inside MIN_WORK, pairwise disjoint, and no original numeric constant begins inside BG. The latter is not by itself a proof about every implicit array range; this narrow review only concludes the explicitly read known ranges do not overlap."
+    },
+    {
+      "area": "Mutually exclusive terminal paths",
+      "finding": "backend_graph_begin additionally requires WD_ACTIVE==0 and WC_ACTIVE==0 before starting the successful Graph continuation. Both error routes keep their original methods and87500/87600 dispatch. The current result-layout wrapper returns the unchanged original layout for error kind4, so error results do not acquire a Graph requirement."
+    },
+    {
+      "area": "Copied protocol unchanged",
+      "finding": "The full source spans backend_graph_frame, backend_graph_header, backend_graph_step and worker_result_layout are byte-identical to the prior9ed838 source. They retain full native Graph copy, readonly protection, copied-header observation, then release32..49. Graph append remains after complete receipt and Core copies and before final whole-frame readonly protection. Addresses are changed only through relocated BG constants."
+    },
+    {
+      "area": "Fresh identity gate remains necessary",
+      "finding": "The extension's explicit base owner/generator SHA checks identify retained raw authors, not the complete attached52a root. The required builder must independently regenerate exact original277138-byte HIA SHA104350ff99415574167605d2c72c0a086607133a4e1a0b0db397f3de72e353a2 before extension, bind all43 retained roles plus actual31/32/33/58, and preserve current executor type-context ownership/permission rules. No complete builder,47-image table or actual executor evidence was reviewed here."
+    }
+  ],
+  "not_reviewed": [
+    "Fresh generation, HIA profile/B3 or runtime behavior",
+    "New47-image table and full dependency closure",
+    "Executor permissions or physical memory protection",
+    "Arbitrary plan/foreign general DataJSON and full backend publication",
+    "Public groups6/9 or whole Worker"
+  ],
+  "execution": {
+    "Python_AST": 0,
+    "HIA_generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "ELF": 0,
+    "original_artifact_readback": 0,
+    "source_modified": 0
+  },
+  "conclusion": "No confirmed blocker found in the specified new-top and explicit-state-range scope. This is not a new execution PASS and does not inherit the413-case P16 qualification for the extended entry."
+}

@@ -1,0 +1,146 @@
+{
+  "schema": "hia-group6-reader-transport-finalization-exact-inverse-v1",
+  "status": "ZERO_AST_ZERO_TARGET_EXECUTION",
+  "base_delivery": {
+    "bytes": 49690,
+    "sha256": "551c52ff49a0f10cfb779b8917fabb2bfc453b875605bec22232e6273d11c361",
+    "gitsha": "5b78e80b35518820cfaa73a248b3f86820bf4377"
+  },
+  "sources": [
+    {
+      "name": "reader",
+      "original": {
+        "bytes": 31978,
+        "sha256": "0b5d8411290dae9bfe1c3899323325c324dd95721dae05bc0a92e0c6949378a0",
+        "gitsha": "bda3bdd9c372f70da31e42f053a0d2a8e04e9f51"
+      },
+      "candidate": {
+        "bytes": 34470,
+        "sha256": "d042fd641b3b0107f7bd08ea0897f2edb6a028e97f8c14c3597f4666f37c110b",
+        "gitsha": "a58f3d2a06263fe5bc25d71047d20b8a0ac70ede"
+      },
+      "exact_unique_replacements": [
+        {
+          "before": "    retained_after=False;full_members_after=False\n    try:\n",
+          "after": "    retained_after=False;full_members_after=False\n    primary_exception=None;finalization_errors=[]\n    def final_failure(phase,exc):\n        nonlocal status,primary,primary_exception\n        status=\"FAIL\"\n        finalization_errors.append(dict(phase=phase,error_class=type(exc).__name__,error=str(exc)))\n        if primary_exception is None:\n            primary_exception=exc\n            if primary is None:\n                primary=dict(error_class=type(exc).__name__,error=str(exc),traceback=traceback.format_exc())\n        elif primary_exception is not exc:\n            primary_exception.add_note(phase+\": \"+repr(exc))\n    def attempt(phase,operation):\n        try:return operation()\n        except BaseException as exc:\n            final_failure(phase,exc)\n            return None\n    def strict_budget(phase):\n        value=attempt(phase,lambda:measured(start,before,children))\n        if value is not None and not (0<=value[\"aggregate_cpu_seconds\"]<90 and\n                                      0<=value[\"elapsed_ns\"]<180_000_000_000):\n            final_failure(phase,TimeoutError(\"original readback strict90CPU180wall\"))\n        return value\n    try:\n"
+        },
+        {
+          "before": "    except BaseException as exc:\n        primary=dict(error_class=type(exc).__name__,error=str(exc),traceback=traceback.format_exc())\n        traceback.print_exc()\n",
+          "after": "    except BaseException as exc:\n        status=\"FAIL\";primary_exception=exc\n        primary=dict(error_class=type(exc).__name__,error=str(exc),traceback=traceback.format_exc())\n        attempt(\"original_traceback\",lambda:traceback.print_exc())\n"
+        },
+        {
+          "before": "                after_errors.append(dict(kind=\"input\",path=path,error_class=type(exc).__name__,\n                                         error=str(exc),traceback=traceback.format_exc()))\n",
+          "after": "                after_errors.append(dict(kind=\"input\",path=path,error_class=type(exc).__name__,\n                                         error=str(exc),traceback=traceback.format_exc()))\n                final_failure(\"input_after:\"+path,exc)\n"
+        },
+        {
+          "before": "                after_errors.append(dict(kind=\"materialized\",path=path,error_class=type(exc).__name__,\n                                         error=str(exc),traceback=traceback.format_exc()))\n",
+          "after": "                after_errors.append(dict(kind=\"materialized\",path=path,error_class=type(exc).__name__,\n                                         error=str(exc),traceback=traceback.format_exc()))\n                final_failure(\"materialized_after:\"+path,exc)\n"
+        },
+        {
+          "before": "                observation[\"read_error\"]=dict(error_class=type(exc).__name__,error=str(exc))\n",
+          "after": "                observation[\"read_error\"]=dict(error_class=type(exc).__name__,error=str(exc))\n                final_failure(\"pending_after:\"+path,exc)\n"
+        },
+        {
+          "before": "        budget=measured(start,before,children)\n        if not (0<=budget[\"aggregate_cpu_seconds\"]<90 and 0<=budget[\"elapsed_ns\"]<180_000_000_000):\n            status=\"FAIL\"\n            after_errors.append(dict(kind=\"original-budget\",**budget))\n",
+          "after": "        budget=strict_budget(\"original_budget\")\n        if budget is None or not (0<=budget[\"aggregate_cpu_seconds\"]<90 and\n                                  0<=budget[\"elapsed_ns\"]<180_000_000_000):\n            status=\"FAIL\"\n            after_errors.append(dict(kind=\"original-budget\",measurement=budget))\n"
+        },
+        {
+          "before": "        write_json(out/\"input-and-materialized-aftercheck.json\",after_rows)\n        summary=out/\"summary.json\"\n        raw=(json.dumps(report,sort_keys=True,indent=2)+\"\\n\").encode(\"utf-8\")\n        # New reader receipt only. Every retained original remains immutable.\n        summary.write_bytes(raw);summary.chmod(0o644)\n        compact=dict(status=status,original_target_status=\"FAIL\",artifact=13952974167,\n            summary_bytes=len(raw),summary_sha256=digest(raw),full_zip_members=len(outer),\n            original_members=inner.get(\"members\"),completed_original_public_cases=facts.get(\"completed_original_public_cases\"),\n            retained_zip_after_verified=retained_after,all_original_members_after_verified=full_members_after,\n            new_target_entries=0,new_compiler_entries=0,\n            primary_error=None if primary is None else primary[\"error_class\"],\n            after_error_count=len(after_errors),budget=budget)\n        print(\"HIA_LATE_CORE53_READBACK \"+json.dumps(compact,sort_keys=True),flush=True)\n        final=measured(start,before,children)\n        if not (0<=final[\"aggregate_cpu_seconds\"]<90 and 0<=final[\"elapsed_ns\"]<180_000_000_000):\n            status=\"FAIL\";report[\"status\"]=\"FAIL\"\n            report[\"after_errors\"].append(dict(kind=\"post-output-original-budget\",**final))\n            report[\"budget\"]=final\n            summary.write_text(json.dumps(report,sort_keys=True,indent=2)+\"\\n\")\n            summary.chmod(0o644)\n        else:\n            write_json(out/\"post-output-budget.json\",dict(status=\"PASS\",**final))\n        # The caller also verifies its complete process receipt after exit/log readback.\n        signal.setitimer(signal.ITIMER_REAL,0)\n    return 0 if status==\"PASS\" else 1\n",
+          "after": "        summary=out/\"summary.json\"\n        def synchronize():\n            report[\"status\"]=status\n            report[\"primary_failure\"]=primary\n            report[\"finalization_errors\"]=list(finalization_errors)\n        def save_summary():\n            synchronize()\n            raw=(json.dumps(report,sort_keys=True,indent=2)+\"\\n\").encode(\"utf-8\")\n            summary.write_bytes(raw);summary.chmod(0o644)\n            return raw\n        def print_summary(marker,raw):\n            compact=dict(status=status,original_target_status=\"FAIL\",artifact=13952974167,\n                summary_bytes=None if raw is None else len(raw),\n                summary_sha256=None if raw is None else digest(raw),full_zip_members=len(outer),\n                original_members=inner.get(\"members\"),completed_original_public_cases=facts.get(\"completed_original_public_cases\"),\n                retained_zip_after_verified=retained_after,all_original_members_after_verified=full_members_after,\n                new_target_entries=0,new_compiler_entries=0,\n                primary_error=None if primary is None else primary[\"error_class\"],\n                after_error_count=len(after_errors),finalization_error_count=len(finalization_errors),budget=budget)\n            print(marker+\" \"+json.dumps(compact,sort_keys=True),flush=True)\n        # Each failure-custody output is independent; none replaces the primary error.\n        attempt(\"aftercheck_receipt\",lambda:write_json(out/\"input-and-materialized-aftercheck.json\",after_rows))\n        raw=attempt(\"summary_receipt\",save_summary)\n        attempt(\"summary_stdout\",lambda:print_summary(\"HIA_LATE_CORE53_READBACK\",raw))\n        final=strict_budget(\"post_output_budget\")\n        if final is not None:\n            report[\"post_output_budget\"]=final\n            if status==\"PASS\":\n                attempt(\"post_output_budget_receipt\",\n                    lambda:write_json(out/\"post-output-budget.json\",dict(status=\"PASS\",**final)))\n        if status!=\"PASS\" or primary_exception is not None:\n            status=\"FAIL\"\n            failed_raw=attempt(\"rewrite_failure_summary\",save_summary)\n            attempt(\"failure_stdout\",lambda:print_summary(\"HIA_LATE_CORE53_READBACK_FINAL_FAILURE\",failed_raw))\n            attempt(\"save_final_failure_summary\",save_summary)\n        attempt(\"disable_alarm\",lambda:signal.setitimer(signal.ITIMER_REAL,0))\n        # Includes final receipt writes and alarm cancellation, before successful return.\n        last=strict_budget(\"return_budget\")\n        if last is not None:report[\"return_budget\"]=last\n        if status!=\"PASS\" or primary_exception is not None:\n            status=\"FAIL\"\n            attempt(\"save_return_failure_summary\",save_summary)\n    if primary_exception is not None:raise primary_exception\n    return 0 if status==\"PASS\" else 1\n"
+        }
+      ],
+      "complete_inverse_byte_equal": true
+    },
+    {
+      "name": "transport",
+      "original": {
+        "bytes": 5736,
+        "sha256": "092dbb73dab44bf351a6ae3ceace27bf7292094b298e91ee56bbf97f3c4bca91",
+        "gitsha": "f1fd7159684c0c6349f277b8c2efd2a04e23554a"
+      },
+      "candidate": {
+        "bytes": 7563,
+        "sha256": "d01d7ad501180abc9311075f6e1868567cde852dd629de124d5fbf1c23a82960",
+        "gitsha": "e4ae383ca011de024b72cc0225883c56b444f315"
+      },
+      "exact_unique_replacements": [
+        {
+          "before": "    phase=\"metadata\";status=\"FAIL\";error=None;count=0\n    try:\n",
+          "after": "    phase=\"metadata\";status=\"FAIL\";error=None;count=0\n    finalization_errors=[]\n    def final_failure(where,exc):\n        nonlocal status,error\n        status=\"FAIL\"\n        # Preserve the first sanitized failure; never print tokens or signed URLs.\n        value=dict(phase=where,error_class=type(exc).__name__,http_status=getattr(exc,\"code\",None))\n        finalization_errors.append(value)\n        if error is None:error=value\n    def attempt(where,operation):\n        try:return operation()\n        except BaseException as exc:\n            final_failure(where,exc)\n            return None\n    def strict_budget(where):\n        value=attempt(where,lambda:(time.monotonic_ns()-started,time.process_time()-cpu))\n        if value is not None and not (0<=value[0]<180000000000 and 0<=value[1]<90):\n            final_failure(where,TimeoutError(\"original transport strict90CPU180wall\"))\n        return value\n    try:\n"
+        },
+        {
+          "before": "    except BaseException as exc:\n        # Do not echo tokens, API error bodies or signed storage URLs.\n        error={\"phase\":phase,\"error_class\":type(exc).__name__,\n               \"http_status\":getattr(exc,\"code\",None)}\n",
+          "after": "    except BaseException as exc:\n        # Do not echo tokens, API error bodies or signed storage URLs.\n        status=\"FAIL\"\n        error={\"phase\":phase,\"error_class\":type(exc).__name__,\n               \"http_status\":getattr(exc,\"code\",None)}\n"
+        },
+        {
+          "before": "    finally:\n        unchanged=own.read_bytes()==before\n        if status==\"PASS\":\n            assert output.stat().st_size==SIZE and digest(output)==SHA\n        elapsed=time.monotonic_ns()-started;used=time.process_time()-cpu\n        if not unchanged or elapsed>=180000000000 or used>=90:status=\"FAIL\"\n        receipt={\"schema\":\"hia-group6-follow53-original-zip-transport-r1\",\"status\":status,\n                 \"run\":RUN,\"artifact\":ARTIFACT,\"head\":HEAD,\n                 \"bytes\":count,\"expected_bytes\":SIZE,\"expected_sha256\":SHA,\n                 \"self_sha256\":sha256(before).hexdigest(),\"self_unchanged\":unchanged,\n                 \"elapsed_ns\":str(elapsed),\"CPU_seconds\":used,\"error\":error,\n                 \"repository_token_forwarded_to_storage\":False,\n                 \"project_imports\":0,\"native_entries\":0}\n        output.with_name(output.name+\".receipt.json\").write_text(json.dumps(receipt,sort_keys=True,indent=2)+\"\\n\")\n        print(\"HIA_GROUP6_53_ZIP_TRANSPORT \"+json.dumps(receipt,sort_keys=True),flush=True)\n        final_elapsed=time.monotonic_ns()-started;final_used=time.process_time()-cpu\n        if not (0<=final_elapsed<180000000000 and 0<=final_used<90):\n            status=\"FAIL\";receipt[\"status\"]=\"FAIL\"\n            receipt[\"post_output_budget_failure\"]={\"elapsed_ns\":str(final_elapsed),\"CPU_seconds\":final_used}\n            output.with_name(output.name+\".receipt.json\").write_text(json.dumps(receipt,sort_keys=True,indent=2)+\"\\n\")\n        signal.setitimer(signal.ITIMER_REAL,0)\n    if status!=\"PASS\":raise SystemExit(1)\nif __name__==\"__main__\":main()\n",
+          "after": "    finally:\n        observed=attempt(\"self_after\",lambda:own.read_bytes()==before)\n        unchanged=observed is True\n        if observed is False:final_failure(\"self_after\",AssertionError(\"transport source changed\"))\n        if status==\"PASS\":\n            def verify_output():\n                assert output.stat().st_size==SIZE and digest(output)==SHA\n            attempt(\"complete_output_after\",verify_output)\n        measurement=strict_budget(\"original_budget\")\n        elapsed,used=(None,None) if measurement is None else measurement\n        receipt={\"schema\":\"hia-group6-follow53-original-zip-transport-r1\",\"status\":status,\n                 \"run\":RUN,\"artifact\":ARTIFACT,\"head\":HEAD,\n                 \"bytes\":count,\"expected_bytes\":SIZE,\"expected_sha256\":SHA,\n                 \"self_sha256\":sha256(before).hexdigest(),\"self_unchanged\":unchanged,\n                 \"elapsed_ns\":None if elapsed is None else str(elapsed),\"CPU_seconds\":used,\"error\":error,\n                 \"repository_token_forwarded_to_storage\":False,\n                 \"project_imports\":0,\"native_entries\":0}\n        receipt_path=output.with_name(output.name+\".receipt.json\")\n        def synchronize():\n            receipt[\"status\"]=status;receipt[\"error\"]=error\n            receipt[\"finalization_errors\"]=list(finalization_errors)\n        def save_receipt():\n            synchronize()\n            receipt_path.write_text(json.dumps(receipt,sort_keys=True,indent=2)+\"\\n\")\n        def print_receipt(marker):\n            synchronize()\n            print(marker+\" \"+json.dumps(receipt,sort_keys=True),flush=True)\n        attempt(\"receipt_write\",save_receipt)\n        attempt(\"receipt_stdout\",lambda:print_receipt(\"HIA_GROUP6_53_ZIP_TRANSPORT\"))\n        final=strict_budget(\"post_output_budget\")\n        if final is not None:\n            receipt[\"post_output_budget\"]={\"elapsed_ns\":str(final[0]),\"CPU_seconds\":final[1]}\n        if status!=\"PASS\":\n            attempt(\"rewrite_failure_receipt\",save_receipt)\n            attempt(\"failure_stdout\",lambda:print_receipt(\"HIA_GROUP6_53_ZIP_TRANSPORT_FINAL_FAILURE\"))\n            attempt(\"save_final_failure_receipt\",save_receipt)\n        attempt(\"disable_alarm\",lambda:signal.setitimer(signal.ITIMER_REAL,0))\n        last=strict_budget(\"return_budget\")\n        if last is not None:\n            receipt[\"return_budget\"]={\"elapsed_ns\":str(last[0]),\"CPU_seconds\":last[1]}\n        if status!=\"PASS\":attempt(\"save_return_failure_receipt\",save_receipt)\n    if status!=\"PASS\":raise SystemExit(1)\nif __name__==\"__main__\":main()\n"
+        }
+      ],
+      "complete_inverse_byte_equal": true
+    },
+    {
+      "name": "ci",
+      "original": {
+        "bytes": 24016,
+        "sha256": "e442c0f65e0df45c01eae38a9094eb4841aab476939759111beb66837ff71a0e",
+        "gitsha": "0f753b44f5c672111071c41139cdfafa0972d382"
+      },
+      "candidate": {
+        "bytes": 24016,
+        "sha256": "58915301025104b8853868e706578c9e0c3f02d90313f3845637f0b480e45b1a",
+        "gitsha": "287a31e29f2b426f3c1b0c407b5fe53dd08fe1ca"
+      },
+      "exact_unique_replacements": [
+        {
+          "before": "\"bytes\": 31978",
+          "after": "\"bytes\": 34470"
+        },
+        {
+          "before": "\"sha256\": \"0b5d8411290dae9bfe1c3899323325c324dd95721dae05bc0a92e0c6949378a0\"",
+          "after": "\"sha256\": \"d042fd641b3b0107f7bd08ea0897f2edb6a028e97f8c14c3597f4666f37c110b\""
+        },
+        {
+          "before": "\"gitsha\": \"bda3bdd9c372f70da31e42f053a0d2a8e04e9f51\"",
+          "after": "\"gitsha\": \"a58f3d2a06263fe5bc25d71047d20b8a0ac70ede\""
+        },
+        {
+          "before": "transport_receipt[\"self_sha256\"]==\"092dbb73dab44bf351a6ae3ceace27bf7292094b298e91ee56bbf97f3c4bca91\"",
+          "after": "transport_receipt[\"self_sha256\"]==\"d01d7ad501180abc9311075f6e1868567cde852dd629de124d5fbf1c23a82960\""
+        }
+      ],
+      "complete_inverse_byte_equal": true
+    }
+  ],
+  "unchanged_source_index": {
+    "bytes": 27985,
+    "sha256": "766832d21d77d3006126d3ccec4f2045756296f345595d3cb103747f4c44ffec",
+    "gitsha": "8037442875bcfc76390facfb3e9db29978710d3d"
+  },
+  "all_original_target_tests_HIA_sources_images_oracles_limits_unchanged": true,
+  "input_original_archive_sha": "36f8063dd97c8fffeed958797a22d38e091d9185ef1c90604c75ff509b70093d",
+  "original_fresh43_full_HIA_image_ELF_equality_gate_unchanged": true,
+  "old_6_plus_new_44_two_run_union_only": true,
+  "old_private_partial1_not_counted": true,
+  "limits": {
+    "reader_cpu_exclusive": 90,
+    "reader_wall_exclusive": 180,
+    "transport_cpu_exclusive": 90,
+    "transport_wall_exclusive": 180,
+    "address": 1073741824,
+    "core": 0,
+    "per_native_group_cpu": 90,
+    "per_native_group_wall": 180,
+    "B3_cpu": 10,
+    "B3_wall": 20,
+    "B3_address": 268435456
+  },
+  "failure_policy": {
+    "first_actual_reader_exception_preserved": true,
+    "first_transport_failure_sanitized_preserved": true,
+    "each_final_evidence_operation_independent": true,
+    "late_budget_failure_attempts_FAIL_receipt_rewrite": true,
+    "no_any_failure_to_target44": true,
+    "inability_to_write_evidence_is_failure_not_a_claim_of_durable_report": true
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "schema": "hia-core53-exact-original-reader-text-derivation-v1",
+  "status": "SOURCE_TEXT_ONLY_NOT_EXECUTED",
+  "reader": {
+    "base": {
+      "bytes": 40655,
+      "gitsha": "3f1256154c512984b52d4a14d5518269d4b430c5",
+      "sha256": "4d84adc009eacdc9b4ffc56edb4777b45e8db81444258536da1a45e61109df8c"
+    },
+    "result": {
+      "bytes": 44751,
+      "gitsha": "10bfd940b1a0668565834caa5b1692d25e88a14d",
+      "sha256": "e8255d4f92f0e6c36d4930c28d654b7d9ffe93d7ecb2e7d2f226a54463be9792"
+    },
+    "changes": [
+      {
+        "label": "original53-pin-0",
+        "from": "\"commit\": \"e035dfd0e2603adcf2bfcb28958afaddffe9fb62\"",
+        "to": "\"commit\": \"8f27671ad748dc7c081a1eaad897b057d8d9f42e\""
+      },
+      {
+        "label": "original53-pin-1",
+        "from": "\"tree\": \"a80210cfcba140ebe413914767a86815b6f152f5\"",
+        "to": "\"tree\": \"e76b4fe1237414ae3d30ba475bc19ea66d966f6c\""
+      },
+      {
+        "label": "original53-pin-2",
+        "from": "\"run_id\": 43210143623, \"job_id\": 131155352486",
+        "to": "\"run_id\": 43237029270, \"job_id\": 131247009417"
+      },
+      {
+        "label": "original53-pin-3",
+        "from": "\"artifact_id\": 13940703193",
+        "to": "\"artifact_id\": 13954345082"
+      },
+      {
+        "label": "original53-pin-4",
+        "from": "\"artifact_name\": \"hia-core-native-e035dfd0e2603adcf2bfcb28958afaddffe9fb62-1\"",
+        "to": "\"artifact_name\": \"hia-core-native-8f27671ad748dc7c081a1eaad897b057d8d9f42e-1\""
+      },
+      {
+        "label": "original53-pin-5",
+        "from": "\"zip_bytes\": 54245802",
+        "to": "\"zip_bytes\": 54205895"
+      },
+      {
+        "label": "original53-pin-6",
+        "from": "\"zip_sha256\": \"4eec8d75658d48abe01c9518efa4362ba97b9b534576cc1d5b9deacde4a514cc\"",
+        "to": "\"zip_sha256\": \"4e6c28c249f27ec2dc05d7dcd7775c9aeb4d64b2a5dd18830c26af481624915b\""
+      },
+      {
+        "label": "original53-pin-7",
+        "from": "\"producer_upload_file_count\": 3928",
+        "to": "\"producer_upload_file_count\": 3881"
+      },
+      {
+        "label": "doc-follow",
+        "from": "FOLLOW48",
+        "to": "FOLLOW53",
+        "occurrences": 1
+      },
+      {
+        "label": "console-scope",
+        "from": "CORE48",
+        "to": "CORE53",
+        "occurrences": 4
+      },
+      {
+        "label": "file-scope",
+        "from": "core48",
+        "to": "core53",
+        "occurrences": 2
+      },
+      {
+        "label": "reader-schema",
+        "from": "\"schema\": \"hia-core53-original-readback-r2\"",
+        "to": "\"schema\": \"hia-core53-original-readback-r1\""
+      },
+      {
+        "label": "retain-primary-and-live-alarm",
+        "from": "        traceback.print_exc()\n    finally:\n        signal.setitimer(signal.ITIMER_REAL, 0)\n",
+        "to": "        try:\n            traceback.print_exc()\n        except BaseException:\n            # The first reader failure is already captured verbatim in primary.\n            pass\n    finally:\n        # The original 180-second alarm remains active through readback,\n        # receipt output and the strict post-output aggregate budget gate.\n"
+      },
+      {
+        "label": "protected-report-and-strict-post-output-gate",
+        "from": "        save_json(args.out / \"summary.json\", summary)\n        print(\"HIA_CORE53_READBACK \" + json.dumps(summary, sort_keys=True), flush=True)\n    if status != \"PASS\":\n        raise SystemExit(1)\n",
+        "to": "        summary[\"post_stdout_budget_file\"] = \"post-stdout-budget.json\"\n        summary[\"literal_AST_reads_of_original_family_declaration_only\"] = True\n        summary_path = args.out / \"summary.json\"\n        for scope, operation in (\n                (\"write-summary\", lambda: save_json(summary_path, summary)),\n                (\"print-summary\", lambda: print(\n                    \"HIA_CORE53_READBACK \" + json.dumps(summary, sort_keys=True), flush=True))):\n            try:\n                operation()\n            except BaseException as exc:\n                status = \"FAIL\"\n                after_errors.append({\"scope\": scope, \"error_class\": type(exc).__name__,\n                                     \"error\": str(exc)})\n        post_self = resource.getrusage(resource.RUSAGE_SELF)\n        post_children = resource.getrusage(resource.RUSAGE_CHILDREN)\n        post_cpu = (post_self.ru_utime + post_self.ru_stime\n                    + post_children.ru_utime + post_children.ru_stime)\n        post_elapsed = time.monotonic_ns() - start\n        post_status = (\"PASS\" if status == \"PASS\" and post_cpu < 90\n                       and post_elapsed < 180_000_000_000 else \"FAIL\")\n        post = {\"schema\": \"hia-core53-readback-post-stdout-budget-v1\",\n                \"status\": post_status, \"aggregate_CPU_seconds\": post_cpu,\n                \"elapsed_ns\": str(post_elapsed),\n                \"includes_summary_write_stdout_flush_and_all_original_reads\": True,\n                \"limits\": {\"CPU_seconds\": 90, \"wall_ns\": 180_000_000_000},\n                \"primary_error_preserved\": primary, \"after_errors\": after_errors,\n                \"project_imports\": 0, \"native_entries\": 0, \"B3_entries\": 0}\n        if post_status != \"PASS\":\n            status = \"FAIL\"\n        post_path = args.out / \"post-stdout-budget.json\"\n        try:\n            post_raw = (json.dumps(post, sort_keys=True, indent=2) + \"\\n\").encode(\"utf-8\")\n            with post_path.open(\"xb\") as stream:\n                stream.write(post_raw)\n            require(post_path.read_bytes() == post_raw, \"post-output receipt full readback\")\n        except BaseException as exc:\n            status = \"FAIL\"\n            after_errors.append({\"scope\": \"post-output-receipt-write-readback\",\n                                 \"error_class\": type(exc).__name__, \"error\": str(exc)})\n        final_self = resource.getrusage(resource.RUSAGE_SELF)\n        final_children = resource.getrusage(resource.RUSAGE_CHILDREN)\n        final_cpu = (final_self.ru_utime + final_self.ru_stime\n                     + final_children.ru_utime + final_children.ru_stime)\n        final_elapsed = time.monotonic_ns() - start\n        if final_cpu >= 90 or final_elapsed >= 180_000_000_000:\n            status = \"FAIL\"\n            after_errors.append({\"scope\": \"strict-final-post-receipt-budget\",\n                                 \"aggregate_CPU_seconds\": final_cpu,\n                                 \"elapsed_ns\": str(final_elapsed)})\n        if status != \"PASS\":\n            summary.update(status=\"FAIL\", primary_error=primary, after_errors=after_errors,\n                           final_aggregate_CPU_seconds=final_cpu,\n                           final_elapsed_ns=str(final_elapsed),\n                           final_measurement_includes_post_receipt_readback=True)\n            # Failure of either output cannot replace the original reader failure.\n            for scope, operation in (\n                    (\"rewrite-final-FAIL-summary\", lambda: save_json(summary_path, summary)),\n                    (\"print-final-FAIL-summary\", lambda: print(\n                        \"HIA_CORE53_READBACK_FINAL_FAIL \" + json.dumps(summary, sort_keys=True),\n                        flush=True))):\n                try:\n                    operation()\n                except BaseException as exc:\n                    after_errors.append({\"scope\": scope, \"error_class\": type(exc).__name__,\n                                         \"error\": str(exc)})\n        signal.setitimer(signal.ITIMER_REAL, 0)\n    if status != \"PASS\":\n        raise SystemExit(1)\n"
+      }
+    ],
+    "whole_source_inverse_equal": true
+  },
+  "transport": {
+    "base": {
+      "bytes": 8338,
+      "gitsha": "6dfa64de80e8cdac5dbae58acec757931c857b70",
+      "sha256": "44025a0e2ac48736bcbe47b12b90553776563ee18ed272bd4a5b223188e86655"
+    },
+    "result": {
+      "bytes": 8329,
+      "gitsha": "e835425f924e2d94346ae33b66f9bd0b4cbc64b3",
+      "sha256": "bf92cf0a035347bd7096a400eb1f2422d15c80d19f2fed6d3b6ff624366f2aa6"
+    },
+    "changes": [
+      {
+        "label": "transport53-pin-0",
+        "from": "seven-inline FOLLOW51",
+        "to": "Core53 cold failure"
+      },
+      {
+        "label": "transport53-pin-1",
+        "from": "RUN=43225855642",
+        "to": "RUN=43237029270"
+      },
+      {
+        "label": "transport53-pin-2",
+        "from": "ARTIFACT=13948294840",
+        "to": "ARTIFACT=13954345082"
+      },
+      {
+        "label": "transport53-pin-3",
+        "from": "HEAD=\"969bebebdd71f5bf185dd5e22ef990cfc0a6bc0b\"",
+        "to": "HEAD=\"8f27671ad748dc7c081a1eaad897b057d8d9f42e\""
+      },
+      {
+        "label": "transport53-pin-4",
+        "from": "SIZE=99436852",
+        "to": "SIZE=54205895"
+      },
+      {
+        "label": "transport53-pin-5",
+        "from": "SHA=\"1b1509d6f1aba5ff1f10e907f4ae8c31cad3431ffc01131d16bcd89f77d6d920\"",
+        "to": "SHA=\"4e6c28c249f27ec2dc05d7dcd7775c9aeb4d64b2a5dd18830c26af481624915b\""
+      },
+      {
+        "label": "transport53-pin-6",
+        "from": "NAME=\"hia-ordinary-impact-json-inline-r1-recovery-43225855642-1\"",
+        "to": "NAME=\"hia-core-native-8f27671ad748dc7c081a1eaad897b057d8d9f42e-1\""
+      },
+      {
+        "label": "transport-schema",
+        "from": "hia-impact51",
+        "to": "hia-core53",
+        "occurrences": 2
+      },
+      {
+        "label": "transport-stdout",
+        "from": "HIA_IMPACT51",
+        "to": "HIA_CORE53",
+        "occurrences": 2
+      }
+    ],
+    "whole_source_inverse_equal": true
+  },
+  "scope": {
+    "complete_outer_ZIP_stream_hash_CRC": true,
+    "all_embedded_ZIPs_stream_hash_CRC": true,
+    "all_declared_HIA_lossless_manifests": true,
+    "original_source_export_bound_to_exact_Git_head": true,
+    "all_original_byte_exports_base64_not_JSON_reserialized": true,
+    "stdlib_literal_AST_of_original_QUALIFICATION_FAMILIES_only": true,
+    "original_project_imports": 0,
+    "original_tests_reexecuted": 0,
+    "native_entries": 0,
+    "B3_entries": 0
+  },
+  "not_claimed": {
+    "actual_reader_AST_pass": false,
+    "actual_transport_run": false,
+    "actual_archive_read": false,
+    "underlying_Core53_failure_cause_known": false,
+    "old_Core48_artifact_reexecuted": false,
+    "whole_native_install": false
+  },
+  "limits": {
+    "CPU_seconds": 90,
+    "wall_seconds": 180,
+    "address_bytes": 1073741824,
+    "original_cold_budgets_unchanged": true
+  }
+}

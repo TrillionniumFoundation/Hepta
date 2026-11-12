@@ -1,0 +1,219 @@
+{
+  "schema": "hia-current-prefix-failure-finalization-exact-text-delta-v1",
+  "status": "SOURCE_TEXT_ONLY_ZERO_AST_GENERATION_B3_VM_NATIVE",
+  "original_delivery": {
+    "bytes": 33583,
+    "sha256": "5e31e289fb56413da024ef076dfe1692107eee41a7e0da5a4d4f36f7859eb340",
+    "gitsha": "961d65a54d1398b467e8c8e10ef3be8f179f1edb"
+  },
+  "review": {
+    "bytes": 6495,
+    "sha256": "8cecaa5795a6b1aa409870db7a0bb5e3036659ec4bbe378941c130140249e993",
+    "gitsha": "813925c4bbe99951c23c93ba9b8e2ddd7fc1f429"
+  },
+  "requested_scope": [
+    "reader/build/group late resource FAIL receipt",
+    "first primary exception preserved through independent cleanup/output",
+    "CI original raw summary bytes before parse and independent stderr/process capture"
+  ],
+  "source_rows": [
+    {
+      "file": "assets.reader",
+      "original": {
+        "bytes": 16377,
+        "sha256": "db0e893eaac777f9ce0d898a91853a418d7ac1f78d5fc7734ddfb54caa0cbacf",
+        "gitsha": "0f52a92ca8feeee95fa33b06097b195823eac2c7"
+      },
+      "candidate": {
+        "bytes": 18882,
+        "sha256": "34dafa14c1fb25a078e0976f1e0651ed970a488c86239b8854855628a0610656",
+        "gitsha": "18edaaac7f754ad5cdf568375b0a712f2233e796"
+      },
+      "previous_prefix_functions_all_byte_identical": true,
+      "main_try_success_body_byte_identical": true,
+      "prefix_bytes": 5193,
+      "main_try_body": {
+        "bytes": 8808,
+        "sha256": "7e4f5bddc51beb39505da45dff3edffd9621538f9249d27f68a37500986aecd4",
+        "gitsha": "ed0810a41e117989c5cd61bfddff92f3016f3768"
+      },
+      "insertion_before_unique": "\ntry:\n",
+      "inserted_before_main_try": "\n\nPRIMARY=None\nFINALIZATION_ERRORS=[]\ndef _final_failure(phase,exc):\n global PRIMARY,STATUS\n STATUS=\"FAIL\"\n FINALIZATION_ERRORS.append(dict(phase=phase,error_class=type(exc).__name__,error=str(exc)))\n if PRIMARY is None:PRIMARY=exc\n elif exc is not PRIMARY:PRIMARY.add_note(phase+\": \"+repr(exc))\n return None\ndef _final_attempt(phase,operation):\n try:return operation()\n except BaseException as exc:return _final_failure(phase,exc)\ndef _finish_receipt(report,success_status,marker):\n global STATUS\n if PRIMARY is not None:STATUS=\"FAIL\"\n def sync():\n  report[\"status\"]=STATUS\n  report[\"finalization_errors\"]=list(FINALIZATION_ERRORS)\n  report[\"first_failure\"]=(None if PRIMARY is None else\n    dict(error_class=type(PRIMARY).__name__,error=str(PRIMARY)))\n  if \"complete_inner_readback\" in report:report[\"complete_inner_readback\"]=STATUS==success_status\n  if \"partial\" in report:report[\"partial\"]=STATUS!=success_status\n def measure(phase):\n  measured=_final_attempt(phase,_elapsed_budget)\n  if measured is None:return\n  cpu,wall=measured\n  report[phase]=dict(parent_plus_children_CPU_seconds=cpu,elapsed_seconds=wall)\n  if cpu>=90 or wall>=180:_final_failure(phase,TimeoutError(\"strict final 90 CPU / 180 wall gate\"))\n measure(\"pre_receipt_budget\")\n sync()\n _final_attempt(\"write_summary\",lambda:save(OUT/\"summary.json\",report))\n sync()\n _final_attempt(\"print_summary\",lambda:print(marker+\" \"+json.dumps(report,sort_keys=True),flush=True))\n measure(\"post_output_budget\")\n # A post-output failure must replace any earlier provisional PASS receipt.\n # Every output attempt is independent; the first exception remains primary.\n if STATUS!=success_status or PRIMARY is not None:\n  STATUS=\"FAIL\";sync()\n  _final_attempt(\"rewrite_failure_summary\",lambda:save(OUT/\"summary.json\",report))\n  sync()\n  _final_attempt(\"print_failure_summary\",lambda:print(marker+\"_FINAL_FAILURE \"+json.dumps(report,sort_keys=True),flush=True))\n  sync()\n  _final_attempt(\"save_final_failure_summary\",lambda:save(OUT/\"summary.json\",report))\n _final_attempt(\"disable_alarm\",lambda:signal.setitimer(signal.ITIMER_REAL,0))\n # Account for successful receipt output and alarm cancellation before return.\n measured=_final_attempt(\"return_budget_measure\",_elapsed_budget)\n if measured is not None and (measured[0]>=90 or measured[1]>=180):\n  _final_failure(\"return_budget\",TimeoutError(\"strict return 90 CPU / 180 wall gate\"))\n if STATUS!=success_status or PRIMARY is not None:\n  STATUS=\"FAIL\";sync()\n  _final_attempt(\"save_return_failure_summary\",lambda:save(OUT/\"summary.json\",report))\n  if PRIMARY is not None:raise PRIMARY\n  raise SystemExit(1)\n\ndef _elapsed_budget():\n end=resource.getrusage(resource.RUSAGE_SELF);children=resource.getrusage(resource.RUSAGE_CHILDREN)\n return (end.ru_utime+end.ru_stime-START_SELF.ru_utime-START_SELF.ru_stime+\n   children.ru_utime+children.ru_stime-START_CHILD.ru_utime-START_CHILD.ru_stime,\n   (time.monotonic_ns()-START)/1e9)\n",
+      "original_except_finally_tail": "\nexcept BaseException as exc:\n FAILURE=dict(error_class=type(exc).__name__,error=str(exc),traceback=traceback.format_exc())\n traceback.print_exc()\nfinally:\n for kind,items in ((\"input\",INPUTS.items()),(\"copy\",COPIES.items())):\n  for path,before in items:\n   try:assert identity(path)==before,(kind,str(path))\n   except BaseException as exc:ERRORS.append(dict(kind=kind,path=str(path),error=repr(exc)))\n for row in EXTRACTED:\n  try:assert identity(row[\"path\"])=={k:row[k] for k in(\"bytes\",\"sha256\",\"gitsha\",\"mode\")}\n  except BaseException as exc:ERRORS.append(dict(kind=\"extracted\",path=row[\"path\"],error=repr(exc)))\n end=resource.getrusage(resource.RUSAGE_SELF);children=resource.getrusage(resource.RUSAGE_CHILDREN)\n cpu=(end.ru_utime+end.ru_stime-START_SELF.ru_utime-START_SELF.ru_stime+\n      children.ru_utime+children.ru_stime-START_CHILD.ru_utime-START_CHILD.ru_stime)\n wall=(time.monotonic_ns()-START)/1e9\n if cpu>=90 or wall>=180:ERRORS.append(dict(kind=\"budget\",cpu=cpu,wall=wall))\n if ERRORS:STATUS=\"FAIL\"\n report=dict(schema=\"hia-backend-current-program-Graph-original-assets-readback-v2\",status=STATUS,\n   failure=FAILURE,after_check_errors=ERRORS,archive_members_read=len(EXTRACTED),\n   original_member_bytes_read=sum(r[\"bytes\"] for r in EXTRACTED),\n   target_executions=0,compiler_executions=0,VM_entries=0,HIA_entries=0,\n   original_P16_cases_rerun=0,old_success_counts_inherited_as_new=False,\n   original_inputs={str(k):v for k,v in INPUTS.items()},\n   actual_limits=dict(cpu=90,wall=180,address=1<<30,core=0),\n   parent_plus_children_CPU_seconds=cpu,elapsed_seconds=wall,\n   complete_inner_readback=STATUS==\"PASS\",outer_ZIP_body_independently_read=False,\n   partial=STATUS!=\"PASS\",whole_public_backend=False,installed=False)\n save(OUT/\"summary.json\",report)\n print(\"HIA_BACKEND_PREFIX_ASSET_ORIGINAL \"+json.dumps(report,sort_keys=True),flush=True)\n final_self=resource.getrusage(resource.RUSAGE_SELF);final_child=resource.getrusage(resource.RUSAGE_CHILDREN)\n final_cpu=(final_self.ru_utime+final_self.ru_stime-START_SELF.ru_utime-START_SELF.ru_stime+\n      final_child.ru_utime+final_child.ru_stime-START_CHILD.ru_utime-START_CHILD.ru_stime)\n final_wall=(time.monotonic_ns()-START)/1e9\n signal.setitimer(signal.ITIMER_REAL,0)\n if final_cpu>=90 or final_wall>=180:raise TimeoutError(\"P16 asset reader final resource gate\")\nif STATUS!=\"PASS\":raise SystemExit(1)\n",
+      "candidate_except_finally_tail": "\nexcept BaseException as exc:\n PRIMARY=exc;STATUS=\"FAIL\"\n FAILURE=dict(error_class=type(exc).__name__,error=str(exc),traceback=traceback.format_exc())\n _final_attempt(\"original_traceback\",lambda:traceback.print_exc())\nfinally:\n for kind,items in ((\"input\",INPUTS.items()),(\"copy\",COPIES.items())):\n  for path,before in items:\n   try:assert identity(path)==before,(kind,str(path))\n   except BaseException as exc:\n    ERRORS.append(dict(kind=kind,path=str(path),error=repr(exc)))\n    _final_failure(\"after_\"+kind+\":\"+str(path),exc)\n for row in EXTRACTED:\n  try:assert identity(row[\"path\"])=={k:row[k] for k in(\"bytes\",\"sha256\",\"gitsha\",\"mode\")}\n  except BaseException as exc:\n   ERRORS.append(dict(kind=\"extracted\",path=row[\"path\"],error=repr(exc)))\n   _final_failure(\"after_extracted:\"+row[\"path\"],exc)\n measured=_final_attempt(\"initial_final_budget_measure\",_elapsed_budget)\n cpu,wall=(None,None) if measured is None else measured\n if measured is not None and (cpu>=90 or wall>=180):\n  ERRORS.append(dict(kind=\"budget\",cpu=cpu,wall=wall))\n  _final_failure(\"initial_final_budget\",TimeoutError(\"P16 asset reader final resource gate\"))\n if ERRORS:STATUS=\"FAIL\"\n report=dict(schema=\"hia-backend-current-program-Graph-original-assets-readback-v2\",status=STATUS,\n   failure=FAILURE,after_check_errors=ERRORS,archive_members_read=len(EXTRACTED),\n   original_member_bytes_read=sum(r[\"bytes\"] for r in EXTRACTED),\n   target_executions=0,compiler_executions=0,VM_entries=0,HIA_entries=0,\n   original_P16_cases_rerun=0,old_success_counts_inherited_as_new=False,\n   original_inputs={str(k):v for k,v in INPUTS.items()},\n   actual_limits=dict(cpu=90,wall=180,address=1<<30,core=0),\n   parent_plus_children_CPU_seconds=cpu,elapsed_seconds=wall,\n   complete_inner_readback=STATUS==\"PASS\",outer_ZIP_body_independently_read=False,\n   partial=STATUS!=\"PASS\",whole_public_backend=False,installed=False)\n _finish_receipt(report,\"PASS\",\"HIA_BACKEND_PREFIX_ASSET_ORIGINAL\")\n",
+      "complete_inverse_original_byte_equal": true
+    },
+    {
+      "file": "build",
+      "original": {
+        "bytes": 22518,
+        "sha256": "5fbef4b5a535a64859238b414ad6429e9418bc8a0deba2af0452899ee6e75ad5",
+        "gitsha": "58a4337ee33a436a588996c9ca952e342d753e7b"
+      },
+      "candidate": {
+        "bytes": 25304,
+        "sha256": "b30934fdfd79eb78ef950cef0b7ec26b2213ca89e0d89bed474ddb9a3ae144ff",
+        "gitsha": "8b3aeb31be7bdd19d5355bdab1b9198ae0079244"
+      },
+      "previous_prefix_functions_all_byte_identical": true,
+      "main_try_success_body_byte_identical": true,
+      "prefix_bytes": 5552,
+      "main_try_body": {
+        "bytes": 14553,
+        "sha256": "aacffccfd60187706f7e87a1046c5dfdd13937963ab6b7c6389427d17ff396fb",
+        "gitsha": "f2caea40d4db2a90d1ededbbe4f425e584680c6b"
+      },
+      "insertion_before_unique": "\ntry:\n",
+      "inserted_before_main_try": "\n\nPRIMARY=None\nFINALIZATION_ERRORS=[]\ndef _final_failure(phase,exc):\n global PRIMARY,STATUS\n STATUS=\"FAIL\"\n FINALIZATION_ERRORS.append(dict(phase=phase,error_class=type(exc).__name__,error=str(exc)))\n if PRIMARY is None:PRIMARY=exc\n elif exc is not PRIMARY:PRIMARY.add_note(phase+\": \"+repr(exc))\n return None\ndef _final_attempt(phase,operation):\n try:return operation()\n except BaseException as exc:return _final_failure(phase,exc)\ndef _finish_receipt(report,success_status,marker):\n global STATUS\n if PRIMARY is not None:STATUS=\"FAIL\"\n def sync():\n  report[\"status\"]=STATUS\n  report[\"finalization_errors\"]=list(FINALIZATION_ERRORS)\n  report[\"first_failure\"]=(None if PRIMARY is None else\n    dict(error_class=type(PRIMARY).__name__,error=str(PRIMARY)))\n  if \"complete_inner_readback\" in report:report[\"complete_inner_readback\"]=STATUS==success_status\n  if \"partial\" in report:report[\"partial\"]=STATUS!=success_status\n def measure(phase):\n  measured=_final_attempt(phase,_elapsed_budget)\n  if measured is None:return\n  cpu,wall=measured\n  report[phase]=dict(parent_plus_children_CPU_seconds=cpu,elapsed_seconds=wall)\n  if cpu>=90 or wall>=180:_final_failure(phase,TimeoutError(\"strict final 90 CPU / 180 wall gate\"))\n measure(\"pre_receipt_budget\")\n sync()\n _final_attempt(\"write_summary\",lambda:save(OUT/\"summary.json\",report))\n sync()\n _final_attempt(\"print_summary\",lambda:print(marker+\" \"+json.dumps(report,sort_keys=True),flush=True))\n measure(\"post_output_budget\")\n # A post-output failure must replace any earlier provisional PASS receipt.\n # Every output attempt is independent; the first exception remains primary.\n if STATUS!=success_status or PRIMARY is not None:\n  STATUS=\"FAIL\";sync()\n  _final_attempt(\"rewrite_failure_summary\",lambda:save(OUT/\"summary.json\",report))\n  sync()\n  _final_attempt(\"print_failure_summary\",lambda:print(marker+\"_FINAL_FAILURE \"+json.dumps(report,sort_keys=True),flush=True))\n  sync()\n  _final_attempt(\"save_final_failure_summary\",lambda:save(OUT/\"summary.json\",report))\n _final_attempt(\"disable_alarm\",lambda:signal.setitimer(signal.ITIMER_REAL,0))\n # Account for successful receipt output and alarm cancellation before return.\n measured=_final_attempt(\"return_budget_measure\",_elapsed_budget)\n if measured is not None and (measured[0]>=90 or measured[1]>=180):\n  _final_failure(\"return_budget\",TimeoutError(\"strict return 90 CPU / 180 wall gate\"))\n if STATUS!=success_status or PRIMARY is not None:\n  STATUS=\"FAIL\";sync()\n  _final_attempt(\"save_return_failure_summary\",lambda:save(OUT/\"summary.json\",report))\n  if PRIMARY is not None:raise PRIMARY\n  raise SystemExit(1)\n\ndef _elapsed_budget():\n end=resource.getrusage(resource.RUSAGE_SELF);children=resource.getrusage(resource.RUSAGE_CHILDREN)\n return (end.ru_utime+end.ru_stime-START_SELF.ru_utime-START_SELF.ru_stime+\n   children.ru_utime+children.ru_stime-START_CHILD.ru_utime-START_CHILD.ru_stime,\n   (time.monotonic_ns()-START)/1e9)\n",
+      "original_except_finally_tail": "\nexcept BaseException as exc:\n FAILURE=dict(error_class=type(exc).__name__,error=str(exc),traceback=traceback.format_exc())\n traceback.print_exc()\nfinally:\n AFTER=before_after()\n if not all(row[\"same\"] for row in AFTER):STATUS=\"FAIL\"\n frozen=[]\n for index,(path,(raw,mode)) in enumerate(PINS.items()):\n  target=OUT/\"frozen-inputs\"/str(index)/path.name;target.parent.mkdir(parents=True,exist_ok=True)\n  target.write_bytes(raw);target.chmod(mode)\n  assert target.read_bytes()==raw and stat.S_IMODE(target.stat().st_mode)==mode\n  frozen.append(dict(path=str(path),snapshot=str(target),bytes=len(raw),sha256=digest(raw),gitsha=gitsha(raw),mode=mode))\n save(OUT/\"source-pins.json\",frozen);save(OUT/\"source-after.json\",AFTER)\n end=resource.getrusage(resource.RUSAGE_SELF);children=resource.getrusage(resource.RUSAGE_CHILDREN)\n cpu=(end.ru_utime+end.ru_stime-START_SELF.ru_utime-START_SELF.ru_stime+\n      children.ru_utime+children.ru_stime-START_CHILD.ru_utime-START_CHILD.ru_stime)\n wall=(time.monotonic_ns()-START)/1e9\n if cpu>=90 or wall>=180:STATUS=\"FAIL\"\n report=dict(schema=\"hia-backend-current-program-Graph-build-v2\",status=STATUS,failure=FAILURE,\n   actual_new_B3_compilations=len(COMPILED),actual_compile_attempts=len(ATTEMPTS),\n   actual_native_packer_entries=PACKER_ENTRIES,actual_semantic_ELF_processes=0,\n   compiled=COMPILED,source_image_before_after_equal=all(r[\"same\"] for r in AFTER),\n   new_compiler_sha256=NEW_COMPILER,retained_compiler_sha256=OLD_COMPILER,\n   actual_limits=dict(cpu=90,wall=180,address=1<<30,core=0),\n   original_compile_limits=dict(cpu=10,wall=20,address=256<<20),\n   parent_plus_children_CPU_seconds=cpu,elapsed_seconds=wall,\n   old_results_counted_as_new=False,complete_public_backend=False,installed=False,cold=False)\n save(OUT/\"summary.json\",report)\n print(\"HIA_BACKEND_PREFIX_BUILD_ORIGINAL \"+json.dumps(report,sort_keys=True),flush=True)\n final_self=resource.getrusage(resource.RUSAGE_SELF);final_child=resource.getrusage(resource.RUSAGE_CHILDREN)\n final_cpu=(final_self.ru_utime+final_self.ru_stime-START_SELF.ru_utime-START_SELF.ru_stime+\n      final_child.ru_utime+final_child.ru_stime-START_CHILD.ru_utime-START_CHILD.ru_stime)\n final_wall=(time.monotonic_ns()-START)/1e9\n signal.setitimer(signal.ITIMER_REAL,0)\n if final_cpu>=90 or final_wall>=180:raise TimeoutError(\"program Graph prefix builder final resource gate\")\nif STATUS!=\"PASS_BUILD_ONLY\":raise SystemExit(1)\n",
+      "candidate_except_finally_tail": "\nexcept BaseException as exc:\n PRIMARY=exc;STATUS=\"FAIL\"\n FAILURE=dict(error_class=type(exc).__name__,error=str(exc),traceback=traceback.format_exc())\n _final_attempt(\"original_traceback\",lambda:traceback.print_exc())\nfinally:\n observed_after=_final_attempt(\"source_after\",before_after)\n AFTER=[] if observed_after is None else observed_after\n if observed_after is None or not all(row[\"same\"] for row in AFTER):\n  _final_failure(\"source_after_identity\",AssertionError(\"source before/after identity mismatch\"))\n frozen=[]\n for index,(path,(raw,mode)) in enumerate(PINS.items()):\n  try:\n   target=OUT/\"frozen-inputs\"/str(index)/path.name;target.parent.mkdir(parents=True,exist_ok=True)\n   target.write_bytes(raw);target.chmod(mode)\n   assert target.read_bytes()==raw and stat.S_IMODE(target.stat().st_mode)==mode\n   frozen.append(dict(path=str(path),snapshot=str(target),bytes=len(raw),sha256=digest(raw),gitsha=gitsha(raw),mode=mode))\n  except BaseException as exc:_final_failure(\"freeze_input:\"+str(path),exc)\n _final_attempt(\"source_pins_receipt\",lambda:save(OUT/\"source-pins.json\",frozen))\n _final_attempt(\"source_after_receipt\",lambda:save(OUT/\"source-after.json\",AFTER))\n measured=_final_attempt(\"initial_final_budget_measure\",_elapsed_budget)\n cpu,wall=(None,None) if measured is None else measured\n if measured is not None and (cpu>=90 or wall>=180):_final_failure(\"initial_final_budget\",TimeoutError(\"program Graph prefix builder final resource gate\"))\n report=dict(schema=\"hia-backend-current-program-Graph-build-v2\",status=STATUS,failure=FAILURE,\n   actual_new_B3_compilations=len(COMPILED),actual_compile_attempts=len(ATTEMPTS),\n   actual_native_packer_entries=PACKER_ENTRIES,actual_semantic_ELF_processes=0,\n   compiled=COMPILED,source_image_before_after_equal=observed_after is not None and all(r[\"same\"] for r in AFTER),\n   new_compiler_sha256=NEW_COMPILER,retained_compiler_sha256=OLD_COMPILER,\n   actual_limits=dict(cpu=90,wall=180,address=1<<30,core=0),\n   original_compile_limits=dict(cpu=10,wall=20,address=256<<20),\n   parent_plus_children_CPU_seconds=cpu,elapsed_seconds=wall,\n   old_results_counted_as_new=False,complete_public_backend=False,installed=False,cold=False)\n _finish_receipt(report,\"PASS_BUILD_ONLY\",\"HIA_BACKEND_PREFIX_BUILD_ORIGINAL\")\n",
+      "complete_inverse_original_byte_equal": true
+    },
+    {
+      "file": "test",
+      "original": {
+        "bytes": 30448,
+        "sha256": "6af6a0247ede2812155fd6fde2074221b9b47d42751c10cec636aaac1548ad65",
+        "gitsha": "f9c02b4477a849b0ee0288811219c5b41ff9121f"
+      },
+      "candidate": {
+        "bytes": 33278,
+        "sha256": "5490e3b7c97c04c3129d54206f15e51b32437ccb5324fda5ded1e5e606f7e75b",
+        "gitsha": "2d8414ea44bd7a0ab1603a94219a23b78eebb882"
+      },
+      "previous_prefix_functions_all_byte_identical": true,
+      "main_try_success_body_byte_identical": true,
+      "prefix_bytes": 25355,
+      "main_try_body": {
+        "bytes": 2213,
+        "sha256": "aa4d300bd969e0263071c299f6bc57f5c561f470fe79e7f34d8d0aa8aab5340d",
+        "gitsha": "7f05bc3856f12968ec3364adce3ce6e4bcff1a56"
+      },
+      "insertion_before_unique": "\ntry:\n",
+      "inserted_before_main_try": "\n\nPRIMARY=None\nFINALIZATION_ERRORS=[]\ndef _final_failure(phase,exc):\n global PRIMARY,STATUS\n STATUS=\"FAIL\"\n FINALIZATION_ERRORS.append(dict(phase=phase,error_class=type(exc).__name__,error=str(exc)))\n if PRIMARY is None:PRIMARY=exc\n elif exc is not PRIMARY:PRIMARY.add_note(phase+\": \"+repr(exc))\n return None\ndef _final_attempt(phase,operation):\n try:return operation()\n except BaseException as exc:return _final_failure(phase,exc)\ndef _finish_receipt(report,success_status,marker):\n global STATUS\n if PRIMARY is not None:STATUS=\"FAIL\"\n def sync():\n  report[\"status\"]=STATUS\n  report[\"finalization_errors\"]=list(FINALIZATION_ERRORS)\n  report[\"first_failure\"]=(None if PRIMARY is None else\n    dict(error_class=type(PRIMARY).__name__,error=str(PRIMARY)))\n  if \"complete_inner_readback\" in report:report[\"complete_inner_readback\"]=STATUS==success_status\n  if \"partial\" in report:report[\"partial\"]=STATUS!=success_status\n def measure(phase):\n  measured=_final_attempt(phase,_elapsed_budget)\n  if measured is None:return\n  cpu,wall=measured\n  report[phase]=dict(parent_plus_children_CPU_seconds=cpu,elapsed_seconds=wall)\n  if cpu>=90 or wall>=180:_final_failure(phase,TimeoutError(\"strict final 90 CPU / 180 wall gate\"))\n measure(\"pre_receipt_budget\")\n sync()\n _final_attempt(\"write_summary\",lambda:save(OUT/\"summary.json\",report))\n sync()\n _final_attempt(\"print_summary\",lambda:print(marker+\" \"+json.dumps(report,sort_keys=True),flush=True))\n measure(\"post_output_budget\")\n # A post-output failure must replace any earlier provisional PASS receipt.\n # Every output attempt is independent; the first exception remains primary.\n if STATUS!=success_status or PRIMARY is not None:\n  STATUS=\"FAIL\";sync()\n  _final_attempt(\"rewrite_failure_summary\",lambda:save(OUT/\"summary.json\",report))\n  sync()\n  _final_attempt(\"print_failure_summary\",lambda:print(marker+\"_FINAL_FAILURE \"+json.dumps(report,sort_keys=True),flush=True))\n  sync()\n  _final_attempt(\"save_final_failure_summary\",lambda:save(OUT/\"summary.json\",report))\n _final_attempt(\"disable_alarm\",lambda:signal.setitimer(signal.ITIMER_REAL,0))\n # Account for successful receipt output and alarm cancellation before return.\n measured=_final_attempt(\"return_budget_measure\",_elapsed_budget)\n if measured is not None and (measured[0]>=90 or measured[1]>=180):\n  _final_failure(\"return_budget\",TimeoutError(\"strict return 90 CPU / 180 wall gate\"))\n if STATUS!=success_status or PRIMARY is not None:\n  STATUS=\"FAIL\";sync()\n  _final_attempt(\"save_return_failure_summary\",lambda:save(OUT/\"summary.json\",report))\n  if PRIMARY is not None:raise PRIMARY\n  raise SystemExit(1)\n\ndef _elapsed_budget():\n end=resource.getrusage(resource.RUSAGE_SELF);children=resource.getrusage(resource.RUSAGE_CHILDREN)\n return (end.ru_utime+end.ru_stime-INITIAL_SELF.ru_utime-INITIAL_SELF.ru_stime+\n   children.ru_utime+children.ru_stime-INITIAL_CHILD.ru_utime-INITIAL_CHILD.ru_stime,\n   (time.monotonic_ns()-START)/1e9)\n",
+      "original_except_finally_tail": "\nexcept BaseException as exc:\n FAILURE=dict(error_class=type(exc).__name__,error=str(exc),traceback=traceback.format_exc())\n traceback.print_exc()\nfinally:\n cleanup=[]\n for image in IMAGES.values():\n  try:image._mapping.close()\n  except BaseException as exc:cleanup.append(repr(exc))\n if cleanup:STATUS=\"FAIL\"\n source_after=after_inputs()\n if not all(x[\"same\"] for x in source_after):STATUS=\"FAIL\"\n save(OUT/\"source-after.json\",source_after)\n frozen=[]\n for index,(path,(raw,mode)) in enumerate(PINS.items()):\n  target=OUT/\"frozen-inputs\"/str(index)/path.name;target.parent.mkdir(parents=True,exist_ok=True)\n  target.write_bytes(raw);target.chmod(mode)\n  assert target.read_bytes()==raw and stat.S_IMODE(target.stat().st_mode)==mode\n  frozen.append(dict(path=str(path),snapshot=str(target),bytes=len(raw),sha256=digest(raw),gitsha=gitsha(raw),mode=mode))\n save(OUT/\"source-pins.json\",frozen)\n end=resource.getrusage(resource.RUSAGE_SELF);child=resource.getrusage(resource.RUSAGE_CHILDREN)\n cpu=end.ru_utime+end.ru_stime-INITIAL_SELF.ru_utime-INITIAL_SELF.ru_stime\n cpu+=child.ru_utime+child.ru_stime-INITIAL_CHILD.ru_utime-INITIAL_CHILD.ru_stime\n wall=(time.monotonic_ns()-START)/1e9\n if cpu>=90 or wall>=180:STATUS=\"FAIL\"\n report=dict(schema=\"hia-backend-current-program-Graph-actual-v2\",status=STATUS,error=FAILURE,cleanup_errors=cleanup,\n  group=a.group,variant=a.variant,planned_cases=GROUPS[a.group],completed_cases=len(ROWS),actual_ELF_processes=ELF_PROCESSES,\n  actual_wire_native_entries=WIRE_ENTRIES,actual_private_native_entries=PRIVATE_ENTRIES,\n  private_cases=PRIVATE_CASES,source_image_inputs_before_after_equal=all(x[\"same\"] for x in source_after),\n  parent_plus_children_CPU_seconds=cpu,elapsed_seconds=wall,limits=dict(cpu=90,wall=180,address=1<<30,core=0),\n  actual_program_admission_and_integer_Graph_issuance=any(row.get(\"result\",{}).get(\"kind\")==1 for row in ROWS),\n  current_P16_52a_HIA_source_binding_required=True,retained_type_diagnostic_cases_not_inherited=True,\n  all_current_33_type_context_message_shapes_planned=a.group in (\"type-names\",\"type-shapes\",\"type-order\"),\n  private_fixtures_authenticate_external_Graph=False,whole_public_backend=False,installed=False,cold=False,\n  prior_results_inherited=False,Python_authoring_test_TCB=True)\n save(OUT/\"summary.json\",report)\n print(\"HIA_BACKEND_PREFIX_GROUP_ORIGINAL \"+json.dumps(report,sort_keys=True),flush=True)\n end=resource.getrusage(resource.RUSAGE_SELF);child=resource.getrusage(resource.RUSAGE_CHILDREN)\n final_cpu=end.ru_utime+end.ru_stime-INITIAL_SELF.ru_utime-INITIAL_SELF.ru_stime\n final_cpu+=child.ru_utime+child.ru_stime-INITIAL_CHILD.ru_utime-INITIAL_CHILD.ru_stime\n final_wall=(time.monotonic_ns()-START)/1e9\n signal.setitimer(signal.ITIMER_REAL,0)\n if final_cpu>=90 or final_wall>=180:raise TimeoutError(\"actual prefix final 90 CPU / 180 wall gate\")\nif STATUS!=\"PASS\":raise SystemExit(1)\n",
+      "candidate_except_finally_tail": "\nexcept BaseException as exc:\n PRIMARY=exc;STATUS=\"FAIL\"\n FAILURE=dict(error_class=type(exc).__name__,error=str(exc),traceback=traceback.format_exc())\n _final_attempt(\"original_traceback\",lambda:traceback.print_exc())\nfinally:\n cleanup=[]\n for image in IMAGES.values():\n  try:image._mapping.close()\n  except BaseException as exc:\n   cleanup.append(repr(exc));_final_failure(\"image_cleanup\",exc)\n observed_after=_final_attempt(\"source_after\",after_inputs)\n source_after=[] if observed_after is None else observed_after\n if observed_after is None or not all(x[\"same\"] for x in source_after):\n  _final_failure(\"source_after_identity\",AssertionError(\"source before/after identity mismatch\"))\n _final_attempt(\"source_after_receipt\",lambda:save(OUT/\"source-after.json\",source_after))\n frozen=[]\n for index,(path,(raw,mode)) in enumerate(PINS.items()):\n  try:\n   target=OUT/\"frozen-inputs\"/str(index)/path.name;target.parent.mkdir(parents=True,exist_ok=True)\n   target.write_bytes(raw);target.chmod(mode)\n   assert target.read_bytes()==raw and stat.S_IMODE(target.stat().st_mode)==mode\n   frozen.append(dict(path=str(path),snapshot=str(target),bytes=len(raw),sha256=digest(raw),gitsha=gitsha(raw),mode=mode))\n  except BaseException as exc:_final_failure(\"freeze_input:\"+str(path),exc)\n _final_attempt(\"source_pins_receipt\",lambda:save(OUT/\"source-pins.json\",frozen))\n measured=_final_attempt(\"initial_final_budget_measure\",_elapsed_budget)\n cpu,wall=(None,None) if measured is None else measured\n if measured is not None and (cpu>=90 or wall>=180):_final_failure(\"initial_final_budget\",TimeoutError(\"actual prefix final resource gate\"))\n report=dict(schema=\"hia-backend-current-program-Graph-actual-v2\",status=STATUS,error=FAILURE,cleanup_errors=cleanup,\n  group=a.group,variant=a.variant,planned_cases=GROUPS[a.group],completed_cases=len(ROWS),actual_ELF_processes=ELF_PROCESSES,\n  actual_wire_native_entries=WIRE_ENTRIES,actual_private_native_entries=PRIVATE_ENTRIES,\n  private_cases=PRIVATE_CASES,source_image_inputs_before_after_equal=observed_after is not None and all(x[\"same\"] for x in source_after),\n  parent_plus_children_CPU_seconds=cpu,elapsed_seconds=wall,limits=dict(cpu=90,wall=180,address=1<<30,core=0),\n  actual_program_admission_and_integer_Graph_issuance=any(row.get(\"result\",{}).get(\"kind\")==1 for row in ROWS),\n  current_P16_52a_HIA_source_binding_required=True,retained_type_diagnostic_cases_not_inherited=True,\n  all_current_33_type_context_message_shapes_planned=a.group in (\"type-names\",\"type-shapes\",\"type-order\"),\n  private_fixtures_authenticate_external_Graph=False,whole_public_backend=False,installed=False,cold=False,\n  prior_results_inherited=False,Python_authoring_test_TCB=True)\n _finish_receipt(report,\"PASS\",\"HIA_BACKEND_PREFIX_GROUP_ORIGINAL\")\n",
+      "complete_inverse_original_byte_equal": true
+    }
+  ],
+  "CI": {
+    "original": {
+      "bytes": 16948,
+      "sha256": "9590dbac6c4c6d1e7bd14e41612345dfc85f86862158b1a05286ec229e353a65",
+      "gitsha": "70ea5aacc28df013749db08df97657dd3a5660a4"
+    },
+    "candidate": {
+      "bytes": 18997,
+      "sha256": "26c8f419f5788828ea3991bbdb8a440320915f427645e03ffa61ed060d38faff",
+      "gitsha": "37ac2dd87d58cbda2d0c8f9c95e77ecc900e5380"
+    },
+    "exact_replacements": [
+      {
+        "before": "def original(path,label):\n raw=raw_file(path)\n for at in range(0,len(raw),18000):\n  part=raw[at:at+18000]\n  print(label+\" \"+json.dumps(dict(path=str(path),bytes=len(raw),sha256=digest(raw),\n    offset=at,part_bytes=len(part),base64=base64.b64encode(part).decode(\"ascii\")),sort_keys=True),flush=True)\ndef original_summary(path,label):\n if not path.is_file():return None\n raw=raw_file(path);value=json.loads(raw)\n print(label+\" \"+raw.decode(\"utf-8\").strip(),flush=True)\n return value\n",
+        "after": "def original_bytes(raw,path,label):\n for at in range(0,max(1,len(raw)),18000):\n  part=raw[at:at+18000]\n  print(label+\" \"+json.dumps(dict(path=str(path),bytes=len(raw),sha256=digest(raw),\n    offset=at,part_bytes=len(part),base64=base64.b64encode(part).decode(\"ascii\")),sort_keys=True),flush=True)\ndef original(path,label):original_bytes(raw_file(path),path,label)\ndef original_summary(path,label):\n if not path.is_file():return None\n raw=raw_file(path)\n # Preserve every original byte even if JSON decoding then fails.\n original_bytes(raw,path,label+\"_BYTES\")\n value=json.loads(raw)\n print(label+\" \"+raw.decode(\"utf-8\").strip(),flush=True)\n return value\nclass Evidence:\n def __init__(self):self.primary=None;self.errors=[]\n def record(self,phase,exc):\n  self.errors.append(dict(phase=phase,error_class=type(exc).__name__,error=str(exc)))\n  if self.primary is None:self.primary=exc\n  elif self.primary is not exc:self.primary.add_note(phase+\": \"+repr(exc))\n def attempt(self,phase,operation):\n  try:return operation()\n  except BaseException as exc:self.record(phase,exc);return None\n def raise_if_failed(self):\n  if self.primary is not None:raise self.primary\n"
+      },
+      {
+        "before": "def run_gate(common,label,args,cwd,env,summary_path,marker):\n try:\n  common.run(label,args,cwd=cwd,timeout=180,env=env)\n finally:\n  value=original_summary(summary_path,marker)\n  step=common.OUTPUT/\"steps\"/label\n  for filename in (\"stderr.log\",\"process.json\"):\n   if (step/filename).is_file():original(step/filename,\"HIA_CURRENT_PREFIX_STEP_ORIGINAL\")\n process=json.loads(raw_file(step/\"process.json\"))\n assert process[\"status\"]==\"PASS\" and process[\"returncode\"]==0 and not process[\"timed_out\"]\n assert process[\"timeout_seconds\"]==180 and process[\"child_cpu_seconds\"]<90\n assert process[\"elapsed_ns\"]<180*10**9\n assert value is not None\n return value,process\n",
+        "after": "def run_gate(common,label,args,cwd,env,summary_path,marker):\n evidence=Evidence()\n evidence.attempt(\"subject\",lambda:common.run(label,args,cwd=cwd,timeout=180,env=env))\n value=evidence.attempt(\"original_summary\",lambda:original_summary(summary_path,marker))\n step=common.OUTPUT/\"steps\"/label\n for filename in (\"stderr.log\",\"process.json\"):\n  evidence.attempt(\"original_\"+filename,\n   lambda filename=filename:original(step/filename,\"HIA_CURRENT_PREFIX_STEP_ORIGINAL\")\n    if (step/filename).is_file() else None)\n evidence.raise_if_failed()\n process=json.loads(raw_file(step/\"process.json\"))\n assert process[\"status\"]==\"PASS\" and process[\"returncode\"]==0 and not process[\"timed_out\"]\n assert process[\"timeout_seconds\"]==180 and process[\"child_cpu_seconds\"]<90\n assert process[\"elapsed_ns\"]<180*10**9\n assert value is not None\n return value,process\n"
+      },
+      {
+        "before": " project=assets_root=None;status=\"FAIL\";groups={};actual_pairs={};executable=None;before_executable=None\n",
+        "after": " project=assets_root=None;status=\"FAIL\";groups={};actual_pairs={};executable=None;before_executable=None\n main_evidence=Evidence()\n"
+      },
+      {
+        "before": "  try:\n   value,process=run_gate(common,\"current-program-Graph-root-and-native-packer\",",
+        "after": "  build_evidence=Evidence()\n  try:\n   value,process=run_gate(common,\"current-program-Graph-root-and-native-packer\","
+      },
+      {
+        "before": "  finally:\n   report[\"build\"]=original_summary(build/\"summary.json\",\"HIA_CURRENT_PREFIX_BUILD_FINAL_ORIGINAL\")\n   if report[\"build\"] is not None:\n    report[\"actual_new_B3\"]=report[\"build\"][\"actual_new_B3_compilations\"]\n    report[\"actual_new_HIA_packer_entries\"]=report[\"build\"][\"actual_native_packer_entries\"]\n   if build.exists():\n    for path in sorted(set(build.rglob(\"*.stderr\"))|set(build.rglob(\"*.stderr.log\"))):\n     original(path,\"HIA_CURRENT_PREFIX_NESTED_STDERR_ORIGINAL\")\n    for path in sorted(build.rglob(\"profile-before-gates.json\")):\n     original(path,\"HIA_CURRENT_PREFIX_PROFILE_ORIGINAL\")\n",
+        "after": "  except BaseException as exc:build_evidence.record(\"build_subject\",exc)\n  finally:\n   report[\"build\"]=build_evidence.attempt(\"build_final_summary\",\n    lambda:original_summary(build/\"summary.json\",\"HIA_CURRENT_PREFIX_BUILD_FINAL_ORIGINAL\"))\n   if report[\"build\"] is not None:\n    def build_counts():\n     report[\"actual_new_B3\"]=report[\"build\"][\"actual_new_B3_compilations\"]\n     report[\"actual_new_HIA_packer_entries\"]=report[\"build\"][\"actual_native_packer_entries\"]\n    build_evidence.attempt(\"build_counts\",build_counts)\n   for pattern,marker in ((\"*.stderr\",\"HIA_CURRENT_PREFIX_NESTED_STDERR_ORIGINAL\"),\n     (\"*.stderr.log\",\"HIA_CURRENT_PREFIX_NESTED_STDERR_ORIGINAL\"),\n     (\"profile-before-gates.json\",\"HIA_CURRENT_PREFIX_PROFILE_ORIGINAL\")):\n    paths=build_evidence.attempt(\"list_\"+pattern,lambda pattern=pattern:sorted(build.rglob(pattern)))\n    for path in paths or []:\n     build_evidence.attempt(\"original_\"+str(path),lambda path=path,marker=marker:original(path,marker))\n  build_evidence.raise_if_failed()\n"
+      },
+      {
+        "before": "   try:\n    value,process=run_gate(common,\"current-program-Graph-\"+label,args,project,env,",
+        "after": "   group_evidence=Evidence()\n   try:\n    value,process=run_gate(common,\"current-program-Graph-\"+label,args,project,env,"
+      },
+      {
+        "before": "   finally:\n    current=original_summary(out/\"summary.json\",\"HIA_CURRENT_PREFIX_GROUP_FINAL_ORIGINAL\")\n    if current is not None:groups[label]=current\n    report[\"groups\"]=groups\n    for name,field in ((\"actual_completed_cases\",\"completed_cases\"),(\"actual_ELF\",\"actual_ELF_processes\"),\n      (\"actual_private_cases\",\"private_cases\"),(\"actual_private_entries\",\"actual_private_native_entries\"),\n      (\"actual_wire_entries\",\"actual_wire_native_entries\")):\n     report[name]=sum(r.get(field,0) for r in groups.values())\n",
+        "after": "   except BaseException as exc:group_evidence.record(\"group_subject\",exc)\n   finally:\n    current=group_evidence.attempt(\"group_final_summary\",\n     lambda:original_summary(out/\"summary.json\",\"HIA_CURRENT_PREFIX_GROUP_FINAL_ORIGINAL\"))\n    if current is not None:groups[label]=current\n    report[\"groups\"]=groups\n    for name,field in ((\"actual_completed_cases\",\"completed_cases\"),(\"actual_ELF\",\"actual_ELF_processes\"),\n      (\"actual_private_cases\",\"private_cases\"),(\"actual_private_entries\",\"actual_private_native_entries\"),\n      (\"actual_wire_entries\",\"actual_wire_native_entries\")):\n     def group_count(name=name,field=field):\n      report[name]=sum(r.get(field,0) for r in groups.values())\n     group_evidence.attempt(\"count_\"+name,group_count)\n   group_evidence.raise_if_failed()\n"
+      },
+      {
+        "before": " except BaseException as exc:\n  report.update(status=\"FAIL\",error_class=type(exc).__name__,error=str(exc),traceback=traceback.format_exc())\n  traceback.print_exc()\n",
+        "after": " except BaseException as exc:\n  main_evidence.record(\"CI_subject\",exc)\n  report.update(status=\"FAIL\",error_class=type(exc).__name__,error=str(exc),traceback=traceback.format_exc())\n  main_evidence.attempt(\"original_CI_traceback\",lambda:traceback.print_exc())\n"
+      },
+      {
+        "before": "    except BaseException as exc:errors.append(dict(scope=label,error=repr(exc)))",
+        "after": "    except BaseException as exc:\n     errors.append(dict(scope=label,error=repr(exc)));main_evidence.record(\"closure_\"+label,exc)"
+      },
+      {
+        "before": "    except BaseException as exc:errors.append(dict(role=role,kind=kind,error=repr(exc)))",
+        "after": "    except BaseException as exc:\n     errors.append(dict(role=role,kind=kind,error=repr(exc)));main_evidence.record(\"role_\"+role+\"_\"+kind,exc)"
+      },
+      {
+        "before": "   except BaseException as exc:errors.append(dict(scope=\"fixed_ELF\",error=repr(exc)))",
+        "after": "   except BaseException as exc:\n    errors.append(dict(scope=\"fixed_ELF\",error=repr(exc)));main_evidence.record(\"fixed_ELF_after\",exc)"
+      },
+      {
+        "before": "  if errors:status=\"FAIL\";report[\"status\"]=\"FAIL\"\n  report[\"final_source_image_after_check_errors\"]=errors",
+        "after": "  if errors or main_evidence.primary is not None:status=\"FAIL\";report[\"status\"]=\"FAIL\"\n  report[\"CI_evidence_errors\"]=main_evidence.errors\n  report[\"final_source_image_after_check_errors\"]=errors"
+      },
+      {
+        "before": "  seal.finish(common,\"current-program-Core-Graph-r2\",status,report,roots=roots)\n if status!=\"PASS\":raise SystemExit(1)",
+        "after": "  main_evidence.attempt(\"bounded_seal\",\n   lambda:seal.finish(common,\"current-program-Core-Graph-r2\",status,report,roots=roots))\n main_evidence.raise_if_failed()\n if status!=\"PASS\":raise SystemExit(1)"
+      },
+      {
+        "before": "INDEX_GIT=\"a53cae2f921ee96de1a1d963357d854197038215\"",
+        "after": "INDEX_GIT=\"52e8ffbfa04044f67cc103f4a8b53e1bef1a2a03\""
+      },
+      {
+        "before": "INDEX_SHA=\"b5e79b874203add6c0760c4e34d1270f98d767f3c6425741b49472a77f01eda3\"",
+        "after": "INDEX_SHA=\"f6420dfd257bfbdf5ee969b046a1abdb138f943b386e5e541fea8090efacec72\""
+      }
+    ],
+    "complete_inverse_original_byte_equal": true
+  },
+  "source_index": {
+    "original": {
+      "bytes": 19000,
+      "sha256": "b5e79b874203add6c0760c4e34d1270f98d767f3c6425741b49472a77f01eda3",
+      "gitsha": "a53cae2f921ee96de1a1d963357d854197038215"
+    },
+    "candidate": {
+      "bytes": 19000,
+      "sha256": "f6420dfd257bfbdf5ee969b046a1abdb138f943b386e5e541fea8090efacec72",
+      "gitsha": "52e8ffbfa04044f67cc103f4a8b53e1bef1a2a03"
+    },
+    "files": 37,
+    "only_changed_paths": [
+      "ci/read_backend_program_graph_assets.py",
+      "development/build_backend_program_graph.py",
+      "development/test_backend_program_graph.py"
+    ]
+  },
+  "unchanged": {
+    "all_HIA_authoring_and_references": true,
+    "all_private_and_public_case_functions": true,
+    "planned_groups": 15,
+    "planned_cases": 176,
+    "actual_ELF_planned": 122,
+    "private_cases_planned": 54,
+    "private_entries_planned": 128,
+    "original_compiler_CPU": 10,
+    "original_compiler_wall": 20,
+    "original_compiler_AS": 268435456,
+    "aggregate_group_CPU_exclusive": 90,
+    "group_wall_exclusive": 180,
+    "group_AS": 1073741824,
+    "one_new_root_B3": true,
+    "retained_current_other_42_images": true,
+    "new_table_size": 47,
+    "current_groups6_and9_not_inherited": true,
+    "all_development_only_qualification_unexecuted": true
+  },
+  "limits_of_change": [
+    "No fault injection or execution performed.",
+    "If the evidence filesystem itself refuses a write, rewriting a prior provisional receipt is attempted, the first exception is retained and the process remains failed; no successful durable rewrite is claimed.",
+    "Successful return is subject to the strict final aggregate CPU and wall measurement. Ordinary Python cleanup or metadata writes are not claimed to be infallible.",
+    "The bounded evidence seal and all target resource constants are unchanged."
+  ],
+  "no_ref_changes": true
+}

@@ -1,0 +1,182 @@
+{
+  "schema": "hia-independent-ascii-build-test-CI-static-review-r1",
+  "scope": "SOURCE_BINDING_AND_EXACT_REVERSE_COMPOSITION_OF_PREVIOUSLY_REVIEWED_SEVEN_HELPERS_THROUGH_FRESH_BUILD_AND_FULL329_GATE",
+  "reviewer": "audit_selfhost",
+  "status": "CONFIRMED_CI_PATH_BLOCKER_REPORTED_TO_ROOT_SOURCE_ONLY",
+  "subject_delivery": "be051f76f0ea3dae8558a1587a5bb60ee6c18f1d",
+  "source_pins": [
+    {
+      "name": "builder",
+      "gitsha": "efe65ddb66dd4e1d5a3557450e0952ff9abe43d5",
+      "bytes": 21295,
+      "sha256": "f0747925aefa645b0497b192f09e7bacd30ee81ac7fb9e74b8069fb5e02b34f4",
+      "full_Git_GET_and_hash_verified": true
+    },
+    {
+      "name": "test",
+      "gitsha": "e23763ed1b118141bf8fc797e2f31664155fc676",
+      "bytes": 19430,
+      "sha256": "b6cf9a7e9d0ec7c185a1b5865a4690be880cdbdbeb7861573936d37684adf6d7",
+      "full_Git_GET_and_hash_verified": true
+    },
+    {
+      "name": "ci",
+      "gitsha": "4e4f1ef3dda71094acaef35e6fd45a3e87a18c8b",
+      "bytes": 19135,
+      "sha256": "93e28a45726aac4dca9a3d57e379f121417af401130c8103c09ae21c90b0b73c",
+      "full_Git_GET_and_hash_verified": true
+    },
+    {
+      "name": "deriv1",
+      "gitsha": "f3069d3a830a3029c8815eb11de4ae303255cd1d",
+      "bytes": 5170,
+      "sha256": "5f686fd77a0965cba3a2f6794754c0ecab63c23a47c72e4068a2cc9e6a85a759",
+      "full_Git_GET_and_hash_verified": true
+    },
+    {
+      "name": "deriv2",
+      "gitsha": "5e8714143dc43cd81d33a7dd7f5abb5154e37d8b",
+      "bytes": 11711,
+      "sha256": "c1c72b5416bf8997322a416ee4ed3aa7daca669156916b3cc603250db969316d",
+      "full_Git_GET_and_hash_verified": true
+    },
+    {
+      "name": "delivery",
+      "gitsha": "be051f76f0ea3dae8558a1587a5bb60ee6c18f1d",
+      "bytes": 6928,
+      "sha256": "a71d9b58b69026bfee30d818f6f4adcb6e0fe2601c042cccf3742eaa63f8c526",
+      "full_Git_GET_and_hash_verified": true
+    }
+  ],
+  "prior_helper_review": {
+    "gitsha": "7ed928ed8b6de6a1443b50ce40bed43dd82aaacf",
+    "bytes": 12824,
+    "sha256": "5279d206dc29c5586e4c1b685e474b17ac9a95ce39f1fd285bfe1cccbefe8f4b",
+    "scope": "Earlier separate review; seven complete ASCII HIA helper candidates and original readers only"
+  },
+  "actual_actions": {
+    "new_project_AST": 0,
+    "new_HIA_AST": 0,
+    "new_generation": 0,
+    "new_B3": 0,
+    "new_VM": 0,
+    "new_native": 0,
+    "new_original_artifact_readback": 0,
+    "full_UTF8_Git_blobs_read_and_hashed": 9,
+    "source_only_JS_string_inverse_checks": true
+  },
+  "confirmed_findings": [
+    {
+      "id": "ASCII-CI-01",
+      "severity": "BLOCKS_EXECUTION_BEFORE_B3",
+      "location": [
+        {
+          "needle": "\"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/evidence/source-transform-proof.json\"",
+          "lines": [
+            195
+          ]
+        },
+        {
+          "needle": "\"repository_path\": \"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/evidence/independent-inline-static-review.json\"",
+          "lines": [
+            202
+          ]
+        }
+      ],
+      "facts": [
+        "ADDITIONAL_FILES has two exact retained inline dependency repository paths changed to the new ASCII prefix.",
+        "The delivered15 payload rows contain neither of those two aliases. The ASCII proof is named ascii-source-transform-proof.json and has a different fixed Git identity.",
+        "Exact common61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e materialize calls pinned(relative,expected), which reads REPO/relative and verifies its Git blob; it does not retrieve the blob directly by SHA.",
+        "Thus the submitted closure cannot materialize these two dependencies from its declared paths; full329 execution is blocked before any new build. This is a source-level finding, not an observed target execution failure."
+      ],
+      "minimal_fix": "Restore only these two repository_path fields to ordinary-impact-json-inline-r1/evidence/source-transform-proof.json and ordinary-impact-json-inline-r1/evidence/independent-inline-static-review.json; preserve destination paths, full pins, all group and byte comparison gates.",
+      "required_blobs": [
+        "3cfa3d613205fb07db028fceee8d8ee1da3e2595",
+        "2d8bad7aaf6ced17f3234bba7e06e795b6791259"
+      ],
+      "root_acknowledged": true,
+      "revised_CI_not_yet_read": true
+    },
+    {
+      "id": "ASCII-DERIVATION-01",
+      "severity": "DOCUMENTATION_PROOF_OMISSION_NO_EXECUTABLE_CHANGE",
+      "facts": [
+        "The builder derivation lists its wrapper, source-proof block and literal metadata edits but omits the first docstring line replacement.",
+        "After reversing the recorded edits and additionally restoring 'Seven exact ASCII reader additions,' to 'Seven exact HIA source replacements,', the whole builder text equals original c9da67c5ac99dcc42b388acb66e9cec82aa440c9.",
+        "No executable difference remains outside the declared wrapper/source-proof binding and output labels."
+      ],
+      "minimal_fix": "Record this one docstring metadata edit in the derivation; do not alter builder business logic."
+    }
+  ],
+  "verified_source_relationships": {
+    "original_builder_gitsha": "c9da67c5ac99dcc42b388acb66e9cec82aa440c9",
+    "builder_complete_inverse_with_explicit_docstring_metadata": true,
+    "prior_inline_check_body_exact_except_function_name": true,
+    "new_wrapper_exactly_equals_derivation_text": true,
+    "old_test_gitsha": "d545fb32db9c0e49f4a01f41abf1f09c0bfcf6e6",
+    "test_complete_inverse_only_ROOT_string": true,
+    "original_CI_gitsha": "be9f32837b4e48ff6253acd54edf6df5c96ee5fd",
+    "CI_complete_inverse_after_exact_dependency_array_and_metadata_restore": true,
+    "original18_FILES_whole_block_byte_identical": true,
+    "CI_effective_additional_files": 13,
+    "old_original_test_67c81_requires_only_ROOT_and_new_compiles6_to13_edits": "CI itself checks both complete forward and reverse byte equality before any native target; exact inline predecessor to ASCII selected test differs only in ROOT.",
+    "seven_HIA_pins_identical_to_prior_helper_review": true
+  },
+  "source_to_image_binding_review": [
+    "Builder reads all submitted source/dependency bytes and exact old reference tool hashes; the compiler is the existing35ee669556B seed for this parent's original impact gate. It does not substitute the worker's different0e09 seed.",
+    "Fresh baseline six-build must PASS, produce exactly six compile records and one packer entry; all63 source/image sizes and SHA256 plus the complete original ELF size/hash must reproduce the actual timing47 manifest bound to Git39d4f275.",
+    "Each changed source is checked against the pinned ASCII transform proof. Function order is old functions plus exactly one fresh f(max+1); header exact; helper complete source/hash exact; exactly one caller's decoded-target substitution is reversible.",
+    "Removing the helper and reversing that call reconstructs the exact inline source pin, then executes the retained inline inverse proof against original source, including role27's bijective SSA alpha renaming. No additional mutable source transformation is accepted.",
+    "Canonical assemble/render equality and original128/1536/8192/256/16/SSA<2048 gates precede each candidate compile. All seven actual outputs must bind to compiler receipt input/output/artifact hashes and original10CPU/20wall/256MiB limits.",
+    "Candidate pack uses the original carrier prefix and actual baseline packer image, writes all63 role addresses/alignment/ELF lengths, and compares the actual produced entire ELF against the independently composed expected byte buffer. Source/workspace/canaries are checked.",
+    "CI requires exactly six baseline plus seven candidate fresh compilations, with two actual packer entries, unchanged56 role records, and complete before/after source/image equality before runtime groups."
+  ],
+  "full329_gate_review": {
+    "groups": [
+      "semantic",
+      "errors",
+      "interfaces",
+      "input",
+      "identity",
+      "functions-1024",
+      "large-bytes",
+      "large-nodes",
+      "large-valid",
+      "impact-semantic",
+      "graph-1024",
+      "graph-dense",
+      "graph-long-report"
+    ],
+    "cases": {
+      "semantic": 113,
+      "errors": 58,
+      "interfaces": 48,
+      "input": 67,
+      "identity": 3,
+      "functions-1024": 1,
+      "large-bytes": 1,
+      "large-nodes": 1,
+      "large-valid": 1,
+      "impact-semantic": 33,
+      "graph-1024": 1,
+      "graph-dense": 1,
+      "graph-long-report": 1
+    },
+    "sum": 329,
+    "old327_not_used_as_new_results": true,
+    "expected_results": "Every selected case calls the exact unselected original analyze_patch_impact before native and compares full result candidate/receipt/impact or full original exception payload and terminal domain/stage.",
+    "native_interval": "The original verify/apply/prepare/interface/impact/canonical and json.loads/dumps callbacks are patched to reject while the fixed executable runs. This is the unchanged original development differential harness, not a new installed-entry proof.",
+    "large_cases": "The original1024-function, large-byte, large-node, near8MiB valid and graph-long-report>8MiB inputs and assertions are unchanged.",
+    "failures": "Per-group exceptions are recorded and remaining groups continue; final PASS requires no failures, exact13 group set, each complete original case/native/reference counts, full streams/CAS/source equality and total329.",
+    "budgets": "All original budget predicates and values are unchanged:10/20/256MiB compiles,90CPU/180wall/1GiB independent runtime groups, complete common.run process receipt checked after log readback. Existing <=90 aggregate predicates are not restated as strict <90 by this report.",
+    "no_case_relabel_or_budget_relaxation_found": true,
+    "CI_requires_all_groups_to_execute_fresh": true
+  },
+  "important_limits": [
+    "This report is a static review only. No actual old/source compilation or candidate native performance evidence was produced.",
+    "The current submitted CI has the two-path blocker above. After source correction, it still needs the complete new329 gate; earlier327 complete cases and two actual rc-9 failures do not qualify it.",
+    "The original inline transformation and baseline owners are inherited source dependencies with their own evidence; this review does not independently prove all their semantics.",
+    "No ordinary installed CLI, host object API, whole Worker/namespace or whole-stack activation is authorized by this review."
+  ],
+  "root_only_changes_refs": true
+}

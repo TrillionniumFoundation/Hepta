@@ -1,0 +1,2784 @@
+{
+  "schema": "hia-seven-exact-JSON-ASCII-reader-source-transform-r1",
+  "status": "SOURCE_ONLY_0_HIA_AST_B3_VM_NATIVE",
+  "baseline_head": "8f27671ad748dc7c081a1eaad897b057d8d9f42e",
+  "prior_inline_proof": {
+    "gitsha": "3cfa3d613205fb07db028fceee8d8ee1da3e2595",
+    "bytes": 202873,
+    "sha256": "64faa076ecb678d671aae86ca67de191d8cf15dfc32309d213d3be85512b5d5f"
+  },
+  "roles": [
+    {
+      "role": 24,
+      "original": {
+        "bytes": 89746,
+        "gitsha": "0dad0ef94f3a9f43a65ef93b5e23568badf3a3f0",
+        "sha256": "74853c603ce8cdd4dfc910f61c728d67381391066e5757d8916c69c65448b821"
+      },
+      "input_inline": {
+        "bytes": 111822,
+        "gitsha": "e0cfc7a7fbd276fc8fb2eadb1d6c0f1b58a281af",
+        "sha256": "e29178124be2960c2e2dc237013c74527a6187cf2fb427f6d764103b226ff454"
+      },
+      "candidate": {
+        "bytes": 112882,
+        "gitsha": "ad332cb75dde66d1dcb45c85583ecdadc0d157ff",
+        "sha256": "919898dea949756cbd5f9c40d88a73bf80a338943f24bc2829b1dbddb9d559de"
+      },
+      "caller": "f3",
+      "original_unicode_reader": "f12",
+      "helper": {
+        "name": "f15",
+        "bytes": 1060,
+        "gitsha": "19a429c4118ac8e8107c2b5aa1b02f3c02c2a58d",
+        "sha256": "f15e93972c4cc7a7149cedf7e2674ecb4dd8ff720ce670ecf5f57b3e19f89122",
+        "source": "fn f15(v0:readbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:u64)\n  v2:usize = buffer.len(v0)\n  v3:u64 = int.cast(v2) {\"mode\":\"wrap\"}\n  v4:bool = compare.ge(v1,v3)\n  branch v4 b3(v0,v1) b1(v0,v1)\nblock b1(v5:readbuf,v6:u64)\n  v7:usize = int.cast(v6) {\"mode\":\"wrap\"}\n  v8:u8 = buffer.load(v5,v7)\n  v9:u64 = int.cast(v8) {\"mode\":\"wrap\"}\n  v10:u64 = const() {\"value\":32}\n  v11:bool = compare.ge(v9,v10)\n  v12:u64 = const() {\"value\":128}\n  v13:bool = compare.lt(v9,v12)\n  v14:u64 = const() {\"value\":34}\n  v15:bool = compare.ne(v9,v14)\n  v16:u64 = const() {\"value\":92}\n  v17:bool = compare.ne(v9,v16)\n  v18:bool = bool.and(v11,v13)\n  v19:bool = bool.and(v15,v17)\n  v20:bool = bool.and(v18,v19)\n  branch v20 b2(v5,v6,v9) b3(v5,v6)\nblock b2(v21:readbuf,v22:u64,v23:u64)\n  v24:u64 = const() {\"value\":1}\n  v25:u64 = int.add.wrap(v22,v24)\n  v26:u64 = const() {\"value\":32}\n  v27:u64 = int.shl.checked(v25,v26)\n  v28:u64 = bit.or(v27,v23)\n  ret(v28)\nblock b3(v29:readbuf,v30:u64)\n  v31:u64 = call(v29,v30) {\"function\":\"f12\"}\n  ret(v31)\nend\n"
+      },
+      "old_call": "  v28:u64 = call(v16,v19) {\"function\":\"f12\"}",
+      "new_call": "  v28:u64 = call(v16,v19) {\"function\":\"f15\"}",
+      "caller_before": {
+        "bytes": 23724,
+        "gitsha": "a8f13044c445fc39b93dea3910b6dae12ff02d62",
+        "sha256": "8c5c2760a9a3168ea0858e79fae06954a0a916a8f7b2be3d70bdb625c7a94efc"
+      },
+      "caller_after": {
+        "bytes": 23724,
+        "gitsha": "d95edb0ec554dbea3d2c68a32fc0c82a7fde0dff",
+        "sha256": "8b5f643293827315245aff9189ca5c206164b1cc4ef436e5483b10a7b6eb58c8"
+      },
+      "unicode_reader": {
+        "bytes": 14895,
+        "gitsha": "c2445c8d01b516e1941586938af33659c757096e",
+        "sha256": "59768b65fb6bff90e50a7f3cbe4807f9007715366246a901a81ffbb812973e39"
+      },
+      "proof": {
+        "textual_profile": {
+          "functions": 16,
+          "blocks": 309,
+          "operations": 2071,
+          "max_function_blocks": 83,
+          "max_block_parameters": 15,
+          "max_ssa_numeric_suffix": 1767,
+          "per_function": [
+            {
+              "name": "f0",
+              "blocks": 44,
+              "operations": 255,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 704
+            },
+            {
+              "name": "f1",
+              "blocks": 1,
+              "operations": 0,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 0
+            },
+            {
+              "name": "f2",
+              "blocks": 7,
+              "operations": 91,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 189
+            },
+            {
+              "name": "f3",
+              "blocks": 14,
+              "operations": 585,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 654
+            },
+            {
+              "name": "f4",
+              "blocks": 8,
+              "operations": 97,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 125
+            },
+            {
+              "name": "f5",
+              "blocks": 83,
+              "operations": 339,
+              "max_block_parameters": 15,
+              "max_ssa_numeric_suffix": 1767
+            },
+            {
+              "name": "f6",
+              "blocks": 8,
+              "operations": 21,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 47
+            },
+            {
+              "name": "f7",
+              "blocks": 40,
+              "operations": 136,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 300
+            },
+            {
+              "name": "f8",
+              "blocks": 8,
+              "operations": 27,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 78
+            },
+            {
+              "name": "f9",
+              "blocks": 9,
+              "operations": 37,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 129
+            },
+            {
+              "name": "f10",
+              "blocks": 10,
+              "operations": 18,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 74
+            },
+            {
+              "name": "f11",
+              "blocks": 8,
+              "operations": 44,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 73
+            },
+            {
+              "name": "f12",
+              "blocks": 63,
+              "operations": 280,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 705
+            },
+            {
+              "name": "f13",
+              "blocks": 1,
+              "operations": 63,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 64
+            },
+            {
+              "name": "f14",
+              "blocks": 1,
+              "operations": 55,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 49
+            },
+            {
+              "name": "f15",
+              "blocks": 4,
+              "operations": 23,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 31
+            }
+          ]
+        },
+        "one_call_target_and_one_appended_function_only": true,
+        "every_other_function_byte_unchanged": true,
+        "complete_reverse_to_inline_source_equal": true,
+        "fast_byte_set": "32 <= byte < 128, excluding byte34 quote and byte92 backslash",
+        "out_of_bounds_position_delegates_without_buffer_load": true,
+        "fast_return": "((position + 1) mod 2^64) << 32 OR byte, using the same original wrapping addition and checked shift",
+        "every_other_byte_calls_exact_original_unicode_reader": true,
+        "fallback_extra_reads": "One additional immutable in-bounds byte load; no mutation precedes the exact original reader call",
+        "mutable_buffers_and_cursor_operations_unchanged": true,
+        "no_bulk_access_no_cross_scalar_cursor_cache": true,
+        "arbitrary_VM_fuel_step_equivalence_claimed": false,
+        "only_textual_source_generation_executed": true,
+        "HIA_AST": 0,
+        "B3": 0,
+        "VM": 0,
+        "native": 0,
+        "performance_improvement_measured": false
+      }
+    },
+    {
+      "role": 26,
+      "original": {
+        "bytes": 114065,
+        "gitsha": "9120bdbb78f72680c770f19c164a28299548f374",
+        "sha256": "2ea6509f58117cdc86ef21f24adc747b3ac8cdc37ddd01c1a216d981a41b2233"
+      },
+      "input_inline": {
+        "bytes": 136140,
+        "gitsha": "f8d693b1059d31b6c8b0f0a7d2819f3c405d0325",
+        "sha256": "83e61a4ee02225dd27f51aed6f3e3b2a82b9f3ab1d1df340be3674c526098f9a"
+      },
+      "candidate": {
+        "bytes": 137200,
+        "gitsha": "164c2e260335e54ce27298e4aebd2eec2a483f06",
+        "sha256": "d92efee9ff73042291d9bd04247adcdaa14669b7c509f88848faad5dd187245b"
+      },
+      "caller": "f10",
+      "original_unicode_reader": "f19",
+      "helper": {
+        "name": "f22",
+        "bytes": 1060,
+        "gitsha": "c552b665cba7d4e9ef5eb4b90c3f1d408308b658",
+        "sha256": "98c0d6e7c439c7ad6979b0e6a48669e6fb2cbf47f0a0d900ad03686335d08f72",
+        "source": "fn f22(v0:readbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:u64)\n  v2:usize = buffer.len(v0)\n  v3:u64 = int.cast(v2) {\"mode\":\"wrap\"}\n  v4:bool = compare.ge(v1,v3)\n  branch v4 b3(v0,v1) b1(v0,v1)\nblock b1(v5:readbuf,v6:u64)\n  v7:usize = int.cast(v6) {\"mode\":\"wrap\"}\n  v8:u8 = buffer.load(v5,v7)\n  v9:u64 = int.cast(v8) {\"mode\":\"wrap\"}\n  v10:u64 = const() {\"value\":32}\n  v11:bool = compare.ge(v9,v10)\n  v12:u64 = const() {\"value\":128}\n  v13:bool = compare.lt(v9,v12)\n  v14:u64 = const() {\"value\":34}\n  v15:bool = compare.ne(v9,v14)\n  v16:u64 = const() {\"value\":92}\n  v17:bool = compare.ne(v9,v16)\n  v18:bool = bool.and(v11,v13)\n  v19:bool = bool.and(v15,v17)\n  v20:bool = bool.and(v18,v19)\n  branch v20 b2(v5,v6,v9) b3(v5,v6)\nblock b2(v21:readbuf,v22:u64,v23:u64)\n  v24:u64 = const() {\"value\":1}\n  v25:u64 = int.add.wrap(v22,v24)\n  v26:u64 = const() {\"value\":32}\n  v27:u64 = int.shl.checked(v25,v26)\n  v28:u64 = bit.or(v27,v23)\n  ret(v28)\nblock b3(v29:readbuf,v30:u64)\n  v31:u64 = call(v29,v30) {\"function\":\"f19\"}\n  ret(v31)\nend\n"
+      },
+      "old_call": "  v28:u64 = call(v16,v19) {\"function\":\"f19\"}",
+      "new_call": "  v28:u64 = call(v16,v19) {\"function\":\"f22\"}",
+      "caller_before": {
+        "bytes": 23725,
+        "gitsha": "1dd7bf08fb0c16cdad8847255b8c76c05db3b8ab",
+        "sha256": "7e080b4a4c6bdb15eceef398b3e0d1b5a844dfabf285be4efc3339a9c878730e"
+      },
+      "caller_after": {
+        "bytes": 23725,
+        "gitsha": "61f051bc4e8200bd6eba072ac8b51017ddf31522",
+        "sha256": "4de091ed0d51f750ff7da9763c8d84006539579578a3464b636f8cf23fe37381"
+      },
+      "unicode_reader": {
+        "bytes": 14895,
+        "gitsha": "96ee6865fe31584e39d2e3c23f5bdf1f3ef3125b",
+        "sha256": "6ef88a4ea7c7de0486ba6e4c7463ef23360c326a1d133d48a0f66763989b2a81"
+      },
+      "proof": {
+        "textual_profile": {
+          "functions": 23,
+          "blocks": 392,
+          "operations": 2423,
+          "max_function_blocks": 83,
+          "max_block_parameters": 15,
+          "max_ssa_numeric_suffix": 1767,
+          "per_function": [
+            {
+              "name": "f0",
+              "blocks": 41,
+              "operations": 156,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 768
+            },
+            {
+              "name": "f1",
+              "blocks": 1,
+              "operations": 9,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 10
+            },
+            {
+              "name": "f2",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 7
+            },
+            {
+              "name": "f3",
+              "blocks": 11,
+              "operations": 61,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 136
+            },
+            {
+              "name": "f4",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 8
+            },
+            {
+              "name": "f5",
+              "blocks": 8,
+              "operations": 38,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 118
+            },
+            {
+              "name": "f6",
+              "blocks": 20,
+              "operations": 74,
+              "max_block_parameters": 11,
+              "max_ssa_numeric_suffix": 339
+            },
+            {
+              "name": "f7",
+              "blocks": 44,
+              "operations": 255,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 704
+            },
+            {
+              "name": "f8",
+              "blocks": 1,
+              "operations": 0,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 0
+            },
+            {
+              "name": "f9",
+              "blocks": 7,
+              "operations": 91,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 189
+            },
+            {
+              "name": "f10",
+              "blocks": 14,
+              "operations": 585,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 654
+            },
+            {
+              "name": "f11",
+              "blocks": 8,
+              "operations": 97,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 125
+            },
+            {
+              "name": "f12",
+              "blocks": 83,
+              "operations": 339,
+              "max_block_parameters": 15,
+              "max_ssa_numeric_suffix": 1767
+            },
+            {
+              "name": "f13",
+              "blocks": 8,
+              "operations": 21,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 47
+            },
+            {
+              "name": "f14",
+              "blocks": 40,
+              "operations": 136,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 300
+            },
+            {
+              "name": "f15",
+              "blocks": 8,
+              "operations": 27,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 78
+            },
+            {
+              "name": "f16",
+              "blocks": 9,
+              "operations": 37,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 129
+            },
+            {
+              "name": "f17",
+              "blocks": 10,
+              "operations": 18,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 74
+            },
+            {
+              "name": "f18",
+              "blocks": 8,
+              "operations": 44,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 73
+            },
+            {
+              "name": "f19",
+              "blocks": 63,
+              "operations": 280,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 705
+            },
+            {
+              "name": "f20",
+              "blocks": 1,
+              "operations": 63,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 64
+            },
+            {
+              "name": "f21",
+              "blocks": 1,
+              "operations": 55,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 49
+            },
+            {
+              "name": "f22",
+              "blocks": 4,
+              "operations": 23,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 31
+            }
+          ]
+        },
+        "one_call_target_and_one_appended_function_only": true,
+        "every_other_function_byte_unchanged": true,
+        "complete_reverse_to_inline_source_equal": true,
+        "fast_byte_set": "32 <= byte < 128, excluding byte34 quote and byte92 backslash",
+        "out_of_bounds_position_delegates_without_buffer_load": true,
+        "fast_return": "((position + 1) mod 2^64) << 32 OR byte, using the same original wrapping addition and checked shift",
+        "every_other_byte_calls_exact_original_unicode_reader": true,
+        "fallback_extra_reads": "One additional immutable in-bounds byte load; no mutation precedes the exact original reader call",
+        "mutable_buffers_and_cursor_operations_unchanged": true,
+        "no_bulk_access_no_cross_scalar_cursor_cache": true,
+        "arbitrary_VM_fuel_step_equivalence_claimed": false,
+        "only_textual_source_generation_executed": true,
+        "HIA_AST": 0,
+        "B3": 0,
+        "VM": 0,
+        "native": 0,
+        "performance_improvement_measured": false
+      }
+    },
+    {
+      "role": 27,
+      "original": {
+        "bytes": 406269,
+        "gitsha": "6770d4de9003ae03c3c935176b23d7de3fb10a5d",
+        "sha256": "96f91566f1e99a40a8cee6f5f4d479d2264411d3b19288e7b140b1e6388039b2"
+      },
+      "input_inline": {
+        "bytes": 427257,
+        "gitsha": "d4c2f5a68f43b5b43d65f2778803b463338b7e28",
+        "sha256": "4effe0b91323ea0c66c5ae96b411e4c8188a0be73350cddc10cce322fe2cb389"
+      },
+      "candidate": {
+        "bytes": 428317,
+        "gitsha": "fb7c30f6be7c71c1ccea77650fe38961ad368cfe",
+        "sha256": "a5c0f7d5122860335585091262f602e21c99e18fdbd9ba566356016668c7d4cd"
+      },
+      "caller": "f30",
+      "original_unicode_reader": "f39",
+      "helper": {
+        "name": "f78",
+        "bytes": 1060,
+        "gitsha": "f9605c43c0bdd41f7d757a99995e16fdf5081dab",
+        "sha256": "72bc9fa357c9f24000af4bdb66a52c7c3e65d5cb07fa88ae632037eddeecaef0",
+        "source": "fn f78(v0:readbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:u64)\n  v2:usize = buffer.len(v0)\n  v3:u64 = int.cast(v2) {\"mode\":\"wrap\"}\n  v4:bool = compare.ge(v1,v3)\n  branch v4 b3(v0,v1) b1(v0,v1)\nblock b1(v5:readbuf,v6:u64)\n  v7:usize = int.cast(v6) {\"mode\":\"wrap\"}\n  v8:u8 = buffer.load(v5,v7)\n  v9:u64 = int.cast(v8) {\"mode\":\"wrap\"}\n  v10:u64 = const() {\"value\":32}\n  v11:bool = compare.ge(v9,v10)\n  v12:u64 = const() {\"value\":128}\n  v13:bool = compare.lt(v9,v12)\n  v14:u64 = const() {\"value\":34}\n  v15:bool = compare.ne(v9,v14)\n  v16:u64 = const() {\"value\":92}\n  v17:bool = compare.ne(v9,v16)\n  v18:bool = bool.and(v11,v13)\n  v19:bool = bool.and(v15,v17)\n  v20:bool = bool.and(v18,v19)\n  branch v20 b2(v5,v6,v9) b3(v5,v6)\nblock b2(v21:readbuf,v22:u64,v23:u64)\n  v24:u64 = const() {\"value\":1}\n  v25:u64 = int.add.wrap(v22,v24)\n  v26:u64 = const() {\"value\":32}\n  v27:u64 = int.shl.checked(v25,v26)\n  v28:u64 = bit.or(v27,v23)\n  ret(v28)\nblock b3(v29:readbuf,v30:u64)\n  v31:u64 = call(v29,v30) {\"function\":\"f39\"}\n  ret(v31)\nend\n"
+      },
+      "old_call": "  v28:u64 = call(v16,v19) {\"function\":\"f39\"}",
+      "new_call": "  v28:u64 = call(v16,v19) {\"function\":\"f78\"}",
+      "caller_before": {
+        "bytes": 23725,
+        "gitsha": "1542966a02600f4d0844611882205616cff43d1a",
+        "sha256": "f709bf4d8eefe8a5052e3d8f5dbce2bc0d58f8fcc8cc8bc9d13ef4e02767428f"
+      },
+      "caller_after": {
+        "bytes": 23725,
+        "gitsha": "0806525e47986d1642257403b245cbace26c4fca",
+        "sha256": "67bd78f70d3dae2ed9eeb117d18ce2a47941cc74e7fedd548aaffc6fbc38ce61"
+      },
+      "unicode_reader": {
+        "bytes": 14895,
+        "gitsha": "8ffcee224b7ab3bb86f876c9eea52353b127c08e",
+        "sha256": "d8d94bbee2239e32ccd6fd6db88455f5f4531bb53eba6fc88f7622c9d5be7780"
+      },
+      "proof": {
+        "textual_profile": {
+          "functions": 79,
+          "blocks": 1445,
+          "operations": 6901,
+          "max_function_blocks": 201,
+          "max_block_parameters": 15,
+          "max_ssa_numeric_suffix": 2000,
+          "per_function": [
+            {
+              "name": "f0",
+              "blocks": 13,
+              "operations": 93,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 181
+            },
+            {
+              "name": "f1",
+              "blocks": 57,
+              "operations": 231,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 940
+            },
+            {
+              "name": "f2",
+              "blocks": 121,
+              "operations": 492,
+              "max_block_parameters": 11,
+              "max_ssa_numeric_suffix": 1280
+            },
+            {
+              "name": "f3",
+              "blocks": 1,
+              "operations": 5,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 5
+            },
+            {
+              "name": "f4",
+              "blocks": 16,
+              "operations": 53,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 167
+            },
+            {
+              "name": "f5",
+              "blocks": 6,
+              "operations": 18,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 40
+            },
+            {
+              "name": "f6",
+              "blocks": 8,
+              "operations": 19,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 55
+            },
+            {
+              "name": "f7",
+              "blocks": 5,
+              "operations": 23,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 37
+            },
+            {
+              "name": "f8",
+              "blocks": 27,
+              "operations": 128,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 234
+            },
+            {
+              "name": "f9",
+              "blocks": 5,
+              "operations": 34,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 64
+            },
+            {
+              "name": "f10",
+              "blocks": 10,
+              "operations": 25,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 68
+            },
+            {
+              "name": "f11",
+              "blocks": 15,
+              "operations": 62,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 118
+            },
+            {
+              "name": "f12",
+              "blocks": 8,
+              "operations": 31,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 69
+            },
+            {
+              "name": "f13",
+              "blocks": 14,
+              "operations": 62,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 257
+            },
+            {
+              "name": "f14",
+              "blocks": 3,
+              "operations": 8,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 13
+            },
+            {
+              "name": "f15",
+              "blocks": 3,
+              "operations": 10,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 15
+            },
+            {
+              "name": "f16",
+              "blocks": 5,
+              "operations": 14,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 25
+            },
+            {
+              "name": "f17",
+              "blocks": 8,
+              "operations": 11,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 39
+            },
+            {
+              "name": "f18",
+              "blocks": 8,
+              "operations": 18,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 53
+            },
+            {
+              "name": "f19",
+              "blocks": 12,
+              "operations": 28,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 152
+            },
+            {
+              "name": "f20",
+              "blocks": 3,
+              "operations": 13,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 30
+            },
+            {
+              "name": "f21",
+              "blocks": 49,
+              "operations": 165,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 358
+            },
+            {
+              "name": "f22",
+              "blocks": 31,
+              "operations": 97,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 158
+            },
+            {
+              "name": "f23",
+              "blocks": 7,
+              "operations": 25,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 38
+            },
+            {
+              "name": "f24",
+              "blocks": 9,
+              "operations": 33,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 50
+            },
+            {
+              "name": "f25",
+              "blocks": 13,
+              "operations": 43,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 68
+            },
+            {
+              "name": "f26",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 8
+            },
+            {
+              "name": "f27",
+              "blocks": 44,
+              "operations": 255,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 704
+            },
+            {
+              "name": "f28",
+              "blocks": 1,
+              "operations": 0,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 0
+            },
+            {
+              "name": "f29",
+              "blocks": 7,
+              "operations": 91,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 189
+            },
+            {
+              "name": "f30",
+              "blocks": 14,
+              "operations": 585,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 654
+            },
+            {
+              "name": "f31",
+              "blocks": 8,
+              "operations": 97,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 125
+            },
+            {
+              "name": "f32",
+              "blocks": 83,
+              "operations": 339,
+              "max_block_parameters": 15,
+              "max_ssa_numeric_suffix": 1767
+            },
+            {
+              "name": "f33",
+              "blocks": 8,
+              "operations": 21,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 47
+            },
+            {
+              "name": "f34",
+              "blocks": 40,
+              "operations": 136,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 300
+            },
+            {
+              "name": "f35",
+              "blocks": 8,
+              "operations": 27,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 78
+            },
+            {
+              "name": "f36",
+              "blocks": 9,
+              "operations": 37,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 129
+            },
+            {
+              "name": "f37",
+              "blocks": 10,
+              "operations": 18,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 74
+            },
+            {
+              "name": "f38",
+              "blocks": 8,
+              "operations": 44,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 73
+            },
+            {
+              "name": "f39",
+              "blocks": 63,
+              "operations": 280,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 705
+            },
+            {
+              "name": "f40",
+              "blocks": 1,
+              "operations": 63,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 64
+            },
+            {
+              "name": "f41",
+              "blocks": 1,
+              "operations": 55,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 49
+            },
+            {
+              "name": "f42",
+              "blocks": 15,
+              "operations": 65,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 94
+            },
+            {
+              "name": "f43",
+              "blocks": 1,
+              "operations": 5,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 6
+            },
+            {
+              "name": "f44",
+              "blocks": 1,
+              "operations": 3,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 5
+            },
+            {
+              "name": "f45",
+              "blocks": 9,
+              "operations": 47,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 83
+            },
+            {
+              "name": "f46",
+              "blocks": 1,
+              "operations": 3,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 4
+            },
+            {
+              "name": "f47",
+              "blocks": 5,
+              "operations": 17,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 28
+            },
+            {
+              "name": "f48",
+              "blocks": 1,
+              "operations": 3,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 5
+            },
+            {
+              "name": "f49",
+              "blocks": 1,
+              "operations": 21,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 26
+            },
+            {
+              "name": "f50",
+              "blocks": 1,
+              "operations": 13,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 14
+            },
+            {
+              "name": "f51",
+              "blocks": 1,
+              "operations": 6,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 7
+            },
+            {
+              "name": "f52",
+              "blocks": 8,
+              "operations": 15,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 43
+            },
+            {
+              "name": "f53",
+              "blocks": 12,
+              "operations": 31,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 96
+            },
+            {
+              "name": "f54",
+              "blocks": 5,
+              "operations": 27,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 50
+            },
+            {
+              "name": "f55",
+              "blocks": 22,
+              "operations": 95,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 371
+            },
+            {
+              "name": "f56",
+              "blocks": 4,
+              "operations": 9,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 23
+            },
+            {
+              "name": "f57",
+              "blocks": 1,
+              "operations": 6,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 9
+            },
+            {
+              "name": "f58",
+              "blocks": 1,
+              "operations": 4,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 7
+            },
+            {
+              "name": "f59",
+              "blocks": 31,
+              "operations": 161,
+              "max_block_parameters": 12,
+              "max_ssa_numeric_suffix": 723
+            },
+            {
+              "name": "f60",
+              "blocks": 5,
+              "operations": 17,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 41
+            },
+            {
+              "name": "f61",
+              "blocks": 18,
+              "operations": 77,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 186
+            },
+            {
+              "name": "f62",
+              "blocks": 18,
+              "operations": 69,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 243
+            },
+            {
+              "name": "f63",
+              "blocks": 21,
+              "operations": 81,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 251
+            },
+            {
+              "name": "f64",
+              "blocks": 5,
+              "operations": 23,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 46
+            },
+            {
+              "name": "f65",
+              "blocks": 56,
+              "operations": 209,
+              "max_block_parameters": 13,
+              "max_ssa_numeric_suffix": 896
+            },
+            {
+              "name": "f66",
+              "blocks": 23,
+              "operations": 90,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 264
+            },
+            {
+              "name": "f67",
+              "blocks": 16,
+              "operations": 68,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 170
+            },
+            {
+              "name": "f68",
+              "blocks": 61,
+              "operations": 206,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 894
+            },
+            {
+              "name": "f69",
+              "blocks": 26,
+              "operations": 140,
+              "max_block_parameters": 11,
+              "max_ssa_numeric_suffix": 579
+            },
+            {
+              "name": "f70",
+              "blocks": 49,
+              "operations": 212,
+              "max_block_parameters": 13,
+              "max_ssa_numeric_suffix": 999
+            },
+            {
+              "name": "f71",
+              "blocks": 201,
+              "operations": 997,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 2000
+            },
+            {
+              "name": "f72",
+              "blocks": 5,
+              "operations": 55,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 64
+            },
+            {
+              "name": "f73",
+              "blocks": 3,
+              "operations": 13,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 18
+            },
+            {
+              "name": "f74",
+              "blocks": 15,
+              "operations": 152,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 181
+            },
+            {
+              "name": "f75",
+              "blocks": 31,
+              "operations": 96,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 188
+            },
+            {
+              "name": "f76",
+              "blocks": 4,
+              "operations": 27,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 48
+            },
+            {
+              "name": "f77",
+              "blocks": 1,
+              "operations": 19,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 24
+            },
+            {
+              "name": "f78",
+              "blocks": 4,
+              "operations": 23,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 31
+            }
+          ]
+        },
+        "one_call_target_and_one_appended_function_only": true,
+        "every_other_function_byte_unchanged": true,
+        "complete_reverse_to_inline_source_equal": true,
+        "fast_byte_set": "32 <= byte < 128, excluding byte34 quote and byte92 backslash",
+        "out_of_bounds_position_delegates_without_buffer_load": true,
+        "fast_return": "((position + 1) mod 2^64) << 32 OR byte, using the same original wrapping addition and checked shift",
+        "every_other_byte_calls_exact_original_unicode_reader": true,
+        "fallback_extra_reads": "One additional immutable in-bounds byte load; no mutation precedes the exact original reader call",
+        "mutable_buffers_and_cursor_operations_unchanged": true,
+        "no_bulk_access_no_cross_scalar_cursor_cache": true,
+        "arbitrary_VM_fuel_step_equivalence_claimed": false,
+        "only_textual_source_generation_executed": true,
+        "HIA_AST": 0,
+        "B3": 0,
+        "VM": 0,
+        "native": 0,
+        "performance_improvement_measured": false
+      }
+    },
+    {
+      "role": 57,
+      "original": {
+        "bytes": 268976,
+        "gitsha": "80b264ddc3980214188fa9c427a7cef9fda1c0b7",
+        "sha256": "80c074a185e5ecaadb413df589e58fe13cd5d610332bd041f1593b4799d4e276"
+      },
+      "input_inline": {
+        "bytes": 292082,
+        "gitsha": "defc76f12fe168427235973a0025afe4a479e2a6",
+        "sha256": "9cca13699ec5f6b96a7046806dd7d54c115bccd52d37ef2789273d26daedaa53"
+      },
+      "candidate": {
+        "bytes": 293142,
+        "gitsha": "a6d534e3a7930a9799b73c9b30795bfa72fc9e25",
+        "sha256": "7bae0b0c912e39ef2041cd6407ca3336e507c3a3f9332098f8f76e1ca4b93ae7"
+      },
+      "caller": "f39",
+      "original_unicode_reader": "f48",
+      "helper": {
+        "name": "f54",
+        "bytes": 1060,
+        "gitsha": "fef2165ac1b15d2ab1e5f9907cbd42294944af3d",
+        "sha256": "d16a1094dbd260f77623051782a2c3905873973446af096cf70be746625821d8",
+        "source": "fn f54(v0:readbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:u64)\n  v2:usize = buffer.len(v0)\n  v3:u64 = int.cast(v2) {\"mode\":\"wrap\"}\n  v4:bool = compare.ge(v1,v3)\n  branch v4 b3(v0,v1) b1(v0,v1)\nblock b1(v5:readbuf,v6:u64)\n  v7:usize = int.cast(v6) {\"mode\":\"wrap\"}\n  v8:u8 = buffer.load(v5,v7)\n  v9:u64 = int.cast(v8) {\"mode\":\"wrap\"}\n  v10:u64 = const() {\"value\":32}\n  v11:bool = compare.ge(v9,v10)\n  v12:u64 = const() {\"value\":128}\n  v13:bool = compare.lt(v9,v12)\n  v14:u64 = const() {\"value\":34}\n  v15:bool = compare.ne(v9,v14)\n  v16:u64 = const() {\"value\":92}\n  v17:bool = compare.ne(v9,v16)\n  v18:bool = bool.and(v11,v13)\n  v19:bool = bool.and(v15,v17)\n  v20:bool = bool.and(v18,v19)\n  branch v20 b2(v5,v6,v9) b3(v5,v6)\nblock b2(v21:readbuf,v22:u64,v23:u64)\n  v24:u64 = const() {\"value\":1}\n  v25:u64 = int.add.wrap(v22,v24)\n  v26:u64 = const() {\"value\":32}\n  v27:u64 = int.shl.checked(v25,v26)\n  v28:u64 = bit.or(v27,v23)\n  ret(v28)\nblock b3(v29:readbuf,v30:u64)\n  v31:u64 = call(v29,v30) {\"function\":\"f48\"}\n  ret(v31)\nend\n"
+      },
+      "old_call": "  v28:u64 = call(v16,v19) {\"function\":\"f48\"}",
+      "new_call": "  v28:u64 = call(v16,v19) {\"function\":\"f54\"}",
+      "caller_before": {
+        "bytes": 24756,
+        "gitsha": "f14c9b0bccf8c7e45ee3b056fb446c28c3ffa867",
+        "sha256": "2ff37b2484376e2546189a1700b3f44375c22e3b50b2c14a0690ba431190d5e7"
+      },
+      "caller_after": {
+        "bytes": 24756,
+        "gitsha": "d993be28846e82fef27c676b21f74c8bf82ec444",
+        "sha256": "a1c47fc072631995241290649f307bc293d538bafcb4417efbe4f1ed3a9c3549"
+      },
+      "unicode_reader": {
+        "bytes": 14895,
+        "gitsha": "7d734fe8086666deb58fd986b18d7826a56a03ab",
+        "sha256": "590c507c843d011cda26031c0e0876d00fac1c4854c0a91f52d7c6952c2c58a9"
+      },
+      "proof": {
+        "textual_profile": {
+          "functions": 55,
+          "blocks": 904,
+          "operations": 5056,
+          "max_function_blocks": 87,
+          "max_block_parameters": 15,
+          "max_ssa_numeric_suffix": 1791,
+          "per_function": [
+            {
+              "name": "f0",
+              "blocks": 51,
+              "operations": 241,
+              "max_block_parameters": 12,
+              "max_ssa_numeric_suffix": 891
+            },
+            {
+              "name": "f1",
+              "blocks": 10,
+              "operations": 68,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 204
+            },
+            {
+              "name": "f2",
+              "blocks": 36,
+              "operations": 165,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 510
+            },
+            {
+              "name": "f3",
+              "blocks": 60,
+              "operations": 193,
+              "max_block_parameters": 11,
+              "max_ssa_numeric_suffix": 896
+            },
+            {
+              "name": "f4",
+              "blocks": 9,
+              "operations": 24,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 96
+            },
+            {
+              "name": "f5",
+              "blocks": 11,
+              "operations": 31,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 145
+            },
+            {
+              "name": "f6",
+              "blocks": 1,
+              "operations": 30,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 31
+            },
+            {
+              "name": "f7",
+              "blocks": 4,
+              "operations": 16,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 29
+            },
+            {
+              "name": "f8",
+              "blocks": 1,
+              "operations": 4,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 5
+            },
+            {
+              "name": "f9",
+              "blocks": 1,
+              "operations": 4,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 6
+            },
+            {
+              "name": "f10",
+              "blocks": 43,
+              "operations": 68,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 110
+            },
+            {
+              "name": "f11",
+              "blocks": 45,
+              "operations": 545,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 634
+            },
+            {
+              "name": "f12",
+              "blocks": 4,
+              "operations": 14,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 31
+            },
+            {
+              "name": "f13",
+              "blocks": 3,
+              "operations": 8,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 13
+            },
+            {
+              "name": "f14",
+              "blocks": 3,
+              "operations": 10,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 15
+            },
+            {
+              "name": "f15",
+              "blocks": 5,
+              "operations": 14,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 25
+            },
+            {
+              "name": "f16",
+              "blocks": 8,
+              "operations": 11,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 39
+            },
+            {
+              "name": "f17",
+              "blocks": 8,
+              "operations": 18,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 53
+            },
+            {
+              "name": "f18",
+              "blocks": 12,
+              "operations": 28,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 152
+            },
+            {
+              "name": "f19",
+              "blocks": 3,
+              "operations": 13,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 30
+            },
+            {
+              "name": "f20",
+              "blocks": 8,
+              "operations": 21,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 101
+            },
+            {
+              "name": "f21",
+              "blocks": 33,
+              "operations": 125,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 614
+            },
+            {
+              "name": "f22",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 7
+            },
+            {
+              "name": "f23",
+              "blocks": 11,
+              "operations": 61,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 136
+            },
+            {
+              "name": "f24",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 8
+            },
+            {
+              "name": "f25",
+              "blocks": 8,
+              "operations": 38,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 118
+            },
+            {
+              "name": "f26",
+              "blocks": 20,
+              "operations": 74,
+              "max_block_parameters": 11,
+              "max_ssa_numeric_suffix": 339
+            },
+            {
+              "name": "f27",
+              "blocks": 31,
+              "operations": 122,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 581
+            },
+            {
+              "name": "f28",
+              "blocks": 3,
+              "operations": 16,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 18
+            },
+            {
+              "name": "f29",
+              "blocks": 12,
+              "operations": 37,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 91
+            },
+            {
+              "name": "f30",
+              "blocks": 9,
+              "operations": 16,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 75
+            },
+            {
+              "name": "f31",
+              "blocks": 18,
+              "operations": 61,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 168
+            },
+            {
+              "name": "f32",
+              "blocks": 7,
+              "operations": 44,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 89
+            },
+            {
+              "name": "f33",
+              "blocks": 6,
+              "operations": 53,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 79
+            },
+            {
+              "name": "f34",
+              "blocks": 31,
+              "operations": 133,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 426
+            },
+            {
+              "name": "f35",
+              "blocks": 39,
+              "operations": 159,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 312
+            },
+            {
+              "name": "f36",
+              "blocks": 48,
+              "operations": 255,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 728
+            },
+            {
+              "name": "f37",
+              "blocks": 1,
+              "operations": 0,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 0
+            },
+            {
+              "name": "f38",
+              "blocks": 7,
+              "operations": 91,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 189
+            },
+            {
+              "name": "f39",
+              "blocks": 14,
+              "operations": 617,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 682
+            },
+            {
+              "name": "f40",
+              "blocks": 8,
+              "operations": 97,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 125
+            },
+            {
+              "name": "f41",
+              "blocks": 87,
+              "operations": 339,
+              "max_block_parameters": 15,
+              "max_ssa_numeric_suffix": 1791
+            },
+            {
+              "name": "f42",
+              "blocks": 8,
+              "operations": 21,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 47
+            },
+            {
+              "name": "f43",
+              "blocks": 40,
+              "operations": 136,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 300
+            },
+            {
+              "name": "f44",
+              "blocks": 8,
+              "operations": 27,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 78
+            },
+            {
+              "name": "f45",
+              "blocks": 9,
+              "operations": 37,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 129
+            },
+            {
+              "name": "f46",
+              "blocks": 10,
+              "operations": 18,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 74
+            },
+            {
+              "name": "f47",
+              "blocks": 8,
+              "operations": 44,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 73
+            },
+            {
+              "name": "f48",
+              "blocks": 63,
+              "operations": 280,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 705
+            },
+            {
+              "name": "f49",
+              "blocks": 1,
+              "operations": 62,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 63
+            },
+            {
+              "name": "f50",
+              "blocks": 1,
+              "operations": 64,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 58
+            },
+            {
+              "name": "f51",
+              "blocks": 23,
+              "operations": 437,
+              "max_block_parameters": 14,
+              "max_ssa_numeric_suffix": 603
+            },
+            {
+              "name": "f52",
+              "blocks": 7,
+              "operations": 22,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 49
+            },
+            {
+              "name": "f53",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 8
+            },
+            {
+              "name": "f54",
+              "blocks": 4,
+              "operations": 23,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 31
+            }
+          ]
+        },
+        "one_call_target_and_one_appended_function_only": true,
+        "every_other_function_byte_unchanged": true,
+        "complete_reverse_to_inline_source_equal": true,
+        "fast_byte_set": "32 <= byte < 128, excluding byte34 quote and byte92 backslash",
+        "out_of_bounds_position_delegates_without_buffer_load": true,
+        "fast_return": "((position + 1) mod 2^64) << 32 OR byte, using the same original wrapping addition and checked shift",
+        "every_other_byte_calls_exact_original_unicode_reader": true,
+        "fallback_extra_reads": "One additional immutable in-bounds byte load; no mutation precedes the exact original reader call",
+        "mutable_buffers_and_cursor_operations_unchanged": true,
+        "no_bulk_access_no_cross_scalar_cursor_cache": true,
+        "arbitrary_VM_fuel_step_equivalence_claimed": false,
+        "only_textual_source_generation_executed": true,
+        "HIA_AST": 0,
+        "B3": 0,
+        "VM": 0,
+        "native": 0,
+        "performance_improvement_measured": false
+      }
+    },
+    {
+      "role": 59,
+      "original": {
+        "bytes": 229889,
+        "gitsha": "3c563ec90e7985d195ad82a2d42d624624a34f4e",
+        "sha256": "e0809903daba34e3fb5392627850077c45b2d2e0e7061ee1230e6886ace78334"
+      },
+      "input_inline": {
+        "bytes": 252995,
+        "gitsha": "9b0f788554bc5df28b00c7b56867486a24df81a2",
+        "sha256": "59932d1c0fb853ba59033b6a0ff095ff2e0eab47fd707d1cfcdc4c842f664378"
+      },
+      "candidate": {
+        "bytes": 254055,
+        "gitsha": "b7c4b501817fc6075bb8b2b8210a2e4ead27ed77",
+        "sha256": "c3878bc263831256807ddcbd221d9e9645773756633b58208f3f09bd019dd65b"
+      },
+      "caller": "f41",
+      "original_unicode_reader": "f50",
+      "helper": {
+        "name": "f56",
+        "bytes": 1060,
+        "gitsha": "3cbb04a798dc57f184cdf3768f47433ee01df4d4",
+        "sha256": "c0082e22a2a452ae4ef79af0929cc5280fd05cd1d7d16b85cb4f8df0be04a433",
+        "source": "fn f56(v0:readbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:u64)\n  v2:usize = buffer.len(v0)\n  v3:u64 = int.cast(v2) {\"mode\":\"wrap\"}\n  v4:bool = compare.ge(v1,v3)\n  branch v4 b3(v0,v1) b1(v0,v1)\nblock b1(v5:readbuf,v6:u64)\n  v7:usize = int.cast(v6) {\"mode\":\"wrap\"}\n  v8:u8 = buffer.load(v5,v7)\n  v9:u64 = int.cast(v8) {\"mode\":\"wrap\"}\n  v10:u64 = const() {\"value\":32}\n  v11:bool = compare.ge(v9,v10)\n  v12:u64 = const() {\"value\":128}\n  v13:bool = compare.lt(v9,v12)\n  v14:u64 = const() {\"value\":34}\n  v15:bool = compare.ne(v9,v14)\n  v16:u64 = const() {\"value\":92}\n  v17:bool = compare.ne(v9,v16)\n  v18:bool = bool.and(v11,v13)\n  v19:bool = bool.and(v15,v17)\n  v20:bool = bool.and(v18,v19)\n  branch v20 b2(v5,v6,v9) b3(v5,v6)\nblock b2(v21:readbuf,v22:u64,v23:u64)\n  v24:u64 = const() {\"value\":1}\n  v25:u64 = int.add.wrap(v22,v24)\n  v26:u64 = const() {\"value\":32}\n  v27:u64 = int.shl.checked(v25,v26)\n  v28:u64 = bit.or(v27,v23)\n  ret(v28)\nblock b3(v29:readbuf,v30:u64)\n  v31:u64 = call(v29,v30) {\"function\":\"f50\"}\n  ret(v31)\nend\n"
+      },
+      "old_call": "  v28:u64 = call(v16,v19) {\"function\":\"f50\"}",
+      "new_call": "  v28:u64 = call(v16,v19) {\"function\":\"f56\"}",
+      "caller_before": {
+        "bytes": 24756,
+        "gitsha": "50fe356aaca54da40e4f56b0d6bc262aeb883827",
+        "sha256": "7dbfdda4681de55aaf1af3c3ca4f52c64eccb50dd2542a843ca88e4a019245ff"
+      },
+      "caller_after": {
+        "bytes": 24756,
+        "gitsha": "df1712953977370f0307a9ede78c13723ca570be",
+        "sha256": "5d9b2db541fad02306d2abd7c306d9fa2b6826c24f3e1e7579d68237dab50ee4"
+      },
+      "unicode_reader": {
+        "bytes": 14895,
+        "gitsha": "c7dfc2437e6363dffc041d01443daf9d03b9540f",
+        "sha256": "2dbe8d1a3949fc703c06788569e6f1cf6626fe2fa2f74ce21bcc8e5737c387a1"
+      },
+      "proof": {
+        "textual_profile": {
+          "functions": 57,
+          "blocks": 770,
+          "operations": 4322,
+          "max_function_blocks": 87,
+          "max_block_parameters": 15,
+          "max_ssa_numeric_suffix": 1791,
+          "per_function": [
+            {
+              "name": "f0",
+              "blocks": 62,
+              "operations": 307,
+              "max_block_parameters": 14,
+              "max_ssa_numeric_suffix": 1314
+            },
+            {
+              "name": "f1",
+              "blocks": 3,
+              "operations": 45,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 62
+            },
+            {
+              "name": "f2",
+              "blocks": 10,
+              "operations": 36,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 69
+            },
+            {
+              "name": "f3",
+              "blocks": 18,
+              "operations": 74,
+              "max_block_parameters": 12,
+              "max_ssa_numeric_suffix": 376
+            },
+            {
+              "name": "f4",
+              "blocks": 11,
+              "operations": 54,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 110
+            },
+            {
+              "name": "f5",
+              "blocks": 6,
+              "operations": 25,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 50
+            },
+            {
+              "name": "f6",
+              "blocks": 11,
+              "operations": 150,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 199
+            },
+            {
+              "name": "f7",
+              "blocks": 5,
+              "operations": 19,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 43
+            },
+            {
+              "name": "f8",
+              "blocks": 4,
+              "operations": 18,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 30
+            },
+            {
+              "name": "f9",
+              "blocks": 22,
+              "operations": 68,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 283
+            },
+            {
+              "name": "f10",
+              "blocks": 4,
+              "operations": 18,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 32
+            },
+            {
+              "name": "f11",
+              "blocks": 1,
+              "operations": 10,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 12
+            },
+            {
+              "name": "f12",
+              "blocks": 16,
+              "operations": 40,
+              "max_block_parameters": 11,
+              "max_ssa_numeric_suffix": 264
+            },
+            {
+              "name": "f13",
+              "blocks": 3,
+              "operations": 13,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 36
+            },
+            {
+              "name": "f14",
+              "blocks": 4,
+              "operations": 16,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 29
+            },
+            {
+              "name": "f15",
+              "blocks": 1,
+              "operations": 4,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 5
+            },
+            {
+              "name": "f16",
+              "blocks": 1,
+              "operations": 4,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 6
+            },
+            {
+              "name": "f17",
+              "blocks": 6,
+              "operations": 16,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 42
+            },
+            {
+              "name": "f18",
+              "blocks": 3,
+              "operations": 8,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 13
+            },
+            {
+              "name": "f19",
+              "blocks": 3,
+              "operations": 10,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 15
+            },
+            {
+              "name": "f20",
+              "blocks": 5,
+              "operations": 14,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 25
+            },
+            {
+              "name": "f21",
+              "blocks": 8,
+              "operations": 11,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 39
+            },
+            {
+              "name": "f22",
+              "blocks": 8,
+              "operations": 18,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 53
+            },
+            {
+              "name": "f23",
+              "blocks": 8,
+              "operations": 21,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 101
+            },
+            {
+              "name": "f24",
+              "blocks": 33,
+              "operations": 125,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 614
+            },
+            {
+              "name": "f25",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 7
+            },
+            {
+              "name": "f26",
+              "blocks": 11,
+              "operations": 61,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 136
+            },
+            {
+              "name": "f27",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 8
+            },
+            {
+              "name": "f28",
+              "blocks": 8,
+              "operations": 38,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 118
+            },
+            {
+              "name": "f29",
+              "blocks": 20,
+              "operations": 74,
+              "max_block_parameters": 11,
+              "max_ssa_numeric_suffix": 339
+            },
+            {
+              "name": "f30",
+              "blocks": 12,
+              "operations": 37,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 91
+            },
+            {
+              "name": "f31",
+              "blocks": 18,
+              "operations": 61,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 168
+            },
+            {
+              "name": "f32",
+              "blocks": 12,
+              "operations": 40,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 115
+            },
+            {
+              "name": "f33",
+              "blocks": 12,
+              "operations": 19,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 63
+            },
+            {
+              "name": "f34",
+              "blocks": 15,
+              "operations": 45,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 131
+            },
+            {
+              "name": "f35",
+              "blocks": 10,
+              "operations": 36,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 102
+            },
+            {
+              "name": "f36",
+              "blocks": 31,
+              "operations": 133,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 426
+            },
+            {
+              "name": "f37",
+              "blocks": 11,
+              "operations": 57,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 98
+            },
+            {
+              "name": "f38",
+              "blocks": 48,
+              "operations": 255,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 728
+            },
+            {
+              "name": "f39",
+              "blocks": 1,
+              "operations": 0,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 0
+            },
+            {
+              "name": "f40",
+              "blocks": 7,
+              "operations": 91,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 189
+            },
+            {
+              "name": "f41",
+              "blocks": 14,
+              "operations": 617,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 682
+            },
+            {
+              "name": "f42",
+              "blocks": 8,
+              "operations": 97,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 125
+            },
+            {
+              "name": "f43",
+              "blocks": 87,
+              "operations": 339,
+              "max_block_parameters": 15,
+              "max_ssa_numeric_suffix": 1791
+            },
+            {
+              "name": "f44",
+              "blocks": 8,
+              "operations": 21,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 47
+            },
+            {
+              "name": "f45",
+              "blocks": 40,
+              "operations": 136,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 300
+            },
+            {
+              "name": "f46",
+              "blocks": 8,
+              "operations": 27,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 78
+            },
+            {
+              "name": "f47",
+              "blocks": 9,
+              "operations": 37,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 129
+            },
+            {
+              "name": "f48",
+              "blocks": 10,
+              "operations": 18,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 74
+            },
+            {
+              "name": "f49",
+              "blocks": 8,
+              "operations": 44,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 73
+            },
+            {
+              "name": "f50",
+              "blocks": 63,
+              "operations": 280,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 705
+            },
+            {
+              "name": "f51",
+              "blocks": 1,
+              "operations": 62,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 63
+            },
+            {
+              "name": "f52",
+              "blocks": 1,
+              "operations": 64,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 58
+            },
+            {
+              "name": "f53",
+              "blocks": 27,
+              "operations": 444,
+              "max_block_parameters": 15,
+              "max_ssa_numeric_suffix": 654
+            },
+            {
+              "name": "f54",
+              "blocks": 7,
+              "operations": 21,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 55
+            },
+            {
+              "name": "f55",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 8
+            },
+            {
+              "name": "f56",
+              "blocks": 4,
+              "operations": 23,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 31
+            }
+          ]
+        },
+        "one_call_target_and_one_appended_function_only": true,
+        "every_other_function_byte_unchanged": true,
+        "complete_reverse_to_inline_source_equal": true,
+        "fast_byte_set": "32 <= byte < 128, excluding byte34 quote and byte92 backslash",
+        "out_of_bounds_position_delegates_without_buffer_load": true,
+        "fast_return": "((position + 1) mod 2^64) << 32 OR byte, using the same original wrapping addition and checked shift",
+        "every_other_byte_calls_exact_original_unicode_reader": true,
+        "fallback_extra_reads": "One additional immutable in-bounds byte load; no mutation precedes the exact original reader call",
+        "mutable_buffers_and_cursor_operations_unchanged": true,
+        "no_bulk_access_no_cross_scalar_cursor_cache": true,
+        "arbitrary_VM_fuel_step_equivalence_claimed": false,
+        "only_textual_source_generation_executed": true,
+        "HIA_AST": 0,
+        "B3": 0,
+        "VM": 0,
+        "native": 0,
+        "performance_improvement_measured": false
+      }
+    },
+    {
+      "role": 60,
+      "original": {
+        "bytes": 272276,
+        "gitsha": "62f6d7d0759558869ee5e90d5008434ff906ecdd",
+        "sha256": "9fea0c0a76787a3648e21f1c0412487005b2d2e233b796eec63a3de1eb27c67e"
+      },
+      "input_inline": {
+        "bytes": 295382,
+        "gitsha": "1c3818b2351b393f965d180b8af7ad28e89e2fe1",
+        "sha256": "2c947364a0496e013d18d95563d78349e1997b57f6577800701e267f58d6c754"
+      },
+      "candidate": {
+        "bytes": 296442,
+        "gitsha": "b12fd9765f34c181599e7a841a302bd3694cd90b",
+        "sha256": "f41dd8ce4e5a046a7d3924a25bf536c3fac5c41dbdbbe0e3b26a1951b35a0865"
+      },
+      "caller": "f46",
+      "original_unicode_reader": "f55",
+      "helper": {
+        "name": "f61",
+        "bytes": 1060,
+        "gitsha": "fbb30e05a415b1db9e1c2016994a751f3bc1f2f3",
+        "sha256": "a9ca20f0d2d5b80dcc36560d77d03712eecc71c63051f8918e50dece9bc62474",
+        "source": "fn f61(v0:readbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:u64)\n  v2:usize = buffer.len(v0)\n  v3:u64 = int.cast(v2) {\"mode\":\"wrap\"}\n  v4:bool = compare.ge(v1,v3)\n  branch v4 b3(v0,v1) b1(v0,v1)\nblock b1(v5:readbuf,v6:u64)\n  v7:usize = int.cast(v6) {\"mode\":\"wrap\"}\n  v8:u8 = buffer.load(v5,v7)\n  v9:u64 = int.cast(v8) {\"mode\":\"wrap\"}\n  v10:u64 = const() {\"value\":32}\n  v11:bool = compare.ge(v9,v10)\n  v12:u64 = const() {\"value\":128}\n  v13:bool = compare.lt(v9,v12)\n  v14:u64 = const() {\"value\":34}\n  v15:bool = compare.ne(v9,v14)\n  v16:u64 = const() {\"value\":92}\n  v17:bool = compare.ne(v9,v16)\n  v18:bool = bool.and(v11,v13)\n  v19:bool = bool.and(v15,v17)\n  v20:bool = bool.and(v18,v19)\n  branch v20 b2(v5,v6,v9) b3(v5,v6)\nblock b2(v21:readbuf,v22:u64,v23:u64)\n  v24:u64 = const() {\"value\":1}\n  v25:u64 = int.add.wrap(v22,v24)\n  v26:u64 = const() {\"value\":32}\n  v27:u64 = int.shl.checked(v25,v26)\n  v28:u64 = bit.or(v27,v23)\n  ret(v28)\nblock b3(v29:readbuf,v30:u64)\n  v31:u64 = call(v29,v30) {\"function\":\"f55\"}\n  ret(v31)\nend\n"
+      },
+      "old_call": "  v28:u64 = call(v16,v19) {\"function\":\"f55\"}",
+      "new_call": "  v28:u64 = call(v16,v19) {\"function\":\"f61\"}",
+      "caller_before": {
+        "bytes": 24756,
+        "gitsha": "7e33f97ac8a51dba3dfed5571059d54f36c9c8a3",
+        "sha256": "124470928bcce4d6aa7151fb7962e7079e9837ca4849d2ebe29aa0b11620501a"
+      },
+      "caller_after": {
+        "bytes": 24756,
+        "gitsha": "eb2f6e3bcec20ac163873739ed8eeacfdfdabae7",
+        "sha256": "64e67589dd33ab732988375f17395e5cad5bd61181431d75e0430584b3fe7ad8"
+      },
+      "unicode_reader": {
+        "bytes": 14895,
+        "gitsha": "14d1d0bc09df67ad56cd4ca2428d95a514d0e95e",
+        "sha256": "c682ff34836ef822746e525b4afa81df38dd4daf97df8d2d978773d4abac1beb"
+      },
+      "proof": {
+        "textual_profile": {
+          "functions": 62,
+          "blocks": 906,
+          "operations": 5135,
+          "max_function_blocks": 87,
+          "max_block_parameters": 15,
+          "max_ssa_numeric_suffix": 1791,
+          "per_function": [
+            {
+              "name": "f0",
+              "blocks": 68,
+              "operations": 360,
+              "max_block_parameters": 11,
+              "max_ssa_numeric_suffix": 1235
+            },
+            {
+              "name": "f1",
+              "blocks": 3,
+              "operations": 45,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 62
+            },
+            {
+              "name": "f2",
+              "blocks": 5,
+              "operations": 19,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 43
+            },
+            {
+              "name": "f3",
+              "blocks": 4,
+              "operations": 18,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 30
+            },
+            {
+              "name": "f4",
+              "blocks": 12,
+              "operations": 48,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 103
+            },
+            {
+              "name": "f5",
+              "blocks": 33,
+              "operations": 145,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 448
+            },
+            {
+              "name": "f6",
+              "blocks": 12,
+              "operations": 32,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 92
+            },
+            {
+              "name": "f7",
+              "blocks": 22,
+              "operations": 68,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 283
+            },
+            {
+              "name": "f8",
+              "blocks": 9,
+              "operations": 29,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 84
+            },
+            {
+              "name": "f9",
+              "blocks": 19,
+              "operations": 116,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 278
+            },
+            {
+              "name": "f10",
+              "blocks": 23,
+              "operations": 85,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 253
+            },
+            {
+              "name": "f11",
+              "blocks": 4,
+              "operations": 21,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 33
+            },
+            {
+              "name": "f12",
+              "blocks": 20,
+              "operations": 96,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 299
+            },
+            {
+              "name": "f13",
+              "blocks": 14,
+              "operations": 102,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 246
+            },
+            {
+              "name": "f14",
+              "blocks": 3,
+              "operations": 163,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 177
+            },
+            {
+              "name": "f15",
+              "blocks": 4,
+              "operations": 18,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 32
+            },
+            {
+              "name": "f16",
+              "blocks": 1,
+              "operations": 10,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 12
+            },
+            {
+              "name": "f17",
+              "blocks": 8,
+              "operations": 32,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 104
+            },
+            {
+              "name": "f18",
+              "blocks": 11,
+              "operations": 66,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 167
+            },
+            {
+              "name": "f19",
+              "blocks": 16,
+              "operations": 40,
+              "max_block_parameters": 11,
+              "max_ssa_numeric_suffix": 264
+            },
+            {
+              "name": "f20",
+              "blocks": 3,
+              "operations": 13,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 36
+            },
+            {
+              "name": "f21",
+              "blocks": 4,
+              "operations": 16,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 29
+            },
+            {
+              "name": "f22",
+              "blocks": 1,
+              "operations": 30,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 31
+            },
+            {
+              "name": "f23",
+              "blocks": 1,
+              "operations": 53,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 47
+            },
+            {
+              "name": "f24",
+              "blocks": 3,
+              "operations": 8,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 13
+            },
+            {
+              "name": "f25",
+              "blocks": 3,
+              "operations": 10,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 15
+            },
+            {
+              "name": "f26",
+              "blocks": 5,
+              "operations": 14,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 25
+            },
+            {
+              "name": "f27",
+              "blocks": 8,
+              "operations": 11,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 39
+            },
+            {
+              "name": "f28",
+              "blocks": 8,
+              "operations": 18,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 53
+            },
+            {
+              "name": "f29",
+              "blocks": 8,
+              "operations": 21,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 101
+            },
+            {
+              "name": "f30",
+              "blocks": 33,
+              "operations": 125,
+              "max_block_parameters": 10,
+              "max_ssa_numeric_suffix": 614
+            },
+            {
+              "name": "f31",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 7
+            },
+            {
+              "name": "f32",
+              "blocks": 11,
+              "operations": 61,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 136
+            },
+            {
+              "name": "f33",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 8
+            },
+            {
+              "name": "f34",
+              "blocks": 8,
+              "operations": 38,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 118
+            },
+            {
+              "name": "f35",
+              "blocks": 20,
+              "operations": 74,
+              "max_block_parameters": 11,
+              "max_ssa_numeric_suffix": 339
+            },
+            {
+              "name": "f36",
+              "blocks": 12,
+              "operations": 37,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 91
+            },
+            {
+              "name": "f37",
+              "blocks": 12,
+              "operations": 40,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 115
+            },
+            {
+              "name": "f38",
+              "blocks": 12,
+              "operations": 19,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 63
+            },
+            {
+              "name": "f39",
+              "blocks": 15,
+              "operations": 45,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 131
+            },
+            {
+              "name": "f40",
+              "blocks": 10,
+              "operations": 36,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 102
+            },
+            {
+              "name": "f41",
+              "blocks": 31,
+              "operations": 133,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 426
+            },
+            {
+              "name": "f42",
+              "blocks": 53,
+              "operations": 223,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 432
+            },
+            {
+              "name": "f43",
+              "blocks": 48,
+              "operations": 255,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 728
+            },
+            {
+              "name": "f44",
+              "blocks": 1,
+              "operations": 0,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 0
+            },
+            {
+              "name": "f45",
+              "blocks": 7,
+              "operations": 91,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 189
+            },
+            {
+              "name": "f46",
+              "blocks": 14,
+              "operations": 617,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 682
+            },
+            {
+              "name": "f47",
+              "blocks": 8,
+              "operations": 97,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 125
+            },
+            {
+              "name": "f48",
+              "blocks": 87,
+              "operations": 339,
+              "max_block_parameters": 15,
+              "max_ssa_numeric_suffix": 1791
+            },
+            {
+              "name": "f49",
+              "blocks": 8,
+              "operations": 21,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 47
+            },
+            {
+              "name": "f50",
+              "blocks": 40,
+              "operations": 136,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 300
+            },
+            {
+              "name": "f51",
+              "blocks": 8,
+              "operations": 27,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 78
+            },
+            {
+              "name": "f52",
+              "blocks": 9,
+              "operations": 37,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 129
+            },
+            {
+              "name": "f53",
+              "blocks": 10,
+              "operations": 18,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 74
+            },
+            {
+              "name": "f54",
+              "blocks": 8,
+              "operations": 44,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 73
+            },
+            {
+              "name": "f55",
+              "blocks": 63,
+              "operations": 280,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 705
+            },
+            {
+              "name": "f56",
+              "blocks": 1,
+              "operations": 62,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 63
+            },
+            {
+              "name": "f57",
+              "blocks": 1,
+              "operations": 64,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 58
+            },
+            {
+              "name": "f58",
+              "blocks": 27,
+              "operations": 444,
+              "max_block_parameters": 15,
+              "max_ssa_numeric_suffix": 654
+            },
+            {
+              "name": "f59",
+              "blocks": 7,
+              "operations": 21,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 55
+            },
+            {
+              "name": "f60",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 8
+            },
+            {
+              "name": "f61",
+              "blocks": 4,
+              "operations": 23,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 31
+            }
+          ]
+        },
+        "one_call_target_and_one_appended_function_only": true,
+        "every_other_function_byte_unchanged": true,
+        "complete_reverse_to_inline_source_equal": true,
+        "fast_byte_set": "32 <= byte < 128, excluding byte34 quote and byte92 backslash",
+        "out_of_bounds_position_delegates_without_buffer_load": true,
+        "fast_return": "((position + 1) mod 2^64) << 32 OR byte, using the same original wrapping addition and checked shift",
+        "every_other_byte_calls_exact_original_unicode_reader": true,
+        "fallback_extra_reads": "One additional immutable in-bounds byte load; no mutation precedes the exact original reader call",
+        "mutable_buffers_and_cursor_operations_unchanged": true,
+        "no_bulk_access_no_cross_scalar_cursor_cache": true,
+        "arbitrary_VM_fuel_step_equivalence_claimed": false,
+        "only_textual_source_generation_executed": true,
+        "HIA_AST": 0,
+        "B3": 0,
+        "VM": 0,
+        "native": 0,
+        "performance_improvement_measured": false
+      }
+    },
+    {
+      "role": 63,
+      "original": {
+        "bytes": 153786,
+        "gitsha": "05bb650046b146d5cf07467dd432a3a803740a8c",
+        "sha256": "7362f885a9da0cc26a52e2930c02dc633ac7e50080e0ad0f622f62da53ffaf9c"
+      },
+      "input_inline": {
+        "bytes": 176892,
+        "gitsha": "9e1129d18f9a54320034843fffc8241fcb830b64",
+        "sha256": "b72a2ca735372dfd954033608de93b2f00a3dbc5131a993e277eea863d534497"
+      },
+      "candidate": {
+        "bytes": 177952,
+        "gitsha": "14eae26f4a9c5a4b07890e852ef7ee8d76efd749",
+        "sha256": "df04bfd70eec7091980deaa68869a63218be4693499121f736f934942e47c857"
+      },
+      "caller": "f17",
+      "original_unicode_reader": "f26",
+      "helper": {
+        "name": "f29",
+        "bytes": 1060,
+        "gitsha": "1189b958a00cfc715d25c245335bfa45adbd4c13",
+        "sha256": "33eacf1033649db68614108d913cc0cfe5e5a4f8ff109556047611b22b154f90",
+        "source": "fn f29(v0:readbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:u64)\n  v2:usize = buffer.len(v0)\n  v3:u64 = int.cast(v2) {\"mode\":\"wrap\"}\n  v4:bool = compare.ge(v1,v3)\n  branch v4 b3(v0,v1) b1(v0,v1)\nblock b1(v5:readbuf,v6:u64)\n  v7:usize = int.cast(v6) {\"mode\":\"wrap\"}\n  v8:u8 = buffer.load(v5,v7)\n  v9:u64 = int.cast(v8) {\"mode\":\"wrap\"}\n  v10:u64 = const() {\"value\":32}\n  v11:bool = compare.ge(v9,v10)\n  v12:u64 = const() {\"value\":128}\n  v13:bool = compare.lt(v9,v12)\n  v14:u64 = const() {\"value\":34}\n  v15:bool = compare.ne(v9,v14)\n  v16:u64 = const() {\"value\":92}\n  v17:bool = compare.ne(v9,v16)\n  v18:bool = bool.and(v11,v13)\n  v19:bool = bool.and(v15,v17)\n  v20:bool = bool.and(v18,v19)\n  branch v20 b2(v5,v6,v9) b3(v5,v6)\nblock b2(v21:readbuf,v22:u64,v23:u64)\n  v24:u64 = const() {\"value\":1}\n  v25:u64 = int.add.wrap(v22,v24)\n  v26:u64 = const() {\"value\":32}\n  v27:u64 = int.shl.checked(v25,v26)\n  v28:u64 = bit.or(v27,v23)\n  ret(v28)\nblock b3(v29:readbuf,v30:u64)\n  v31:u64 = call(v29,v30) {\"function\":\"f26\"}\n  ret(v31)\nend\n"
+      },
+      "old_call": "  v28:u64 = call(v16,v19) {\"function\":\"f26\"}",
+      "new_call": "  v28:u64 = call(v16,v19) {\"function\":\"f29\"}",
+      "caller_before": {
+        "bytes": 24756,
+        "gitsha": "708062ffafa04da6a9a5a4250721449f7002f2f3",
+        "sha256": "5e0b19fce91f8f389445eddc388d6e46672dc5700aa32c1e86a6266b0f0037d6"
+      },
+      "caller_after": {
+        "bytes": 24756,
+        "gitsha": "840bfeaef2a11a5857382794a87d95942a5233e7",
+        "sha256": "49ca068afdcd5281bd85c518fd3516f14276e945b6fa7f389684a19d15af8116"
+      },
+      "unicode_reader": {
+        "bytes": 14895,
+        "gitsha": "ad805e6ee164324c3eb765863a97d671c769838e",
+        "sha256": "d512c2a98801b49237a602a60832759e552958756a3f220444420e917502e3fb"
+      },
+      "proof": {
+        "textual_profile": {
+          "functions": 30,
+          "blocks": 530,
+          "operations": 3042,
+          "max_function_blocks": 87,
+          "max_block_parameters": 15,
+          "max_ssa_numeric_suffix": 1791,
+          "per_function": [
+            {
+              "name": "f0",
+              "blocks": 28,
+              "operations": 134,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 373
+            },
+            {
+              "name": "f1",
+              "blocks": 3,
+              "operations": 45,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 68
+            },
+            {
+              "name": "f2",
+              "blocks": 31,
+              "operations": 133,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 426
+            },
+            {
+              "name": "f3",
+              "blocks": 18,
+              "operations": 59,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 254
+            },
+            {
+              "name": "f4",
+              "blocks": 40,
+              "operations": 159,
+              "max_block_parameters": 13,
+              "max_ssa_numeric_suffix": 710
+            },
+            {
+              "name": "f5",
+              "blocks": 14,
+              "operations": 57,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 156
+            },
+            {
+              "name": "f6",
+              "blocks": 4,
+              "operations": 22,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 38
+            },
+            {
+              "name": "f7",
+              "blocks": 33,
+              "operations": 126,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 569
+            },
+            {
+              "name": "f8",
+              "blocks": 1,
+              "operations": 9,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 10
+            },
+            {
+              "name": "f9",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 7
+            },
+            {
+              "name": "f10",
+              "blocks": 11,
+              "operations": 61,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 136
+            },
+            {
+              "name": "f11",
+              "blocks": 1,
+              "operations": 7,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 8
+            },
+            {
+              "name": "f12",
+              "blocks": 8,
+              "operations": 38,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 118
+            },
+            {
+              "name": "f13",
+              "blocks": 20,
+              "operations": 74,
+              "max_block_parameters": 11,
+              "max_ssa_numeric_suffix": 339
+            },
+            {
+              "name": "f14",
+              "blocks": 48,
+              "operations": 255,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 728
+            },
+            {
+              "name": "f15",
+              "blocks": 1,
+              "operations": 0,
+              "max_block_parameters": 1,
+              "max_ssa_numeric_suffix": 0
+            },
+            {
+              "name": "f16",
+              "blocks": 7,
+              "operations": 91,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 189
+            },
+            {
+              "name": "f17",
+              "blocks": 14,
+              "operations": 617,
+              "max_block_parameters": 8,
+              "max_ssa_numeric_suffix": 682
+            },
+            {
+              "name": "f18",
+              "blocks": 8,
+              "operations": 97,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 125
+            },
+            {
+              "name": "f19",
+              "blocks": 87,
+              "operations": 339,
+              "max_block_parameters": 15,
+              "max_ssa_numeric_suffix": 1791
+            },
+            {
+              "name": "f20",
+              "blocks": 8,
+              "operations": 21,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 47
+            },
+            {
+              "name": "f21",
+              "blocks": 40,
+              "operations": 136,
+              "max_block_parameters": 4,
+              "max_ssa_numeric_suffix": 300
+            },
+            {
+              "name": "f22",
+              "blocks": 8,
+              "operations": 27,
+              "max_block_parameters": 6,
+              "max_ssa_numeric_suffix": 78
+            },
+            {
+              "name": "f23",
+              "blocks": 9,
+              "operations": 37,
+              "max_block_parameters": 9,
+              "max_ssa_numeric_suffix": 129
+            },
+            {
+              "name": "f24",
+              "blocks": 10,
+              "operations": 18,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 74
+            },
+            {
+              "name": "f25",
+              "blocks": 8,
+              "operations": 44,
+              "max_block_parameters": 5,
+              "max_ssa_numeric_suffix": 73
+            },
+            {
+              "name": "f26",
+              "blocks": 63,
+              "operations": 280,
+              "max_block_parameters": 7,
+              "max_ssa_numeric_suffix": 705
+            },
+            {
+              "name": "f27",
+              "blocks": 1,
+              "operations": 62,
+              "max_block_parameters": 2,
+              "max_ssa_numeric_suffix": 63
+            },
+            {
+              "name": "f28",
+              "blocks": 1,
+              "operations": 64,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 58
+            },
+            {
+              "name": "f29",
+              "blocks": 4,
+              "operations": 23,
+              "max_block_parameters": 3,
+              "max_ssa_numeric_suffix": 31
+            }
+          ]
+        },
+        "one_call_target_and_one_appended_function_only": true,
+        "every_other_function_byte_unchanged": true,
+        "complete_reverse_to_inline_source_equal": true,
+        "fast_byte_set": "32 <= byte < 128, excluding byte34 quote and byte92 backslash",
+        "out_of_bounds_position_delegates_without_buffer_load": true,
+        "fast_return": "((position + 1) mod 2^64) << 32 OR byte, using the same original wrapping addition and checked shift",
+        "every_other_byte_calls_exact_original_unicode_reader": true,
+        "fallback_extra_reads": "One additional immutable in-bounds byte load; no mutation precedes the exact original reader call",
+        "mutable_buffers_and_cursor_operations_unchanged": true,
+        "no_bulk_access_no_cross_scalar_cursor_cache": true,
+        "arbitrary_VM_fuel_step_equivalence_claimed": false,
+        "only_textual_source_generation_executed": true,
+        "HIA_AST": 0,
+        "B3": 0,
+        "VM": 0,
+        "native": 0,
+        "performance_improvement_measured": false
+      }
+    }
+  ],
+  "original_329_case_gate_still_required": true,
+  "old_327_passes_not_inherited": true,
+  "old_two_CPU_failures_unchanged": true,
+  "all_original_limits_unchanged": true,
+  "whole_stack_closed": false,
+  "production_activation": 0,
+  "deletions": 0
+}

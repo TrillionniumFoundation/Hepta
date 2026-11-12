@@ -1,0 +1,82 @@
+{
+  "schema": "hia-current-coregraph54-failure-receipt-narrow-r2-review-v1",
+  "status": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_FAILURE_HANDLING_DIFF",
+  "reviewer": "audit_runtime",
+  "repository": "TrillionniumFoundation/Hepta",
+  "previous_review": {
+    "gitsha": "813925c4bbe99951c23c93ba9b8e2ddd7fc1f429",
+    "bytes": 6495,
+    "sha256": "8cecaa5795a6b1aa409870db7a0bb5e3036659ec4bbe378941c130140249e993"
+  },
+  "inputs": [
+    {
+      "scope": "reader complete source and old/new receipt paths",
+      "old": "0f52a92ca8feeee95fa33b06097b195823eac2c7",
+      "new": "18edaaac7f754ad5cdf568375b0a712f2233e796",
+      "bytes": 18882,
+      "sha256": "34dafa14c1fb25a078e0976f1e0651ed970a488c86239b8854855628a0610656"
+    },
+    {
+      "scope": "CI complete source and old/new Evidence/run_gate/finalization paths",
+      "old": "70ea5aacc28df013749db08df97657dd3a5660a4",
+      "new": "37ac2dd87d58cbda2d0c8f9c95e77ecc900e5380",
+      "bytes": 18997,
+      "sha256": "26c8f419f5788828ea3991bbdb8a440320915f427645e03ffa61ed060d38faff"
+    },
+    {
+      "scope": "only shared new finalization helper and finally block; not builder semantic body",
+      "new": "8b3aeb31be7bdd19d5355bdab1b9198ae0079244",
+      "bytes": 25304,
+      "sha256": "b30934fdfd79eb78ef950cef0b7ec26b2213ca89e0d89bed474ddb9a3ae144ff"
+    },
+    {
+      "scope": "only shared new finalization helper and finally block; not test semantic body",
+      "new": "2d8414ea44bd7a0ab1603a94219a23b78eebb882",
+      "bytes": 33278,
+      "sha256": "5490e3b7c97c04c3129d54206f15e51b32437ccb5324fda5ded1e5e606f7e75b"
+    }
+  ],
+  "closed_findings": [
+    {
+      "prior": "reader can emit and leave PASS summary before final budget failure; output can replace primary",
+      "finding": "_final_failure sets STATUS=FAIL and retains the first exception; _final_attempt records later failures independently and appends notes. Original body exceptions are assigned to PRIMARY before traceback/after-check/receipt operations. _finish_receipt measures after summary output/flush, rewrites failure status when that measurement fails, and checks again after alarm cancellation before successful return. A late return-budget failure attempts another FAIL summary write and raises the retained primary.",
+      "scope": "This establishes source-level control flow only. An unwritable filesystem may prevent any rewrite; such a rewrite error is recorded without promoting the failed process to success. No execution or original archive read was performed."
+    },
+    {
+      "prior": "CI summary parse can suppress primary subject error and block stderr/process evidence",
+      "finding": "original_summary first emits complete original bytes before JSON parsing. Evidence wraps subject, summary export/parse, each stderr/process raw export, build/group finally projections, source/image after checks and bounded sealing independently. The first subject exception remains primary; subsequent JSON/export/cleanup failures are notes and recorded evidence errors. Successful run_gate still asserts original common process status/returncode/timed_out and strict child CPU/wall bounds before returning."
+    }
+  ],
+  "exact_text_checks": {
+    "reader_success_try_byte_identical": true,
+    "schedule_byte_identical": true,
+    "receipt_gate_byte_identical": true,
+    "reader_build_test_same_final_helper": true,
+    "original_bytes_precedes_parse": true,
+    "no_actual_execution": true,
+    "reader_preexisting_prefix_diff_only_one_inserted_LF": true
+  },
+  "unchanged_reviewed_success_requirements": [
+    "Reader main try block from track(__file__) through completed ASSETS/status assignment is byte-identical to original reader; the prefix before added helpers differs only by one additional LF.",
+    "All 4,783 member/190,964,237-byte checks, source/image/compile receipt binding and original 43-role versus newly combined 47-role checks in that unchanged body remain.",
+    "CI SCHEDULE is exactly the original 15 groups/176 cases; receipt_gate is byte-identical.",
+    "Finalizer helper is identical in new reader, builder and test scripts apart from each script's separate _elapsed_budget routine.",
+    "Compiler 10 CPU/20 wall/256 MiB and all native success limits are not loosened by this revision.",
+    "No target, HIA, native, VM, parser AST, assembler, compile or original artifact execution/read was performed."
+  ],
+  "not_reviewed": [
+    "New full builder/test semantic bodies, their prior whole-source identity, or actual runtime behavior",
+    "Actual original artifact bytes, source/image extraction results, budgets or case counts",
+    "Fresh whole public backend, group6 composition, installed/cold or namespace Store qualification"
+  ],
+  "execution_counts": {
+    "AST": 0,
+    "source_generation": 0,
+    "assembler": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "original_artifact_reads": 0
+  },
+  "note": "The reported closure applies to the two precise source-level failure-reporting gaps in 813925 only. It is not a replacement for the pending actual CI or an assertion that any original artifact passed."
+}

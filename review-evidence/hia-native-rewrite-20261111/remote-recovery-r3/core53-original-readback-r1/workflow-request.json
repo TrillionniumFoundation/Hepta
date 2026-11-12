@@ -1,0 +1,65 @@
+{
+  "schema": "hia-core53-original-readback-workflow-request-v1",
+  "status": "SOURCE_ONLY_NOT_RUN",
+  "job": {
+    "key": "core53_original_readback",
+    "source": "  core53_original_readback:\n    if: >-\n      github.event_name == 'workflow_dispatch' ||\n      !contains(github.event.head_commit.message, '[hia-ci:') ||\n      contains(github.event.head_commit.message, '[hia-ci:all]') ||\n      contains(github.event.head_commit.message, '[hia-ci:core53-original-readback]')\n    name: Read exact Core53 cold failure and full original ZIP\n    runs-on: ubuntu-latest\n    timeout-minutes: 20\n    permissions:\n      contents: read\n      actions: read\n    env:\n      PYTHONDONTWRITEBYTECODE: '1'\n    steps:\n      - name: Require the original Ubuntu 24.04 x86_64 execution domain\n        shell: bash\n        run: |\n          set -euo pipefail\n          . /etc/os-release\n          test \"$ID\" = ubuntu\n          test \"$VERSION_ID\" = 24.04\n          test \"$(uname -m)\" = x86_64\n          test \"${ImageOS:?}\" = ubuntu24\n          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\\n' \"$ID\" \"$VERSION_ID\" \"$(uname -m)\" \"$ImageOS\" \"${ImageVersion:?}\"\n      - name: Check out exact submitted original archives and reader\n        uses: actions/checkout@v4\n        with:\n          fetch-depth: 0\n          persist-credentials: false\n      - name: Install exact CPython 3.12.14\n        uses: actions/setup-python@v5\n        with:\n          python-version: '3.12.14'\n      - name: Fetch and verify complete immutable original ZIP\n        shell: bash\n        env:\n          HIA_ARTIFACT_TOKEN: ${{ github.token }}\n        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/core53-original-readback-r1/download_core53_original_zip_r1.py --output \"$RUNNER_TEMP/core53-original-input/core53-original.zip\"\n      - name: Read exact complete original artifacts without target execution\n        shell: bash\n        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/core53-original-readback-r1/read_core53_original_cold_r1.py --repo \"$GITHUB_WORKSPACE\" --zip \"$RUNNER_TEMP/core53-original-input/core53-original.zip\" --out \"$RUNNER_TEMP/hia-core53-original-readback-r1\" 2>&1 | tee \"$RUNNER_TEMP/hia-core53-original-readback-r1-driver.log\"\n      - name: Preserve all complete original readbacks\n        if: always()\n        uses: actions/upload-artifact@v4\n        with:\n          name: hia-core53-original-readback-r1-${{ github.run_id }}-${{ github.run_attempt }}\n          path: |\n            ${{ runner.temp }}/core53-original-input\n            ${{ runner.temp }}/hia-core53-original-readback-r1\n            ${{ runner.temp }}/hia-core53-original-readback-r1-driver.log\n          if-no-files-found: error\n          retention-days: 90\n          compression-level: 0\n\n"
+  },
+  "derivation": {
+    "base_key": "core48_original_readback",
+    "edits": [
+      {
+        "line_index": 0,
+        "before": "  core48_original_readback:",
+        "after": "  core53_original_readback:"
+      },
+      {
+        "line_index": 5,
+        "before": "      contains(github.event.head_commit.message, '[hia-ci:core48-original-readback]')",
+        "after": "      contains(github.event.head_commit.message, '[hia-ci:core53-original-readback]')"
+      },
+      {
+        "line_index": 6,
+        "before": "    name: Read exact Core48 cold failure and full original ZIP",
+        "after": "    name: Read exact Core53 cold failure and full original ZIP"
+      },
+      {
+        "line_index": 38,
+        "before": "        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/download_core48_original_zip_r1.py --output \"$RUNNER_TEMP/core48-original-input/core48-original.zip\"",
+        "after": "        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/core53-original-readback-r1/download_core53_original_zip_r1.py --output \"$RUNNER_TEMP/core53-original-input/core53-original.zip\""
+      },
+      {
+        "line_index": 41,
+        "before": "        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_core48_original_cold_r2.py --repo \"$GITHUB_WORKSPACE\" --zip \"$RUNNER_TEMP/core48-original-input/core48-original.zip\" --out \"$RUNNER_TEMP/hia-core48-original-readback-r2\" 2>&1 | tee \"$RUNNER_TEMP/hia-core48-original-readback-r2-driver.log\"",
+        "after": "        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/core53-original-readback-r1/read_core53_original_cold_r1.py --repo \"$GITHUB_WORKSPACE\" --zip \"$RUNNER_TEMP/core53-original-input/core53-original.zip\" --out \"$RUNNER_TEMP/hia-core53-original-readback-r1\" 2>&1 | tee \"$RUNNER_TEMP/hia-core53-original-readback-r1-driver.log\""
+      },
+      {
+        "line_index": 46,
+        "before": "          name: hia-core48-original-readback-r2-${{ github.run_id }}-${{ github.run_attempt }}",
+        "after": "          name: hia-core53-original-readback-r1-${{ github.run_id }}-${{ github.run_attempt }}"
+      },
+      {
+        "line_index": 48,
+        "before": "            ${{ runner.temp }}/core48-original-input",
+        "after": "            ${{ runner.temp }}/core53-original-input"
+      },
+      {
+        "line_index": 49,
+        "before": "            ${{ runner.temp }}/hia-core48-original-readback-r2",
+        "after": "            ${{ runner.temp }}/hia-core53-original-readback-r1"
+      },
+      {
+        "line_index": 50,
+        "before": "            ${{ runner.temp }}/hia-core48-original-readback-r2-driver.log",
+        "after": "            ${{ runner.temp }}/hia-core53-original-readback-r1-driver.log"
+      }
+    ],
+    "whole_source_inverse_equal": true
+  },
+  "active_python_paths": [
+    "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/core53-original-readback-r1/read_core53_original_cold_r1.py",
+    "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/core53-original-readback-r1/download_core53_original_zip_r1.py"
+  ],
+  "actions_read": true,
+  "old_job_unchanged": true
+}

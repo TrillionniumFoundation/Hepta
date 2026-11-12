@@ -1,0 +1,61 @@
+{
+  "schema": "hia-exact-source-delta-v1",
+  "scope": "Readonly original52a reader failure custody claim only",
+  "status": "NEW_SOURCE_0_AST_0_ARCHIVE_READ_0_TARGET",
+  "before": {
+    "blob": "705d4725d7d018b46ad71f5c5b27c07ee621d540",
+    "bytes": 43342,
+    "sha256": "7727b1250235623bce86bd24d9bc9e07ed047e78754ac10381c0ed4b446d755e",
+    "mode": "100644"
+  },
+  "after": {
+    "blob": "ce7e684864f1c0d8b1a81237a7b6083c09fadf71",
+    "bytes": 44060,
+    "sha256": "641f858692f486f579d7c3a2617db9bcd535b9ccf3c64602e6dab40395e131a4",
+    "mode": "100644"
+  },
+  "edits": [
+    {
+      "before": "def seal_payload(out):",
+      "after": "def seal_payload(out, complete_original):\n assert type(complete_original) is bool",
+      "occurrences": 1
+    },
+    {
+      "before": "complete_original_4706_members_retained_inside_pinned_original_tar=True,",
+      "after": "complete_original_4706_members_retained_inside_pinned_original_tar=complete_original,",
+      "occurrences": 1
+    },
+    {
+      "before": "controls=[];copies=[];pending=[];checked=[];exports=[];spec=None;console={};primary=None",
+      "after": "controls=[];copies=[];pending=[];checked=[];exports=[];spec=None;console={};primary=None;custody=None",
+      "occurrences": 1
+    },
+    {
+      "before": "   custody=seal_payload(out);console[\"readback_custody\"]=custody",
+      "after": "   complete_original=(result.get(\"complete_archive_saved_before_index_parse\") is True and\n    result.get(\"complete_index_saved_before_semantic_parse\") is True and\n    result.get(\"original_archive_verified\") is True and len(checked)==4706 and\n    sum(row[\"bytes\"] for row in checked)==334479715 and not after_errors and not pending)\n   custody=seal_payload(out,complete_original);console[\"readback_custody\"]=custody",
+      "occurrences": 1
+    },
+    {
+      "before": "  try:\n   console.update(after_check_errors=after_errors,unfinished_early_copies=pending,",
+      "after": "  try:\n   if custody is not None:\n    custody[\"complete_original_4706_members_retained_inside_pinned_original_tar\"]=(\n     custody[\"complete_original_4706_members_retained_inside_pinned_original_tar\"] and\n     not after_errors and not pending)\n    save(out/\"readback-custody.json\",custody)\n   console.update(after_check_errors=after_errors,unfinished_early_copies=pending,",
+      "occurrences": 1
+    }
+  ],
+  "full_reverse_restores_original": true,
+  "complete_original_claim_requirements": [
+    "complete pinned original archive copied and byte-read back",
+    "complete pinned original index copied and byte-read back",
+    "full original 4706 member/334479715 raw byte verification",
+    "all available original/self/copy and expanded-member after checks passed",
+    "no unfinished early copies",
+    "successful new seal and post-seal input/copy checks before final true claim"
+  ],
+  "failure_behavior": "The original primary error is unchanged. An early parse/copy/validation failure may produce a valid partial readback seal, but its complete-original flag remains false. Later post-seal after errors clear the flag and retain FAIL.",
+  "unchanged": [
+    "artifact/source/image identity and every original semantic/count/trace check",
+    "all original 5011 buffer comparisons",
+    "source/profile/original900 phase checks",
+    "reader 90 CPU/180 wall/1GiB and final post-output gates",
+    "No target execution"
+  ]
+}

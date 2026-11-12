@@ -1,0 +1,138 @@
+{
+  "schema": "hia-namespace-original42-follow52a-reader-independent-static-review-r1",
+  "reviewer": "audit_selfhost",
+  "status": "ONE_CONFIRMED_FAILURE_RECEIPT_OVERCLAIM_REQUIRES_NARROW_FIX",
+  "identities": [
+    {
+      "role": "reader",
+      "gitsha": "705d4725d7d018b46ad71f5c5b27c07ee621d540",
+      "bytes": 43342,
+      "sha256": "7727b1250235623bce86bd24d9bc9e07ed047e78754ac10381c0ed4b446d755e"
+    },
+    {
+      "role": "input specification",
+      "gitsha": "a5cd324a4ddc6b496734fe3bda4365fc8f1cb231",
+      "bytes": 22404,
+      "sha256": "ded138adb535944e1cf80223a9196878c351b7e867ecb6c273b5bc4ad86d9155"
+    },
+    {
+      "role": "delivery",
+      "gitsha": "f11fec76459e993931a65c51657ce1d90c8fcdf9",
+      "bytes": 6184,
+      "sha256": "23881f0da2cd56f1a46768100c1a2fd442eba4a9a41639bf3c7e27f8471a7529"
+    },
+    {
+      "role": "original driver (relevant report and900-phase sections)",
+      "gitsha": "2e863e4320b4cc10f0f23c26d0353bdc773c2889",
+      "bytes": 50890,
+      "sha256": "f50fd2bd6815fd3dfecb333a56d2df37f0ca5f25f7db489ab99cfb39a41aaa83"
+    },
+    {
+      "role": "original inner replayer (trace/ledger/result sections)",
+      "gitsha": "b6f1eee12f5c3a0b7f25262365d29cfd924c2570",
+      "bytes": 20813,
+      "sha256": "ec3b3ce5f7d03b05c8fd4bf4ac17170cb75a3c47b6373ace8bf04b8d6ec8c30f"
+    },
+    {
+      "role": "original outer replayer (trace/ledger/result sections)",
+      "gitsha": "9ed7fbee842c3513de6ded1a48cbb39adc01594a",
+      "bytes": 17687,
+      "sha256": "060fa3ae8da88e699b881ae5e59f1f49fb030e2f6b02b4082cf16ea3e0d91a6e"
+    },
+    {
+      "role": "original physical test (source/process/report sections)",
+      "gitsha": "710ff00625884853dcfe02fa5ca8fddb9a6170b9",
+      "bytes": 80688,
+      "sha256": "95dc254c9cb24d78862fcaaf9fe25e88f957896ca99c2f975aea99909f1d193c"
+    },
+    {
+      "role": "original build (profile/packer/source/receipt sections)",
+      "gitsha": "50723434d94f1833f89e07d646f2b0be5d1e723a",
+      "bytes": 24251,
+      "sha256": "27315b769ad491364d19d32b3e1b8fb16dd18c5b3071a4ed12f79c90d72e36ee"
+    },
+    {
+      "role": "original packer comparison (ledger/result sections)",
+      "gitsha": "f43d69622324f1eb77bac1ba5a230db29ec77fdb",
+      "bytes": 12414,
+      "sha256": "874ac9913f04fe7b6cc193d396daad976a2789723aa2253739121c5603c9a6dd"
+    }
+  ],
+  "scope": [
+    "Complete43342-byte reader, its exact22404-byte input specification and delivery",
+    "Exact field-name and trace-format comparison against relevant original driver/build/physical/inner/outer/packer source sections",
+    "Complete recorded buffers, original mode/hash afterchecks, unchanged original900-second phase and new reader post-output90CPU/180wall gates",
+    "No actual original artifact reading or project execution"
+  ],
+  "confirmed_findings": [
+    {
+      "id": "R1",
+      "severity": "Failure-path custody metadata is false on early failure",
+      "location": "seal_payload() result construction; main() unconditional finally call",
+      "source_fact": "seal_payload always emits complete_original_4706_members_retained_inside_pinned_original_tar=True. main calls seal_payload in finally even when failure occurs before archive discovery/copy/full member verification.",
+      "demonstrable_static_path": "A valid reader is preserved; the input spec pin assertion fails, or locate(evidence.tar.xz) finds no exact archive, or preserve(copy of archive) fails. except sets FAIL_READBACK. finally can successfully seal the small payload and attach readback_custody containing the unconditionalTrue. No native execution is involved.",
+      "impact": "The overall process still fails, so this does not turn an actual target failure into a PASS. Nevertheless the custody field falsely claims complete original preservation and can be misread independently of the status. This is a confirmed branch-logic defect, not a claim that the fixed original artifact triggered it.",
+      "requested_minimal_fix": "Derive that field from the actual archive/index complete-copy and aftercheck results plus the complete4706-member validation; useFalse on unavailable or partial originals and retain the original primary error. Do not change any success check, original source, trace/buffer comparison or timing quota.",
+      "author_response": "audit_runtime acknowledged the failure-receipt overclaim and is preparing a narrow revision; that revision has not been read or executed in this report."
+    }
+  ],
+  "verified_static_observations": [
+    {
+      "area": "Actual original identities and scope",
+      "finding": "The spec binds exact52a head122a6640...,run43230668215,job131224820127,artifact13950943449,24,234,948-byte innerxz and2,399,283-byte ledger with wholeSHA256. It requires4706 file members and334,479,715 raw bytes. Its original namespace compiler is669556-byte35ee92..., distinct from the Worker668608-byte0e09 compiler. The reader does not substitute the latter."
+    },
+    {
+      "area": "Whole member bytes and modes",
+      "finding": "extract_exact rejects nonregular/duplicate/unlisted members, checks canonical relative names, exact size/mode and deterministic uid/gid/mtime/uname/gname, streams every byte through SHA256 and GitSHA1, then reads the emitted local file back. Full index coverage and total bytes are required. main finally attempts every successfully returned member's mode/size/SHA/Git aftercheck. Original self/config/archive/index copies are tracked before copying and checked again after sealing."
+    },
+    {
+      "area": "Actual source and image identity",
+      "finding": "The reader's build-source/source-after/profile fields match the original507234 build author. Source captures are matched to archived complete bytes and modes; exact child/qualifier identities are additionally pinned. Every six-role HIA/image pair and the packer receipt bind actual compiler/source/produced bytes; every role's complete image is matched to its original ELF offset. Canonical copies retain modes, including executable0755. This reads existing evidence and does not reproduce a compilation."
+    },
+    {
+      "area": "Complete5011 recorded VM/native buffers",
+      "finding": "Both original inner and outer replayers emit role,node,context,serial plus input_hex,pre_output_hex,pre_workspace_hex,expected_return,expected_output_hex,expected_workspace_hex and vm_step_budget. Their offsets are respectivelytrace_offset andoriginal_offset. The reader uses those exact actual fields, compares every completehex-decoded buffer against the corresponding original trace byte ranges, binds the fullu64 native return, exhausts gzipEOF/CRC and requires exact pre-record coverage without duplicates. No JSON u64 value is converted to float."
+    },
+    {
+      "area": "Nested trace partition",
+      "finding": "The actual trace header is12 little-endianu64s; source reads confirm role/node/context/serial positions, pre/post size positions, zero fields and primitiveACK kind3 framing. The reader rechecks whole role1..4 partition bytes with original offsets and whole record hashes; role5..6 remain in the outer ledger. Actual process directory completeness,60processes,5011entries,503primitiveACKs and39/2 retirements are bound to original full reports, not synthesized zero defaults."
+    },
+    {
+      "area": "Packer comparison",
+      "finding": "The84-record gzip ledger is read fully; oldVM,newVM,newnative result/output/workspace triples must be equal, the complete original pre-workspace must remain unchanged, and the result hash/size must match the original summary. Original33 direct controls retain their full input/output member hashes and producer guard assertions; the reader does not rerun their oracle."
+    },
+    {
+      "area": "Original900-second phase",
+      "finding": "Original driver2e863 starts original42_phase immediately before its physical/replay common.run, adds exactly900e9ns deadline, and records elapsed only after its input/working-source afterchecks. The reader preserves that exact recorded phase and physical process receipt, checks the original806848452847ns physical value, physical<completephase<900e9, and does not charge the earlier build/proof/packer stages to a different new900 gate."
+    },
+    {
+      "area": "New reader final budget",
+      "finding": "The reader sets CPU90/AS1GiB/CORE0, one-core affinity and a180second alarm, without invoking a target subprocess. It measures own+reaped-child CPU. After original checks,seal/re-read,second control/copy aftercheck,metadata write/readback and flushed stdout, it writes/readbacks post-output-budget.json, measures again, requires0<=CPU<90 and0<=elapsed<180e9 and both success statuses. Failure keeps the original primary error and emits a separate final failure receipt. The externalworkflowtimeout remains180seconds with cleanup; no original900 value is changed."
+    },
+    {
+      "area": "Original raw evidence before semantic assertions",
+      "finding": "Whole pinned original archive and ledger copies precede report validation. Selected summaries are copied as unchanged raw bytes and console-compressed without JSON reserialization before verify_reports. The850000-byte console allowance omits entire exports and retains full originals in the artifact; it never truncates an emitted original. ZIP identity is explicitly declared Actions metadata only; no ZIPCRC/fullZIPreadback is claimed."
+    },
+    {
+      "area": "No target execution",
+      "finding": "The reader imports only standard library modules and parses records/JSON. It does not import original source modules, invoke B3, run a CoreVM, execute native images/ELFs or rerun physical tests. Reading generated Core documents for profile counts is not target execution. The successful namespace source/VM/native counts remain original observations, and ordinaryStore/SQL31/UnixOpen closure staysFalse."
+    }
+  ],
+  "limitations": [
+    "0Python_AST and0actualarchive/ZIP read in this independent review; source inspection is not a reader PASS.",
+    "Did not independently read every original baseline module or derive physical/native semantics; only the listed original source sections were used to validate data-field contracts.",
+    "No evidence thatR1 occurred in the actual fixed artifact. Original42 PASS is unchanged by this unexecuted reader finding.",
+    "A narrow repaired revision needs its own identity and diff review before the no-confirmed-blocker statement can cover it."
+  ],
+  "execution": {
+    "Python_AST": 0,
+    "project_imports": 0,
+    "HIA_generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "physical_fixture_execution": 0,
+    "original_archive_readback": 0,
+    "source_modifications": 0
+  }
+}

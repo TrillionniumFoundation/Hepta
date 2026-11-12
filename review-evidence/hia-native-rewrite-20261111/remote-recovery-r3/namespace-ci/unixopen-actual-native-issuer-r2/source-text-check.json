@@ -1,0 +1,229 @@
+{
+  "schema": "hia-native-unixopen-issued-composition-source-check-v1",
+  "status": "INACTIVE_SOURCE_0_AST_ASSEMBLY_CORE_B3_VM_NATIVE",
+  "base": {
+    "git": "ceb21c40b4287b1eff4e998d61fdfcfa59fb3110",
+    "sha256": "dd33f23d901ecd8ecb85b65b71d672d9865855f5eb3308b7cb9735d52cd66d3a",
+    "bytes": 64979
+  },
+  "capsule": {
+    "blob": "3df087271e4a7bb3258be5e87580f8cb3d56e728",
+    "bytes": 9129,
+    "sha256": "a8e08c861ae6ece09b296c0696e642bf2ae63a4047ffefdbd50c5cf650c181f2",
+    "mode": "100644"
+  },
+  "dispatcher": {
+    "blob": "c4b564a0105abec863abc02f4d7536fc2aa49834",
+    "bytes": 21326,
+    "sha256": "9ec4b8a61e81d2e576c4c61662c729c42d495abde4440aebac87893927bdae3e",
+    "mode": "100644"
+  },
+  "composed": {
+    "blob": "af439d426a8acb1a2bc114077185fc24ca42cc8a",
+    "bytes": 95632,
+    "sha256": "b7dfd47c4887ecb4ba423b75b1d1432f0a28f293cb0ed925aae729f1c54e5ef2",
+    "mode": "100644"
+  },
+  "composer": {
+    "blob": "9afbb1a5029e19dfd8e859a1f96b59122ba177a7",
+    "bytes": 5074,
+    "sha256": "25b35cc7e02feed9278ccbe2c9d16212669befd1761f697aef1e35cab9bd81fd",
+    "mode": "100644"
+  },
+  "packer": {
+    "blob": "037f32a8454664ab82f3b3c10ffb662023519556",
+    "bytes": 5270,
+    "sha256": "b0d1c12b2bce27958c43e4668c0d25f4c3dfd3a227d57fff5f3efd4475281979",
+    "mode": "100644"
+  },
+  "actual_HIA_coordinator": {
+    "blob": "abbb7f40338e7b099e855281d7dab9ff64834eed",
+    "bytes": 23325,
+    "sha256": "3a11772f74ea991e9a5bec700d581ff94b9e26e714de951653b29b24bbc1e390",
+    "mode": "100644"
+  },
+  "unique_base_edits": [
+    {
+      "before": "    mov esi,4096\n    call initialize_context\n\nouter_next_request:",
+      "after": "    mov esi,4096\n    call initialize_context\n    jmp .Luij_boot\n\nouter_next_request:",
+      "occurrences": 1
+    },
+    {
+      "before": "    lea rdi,[r15+OUTPUT]\n    mov esi,3\n    call protect_descriptor\n    lea rdi,[r15+WORK]\n    mov esi,3\n    call protect_descriptor\n    call trace_before\n",
+      "after": "    lea rdi,[r15+OUTPUT]\n    mov esi,3\n    cmp qword ptr [r15+ROLE],8\n    jne .Luij_invoke_second_permission\n    mov esi,1\n.Luij_invoke_second_permission:\n    call protect_descriptor\n    lea rdi,[r15+WORK]\n    mov esi,3\n    call protect_descriptor\n    call trace_before\n",
+      "occurrences": 1
+    },
+    {
+      "before": "    cmp r10,6\n    ja protocol_failure\n    lea rax,[rip+.Limage_table]",
+      "after": "    cmp r10,9\n    ja protocol_failure\n    lea rax,[rip+.Limage_table]",
+      "occurrences": 1
+    },
+    {
+      "before": "outer_terminal:\n    mov rax,[r15+OUTPUT+16]",
+      "after": "outer_terminal:\n    cmp qword ptr [r15+UI_MASTER],0\n    jne .Luij_fs_terminal\n    mov rax,[r15+OUTPUT+16]",
+      "occurrences": 1
+    },
+    {
+      "before": "    .zero 56\nexecutor_end:",
+      "after": "    .zero 80\nexecutor_end:",
+      "occurrences": 1
+    }
+  ],
+  "inverse_complete_base_equal": true,
+  "all_direct_literal_branch_labels_defined": true,
+  "label_count": 233,
+  "branch_target_count": 859,
+  "old_metadata_ranges": [
+    [
+      0,
+      200
+    ],
+    [
+      256,
+      496
+    ],
+    [
+      512,
+      608
+    ],
+    [
+      640,
+      672
+    ],
+    [
+      2304,
+      2384
+    ],
+    [
+      2400,
+      2488
+    ]
+  ],
+  "new_metadata_ranges": [
+    [
+      1200,
+      1240
+    ],
+    [
+      1240,
+      1280
+    ],
+    [
+      1280,
+      1320
+    ],
+    [
+      1320,
+      1360
+    ],
+    [
+      2496,
+      2632
+    ],
+    [
+      2632,
+      2688
+    ]
+  ],
+  "private_context_bytes": 4096,
+  "publisher_changes_from_exact_FS9": [
+    {
+      "before": "\"\"\"New six-role HIA publication for main DB / shared DMS / map / memory / FS.\nAll six images and this new assembly template are independently pinned. This\npublishes bytes only; it never chooses a namespace node or SQL operation.\nThis new packer has not been generated/compiled/executed yet.\n\"\"\"",
+      "after": "\"\"\"New nine-role HIA publication for the actual UnixOpen raw-FS issuer.\nRoles1..6 retain the existing FS9/DMS10 shared namespace closure. Roles7..9\nare the actual parent, raw-effect framer and private issuance coordinator.\nThis publishes bytes only. No source generation/B3/VM/native execution yet.\n\"\"\"",
+      "count": 1
+    },
+    {
+      "before": "b\"HIANPDB1\"",
+      "after": "b\"HIAUIPK1\"",
+      "count": 1
+    },
+    {
+      "before": "EXECUTOR_SOURCE_SHA256=\"dd33f23d901ecd8ecb85b65b71d672d9865855f5eb3308b7cb9735d52cd66d3a\"",
+      "after": "EXECUTOR_SOURCE_SHA256=\"b541018b4b349a1567fb9f52eb15b7494b40eceb584a88e217ddc8db391625fb\"",
+      "count": 1
+    },
+    {
+      "before": "len(binary)-56",
+      "after": "len(binary)-80",
+      "count": 1
+    },
+    {
+      "before": "binary[table:table+56]==bytes(56)",
+      "after": "binary[table:table+80]==bytes(80)",
+      "count": 1
+    },
+    {
+      "before": "len(prefix)-56",
+      "after": "len(prefix)-80",
+      "count": 1
+    },
+    {
+      "before": "prefix[table:table+56]==bytes(56)",
+      "after": "prefix[table:table+80]==bytes(80)",
+      "count": 1
+    },
+    {
+      "before": "start+6*(MAX_IMAGE+15)",
+      "after": "start+9*(MAX_IMAGE+15)",
+      "count": 1
+    },
+    {
+      "before": "length(s) < 208",
+      "after": "length(s) < 280",
+      "count": 1
+    },
+    {
+      "before": "{64+6*(24+MAX_IMAGE)}",
+      "after": "{64+9*(24+MAX_IMAGE)}",
+      "count": 1
+    },
+    {
+      "before": "read64(s, 16) != 6",
+      "after": "read64(s, 16) != 9",
+      "count": 1
+    },
+    {
+      "before": "while role <= 6:",
+      "after": "while role <= 9:",
+      "count": 3
+    },
+    {
+      "before": "module=\"namespace_db_join_native_packer\"",
+      "after": "module=\"namespace_unixopen_issued_native_packer\"",
+      "count": 1
+    }
+  ],
+  "publisher_r2_change": "Only composed-template SHA propagated; complete source unchanged otherwise.",
+  "prior_dispatcher": {
+    "blob": "15edfe2833db125b22f764891f50fe42a893828b",
+    "bytes": 20139,
+    "sha256": "6d9eb5c4c7d5b4bfee4ba6937abf46c536186fdf12e6da5bb68187224e4a5007",
+    "mode": "100644"
+  },
+  "dispatcher_r2_change": {
+    "changed_calls": 4,
+    "old_target": ".Lnamespace_uij_begin",
+    "new_target": ".Luij_begin_traced",
+    "additional_helper": "Emits one complete kind6 original REQUEST trace before actual call; exact complete r1 remains available.",
+    "no_other_dispatcher_text_change": true
+  },
+  "scope_open": [
+    "Full actual generator/as/profile/B3/native gate is not yet executed or delivered.",
+    "Original parent BEGIN is still private development predecessor; it is not ordinary Store issuance.",
+    "Ten non-raw UnixOpen peers are pending; no external ACK path substitutes for them.",
+    "Ordinary Store/SQL31/publication/migration/installation remain open."
+  ],
+  "new_counts": {
+    "Python_AST": 0,
+    "GNU_as": 0,
+    "HIA_document_generation": 0,
+    "Core_verification": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "qualification": 0
+  },
+  "old_results_inherited": false,
+  "original42_DMS9_rerun": false,
+  "root_alone_publishes_refs": true
+}
