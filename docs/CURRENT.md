@@ -92,6 +92,38 @@ members matched that frozen Git source. Its original logs/artifact identity and
 separate local ENOSPC/timeout observations are retained in the completion audit.
 The same-tree PR run is a separate observation and cannot replace the failure.
 
+The published v72 implementation is
+`3d1f2cd70cc65ba1f603fec1ab43cb4e1eeb6fc8`, exact tree
+`dfc42506dddc660316be1fc5bc84ad68e44f7eba`. Its local validation commit
+`1661f73565e74c81fa34db874e7887d11ecaaf19` has that same tree; all 40 changed
+blobs were independently matched. Frozen source controls passed 25/25 in
+26.514 seconds, with zero failures/errors/skips. The full inventory's 2,367
+members outside the inventory itself matched their sizes and SHA-256 values.
+
+Both local v72 cold observations failed under the original deadline:
+
+| Observation | Actual result | Complete phases | Owned cleanup |
+| --- | --- | --- | --- |
+| Initial | QUALIFICATION_TIMEOUT, 180.674533222s | 26/38; zero phase exceptions | ECHILD; no remaining children or errors |
+| Independent repeat | QUALIFICATION_TIMEOUT, 180.385562914s | 6/38; zero phase exceptions | ECHILD; no remaining children or errors |
+
+Both wrapper results are 6/11, and both complete 709-member source manifests
+match the frozen implementation. The second observation does not replace the
+first. Full retained qualification did not start because cold admission failed.
+The separate complete source-only workflow, executed with its original heredoc
+and Python 3.14.10, was interrupted by SIGKILL after 385.029698662 seconds. It
+returned -9 without a unittest summary. Its 227 recorded `ok` lines do not
+qualify the full suite; the kill source has not been established.
+
+At the latest read, the published code's
+[GitHub source/native run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43133619396)
+was queued. No queued execution is counted as PASS. The
+[Chinese audit](../review-evidence/hia-completion-20261112/audit.zh-CN.md)
+and source-bound outcome record retain the actual support/deletion boundaries.
+A later evidence-only commit can preserve these observations without changing
+any of the 708 contracted source inputs or the contract itself; it does not
+relabel the earlier executions as tests of its complete later tree.
+
 This sandbox denies `PTRACE_TRACEME`. Actual local strace fault controls report
 that refusal and remain failed; they are neither skipped nor replaced with
 source inspection. Corresponding native CI/host observations are required.
