@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 import zlib
+import zipfile
 
 HEAD = "7e9c5a796a29746d169f9db97392ec774f627c03"
 TREE = "79843bddc6df7306299f0be6475a2fcd187b4d97"
@@ -21,6 +22,7 @@ out = Path(os.environ["RUNNER_TEMP"]) / "hia-wheel-resource-audit"
 out.mkdir(mode=0o700)
 os.chdir(root)
 started = time.time_ns()
+(out / 'START.json').write_text(json.dumps({'schema': 'hia.wheel-audit-start.v1', 'expected_head': HEAD, 'expected_tree': TREE, 'started_epoch_ns': started, 'qualification_claimed': False}) + '\n', encoding='utf-8')
 
 def run(argv):
     p = subprocess.run(argv, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
@@ -71,7 +73,12 @@ def read_entry(path, mode, expected_blob):
                  "sha256": hashlib.sha256(raw).hexdigest()}
 
 rg_pattern = r"DISCOVERY_FILES|NATIVE_SOURCE_FILES|SOURCE_BUILD_FILES|COMPILER_BUILD_FILES|PUBLICATION_BUILD_FILES|bdist_wheel|no-build-isolation|\.whl|wheel"
-rg = run(["rg", "--line-number", "--no-heading", "--glob", "*.py", rg_pattern, "."])
+try:
+    rg = run(["rg", "--line-number", "--no-heading", "--glob", "*.py", rg_pattern, "."])
+    search_tool = {"preferred": "rg", "available": True}
+except FileNotFoundError as error:
+    search_tool = {"preferred": "rg", "available": False, "exception_type": type(error).__name__, "exception": str(error), "fallback": "git grep"}
+    rg = run(["git", "grep", "-n", "-I", "-E", rg_pattern, "--", "*.py"])
 assert rg["returncode"] in (0, 1), rg
 (out / "rg.stdout.txt").write_text(rg["stdout"], encoding="utf-8")
 (out / "rg.stderr.txt").write_text(rg["stderr"], encoding="utf-8")
@@ -117,6 +124,24 @@ for path, mode, blob in entries:
         candidates.append({**meta, "match_reasons": reasons, "content": content,
                            "parse": item["parse"], "test_methods": item.get("test_methods", [])})
 
+archive_path = out / "COMPLETE-TRACKED-SOURCE.zip"
+with zipfile.ZipFile(archive_path, "x", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+    for path, mode, git_blob in entries:
+        raw, _ = read_entry(path, mode, git_blob)
+        info = zipfile.ZipInfo(path, date_time=(1980, 1, 1, 0, 0, 0))
+        info.create_system = 3
+        info.compress_type = zipfile.ZIP_DEFLATED
+        info.external_attr = int(mode, 8) << 16
+        archive.writestr(info, raw, compresslevel=9)
+with zipfile.ZipFile(archive_path) as archive:
+    assert archive.testzip() is None
+    assert archive.namelist() == [row[0] for row in entries]
+    for path, mode, git_blob in entries:
+        raw, _ = read_entry(path, mode, git_blob)
+        assert archive.read(path) == raw
+        assert archive.getinfo(path).external_attr >> 16 == int(mode, 8)
+archive_raw = archive_path.read_bytes()
+archive_identity = {"path": archive_path.name, "members": len(entries), "bytes": len(archive_raw), "sha256": hashlib.sha256(archive_raw).hexdigest(), "git_metadata_included": False}
 after = [read_entry(*entry)[1] for entry in entries]
 assert before == after
 assert git_text("rev-parse", "HEAD") == HEAD
@@ -134,7 +159,8 @@ report = {
     "all_tracked_bytes_modes_git_blobs_verified": True,
     "source_before_after_equal": True, "clean_worktree_before_after": True,
     "product_mutations": False, "qualification_or_test_execution": False,
-    "rg": rg, "tracked_files": before, "python_files": python_inventory,
+    "search_tool": search_tool, "rg": rg, "complete_tracked_source_archive": archive_identity,
+    "tracked_files": before, "python_files": python_inventory,
     "syntax_errors": syntax_errors, "candidates": candidates,
 }
 raw = (json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
