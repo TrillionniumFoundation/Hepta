@@ -110,6 +110,48 @@ CLAIMS = {
     "historical_results_transferred": False,
     "source_commit_created": False,
 }
+REQUIRED_SOURCE_NEGATIVE_CHILD = r"""
+import io
+import json
+from pathlib import Path
+import sys
+import unittest
+from unittest.mock import patch
+source = Path(sys.argv[1]).resolve(strict=True)
+target = Path(sys.argv[2])
+sys.path.insert(0, str(source))
+from tools import hia_selfhost_contract as contract
+from tests.test_hia_joint_owner_integration import JointOwnerIntegrationSourceTests
+missing = "tests/test_hia_machine_lowering_edges.py"
+assert contract.SOURCE_FILES.count(missing) == 1
+original = contract.SOURCE_FILES
+method = "test_every_required_cold_builder_input_is_in_the_actual_fresh_closure"
+stream = io.StringIO()
+with patch.object(contract, "SOURCE_FILES", tuple(name for name in original if name != missing)):
+    result = unittest.TextTestRunner(stream=stream, verbosity=2).run(
+        unittest.TestSuite([JointOwnerIntegrationSourceTests(method)]))
+assert contract.SOURCE_FILES is original
+failures = [{"test": test.id(), "traceback": text} for test, text in result.failures]
+errors = [{"test": test.id(), "traceback": text} for test, text in result.errors]
+expected = (result.testsRun == 1 and len(failures) == 1 and not errors
+            and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses
+            and missing in failures[0]["test"]
+            and "build_hia_native_build" in failures[0]["test"]
+            and "not found in" in failures[0]["traceback"])
+record = {"schema": "hia.joint-required-source-negative.v1",
+          "scope": "DIAGNOSTIC_EXPECTED_REJECTION_NOT_BUSINESS_QUALIFICATION",
+          "status": "PASS" if expected else "FAIL", "tests_run": result.testsRun,
+          "expected_failures_observed": failures, "unexpected_errors": errors,
+          "original_body_and_assertions_unchanged": True,
+          "temporary_in_memory_source_inventory_omission": missing,
+          "files_changed": False, "inventory_restored": contract.SOURCE_FILES is original,
+          "stdout": stream.getvalue()}
+target.write_text(json.dumps(record, sort_keys=True, indent=2) + "\n")
+print(stream.getvalue(), end="")
+print(json.dumps({key: record[key] for key in ("scope", "status", "tests_run")}, sort_keys=True))
+raise SystemExit(0 if expected else 1)
+"""
+
 CONTROL_CHILD = r"""
 import json
 from pathlib import Path
@@ -684,7 +726,7 @@ def check_harness_inputs():
     paths = {
         "driver": Path(__file__).resolve(),
         "workflow_process": Path(workflow_process.__file__).resolve(),
-        "workflow": Path(__file__).resolve().parents[1] / ".github" / "workflows" / "hia-recoverable-owner-source-v78.yml",
+        "workflow": Path(__file__).resolve().parents[1] / ".github" / "workflows" / "hia-recoverable-proof-source-v79.yml",
         "overlay": Path(REPORT["overlay_input"]["path"]),
         "expected_source_ids": Path(__file__).resolve().parents[1] / "overlay" / "expected-source-ids.json",
     }
@@ -942,6 +984,23 @@ def perform(args):
         if not row["passed"]:
             failed_checks.append(name)
         observe("after-" + name, PRE_STAGE, ())
+    negative_result = OUT / "required-source-negative.json"
+    (OUT / "required-source-negative-child.py").write_text(
+        REQUIRED_SOURCE_NEGATIVE_CHILD, encoding="utf-8")
+    negative, _ = run("required-source-closure-expected-rejection", [
+        sys.executable, "-I", "-B", "-c", REQUIRED_SOURCE_NEGATIVE_CHILD, str(SOURCE),
+        str(negative_result)], check=False)
+    if not negative["passed"]:
+        failed_checks.append("required-source-closure-expected-rejection")
+    if negative_result.is_file():
+        value = json.loads(negative_result.read_bytes(), object_pairs_hook=strict_pairs)
+        REPORT["required_source_negative"] = {
+            "path": negative_result.name, **file_identity(negative_result), "summary": value}
+        if value.get("status") != "PASS":
+            failed_checks.append("required-source-closure-negative-outcome")
+    else:
+        failed_checks.append("required-source-closure-negative-report-missing")
+    observe("after-required-source-negative", PRE_STAGE, ())
     child_result = OUT / "source-controls.json"
     (OUT / "source-controls-child.py").write_text(CONTROL_CHILD, encoding="utf-8")
     row, _ = run("complete-original-and-additional-source-controls", [

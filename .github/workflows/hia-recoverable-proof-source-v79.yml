@@ -1,9 +1,9 @@
-name: HIA recoverable owner source integration V78
+name: HIA recoverable owner and Proof source integration V79
 
 "on":
   push:
     branches:
-      - codex/hia-recoverable-owner-source-v78-r1-20261112-dda7
+      - codex/hia-recoverable-proof-source-v79-r1-20261112-dda7
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   source:
-    name: Exact recoverable owner source generation
+    name: Exact recoverable owner and Proof source generation
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -155,7 +155,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hia-recoverable-owner-source-${{ github.run_id }}-${{ github.run_attempt }}
+          name: hia-recoverable-proof-source-${{ github.run_id }}-${{ github.run_attempt }}
           path: evidence/
           include-hidden-files: true
           if-no-files-found: error
