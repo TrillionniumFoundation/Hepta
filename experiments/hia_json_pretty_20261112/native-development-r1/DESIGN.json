@@ -1,0 +1,259 @@
+{
+  "schema": "hia.json-pretty-source-development-design.v2",
+  "status": "PUBLIC_ENTRY_ABI_FIXED_NATIVE_DEVELOPMENT_PENDING",
+  "base_product_commit": "acffa9262f31d073f8f0a6f0201eae201039f619",
+  "primary_source": "json_pretty.hiaasm",
+  "source_sha256": "7a49da7115945fe90a1672e379e1f06a7f7778ef9f402c73afdbf7ce8cbad216",
+  "entry": "f0(readbuf source, mutbuf output, mutbuf workspace) -> u32",
+  "owned_decisions": [
+    "structural traversal of admitted compact JSON bytes",
+    "empty container handling",
+    "quoted/escaped byte preservation",
+    "two-space indentation and colon spacing",
+    "measure and emit phases using the same HIA control",
+    "output capacity and workspace capacity checks",
+    "refusal status and input offset"
+  ],
+  "input_contract": {
+    "producer": "source-admitted HIA JSON wire owner",
+    "ordinary_profile": "existing bounded Agent wire, maximum8MiB; valid compact JSON and original depth admission happen upstream",
+    "key_order": "preserved from upstream wire; upstream owner implements requested sorting",
+    "string_and_number_lexemes": "preserved byte for byte",
+    "syntax_admission": "not supplied by this layout component; arbitrary unvalidated byte strings must not enter a public admission path"
+  },
+  "workspace": {
+    "minimum_bytes": 32,
+    "ordinary_wire_workspace_bytes": 161,
+    "fields": [
+      {
+        "offset": 0,
+        "bytes": 8,
+        "name": "mode",
+        "values": {
+          "0": "measure",
+          "1": "emit"
+        }
+      },
+      {
+        "offset": 8,
+        "bytes": 8,
+        "name": "output_length",
+        "reset_by_entry": true
+      },
+      {
+        "offset": 16,
+        "bytes": 8,
+        "name": "error_input_offset",
+        "reset_by_entry": true
+      },
+      {
+        "offset": 24,
+        "bytes": 8,
+        "name": "error_code",
+        "reset_by_entry": true
+      },
+      {
+        "offset": 32,
+        "bytes": "remaining buffer",
+        "name": "HIA container stack"
+      }
+    ]
+  },
+  "statuses": {
+    "0": "successful layout or measurement",
+    "1": "ABI mode/header or original8MiB wire ceiling refused",
+    "2": "layout structural refusal; this does not provide full JSON admission",
+    "3": "output capacity insufficient",
+    "4": "workspace stack capacity insufficient",
+    "5": "output counter overflow"
+  },
+  "structure": {
+    "functions": 6,
+    "blocks_total": 67,
+    "blocks_per_function": 44,
+    "instructions": 249,
+    "ssa_names_per_function": 426,
+    "parameters_or_arguments": 7,
+    "source_bytes": 16601,
+    "source_lines": 396
+  },
+  "unchanged_compiler_caps": {
+    "source_bytes": 1048576,
+    "source_lines": 16384,
+    "functions": 128,
+    "blocks_total": 1536,
+    "blocks_per_function": 256,
+    "instructions": 8192,
+    "ssa_names_per_function": 2048,
+    "parameters_or_arguments": 16
+  },
+  "actual_development_observation": {
+    "cases": 31,
+    "failed": 0,
+    "scope": "INDEPENDENT_MECHANICAL_V8_INTERPRETATION_OF_NEW_HIA_IR_ONLY",
+    "maximum_ordinary_depth_case": 128,
+    "source_immutable": true,
+    "output_and_workspace_guard_bytes_checked": true
+  },
+  "not_yet_observed": [
+    "public Core assembly and full verifier acceptance",
+    "native compilation from a matching-source qualified compiler",
+    "native execution of fixed cases",
+    "exact original CLI callers with old formatting owner forbidden",
+    "whole CLI value/foreign-object/float/error domain replacement",
+    "installed source resources and full retained suite",
+    "matching final cold and final default cutover"
+  ],
+  "product_source_modified": false,
+  "default_selected": false,
+  "old_implementation_deleted": false,
+  "unexecuted_native_validation": {
+    "schema": "hia.json-pretty-actions-policy.v1",
+    "status": "UNEXECUTED_REVIEW_REQUIRED",
+    "repository": "TrillionniumFoundation/Hepta",
+    "control_prefix": "experiments/hia_json_pretty_20261112/native-development-r1",
+    "candidate": {
+      "commit": "acffa9262f31d073f8f0a6f0201eae201039f619",
+      "tree": "22a095436c94efc87b1a89aca912c8caab2eed80",
+      "leaves": 4023
+    },
+    "trigger_branch": "codex/hia-json-pretty-native-r1-run-20261112-e26e",
+    "workflow": ".github/workflows/hia-json-pretty-native-development.yml",
+    "controls": {
+      "authoring.py": {
+        "bytes": 24263,
+        "sha256": "c3987fe0985ade7338137710130496f18aa16e3cb71e03e7a9f983d91d805ad0",
+        "git_blob_sha1": "c770b4d8e670408a9f1e739832ac8f891bff3c89"
+      },
+      "controller.py": {
+        "bytes": 29759,
+        "sha256": "14e24914f5250ff92aa22332864539f03e1565696308143327cd075535a20e7f",
+        "git_blob_sha1": "940dcf79e2ba70910de192112c9dac1812e4f49c"
+      },
+      "diagnostics.py": {
+        "bytes": 13000,
+        "sha256": "95dc786c894d43ef55674357c3e8f0a9287c6dabb02ad699f4170987108d5099",
+        "git_blob_sha1": "008d5f756f70c5bfcd42ca72b65588aefb9b48cb"
+      },
+      "guardian.py": {
+        "bytes": 10257,
+        "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023",
+        "git_blob_sha1": "1a7b8588871d1a0eb485dacc2dac2f1fe373b8a7"
+      },
+      "process_owner_impl.py": {
+        "bytes": 17601,
+        "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+        "git_blob_sha1": "6f600ab75894859b9840c0311cc8891a67b6c53a"
+      },
+      "native_cases.py": {
+        "bytes": 7492,
+        "sha256": "b9cc9ed11aeadb273f944652037e4778fb6bc44f7177853cc94f913da078eebd",
+        "git_blob_sha1": "b8b6d385ca84671e49a1dbf825f5e2d663c36eb9"
+      },
+      "json_pretty.hiaasm": {
+        "bytes": 16601,
+        "sha256": "7a49da7115945fe90a1672e379e1f06a7f7778ef9f402c73afdbf7ce8cbad216",
+        "git_blob_sha1": "efa15100997465aba2b9f6f493d72cb72e85cf91"
+      },
+      "json_pretty.hia.json": {
+        "bytes": 140177,
+        "sha256": "ce8d028b39aec48b9950b51a5222adc697914cf2cb61a4b3d95cb42e1b923d1e",
+        "git_blob_sha1": "62a93ca54063b92b9e20d83a9055e292f52eed70"
+      },
+      "cases.json": {
+        "bytes": 38902,
+        "sha256": "65f41155cbdfe3f970b673151778709878183f0742c8f5510c25b9a27b16823a",
+        "git_blob_sha1": "0faa501cace37a62d436f97589795c67ffd4ca14"
+      }
+    },
+    "controller_seconds": 180,
+    "cleanup_seconds": 3,
+    "setup_and_artifact_delivery_counted_in_180": false,
+    "original_limits": {
+      "source_bytes": 1048576,
+      "source_lines": 16384,
+      "functions": 128,
+      "blocks_total": 1536,
+      "blocks_per_function": 256,
+      "instructions": 8192,
+      "ssa_names_per_function": 2048,
+      "parameters_or_arguments": 16
+    },
+    "resource_profile": {
+      "minimum_available_bytes": 2147483648,
+      "scope": "new component development reserve only",
+      "formal_eight_GiB_and_inode_gate_applied": false
+    },
+    "bootstrap": {
+      "original_methods": [
+        "tools.qualify_hia_selfhost.build_seed",
+        "tools.qualify_hia_selfhost.compile_stage"
+      ],
+      "source_commit": "acffa9262f31d073f8f0a6f0201eae201039f619",
+      "generations": [
+        "B0 seed-shared",
+        "B1 flat",
+        "B2 flat"
+      ],
+      "required_byte_equality": "B1 == B2",
+      "compile_stage_wall_seconds": 20,
+      "original_child_CPU_limit_unchanged": true,
+      "cold_or_B3_mutation_qualification_claimed": false,
+      "old_compiler_or_binary_reused": false
+    },
+    "native_development_cases": {
+      "count": 31,
+      "loaded_and_executed_ids_exact": true,
+      "positive_layout_cases": 17,
+      "negative_cases": 14,
+      "failures_errors_skips_expectedFailures_unexpectedSuccesses": 0,
+      "isolated_child_wall_seconds": 5,
+      "fixtures_sha256": "65f41155cbdfe3f970b673151778709878183f0742c8f5510c25b9a27b16823a",
+      "original_CLI_callers_replaced": false
+    },
+    "runtime": {
+      "python_version": "3.14.4",
+      "python_binary_identity": "observed actual resolved Actions executable and SHA before/after",
+      "git_identity_recorded": true,
+      "linker_identity_recorded_before_after": true
+    },
+    "scope": {
+      "public_Core_verifier": true,
+      "actual_native_compiler": true,
+      "actual_native_execution": true,
+      "Core_VM": false,
+      "original_product_callers": false,
+      "whole_CLI_json_domain": false,
+      "cold_qualification": false,
+      "whole_native_delivery": false,
+      "default_activation": false,
+      "old_owner_deletion": false
+    },
+    "diagnostic": {
+      "fixed_original_files": 17,
+      "raw_byte_limit": 4194304,
+      "frame_bytes": 8192,
+      "closed_current_ECHILD_required_for_child_originals": true,
+      "missing_and_omissions_explicit": true,
+      "changes_original_exit_status": false
+    },
+    "source_checks": {
+      "real_HEAD_exact": true,
+      "all_4023_tracked_bytes_modes": true,
+      "complete_physical_namespace_excluding_only_git": true,
+      "before_after_exact": true
+    },
+    "permissions": {
+      "contents": "read"
+    },
+    "source_revision": {
+      "prior_commit": "ad4f2a983f95307a70e1161b2113371593d5ebff",
+      "prior_source_sha256": "ca64c987f7efdede645672eb2eee4b5efa4a265ad6eee09c7bb3f346051e7600",
+      "prior_scope": "development V8 only; never native compiled",
+      "reason": "Actual native compiler contract requires the public f0 entry to return exactly u32; r1 returned u64.",
+      "changes": "Only public f0 declaration, two status constants and error return cast changed; internal u64 workspace and error codes retained.",
+      "current_source_sha256": "7a49da7115945fe90a1672e379e1f06a7f7778ef9f402c73afdbf7ce8cbad216",
+      "original_ABI_or_compiler_limits_changed": false
+    }
+  }
+}

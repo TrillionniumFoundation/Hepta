@@ -1,0 +1,6448 @@
+{
+  "schema": "hepta.hia.program.v8",
+  "module": "json_pretty",
+  "functions": [
+    {
+      "name": "f0",
+      "params": [
+        {
+          "name": "v0",
+          "type": "readbuf"
+        },
+        {
+          "name": "v1",
+          "type": "mutbuf"
+        },
+        {
+          "name": "v2",
+          "type": "mutbuf"
+        }
+      ],
+      "returns": [
+        "u32"
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "b0",
+      "blocks": [
+        {
+          "id": "b0",
+          "params": [
+            {
+              "name": "v0",
+              "type": "readbuf"
+            },
+            {
+              "name": "v1",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v2",
+              "type": "mutbuf"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.len",
+              "args": [
+                "v2"
+              ],
+              "out": [
+                {
+                  "name": "v35",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v36",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 32
+              }
+            },
+            {
+              "op": "compare.ge",
+              "args": [
+                "v35",
+                "v36"
+              ],
+              "out": [
+                {
+                  "name": "v37",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v37",
+            "then": {
+              "target": "b2",
+              "args": [
+                "v0",
+                "v1",
+                "v2"
+              ]
+            },
+            "else": {
+              "target": "b1",
+              "args": []
+            }
+          }
+        },
+        {
+          "id": "b1",
+          "params": [],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v31",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v31"
+            ]
+          }
+        },
+        {
+          "id": "b2",
+          "params": [
+            {
+              "name": "v3",
+              "type": "readbuf"
+            },
+            {
+              "name": "v4",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v5",
+              "type": "mutbuf"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.len",
+              "args": [
+                "v3"
+              ],
+              "out": [
+                {
+                  "name": "v38",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v39",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "v5",
+                "v39"
+              ],
+              "out": [
+                {
+                  "name": "v40",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f3"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v41",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 8388608
+              }
+            },
+            {
+              "op": "compare.le",
+              "args": [
+                "v38",
+                "v41"
+              ],
+              "out": [
+                {
+                  "name": "v42",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v43",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "compare.le",
+              "args": [
+                "v40",
+                "v43"
+              ],
+              "out": [
+                {
+                  "name": "v44",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bool.and",
+              "args": [
+                "v42",
+                "v44"
+              ],
+              "out": [
+                {
+                  "name": "v45",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v46",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v47",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v45",
+            "then": {
+              "target": "b3",
+              "args": [
+                "v3",
+                "v4",
+                "v5"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v5",
+                "v46",
+                "v47"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b3",
+          "params": [
+            {
+              "name": "v6",
+              "type": "readbuf"
+            },
+            {
+              "name": "v7",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v8",
+              "type": "mutbuf"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v48",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v49",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 8
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "v8",
+                "v49",
+                "v48"
+              ],
+              "out": [
+                {
+                  "name": "v50",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f4"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v51",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 16
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "v8",
+                "v51",
+                "v48"
+              ],
+              "out": [
+                {
+                  "name": "v52",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f4"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v53",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 24
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "v8",
+                "v53",
+                "v48"
+              ],
+              "out": [
+                {
+                  "name": "v54",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f4"
+              }
+            },
+            {
+              "op": "buffer.len",
+              "args": [
+                "v6"
+              ],
+              "out": [
+                {
+                  "name": "v55",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v56",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v57",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "compare.gt",
+              "args": [
+                "v55",
+                "v56"
+              ],
+              "out": [
+                {
+                  "name": "v58",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v59",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v58",
+            "then": {
+              "target": "b4",
+              "args": [
+                "v6",
+                "v7",
+                "v8",
+                "v56",
+                "v56",
+                "v57",
+                "v57"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v8",
+                "v56",
+                "v59"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b4",
+          "params": [
+            {
+              "name": "v9",
+              "type": "readbuf"
+            },
+            {
+              "name": "v10",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v11",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v12",
+              "type": "usize"
+            },
+            {
+              "name": "v13",
+              "type": "usize"
+            },
+            {
+              "name": "v14",
+              "type": "bool"
+            },
+            {
+              "name": "v15",
+              "type": "bool"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.len",
+              "args": [
+                "v9"
+              ],
+              "out": [
+                {
+                  "name": "v60",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "compare.lt",
+              "args": [
+                "v12",
+                "v60"
+              ],
+              "out": [
+                {
+                  "name": "v61",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v61",
+            "then": {
+              "target": "b5",
+              "args": [
+                "v9",
+                "v10",
+                "v11",
+                "v12",
+                "v13",
+                "v14",
+                "v15"
+              ]
+            },
+            "else": {
+              "target": "b6",
+              "args": [
+                "v11",
+                "v12",
+                "v13",
+                "v14",
+                "v15"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b5",
+          "params": [
+            {
+              "name": "v16",
+              "type": "readbuf"
+            },
+            {
+              "name": "v17",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v18",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v19",
+              "type": "usize"
+            },
+            {
+              "name": "v20",
+              "type": "usize"
+            },
+            {
+              "name": "v21",
+              "type": "bool"
+            },
+            {
+              "name": "v22",
+              "type": "bool"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.load",
+              "args": [
+                "v16",
+                "v19"
+              ],
+              "out": [
+                {
+                  "name": "v80",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v21",
+            "then": {
+              "target": "b9",
+              "args": [
+                "v16",
+                "v17",
+                "v18",
+                "v19",
+                "v20",
+                "v22",
+                "v80"
+              ]
+            },
+            "else": {
+              "target": "b10",
+              "args": [
+                "v16",
+                "v17",
+                "v18",
+                "v19",
+                "v20",
+                "v80"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b6",
+          "params": [
+            {
+              "name": "v23",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v24",
+              "type": "usize"
+            },
+            {
+              "name": "v25",
+              "type": "usize"
+            },
+            {
+              "name": "v26",
+              "type": "bool"
+            },
+            {
+              "name": "v27",
+              "type": "bool"
+            }
+          ],
+          "ops": [
+            {
+              "op": "bool.or",
+              "args": [
+                "v26",
+                "v27"
+              ],
+              "out": [
+                {
+                  "name": "v62",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v63",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.ne",
+              "args": [
+                "v25",
+                "v63"
+              ],
+              "out": [
+                {
+                  "name": "v64",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bool.or",
+              "args": [
+                "v62",
+                "v64"
+              ],
+              "out": [
+                {
+                  "name": "v65",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v66",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v65",
+            "then": {
+              "target": "b8",
+              "args": [
+                "v23",
+                "v24",
+                "v66"
+              ]
+            },
+            "else": {
+              "target": "b7",
+              "args": []
+            }
+          }
+        },
+        {
+          "id": "b7",
+          "params": [],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v32",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v32"
+            ]
+          }
+        },
+        {
+          "id": "b8",
+          "params": [
+            {
+              "name": "v28",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v29",
+              "type": "usize"
+            },
+            {
+              "name": "v30",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "v28",
+                "v29",
+                "v30"
+              ],
+              "out": [
+                {
+                  "name": "v33",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f5"
+              }
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "v33"
+              ],
+              "out": [
+                {
+                  "name": "v34",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v34"
+            ]
+          }
+        },
+        {
+          "id": "b9",
+          "params": [
+            {
+              "name": "v67",
+              "type": "readbuf"
+            },
+            {
+              "name": "v68",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v69",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v70",
+              "type": "usize"
+            },
+            {
+              "name": "v71",
+              "type": "usize"
+            },
+            {
+              "name": "v72",
+              "type": "bool"
+            },
+            {
+              "name": "v73",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "v68",
+                "v69",
+                "v73"
+              ],
+              "out": [
+                {
+                  "name": "v81",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f1"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v89",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v81",
+                "v89"
+              ],
+              "out": [
+                {
+                  "name": "v90",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v90",
+            "then": {
+              "target": "b11",
+              "args": [
+                "v67",
+                "v68",
+                "v69",
+                "v70",
+                "v71",
+                "v72",
+                "v73"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v69",
+                "v70",
+                "v81"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b10",
+          "params": [
+            {
+              "name": "v74",
+              "type": "readbuf"
+            },
+            {
+              "name": "v75",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v76",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v77",
+              "type": "usize"
+            },
+            {
+              "name": "v78",
+              "type": "usize"
+            },
+            {
+              "name": "v79",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v115",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 34
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v79",
+                "v115"
+              ],
+              "out": [
+                {
+                  "name": "v116",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v116",
+            "then": {
+              "target": "b12",
+              "args": [
+                "v74",
+                "v75",
+                "v76",
+                "v77",
+                "v78",
+                "v79"
+              ]
+            },
+            "else": {
+              "target": "b13",
+              "args": [
+                "v74",
+                "v75",
+                "v76",
+                "v77",
+                "v78",
+                "v79"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b11",
+          "params": [
+            {
+              "name": "v82",
+              "type": "readbuf"
+            },
+            {
+              "name": "v83",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v84",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v85",
+              "type": "usize"
+            },
+            {
+              "name": "v86",
+              "type": "usize"
+            },
+            {
+              "name": "v87",
+              "type": "bool"
+            },
+            {
+              "name": "v88",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v91",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v87",
+                "v91"
+              ],
+              "out": [
+                {
+                  "name": "v92",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v93",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 92
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v88",
+                "v93"
+              ],
+              "out": [
+                {
+                  "name": "v94",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v95",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 34
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v88",
+                "v95"
+              ],
+              "out": [
+                {
+                  "name": "v96",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bool.and",
+              "args": [
+                "v92",
+                "v96"
+              ],
+              "out": [
+                {
+                  "name": "v97",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v98",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v97",
+                "v98"
+              ],
+              "out": [
+                {
+                  "name": "v99",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bool.and",
+              "args": [
+                "v92",
+                "v94"
+              ],
+              "out": [
+                {
+                  "name": "v100",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v101",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v85",
+                "v101"
+              ],
+              "out": [
+                {
+                  "name": "v102",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b4",
+            "args": [
+              "v82",
+              "v83",
+              "v84",
+              "v102",
+              "v86",
+              "v99",
+              "v100"
+            ]
+          }
+        },
+        {
+          "id": "b12",
+          "params": [
+            {
+              "name": "v103",
+              "type": "readbuf"
+            },
+            {
+              "name": "v104",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v105",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v106",
+              "type": "usize"
+            },
+            {
+              "name": "v107",
+              "type": "usize"
+            },
+            {
+              "name": "v108",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "v104",
+                "v105",
+                "v108"
+              ],
+              "out": [
+                {
+                  "name": "v117",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f1"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v124",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v117",
+                "v124"
+              ],
+              "out": [
+                {
+                  "name": "v125",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v125",
+            "then": {
+              "target": "b14",
+              "args": [
+                "v103",
+                "v104",
+                "v105",
+                "v106",
+                "v107",
+                "v108"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v105",
+                "v106",
+                "v117"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b13",
+          "params": [
+            {
+              "name": "v109",
+              "type": "readbuf"
+            },
+            {
+              "name": "v110",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v111",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v112",
+              "type": "usize"
+            },
+            {
+              "name": "v113",
+              "type": "usize"
+            },
+            {
+              "name": "v114",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v142",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 91
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v114",
+                "v142"
+              ],
+              "out": [
+                {
+                  "name": "v143",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v144",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 123
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v114",
+                "v144"
+              ],
+              "out": [
+                {
+                  "name": "v145",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bool.or",
+              "args": [
+                "v143",
+                "v145"
+              ],
+              "out": [
+                {
+                  "name": "v146",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v146",
+            "then": {
+              "target": "b15",
+              "args": [
+                "v109",
+                "v110",
+                "v111",
+                "v112",
+                "v113",
+                "v114"
+              ]
+            },
+            "else": {
+              "target": "b16",
+              "args": [
+                "v109",
+                "v110",
+                "v111",
+                "v112",
+                "v113",
+                "v114"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b14",
+          "params": [
+            {
+              "name": "v118",
+              "type": "readbuf"
+            },
+            {
+              "name": "v119",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v120",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v121",
+              "type": "usize"
+            },
+            {
+              "name": "v122",
+              "type": "usize"
+            },
+            {
+              "name": "v123",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v126",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": true
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v127",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v128",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v121",
+                "v128"
+              ],
+              "out": [
+                {
+                  "name": "v129",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b4",
+            "args": [
+              "v118",
+              "v119",
+              "v120",
+              "v129",
+              "v122",
+              "v126",
+              "v127"
+            ]
+          }
+        },
+        {
+          "id": "b15",
+          "params": [
+            {
+              "name": "v130",
+              "type": "readbuf"
+            },
+            {
+              "name": "v131",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v132",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v133",
+              "type": "usize"
+            },
+            {
+              "name": "v134",
+              "type": "usize"
+            },
+            {
+              "name": "v135",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v165",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v133",
+                "v165"
+              ],
+              "out": [
+                {
+                  "name": "v166",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.len",
+              "args": [
+                "v130"
+              ],
+              "out": [
+                {
+                  "name": "v167",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "compare.lt",
+              "args": [
+                "v166",
+                "v167"
+              ],
+              "out": [
+                {
+                  "name": "v168",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v168",
+            "then": {
+              "target": "b17",
+              "args": [
+                "v130",
+                "v131",
+                "v132",
+                "v133",
+                "v134",
+                "v135"
+              ]
+            },
+            "else": {
+              "target": "b18",
+              "args": [
+                "v130",
+                "v131",
+                "v132",
+                "v133",
+                "v134",
+                "v135"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b16",
+          "params": [
+            {
+              "name": "v136",
+              "type": "readbuf"
+            },
+            {
+              "name": "v137",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v138",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v139",
+              "type": "usize"
+            },
+            {
+              "name": "v140",
+              "type": "usize"
+            },
+            {
+              "name": "v141",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v248",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 93
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v141",
+                "v248"
+              ],
+              "out": [
+                {
+                  "name": "v249",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v250",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 125
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v141",
+                "v250"
+              ],
+              "out": [
+                {
+                  "name": "v251",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bool.or",
+              "args": [
+                "v249",
+                "v251"
+              ],
+              "out": [
+                {
+                  "name": "v252",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v252",
+            "then": {
+              "target": "b25",
+              "args": [
+                "v136",
+                "v137",
+                "v138",
+                "v139",
+                "v140",
+                "v141"
+              ]
+            },
+            "else": {
+              "target": "b26",
+              "args": [
+                "v136",
+                "v137",
+                "v138",
+                "v139",
+                "v140",
+                "v141"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b17",
+          "params": [
+            {
+              "name": "v147",
+              "type": "readbuf"
+            },
+            {
+              "name": "v148",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v149",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v150",
+              "type": "usize"
+            },
+            {
+              "name": "v151",
+              "type": "usize"
+            },
+            {
+              "name": "v152",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v169",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v150",
+                "v169"
+              ],
+              "out": [
+                {
+                  "name": "v170",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "v147",
+                "v170"
+              ],
+              "out": [
+                {
+                  "name": "v171",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v172",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v152",
+                "v172"
+              ],
+              "out": [
+                {
+                  "name": "v173",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v171",
+                "v173"
+              ],
+              "out": [
+                {
+                  "name": "v174",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v174",
+            "then": {
+              "target": "b19",
+              "args": [
+                "v147",
+                "v148",
+                "v149",
+                "v150",
+                "v151",
+                "v152"
+              ]
+            },
+            "else": {
+              "target": "b18",
+              "args": [
+                "v147",
+                "v148",
+                "v149",
+                "v150",
+                "v151",
+                "v152"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b18",
+          "params": [
+            {
+              "name": "v153",
+              "type": "readbuf"
+            },
+            {
+              "name": "v154",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v155",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v156",
+              "type": "usize"
+            },
+            {
+              "name": "v157",
+              "type": "usize"
+            },
+            {
+              "name": "v158",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.len",
+              "args": [
+                "v155"
+              ],
+              "out": [
+                {
+                  "name": "v205",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v206",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 32
+              }
+            },
+            {
+              "op": "int.sub.wrap",
+              "args": [
+                "v205",
+                "v206"
+              ],
+              "out": [
+                {
+                  "name": "v207",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "compare.lt",
+              "args": [
+                "v157",
+                "v207"
+              ],
+              "out": [
+                {
+                  "name": "v208",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v209",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 4
+              }
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v208",
+            "then": {
+              "target": "b22",
+              "args": [
+                "v153",
+                "v154",
+                "v155",
+                "v156",
+                "v157",
+                "v158"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v155",
+                "v156",
+                "v209"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b19",
+          "params": [
+            {
+              "name": "v159",
+              "type": "readbuf"
+            },
+            {
+              "name": "v160",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v161",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v162",
+              "type": "usize"
+            },
+            {
+              "name": "v163",
+              "type": "usize"
+            },
+            {
+              "name": "v164",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "v160",
+                "v161",
+                "v164"
+              ],
+              "out": [
+                {
+                  "name": "v175",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f1"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v182",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v175",
+                "v182"
+              ],
+              "out": [
+                {
+                  "name": "v183",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v183",
+            "then": {
+              "target": "b20",
+              "args": [
+                "v159",
+                "v160",
+                "v161",
+                "v162",
+                "v163",
+                "v164"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v161",
+                "v162",
+                "v175"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b20",
+          "params": [
+            {
+              "name": "v176",
+              "type": "readbuf"
+            },
+            {
+              "name": "v177",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v178",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v179",
+              "type": "usize"
+            },
+            {
+              "name": "v180",
+              "type": "usize"
+            },
+            {
+              "name": "v181",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v184",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v181",
+                "v184"
+              ],
+              "out": [
+                {
+                  "name": "v185",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "call",
+              "args": [
+                "v177",
+                "v178",
+                "v185"
+              ],
+              "out": [
+                {
+                  "name": "v186",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f1"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v193",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v186",
+                "v193"
+              ],
+              "out": [
+                {
+                  "name": "v194",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v194",
+            "then": {
+              "target": "b21",
+              "args": [
+                "v176",
+                "v177",
+                "v178",
+                "v179",
+                "v180",
+                "v181"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v178",
+                "v179",
+                "v186"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b21",
+          "params": [
+            {
+              "name": "v187",
+              "type": "readbuf"
+            },
+            {
+              "name": "v188",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v189",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v190",
+              "type": "usize"
+            },
+            {
+              "name": "v191",
+              "type": "usize"
+            },
+            {
+              "name": "v192",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v195",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v196",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v197",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v190",
+                "v197"
+              ],
+              "out": [
+                {
+                  "name": "v198",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b4",
+            "args": [
+              "v187",
+              "v188",
+              "v189",
+              "v198",
+              "v191",
+              "v195",
+              "v196"
+            ]
+          }
+        },
+        {
+          "id": "b22",
+          "params": [
+            {
+              "name": "v199",
+              "type": "readbuf"
+            },
+            {
+              "name": "v200",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v201",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v202",
+              "type": "usize"
+            },
+            {
+              "name": "v203",
+              "type": "usize"
+            },
+            {
+              "name": "v204",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v210",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 32
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v203",
+                "v210"
+              ],
+              "out": [
+                {
+                  "name": "v211",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "v201",
+                "v211",
+                "v204"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "call",
+              "args": [
+                "v200",
+                "v201",
+                "v204"
+              ],
+              "out": [
+                {
+                  "name": "v212",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f1"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v219",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v212",
+                "v219"
+              ],
+              "out": [
+                {
+                  "name": "v220",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v220",
+            "then": {
+              "target": "b23",
+              "args": [
+                "v199",
+                "v200",
+                "v201",
+                "v202",
+                "v203",
+                "v204"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v201",
+                "v202",
+                "v212"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b23",
+          "params": [
+            {
+              "name": "v213",
+              "type": "readbuf"
+            },
+            {
+              "name": "v214",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v215",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v216",
+              "type": "usize"
+            },
+            {
+              "name": "v217",
+              "type": "usize"
+            },
+            {
+              "name": "v218",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v221",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v217",
+                "v221"
+              ],
+              "out": [
+                {
+                  "name": "v222",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "call",
+              "args": [
+                "v214",
+                "v215",
+                "v222"
+              ],
+              "out": [
+                {
+                  "name": "v223",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f2"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v230",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v223",
+                "v230"
+              ],
+              "out": [
+                {
+                  "name": "v231",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v231",
+            "then": {
+              "target": "b24",
+              "args": [
+                "v213",
+                "v214",
+                "v215",
+                "v216",
+                "v222",
+                "v218"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v215",
+                "v216",
+                "v223"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b24",
+          "params": [
+            {
+              "name": "v224",
+              "type": "readbuf"
+            },
+            {
+              "name": "v225",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v226",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v227",
+              "type": "usize"
+            },
+            {
+              "name": "v228",
+              "type": "usize"
+            },
+            {
+              "name": "v229",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v232",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v233",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v234",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v227",
+                "v234"
+              ],
+              "out": [
+                {
+                  "name": "v235",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b4",
+            "args": [
+              "v224",
+              "v225",
+              "v226",
+              "v235",
+              "v228",
+              "v232",
+              "v233"
+            ]
+          }
+        },
+        {
+          "id": "b25",
+          "params": [
+            {
+              "name": "v236",
+              "type": "readbuf"
+            },
+            {
+              "name": "v237",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v238",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v239",
+              "type": "usize"
+            },
+            {
+              "name": "v240",
+              "type": "usize"
+            },
+            {
+              "name": "v241",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v265",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.gt",
+              "args": [
+                "v240",
+                "v265"
+              ],
+              "out": [
+                {
+                  "name": "v266",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v267",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v266",
+            "then": {
+              "target": "b27",
+              "args": [
+                "v236",
+                "v237",
+                "v238",
+                "v239",
+                "v240",
+                "v241"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v238",
+                "v239",
+                "v267"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b26",
+          "params": [
+            {
+              "name": "v242",
+              "type": "readbuf"
+            },
+            {
+              "name": "v243",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v244",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v245",
+              "type": "usize"
+            },
+            {
+              "name": "v246",
+              "type": "usize"
+            },
+            {
+              "name": "v247",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v311",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 44
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v247",
+                "v311"
+              ],
+              "out": [
+                {
+                  "name": "v312",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v312",
+            "then": {
+              "target": "b31",
+              "args": [
+                "v242",
+                "v243",
+                "v244",
+                "v245",
+                "v246",
+                "v247"
+              ]
+            },
+            "else": {
+              "target": "b32",
+              "args": [
+                "v242",
+                "v243",
+                "v244",
+                "v245",
+                "v246",
+                "v247"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b27",
+          "params": [
+            {
+              "name": "v253",
+              "type": "readbuf"
+            },
+            {
+              "name": "v254",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v255",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v256",
+              "type": "usize"
+            },
+            {
+              "name": "v257",
+              "type": "usize"
+            },
+            {
+              "name": "v258",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v268",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.sub.wrap",
+              "args": [
+                "v257",
+                "v268"
+              ],
+              "out": [
+                {
+                  "name": "v269",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v270",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 32
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v269",
+                "v270"
+              ],
+              "out": [
+                {
+                  "name": "v271",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "v255",
+                "v271"
+              ],
+              "out": [
+                {
+                  "name": "v272",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v273",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v272",
+                "v273"
+              ],
+              "out": [
+                {
+                  "name": "v274",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v258",
+                "v274"
+              ],
+              "out": [
+                {
+                  "name": "v275",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v276",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v275",
+            "then": {
+              "target": "b28",
+              "args": [
+                "v253",
+                "v254",
+                "v255",
+                "v256",
+                "v269",
+                "v258"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v255",
+                "v256",
+                "v276"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b28",
+          "params": [
+            {
+              "name": "v259",
+              "type": "readbuf"
+            },
+            {
+              "name": "v260",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v261",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v262",
+              "type": "usize"
+            },
+            {
+              "name": "v263",
+              "type": "usize"
+            },
+            {
+              "name": "v264",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "v260",
+                "v261",
+                "v263"
+              ],
+              "out": [
+                {
+                  "name": "v277",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f2"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v284",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v277",
+                "v284"
+              ],
+              "out": [
+                {
+                  "name": "v285",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v285",
+            "then": {
+              "target": "b29",
+              "args": [
+                "v259",
+                "v260",
+                "v261",
+                "v262",
+                "v263",
+                "v264"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v261",
+                "v262",
+                "v277"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b29",
+          "params": [
+            {
+              "name": "v278",
+              "type": "readbuf"
+            },
+            {
+              "name": "v279",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v280",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v281",
+              "type": "usize"
+            },
+            {
+              "name": "v282",
+              "type": "usize"
+            },
+            {
+              "name": "v283",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "v279",
+                "v280",
+                "v283"
+              ],
+              "out": [
+                {
+                  "name": "v286",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f1"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v293",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v286",
+                "v293"
+              ],
+              "out": [
+                {
+                  "name": "v294",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v294",
+            "then": {
+              "target": "b30",
+              "args": [
+                "v278",
+                "v279",
+                "v280",
+                "v281",
+                "v282",
+                "v283"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v280",
+                "v281",
+                "v286"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b30",
+          "params": [
+            {
+              "name": "v287",
+              "type": "readbuf"
+            },
+            {
+              "name": "v288",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v289",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v290",
+              "type": "usize"
+            },
+            {
+              "name": "v291",
+              "type": "usize"
+            },
+            {
+              "name": "v292",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v295",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v296",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v297",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v290",
+                "v297"
+              ],
+              "out": [
+                {
+                  "name": "v298",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b4",
+            "args": [
+              "v287",
+              "v288",
+              "v289",
+              "v298",
+              "v291",
+              "v295",
+              "v296"
+            ]
+          }
+        },
+        {
+          "id": "b31",
+          "params": [
+            {
+              "name": "v299",
+              "type": "readbuf"
+            },
+            {
+              "name": "v300",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v301",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v302",
+              "type": "usize"
+            },
+            {
+              "name": "v303",
+              "type": "usize"
+            },
+            {
+              "name": "v304",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v319",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.gt",
+              "args": [
+                "v303",
+                "v319"
+              ],
+              "out": [
+                {
+                  "name": "v320",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v321",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v320",
+            "then": {
+              "target": "b33",
+              "args": [
+                "v299",
+                "v300",
+                "v301",
+                "v302",
+                "v303",
+                "v304"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v301",
+                "v302",
+                "v321"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b32",
+          "params": [
+            {
+              "name": "v305",
+              "type": "readbuf"
+            },
+            {
+              "name": "v306",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v307",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v308",
+              "type": "usize"
+            },
+            {
+              "name": "v309",
+              "type": "usize"
+            },
+            {
+              "name": "v310",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v356",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 58
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v310",
+                "v356"
+              ],
+              "out": [
+                {
+                  "name": "v357",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v357",
+            "then": {
+              "target": "b36",
+              "args": [
+                "v305",
+                "v306",
+                "v307",
+                "v308",
+                "v309",
+                "v310"
+              ]
+            },
+            "else": {
+              "target": "b37",
+              "args": [
+                "v305",
+                "v306",
+                "v307",
+                "v308",
+                "v309",
+                "v310"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b33",
+          "params": [
+            {
+              "name": "v313",
+              "type": "readbuf"
+            },
+            {
+              "name": "v314",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v315",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v316",
+              "type": "usize"
+            },
+            {
+              "name": "v317",
+              "type": "usize"
+            },
+            {
+              "name": "v318",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "v314",
+                "v315",
+                "v318"
+              ],
+              "out": [
+                {
+                  "name": "v322",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f1"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v329",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v322",
+                "v329"
+              ],
+              "out": [
+                {
+                  "name": "v330",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v330",
+            "then": {
+              "target": "b34",
+              "args": [
+                "v313",
+                "v314",
+                "v315",
+                "v316",
+                "v317",
+                "v318"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v315",
+                "v316",
+                "v322"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b34",
+          "params": [
+            {
+              "name": "v323",
+              "type": "readbuf"
+            },
+            {
+              "name": "v324",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v325",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v326",
+              "type": "usize"
+            },
+            {
+              "name": "v327",
+              "type": "usize"
+            },
+            {
+              "name": "v328",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "v324",
+                "v325",
+                "v327"
+              ],
+              "out": [
+                {
+                  "name": "v331",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f2"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v338",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v331",
+                "v338"
+              ],
+              "out": [
+                {
+                  "name": "v339",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v339",
+            "then": {
+              "target": "b35",
+              "args": [
+                "v323",
+                "v324",
+                "v325",
+                "v326",
+                "v327",
+                "v328"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v325",
+                "v326",
+                "v331"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b35",
+          "params": [
+            {
+              "name": "v332",
+              "type": "readbuf"
+            },
+            {
+              "name": "v333",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v334",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v335",
+              "type": "usize"
+            },
+            {
+              "name": "v336",
+              "type": "usize"
+            },
+            {
+              "name": "v337",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v340",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v341",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v342",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v335",
+                "v342"
+              ],
+              "out": [
+                {
+                  "name": "v343",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b4",
+            "args": [
+              "v332",
+              "v333",
+              "v334",
+              "v343",
+              "v336",
+              "v340",
+              "v341"
+            ]
+          }
+        },
+        {
+          "id": "b36",
+          "params": [
+            {
+              "name": "v344",
+              "type": "readbuf"
+            },
+            {
+              "name": "v345",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v346",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v347",
+              "type": "usize"
+            },
+            {
+              "name": "v348",
+              "type": "usize"
+            },
+            {
+              "name": "v349",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v370",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.gt",
+              "args": [
+                "v348",
+                "v370"
+              ],
+              "out": [
+                {
+                  "name": "v371",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v372",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v371",
+            "then": {
+              "target": "b38",
+              "args": [
+                "v344",
+                "v345",
+                "v346",
+                "v347",
+                "v348",
+                "v349"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v346",
+                "v347",
+                "v372"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b37",
+          "params": [
+            {
+              "name": "v350",
+              "type": "readbuf"
+            },
+            {
+              "name": "v351",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v352",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v353",
+              "type": "usize"
+            },
+            {
+              "name": "v354",
+              "type": "usize"
+            },
+            {
+              "name": "v355",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v410",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 32
+              }
+            },
+            {
+              "op": "compare.gt",
+              "args": [
+                "v355",
+                "v410"
+              ],
+              "out": [
+                {
+                  "name": "v411",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v412",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v411",
+            "then": {
+              "target": "b42",
+              "args": [
+                "v350",
+                "v351",
+                "v352",
+                "v353",
+                "v354",
+                "v355"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v352",
+                "v353",
+                "v412"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b38",
+          "params": [
+            {
+              "name": "v358",
+              "type": "readbuf"
+            },
+            {
+              "name": "v359",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v360",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v361",
+              "type": "usize"
+            },
+            {
+              "name": "v362",
+              "type": "usize"
+            },
+            {
+              "name": "v363",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v373",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.sub.wrap",
+              "args": [
+                "v362",
+                "v373"
+              ],
+              "out": [
+                {
+                  "name": "v374",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v375",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 32
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v374",
+                "v375"
+              ],
+              "out": [
+                {
+                  "name": "v376",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "v360",
+                "v376"
+              ],
+              "out": [
+                {
+                  "name": "v377",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v378",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 123
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v377",
+                "v378"
+              ],
+              "out": [
+                {
+                  "name": "v379",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v380",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v379",
+            "then": {
+              "target": "b39",
+              "args": [
+                "v358",
+                "v359",
+                "v360",
+                "v361",
+                "v362",
+                "v363"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v360",
+                "v361",
+                "v380"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b39",
+          "params": [
+            {
+              "name": "v364",
+              "type": "readbuf"
+            },
+            {
+              "name": "v365",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v366",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v367",
+              "type": "usize"
+            },
+            {
+              "name": "v368",
+              "type": "usize"
+            },
+            {
+              "name": "v369",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "v365",
+                "v366",
+                "v369"
+              ],
+              "out": [
+                {
+                  "name": "v381",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f1"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v388",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v381",
+                "v388"
+              ],
+              "out": [
+                {
+                  "name": "v389",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v389",
+            "then": {
+              "target": "b40",
+              "args": [
+                "v364",
+                "v365",
+                "v366",
+                "v367",
+                "v368",
+                "v369"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v366",
+                "v367",
+                "v381"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b40",
+          "params": [
+            {
+              "name": "v382",
+              "type": "readbuf"
+            },
+            {
+              "name": "v383",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v384",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v385",
+              "type": "usize"
+            },
+            {
+              "name": "v386",
+              "type": "usize"
+            },
+            {
+              "name": "v387",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v390",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 32
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "v383",
+                "v384",
+                "v390"
+              ],
+              "out": [
+                {
+                  "name": "v391",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f1"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v398",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v391",
+                "v398"
+              ],
+              "out": [
+                {
+                  "name": "v399",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v399",
+            "then": {
+              "target": "b41",
+              "args": [
+                "v382",
+                "v383",
+                "v384",
+                "v385",
+                "v386",
+                "v387"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v384",
+                "v385",
+                "v391"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b41",
+          "params": [
+            {
+              "name": "v392",
+              "type": "readbuf"
+            },
+            {
+              "name": "v393",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v394",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v395",
+              "type": "usize"
+            },
+            {
+              "name": "v396",
+              "type": "usize"
+            },
+            {
+              "name": "v397",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v400",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v401",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v402",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v395",
+                "v402"
+              ],
+              "out": [
+                {
+                  "name": "v403",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b4",
+            "args": [
+              "v392",
+              "v393",
+              "v394",
+              "v403",
+              "v396",
+              "v400",
+              "v401"
+            ]
+          }
+        },
+        {
+          "id": "b42",
+          "params": [
+            {
+              "name": "v404",
+              "type": "readbuf"
+            },
+            {
+              "name": "v405",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v406",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v407",
+              "type": "usize"
+            },
+            {
+              "name": "v408",
+              "type": "usize"
+            },
+            {
+              "name": "v409",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "v405",
+                "v406",
+                "v409"
+              ],
+              "out": [
+                {
+                  "name": "v413",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f1"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v420",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v413",
+                "v420"
+              ],
+              "out": [
+                {
+                  "name": "v421",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v421",
+            "then": {
+              "target": "b43",
+              "args": [
+                "v404",
+                "v405",
+                "v406",
+                "v407",
+                "v408",
+                "v409"
+              ]
+            },
+            "else": {
+              "target": "b8",
+              "args": [
+                "v406",
+                "v407",
+                "v413"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b43",
+          "params": [
+            {
+              "name": "v414",
+              "type": "readbuf"
+            },
+            {
+              "name": "v415",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v416",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v417",
+              "type": "usize"
+            },
+            {
+              "name": "v418",
+              "type": "usize"
+            },
+            {
+              "name": "v419",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v422",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v423",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "value": false
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v424",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v417",
+                "v424"
+              ],
+              "out": [
+                {
+                  "name": "v425",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b4",
+            "args": [
+              "v414",
+              "v415",
+              "v416",
+              "v425",
+              "v418",
+              "v422",
+              "v423"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "f1",
+      "params": [
+        {
+          "name": "v0",
+          "type": "mutbuf"
+        },
+        {
+          "name": "v1",
+          "type": "mutbuf"
+        },
+        {
+          "name": "v2",
+          "type": "u8"
+        }
+      ],
+      "returns": [
+        "u64"
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "b0",
+      "blocks": [
+        {
+          "id": "b0",
+          "params": [
+            {
+              "name": "v0",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v1",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v2",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v20",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 8
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "v1",
+                "v20"
+              ],
+              "out": [
+                {
+                  "name": "v21",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f3"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v22",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v21",
+                "v22"
+              ],
+              "out": [
+                {
+                  "name": "v23",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "compare.gt",
+              "args": [
+                "v23",
+                "v21"
+              ],
+              "out": [
+                {
+                  "name": "v24",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v24",
+            "then": {
+              "target": "b1",
+              "args": [
+                "v0",
+                "v1",
+                "v2",
+                "v21",
+                "v23"
+              ]
+            },
+            "else": {
+              "target": "b5",
+              "args": []
+            }
+          }
+        },
+        {
+          "id": "b1",
+          "params": [
+            {
+              "name": "v3",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v4",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v5",
+              "type": "u8"
+            },
+            {
+              "name": "v6",
+              "type": "u64"
+            },
+            {
+              "name": "v7",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v25",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "v4",
+                "v25"
+              ],
+              "out": [
+                {
+                  "name": "v26",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f3"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v27",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v26",
+                "v27"
+              ],
+              "out": [
+                {
+                  "name": "v28",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v28",
+            "then": {
+              "target": "b4",
+              "args": [
+                "v4",
+                "v7"
+              ]
+            },
+            "else": {
+              "target": "b2",
+              "args": [
+                "v3",
+                "v4",
+                "v5",
+                "v6",
+                "v7"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b2",
+          "params": [
+            {
+              "name": "v8",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v9",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v10",
+              "type": "u8"
+            },
+            {
+              "name": "v11",
+              "type": "u64"
+            },
+            {
+              "name": "v12",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.len",
+              "args": [
+                "v8"
+              ],
+              "out": [
+                {
+                  "name": "v29",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "v29"
+              ],
+              "out": [
+                {
+                  "name": "v30",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            },
+            {
+              "op": "compare.lt",
+              "args": [
+                "v11",
+                "v30"
+              ],
+              "out": [
+                {
+                  "name": "v31",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v31",
+            "then": {
+              "target": "b3",
+              "args": [
+                "v8",
+                "v9",
+                "v10",
+                "v11",
+                "v12"
+              ]
+            },
+            "else": {
+              "target": "b6",
+              "args": []
+            }
+          }
+        },
+        {
+          "id": "b3",
+          "params": [
+            {
+              "name": "v13",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v14",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v15",
+              "type": "u8"
+            },
+            {
+              "name": "v16",
+              "type": "u64"
+            },
+            {
+              "name": "v17",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "int.cast",
+              "args": [
+                "v16"
+              ],
+              "out": [
+                {
+                  "name": "v32",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "v13",
+                "v32",
+                "v15"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b4",
+            "args": [
+              "v14",
+              "v17"
+            ]
+          }
+        },
+        {
+          "id": "b4",
+          "params": [
+            {
+              "name": "v18",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v19",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v33",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 8
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "v18",
+                "v33",
+                "v19"
+              ],
+              "out": [
+                {
+                  "name": "v34",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f4"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v35",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v35"
+            ]
+          }
+        },
+        {
+          "id": "b5",
+          "params": [],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v36",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 5
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v36"
+            ]
+          }
+        },
+        {
+          "id": "b6",
+          "params": [],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v37",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 3
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v37"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "f2",
+      "params": [
+        {
+          "name": "v0",
+          "type": "mutbuf"
+        },
+        {
+          "name": "v1",
+          "type": "mutbuf"
+        },
+        {
+          "name": "v2",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "u64"
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "b0",
+      "blocks": [
+        {
+          "id": "b0",
+          "params": [
+            {
+              "name": "v0",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v1",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v2",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v19",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 10
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "v0",
+                "v1",
+                "v19"
+              ],
+              "out": [
+                {
+                  "name": "v20",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f1"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v21",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v20",
+                "v21"
+              ],
+              "out": [
+                {
+                  "name": "v22",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v22",
+            "then": {
+              "target": "b1",
+              "args": [
+                "v0",
+                "v1",
+                "v2"
+              ]
+            },
+            "else": {
+              "target": "b6",
+              "args": [
+                "v20"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b1",
+          "params": [
+            {
+              "name": "v3",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v4",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v5",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v23",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            },
+            {
+              "op": "int.mul.wrap",
+              "args": [
+                "v5",
+                "v23"
+              ],
+              "out": [
+                {
+                  "name": "v24",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v25",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b2",
+            "args": [
+              "v3",
+              "v4",
+              "v24",
+              "v25"
+            ]
+          }
+        },
+        {
+          "id": "b2",
+          "params": [
+            {
+              "name": "v6",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v7",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v8",
+              "type": "usize"
+            },
+            {
+              "name": "v9",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "compare.lt",
+              "args": [
+                "v9",
+                "v8"
+              ],
+              "out": [
+                {
+                  "name": "v26",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v26",
+            "then": {
+              "target": "b3",
+              "args": [
+                "v6",
+                "v7",
+                "v8",
+                "v9"
+              ]
+            },
+            "else": {
+              "target": "b5",
+              "args": []
+            }
+          }
+        },
+        {
+          "id": "b3",
+          "params": [
+            {
+              "name": "v10",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v11",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v12",
+              "type": "usize"
+            },
+            {
+              "name": "v13",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v27",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 32
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "v10",
+                "v11",
+                "v27"
+              ],
+              "out": [
+                {
+                  "name": "v28",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f1"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v29",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "v28",
+                "v29"
+              ],
+              "out": [
+                {
+                  "name": "v30",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v30",
+            "then": {
+              "target": "b4",
+              "args": [
+                "v10",
+                "v11",
+                "v12",
+                "v13"
+              ]
+            },
+            "else": {
+              "target": "b6",
+              "args": [
+                "v28"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b4",
+          "params": [
+            {
+              "name": "v14",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v15",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v16",
+              "type": "usize"
+            },
+            {
+              "name": "v17",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v31",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v17",
+                "v31"
+              ],
+              "out": [
+                {
+                  "name": "v32",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b2",
+            "args": [
+              "v14",
+              "v15",
+              "v16",
+              "v32"
+            ]
+          }
+        },
+        {
+          "id": "b5",
+          "params": [],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v33",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v33"
+            ]
+          }
+        },
+        {
+          "id": "b6",
+          "params": [
+            {
+              "name": "v18",
+              "type": "u64"
+            }
+          ],
+          "ops": [],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v18"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "f3",
+      "params": [
+        {
+          "name": "v0",
+          "type": "mutbuf"
+        },
+        {
+          "name": "v1",
+          "type": "u64"
+        }
+      ],
+      "returns": [
+        "u64"
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "b0",
+      "blocks": [
+        {
+          "id": "b0",
+          "params": [
+            {
+              "name": "v0",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v1",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v11",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b1",
+            "args": [
+              "v0",
+              "v1",
+              "v11",
+              "v11"
+            ]
+          }
+        },
+        {
+          "id": "b1",
+          "params": [
+            {
+              "name": "v2",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v3",
+              "type": "u64"
+            },
+            {
+              "name": "v4",
+              "type": "u64"
+            },
+            {
+              "name": "v5",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v12",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 8
+              }
+            },
+            {
+              "op": "compare.lt",
+              "args": [
+                "v4",
+                "v12"
+              ],
+              "out": [
+                {
+                  "name": "v13",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v13",
+            "then": {
+              "target": "b2",
+              "args": [
+                "v2",
+                "v3",
+                "v4",
+                "v5"
+              ]
+            },
+            "else": {
+              "target": "b3",
+              "args": [
+                "v5"
+              ]
+            }
+          }
+        },
+        {
+          "id": "b2",
+          "params": [
+            {
+              "name": "v6",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v7",
+              "type": "u64"
+            },
+            {
+              "name": "v8",
+              "type": "u64"
+            },
+            {
+              "name": "v9",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v7",
+                "v8"
+              ],
+              "out": [
+                {
+                  "name": "v14",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "v14"
+              ],
+              "out": [
+                {
+                  "name": "v15",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "v6",
+                "v15"
+              ],
+              "out": [
+                {
+                  "name": "v16",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v17",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 8
+              }
+            },
+            {
+              "op": "int.mul.wrap",
+              "args": [
+                "v8",
+                "v17"
+              ],
+              "out": [
+                {
+                  "name": "v18",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "v16"
+              ],
+              "out": [
+                {
+                  "name": "v19",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            },
+            {
+              "op": "int.shl.checked",
+              "args": [
+                "v19",
+                "v18"
+              ],
+              "out": [
+                {
+                  "name": "v20",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v21",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v8",
+                "v21"
+              ],
+              "out": [
+                {
+                  "name": "v22",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "bit.or",
+              "args": [
+                "v9",
+                "v20"
+              ],
+              "out": [
+                {
+                  "name": "v23",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b1",
+            "args": [
+              "v6",
+              "v7",
+              "v22",
+              "v23"
+            ]
+          }
+        },
+        {
+          "id": "b3",
+          "params": [
+            {
+              "name": "v10",
+              "type": "u64"
+            }
+          ],
+          "ops": [],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v10"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "f4",
+      "params": [
+        {
+          "name": "v0",
+          "type": "mutbuf"
+        },
+        {
+          "name": "v1",
+          "type": "u64"
+        },
+        {
+          "name": "v2",
+          "type": "u64"
+        }
+      ],
+      "returns": [
+        "u64"
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "b0",
+      "blocks": [
+        {
+          "id": "b0",
+          "params": [
+            {
+              "name": "v0",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v1",
+              "type": "u64"
+            },
+            {
+              "name": "v2",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v11",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b1",
+            "args": [
+              "v0",
+              "v1",
+              "v2",
+              "v11"
+            ]
+          }
+        },
+        {
+          "id": "b1",
+          "params": [
+            {
+              "name": "v3",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v4",
+              "type": "u64"
+            },
+            {
+              "name": "v5",
+              "type": "u64"
+            },
+            {
+              "name": "v6",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v12",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 8
+              }
+            },
+            {
+              "op": "compare.lt",
+              "args": [
+                "v6",
+                "v12"
+              ],
+              "out": [
+                {
+                  "name": "v13",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "v13",
+            "then": {
+              "target": "b2",
+              "args": [
+                "v3",
+                "v4",
+                "v5",
+                "v6"
+              ]
+            },
+            "else": {
+              "target": "b3",
+              "args": []
+            }
+          }
+        },
+        {
+          "id": "b2",
+          "params": [
+            {
+              "name": "v7",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v8",
+              "type": "u64"
+            },
+            {
+              "name": "v9",
+              "type": "u64"
+            },
+            {
+              "name": "v10",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v8",
+                "v10"
+              ],
+              "out": [
+                {
+                  "name": "v14",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v15",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 8
+              }
+            },
+            {
+              "op": "int.mul.wrap",
+              "args": [
+                "v10",
+                "v15"
+              ],
+              "out": [
+                {
+                  "name": "v16",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.shr.checked",
+              "args": [
+                "v9",
+                "v16"
+              ],
+              "out": [
+                {
+                  "name": "v17",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "v14"
+              ],
+              "out": [
+                {
+                  "name": "v18",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "v17"
+              ],
+              "out": [
+                {
+                  "name": "v19",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "v7",
+                "v18",
+                "v19"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v20",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "v10",
+                "v20"
+              ],
+              "out": [
+                {
+                  "name": "v21",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "jump",
+            "target": "b1",
+            "args": [
+              "v7",
+              "v8",
+              "v9",
+              "v21"
+            ]
+          }
+        },
+        {
+          "id": "b3",
+          "params": [],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v22",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v22"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "f5",
+      "params": [
+        {
+          "name": "v0",
+          "type": "mutbuf"
+        },
+        {
+          "name": "v1",
+          "type": "usize"
+        },
+        {
+          "name": "v2",
+          "type": "u64"
+        }
+      ],
+      "returns": [
+        "u64"
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "b0",
+      "blocks": [
+        {
+          "id": "b0",
+          "params": [
+            {
+              "name": "v0",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v1",
+              "type": "usize"
+            },
+            {
+              "name": "v2",
+              "type": "u64"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v3",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 16
+              }
+            },
+            {
+              "op": "int.cast",
+              "args": [
+                "v1"
+              ],
+              "out": [
+                {
+                  "name": "v4",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "mode": "wrap"
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "v0",
+                "v3",
+                "v4"
+              ],
+              "out": [
+                {
+                  "name": "v5",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f4"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "v6",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "value": 24
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "v0",
+                "v6",
+                "v2"
+              ],
+              "out": [
+                {
+                  "name": "v7",
+                  "type": "u64"
+                }
+              ],
+              "attrs": {
+                "function": "f4"
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v2"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
