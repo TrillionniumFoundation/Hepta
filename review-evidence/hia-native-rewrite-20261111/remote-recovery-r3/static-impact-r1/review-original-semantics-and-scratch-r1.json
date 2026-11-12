@@ -1,0 +1,113 @@
+{
+  "schema": "hia-static-impact-independent-static-review-v1",
+  "state": "NO_CONFIRMED_BLOCKER_IN_READ_SOURCE",
+  "execution": {
+    "ast": 0,
+    "vm": 0,
+    "B3": 0,
+    "native": 0,
+    "source_mutations": 0,
+    "ordinary_impact_closed": false
+  },
+  "sources": [
+    {
+      "role": "candidate",
+      "path": "static_impact.py",
+      "bytes": 27281,
+      "sha256": "95cdee2d444109f29240124a70956f1b384c80198a6382ba9a953d961436c481",
+      "gitsha": "10fd6493cece709385c661a18482b9bf481b254b"
+    },
+    {
+      "role": "original",
+      "path": "hepta/hia_patch_impact.py",
+      "bytes": 8527,
+      "sha256": "b61710dc320c4b65206a2e6efed67ac525e900a782886be6c289e8acc681e3a1",
+      "gitsha": "0d270c59bcf6f844dd8fe4e48f67ce8722362474"
+    },
+    {
+      "role": "signature",
+      "path": "hepta/hia_program_tools.py",
+      "bytes": 22198,
+      "sha256": "a1b42262d8a00fbce9057e40dd081210ad274ecad8fc0c126ffafe8c3568436a",
+      "gitsha": "c2be38ffe2871ca199783103d4dfa9867771df10"
+    },
+    {
+      "role": "comparison_helpers",
+      "path": "tools/generate_hia_core_patch.py",
+      "bytes": 25925,
+      "sha256": "091d6d4b7d7c7c9088a79dc0104672ec679f3088f0f21131542543cc26e0a39f",
+      "gitsha": "136eb04f3da61ecf3cdfccafa1095bdbc5c1dd6f"
+    },
+    {
+      "role": "transport_measure",
+      "path": "issued_object_prefix_reference.py",
+      "bytes": 14105,
+      "sha256": "7ef1b35f595c920797815314adf65c4c453291922aac8cf13ab3822d29b3eb92",
+      "gitsha": "1ae1f374ce0f3ab027ff09b7748ee877570a3a4b"
+    },
+    {
+      "role": "frontend",
+      "path": "tools/generate_hia_core_json_frontend.py",
+      "bytes": 14935,
+      "sha256": "167f1731d717b1f184995e210a2156095d18813a5988efb2ac04fe60275e0cf7",
+      "gitsha": "7359bf71993753fbef35d9b43fbdd054132659b0"
+    },
+    {
+      "role": "decoder",
+      "path": "tools/generate_hia_json_decode.py",
+      "bytes": 8178,
+      "sha256": "fffc97c704cc75ad88239fe79d7b7f83418199a732364f834e006ebfd5f8548f",
+      "gitsha": "54607f809bdbd8cd68c4e423749c40623fe54a69"
+    },
+    {
+      "role": "canonical",
+      "path": "tools/generate_hia_json_canonical.py",
+      "bytes": 7307,
+      "sha256": "063053bf7539a605ee834bd32e6a07b98ebd0c6b027af0b224b7f9107b9d47d9",
+      "gitsha": "d9da0321b5aab3cfebb8549b237bce336600a422"
+    },
+    {
+      "role": "SHA256",
+      "path": "tools/generate_hia_sha256.py",
+      "bytes": 5474,
+      "sha256": "4114a26ff0ea47229bccbedadcb40efdd9715a8dd0739d2fcb55c98f8ddbdf97",
+      "gitsha": "b59c2259f038eab830c16bf498b14a5d15556ee4"
+    }
+  ],
+  "scope": "Complete retained impact post-admission analysis only. Actual original admission, patch, fresh candidate admission/equality and input identity remain mandatory coordinator prerequisites.",
+  "findings": [
+    {
+      "topic": "Receipt keys and first semantic rejection",
+      "conclusion": "v1/v2 exact receipt and claim bit sets match the original; exact bool tags reject integer substitutes; status, domain, actual old/new canonical digests, original input identity and positive non-bool integer edits remain before inventories. All prefix failures map to original reason 1."
+    },
+    {
+      "topic": "Inventory, interface and error order",
+      "conclusion": "Old inventory then new inventory; missing old function refusal before change/interface analysis; compare complete canonical function plus name/params/returns/effects and return_loans default-null equivalence; exact ordered interface_changes precedes v2 policy or v1 prohibition. Original interface claims remain exact boolean observations."
+    },
+    {
+      "topic": "Call graph and reachability",
+      "conclusion": "Sorted new inventory is the common index after removal rejection. Old graph additionally rejects a callee not present in the old inventory; each graph deduplicates edges. Reverse BFS starts with all actual full-function changes, unions old/new edges, includes new functions and cycles, and publishes names/edges in the original sorted order."
+    },
+    {
+      "topic": "Scratch disjointness",
+      "conclusion": "SHA scratch [0,1120), digest copies [1200,1296), state [2048,2144), old inventory [4096,12288), new inventory [12288,20480), function rows [20480,53248), old bitmap [61440,192512), new bitmap [192512,323584), BFS queue [323584,331776) are disjoint relative to aligned arena end. Inventories and queue have at most 1024 elements, rows 32 bytes, bitmaps 128 bytes per caller. SCRATCH_BYTES=331776 covers the largest end exactly."
+    },
+    {
+      "topic": "Transport size and canonical fragments",
+      "conclusion": "The preliminary measure is capacity only; actual strict decoder owns structure. The wire cap and measurement bound keep u64 layout arithmetic safe. render_fragment treats the selected subtree as its root; ordinary sorting affects only object order, and -0 normalizes to 0. The component replaces the bounded frontend append-byte helper with its own capacity-counting append and does not inherit the old 1MiB frontend emission cap."
+    },
+    {
+      "topic": "GROW and report bytes",
+      "conclusion": "Input/output/workspace shortages return NEED and precise required extents; payload is not complete on NEED. Reentry reparses the same private immutable transport and recomputes only this pure component, never repeats patch/admission peers. Final report measurement continues its cursor past output capacity, then returns size+76; after capacity is sufficient, report without sha256 is freshly emitted and hashed before final report emission."
+    },
+    {
+      "topic": "All three SHA origins",
+      "conclusion": "before/after are independently hashed from actual decoded old/new canonical subtrees, rather than accepted receipt fields. Hash scratch is remapped below the stored digests. Final sha256 is actual SHA256 over canonical report excluding sha256; adding the canonical field costs exactly 76 bytes, is inserted at the correct sorted-key position, and the payload starts after the 128-byte event header."
+    },
+    {
+      "topic": "Residual required empirical proof",
+      "conclusion": "This review does not inherit the proposed 104 cases or compiler success. Fresh original-limit generation/B3, complete report byte/digest differential, capacity/GROW/canaries and actual coordinator provenance remain to be measured. The source is a stateless private pure component, not an authenticator for arbitrary foreign Core/receipt inputs."
+    }
+  ],
+  "source_readback": "All explicitly supplied Git blob identities matched UTF-8 bytes; original source also matched the independently fetched exact-0ef file. No file or ref was modified."
+}

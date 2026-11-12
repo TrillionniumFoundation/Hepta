@@ -1,0 +1,91 @@
+{
+  "schema": "hia-cli-cleanup-delimiter-repair-delivery-v1",
+  "status": "NEW_REVISION_UNEXECUTED",
+  "files": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-temporary-directory-r2/tools/cli_publication_cleanup_owner.py",
+      "gitsha": "29db0cf5cca88719117111a6401fdbd4f38c8669",
+      "bytes": 28555,
+      "sha256": "cc14196016a7726431d560c44aaf8c7a0b763c031c51f7e5b3cefa945de0d515"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-temporary-directory-r2/originals/follow19-job130899190635.log",
+      "gitsha": "5d921eeab655808d13caa1402915f7c4d4efa67c",
+      "bytes": 51119,
+      "sha256": "0bc8690da51b99c5ec146c20e615545ed6970b400f5880c945494d548c1d855a"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-temporary-directory-r2/originals/follow19-original-failure.json",
+      "gitsha": "83d2fc329444be5d48af518e6bc5432f2dd83773",
+      "bytes": 1946,
+      "sha256": "e1135cb9bba88feb458b36a71c3e72f7499269b157c06a4213b40bf4b15114d8"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-temporary-directory-r2/ci/ci_cli_temporary_directory_r2.py",
+      "gitsha": "8e2151ba905bebb3e2742b767ee7ceffc69a33d7",
+      "bytes": 7583,
+      "sha256": "a3280fc3b705a684469a92a84c31c34e80cc7c79336764a4dda03bf9aeacd149"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r2/ci/ci_cli_full_publication_r2.py",
+      "gitsha": "261410112a67009d5c826295b2f2c0f772a87d6d",
+      "bytes": 13549,
+      "sha256": "fceb1d21828df63c6ba6e2acdf3636ec2b95790b9ebe56155b40a57c7964b7d7"
+    }
+  ],
+  "original_source": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-temporary-directory-r1/tools/cli_publication_cleanup_owner.py",
+    "gitsha": "fbf66d0b7442ca7600db770c271c6b0587426030",
+    "bytes": 28559,
+    "sha256": "43ac22dd0f74db4fde0269b6b983d301a7ee99500af83983c1d929e6753aa23f",
+    "retained": true
+  },
+  "change": "Remove only the four bytes triple-quote plus newline immediately before response(); all actual HIA body source remains byte-for-byte unchanged.",
+  "original_failure": {
+    "run": 43132319705,
+    "job": 130899190635,
+    "phase": "materialize ast.parse",
+    "hia_generations": 0,
+    "B3_compilations": 0,
+    "native_entries": 0,
+    "archive_not_independently_reexecuted": true
+  },
+  "ci": [
+    {
+      "tag": "[hia-ci:cli-temporary-directory]",
+      "driver": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-temporary-directory-r2/ci/ci_cli_temporary_directory_r2.py",
+      "preserved_test_blob": "f5a4055525c584f5e47e218a8be529f76c580341",
+      "planned_counts": [
+        12,
+        2,
+        18,
+        21,
+        3
+      ],
+      "HIA_CI_OUTPUT": "/tmp/hia-cli-temporary-directory-r2"
+    },
+    {
+      "tag": "[hia-ci:cli-full-publication]",
+      "driver": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-full-publication-r2/ci/ci_cli_full_publication_r2.py",
+      "preserved_test_blob": "64c2efb95524d3317c47c662cba80a2039637aa3",
+      "planned_counts": [
+        44,
+        11,
+        55,
+        55,
+        1,
+        9,
+        207,
+        14
+      ],
+      "requires_original_fullpub_asset_download_step_unchanged": true,
+      "HIA_CI_OUTPUT": "/tmp/hia-cli-full-publication-r2"
+    }
+  ],
+  "boundaries": [
+    "New source not AST parsed or generated locally; first actual execution is the next CI.",
+    "Original Tempdir run and queued full-publication run stay immutable and are not relabelled.",
+    "All tests, complete comparisons, native limits and compiler limits are unchanged.",
+    "All five delivered blobs were fully read back and exactly equal to authored/log bytes."
+  ]
+}

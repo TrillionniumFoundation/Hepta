@@ -1,0 +1,162 @@
+{
+  "schema": "hepta.hia.worker-initialization-sequence-delivery.v1",
+  "state": "NEW_UNEXECUTED_SOURCE_AND_ACTUAL_CI_DRIVER_READY",
+  "source_revision": "sequence-r2",
+  "test_revision": "control-r3",
+  "ci_revision": "r2",
+  "proposed_repository_prefix": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initialization-sequence-r1",
+  "files": [
+    {
+      "path": "tools/generate_hia_agent_worker_init_sequence.py",
+      "bytes": 34315,
+      "sha256": "e52366ba49733725f182d90ec248c0660e6529d17bcf08142bfd36f126dd1cd3",
+      "gitsha": "8bcb940efb745a1ccfb99e7fa4d3ff724791f041",
+      "source_key": "worker_init_sequence_draft_r2_source",
+      "role": "PRODUCTION_AUTHORING"
+    },
+    {
+      "path": "docs/HIA_WORKER_INITIALIZATION_SEQUENCE_ABI_R2.md",
+      "bytes": 14228,
+      "sha256": "e056c073b06d516b3d2168b760a9accb3f01b6f6f4641133ff62ed6f607036c0",
+      "gitsha": "cc151933086f7463ca5939cd98dc2cf5b24d1bdb",
+      "source_key": "worker_init_sequence_doc_r2_source",
+      "role": "ABI"
+    },
+    {
+      "path": "compile_worker_init_sequence_ci_r1.py",
+      "bytes": 6541,
+      "sha256": "a1513e2bdef18fab6c483e73f263eb2a38008a97f3f658ddf9b4a61092a8fceb",
+      "gitsha": "fa384acd553e601cc9b2c853a20191b3e8b8251e",
+      "source_key": "worker_init_sequence_compile_r1_source",
+      "role": "BUILD"
+    },
+    {
+      "path": "development/test_worker_init_sequence_ci_r3.py",
+      "bytes": 31755,
+      "sha256": "4469a34871ed938168e57c022092eb0cabd2a60597376ace94d55614d33f18f2",
+      "gitsha": "11e6ddbfdd7729b2cb77d5d34b5e76d8a053be54",
+      "source_key": "worker_init_sequence_tests_r3_source",
+      "role": "CONTROL_TESTS"
+    },
+    {
+      "path": "worker_initialization_sequence_ci_r2.py",
+      "bytes": 7541,
+      "sha256": "40f1226c3c8b239a0ceae767229958314e303beb6376ca087fcd9a2e8e4193d0",
+      "gitsha": "4dccbe1dfe8924286ebf08eac572b486190800c9",
+      "source_key": "worker_init_sequence_ci_r2_source",
+      "role": "CI_ENTRY"
+    },
+    {
+      "path": "development/value_mechanics_source.py",
+      "bytes": 27233,
+      "sha256": "1602df39c9dd982e42ece64379e76fc9ca123b7ca407e84d7f4ded767bebf753",
+      "gitsha": "b12248a7ad4aa4875e78af33922182b3fffc1636",
+      "source_key": "worker_init_values_tests_r2_source",
+      "role": "EXACT_MECHANICAL_DEFINITIONS_ONLY"
+    }
+  ],
+  "current_observations": {
+    "ast_execution": 0,
+    "authoring_generation": 0,
+    "vm_entries": 0,
+    "actual_B3_compiles": 0,
+    "actual_sequence_native_entries": 0,
+    "actual_service_joins": 0,
+    "no_existing_pass_inheritance": true
+  },
+  "exact_reference": {
+    "commit": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+    "path": "hepta/hia_agent_service.py",
+    "bytes": 100742,
+    "gitsha": "2f56a5b4b02c54b9e56e53882db5cbd5687e4b4e",
+    "sha256": "684caf496de7e3e7c8db1fd80ef616139cf13717aa5879bbd2d6ebf834df9330",
+    "methods": [
+      "HIAAgentService.__init__",
+      "HIAAgentService._profiles",
+      "HIAAgentService._examples"
+    ]
+  },
+  "ci": {
+    "entry": "worker_initialization_sequence_ci_r2.py",
+    "entry_gitsha": "4dccbe1dfe8924286ebf08eac572b486190800c9",
+    "environment": [
+      "HIA_CI_COMMON",
+      "HIA_CI_OUTPUT"
+    ],
+    "common_gitsha": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+    "dependencies_index_gitsha": "6f6915dbb0b6b96796ae88a7febab4c1e9f80310",
+    "restore_gitsha": "3c4b0e5b979f8107065a7e0144faaf5d9ca0668d",
+    "working_directory": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-initialization-sequence-next",
+    "outer_timeout_minutes": 30,
+    "groups": [
+      "semantic",
+      "constructor",
+      "profiles",
+      "resources",
+      "examples",
+      "protocol"
+    ],
+    "fresh_compiles": 1,
+    "compiler": {
+      "bytes": 668608,
+      "sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+      "profile": "EXACT_HISTORICAL_f50_DEVELOPMENT_COMPILER",
+      "cpu_seconds": 10,
+      "wall_seconds": 20,
+      "address_space_bytes": 268435456
+    },
+    "per_group": {
+      "cpu_seconds": 90,
+      "wall_seconds": 180,
+      "address_space_bytes": 1073741824
+    },
+    "authoring_limits": {
+      "functions": 128,
+      "blocks": 1536,
+      "instructions": 8192,
+      "max_function_blocks": 256,
+      "max_block_parameters": 16
+    }
+  },
+  "planned_proof": [
+    "Actual sequence image and full original constructor/profile/example trace and partial attributes at every original observable service call.",
+    "All root resolve operations precede ordered is_dir, and ordered string-list construction follows all successful directory checks.",
+    "Each profile publication and six initial resource writes retain exact attribute-absence/prefix state and original error order.",
+    "All ten resource read/put pairs, macro, actual-request example verify/render/fresh-assemble ordering, digest mismatch, diagnostics and final manifest order.",
+    "Private exact source/config/ACK/extent/kind/sequence/poison/GROW controls; all nineteen peer kinds and complete issued exception forwarding tested under actual pending state."
+  ],
+  "exclusions": {
+    "all_19_semantic_service_providers_are_foreign_fixtures": true,
+    "native_values_projection_join": false,
+    "native_catalog_or_installation_join": false,
+    "namespace_FS_Path_effects": false,
+    "complete_general_assembly_join": false,
+    "fixed_worker_executor": false,
+    "ordinary_initialization_closed": false,
+    "whole_worker_closed": false,
+    "production_activation": false
+  },
+  "preserved_prior_unexecuted_drafts": [
+    {
+      "path": "tools/generate_hia_agent_worker_init_sequence.r1.py",
+      "gitsha": "841ad8ae1baa0d40874de2026ceaece228c8a7c5",
+      "reason": "r2 separates completed tuple publication from the later ordered str list."
+    },
+    {
+      "path": "development/test_worker_init_sequence_ci_r1.py",
+      "gitsha": "523ed394ab38843d793b98b0ba9b6c40425d56f6",
+      "reason": "Unexecuted r2 moves independent baseline construction outside disabled native interval."
+    },
+    {
+      "path": "development/test_worker_init_sequence_ci_r2.py",
+      "gitsha": "bcb26cf55309c3bbf78c8142a9d7528fd7db8d7f",
+      "reason": "Unexecuted r3 additionally checks every nineteen peer kind and issued exception forwarding."
+    },
+    {
+      "path": "worker_initialization_sequence_ci_r1.py",
+      "gitsha": "b2d77418f328851f3040bddf6f9524c098f94dff",
+      "reason": "Pin-only CI update to test r3."
+    }
+  ],
+  "note": "Only root updates refs. This delivery does not claim execution or semantic completion of the pending native services. Runtime counts come solely from new original CI summaries and raw entries."
+}
