@@ -1,0 +1,248 @@
+{
+  "schema": "hia.root.cli-r3b-source-only.authorization.v1",
+  "status": "AUTHORIZED_ONCE_NEW_EXACT_REQUEST_NOT_OLD_REPLAY",
+  "source_commit": "76c13dc2152c6daa31841f1622f92f3972b20004",
+  "tree": "e0545a2d8682b3d7518d8c70cacba8678a818ccc",
+  "parent": "606b9a9e185b96908d782435c594f40ce2b97cde",
+  "prior_tree": "7d6a17225bc66ce7e11605f2063a1f993dc67f79",
+  "full_tree_verified": true,
+  "leaves": 4518,
+  "prior": 4343,
+  "new_paths": 175,
+  "source_pins_joined": 160,
+  "raw_receipts": [
+    {
+      "path": "experiments/hia_cli_json_graph_20261112/implementation-r3b/HANDOFF.json",
+      "bytes": 8587,
+      "sha256": "055bd8eb0a705984716d1fe0748e5ce7dda368445116428cbcfa8ee04c5ecb47",
+      "git_blob": "33c39e2a8c03f4cbb35e6181be6ebb8e64b0bfb0"
+    },
+    {
+      "path": "experiments/hia_cli_json_graph_20261112/implementation-r3b/BORROW-DELTA.json",
+      "bytes": 6018,
+      "sha256": "5de4a385b667390bdc7ba37ab41c979a62e9ba2a32a1030758284405b12ed950",
+      "git_blob": "82600ea894438536999591421f26095ff95ef161"
+    },
+    {
+      "path": "experiments/hia_cli_json_graph_20261112/implementation-r3b/inputs/tools/generate_hia_cli_json_sort.py",
+      "bytes": 13011,
+      "sha256": "aae107bd0cfec3f25fcffb7c01ee56d41f915acb0c088c65ce6aa4b49bb57412",
+      "git_blob": "1ef065cf023f0c504355fd3b8c836d6f1f6e6387"
+    },
+    {
+      "path": "experiments/hia_cli_json_graph_20261112/implementation-r3b/source-only-request-r2/PREEXEC.json",
+      "bytes": 6588,
+      "sha256": "60a2a534f4b1a224c18566e5151e0787c5f963154cb79514500c6574863af06b",
+      "git_blob": "6e4550e765d06dfde0572d7d91d113f8f1318fc3"
+    },
+    {
+      "path": "experiments/hia_cli_json_graph_20261112/implementation-r3b/source-only-request-r2/control/CONFIG.json",
+      "bytes": 38890,
+      "sha256": "9ecd0462a4a17a62950a043a33a062c801c496ff1708f4b85b90a724ba7bed26",
+      "git_blob": "a9f929b09e3a959c0747b70139e08e9631cf7cb0"
+    },
+    {
+      "path": "experiments/hia_cli_json_graph_20261112/implementation-r3b/source-only-request-r2/guardian-r2/REQUEST.json",
+      "bytes": 32166,
+      "sha256": "d92dc98a19ef2209feac478885e9d3891eb7ae772ec3311f3373b92c3ba12a60",
+      "git_blob": "e0219a877af8cde6a38019962ad3cd8029228f75"
+    }
+  ],
+  "physical_readback": {
+    "all_pins": 165,
+    "changed_source_files": [
+      "tools/generate_hia_cli_json_sort.py"
+    ],
+    "diff": "--- frozen-r3\n+++ frozen-r3b\n@@ -253,8 +253,18 @@\n                 if ast.dump(node.args[0]) == ast.dump(node.args[2]):\n                     return self.op('buffer.move_within', [args[0], self.cast(args[1], 'usize'),\n                                    self.cast(args[3], 'usize'), self.cast(args[4], 'usize')])\n-                return self.op('buffer.copy_range', [args[0], args[2], self.cast(args[1], 'usize'),\n-                               self.cast(args[3], 'usize'), self.cast(args[4], 'usize')])\n+                # A cross-buffer source remains a mutbuf parameter.  Borrow an\n+                # actual readbuf for this one copy, then end its local loan\n+                # before any later source mutation or call.  The same-buffer\n+                # path above uses move_within and creates no loan.\n+                destination_at = self.cast(args[1], 'usize')\n+                source_at = self.cast(args[3], 'usize')\n+                count = self.cast(args[4], 'usize')\n+                source_view = self.op('borrow.read', [args[2]], 'readbuf')\n+                result = self.op('buffer.copy_range', [args[0], source_view,\n+                                 destination_at, source_at, count])\n+                self.op('loan.end', [source_view])\n+                return result\n             return super().expr(node)\n \n     nodes = ast.parse(source_program()).body\n",
+    "four_component_population_unchanged": true,
+    "new_outputs_absent": true,
+    "old_actual_status": "HOLD",
+    "old_cleanup": {
+      "attempted": true,
+      "complete": true,
+      "deadline_exceeded": false,
+      "elapsed_ns": 1834563,
+      "errors": [],
+      "leader_reaped": true,
+      "observed_echild": true,
+      "remaining_direct_children": [],
+      "started_ns": 27620893337805
+    },
+    "old_components": [
+      {
+        "error": null,
+        "name": "text",
+        "status": "SOURCE_CORE_AND_CAPS_PASS_NOT_NATIVE"
+      },
+      {
+        "error": {
+          "message": "E_HIA_TYPE: buffer.copy_range: operand types must match ('mutbuf', 'readbuf', 'usize', 'usize', 'usize')",
+          "type": "HIAProgramRejected"
+        },
+        "name": "sort",
+        "status": "HOLD"
+      },
+      {
+        "error": null,
+        "name": "note",
+        "status": "SOURCE_CORE_AND_CAPS_PASS_NOT_NATIVE"
+      },
+      {
+        "error": null,
+        "name": "cgraph",
+        "status": "SOURCE_CORE_AND_CAPS_PASS_NOT_NATIVE"
+      }
+    ],
+    "old_owner_returncode": 1,
+    "original_17_and_46_unchanged": true,
+    "preexec_sha256": "60a2a534f4b1a224c18566e5151e0787c5f963154cb79514500c6574863af06b",
+    "request_sha256": "d92dc98a19ef2209feac478885e9d3891eb7ae772ec3311f3373b92c3ba12a60",
+    "source_bytes": 2498171,
+    "source_count": 160,
+    "status": "READONLY_EXACT_R3B_REQUEST_PASS",
+    "unchanged_controls": 3,
+    "unchanged_other_source_files": 159
+  },
+  "preexecution": {
+    "C_compilation_requested": false,
+    "cleanup_seconds": 3,
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+      "-I",
+      "-S",
+      "-B",
+      "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r2/control/guardian.py",
+      "--config",
+      "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r2/guardian-r2/REQUEST.json",
+      "--config-sha256",
+      "d92dc98a19ef2209feac478885e9d3891eb7ae772ec3311f3373b92c3ba12a60",
+      "--implementation",
+      "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r2/control/process_owner_impl.py"
+    ],
+    "cwd": "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r2/source",
+    "environment": {
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "PATH": "/usr/bin:/bin"
+    },
+    "limits_exclusions": [
+      "Only the same nine structural metrics are measured.",
+      "The compiler 16384-line gate is not measured by this unchanged source-only worker.",
+      "No native output-size proof, actual compilation or product equivalence claim."
+    ],
+    "new_source_only_owner_seconds": 180,
+    "old_unknown_operations": "No query, reconciliation or replay.",
+    "preserved_not_run": {
+      "original_cli_ids": [
+        "tests.test_hia_cli_native.CliSourceTests.test_complete_regeneration_and_unchanged_native_profile",
+        "tests.test_hia_cli_native.CliSourceTests.test_matching_cold_build_rejects_before_output_creation",
+        "tests.test_hia_cli_native.CliSourceTests.test_independent_core_vm_argument_and_error_formatter",
+        "tests.test_hia_cli_native.CliNativeTests.test_argparse_order_abbreviation_clusters_repetition_and_sentinel",
+        "tests.test_hia_cli_native.CliNativeTests.test_help_wrapping_columns_and_exact_unicode_repr",
+        "tests.test_hia_cli_native.CliNativeTests.test_python_color_environment_precedence_and_colored_wrapping",
+        "tests.test_hia_cli_native.CliNativeTests.test_error_json_is_native_and_keeps_active_exception_context",
+        "tests.test_hia_cli_native.CliNativeTests.test_parser_stream_write_failures_and_missing_stdout_match",
+        "tests.test_hia_cli_native.CliNativeTests.test_all_fifteen_real_actions_and_publication_branches",
+        "tests.test_hia_cli_native.CliNativeTests.test_output_precedes_result_truth_and_query_read_errors",
+        "tests.test_hia_cli_native.CliNativeTests.test_existing_read_ceilings_and_unicode_error_publication",
+        "tests.test_hia_cli_native.CliNativeTests.test_native_ack_refusal_and_no_replay_after_consumed_effect",
+        "tests.test_hia_cli_native.CliNativeTests.test_external_baseexception_after_native_return_closes_permission",
+        "tests.test_hia_cli_native.CliNativeTests.test_error_str_baseexception_preserves_object_context_and_closes",
+        "tests.test_hia_cli_native.CliNativeTests.test_source_bundle_binding_and_selected_fail_closed",
+        "tests.test_hia_cli_native.CliNativeTests.test_unchanged_original_agent_entry_suite_with_native_selected",
+        "tests.test_hia_cli_native.CliNativeTests.test_actual_installed_wheel_without_retained_cli_or_checkout_resources"
+      ],
+      "trace_plan_ids": [
+        "scalar.none_bool_constants",
+        "scalar.all_json_controls",
+        "scalar.unicode_and_surrogate_units",
+        "scalar.integer_zero_sign_limbs",
+        "scalar.integer_digit_limit_edges",
+        "scalar.integer_large_pylong_boundary",
+        "scalar.binary64_finite_reference_suite",
+        "scalar.nan_infinity_payloads",
+        "scalar.numeric_subclass_hooks",
+        "scalar.nonzero_workspace_refusal",
+        "graph.empty_container_subclass",
+        "graph.root_fake_class",
+        "graph.nested_fake_class",
+        "graph.deep_beyond_128",
+        "graph.bytes_beyond_8MiB",
+        "graph.shared_children",
+        "graph.cycles_and_error_priority",
+        "graph.list_subclass_sequence_fast",
+        "graph.iteration_growth_shrink",
+        "graph.dict_items_iterator_conversion",
+        "graph.default_type_error_name",
+        "graph.default_return_nested",
+        "sort.raw_items_not_keys",
+        "sort.none_numeric_mixed_key_failure",
+        "sort.nan_identity_and_equality",
+        "sort.cached_slot_notimplemented",
+        "sort.mutable_type_slot",
+        "sort.run_gallop_power_trace",
+        "sort.invalid_item_after_sort",
+        "sort.aliased_items_empty_during_sort",
+        "sort.mutation_then_success",
+        "sort.mutation_then_comparison_error",
+        "sort.failure_permutation_and_finalizers",
+        "entry.output_callback_seam",
+        "entry.bound_print_before_dumps",
+        "entry.stdout_after_dumps",
+        "entry.dumps_binding_and_encoder_methods",
+        "entry.no_partial_stdout_on_encode_error",
+        "entry.stdout_surrogate_policy",
+        "entry.print_result_and_error",
+        "lifetime.current_item_314_patch_difference",
+        "lifetime.mapping_and_key_temporaries",
+        "lifetime.active_raised_and_handled",
+        "lifetime.note_repr_reentrancy",
+        "lifetime.permission_after_return_failure",
+        "lifetime.allocation_and_interrupt"
+      ]
+    },
+    "previous_originals_commit": "606b9a9e185b96908d782435c594f40ce2b97cde",
+    "previous_request_status": "HOLD",
+    "products_executed": false,
+    "python": {
+      "bytes": 30894944,
+      "git_blob": "cdff710ca21bf61260e4c7d7f3818ecd65cba2e7",
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+      "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+      "version": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]"
+    },
+    "request": {
+      "bytes": 32166,
+      "git_blob": "e0219a877af8cde6a38019962ad3cd8029228f75",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r2/guardian-r2/REQUEST.json",
+      "sha256": "d92dc98a19ef2209feac478885e9d3891eb7ae772ec3311f3373b92c3ba12a60"
+    },
+    "schema": "hia.cli-json.source-authoring.preexec.v1",
+    "source_bytes": 2498171,
+    "source_files": 160,
+    "source_only": [
+      "syntax",
+      "actual authoring",
+      "assembly",
+      "public Core round trip",
+      "listed structural caps"
+    ],
+    "source_origin": "Exact per-file copied read-only repository closure plus isolated source overlays; not a Git checkout or new product head.",
+    "source_revision": "implementation-r3b",
+    "status": "FROZEN_NOT_EXECUTED",
+    "worker": {
+      "bytes": 11800,
+      "git_blob": "a1b2344e2e73faa154f8dbc4c034c77a653c28b3",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/source-authoring-r2/control/source_authoring_worker.py",
+      "sha256": "22d05d8676c4f2e5a4d95387c925f28a3580eae268f3c8e85207abb6ea9a8217"
+    }
+  },
+  "observed_old_HOLD_preserved": true,
+  "review": "Only mutbuf cross-buffer copy gains actual borrow.read and same-block loan.end after all scalar argument conversions; same-buffer move_within unchanged. Original complete four components, owner 180/3 and nine listed caps retained.",
+  "exclusions": [
+    "16384-line compiler limit is not measured by this worker",
+    "No C/native compilation, original17 callers or46 traces",
+    "No old UNKNOWN replay or default activation"
+  ],
+  "whole_native_delivery_qualified": false
+}
