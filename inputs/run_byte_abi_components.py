@@ -15,14 +15,14 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument('--source',required=True,type=Path);parser.add_argument('--output',required=True,type=Path);a=parser.parse_args()
     sys.path.insert(0,str(a.source.resolve()))
     names=['tests.test_hia_native_byte_abi_native.'+n for n in ('NativeByteABISourceTests','NativeByteABINativeTests','NativeByteABIVMTests','NativeByteABIInstalledTests')]
-    report={'scope':'EXACT_BYTE_R3_COMPONENT_DEVELOPMENT_ONLY','classes':names,'status':'HOLD','cold':False,'full_qualified':False};started=time.monotonic();failure=None
+    report={'scope':'EXACT_BYTE_R4_COMPONENT_DEVELOPMENT_ONLY','classes':names,'status':'HOLD','cold':False,'full_qualified':False};started=time.monotonic();failure=None
     try:
         loader=unittest.TestLoader();suite=loader.loadTestsFromNames(names);ids=[t.id() for t in leaves(suite)]
         report.update(loaded=ids,loader_errors=loader.errors)
-        if loader.errors or len(ids)!=23 or len(set(ids))!=23:raise ValueError('exact 23 unique Byte ABI component tests required')
+        if loader.errors or len(ids)!=25 or len(set(ids))!=25:raise ValueError('exact 25 unique Byte ABI component tests required')
         result=unittest.TextTestRunner(verbosity=2,resultclass=Observed).run(suite)
         report.update(testsRun=result.testsRun,executed=result.executed,failures=[(t.id(),s) for t,s in result.failures],errors=[(t.id(),s) for t,s in result.errors],skipped=[(t.id(),s) for t,s in result.skipped],expectedFailures=[(t.id(),s) for t,s in result.expectedFailures],unexpectedSuccesses=[t.id() for t in result.unexpectedSuccesses])
-        if result.testsRun!=23 or result.executed!=ids or any(report[k] for k in ('failures','errors','skipped','expectedFailures','unexpectedSuccesses')):raise ValueError('Byte ABI full component conjunction failed')
+        if result.testsRun!=25 or result.executed!=ids or any(report[k] for k in ('failures','errors','skipped','expectedFailures','unexpectedSuccesses')):raise ValueError('Byte ABI full component conjunction failed')
         report['status']='PASS'
     except BaseException as e:failure=e;report['failure']={'type':type(e).__name__,'text':str(e),'traceback':traceback.format_exc()}
     finally:
