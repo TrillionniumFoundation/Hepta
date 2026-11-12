@@ -155,7 +155,8 @@ class RetirementStateSourceTests(unittest.TestCase):
 
     def test_default_reference_attributes_still_write_the_actual_backend(self):
         from hepta.hia_native_retirement import PathIdentityPin
-        with patch.dict(os.environ, {SELECTOR: ''}):
+        reference_environment = {key: value for key, value in os.environ.items() if key != SELECTOR}
+        with patch.dict(os.environ, reference_environment, clear=True):
             pin = PathIdentityPin(Path('/unused-no-effects'))
             pin.fd = 37
             pin.acquisition_attempted = True

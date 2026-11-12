@@ -49,9 +49,12 @@ class NativeExecutionBudgetImage(NativeHiaJsonImage):
 
 
 def selected_execution_budget():
-    selected = os.environ.get(SELECTOR)
-    return (_installed_json_image(selected, SOURCE, SCHEMA, NativeExecutionBudgetImage)
-            if selected else None)
+    if SELECTOR not in os.environ:
+        return None
+    selected = os.environ[SELECTOR]
+    if not selected:
+        raise ValueError('execution budget selector must not be empty')
+    return _installed_json_image(selected, SOURCE, SCHEMA, NativeExecutionBudgetImage)
 
 
 @dataclass(frozen=True)

@@ -63,6 +63,9 @@ def installed_instruction_policy(path):
 
 
 def selected_instruction_policy(name,schema,operands,results,attributes):
-    path=os.environ.get(SELECTOR)
-    if not path:return None
+    if SELECTOR not in os.environ:
+        return None
+    path=os.environ[SELECTOR]
+    if not path:
+        raise ValueError('instruction policy selector must not be empty')
     return installed_instruction_policy(path).check(name,schema,operands,results,attributes)

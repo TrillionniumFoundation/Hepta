@@ -22,6 +22,8 @@ The strict `tools.build_hia_core_admission` requires the completed cold report
 to match the current complete source manifest and compiler generation hashes.
 An older compiler used in development is not exact-source qualification.
 
+The selector is unselected only when its environment variable is absent. An explicitly present empty value is rejected before image loading or entry into the hosted reference. Remove the variable to use the unselected reference path; an empty assignment does not disable selection.
+
 ## Remaining boundaries and claims
 
 Host strict decoding, bounded caller snapshots, canonical JSON transport,

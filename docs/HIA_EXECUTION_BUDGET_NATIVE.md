@@ -9,6 +9,8 @@ lifetime. Failed native admission or execution cannot select the hosted
 reference. Current-source cold qualification, full retained regression and
 deployment are separate gates; this document does not assert they have passed.
 
+The selector is unselected only when its environment variable is absent. An explicitly present empty value is rejected before image loading or entry into the hosted reference. Remove the variable to use the unselected reference path; an empty assignment does not disable selection.
+
 ## Current source integration
 
 This `.hepta` integration preserves the current `agent_journal` v2 owner. The

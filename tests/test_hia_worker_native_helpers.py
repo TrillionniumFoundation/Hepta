@@ -50,6 +50,45 @@ class WorkerHelperSourceTests(unittest.TestCase):
         self.environment.start()
         self.addCleanup(self.environment.stop)
 
+    def test_empty_authority_selectors_refuse_before_ordinary_reference_or_effects(self):
+        from hepta.hia_agent_store import AgentStore
+        from hepta.hia_native_retirement import PathIdentityPin
+        from hepta.hia_program import verify_program
+        from tests.test_hia_core_admission_native import VALID
+        from copy import deepcopy
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / 'must-not-be-created'
+            with patch.dict(os.environ, {'HEPTA_HIA_EXECUTION_BUDGET_MANIFEST': ''}), \
+                    patch('sqlite3.connect', side_effect=AssertionError('SQLite entered')), \
+                    patch('hepta.hia_execution_budget._ReferenceExecutionBudgetStore',
+                          side_effect=AssertionError('reference budget entered')):
+                with self.assertRaisesRegex(ValueError, 'execution budget selector must not be empty'):
+                    AgentStore(root)
+            self.assertFalse(root.exists())
+
+        with patch.dict(os.environ, {'HEPTA_HIA_RETIREMENT_STATE_MANIFEST': ''}), \
+                patch('hepta.hia_native_retirement._ReferencePathIdentityPin',
+                      side_effect=AssertionError('reference retirement entered')):
+            with self.assertRaisesRegex(ValueError, 'retirement state selector must not be empty'):
+                PathIdentityPin(Path('/unused-no-effects'))
+
+        with patch.dict(os.environ, {'HEPTA_HIA_CORE_ADMISSION_MANIFEST': ''}), \
+                patch('hepta.hia_program._primitive_structure',
+                      side_effect=AssertionError('reference Core entered')):
+            with self.assertRaisesRegex(ValueError, 'Core admission selector must not be empty'):
+                verify_program(VALID)
+
+        primitive = deepcopy(VALID)
+        primitive['functions'][0]['blocks'][0]['ops'] = [
+            {'op': 'const', 'args': [], 'out': [{'name': 'n', 'type': 'u8'}],
+             'attrs': {'value': 1}}]
+        with patch.dict(os.environ, {'HEPTA_HIA_INSTRUCTION_POLICY_MANIFEST': ''}), \
+                patch('hepta.hia_program.check_instruction',
+                      side_effect=AssertionError('reference instruction entered')):
+            with self.assertRaisesRegex(ValueError, 'instruction policy selector must not be empty'):
+                verify_program(primitive)
+
     def test_allowlist_has_real_single_image_contracts_and_packaged_sources(self):
         import importlib
         from hepta.hia_agent_contract import NATIVE_SOURCE_FILES

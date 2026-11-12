@@ -311,7 +311,8 @@ class ExecutionBudgetNativeTests(unittest.TestCase):
 
     def test_default_reference_original_budget_ordering(self):
         from hepta.hia_agent_store import AgentStore
-        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {SELECTOR: ''}):
+        reference_environment = {key: value for key, value in os.environ.items() if key != SELECTOR}
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, reference_environment, clear=True):
             store = AgentStore(directory)
             try:
                 budget = store.execution_budgets; budget.create(CONTEXT.decode())

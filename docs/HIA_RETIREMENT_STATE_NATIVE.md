@@ -15,6 +15,8 @@ and current qualification runner. Matching-source cold qualification and the
 complete retained regression remain separate acceptance gates. A development
 executable or a successful individual test does not satisfy those gates.
 
+The selector is unselected only when its environment variable is absent. An explicitly present empty value is rejected before image loading or entry into the hosted reference. Remove the variable to use the unselected reference path; an empty assignment does not disable selection.
+
 ## State and effect boundary
 
 Each pin has one retained 4608-byte HIA state block. Its 512-byte header records

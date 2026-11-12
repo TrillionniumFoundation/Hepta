@@ -114,8 +114,12 @@ def installed_retirement_state(manifest_path):
 
 
 def selected_retirement_state():
-    selected = os.environ.get(SELECTOR)
-    return installed_retirement_state(selected) if selected else None
+    if SELECTOR not in os.environ:
+        return None
+    selected = os.environ[SELECTOR]
+    if not selected:
+        raise ValueError('retirement state selector must not be empty')
+    return installed_retirement_state(selected)
 
 
 class RetirementState:

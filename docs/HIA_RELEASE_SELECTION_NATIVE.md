@@ -33,6 +33,7 @@ python -B -m tools.build_hia_release_selection \
   --output /new/private/selection
 
 /new/private/selection/hia-select status /absolute/private/releases
+/new/private/selection/hia-select verify /absolute/private/releases 1 CURRENT_SHA256 < current.hiapack
 /new/private/selection/hia-select activate /absolute/private/releases 0 - TARGET_SHA256 < target.hiapack
 /new/private/selection/hia-select activate /absolute/private/releases 1 CURRENT_SHA256 NEXT_SHA256 < next.hiapack
 /new/private/selection/hia-select rollback /absolute/private/releases 2 NEXT_SHA256 CURRENT_SHA256 < target.hiapack
@@ -44,6 +45,24 @@ modes, renaming, fsyncing or executing a release. Its `release_verified:false`
 is intentional: observing selection metadata does not freshly inspect the
 selected package's contents. Use the installer's explicit `verify` with the
 original pinned package for that independent observation.
+
+`verify` combines selected-state identity and installed-release verification in
+one native read operation. It requires a positive canonical expected sequence,
+the exact current hash and the original hash-pinned package on stdin. HIA
+requires that sequence/hash to match the actually read selection record, runs
+the unchanged complete immutable-release verifier under a shared lock, then
+reopens and hashes selection again. It compares the complete original record
+and held inode/time identity, the named lock and root before returning
+`operation:"verify"` with `release_verified:true`. A stale identity returns
+19, changed state returns 12, and an invalid package or installed payload
+returns the existing verifier refusal. Absence is never a verified selection.
+
+This operation creates no lock, selection record or private stage and performs
+no chmod, rename or fsync. Concurrent cooperating status/verify readers may
+share the lock; mutations remain excluded until verification and its receipt
+finish. It replaces a caller's separate status/verify identity comparison. It
+does not identify any already-running worker, grant execution authority, migrate
+requests or establish freshness after joint restoration of the root.
 
 A mutation requires a canonical unsigned decimal expected sequence and exact
 expected current identity. Sequence zero requires `-`; every positive sequence
@@ -103,7 +122,7 @@ state file exists, it refuses that incoherent observation. No lock file is ever
 removed or replaced by this program.
 
 The kernel's nonblocking `flock` serializes cooperating mutators with an
-exclusive lock and status readers with a shared lock. A busy lock returns exit
+exclusive lock and status/verify readers with a shared lock. A busy lock returns exit
 18; it is not a queued mutation or a success. The held lock inode is compared
 to its name after acquisition and before and after publication. Process death
 releases the kernel lock without stale-PID ownership inference.
@@ -196,6 +215,20 @@ readback. `ReleaseSelectionFaultTests` requires actual `strace` fault injection
 for stage/root fsync failures, lost stdout acknowledgment, `EINTR`, and SIGKILL
 before and after publication. Missing ptrace access is a failed environment
 observation, not a skipped or passed native qualification.
+
+Selected-release verification controls cover independent VM argument/state
+admission and full-record/inode readback comparisons, actual unchanged selection
+and release bytes, shared-reader/exclusive-writer contention, stale identities,
+wrong input packages and changed installed payloads. The actual syscall trace
+requires a shared lock, EINTR retry, no creation/publication/synchronization
+syscalls and no interpreter or child execution.
+
+A real-process mid-read control observes the installed payload descriptor in
+`/proc/PID/fd`, stops that verifier with SIGSTOP, and changes selection while
+ignoring its advisory lock. Both an in-place valid record change and an
+identical-byte replacement inode must refuse after SIGCONT. This tests the
+specific later readback boundary; it does not turn an advisory lock into
+protection against an arbitrary same-UID writer.
 
 The source-bound builder refuses missing or stale complete cold manifests before
 creating its output directory and rechecks all original sources/images/report

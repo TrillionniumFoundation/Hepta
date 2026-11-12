@@ -112,3 +112,9 @@ class CoreOnlyTests(unittest.TestCase):
         self.assertEqual(value['high_level_source_language'],'removed')
         self.assertFalse(value['whole_native_delivery_qualified'])
         self.assertFalse(value['production_activated'])
+        expected=['capabilities','verify','compile','render-assembly','assemble','check-assembly']
+        self.assertEqual(value['native_stdio_commands'],expected)
+        scope=json.loads((ROOT/'docs/HIA_CORE_ONLY_SCOPE.json').read_text())
+        self.assertEqual(scope['native_agent_stdio'],expected)
+        from tools.generate_hia_agent_stdio import capabilities_bytes
+        self.assertEqual(json.loads(capabilities_bytes())['operations'],expected)

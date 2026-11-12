@@ -154,11 +154,13 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         put(w, fb + 8, get(w, 80))
         put(w, fb + 40, 0)
     put(w, 480, 0)
-    i = 0
-    while i < 2048:
-        fill_range(w, 955152 + i * 24 + 8, 8, 0)
-        fill_range(w, VBASE + i * 16, 8, 0)
-        i = i + 1
+    # Both tables are private to the current function. A name record is
+    # vacant when its size is zero; define() writes both SSA type and block
+    # origin before they can become live. Clearing their complete extents is
+    # equivalent to the former 2048 strided vacancy/type resets and lets the
+    # ordinary checked bulk operation emit two REP STOSB sequences.
+    fill_range(w, 955152, 49152, 0)
+    fill_range(w, VBASE, 32768, 0)
     count = parse_params(s, w, 1)
     if get(w, 40) != 0:
         return 0
@@ -1484,8 +1486,12 @@ def loan_live(w:mutbuf, v:u64) -> u64:
 def loan_access(w:mutbuf, v:u64) -> u64:
     if get(w, 264) == 0 or get(w, 280) == 0:
         return 0
+    interned_count = get(w, 480)
     i = 0
-    while i < 2048:
+    # Every live SSA identity was interned by read_value_name(). Slots
+    # outside this current-function count retain type zero after table reset
+    # and cannot satisfy loan_live(), including with dirty initial workspace.
+    while i < interned_count:
         if loan_live(w, i) == 1 and get(w, CAPBASE + i * 24 + 8) == v + 1:
             return fail(w, 62)
         i = i + 1
@@ -1534,9 +1540,13 @@ def loan_produce(w:mutbuf, v:u64, a:u64) -> u64:
 def loan_borrow(w:mutbuf, a:u64, t:u64) -> u64:
     if get(w, 264) == 0 or get(w, 280) == 0:
         return 0
+    interned_count = get(w, 480)
     i = 0
     root = get(w, CAPBASE + a * 24)
-    while i < 2048:
+    # Every live SSA identity was interned by read_value_name(). Slots
+    # outside this current-function count retain type zero after table reset
+    # and cannot satisfy loan_live(), including with dirty initial workspace.
+    while i < interned_count:
         if loan_live(w, i) == 1 and get(w, CAPBASE + i * 24) == root:
             if loan_ancestor(w, i, a) == 0:
                 if t == 7 or get(w, VBASE + i * 16) == 7:
@@ -1697,8 +1707,9 @@ def owner_free(w:mutbuf, v:u64) -> u64:
         return fail(w, 62)
     if get(w, 264) == 0:
         return 0
+    interned_count = get(w, 480)
     i = 0
-    while i < 2048:
+    while i < interned_count:
         if i != v and loan_live(w, i) == 1 and get(w, CAPBASE + i * 24) == v:
             return fail(w, 62)
         i = i + 1

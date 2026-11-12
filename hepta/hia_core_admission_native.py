@@ -65,9 +65,11 @@ def selected_core_structure(data, raw):
     namespace handling. JSON decoding, object custody and normalization remain
     explicit host dependencies. A selected error never falls back to old policy.
     """
-    path = os.environ.get(SELECTOR)
-    if not path:
+    if SELECTOR not in os.environ:
         return None
+    path = os.environ[SELECTOR]
+    if not path:
+        raise ValueError('Core admission selector must not be empty')
     installed_core_admission(path).admit(raw)
     # Materialization follows admission, not a second declaration/body check.
     functions = {fn['name']: fn for fn in data['functions']}

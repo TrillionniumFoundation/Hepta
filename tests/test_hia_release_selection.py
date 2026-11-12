@@ -7,9 +7,11 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import struct
 import subprocess
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 from hepta.hia_agent_assembly import assemble_program, render_assembly
@@ -182,7 +184,8 @@ class ReleaseSelectionSourceTests(unittest.TestCase):
 
     def test_vm_receipt_and_staged_name(self):
         for op,operation,sequence,current,previous in [(3,'status',0,None,None),
-                (1,'activate',1,'a'*64,None),(2,'rollback',(1<<64)-1,'b'*64,'a'*64)]:
+                (1,'activate',1,'a'*64,None),(2,'rollback',(1<<64)-1,'b'*64,'a'*64),
+                (4,'verify',2,'b'*64,'a'*64)]:
             w=fields(p0=14,p8=op,p24=sequence)
             if current:w[288:352]=current.encode()
             if previous:w[352:416]=previous.encode()
@@ -197,6 +200,30 @@ class ReleaseSelectionSourceTests(unittest.TestCase):
         w=fields(p0=10);w[704:720]=bytes(range(16))
         expected=b'.hia-selection-stage-'+bytes(range(16)).hex().encode()+b'\0'
         self.assertEqual(observe(b'x',w,workspace_offsets=range(640,640+len(expected)))[1],expected)
+
+    def test_vm_selected_release_verify_identity_and_full_snapshot(self):
+        root,digest='/private/releases','a'*64
+        expected=struct.pack('<3Q',6,len(root),64)+b'verify'+root.encode()+digest.encode()
+        self.assertEqual(observe(packet('verify',root,'1',digest),fields(p0=0),
+            offsets=range(len(expected))),(len(expected),expected))
+        for args in [('verify',root,'0',digest),('verify',root,'01',digest),
+                     ('verify',root,'1','A'*64),('verify',root,'1',digest,digest)]:
+            self.assertEqual(observe(packet(*args),fields(p0=0))[0],16)
+        w=fields(p0=18,p8=4,p16=2,p24=2,p32=1)
+        w[128:192]=digest.encode();w[256:448]=state(2,digest,'b'*64)
+        self.assertEqual(observe(b'',w)[0],0)
+        for at,value in ((8,1),(16,1),(32,0)):
+            changed=bytearray(w);struct.pack_into('<Q',changed,at,value)
+            self.assertEqual(observe(b'',changed)[0],16 if at==8 else 19)
+        changed=bytearray(w);changed[128]=ord('b')
+        self.assertEqual(observe(b'',changed)[0],19)
+        w=fields(p0=20)
+        raw=state(2,digest,'b'*64)
+        w[256:448]=raw;w[1408:1600]=raw
+        self.assertEqual(observe(b'',w)[0],0)
+        for at in (256,352,416,768,776,784,792,816,856,864,872,880):
+            changed=bytearray(w);changed[at]^=1
+            self.assertEqual(observe(b'',changed)[0],12,at)
 
     def test_independent_vm_packer_all_bytes(self):
         vm_pack()
@@ -289,7 +316,9 @@ class ReleaseSelectionKernelTests(unittest.TestCase):
         args=[str(self.app),operation,str(root or self.root)]
         data=b''
         if sequence is not None:
-            args += [str(sequence),current or '-',self.ids[target]]
+            args += [str(sequence),current or '-']
+            if operation != 'verify':
+                args.append(self.ids[target])
             data=self.wires[target] if wire is None else wire
         p=subprocess.run([*prefix,*args],input=data,capture_output=True,env={'PATH':''},timeout=30)
         self.observations.append({'case':self.id(),'operation':operation,'returncode':p.returncode,
@@ -328,6 +357,93 @@ class ReleaseSelectionKernelTests(unittest.TestCase):
             self.run_app(*args,code=19)
             self.assertEqual((self.root/CURRENT).read_bytes(),original)
         self.run_app('rollback',1,self.ids[0],1,code=20)
+
+    def test_selected_release_verify_is_coherent_readonly_and_requires_exact_identity(self):
+        self.run_app('verify',1,self.ids[0],code=19)
+        self.assertFalse((self.root/LOCK).exists())
+        self.run_app('activate',0,None,0)
+        before={str(p.relative_to(self.root)):(p.stat().st_ino,p.stat().st_mode,p.stat().st_size,
+            p.stat().st_mtime_ns,p.read_bytes() if p.is_file() else None)
+            for p in self.root.rglob('*')}
+        verified=json.loads(self.run_app('verify',1,self.ids[0]).stdout)
+        self.assertEqual(verified,{'schema':'hepta.hia.release-selection.v1','operation':'verify',
+            'sequence':1,'current':self.ids[0],'previous':None,'release_verified':True})
+        with (self.root/LOCK).open('rb') as held:
+            fcntl.flock(held,fcntl.LOCK_SH|fcntl.LOCK_NB)
+            self.run_app('verify',1,self.ids[0])
+            self.run_app('activate',1,self.ids[0],1,code=18)
+        self.run_app('verify',2,self.ids[0],code=19)
+        self.run_app('verify',1,self.ids[1],1,code=19)
+        self.run_app('verify',1,self.ids[0],wire=self.wires[1],code=11)
+        after={str(p.relative_to(self.root)):(p.stat().st_ino,p.stat().st_mode,p.stat().st_size,
+            p.stat().st_mtime_ns,p.read_bytes() if p.is_file() else None)
+            for p in self.root.rglob('*')}
+        self.assertEqual(after,before)
+        self.assertFalse(any(p.name.startswith('.hia-selection-stage-') for p in self.root.iterdir()))
+        app=self.root/self.ids[0]/'app'
+        app.chmod(0o700);app.write_bytes(b'changed installed executable');app.chmod(0o500)
+        self.run_app('verify',1,self.ids[0],code=11)
+        self.assertEqual((self.root/CURRENT).read_bytes(),before[CURRENT][-1])
+
+    def test_selected_verify_rechecks_actual_state_after_mid_read_replacement(self):
+        # The advisory lock cannot stop a noncooperating same-UID writer. This
+        # control changes an actual state after the original read and requires
+        # readback refusal; it grants no protection after the observation ends.
+        wire=install_controls.bundle([('app',0o500,b'bounded-readback-control\0'*(400000))])
+        digest=sha256(wire).hexdigest()
+        installed=subprocess.run([str(self.installer),'install',str(self.root),digest],
+            input=wire,capture_output=True,env={'PATH':''},timeout=30)
+        self.assertEqual(installed.returncode,0,installed.stderr)
+        self.run_app('activate',0,None,0)
+        activated=subprocess.run([str(self.app),'activate',str(self.root),'1',self.ids[0],digest],
+            input=wire,capture_output=True,env={'PATH':''},timeout=30)
+        self.assertEqual(activated.returncode,0,activated.stderr)
+        selected_path=self.root/CURRENT
+        original=selected_path.read_bytes()
+        for replace_inode in (False,True):
+            child=subprocess.Popen([str(self.app),'verify',str(self.root),'2',digest],
+                stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':''})
+            try:
+                child.stdin.write(wire);child.stdin.close();child.stdin=None
+                expected=str(self.root/digest/'app')
+                deadline=time.monotonic()+15
+                observed=False
+                while time.monotonic()<deadline:
+                    self.assertIsNone(child.poll(),'verifier ended before actual file-read boundary')
+                    for descriptor in Path(f'/proc/{child.pid}/fd').iterdir():
+                        try:
+                            if os.readlink(descriptor)==expected:
+                                observed=True
+                                break
+                        except FileNotFoundError:
+                            pass
+                    if observed:
+                        break
+                    time.sleep(0.001)
+                self.assertTrue(observed,'actual installed payload descriptor was not observed')
+                child.send_signal(signal.SIGSTOP)
+                _,stopped=os.waitpid(child.pid,os.WUNTRACED)
+                self.assertTrue(os.WIFSTOPPED(stopped),'verifier must be alive at the actual read boundary')
+                if replace_inode:
+                    replacement=self.root/'independent-replacement'
+                    replacement.write_bytes(original);replacement.chmod(0o400)
+                    replacement.replace(selected_path)
+                else:
+                    # A valid same-sequence/current record with a different
+                    # previous release must also fail the complete snapshot.
+                    selected_path.chmod(0o600)
+                    selected_path.write_bytes(state(2,digest,self.ids[1]))
+                    selected_path.chmod(0o400)
+                child.send_signal(signal.SIGCONT)
+                output,error=child.communicate(timeout=30)
+                self.assertEqual((child.returncode,output),(12,b''),error)
+                self.observations.append({'case':self.id(),'selection_inode_replaced':replace_inode,
+                    'actual_installed_payload_descriptor_observed':True,'returncode':child.returncode})
+            finally:
+                if child.poll() is None:
+                    child.kill()
+                child.communicate(timeout=5)
+                selected_path.chmod(0o600);selected_path.write_bytes(original);selected_path.chmod(0o400)
 
     def test_actual_lock_contention_and_two_process_compare_and_swap(self):
         self.run_app('activate',0,None,0)
@@ -440,6 +556,18 @@ class ReleaseSelectionFaultTests(unittest.TestCase):
         self.assertNotIn('ld.so',raw)
         self.assertLess(raw.index('flock('),raw.index('renameat2('))
         self.assertLess(raw.index('fsync('),raw.index('renameat2('))
+
+    def test_selected_verify_has_no_mutation_syscalls_or_child_and_retries_eintr(self):
+        self.run_app('activate',0,None,0)
+        prefix,trace=self.trace('flock:error=EINTR:when=1')
+        self.run_app('verify',1,self.ids[0],prefix=prefix)
+        raw=trace.read_text()
+        self.assertIn('INJECTED',raw)
+        self.assertEqual(len(re.findall(r'^execve\(',raw,re.M)),1)
+        self.assertNotRegex(raw,r'\b(?:fork|vfork|clone|clone3|fsync|fchmod|renameat2|unlinkat|mkdirat)\(')
+        self.assertNotIn('O_CREAT',raw)
+        self.assertNotIn('ld.so',raw)
+        self.assertRegex(raw,r'flock\(\d+, LOCK_SH\|LOCK_NB\)')
 
 
 

@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v71-native-cli-build-adoption-policy'
+PROFILE = 'selfhost-core-linux-x86_64-v72-native-check-selection-and-live-slots'
 SOURCE_FILES = (
     'tools/qualify_hia_original_select_fragments.py',
     'tools/replay_hia_original_select_fragments.py',
