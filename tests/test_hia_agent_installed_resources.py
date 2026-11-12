@@ -613,7 +613,9 @@ assert not blocked.intersection(sys.modules)
                 self.assertEqual((self.installed/'hepta/_data'/name).read_bytes(),(ROOT/name).read_bytes())
             for name in SDIST_SUPPORT_FILES:
                 self.assertNotIn(name,z.namelist())
+                self.assertNotIn('hepta/_data/'+name,z.namelist())
                 self.assertFalse((self.installed/name).exists())
+                self.assertFalse((self.installed/'hepta/_data'/name).exists())
         self.assertEqual(self.identity,installation_manifest())
 
     def test_real_installed_native_worker_without_checkout_or_reference_predicates(self):

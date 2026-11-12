@@ -38,11 +38,11 @@ existing identities. Native selection is not enabled by default.
 The example digest is a placeholder. Actual admission requires lowercase
 64-character hexadecimal digests. Paths may be absolute or relative to the
 containing pinned manifest; parent traversal and control characters refuse.
-The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-four
+The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-five
 current single-image contracts include the original nineteen helper adapters
 and the current **agent-journal-native.v2**, **execution-budget-native.v1**,
 **candidate-budget-native.v1**, **retirement-state-native.v1** and
-**slot-ledger-native.v1** owners.
+**slot-ledger-native.v1** and **agent-read-native.v1** owners.
 A source test imports each
 actual factory and checks its `.hepta` source against the packaged resources.
 Unknown selectors, duplicate entries, extra fields and old journal schemas
@@ -139,6 +139,11 @@ candidate budget, retirement and worker helper controls. The
 [slot-ledger contract](HIA_SLOT_LEDGER_NATIVE.md) preserves the original SQLite
 connection and the adoption/rollback request transaction. Its lease decisions
 do not replace the separate in-process multiversion runtime or the process owner.
+The [artifact-read owner](HIA_AGENT_READ_NATIVE.md) uses
+`HEPTA_HIA_AGENT_READ_COLD_REPORT` for the HIA page/cursor kernel and its
+ordinary service, resource and installed-worker controls. Selection occurs
+through the same pinned bundle; requests cannot supply executable paths.
+The original artifact store, SQLite connection and enclosing worker remain hosted.
 The helper CI step requires a complete nonempty run and no failures, errors,
 skips, expected failures or unexpected successes. Explicit development images
 and local B0/B1/B2 builds remain development observations; they cannot override

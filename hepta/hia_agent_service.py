@@ -83,19 +83,24 @@ class HIAAgentService:
     def __init__(self, state_root, *, artifact_roots=()):
         from .hia_candidate_budget_native import selected_candidate_budget, NativeCandidateBudgetStore
         from .hia_slot_ledger_native import selected_slot_ledger, NativeSlotLedgerStore
+        from .hia_agent_read_native import selected_agent_read, NativeAgentReadStore
         candidate_budget_image = selected_candidate_budget()
         slot_ledger_image = selected_slot_ledger()
+        agent_read_image = selected_agent_read()
         self.catalog, self.catalog_sha256 = catalog()
         self.tools = {t["name"]: t for t in self.catalog["tools"]}
         self.identities = installation_manifest()
         self.store = AgentStore(state_root)
         self._candidate_budget = None
         self._slot_ledger = None
+        self._agent_read = None
         try:
             self._candidate_budget = (NativeCandidateBudgetStore(self.store, candidate_budget_image)
                                       if candidate_budget_image is not None else None)
             self._slot_ledger = (NativeSlotLedgerStore(self.store, slot_ledger_image)
                                  if slot_ledger_image is not None else None)
+            self._agent_read = (NativeAgentReadStore(self.store, agent_read_image)
+                                if agent_read_image is not None else None)
             self.artifact_roots = tuple(Path(root).absolute().resolve(strict=True) for root in artifact_roots)
             if any(not root.is_dir() for root in self.artifact_roots):
                 reject("E_HIA_PROFILE", "configured artifact roots must be directories")
@@ -429,6 +434,11 @@ class HIAAgentService:
                 "execution_authority_granted": False}
 
     def _hia_read(self, args):
+        if self._agent_read is not None:
+            return self._agent_read.read(args)
+        return self._reference_hia_read(args)
+
+    def _reference_hia_read(self, args):
         ref = args["artifact"]
         data, _ = self.store.get(ref)
         offset = 0

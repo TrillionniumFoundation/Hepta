@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger agent_read; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -120,6 +120,7 @@ jobs:
               'tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests',
               'tests.test_hia_candidate_budget_native.CandidateBudgetSourceTests',
               'tests.test_hia_slot_ledger_native.SlotLedgerSourceTests',
+              'tests.test_hia_agent_read_native.AgentReadSourceTests',
           )
           suite = unittest.defaultTestLoader.loadTestsFromNames(names)
           expected = suite.countTestCases()
@@ -211,6 +212,7 @@ jobs:
         env:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_SOURCE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SELFHOST_BUILD_EVIDENCE: ${{ runner.temp }}/hia-selfhost-build
           HEPTA_HIA_NOMINAL_JSON_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native Core module graph and actual workspace projects
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_module_graph_native
@@ -386,6 +388,11 @@ jobs:
           HEPTA_HIA_WORKER_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_SLOT_LEDGER_EVIDENCE: ${{ runner.temp }}/hia-slot-ledger
+      - name: Native artifact pages and installed ordinary read callers
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_agent_read_native tests.test_hia_agent_read_native_integration
+        env:
+          HEPTA_HIA_AGENT_READ_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_READ_EVIDENCE: ${{ runner.temp }}/hia-agent-read
       - name: Ordinary Agent callers with native journal and retained owner forbidden
         run: |
           python -B tools/qualify_hia_agent_journal_callers.py \
@@ -504,9 +511,11 @@ jobs:
             ${{ runner.temp }}/hia-release-selection/
             ${{ runner.temp }}/hia-retirement-state/
             ${{ runner.temp }}/hia-source-build/
+            ${{ runner.temp }}/hia-selfhost-build/
             ${{ runner.temp }}/hia-execution-budget/
             ${{ runner.temp }}/hia-candidate-budget/
             ${{ runner.temp }}/hia-slot-ledger/
+            ${{ runner.temp }}/hia-agent-read/
             ${{ runner.temp }}/hia-nominal-json/
             ${{ runner.temp }}/hia-nominal-json-ingress/
             ${{ runner.temp }}/hia-journal-callers.json

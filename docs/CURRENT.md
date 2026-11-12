@@ -6,17 +6,18 @@ integration entry remains [draft PR #893](https://github.com/TrillionniumFoundat
 
 **Whole-product native replacement is incomplete.**
 `whole_native_delivery_qualified=false`, `old_stack_can_be_removed=false`, and
-`production_activated=false`. The v72 source contract identifies the actual
+`production_activated=false`. The v73 source contract identifies the actual
 inputs; it is not an execution receipt. Current-source cold, installed/native,
 complete retained regression, and running-worker adoption are separate gates.
 
 ## Naming and repository audit
 
-The audited integration base is `807bbc4ce64b80d34b3102c774daf35e454d04be`,
-Git tree `9bcfadf0b3cadd375cae34906795501920a4a917`. It contains 2,360 tracked
-files, 96 `.hepta` sources (71 assembly and 25 structured Core), and 163
-production Python modules. Its active tree has no `.HIA`, `.hia`, `.hiaasm`, or
-`.hia.json` files. The unchanged main snapshot `5831f52fada45e076f8f68f198a15c0585e6104f`
+The incoming integration source is `9a12b6cd13ba103fc7495aa8d5decf8cd5948143`,
+Git tree `4e9f169f497e4378d5055c3b509f0f79f1d6e23b`. That snapshot contains 2,373
+tracked files, 96 `.hepta` sources (71 assembly and 25 structured Core), and
+163 production Python modules. The generated inventory records the subsequent
+merged source, including the native read component and source retirements.
+Active language inputs use `.hepta`; retired physical suffixes remain forbidden. The unchanged main snapshot `5831f52fada45e076f8f68f198a15c0585e6104f`
 has 60 `.hiaasm`, 12 `.hia`, 11 `.hia.json`, no `.HIA`, and no `.hepta`.
 Branch availability must not be reported as main adoption.
 
@@ -38,6 +39,7 @@ original bytes and recorded names.
 | Application operations | Core/JSON/workspace/patch helpers, ELF linker, immutable release installer | General build, complete Core/nominal/diagnostic support and ordinary product routing |
 | Native stdio | Six exact commands: capabilities, verify, compile, render-assembly, assemble, check-assembly | Separate bounded protocol; ordinary CLI has fifteen actions and worker has eleven tools |
 | State/policy helpers | Native request/journal/identity/budget/slot/retirement decisions over retained state | Hosted transport, SQLite effects, proofs and complete native service migration |
+| Artifact reads | HIA page/cursor decisions, complete-artifact UTF-8 classification and exact response budgeting | Store authority, SQLite effects, hosted transport and the unselected reference route |
 | Release lifecycle | Immutable installation, CAS selection/rollback/status, coherent selected-release verification | Worker restart/handoff, exact running-image observation, old requests/references and retirement |
 
 The selfhost profile is Linux x86-64 and bounded; it does not establish general
@@ -47,8 +49,15 @@ Python direct emitter, while `hia_evaluate` retains the Python reference VM.
 The explicit [selfhost object build](HIA_PROGRAM_SELFHOST_BUILD.md) uses sealed,
 operator-pinned native frontend/compiler bytes without an emitter fallback.
 
-## v72 changes
+## Retained native changes
 
+- The selected [ordinary artifact-read owner](HIA_AGENT_READ_NATIVE.md) receives
+  the complete captured artifact and original request metadata. HIA determines
+  cursor identity, signed INTEGER slicing, full-artifact UTF-8 validity,
+  base64/page trimming, repeated response-budget halving and cursor JSON/hash.
+  The adapter retains original store admission and parameterized cursor SQL
+  on the same connection. The installed worker selects a pinned helper bundle;
+  an unselected checkout or wheel retains its documented reference route.
 - The [native stdio entry](HIA_AGENT_STDIO_NATIVE.md) accepts `check-assembly`
   directly through its HIA semantic/resource compiler and operator-selected
   output profile. Success returns verification JSON without publishing code.
@@ -80,6 +89,15 @@ its original 5,400-second owner limit, exact planned/started/finished test
 identities, and zero failures/errors/skips/expected failures/unexpected successes.
 A timed-out or interrupted run remains failed even when its compiler images
 happen to agree.
+
+The read component retains all 18 original source, native and integration
+controls, including its installed-wheel worker and actual SQLite cursors.
+Acceptance requires executing those controls against matching frozen source;
+older development-compiler observations do not replace that gate. Its earlier
+eight-control development owner stopped before dispatch because a tracked
+historical ZIP was missing: zero project tests executed and the result remains
+HOLD. Retiring that historical input in a new Git tree does not change the old
+failure or weaken complete-source admission.
 
 The 807bbc4 exact-head push
 [43127917665](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43127917665)
@@ -115,19 +133,29 @@ and Python 3.14.10, was interrupted by SIGKILL after 385.029698662 seconds. It
 returned -9 without a unittest summary. Its 227 recorded `ok` lines do not
 qualify the full suite; the kill source has not been established.
 
-At the latest read, the published code's
+On 2026-11-12 the published code's
 [GitHub source/native run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43133619396)
-was queued. No queued execution is counted as PASS. The
-[Chinese audit](../review-evidence/hia-completion-20261112/audit.zh-CN.md)
-and source-bound outcome record retain the actual support/deletion boundaries.
-A later evidence-only commit can preserve these observations without changing
-any of the 708 contracted source inputs or the contract itself; it does not
-relabel the earlier executions as tests of its complete later tree.
+completed on PR merge `ed77d70f21094a7ce4082d28901bb9419271a320`, whose tree
+matches code commit `3d1f2cd70cc65ba1f603fec1ab43cb4e1eeb6fc8`. Its source
+job passed **473 tests in 690.194 seconds**. Its native cold gate failed with
+**6/11 checks** after **180.173620091 seconds**, under the unchanged 180-second
+qualification and 3-second cleanup limits. The actual child returned -9 after
+the deadline; the owner confirmed completed cleanup. All subsequent native
+test steps were skipped. The [original native artifact](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43133619396/artifacts/13908422179)
+retains the failed cold report and its original bytes. This is a v72 observation
+and does not qualify the later v73 source.
 
-This sandbox denies `PTRACE_TRACEME`. Actual local strace fault controls report
-that refusal and remain failed; they are neither skipped nor replaced with
-source inspection. Corresponding native CI/host observations are required.
-Successful VM/native development tests do not override that boundary.
+The [Chinese audit](../review-evidence/hia-completion-20261112/audit.zh-CN.md)
+and source-bound outcome record retain their original support/deletion
+boundaries and then-observed results. The later evidence-only commit
+`9a12b6cd13ba103fc7495aa8d5decf8cd5948143` did not change any of those 708
+contracted source inputs or their contract. The new CI observation does not
+relabel earlier local failures or the complete later tree as qualified.
+
+The recorded v72 local environment denied `PTRACE_TRACEME`. Its strace fault
+controls remain failures; source inspection did not replace execution. New
+source-specific strace controls must run on the selected qualification host.
+Successful component observations do not relabel those prior failures.
 
 Earlier detailed results, independent oracles, original failures, installed
 fixture quota errors, and source-specific results remain in the
@@ -146,6 +174,24 @@ record removed paths, hashes, Git objects and consumer checks. This current inde
 replaces their chronological status narrative; original records remain in Git.
 Build/cache output is ignored. Byte-identical fixtures, original evidence and
 independent oracles are retained for their actual consumers.
+
+The [stateful process retirement](../review-evidence/hia-native-cleanup-20261111/retired-stateful-process-files.json)
+removes 74 superseded experiment files (979,347 bytes of historical payload).
+The one protocol still consumed by the current qualification inventory is
+retained byte for byte at `tests/fixtures/hia_stateful_protocol/PROTOCOL.json`.
+Its explicit inventory binding preserves the inventory's member count. The
+retirement ledger records all 75 original Git objects and the exact consumer
+change; this cleanup removes no production module or active HIA source.
+
+The historical NDU scalar campaign ZIP and three original-observation archives
+are retired from the current source tree after checking their consumers.
+The development-retirement ledger binds their fixed Git locations, object IDs,
+sizes and SHA-256 digests. Original indexes, member manifests, failure states
+and original/copy paths remain unchanged; their paths describe the recorded
+historical observations. The campaign and compiler reports link to their fixed
+Git originals. No runtime fixture or test was removed, and strict missing-file
+admission is unchanged. The generated contract and inventory describe the new
+source tree.
 
 | Required closure | Existing owner/effect to preserve |
 | --- | --- |

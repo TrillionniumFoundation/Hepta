@@ -33,6 +33,6 @@
 
 该次比较中 compiler native 时间总和为 8.487824586 秒与 7.539536119 秒，after/before 为 0.8882766；这是这一组有限程序在该主机上的观察，不能推成完整 cold 时间改善或性能保证。15 项 scanner/name source tests 在 106.070 秒完成，零 failure/error/skip。
 
-原始编译输入、输出、receipt、固定点 image、修改前后源码、测试日志及复现实验脚本保存在 `compiler-differential.tar.xz`；`compiler-differential-archive.json` 记录每个成员的长度和 SHA-256，并在删除本任务临时副本前从压缩包逐成员回读验证。
+原始编译输入、输出、receipt、固定点 image、修改前后源码、测试日志及复现实验脚本保存在[固定 Git 修订的原始压缩包](https://github.com/TrillionniumFoundation/Hepta/blob/9a12b6cd13ba103fc7495aa8d5decf8cd5948143/review-evidence/hia-completion-20261112/compiler-differential.tar.xz)。当前保留的 `compiler-differential-archive.json` 原记录与全部成员身份未改；其中 `archive_path` 描述原归档位置。原归档时已逐成员回读长度和 SHA-256，再删除本任务临时副本；本次历史位置迁移没有重跑或重标该实验。
 
 比较所用旧 B3 是基线超时 cold 中已经产生的原始 image；该 cold 整体并未通过。以上是组件观察，`cold_qualification_performed=false`、`all_input_equivalence_proved=false`、`whole_native_delivery_qualified=false`。完整冻结源码仍须执行其自身验收，不能用这些局部结果替换失败记录或完成整套旧 owner 的移除。

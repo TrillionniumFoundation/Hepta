@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import stat
 import struct
 import subprocess
 import sys
@@ -140,9 +141,20 @@ class SelfhostBuildNativeTests(unittest.TestCase):
                 if result["status"] != "returned":
                     raise AssertionError(result)
                 cls.expected[function, argument] = result["values"][0]
-        cls.temporary = tempfile.TemporaryDirectory(prefix="hia-selfhost-build-tests-")
-        cls.addClassCleanup(cls.temporary.cleanup)
-        cls.folder = Path(cls.temporary.name)
+        evidence = os.environ.get("HEPTA_HIA_SELFHOST_BUILD_EVIDENCE")
+        cls.preserve_originals = bool(evidence)
+        if evidence:
+            cls.folder = Path(evidence)
+            if (not cls.folder.is_absolute()
+                    or cls.folder.parent.resolve(strict=True) != cls.folder.parent
+                    or cls.folder == ROOT or cls.folder.is_relative_to(ROOT)):
+                raise ValueError("selfhost evidence requires a new absolute directory outside source")
+            cls.folder.mkdir(mode=0o700)
+            cls.addClassCleanup(cls._preserve_originals)
+        else:
+            cls.temporary = tempfile.TemporaryDirectory(prefix="hia-selfhost-build-tests-")
+            cls.addClassCleanup(cls.temporary.cleanup)
+            cls.folder = Path(cls.temporary.name)
         from tools.qualify_hia_selfhost import compile_stage, invoke
         cold = os.environ.get("HEPTA_HIA_SOURCE_BUILD_COLD_REPORT")
         provided = os.environ.get("HEPTA_HIA_SELFHOST_BUILD_DEVELOPMENT_COMPILER")
@@ -181,18 +193,95 @@ class SelfhostBuildNativeTests(unittest.TestCase):
             source_sha256={name: sha256((ROOT / name).read_bytes()).hexdigest()
                            for name in native.SOURCE_FILES}, cold_report_sha256=None)
 
+    @classmethod
+    def _preserve_originals(cls):
+        # Capture partial setup and refusal artifacts too; this is no test verdict.
+        records = []
+        for base, directories, files in os.walk(cls.folder, followlinks=False):
+            for name in sorted(directories + files):
+                path = Path(base) / name
+                info = path.lstat()
+                record = {"path": path.relative_to(cls.folder).as_posix(),
+                          "mode": stat.S_IMODE(info.st_mode)}
+                if stat.S_ISLNK(info.st_mode):
+                    record.update(kind="symlink", target=os.readlink(path))
+                elif stat.S_ISDIR(info.st_mode):
+                    record["kind"] = "directory"
+                elif stat.S_ISREG(info.st_mode):
+                    raw = path.read_bytes()
+                    record.update(kind="file", bytes=len(raw),
+                                  sha256=sha256(raw).hexdigest())
+                else:
+                    raise ValueError("unexpected selfhost evidence file kind: " + str(path))
+                records.append(record)
+        with (cls.folder / "originals.json").open("x") as stream:
+            json.dump({"schema": "hepta.hia.selfhost-build-test-originals.v1",
+                       "scope": "RAW_NATIVE_FIXTURE_FILES_NOT_A_TEST_VERDICT",
+                       "cold_report": os.environ.get("HEPTA_HIA_SOURCE_BUILD_COLD_REPORT"),
+                       "development_compiler": os.environ.get("HEPTA_HIA_SELFHOST_BUILD_DEVELOPMENT_COMPILER"),
+                       "whole_native_delivery_qualified": False,
+                       "files": records}, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(dir=self.folder, prefix="case-")
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.evidence_serial = 0
+        if self.preserve_originals:
+            self.root = self.folder / self._testMethodName
+            self.root.mkdir(mode=0o700)
+        else:
+            self.temp = tempfile.TemporaryDirectory(dir=self.folder, prefix="case-")
+            self.addCleanup(self.temp.cleanup)
+            self.root = Path(self.temp.name)
         self.manifest = self.root / "compiler-manifest.json"
         shutil.copyfile(self.executable, self.root / self.executable.name)
         self.pin = _write_json(self.manifest, self.manifest_value)
 
+    def _record(self, kind, value):
+        if self.preserve_originals:
+            self.evidence_serial += 1
+            path = self.root / ("%03d-%s.json" % (self.evidence_serial, kind))
+            with path.open("x") as stream:
+                json.dump(value, stream, indent=2, sort_keys=True)
+                stream.write("\n")
+
+    @staticmethod
+    def _stream_value(value):
+        if value is None:
+            return {"encoding": "absent", "data": None}
+        if isinstance(value, bytes):
+            return {"encoding": "hex", "data": value.hex()}
+        if isinstance(value, str):
+            return {"encoding": "decoded_text", "data": value}
+        raise TypeError("unexpected captured process stream")
+
+    def _run_process(self, *args, **kwargs):
+        try:
+            result = subprocess.run(*args, **kwargs)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+            self._record("process", {"args": error.cmd,
+                "error_type": type(error).__name__,
+                "returncode": getattr(error, "returncode", None),
+                "timeout_seconds": getattr(error, "timeout", None),
+                "stdout": self._stream_value(error.stdout),
+                "stderr": self._stream_value(error.stderr)})
+            raise
+        self._record("process", {"args": result.args, "returncode": result.returncode,
+            "stdout": self._stream_value(result.stdout),
+            "stderr": self._stream_value(result.stderr)})
+        return result
+
     def build(self, value=None, output=None, **kwargs):
-        return native.build_program_selfhost(self.program if value is None else value,
-            self.root / "result.o" if output is None else output,
-            manifest=self.manifest, manifest_sha256=self.pin, **kwargs)
+        try:
+            receipt = native.build_program_selfhost(self.program if value is None else value,
+                self.root / "result.o" if output is None else output,
+                manifest=self.manifest, manifest_sha256=self.pin, **kwargs)
+        except (native.SelfhostBuildRejected, OSError) as error:
+            self._record("build-refusal", {"error_type": type(error).__name__,
+                "error": str(error), "code": getattr(error, "code", None),
+                "capture": getattr(error, "capture", None)})
+            raise
+        self._record("build", receipt)
+        return receipt
 
     def test_actual_native_build_with_python_emitter_forbidden_and_typed_execution(self):
         with (patch("hepta.hia_program_native._Emitter.render", side_effect=AssertionError("Python emitter")),
@@ -219,10 +308,10 @@ class SelfhostBuildNativeTests(unittest.TestCase):
                           "extern uint32_t caller(uint32_t);\nint main(void) {\n" +
                           "\n".join(checks) + "\nreturn 0;\n}\n")
         executable = self.root / "caller"
-        subprocess.run(["cc", "-std=c11", "-Werror", str(source), str(self.root / "result.o"),
+        self._run_process(["cc", "-std=c11", "-Werror", str(source), str(self.root / "result.o"),
                         "-Wl,-z,defs,-z,noexecstack", "-o", str(executable)],
                        check=True, capture_output=True, timeout=20)
-        result = subprocess.run([str(executable)], capture_output=True, timeout=5)
+        result = self._run_process([str(executable)], capture_output=True, timeout=5)
         self.assertEqual((result.returncode, result.stdout, result.stderr), (0, b"", b""))
 
     def test_explicit_export_subset_and_new_path_publication(self):
@@ -404,7 +493,7 @@ raise SystemExit(hia_main(json.loads(sys.argv[2])))
         def invoke(root, output):
             args = ["build", str(source), "--backend", "selfhost", "--selfhost-manifest",
                     str(self.manifest), "--selfhost-manifest-sha256", self.pin, "-o", str(output)]
-            return subprocess.run([sys.executable, "-I", "-S", "-B", "-c", child,
+            return self._run_process([sys.executable, "-I", "-S", "-B", "-c", child,
                                    str(root), json.dumps(args)], cwd=self.root,
                                   env=environment, capture_output=True, text=True, timeout=30)
         current = invoke(ROOT, self.root / "cli.o")
@@ -424,10 +513,10 @@ raise SystemExit(hia_main(json.loads(sys.argv[2])))
             [sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation", "--wheel-dir", str(wheels), str(package)],
         ]
         for command in steps:
-            result = subprocess.run(command, cwd=self.root, capture_output=True, text=True, timeout=60)
+            result = self._run_process(command, cwd=self.root, capture_output=True, text=True, timeout=60)
             self.assertEqual(result.returncode, 0, (result.stdout, result.stderr))
         wheel, = wheels.glob("*.whl")
-        result = subprocess.run([sys.executable, "-m", "pip", "install", "--no-index", "--no-deps",
+        result = self._run_process([sys.executable, "-m", "pip", "install", "--no-index", "--no-deps",
             "--target", str(installed), str(wheel)], capture_output=True, text=True, timeout=60)
         self.assertEqual(result.returncode, 0, (result.stdout, result.stderr))
         for name in native.SOURCE_FILES:

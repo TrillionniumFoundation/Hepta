@@ -51,6 +51,7 @@ HELPERS = {
     "HEPTA_HIA_EXECUTION_BUDGET_MANIFEST": ("hia_execution_budget_native", "NativeExecutionBudgetImage"),
     "HEPTA_HIA_CANDIDATE_BUDGET_MANIFEST": ("hia_candidate_budget_native", "NativeCandidateBudgetImage"),
     "HEPTA_HIA_SLOT_LEDGER_MANIFEST": ("hia_slot_ledger_native", "NativeSlotLedger"),
+    "HEPTA_HIA_AGENT_READ_MANIFEST": ("hia_agent_read_native", "NativeAgentRead"),
     "HEPTA_HIA_RETIREMENT_STATE_MANIFEST": ("hia_retirement_state_native", "NativeRetirementImage"),
 }
 # The ordinary CLI and Agent use different methods on the same patch image.

@@ -60,8 +60,9 @@ four-pair authored-task result, prior failures and unknown fees remain intact.
 
 ## Original evidence
 
-The original archive (historical path `../review-evidence/hia-ndu-scalar-controls-20261108-23d1/original-campaign.zip`; not shipped in this tree)
-is 1,283,026 bytes with SHA-256
+The [original archive](https://github.com/TrillionniumFoundation/Hepta/blob/21a9ce46c4d4ff17d5d73eb3fa07916ec8c2a50d/review-evidence/hia-ndu-scalar-controls-20261108-23d1/original-campaign.zip)
+is preserved at that fixed Git revision after its retirement from this tree.
+It is 1,283,026 bytes with SHA-256
 `d9025d10bacdd5e8558625c26fce40130effc87e05fe962a2387bfd4680add6d`.
 It contains the pre-execution plan, all 128 original scheduled cell records,
 307 content-addressed objects including execution source and the actual native

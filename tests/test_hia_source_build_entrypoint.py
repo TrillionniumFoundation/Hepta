@@ -16,6 +16,7 @@ BUILDER_SCRIPTS = (
     'build_hia_agent_binary64_format.py',
     'build_hia_agent_data_json.py',
     'build_hia_agent_identity.py',
+    'build_hia_agent_read.py',
     'build_hia_agent_slice.py',
     'build_hia_agent_snapshot.py',
     'build_hia_agent_snapshot_json.py',
