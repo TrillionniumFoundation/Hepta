@@ -1,0 +1,149 @@
+name: HIA JSON Pretty real installation and native development
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  author:
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-json-pretty-installed-run-r1-20261112-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HIA_JSON_PRETTY_WORKFLOW_SHA: '${{ github.sha }}'
+    steps:
+      - name: Check out only the reviewed control commit without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: CONTROL_COMMIT_PLACEHOLDER
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Check out the complete source-closure repair candidate and Git objects
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 325d28bf8857696132b22a86dab0d551a3ce87bf
+          path: source
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Install the fixed version and observe this runner's actual interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Install the original CI wheel build dependency versions
+        timeout-minutes: 3
+        run: |
+          python -m pip install --disable-pip-version-check 'setuptools==78.1.1' 'wheel==0.46.3'
+      - name: Bind real source HEAD and prepare the new private native development operation
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          set -C
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -S -B control/experiments/hia_json_pretty_20261112/installed-development-r1/controller.py prepare --root "$RUNNER_TEMP/hia-json-pretty-installed-development-r1" --source "$GITHUB_WORKSPACE/source" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER > "$RUNNER_TEMP/hia-json-pretty-native-prepare.stdout.log" 2> "$RUNNER_TEMP/hia-json-pretty-native-prepare.stderr.log"
+      - name: Build the new HIA image and run exact development cases under 180-second ownership
+        id: owned_development
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          set -C
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -S -B control/experiments/hia_json_pretty_20261112/installed-development-r1/controller.py run --root "$RUNNER_TEMP/hia-json-pretty-installed-development-r1" --source "$GITHUB_WORKSPACE/source" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER > "$RUNNER_TEMP/hia-json-pretty-native-run.stdout.log" 2> "$RUNNER_TEMP/hia-json-pretty-native-run.stderr.log"
+      - name: Verify natural cleanup and exact native development outputs
+        if: always()
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          set -C
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -S -B control/experiments/hia_json_pretty_20261112/installed-development-r1/controller.py finalize --root "$RUNNER_TEMP/hia-json-pretty-installed-development-r1" --source "$GITHUB_WORKSPACE/source" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER > "$RUNNER_TEMP/hia-json-pretty-native-finalize.stdout.log" 2> "$RUNNER_TEMP/hia-json-pretty-native-finalize.stderr.log"
+      - name: Print fixed original receipts and logs as bounded SHA-bound frames
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          case "${LD_LIBRARY_PATH-}" in
+            "") ;;
+            "${pythonLocation-}/lib")
+              if [[ -z "${pythonLocation-}" ]]; then
+                printf '%s\n' 'setup-python location is unavailable' >&2
+                exit 1
+              fi
+              ;;
+            *)
+              printf '%s\n' 'unapproved loader-library environment' >&2
+              exit 1
+              ;;
+          esac
+          unset LD_LIBRARY_PATH
+          python -I -S -B control/experiments/hia_json_pretty_20261112/installed-development-r1/diagnostics.py --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+      - name: Preserve original native development output and HOLD logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-json-pretty-installed-native-${{ github.run_id }}-1
+          path: |
+            ${{ runner.temp }}/hia-json-pretty-installed-development-r1/
+            ${{ runner.temp }}/hia-json-pretty-native-*.log
+          if-no-files-found: warn
+          include-hidden-files: true
+          compression-level: 0
+          retention-days: 14
