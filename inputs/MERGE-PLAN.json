@@ -1,12 +1,12 @@
 {
-  "schema": "hia.recoverable-owner-merge-plan.r3",
+  "schema": "hia.recoverable-owner-merge-plan.r4",
   "status": "AUTHORED_NOT_EXECUTED",
   "base_commit": "4b19af89a766593f7d5f1cc2db256e81aba7afcb",
   "base_tree": "1bc7c90996e1910ad66ba771b0bfee1d5bfa655c",
   "base_files": 3153,
   "overlay_file_count": 129,
   "authored_total_files": 3255,
-  "frozen_input_tree": "e429773518a48f8490c9ba3544db48036f88ea1b",
+  "frozen_input_tree": "1eacf4521efb63744eb4a889aa7efa8cf6ccaf06",
   "selected_files": {
     ".github/workflows/hia-core.yml": {
       "owner": "semantic-union",
@@ -720,21 +720,21 @@
       }
     },
     "tests/test_hia_service_context_builder.py": {
-      "owner": "verification_r6",
+      "owner": "semantic-union",
       "expected": {
         "mode": "100644",
-        "bytes": 17839,
-        "sha256": "cb2c4d4ec8b6e2d77e9e3a61991ca89fc4d37e3c94ec2e8fc95a96dc7aea280e",
-        "blob": "cc68f344aff211eaa43329cf096b7358caf1f076"
+        "bytes": 17876,
+        "sha256": "c478b65e54b8b9e382a4a0fb7d3c50d62985a9ad96730e1fefb45f05192bd4b6",
+        "blob": "61e325fa6ec233b565ba08f16c9274558fe6716d"
       }
     },
     "tests/test_hia_service_emission_builder.py": {
-      "owner": "verification_r6",
+      "owner": "semantic-union",
       "expected": {
         "mode": "100644",
-        "bytes": 17873,
-        "sha256": "75ba6cf9baf831b213137700404960d5341197f75650243448f0e3f171145980",
-        "blob": "1cc4f661dc8d1bd889e22f2162a252bf9eb40cb5"
+        "bytes": 17910,
+        "sha256": "f9b2e7a3ac33e86abacdfd4c966dd14a8b5b6c7657b8e57a44a23f564a2234ce",
+        "blob": "7174c7d46c24cd08ed3ad67037aca57b54775992"
       }
     },
     "tests/test_hia_service_emission_lifetimes.py": {
@@ -1899,6 +1899,40 @@
         "blob": "8990c89cf79603a81f97bd8fb2a5b11e734ea60e"
       },
       "reason": "Append Proof actual generator, exact Source3/32, component46 and original40 with explicit current-cold/evidence; retain original stages, limits and sequence."
+    },
+    {
+      "path": "tests/test_hia_service_context_builder.py",
+      "before": {
+        "bytes": 17839,
+        "sha256": "cb2c4d4ec8b6e2d77e9e3a61991ca89fc4d37e3c94ec2e8fc95a96dc7aea280e",
+        "blob": "cc68f344aff211eaa43329cf096b7358caf1f076"
+      },
+      "after": {
+        "mode": "100644",
+        "bytes": 17876,
+        "sha256": "c478b65e54b8b9e382a4a0fb7d3c50d62985a9ad96730e1fefb45f05192bd4b6",
+        "blob": "61e325fa6ec233b565ba08f16c9274558fe6716d"
+      },
+      "exact_before": "        self.assertEqual(set(checker.HELD_NATIVE_OWNERS), {native.SELECTOR, 'HEPTA_HIA_SERVICE_EMISSION_MANIFEST', 'HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST'})",
+      "exact_after": "        self.assertEqual(set(checker.HELD_NATIVE_OWNERS), {native.SELECTOR, 'HEPTA_HIA_SERVICE_EMISSION_MANIFEST', 'HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST', 'HEPTA_HIA_PROOF_CONTRACT_MANIFEST'})",
+      "reason": "The independently observed complete Proof union includes the held Proof capability; preserve exact-set equality and all prior members and other assertions."
+    },
+    {
+      "path": "tests/test_hia_service_emission_builder.py",
+      "before": {
+        "bytes": 17873,
+        "sha256": "75ba6cf9baf831b213137700404960d5341197f75650243448f0e3f171145980",
+        "blob": "1cc4f661dc8d1bd889e22f2162a252bf9eb40cb5"
+      },
+      "after": {
+        "mode": "100644",
+        "bytes": 17910,
+        "sha256": "f9b2e7a3ac33e86abacdfd4c966dd14a8b5b6c7657b8e57a44a23f564a2234ce",
+        "blob": "7174c7d46c24cd08ed3ad67037aca57b54775992"
+      },
+      "exact_before": "        self.assertEqual(set(checker.HELD_NATIVE_OWNERS), {native.SELECTOR, 'HEPTA_HIA_SERVICE_CONTEXT_MANIFEST', 'HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST'})",
+      "exact_after": "        self.assertEqual(set(checker.HELD_NATIVE_OWNERS), {native.SELECTOR, 'HEPTA_HIA_SERVICE_CONTEXT_MANIFEST', 'HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST', 'HEPTA_HIA_PROOF_CONTRACT_MANIFEST'})",
+      "reason": "The independently observed complete Proof union includes the held Proof capability; preserve exact-set equality and all prior members and other assertions."
     }
   ],
   "original_r2_failure": {
@@ -1911,5 +1945,30 @@
     "test": "tests.test_hia_checker_identity.CheckerDependencyIdentityTests.test_reviewed_inventory_covers_verifier_imports_and_explicit_selectors",
     "unexpected_import": "hia_machine_transport.py",
     "status": "FAIL_PRESERVED"
+  },
+  "original_r3_failure": {
+    "run_id": 43271704649,
+    "job_id": 131369660471,
+    "status": "FAIL",
+    "loaded": 860,
+    "executed": 860,
+    "failures": 2,
+    "errors": 0,
+    "skips": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "source_controls_seconds": 974.917365298,
+    "failures_exact": [
+      {
+        "event": "failure",
+        "test": "tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_held_service_selection_does_not_change_default_core_checker_scope",
+        "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/source/tests/test_hia_service_context_builder.py\", line 59, in test_held_service_selection_does_not_change_default_core_checker_scope\n    self.assertEqual(set(checker.HELD_NATIVE_OWNERS), {native.SELECTOR, 'HEPTA_HIA_SERVICE_EMISSION_MANIFEST', 'HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST'})\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Items in the first set but not the second:\n'HEPTA_HIA_PROOF_CONTRACT_MANIFEST'\n"
+      },
+      {
+        "event": "failure",
+        "test": "tests.test_hia_service_emission_builder.ServiceEmissionAdapterTests.test_held_service_selection_does_not_change_default_core_checker_scope",
+        "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/source/tests/test_hia_service_emission_builder.py\", line 59, in test_held_service_selection_does_not_change_default_core_checker_scope\n    self.assertEqual(set(checker.HELD_NATIVE_OWNERS), {native.SELECTOR, 'HEPTA_HIA_SERVICE_CONTEXT_MANIFEST', 'HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST'})\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Items in the first set but not the second:\n'HEPTA_HIA_PROOF_CONTRACT_MANIFEST'\n"
+      }
+    ]
   }
 }

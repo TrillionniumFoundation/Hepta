@@ -67,3 +67,7 @@ numbered lossless compressed JSON log chunks support source/report recovery.
 After actual source success the generated tree will be published as a separate,
 fully read-back source commit. Current-cold, native and full gates must then use
 that same commit. This harness itself grants none of those qualifications.
+
+## Follow-up R2 exact held-owner inventory correction
+
+Original run 43271704649 executed all 860 source controls with two failures: the Context and Emission adapter fixtures retained the previous three-item held-owner inventory after Proof had been registered. This candidate adds only the Proof selector to those two exact-set assertions. The other fixture statements, 89 generators, 171 selectors, all 860 ordered IDs, and original source/compiler limits remain intact. Original failure evidence is retained; no cold, native or full qualification is inherited. Separate newly reported public global-lookup semantic risks remain unresolved and are not cleared by this source-only gate.
