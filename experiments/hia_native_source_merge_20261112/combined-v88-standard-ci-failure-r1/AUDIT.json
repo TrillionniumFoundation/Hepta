@@ -1,0 +1,564 @@
+{
+  "CI_commit": "4202fee300d54344712d727135bef9202b92f8c7",
+  "all_original_runner_files_retained_claimed": false,
+  "available_publication_originals": [
+    {
+      "bytes": 1851,
+      "compressed_bytes": 744,
+      "git_blob_sha1": "37be4ab388e9ae4ce9813b3b3d7379ec1de2915e",
+      "mode": 33152,
+      "name": "hia-artifact-publication-custody/ARCHIVE.json",
+      "sha256": "031036e7fb4df66bbf3cf922f1584e5cbf84c0c55ecd756975dd4b8470ae288a",
+      "zip_crc32": 903992580
+    },
+    {
+      "bytes": 420,
+      "compressed_bytes": 253,
+      "git_blob_sha1": "8d8a83a6ad3ecd5e5c00e3da622e5cb4b10bb6b2",
+      "mode": 33152,
+      "name": "hia-artifact-publication-custody/START.json",
+      "sha256": "93fee8c7de51e03f5c67b73c59e202c1fcc71b6e79651f609b18a80700e9d989",
+      "zip_crc32": 1754761616
+    }
+  ],
+  "bounded_read_scope": "FINITE_55_PLUS_ORIGINAL_8_AND_7_CLI_NOT_FULL_QUALIFICATION",
+  "checks": 133813,
+  "cold": {
+    "actual_ECHILD": true,
+    "checks": 11,
+    "generations": [
+      {
+        "bytes": 670467,
+        "case": "B1",
+        "kind": "generations",
+        "sha256": "9de8606c153e50f2e742a18d4eb9f3b7c210b404f005346e95b550648d8f2892"
+      },
+      {
+        "bytes": 670467,
+        "case": "B2",
+        "kind": "generations",
+        "sha256": "9de8606c153e50f2e742a18d4eb9f3b7c210b404f005346e95b550648d8f2892"
+      },
+      {
+        "bytes": 670467,
+        "case": "B3",
+        "kind": "generations",
+        "sha256": "9de8606c153e50f2e742a18d4eb9f3b7c210b404f005346e95b550648d8f2892"
+      },
+      {
+        "bytes": 670467,
+        "case": "M1",
+        "kind": "modified_generations",
+        "sha256": "57cdce0e396ccf09270a43d9e5c51688430ea2b5b67bc927bc33784fd6ada00f"
+      },
+      {
+        "bytes": 670467,
+        "case": "M2",
+        "kind": "modified_generations",
+        "sha256": "a966630df3d1a5360b25f7b81e8d603fef48db05ac79bf8a3d5a7dd3976547b6"
+      },
+      {
+        "bytes": 670467,
+        "case": "M3",
+        "kind": "modified_generations",
+        "sha256": "a966630df3d1a5360b25f7b81e8d603fef48db05ac79bf8a3d5a7dd3976547b6"
+      }
+    ],
+    "historical_descendant_inventory_complete": false,
+    "nested_seconds": 124.016668726,
+    "original_limits": [
+      180,
+      3
+    ],
+    "phases": 38,
+    "seconds": 124.952968914,
+    "status": "COLD_SELFHOST_REPLAY_PASS"
+  },
+  "cold_phase_archives": 38,
+  "cold_phase_members_including_manifests": 42937,
+  "cold_phase_original_expanded_bytes": 2447478333,
+  "cold_phase_original_files_excluding_manifests": 42899,
+  "complete_source_canonical_joins": 840,
+  "declared_source_entries": 839,
+  "elapsed_seconds": 9.70529104399975,
+  "errors": [],
+  "failure": {
+    "archive_failure": {
+      "message": "[Errno 2] No such file or directory: 'RUN.json'",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_artifact_publication_tests.py\", line 489, in archive_evidence\n    quiet = quiescence(root)\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_artifact_publication_tests.py\", line 342, in quiescence\n    raw, _ = read_file(root / 'RUN.json', 16 << 20)\n             ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_artifact_publication_custody.py\", line 108, in read_file\n    before = os.stat(name, dir_fd=fd, follow_symlinks=False)\nFileNotFoundError: [Errno 2] No such file or directory: 'RUN.json'\n",
+      "type": "FileNotFoundError"
+    },
+    "first_error": "AssertionError: host artifact fsync",
+    "interpretation": "Evidence observer write_new used the same shared os.fsync function patched by the original product test. The incomplete _Call then broke final summary; no product native-fsync fallback is established by this observer failure.",
+    "original_test": [
+      {
+        "method": "test_real_store_bytes_metadata_dedup_restart_and_namespace_authority",
+        "outcome": "FAIL",
+        "test_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_real_store_bytes_metadata_dedup_restart_and_namespace_authority"
+      }
+    ],
+    "secondary_error": "AttributeError: '_Call' object has no attribute 'request'"
+  },
+  "full_retained_5400_10800_qualified": false,
+  "language_counts": {
+    "checked_arithmetic_traps_per_compiler": 150,
+    "checked_cast_traps_per_compiler": 36,
+    "checks_passed": 1242,
+    "checks_total": 1242,
+    "compilers": 2,
+    "positive_programs_per_compiler": 138,
+    "rejections_per_compiler": 274,
+    "scalar_witnesses": 1183,
+    "shift_traps_per_compiler": 20,
+    "traps_per_compiler": 206
+  },
+  "later_native_gates_qualified": false,
+  "missing_originals_reconstructed": false,
+  "missing_publication_originals": [
+    "RUN.json",
+    "REPORT.json",
+    "TYPED-MANIFEST.json",
+    "publication-originals.tar.gz",
+    "per-call and fixture originals"
+  ],
+  "native_original_unittest_summaries": [
+    {
+      "count": 10,
+      "seconds": 0.004
+    },
+    {
+      "count": 245,
+      "seconds": 270.986
+    },
+    {
+      "count": 17,
+      "seconds": 9.185
+    },
+    {
+      "count": 32,
+      "seconds": 50.184
+    },
+    {
+      "count": 10,
+      "seconds": 2.748
+    },
+    {
+      "count": 21,
+      "seconds": 41.551
+    },
+    {
+      "count": 10,
+      "seconds": 10.667
+    },
+    {
+      "count": 12,
+      "seconds": 11.344
+    },
+    {
+      "count": 10,
+      "seconds": 3.549
+    },
+    {
+      "count": 39,
+      "seconds": 53.279
+    }
+  ],
+  "native_steps": [
+    {
+      "completed_at": "2026-11-12T14:17:10Z",
+      "conclusion": "success",
+      "name": "Set up job",
+      "number": 1,
+      "started_at": "2026-11-12T14:17:09Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:17:19Z",
+      "conclusion": "success",
+      "name": "Run actions/checkout@v4",
+      "number": 2,
+      "started_at": "2026-11-12T14:17:10Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:17:29Z",
+      "conclusion": "success",
+      "name": "Run actions/setup-python@v5",
+      "number": 3,
+      "started_at": "2026-11-12T14:17:19Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:17:48Z",
+      "conclusion": "success",
+      "name": "Install qualified Clang 20 native execution prerequisites",
+      "number": 4,
+      "started_at": "2026-11-12T14:17:29Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:17:52Z",
+      "conclusion": "success",
+      "name": "Run python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0",
+      "number": 5,
+      "started_at": "2026-11-12T14:17:48Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:19:57Z",
+      "conclusion": "success",
+      "name": "Run python -B tools/replay_hia_selfhost_cold.py --output \"$RUNNER_TEMP/hia-cold.json\"",
+      "number": 6,
+      "started_at": "2026-11-12T14:17:52Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:21:31Z",
+      "conclusion": "success",
+      "name": "Run python -B tests/test_hia_selfhost_language_coverage.py --output \"$RUNNER_TEMP/hia-language.json\"",
+      "number": 7,
+      "started_at": "2026-11-12T14:19:57Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:21:35Z",
+      "conclusion": "success",
+      "name": "Matching-cold bounded read and original public callers",
+      "number": 8,
+      "started_at": "2026-11-12T14:21:31Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:26:06Z",
+      "conclusion": "success",
+      "name": "Native applications and actual Core memory controls",
+      "number": 9,
+      "started_at": "2026-11-12T14:21:35Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:26:15Z",
+      "conclusion": "success",
+      "name": "Native Core module graph and actual workspace projects",
+      "number": 10,
+      "started_at": "2026-11-12T14:26:06Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:27:06Z",
+      "conclusion": "success",
+      "name": "Native Core workspace JSON materialization and actual ABI",
+      "number": 11,
+      "started_at": "2026-11-12T14:26:15Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:27:09Z",
+      "conclusion": "success",
+      "name": "Native Core capability edge policy and actual CFG",
+      "number": 12,
+      "started_at": "2026-11-12T14:27:06Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:27:51Z",
+      "conclusion": "success",
+      "name": "Native explicit workspace facts and semantic ELF materialization",
+      "number": 13,
+      "started_at": "2026-11-12T14:27:09Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:28:01Z",
+      "conclusion": "success",
+      "name": "Native full Core function declarations SSA and CFG",
+      "number": 14,
+      "started_at": "2026-11-12T14:27:51Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:28:13Z",
+      "conclusion": "success",
+      "name": "Native whole primitive Core declaration SSA CFG and export admission",
+      "number": 15,
+      "started_at": "2026-11-12T14:28:01Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:28:16Z",
+      "conclusion": "success",
+      "name": "Native complete local instruction policy",
+      "number": 16,
+      "started_at": "2026-11-12T14:28:13Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "failure",
+      "name": "Native exact-byte artifact publication and real kernel races",
+      "number": 17,
+      "started_at": "2026-11-12T14:28:16Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "failure",
+      "name": "Preserve original artifact publication fixtures and call records",
+      "number": 18,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Native whole primitive Core admission and body resource flow",
+      "number": 19,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Standalone native complete Core admission CLI",
+      "number": 20,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Native snapshot-bound edits and complete Core patch CLI",
+      "number": 21,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Native ordinary Agent candidate bytes diagnostics and real crash cuts",
+      "number": 22,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Native complete nominal types helpers constructor functions and outer lowering",
+      "number": 23,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Native worker request admission and ordinary request continuity",
+      "number": 24,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Native request journal decisions and actual SQL crash controls",
+      "number": 25,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Ordinary Agent callers with native journal and retained owner forbidden",
+      "number": 26,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Native immutable release installation and recovery observations",
+      "number": 27,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Native graph wire worker machine-plan and linked observer",
+      "number": 28,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Ordinary machine-plan and Agent callers with retained plan owners forbidden",
+      "number": 29,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Ordinary instruction-byte callers with retained encoders forbidden",
+      "number": 30,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Ordinary wire and Agent callers with retained serialization forbidden",
+      "number": 31,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Native Store reference URI and profile authority with retained cold fixtures",
+      "number": 32,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Ordinary Store reference URI and profile authority callers with retained owners forbidden",
+      "number": 33,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Native ordinary artifact read and complete page boundaries with retained cold fixtures",
+      "number": 34,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Ordinary ordinary artifact read and complete page boundaries callers with retained owners forbidden",
+      "number": 35,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Complete six-state component and original 51 callers",
+      "number": 36,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Complete 41 instruction controls and original 51 callers",
+      "number": 37,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Complete 39-image Core lowering component and original 51 plus 50 callers",
+      "number": 38,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Complete native ELF source lifecycle wheel and 11 boundary cases",
+      "number": 39,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Original 51 ELF callers with retained writer forbidden",
+      "number": 40,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Matching-cold UNPACK with the original complete Core116",
+      "number": 41,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:11Z",
+      "conclusion": "skipped",
+      "name": "Complete 18 UNPACK controls and independent two-gate conjunction",
+      "number": 42,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:19Z",
+      "conclusion": "success",
+      "name": "Preserve actual cold failure and stage evidence",
+      "number": 43,
+      "started_at": "2026-11-12T14:29:11Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:19Z",
+      "conclusion": "skipped",
+      "name": "Post Run actions/setup-python@v5",
+      "number": 85,
+      "started_at": "2026-11-12T14:29:19Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:19Z",
+      "conclusion": "success",
+      "name": "Post Run actions/checkout@v4",
+      "number": 86,
+      "started_at": "2026-11-12T14:29:19Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-12T14:29:19Z",
+      "conclusion": "success",
+      "name": "Complete job",
+      "number": 87,
+      "started_at": "2026-11-12T14:29:19Z",
+      "status": "completed"
+    }
+  ],
+  "official_zip": {
+    "bytes": 68163049,
+    "sha256": "1675be2fd780038b80017f876e63f09272f46e4a7b5eb1a3f2a7541c560bdfb5"
+  },
+  "old_stack_deleted": false,
+  "original_39_executed": 39,
+  "original_39_failures": 1,
+  "original_39_passed": 38,
+  "outer_expanded_bytes": 372784874,
+  "outer_members": 1983,
+  "product_reexecuted": false,
+  "provider_upload_special_entries_warning_preserved": true,
+  "publication_archive_conclusion": "HOLD",
+  "publication_conclusion": "FAIL",
+  "pure_commit": "1fd7a1366a2f1fe3f8a6207e400464beb3686a58",
+  "run_conclusion": "failure",
+  "run_id": 43235471904,
+  "schema": "hia.v88.failed-standard-ci-complete-available-original-custody.v1",
+  "scope": "READ_ONLY_AVAILABLE_BYTE_CUSTODY_AND_RECORDED_RESULTS_NO_PRODUCT_REEXECUTION",
+  "semantic_internal_companion_request_receipt_join_audit": "NOT_REPEATED; full bytes, CRC and phase archive manifests checked",
+  "source_tests": {
+    "count": 453,
+    "job_conclusion": "success",
+    "seconds": 429.735
+  },
+  "source_tree": "c7aa2396bb242efb89cd4135557d51e1d2ccfda1",
+  "status": "PASS",
+  "whole_native_rewrite_qualified": false
+}
