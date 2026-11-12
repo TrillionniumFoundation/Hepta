@@ -1,0 +1,41 @@
+name: Recover exact published HIA source after executor reset
+"on":
+  push:
+    branches:
+      - codex/hia-source-export-recovery-v75-20261112-dda7
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the independent read-only exporter
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Check out the exact complete published product
+        uses: actions/checkout@v4
+        with:
+          ref: f8d9680a9b0ae609850c006480a7d1f68ea00979
+          path: source
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Export and verify every actual Git blob and source mode
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B harness/tools/export_exact_source.py \
+            --source "$GITHUB_WORKSPACE/source" \
+            --output "$GITHUB_WORKSPACE/exported-source"
+      - name: Preserve exact source bytes and original exporter observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-exact-published-f8-source-${{ github.run_id }}-${{ github.run_attempt }}
+          path: exported-source
+          if-no-files-found: error
+          retention-days: 30
