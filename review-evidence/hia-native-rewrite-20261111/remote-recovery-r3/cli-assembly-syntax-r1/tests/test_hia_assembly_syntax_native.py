@@ -228,6 +228,7 @@ def main():
         guard=b"ASSEMBLY-NATIVE-EXACT-CANARY-32!"
         assert len(guard)==32,len(guard)
         def buffer(raw=b"",size=None):
+            raw=bytes(raw)
             size=len(raw) if size is None else size;assert len(raw)<=size
             physical=max(size,1);backing=ctypes.create_string_buffer(physical+64);at=ctypes.addressof(backing)+32
             ctypes.memmove(at-32,guard,32);ctypes.memmove(at,raw,len(raw));ctypes.memmove(at+physical,guard,32)

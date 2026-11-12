@@ -13,9 +13,9 @@ FILES=[
   },
   {
     "path": "tests/test_hia_assembly_syntax_native.py",
-    "blob": "902d604e34dd9b8c7f1c33778a0477972a297e35",
-    "bytes": 25881,
-    "sha256": "b091a03a220233bbf4c4779b06756fec49afd266c9d3018cae0d67cbbc0ba8ad"
+    "blob": "6d535f9f8be6d44b5157fb92b9ec31cb3ed1cc65",
+    "bytes": 25908,
+    "sha256": "3a1dbef22eb801bbd444690ad187f1ad677dbbe89a8bf0335c7563b65965b61d"
   },
   {
     "path": "docs/HIA_FULL_ASSEMBLY_SYNTAX_R1.md",

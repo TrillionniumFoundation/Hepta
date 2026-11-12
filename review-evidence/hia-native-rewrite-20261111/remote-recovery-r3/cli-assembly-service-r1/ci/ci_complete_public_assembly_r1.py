@@ -7,15 +7,15 @@ R3="review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/"
 FILES=[
   {
     "path": "tools/assembly_service_control.py",
-    "gitsha": "a1dd3d84ce16b7038cd28badefee00c4f714e75a",
-    "bytes": 32542,
-    "sha256": "2f7c3c02507b0dadb268618b204e1e8e0dbceda5fc7ced0f44bb48abb07893fe"
+    "gitsha": "f46c688fa48564e8fc23615f832708253e459b05",
+    "bytes": 32643,
+    "sha256": "cca8e05fab7d9e73369729bc2c3f9070b97bf322f26a7d6bdd92de9cbede1bdc"
   },
   {
     "path": "tools/generate_hia_assembly_service.py",
-    "gitsha": "57c7c8f9c5d006b20e57b4e239b16d328d649a6f",
+    "gitsha": "f432c2fadf028b0f4437cc63fc2ea642e4445d04",
     "bytes": 11510,
-    "sha256": "2ff23251e65f46061abb329f09868855116de524ccd6a7f47458ab202e488914"
+    "sha256": "ce9bccb1bdc41b5f31a21ce5138cfd580ad0b33cfd208360857a1b1102ee3675"
   },
   {
     "path": "tools/compose_cli_assembly_carrier.py",

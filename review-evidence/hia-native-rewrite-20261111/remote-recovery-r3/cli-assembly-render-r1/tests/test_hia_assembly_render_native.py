@@ -182,6 +182,7 @@ def main():
         image=NativeHiaJsonImage(image_raw,expected_sha256=digest(image_raw))
         guard=b"ASSEMBLY-NATIVE-EXACT-CANARY-32!";assert len(guard)==32
         def buffer(raw=b"",size=None):
+            raw=bytes(raw)
             size=len(raw) if size is None else size;assert len(raw)<=size
             value=ctypes.create_string_buffer(max(size,1)+64);address=ctypes.addressof(value)+32
             ctypes.memmove(address-32,guard,32);ctypes.memmove(address,raw,len(raw))

@@ -12,7 +12,7 @@ ROOT=Path(__file__).resolve().parents[1]
 BASE_SOURCE=ROOT/"tools/program_service_root_reference.py"
 CONTROL_SOURCE=ROOT/"tools/assembly_service_control.py"
 BASE_SHA="f378c5cd7ef6a053ec63090cc3b3322929f54ef566a29fbaa3f687318c6779d9"
-CONTROL_SHA="2f7c3c02507b0dadb268618b204e1e8e0dbceda5fc7ced0f44bb48abb07893fe"
+CONTROL_SHA="cca8e05fab7d9e73369729bc2c3f9070b97bf322f26a7d6bdd92de9cbede1bdc"
 INPUTS={}
 def load_exact(name,path,expected):
     raw=path.read_bytes();assert sha256(raw).hexdigest()==expected,(path,sha256(raw).hexdigest())

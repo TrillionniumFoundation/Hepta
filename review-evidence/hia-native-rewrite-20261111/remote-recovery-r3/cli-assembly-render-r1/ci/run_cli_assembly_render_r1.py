@@ -13,9 +13,9 @@ FILES=[
   },
   {
     "path": "tests/test_hia_assembly_render_native.py",
-    "blob": "ee7d90d4a0a66fd059dbf6355efa5b0c36289510",
-    "bytes": 24983,
-    "sha256": "91af9a3766822014634c49dc9e46b8c0008503188e47550ee2a59aea8c5aa861"
+    "blob": "591d375f45b5ec7b0faefff785c8d0ea5e0f9fce",
+    "bytes": 25010,
+    "sha256": "f5f51b711c5baeac554a952959070e0e7efbcf6c82b90db95c34b7cc18477ca2"
   },
   {
     "path": "docs/HIA_FULL_ASSEMBLY_RENDER_R1.md",

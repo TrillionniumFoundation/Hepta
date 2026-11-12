@@ -4452,7 +4452,7 @@ jobs:
         env:
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-worker-initialization-pure-join-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-initializer-pure-join-r2/worker_initialization_pure_join_ci_r3.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-initialization-pure-join-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-pure-join-remaining-r3/worker_initialization_pure_join_ci_r4.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-initialization-pure-join-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -4963,7 +4963,7 @@ jobs:
         shell: bash
         env:
           PYTHONDONTWRITEBYTECODE: '1'
-        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-patch-prepare-r1/read_follow27_originals_r1.py --zip "$RUNNER_TEMP/ordinary-patch-follow27-original.zip" --out "$RUNNER_TEMP/hia-ordinary-patch-prepare-readback" 2>&1 | tee "$RUNNER_TEMP/hia-ordinary-patch-prepare-readback-driver.log"
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-patch-prepare-r1/read_follow27_originals_r2.py --zip "$RUNNER_TEMP/ordinary-patch-follow27-original.zip" --out "$RUNNER_TEMP/hia-ordinary-patch-prepare-readback" 2>&1 | tee "$RUNNER_TEMP/hia-ordinary-patch-prepare-readback-driver.log"
       - name: Preserve complete success or failure evidence and exact original input
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,0 +1,108 @@
+{
+  "schema": "hia-cli-follow29-observation-and-buffer-repair-v1",
+  "head": "e10611b774f15302b6d9ad57bc15016baf3cce80",
+  "run": 43154093882,
+  "scope": "Full original logs read; no independent artifact member readback performed here",
+  "syntax": {
+    "job": 130969883083,
+    "status": "FAIL",
+    "generation": true,
+    "B3": true,
+    "completed_cases": 851,
+    "expected_cases": 851,
+    "completed_controls": 12,
+    "actual_entries": 1896,
+    "first_failure": "ctypes.ArgumentError on memmove source bytearray while creating state mutation fixture",
+    "source_semantic_failure_observed": false,
+    "archive": {
+      "artifact": 13915741006,
+      "zip_bytes": 48507580,
+      "zip_sha256": "131ce9193fcfda33b70fa3bc3a58d0851297ccc3e1e242b65e6664dc923d7e30",
+      "bytes": 6989812,
+      "sha256": "e62ed2569bae3a16817d9f47ddbfb0eacba25bff45e742ffc0fc881c1a9695d1",
+      "members": 6335,
+      "original_bytes": 50998677,
+      "index_bytes": 2964663,
+      "index_sha256": "355cbdf5dd794e11a74e9d987ab4f7668730dca7afb63ac16ee99e3423766f38"
+    }
+  },
+  "temporary_directory": {
+    "job": 130969883126,
+    "actual": {
+      "Python_embedding_audit_hooks_or_async_exceptions_closed": false,
+      "actual_entropy_cases": 2,
+      "actual_syscalls": 1591,
+      "cas_readback": {
+        "logical_bytes": 250822980,
+        "objects": 3960,
+        "status": "PASS"
+      },
+      "entropy_internal_state_equivalence_claimed": false,
+      "extra_control_cases": 3,
+      "native_entries": 1959,
+      "operations": {
+        "1": 19,
+        "2": 127,
+        "3": 64,
+        "8": 34,
+        "10": 2,
+        "11": 21,
+        "12": 16,
+        "15": 33,
+        "16": 47,
+        "17": 47,
+        "18": 125,
+        "20": 3,
+        "21": 1009,
+        "23": 63,
+        "24": 2,
+        "25": 1
+      },
+      "physical_cleanup_cases": 18,
+      "physical_creation_cases": 12,
+      "private_protocol_controls": 21,
+      "profiles": {
+        "cleanup": {
+          "blocks": 547,
+          "functions": 50,
+          "max_blocks": 95,
+          "max_params": 12,
+          "ops": 2637
+        },
+        "create": {
+          "blocks": 239,
+          "functions": 19,
+          "max_blocks": 64,
+          "max_params": 6,
+          "ops": 1237
+        }
+      },
+      "scope": "NEW_NATIVE_TEMPDIR_CREATION_AND_FD_SAFE_CLEANUP",
+      "scripted_receipts_are_physical_authority": false,
+      "source_pins_unchanged": true,
+      "status": "PASS",
+      "whole_publication_parent_closed": false
+    },
+    "archive": {
+      "artifact": 13914972148,
+      "zip_bytes": 47937527,
+      "zip_sha256": "1fd2a597690fd9b3868791cc485f918599857a37d05a7cbb317a180965ee7bc9",
+      "bytes": 7479464,
+      "sha256": "41f3cce96c1d6b44c0a890edadfc5cf33770b979ed554f7278f0a5f233e045b9",
+      "members": 4072,
+      "original_bytes": 59330619,
+      "index_bytes": 1909985,
+      "index_sha256": "15951c56b51e50ad90a3dc5724f5a036ea3da78ba4dc4d86ae39817e2333394b"
+    }
+  },
+  "repair": {
+    "status": "NEW_UNEXECUTED",
+    "change": "Add raw=bytes(raw) in each existing test buffer allocator before lengths and memmove",
+    "sources_unchanged": true,
+    "all_original_assertions_and_cases_unchanged": true,
+    "all_limits_unchanged": true,
+    "renderer_static_same_issue": "Original renderer also passes a bytearray state mutation to the identical memmove helper; its run is still active and no failure is asserted here",
+    "other_three_jobs": "Still in_progress at last read; no inherited pass"
+  },
+  "successful_ELF_group": "Not selected or rerun"
+}

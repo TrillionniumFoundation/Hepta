@@ -619,6 +619,11 @@ def assembly_escape_chunk(w:mutbuf) -> u64:
         index = index + 1
     return at
 
+def hex_digit(value:u64) -> u64:
+    if value < 10:
+        return 48 + value
+    return 87 + value
+
 def assembly_publication_literals(w:mutbuf) -> u64:
     if get(w, AS_MAGIC) != AS_STATE_MAGIC or get(w, AS_MODE) != 1 or get(w, AS_DIGEST_DONE) != 1 or get(w, A_ACTION) != 4:
         return 0
