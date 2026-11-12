@@ -471,7 +471,14 @@ def old_context(value, pins):
             and value.get('actual_control_checkout') == old['control_commit']
             and value.get('actual_workflow_commit') == old['workflow_commit']
             and value.get('policy_sha256') == old['policy_sha256']
-            and value.get('root') == old['root']
+            and type(value.get('root')) is str and len(value['root']) <= 4096
+            and Path(value['root']).is_absolute() and '..' not in Path(value['root']).parts
+            and Path(value['root']).name == old['work_root_name']
+            and type(value.get('public_root')) is str
+            and Path(value['public_root']).is_absolute()
+            and '..' not in Path(value['public_root']).parts
+            and Path(value['public_root']).parent == Path(value['root']).parent
+            and Path(value['public_root']).name == old['public_root_name']
             and value.get('token_or_signed_URL_in_context') is False
             and value.get('qualification_executed') is False,
             'diagnostic JSON belongs to another reader operation')
@@ -610,12 +617,15 @@ def accept_diagnostic_reader(report, setup, policy, root):
         observed.append({'logical_path': logical, 'record': actual, 'origin': item['origin']})
     require(raw_count == report.get('selected_original_bytes') and raw_count <= MAX_FRAME_RAW,
             'complete original diagnostic extent differs')
-    prior_root = pins['original_failed_reader']['root']
+    prior_root = None
     setup_value = None
     guard_value = None
     if 'failed-reader/setup.json' in original_raw:
         setup_value = json.loads(original_raw['failed-reader/setup.json'])
-        old_context(setup_value.get('context'), pins)
+        prior_context = old_context(setup_value.get('context'), pins)
+        prior_root = prior_context['root']
+        require(report.get('prior_reader_root_observed') == prior_root,
+                'prior reader absolute root observation differs')
         require(setup_value.get('schema') == 'hia.actions.core-emitter-assets-setup.v1',
                 'prior setup diagnostic schema differs')
     if 'failed-reader/guard/guardian.json' in original_raw:

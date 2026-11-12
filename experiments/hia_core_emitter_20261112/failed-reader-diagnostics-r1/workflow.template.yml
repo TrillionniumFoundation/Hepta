@@ -56,7 +56,7 @@ jobs:
               ;;
           esac
           unset LD_LIBRARY_PATH
-          python -I -S -B control/experiments/hia_core_emitter_20261112/failed-reader-diagnostics-r1/controller.py prepare --root "$RUNNER_TEMP/hia-core-emitter-failed-reader-diagnostics-r1" --policy-sha256 0310c2c929856b822f79a86812f338f8a562f4647bf308de86dcec77d48fd431 --control-commit __CONTROL_COMMIT__
+          python -I -S -B control/experiments/hia_core_emitter_20261112/failed-reader-diagnostics-r1/controller.py prepare --root "$RUNNER_TEMP/hia-core-emitter-failed-reader-diagnostics-r1" --policy-sha256 1ed146aeb3081d6cc6b023d0da3ca7a018969f730277522f24c8ab5c1e58267b --control-commit __CONTROL_COMMIT__
       - name: Read the fixed failed artifact under the unchanged 900-second guardian
         id: owned_collection
         timeout-minutes: 16
@@ -80,7 +80,7 @@ jobs:
               ;;
           esac
           unset LD_LIBRARY_PATH
-          python -I -S -B control/experiments/hia_core_emitter_20261112/failed-reader-diagnostics-r1/controller.py run --root "$RUNNER_TEMP/hia-core-emitter-failed-reader-diagnostics-r1" --policy-sha256 0310c2c929856b822f79a86812f338f8a562f4647bf308de86dcec77d48fd431 --control-commit __CONTROL_COMMIT__
+          python -I -S -B control/experiments/hia_core_emitter_20261112/failed-reader-diagnostics-r1/controller.py run --root "$RUNNER_TEMP/hia-core-emitter-failed-reader-diagnostics-r1" --policy-sha256 1ed146aeb3081d6cc6b023d0da3ca7a018969f730277522f24c8ab5c1e58267b --control-commit __CONTROL_COMMIT__
       - name: Frame fixed small diagnostics only after closed cleanup
         if: always()
         timeout-minutes: 4
@@ -103,7 +103,7 @@ jobs:
               ;;
           esac
           unset LD_LIBRARY_PATH
-          python -I -S -B control/experiments/hia_core_emitter_20261112/failed-reader-diagnostics-r1/controller.py finalize --root "$RUNNER_TEMP/hia-core-emitter-failed-reader-diagnostics-r1" --policy-sha256 0310c2c929856b822f79a86812f338f8a562f4647bf308de86dcec77d48fd431 --control-commit __CONTROL_COMMIT__
+          python -I -S -B control/experiments/hia_core_emitter_20261112/failed-reader-diagnostics-r1/controller.py finalize --root "$RUNNER_TEMP/hia-core-emitter-failed-reader-diagnostics-r1" --policy-sha256 1ed146aeb3081d6cc6b023d0da3ca7a018969f730277522f24c8ab5c1e58267b --control-commit __CONTROL_COMMIT__
       - name: Preserve failed-artifact custody and diagnostic originals
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

@@ -468,7 +468,14 @@ def old_context(value, pins):
             and value.get('actual_control_checkout') == old['control_commit']
             and value.get('actual_workflow_commit') == old['workflow_commit']
             and value.get('policy_sha256') == old['policy_sha256']
-            and value.get('root') == old['root']
+            and type(value.get('root')) is str and len(value['root']) <= 4096
+            and Path(value['root']).is_absolute() and '..' not in Path(value['root']).parts
+            and Path(value['root']).name == old['work_root_name']
+            and type(value.get('public_root')) is str
+            and Path(value['public_root']).is_absolute()
+            and '..' not in Path(value['public_root']).parts
+            and Path(value['public_root']).parent == Path(value['root']).parent
+            and Path(value['public_root']).name == old['public_root_name']
             and value.get('token_or_signed_URL_in_context') is False
             and value.get('qualification_executed') is False,
             'diagnostic JSON belongs to another reader operation')
@@ -517,7 +524,7 @@ def select_diagnostics(path, policy, root, helper, report):
                 setup_raw = member_bytes(archive, setup_row, FRAME_RAW_LIMIT)
                 setup = json.loads(setup_raw)
                 context = old_context(setup.get('context'), pins)
-                old_root = pins['original_failed_reader']['root']
+                old_root = context['root']
                 require(setup.get('schema') == 'hia.actions.core-emitter-assets-setup.v1'
                         and setup.get('status') == 'PREPARED_NOT_EXECUTED'
                         and setup.get('controller_seconds') == 900
@@ -575,6 +582,7 @@ def select_diagnostics(path, policy, root, helper, report):
                         and all(other[key][1] == first[key][1] for key in first),
                         'two conflicting bound prior-reader diagnostic layouts')
             report['prior_reader_layout'] = first_layout
+            report['prior_reader_root_observed'] = json.loads(first['failed-reader/setup.json'][1])['context']['root']
             raw_selected.update(first)
         result_row = by_name.get('RESULT.json')
         if result_row is not None:
