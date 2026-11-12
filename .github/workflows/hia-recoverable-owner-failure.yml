@@ -1,8 +1,8 @@
-name: Read original recoverable owner source failure
+name: Verify original recoverable owner R2 source failure
 "on":
   push:
     branches:
-      - codex/hia-recoverable-owner-failure-v78-r1-20261112-dda7
+      - codex/hia-recoverable-owner-failure-v79-r2-20261112-dda7
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,7 +26,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hia-recoverable-owner-r1-original-${{ github.run_id }}
+          name: hia-recoverable-owner-r2-original-${{ github.run_id }}
           path: evidence/
           include-hidden-files: true
           if-no-files-found: error

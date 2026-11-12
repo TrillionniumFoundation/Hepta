@@ -1,22 +1,23 @@
-"""Read only the completed joint R1 artifact; never execute project code."""
+"""Read only the completed joint R2 artifact; never execute project code."""
 from pathlib import Path, PurePosixPath
 from hashlib import sha256
 import base64
 import json
+import io
 import os
 import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
 
-ARTIFACT_ID = 13963834750
-EXPECTED_BYTES = 23776916
-EXPECTED_SHA256 = "69fe12afec7767883f3a75e05382e9514b6cb6950a7439f113c970a61d6727f6"
-STDERR_SUFFIX = "014-original-core-only-before-generation.stderr"
-STDERR_BYTES = 569
-STDERR_SHA256 = "390cd5d4b78aa0518aaaf1fa2fa78fcf3ac941f657b2d672137fd4235fed3121"
-REPORT_BYTES = 175668
-REPORT_SHA256 = "c3dc79df13c48230c93c18e8dde94aff2b7112e895dc74a7536c020fa51c4977"
+ARTIFACT_ID = 13967101980
+EXPECTED_BYTES = 92730326
+EXPECTED_SHA256 = "d5016ec209e9580188942ad975dc0015efa2d9c2fa4e2d3d451e5f4ec9969f07"
+STDERR_SUFFIX = "125-complete-original-and-additional-source-controls.stderr"
+STDERR_BYTES = 162184
+STDERR_SHA256 = "0a611175688f845fc44155853924fb9b1d4bf591d4aa1e1ada3364b566c06edb"
+REPORT_BYTES = 2254513
+REPORT_SHA256 = "f6993d0d72b9092f08b222bc9182499fb746405632b5db1e67c828a56ef4f71b"
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, request, file_pointer, code, message, headers, new_url):
@@ -48,7 +49,7 @@ def main():
             require(urllib.parse.urlsplit(location).scheme == "https", "artifact redirect is not HTTPS")
             # The GitHub bearer token never accompanies the storage request.
             response = urllib.request.urlopen(urllib.request.Request(location), timeout=60)
-        target = output / "original-joint-r1-artifact.zip"
+        target = output / "original-joint-r2-artifact.zip"
         with response, target.open("xb") as stream:
             while block := response.read(1 << 20):
                 stream.write(block)
@@ -74,7 +75,7 @@ def main():
                     "original failure text differs")
             result["original_failure"] = {"path": selected[0], **identity(failure),
                                           "text": failure.decode("utf-8", "strict")}
-            (output / "original-core-only.stderr").write_bytes(failure)
+            (output / "original-source-controls.stderr").write_bytes(failure)
             reports = [name for name in names if name.endswith("/REPORT.json")]
             matching = []
             for name in reports:
@@ -85,6 +86,28 @@ def main():
             require(len(matching) == 1, "source REPORT differs from fully reconstructed original log capsule")
             result["original_report"] = {"path": matching[0], "bytes": REPORT_BYTES,
                                          "sha256": REPORT_SHA256}
+            packets = [name for name in names if name.endswith("/SOURCE-PACKET.json")]
+            require(len(packets) == 1, "actual original source packet is not unique")
+            packet = archive.read(packets[0])
+            require(identity(packet) == {
+                "bytes": 9521085,
+                "sha256": "0fdf556bc32a78f255fae388b6091d3e781c1ed3c384b0a04ec77db00e85f46d"},
+                "original source packet differs from original log capsule")
+            result["original_source_packet"] = {"path": packets[0], **identity(packet)}
+            (output / "original-SOURCE-PACKET.json").write_bytes(packet)
+            result["nested_evidence"] = []
+            for name in names:
+                if name.endswith("/EVIDENCE.zip"):
+                    inner_bytes = archive.read(name)
+                    with zipfile.ZipFile(io.BytesIO(inner_bytes)) as inner:
+                        inner_names = inner.namelist()
+                        require(len(inner_names) == len(set(inner_names)),
+                                "duplicate nested original evidence")
+                        require(inner.testzip() is None, "nested original evidence CRC differs")
+                        result["nested_evidence"].append({
+                            "path": name, **identity(inner_bytes),
+                            "members": len(inner_names), "all_member_crc": "PASS"})
+            require(len(result["nested_evidence"]) == 1, "exact nested evidence archive missing")
         result["status"] = "PASS"
     finally:
         (output / "READBACK.json").write_text(json.dumps(result, sort_keys=True, indent=2) + "\n")
