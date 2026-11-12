@@ -192,6 +192,32 @@ class EvidenceArchiveTests(unittest.TestCase):
             self.assert_originals_preserved(root,changed)
             self.assertFalse(root.with_name(root.name+'.zip').exists())
 
+    def test_member_bytes_changed_during_zip_write_fail_independent_replay(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root,payload=self.fresh_stage(temporary);real_write=zipfile.ZipFile.writestr
+            def change_captured_member(archive,member,data,*args,**kwargs):
+                if isinstance(member,zipfile.ZipInfo) and member.filename=='nested/bytes':
+                    data=bytes([data[0]^1])+data[1:]
+                return real_write(archive,member,data,*args,**kwargs)
+            with patch('tools.hia_evidence_archive.zipfile.ZipFile.writestr',new=change_captured_member):
+                with self.assertRaisesRegex(ValueError,'archive member digest'):
+                    archive_completed_stage(root,'fresh')
+            self.assert_originals_preserved(root,payload)
+            self.assertFalse(root.with_name(root.name+'.zip').exists())
+
+    def test_member_mutation_during_capture_preserves_all_originals(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root,payload=self.fresh_stage(temporary);real_read=Path.read_bytes;changed=payload+b' change'
+            def change_after_capture(path):
+                result=real_read(path)
+                if path==root/'nested/bytes':path.write_bytes(changed)
+                return result
+            with patch('tools.hia_evidence_archive.Path.read_bytes',new=change_after_capture):
+                with self.assertRaisesRegex(ValueError,'stage changed while reading'):
+                    archive_completed_stage(root,'fresh')
+            self.assert_originals_preserved(root,changed)
+            self.assertFalse(root.with_name(root.name+'.zip').exists())
+
     def test_receipt_time_replacement_preserves_originals_and_discards_unsealed_receipt(self):
         with tempfile.TemporaryDirectory() as temporary:
             root,payload=self.fresh_stage(temporary);real_dump=json.dump

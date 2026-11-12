@@ -56,7 +56,7 @@ def python_record(path: str, raw: bytes) -> dict:
         "top_level_public_definitions": public,
         "imports": sorted(imports),
         "literal_hia_paths": sorted(s for s in strings
-                                    if s.endswith((".hia", ".hiaasm")) and "\n" not in s),
+                                    if s.endswith(".hepta") and "\n" not in s),
         "literal_native_selectors": sorted(s for s in strings
                                            if s.startswith("HEPTA_HIA_") and "\n" not in s),
         "lines": len(raw.splitlines()),
@@ -74,8 +74,12 @@ def inventory(excluded: set[str]) -> dict:
                            "bytes": None, "sha256": None})
             continue
         raw = path.read_bytes()
-        ledger.append({"path": name, "kind": path.suffix or "extensionless",
-                       "bytes": len(raw), "sha256": sha256(raw).hexdigest()})
+        record = {"path": name, "kind": path.suffix or "extensionless",
+                  "bytes": len(raw), "sha256": sha256(raw).hexdigest()}
+        if path.suffix == ".hepta":
+            record["source_format"] = ("hia-assembly" if raw.lstrip().startswith(b"hia-asm.v1")
+                                       else "hia-program-json")
+        ledger.append(record)
         if name.endswith(".py"):
             python[name] = python_record(name, raw)
     modules = {row["module"]: path for path, row in python.items()}
@@ -122,8 +126,9 @@ def inventory(excluded: set[str]) -> dict:
         "counts": {
             "files": len(ledger), "python_files": len(python),
             "production_python_modules": len(package),
-            "hia_assembly_files": sum(x["kind"] == ".hiaasm" for x in ledger),
-            "hia_json_source_files": sum(x["kind"] == ".hia" for x in ledger),
+            "hepta_source_files": sum(x["kind"] == ".hepta" for x in ledger),
+            "hia_assembly_files": sum(x.get("source_format") == "hia-assembly" for x in ledger),
+            "hia_json_source_files": sum(x.get("source_format") == "hia-program-json" for x in ledger),
             "files_by_extension": dict(sorted(Counter(x["kind"] for x in ledger).items())),
         },
         "package_modules": package,
@@ -142,7 +147,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     output = args.output.resolve()
-    excluded = {"docs/HIA_NATIVE_REWRITE_INVENTORY.json", "docs/HIA_NATIVE_REWRITE_STATUS_20261111.md"}
+    excluded = {"docs/HIA_NATIVE_REWRITE_INVENTORY.json"}
     if output.is_relative_to(ROOT):
         excluded.add(output.relative_to(ROOT).as_posix())
     result = inventory(excluded)

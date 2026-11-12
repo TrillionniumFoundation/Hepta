@@ -15,7 +15,7 @@ from tools.generate_hia_sha256 import document
 from tests.test_hia_json_decode_native import vm_arena
 
 ROOT=Path(__file__).resolve().parents[1]
-SOURCE=ROOT/'examples/hia_bootstrap/sha256.hiaasm'
+SOURCE=ROOT/'examples/hia_bootstrap/sha256.hepta'
 VECTORS=(
     (b'', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
     (b'abc','ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'),
@@ -48,7 +48,7 @@ class Sha256HiaNativeTests(unittest.TestCase):
         cls.temporary=tempfile.TemporaryDirectory(prefix='hia-sha256-native-')
         folder=Path(cls.temporary.name)
         seed,_=build_seed(folder)
-        source=(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        source=(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first,_=compile_stage(folder,'B1',seed,source,image_format='seed-shared')
         second,_=compile_stage(folder,'B2',first,source)
         assert first.read_bytes()==second.read_bytes()
@@ -143,7 +143,7 @@ class Sha256HiaNativeTests(unittest.TestCase):
         from hepta import hia_sha256_native as native
         original=installed_hasher(str(self.manifest))
         self.assertEqual(original.digest(b'abc').hex(),VECTORS[1][1])
-        bad=self.manifest.with_name('wrong-source.hiaasm');bad.write_bytes(b'changed')
+        bad=self.manifest.with_name('wrong-source.hepta');bad.write_bytes(b'changed')
         with patch.object(native,'SOURCE',bad),self.assertRaisesRegex(ValueError,'source identity'):
             installed_hasher(str(self.manifest))
         self.assertIs(installed_hasher(str(self.manifest)),original)

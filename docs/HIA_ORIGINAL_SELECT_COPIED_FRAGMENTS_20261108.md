@@ -116,8 +116,8 @@ frozen files above; do not substitute the latest compiler.
 ```sh
 python -B -m unittest tests.test_hia_original_select_fragments -v
 python -B tools/qualify_hia_original_select_fragments.py \
-  --original original-selfhost.hiaasm \
-  --candidate candidate-selfhost.hiaasm \
+  --original original-selfhost.hepta \
+  --candidate candidate-selfhost.hepta \
   --patch fresh-select.patch \
   --output NEW_QUALIFICATION_DIRECTORY
 python -B tools/replay_hia_original_select_fragments.py \

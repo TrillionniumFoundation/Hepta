@@ -27,48 +27,80 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
-    'examples/hia_bootstrap/agent_identity.hiaasm',
-    'examples/hia_bootstrap/agent_slice.hiaasm',
-    'examples/hia_bootstrap/agent_data_json.hiaasm',
-    'examples/hia_bootstrap/agent_binary64.hiaasm',
-    'examples/hia_bootstrap/agent_snapshot_json.hiaasm',
-    'examples/hia_bootstrap/agent_snapshot.hiaasm',
-    'examples/hia_bootstrap/capability_renaming.hiaasm',
-    'examples/hia_bootstrap/core_json_frontend.hiaasm',
-    'examples/hia_bootstrap/core_module_graph.hiaasm',
-    'examples/hia_bootstrap/core_workspace_facts.hiaasm',
-    'examples/hia_bootstrap/core_workspace_json.hiaasm',
-    'examples/hia_bootstrap/core_workspace_materialize.hiaasm',
-    'examples/hia_bootstrap/function_shape.hiaasm',
-    'examples/hia_bootstrap/instruction_policy.hiaasm',
-    'examples/hia_bootstrap/json_canonical.hiaasm',
-    'examples/hia_bootstrap/json_decode.hiaasm',
-    'examples/hia_bootstrap/json_preflight.hiaasm',
-    'examples/hia_bootstrap/program_shape.hiaasm',
-    'examples/hia_bootstrap/sha256.hiaasm',
-    'examples/hia_bootstrap/sha256_stream.hiaasm',
-    'examples/hia_bootstrap/agent_binary64_format.hiaasm',
-    'examples/hia_bootstrap/core_admission.hiaasm',
-    'examples/hia_bootstrap/core_patch.hiaasm',
-    'examples/hia_bootstrap/composite_types.hiaasm',
-    'examples/hia_bootstrap/task_helpers.hiaasm',
-    'examples/hia_bootstrap/composite_function_admit.hiaasm',
-    'examples/hia_bootstrap/composite_function_records.hiaasm',
-    'examples/hia_bootstrap/composite_function_advanced.hiaasm',
-    'examples/hia_bootstrap/composite_function_terms.hiaasm',
-    'examples/hia_bootstrap/composite_function_render.hiaasm',
-    'examples/hia_bootstrap/composite_constructor_owner.hiaasm',
-    'examples/hia_bootstrap/composite_constructor_render.hiaasm',
-    'examples/hia_bootstrap/composite_outer_owner.hiaasm',
-    'examples/hia_bootstrap/composite_outer_render.hiaasm',
+    'examples/hia_bootstrap/candidate_budget.hepta',
+    'examples/hia_bootstrap/slot_ledger.hepta',
+    'examples/hia_bootstrap/agent_read.hepta',
+    'examples/hia_bootstrap/nominal_json.hepta',
+    'examples/hia_bootstrap/agent_journal.hepta',
+    'examples/hia_bootstrap/execution_budget.hepta',
+    'examples/hia_bootstrap/worker_request.hepta',
+    'examples/hia_bootstrap/agent_identity.hepta',
+    'examples/hia_bootstrap/agent_slice.hepta',
+    'examples/hia_bootstrap/agent_query.hepta',
+    'examples/hia_bootstrap/agent_native_metadata.hepta',
+    'examples/hia_bootstrap/agent_data_json.hepta',
+    'examples/hia_bootstrap/agent_binary64.hepta',
+    'examples/hia_bootstrap/agent_snapshot_json.hepta',
+    'examples/hia_bootstrap/agent_snapshot.hepta',
+    'examples/hia_bootstrap/capability_renaming.hepta',
+    'examples/hia_bootstrap/core_json_frontend.hepta',
+    'examples/hia_bootstrap/core_module_graph.hepta',
+    'examples/hia_bootstrap/core_workspace_facts.hepta',
+    'examples/hia_bootstrap/core_workspace_json.hepta',
+    'examples/hia_bootstrap/core_workspace_materialize.hepta',
+    'examples/hia_bootstrap/function_shape.hepta',
+    'examples/hia_bootstrap/instruction_policy.hepta',
+    'examples/hia_bootstrap/json_canonical.hepta',
+    'examples/hia_bootstrap/json_decode.hepta',
+    'examples/hia_bootstrap/json_preflight.hepta',
+    'examples/hia_bootstrap/program_shape.hepta',
+    'examples/hia_bootstrap/sha256.hepta',
+    'examples/hia_bootstrap/sha256_stream.hepta',
+    'examples/hia_bootstrap/agent_binary64_format.hepta',
+    'examples/hia_bootstrap/core_admission.hepta',
+    'examples/hia_bootstrap/core_patch.hepta',
+    'examples/hia_bootstrap/composite_types.hepta',
+    'examples/hia_bootstrap/task_helpers.hepta',
+    'examples/hia_bootstrap/composite_function_admit.hepta',
+    'examples/hia_bootstrap/composite_function_records.hepta',
+    'examples/hia_bootstrap/composite_function_advanced.hepta',
+    'examples/hia_bootstrap/composite_function_terms.hepta',
+    'examples/hia_bootstrap/composite_function_render.hepta',
+    'examples/hia_bootstrap/composite_constructor_owner.hepta',
+    'examples/hia_bootstrap/composite_constructor_render.hepta',
+    'examples/hia_bootstrap/composite_outer_owner.hepta',
+    'examples/hia_bootstrap/composite_outer_render.hepta',
+    'examples/hia_bootstrap/retirement_state.hepta',
+    'examples/hia_bootstrap/agent_json_wire.hepta',
+    'examples/hia_bootstrap/cli_inspect.hepta',
+    'examples/hia_bootstrap/sqlite_agent_transaction.hepta',
+    'examples/hia_bootstrap/sqlite_rollback_policy.hepta',
+    'examples/hia_bootstrap/sqlite_store.hepta',
+    'examples/hia_bootstrap/core_bytes.hepta',
+)
+
+
+# Standalone source-builder inputs are package data, not runtime image adapters.
+# The executable is explicitly bootstrapped and selected outside wheel setup.
+SOURCE_BUILD_FILES = (
+    'examples/hia_bootstrap/source_build_policy.hepta',
+    'examples/hia_bootstrap/selfhost.hepta',
+    'examples/hia_bootstrap/source_build_packer.hepta',
+)
+
+
+# Additional Core JSON compiler build data, not source-builder repack roles or
+# loadable native-image adapters. Shared compiler/frontend inputs stay above.
+COMPILER_BUILD_FILES = (
+    'examples/hia_bootstrap/core_json_cli_packer.hepta',
 )
 
 
 # Build-input custody assets, not loadable native image adapters. The streaming
 # SHA source is already in NATIVE_SOURCE_FILES and is deliberately not repeated.
 PUBLICATION_BUILD_FILES = (
-    'examples/hia_bootstrap/artifact_publication_policy.hiaasm',
-    'examples/hia_bootstrap/artifact_publication_packer.hiaasm',
+    'examples/hia_bootstrap/artifact_publication_policy.hepta',
+    'examples/hia_bootstrap/artifact_publication_packer.hepta',
     'tools/hia_artifact_publication_syscalls.S',
     'tools/generate_hia_artifact_publication.py',
 )
@@ -93,12 +125,14 @@ def installation_manifest():
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
-    for native_source in (*NATIVE_SOURCE_FILES, *PUBLICATION_BUILD_FILES):
+    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES):
         entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
     from .hia_program_native import _implementation_hash
+    from .hia_native_helpers import native_helpers_identity
     return {"worker_sha256": sha256(wire(entries)).hexdigest(),
             "backend_sha256": _implementation_hash(),
-            "catalog_sha256": entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"]}
+            "catalog_sha256": entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"],
+            **native_helpers_identity()}
 
 
 _KEYWORDS = frozenset({"$schema", "type", "properties", "required", "additionalProperties",

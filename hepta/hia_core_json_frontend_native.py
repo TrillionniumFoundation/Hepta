@@ -14,7 +14,7 @@ from .hia_json_preflight_native import (NativeHiaJsonImage, _installed_json_imag
 
 from .hia_json_preflight_native import _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/core_json_frontend.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/core_json_frontend.hepta')
 SCHEMA = 'hepta.hia.core-json-frontend-native.v1'
 OUTPUT_LIMIT = 1 << 20
 

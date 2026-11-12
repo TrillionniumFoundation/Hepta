@@ -154,11 +154,13 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         put(w, fb + 8, get(w, 80))
         put(w, fb + 40, 0)
     put(w, 480, 0)
-    i = 0
-    while i < 2048:
-        fill_range(w, 955152 + i * 24 + 8, 8, 0)
-        fill_range(w, VBASE + i * 16, 8, 0)
-        i = i + 1
+    # Both tables are private to the current function. A name record is
+    # vacant when its size is zero; define() writes both SSA type and block
+    # origin before they can become live. Clearing their complete extents is
+    # equivalent to the former 2048 strided vacancy/type resets and lets the
+    # ordinary checked bulk operation emit two REP STOSB sequences.
+    fill_range(w, 955152, 49152, 0)
+    fill_range(w, VBASE, 32768, 0)
     count = parse_params(s, w, 1)
     if get(w, 40) != 0:
         return 0
@@ -762,6 +764,7 @@ def check_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     nodes = get(w, 248)
     relocations = get(w, 224)
     externals = get(w, 344)
+    interned_count = get(w, 480)
     bid = 0
     i = 0
     while get(w, 392) < get(w, 384) and get(w, 40) == 0:
@@ -775,7 +778,7 @@ def check_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             # variable() nor loan_live() can observe a future instruction's
             # stale capability. define() keeps its ordinary strict check.
             i = 0
-            while i < 2048:
+            while i < interned_count:
                 if get(w, VBASE + i * 16 + 8) == bid + 1:
                     put(w, VBASE + i * 16, 0)
                 i = i + 1
@@ -805,32 +808,46 @@ def check_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
 
 def check_calls(w:mutbuf) -> u64:
     n = get(w, 64)
+    if n == 0:
+        return 0
     step = 0
     f = 0
     target = 0
     ready = 0
+    resolved = 0
+    previous = 0
+    # compile() clears every CSTATE word before discovering this fixed graph.
+    # A ready row has already checked all 128 columns and only names ready
+    # dependencies; those facts cannot change as the ready set grows.
     while step < n:
+        previous = resolved
         f = 0
         while f < n:
-            ready = 1
-            target = 0
-            while target < 128:
-                if byte(w, CBASE + f * 128 + target) != 0:
-                    if target >= n:
-                        return fail(w, 55)
-                    if get(w, CSTATE + target * 8) == 0:
-                        ready = 0
-                target = target + 1
-            if ready == 1:
-                put(w, CSTATE + f * 8, 1)
+            if get(w, CSTATE + f * 8) == 0:
+                ready = 1
+                target = 0
+                # Scan every column even after finding an unresolved target.
+                # An out-of-range edge must still fail before cycle refusal.
+                while target < 128:
+                    if byte(w, CBASE + f * 128 + target) != 0:
+                        if target >= n:
+                            return fail(w, 55)
+                        if get(w, CSTATE + target * 8) == 0:
+                            ready = 0
+                    target = target + 1
+                if ready == 1:
+                    put(w, CSTATE + f * 8, 1)
+                    resolved = resolved + 1
             f = f + 1
-        step = step + 1
-    f = 0
-    while f < n:
-        if get(w, CSTATE + f * 8) == 0:
+        if resolved == n:
+            return 0
+        # No change after a complete row sweep is the same least fixed point
+        # that the remaining original sweeps would repeat without progress.
+        if resolved == previous:
             return fail(w, 56)
-        f = f + 1
-    return 0
+        step = step + 1
+    return fail(w, 56)
+
 
 def wrapper(o:mutbuf, w:mutbuf) -> u64:
     emit(o, w, 85)
@@ -1079,7 +1096,17 @@ def next_token(s:readbuf, w:mutbuf) -> u64:
         if pos >= n or byte(s, pos) != 34:
             return fail(w, 47)
         put(w, 0, pos + 1)
-    kind = keyword(s, begin, pos - begin)
+    # The whole word and closing quote were checked above. Numeric SSA,
+    # function and block spellings cannot be keywords; source_program checks
+    # that table invariant before authoring. Identifier admission stays in
+    # identifier(), including its length, suffix and reserved-name checks.
+    if pos - begin >= 2:
+        c = byte(s, begin)
+        val = byte(s, begin + 1)
+        if (c == 118 or c == 102 or c == 98) and val >= 48 and val <= 57:
+            kind = 261
+    if kind == 0:
+        kind = keyword(s, begin, pos - begin)
     if kind == 0:
         kind = 261
     if quoted == 1:
@@ -1473,8 +1500,12 @@ def loan_live(w:mutbuf, v:u64) -> u64:
 def loan_access(w:mutbuf, v:u64) -> u64:
     if get(w, 264) == 0 or get(w, 280) == 0:
         return 0
+    interned_count = get(w, 480)
     i = 0
-    while i < 2048:
+    # Every live SSA identity was interned by read_value_name(). Slots
+    # outside this current-function count retain type zero after table reset
+    # and cannot satisfy loan_live(), including with dirty initial workspace.
+    while i < interned_count:
         if loan_live(w, i) == 1 and get(w, CAPBASE + i * 24 + 8) == v + 1:
             return fail(w, 62)
         i = i + 1
@@ -1523,9 +1554,13 @@ def loan_produce(w:mutbuf, v:u64, a:u64) -> u64:
 def loan_borrow(w:mutbuf, a:u64, t:u64) -> u64:
     if get(w, 264) == 0 or get(w, 280) == 0:
         return 0
+    interned_count = get(w, 480)
     i = 0
     root = get(w, CAPBASE + a * 24)
-    while i < 2048:
+    # Every live SSA identity was interned by read_value_name(). Slots
+    # outside this current-function count retain type zero after table reset
+    # and cannot satisfy loan_live(), including with dirty initial workspace.
+    while i < interned_count:
         if loan_live(w, i) == 1 and get(w, CAPBASE + i * 24) == root:
             if loan_ancestor(w, i, a) == 0:
                 if t == 7 or get(w, VBASE + i * 16) == 7:
@@ -1632,13 +1667,14 @@ def loan_argument(w:mutbuf, n:u64, v:u64) -> u64:
 def loan_transfer(w:mutbuf, bid:u64, n:u64) -> u64:
     if get(w, 264) == 0:
         return 0
+    interned_count = get(w, 480)
     i = 0
     v = 0
     root = 0
     parent = 0
     packed = 0
     origin = 0
-    while i < 2048 and (get(w, 280) != 0 or get(w, 352) != 0):
+    while i < interned_count and (get(w, 280) != 0 or get(w, 352) != 0):
         if loan_live(w, i) == 1 and (get(w, CAPBASE + i * 24 + 8) != 0 or owner_type(get(w, VBASE + i * 16)) == 1):
             loan_argument(w, n, i)
         i = i + 1
@@ -1685,8 +1721,9 @@ def owner_free(w:mutbuf, v:u64) -> u64:
         return fail(w, 62)
     if get(w, 264) == 0:
         return 0
+    interned_count = get(w, 480)
     i = 0
-    while i < 2048:
+    while i < interned_count:
         if i != v and loan_live(w, i) == 1 and get(w, CAPBASE + i * 24) == v:
             return fail(w, 62)
         i = i + 1
@@ -1774,6 +1811,11 @@ SOURCE += EXPORTS_SOURCE
 
 
 def source_program():
+    # The scanner shortcut excludes only these exact first two ASCII bytes.
+    # Fail authoring if future keywords would make that exclusion unsound.
+    for word in W:
+        if len(word) >= 2 and word[0] in 'vfb' and '0' <= word[1] <= '9':
+            raise ValueError('numeric identifier prefix conflicts with keyword: ' + word)
     text = SOURCE.replace('KEYWORD_FUNCTION', keyword_source(W))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
     for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE','CAPBASE','KBASE','CAPTMP','QBASE','ORIGINBASE','BLOCKORIGIN',
@@ -2130,6 +2172,22 @@ def compact_authoring_cfg(document):
     return result
 
 
+def _source_function_names(nodes):
+    """Number the actual authoring definitions without lowering their bodies."""
+    assert nodes[0].name == 'compile'
+    return {node.name: 'f' + str(index) for index, node in enumerate(nodes)}
+
+
+def function_names():
+    """Fresh source-order spellings; no generated Core or verified authority.
+
+    The names witness needs only this table. Its original and renamed source
+    programs still undergo every independent assembly, round trip and native
+    observation. Constructing an unused authoring CFG adds no such observation.
+    """
+    return _source_function_names(ast.parse(source_program()).body)
+
+
 def document(*, compact=True):
     nodes=ast.parse(source_program()).body
     # Source order deliberately contains backward direct calls. The HIA
@@ -2137,8 +2195,7 @@ def document(*, compact=True):
     # admits its non-self DAG and checked direct tail self calls. General
     # recursive cycles remain outside the native fixed profile.
     ordered=nodes
-    assert ordered[0].name=='compile'
-    names={n.name:'f'+str(i) for i,n in enumerate(ordered)}
+    names = _source_function_names(ordered)
     sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in ordered}
     total_calls = total_scalar_functions(ordered)
     functions=[]
@@ -2152,7 +2209,7 @@ def document(*, compact=True):
 
 def main():
     doc,names=document()
-    output=ROOT/'examples/hia_bootstrap/selfhost.hiaasm'
+    output=ROOT/'examples/hia_bootstrap/selfhost.hepta'
     output.write_text(render_assembly(doc))
     print(json.dumps({'bytes':output.stat().st_size,'functions':names,'operations':sum(len(b['ops']) for f in doc['functions'] for b in f['blocks']),'blocks':sum(len(f['blocks']) for f in doc['functions'])},sort_keys=True))
 

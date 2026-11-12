@@ -36,6 +36,15 @@ def _now():
 
 
 def _signatures(program, foreign_buffer_exports=()):
+    from .hia_agent_native_metadata_native import (selected_agent_metadata,
+                                            call_admitted_metadata_object_image)
+    native = selected_agent_metadata()
+    if native is not None:
+        return call_admitted_metadata_object_image(native, program, foreign_buffer_exports)["signatures"]
+    return _reference_signatures(program, foreign_buffer_exports)
+
+
+def _reference_signatures(program, foreign_buffer_exports=()):
     from .hia_program_native import WIDTHS
     from .hia_native_byte_abi import normalize_exports
     from .hia_agent_buffers import PROFILE as BUFFER_PROFILE
@@ -81,17 +90,45 @@ def _value_observation(observation):
 
 class HIAAgentService:
     def __init__(self, state_root, *, artifact_roots=()):
+        from .hia_candidate_budget_native import selected_candidate_budget, NativeCandidateBudgetStore
+        from .hia_slot_ledger_native import selected_slot_ledger, NativeSlotLedgerStore
+        from .hia_agent_read_native import selected_agent_read, NativeAgentReadStore
+        candidate_budget_image = selected_candidate_budget()
+        slot_ledger_image = selected_slot_ledger()
+        agent_read_image = selected_agent_read()
         self.catalog, self.catalog_sha256 = catalog()
         self.tools = {t["name"]: t for t in self.catalog["tools"]}
         self.identities = installation_manifest()
         self.store = AgentStore(state_root)
-        self.artifact_roots = tuple(Path(root).absolute().resolve(strict=True) for root in artifact_roots)
-        if any(not root.is_dir() for root in self.artifact_roots):
-            reject("E_HIA_PROFILE", "configured artifact roots must be directories")
-        self._profiles()
+        self._candidate_budget = None
+        self._slot_ledger = None
+        self._agent_read = None
+        try:
+            self._candidate_budget = (NativeCandidateBudgetStore(self.store, candidate_budget_image)
+                                      if candidate_budget_image is not None else None)
+            self._slot_ledger = (NativeSlotLedgerStore(self.store, slot_ledger_image)
+                                 if slot_ledger_image is not None else None)
+            self._agent_read = (NativeAgentReadStore(self.store, agent_read_image)
+                                if agent_read_image is not None else None)
+            self.artifact_roots = tuple(Path(root).absolute().resolve(strict=True) for root in artifact_roots)
+            if any(not root.is_dir() for root in self.artifact_roots):
+                reject("E_HIA_PROFILE", "configured artifact roots must be directories")
+            self._profiles()
+        except BaseException as error:
+            cleanups = ([self._candidate_budget.close] if self._candidate_budget is not None else [])
+            for cleanup in [*cleanups, self.store.close]:
+                try:
+                    cleanup()
+                except BaseException as failure:
+                    error.add_note('service construction cleanup failed: ' + type(failure).__name__)
+            raise
 
     def close(self):
-        self.store.close()
+        try:
+            if self._candidate_budget is not None:
+                self._candidate_budget.close()
+        finally:
+            self.store.close()
 
     def _profiles(self):
         from .hia_program_native import TARGET, PROFILE, SUPPORTED_OPCODES, CORE_SCHEMAS, IMPORTS
@@ -236,6 +273,13 @@ class HIAAgentService:
                 "details_artifact": details}}
 
     def call(self, tool, arguments):
+        selected = os.environ.get('HEPTA_HIA_AGENT_JOURNAL_MANIFEST')
+        if selected:
+            from .hia_agent_journal_native import call_with_native_journal
+            return call_with_native_journal(self, tool, arguments, selected)
+        return self._reference_call(tool, arguments)
+
+    def _reference_call(self, tool, arguments):
         started = time.monotonic_ns()
         request_id = "unadmitted-" + uuid.uuid4().hex
         key, reserved, context_id, response = None, False, None, None
@@ -339,10 +383,18 @@ class HIAAgentService:
         if time.time_ns() - int(row["created_ns"]) > limits["max_total_wall_ms"] * 1_000_000:
             reject("E_HIA_BUDGET", "context total wall budget has expired", "context")
         if candidate:
-            changed = self.store.db.execute("UPDATE contexts SET attempts=attempts+1 WHERE id=? AND attempts<?",
-                (context["ref"]["id"], limits["max_candidates"])).rowcount
-            if changed != 1:
-                reject("E_HIA_BUDGET", "candidate attempt budget exhausted", "context")
+            self._consume_attempt(context)
+
+    def _consume_attempt(self, context):
+        if self._candidate_budget is not None:
+            return self._candidate_budget.consume(context['ref']['id'], context['budget']['max_candidates'])
+        return self._reference_consume_attempt(context)
+
+    def _reference_consume_attempt(self, context):
+        changed = self.store.db.execute("UPDATE contexts SET attempts=attempts+1 WHERE id=? AND attempts<?",
+            (context["ref"]["id"], context['budget']['max_candidates'])).rowcount
+        if changed != 1:
+            reject("E_HIA_BUDGET", "candidate attempt budget exhausted", "context")
 
     def _remaining_ms(self, context):
         row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
@@ -391,6 +443,11 @@ class HIAAgentService:
                 "execution_authority_granted": False}
 
     def _hia_read(self, args):
+        if self._agent_read is not None:
+            return self._agent_read.read(args)
+        return self._reference_hia_read(args)
+
+    def _reference_hia_read(self, args):
         ref = args["artifact"]
         data, _ = self.store.get(ref)
         offset = 0
@@ -485,7 +542,7 @@ class HIAAgentService:
         context = {"id": "ctx-" + uuid.uuid4().hex, "sha256": manifest["sha256"]}
         self.store.db.execute("INSERT INTO contexts VALUES (?,?,?,?,0)",
             (context["id"], context["sha256"], wire(manifest).decode(), str(time.time_ns())))
-        self.store.db.execute("INSERT INTO execution_budgets VALUES (?,'0',NULL)", (context["id"],))
+        self.store.execution_budgets.create(context["id"])
         return {"context": context, "manifest": manifest, "sampled_at": sampled,
             "compiler_profile": args["compiler_profile"], "target_profile": args["target_profile"],
             "resource_reservation_held": False, "context_is_execution_authority": False}
@@ -1146,33 +1203,24 @@ class HIAAgentService:
             else:
                 normal.append((index, prepared))
         reference_ns = time.monotonic_ns() - reference_started
-        runs, native_ns, native_started = {}, 0, time.monotonic_ns()
+        runs, native_started = {}, time.monotonic_ns()
         owner = digest({"tool": "hia_evaluate", "key": args["request_key"]})
-        with self.store.transaction():
-            budget_row = self.store.db.execute("SELECT * FROM execution_budgets WHERE context_id=?", (args["context"]["id"],)).fetchone()
-            if budget_row is None:
-                reject("E_HIA_BUDGET", "context lacks an execution budget record", "execution")
-            if budget_row["owner"] is not None:
-                reject("E_HIA_BUDGET_BUSY", "context native budget has a live or uncertain owner; observe that operation", "execution", retry_action="stop")
-            used_native_ns = int(budget_row["used_native_ns"])
-            self.store.db.execute("UPDATE execution_budgets SET owner=? WHERE context_id=?", (owner, args["context"]["id"]))
-        native_budget_ms = max(0, context["budget"]["max_native_wall_ms"] - used_native_ns // 1_000_000)
+        budget_claim = self.store.execution_budgets.claim(args["context"]["id"], owner,
+            context["budget"]["max_native_wall_ms"], native_started)
         for label, data, metadata in (("baseline", baseline_bytes, baseline_meta), ("candidate", candidate_bytes, candidate_meta)):
             runs[label] = {"normal": None, "traps": [], "total_native_ns": "0"}
             if not complete:
                 continue
 
             def run(cases, warmup, repetitions):
-                remaining = min(native_budget_ms - (time.monotonic_ns() - native_started) // 1_000_000,
-                                remaining_total_ms())
-                return run_native_batch(data, metadata["signatures"], cases,
-                    warmup=int(warmup), repetitions=int(repetitions), timeout_ms=int(remaining),
+                return budget_claim.run(run_native_batch, data, metadata["signatures"], cases,
+                    now=time.monotonic_ns(), total_ms=remaining_total_ms(),
+                    warmup=int(warmup), repetitions=int(repetitions),
                     memory_bytes=uint64(context["budget"]["max_memory_bytes"], "max_memory_bytes"))
 
             if normal:
                 outcome = run([case for _, case in normal], workload["warmup_iterations"], workload["repetitions"])
                 runs[label]["normal"] = outcome
-                native_ns += int(outcome["wall_ns"])
                 if outcome["status"] != "returned":
                     correct = False
                     complete = False
@@ -1190,7 +1238,6 @@ class HIAAgentService:
             for index, case in trapping:
                 outcome = run([case], 0, 1)
                 runs[label]["traps"].append({"index": index, **outcome})
-                native_ns += int(outcome["wall_ns"])
                 observations[index][label + "_native"] = {"status": outcome["status"], "returncode": outcome["returncode"]}
                 if "buffers" in case["expected"]:
                     actual_buffers = outcome.get("buffer_snapshots", [{}])[0].get("buffers")
@@ -1205,8 +1252,8 @@ class HIAAgentService:
                         break
         # A nonterminal crash leaves the owner fenced and never refunds an
         # unknown native cost. Only the confirmed terminal path releases it.
-        self.store.db.execute("UPDATE execution_budgets SET owner=NULL,used_native_ns=? WHERE context_id=? AND owner=?",
-            (str(used_native_ns + native_ns), args["context"]["id"], owner))
+        budget_claim.complete()
+        native_ns = budget_claim.native_ns
         if complete:
             complete = len(observations) == len(workload["cases"]) and all(
                 "baseline_native" in row and "candidate_native" in row for row in observations)
@@ -1255,6 +1302,11 @@ class HIAAgentService:
             "full_cost_ledger": ledger, "adopted": False}
 
     def _slot_snapshot(self, slot):
+        if self._slot_ledger is not None:
+            return self._slot_ledger.snapshot(slot)
+        return self._reference_slot_snapshot(slot)
+
+    def _reference_slot_snapshot(self, slot):
         row = self.store.db.execute("SELECT * FROM slots WHERE name=?", (slot,)).fetchone()
         if row is None:
             return {"target_slot": slot, "current": {"generation": "0", "epoch": "0"},
@@ -1272,6 +1324,11 @@ class HIAAgentService:
         return self._slot_snapshot(target_slot)
 
     def _conditional_slot(self, args):
+        if self._slot_ledger is not None:
+            return self._slot_ledger.conditional(args, self._slot_snapshot)
+        return self._reference_slot_conditional(args)
+
+    def _reference_slot_conditional(self, args):
         for name in ("generation", "epoch"):
             uint64(args["expected_current"][name], name)
         snapshot = self._slot_snapshot(args["target_slot"])
@@ -1290,20 +1347,46 @@ class HIAAgentService:
             reject("E_HIA_RECEIPT_BINDING", "evaluation does not authorize this candidate/context", "adoption")
         self._build_receipt(evaluation["build_receipt"], args["context"], args["candidate_artifact"])
         objective = self._required_claims(context, args["candidate_artifact"], args["verification_receipts"], evaluation["baseline_core_sha256"])
-        if (not evaluation["report_complete"] or not evaluation["planned_workload_complete"]
-                or not evaluation["termination_confirmed"] or evaluation["outcome"] not in
-                ({"improved", "unchanged"} if objective["allow_unchanged"] else {"improved"})):
-            reject("E_HIA_EVALUATION_REQUIRED", "evaluation did not meet the frozen correctness/performance acceptance", "adoption")
+        if self._slot_ledger is not None:
+            self._slot_ledger.admit_evaluation(evaluation, objective)
+        else:
+            self._reference_adoption_evaluation(evaluation, objective)
         self.store.get(evaluation["measurements"], kind="measurements")
         self.store.get(evaluation["full_cost_ledger"], kind="cost-ledger")
-        if objective.get("require_net_benefit", False):
-            reject("E_HIA_COST_INCOMPLETE", "full model/discovery/adoption/future-use cost is not established by this prefix; net-benefit requirement cannot pass", "adoption")
+        if self._slot_ledger is not None:
+            self._slot_ledger.admit_net_benefit(objective)
+        else:
+            self._reference_adoption_net_benefit(objective)
         _data, metadata, _program = self._native(args["candidate_artifact"], args["context"])
         _baseline_data, baseline, _baseline_program = self._native(evaluation["baseline_artifact"], args["context"])
         if metadata["signatures"] != baseline["signatures"]:
             reject("E_HIA_ABI", "candidate and baseline are not ABI compatible", "adoption")
         snapshot = self._conditional_slot(args)
         abi = digest(metadata["signatures"])
+        if self._slot_ledger is not None:
+            current = self._slot_ledger.adopt(args, snapshot, evaluation, abi, self._native)
+        else:
+            current = self._reference_slot_adopt(args, snapshot, evaluation, abi)
+        receipt = self.store.json({"schema": "hepta.hia.agent.adoption.v1", "context": args["context"],
+            "target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
+            "active_artifact": args["candidate_artifact"], "retained_baseline": evaluation["baseline_artifact"],
+            "evaluation_receipt": args["evaluation_receipt"], "verification_receipts": args["verification_receipts"],
+            "future_calls_only": True, "in_flight_versions_retained": True,
+            "consumer_api": "acquire_slot -> invoke_lease -> release_slot"}, "adoption-receipt")
+        return {"target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
+                "active_artifact": args["candidate_artifact"], "adoption_receipt": receipt, "future_calls_only": True}
+
+    def _reference_adoption_evaluation(self, evaluation, objective):
+        if (not evaluation["report_complete"] or not evaluation["planned_workload_complete"]
+                or not evaluation["termination_confirmed"] or evaluation["outcome"] not in
+                ({"improved", "unchanged"} if objective["allow_unchanged"] else {"improved"})):
+            reject("E_HIA_EVALUATION_REQUIRED", "evaluation did not meet the frozen correctness/performance acceptance", "adoption")
+
+    def _reference_adoption_net_benefit(self, objective):
+        if objective.get("require_net_benefit", False):
+            reject("E_HIA_COST_INCOMPLETE", "full model/discovery/adoption/future-use cost is not established by this prefix; net-benefit requirement cannot pass", "adoption")
+
+    def _reference_slot_adopt(self, args, snapshot, evaluation, abi):
         if snapshot["active_artifact"] is None:
             self.store.db.execute("INSERT INTO slots VALUES (?,?,?,?,?)",
                 (args["target_slot"], args["context"]["id"], "0", "0", abi))
@@ -1326,18 +1409,26 @@ class HIAAgentService:
             (args["target_slot"], current["generation"], wire(args["candidate_artifact"]).decode()))
         self.store.db.execute("UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?",
             (current["generation"], current["epoch"], args["context"]["id"], args["target_slot"]))
-        receipt = self.store.json({"schema": "hepta.hia.agent.adoption.v1", "context": args["context"],
-            "target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
-            "active_artifact": args["candidate_artifact"], "retained_baseline": evaluation["baseline_artifact"],
-            "evaluation_receipt": args["evaluation_receipt"], "verification_receipts": args["verification_receipts"],
-            "future_calls_only": True, "in_flight_versions_retained": True,
-            "consumer_api": "acquire_slot -> invoke_lease -> release_slot"}, "adoption-receipt")
-        return {"target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
-                "active_artifact": args["candidate_artifact"], "adoption_receipt": receipt, "future_calls_only": True}
+        return current
 
     def _hia_rollback(self, args):
-        uint64(args["retained_generation"], "retained_generation")
+        if self._slot_ledger is not None:
+            self._slot_ledger.validate_u64(args["retained_generation"], "retained_generation")
+        else:
+            uint64(args["retained_generation"], "retained_generation")
         snapshot = self._conditional_slot(args)
+        if self._slot_ledger is not None:
+            current, artifact = self._slot_ledger.rollback(args, snapshot, self._native)
+        else:
+            current, artifact = self._reference_slot_rollback(args, snapshot)
+        receipt = self.store.json({"schema": "hepta.hia.agent.rollback.v1", "context": args["context"],
+            "target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
+            "active_artifact": artifact, "reason": args["reason"], "future_calls_only": True,
+            "past_effects_reversed": False, "in_flight_versions_retained": True}, "rollback-receipt")
+        return {"target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
+                "active_artifact": artifact, "rollback_receipt": receipt, "future_calls_only": True, "past_effects_reversed": False}
+
+    def _reference_slot_rollback(self, args, snapshot):
         if snapshot["active_artifact"] is None:
             reject("E_HIA_SLOT", "slot has no retained generation", "adoption")
         row = self.store.db.execute("SELECT artifact FROM versions WHERE slot=? AND generation=?",
@@ -1355,27 +1446,32 @@ class HIAAgentService:
         current = {"generation": args["retained_generation"], "epoch": str(epoch)}
         self.store.db.execute("UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?",
             (current["generation"], current["epoch"], args["context"]["id"], args["target_slot"]))
-        receipt = self.store.json({"schema": "hepta.hia.agent.rollback.v1", "context": args["context"],
-            "target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
-            "active_artifact": artifact, "reason": args["reason"], "future_calls_only": True,
-            "past_effects_reversed": False, "in_flight_versions_retained": True}, "rollback-receipt")
-        return {"target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
-                "active_artifact": artifact, "rollback_receipt": receipt, "future_calls_only": True, "past_effects_reversed": False}
+        return current, artifact
 
     def acquire_slot(self, target_slot):
         """Pin the observed active generation for a real future native call."""
         with self.store.transaction():
-            snapshot = self._slot_snapshot(target_slot)
-            if snapshot["active_artifact"] is None:
-                reject("E_HIA_SLOT", "slot has no active generation")
-            self._native(snapshot["active_artifact"])
-            lease = {"id": "lease-" + uuid.uuid4().hex, "slot": target_slot,
-                "generation": snapshot["current"]["generation"], "artifact": snapshot["active_artifact"]}
-            self.store.db.execute("INSERT INTO leases VALUES (?,?,?,?,1)",
-                (lease["id"], target_slot, lease["generation"], wire(lease["artifact"]).decode()))
-            return lease
+            if self._slot_ledger is not None:
+                return self._slot_ledger.acquire(target_slot, self._slot_snapshot, self._native)
+            return self._reference_slot_acquire(target_slot)
+
+    def _reference_slot_acquire(self, target_slot):
+        snapshot = self._slot_snapshot(target_slot)
+        if snapshot["active_artifact"] is None:
+            reject("E_HIA_SLOT", "slot has no active generation")
+        self._native(snapshot["active_artifact"])
+        lease = {"id": "lease-" + uuid.uuid4().hex, "slot": target_slot,
+            "generation": snapshot["current"]["generation"], "artifact": snapshot["active_artifact"]}
+        self.store.db.execute("INSERT INTO leases VALUES (?,?,?,?,1)",
+            (lease["id"], target_slot, lease["generation"], wire(lease["artifact"]).decode()))
+        return lease
 
     def _lease(self, lease):
+        if self._slot_ledger is not None:
+            return self._slot_ledger.lease(lease)
+        return self._reference_slot_lease(lease)
+
+    def _reference_slot_lease(self, lease):
         keys(lease, ("id", "slot", "generation", "artifact"), label="generation lease")
         row = self.store.db.execute("SELECT * FROM leases WHERE id=?", (lease["id"],)).fetchone()
         if (row is None or row["active"] != 1 or row["slot"] != lease["slot"]
@@ -1424,6 +1520,11 @@ class HIAAgentService:
 
     def release_slot(self, lease):
         with self.store.transaction():
-            lease = self._lease(lease)
-            self.store.db.execute("UPDATE leases SET active=0 WHERE id=?", (lease["id"],))
+            if self._slot_ledger is not None:
+                return self._slot_ledger.release(lease)
+            return self._reference_slot_release(lease)
+
+    def _reference_slot_release(self, lease):
+        lease = self._lease(lease)
+        self.store.db.execute("UPDATE leases SET active=0 WHERE id=?", (lease["id"],))
         return {"released": True, "generation": lease["generation"], "artifact_retained": True}

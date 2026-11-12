@@ -142,7 +142,7 @@ A standalone consumer can recheck an already built artifact:
 
 ```sh
 python tools/check_hia_safe_core.py \
-  --source /tmp/hia-safe-core-scalar/source.hia.json \
+  --source /tmp/hia-safe-core-scalar/source.core.hepta \
   --object /tmp/hia-safe-core-scalar/candidate.o \
   --image /tmp/hia-safe-core-scalar/program.so \
   --output /tmp/hia-safe-core-scalar-independent
@@ -257,11 +257,11 @@ Python binding hashes, not only the package version.
 
 ```sh
 python tools/build_hia_safe_core.py \
-  --source examples/hia_safe_core/scalar_add.hia.json \
+  --source examples/hia_safe_core/scalar_add.core.hepta \
   --output /tmp/hia-safe-core-scalar
 
 python tools/build_hia_safe_core.py \
-  --source examples/hia_safe_core/guarded_update.hia.json \
+  --source examples/hia_safe_core/guarded_update.core.hepta \
   --foreign-extent 4096 \
   --output /tmp/hia-safe-core-borrowed
 ```

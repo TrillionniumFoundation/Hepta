@@ -1,0 +1,27 @@
+{
+  "expected_tests": 19,
+  "tests_run": 19,
+  "successful": false,
+  "errors": [],
+  "failures": [
+    {
+      "test": "test_actual_receipt_loss_retains_verified_release_without_replay (tests.test_hia_release_install.ReleaseInstallerKernelTests.test_actual_receipt_loss_retains_verified_release_without_replay)",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/a4f12e842e52/Hepta-qualification-ec484121/tests/test_hia_release_install.py\", line 451, in test_actual_receipt_loss_retains_verified_release_without_replay\n    self.run_app(wire=wire,prefix=prefix,code=15)\n  File \"/workspace/scratch/a4f12e842e52/Hepta-qualification-ec484121/tests/test_hia_release_install.py\", line 282, in run_app\n    self.assertEqual(result.returncode, code, (result.stdout, result.stderr))\nAssertionError: 1 != 15 : (b'', b'/usr/bin/strace: test_ptrace_get_syscall_info: PTRACE_TRACEME: Operation not permitted\\n/usr/bin/strace: ptrace(PTRACE_TRACEME, ...): Operation not permitted\\n/usr/bin/strace: PTRACE_SETOPTIONS: Operation not permitted\\n/usr/bin/strace: cleanup: waitpid(-1, __WALL): No child processes\\n')\n"
+    },
+    {
+      "test": "test_actual_sigkill_before_and_after_publication_has_read_only_resolution (tests.test_hia_release_install.ReleaseInstallerKernelTests.test_actual_sigkill_before_and_after_publication_has_read_only_resolution)",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/a4f12e842e52/Hepta-qualification-ec484121/tests/test_hia_release_install.py\", line 480, in test_actual_sigkill_before_and_after_publication_has_read_only_resolution\n    self.assertIn(result.returncode,(-9,137),result.stderr)\nAssertionError: 1 not found in (-9, 137) : b'/usr/bin/strace: test_ptrace_get_syscall_info: PTRACE_TRACEME: Operation not permitted\\n/usr/bin/strace: ptrace(PTRACE_TRACEME, ...): Operation not permitted\\n/usr/bin/strace: PTRACE_SETOPTIONS: Operation not permitted\\n/usr/bin/strace: cleanup: waitpid(-1, __WALL): No child processes\\n'\n"
+    },
+    {
+      "test": "test_real_fsync_failures_and_read_only_recovery_after_publication (tests.test_hia_release_install.ReleaseInstallerKernelTests.test_real_fsync_failures_and_read_only_recovery_after_publication)",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/a4f12e842e52/Hepta-qualification-ec484121/tests/test_hia_release_install.py\", line 438, in test_real_fsync_failures_and_read_only_recovery_after_publication\n    self.run_app(wire=wire,root=root,prefix=prefix,code=15)\n  File \"/workspace/scratch/a4f12e842e52/Hepta-qualification-ec484121/tests/test_hia_release_install.py\", line 282, in run_app\n    self.assertEqual(result.returncode, code, (result.stdout, result.stderr))\nAssertionError: 1 != 15 : (b'', b'/usr/bin/strace: test_ptrace_get_syscall_info: PTRACE_TRACEME: Operation not permitted\\n/usr/bin/strace: ptrace(PTRACE_TRACEME, ...): Operation not permitted\\n/usr/bin/strace: PTRACE_SETOPTIONS: Operation not permitted\\n/usr/bin/strace: cleanup: waitpid(-1, __WALL): No child processes\\n')\n"
+    },
+    {
+      "test": "test_real_interrupted_syscalls_and_no_foreign_child (tests.test_hia_release_install.ReleaseInstallerKernelTests.test_real_interrupted_syscalls_and_no_foreign_child)",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/a4f12e842e52/Hepta-qualification-ec484121/tests/test_hia_release_install.py\", line 460, in test_real_interrupted_syscalls_and_no_foreign_child\n    self.run_app(prefix=prefix)\n  File \"/workspace/scratch/a4f12e842e52/Hepta-qualification-ec484121/tests/test_hia_release_install.py\", line 282, in run_app\n    self.assertEqual(result.returncode, code, (result.stdout, result.stderr))\nAssertionError: 1 != 0 : (b'', b'/usr/bin/strace: test_ptrace_get_syscall_info: PTRACE_TRACEME: Operation not permitted\\n/usr/bin/strace: ptrace(PTRACE_TRACEME, ...): Operation not permitted\\n/usr/bin/strace: PTRACE_SETOPTIONS: Operation not permitted\\n/usr/bin/strace: cleanup: waitpid(-1, __WALL): No child processes\\n')\n"
+    }
+  ],
+  "skipped": [],
+  "expected_failures": [],
+  "unexpected_successes": []
+}

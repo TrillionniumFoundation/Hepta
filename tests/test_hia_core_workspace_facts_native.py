@@ -28,7 +28,7 @@ from tools.generate_hia_core_workspace_facts_cli import MAGIC, document as packe
 from tests.test_hia_core_module_graph_native import project
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKER = ROOT / 'examples/hia_bootstrap/core_workspace_facts_packer.hiaasm'
+PACKER = ROOT / 'examples/hia_bootstrap/core_workspace_facts_packer.hepta'
 
 
 @lru_cache(maxsize=2)
@@ -85,7 +85,7 @@ class CoreWorkspaceFactsNativeTests(unittest.TestCase):
         cls.temporary=tempfile.TemporaryDirectory(prefix='hia-workspace-json-')
         cls.folder=Path(cls.temporary.name)
         seed,_=build_seed(cls.folder)
-        source=(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        source=(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first,_=compile_stage(cls.folder,'B1',seed,source,image_format='seed-shared')
         cls.compiler,_=compile_stage(cls.folder,'B2',first,source)
         assert first.read_bytes()==cls.compiler.read_bytes()

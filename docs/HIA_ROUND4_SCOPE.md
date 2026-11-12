@@ -19,7 +19,7 @@ Rust 1.90.0 source-reference toolchain, Lean 4.19.0 and Z3 4.15.4. The NDU upstr
 pin and distinct bridge protocols remain explicit. A positive experiment exit
 does not imply positive cost or performance results.
 
-The [frozen sequence observer](../experiments/hia_round4_20261105/run_frozen_candidate.py)
+The [frozen sequence observer](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/experiments/hia_round4_20261105/run_frozen_candidate.py)
 requires an explicit expected commit. It runs a fresh complete eleven-stage
 syntax qualification within the existing 600-second budget, then a separate
 full evidence replay with its existing 600-second budget. Only their actual

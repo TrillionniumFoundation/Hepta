@@ -354,6 +354,6 @@ def document():
     return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'core_module_graph', 'functions': functions})
 
 if __name__ == '__main__':
-    path = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/core_module_graph.hiaasm'
+    path = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/core_module_graph.hepta'
     path.write_text(render_assembly(document()))
     print(path.name, path.stat().st_size)

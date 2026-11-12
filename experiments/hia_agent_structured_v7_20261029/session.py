@@ -34,7 +34,7 @@ class ValidatedTaskSession:
         self.interface_policy = interface_policy
         self._files = {**copy.deepcopy(task["unchanged_" + language]), **copy.deepcopy(task["original_" + language])}
         self._symbols = ({"api.rs": task["provider"], "client.rs": "entrypoint"} if language == "rust"
-                         else {"api.hia.json": task["provider"], "client.hia.json": "entrypoint"})
+                         else {"api.core.hepta": task["provider"], "client.core.hepta": "entrypoint"})
         self._attempts = 0
 
     @property
@@ -50,7 +50,7 @@ class ValidatedTaskSession:
     def _core(self):
         return verify_program({"schema": "hepta.hia.program.v6", "module": self._task["id"],
                                "exports": ["entrypoint"],
-                               "functions": [self._files[name] for name in ("api.hia.json", "client.hia.json", "audit.hia.json", "utility.hia.json")]})
+                               "functions": [self._files[name] for name in ("api.core.hepta", "client.core.hepta", "audit.core.hepta", "utility.core.hepta")]})
 
     def query(self):
         with self._lock:

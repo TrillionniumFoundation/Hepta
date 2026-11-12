@@ -72,7 +72,7 @@ See `HIA_AGENT_MACRO_CAMPAIGN_RESULTS_20261107.md` for the measured observations
 
 ### P2 actual fixed-Core self-hosting
 
-`examples/hia_bootstrap/selfhost.hiaasm` implements the complete selected
+`examples/hia_bootstrap/selfhost.hepta` implements the complete selected
 toolchain in HIA. Its fixed subset includes integers, booleans, borrowed byte
 buffers, branches, loops and forward function calls. B0 uses the existing Python
 toolchain only to build the seed. B0's native HIA compiler then reads its full

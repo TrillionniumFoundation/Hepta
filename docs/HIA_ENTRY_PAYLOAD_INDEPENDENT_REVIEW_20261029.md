@@ -39,7 +39,7 @@ review. The independent checks inspected data and graph structure only.
 
 The complete review receipt and the producer regression evidence are retained
 under
-[`payload_review_20261029`](../experiments/hia_next_safety/payload_review_20261029/REVIEW.json).
+[`payload_review_20261029`](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/experiments/hia_next_safety/payload_review_20261029/REVIEW.json).
 
 ## Soundness-sensitive cases examined
 

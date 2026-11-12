@@ -169,7 +169,7 @@ class HIAPatchImpactTests(unittest.TestCase):
         original = move_program()
         request = patch_packet(original, patch_initial_byte(original))
         with tempfile.TemporaryDirectory(prefix="hia-impact-cli-") as root:
-            source = Path(root) / "program.hia"
+            source = Path(root) / "program.hepta"
             request_path = Path(root) / "patch.json"
             source.write_text(json.dumps(original), encoding="utf-8")
             request_path.write_text(json.dumps(request), encoding="utf-8")
@@ -183,7 +183,7 @@ class HIAPatchImpactTests(unittest.TestCase):
             self.assertFalse(output["impact"]["claims"]["native_execution_qualified"])
             self.assertNotIn("publication", output)
             self.assertEqual(sorted(path.name for path in Path(root).iterdir()),
-                             ["patch.json", "program.hia"])
+                             ["patch.json", "program.hepta"])
 
     def test_stale_digest_and_untrusted_receipt_fail_closed(self):
         original = move_program()

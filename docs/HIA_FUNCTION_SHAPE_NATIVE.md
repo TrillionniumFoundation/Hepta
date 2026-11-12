@@ -1,6 +1,6 @@
 # Native primitive Core function-shape policy
 
-`function_shape.hiaasm` implements the full production `_function_shape`
+`function_shape.hepta` implements the full production `_function_shape`
 declaration/SSA/CFG policy, not the smaller selfhost compiler's input grammar.
 It decodes raw JSON using the HIA arena decoder, validates exact fields,
 ASCII/reserved names, every primitive type and effect, v8 parameter-bound loan

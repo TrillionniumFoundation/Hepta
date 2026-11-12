@@ -58,10 +58,10 @@ class NativeBuilderSourceBindingTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix='hia-builder-custody-')
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        self.source_name = 'examples/hia_bootstrap/json_preflight.hiaasm'
+        self.source_name = 'examples/hia_bootstrap/json_preflight.hepta'
         self.source = self.root / self.source_name
         self.source.parent.mkdir(parents=True)
-        self.source_names = tuple('examples/hia_bootstrap/' + name + '.hiaasm'
+        self.source_names = tuple('examples/hia_bootstrap/' + name + '.hepta'
                                   for name in self.SOURCE_STEMS)
         for name in self.source_names:
             (self.root / name).write_bytes((name + ': custody fixture, never compiled as HIA\n').encode())

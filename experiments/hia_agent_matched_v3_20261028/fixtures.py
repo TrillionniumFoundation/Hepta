@@ -13,7 +13,7 @@ from hepta.hia_program import verify_program
 from tools.provider_adapter.llama_cpp_engine import canonical
 
 MAX64 = 2**64 - 1
-FILE_NAMES = {"hia": ("api.hia.json", "client.hia.json"), "rust": ("api.rs", "client.rs")}
+FILE_NAMES = {"hia": ("api.core.hepta", "client.core.hepta"), "rust": ("api.rs", "client.rs")}
 PARAMS = [("a", "u32"), ("b", "u32"), ("c", "u32")]
 
 
@@ -143,8 +143,8 @@ def make_fixtures():
         task = {"id": task_id, "stratum": stratum, "provider": provider, "specification": spec,
             "provider_params": [[p["name"], p["type"]] for p in good["params"]],
             "provider_returns": good["returns"], "provider_argument_indices": [0,1],
-            "original_hia": {"api.hia.json": old, "client.hia.json": old_client},
-            "correct_hia": {"api.hia.json": good, "client.hia.json": good_client},
+            "original_hia": {"api.core.hepta": old, "client.core.hepta": old_client},
+            "correct_hia": {"api.core.hepta": good, "client.core.hepta": good_client},
             "original_rust": {"api.rs": old_rust, "client.rs": old_rust_client},
             "correct_rust": {"api.rs": good_rust, "client.rs": good_rust_client},
             "public_cases": public}

@@ -551,6 +551,6 @@ def document():
 
 
 if __name__ == '__main__':
-    path = Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/core_workspace_json.hiaasm'
+    path = Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/core_workspace_json.hepta'
     path.write_text(render_assembly(document()))
     print(path.name,path.stat().st_size)

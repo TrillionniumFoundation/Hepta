@@ -17,7 +17,7 @@ from .hia_program_tools import bounded_json_wire
 
 from .hia_json_preflight_native import _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/core_workspace_json.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/core_workspace_json.hepta')
 SCHEMA = 'hepta.hia.core-workspace-json-native.v1'
 MAX_BYTES = 8 << 20
 # Exact upper bounds of the unchanged graph packet/result limits and private

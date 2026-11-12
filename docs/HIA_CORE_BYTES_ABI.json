@@ -1,0 +1,180 @@
+{
+  "schema": "hepta.hia.core-bytes-abi.v1",
+  "image_schema": "hepta.hia.core-bytes-native.v1",
+  "source": "examples/hia_bootstrap/core_bytes.hepta",
+  "entry": {
+    "function": "f0",
+    "arguments": [
+      "readbuf source",
+      "mutbuf output",
+      "mutbuf workspace"
+    ],
+    "returns": [
+      "u32 published length or 0xfffffffd private refusal"
+    ]
+  },
+  "limits": {
+    "input_bytes": 8388608,
+    "captured_prefix_bytes": 8388609,
+    "nodes": 262144,
+    "depth": 64,
+    "integer_digits": "actual sys.get_int_max_str_digits(); 0 is unlimited"
+  },
+  "input_workspace_words": [
+    {
+      "offset": 0,
+      "name": "request magic",
+      "value": "HIACBR01 little endian"
+    },
+    {
+      "offset": 8,
+      "name": "version",
+      "value": 1
+    },
+    {
+      "offset": 16,
+      "name": "true original byte length"
+    },
+    {
+      "offset": 24,
+      "name": "captured runtime integer-string digit limit"
+    },
+    {
+      "offset": 32,
+      "name": "reserved",
+      "value": 0
+    },
+    {
+      "offset": 40,
+      "name": "reserved",
+      "value": 0
+    },
+    {
+      "offset": 48,
+      "name": "reserved",
+      "value": 0
+    },
+    {
+      "offset": 56,
+      "name": "reserved",
+      "value": 0
+    }
+  ],
+  "output_words": [
+    {
+      "offset": 0,
+      "name": "result magic",
+      "value": "HIACBF01 little endian"
+    },
+    {
+      "offset": 8,
+      "name": "version",
+      "value": 1
+    },
+    {
+      "offset": 16,
+      "name": "status"
+    },
+    {
+      "offset": 24,
+      "name": "payload bytes"
+    },
+    {
+      "offset": 32,
+      "name": "decoded nodes; zero on error"
+    },
+    {
+      "offset": 40,
+      "name": "true original byte length"
+    },
+    {
+      "offset": 48,
+      "name": "captured integer-string digit limit"
+    },
+    {
+      "offset": 56,
+      "name": "native completion/refusal stage"
+    }
+  ],
+  "statuses": {
+    "0": {
+      "meaning": "primitive or other namespace routed to Core admission",
+      "stage": 5,
+      "payload": "complete canonical UTF-8 JSON"
+    },
+    "1": {
+      "meaning": "explicit composite handoff; no verification claim",
+      "stage": 5,
+      "payload": "complete canonical UTF-8 JSON"
+    },
+    "2": {
+      "code": "E_HIA_FORMAT",
+      "stages": [
+        1,
+        2,
+        3
+      ],
+      "payload": "invalid/deep UTF-8 JSON"
+    },
+    "3": {
+      "code": "E_HIA_LIMIT",
+      "stage": 0,
+      "payload": "program exceeds byte budget"
+    },
+    "4": {
+      "code": "E_HIA_LIMIT",
+      "stage": 2,
+      "payload": "program exceeds structural budget before JSON allocation"
+    },
+    "5": {
+      "code": "E_HIA_VERSION_COLLISION",
+      "stage": 4,
+      "payload": "historical nominal v2 requires import_legacy_composite_v2; the primitive v2 namespace cannot infer a producer profile"
+    }
+  },
+  "stage_order": [
+    "0 input byte budget",
+    "1 full UTF-8",
+    "2 complete JSON preflight/arena",
+    "3 integer conversion limit",
+    "4 canonicalization and namespace collision",
+    "5 complete canonical publication"
+  ],
+  "publication": {
+    "payload_offset": 64,
+    "header_written_after_payload": true,
+    "magic_written_last": true,
+    "private_scratch_beyond_published_extent": true
+  },
+  "scope": {
+    "exact_immutable_bytes": true,
+    "foreign_json_graph_between_images": false,
+    "typed_object_owner_replaced": false,
+    "composite_owner_replaced": false,
+    "whole_verify_program_replaced": false,
+    "ordinary_selector_integrated": true,
+    "default_selected": false,
+    "matching_current_source_cold_qualified": false,
+    "ordinary_entry": "hepta.hia_program.verify_program; exact immutable bytes and explicit frontend selector only",
+    "composite_handoff_continues_original_input_owner": true,
+    "structured_verified_program_recheck_preserved": true
+  },
+  "installation": {
+    "standard_manifest_fields": [
+      "schema",
+      "source_sha256",
+      "image_path",
+      "image_sha256",
+      "compiler_sha256"
+    ],
+    "frontend_selector": "HEPTA_HIA_CORE_BYTES_MANIFEST",
+    "admission_selector": "HEPTA_HIA_CORE_ADMISSION_MANIFEST",
+    "admission_manifest": "exact adjacent admission-manifest.json",
+    "core_image_schema": "hepta.hia.core-admission-native.v4",
+    "dependency_complete_before_any_mapping": true,
+    "original_single_image_core_behavior_preserved": true,
+    "per_call_original_bundle_identity_and_files_before_and_after": true,
+    "matching_current_cold_claim": false,
+    "original_binding_object_identity_before_and_after": true
+  }
+}

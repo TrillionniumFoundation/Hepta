@@ -1,7 +1,7 @@
 # HIA-native Agent editing-view graph
 
 The explicitly selected `HEPTA_HIA_AGENT_SLICE_MANIFEST` route replaces the
-production edit-query SSA/CFG slice computation with `agent_slice.hiaasm`.
+production edit-query SSA/CFG slice computation with `agent_slice.hepta`.
 Both single edits and batch edits use the existing `prepare_edit` callers.
 It does not change the query schema, grants, whole-Core verification or patch
 publication. No high-level Hepta source/AST/checker port is involved.

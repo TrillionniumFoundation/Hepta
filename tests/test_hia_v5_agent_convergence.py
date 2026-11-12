@@ -67,7 +67,7 @@ class V5AgentConvergenceTests(unittest.TestCase):
         request = patch_request(source)
         with tempfile.TemporaryDirectory(prefix="hia-v5-impact-") as folder:
             root = Path(folder)
-            program = root / "program.hia"
+            program = root / "program.hepta"
             packet = root / "patch.json"
             program.write_text(json.dumps(source), encoding="utf-8")
             packet.write_text(json.dumps(request), encoding="utf-8")
@@ -80,11 +80,11 @@ class V5AgentConvergenceTests(unittest.TestCase):
             self.assertEqual(response["impact"]["direct_changed_functions"], ["copy_offset"])
             self.assertFalse(response["impact"]["claims"]["native_execution_qualified"])
             self.assertNotIn("publication", response)
-            self.assertEqual(sorted(p.name for p in root.iterdir()), ["patch.json", "program.hia"])
+            self.assertEqual(sorted(p.name for p in root.iterdir()), ["patch.json", "program.hepta"])
 
 
     def test_shipped_v5_example_replays_exact_verified_program(self):
-        fixture = Path(__file__).resolve().parents[1] / "examples" / "hia_program" / "offset_copy_v5.hia"
+        fixture = Path(__file__).resolve().parents[1] / "examples" / "hia_program" / "offset_copy_v5.hepta"
         from_file = json.loads(fixture.read_text(encoding="utf-8"))
         self.assertEqual(from_file, copy_program())
         checked = verify_program(from_file)

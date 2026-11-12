@@ -38,13 +38,13 @@ def build(source, output, *, foreign_extent=None, linker="ld", timeout_ms=15000,
     save()
     try:
         original = Path(source).read_bytes()
-        (destination / "source.hia.json").write_bytes(original)
+        (destination / "source.core.hepta").write_bytes(original)
         report["source_sha256"] = sha256(original).hexdigest()
         checked = verify_program(original)
         functions = checked.as_dict()["functions"]
         manifest = () if foreign_extent is None else ((functions[0]["name"], foreign_extent),)
         _profile(checked, foreign_buffer_exports=manifest, profile_version=profile_version)
-        (destination / "core.hia.json").write_bytes(checked.canonical_bytes)
+        (destination / "core.core.hepta").write_bytes(checked.canonical_bytes)
         image = emit_program_machine(checked, foreign_buffer_exports=manifest)
         (destination / "candidate.o").write_bytes(image.object_bytes)
         (destination / "candidate.text.bin").write_bytes(image.text_bytes)

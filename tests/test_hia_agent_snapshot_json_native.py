@@ -20,7 +20,7 @@ from tools.generate_hia_agent_snapshot_json_cli import MAGIC, document as packer
 from tools.generate_hia_native_filter import document as default_packer_document
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKER = ROOT / 'examples/hia_bootstrap/agent_snapshot_json_packer.hiaasm'
+PACKER = ROOT / 'examples/hia_bootstrap/agent_snapshot_json_packer.hepta'
 
 
 @lru_cache(maxsize=1)
@@ -67,7 +67,7 @@ class AgentSnapshotJsonSourceTests(unittest.TestCase):
         from hepta.hia_agent_assembly import render_assembly
         self.assertEqual(SOURCE.read_text(), render_assembly(document()))
         self.assertEqual(PACKER.read_text(), render_assembly(packer_document()))
-        self.assertEqual((ROOT / 'examples/hia_bootstrap/native_filter_packer.hiaasm').read_text(),
+        self.assertEqual((ROOT / 'examples/hia_bootstrap/native_filter_packer.hepta').read_text(),
                          render_assembly(default_packer_document()))
         for wire, expected in [(b'{"bytes_hex":"00abff"}', b'\x00\xab\xff'),
                                (b'{"byte_length":3,"fill_byte":7}', b'\x07' * 3),
@@ -96,7 +96,7 @@ class AgentSnapshotJsonNativeTests(unittest.TestCase):
         cls.temporary = tempfile.TemporaryDirectory(prefix='hia-snapshot-json-')
         cls.folder = Path(cls.temporary.name)
         seed, _ = build_seed(cls.folder)
-        source = (ROOT / 'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        source = (ROOT / 'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first, _ = compile_stage(cls.folder, 'B1', seed, source, image_format='seed-shared')
         second, _ = compile_stage(cls.folder, 'B2', first, source)
         cls.compiler = second
@@ -228,7 +228,7 @@ class AgentSnapshotJsonNativeTests(unittest.TestCase):
 
     def test_manifest_source_binding_and_builder_refuses_uncompleted_cold_receipt(self):
         import hepta.hia_agent_snapshot_json_native as native
-        source_copy = self.folder / 'source-copy.hiaasm'; source_copy.write_bytes(SOURCE.read_bytes())
+        source_copy = self.folder / 'source-copy.hepta'; source_copy.write_bytes(SOURCE.read_bytes())
         with patch.object(native, 'SOURCE', source_copy):
             selected = installed_snapshot_json(str(self.manifest))
             self.assertEqual(selected.materialize(b'{"bytes_hex":"00"}'), b'\x00')

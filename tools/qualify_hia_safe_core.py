@@ -37,8 +37,8 @@ def _identity():
                 "tools/build_hia_safe_core.py", "tools/qualify_hia_safe_core.py", "tests/test_hia_safe_core.py",
                 "tools/check_hia_safe_core.py", "tests/test_hia_safe_core_artifact.py",
                 "tests/test_hia_safe_core_loader_contract.py",
-                "examples/hia_safe_core/scalar_add.hia.json", "examples/hia_safe_core/guarded_update.hia.json",
-                "examples/hia_safe_core/read_byte.hia.json")}}
+                "examples/hia_safe_core/scalar_add.core.hepta", "examples/hia_safe_core/guarded_update.core.hepta",
+                "examples/hia_safe_core/read_byte.core.hepta")}}
 
 
 def _save(path, value):
@@ -125,13 +125,13 @@ def qualify(output):
         if not result.wasSuccessful() or result.skipped or len(inventory) != len(set(inventory)) or sorted(inventory) != sorted(result.executed):
             raise ValueError("targeted qualification test inventory did not pass completely")
         for name, extent in (("scalar_add", None), ("guarded_update", 4096), ("read_byte", 64)):
-            attempt = build(ROOT / "examples/hia_safe_core" / (name + ".hia.json"), output / name, foreign_extent=extent)
+            attempt = build(ROOT / "examples/hia_safe_core" / (name + ".core.hepta"), output / name, foreign_extent=extent)
             report["positive"].append({"case": name, "report": name + "/attempt.json", "ok": attempt["ok"],
                                        "elapsed_seconds": attempt["elapsed_seconds"]})
             if not attempt["ok"]:
                 raise ValueError("selected positive failed: " + name)
             directory = output / name
-            independent = check_artifact(directory / "source.hia.json", directory / "candidate.o",
+            independent = check_artifact(directory / "source.core.hepta", directory / "candidate.o",
                                          directory / "program.so", directory / "independent-check",
                                          foreign_extent=extent,
                                          expected_sha256={"source": attempt["source_sha256"],
@@ -149,8 +149,8 @@ def qualify(output):
             path = output / name
             path.mkdir()
             tick = time.monotonic()
-            original = (ROOT / "examples/hia_safe_core" / (case + ".hia.json")).read_bytes()
-            (path / "source.hia.json").write_bytes(original)
+            original = (ROOT / "examples/hia_safe_core" / (case + ".core.hepta")).read_bytes()
+            (path / "source.core.hepta").write_bytes(original)
             checked = verify_program(original)
             manifest = () if extent is None else ((checked.as_dict()["functions"][0]["name"], extent),)
             with _mutant(name):

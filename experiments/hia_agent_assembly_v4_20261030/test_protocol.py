@@ -59,9 +59,9 @@ class ProtocolControls(unittest.TestCase):
         for language in ("hia","assembly","rust"):
             files=copy.deepcopy(self.task["correct_"+language])
             if language=="hia":
-                files["api.hia.json"]["params"][0]["type"]="u16"
+                files["api.core.hepta"]["params"][0]["type"]="u16"
             elif language=="assembly":
-                files["api.hiaasm"]=files["api.hiaasm"].replace("a:u32","a:u16")
+                files["api.hepta"]=files["api.hepta"].replace("a:u32","a:u16")
             else:
                 files["api.rs"]=files["api.rs"].replace("a:u32","a:u16")
             with self.assertRaises(Exception):
@@ -216,7 +216,7 @@ class ProtocolControls(unittest.TestCase):
                 self.assertEqual(program.sha256,verify_program(document(task,task[label+"_hia"])).sha256)
                 self.assertFalse(receipt["implicit_repairs"])
                 bad=copy.deepcopy(files)
-                bad["client.hiaasm"]+=bad["api.hiaasm"]
+                bad["client.hepta"]+=bad["api.hepta"]
                 with self.assertRaises(ValueError):
                     fixtures.assembly_to_json(task,canonical({"files":bad}).decode())
 

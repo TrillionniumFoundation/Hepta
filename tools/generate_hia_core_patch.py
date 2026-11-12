@@ -661,7 +661,7 @@ def document():
 
 
 def main():
-    target = Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/core_patch.hiaasm'
+    target = Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/core_patch.hepta'
     target.write_text(render_assembly(document()))
     print(target.name, target.stat().st_size)
 

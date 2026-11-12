@@ -12,11 +12,11 @@ import unittest
 from unittest.mock import patch
 
 from hepta.hia_json_preflight import _preflight_hia_json_reference as preflight_hia_json
-from hepta.hia_json_preflight_native import NativeJsonPreflight, scratch_sizes, installed_preflight
+from hepta.hia_json_preflight_native import NativeJsonPreflight, scratch_sizes, installed_preflight, SYNTAX_REASONS
 from tools.generate_hia_json_preflight import document
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / 'examples/hia_bootstrap/json_preflight.hiaasm'
+SOURCE = ROOT / 'examples/hia_bootstrap/json_preflight.hepta'
 
 
 def reference(wire, nodes=262144, depth=128):
@@ -29,7 +29,7 @@ def reference(wire, nodes=262144, depth=128):
     return 0
 
 
-def vm_reference(wire, nodes=32, depth=8):
+def vm_reference(wire, nodes=32, depth=8, *, diagnostic=False):
     # Real owners and loans in a scalar VM wrapper, never fabricated host views.
     from tools.hia_selfhost_bulk import Body
     from hepta.hia_agent_assembly import assemble_program
@@ -50,18 +50,27 @@ def vm_reference(wire, nodes=32, depth=8):
     body.effect('loan.end', [views[0]])
     views[0] = body.value('readbuf', 'borrow.read', [owners[0]])
     result = body.value('u32', 'call', views, {'function': 'f0'})
+    reason = body.value('u64', 'call', [views[2], body.const('u64', 32)], {'function': 'f8'})
     for view in views:
         body.effect('loan.end', [view])
     for owner in owners:
         body.effect('owner.drop', [owner])
     source = ('hia-asm.v1 hepta.hia.program.v8 json_reference\n'
-              'fn reference_entry() -> (u32) effects(alloc,read,write,trap) entry(b0)\n'
-              'block b0()\n' + body.text() + '  ret(' + result + ')\nend\n'
+              'fn reference_entry() -> (u32,u64) effects(alloc,read,write,trap) entry(b0)\n'
+              'block b0()\n' + body.text() + '  ret(' + result + ',' + reason + ')\nend\n'
               + SOURCE.read_text().split('\n', 1)[1])
     actual = execute_program(assemble_program(source), 'reference_entry', [], max_steps=1000000)
     if actual['status'] != 'returned':
         raise AssertionError(actual)
-    return actual['values'][0]
+    return tuple(actual['values']) if diagnostic else actual['values'][0]
+
+
+def outcome(call):
+    try:
+        call()
+    except (ValueError, OverflowError) as exc:
+        return type(exc), str(exc)
+    return None
 
 
 class JsonPreflightHiaSourceTests(unittest.TestCase):
@@ -93,6 +102,21 @@ class JsonPreflightHiaSourceTests(unittest.TestCase):
         self.assertEqual(vm_reference(b'[[0]]', depth=1), 2)
         self.assertEqual(vm_reference(b'[0,0]', nodes=2), 2)
 
+    def test_vm_selects_exact_diagnostics_and_keeps_budget_order(self):
+        for wire, reason in ((b'', 9), (b'"ordinary', 8), (b'"\\', 3),
+                             (b'"\\u00G0"', 5), (b'"\\ud800"', 6),
+                             (b'"\\udc00"', 7), (b'- 1', 10),
+                             (b'[0 0]', 14), (b'{0:1}', 16),
+                             (b'{"x" 0}', 17), (b'{"x":0 0}', 18),
+                             (b'0 0', 12)):
+            with self.subTest(wire=wire):
+                self.assertEqual(vm_reference(wire, diagnostic=True), (1, reason))
+                self.assertEqual(outcome(lambda: preflight_hia_json(
+                    wire.decode(), max_nodes=32, max_depth=8)),
+                    (ValueError, 'HIA JSON preflight: ' + SYNTAX_REASONS[reason]))
+        self.assertEqual(vm_reference(b'[0,"\\x"]', nodes=2, diagnostic=True), (2, 0))
+        self.assertEqual(vm_reference(b'{"x":0,"x":"\\x"}', nodes=2, diagnostic=True), (4, 0))
+
 
 class JsonPreflightHiaNativeTests(unittest.TestCase):
     @classmethod
@@ -104,7 +128,7 @@ class JsonPreflightHiaNativeTests(unittest.TestCase):
         cls.temporary = tempfile.TemporaryDirectory(prefix='hia-json-native-')
         directory = Path(cls.temporary.name)
         seed, _ = build_seed(directory)
-        compiler_source = (ROOT / 'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        compiler_source = (ROOT / 'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first, _ = compile_stage(directory, 'B1', seed, compiler_source, image_format='seed-shared')
         second, _ = compile_stage(directory, 'B2', first, compiler_source)
         assert first.read_bytes() == second.read_bytes()
@@ -200,6 +224,34 @@ class JsonPreflightHiaNativeTests(unittest.TestCase):
                 wire[rng.randrange(len(wire))] = rng.randrange(256)
             self.compare(bytes(wire))
 
+    def test_exact_diagnostics_and_error_order_match_the_independent_scanner(self):
+        wires = ('', ' ', '[', '{', '[1,]', '{"k":1,}', '[,]', '{"k" 1}',
+                 '{"k":1 2}', '[1 2]', '0 0', '01', '-01', '-0.5', '1e2',
+                 'NaN', 'Infinity', '٠', '１', '\u00a00', '0\u00a0', '- 1',
+                 '"unterminated', '"\\', '"\\x"', '"\\u"', '"\\u0"',
+                 '"\\u00G0"', '"\\u𐐷"', '"\\u00Ω"', '"\\ud800"',
+                 '"\\ud800\\u0041"', '"\\udc00"', '"\x00"',
+                 '{"a":0,"\\u0061":"\\x"}', '[0,"\\x"]', '[["\\x"]]')
+        rng = random.Random(69413)
+        seed = '{"a":[0,true,false,null,"\\ud83d\\ude00"],"b":{"x":"Ω𐐷"}}'
+        mutated = []
+        alphabet = list('[]{}:,"\\-+0123efnultr x\t\r\n\x00') + ['Ω', '𐐷', '٠', '１', '\u00a0']
+        for _ in range(2000):
+            wire = list(seed)
+            for _ in range(rng.randrange(1, 4)):
+                wire[rng.randrange(len(wire))] = rng.choice(alphabet)
+            mutated.append(''.join(wire))
+        for wire in (*wires, *mutated):
+            for nodes, depth in ((32, 8), (2, 0), (3, 1)):
+                with self.subTest(wire=wire, nodes=nodes, depth=depth):
+                    expected = outcome(lambda: preflight_hia_json(
+                        wire, max_nodes=nodes, max_depth=depth))
+                    with patch('hepta.hia_json_preflight._preflight_hia_json_reference',
+                               side_effect=AssertionError('native diagnostic fell back')):
+                        actual = outcome(lambda: self.native.admit(
+                            wire.encode(), max_nodes=nodes, max_depth=depth))
+                    self.assertEqual(actual, expected)
+
     def test_private_scratch_concurrent_calls_and_abi_refusals(self):
         inputs = [b'{}', b'{"a":0,"a":1}', b'[[0]]', b'"\xc0\x80"'] * 16
         with ThreadPoolExecutor(max_workers=8) as pool:
@@ -225,6 +277,11 @@ class JsonPreflightHiaNativeTests(unittest.TestCase):
                     dispatch('{"a":0,"\\u0061":1}', max_nodes=64, max_depth=8)
                 with self.assertRaises(OverflowError):
                     dispatch('[0,0]', max_nodes=2, max_depth=8)
+                for wire, reason in (('"unterminated', 'unterminated JSON string'),
+                                     ('٠', 'expected JSON integer or literal')):
+                    with self.assertRaises(ValueError) as caught:
+                        dispatch(wire, max_nodes=8, max_depth=8)
+                    self.assertEqual(str(caught.exception), 'HIA JSON preflight: ' + reason)
             # Unsupported budgets and unencodable Python strings retain the
             # reference, not a narrower claim about the existing public API.
             dispatch('0', max_nodes=1048577, max_depth=129)

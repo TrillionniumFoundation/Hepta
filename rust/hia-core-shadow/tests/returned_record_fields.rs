@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 
 fn program() -> Value {
     serde_json::from_slice(include_bytes!(
-        "../../../examples/hia_returned_loans/returned_nested_field.json"
+        "../../../examples/hia_returned_loans/returned_nested_field.hepta"
     )).unwrap()
 }
 

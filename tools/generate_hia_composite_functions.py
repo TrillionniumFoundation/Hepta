@@ -448,7 +448,7 @@ def document(kernel):
 
 if __name__ == '__main__':
     for kernel in ('admit', 'records', 'advanced', 'terms', 'render'):
-        target = Path(__file__).resolve().parents[1] / ('examples/hia_bootstrap/composite_function_' + kernel + '.hiaasm')
+        target = Path(__file__).resolve().parents[1] / ('examples/hia_bootstrap/composite_function_' + kernel + '.hepta')
         target.write_text(render_assembly(document(kernel)))
         print(target.name, target.stat().st_size)
     from tools.generate_hia_composite_function_admission import ERRORS as ADMISSION_ERRORS

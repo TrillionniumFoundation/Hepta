@@ -124,7 +124,7 @@ def qualify(output, expected_head):
         checked = verify_program(program)
         ir = emit_program_llvm(checked)
         prefix = f"obligation-{index:03d}"
-        (output / (prefix + ".hia.json")).write_bytes(checked.canonical_bytes)
+        (output / (prefix + ".core.hepta")).write_bytes(checked.canonical_bytes)
         (output / (prefix + ".ll")).write_text(ir.text)
         report = verify_scalar_lowering(checked)
         (output / (prefix + ".smt2")).write_text(report.pop("smtlib") + "\n(check-sat)\n")

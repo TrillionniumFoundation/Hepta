@@ -937,6 +937,17 @@ def verify_program(program) -> VerifiedProgram:
                 or checked.canonical_bytes != program.canonical_bytes):
             _reject("structured input and executable core differ", "E_HIA_CORE")
         return checked
+    if type(program) is bytes:
+        from .hia_core_bytes_native import CompositeCoreBytes, selected_core_bytes_verifier
+        selected_bytes = selected_core_bytes_verifier()
+        if selected_bytes is not None:
+            checked_bytes = selected_bytes.verify_bytes(program)
+            if type(checked_bytes) is VerifiedProgram:
+                return checked_bytes
+            if type(checked_bytes) is not CompositeCoreBytes:
+                raise RuntimeError("native Core byte owner returned an invalid composition result")
+            # A native namespace handoff preserves the original nominal
+            # elaborator and its independent verification of the derived Core.
     data, raw = _decode(program)
     if (type(data) is dict and type(data.get("schema")) is str
             and data["schema"] in COMPOSITE_SCHEMAS):

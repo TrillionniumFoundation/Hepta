@@ -889,7 +889,7 @@ def coverage_manifest():
     from hepta.hia_opcodes import OPCODES
     contract = support_contract()
     doc, names = document()
-    compiler = (ROOT / "examples/hia_bootstrap/selfhost.hiaasm").read_bytes()
+    compiler = (ROOT / "examples/hia_bootstrap/selfhost.hepta").read_bytes()
     if render_assembly(doc).encode() != compiler:
         raise AssertionError("authoring map is not the checked-in HIA compiler")
     supported = sorted(word for word in WORDS if word in OPCODES)
@@ -956,7 +956,7 @@ def coverage_manifest():
                    "compiler_correctness_formally_proved": False,
                    "this_inventory_is_execution_evidence": False},
         "source": {
-            "compiler": {"path": "examples/hia_bootstrap/selfhost.hiaasm", "sha256": digest(compiler)},
+            "compiler": {"path": "examples/hia_bootstrap/selfhost.hepta", "sha256": digest(compiler)},
             "authoring_map": {"path": "tools/generate_hia_selfhost.py",
                 "sha256": digest((ROOT / "tools/generate_hia_selfhost.py").read_bytes())},
             "semantic_support_sha256": digest(canonical(semantic_contract(contract))),
@@ -1130,7 +1130,7 @@ def qualify_language(output):
         checks["reference_vm_matches_all_scalar_oracles"] = True
         checks["inventory_matches_actual_compiler_source"] = True
         compiler_source = SOURCE.read_bytes()
-        (directory / "compiler.hiaasm").write_bytes(compiler_source)
+        (directory / "compiler.hepta").write_bytes(compiler_source)
         seed, seed_receipt = build_seed(directory, compiler_source)
         report["seed"] = seed_receipt
         predecessor = seed
@@ -1141,7 +1141,7 @@ def qualify_language(output):
             report["generations"].append(receipt)
         b3 = predecessor
         modified = mutate_compiler(compiler_source)
-        (directory / "compiler-mutated.hiaasm").write_bytes(modified)
+        (directory / "compiler-mutated.hepta").write_bytes(modified)
         for generation in ("M1", "M2", "M3"):
             predecessor, receipt = compile_stage(directory, generation, predecessor, modified)
             report["modified_generations"].append(receipt)

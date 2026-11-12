@@ -286,10 +286,10 @@ class RustShadowCrosscheckNative(unittest.TestCase):
         # generic records/enums instead of a separate synthetic grammar.
         root = Path(__file__).resolve().parents[1]
         fixtures = (
-            "examples/hia_program/generic_owned_enum.hia",
-            "examples/hia_program/stored_loan_record.hia",
-            "examples/hia_program/cooperative_task.hia",
-            "examples/hia_recursive_chain/composite_v2.json",
+            "examples/hia_program/generic_owned_enum.hepta",
+            "examples/hia_program/stored_loan_record.hepta",
+            "examples/hia_program/cooperative_task.hepta",
+            "examples/hia_recursive_chain/composite_v2.hepta",
         )
         for name in fixtures:
             with self.subTest(fixture=name):

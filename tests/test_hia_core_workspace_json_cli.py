@@ -19,7 +19,7 @@ from tools.generate_hia_core_workspace_json_cli import (MAGIC, OUTPUT_BYTES,
     ARENA_BYTES, PRIVATE_BYTES, WORKSPACE_BYTES, document)
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKER = ROOT/'examples/hia_bootstrap/core_workspace_json_packer.hiaasm'
+PACKER = ROOT/'examples/hia_bootstrap/core_workspace_json_packer.hepta'
 
 
 def vm_pack(raw, capacity=4096):
@@ -139,9 +139,9 @@ class CoreWorkspaceJsonCliNativeTests(unittest.TestCase):
         from tools.generate_hia_core_json_cli import MAGIC as compiler_magic
         from hepta.object_symbols import inspect_object_symbols
         frontend,_=compile_stage(self.folder,'pipeline-frontend',self.compiler,
-            (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes())
+            (ROOT/'examples/hia_bootstrap/core_json_frontend.hepta').read_bytes())
         packer,_=compile_stage(self.folder,'pipeline-compiler-packer',self.compiler,
-            (ROOT/'examples/hia_bootstrap/core_json_cli_packer.hiaasm').read_bytes())
+            (ROOT/'examples/hia_bootstrap/core_json_cli_packer.hepta').read_bytes())
         frame=struct.pack('<4Q',compiler_magic,frontend.stat().st_size,self.compiler.stat().st_size,1)
         frame+=frontend.read_bytes()+self.compiler.read_bytes()
         receipt,packed=invoke(self.folder,'pipeline-compiler-pack',packer,frame)

@@ -100,13 +100,13 @@ class NativeOuterIntegrationTests(unittest.TestCase):
             (self.evidence/'public-pipeline.json').write_text(json.dumps(rows,indent=2)+'\n')
 
     def test_real_sdist_to_wheel_without_old_owners_and_all_new_resource_refusals(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
-        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
-        new_resources = ['examples/hia_bootstrap/composite_' + owner + '_' + name + '.hiaasm'
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES
+        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES
+        new_resources = ['examples/hia_bootstrap/composite_' + owner + '_' + name + '.hepta'
                          for owner in ('constructor', 'outer') for name in KERNELS]
         for name in new_resources:
             self.assertIn(name, resources)
-        with tempfile.TemporaryDirectory(prefix='hia-outer-wheel-', dir='/dev/shm') as temporary:
+        with tempfile.TemporaryDirectory(prefix='hia-outer-wheel-') as temporary:
             folder = Path(temporary)
             source = folder/'source'; source.mkdir()
             shutil.copytree(ROOT/'hepta', source/'hepta', ignore=shutil.ignore_patterns('__pycache__'))
@@ -203,7 +203,7 @@ sys.stdout.buffer.write(checked.canonical_bytes)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             self.assertEqual(result.stdout,expected)
             for owner, name in images:
-                paths = list(installed.rglob('composite_'+owner+'_'+name+'.hiaasm'))
+                paths = list(installed.rglob('composite_'+owner+'_'+name+'.hepta'))
                 self.assertEqual(len(paths),1)
                 sourcepath=paths[0]; original=sourcepath.read_bytes()
                 try:

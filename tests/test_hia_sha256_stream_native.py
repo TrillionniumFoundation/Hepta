@@ -74,7 +74,7 @@ class Sha256StreamNativeTests(unittest.TestCase):
         cls.temporary = tempfile.TemporaryDirectory(prefix='hia-sha256-stream-')
         folder = Path(cls.temporary.name)
         seed, _ = build_seed(folder)
-        source = (ROOT / 'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        source = (ROOT / 'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first, _ = compile_stage(folder, 'B1', seed, source, image_format='seed-shared')
         second, _ = compile_stage(folder, 'B2', first, source)
         assert first.read_bytes() == second.read_bytes()
@@ -194,6 +194,6 @@ class Sha256StreamNativeTests(unittest.TestCase):
         state = hasher.new(b'abc'); before = state._state.raw
         with self.assertRaises(TypeError): state.update(bytearray(b'x'))
         self.assertEqual(state._state.raw, before)
-        bad = self.manifest.with_name('wrong-source.hiaasm'); bad.write_bytes(b'changed')
+        bad = self.manifest.with_name('wrong-source.hepta'); bad.write_bytes(b'changed')
         with patch('hepta.hia_sha256_stream_native.SOURCE', bad), self.assertRaisesRegex(ValueError, 'source identity'):
             installed_stream_hasher(str(self.manifest))

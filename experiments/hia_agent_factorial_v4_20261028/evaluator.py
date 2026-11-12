@@ -158,10 +158,10 @@ def parse_files(task, language, text, *, enforce_contract=True, primitive_parame
         return copy.deepcopy(files), receipt
     if any(type(value) is not dict for value in files.values()):
         raise ValueError("E_FACTORIAL_HIA_FUNCTION_OBJECT")
-    provider, client = files["api.hia.json"], files["client.hia.json"]
+    provider, client = files["api.core.hepta"], files["client.core.hepta"]
     if provider.get("name") != task["provider"] or client.get("name") != "entrypoint":
         raise ValueError("E_FACTORIAL_FUNCTION_NAMES")
-    if client.get("params") != task["original_hia"]["client.hia.json"]["params"] or client.get("returns") != ["u64"]:
+    if client.get("params") != task["original_hia"]["client.core.hepta"]["params"] or client.get("returns") != ["u64"]:
         raise ValueError("E_FACTORIAL_ENTRY_INTERFACE")
     if enforce_contract and ([[p["name"], p["type"]] for p in provider.get("params", [])] != task["provider_params"]
                              or provider.get("returns") != task["provider_returns"]):
@@ -292,8 +292,8 @@ def build(task, language, text, folder, clang, rustc, *, enforce_contract=True, 
         compiler = file_identity(clang if language == "hia" else rustc)
         record["compiler"] = compiler
         if language == "hia":
-            (folder / "candidate.hia.json").write_bytes(parsed.canonical_bytes)
-            record.update(core_path=str(folder / "candidate.hia.json"), core_sha256=parsed.sha256)
+            (folder / "candidate.core.hepta").write_bytes(parsed.canonical_bytes)
+            record.update(core_path=str(folder / "candidate.core.hepta"), core_sha256=parsed.sha256)
             decoded = decode_json(text)["files"]
             for name, value in {**task["unchanged_hia"], **decoded}.items():
                 (folder / name).write_bytes(canonical(value) + b"\n")

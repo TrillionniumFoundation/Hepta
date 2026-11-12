@@ -25,7 +25,7 @@ from tools.evidence_checks import normalized_errors, require, strict_equal
 
 SCHEMA = "hepta.hia.register-safety.v1"
 MODEL = ROOT / "formal/HiaRegisterSafety.lean"
-SELECTED = ROOT / "formal/selected_u32_dead_literal.hia.json"
+SELECTED = ROOT / "formal/selected_u32_dead_literal.core.hepta"
 GENERIC_THEOREMS = {
     "read_defined", "evaluate_total", "executeOne_total", "run_total", "execute_total",
     "read_append_existing", "dead_literal_preserves",
@@ -194,9 +194,9 @@ def qualify(lean, output_directory, *, core_path=SELECTED):
     sources, support = _source_identity(), selected._support_identity(executable)
     output = Path(output_directory).absolute()
     output.mkdir(parents=True, exist_ok=False)
-    (output / "input.hia.json").write_bytes(raw)
-    (output / "source.hia.json").write_bytes(source.canonical_bytes)
-    (output / "candidate.hia.json").write_bytes(candidate.canonical_bytes)
+    (output / "input.core.hepta").write_bytes(raw)
+    (output / "source.core.hepta").write_bytes(source.canonical_bytes)
+    (output / "candidate.core.hepta").write_bytes(candidate.canonical_bytes)
     (output / "positive.lean").write_text(generated, encoding="utf-8")
     _json(output / "instruction-map.json", mapping)
     _json(output / "lean-support-files.json", support)
@@ -215,7 +215,7 @@ def qualify(lean, output_directory, *, core_path=SELECTED):
         report["theorems"] = dependencies(log)
         for name, (mut_source, mut_candidate, broken, _) in mutation_inputs(raw).items():
             (output / (name + ".lean")).write_text(broken, encoding="utf-8")
-            (output / (name + ".candidate.hia.json")).write_bytes(mut_candidate.canonical_bytes)
+            (output / (name + ".candidate.core.hepta")).write_bytes(mut_candidate.canonical_bytes)
             observed = selected._run_lean(executable, output / (name + ".lean"))
             badlog = observed["stdout"] + observed["stderr"]
             require(observed["returncode"] == 1 and "error:" in badlog,
@@ -244,13 +244,13 @@ def validate_report(report, directory):
     directory = Path(directory)
     require(type(report) is dict and report.get("schema") == SCHEMA
             and report.get("ok") is True and report.get("status") == "passed", "register proof did not pass")
-    raw = (directory / "input.hia.json").read_bytes()
+    raw = (directory / "input.core.hepta").read_bytes()
     source, candidate, generated, mapping = export_pair(raw)
     require(report.get("source_core_sha256") == source.sha256
             and report.get("candidate_core_sha256") == candidate.sha256
             and report.get("input_sha256") == digest(raw)
-            and (directory / "source.hia.json").read_bytes() == source.canonical_bytes
-            and (directory / "candidate.hia.json").read_bytes() == candidate.canonical_bytes
+            and (directory / "source.core.hepta").read_bytes() == source.canonical_bytes
+            and (directory / "candidate.core.hepta").read_bytes() == candidate.canonical_bytes
             and (directory / "positive.lean").read_text() == generated
             and report.get("generated_lean_sha256") == digest(generated.encode())
             and strict_equal(json.loads((directory / "instruction-map.json").read_bytes()), mapping),
@@ -278,7 +278,7 @@ def validate_report(report, directory):
                 and row["returncode"] == 1 and "error:" in badlog
                 and row.get("source_core_sha256") == mut_source.sha256
                 and row.get("candidate_core_sha256") == mut_candidate.sha256
-                and (directory / (name + ".candidate.hia.json")).read_bytes() == mut_candidate.canonical_bytes
+                and (directory / (name + ".candidate.core.hepta")).read_bytes() == mut_candidate.canonical_bytes
                 and (directory / (name + ".lean")).read_text() == broken
                 and row.get("generated_lean_sha256") == digest(broken.encode())
                 and row.get("output_sha256") == digest(badlog.encode())

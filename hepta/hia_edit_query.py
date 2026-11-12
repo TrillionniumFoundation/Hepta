@@ -236,6 +236,17 @@ def _reference_edit_slice(fn, node, index, operation):
 def prepare_edit(document, *, function, block, output, fields):
     """Select a value-producing instruction by its SSA output, not text offsets."""
     original = verify_program(document)
+    from .hia_agent_query_native import selected_agent_query, call_admitted_query_image
+    native = selected_agent_query()
+    if native is not None:
+        return call_admitted_query_image(native, original, function=function,
+                                         block=block, output=output, fields=fields)
+    return _reference_prepare_edit(original, function=function, block=block,
+                                   output=output, fields=fields)
+
+
+def _reference_prepare_edit(original, *, function, block, output, fields):
+    """Retained unselected owner; selected native queries never call this body."""
     if (type(fields) not in (list, tuple) or not fields or len(fields) > len(FIELDS)
             or any(type(x) is not str or x not in FIELDS for x in fields)
             or len(set(fields)) != len(fields)):

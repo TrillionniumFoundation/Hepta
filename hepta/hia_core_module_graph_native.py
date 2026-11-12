@@ -18,7 +18,7 @@ from .hia_schema import PRIMITIVE_SCHEMAS
 
 from .hia_json_preflight_native import _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/core_module_graph.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/core_module_graph.hepta')
 SCHEMA = 'hepta.hia.core-module-graph-native.v1'
 WORKSPACE_SCHEMA = 'hepta.hia.core-workspace.v1'
 MAGIC = int.from_bytes(b'HIAMOD01', 'little')

@@ -6,7 +6,7 @@ from .hia_json_preflight_native import NativeHiaJsonImage,_installed_json_image
 
 from .hia_json_preflight_native import _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/core_workspace_materialize.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/core_workspace_materialize.hepta')
 SCHEMA='hepta.hia.core-workspace-materialize-native.v1'
 ARENA_BYTES=88<<20
 WORKSPACE_BYTES=(16<<20)+8192

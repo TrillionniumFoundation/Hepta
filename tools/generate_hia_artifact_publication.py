@@ -458,7 +458,7 @@ def packer_source():
 
 def main():
     for name,source in [('artifact_publication_policy',POLICY_SOURCE),('artifact_publication_packer',packer_source())]:
-        path=ROOT/('examples/hia_bootstrap/'+name+'.hiaasm')
+        path=ROOT/('examples/hia_bootstrap/'+name+'.hepta')
         path.write_text(render_assembly(document(source,name)));print(path.name,path.stat().st_size)
 
 if __name__=='__main__':main()

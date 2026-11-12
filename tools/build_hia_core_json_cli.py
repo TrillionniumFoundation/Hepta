@@ -12,41 +12,59 @@ import json
 from pathlib import Path
 import struct
 
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
+
 from tools.generate_hia_core_json_cli import MAGIC, LIMIT
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_frontend)
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
-ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT/'examples/hia_bootstrap/core_json_cli_packer.hiaasm'
+SOURCE = ROOT/'examples/hia_bootstrap/core_json_cli_packer.hepta'
 
 
 def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='flat') -> Path:
     if type(output_profile) is not str or output_profile not in ('flat','elf','exec'):
         raise ValueError('unknown native JSON CLI output profile')
     compiler_raw, cold_raw, packer_source = compiler.read_bytes(), cold_report.read_bytes(), SOURCE.read_bytes()
-    frontend_source = (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes()
+    frontend_source = (ROOT/'examples/hia_bootstrap/core_json_frontend.hepta').read_bytes()
     admitted_sources = admit_cold_build(compiler_raw, cold_raw)
+    if (admitted_sources.get(SOURCE.relative_to(ROOT).as_posix()) != sha256(packer_source).hexdigest()
+            or admitted_sources.get('examples/hia_bootstrap/core_json_frontend.hepta') != sha256(frontend_source).hexdigest()):
+        raise ValueError('native JSON CLI source differs from admitted cold source')
     output.mkdir(mode=0o700)
     frontend_manifest = build_frontend(output/'frontend', compiler, cold_report, candidate='core-frontend')
-    metadata = json.loads(frontend_manifest.read_bytes())
+    frontend_manifest_raw = frontend_manifest.read_bytes()
+    metadata = json.loads(frontend_manifest_raw)
     frontend = frontend_manifest.parent/metadata['image_path']
     frontend_raw = frontend.read_bytes()
     packer, compile_receipt = compile_stage(output, 'native-packer', compiler, packer_source)
+    packer_raw = packer.read_bytes()
     frame = struct.pack('<4Q', MAGIC, len(frontend_raw), len(compiler_raw),
                         ('flat','elf','exec').index(output_profile))
     frame += frontend_raw + compiler_raw
     if len(frame) > LIMIT:
         raise ValueError('qualified images exceed unchanged packer source capacity')
     result, packed = invoke(output, 'native-pack', packer, frame)
-    if not 0 < result['core_u32'] <= LIMIT or result['core_u32'] != len(packed[:result['core_u32']]):
+    if (result.get('status') != 'returned'
+            or type(result.get('abi_status')) is not int or result['abi_status'] != 0
+            or type(result.get('core_u32')) is not int
+            or not 0 < result['core_u32'] <= LIMIT
+            or result['core_u32'] != len(packed[:result['core_u32']])
+            or result.get('image_sha256') != sha256(packer_raw).hexdigest()
+            or result.get('source_sha256') != sha256(frame).hexdigest()
+            or result.get('source_unchanged') is not True):
         raise ValueError('native HIA packer rejected image frame')
     executable_bytes = packed[:result['core_u32']]
     inspection = inspect_executable(executable_bytes)
     if (compiler.read_bytes() != compiler_raw or cold_report.read_bytes() != cold_raw
             or SOURCE.read_bytes() != packer_source or frontend.read_bytes() != frontend_raw
-            or (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes() != frontend_source
+            or packer.read_bytes() != packer_raw or frontend_manifest.read_bytes() != frontend_manifest_raw
+            or (ROOT/'examples/hia_bootstrap/core_json_frontend.hepta').read_bytes() != frontend_source
             or sha256(frontend_raw).hexdigest() != metadata['image_sha256']
             or current_sources() != admitted_sources):
         raise ValueError('native JSON CLI build inputs changed')
@@ -59,7 +77,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
         'frontend_sha256':sha256(frontend_raw).hexdigest(),
         'frontend_source_sha256':sha256(frontend_source).hexdigest(),
         'packer_source_sha256':sha256(packer_source).hexdigest(),
-        'packer_sha256':sha256(packer.read_bytes()).hexdigest(),
+        'packer_sha256':sha256(packer_raw).hexdigest(),
         'cold_report_sha256':sha256(cold_raw).hexdigest(),
         'frame_sha256':sha256(frame).hexdigest(),
         'native_compile_receipt':compile_receipt, 'native_pack_receipt':result,
@@ -68,6 +86,17 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
         'production_activated':False, 'whole_production_cli_replaced':False,
         'whole_stack_rewritten_in_hia':False}
     (output/'build.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+    if output_profile == 'elf':
+        from hepta.hia_program_selfhost import SOURCE_FILES, manifest_value
+        selection = manifest_value(executable,
+            compiler_sha256=report['compiler_sha256'], frontend_sha256=report['frontend_sha256'],
+            packer_sha256=report['packer_sha256'], cold_report_sha256=report['cold_report_sha256'],
+            source_sha256={name: admitted_sources[name] for name in SOURCE_FILES})
+        if (executable.read_bytes() != executable_bytes
+                or current_sources() != admitted_sources):
+            raise ValueError('native JSON compiler selection changed before publication')
+        with (output/'compiler-manifest.json').open('x') as stream:
+            stream.write(json.dumps(selection, indent=2, sort_keys=True)+'\n')
     return executable
 
 

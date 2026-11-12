@@ -226,13 +226,13 @@ def inventory():
     paths += list((ROOT / "tools").rglob("*.py"))
     for folder in ("experiments/hia_optimizer_eval/next_20261028",
                    "experiments/hia_optimizer_eval/round3_20261028",
-                   "experiments/hia_ndu_graph_eval/round3_20261028",
-                   "experiments/hia_stateful_eval/round3_20261028"):
+                   "experiments/hia_ndu_graph_eval/round3_20261028"):
         paths += [path for path in (ROOT / folder).iterdir()
                   if path.is_file() and path.suffix in {".py", ".json", ".h", ".cpp", ".c"}
                   and (not folder.startswith("experiments/") or
                        path.suffix in {".py", ".c"} or path.name in {"PROTOCOL.json", "FIXTURES.json", "REGISTRATION.json",
                                                             "ADMISSION_CONTROLS.json"})]
+    paths.append(ROOT / "tests/fixtures/hia_stateful_protocol/PROTOCOL.json")
     paths += [selector_source(name) for name in MODULES]
     for folder in ("examples/hia_legacy_queue", "tests/fixtures/c_migration/ring_buffer",
                    "tests/fixtures/c_migration/musl_compare", "experiments/hia_legacy_queue",

@@ -45,22 +45,22 @@ def hostile_candidates():
     for language in ("hia","rust"):
         files=copy.deepcopy(task["correct_"+language])
         if language=="hia":
-            files["client.hia.json"]["blocks"][0]["ops"][0]["args"]=["b","a"]
+            files["client.core.hepta"]["blocks"][0]["ops"][0]["args"]=["b","a"]
         else:
             files["client.rs"]=files["client.rs"].replace("api::total(a,b)","api::total(b,a)")
         rows.append(("wrong_arguments",language,files))
         files=copy.deepcopy(task["correct_"+language])
         if language=="hia":
-            provider=files["api.hia.json"]
+            provider=files["api.core.hepta"]
             provider["blocks"][0]["ops"]=[op("const",[],"answer","u64",value=0)]
-            files["client.hia.json"]=inline_sum(files["client.hia.json"])
+            files["client.core.hepta"]=inline_sum(files["client.core.hepta"])
         else:
             files["api.rs"]="pub fn total(a:u32,b:u32)->u64 { let _ = a; let _ = b; 0 }"
             files["client.rs"]="use crate::api; pub fn entrypoint(a:u32,b:u32,c:u32)->u64 { let _ = api::total(a,b); ((a as u64)+(b as u64)) ^ (((c & 255) as u64)<<48) }"
         rows.append(("wrong_provider_bypassed",language,files))
         files=copy.deepcopy(task["correct_"+language])
         if language=="hia":
-            original=files["client.hia.json"]
+            original=files["client.core.hepta"]
             call_block=copy.deepcopy(original["blocks"][0]);call_block["id"]="called"
             inline_block=inline_sum(original)["blocks"][0]
             inline_block["id"]="bypassed";inline_block["ops"].pop(0)

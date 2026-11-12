@@ -3,7 +3,7 @@ use hia_core_shadow::{execute_owned, execute_scalar, verify, verify_owned};
 use serde_json::{json, Value};
 
 fn example() -> Value {
-    serde_json::from_slice(include_bytes!("../../../examples/hia_program/parameter_loan_return_v8.hia")).unwrap()
+    serde_json::from_slice(include_bytes!("../../../examples/hia_program/parameter_loan_return_v8.hepta")).unwrap()
 }
 
 #[test]
@@ -65,7 +65,7 @@ fn stopped_recursive_borrow_keeps_the_actual_owner_and_caller_loan() {
 
 // Source-lowering scenarios retained from the new base, using canonical v8.
 fn source_frontend_example() -> Value {
-    serde_json::from_slice(include_bytes!("../../../examples/hia_returned_loans/core_v8.json")).unwrap()
+    serde_json::from_slice(include_bytes!("../../../examples/hia_returned_loans/core_v8.hepta")).unwrap()
 }
 
 #[test]

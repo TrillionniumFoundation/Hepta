@@ -191,7 +191,7 @@ def run(compiler_source, expected_sha256, output):
     try:
         session = Session(client, prefix=prefix)
         malformed = PROGRAM.replace(b"select(v6,v7,v8)", b"select(v7,v7,v8)")
-        (output / "consumer-program.hiaasm").write_bytes(PROGRAM)
+        (output / "consumer-program.hepta").write_bytes(PROGRAM)
         cases = [{"function": "f0", "arguments": [
             {"bytes_hex": payload.hex()}, {"byte_length": 8192, "fill_byte": 165},
             {"byte_length": workspace, "fill_byte": 0}], **({"expected": {"status": "returned", "values": [expected]}}

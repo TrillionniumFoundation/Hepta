@@ -16,7 +16,7 @@ from hepta.native_tool_identity import digest_executable
 from hepta.hia_host_region import (HostRegion,HostRegionRejected,HostRegionUncertain,
     NativeRegionLibrary,TrustedRegionContract,retained_host_regions)
 ROOT=Path(__file__).resolve().parents[1]
-ASSEMBLY=ROOT/'tests/fixtures/hia_host_region/scalars.hiaasm'
+ASSEMBLY=ROOT/'tests/fixtures/hia_host_region/scalars.hepta'
 BRIDGE=ROOT/'benchmarks/hia_host_region/bridge.c'
 ENTRIES=(("region_sum","read"),("region_fill","write"),("region_delayed_sum","read"),
          ("region_peak","read"),("region_fail_write","write"))

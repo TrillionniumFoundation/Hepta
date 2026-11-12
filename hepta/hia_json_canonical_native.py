@@ -17,7 +17,7 @@ from .hia_json_preflight_native import (NativeHiaJsonImage, _installed_json_imag
 
 from .hia_json_preflight_native import _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/json_canonical.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/json_canonical.hepta')
 SCHEMA = 'hepta.hia.json-canonical-native.v1'
 
 

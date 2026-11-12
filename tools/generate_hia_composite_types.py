@@ -1835,7 +1835,7 @@ def document():
 
 
 def main():
-    target = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/composite_types.hiaasm'
+    target = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/composite_types.hepta'
     target.write_text(render_assembly(document()))
     print(target.name, target.stat().st_size)
 

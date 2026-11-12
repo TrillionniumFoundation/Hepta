@@ -1,6 +1,6 @@
 # Incremental SHA-256 in HIA
 
-`examples/hia_bootstrap/sha256_stream.hiaasm` implements initialization,
+`examples/hia_bootstrap/sha256_stream.hepta` implements initialization,
 partial-block accumulation, SHA-256 compression, 64-bit bit-length padding and
 digest serialization in HIA. The 1,184-byte private state and each at-most-8-MiB
 update are bounded; the stream itself is not limited to one 8-MiB input. It

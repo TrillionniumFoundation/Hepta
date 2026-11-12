@@ -60,11 +60,11 @@ class UpstreamFactorialTests(unittest.TestCase):
 
     def test_hia_candidate_cannot_add_effects_or_change_export(self):
         task = tasks.make_fixtures()[1]
-        source = task["correct_assembly"]["target.hiaasm"]
+        source = task["correct_assembly"]["target.hepta"]
         for changed in (source.replace("exports(target)", "exports()"),
                         source.replace("effects(trap)", "effects(alloc,trap)")):
             with self.assertRaises(ValueError):
-                evaluator.parse(task, "assembly", canonical({"files": {"target.hiaasm": changed}}).decode())
+                evaluator.parse(task, "assembly", canonical({"files": {"target.hepta": changed}}).decode())
 
     def test_actual_owned_context_is_checked_independently_of_requested_argv(self):
         expected = {"runtime_files": [], "models": {"m": {}}, "context_tokens": 32768, "threads": 4}
@@ -92,7 +92,7 @@ class PublicEditFeedbackTests(unittest.TestCase):
         return feedback["details"]
 
     def test_file_names_and_value_types_are_public_and_symmetric(self):
-        for language, name in (("assembly", "target.hiaasm"), ("rust", "target.rs")):
+        for language, name in (("assembly", "target.hepta"), ("rust", "target.rs")):
             # No oracle, expected results or hidden-case fields are available.
             original = {name: "PUBLIC SOURCE\n"}
             task = {"original_" + language: original}
@@ -108,7 +108,7 @@ class PublicEditFeedbackTests(unittest.TestCase):
             self.assertNotIn("not source text", canonical(details).decode())
 
     def test_patch_counts_use_each_ordered_step_and_reset_to_original(self):
-        for language, name in (("assembly", "target.hiaasm"), ("rust", "target.rs")):
+        for language, name in (("assembly", "target.hepta"), ("rust", "target.rs")):
             original = {name: "one two"}
             task = {"original_" + language: original}
             answer = {"expected_sha256": study.digest(original), "patches": [

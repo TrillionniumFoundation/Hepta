@@ -36,3 +36,5 @@ typed CFG transfers/exact joins/return cleanup, composite normalization, generic
 Core verification, host transport/build/install/runtime and Agent persistence.
 Reading catalog guard metadata after native local admission is still host work.
 This is neither an all-input refinement proof nor native-only production.
+
+The selector is unselected only when its environment variable is absent. An explicitly present empty value is rejected before image loading or entry into the hosted reference. Remove the variable to use the unselected reference path; an empty assignment does not disable selection.

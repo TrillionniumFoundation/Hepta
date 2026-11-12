@@ -273,6 +273,10 @@ def function_signature(function, *, include_return_loans=False):
 def inspect_program(document):
     from .hia_program import verify_program
     verified = verify_program(document)
+    from .hia_cli_inspect_native import selected_inspect
+    selected = selected_inspect(verified)
+    if selected is not None:
+        return selected
     data = verified.as_dict()
     return {
         "schema": ("hepta.hia.inspect.v2" if data["schema"] == "hepta.hia.program.v8"
@@ -449,7 +453,7 @@ def publish_program(document, destination):
         _reject("output parent must not traverse symlinks")
     payload = verified.canonical_bytes
     with tempfile.TemporaryDirectory(prefix=".hia-publish-", dir=destination.parent) as folder:
-        stage = Path(folder) / "program.hia"
+        stage = Path(folder) / "program.hepta"
         with stage.open("xb") as stream:
             stream.write(payload)
             stream.flush()

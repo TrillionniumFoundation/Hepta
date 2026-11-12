@@ -1,0 +1,393 @@
+{
+  "status": "REGISTERED_INTEGRATION_CANDIDATE_NOT_COLD_QUALIFIED",
+  "baseline": {
+    "head": "0d2964473d6d5c268cbfe202ebaa532b380b255c",
+    "tree": "2acce3886c5bf4d829a8c2bbf79580da4cb51e40"
+  },
+  "scope": "Complete prepare_edit query construction only. Existing whole-Core verification is still an adjacent authority; apply_edit candidate validation, render_edit_context and other hia_inspect modes are separate.",
+  "entry": {
+    "params": [
+      "readbuf captured_request",
+      "mutbuf output",
+      "mutbuf workspace"
+    ],
+    "return": "u32 result length or explicit refusal",
+    "reason": "The established flat 3-buffer entry ABI; no new entry signatures or borrow aliases. Separate development compilation used the real ac488 compiler."
+  },
+  "transport": {
+    "header_bytes": 128,
+    "record_bytes": 544,
+    "records": [
+      "field[0]",
+      "field[1]",
+      "field[2]",
+      "function",
+      "block",
+      "output"
+    ],
+    "canonical_offset": 3392,
+    "header_fields": [
+      "magic HIAPQ001",
+      "protocol version",
+      "canonical length",
+      "structured length or 0",
+      "fields container exact type tag",
+      "fields original length",
+      "structured-present flag",
+      "reserved zero words"
+    ],
+    "string_record": [
+      "exact str tag or unsupported-type tag",
+      "original Unicode codepoint length",
+      "captured codepoint count",
+      "up to first128 Unicode codepoints as little-endian u32",
+      "zero padding"
+    ],
+    "projection_proof": "Every admitted Core identifier is ASCII and at most128 codepoints; allowed field strings have at most5. Exact length is retained, so a prefix cannot equal a longer request. Unsupported types are tagged, never coerced. Only the HIA kernel chooses a query refusal.",
+    "capture_order": "Call verify_program first, then capture selectors/fields into immutable primitive transport. No calls to encode_function, _reference_edit_slice, function_signature, json.dumps(query), or Python graph walks.",
+    "payload_order": [
+      "canonical_bytes exactly",
+      "structured_bytes exactly when present"
+    ],
+    "input_authority": "Native computes SHA256 from actual bytes; caller-supplied sha256 fields are not accepted."
+  },
+  "stages": [
+    {
+      "stage": 1,
+      "owner": "existing verify_program boundary",
+      "behavior": "Reverify the original caller input and any structured/core pair before reading selector validity. Capture returned canonical_bytes and structured_bytes as immutable bytes. A class name, digest, or prior receipt is never admission.",
+      "unchanged": true
+    },
+    {
+      "stage": 2,
+      "owner": "new HIA prepare-query kernel",
+      "behavior": "Check list/tuple fields tag, exact count 1..3, exact string values op/args/attrs, uniqueness; then all three selector exact-string tags."
+    },
+    {
+      "stage": 3,
+      "owner": "new HIA prepare-query kernel",
+      "behavior": "Locate one function, then one block, then one operation defining the requested SSA output, in that refusal order."
+    },
+    {
+      "stage": 4,
+      "owner": "new HIA prepare-query kernel",
+      "behavior": "Decode the complete selected function into the original slice packet in HIA; perform original dataflow, dependency closure, FIFO CFG propagation and limits in HIA. No host graph encoding or flag-to-JSON materialization."
+    },
+    {
+      "stage": 5,
+      "owner": "new HIA prepare-query kernel",
+      "behavior": "Collect visible call targets; emit complete signatures in original module order; normalize absent return_loans to null per return for v8 only."
+    },
+    {
+      "stage": 6,
+      "owner": "new HIA prepare-query kernel",
+      "behavior": "Render and bound canonical ASCII operation JSON, compute its actual SHA256; compute canonical/input SHA256 directly from captured bytes."
+    },
+    {
+      "stage": 7,
+      "owner": "new HIA prepare-query kernel",
+      "behavior": "Emit full v2/v3 query JSON with exact sorted object keys and original array order; independently enforce original 262144-node/128-depth/1MiB query constraints and publish only after all pass."
+    }
+  ],
+  "limits": {
+    "core_input_bytes": 8388608,
+    "core_nodes": 262144,
+    "core_depth": 64,
+    "core_functions": 1024,
+    "core_blocks": 4096,
+    "visible_operations": 256,
+    "visible_blocks": 64,
+    "slice_fact_bytes": 8388608,
+    "query_bytes": 1048576,
+    "query_nodes": 262144,
+    "query_depth": 128,
+    "compiler_functions": 128,
+    "compiler_block_params": 16,
+    "compiler_logical_args": 16,
+    "compiler_blocks_per_function": 256,
+    "compiler_blocks_total": 1536,
+    "compiler_instructions": 8192,
+    "compiler_function_ssa": 2048
+  },
+  "writer": {
+    "keys": [
+      "base_sha256",
+      "context",
+      "fields",
+      "input_sha256",
+      "operation_sha256",
+      "schema",
+      "scope",
+      "selector"
+    ],
+    "context_keys": [
+      "block_params",
+      "callees",
+      "consumers",
+      "dependencies",
+      "downstream",
+      "function",
+      "operation",
+      "operation_index",
+      "terminator"
+    ],
+    "downstream_keys": [
+      "affected_params",
+      "branch_condition_affected",
+      "consumers",
+      "control_reachable",
+      "dependencies",
+      "id",
+      "params",
+      "terminator"
+    ],
+    "signature_keys": [
+      "effects",
+      "name",
+      "params",
+      "return_loans (v8 only)",
+      "returns"
+    ],
+    "escaping": "Exact CPython ensure_ascii=True wire for the admitted domain: control short escapes, lower-case \\u, U+007F escaping, non-ASCII BMP \\uXXXX, non-BMP UTF-16 surrogate pair. Core invalid Unicode was rejected earlier.",
+    "numbers": "Core admitted values are exact scalar integer/bool and canonical lexemes; copies must preserve type spelling; generated indices are decimal u64. Never conflate bool1/int1/float1.",
+    "publication": "Result header and return length are written only after all query/operation bounds; output scratch is not a published result on refusal."
+  },
+  "native_reuse": [
+    {
+      "source": "tools/generate_hia_json_decode.py",
+      "git_blob": "829e1320dfb0e6bb21c7ac493c43c4ac12d33159",
+      "plan": "Rebase only core input reads onto captured canonical region; preserve parser/depth/node validation."
+    },
+    {
+      "source": "tools/generate_hia_agent_slice.py",
+      "git_blob": "6987981a08757820beade44b38365827a12f1413",
+      "plan": "Mechanically rebase original source/output/scratch accesses into disjoint workspace regions; preserve algorithm/order/refusal constants."
+    },
+    {
+      "source": "tools/generate_hia_core_json_frontend.py",
+      "plan": "Reuse native arena helpers; replace UTF8 pass-through output with an explicit query ASCII writer."
+    },
+    {
+      "source": "tools/generate_hia_sha256.py",
+      "git_blob": "92e64315b638e86b6f212ac4f915052213d88fa5",
+      "plan": "Reuse SHA algorithm over canonical/input/operation bytes with separate hash scratch."
+    }
+  ],
+  "host_facade": {
+    "allowed": [
+      "whole original verification as existing adjacent owner",
+      "capture exact scalar tags/lengths/codepoints and immutable bytes",
+      "strict installed image/source/schema/factory/cold admission",
+      "allocate disjoint buffers by fixed original input capacities",
+      "invoke image once",
+      "validate result framing and decode full result into detached Python object",
+      "translate explicit native refusal code to original exception/message"
+    ],
+    "forbidden": [
+      "locate selector",
+      "encode normalized graph in Python",
+      "compute dependency or CFG closure",
+      "select visible callees",
+      "normalize query signatures",
+      "build context/query dictionary",
+      "compute query/operation digest in host",
+      "fall back to old query logic after selected native error"
+    ]
+  },
+  "retirement": {
+    "current_draft": "Selected prepare_edit routing, packaged source and exact worker helper registration are present in the integration candidate. The absent-selector reference route and ordinary defaults remain unchanged.",
+    "eventual": "All4 production callers must use one real native provider before old prepare_edit policy can move to tests-only. An explicitly configured bundle is not the no-bundle default. Worker pinned_image rejects arbitrary new images even in unselected scope; default installation provisioning must be deliberate and source-bound.",
+    "production_callers": [
+      "hepta/cli.py:hia_main edit-query",
+      "hepta/hia_agent_service.py:HIAAgentService._hia_inspect dependencies",
+      "hepta/hia_edit_batch.py:prepare_batch",
+      "hepta/hia_edit_query.py:apply_edit exact reconstruction"
+    ],
+    "oracle": "Keep the complete original function and helpers in test-only immutable oracle; preserve original84 IDs and add actual installed/native caller controls. Do not delete other active module functions."
+  },
+  "unexecuted_gates": [
+    "Matching final registered-source cold qualification under the unchanged 180+3 budget.",
+    "The complete two-module component gate against that new cold report, with all15 original outer IDs and no skipped tests.",
+    "The complete retained regression including all original84 caller/slice IDs, with original limits and independent owners retained.",
+    "Deliberate source-bound default provisioning and retirement of the unselected reference owner; no default or running-worker adoption is claimed."
+  ],
+  "query_tree": {
+    "stride": 64,
+    "fields": {
+      "kind": 0,
+      "parent": 8,
+      "next": 16,
+      "payload": 24,
+      "count": 32,
+      "key_ptr": 40,
+      "key_len": 48,
+      "lastchild": 56
+    },
+    "source_arena": "Unchanged HIA JSON decoder 56-byte nodes; native clones into query nodes, strings referenced immutably.",
+    "kinds": {
+      "0": "null",
+      "1": "false",
+      "2": "true",
+      "3": "original canonical integer lexeme (Core-relative byte offset)",
+      "4": "UTF8 string in workspace",
+      "5": "array",
+      "6": "object",
+      "7": "generated unsigned integer"
+    },
+    "qstate_base": "get(workspace,40)",
+    "qstate": {
+      "arena_base": 256,
+      "arena_count": 264,
+      "physical_capacity": 272
+    },
+    "physical_capacity": "4*N+4096 physical nodes; original semantic limits remain applied only by the writer in the original order. Static disjoint-copy bound with selected native controls; no exhaustive accepted-domain qualification.",
+    "insertion_order": "Exact original Python dictionary insertion order, with object sorting only after original preflight order.",
+    "writer_owned_state": {
+      "cursor": 280,
+      "error": 288,
+      "depth": 296,
+      "nodes": 304,
+      "queued": 312,
+      "root": 320,
+      "mode": 328,
+      "budget": 336,
+      "start": 344
+    },
+    "writer_return": "JSON byte length excluding64-byte external result header; header published only on success.",
+    "float_scope": "Excluded by original verify_program/_structure, including finite float; this is not a generic bounded_json_wire implementation.",
+    "physical_capacity_proof": {
+      "status": "STATIC_BOUND_NOT_EXHAUSTIVELY_NATIVE_QUALIFIED",
+      "canonical_nodes": "N counted by original verified canonical Core tree (at most262144); no implicit legacy block/edge nodes",
+      "cloned_originals": "N+S+(R+R_S)+P+3 <= 4*N+3; S<=N, R_S<=S, R+P<=N. The selected operation subtree is reused after its first wire/SHA.",
+      "fresh_wrappers": "At most 2*256 operation wrappers, 6*64 downstream wrappers, 2*257 signature/default-array wrappers, plus32 fixed roots/fields/digests; <=1442, below4096 reserve.",
+      "physical_nodes": "4*N+4096; independent of original semantic query-node budget enforced only by writer."
+    }
+  },
+  "static_packet_proof": {
+    "status": "STATIC_PROOF_ONLY_NOT_NATIVE_CAPACITY_PASS",
+    "input": "Actual returned verified.canonical_bytes only, not original structured input",
+    "node_gate": "_structure counts every occurrence; canonicalization adds no value nodes; composites recursively reverify elaborated Core.",
+    "layout": "64+64B+40O+16V+32E+8(A+R+C+2T)",
+    "disjoint_charges": "N>=5B+5O+3V+2E+A+R+C+T",
+    "bound": "64+16N<=4194368<8388608",
+    "legacy_boundary": "Common primitive shape requires explicit params/blocks/edges for all accepted versions; historical nominalv2 rejected unless separately imported; composite elaboration re-enters verification."
+  },
+  "workspace": {
+    "status": "STATIC_STORAGE_BOUND_NOT_EXHAUSTIVELY_NATIVE_QUALIFIED",
+    "bytes": "456*min(canonical_byte_length,262144)+canonical_byte_length+268560",
+    "maximum_bytes": 128194832,
+    "maximum_below_128MiB": true,
+    "components": [
+      "64+56N+canonicalBytes decoded arena",
+      "7 alignment +4096 native state/constants/SHA",
+      "64+16N original packet bound",
+      "<=8N block/op/value maps",
+      "<96N power-of-two symbol table",
+      "64+8N slice result",
+      "64+16N slice scratch",
+      "256N+262144 query nodes",
+      "2048 visible-call target vector"
+    ],
+    "output_bytes": 4194304,
+    "output_reason": "Original decoder temporary duplicate-key slots may reach524288*8; actual query still has independent1MiB wire limit.",
+    "host_boundary": "Only the captured canonical byte length selects storage. No host node count, graph traversal, admission or JSON payload is computed."
+  },
+  "development_base": {
+    "head": "9a12b6cd13ba103fc7495aa8d5decf8cd5948143",
+    "tree": "4e9f169f497e4378d5055c3b509f0f79f1d6e23b"
+  },
+  "generated_structure_observation": {
+    "status": "GENERATED_STATIC_PROFILE_PASS_NOT_NATIVE_QUALIFIED",
+    "functions": 115,
+    "blocks": 1469,
+    "operations": 7836,
+    "max_function_parameters": 7,
+    "max_function_values": 1064,
+    "max_logical_block_parameters": 15,
+    "max_logical_call_arguments": 7,
+    "max_logical_edge_arguments": 15,
+    "native_image_bytes": null,
+    "native_relocations": null,
+    "required_image_bytes": 1048576,
+    "required_relocations": 12000,
+    "original_limits_changed": false,
+    "original_113_functions_exact_expanded_AST_equal": true,
+    "evaluation_order": "Original put address evaluated before original value; extracted qget/qaddress only receive w and constant offsets",
+    "native_executions": 0,
+    "project_tests": 0
+  },
+  "baseline_purpose": "Original design reference; not the current integration candidate or a qualification claim.",
+  "initial_unexecuted_gates": [
+    "Actual native image byte size and relocation counts under the unchanged compiler limits.",
+    "Original84 exact IDs/outputs/refusal order with poison of hosted construction.",
+    "Admitted input projection including long/non-ASCII/surrogate selectors and exact-type rejection.",
+    "Byte-for-byte old/new operation/query wire including returned_loans and controls.",
+    "Matching-source cold and real installed ordinary callers; no qualification from an old B3 development run."
+  ],
+  "initial_observation_scope": {
+    "baseline": "Original 0d design reference.",
+    "development_base": "First independent 9a source preparation.",
+    "generated_structure_observation": "The original source-only observation is preserved below with its original zero-execution counts; it does not describe the current integration preparation.",
+    "initial_unexecuted_gates": "Original pending gates at that initial source-only observation, retained without promoting them to successes.",
+    "physical_capacity_proof": "Static mathematical bound; selected development controls do not prove exhaustive accepted-domain behavior."
+  },
+  "integration_candidate": {
+    "base_head": "ac488f062135c0a93adada084c81544e4719224b",
+    "base_tree": "dff140a84eb607751ddcab4f689a8df55f5db63f",
+    "frozen_commit": false,
+    "current_source_cold_qualified": false,
+    "project_test_bodies_executed_in_preparation": 0,
+    "native_executions_in_preparation": 0,
+    "component_top_level_ids": 15,
+    "registration_scope": [
+      "strict CI two-module gate",
+      "qualification v4 selectors and component group",
+      "create-only generator reproduction outside the source tree",
+      "public builder entrypoint",
+      "packaged source and exact factory",
+      "support/source contract, coverage inventory and current inventory"
+    ],
+    "general_core_verification_replaced": false,
+    "unselected_reference_owner_retired": false
+  },
+  "separate_development_observation": {
+    "status": "QUERY_NATIVE_DEVELOPMENT_PASS_NOT_CURRENT_SOURCE_COLD_QUALIFIED",
+    "implementation_source_sha256": "a47bdfe422a2160c48cb505ce13ee8563e8ccd724c23624b27590413278623fc",
+    "generator_sha256": "509872765d5ee2fb853beb7838bba528498e883a02c017ec642548e43065d6c6",
+    "compiler_source_head": "ac488f062135c0a93adada084c81544e4719224b",
+    "compiler_image_sha256": "cd0e289cccecf41ac8ef4bf3797faf13c763ade0f2b8e88fd9ca956eb105b9af",
+    "generated_structure": {
+      "functions": 115,
+      "blocks": 1460,
+      "operations": 7979,
+      "max_logical_block_parameters": 15,
+      "max_logical_edge_arguments": 15,
+      "original_limits_changed": false
+    },
+    "native_image_bytes": 621615,
+    "native_image_sha256": "922cb91ab611607659fc9318fe71e45f6ddebce7d44c0ea105620909a79af348",
+    "relocation_count_not_independently_decoded": true,
+    "outer_ids": 15,
+    "subtests": 19,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "nested_original_ids": 75,
+    "deferred_original_slice_ids": 9,
+    "nested_parent_native_calls": 278,
+    "six_original_child_cases_clear_HIA_environment": true,
+    "nested_child_native_execution_inferred": false,
+    "vm_max_steps": 3000000,
+    "vm_actual_steps_recorded": false,
+    "complete_vm_native_output_bytes": 1012,
+    "workflow_budget_seconds": 1800,
+    "workflow_seconds": 22.664966312004253,
+    "result_sha256": "1988939a8f65e0038f2c23bcd1d7add22faa061c6276ed354839858d621044f6",
+    "tests_sha256": "36522da2d9007d37a0a15bd742117b747b368e8cbff9e850359da8cda302cdb6",
+    "vm_witness_sha256": "377c63c06d6eab1037cae6dccde4747678871cfff9d39c325ea0c321a61e680c",
+    "old_failures_preserved": true,
+    "current_registered_source_qualified": false
+  }
+}

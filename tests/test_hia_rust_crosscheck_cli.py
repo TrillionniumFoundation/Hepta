@@ -14,7 +14,7 @@ from tests.test_hia_rust_crosscheck import scalar_program
 class HIARustCrosscheckCliTests(unittest.TestCase):
     def test_rust_crosscheck_only_for_explicit_hia_verify(self):
         with tempfile.TemporaryDirectory() as td:
-            path = Path(td) / "scalar.hia"
+            path = Path(td) / "scalar.hepta"
             path.write_text(json.dumps(scalar_program()), encoding="utf-8")
             with patch("hepta.hia_rust_crosscheck.crosscheck_rust_shadow",
                        return_value={"schema": "hepta.hia.rust-crosscheck.v1",
@@ -35,7 +35,7 @@ class HIARustCrosscheckCliTests(unittest.TestCase):
 
     def test_partial_and_inert_shadow_requests_fail_closed(self):
         with tempfile.TemporaryDirectory() as td:
-            path = Path(td) / "scalar.hia"
+            path = Path(td) / "scalar.hepta"
             path.write_text(json.dumps(scalar_program()), encoding="utf-8")
             for extra in (["--rust-shadow-bin", "/some/path"],
                           ["--rust-shadow-sha256", "a" * 64],
@@ -46,7 +46,7 @@ class HIARustCrosscheckCliTests(unittest.TestCase):
 
     def test_baseline_verification_remains_rust_independent(self):
         with tempfile.TemporaryDirectory() as td:
-            path = Path(td) / "scalar.hia"
+            path = Path(td) / "scalar.hepta"
             path.write_text(json.dumps(scalar_program()), encoding="utf-8")
             with patch("hepta.hia_rust_crosscheck.crosscheck_rust_shadow") as shadow:
                 with redirect_stdout(io.StringIO()) as output:

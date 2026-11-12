@@ -51,7 +51,7 @@ def _run(clang, directory, report, started):
     with ExitStack() as stack:
         for label, program in bank.items():
             _remaining(started, protocol)
-            (directory / (label + ".hia.json")).write_bytes(wire(program) + b"\n")
+            (directory / (label + ".core.hepta")).write_bytes(wire(program) + b"\n")
             row = report["candidates"][label] = {"status": "attempted"}
             artifact_sha = build_candidate(program, directory / (label + ".so"), clang=clang, report=row)
             image = stack.enter_context(pinned(directory / (label + ".so"), artifact_sha,

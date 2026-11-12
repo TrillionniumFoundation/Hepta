@@ -241,7 +241,7 @@ def native(task,candidate,language,directory,clang,rustc):
         compiler_before=file_identity(compiler)
         record["compiler_identity"]=compiler_before
         if language=="hia":
-            (directory/"candidate.hia").write_bytes(candidate.canonical_bytes)
+            (directory/"candidate.hepta").write_bytes(candidate.canonical_bytes)
             (directory/"candidate.ll").write_text(emit_program_llvm(candidate).text)
             binary=directory/"candidate.so"
             record["compile"]=build_program_native(candidate,binary,clang=clang)

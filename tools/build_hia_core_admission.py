@@ -3,10 +3,14 @@ import argparse
 from hashlib import sha256
 import json
 from pathlib import Path
-from tools.build_hia_json_preflight import build as build_candidate
-from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
+
+from tools.build_hia_json_preflight import build as build_candidate
+from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
 
 
 def build(output, compiler, cold_report):

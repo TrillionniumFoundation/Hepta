@@ -1,7 +1,7 @@
 # HIA Core module graph — explicit development candidate
 
 This is a new Core workspace path, not the frozen/removed high-level Hepta
-module/package resolver. `core_module_graph.hiaasm` owns identifier spelling,
+module/package resolver. `core_module_graph.hepta` owns identifier spelling,
 duplicate modules/local definitions, alias collisions, export identity and
 privacy, imported/local call resolution, entry selection and stable
 dependency-first order. Every declared module and import is checked, including

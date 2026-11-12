@@ -20,7 +20,7 @@ Every captured branch tip remains reachable in Git history. The selected
 current product tree is an explicit content reconciliation, not a union that
 reactivates retired high-level implementations or intentional red experiments.
 The per-reference history disposition is recorded under
-review-evidence/hia-main-consolidation-20261110. Historical failures do not
+[review-evidence/hia-main-consolidation-20261110](https://github.com/TrillionniumFoundation/Hepta/tree/06b1e9b284f612c47a2205e79c8685d8b366d9de/review-evidence/hia-main-consolidation-20261110). Historical failures do not
 become qualification passes because their histories have been consolidated.
 
 ## Qualification and publication

@@ -119,11 +119,11 @@ class CoreJsonCliNativeTests(unittest.TestCase):
     def setUpClass(cls):
         for profile in (0,1,2):independent_packer_reference(profile)  # BEFORE B0
         from tools.qualify_hia_selfhost import build_seed, compile_stage, mutate_compiler
-        cls.original = (ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        cls.original = (ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         cls.modified = mutate_compiler(cls.original)
         cls.wires = [json.dumps(assemble_program(s).as_dict(),separators=(',',':')).encode()
                      for s in (cls.original,cls.modified)]
-        cls.sample = assemble_program((ROOT/'examples/hia_bootstrap/bytesum.hiaasm').read_bytes()).as_dict()
+        cls.sample = assemble_program((ROOT/'examples/hia_bootstrap/bytesum.hepta').read_bytes()).as_dict()
         cls.wire = json.dumps(cls.sample,separators=(',',':')).encode()
         from tools.hia_selfhost_native_observer import independent_reference
         cls.observer_reference = independent_reference()  # every ELF byte BEFORE B0
@@ -147,7 +147,7 @@ class CoreJsonCliNativeTests(unittest.TestCase):
         cls.compiler,_ = compile_stage(cls.folder,'B2',first,cls.original)
         assert first.read_bytes() == cls.compiler.read_bytes()
         cls.frontend,_ = compile_stage(cls.folder,'frontend',cls.compiler,
-            (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes())
+            (ROOT/'examples/hia_bootstrap/core_json_frontend.hepta').read_bytes())
         cls.packer,_ = compile_stage(cls.folder,'packer',cls.compiler,SOURCE.read_bytes())
         from tools.hia_selfhost_native_observer import build as build_observer
         cls.observer, _ = build_observer(cls.folder, cls.compiler, cls.observer_reference)
@@ -232,7 +232,7 @@ class CoreJsonCliNativeTests(unittest.TestCase):
         self.assertEqual((process.returncode,process.stderr),(0,b''))
         self.assertEqual(process.stdout[:8],b'HIAOBR02')
         self.assertEqual(struct.unpack_from('<Q',process.stdout,8)[0],hash_reference(source))
-        # bytesum.hiaasm deliberately stores the checksum into BOTH output
+        # bytesum.hepta deliberately stores the checksum into BOTH output
         # and workspace. Verify both actual stores, not an assumed untouched
         # workspace fill byte.
         self.assertEqual(process.stdout[24:],source+bytes([hash_reference(source)&255])*2)

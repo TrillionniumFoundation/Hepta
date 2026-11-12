@@ -88,13 +88,8 @@ def archive_completed_stage(directory, token):
         if total>MAX_TOTAL_BYTES:raise ValueError('stage capacity')
         name=path.relative_to(directory).as_posix()
         if name==MANIFEST or name=='ARCHIVED.json':raise ValueError('reserved archive member')
-        data=path.read_bytes()
-        if identity(path.stat())!=identity(info):raise ValueError('stage changed while reading')
-        inventory[name]={'bytes':len(data),'sha256':digest(data),'mode':stat.S_IMODE(info.st_mode)}
+        inventory[name]={'bytes':info.st_size,'mode':stat.S_IMODE(info.st_mode)}
         identities[name]=identity(info)
-    manifest={'schema':'hepta.hia.lossless-evidence-archive.v1','files':inventory,
-              'unpacked_bytes':total,'source_directory':str(directory),
-              'native_or_correctness_authority':False}
     # Keep the created inode held even while writing. Reopening a pathname alone
     # would not bind a later replay or publication to these bytes.
     descriptor,temporary=tempfile.mkstemp(prefix='.hia-archive-',dir=directory.parent)
@@ -103,10 +98,25 @@ def archive_completed_stage(directory, token):
     try:
         with os.fdopen(os.dup(descriptor),'w+b') as stream:
             with zipfile.ZipFile(stream,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=1) as archive:
-                for name in inventory:
+                for name,row in inventory.items():
                     path=directory/name
-                    if identity(path.stat())!=identities[name]:raise ValueError('stage changed before archive')
-                    archive.write(path,arcname=name)
+                    if identity(path.lstat())!=identities[name]:raise ValueError('stage changed before archive')
+                    # Hash and archive one bounded captured member, rather than
+                    # hashing every original and reopening all of them for ZIP.
+                    # The independent ZIP replay and pre-retirement source hash
+                    # remain mandatory. Peak payload memory is one <=16 MiB file.
+                    data=path.read_bytes()
+                    if (len(data)!=row['bytes']
+                            or identity(path.lstat())!=identities[name]):
+                        raise ValueError('stage changed while reading')
+                    info=zipfile.ZipInfo.from_file(path,arcname=name)
+                    if identity(path.lstat())!=identities[name]:raise ValueError('stage changed before archive')
+                    row['sha256']=digest(data)
+                    archive.writestr(info,data,compress_type=zipfile.ZIP_DEFLATED,compresslevel=1)
+                    del data
+                manifest={'schema':'hepta.hia.lossless-evidence-archive.v1','files':inventory,
+                          'unpacked_bytes':total,'source_directory':str(directory),
+                          'native_or_correctness_authority':False}
                 archive.writestr(MANIFEST,json.dumps(manifest,sort_keys=True,separators=(',',':')))
         os.fsync(descriptor)
         flags=os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK

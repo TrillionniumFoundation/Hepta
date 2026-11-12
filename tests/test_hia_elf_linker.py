@@ -36,7 +36,7 @@ class ElfLinkerSourceTests(unittest.TestCase):
     def test_checked_in_linker_and_filter_are_exact_ordinary_Core(self):
         for name,doc in (('elf_static_linker',document()),('native_filter_packer',filter_document())):
             source=render_assembly(doc)
-            self.assertEqual((ROOT/f'examples/hia_bootstrap/{name}.hiaasm').read_text(),source)
+            self.assertEqual((ROOT/f'examples/hia_bootstrap/{name}.hepta').read_text(),source)
             assemble_program(source)
             self.assertLessEqual(len(doc['functions']),128)
             self.assertLessEqual(sum(len(f['blocks']) for f in doc['functions']),1536)
@@ -67,7 +67,7 @@ class ElfLinkerNativeTests(unittest.TestCase):
         value,packed=reference(cls.packer_checked,pack_wire,capacity=4096,workspace=1)
         assert packed[:4]==b'\x7fELF' and 176<value<4096
         seed,_=build_seed(cls.folder)
-        source=(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        source=(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first,_=compile_stage(cls.folder,'B1',seed,source,image_format='seed-shared')
         cls.compiler,_=compile_stage(cls.folder,'B2',first,source)
         assert first.read_bytes()==cls.compiler.read_bytes()

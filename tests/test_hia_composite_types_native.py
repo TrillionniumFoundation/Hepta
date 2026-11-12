@@ -262,7 +262,7 @@ class CompositeTypesNativeTests(unittest.TestCase):
         else:
             from tools.qualify_hia_selfhost import build_seed, compile_stage
             seed, _ = build_seed(cls.folder)
-            compiler_source = SOURCE.with_name('selfhost.hiaasm').read_bytes()
+            compiler_source = SOURCE.with_name('selfhost.hepta').read_bytes()
             first, _ = compile_stage(cls.folder, 'B1', seed, compiler_source, image_format='seed-shared')
             compiler, _ = compile_stage(cls.folder, 'B2', first, compiler_source)
             assert first.read_bytes() == compiler.read_bytes()
@@ -580,7 +580,7 @@ class CompositeTypesNativeTests(unittest.TestCase):
                     composite, '_Types', side_effect=AssertionError('fallback type resolver called')):
                 with self.assertRaises(HIAProgramRejected):
                     verify_core(document)
-        local_source = self.folder / 'changed-source.hiaasm'
+        local_source = self.folder / 'changed-source.hepta'
         local_source.write_bytes(SOURCE.read_bytes())
         with patch('hepta.hia_composite_types_native.SOURCE', local_source):
             installed_composite_types(str(self.manifest))
@@ -589,9 +589,9 @@ class CompositeTypesNativeTests(unittest.TestCase):
                 installed_composite_types(str(self.manifest))
 
     def test_real_installed_wheel_ordinary_normalization_and_source_manifest_image_pins(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
-        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
-        self.assertIn('examples/hia_bootstrap/composite_types.hiaasm', resources)
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES
+        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES
+        self.assertIn('examples/hia_bootstrap/composite_types.hepta', resources)
         source = self.folder / 'wheel-source'; source.mkdir()
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
@@ -643,7 +643,7 @@ else:
                 env={'PATH': '', 'LANG': 'C', 'LC_ALL': 'C', SELECTOR: str(manifest)})
         result = run('accept')
         self.assertEqual((result.returncode, result.stdout, result.stderr), (0, expected, b''))
-        resource = installed / 'hepta/_data/examples/hia_bootstrap/composite_types.hiaasm'
+        resource = installed / 'hepta/_data/examples/hia_bootstrap/composite_types.hepta'
         original = resource.read_bytes()
         for missing in (False, True):
             try:

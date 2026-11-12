@@ -322,6 +322,6 @@ def document():
 
 
 if __name__ == '__main__':
-    target = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/agent_binary64.hiaasm'
+    target = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/agent_binary64.hepta'
     target.write_text(render_assembly(document()))
     print(target.name, target.stat().st_size)

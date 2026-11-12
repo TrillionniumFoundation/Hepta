@@ -101,6 +101,7 @@ def run(original, candidate, patch, output):
         inputs[label] = {"path": str(target), "sha256": expected, "bytes": len(data)}
     # Apply the exact original multi-file patch only to its compiler-source
     # member. No patch reconstruction or current compiler substitution occurs.
+    # Its historical .hiaasm member remains unchanged in this external evidence tree.
     reconstruction = output / "patch-reconstruction"
     source_path = reconstruction / "examples/hia_bootstrap/selfhost.hiaasm"
     source_path.parent.mkdir(parents=True)
@@ -151,7 +152,7 @@ def run(original, candidate, patch, output):
         objective = {"schema": "hepta.hia.agent.objective.v1", "metric": "artifact_bytes",
             "required_claims": STRICT_CLAIMS, "allow_unchanged": True, "min_improvement_ratio": 0}
         report.update(frozen_workload=workload, frozen_objective=objective)
-        (output / "select-counterexample.hiaasm").write_bytes(PROGRAM)
+        (output / "select-counterexample.hepta").write_bytes(PROGRAM)
         save(output / "qualification.json", report)
         session.freeze(workload, objective=objective, budget={"max_native_wall_ms": 60000})
 

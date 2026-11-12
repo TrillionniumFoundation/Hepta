@@ -21,7 +21,7 @@ from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_native_byte_runner import invoke_byte_program
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "examples" / "hia_bootstrap" / "components.hiaasm"
+SOURCE = ROOT / "examples" / "hia_bootstrap" / "components.hepta"
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
 NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"} and shutil.which("ld")
 
@@ -38,15 +38,36 @@ def constant_source(value, *, module="scalar_seed", function="answer", block="en
 def reference_tokens(source):
     """Independent bounded ASCII oracle, not called from any native component."""
     text = source.decode("ascii")
-    pattern = re.compile(r'[ \t\r\n]+|[A-Za-z_][A-Za-z_0-9.]*|[0-9]+|"(?:[ !#-\[\]-~]|\\["\\/bfnrt])*"|[(){}\[\],:=\->]')
+    pattern = re.compile(r'[ \t\r\n]+|[A-Za-z_][A-Za-z_0-9.]*|[0-9]+|[(){}\[\],:=\->]')
     result, position = [], 0
     while position < len(text):
+        if text[position] == '"':
+            start = position
+            position += 1
+            # A quoted token has one forward cursor. Every escape consumes
+            # exactly two bytes, so incomplete escape-heavy inputs stay linear.
+            while position < len(text):
+                char = text[position]
+                if char == '"':
+                    position += 1
+                    break
+                if char == '\\':
+                    position += 1
+                    if position == len(text) or text[position] not in '"\\/bfnrt':
+                        raise ValueError("not in the ASCII bootstrap lexer")
+                elif not 0x20 <= ord(char) <= 0x7e:
+                    raise ValueError("not in the ASCII bootstrap lexer")
+                position += 1
+            else:
+                raise ValueError("not in the ASCII bootstrap lexer")
+            result.append((3, start, position))
+            continue
         match = pattern.match(text, position)
         if match is None:
             raise ValueError("not in the ASCII bootstrap lexer")
         token = match[0]
         if not token.isspace():
-            kind = 3 if token[0] == '"' else 2 if token[0].isdigit() else 1 if token[0].isalpha() or token[0] == "_" else ord(token) + 128
+            kind = 2 if token[0].isdigit() else 1 if token[0].isalpha() or token[0] == "_" else ord(token) + 128
             result.append((kind, position, match.end()))
         position = match.end()
     return result
@@ -68,6 +89,14 @@ def execute_text(text):
 
 
 class BootstrapSourceTests(unittest.TestCase):
+    def test_ascii_reference_lexer_handles_long_escaped_strings(self):
+        for escaped in (br'\\/', br'\"'):
+            source = b'"' + escaped * 16384 + b'"'
+            self.assertEqual(reference_tokens(source), [(3, 0, len(source))])
+            for incomplete in (source[:-1], source[:-1] + b'\\'):
+                with self.assertRaisesRegex(ValueError, "not in the ASCII bootstrap lexer"):
+                    reference_tokens(incomplete)
+
     def test_checked_in_hia_is_the_complete_authoring_output(self):
         from tools.generate_hia_bootstrap_components import component_document
         source = SOURCE.read_bytes()
