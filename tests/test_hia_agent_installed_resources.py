@@ -2,10 +2,10 @@
 from pathlib import Path
 from hashlib import sha256
 import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
-from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, installation_manifest, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES
+from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, installation_manifest, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
-RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES
+RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES
 # Source-distribution test inputs are not installed Agent resources and must
 # never expand the worker's production source identity or _data payload.
 SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',)

@@ -859,12 +859,12 @@ raise AssertionError('the selected crash boundary was never reached')
         self.assertEqual(result.unexpectedSuccesses, [], stream.getvalue())
 
     def test_installed_wheel_same_journal_lifecycle_without_authoring_or_reference(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES
         case = self.folder / 'installed-wheel-control'; case.mkdir(mode=0o700)
         source = case / 'source'; source.mkdir()
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
         resources = ((tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES
-                     + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES)
+                     + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES)
         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)

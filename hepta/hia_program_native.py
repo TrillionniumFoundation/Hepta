@@ -88,7 +88,7 @@ def _implementation_hash():
         "hia_machine_state_native.py", "hia_machine_instructions_native.py", "hia_machine_plan_native.py",
         "hia_core_lowering_native.py", "hia_core_lowering_selection.py",
         "hia_core_emitter_native.py", "hia_core_emitter_selection.py",
-        "hia_host_import.py",
+        "hia_host_import.py", "hia_byte_wrapper_native.py", "hia_byte_wrapper_selection.py",
         "hia_json_wire_native.py", "hia_instruction_policy_native.py",
         "hia_json_preflight_native.py", "hia_machine_elf.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
         "hia_heap_bound.py", "artifact_publication.py",
@@ -107,6 +107,10 @@ def _implementation_hash():
     digest.update(b'core-emitter-abi\0' + _source_resource_path('docs/HIA_CORE_EMITTER_ABI.json').read_bytes() + b'\0')
     from .hia_core_emitter_selection import native_implementation_identity as emitter_identity
     digest.update(b'native-core-emitter\0' + emitter_identity(globals()) + b'\0')
+    from . import hia_native_byte_abi as byte_abi
+    from .hia_byte_wrapper_selection import native_implementation_identity as byte_identity
+    digest.update(b'byte-wrapper-abi\0' + _source_resource_path('docs/HIA_BYTE_WRAPPER_ABI.json').read_bytes() + b'\0')
+    digest.update(b'native-byte-wrapper\0' + byte_identity(vars(byte_abi)) + b'\0')
     return digest.hexdigest()
 
 
@@ -754,7 +758,9 @@ def emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_b
     from .hia_machine_x64 import native_encoding_scope
     from .hia_core_lowering_selection import native_core_lowering_scope
     from .hia_core_emitter_selection import native_core_emitter_scope
-    with native_encoding_scope(), native_core_lowering_scope(globals()), native_core_emitter_scope(globals()):
+    from . import hia_native_byte_abi as byte_abi
+    from .hia_byte_wrapper_selection import native_byte_wrapper_scope
+    with native_encoding_scope(), native_core_lowering_scope(globals()), native_core_emitter_scope(globals()), native_byte_wrapper_scope(vars(byte_abi)):
         return _emit_program_machine_with_encoding(
             program, target=target, machine_plan=machine_plan,
             foreign_buffer_exports=foreign_buffer_exports)

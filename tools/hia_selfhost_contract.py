@@ -13,8 +13,26 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v82-native-import-semantics'
+PROFILE = 'selfhost-core-linux-x86_64-v83-native-byte-wrapper'
 SOURCE_FILES = (
+    'docs/HIA_BYTE_WRAPPER_NATIVE.md',
+    'docs/HIA_BYTE_WRAPPER_ABI.json',
+    'tests/test_hia_byte_wrapper_native.py',
+    'tests/fixtures/hia_native_byte_abi_bbfa.py.txt',
+    'tools/hia_byte_wrapper_policy.py',
+    'tools/hia_byte_wrapper_ir.py',
+    'tools/generate_hia_byte_wrapper.py',
+    'tools/build_hia_byte_wrapper.py',
+    'tools/qualify_hia_byte_wrapper_callers.py',
+    'examples/hia_bootstrap/byte_wrapper_pool.hepta',
+    'examples/hia_bootstrap/byte_wrapper_000.hepta',
+    'examples/hia_bootstrap/byte_wrapper_001.hepta',
+    'examples/hia_bootstrap/byte_wrapper_002.hepta',
+    'examples/hia_bootstrap/byte_wrapper_003.hepta',
+    'examples/hia_bootstrap/byte_wrapper_004.hepta',
+    'examples/hia_bootstrap/byte_wrapper_005.hepta',
+    'examples/hia_bootstrap/byte_wrapper_006.hepta',
+    'examples/hia_bootstrap/byte_wrapper_007.hepta',
     'tools/qualify_hia_core_emitter_callers.py',
     'docs/HIA_CORE_EMITTER_NATIVE.md',
     'docs/HIA_CORE_EMITTER_ABI.json',

@@ -575,9 +575,9 @@ class WireNativeTests(unittest.TestCase):
         resources = {}
         for node in tree.body:
             if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-                if node.targets[0].id in ('DISCOVERY_FILES', 'NATIVE_SOURCE_FILES', 'SOURCE_BUILD_FILES', 'COMPILER_BUILD_FILES', 'PUBLICATION_BUILD_FILES', 'BACKEND_BUILD_FILES','EMITTER_BUILD_FILES'):
+                if node.targets[0].id in ('DISCOVERY_FILES', 'NATIVE_SOURCE_FILES', 'SOURCE_BUILD_FILES', 'COMPILER_BUILD_FILES', 'PUBLICATION_BUILD_FILES', 'BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES'):
                     resources[node.targets[0].id] = ast.literal_eval(node.value)
-        names = [*('docs/' + n for n in resources['DISCOVERY_FILES']), *resources['NATIVE_SOURCE_FILES'], *resources['SOURCE_BUILD_FILES'], *resources['COMPILER_BUILD_FILES'], *resources['PUBLICATION_BUILD_FILES'], *resources['BACKEND_BUILD_FILES'], *resources['EMITTER_BUILD_FILES']]
+        names = [*('docs/' + n for n in resources['DISCOVERY_FILES']), *resources['NATIVE_SOURCE_FILES'], *resources['SOURCE_BUILD_FILES'], *resources['COMPILER_BUILD_FILES'], *resources['PUBLICATION_BUILD_FILES'], *resources['BACKEND_BUILD_FILES'], *resources['EMITTER_BUILD_FILES'], *resources['BYTE_WRAPPER_BUILD_FILES']]
         self.assertIn('examples/hia_bootstrap/json_wire.hepta', names)
         for name in names:
             target = source / name
