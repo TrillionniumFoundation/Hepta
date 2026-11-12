@@ -1,0 +1,9 @@
+# HIA JSON layout byte bridge — static draft
+
+The HIA r4 formatter has an actual 37-case native development result. This separate, unexecuted draft provides a narrow byte transport interface for that formatter. It holds an exact immutable input across measurement and emission, uses one private 161-byte workspace per call, checks the actual return before reading output length, allocates exactly from successful HIA measurement and requires emission to return the same length. It inserts no newline and performs no printing or publication.
+
+The formatter's original input profile remains 8 MiB and a 129-entry layout stack. The bridge adds no 8 MiB output gate. A separately materialized V8 fixture consists of 65536 zero scalars inside 64 arrays: 131199 compact bytes expand to 8593534 layout bytes. Its input and output bytes were constructed and hashed independently of the HIA implementation; neither this fixture nor the bridge has been run by Python or HIA in this checkpoint.
+
+The caller must already have admitted compact JSON. This component is not a complete decoder or graph serializer. The existing stdout helper accepts a Unicode text domain with allow_nan enabled; the publication helper uses ASCII escaping and disallows nonfinite numbers. Their unbounded output, traversal, exception, directory-creation and publication ordering remain obligations for a later complete owner. The current bounded wire entry adds other restrictions and cannot replace those original domains. The linked audit is copied unchanged for traceability.
+
+This draft has no product hook and no installed resource. The new source file, schema and loader wiring need package integration and actual tests. Planned development retains all 37 original native cases and adds six transport checks under the unchanged 5-second child and 180/3 owner. These checks do not constitute original CLI, cold or full-suite qualification.

@@ -1,0 +1,56 @@
+{
+  "schema": "hia.json-pretty-byte-bridge-static-plan.v1",
+  "status": "UNPARSED_UNEXECUTED_NO_PRODUCT_HOOK",
+  "source_candidate": "9704596acc4470bd0042838586602e26bac7b3d1",
+  "actual_r4_reference": {
+    "run": 43145616377,
+    "job": 130942602806,
+    "HIA_sha256": "2a8b2180cb15947c90961a55927241e8198f32a046484127d83b16fa880e9303",
+    "native_image_sha256": "a98b066da08dd29757fe4ef801704c66be69f0aed350290e8672aca6e9a59555",
+    "original37_result": "ACTUAL_PASS",
+    "bridge_executed_in_that_run": false
+  },
+  "API": "NativeJsonPretty.format_admitted_compact(exact_bytes) -> bytes_without_newline",
+  "precondition": "already admitted compact UTF-8 JSON wire; the formatter is not a complete JSON parser",
+  "HIA_input_byte_profile": 8388608,
+  "output_limit": "successful HIA measurement bounded only by addressable allocation; no added 8 MiB output limit",
+  "guard_contract": "Check actual status before reading workspace output length; discard failed output and length; require successful measurement/emission equality",
+  "installed_resource_admission": "Uses existing _installed_json_image for new explicit source/schema; package integration and installed-resource qualification are still OPEN",
+  "planned_new_controls": [
+    {
+      "id": "bridge_original_positive_layouts",
+      "scope": "17 prior positive admitted-wire fixtures through the new bridge"
+    },
+    {
+      "id": "bridge_expansion_above_8MiB",
+      "scope": "131199-byte valid compact nested array becomes 8593534-byte output, exact independent SHA"
+    },
+    {
+      "id": "bridge_refusal_before_output_allocation",
+      "scope": "Actual HIA malformed-wire refusal must not allocate from any partial output-length field"
+    },
+    {
+      "id": "bridge_repeated_refusal_and_success",
+      "scope": "Same image survives bad wire and over-input-cap refusals with later exact success"
+    },
+    {
+      "id": "bridge_two_concurrent_private_workspaces",
+      "scope": "Two actual calls retain different live workspace addresses and exact output"
+    },
+    {
+      "id": "bridge_explicit_input_type",
+      "scope": "New byte ABI type admission; not an assertion about the old CLI object domain"
+    }
+  ],
+  "original37_preserved": true,
+  "planned_complete_methods": 43,
+  "original_native_case_child_seconds": 5,
+  "original_outer_seconds": 180,
+  "original_cleanup_seconds": 3,
+  "original_compile_wall_seconds": 20,
+  "original_compile_CPU_seconds": 10,
+  "whole_CLI_json_domain_replaced": false,
+  "cold_qualified": false,
+  "default_activation": false,
+  "old_owner_deleted": false
+}

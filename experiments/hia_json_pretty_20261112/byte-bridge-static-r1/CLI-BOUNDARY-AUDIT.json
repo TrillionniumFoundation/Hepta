@@ -1,0 +1,302 @@
+{
+  "schema": "hia.cli-json-complete-boundary-audit.v1",
+  "status": "STATIC_AUDIT_COMPLETE_NOT_A_DROP_IN_OR_NATIVE_QUALIFICATION",
+  "product_commit": "9704596acc4470bd0042838586602e26bac7b3d1",
+  "formatter_commit": "8357db004130819a82f44451e8b6e552aa93f100",
+  "conclusion": "Reuse r4 as the layout owner for its admitted immutable compact-byte input; do not substitute current bounded_json_wire plus r4 for either whole CLI JSON helper. General object serialization and its original Unicode/nonfinite/error/resource semantics remain separate work.",
+  "scope": {
+    "git_read_only_product": true,
+    "repository_evidence_only": true,
+    "local_execution": false,
+    "remote_h": false,
+    "actions_trigger": false,
+    "python_parse": false,
+    "python_or_product_tests": false,
+    "hiasource_modified": false,
+    "product_profile_changed": false
+  },
+  "findings": [
+    {
+      "id": "CLI_JSON_01",
+      "severity": "BLOCKS_DROP_IN_SUBSTITUTION",
+      "title": "Two JSON contracts are different and remain hosted",
+      "sources": [
+        "hepta/cli.py",
+        "hepta/hia_cli_native.py"
+      ],
+      "facts": [
+        "output_json uses json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True), leaves allow_nan at its True default, then print.",
+        "publish_json_view uses json.dumps(value, sort_keys=True, indent=2, allow_nan=False), leaves ensure_ascii at its True default, appends one newline and encodes UTF-8.",
+        "CliSession effect 20 calls cli.publish_json_view and effect 22 calls cli.output_json; the existing selected CLI owner does not own general object serialization.",
+        "Neither helper has an explicit JSON output byte, node, or nesting ceiling. Runtime allocation, recursion and integer-digit constraints still exist; absence of a product cap is not a claim of unlimited resources."
+      ]
+    },
+    {
+      "id": "CLI_JSON_02",
+      "severity": "BLOCKS_DROP_IN_SUBSTITUTION",
+      "title": "Bounded wire adds admission rules and different errors",
+      "sources": [
+        "hepta/hia_program_tools.py",
+        "hepta/hia_json_wire_native.py"
+      ],
+      "facts": [
+        "bounded_json_wire maximum must be an exact int from 0 through 8 MiB; node budget is min(maximum,262144); preflight depth limit is 128.",
+        "The reference and selected profile reject isolated surrogates regardless of ensure_ascii, nonfinite values, exact-type-excluded subclasses, key conversion collisions, and oversized graphs.",
+        "The reverse-DFS preflight and key validation happen before the encoding traversal. The original CLI json.dumps entry does not perform this preflight.",
+        "HIAEditRejected is a ValueError subclass. Replacing a TypeError or RecursionError from json.dumps by that error can change CLI propagation into E_DRIVER JSON and exit 2.",
+        "The original helpers sort original key objects before converting keys to JSON spelling; any reuse must preserve numeric order and original comparison failure order."
+      ]
+    },
+    {
+      "id": "CLI_JSON_03",
+      "severity": "BLOCKS_DROP_IN_SUBSTITUTION",
+      "title": "Unicode requires a Unicode-output boundary",
+      "sources": [
+        "hepta/cli.py",
+        "hepta/hia_json_wire_native.py",
+        "tests/test_hia_cli_native.py"
+      ],
+      "facts": [
+        "stdout ensure_ascii=False returns a Python Unicode string before print. An isolated surrogate can reach StringIO or another accepting text writer; real stdout encoding/error handling determines whether printing succeeds.",
+        "publish_json_view ensure_ascii=True escapes an isolated surrogate into ASCII and can publish it. Current bounded wire refuses it before encoding.",
+        "Raw UTF-8 stdout writes or an eager strict UTF-8 conversion would change the original text-stream and error boundary.",
+        "The existing CLI lone-surrogate test exercises selected driver-error formatting, not general output_json serialization. Parser stream failure tests likewise cover help/version, not the general serializer."
+      ]
+    },
+    {
+      "id": "CLI_JSON_04",
+      "severity": "PRESERVE_OBSERVABLE_ORDER",
+      "title": "Publication and stdout effects have fixed positions",
+      "sources": [
+        "hepta/cli.py",
+        "hepta/artifact_publication.py",
+        "tests/test_hia_cli_native.py"
+      ],
+      "facts": [
+        "publish_verified is imported/bound before destination conversion; destination existence/symlink refusal precedes parent mkdir, resolved-parent check, and serialization.",
+        "Parent directories can be created before a later serialization error. Temporary staging begins only after the complete newline-terminated payload is available.",
+        "The temporary context is exited before value['schema'] is read for the return receipt. A serializable object without that key can raise after the output file has been published.",
+        "output_json fully constructs the JSON string before print. Complete formatting may precede any stdout side effect, while printing can still fail or partially write.",
+        "Existing selected CLI tests require output to happen before check-assembly/build result truth inspection, and preserve active exception context when str(error) is evaluated."
+      ]
+    },
+    {
+      "id": "CLI_JSON_05",
+      "severity": "NO_NEW_OUTPUT_CAP",
+      "title": "Input and query caps are not pretty-output caps",
+      "sources": [
+        "hepta/hia_program.py",
+        "hepta/hia_program_tools.py",
+        "hepta/hia_edit_query.py",
+        "hepta/hia_edit_batch.py",
+        "hepta/cli.py"
+      ],
+      "facts": [
+        "Ordinary program read/canonical admission uses 8 MiB, 262144 nodes, depth 64, at most 1024 functions and 4096 blocks per function.",
+        "Single and batch prepared query compact wires are already bounded at 1 MiB. Single response is 16 KiB; batch response is 64 KiB. These do not establish a universal CLI pretty-output limit.",
+        "normalize/import without output print the full program; patch/edit apply without output add a full program to a receipt; inspect adds per-operation indexes and other view metadata.",
+        "Static ASCII witness: 25000 const u32 operations with 128-byte unique SSA names has 5150357 compact bytes, 225020 nodes and maximum depth 9; indent-2 output is 10450598 bytes plus print newline.",
+        "The witness is source-derived and V8 byte arithmetic only; no Hepta admission, CPython, CLI, compiler or native execution was performed. No current/old test pass is inferred.",
+        "r4 pretty checks its INPUT against 8 MiB. Its OUTPUT is governed by supplied buffer capacity, so a measure-driven bridge must not add an 8 MiB output refusal. This witness alone does not show r4 would reject the larger output."
+      ]
+    },
+    {
+      "id": "CLI_JSON_06",
+      "severity": "REUSABLE_PARTIAL_OWNER",
+      "title": "r4 owns whitespace layout for its admitted byte domain",
+      "sources": [
+        "pretty/json_pretty.hiaasm",
+        "pretty/DESIGN.json"
+      ],
+      "facts": [
+        "The frozen r4 precondition is valid compact UTF-8 JSON already admitted by bounded wire. It preserves lexemes and key order, inserts two-space layout, and returns no final newline.",
+        "Measure mode 0 and emit mode 1 use a 32-byte header plus 129-byte stack in the ordinary 161-byte workspace; successful status 0 alone admits length and bytes.",
+        "Current HIA contains no object observation, key sorting, string escaping, finite/nonfinite choice, numeric rendering, publication, or text-stream output policy.",
+        "Valid-input capacity and indentation can be tested independently. Feeding NaN or surrogate-containing Python text merely because some bytes pass the scanner would exceed the declared precondition.",
+        "The audit has not executed, compiled, parsed, or qualified this HIA source; the source checkpoint's V8 development observations are not converted into native/CLI qualification."
+      ]
+    },
+    {
+      "id": "CLI_JSON_07",
+      "severity": "VERSION_AND_OBJECT_DOMAIN_OPEN",
+      "title": "Use the exact original JSON implementation as oracle",
+      "sources": [
+        "CPython3.12.0/Lib/json/encoder.py",
+        "CPython3.14.4/Lib/json/encoder.py",
+        "CPython3.14.10/Lib/json/encoder.py",
+        "CPython3.14.4/Modules/_json.c",
+        "CPython3.14.10/Modules/_json.c"
+      ],
+      "facts": [
+        "Official 3.12.0 JSONEncoder selects its C encoder only for one-shot encoding with indent None. The original indent=2 path therefore uses its Python iterator.",
+        "Official 3.14.4 and 3.14.10 encoder.py are byte-identical; both can use the C encoder for one-shot indent=2 encoding.",
+        "The 3.14.4 and 3.14.10 C dictionary/list traversal bodies differ in retaining references across callbacks; floating/scalar/key-conversion bodies examined are equal. This audit does not turn that source observation into a runtime failure or equivalence test.",
+        "Standard builtin subclasses are accepted by the original JSONEncoder; exact-type-only transport is a narrower domain.",
+        "A compact json.dumps call followed by r4 is not by itself an object-owner migration and can select a different original CPython path in 3.12. Preserve exception classes, args, notes/context where present and observation order on each supported interpreter."
+      ]
+    }
+  ],
+  "action_map": [
+    {
+      "action": "capabilities",
+      "value": "agent_capabilities()",
+      "output": "output_json",
+      "bounds": "No explicit pretty-output cap in helper."
+    },
+    {
+      "action": "catalog",
+      "value": "opcode_catalog(schema)",
+      "output": "output_json",
+      "bounds": "Catalog is generated metadata; helper has no output cap."
+    },
+    {
+      "action": "verify",
+      "value": "program.report() plus status",
+      "output": "output_json",
+      "bounds": "Program input/canonical cap; small report is a producer property, not a general output gate."
+    },
+    {
+      "action": "inspect",
+      "value": "inspect_program(program)",
+      "output": "output_json",
+      "bounds": "Adds indexed operations and metadata; output size is not bounded by input bytes."
+    },
+    {
+      "action": "normalize",
+      "value": "program.as_dict() or publish_program receipt",
+      "output": "output_json",
+      "bounds": "Full program gets indent-2 stdout when no -o; -o publishes canonical program, not publish_json_view."
+    },
+    {
+      "action": "build",
+      "value": "build_program_machine result",
+      "output": "output_json, then ok-is-True exit choice",
+      "bounds": "Object publication remains native build/publication owner; JSON helper still hosted."
+    },
+    {
+      "action": "import-assembly",
+      "value": "assemble_program result.as_dict() or publish_program receipt",
+      "output": "output_json",
+      "bounds": "Assembly read/canonical checks do not impose a pretty-output cap."
+    },
+    {
+      "action": "render-assembly",
+      "value": "render_assembly text or assembly publication receipt",
+      "output": "print(text,end='') without -o; output_json receipt with -o",
+      "bounds": "Assembly text is a separate non-JSON output owner."
+    },
+    {
+      "action": "check-assembly",
+      "value": "diagnose_assembly result",
+      "output": "output_json, then accepted truth exit choice",
+      "bounds": "Preserve output before result truth."
+    },
+    {
+      "action": "patch",
+      "value": "patch receipt, optionally full program or publication receipt",
+      "output": "output_json",
+      "bounds": "Full program is embedded when no -o."
+    },
+    {
+      "action": "impact",
+      "value": "patch receipt and impact result",
+      "output": "output_json",
+      "bounds": "Generated combined view; no output gate in helper."
+    },
+    {
+      "action": "edit-query",
+      "value": "prepare_edit query or publish_json_view receipt",
+      "output": "output_json; publish_json_view only with -o",
+      "bounds": "Prepared compact query already bounded at 1 MiB; retain preparation and publication order."
+    },
+    {
+      "action": "edit-apply",
+      "value": "apply_edit receipt, optionally full program or publication receipt",
+      "output": "output_json",
+      "bounds": "Response input 16 KiB; full returned program may expand under pretty printing."
+    },
+    {
+      "action": "edit-batch-query",
+      "value": "prepare_batch query or publish_json_view receipt",
+      "output": "output_json; publish_json_view only with -o",
+      "bounds": "Prepared compact batch query already bounded at 1 MiB."
+    },
+    {
+      "action": "edit-batch-apply",
+      "value": "apply_batch receipt, optionally full program or publication receipt",
+      "output": "output_json",
+      "bounds": "Response input 64 KiB; full returned program may expand under pretty printing."
+    }
+  ],
+  "tested_here": {
+    "source_pins": "SOURCE-PINS.json",
+    "analysis_only": "capacity-arithmetic-r2-result.json",
+    "first_analysis_guard_error_preserved": "capacity-arithmetic-r1-error.json"
+  },
+  "original_test_scope": {
+    "cli_native_original_methods": 17,
+    "ordinary_agent_entry_methods": 6,
+    "all_actions_method_actions": 15,
+    "all_actions_method_branches": 23,
+    "native_cli_method_names": [
+      "test_complete_regeneration_and_unchanged_native_profile",
+      "test_matching_cold_build_rejects_before_output_creation",
+      "test_independent_core_vm_argument_and_error_formatter",
+      "test_argparse_order_abbreviation_clusters_repetition_and_sentinel",
+      "test_help_wrapping_columns_and_exact_unicode_repr",
+      "test_python_color_environment_precedence_and_colored_wrapping",
+      "test_error_json_is_native_and_keeps_active_exception_context",
+      "test_parser_stream_write_failures_and_missing_stdout_match",
+      "test_all_fifteen_real_actions_and_publication_branches",
+      "test_output_precedes_result_truth_and_query_read_errors",
+      "test_existing_read_ceilings_and_unicode_error_publication",
+      "test_native_ack_refusal_and_no_replay_after_consumed_effect",
+      "test_external_baseexception_after_native_return_closes_permission",
+      "test_error_str_baseexception_preserves_object_context_and_closes",
+      "test_source_bundle_binding_and_selected_fail_closed",
+      "test_unchanged_original_agent_entry_suite_with_native_selected",
+      "test_actual_installed_wheel_without_retained_cli_or_checkout_resources"
+    ],
+    "general_json_serializer_replacement_proved": false,
+    "existing_wire_tests_oracle": "_reference_bounded_json_wire, not either CLI JSON helper"
+  },
+  "next_implementation": [
+    {
+      "step": 1,
+      "owner": "Pure-byte layout bridge",
+      "change": "Keep the r4 source/ABI scope explicit; admit immutable compact bytes before entering, use mode0 measured length then mode1 exact capacity, verify success/length/immutability/canaries and reject invalid continuation. No stdout/file effects and no object JSON serialization in this bridge.",
+      "constraint": "No additional 8 MiB OUTPUT gate; no public CLI hook or new claimed full domain at this step."
+    },
+    {
+      "step": 2,
+      "owner": "CLI-compatible object serialization",
+      "change": "Add a separately reviewed HIA serialization owner that preserves the two original fixed option sets and original traversal/sort/type/exception semantics. Reuse existing HIA scalar/string/finite-binary64 primitives after checking their admitted domain; do not wrap the existing bounded entry point.",
+      "constraint": "No new 8 MiB/node/depth rejection or blanket exact-type profile. Standard subtype, nonfinite stdout, surrogate Unicode, cycle/alias and integer digit-limit behavior must remain accounted for."
+    },
+    {
+      "step": 3,
+      "owner": "Representation and observation protocol",
+      "change": "Have HIA own traversal and encoding decisions. Host provides mechanical observations or required foreign operations at their original positions. Capture one traversal into immutable tokens/output so measurement/emission do not re-observe mutable objects.",
+      "constraint": "For stdout, preserve arbitrary Python Unicode and text-stream writes; a strict UTF-8-only representation is insufficient. For file publication, ensure_ascii=True permits ASCII escaped surrogate lexemes. r4 precondition must not be silently widened."
+    },
+    {
+      "step": 4,
+      "owner": "CLI hook placement and effect ordering",
+      "change": "Integrate through the existing helper call points only after the serialization domain is complete. Keep output_json result construction before print, publish_json_view pre-serialization path/mkdir order, exact publication protocol and post-publication schema lookup.",
+      "constraint": "Do not retry through the old serializer after partially observed foreign callbacks or side effects; do not pre-admit another selected owner earlier than its old point."
+    },
+    {
+      "step": 5,
+      "owner": "Qualification",
+      "change": "Run direct helper differential controls plus the unchanged original 17 CLI methods and six ordinary entry methods, declared installed resources and isolated wheel under their actual supported interpreter versions and original limits. Source spies must distinguish layout-only work from complete encoder ownership.",
+      "constraint": "The test plan is unexecuted. No new source profile, reduced domain, changed gate, method deletion, native claim, or current cold/full result is introduced by this audit."
+    }
+  ],
+  "remaining_unknowns": [
+    "Whether the source-derived 25000-operation witness is accepted by every selected native verifier combination has not been executed; it is not a validation receipt.",
+    "No newly proposed general JSON serialization owner or installed hook exists in this audit.",
+    "Exact foreign callback, subclass, recursion-threshold and interpreter-specific exception behavior needs real differential coverage before a full replacement claim.",
+    "The r4 standalone native qualification belongs to its owner and is not inferred from this static audit.",
+    "Current product CI outcomes and all older HOLD/FAIL/UNKNOWN records remain unchanged."
+  ]
+}
