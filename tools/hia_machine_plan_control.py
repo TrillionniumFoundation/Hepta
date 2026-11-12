@@ -254,6 +254,10 @@ class Function:
                     self.truth(self.copy(result), onward if isinstance(node.op, ast.And) else done,
                                done if isinstance(node.op, ast.And) else onward)
                     self.mark(onward)
+                    # CPython has already consumed the left operand when this
+                    # branch continues. Keep the exact object only on the
+                    # short-circuit edge, where it is the expression's result.
+                    self.release((result,))
             self.mark(done)
             return result
         if isinstance(node, ast.IfExp):

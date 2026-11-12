@@ -301,7 +301,12 @@ class CliContinuationNativeTests(unittest.TestCase):
             stack.enter_context(patch.object(hia_program, "verify_program", new=lambda value: Program()))
             stack.enter_context(patch.object(hia_agent_assembly, "render_assembly", new=render))
         rows = self.compare(["render-assembly", "unused"], install)
-        self.assertEqual(rows[0][1], ["render", "raw-drop", "program-drop", "text-drop"])
+        expected = {
+            312: ["render", "raw-drop", "program-drop", "text-drop"],
+            314: ["render", "text-drop", "program-drop", "raw-drop"],
+            31410: ["render", "text-drop", "program-drop", "raw-drop"],
+        }[bridge._runtime_profile()]
+        self.assertEqual(rows[0][1], expected)
 
 
     def test_pending_query_releases_during_read_unwind_before_handler_context(self):
@@ -379,10 +384,92 @@ class CliContinuationNativeTests(unittest.TestCase):
                                     0, *values, 0, 0, 0, nonce)
                 self.assertEqual(invoke(reply), 2 if index == len(replies) else 1)
             count = struct.unpack_from("<Q", actual_output, 64)[0]
+            # This ABI vector must follow the same admitted runtime as the
+            # real reference differential, rather than hard-code 3.12 order.
+            expected_release = (release if struct.unpack_from("<Q", raw, 24)[0] == 312
+                                else list(reversed(release)))
             self.assertEqual(list(struct.unpack_from("<" + "Q" * count,
-                                                    actual_workspace, 2816)), release)
+                                                    actual_workspace, 2816)), expected_release)
             self.observations.append({"test": self.id(), "argv": argv,
                                       "independent_vm_full_buffers": observations})
+
+
+    def test_all_profiles_keep_complete_native_vm_frames_and_local_retirement_order(self):
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program_runtime import _Machine, _Owner, _View
+        program = assemble_program(bridge.SOURCES["control"].read_bytes())
+        canary = b"\xa5" * 32
+        cases = [
+            (["capabilities"], [(1, (2, 0, 0)), (22, (0, 0, 0))], []),
+            (["render-assembly", "input"],
+             [(35, (0, 0, 0)), (36, (0, 0, 0)), (3, (2, 0, 0)),
+              (4, (3, 0, 0)), (7, (4, 0, 0)), (23, (0, 0, 0))], [2, 3, 4]),
+            (["build", "in", "-o", "out", "--backend", "selfhost",
+              "--selfhost-manifest", "manifest", "--selfhost-manifest-sha256", "pin"],
+             [(35, (0, 0, 0)), (3, (2, 0, 0)), (4, (3, 0, 0)),
+              (42, (4, 0, 0)), (22, (0, 0, 0)), (31, (1, 0, 0))], [4, 3]),
+        ]
+        for profile in (312, 314, 31410):
+            for case, (argv, replies, forward_release) in enumerate(cases):
+                with self.subTest(profile=profile, action=argv[0]):
+                    nonce = 913479 + 10 * profile + case
+                    raw = bytearray(bridge._frame(argv, "hia " + cli.__version__,
+                        environment(), profile, 80, False, False,
+                        sys.get_int_max_str_digits()))
+                    struct.pack_into("<Q", raw, 80, nonce)
+                    capacity = 65536 + len(argv) * 80 + len(raw)
+                    actual_workspace = ctypes.create_string_buffer(capacity + 32)
+                    actual_output = ctypes.create_string_buffer(160)
+                    ctypes.memmove(ctypes.addressof(actual_workspace) + capacity, canary, 32)
+                    ctypes.memmove(ctypes.addressof(actual_output) + 128, canary, 32)
+                    expected_workspace = bytearray(capacity)
+                    expected_output = bytearray(128)
+                    observations = []
+                    def invoke(packet):
+                        nonlocal expected_workspace, expected_output
+                        packet = bytes(packet)
+                        source = ctypes.create_string_buffer(packet + canary, len(packet) + 32)
+                        actual = self.owner.control._entry(source, len(packet), actual_output,
+                                                           128, actual_workspace, capacity)
+                        owners = [_Owner(-1, bytearray(packet)), _Owner(-2, expected_output),
+                                  _Owner(-3, expected_workspace)]
+                        machine = _Machine(program, 25000000, 64 << 20, None, 128)
+                        expected = machine.invoke(program.as_dict()["functions"][0],
+                            [_View(owners[0], False), _View(owners[1], True),
+                             _View(owners[2], True)])[0]
+                        self.assertEqual(actual, expected)
+                        self.assertEqual(ctypes.string_at(actual_output, 160),
+                                         bytes(owners[1].data) + canary)
+                        self.assertEqual(ctypes.string_at(actual_workspace, capacity + 32),
+                                         bytes(owners[2].data) + canary)
+                        self.assertEqual(ctypes.string_at(source, len(packet) + 32),
+                                         packet + canary)
+                        expected_output, expected_workspace = owners[1].data, owners[2].data
+                        observations.append({"status": int(actual),
+                            "output_sha256": sha256(bytes(expected_output)).hexdigest(),
+                            "workspace_sha256": sha256(bytes(expected_workspace)).hexdigest(),
+                            "all_source_output_workspace_canaries_unchanged": True})
+                        return actual
+                    self.assertEqual(invoke(raw), 0)
+                    self.assertEqual(invoke(struct.pack("<12Q", bridge.STEP_MAGIC, 4,
+                        0, 0, 0, 1, 0, 0, 0, 0, 0, nonce)), 1)
+                    for index, (operation, values) in enumerate(replies, 1):
+                        self.assertEqual(struct.unpack_from("<Q", actual_output, 8)[0], operation)
+                        self.assertEqual(invoke(struct.pack("<12Q", bridge.CLAIM_MAGIC, 4,
+                            index, operation, nonce, 0, 0, 0, 0, 0, 0, 0)), 3)
+                        reply = struct.pack("<12Q", bridge.STEP_MAGIC, 4, index,
+                                            operation, 0, *values, 0, 0, 0, nonce)
+                        self.assertEqual(invoke(reply), 2 if index == len(replies) else 1)
+                    count = struct.unpack_from("<Q", actual_output, 64)[0]
+                    release = list(struct.unpack_from("<" + "Q" * count,
+                                                       actual_workspace, 2816))
+                    expected_release = (forward_release if profile == 312
+                                        else list(reversed(forward_release)))
+                    self.assertEqual(release, expected_release)
+                    self.observations.append({"test": self.id(), "profile": profile,
+                        "argv": argv, "native_release": release,
+                        "expected_release": expected_release,
+                        "independent_vm_full_buffers": observations})
 
     def test_preclaim_ack_loss_never_launches_a_foreign_effect(self):
         class Stop(BaseException): pass

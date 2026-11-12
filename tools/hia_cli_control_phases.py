@@ -138,12 +138,18 @@ def control_done(w:mutbuf, code:u64) -> u64:
     put(w, C_COMMAND, COMMAND_MAGIC)
     put(w, C_COMMAND + 16, get(w, C_SEQ))
     put(w, C_COMMAND + 32, code)
-    # Local order is the retained function's ordinary local-release order:
+    # Slots follow the retained function's co_varnames order:
     # raw, result, program, text, receipt, query, revised, _revised, impact.
+    # The admitted CPython 3.12 frame clears these slots forwards; both
+    # admitted 3.14 profiles clear them backwards. Evaluation temporaries
+    # keep their separate native consumption plan.
     count = 0
     slot = 0
     while slot < 9:
-        handle = get(w, C_LOCALS + slot * 8)
+        named_slot = slot
+        if get(w, 128) != 312:
+            named_slot = 8 - slot
+        handle = get(w, C_LOCALS + named_slot * 8)
         if handle != 0:
             put(w, C_FINAL + count * 8, handle)
             count = count + 1

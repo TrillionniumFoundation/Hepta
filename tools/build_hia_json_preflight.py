@@ -62,6 +62,15 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
     from tools.hia_selfhost_contract import PROFILE
+    # These complete continuation owners have strict v2 contracts.  Their
+    # own builders retain admission-before-mutation and receipt readback;
+    # routing through the generic v1 manifest below would mislabel the ABI.
+    if candidate == 'core-lowering':
+        from tools.build_hia_core_lowering import build as build_core_lowering
+        return build_core_lowering(output, compiler, cold_report)
+    if candidate == 'service-emission':
+        from tools.build_hia_service_emission import build as build_service_emission
+        return build_service_emission(output, compiler, cold_report)
     candidates = {'machine-plan': ('machine_plan', 'machine-plan'),
                   'worker-request': ('worker_request', 'worker-request'),
                   'program-execution': ('program_execution', 'program-execution'),

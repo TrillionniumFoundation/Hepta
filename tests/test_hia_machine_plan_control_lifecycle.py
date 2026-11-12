@@ -447,5 +447,74 @@ class MachinePlanControlTests(unittest.TestCase):
         next_frame.close()
 
 
+    def test_three_physical_profiles_and_empty_slot_retirement_match_complete_VM(self):
+        from hepta.hia_machine_plan_native import SOURCE
+        from tests.hia_machine_frame_profile_controls import profile_matrix
+        plan = {'schema': plans.LAYOUT_V1}
+        report = profile_matrix(self, self.new_owner(), bridge.PlanFrame,
+                                SOURCE, 4, (plan, None), plans._reference_preservation_checks(plan))
+        (self.folder / 'physical-frame-profile-matrix.json').write_text(json.dumps(report, indent=2) + '\n')
+
+    def test_public_and_direct_facades_transfer_original_parameter_lifetimes(self):
+        rows = _plan_facade_observations(self.native, self.manifest)
+        (self.folder / 'facade-parameter-lifetime-traces.json').write_text(json.dumps(rows, indent=2) + '\n')
+        self.assertEqual(len(rows), 12)
+        for row in rows:
+            with self.subTest(route=row['route'], fail=row['fail'], outer=row['outer']):
+                self.assertEqual(row['actual'], row['reference'])
+                if row['route'] == 'default-public':
+                    self.assertEqual(row['actual_native_entries'], 0)
+                else:
+                    self.assertGreater(row['actual_native_entries'], 0)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
+
+def _plan_facade_observations(owner,manifest):
+    base = verify_program(minimal_document())
+    MANIFEST = manifest
+    from hepta.hia_machine_plan_native import SELECTOR
+    def observe(route,fail,outer):
+     events=[];refs=[];held=None;outcome=None
+     def mark(name):
+      handled=sys.exception();events.append([name,None if handled is None else type(handled).__name__])
+     class Function(dict):
+      def __del__(self):mark('function-del')
+     class Checked(VerifiedProgram):
+      def as_dict(self):
+       mark('as_dict');doc=super().as_dict()
+       for index,fn in enumerate(doc['functions']):
+        value=Function(fn);refs.append(weakref.ref(value));doc['functions'][index]=value
+       return doc
+      def __del__(self):mark('checked-del')
+     def invoke():
+      if route=='reference':return plans._reference_register_assignment_witness(Checked(base.canonical_bytes), {'missing':{}} if fail else {})
+      if route=='native-direct':return owner.witness(Checked(base.canonical_bytes), {'missing':{}} if fail else {})
+      with patch.dict(os.environ,{SELECTOR:str(MANIFEST) if route=='native-public' else ''}):
+       return plans.register_assignment_witness(Checked(base.canonical_bytes), {'missing':{}} if fail else {})
+     def capture():
+      nonlocal held,outcome
+      try:outcome=['value',invoke()]
+      except BaseException as error:held=error;outcome=['error',type(error).__name__,str(error)]
+     previous=gc.isenabled();gc.disable()
+     try:
+      if outer:
+       try:raise LookupError('actual outer handled')
+       except LookupError:capture()
+      else:capture()
+      before=list(events);live=[r() is not None for r in refs]
+      if held is not None:held.__traceback__=None
+      return {'outcome':outcome,'with_error':before,'live_with_error':live,'after_detach':list(events),'live_after_detach':[r() is not None for r in refs]}
+     finally:
+      held=None
+      if previous:gc.enable()
+    rows=[]
+    for fail in (False,True):
+     for outer in (False,True):
+      expected=observe('reference',fail,outer)
+      for route in ('native-direct','native-public','default-public'):
+       entries=owner.entries;actual=observe(route,fail,outer)
+       rows.append({'route':route,'fail':fail,'outer':outer,'reference':expected,'actual':actual,'equal':expected==actual,'actual_native_entries':owner.entries-entries})
+    return rows

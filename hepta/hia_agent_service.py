@@ -83,6 +83,12 @@ class HIAAgentService:
     def __init__(self, state_root, *, artifact_roots=()):
         from .hia_service_context_native import admitted_context, NativeContextService
         context_admission = admitted_context(capture_identity=True)
+        from .hia_service_emission_native import admitted_emission, NativeEmissionService
+        emission_admission = admitted_emission(capture_identity=True)
+        from .hia_service_verification_native import admitted_verification, NativeVerificationService
+        verification_admission = admitted_verification(capture_identity=True)
+        from .hia_proof_contract_selection import capture_proof_contract
+        proof_owner = capture_proof_contract()
         self.catalog, self.catalog_sha256 = catalog()
         self.tools = {t["name"]: t for t in self.catalog["tools"]}
         self.identities = installation_manifest()
@@ -90,118 +96,134 @@ class HIAAgentService:
         self.artifact_roots = tuple(Path(root).absolute().resolve(strict=True) for root in artifact_roots)
         if any(not root.is_dir() for root in self.artifact_roots):
             reject("E_HIA_PROFILE", "configured artifact roots must be directories")
+        self._native_proof_contract = proof_owner
         self._profiles()
         self._native_context = None if context_admission is None else NativeContextService(
             self, context_admission.image, checker_custody=context_admission)
+        self._native_emission = None if emission_admission is None else NativeEmissionService(
+            self, emission_admission.image, checker_custody=emission_admission)
+        self._native_verification = None if verification_admission is None else NativeVerificationService(
+            verification_admission.image, checker_custody=verification_admission)
 
     def close(self):
         selected_context = getattr(self, '_native_context', None)
         if selected_context is not None:
             selected_context.closed = True
+        selected_emission = getattr(self, '_native_emission', None)
+        if selected_emission is not None:
+            selected_emission.closed = True
+        selected_verification = getattr(self, '_native_verification', None)
+        if selected_verification is not None:
+            selected_verification.closed = True
+        selected_proof = getattr(self, '_native_proof_contract', None)
+        if selected_proof is not None:
+            selected_proof.closed = True
         self.store.close()
 
     def _profiles(self):
-        from .hia_program_native import TARGET, PROFILE, SUPPORTED_OPCODES, CORE_SCHEMAS, IMPORTS
-        from .hia_schema import schema_registry
-        from .hia_safe_core import ARTIFACT_PROFILE, LIMITS
-        common = {"implementation": self.identities, "catalog_sha256": self.catalog_sha256}
-        bodies = {
-            "compiler": {**common, "schema": "hepta.hia.agent.compiler-profile.v1",
-                "backend": "hia-direct", "implicit_profitability_optimizer": False,
-                "llvm_codegen": False, "external_assembler": False},
-            "target": {"schema": "hepta.hia.agent.target-profile.v1", "triple": TARGET,
-                "isa": "x86-64", "abi": "SysV AMD64 LP64 scalar entries; opt-in synchronous borrowed-byte snapshots",
-                "operating_system": "Linux", "max_memory_bytes": str(4 * 1024**3),
-                "min_memory_bytes": str(64 * 1024**2), "features": ["baseline-x86-64"]},
-            "backend": {**common, "schema": "hepta.hia.agent.backend-profile.v1", "profile": PROFILE,
-                "target": TARGET, "core_schemas": sorted(CORE_SCHEMAS), "opcodes": sorted(SUPPORTED_OPCODES),
-                "runtime_imports": sorted(IMPORTS), "external_abi": "v1 integer/bool scalar inputs and at most one scalar/unit result; v2 explicit readbuf/mutbuf snapshots and one u32 result",
-                "borrowed_byte_snapshots": {"workload_schema": "hepta.hia.agent.workload.v2",
-                    "profile": "hepta.hia.agent.borrowed-byte-snapshots.v1",
-                    "max_buffer_bytes": 1048576, "max_workload_buffer_bytes": 33554432,
-                    "pointer_authority": "child-owned distinct synchronous allocations; caller supplies bytes only",
-                    "observation": "all external bytes on return and confirmed abort; fresh initial bytes on every repetition",
-                    "reference_limits": {"max_steps": 10000000, "max_heap_bytes": 16777216, "max_call_depth": 256},
-                    "independent_native_refinement": "unsupported"},
-                "max_stack_frame_bytes": 65536, "max_exports": 128,
-                "object_emission_external_tool": False, "shared_linker": "GNU ld only",
-                "native_resource_limits": "disposable child wall/CPU/address-space limits; no VM tick guarantee",
-                "universal_backend_refinement_proved": False, "self_hosted": False},
-            "artifact": {"schema": "hepta.hia.agent.artifact-profile.v1", "inline_utf8_characters": 65536,
-                "max_path_bytes": 8 * 1024**2, "path_root_count": len(self.artifact_roots),
-                "path_roots_sha256": digest([str(root) for root in self.artifact_roots]),
-                "symlink_capture": False, "path_authority": "administrator configured roots only"},
-            "validation": {**common, "schema": "hepta.hia.agent.validation-profile.v1",
-                "core_admission": "existing whole-program verifier",
-                "behavior_equivalence": ["exact Core identity", "exhaustive pure acyclic scalar domain with at most 12 input bits",
-                    "optional existing pinned-Z3 structural scalar/effect profile"],
-                "canonical_core_to_machine_refinement": "unsupported",
-                "independent_native_refinement": {"method": SAFE_CORE_METHOD,
-                    "profile": SAFE_CORE_SERVICE_PROFILE, "artifact_profile": ARTIFACT_PROFILE,
-                    "output_kind": "shared", "entry_abi": "one unsigned scalar acyclic function; no borrowed or foreign entries",
-                    "foreign_buffer_exports": [], "limits": dict(LIMITS),
-                    "inputs": "the exact retained build object, final ELF and canonical Core; no reemission",
-                    "proof_scope": SAFE_CORE_DOMAIN},
-                "machine_plan_refinement": "separately checked layout, scratch-register, scalar register-lifetime and exact encoding choices relative to assumed-correct canonical lowering",
-                "encoding_check": "rederive entire object and linked image; validate retained identities and ABI",
-                "sample_tests_are_proofs": False, "proof_result_schema": PROOF_SCHEMA,
-                "proved_meaning": PROVED_MEANING, "unscoped_legacy_receipts_accepted": False},
-            "lowering": {**common, "schema": "hepta.hia.agent.lowering-profile.v1",
-                "rules": "fixed stack slots; fixed scratch registers; source block order; explicit control transfers",
-                "selection_authority": "semantic implementation only", "profitability_passes": []},
-            "plan": {**common, "schema": "hepta.hia.agent.plan-profile.v1", "plan_schema": PLAN_SCHEMA,
-                "choices": "v1 block permutation; v2 block/function permutation, r10/r11 bijection, exact immediate encodings and bounded function alignment; v3 checked scalar assignments to rbx/r12-r15 and explicit register-only CMOV selection",
-                "preserved": ["original Core", "checked scalar value locations", "logical operation and effect order within each block", "entry and CFG edges", "public ABI"],
-                "unchecked_bytes": False, "automatic_layout_search": False},
-        }
-        self.profiles, self.profile_artifacts = {}, {}
-        for name, body in bodies.items():
-            ref, artifact = self.store.profile("hia-" + name + "-v1", body)
-            self.profiles[name], self.profile_artifacts[name] = ref, artifact
-        self.resources = {
-            "schema_registry": self.store.json(schema_registry(), "discovery"),
-            "workload_schema": self.store.json(WORKLOAD_SCHEMA, "discovery"),
-            "objective_schema": self.store.json(OBJECTIVE_SCHEMA, "discovery"),
-            "cost_policy_schema": self.store.json(COST_POLICY_SCHEMA, "discovery"),
-            "plan_schema": self.store.json(PLAN_SCHEMA, "discovery"),
-            "proof_contract": self.store.json(proof_contract_description(), "discovery"),
-        }
-        for name, filename in (("assembly_grammar", "HIA_AGENT_ASSEMBLY.md"),
-                               ("core_language", "HIA_PROGRAM.md"),
-                               ("machine_plan_guide", "HIA_AGENT_MACHINE_PLANS.md"),
-                               ("proof_contract_guide", "HIA_AGENT_PROOF_RESULTS.md"),
-                               ("machine_validation_guide", "HIA_SAFE_CORE_MACHINE_VALIDATION.md"),
-                               ("buffer_lifecycle_guide", "HIA_AGENT_BUFFER_LIFECYCLE.md"),
-                               ("macro_policy_guide", "HIA_AGENT_MACRO_POLICY.md"),
-                               ("byte_bootstrap_guide", "HIA_DIRECT_BYTE_BOOTSTRAP.md"),
-                               ("self_hosting_core_guide", "HIA_SELF_HOSTING_CORE.md"),
-                               ("self_hosting_core_support", "HIA_SELFHOST_CORE_SUPPORT.json")):
-            self.resources[name] = self.store.put(_agent_resource_path("docs/" + filename).read_bytes(), "discovery")
-        from .hia_agent_macro_discovery import macro_policy_guidance
-        self.resources["macro_policy"] = self.store.json(macro_policy_guidance(self.identities), "discovery")
-        self.resources["examples"] = self.store.json(self._examples(), "discovery")
-        self.resources["diagnostics"] = self.store.json({"schema": "hepta.hia.agent.diagnostics.v1",
-            "phases": ["admission", "context", "verification", "codegen", "execution", "adoption"],
-            "codes": {"E_HIA_SCHEMA": "repair the named input field", "E_HIA_CONTEXT_STALE": "rediscover installed source and create a new context",
-                "E_HIA_REQUEST_CONFLICT": "same key belongs to different arguments", "E_HIA_REQUEST_UNKNOWN": "observe the original runtime job; never relaunch",
-                "E_HIA_ARTIFACT_IDENTITY": "use the complete issued reference", "E_HIA_MACHINE_PLAN": "read plan_schema and supply only checked Core-bound machine choices",
-                "E_HIA_CLAIM_REQUIRED": "requested acceptance proof has no exact qualifying retained receipt",
-                "E_HIA_PROOF_SCOPE": "rerun verification with a fresh request key; proof scope or retained checker conclusion is missing or differs",
-                "E_HIA_GENERATION_STALE": "inspect current slot through the authorized consumer; use a fresh conditional request"}}, "discovery")
-        self.manifest = self.store.json({"schema": "hepta.hia.agent.manifest.v1",
-            "status": "implemented_bounded_profiles", "catalog_sha256": self.catalog_sha256,
-            "installation": self.identities, "profiles": self.profiles,
-            "profile_manifests": self.profile_artifacts, "resources": self.resources,
-            "cold_start": ["read assembly_grammar/core_language and an exact opcode catalog",
-                "retain workload, objective and cost-policy JSON as artifacts", "freeze context using discovered profiles",
-                "import or patch an explicit Core candidate", "verify requested claims for the exact subject",
-                "emit using canonical lowering or a checked explicit machine plan", "verify actual encoding and, when admitted, independent native refinement",
-                "evaluate baseline and candidate on the entire frozen workload", "adopt only with qualifying receipts and expected generation/epoch"],
-            "execution_authority": "administrator-installed runtime provider, never supplied context",
-            "cold_start_learning_or_net_benefit_proved": False,
-            "consumer_api": "HIAAgentService.acquire_slot/invoke_lease/release_slot",
-            "initial_slot": "expected 0/0 retains the evaluation baseline at generation 0; candidate starts generation 1",
-            "unknown_external_costs": "null and incomplete, never inferred as zero"}, "discovery")
+        from .hia_proof_contract_selection import proof_contract_scope
+        with proof_contract_scope(getattr(self, '_native_proof_contract', None)):
+            from .hia_program_native import TARGET, PROFILE, SUPPORTED_OPCODES, CORE_SCHEMAS, IMPORTS
+            from .hia_schema import schema_registry
+            from .hia_safe_core import ARTIFACT_PROFILE, LIMITS
+            common = {"implementation": self.identities, "catalog_sha256": self.catalog_sha256}
+            bodies = {
+                "compiler": {**common, "schema": "hepta.hia.agent.compiler-profile.v1",
+                    "backend": "hia-direct", "implicit_profitability_optimizer": False,
+                    "llvm_codegen": False, "external_assembler": False},
+                "target": {"schema": "hepta.hia.agent.target-profile.v1", "triple": TARGET,
+                    "isa": "x86-64", "abi": "SysV AMD64 LP64 scalar entries; opt-in synchronous borrowed-byte snapshots",
+                    "operating_system": "Linux", "max_memory_bytes": str(4 * 1024**3),
+                    "min_memory_bytes": str(64 * 1024**2), "features": ["baseline-x86-64"]},
+                "backend": {**common, "schema": "hepta.hia.agent.backend-profile.v1", "profile": PROFILE,
+                    "target": TARGET, "core_schemas": sorted(CORE_SCHEMAS), "opcodes": sorted(SUPPORTED_OPCODES),
+                    "runtime_imports": sorted(IMPORTS), "external_abi": "v1 integer/bool scalar inputs and at most one scalar/unit result; v2 explicit readbuf/mutbuf snapshots and one u32 result",
+                    "borrowed_byte_snapshots": {"workload_schema": "hepta.hia.agent.workload.v2",
+                        "profile": "hepta.hia.agent.borrowed-byte-snapshots.v1",
+                        "max_buffer_bytes": 1048576, "max_workload_buffer_bytes": 33554432,
+                        "pointer_authority": "child-owned distinct synchronous allocations; caller supplies bytes only",
+                        "observation": "all external bytes on return and confirmed abort; fresh initial bytes on every repetition",
+                        "reference_limits": {"max_steps": 10000000, "max_heap_bytes": 16777216, "max_call_depth": 256},
+                        "independent_native_refinement": "unsupported"},
+                    "max_stack_frame_bytes": 65536, "max_exports": 128,
+                    "object_emission_external_tool": False, "shared_linker": "GNU ld only",
+                    "native_resource_limits": "disposable child wall/CPU/address-space limits; no VM tick guarantee",
+                    "universal_backend_refinement_proved": False, "self_hosted": False},
+                "artifact": {"schema": "hepta.hia.agent.artifact-profile.v1", "inline_utf8_characters": 65536,
+                    "max_path_bytes": 8 * 1024**2, "path_root_count": len(self.artifact_roots),
+                    "path_roots_sha256": digest([str(root) for root in self.artifact_roots]),
+                    "symlink_capture": False, "path_authority": "administrator configured roots only"},
+                "validation": {**common, "schema": "hepta.hia.agent.validation-profile.v1",
+                    "core_admission": "existing whole-program verifier",
+                    "behavior_equivalence": ["exact Core identity", "exhaustive pure acyclic scalar domain with at most 12 input bits",
+                        "optional existing pinned-Z3 structural scalar/effect profile"],
+                    "canonical_core_to_machine_refinement": "unsupported",
+                    "independent_native_refinement": {"method": SAFE_CORE_METHOD,
+                        "profile": SAFE_CORE_SERVICE_PROFILE, "artifact_profile": ARTIFACT_PROFILE,
+                        "output_kind": "shared", "entry_abi": "one unsigned scalar acyclic function; no borrowed or foreign entries",
+                        "foreign_buffer_exports": [], "limits": dict(LIMITS),
+                        "inputs": "the exact retained build object, final ELF and canonical Core; no reemission",
+                        "proof_scope": SAFE_CORE_DOMAIN},
+                    "machine_plan_refinement": "separately checked layout, scratch-register, scalar register-lifetime and exact encoding choices relative to assumed-correct canonical lowering",
+                    "encoding_check": "rederive entire object and linked image; validate retained identities and ABI",
+                    "sample_tests_are_proofs": False, "proof_result_schema": PROOF_SCHEMA,
+                    "proved_meaning": PROVED_MEANING, "unscoped_legacy_receipts_accepted": False},
+                "lowering": {**common, "schema": "hepta.hia.agent.lowering-profile.v1",
+                    "rules": "fixed stack slots; fixed scratch registers; source block order; explicit control transfers",
+                    "selection_authority": "semantic implementation only", "profitability_passes": []},
+                "plan": {**common, "schema": "hepta.hia.agent.plan-profile.v1", "plan_schema": PLAN_SCHEMA,
+                    "choices": "v1 block permutation; v2 block/function permutation, r10/r11 bijection, exact immediate encodings and bounded function alignment; v3 checked scalar assignments to rbx/r12-r15 and explicit register-only CMOV selection",
+                    "preserved": ["original Core", "checked scalar value locations", "logical operation and effect order within each block", "entry and CFG edges", "public ABI"],
+                    "unchecked_bytes": False, "automatic_layout_search": False},
+            }
+            self.profiles, self.profile_artifacts = {}, {}
+            for name, body in bodies.items():
+                ref, artifact = self.store.profile("hia-" + name + "-v1", body)
+                self.profiles[name], self.profile_artifacts[name] = ref, artifact
+            self.resources = {
+                "schema_registry": self.store.json(schema_registry(), "discovery"),
+                "workload_schema": self.store.json(WORKLOAD_SCHEMA, "discovery"),
+                "objective_schema": self.store.json(OBJECTIVE_SCHEMA, "discovery"),
+                "cost_policy_schema": self.store.json(COST_POLICY_SCHEMA, "discovery"),
+                "plan_schema": self.store.json(PLAN_SCHEMA, "discovery"),
+                "proof_contract": self.store.json(proof_contract_description(), "discovery"),
+            }
+            for name, filename in (("assembly_grammar", "HIA_AGENT_ASSEMBLY.md"),
+                                   ("core_language", "HIA_PROGRAM.md"),
+                                   ("machine_plan_guide", "HIA_AGENT_MACHINE_PLANS.md"),
+                                   ("proof_contract_guide", "HIA_AGENT_PROOF_RESULTS.md"),
+                                   ("machine_validation_guide", "HIA_SAFE_CORE_MACHINE_VALIDATION.md"),
+                                   ("buffer_lifecycle_guide", "HIA_AGENT_BUFFER_LIFECYCLE.md"),
+                                   ("macro_policy_guide", "HIA_AGENT_MACRO_POLICY.md"),
+                                   ("byte_bootstrap_guide", "HIA_DIRECT_BYTE_BOOTSTRAP.md"),
+                                   ("self_hosting_core_guide", "HIA_SELF_HOSTING_CORE.md"),
+                                   ("self_hosting_core_support", "HIA_SELFHOST_CORE_SUPPORT.json")):
+                self.resources[name] = self.store.put(_agent_resource_path("docs/" + filename).read_bytes(), "discovery")
+            from .hia_agent_macro_discovery import macro_policy_guidance
+            self.resources["macro_policy"] = self.store.json(macro_policy_guidance(self.identities), "discovery")
+            self.resources["examples"] = self.store.json(self._examples(), "discovery")
+            self.resources["diagnostics"] = self.store.json({"schema": "hepta.hia.agent.diagnostics.v1",
+                "phases": ["admission", "context", "verification", "codegen", "execution", "adoption"],
+                "codes": {"E_HIA_SCHEMA": "repair the named input field", "E_HIA_CONTEXT_STALE": "rediscover installed source and create a new context",
+                    "E_HIA_REQUEST_CONFLICT": "same key belongs to different arguments", "E_HIA_REQUEST_UNKNOWN": "observe the original runtime job; never relaunch",
+                    "E_HIA_ARTIFACT_IDENTITY": "use the complete issued reference", "E_HIA_MACHINE_PLAN": "read plan_schema and supply only checked Core-bound machine choices",
+                    "E_HIA_CLAIM_REQUIRED": "requested acceptance proof has no exact qualifying retained receipt",
+                    "E_HIA_PROOF_SCOPE": "rerun verification with a fresh request key; proof scope or retained checker conclusion is missing or differs",
+                    "E_HIA_GENERATION_STALE": "inspect current slot through the authorized consumer; use a fresh conditional request"}}, "discovery")
+            self.manifest = self.store.json({"schema": "hepta.hia.agent.manifest.v1",
+                "status": "implemented_bounded_profiles", "catalog_sha256": self.catalog_sha256,
+                "installation": self.identities, "profiles": self.profiles,
+                "profile_manifests": self.profile_artifacts, "resources": self.resources,
+                "cold_start": ["read assembly_grammar/core_language and an exact opcode catalog",
+                    "retain workload, objective and cost-policy JSON as artifacts", "freeze context using discovered profiles",
+                    "import or patch an explicit Core candidate", "verify requested claims for the exact subject",
+                    "emit using canonical lowering or a checked explicit machine plan", "verify actual encoding and, when admitted, independent native refinement",
+                    "evaluate baseline and candidate on the entire frozen workload", "adopt only with qualifying receipts and expected generation/epoch"],
+                "execution_authority": "administrator-installed runtime provider, never supplied context",
+                "cold_start_learning_or_net_benefit_proved": False,
+                "consumer_api": "HIAAgentService.acquire_slot/invoke_lease/release_slot",
+                "initial_slot": "expected 0/0 retains the evaluation baseline at generation 0; candidate starts generation 1",
+                "unknown_external_costs": "null and incomplete, never inferred as zero"}, "discovery")
 
     @staticmethod
     def _examples():
@@ -676,8 +698,8 @@ class HIAAgentService:
                 "method": "canonical_core_identity", "base_sha256": original.sha256,
                 "candidate_sha256": revised.sha256, "all_inputs": True}
         left, right = original.as_dict(), revised.as_dict()
-        signatures = _signatures(original)
-        finite = signatures == _signatures(revised) and bool(signatures)
+        signatures = self._signature_values(original)
+        finite = signatures == self._signature_values(revised) and bool(signatures)
         # Only pure scalar functions without calls, allocation or ownership can
         # use finite value enumeration as complete semantic evidence. The
         # structural resource/effect checker is used for wider programs.
@@ -756,6 +778,18 @@ class HIAAgentService:
         return status, "Existing compositional v1-v7 scalar/effect/trap verifier with identical CFG/interface/ordered effects", report
 
     def _subject(self, args, program, *, _connection=None):
+        from .hia_proof_contract_selection import proof_contract_scope
+        with proof_contract_scope(getattr(self, '_native_proof_contract', None)):
+            owner = getattr(self, '_native_verification', None)
+            if owner is None:
+                arguments = {'callee': self._subject_reference, 'args': args, 'program': program, '_connection': _connection}
+                del self, args, program, _connection, owner
+                return arguments.pop('callee')(arguments.pop('args'), arguments.pop('program'), _connection=arguments.pop('_connection'))
+            frame = owner.prepare('_subject', (self, args, program, _connection))
+            self = args = program = _connection = None
+            return owner.finish(frame)
+
+    def _subject_reference(self, args, program, *, _connection=None):
         subject = args["subject"]
         if subject["kind"] != "core":
             self._profile(subject["backend_profile"], "backend", **_connection_arguments(_connection))
@@ -776,9 +810,34 @@ class HIAAgentService:
 
     def _held_checker_owners(self):
         owner = self._native_context
-        return () if owner is None else (owner.checker_owner(),)
+        held = () if owner is None else (owner.checker_owner(),)
+        emission = getattr(self, '_native_emission', None)
+        held = held if emission is None else held + (emission.checker_owner(),)
+        verification = getattr(self, '_native_verification', None)
+        held = held if verification is None else held + (verification.checker_owner(),)
+        proof = getattr(self, '_native_proof_contract', None)
+        return held if proof is None else held + (proof.checker_owner(),)
+
+    def _signature_values(self, program, foreign_buffer_exports=()):
+        owner = getattr(self, '_native_emission', None)
+        arguments = {'callee': _signatures if owner is None else owner.signatures,
+                     'program': program, 'foreign_buffer_exports': foreign_buffer_exports}
+        del self, owner, program, foreign_buffer_exports
+        return arguments.pop('callee')(arguments.pop('program'), arguments.pop('foreign_buffer_exports'))
 
     def _hia_verify(self, args):
+        from .hia_proof_contract_selection import proof_contract_scope
+        with proof_contract_scope(getattr(self, '_native_proof_contract', None)):
+            owner = getattr(self, '_native_verification', None)
+            if owner is None:
+                arguments = {'callee': self._hia_verify_reference, 'args': args}
+                del self, args, owner
+                return arguments.pop('callee')(arguments.pop('args'))
+            frame = owner.prepare('_hia_verify', (self, args))
+            self = args = None
+            return owner.finish(frame)
+
+    def _hia_verify_reference(self, args):
         from .hia_checker_identity import checker_native_selection
         held_owners = self._held_checker_owners()
         native_selection = checker_native_selection(held_owners=held_owners)
@@ -865,6 +924,18 @@ class HIAAgentService:
                 "verification_receipt": receipt, "checks": checks, "adopted": False}
 
     def _verification(self, ref, context, candidate=None, *, _connection=None):
+        from .hia_proof_contract_selection import proof_contract_scope
+        with proof_contract_scope(getattr(self, '_native_proof_contract', None)):
+            owner = getattr(self, '_native_verification', None)
+            if owner is None:
+                arguments = {'callee': self._verification_reference, 'ref': ref, 'context': context, 'candidate': candidate, '_connection': _connection}
+                del self, ref, context, candidate, _connection, owner
+                return arguments.pop('callee')(arguments.pop('ref'), arguments.pop('context'), arguments.pop('candidate'), _connection=arguments.pop('_connection'))
+            frame = owner.prepare('_verification', (self, ref, context, candidate, _connection))
+            self = ref = context = candidate = _connection = None
+            return owner.finish(frame)
+
+    def _verification_reference(self, ref, context, candidate=None, *, _connection=None):
         record, _ = self.store.get_json(ref, kind="verification-receipt", **_connection_arguments(_connection))
         if (record["context"] != context or record["installation"] != self.identities
                 or candidate is not None and record["candidate"] != candidate):
@@ -902,6 +973,18 @@ class HIAAgentService:
         return record
 
     def _replay_verification(self, response, arguments, *, _connection=None):
+        from .hia_proof_contract_selection import proof_contract_scope
+        with proof_contract_scope(getattr(self, '_native_proof_contract', None)):
+            owner = getattr(self, '_native_verification', None)
+            if owner is None:
+                carrier = {'callee': self._replay_verification_reference, 'response': response, 'arguments': arguments, '_connection': _connection}
+                del self, response, arguments, _connection, owner
+                return carrier.pop('callee')(carrier.pop('response'), carrier.pop('arguments'), _connection=carrier.pop('_connection'))
+            frame = owner.prepare('_replay_verification', (self, response, arguments, _connection))
+            self = response = arguments = _connection = None
+            return owner.finish(frame)
+
+    def _replay_verification_reference(self, response, arguments, *, _connection=None):
         """Observe an original result only if its complete scope remains valid."""
         try:
             validate(response, self.tools["hia_verify"]["outputSchema"], "replayed verification")
@@ -919,6 +1002,19 @@ class HIAAgentService:
             reject("E_HIA_PROOF_SCOPE", "cached proof differs from the original subject or retained conclusion; rerun verification with a fresh request key", "verification")
 
     def _compile(self, program, kind, machine_plan, timeout_ms, *, foreign_buffer_exports=()):
+        owner = getattr(self, '_native_emission', None)
+        arguments = {'callee': self._compile_reference if owner is None else owner.compile,
+                     'program': program, 'kind': kind, 'machine_plan': machine_plan,
+                     'timeout_ms': timeout_ms, 'foreign_buffer_exports': foreign_buffer_exports}
+        # Move each caller-owned argument into the actual callee. A forwarding
+        # frame must not keep an additional reference until after that callee's
+        # locals have retired, on either the default or selected route.
+        del self, owner, program, kind, machine_plan, timeout_ms, foreign_buffer_exports
+        return arguments.pop('callee')(arguments.pop('program'), arguments.pop('kind'),
+            arguments.pop('machine_plan'), arguments.pop('timeout_ms'),
+            foreign_buffer_exports=arguments.pop('foreign_buffer_exports'))
+
+    def _compile_reference(self, program, kind, machine_plan, timeout_ms, *, foreign_buffer_exports=()):
         from .hia_program_native import emit_program_machine, compile_program_machine
         if timeout_ms <= 0:
             reject("E_HIA_BUDGET", "frozen context deadline expired before emission", "codegen")
@@ -947,6 +1043,12 @@ class HIAAgentService:
         return data, result
 
     def _hia_emit(self, args):
+        owner = getattr(self, '_native_emission', None)
+        arguments = {'callee': self._hia_emit_reference if owner is None else owner.emit, 'args': args}
+        del self, owner, args
+        return arguments.pop('callee')(arguments.pop('args'))
+
+    def _hia_emit_reference(self, args):
         self._profile(args["backend_profile"], "backend")
         context = self._context(args["context"])
         program = self._program(args["candidate"])
@@ -989,7 +1091,7 @@ class HIAAgentService:
         program = self._program(metadata["candidate"], **_connection_arguments(_connection))
         retained_context = self._context(metadata["context"], **_connection_arguments(_connection))
         exports = tuple(map(tuple, retained_context.get("foreign_buffer_exports", [])))
-        if (metadata["core_sha256"] != program.sha256 or _signatures(program, exports) != metadata["signatures"]
+        if (metadata["core_sha256"] != program.sha256 or self._signature_values(program, exports) != metadata["signatures"]
                 or metadata.get("foreign_buffer_exports", []) != [list(pair) for pair in exports]):
             reject("E_HIA_RECEIPT_BINDING", "native artifact's admitted Core identity differs")
         return data, metadata, program
@@ -1029,6 +1131,23 @@ class HIAAgentService:
 
     @staticmethod
     def _native_refinement_binding(subject, built, program, object_bytes, final_bytes):
+        from .hia_service_verification_native import (
+            active_verification, admitted_verification, NativeVerificationService)
+        owner = active_verification()
+        if owner is None:
+            admitted = admitted_verification(capture_identity=True)
+            owner = None if admitted is None else NativeVerificationService(
+                admitted.image, checker_custody=admitted)
+        if owner is None:
+            arguments = {'callee': HIAAgentService._native_refinement_binding_reference, 'subject': subject, 'built': built, 'program': program, 'object_bytes': object_bytes, 'final_bytes': final_bytes}
+            del subject, built, program, object_bytes, final_bytes, owner
+            return arguments.pop('callee')(arguments.pop('subject'), arguments.pop('built'), arguments.pop('program'), arguments.pop('object_bytes'), arguments.pop('final_bytes'))
+        frame = owner.prepare('_native_refinement_binding', (subject, built, program, object_bytes, final_bytes))
+        subject = built = program = object_bytes = final_bytes = None
+        return owner.finish(frame)
+
+    @staticmethod
+    def _native_refinement_binding_reference(subject, built, program, object_bytes, final_bytes):
         return {"candidate_core_sha256": program.sha256, "input_sha256": program.input_sha256,
             "native_artifact": subject["native_artifact"], "build_receipt": subject["build_receipt"],
             "object_artifact": built["object_artifact"], "object_sha256": sha256(object_bytes).hexdigest(),
@@ -1097,6 +1216,18 @@ class HIAAgentService:
         return finish(status, reason)
 
     def _check_native_refinement_evidence(self, evidence, subject, context, program, *, _connection=None):
+        from .hia_proof_contract_selection import proof_contract_scope
+        with proof_contract_scope(getattr(self, '_native_proof_contract', None)):
+            owner = getattr(self, '_native_verification', None)
+            if owner is None:
+                arguments = {'callee': self._check_native_refinement_evidence_reference, 'evidence': evidence, 'subject': subject, 'context': context, 'program': program, '_connection': _connection}
+                del self, evidence, subject, context, program, _connection, owner
+                return arguments.pop('callee')(arguments.pop('evidence'), arguments.pop('subject'), arguments.pop('context'), arguments.pop('program'), _connection=arguments.pop('_connection'))
+            frame = owner.prepare('_check_native_refinement_evidence', (self, evidence, subject, context, program, _connection))
+            self = evidence = subject = context = program = _connection = None
+            return owner.finish(frame)
+
+    def _check_native_refinement_evidence_reference(self, evidence, subject, context, program, *, _connection=None):
         if subject.get("kind") != "native_artifact":
             reject("E_HIA_PROOF_SCOPE", "independent machine evidence requires its exact native subject", "verification")
         built, final_bytes, object_bytes, retained = self._build_inputs(
@@ -1126,6 +1257,18 @@ class HIAAgentService:
                 reject("E_HIA_PROOF_SCOPE", "machine proof query bytes differ", "verification")
 
     def _required_claims(self, context, candidate_artifact, refs, baseline_core_sha=None, *, _connection=None):
+        from .hia_proof_contract_selection import proof_contract_scope
+        with proof_contract_scope(getattr(self, '_native_proof_contract', None)):
+            owner = getattr(self, '_native_verification', None)
+            if owner is None:
+                arguments = {'callee': self._required_claims_reference, 'context': context, 'candidate_artifact': candidate_artifact, 'refs': refs, 'baseline_core_sha': baseline_core_sha, '_connection': _connection}
+                del self, context, candidate_artifact, refs, baseline_core_sha, _connection, owner
+                return arguments.pop('callee')(arguments.pop('context'), arguments.pop('candidate_artifact'), arguments.pop('refs'), arguments.pop('baseline_core_sha'), _connection=arguments.pop('_connection'))
+            frame = owner.prepare('_required_claims', (self, context, candidate_artifact, refs, baseline_core_sha, _connection))
+            self = context = candidate_artifact = refs = baseline_core_sha = _connection = None
+            return owner.finish(frame)
+
+    def _required_claims_reference(self, context, candidate_artifact, refs, baseline_core_sha=None, *, _connection=None):
         _data, native, _program = self._native(candidate_artifact, context["ref"], **_connection_arguments(_connection))
         objective, _ = self.store.get_json(context["objective"], **_connection_arguments(_connection))
         receipts = [self._verification(ref, context["ref"], native["candidate"], **_connection_arguments(_connection)) for ref in refs]

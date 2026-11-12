@@ -274,6 +274,152 @@ class CallPrimitiveAdapterTests(unittest.TestCase):
                 self.image([self.frame(serial=8192, error=1, payload=changed)]).step(context)
 
 
+class CallPrimitiveArenaTests(unittest.TestCase):
+    def test_complete_private_extents_and_last_export_own_the_mapping(self):
+        import weakref
+        from hepta import hia_machine_transport as storage
+        mappings = []
+        real_mmap = storage.mmap
+        class MmapObserver:
+            def __getattr__(self, name): return getattr(real_mmap, name)
+            def mmap(self, *args, **kwargs):
+                value = real_mmap.mmap(*args, **kwargs)
+                mappings.append(weakref.ref(value))
+                return value
+        for size in (OUTPUT_BYTES, WORKSPACE_BYTES):
+            with self.subTest(bytes=size), patch.object(storage, 'mmap', MmapObserver()):
+                value = storage._private_zeroed_buffer(size)
+                view = weakref.ref(value)
+                self.assertEqual(ctypes.sizeof(value), size)
+                self.assertEqual(value.raw, bytes(size))
+                value[0], value[size - 1] = b'A', b'Z'
+                exported = memoryview(value)
+                self.assertEqual((value[0], value[size - 1]), (b'A', b'Z'))
+                del value
+                self.assertIsNotNone(view())
+                self.assertIsNotNone(mappings[-1]())
+                self.assertFalse(mappings[-1]().closed)
+                exported.release()
+                del exported
+                self.assertIsNone(view())
+                self.assertIsNone(mappings[-1]())
+
+    def test_failed_view_construction_keeps_only_real_external_exports(self):
+        import weakref
+        from hepta import hia_machine_transport as storage
+        real_ctypes, real_mmap = ctypes, storage.mmap
+        for keep_export in (False, True):
+            for exception_type in (MemoryError, KeyboardInterrupt):
+                with self.subTest(export=keep_export, error=exception_type.__name__):
+                    mappings, exports = [], []
+                    fault = exception_type('controlled ctypes view construction failure')
+                    class MmapObserver:
+                        def __getattr__(self, name): return getattr(real_mmap, name)
+                        def mmap(self, *args, **kwargs):
+                            value = real_mmap.mmap(*args, **kwargs)
+                            mappings.append(weakref.ref(value))
+                            return value
+                    class Array:
+                        @staticmethod
+                        def from_buffer(mapped):
+                            if keep_export:
+                                exports.append((real_ctypes.c_char * OUTPUT_BYTES).from_buffer(mapped))
+                            # Simulate the C constructor's error without adding
+                            # a Python observer frame that owns its argument.
+                            del mapped
+                            raise fault
+                    class Char:
+                        def __mul__(self, size):
+                            self_size.append(size)
+                            return Array
+                    class CtypesObserver:
+                        c_char = Char()
+                        def __getattr__(self, name): return getattr(real_ctypes, name)
+                    self_size, held = [], None
+                    with patch.object(storage, 'mmap', MmapObserver()), patch.object(storage, 'ctypes', CtypesObserver()):
+                        try: storage._private_zeroed_buffer(OUTPUT_BYTES)
+                        except BaseException as error: held = error
+                    self.assertIs(held, fault)
+                    self.assertEqual(self_size, [OUTPUT_BYTES])
+                    self.assertEqual(len(mappings), 1)
+                    if keep_export:
+                        self.assertIsNotNone(mappings[0]())
+                        self.assertFalse(mappings[0]().closed)
+                        exports[0][-1] = b'Q'
+                        self.assertEqual(exports[0][-1], b'Q')
+                    else:
+                        self.assertIsNone(mappings[0]())
+                    exports.clear()
+                    self.assertIsNone(mappings[0]())
+                    # The original error and its traceback are still held.
+                    self.assertIs(held, fault)
+
+    def test_partial_step_allocation_refuses_before_any_native_entry(self):
+        import weakref
+        from hepta import hia_call_primitive_native as bridge
+        real_allocate = bridge._private_zeroed_buffer
+        for ordinal in (1, 2):
+            for exception_type in (MemoryError, KeyboardInterrupt):
+                with self.subTest(ordinal=ordinal, error=exception_type.__name__):
+                    fault = exception_type('controlled private arena allocation refusal')
+                    requests, views, entered = [], [], []
+                    def allocate(size):
+                        requests.append(size)
+                        if len(requests) == ordinal: raise fault
+                        value = real_allocate(size)
+                        views.append(weakref.ref(value))
+                        return value
+                    image = object.__new__(NativeCallPrimitive)
+                    image._entry = lambda *args: entered.append(args)
+                    context = CallPrimitivePacket('const', [], {'value': 37}, [], [('out', scalar_type())], 0)
+                    held = None
+                    with patch.object(bridge, '_private_zeroed_buffer', allocate):
+                        try: image.step(context)
+                        except BaseException as error: held = error
+                    self.assertIs(held, fault)
+                    self.assertEqual(requests, [OUTPUT_BYTES, WORKSPACE_BYTES][:ordinal])
+                    self.assertEqual(entered, [])
+                    self.assertTrue(all(view() is None for view in views))
+
+    def test_real_address_limit_preserves_original_MemoryError_chain(self):
+        child = r'''
+import ctypes, importlib.util, json, os, pathlib, resource, sys
+spec = importlib.util.spec_from_file_location('arena_storage', sys.argv[1])
+storage = importlib.util.module_from_spec(spec); spec.loader.exec_module(storage)
+used = int(pathlib.Path('/proc/self/statm').read_text().split()[0]) * os.sysconf('SC_PAGE_SIZE')
+before = resource.getrlimit(resource.RLIMIT_AS)
+limit = used + (32 << 20)
+assert before[1] == resource.RLIM_INFINITY or limit <= before[1]
+resource.setrlimit(resource.RLIMIT_AS, (limit, before[1]))
+observations = []
+for name, allocate in [('original', ctypes.create_string_buffer), ('candidate', storage._private_zeroed_buffer)]:
+    for outer in (False, True):
+        def observe():
+            try: allocate(64 << 20)
+            except BaseException as error:
+                return [type(error).__name__, error.args,
+                        None if error.__context__ is None else [type(error.__context__).__name__, error.__context__.args],
+                        None if error.__cause__ is None else [type(error.__cause__).__name__, error.__cause__.args],
+                        error.__suppress_context__]
+            raise AssertionError('actual address limit did not refuse the allocation')
+        if outer:
+            try: raise LookupError('outer handled exception')
+            except LookupError: result = observe()
+        else: result = observe()
+        observations.append([name, outer, result])
+assert observations[0][2] == observations[2][2]
+assert observations[1][2] == observations[3][2]
+assert all(item[2] == ['MemoryError', (), None, None, False] for item in observations)
+print(json.dumps({'observations': observations, 'address_limit': limit, 'requested_bytes': 64 << 20}))
+'''
+        result = subprocess.run([sys.executable, '-I', '-S', '-B', '-c', child,
+            str(ROOT / 'hepta/hia_machine_transport.py')], capture_output=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(len(report['observations']), 4)
+        self.assertEqual(report['requested_bytes'], OUTPUT_BYTES)
+
+
 class CallPrimitiveNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

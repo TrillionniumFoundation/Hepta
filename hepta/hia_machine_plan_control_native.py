@@ -17,7 +17,7 @@ import operator
 import struct
 import sys
 
-from .hia_exception_delivery import ExceptionDelivery
+from .hia_exception_delivery import ExceptionDelivery, ExceptionDeliveryUnavailable
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
 from .hia_machine_transport import _private_zeroed_buffer
 
@@ -78,9 +78,24 @@ def _capture_with_handler(frame):
         return _capture(frame)
 
 
+def _runtime_profile():
+    """Observe only explicitly reviewed interpreter frame ABIs.
+
+    Public unselected Python paths keep their existing package support. This
+    native continuation requires the same CPython 3.12+ exception mechanism;
+    unreviewed interpreter families and future versions cannot silently borrow
+    the 3.14 frame ABI. HIA, rather than this transport, chooses retirement order.
+    """
+    version = sys.version_info[:2]
+    if sys.implementation.name != 'cpython' or version not in ((3, 12), (3, 13), (3, 14)):
+        raise ExceptionDeliveryUnavailable('native frame transport requires a reviewed CPython 3.12, 3.13 or 3.14 ABI')
+    return version[0] * 100 + version[1]
+
+
 class PlanFrame:
     def __init__(self, image, mode, arguments, captures=(), *, witness=None):
         self.closed = False
+        self._runtime_profile = image.runtime_profile
         self.state = self.output = None
         self.pending = self.frame_bytes = None
         self.executed = self.completed = False
@@ -188,8 +203,12 @@ class PlanFrame:
                 self._retiring = False
         else:
             # A partial constructor has not executed a policy instruction.
-            # Its argument slots have only the fixed forward frame ownership.
-            for index in range(len(self.values)):
+            # Its argument slots have only physical frame ownership. No HIA
+            # instruction or foreign policy operation has been permitted.
+            indices = range(len(self.values))
+            if self._runtime_profile == 314:
+                indices = reversed(indices)
+            for index in indices:
                 self.values[index] = _EMPTY
         self.values.clear()
         self.cells.clear()
@@ -211,7 +230,8 @@ class PlanFrame:
             raise RuntimeError('native machine-plan frame is closed')
         sequence = 0 if not self._started else _read_word(self.state, 144)
         value = self.mode if command == 0 else op if command == 2 else flag
-        struct.pack_into('<5Q', self.state, 0, command, self.nonce, sequence, value, error)
+        struct.pack_into('<6Q', self.state, 0, command, self.nonce, sequence, value, error,
+                         self._runtime_profile)
         self.image.entries += 1
         return self.image._entry(self.image._table_buffer, len(self.image.table),
                                  self.output, len(self.output), self.state, len(self.state))
@@ -314,25 +334,71 @@ class PlanFrame:
             return vars(module)[name]
         return vars(builtins)[name]
 
+    def _move_call_operand(self, slot):
+        """Transfer a claimed temporary into CPython's operand stack.
+
+        The HIA CALL has consumed its one-shot permission before this primitive.
+        Its later ACK retires the logical births; empty physical slots cannot
+        retain the callee or its arguments beyond the original Python call.
+        """
+        value = self._get(slot)
+        self._clear(slot)
+        return value
+
     def _call(self, args, raw):
+        if len(raw) < 2:
+            raise RuntimeError('native machine-plan call shape differs')
         count, keywords = raw[:2]
+        if (count > 4 or keywords > 2 or len(args) != 1 + count + keywords
+                or len(raw) != 2 + keywords or len(set(args)) != len(args)):
+            raise RuntimeError('native machine-plan call shape differs')
+        _, slots, _, metadata = self.image.function(self.mode)
+        if any(type(slot) is not int or not 0 <= slot < slots
+               or self.image.table[metadata + slot] != 1 for slot in args):
+            raise RuntimeError('native machine-plan call requires unique temporary operands')
         if keywords == 0:
             if count == 0:
-                return self._get(args[0])()
+                return self._move_call_operand(args[0])()
             if count == 1:
-                return self._get(args[0])(self._get(args[1]))
+                return self._move_call_operand(args[0])(self._move_call_operand(args[1]))
             if count == 2:
-                return self._get(args[0])(self._get(args[1]), self._get(args[2]))
+                return self._move_call_operand(args[0])(self._move_call_operand(args[1]), self._move_call_operand(args[2]))
             if count == 3:
-                return self._get(args[0])(self._get(args[1]), self._get(args[2]), self._get(args[3]))
+                return self._move_call_operand(args[0])(self._move_call_operand(args[1]), self._move_call_operand(args[2]), self._move_call_operand(args[3]))
             if count == 4:
-                return self._get(args[0])(self._get(args[1]), self._get(args[2]), self._get(args[3]), self._get(args[4]))
-        # Only keyword-bearing original call sites reach this mechanical form.
-        # No borrowed foreign values are saved in this frame's Python locals.
-        return self._get(args[0])(
-            *(self._get(args[index + 1]) for index in range(count)),
-            **{self.image.literal(raw[2 + index]): self._get(args[1 + count + index])
-               for index in range(keywords)})
+                return self._move_call_operand(args[0])(self._move_call_operand(args[1]), self._move_call_operand(args[2]), self._move_call_operand(args[3]), self._move_call_operand(args[4]))
+        # These are the complete literal keyword shapes in the admitted Core
+        # and Plan policies, plus the independent mechanism fixture. A tuple
+        # expansion changes CPython's operand ownership for callable objects;
+        # use its ordinary CALL instruction for every reviewed shape instead.
+        shape = count, tuple(self.image.literal(index) for index in raw[2:])
+        if shape == (2, ('allow_leaf_registers',)):
+            return self._move_call_operand(args[0])(
+                self._move_call_operand(args[1]), self._move_call_operand(args[2]),
+                allow_leaf_registers=self._move_call_operand(args[3]))
+        if shape == (0, ('key',)):
+            return self._move_call_operand(args[0])(key=self._move_call_operand(args[1]))
+        if shape == (0, ('caller_clobbered_leaf_registers', 'leaf_opcode_inventory')):
+            return self._move_call_operand(args[0])(
+                caller_clobbered_leaf_registers=self._move_call_operand(args[1]),
+                leaf_opcode_inventory=self._move_call_operand(args[2]))
+        if shape == (1, ('default',)):
+            return self._move_call_operand(args[0])(
+                self._move_call_operand(args[1]), default=self._move_call_operand(args[2]))
+        if shape == (1, ('word',)):
+            return self._move_call_operand(args[0])(
+                self._move_call_operand(args[1]), word=self._move_call_operand(args[2]))
+        if shape == (0, ('first', 'text_alignment')):
+            return self._move_call_operand(args[0])(
+                first=self._move_call_operand(args[1]), text_alignment=self._move_call_operand(args[2]))
+        if shape == (1, ('text_alignment',)):
+            return self._move_call_operand(args[0])(
+                self._move_call_operand(args[1]), text_alignment=self._move_call_operand(args[2]))
+        if shape == (3, ('text_alignment',)):
+            return self._move_call_operand(args[0])(
+                self._move_call_operand(args[1]), self._move_call_operand(args[2]),
+                self._move_call_operand(args[3]), text_alignment=self._move_call_operand(args[4]))
+        raise RuntimeError('native machine-plan literal keyword call shape is unreviewed')
 
     def _function(self, args, raw, vector):
         mode, generator = raw
@@ -360,8 +426,9 @@ class PlanFrame:
             return native_generator()
         image, witness = self.image, self.witness
         def native_function(*arguments):
-            return image.run(mode, *arguments, _captures=captures,
-                             _witness=witness)
+            frame = image.prepare(mode, arguments, captures, witness=witness)
+            arguments = None
+            return image.finish(frame)
         return native_function
 
     def _effect(self):
@@ -510,6 +577,7 @@ class NativeMachinePlanControl(NativeHiaJsonImage):
         self._initialize_control()
 
     def _initialize_control(self):
+        self.runtime_profile = _runtime_profile()
         self.entries = 0
         self.observations = Counter()
         self._delivery = ExceptionDelivery.from_hia(self)
@@ -568,27 +636,49 @@ class NativeMachinePlanControl(NativeHiaJsonImage):
             self._literals[index] = value
         return self._literals[index]
 
-    def run(self, mode, *arguments, _captures=(), _witness=None):
-        frame = PlanFrame(self, mode, arguments, _captures, witness=_witness)
+    def prepare(self, mode, arguments, captures=(), *, witness=None):
+        return PlanFrame(self, mode, arguments, captures, witness=witness)
+
+    def finish(self, frame):
+        """Drive after the fixed facade has transferred its parameter owners."""
+        completed = False
         try:
             if frame.drive() != 0:
                 raise RuntimeError('native machine-plan public entry yielded')
+            completed = True
             return frame.take()
+        except BaseException:
+            completed = False
+            raise
         finally:
-            frame.close(release=sys.exc_info()[0] is None)
+            frame.close(release=completed)
+
+    def run(self, mode, *arguments, _captures=(), _witness=None):
+        frame = self.prepare(mode, arguments, _captures, witness=_witness)
+        arguments = _captures = None
+        return self.finish(frame)
 
     def validate(self, checked, plan, witness=None):
-        return self.run(1, checked, plan, _witness=witness)
+        frame = self.prepare(1, (checked, plan), witness=witness)
+        checked = plan = witness = None
+        return self.finish(frame)
 
     def witness(self, checked, assignments, *, allow_leaf_registers=False):
-        return self.run(2, checked, assignments, allow_leaf_registers)
+        frame = self.prepare(2, (checked, assignments, allow_leaf_registers))
+        checked = assignments = allow_leaf_registers = None
+        return self.finish(frame)
 
     def code_options(self, plan):
-        return self.run(3, plan)
+        frame = self.prepare(3, (plan,))
+        plan = None
+        return self.finish(frame)
 
     def preservation_checks(self, plan, checked=None, *, witness=None):
-        return self.run(4, plan, checked, _witness=witness)
+        frame = self.prepare(4, (plan, checked), witness=witness)
+        plan = checked = witness = None
+        return self.finish(frame)
 
 
 def installed_machine_plan(manifest_path):
-    return _installed_json_image(manifest_path, SOURCE, SCHEMA, NativeMachinePlanControl)
+    from .hia_machine_plan_native import installed_machine_plan as admitted
+    return admitted(manifest_path)

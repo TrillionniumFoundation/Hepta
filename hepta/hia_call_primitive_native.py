@@ -13,6 +13,7 @@ import os
 import struct
 
 from .hia_instruction_policy_native import transport
+from .hia_machine_transport import _private_zeroed_buffer
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
 from .hia_native_value_graph import decode_native_graph
 from .hia_record_operations_native import RecordPacket
@@ -93,7 +94,7 @@ class NativeCallPrimitive(NativeHiaJsonImage):
                 or not 0 <= context.serial <= 8192 or context.phase not in (0, 1, 2)):
             reject('invalid input or starting counter')
         source = ctypes.create_string_buffer(wire, max(1, len(wire)))
-        output, workspace = ctypes.create_string_buffer(OUTPUT_BYTES), ctypes.create_string_buffer(WORKSPACE_BYTES)
+        output, workspace = _private_zeroed_buffer(OUTPUT_BYTES), _private_zeroed_buffer(WORKSPACE_BYTES)
         extent = self._entry(source, len(wire), output, OUTPUT_BYTES, workspace, WORKSPACE_BYTES)
         if ctypes.string_at(source, len(wire)) != wire:
             reject('input bytes changed')

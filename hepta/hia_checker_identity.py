@@ -2,8 +2,9 @@
 
 Source bytes alone cannot identify a checker which delegates to native images.
 This module records both the reviewed Python dependency closure and the actual
-immutable mappings returned by the existing native loaders. It neither executes
-those mappings nor treats an image/manifest digest as a correctness theorem.
+immutable mappings returned by the existing native loaders. Some loaders
+initialize their fixed table or transport emitter; identity capture does not
+invoke a business-policy entry or treat a digest as a correctness theorem.
 The host Python/loader and absence of hostile process mutation remain assumed.
 """
 from __future__ import annotations
@@ -38,12 +39,63 @@ CORE_SOURCE_FILES = (
     "hia_program_execution_native.py",
     "hia_static_budget.py", "hia_static_budget_native.py", "hia_heap_bound.py",
     "hia_heap_bound_native.py", "hia_heap_live_native.py", "hia_heap_payload_native.py",
+    # Ordinary Core call erasure imports this fixed physical allocator.
+    # Its Code qualname helper is conservatively covered by the same bytes;
+    # no Code planning policy or native selector is introduced here.
+    "hia_machine_transport.py",
 )
+
+# Backend and held-service object bridges remain separate from the pure Core
+# import closure. They are still fresh inputs of every checker source identity.
+MECHANISM_SOURCE_FILES = (
+    "hia_core_emitter_native.py",
+    "hia_core_emitter_selection.py",
+    "hia_core_lowering_native.py",
+    "hia_core_lowering_selection.py",
+    "hia_exception_delivery.py",
+    "hia_machine_plan.py",
+    "hia_machine_plan_control_native.py",
+    "hia_machine_plan_native.py",
+    "hia_native_build_foreign.py",
+    "hia_native_build_native.py",
+    "hia_native_build_selection.py",
+    "hia_native_byte_abi.py",
+    "hia_native_byte_abi_native.py",
+    "hia_native_byte_abi_selection.py",
+    "hia_proof_contract_foreign.py",
+    "hia_proof_contract_native.py",
+    "hia_proof_contract_selection.py",
+    "hia_service_verification_foreign.py",
+    "hia_service_verification_native.py",
+)
+
+# The proof owner uses the same complete mechanism inventory. Provider edges
+# name external semantic consumers; the original Core closure stays strict.
+CHECKER_MECHANISM_SOURCE_FILES = MECHANISM_SOURCE_FILES
+CHECKER_MECHANISM_EXTERNAL_PROVIDERS = {
+    "hia_core_emitter_native.py": ("hia_program_native.py",),
+    "hia_core_emitter_selection.py": ("hia_program_native.py",),
+    "hia_core_lowering_native.py": ("hia_program_native.py",),
+    "hia_core_lowering_selection.py": ("hia_program_native.py",),
+    "hia_native_build_foreign.py": ("hia_machine_elf.py", "hia_machine_x64.py",),
+    "hia_native_build_native.py": ("hia_program_native.py",),
+    "hia_native_build_selection.py": ("hia_program_native.py",),
+    "hia_native_byte_abi.py": ("hia_program_native.py",),
+    "hia_native_byte_abi_native.py": ("hia_program_native.py",),
+    "hia_proof_contract_foreign.py": ("hia_safe_core.py",),
+    "hia_proof_contract_native.py": ("hia_proof_contract.py",),
+    "hia_service_verification_native.py": ("hia_agent_service.py", "hia_program_native.py", "hia_safe_core_elf.py",),
+}
 
 # Exact verifier and checked-replay selectors. Finite-context checks also execute
 # the public VM; binding only its Python caller would omit a selected HIA image.
 # New semantic delegations must extend this inventory before proof qualification.
 NATIVE_OWNERS = {
+    "HEPTA_HIA_NATIVE_BUILD_MANIFEST": ("hia_native_build_selection", "installed_native_build"),
+    "HEPTA_HIA_NATIVE_BYTE_ABI_MANIFEST": ("hia_native_byte_abi_selection", "installed_native_byte_abi"),
+    "HEPTA_HIA_CORE_EMITTER_MANIFEST": ("hia_core_emitter_selection", "installed_core_emitter"),
+    "HEPTA_HIA_MACHINE_PLAN_MANIFEST": ("hia_machine_plan_native", "installed_machine_plan"),
+    "HEPTA_HIA_CORE_LOWERING_MANIFEST": ("hia_core_lowering_selection", "installed_core_lowering"),
     "HEPTA_HIA_PROGRAM_EXECUTION_MANIFEST": ("hia_program_execution_native", "installed_program_execution"),
     "HEPTA_HIA_STATIC_BUDGET_MANIFEST": ("hia_static_budget_native", "installed_static_budget"),
     "HEPTA_HIA_HEAP_BOUND_MANIFEST": ("hia_heap_bound_native", "installed_heap_controller"),
@@ -83,7 +135,33 @@ NATIVE_OWNERS = {
 # A proof caller must explicitly supply its held capability. The default Core
 # checker selection, including all ordinary callers, remains unchanged.
 HELD_NATIVE_OWNERS = {
+    "HEPTA_HIA_PROOF_CONTRACT_MANIFEST": ("hia_proof_contract_native", "NativeProofContractImage"),
+    "HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST": ("hia_service_verification_native", "NativeVerificationImage"),
+    "HEPTA_HIA_SERVICE_EMISSION_MANIFEST": ("hia_service_emission_native", "NativeEmissionImage"),
     "HEPTA_HIA_SERVICE_CONTEXT_MANIFEST": ("hia_service_context_native", "NativeContextImage"),
+}
+
+# Backend rederivation captures an ordinary selection for the duration of its
+# emit, including an explicit absence. Its identity must name the mapping
+# actually used in that scope, while later independent consumers re-admit the
+# then-current ambient selector. These hooks return only admitted capabilities;
+# serialized evidence cannot choose or override one.
+CAPTURED_NATIVE_OWNERS = {
+    "HEPTA_HIA_NATIVE_BUILD_MANIFEST": (
+        "hia_native_build_selection", "captured_checker_owner",
+        "hia_native_build_native", "NativeBuild"),
+    "HEPTA_HIA_NATIVE_BYTE_ABI_MANIFEST": (
+        "hia_native_byte_abi_selection", "captured_checker_owner",
+        "hia_native_byte_abi_native", "NativeByteABI"),
+    "HEPTA_HIA_CORE_EMITTER_MANIFEST": (
+        "hia_core_emitter_selection", "captured_checker_owner",
+        "hia_core_emitter_native", "NativeCoreEmitter"),
+    "HEPTA_HIA_MACHINE_PLAN_MANIFEST": (
+        "hia_machine_plan_native", "captured_checker_owner",
+        "hia_machine_plan_control_native", "NativeMachinePlanControl"),
+    "HEPTA_HIA_CORE_LOWERING_MANIFEST": (
+        "hia_core_lowering_selection", "captured_checker_owner",
+        "hia_core_lowering_native", "NativeCoreLowering"),
 }
 
 
@@ -113,9 +191,20 @@ def _held_manifest_pairs(items):
 def _held_native_identity(binding):
     if type(binding) is not HeldNativeOwner:
         raise ValueError("held checker owner requires its admitted in-process capability")
-    if type(binding.selector) is not str or binding.selector not in HELD_NATIVE_OWNERS:
-        raise ValueError("held checker owner is outside the explicit service inventory")
-    module_name, factory_name = HELD_NATIVE_OWNERS[binding.selector]
+    if type(binding.selector) is not str:
+        raise ValueError("held checker selector must be an exact string")
+    if binding.selector in HELD_NATIVE_OWNERS:
+        if binding.selector in NATIVE_OWNERS or binding.selector in CAPTURED_NATIVE_OWNERS:
+            raise ValueError("service-held checker owner overlaps an ordinary selector")
+        module_name, factory_name = HELD_NATIVE_OWNERS[binding.selector]
+    elif binding.selector in CAPTURED_NATIVE_OWNERS:
+        record = CAPTURED_NATIVE_OWNERS[binding.selector]
+        if (binding.selector not in NATIVE_OWNERS or type(record) is not tuple
+                or len(record) != 4 or any(type(part) is not str for part in record)):
+            raise ValueError("captured checker type is outside its reviewed ordinary owner")
+        module_name, factory_name = record[2:]
+    else:
+        raise ValueError("held checker owner is outside the explicit capability inventory")
     module = importlib.import_module("." + module_name, __package__)
     if type(binding.image) is not getattr(module, factory_name):
         raise ValueError("held checker mapping differs from its native owner type")
@@ -150,7 +239,7 @@ def hold_native_owner(selector, image, manifest, source):
 
 def checker_source_identity(extra_files=()):
     """Hash the same Core closure for each consumer, retaining its own inputs."""
-    names = set(CORE_SOURCE_FILES) | set(extra_files)
+    names = set(CORE_SOURCE_FILES) | set(MECHANISM_SOURCE_FILES) | set(extra_files)
     return {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
             for name in sorted(names)}
 
@@ -177,16 +266,38 @@ def _mapped_identity(image):
 
 
 def checker_native_selection(*, held_owners=()):
-    """Bind every selected verifier owner without invoking a native entrypoint.
+    """Bind each admitted verifier mapping without running a business-policy entry.
 
     Configured owners are conservatively bound even when a particular input
     does not visit them. No serialized receipt can select code for this call.
     """
     if type(held_owners) is not tuple:
         raise ValueError("held checker owners must be an explicit immutable capability tuple")
+    captured = {}
+    for key, record in CAPTURED_NATIVE_OWNERS.items():
+        if (key not in NATIVE_OWNERS or key in HELD_NATIVE_OWNERS
+                or type(record) is not tuple or len(record) != 4
+                or any(type(part) is not str for part in record)):
+            raise ValueError("captured checker hook is outside the reviewed owner inventory")
+        module_name, hook_name = record[:2]
+        module = importlib.import_module("." + module_name, __package__)
+        observation = getattr(module, hook_name)()
+        if (type(observation) is not tuple or len(observation) != 2
+                or type(observation[0]) is not bool):
+            raise ValueError("captured checker owner observation is malformed")
+        if observation[0]:
+            binding = observation[1]
+            if binding is not None and (type(binding) is not HeldNativeOwner or binding.selector != key):
+                raise ValueError("captured checker owner differs from its declared selector")
+            captured[key] = None if binding is None else _held_native_identity(binding)
+        elif observation[1] is not None:
+            raise ValueError("uncaptured checker owner supplied a capability")
     selected = {key: os.environ.get(key) or None for key in sorted(NATIVE_OWNERS)}
     result = {}
     for key, path in selected.items():
+        if key in captured:
+            result[key] = captured[key]
+            continue
         if path is None:
             result[key] = None
             continue
@@ -220,7 +331,8 @@ def checker_native_selection(*, held_owners=()):
                        "sources": source_identity, "images": image_identity,
                        "child_manifests": {name: sha256(child).hexdigest()
                                            for name, child in children.items()}}
-    if selected != {key: os.environ.get(key) or None for key in sorted(NATIVE_OWNERS)}:
+    if ({key: path for key, path in selected.items() if key not in captured}
+            != {key: os.environ.get(key) or None for key in sorted(NATIVE_OWNERS) if key not in captured}):
         raise ValueError("checker native selection changed during identity capture")
     for binding in held_owners:
         identity = _held_native_identity(binding)

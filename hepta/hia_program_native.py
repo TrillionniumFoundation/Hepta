@@ -66,11 +66,33 @@ class HIAProgramNativeRejected(ValueError):
     """The exact program, target, object or publication is not admitted."""
 
 
-def _reject(message, code="E_HIA_PROGRAM_NATIVE"):
+def _reject(message, code='E_HIA_PROGRAM_NATIVE'):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        _invocation = owner.prepare('_reject', (message, code))
+        message = code = None
+        return owner.finish(_invocation)
+    _arguments = [message, code]
+    message = code = None
+    return _reference_reject(_arguments.pop(0), _arguments.pop(0))
+
+
+def _reference_reject(message, code="E_HIA_PROGRAM_NATIVE"):
     raise HIAProgramNativeRejected(code + ": " + message)
 
 
 def _implementation_hash():
+    from .hia_native_build_selection import native_build_scope, active_native_build
+    with native_build_scope(globals()):
+        owner = active_native_build()
+        if owner is not None:
+            invocation = owner.prepare('_implementation_hash', ())
+            return owner.finish(invocation)
+        return _reference_implementation_hash()
+
+
+def _reference_implementation_hash():
     digest = sha256()
     root = Path(__file__).parent
     for name in (
@@ -80,8 +102,12 @@ def _implementation_hash():
         "hia_machine_state_native.py", "hia_machine_instructions_native.py",
         "hia_machine_transport.py", "hia_json_preflight_native.py",
         "hia_exception_delivery.py",
+        "hia_core_lowering_native.py", "hia_core_lowering_selection.py",
+        "hia_core_emitter_native.py", "hia_core_emitter_selection.py",
         "hia_machine_plan_native.py", "hia_machine_plan_control_native.py",
-        "hia_machine_elf.py", "hia_machine_elf_native.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
+        "hia_machine_elf.py", "hia_machine_elf_native.py", "hia_machine_plan.py",
+        "hia_native_build_native.py", "hia_native_build_selection.py", "hia_native_build_foreign.py",
+        "hia_native_byte_abi_native.py", "hia_native_byte_abi_selection.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
         "hia_heap_bound.py", "artifact_publication.py",
         "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
         "object_structure.py", "native_tool_identity.py",
@@ -97,19 +123,63 @@ def _implementation_hash():
         digest.update(b"machine-elf-native\0" + selected_elf + b"\0")
     from .hia_machine_plan import native_implementation_identity as plan_identity
     digest.update(b'native-machine-plan\0' + plan_identity() + b'\0')
+    from .hia_core_lowering_selection import native_implementation_identity as lowering_identity
+    digest.update(b'native-core-lowering\0' + lowering_identity(globals()) + b'\0')
+    from .hia_core_emitter_selection import native_implementation_identity as emitter_identity
+    digest.update(b'native-core-emitter\0' + emitter_identity(globals()) + b'\0')
+    from .hia_native_byte_abi_selection import native_implementation_identity as byte_abi_identity
+    digest.update(b'native-byte-abi\0' + byte_abi_identity() + b'\0')
+    from .hia_native_build_selection import native_implementation_identity as build_identity
+    digest.update(b'native-build-coordinator\0' + build_identity(globals()) + b'\0')
     return digest.hexdigest()
 
 
 def _words(typ):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        _invocation = owner.prepare('_words', (typ,))
+        typ = None
+        return owner.finish(_invocation)
+    _arguments = [typ]
+    typ = None
+    return _reference_words(_arguments.pop(0))
+
+
+def _reference_words(typ):
     return 2 if typ in BYTE_RESOURCES else 1
 
 
 def _bounds(typ):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        _invocation = owner.prepare('_bounds', (typ,))
+        typ = None
+        return owner.finish(_invocation)
+    _arguments = [typ]
+    typ = None
+    return _reference_bounds(_arguments.pop(0))
+
+
+def _reference_bounds(typ):
     bits = WIDTHS[typ]
     return (-(1 << (bits - 1)), (1 << (bits - 1)) - 1) if typ.startswith("i") else (0, (1 << bits) - 1)
 
 
 def _normalize(code, reg, typ):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        _invocation = owner.prepare('_normalize', (code, reg, typ))
+        code = reg = typ = None
+        return owner.finish(_invocation)
+    _arguments = [code, reg, typ]
+    code = reg = typ = None
+    return _reference_normalize(_arguments.pop(0), _arguments.pop(0), _arguments.pop(0))
+
+
+def _reference_normalize(code, reg, typ):
     """Canonical full-register representation, including dirty incoming highs."""
     if typ == "unit":
         code.mov_imm(reg, 0)
@@ -122,6 +192,18 @@ def _normalize(code, reg, typ):
 
 
 def _prologue(code, frame):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        _invocation = owner.prepare('_prologue', (code, frame))
+        code = frame = None
+        return owner.finish(_invocation)
+    _arguments = [code, frame]
+    code = frame = None
+    return _reference_prologue(_arguments.pop(0), _arguments.pop(0))
+
+
+def _reference_prologue(code, frame):
     code.push("rbp")
     code.mov_rr("rbp", "rsp")
     # Touch each 4-KiB interval so a large frame cannot jump a stack guard.
@@ -150,6 +232,14 @@ class HIAProgramMachine:
 
 
 class _Function:
+    def __new__(cls, parent, fn, index):
+        if cls is _Function:
+            from .hia_core_lowering_selection import selected_core_lowering
+            owner = selected_core_lowering(globals())
+            if owner is not None:
+                return object.__new__(owner.function_class(cls))
+        return object.__new__(cls)
+
     def __init__(self, parent, fn, index):
         self.parent, self.fn, self.index = parent, fn, index
         self.c = parent.c
@@ -571,6 +661,15 @@ class _Function:
 
 
 class _Emitter:
+    def __new__(cls, document, allowed_exports, block_order=None,
+                foreign_buffer_exports=(), machine_plan=None):
+        if cls is _Emitter:
+            from .hia_core_emitter_selection import selected_core_emitter
+            owner = selected_core_emitter(globals())
+            if owner is not None:
+                return object.__new__(owner.emitter_class(cls))
+        return object.__new__(cls)
+
     def __init__(self, document, allowed_exports, block_order=None, foreign_buffer_exports=(), machine_plan=None):
         from .hia_machine_plan import code_options
         self.document, self.allowed_exports = document, allowed_exports
@@ -676,6 +775,19 @@ class _Emitter:
 
 
 def validate_block_layout_plan(program, machine_plan):
+    from .hia_native_build_selection import native_build_scope, active_native_build
+    with native_build_scope(globals()):
+        owner = active_native_build()
+        if owner is not None:
+            invocation = owner.prepare('validate_block_layout_plan', (program, machine_plan))
+            program = machine_plan = None
+            return owner.finish(invocation)
+        _arguments = [program, machine_plan]
+        program = machine_plan = None
+        return _reference_validate_block_layout_plan(_arguments.pop(0), _arguments.pop(0))
+
+
+def _reference_validate_block_layout_plan(program, machine_plan):
     """Compatibility entry for v1 layouts and explicit v2 machine choices.
 
     This checks a finite preservation contract relative to canonical lowering;
@@ -690,13 +802,31 @@ def validate_block_layout_plan(program, machine_plan):
 
 
 def emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_buffer_exports=()):
+    from .hia_native_build_selection import native_build_scope, active_native_build
+    with native_build_scope(globals()):
+        owner = active_native_build()
+        if owner is not None:
+            invocation = owner.prepare('emit_program_machine', (program, target, machine_plan, foreign_buffer_exports))
+            program = target = machine_plan = foreign_buffer_exports = None
+            return owner.finish(invocation)
+        _arguments = [program, target, machine_plan, foreign_buffer_exports]
+        program = target = machine_plan = foreign_buffer_exports = None
+        return _reference_emit_program_machine(_arguments.pop(0), target=_arguments.pop(0), machine_plan=_arguments.pop(0), foreign_buffer_exports=_arguments.pop(0))
+
+
+def _reference_emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_buffer_exports=()):
     """Recheck immutable Core and emit deterministic native object bytes."""
     from .hia_program import VerifiedProgram, verify_program
     if target != TARGET:
         _reject("direct machine backend supports only x86_64 Linux", "E_HIA_PROGRAM_TARGET")
     from .hia_machine_x64 import native_encoding_scope
     from .hia_machine_elf import native_elf_scope
-    with native_encoding_scope(), native_elf_scope():
+    from .hia_core_lowering_selection import native_core_lowering_scope
+    from .hia_machine_plan_native import native_machine_plan_scope
+    from .hia_core_emitter_selection import native_core_emitter_scope
+    from .hia_native_byte_abi_selection import native_byte_abi_scope
+    with (native_encoding_scope(), native_elf_scope(), native_core_lowering_scope(globals()),
+          native_machine_plan_scope(), native_core_emitter_scope(globals()), native_byte_abi_scope()):
         before = _implementation_hash()
         if not isinstance(program, VerifiedProgram):
             _reject("an immutable VerifiedProgram from verify_program is required")
@@ -724,6 +854,19 @@ def emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_b
 
 
 def _inspect_object(data, exports):
+    from .hia_native_build_selection import native_build_scope, active_native_build
+    with native_build_scope(globals()):
+        owner = active_native_build()
+        if owner is not None:
+            invocation = owner.prepare('_inspect_object', (data, exports))
+            data = exports = None
+            return owner.finish(invocation)
+        _arguments = [data, exports]
+        data = exports = None
+        return _reference_inspect_object(_arguments.pop(0), _arguments.pop(0))
+
+
+def _reference_inspect_object(data, exports):
     inventory = inspect_object_symbols(data, "ELF64", 62)
     if (inventory.get("defined") != frozenset(exports)
             or inventory.get("undefined") is None
@@ -733,6 +876,19 @@ def _inspect_object(data, exports):
 
 
 def _read_artifact(path):
+    from .hia_native_build_selection import native_build_scope, active_native_build
+    with native_build_scope(globals()):
+        owner = active_native_build()
+        if owner is not None:
+            invocation = owner.prepare('_read_artifact', (path,))
+            path = None
+            return owner.finish(invocation)
+        _arguments = [path]
+        path = None
+        return _reference_read_artifact(_arguments.pop(0))
+
+
+def _reference_read_artifact(path):
     before = path.lstat()
     if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= MAX_ARTIFACT_BYTES:
         _reject("artifact must be a bounded ordinary nonempty file")
@@ -749,6 +905,19 @@ def _read_artifact(path):
 
 
 def _run_logged(argv, *, command_log=None, parent_death_guard=False, **kwargs):
+    from .hia_native_build_selection import native_build_scope, active_native_build
+    with native_build_scope(globals()):
+        owner = active_native_build()
+        if owner is not None:
+            invocation = owner.prepare('_run_logged', (argv, command_log, parent_death_guard, kwargs))
+            argv = command_log = parent_death_guard = kwargs = None
+            return owner.finish(invocation)
+        _arguments = [argv, command_log, parent_death_guard, kwargs]
+        argv = command_log = parent_death_guard = kwargs = None
+        return _reference_run_logged(_arguments.pop(0), command_log=_arguments.pop(0), parent_death_guard=_arguments.pop(0), **_arguments.pop(0))
+
+
+def _reference_run_logged(argv, *, command_log=None, parent_death_guard=False, **kwargs):
     if command_log is not None and type(command_log) is not list:
         _reject("command log must be a plain list", "E_HIA_COMMAND_LOG")
     row = {"argv": list(argv), "status": "attempted", "returncode": None}
@@ -792,6 +961,16 @@ def _run_logged(argv, *, command_log=None, parent_death_guard=False, **kwargs):
 
 
 def _host():
+    from .hia_native_build_selection import native_build_scope, active_native_build
+    with native_build_scope(globals()):
+        owner = active_native_build()
+        if owner is not None:
+            invocation = owner.prepare('_host', ())
+            return owner.finish(invocation)
+        return _reference_host()
+
+
+def _reference_host():
     widths = {"pointer_bits": ctypes.sizeof(ctypes.c_void_p) * 8,
               "long_bits": ctypes.sizeof(ctypes.c_long) * 8,
               "size_t_bits": ctypes.sizeof(ctypes.c_size_t) * 8}
@@ -799,6 +978,20 @@ def _host():
 
 
 def compile_program_machine(image, *, program, output, kind="shared", linker="cc", command_log=None,
+                            machine_plan=None, parent_death_guard=False, timeout_seconds=None):
+    from .hia_native_build_selection import native_build_scope, active_native_build
+    with native_build_scope(globals()):
+        owner = active_native_build()
+        if owner is not None:
+            invocation = owner.prepare('compile_program_machine', (image, program, output, kind, linker, command_log, machine_plan, parent_death_guard, timeout_seconds))
+            image = program = output = kind = linker = command_log = machine_plan = parent_death_guard = timeout_seconds = None
+            return owner.finish(invocation)
+        _arguments = [image, program, output, kind, linker, command_log, machine_plan, parent_death_guard, timeout_seconds]
+        image = program = output = kind = linker = command_log = machine_plan = parent_death_guard = timeout_seconds = None
+        return _reference_compile_program_machine(_arguments.pop(0), program=_arguments.pop(0), output=_arguments.pop(0), kind=_arguments.pop(0), linker=_arguments.pop(0), command_log=_arguments.pop(0), machine_plan=_arguments.pop(0), parent_death_guard=_arguments.pop(0), timeout_seconds=_arguments.pop(0))
+
+
+def _reference_compile_program_machine(image, *, program, output, kind="shared", linker="cc", command_log=None,
                             machine_plan=None, parent_death_guard=False, timeout_seconds=None):
     """Publish a rederived object, or link and inspect a native shared library."""
     if command_log is not None and type(command_log) is not list:
@@ -921,6 +1114,20 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
 
 def build_program_machine(document, output, *, kind="shared", linker="cc", target=TARGET,
                           command_log=None, bounded_resource_limits=None, foreign_buffer_exports=()):
+    from .hia_native_build_selection import native_build_scope, active_native_build
+    with native_build_scope(globals()):
+        owner = active_native_build()
+        if owner is not None:
+            invocation = owner.prepare('build_program_machine', (document, output, kind, linker, target, command_log, bounded_resource_limits, foreign_buffer_exports))
+            document = output = kind = linker = target = command_log = bounded_resource_limits = foreign_buffer_exports = None
+            return owner.finish(invocation)
+        _arguments = [document, output, kind, linker, target, command_log, bounded_resource_limits, foreign_buffer_exports]
+        document = output = kind = linker = target = command_log = bounded_resource_limits = foreign_buffer_exports = None
+        return _reference_build_program_machine(_arguments.pop(0), _arguments.pop(0), kind=_arguments.pop(0), linker=_arguments.pop(0), target=_arguments.pop(0), command_log=_arguments.pop(0), bounded_resource_limits=_arguments.pop(0), foreign_buffer_exports=_arguments.pop(0))
+
+
+def _reference_build_program_machine(document, output, *, kind="shared", linker="cc", target=TARGET,
+                          command_log=None, bounded_resource_limits=None, foreign_buffer_exports=()):
     from .hia_program import verify_program
     program = verify_program(document)
     budget = None
@@ -933,3 +1140,17 @@ def build_program_machine(document, output, *, kind="shared", linker="cc", targe
     if budget is not None:
         result["bounded_resources"] = budget
     return result
+
+
+_NATIVE_BUILD_PUBLIC_ENTRIES = {
+    '_implementation_hash': _implementation_hash,
+    'validate_block_layout_plan': validate_block_layout_plan,
+    'emit_program_machine': emit_program_machine,
+    '_inspect_object': _inspect_object,
+    '_read_artifact': _read_artifact,
+    '_run_logged': _run_logged,
+    '_host': _host,
+    'compile_program_machine': compile_program_machine,
+    'build_program_machine': build_program_machine,
+    '_reject': _reject,
+}

@@ -121,7 +121,7 @@ def machine_plan(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return ABI
     command=get(w,0)
     if command == 0:
-        if get(w,128) != 0 or get(w,8) == 0 or get(w,16) != 0:
+        if get(w,128) != 0 or get(w,8) == 0 or get(w,16) != 0 or (get(w,40) != 312 and get(w,40) != 313 and get(w,40) != 314):
             return ABI
         mode=get(w,24)
         if mode == 0 or mode > word(s,16):
@@ -138,8 +138,10 @@ def machine_plan(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,248,word(s,info+8))
         put(w,256,word(s,info+24))
         put(w,264,0)
+        put(w,312,get(w,40))
+        put(w,320,0)
     else:
-        if get(w,128) != MAGIC or get(w,8) != get(w,136) or get(w,16) != get(w,144):
+        if get(w,128) != MAGIC or get(w,8) != get(w,136) or get(w,16) != get(w,144) or get(w,40) != get(w,312):
             return ABI
         stage=get(w,168)
         if command == 2:
@@ -279,25 +281,34 @@ def dispatch(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     return ABI
 
 def frame_retire(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
-    latest=0
-    selected=0
-    i=0
-    while i < get(w,248):
-        birth=get(w,1024+i*8)
-        if birth > latest:
-            latest=birth
-            selected=i
-        i=i+1
-    if latest != 0:
-        put(w,280,selected)
-        header(o,w,RELEASE,0,0,0,1,5)
-        put(o,128,selected)
-        return 1
+    if get(w,320) == 0:
+        latest=0
+        selected=0
+        i=0
+        while i < get(w,248):
+            birth=get(w,1024+i*8)
+            if birth > latest:
+                latest=birth
+                selected=i
+            i=i+1
+        if latest != 0:
+            put(w,280,selected)
+            header(o,w,RELEASE,0,0,0,1,5)
+            put(o,128,selected)
+            return 1
+        put(w,320,1)
     index=get(w,304)
-    if index < get(w,248):
-        header(o,w,DROP_SLOT,0,0,0,1,6)
-        put(o,128,index)
-        return 1
+    while index < get(w,248):
+        slot=index
+        if get(w,312) == 314:
+            slot=get(w,248)-1-index
+        flags=byte(s,get(w,256)+slot)
+        if (flags&1) == 0 or (flags&2) != 0:
+            header(o,w,DROP_SLOT,0,0,0,1,6)
+            put(o,128,slot)
+            return 1
+        index=index+1
+        put(w,304,index)
     put(w,168,9)
     finish(o,w,0)
     return 5

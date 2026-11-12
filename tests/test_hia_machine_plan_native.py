@@ -320,12 +320,17 @@ class MachinePlanNativeTests(unittest.TestCase):
         from hepta.hia_program_native import _implementation_hash
         with patch.dict(os.environ, {SELECTOR: ''}):
             retained = _implementation_hash()
-        with self.selected():
+        from hepta.hia_machine_plan_native import native_machine_plan_scope, selected_machine_plan
+        with self.selected(), native_machine_plan_scope():
+            admitted = selected_machine_plan()
             selected = _implementation_hash()
             self.assertNotEqual(selected, retained)
             self.assertIn(self.native.image_sha256.encode(), plans.native_implementation_identity())
-            with patch.object(self.native, 'image_sha256', '0' * 64):
-                self.assertNotEqual(_implementation_hash(), selected)
+            before = admitted.entries
+            with patch.object(admitted, 'image_sha256', '0' * 64):
+                with self.assertRaisesRegex(ValueError, 'native mapping differs from its loaded identity'):
+                    _implementation_hash()
+            self.assertEqual(admitted.entries, before)
 
     def test_actual_wheel_native_calls_without_authoring_or_checkout_fallback(self):
         from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES,

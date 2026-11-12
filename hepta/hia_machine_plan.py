@@ -230,58 +230,75 @@ def _reference_preservation_checks(plan, checked=None):
 
 # Operator-only selection.  No field of the caller's plan selects an image.
 def _native_owner():
-    import os
-    from .hia_machine_plan_native import SELECTOR, installed_machine_plan
+    from .hia_machine_plan_native import selected_machine_plan
     captured = _NATIVE_OWNER.get()
     if captured is not None:
         return captured
-    path = os.environ.get(SELECTOR)
-    return installed_machine_plan(path) if path else None
+    return selected_machine_plan()
 
 
 def validate_plan(checked, plan):
     selected = _native_owner()
     if selected is None:
-        return _reference_validate_plan(checked, plan)
-    token = _NATIVE_OWNER.set(selected)
+        _arguments = [checked, plan]
+        checked = plan = None
+        return _reference_validate_plan(_arguments.pop(0), _arguments.pop(0))
+    previous = _NATIVE_OWNER.get()
     try:
-        return selected.validate(checked, plan)
+        _NATIVE_OWNER.set(selected)
+        _arguments = [checked, plan]
+        checked = plan = None
+        return selected.validate(_arguments.pop(0), _arguments.pop(0))
     finally:
-        _NATIVE_OWNER.reset(token)
+        _NATIVE_OWNER.set(previous)
 
 
 def register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):
     selected = _native_owner()
     if selected is None:
-        return _reference_register_assignment_witness(
-            checked, assignments, allow_leaf_registers=allow_leaf_registers)
-    token = _NATIVE_OWNER.set(selected)
+        _arguments = [checked, assignments, allow_leaf_registers]
+        checked = assignments = allow_leaf_registers = None
+        return _reference_register_assignment_witness(_arguments.pop(0), _arguments.pop(0), allow_leaf_registers=_arguments.pop(0))
+    previous = _NATIVE_OWNER.get()
     try:
-        return selected.witness(checked, assignments, allow_leaf_registers=allow_leaf_registers)
+        _NATIVE_OWNER.set(selected)
+        _arguments = [checked, assignments, allow_leaf_registers]
+        checked = assignments = allow_leaf_registers = None
+        return selected.witness(_arguments.pop(0), _arguments.pop(0), allow_leaf_registers=_arguments.pop(0))
     finally:
-        _NATIVE_OWNER.reset(token)
+        _NATIVE_OWNER.set(previous)
 
 
 def code_options(plan):
     selected = _native_owner()
     if selected is None:
-        return _reference_code_options(plan)
-    token = _NATIVE_OWNER.set(selected)
+        _arguments = [plan]
+        plan = None
+        return _reference_code_options(_arguments.pop(0))
+    previous = _NATIVE_OWNER.get()
     try:
-        return selected.code_options(plan)
+        _NATIVE_OWNER.set(selected)
+        _arguments = [plan]
+        plan = None
+        return selected.code_options(_arguments.pop(0))
     finally:
-        _NATIVE_OWNER.reset(token)
+        _NATIVE_OWNER.set(previous)
 
 
 def preservation_checks(plan, checked=None):
     selected = _native_owner()
     if selected is None:
-        return _reference_preservation_checks(plan, checked)
-    token = _NATIVE_OWNER.set(selected)
+        _arguments = [plan, checked]
+        plan = checked = None
+        return _reference_preservation_checks(_arguments.pop(0), _arguments.pop(0))
+    previous = _NATIVE_OWNER.get()
     try:
-        return selected.preservation_checks(plan, checked)
+        _NATIVE_OWNER.set(selected)
+        _arguments = [plan, checked]
+        plan = checked = None
+        return selected.preservation_checks(_arguments.pop(0), _arguments.pop(0))
     finally:
-        _NATIVE_OWNER.reset(token)
+        _NATIVE_OWNER.set(previous)
 
 
 # Used only to distinguish the original public continuation from a caller's

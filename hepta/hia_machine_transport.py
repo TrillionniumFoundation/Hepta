@@ -39,8 +39,14 @@ def _private_zeroed_buffer(size):
                            prot=mmap.PROT_READ | mmap.PROT_WRITE)
     except OSError as exc:
         if exc.errno == errno.ENOMEM:
-            # Preserve the allocation-failure category of the old zeroed
-            # ctypes allocation; it must not become an ordinary I/O rejection.
-            raise MemoryError from None
+            # The original physical allocator raises CPython's MemoryError
+            # without introducing the failed mmap's OSError into its context.
+            # It can also use already-reserved heap storage when mmap cannot.
+            return ctypes.create_string_buffer(size)
         raise
-    return (ctypes.c_char * size).from_buffer(mapped)
+    try:
+        return (ctypes.c_char * size).from_buffer(mapped)
+    finally:
+        # A returned exported view owns the mapping.  If construction fails,
+        # this helper's traceback must not retain an unexported mapping.
+        mapped = None

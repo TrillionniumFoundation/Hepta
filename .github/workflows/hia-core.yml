@@ -8,10 +8,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14.4'
+      - name: Install original Agent discovery dependency
+        run: python -m pip install jsonschema==4.26.0
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection enum_operations record_operations record_transitions retirement_state task_operations composite_functions composite_constructor composite_outer call_primitive nominal_terminators nominal_module nominal_admission execution_budget request_journal task_helper_cache artifact_namespace slot_ledger program_execution static_budget heap_bound heap_kernels core_json_bytes nominal_json cpython_note_packer program_normalization linked_observer source_build source_admission cli_control cli_format machine_encoding machine_state machine_instructions machine_elf machine_plan service_context; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection enum_operations record_operations record_transitions retirement_state task_operations composite_functions composite_constructor composite_outer call_primitive nominal_terminators nominal_module nominal_admission execution_budget request_journal task_helper_cache artifact_namespace slot_ledger program_execution static_budget heap_bound heap_kernels core_json_bytes nominal_json cpython_note_packer program_normalization linked_observer source_build source_admission cli_control cli_format machine_encoding machine_state machine_instructions machine_elf machine_plan service_context core_lowering service_emission core_emitter native_byte_abi native_build_foreign native_build service_verification_foreign service_verification proof_contract; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -172,6 +174,29 @@ jobs:
               'tests.test_hia_macro_campaign.JournalTests',
               'tests.test_hia_macro_campaign.NativeObservationTests',
               'tests.test_hia_macro_campaign.WorkerSourceInventoryTests',
+              'tests.test_hia_core_lowering_native.CoreLoweringSourceTests',
+              'tests.test_hia_machine_frame_shared_native.SharedFrameSourceTests',
+              'tests.test_hia_service_emission_native.ServiceEmissionSourceTests',
+              'tests.test_hia_service_emission_builder.ServiceEmissionAdapterTests',
+              'tests.test_hia_service_emission_qualifier.ServiceEmissionQualifierSourceTests',
+              'tests.test_hia_service_emission_lifetimes.ServiceEmissionLifetimeSourceTests',
+              'tests.test_hia_artifact_publication_route.PublicationSealedDescriptorTests',
+              'tests.test_hia_release_selection_review.ReleaseSelectionReviewPolicyTests',
+              'tests.test_hia_candidate_evidence',
+              'tests.test_hia_candidate_preflight',
+              'tests.test_hia_core_emitter_native.CoreEmitterSourceTests',
+              'tests.test_hia_native_byte_abi_native.NativeByteABISourceTests',
+              'tests.test_hia_native_build_native.NativeBuildSourceTests',
+              'tests.test_hia_native_build_native.NativeBuildCallerSourceTests',
+              'tests.test_hia_service_verification_native.ServiceVerificationSourceTests',
+              'tests.test_hia_service_verification_builder.ServiceVerificationAdapterTests',
+              'tests.test_hia_service_verification_qualifier.ServiceVerificationQualifierSourceTests',
+              'tests.test_hia_service_verification_default_replay.ServiceVerificationDefaultReplaySourceTests',
+              'tests.test_hia_call_primitive_native.CallPrimitiveArenaTests',
+              'tests.test_hia_joint_owner_integration.JointOwnerIntegrationSourceTests',
+              'tests.test_hia_proof_contract_native.ProofContractSourceTests',
+              'tests.test_hia_proof_contract_builder.ProofContractAdapterTests',
+              'tests.test_hia_proof_contract_qualifier.ProofContractQualifierSourceTests',
           )
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
@@ -565,10 +590,10 @@ jobs:
               'tests.test_hia_cli_continuation_native',
           )
           suite = unittest.defaultTestLoader.loadTestsFromNames(names)
-          if suite.countTestCases() != 38:
+          if suite.countTestCases() != 39:
               raise AssertionError('complete native component test inventory changed')
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          passed = (result.wasSuccessful() and result.testsRun == 38
+          passed = (result.wasSuccessful() and result.testsRun == 39
                     and not result.skipped and not result.expectedFailures
                     and not result.unexpectedSuccesses)
           raise SystemExit(0 if passed else 1)
@@ -642,10 +667,10 @@ jobs:
               'tests.test_hia_machine_plan_control_lifecycle',
           )
           suite = unittest.defaultTestLoader.loadTestsFromNames(names)
-          if suite.countTestCases() != 21:
+          if suite.countTestCases() != 23:
               raise AssertionError('complete native component test inventory changed')
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          passed = (result.wasSuccessful() and result.testsRun == 21
+          passed = (result.wasSuccessful() and result.testsRun == 23
                     and not result.skipped and not result.expectedFailures
                     and not result.unexpectedSuccesses)
           raise SystemExit(0 if passed else 1)
@@ -684,6 +709,152 @@ jobs:
           python -B -m tools.qualify_hia_service_context \
             --cold-report "$RUNNER_TEMP/hia-cold.json" \
             --evidence "$RUNNER_TEMP/hia-service-context-callers"
+      - name: Native complete Core lowering through all original machine and Core callers
+        run: |
+          python -B tools/qualify_hia_core_lowering_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-core-lowering-callers"
+      - name: Native shared frame Call and short circuit ownership
+        run: |
+          python -B - <<'PYFRAME78'
+          import unittest
+          names = ('tests.test_hia_machine_frame_shared_native',)
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          if suite.countTestCases() != 5:
+              raise AssertionError('complete shared-frame control inventory changed')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 5
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          raise SystemExit(0 if passed else 1)
+          PYFRAME78
+        env:
+          HEPTA_HIA_CORE_LOWERING_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_FRAME_EVIDENCE: ${{ runner.temp }}/hia-shared-frame
+      - name: Native service emission continuation and exception custody
+        run: |
+          python -B - <<'PYEMISSION78'
+          import unittest
+          names = (
+              'tests.test_hia_service_emission_native',
+              'tests.test_hia_service_emission_builder',
+              'tests.test_hia_service_emission_qualifier',
+              'tests.test_hia_service_emission_lifetimes',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          if suite.countTestCases() != 52:
+              raise AssertionError('complete native component test inventory changed')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 52
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          raise SystemExit(0 if passed else 1)
+          PYEMISSION78
+        env:
+          HEPTA_HIA_SERVICE_EMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_EMISSION_EVIDENCE: ${{ runner.temp }}/hia-service-emission
+      - name: Native service emission through all original Agent callers
+        run: |
+          python -B tools/qualify_hia_service_emission.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-service-emission-callers"
+      - name: Native complete Core emitter through all original machine and Core callers
+        run: |
+          python -B tools/qualify_hia_core_emitter_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-core-emitter-callers"
+      - name: Native borrowed byte ABI complete policy and whole emission custody
+        run: |
+          python -B - <<'PYBYTE79'
+          import unittest
+          names = ('tests.test_hia_native_byte_abi_native', 'tests.test_hia_native_byte_abi_integration',)
+          loader = unittest.defaultTestLoader
+          suite = loader.loadTestsFromNames(names)
+          if loader.errors or suite.countTestCases() != 29:
+              raise AssertionError('complete joint owner component inventory changed')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 29
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          raise SystemExit(0 if passed else 1)
+          PYBYTE79
+        env:
+          HEPTA_HIA_NATIVE_BYTE_ABI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_BYTE_ABI_EVIDENCE: ${{ runner.temp }}/hia-native-byte-abi
+      - name: Native borrowed byte ABI through all original byte and Agent buffer callers
+        run: |
+          python -B tools/qualify_hia_native_byte_abi.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-native-byte-abi-callers"
+      - name: Native complete build coordinator and installation custody
+        run: |
+          python -B - <<'PYBUILD79'
+          import unittest
+          names = ('tests.test_hia_native_build_native',)
+          loader = unittest.defaultTestLoader
+          suite = loader.loadTestsFromNames(names)
+          if loader.errors or suite.countTestCases() != 25:
+              raise AssertionError('complete joint owner component inventory changed')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 25
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          raise SystemExit(0 if passed else 1)
+          PYBUILD79
+        env:
+          HEPTA_HIA_NATIVE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_BUILD_EVIDENCE: ${{ runner.temp }}/hia-native-build
+      - name: Native complete build coordinator through all original 114 callers
+        run: |
+          python -B tools/qualify_hia_native_build.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-native-build-callers"
+      - name: Native service verification complete policy and default replay
+        run: |
+          python -B - <<'PYVERIFY79'
+          import unittest
+          names = ('tests.test_hia_service_verification_native', 'tests.test_hia_service_verification_builder', 'tests.test_hia_service_verification_qualifier', 'tests.test_hia_service_verification_default_replay',)
+          loader = unittest.defaultTestLoader
+          suite = loader.loadTestsFromNames(names)
+          if loader.errors or suite.countTestCases() != 45:
+              raise AssertionError('complete joint owner component inventory changed')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 45
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          raise SystemExit(0 if passed else 1)
+          PYVERIFY79
+        env:
+          HEPTA_HIA_SERVICE_VERIFICATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_VERIFICATION_EVIDENCE: ${{ runner.temp }}/hia-service-verification
+      - name: Native service verification through all original Agent callers
+        run: |
+          python -B tools/qualify_hia_service_verification.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-service-verification-callers"
+      - name: Native proof contract complete public policy and held capability
+        run: |
+          python -B - <<'PYPROOF79'
+          import unittest
+          names = ('tests.test_hia_proof_contract_native', 'tests.test_hia_proof_contract_builder', 'tests.test_hia_proof_contract_qualifier')
+          loader = unittest.defaultTestLoader
+          suite = loader.loadTestsFromNames(names)
+          if loader.errors or suite.countTestCases() != 46:
+              raise AssertionError('complete joint proof component inventory changed')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 46
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          raise SystemExit(0 if passed else 1)
+          PYPROOF79
+        env:
+          HEPTA_HIA_PROOF_CONTRACT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_PROOF_CONTRACT_EVIDENCE: ${{ runner.temp }}/hia-proof-contract
+      - name: Native proof contract through all original 22 proof and 18 machine callers
+        run: |
+          python -B tools/qualify_hia_proof_contract.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-proof-contract-callers"
       - name: Preserve actual cold failure and stage evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -728,3 +899,16 @@ jobs:
             ${{ runner.temp }}/hia-machine-plan-callers/
             ${{ runner.temp }}/hia-service-context/
             ${{ runner.temp }}/hia-service-context-callers/
+            ${{ runner.temp }}/hia-core-lowering-callers/
+            ${{ runner.temp }}/hia-shared-frame/
+            ${{ runner.temp }}/hia-service-emission/
+            ${{ runner.temp }}/hia-service-emission-callers/
+            ${{ runner.temp }}/hia-core-emitter-callers/
+            ${{ runner.temp }}/hia-native-byte-abi/
+            ${{ runner.temp }}/hia-native-byte-abi-callers/
+            ${{ runner.temp }}/hia-native-build/
+            ${{ runner.temp }}/hia-native-build-callers/
+            ${{ runner.temp }}/hia-service-verification/
+            ${{ runner.temp }}/hia-service-verification-callers/
+            ${{ runner.temp }}/hia-proof-contract/
+            ${{ runner.temp }}/hia-proof-contract-callers/

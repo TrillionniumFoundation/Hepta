@@ -27,6 +27,13 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/proof_contract.hiaasm',
+    'examples/hia_bootstrap/service_verification.hiaasm',
+    'examples/hia_bootstrap/service_emission.hiaasm',
+    'examples/hia_bootstrap/native_build.hiaasm',
+    'examples/hia_bootstrap/native_byte_abi.hiaasm',
+    'examples/hia_bootstrap/core_emitter.hiaasm',
+    'examples/hia_bootstrap/core_lowering.hiaasm',
     'examples/hia_bootstrap/machine_elf.hiaasm',
     'examples/hia_bootstrap/cli_control.hiaasm',
     'examples/hia_bootstrap/cli_format.hiaasm',

@@ -159,3 +159,26 @@ before/after, and exact manifest/image identity. The three counts are separate
 observations and overlap; they are not presented as one combined suite. The
 original 44-caller regression is a separately reported gate. Current-source
 cold and full repository qualification are required after integration.
+
+## Shared physical-frame and whole-emission revision
+
+The Core-lowering integration revises the shared continuation's named-local
+retirement to use the exact observed CPython 3.12/3.13 forward or 3.14 reverse
+profile. HIA retains the temporary-birth LIFO phase, then omits only proven-empty
+non-cell temporary slots. Unknown interpreter profiles are explicitly refused
+on this selected path. Original real-interpreter lifecycle assertions remain
+unchanged; forced profile-word VM/native matrices are separate protocol evidence.
+
+Public Plan facades transfer their argument owners before driving the HIA frame.
+A complete backend emission captures one Plan admission, including explicit
+absence, for its entire duration. The reviewed checker capture names the actual
+immutable mapping; a callback changing the ambient selector cannot enter an old
+Plan body or silently replace the held identity. Fresh selection checks source,
+manifest and executable bytes again. Captured capabilities cannot be supplied
+through serialized proof evidence or used as service-held overrides.
+
+Original failures, including the real Python 3.14 iterator/parameter release
+order and the actual callback-induced old-body entry before a late stale error,
+remain separately archived. The Core owner document records new development
+scope and the full six-owner composition controls. No old qualification is
+transferred to this revision.
