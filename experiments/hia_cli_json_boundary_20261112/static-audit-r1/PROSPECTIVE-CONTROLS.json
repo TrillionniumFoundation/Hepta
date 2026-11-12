@@ -1,0 +1,261 @@
+{
+  "schema": "hia.cli-json-boundary-prospective-controls.v1",
+  "status": "UNEXECUTED_PLAN_NOT_PRODUCT_TEST_RESULTS",
+  "product_commit": "9704596acc4470bd0042838586602e26bac7b3d1",
+  "fixed_options": {
+    "stdout": {
+      "ensure_ascii": false,
+      "allow_nan": true,
+      "indent": 2,
+      "sort_keys": true
+    },
+    "publication": {
+      "ensure_ascii": true,
+      "allow_nan": false,
+      "indent": 2,
+      "sort_keys": true
+    }
+  },
+  "preserve_original_cli_methods": 17,
+  "preserve_original_agent_entry_methods": 6,
+  "controls": [
+    {
+      "id": "fixed_options_and_bytes",
+      "entry": "both helpers",
+      "inputs": [
+        "null/bool/zero/signed finite numbers",
+        "empty and nested dict/list/tuple",
+        "ASCII, quote, backslash, controls, DEL, BMP and astral Unicode"
+      ],
+      "observe": [
+        "exact Python text before print",
+        "stdout text plus final newline",
+        "published UTF-8 bytes and publication receipt"
+      ],
+      "purpose": "Separate ensure_ascii=False stdout from default ensure_ascii=True publication, indent2, sortTrue, and the two different newline boundaries."
+    },
+    {
+      "id": "nonfinite_policy",
+      "entry": "both helpers",
+      "inputs": [
+        "NaN, +Infinity, -Infinity as root and nested values",
+        "nonfinite float object keys"
+      ],
+      "observe": [
+        "original outcome per interpreter",
+        "exact error class/args and any notes/context",
+        "parent directory/output side effects"
+      ],
+      "purpose": "stdout allow_nan=True must not inherit bounded wire's nonfinite rejection; publication allow_nan=False remains the original refusal."
+    },
+    {
+      "id": "surrogate_text_domain",
+      "entry": "both helpers",
+      "inputs": [
+        "isolated high/low surrogates",
+        "mixed surrogate/non-BMP/control strings",
+        "StringIO and a controlled text stream"
+      ],
+      "observe": [
+        "exact Unicode codepoints received by write",
+        "raw file ASCII escape bytes",
+        "original exception and event order"
+      ],
+      "purpose": "Do not turn stdout Unicode into premature strict UTF-8 rejection or reject publication's escaped-surrogate output."
+    },
+    {
+      "id": "numeric_key_sort",
+      "entry": "both helpers",
+      "inputs": [
+        "{10: 0, 2: 0}",
+        "comparable bool/int/float keys",
+        "mixed int/string keys that sorting rejects"
+      ],
+      "observe": [
+        "sort order before key spelling",
+        "comparison exceptions before value encoding",
+        "original error type rather than HIAEditRejected"
+      ],
+      "purpose": "Numeric keys must not be lexically sorted after string conversion; collision preflight must not move errors."
+    },
+    {
+      "id": "builtin_subtypes",
+      "entry": "both helpers",
+      "inputs": [
+        "IntEnum",
+        "plain int/float/str/list/tuple/dict subclasses",
+        "observed items/iteration/comparison callbacks supported by the original encoder"
+      ],
+      "observe": [
+        "accepted types",
+        "callback order and count",
+        "normal returns and exceptional cleanup"
+      ],
+      "purpose": "Current exact-builtin GraphObserver is not the complete json.dumps domain. Do not add a refusal profile to claim a full port."
+    },
+    {
+      "id": "cycles_aliases_and_depth",
+      "entry": "both helpers",
+      "inputs": [
+        "cycle",
+        "shared acyclic alias",
+        "129 and deeper nested builtin containers below the actual interpreter recursion failure"
+      ],
+      "observe": [
+        "exact original outcome and error location",
+        "revisit aliases versus active-path cycle",
+        "all object observations"
+      ],
+      "purpose": "Preserve recursion/runtime behavior; do not impose bounded wire's new 128 depth or global visited rejection."
+    },
+    {
+      "id": "node_and_byte_domain",
+      "entry": "both helpers",
+      "inputs": [
+        "more than 262144 small JSON values",
+        "a direct helper string with encoded size greater than 8 MiB",
+        "original admissible business fixture whose pretty output exceeds 8 MiB"
+      ],
+      "observe": [
+        "original acceptance",
+        "complete text/file bytes",
+        "native measured length and output allocation"
+      ],
+      "purpose": "No new node/input/output cap at these existing helpers. Runtime memory limits are still real and must not be represented as an unlimited-resource guarantee."
+    },
+    {
+      "id": "business_capacity_witness",
+      "entry": "normalize without -o, then inspect and applicable full-program receipt routes",
+      "inputs": [
+        "capacity-arithmetic-r2.js defines the 25000-operation witness"
+      ],
+      "observe": [
+        "first run original program admission",
+        "only then full original/new CLI output comparison",
+        "per-run source/image/owner/raw outputs"
+      ],
+      "purpose": "Static 5150357-byte compact / 10450598-byte pretty arithmetic is not an admission pass. Actual original acceptance must precede a business-path regression assertion."
+    },
+    {
+      "id": "original_error_priority",
+      "entry": "both helpers and CLI catch boundary",
+      "inputs": [
+        "[object(), isolated-surrogate string]",
+        "mixed-sort keys plus an invalid value",
+        "unsupported value combined with another late failure"
+      ],
+      "observe": [
+        "class, args, context/cause, notes and callback trace",
+        "CLI propagation versus E_DRIVER exit2"
+      ],
+      "purpose": "Avoid reverse-DFS preflight changing the first error or wrapping TypeError/RecursionError into ValueError."
+    },
+    {
+      "id": "finite_numbers_and_digit_limits",
+      "entry": "both helpers",
+      "inputs": [
+        "-0.0, 1.0, exponent-boundary/subnormal finite floats",
+        "integers around the current sys.get_int_max_str_digits limit"
+      ],
+      "observe": [
+        "exact original decimal lexemes",
+        "original integer conversion error",
+        "old entry point observation order"
+      ],
+      "purpose": "Reuse the existing finite HIA renderer only for behavior actually equivalent to the original encoder; NaN handling stays distinct."
+    },
+    {
+      "id": "stdout_effect_order",
+      "entry": "output_json",
+      "inputs": [
+        "stdout=None",
+        "controlled write failing on first versus newline write",
+        "OSError/ValueError/RuntimeError/BaseException writer",
+        "value conversion failure before any write"
+      ],
+      "observe": [
+        "each write call and argument identity/content",
+        "partial output and exception object",
+        "return None on success"
+      ],
+      "purpose": "The full string is made before print. Do not replace the text stream by a byte fd or stream tokens early."
+    },
+    {
+      "id": "publication_preflight_order",
+      "entry": "publish_json_view",
+      "inputs": [
+        "existing file and existing symlink paired with an unserializable value",
+        "new nested parent paired with NaN",
+        "symlinked parent and a deeper missing parent"
+      ],
+      "observe": [
+        "which original error wins",
+        "directories created before serialization/refusal",
+        "no premature staging/output"
+      ],
+      "purpose": "Preserve existence -> mkdir -> resolved-parent check -> serialization order."
+    },
+    {
+      "id": "post_publication_schema_lookup",
+      "entry": "publish_json_view",
+      "inputs": [
+        "serializable dict without schema",
+        "schema-bearing ordinary dict"
+      ],
+      "observe": [
+        "published payload and final path",
+        "temporary directory cleanup",
+        "late KeyError versus normal receipt"
+      ],
+      "purpose": "Keep value['schema'] after successful publication and temporary-context exit; do not move schema validation earlier."
+    },
+    {
+      "id": "publication_failure_points",
+      "entry": "publish_json_view and existing artifact publisher",
+      "inputs": [
+        "stage write/flush/fsync failure",
+        "no-replace race",
+        "publisher readback failure",
+        "foreign BaseException"
+      ],
+      "observe": [
+        "same no-replace/own-link cleanup",
+        "original exception and context",
+        "stage and output bytes/identity"
+      ],
+      "purpose": "Retain existing publication owner semantics and tests; JSON migration must not bypass them."
+    },
+    {
+      "id": "immutability_and_two_pass",
+      "entry": "new native serializer/layout bridge",
+      "inputs": [
+        "stable ordinary graph",
+        "stateful supported foreign callbacks",
+        "actual input buffer and capacity canaries"
+      ],
+      "observe": [
+        "no replayed object observations on measure/emit",
+        "input unchanged across both byte-only passes",
+        "status0 length/output equality; failures not admitted"
+      ],
+      "purpose": "Capture original traversal once before replaying only immutable representation. Do not treat two visits to mutable values as a harmless allocation change."
+    },
+    {
+      "id": "exact_versions_and_installed_scope",
+      "entry": "full new component and ordinary callers",
+      "inputs": [
+        "existing supported 3.12 and actual 3.14.4/3.14.10 interpreters",
+        "unchanged17 CLI methods + six original entry methods",
+        "real declared installed wheel under isolation"
+      ],
+      "observe": [
+        "all original ordered IDs and no exclusions",
+        "exact source/image bindings and full raw reports",
+        "separate layout-owner versus serializer-owner source spies"
+      ],
+      "purpose": "The current audit executes none of these. A host compact encoder followed by HIA whitespace must not be reported as a complete encoder port."
+    }
+  ],
+  "no_new_product_cap_or_profile": true,
+  "no_existing_test_or_budget_change": true
+}
