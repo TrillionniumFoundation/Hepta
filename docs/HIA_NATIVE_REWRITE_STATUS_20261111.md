@@ -6,7 +6,62 @@ remain unfinished. The source audit and remaining ownership boundaries are in
 [the audit](HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md). File counts are an
 inventory, not a native-completion percentage.
 
-## Current v70 candidate: reconstructed static budget integration, qualification pending
+## Current v71 candidate: heap owner integrated; matching qualification pending
+
+This source checkpoint extends `8b9fbcbeb943447bdbd4e534f081f92e5f1ad8b2`
+(tree `1766691461d2ba7fef644e2b4e436566016f2226`), which has exactly
+33 source changes from the previous `67382498b9d60bfecf3696d8c2cb632d8f20281b`
+candidate. Those changes contain the frozen 29-file heap-bound owner, the narrow
+static-budget fixture-parent repair, and three registration files. This commit
+adds the three actual generated records and this status update. It does not
+include the separate source-generation harness in the product source tree.
+
+The isolated source-generation workflow
+[43130016232](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43130016232)
+actually completed successfully on Python 3.14.4. It checked out the exact
+`8b9fbcb` candidate, verified all 3,025 Git-tracked file bytes and modes, and ran
+the original generator sequence before language coverage, support, native
+inventory, and source controls. All 34 commands exited zero; all 20 source
+controls passed without errors, failures, skips, or expected failures. The
+generated support contract contains all 821 required source files. The only
+generated changes were `HIA_SELFHOST_CORE_SUPPORT.json`,
+`HIA_SELFHOST_LANGUAGE_COVERAGE.json`, and `HIA_NATIVE_REWRITE_INVENTORY.json`.
+Their exact bytes are retained here. The inventory honestly records the
+candidate and intermediate index observed when it was generated; it does not
+pretend that the later commit already existed.
+
+The workflow's original report is 5,336,761 bytes, SHA256
+`337d4b4fe6e42fe2eec114d9d3320c0209ffe356afd459a1e445587fb2aace27`.
+It was independently recovered from checked, numbered log chunks and then
+matched to the downloaded artifact. The artifact's source archive independently
+reproduces all 3,025 files (108,966,803 raw file bytes), including every Git blob,
+mode, size, and SHA256. This establishes source provenance and successful
+generation; it is not a cold-bootstrap or complete native qualification.
+
+The original `67382498` full qualification has no recovered authoritative
+terminal result. Its last recovered observation contains 30 successful stages
+and three failed stages before the final retained-regression step. The failures
+were the static-budget fixture-parent error and the namespace and ledger
+reference-fixture preparation overruns. The narrow fixture-parent repair in
+this candidate does not retroactively change those results. The original
+three-second, 1,000-millisecond, and cold-bootstrap limits remain unchanged.
+The new candidate still requires its own cold and full qualification.
+
+Parallel development has produced a stricter normalization owner, an observer
+that combines HIA continuation policy with ordinary shared-object lifecycle
+semantics, and an explicit HIA source-digest owner. Those components remain
+separate until their source integration and matching qualification are
+completed. Their local development observations do not transfer to this source
+checkpoint. A tested Python source-read micro-optimization was slower and was
+rejected. No scan was shortened, no digest was cached across public calls, and
+no deadline was increased.
+
+**Whole-product closure, public/default activation, live-worker migration, and
+deletion of the former implementation remain false.** The independent source
+generation pass is a concrete checkpoint; the outstanding ownership and
+qualification work below remains active.
+
+## Prior v70 candidate: reconstructed static budget integration, qualification pending
 
 This candidate starts from the published `8ca2197693c98e48d0d16ab3c077efc7cd535653`
 tree `d9a0a779301d25ffbfdc1601ed86ce0d76a9236b`. Its 2,994 retained
