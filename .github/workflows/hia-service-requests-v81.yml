@@ -1,12 +1,12 @@
-name: Exact eight-body service requests development
+name: Exact Requests and split-front joint development
 on:
   push:
-    branches: [codex/hia-service-requests-v81-r2-20261112-dda7]
+    branches: [codex/hia-requests-front-joint-v82-r3-20261112-dda7]
 permissions:
   contents: read
 jobs:
   native314:
-    name: Actual CPython 3.14.4 requests and original caller gates
+    name: Actual CPython 3.14.4 original Requests and complete split-front gates
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -25,6 +25,13 @@ jobs:
           path: base
           persist-credentials: false
           fetch-depth: 1
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 64f67ae897c3cb49d45a1e1a4622db974812e3fe
+          path: front-reference-base
+          persist-credentials: false
+          fetch-depth: 1
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14.4"
@@ -34,13 +41,14 @@ jobs:
           sudo apt-get install -y binutils gcc strace clang-20
           python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
       - name: Source custody, actual native component and original 48/35/48 callers
-        run: python -B harness/inputs/run_requests_development.py --source "$GITHUB_WORKSPACE/base" --inputs "$GITHUB_WORKSPACE/harness/inputs" --workspace "$RUNNER_TEMP/requests-native314" --profile native314
+        run: python -B harness/inputs/run_joint_development.py --source "$GITHUB_WORKSPACE/base" --inputs "$GITHUB_WORKSPACE/harness/inputs" --workspace "$RUNNER_TEMP/joint-native314" --profile native314 --reference-source "$GITHUB_WORKSPACE/front-reference-base"
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: requests-native314-original-evidence
+          name: requests-front-joint-native314-original-evidence
           path: |
-            ${{ runner.temp }}/requests-native314
+            ${{ runner.temp }}/joint-native314
+            !${{ runner.temp }}/joint-native314/binding-before-view/**
             harness/inputs
             harness/README.md
           include-hidden-files: true
@@ -72,13 +80,54 @@ jobs:
       - name: Exact prerequisites for default caller behavior
         run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
       - name: Default imports, static example, original 8 callers and native refusal
-        run: python -B harness/inputs/run_requests_development.py --source "$GITHUB_WORKSPACE/base" --inputs "$GITHUB_WORKSPACE/harness/inputs" --workspace "$RUNNER_TEMP/requests-default311" --profile default311
+        run: python -B harness/inputs/run_joint_development.py --source "$GITHUB_WORKSPACE/base" --inputs "$GITHUB_WORKSPACE/harness/inputs" --workspace "$RUNNER_TEMP/joint-default311" --profile default311
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: requests-default311-original-evidence
+          name: requests-front-joint-default311-original-evidence
           path: |
-            ${{ runner.temp }}/requests-default311
+            ${{ runner.temp }}/joint-default311
+            harness/inputs
+            harness/README.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+  source314:
+    name: Actual CPython 3.14.4 complete 93 generators and original 901 source cases
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 65ceb711e47548f85ecf6b2ec2ae90f11dd50743
+          path: base
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.4"
+      - name: Exact original tools and prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc strace clang-20
+          python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Regenerate every current source and run the full ordered source suite
+        run: python -B harness/inputs/run_joint_development.py --source "$GITHUB_WORKSPACE/base" --inputs "$GITHUB_WORKSPACE/harness/inputs" --workspace "$RUNNER_TEMP/joint-source314" --profile source314
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: requests-front-joint-source314-original-evidence
+          path: |
+            ${{ runner.temp }}/joint-source314
             harness/inputs
             harness/README.md
           include-hidden-files: true
