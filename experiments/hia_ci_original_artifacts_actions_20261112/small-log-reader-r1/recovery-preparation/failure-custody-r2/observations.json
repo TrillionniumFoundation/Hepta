@@ -1,0 +1,115 @@
+{
+  "schema": "hia.original-log-decoder-failure-custody-controls.v1",
+  "unchanged_success_controls": {
+    "schema": "hia.original-log-decoder-synthetic-controls.v1",
+    "status": "DECODER_CONTROLS_ONLY",
+    "actual_workflow_executed": false,
+    "actual_original_files_recovered": false,
+    "synthetic_input_sha256": "0cb768b9c65d7d29f860b69e6d388c004f5e40da2ae062cfea91b63d009375e7",
+    "outcomes": [
+      {
+        "case": "two_frames_non_ascii_zero_byte_and_empty_file_in_explicit_HOLD",
+        "accepted": true,
+        "raw_bytes": 28000
+      },
+      {
+        "case": "missing_END",
+        "rejected": true,
+        "message": "frames missing first manifest or final END"
+      },
+      {
+        "case": "duplicate_frame",
+        "rejected": true,
+        "message": "frame ordering/gap/overlap/length"
+      },
+      {
+        "case": "offset_gap",
+        "rejected": true,
+        "message": "frame ordering/gap/overlap/length"
+      },
+      {
+        "case": "frame_SHA_mismatch",
+        "rejected": true,
+        "message": "frame exact bytes/hash"
+      },
+      {
+        "case": "unknown_frame_path",
+        "rejected": true,
+        "message": "frame header"
+      },
+      {
+        "case": "END_bytes_mismatch",
+        "rejected": true,
+        "message": "END aggregate binding"
+      },
+      {
+        "case": "scope_reclassification",
+        "rejected": true,
+        "message": "END scope/original status"
+      }
+    ]
+  },
+  "incomplete_HOLD_controls": {
+    "schema": "hia.original-log-decoder-synthetic-controls.v1",
+    "status": "DECODER_CONTROLS_ONLY",
+    "actual_workflow_executed": false,
+    "actual_original_files_recovered": false,
+    "synthetic_input_sha256": "a4bb065965d48399708eec87ebc88919ab68c3afa9fd87e286e5aa8433f3b507",
+    "outcomes": [
+      {
+        "case": "control_originals_with_explicit23_unaccounted_in_source_rejected_HOLD",
+        "accepted": true,
+        "raw_bytes": 28000
+      },
+      {
+        "case": "forbidden_incomplete_HOLD_promotion",
+        "rejected": true,
+        "message": "complete stream has source errors"
+      },
+      {
+        "case": "missing_END",
+        "rejected": true,
+        "message": "frames missing first manifest or final END"
+      },
+      {
+        "case": "duplicate_frame",
+        "rejected": true,
+        "message": "frame ordering/gap/overlap/length"
+      },
+      {
+        "case": "offset_gap",
+        "rejected": true,
+        "message": "frame ordering/gap/overlap/length"
+      },
+      {
+        "case": "frame_SHA_mismatch",
+        "rejected": true,
+        "message": "frame exact bytes/hash"
+      },
+      {
+        "case": "unknown_frame_path",
+        "rejected": true,
+        "message": "frame header"
+      },
+      {
+        "case": "END_bytes_mismatch",
+        "rejected": true,
+        "message": "END aggregate binding"
+      },
+      {
+        "case": "scope_reclassification",
+        "rejected": true,
+        "message": "END scope/original status"
+      }
+    ],
+    "decoder": {
+      "bytes": 9109,
+      "sha256": "48a51126f69a66eb75d504ae504c82ffe4abc2ef5d5f255e974c2043715f664f",
+      "git_blob_sha1": "f34140961231e06d1746a8c60277d7203b91df69",
+      "scope": "V8 decoder: accepted original sources still require complete23 ledger; nonaccepted HOLD may expose explicit unaccounted originals while retaining actual control bytes"
+    },
+    "source_sha256": "60c6320e267f32532f9f25c32a10ee491a331ac87ef9c12ddd89e6d70e14ffee",
+    "scope": "Synthetic failure-custody boundary only; no actual workflow or original target read"
+  },
+  "actual_workflow_or_original_target_recovery": false
+}
