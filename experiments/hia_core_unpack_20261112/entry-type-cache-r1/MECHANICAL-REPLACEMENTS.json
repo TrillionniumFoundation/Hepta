@@ -1,0 +1,6 @@
+{
+  "insert_after": "SHIM_SHA256 = sha256(SHIM).hexdigest()\n",
+  "insertion": "\n# The signature is fixed. PYFUNCTYPE creates a new class on every call; keep\n# only that type, while each session still observes its actual image address.\n_UNPACK_ENTRY_TYPE = ctypes.PYFUNCTYPE(\n    ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3))\n",
+  "old_line": "        self.entry = ctypes.PYFUNCTYPE(ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3))(address)\n",
+  "new_line": "        self.entry = _UNPACK_ENTRY_TYPE(address)\n"
+}

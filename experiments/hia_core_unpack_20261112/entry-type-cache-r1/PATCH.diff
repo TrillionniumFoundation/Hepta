@@ -1,0 +1,23 @@
+--- baseline/hepta/hia_core_unpack_native.py
++++ candidate/hepta/hia_core_unpack_native.py
+@@ -31,6 +31,11 @@
+ LOAD_WORD = bytes.fromhex('488b07c3')
+ SHIM = TRANSACTION + LOAD_WORD
+ SHIM_SHA256 = sha256(SHIM).hexdigest()
++
++# The signature is fixed. PYFUNCTYPE creates a new class on every call; keep
++# only that type, while each session still observes its actual image address.
++_UNPACK_ENTRY_TYPE = ctypes.PYFUNCTYPE(
++    ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3))
+ 
+ 
+ def _address(symbol):
+@@ -106,7 +111,7 @@
+         self.output = ctypes.create_string_buffer(256)
+         self.input = ctypes.create_string_buffer(128)
+         address = ctypes.cast(image._entry, ctypes.c_void_p).value
+-        self.entry = ctypes.PYFUNCTYPE(ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3))(address)
++        self.entry = _UNPACK_ENTRY_TYPE(address)
+         self.initial = FRAME.pack(MAGIC, 0, 0, count, leaves.profile,
+                                   id(tuple), id(list), id(dict), *([0] * 8))
+         self.finished = self.pending = self.finish_pending = self.busy = False
