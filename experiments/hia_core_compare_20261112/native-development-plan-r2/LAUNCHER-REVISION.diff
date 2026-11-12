@@ -1,0 +1,42 @@
+--- r1/control/launch.py
++++ r2/control/launch.py
+@@ -31,7 +31,7 @@
+     require(sha256(raw).hexdigest() == args.sha256, 'launch request identity differs')
+     request = json.loads(raw)
+     require(request['schema'] == 'hepta.hia.numeric-native-development-request.v1'
+-            and request['operation_key'] == 'hia-e26e-core-compare-native-development-r1',
++            and request['operation_key'] == 'hia-e26e-core-compare-native-development-r2',
+             'finite development operation differs')
+     policy_raw, _ = read_file(ROOT / request['policy_path'], 262144)
+     require(sha256(policy_raw).hexdigest() == request['policy_sha256'], 'launch policy differs')
+@@ -42,12 +42,20 @@
+             and list(sys.version_info[:3]) == policy['python_version'], 'launcher runtime differs')
+     before = frozen(ROOT, policy)
+     folder = Path(request['operation_root'])
+-    require(folder == Path('/tmp/hia-core-compare-native-development-r1'), 'fixed operation root differs')
++    require(folder == Path('/tmp/hia-core-compare-native-development-r2'), 'fixed operation root differs')
+     disk = shutil.disk_usage(folder.parent)
+     space = os.statvfs(folder.parent)
++    resource_observation = {'schema': 'hepta.hia.numeric-native-resource-observation.v1',
++        'path': str(folder.parent), 'disk_total_bytes': disk.total, 'disk_used_bytes': disk.used,
++        'disk_free_bytes': disk.free,
++        'statvfs': {name: getattr(space, name) for name in
++                    ('f_bsize', 'f_frsize', 'f_blocks', 'f_bfree', 'f_bavail', 'f_files', 'f_ffree', 'f_favail')},
++        'required_free_bytes': policy['development_resources']['minimum_free_bytes'],
++        'required_free_inodes': policy['development_resources']['minimum_free_inodes'],
++        'observation_only_not_future_availability_proof': True}
+     require(disk.free >= policy['development_resources']['minimum_free_bytes']
+             and space.f_favail >= policy['development_resources']['minimum_free_inodes'],
+-            'finite development output space is insufficient')
++            'finite development output space is insufficient: ' + json.dumps(resource_observation, sort_keys=True))
+     with parent_fd(folder) as (parent, name):
+         os.mkdir(name, mode=0o700, dir_fd=parent)
+     final = {'schema': 'hepta.hia.numeric-native-development-terminal.v1', 'status': 'HOLD',
+@@ -57,6 +65,7 @@
+              'original18_executed': False, 'original116_executed': False,
+              'native_Core39_executed': False, 'matching_source_cold': False,
+              'installed_wheel_executed': False, 'default_activated': False}
++    save(folder / 'RESOURCE-PREFLIGHT.json', resource_observation)
+     save(folder / 'LAUNCH-INPUTS.json', before)
+     try:
+         owner_path = ROOT / 'compiler-source/tools/hia_selfhost_process_owner.py'
