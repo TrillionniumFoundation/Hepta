@@ -1,0 +1,366 @@
+{
+  "schema": "hia-namespace-shm-map-private-abi-v1",
+  "revision": "source-r3",
+  "status": "NEW_UNGENERATED_UNEXECUTED",
+  "source": {
+    "blob": "58f0b8db47774ac75d073336b9fc1160d34d3fd2",
+    "bytes": 23289,
+    "sha256": "1ac940af6b31b8e7cc02ada063a46fc5a28ee04f524bb60d5bfeb5fde109fcde",
+    "status": "NEW_UNEXECUTED"
+  },
+  "reference": {
+    "repository": "sqlite/sqlite",
+    "ref": "version-3.46.1",
+    "files": {
+      "src/os_unix.c": {
+        "bytes": 283843,
+        "sha256": "83e4f995c0cfc1362b46320d979b38349ac5b1c6a7c0b12cbc2c4577c6c13ef9"
+      },
+      "src/wal.c": {
+        "bytes": 174376,
+        "sha256": "d4a104b5f3cb807e026a9dbcdb77519358b06b66f76cb6b6ef70e3793379dd62"
+      },
+      "src/sqlite.h.in": {
+        "bytes": 526581,
+        "sha256": "f06c5401b1aa27c8aba0d1869c589316923c9fb9c425dced6e5dc0d4c648c1fb"
+      }
+    },
+    "functions": [
+      "unixShmMap",
+      "unixShmPurge",
+      "unixShmRegionPerMap",
+      "seekAndWriteFd",
+      "unixShmBarrier",
+      "walIndexPageRealloc"
+    ],
+    "selected": "Linux x86-64 nonblocking Unix WAL VFS; original 32768-byte WAL index regions. Virtual page-size controls are synthetic, not proof of another physical machine."
+  },
+  "scope": {
+    "one_private_mapping_session_per_live_DMS_node": true,
+    "all_ordinary_Store_paths": false,
+    "private_policy_component_only": true,
+    "actual_FS_or_memory_syscalls": false,
+    "fixed_DMS_map_dispatcher": false,
+    "complete_physical_memory_lease_provider": false,
+    "root_admission": false,
+    "migration": false,
+    "full_namespace": false,
+    "original_physical_fencing_result_does_not_execute_this_source": true
+  },
+  "input": {
+    "channel": {
+      "bytes": 64,
+      "magic": "HIASMX01",
+      "qwords": [
+        "magic",
+        "origin1 issued parent /2 actual typed peer /3 unknown outcome /4 known GROW allocation failure",
+        "peer role zero for parent/unknown/allocation failure",
+        "actual child return zero for current typed completion profile",
+        "exact raw request length",
+        "actual peer invocation serial or zero",
+        "zero",
+        "zero"
+      ],
+      "provenance": "Only a fixed trusted dispatcher may wrap actual peer results. Parent input is an already issued HIA DMS-ready node/view, not arbitrary public bytes. Equal headers are not external authentication."
+    },
+    "raw": {
+      "header_bytes": 256,
+      "magic": "HIASMP01",
+      "common": {
+        "q0": "magic",
+        "q1": "command",
+        "q2_3": "map session nonces",
+        "q4": "next call for parent, current call for peer",
+        "q5": "zero parent /current issued action for ACK or errors",
+        "q6": "nonzero current immutable source lease",
+        "q7": "fixed DMS node identity",
+        "q16": "exact payload length"
+      },
+      "commands": [
+        {
+          "id": 1,
+          "name": "INIT",
+          "channel": 1,
+          "args": "q4/q5=0; q6 issued initial source lease; q7 node; q8 issued FS descriptor token or0 process-lock; q9/q10 DB dev/inode; q11 readonly; q12 process-lock; q13 actual OS page size; q14/q15 DMS session nonces; q17 DMS-held1 or process-lock0; q18 actual predecessor node-lease generation; all other fields0",
+          "effect": "One private mapping session bound to one stable issued DMS node. It does not open/close a descriptor or claim that supplied fields alone authenticate it."
+        },
+        {
+          "id": 2,
+          "name": "MAP",
+          "channel": 1,
+          "args": "q8 region index; q9=32768; q10 bExtend0/1; all other arguments0",
+          "effect": "DMS retry/held decision must already have completed in the HIA parent. Cached mapping returns immediately; growth follows FSTAT, per-page writes, vector realloc, then one mapping per OS-sized group."
+        },
+        {
+          "id": 3,
+          "name": "PURGE",
+          "channel": 1,
+          "args": "no command arguments",
+          "effect": "Called only after last connection removal and any optional unlink. Unmap/free all region groups in ascending order, then free the vector, then retire; parent closes the SHM descriptor after this terminal."
+        },
+        {
+          "id": 4,
+          "name": "BARRIER",
+          "channel": 1,
+          "args": "no command arguments",
+          "effect": "Issue memory barrier plus retained global-mutex enter/leave port. This is not implemented as an HIA no-op."
+        },
+        {
+          "id": 5,
+          "name": "PEER_ACK",
+          "channel": 2,
+          "args": "q8 role; q9 operation; q10 errno0..4095; q11 normalized returned value or opaque token; q12 exact result extent; q13 actual invocation serial; q14/q15=0; q17 complete issued request length; q18 result byte length; q19..31=0; payload exact issued request then result bytes",
+          "effect": "Same call/action/source/node, strictly newer peer serial and exact issued request bytes required before consuming completion once."
+        },
+        {
+          "id": 6,
+          "name": "UNKNOWN",
+          "channel": 3,
+          "args": "current call/action/lease/node; all arguments/body0",
+          "effect": "Permanent poison retaining uncertain pending state; never invented retry, allocation, success or release."
+        },
+        {
+          "id": 7,
+          "name": "GROW_ALLOC_FAILED",
+          "channel": 4,
+          "args": "current call/action/lease/node; q8=12; no other argument/body",
+          "effect": "Only while an index-workspace GROW is pending. Return IOERR_NOMEM preserving old mapped regions/table and completed file writes."
+        }
+      ]
+    }
+  },
+  "output": {
+    "minimum_capacity": 257,
+    "header_bytes": 256,
+    "why_257": "A raw PWRITE request carries the original one NUL byte. This is a private ABI minimum, not a bound on user data, mappings, nodes or database size.",
+    "magic": "HIASMP01",
+    "statuses": {
+      "0": "completed SQLite result",
+      "1": "issued FS or memory operation",
+      "2": "GROW same immutable input; no peer replay",
+      "4294967293": "permanent refusal"
+    },
+    "common": {
+      "q2_3": "session",
+      "q4": "call",
+      "q5": "action",
+      "q12_13": "required W/O for GROW",
+      "q14": "current immutable source lease",
+      "q15": "node",
+      "q16": "payload byte length",
+      "q17": "phase",
+      "q23": "profile1"
+    },
+    "issued": {
+      "q6": "role1 FS /2 memory",
+      "q7": "operation",
+      "q8": "issued token",
+      "q9_10_11": "three operation arguments",
+      "body": "Only FS PWRITE emits one zero byte"
+    },
+    "terminal": {
+      "q6": "SQLite result code",
+      "q7": "errno observation",
+      "q8": "opaque mapping token or0",
+      "q9": "byte offset within that mapping",
+      "q10": "32768 view bytes or0",
+      "q11": "retained nRegion",
+      "q18": "readonly",
+      "q19": "region size",
+      "q20": "vector token",
+      "q21": "ignored cleanup error count",
+      "q24": "last ignored cleanup errno"
+    },
+    "view": "The result identifies an issued mapping token plus range. It is not a raw pointer and grants no access without the actual fixed memory registry and parent-issued view."
+  },
+  "ports": {
+    "FS": {
+      "3": {
+        "name": "one raw PWRITE",
+        "token": "issued SHM descriptor",
+        "args": [
+          "absolute page-tail offset",
+          1,
+          0
+        ],
+        "body": "one NUL",
+        "success": "count0/1, no body; EINTR retry is decided by this HIA owner"
+      },
+      "15": {
+        "name": "full x86-64 FSTAT",
+        "token": "issued SHM descriptor",
+        "args": [
+          0,
+          0,
+          0
+        ],
+        "success": "value0, extent144, actual 144-byte stat at result; st_size offset48"
+      }
+    },
+    "memory": {
+      "1": {
+        "name": "REALLOC_VECTOR",
+        "token": "old vector or0",
+        "args": [
+          "requested nReqRegion*8",
+          "old extent",
+          0
+        ],
+        "success": "opaque vector token and exact requested extent; prior vector remains valid on failure; success may preserve the same token/address"
+      },
+      "2": {
+        "name": "MMAP_FILE",
+        "token": "issued SHM descriptor",
+        "args": [
+          "byte file offset",
+          "mapping extent",
+          "PROT_READ1 or READ|WRITE3"
+        ],
+        "success": "fresh live mapping lease and exact extent; underlying operation MAP_SHARED"
+      },
+      "3": {
+        "name": "ALLOC_ZERO",
+        "token": 0,
+        "args": [
+          "extent",
+          0,
+          0
+        ],
+        "success": "fresh zeroed heap lease, same complete requested extent"
+      },
+      "4": {
+        "name": "MUNMAP",
+        "token": "issued mapped group",
+        "args": [
+          "original nominal szRegion32768",
+          "full issued mapping extent",
+          0
+        ],
+        "success": "one raw unmap attempt; Linux rounds nominal length to OS page size; known failure is ignored by original purge but logical view retired"
+      },
+      "5": {
+        "name": "FREE",
+        "token": "issued vector or process heap",
+        "args": [
+          "actual extent",
+          0,
+          0
+        ],
+        "success": "retire once; preserve any actual cleanup error as ignored observation"
+      },
+      "6": {
+        "name": "BARRIER",
+        "token": 0,
+        "args": [
+          0,
+          0,
+          0
+        ],
+        "success": "actual compiler/hardware memory barrier and retained namespace global mutex enter/leave; cannot be a synthetic success in physical qualification"
+      }
+    },
+    "unknown": "The fixed provider and HIA registry must issue roles, tokens, bytes, serials and actual statuses. This component's fake replies do not qualify those providers."
+  },
+  "state": {
+    "minimum_workspace": 1536,
+    "header_bytes": 512,
+    "saved_parent": 512,
+    "saved_ack": 768,
+    "issued_request": 1024,
+    "records_begin": 1536,
+    "record_bytes": 32,
+    "fields": {
+      "0": "magic",
+      "8": "phase1 idle/2 peer/3 parent GROW/4 ACK GROW/6 retired/7 poison",
+      "32": "call",
+      "40": "action",
+      "48": "source lease",
+      "56": "node",
+      "64": "FS token",
+      "72": "readonly",
+      "80": "process lock",
+      "88": "nRegion",
+      "96": "physical-map count",
+      "104": "szRegion",
+      "112": "vector token",
+      "120": "vector extent",
+      "128": "stage",
+      "136": "command",
+      "144": "requested index",
+      "152": "nReqRegion",
+      "160": "required file bytes",
+      "168": "next extension page",
+      "176": "purge index",
+      "208": "first protocol refusal",
+      "216": "ignored cleanup count",
+      "224": "last cleanup errno",
+      "272": "pending one-byte body extent",
+      "448": "OS page size",
+      "456": "regions per map",
+      "464": "log2 regions per map",
+      "472": "initial issued node-lease generation",
+      "16,24": "session",
+      "192,200": "GROW W/O",
+      "232,240": "last actual memory/FS serial",
+      "280..320": "pending role/op/token/three args",
+      "416,424": "DMS session",
+      "432,440": "DB dev/inode"
+    },
+    "record": [
+      "opaque mapping token, zero only after its known purge completion",
+      "base logical region index",
+      "number of logical regions in this mapping",
+      "actual mapping byte extent"
+    ],
+    "bounds": "Every record range is validated before lookup. A complete pending stage/op/role/arguments and saved issued-request frame are cross-checked. No fixed global region/node/byte count limit.",
+    "growth": "Required state/index bytes use checked u64 arithmetic; same full immutable source view must survive GROW. Only its header is compared locally, so this is a private fixed-lease prerequisite.",
+    "retirement": "Purge consumes each known release once, ignores its recorded errors like the retained caller, frees vector last, and permanently retires this node mapping session."
+  },
+  "order": [
+    "Cached region returns without FSTAT, vector realloc or mmap.",
+    "Assign szRegion before the first FSTAT; FSTAT error gives IOERR_SHMSIZE.",
+    "Too-small file with !bExtend returns NULL/OK, then READONLY conversion if applicable; no vector allocation.",
+    "Extend with exactly one NUL at each 4096-byte page tail, starting floor(oldSize/4096); retry only PWRITE EINTR, zero write stops.",
+    "Allocate/reallocate pointer-vector capacity after all file writes; failure IOERR_NOMEM keeps old vector/mappings and already written file.",
+    "Each file group mmap failure yields IOERR_SHMMAP; process-lock zeroed allocation failure yields NOMEM; earlier successful groups remain live.",
+    "Readonly converts only an otherwise OK MAP result to READONLY, while retaining a valid returned view when mapped.",
+    "Purge happens after unlink and before descriptor close in the parent; this owner never opens/closes/unlinks itself."
+  ],
+  "limits_and_equivalence": {
+    "no_new_global_store_quota": true,
+    "original_source_compiler_limits_unchanged": true,
+    "allocation_classes": {
+      "FSTAT_or_extension": 4874,
+      "vector": 3082,
+      "file_mapping": 5386,
+      "heap_mapping": 7,
+      "readonly": 8
+    },
+    "address_overflow": "Explicit NEW defensive behavior at impossible u64 address overflow is IOERR_NOMEM. It is not claimed equivalent to original C signed-overflow/undefined inputs; this does not remove any defined ordinary caller behavior.",
+    "C_storage_width": "Private state uses u64 and does not assert equivalence for original C nByte overflow or nRegion truncation beyond the original defined size domain.",
+    "allocator_failure": "Test fixtures model actual issued allocation failure receipts. The fixed physical allocator, recovery after infrastructure allocation failure, and all real mappings remain unqualified."
+  },
+  "planned_tests": {
+    "source_blob": "8670a3484d46818b4568a3fa540d16916ba19fb3",
+    "validator_blob": "1070a787beb22a3b809b05e514e1870d8ae3a327",
+    "groups": {
+      "VM": 24,
+      "paired_native": 24
+    },
+    "current_actual_counts": {
+      "VM": 0,
+      "native": 0,
+      "syscalls": 0
+    },
+    "semantic_basis": "Assertions derived from retained C branches; CoreVM/native equality is not itself a retained-C oracle or physical qualification."
+  },
+  "history": {
+    "source_r1_blob": "eae8fad6391cce6aa5c23a194d38a470594277a1",
+    "source_r1_status": "never generated/executed; static author found minimum O256 incompatible with one-byte PWRITE payload and incomplete pending tuple gates",
+    "source_r2": "Never generated/executed; exact pending operation/header gates. New r3 additionally binds target index, nReqRegion, nByte and retained nRegion during pending/growth states.",
+    "abi_r1_blob": "def1afe467fe853a99c8ed2b2a9dc9bcef5a2861",
+    "abi_r1_static_correction": "Six JS numeric-separator object keys in state offset documentation became concatenated numbers. Replaced by explicit string range/pair keys before CI handoff. Kernel/test bytes unchanged.",
+    "source_r2_blob": "858d9eec789d80b696089c13f15cc3b765f6dbcf",
+    "source_r3": "NEW UNEXECUTED; 24 source tests now also inject inconsistent nReqRegion and nByte in the existing state-shape group."
+  }
+}
