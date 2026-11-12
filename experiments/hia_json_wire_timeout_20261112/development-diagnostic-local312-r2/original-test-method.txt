@@ -1,0 +1,14 @@
+def test_native_timeout_is_incomplete_terminated_and_not_adoptable(self):
+        _base, _candidate, baseline, build, receipts = self.build_pair(
+            budget={"max_native_wall_ms": 1})
+        started = time.monotonic()
+        evaluation = self.session.evaluate(baseline, build, receipts=receipts)
+        self.assertLess(time.monotonic() - started, 5)
+        self.assertEqual(evaluation["outcome"], "budget_exceeded")
+        self.assertTrue(evaluation["report_complete"])
+        self.assertTrue(evaluation["termination_confirmed"])
+        self.assertFalse(evaluation["planned_workload_complete"])
+        self.reject("hia_adopt", self.session.arguments(target_slot="timed-out",
+            expected_current={"generation": "0", "epoch": "0"},
+            candidate_artifact=build["native_artifact"],
+            evaluation_receipt=evaluation["evaluation_receipt"], verification_receipts=receipts))

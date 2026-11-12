@@ -1,0 +1,271 @@
+--- r1/control/worker.py
++++ r2/control/worker.py
+@@ -70,12 +70,17 @@
+         @wraps(fn)
+         def wrapped(*args, **kwargs):
+             old = phase[0]
+-            if phase_name is not None:
+-                phase[0] = phase_name
+-            started = time.monotonic_ns()
+-            item = [started, 0]
+-            clock_stack.append(item)
++            item = None
+             outcome = 'returned'
++            try:
++                if phase_name is not None:
++                    phase[0] = phase_name
++                started = time.monotonic_ns()
++                candidate = [started, 0]
++                clock_stack.append(candidate)
++                item = candidate
++            except BaseException as error:
++                record_error('timer-begin', error)
+             try:
+                 return fn(*args, **kwargs)
+             except BaseException:
+@@ -83,35 +88,45 @@
+                 raise
+             finally:
+                 try:
+-                    elapsed = time.monotonic_ns() - started
+-                    if clock_stack.pop() is not item:
+-                        raise RuntimeError('diagnostic timing stack changed')
+-                    if clock_stack:
+-                        clock_stack[-1][1] += elapsed
+-                    row = metrics.setdefault(phase[0] + '/' + name, Counter())
+-                    row['calls'] += 1
+-                    row[outcome] += 1
+-                    row['inclusive_ns'] += elapsed
+-                    row['exclusive_instrumented_ns'] += elapsed - item[1]
++                    if item is not None:
++                        elapsed = time.monotonic_ns() - item[0]
++                        if clock_stack.pop() is not item:
++                            raise RuntimeError('diagnostic timing stack changed')
++                        if clock_stack:
++                            clock_stack[-1][1] += elapsed
++                        row = metrics.setdefault(phase[0] + '/' + name, Counter())
++                        row['calls'] += 1
++                        row[outcome] += 1
++                        row['inclusive_ns'] += elapsed
++                        row['exclusive_instrumented_ns'] += elapsed - item[1]
+                 except BaseException as error:
+-                    record_error('timer/' + name, error)
++                    record_error('timer-end', error)
+                 finally:
+                     phase[0] = old
+         return wrapped
+ 
+     def forbid_owner(*args, **kwargs):
+-        retained_entries.append(phase[0])
++        try:
++            retained_entries.append(phase[0])
++        except BaseException as error:
++            record_error('retained-owner-guard', error)
+         raise AssertionError('retained bounded-wire decision owner entered')
+ 
+     def forbid_encoder(*args, **kwargs):
+-        encoder_entries.append(phase[0])
++        try:
++            encoder_entries.append(phase[0])
++        except BaseException as error:
++            record_error('encoder-guard', error)
+         raise AssertionError('host JSON encoder entered selected native wire')
+ 
+     original_encode = wire.NativeJsonWire.encode_ordinary
+     def encode(owner, *values, **options):
+         if owner.image_sha256 != expected_image:
+             raise AssertionError('ordinary wire selected a different executable')
+-        counts[phase[0] + '/ordinary_wire_calls'] += 1
++        try:
++            counts[phase[0] + '/ordinary_wire_calls'] += 1
++        except BaseException as error:
++            record_error('ordinary-wire-count', error)
+         with patch.object(json.JSONEncoder, 'iterencode', forbid_encoder):
+             return original_encode(owner, *values, **options)
+ 
+@@ -119,64 +134,115 @@
+     def step(session, packet=None):
+         result = original_step(session, packet)
+         # No clock or I/O in the primitive loop. Count only real normal returns.
+-        counts[phase[0] + '/native_step_status_' + str(result)] += 1
++        try:
++            counts[phase[0] + '/native_step_status_' + str(result)] += 1
++        except BaseException as error:
++            record_error('native-step-count', error)
+         return result
+ 
+     original_session_init = wire.WireSession.__init__
+     def session_init(session, *args, **kwargs):
+         result = original_session_init(session, *args, **kwargs)
+-        counts[phase[0] + '/actual_key_cache_' + str(session.key_cache)] += 1
++        try:
++            counts[phase[0] + '/actual_key_cache_' + str(session.key_cache)] += 1
++        except BaseException as error:
++            record_error('key-cache-count', error)
+         return result
+ 
+     original_batch = runner.run_native_batch
+     def batch(artifact_bytes, signatures, cases, **kwargs):
+-        row = {'phase': phase[0], 'mode': kwargs.get('_mode', 'native'),
+-               'artifact': artifact_bytes, 'signatures': signatures, 'cases': cases,
+-               'options': dict(kwargs), 'result': None, 'exception': None}
+-        batches.append(row)
+-        try:
+-            row['result'] = timed('runner/' + row['mode'], original_batch)(artifact_bytes, signatures, cases, **kwargs)
+-            return row['result']
+-        except BaseException as error:
+-            row['exception'] = type(error).__name__
++        row = None
++        call = original_batch
++        try:
++            row = {'phase': phase[0], 'mode': kwargs.get('_mode', 'native'),
++                   'artifact': artifact_bytes, 'signatures': signatures, 'cases': cases,
++                   'options': dict(kwargs), 'result': None, 'exception': None}
++            batches.append(row)
++            call = timed('runner/' + row['mode'], original_batch)
++        except BaseException as error:
++            record_error('batch-begin', error)
++        try:
++            result = call(artifact_bytes, signatures, cases, **kwargs)
++        except BaseException as error:
++            try:
++                if row is not None:
++                    row['exception'] = type(error).__name__
++            except BaseException as recording_error:
++                record_error('batch-exception', recording_error)
+             raise
++        try:
++            if row is not None:
++                row['result'] = result
++        except BaseException as error:
++            record_error('batch-return', error)
++        return result
+ 
+     original_popen_init = subprocess.Popen.__init__
+     def popen_init(proc, *args, **kwargs):
+-        row = {'index': len(process_records), 'phase': phase[0], 'argv': args[0] if args else kwargs.get('args'),
+-               'cwd': str(kwargs.get('cwd') or os.getcwd()),
+-               'env': dict(os.environ if kwargs.get('env') is None else kwargs['env']),
+-               'start_new_session': kwargs.get('start_new_session', False), 'pid': None, 'exception': None}
+-        process_records.append(row)
++        row = None
++        try:
++            row = {'index': len(process_records), 'phase': phase[0], 'argv': args[0] if args else kwargs.get('args'),
++                   'cwd': str(kwargs.get('cwd') or os.getcwd()),
++                   'env': dict(os.environ if kwargs.get('env') is None else kwargs['env']),
++                   'start_new_session': kwargs.get('start_new_session', False), 'pid': None, 'exception': None}
++            process_records.append(row)
++        except BaseException as error:
++            record_error('popen-begin', error)
+         try:
+             result = original_popen_init(proc, *args, **kwargs)
+         except BaseException as error:
+-            row['exception'] = type(error).__name__
++            try:
++                if row is not None:
++                    row['exception'] = type(error).__name__
++            except BaseException as recording_error:
++                record_error('popen-exception', recording_error)
+             raise
+-        row['pid'] = proc.pid
+-        processes.append((proc, row))
++        try:
++            if row is not None:
++                row['pid'] = proc.pid
++                processes.append((proc, row))
++        except BaseException as error:
++            record_error('popen-return', error)
+         return result
+ 
+     original_communicate = subprocess.Popen.communicate
+     def communicate(proc, input=None, timeout=None):
+-        item = {'index': len(raw_events), 'phase': phase[0], 'pid': proc.pid, 'timeout': timeout,
+-                'input': input, 'stdout': None, 'stderr': None, 'returncode': None, 'exception': None}
+-        raw_events.append(item)
+-        try:
+-            stdout, stderr = timed('process_communicate', original_communicate)(proc, input=input, timeout=timeout)
+-            item.update(stdout=stdout, stderr=stderr, returncode=proc.returncode)
+-            return stdout, stderr
+-        except BaseException as error:
+-            item['exception'] = type(error).__name__
+-            if isinstance(error, subprocess.TimeoutExpired):
+-                item.update(stdout=error.output, stderr=error.stderr)
+-            item['returncode'] = proc.returncode
++        item = None
++        call = original_communicate
++        try:
++            item = {'index': len(raw_events), 'phase': phase[0], 'pid': proc.pid, 'timeout': timeout,
++                    'input': input, 'stdout': None, 'stderr': None, 'returncode': None, 'exception': None}
++            raw_events.append(item)
++            call = timed('process_communicate', original_communicate)
++        except BaseException as error:
++            record_error('communicate-begin', error)
++        try:
++            result = call(proc, input=input, timeout=timeout)
++        except BaseException as error:
++            try:
++                if item is not None:
++                    item['exception'] = type(error).__name__
++                    if isinstance(error, subprocess.TimeoutExpired):
++                        item.update(stdout=error.output, stderr=error.stderr)
++                    item['returncode'] = proc.returncode
++            except BaseException as recording_error:
++                record_error('communicate-exception', recording_error)
+             raise
++        try:
++            if item is not None:
++                stdout, stderr = result
++                item.update(stdout=stdout, stderr=stderr, returncode=proc.returncode)
++        except BaseException as error:
++            record_error('communicate-return', error)
++        return result
+ 
+     original_evaluate = client.Session.evaluate
+     def evaluate(*args, **kwargs):
+         result = original_evaluate(*args, **kwargs)
+-        evaluation_results.append(result)
++        try:
++            evaluation_results.append(result)
++        except BaseException as error:
++            record_error('evaluate-return', error)
+         return result
+ 
+     def retain(name, raw):
+@@ -212,7 +278,10 @@
+ 
+     class Result(unittest.TextTestResult):
+         def startTest(self, test):
+-            active_cases.append(test.id())
++            try:
++                active_cases.append(test.id())
++            except BaseException as error:
++                record_error('test-start-record', error)
+             super().startTest(test)
+ 
+     test = original_tests.NativeLifecycleTests(TEST_ID.rsplit('.', 1)[1])
+@@ -237,7 +306,12 @@
+             patches.append((service.HIAAgentService, name, timed(name, getattr(service.HIAAgentService, name))))
+         original_store_json = store.AgentStore.json
+         def store_json(owner, value, kind, metadata=None):
+-            return timed('store_json/' + str(kind), original_store_json)(owner, value, kind, metadata)
++            call = original_store_json
++            try:
++                call = timed('store_json/' + str(kind), original_store_json)
++            except BaseException as error:
++                record_error('store-json-begin', error)
++            return call(owner, value, kind, metadata)
+         patches.append((store.AgentStore, 'json', store_json))
+         for obj, name, replacement in patches:
+             stack.enter_context(patch.object(obj, name, replacement))
+@@ -245,7 +319,10 @@
+             result = unittest.TextTestRunner(stream=log, verbosity=2, resultclass=Result).run(unittest.TestSuite([test]))
+ 
+     for proc, row in processes:
+-        row['final_returncode_observed'] = proc.returncode
++        try:
++            row['final_returncode_observed'] = proc.returncode
++        except BaseException as error:
++            record_error('popen-final-observation', error)
+     try:
+         for row in raw_events:
+             for field in ('input', 'stdout', 'stderr'):

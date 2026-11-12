@@ -1,0 +1,105 @@
+{
+  "GraphObserver_bindings_changed": false,
+  "all864_noncontrol_input_pins_identical": true,
+  "diagnostic_executed": false,
+  "finding": "Unprotected diagnostic observations in Popen/communicate/batch exception handlers could replace an active original exception. Normal-return counters and append operations had the same intrusive failure boundary. This is a static finding, not an observed product failure.",
+  "full89_qualification_claimed": false,
+  "historical_qualification_method_denominator": 89,
+  "input_pins_total": 866,
+  "inverse_report": {
+    "bytes": 2633,
+    "git_blob_sha1": "8b256455bbab05672392bd92312dfe242e449dcd",
+    "sha256": "acab00aaca74272f85c8aa0770781c91adc1c40c500f6a17814512d89f9fc504"
+  },
+  "launch": {
+    "bytes": 919,
+    "git_blob_sha1": "5fec744fa74ead58043274f2a7464246d4ebe649",
+    "sha256": "a9891837e7af3017ebbae6ef6298fe30e8d27e221c224b2b4b6ac10c49d3362d"
+  },
+  "method_count": 1,
+  "native_executed": false,
+  "normal_return_observations": [
+    "encode counter",
+    "step counter",
+    "session cache counter",
+    "evaluate append",
+    "batch record",
+    "Popen identity record",
+    "communicate partial/full result record",
+    "store label/timer",
+    "test start record",
+    "post-test return-code observation"
+  ],
+  "original_assertion_seconds": 5,
+  "original_cleanup_seconds": 3,
+  "original_owner_seconds": 180,
+  "original_test_body_and_workload_byte_identical": true,
+  "per_primitive_IO_or_clock_added": false,
+  "previous_request_kept_unexecuted": true,
+  "previous_static_commit": "0a904ccd3bbf4d41b82d2ac2b6c420559f55b126",
+  "previous_static_tree": "dbcb4070ab95587b5747c3396f876a4eb0c4ca7b",
+  "repair": "Catch BaseException only around diagnostic observations, record a permanent diagnostic failure flag, and preserve the original callee exception with bare raise or its exact returned object. Preserve original required guard failures. Timer startup and completion observation failures also fail diagnostic evidence without replacing the callee.",
+  "request": {
+    "bytes": 566902,
+    "git_blob_sha1": "6c4b8674514e77577bb0d039b9f04c97912c0cc9",
+    "sha256": "714382cdae121e8d06bd66d01f6b9e1796ced5dc7bda34a996a3040925c8aeff"
+  },
+  "root_review_and_one_execution_authorization_required": true,
+  "schema": "hepta.wire89.recorder-r2-correction.v1",
+  "status": "FROZEN_UNEXECUTED",
+  "synthetic_controls": {
+    "callee_exception_and_result_identity_checked": true,
+    "callees_inert": true,
+    "cleanup_seconds": 3,
+    "executed": false,
+    "ids": [
+      "__main__.WireDiagnosticRecordingControls.test_normal_return_identity_after_observer_failure",
+      "__main__.WireDiagnosticRecordingControls.test_popen_and_batch_exception_identity",
+      "__main__.WireDiagnosticRecordingControls.test_required_guards_and_successful_recording_are_unchanged",
+      "__main__.WireDiagnosticRecordingControls.test_timeout_exception_identity_and_partial_capture_fault",
+      "__main__.WireDiagnosticRecordingControls.test_timer_failures_never_replace_callee_outcome"
+    ],
+    "launch": {
+      "bytes": 864,
+      "git_blob_sha1": "c068edf0099d40a3b1ce2fb4784fbdcfbacaadb3",
+      "sha256": "27374ea76440bf42fc774d5cdf9d2f7869f88e562a12d7af728c5e28fa9cdf8d"
+    },
+    "launcher": {
+      "bytes": 8069,
+      "git_blob_sha1": "920f1c575c025f11a9faef1ca1650bea37a523e3",
+      "sha256": "ff7f6a1fb58ca8a47b00ae95068796bf3a3f7d5155c6926a2a1cbe3e891f85d4"
+    },
+    "methods": 5,
+    "processes_created_by_test_cases": false,
+    "project_imports": false,
+    "qualification_seconds": 20,
+    "real_worker_functions_extracted_by_AST": true,
+    "request": {
+      "bytes": 5377,
+      "git_blob_sha1": "9fff56008b96b4da251b526277b31eaeb3555c1f",
+      "sha256": "3262e0afc52fcaa3cc3230a51f0fc3aa66391f5a7d2e1e2b4e13172c87cc7da0"
+    },
+    "source": {
+      "bytes": 14069,
+      "git_blob_sha1": "c8686658b4789687a34d4299309ee5c7ab0729ce",
+      "sha256": "52ce248dca435aa35210dd6e3dd6b2a4b171509eb8baf430c9efd4786d408dd2"
+    }
+  },
+  "unchanged_freezer": {
+    "bytes": 9505,
+    "git_blob_sha1": "a0566c1a934606b270ae800c2639d62f021e75f3",
+    "sha256": "245a449c8ad3496c195d2acb665c973fb2948beb84380ad152bf7448f1ae4ca7"
+  },
+  "unchanged_launcher": {
+    "bytes": 8725,
+    "git_blob_sha1": "ff580c05097f4b11a333192fecd0b722ac1ba310",
+    "sha256": "b970dffd4c023acebc7228c5abccebbf0215ff89ec896841714ea5688268970b"
+  },
+  "whole_worker_inverse_exact": true,
+  "worker": {
+    "bytes": 17652,
+    "git_blob_sha1": "9f71dbcef36500d8ae365971de55f71c32a024b4",
+    "sha256": "a598f3929eee68bd14bada0b88f13ecca6abec960e389504571a1706b1348d4a"
+  },
+  "workload_cases": 256
+}

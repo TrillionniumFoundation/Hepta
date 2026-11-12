@@ -1,0 +1,5 @@
+def exhaustive_u8_workload(increment=7):
+    return {"schema": "hepta.hia.agent.workload.v1", "cases": [
+        {"function": "transform", "arguments": [x],
+         "expected": {"status": "returned", "values": [(x + increment) & 255]}}
+        for x in range(256)], "warmup_iterations": 0, "repetitions": 1}
