@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/home/runner/work/Hepta/Hepta/control/experiments/hia_bounded_read_owner_20261112/actions-native-development-r1/controller.py", line 504, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/home/runner/work/Hepta/Hepta/control/experiments/hia_bounded_read_owner_20261112/actions-native-development-r1/controller.py", line 501, in main
+    return {'prepare': prepare, 'run': run, 'finalize': finalize}[args.operation](args)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/runner/work/Hepta/Hepta/control/experiments/hia_bounded_read_owner_20261112/actions-native-development-r1/controller.py", line 302, in prepare
+    control, policy, raw, root, source, value = context(args)
+                                                ~~~~~~~^^^^^^
+  File "/home/runner/work/Hepta/Hepta/control/experiments/hia_bounded_read_owner_20261112/actions-native-development-r1/controller.py", line 212, in context
+    and read(control_checkout / '.git/HEAD', 256)[0] == (args.control_commit + '\n').encode(),
+        ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/Hepta/Hepta/control/experiments/hia_bounded_read_owner_20261112/actions-native-development-r1/controller.py", line 136, in read
+    with _checked_parent(path) as (parent, name, stable):
+         ~~~~~~~~~~~~~~~^^^^^^
+TypeError: 'generator' object does not support the context manager protocol (missed __exit__ method)
