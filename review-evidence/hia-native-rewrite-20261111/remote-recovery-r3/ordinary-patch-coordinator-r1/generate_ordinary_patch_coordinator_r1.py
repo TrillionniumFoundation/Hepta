@@ -406,19 +406,28 @@ def ordinary_receipt_step(o:mutbuf, w:mutbuf) -> u64:
     if phase == 99:
         return invoke(o, w, 59, 27, 0, get(w, O_ENVELOPE_BYTES), 28, cap(w, 28), 29, cap(w, 29), 28, 0, 128, 100)
     if phase == 100:
-        if ordinary_leaf_header(w, RECEIPT_EVENT, 28, 29, 64) == 0:
+        # HIAPRC01 owns metadata at 64..95; only 96..127 are reserved.
+        # Bind completed receipts to the actual preparation, including policy.
+        if ordinary_leaf_header(w, RECEIPT_EVENT, 28, 29, 96) == 0:
             return refuse(w, 6062)
         action = get(w, OBS + 16)
         reason = get(w, OBS + 24)
         size = get(w, OBS + 56)
         if action == 1:
+            if get(w, OBS + 64) != 0 or get(w, OBS + 72) != 0 or get(w, OBS + 80) != 0 or get(w, OBS + 88) != 0:
+                return refuse(w, 6066)
             put(w, C_PHASE, 101)
             return 0
+        if get(w, OBS + 64) != get(w, O_VERSION) or get(w, OBS + 72) != get(w, O_POLICY) or get(w, OBS + 80) != get(w, O_EDITS):
+            return refuse(w, 6067)
+        changes = get(w, OBS + 88)
+        if changes > 2048:
+            return refuse(w, 6068)
         if action == 2:
-            if reason != 1 or size == 0:
+            if reason != 1 or size == 0 or changes == 0 or get(w, O_POLICY) != 0:
                 return refuse(w, 6063)
             return edit_error_start(w, 3, 59, reason, 28, 128, size)
-        if reason != 0 or size == 0:
+        if reason != 0 or size == 0 or (get(w, O_POLICY) == 0 and changes != 0):
             return refuse(w, 6064)
         put(w, O_RECEIPT_BYTES, size)
         return edit_result_start(w, B_CORE, 0, get(w, O_BASE_BYTES), 26, 0, get(w, O_NEW_BYTES), 28, 128, size)

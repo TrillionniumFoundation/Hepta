@@ -1,0 +1,42 @@
+{
+  "schema": "hepta.hia.ordinary-receipt-coordinator-static-review.v1",
+  "status": "CONTRACT_CONSISTENCY_FIX_NO_CONFIRMED_OMISSION_IN_REQUESTED_SCOPE",
+  "source_pins": {
+    "old": {
+      "gitsha": "8abc8008e8a20631da0f9f531cad775ae4faf81f",
+      "sha256": "3bcb6cc95c3ceed164112377f1c0ed016c00135d35f97f7f4ba0480b809febbb",
+      "bytes": 20188
+    },
+    "new": {
+      "gitsha": "1ec25d1a9e579fe077f680b7d34ff40e6db66ee1",
+      "sha256": "f4ca14d8ead54a2461b3149c1a72a2e84c9bf191c95570c005d0ec1ad34854ce",
+      "bytes": 20836
+    },
+    "receipt": {
+      "gitsha": "4a0aa657053f2a340ca431ab52c11e1e794b858a",
+      "sha256": "dcf63b505439e013e05b608cc3b9d1032c5d9f4dc48ab2a77ff9e86a4cfccca5",
+      "bytes": 18942
+    }
+  },
+  "executed": {
+    "ast": 0,
+    "generation": 0,
+    "b3": 0,
+    "native": 0
+  },
+  "facts": [
+    "Old phase100 reserved-zero range starts64 and necessarily rejects every completed valid receipt, because actual leaf writes version at64, policy72, edits80, changed88 after receipt_event().",
+    "Both early and final-capacity NEED exits call receipt_event(action1), which zeros64..120 and returns NEED. New action1 branch verifies64..88 zero and retains original need/capacity gates.",
+    "New non-NEED branch binds version/policy/edit count to the exact metadata validated and saved by phase40, and sent in the phase90..96 readonly envelope. Earlier gates restrict version1..2, policy0..1 with v1 preserve, edits1..64.",
+    "Actual leaf emits action2/reason1 iff changed>0 and policy0. It emits action0/reason0 otherwise. New branch conditions exactly match these outputs and retain nonempty payload and complete extent checks.",
+    "Both admitted inventories are individually bounded to1024 distinct function names. Sorted-union changed count is at most2048; the new bound rejects impossible private metadata without reducing a valid language inventory.",
+    "Reserved96..120 remain zero for every completed leaf output. Actual input/result custody and the shared fixed-call ACK remain required; numeric equality alone is not source authentication.",
+    "Byte comparison found one changed contiguous region in phase100, from reserved-zero argument through completed-action predicates. All preceding and following authoring bytes are unchanged."
+  ],
+  "not_claimed": [
+    "No execution of new author or independent evidence reconstruction.",
+    "No full coordinator, leaf, assembly, transport/executor or test-suite review.",
+    "No inherited qualification or relaxation of original gates."
+  ],
+  "source_modified": false
+}

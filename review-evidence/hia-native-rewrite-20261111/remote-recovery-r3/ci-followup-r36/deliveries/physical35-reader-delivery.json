@@ -1,0 +1,84 @@
+{
+  "schema": "hia.namespace.follow35.originals.delivery.v1",
+  "status": "SOURCE_ONLY_READER_UNEXECUTED_WITH_ACTUAL_ORIGINAL_FAIL_LOG",
+  "entrypoint": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/follow35-originals/read_original_follow35.py",
+  "workflow_tag": "namespace-follow35-originals-readback",
+  "files": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/follow35-originals/read_original_follow35.py",
+      "bytes": 19674,
+      "sha256": "cecfa6728c85577028233cb0590564e86c79b31c7aaf5ab1bf3ae574ee04088c",
+      "blob": "dc5807642311382289d7481658dfde07afec6aee",
+      "mode": "100644",
+      "full_text_readback": true
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/follow35-originals/follow35-actual-observation.json",
+      "blob": "4d5855491129873b63fa9cb8967df36df339a27a",
+      "bytes": 66999,
+      "sha256": "d2fae32fe128f206e2161d9d67b603de3b19aaa45741cc27f4093fd5c1289764",
+      "mode": "100644",
+      "full_text_readback": true
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/follow35-originals/follow35-physical-job.log",
+      "blob": "97f670822d820eb88f874bda2104a780518e10cb",
+      "bytes": 232064,
+      "sha256": "f5f0edd19e2c1132cc553b93a37b3e861168d6932a78d7ccb1858489361b67f4",
+      "mode": "100644",
+      "full_text_readback": true
+    }
+  ],
+  "workflow": {
+    "python": "3.12.14",
+    "runner": "ubuntu-latest with Ubuntu24.04 x86_64 guard",
+    "common_required": false,
+    "download_artifact_v4": [
+      {
+        "artifact_ids": "13920641096",
+        "run_id": 43165373215,
+        "env": "HIA_NAMESPACE_PHYSICAL35_DIR",
+        "github_declared_ZIP_bytes": 248312503,
+        "github_declared_ZIP_sha256": "37e0e433cf06fd7274189af84a92b2b501355c5a61e2a10ca83fe234cb303f13"
+      },
+      {
+        "artifact_ids": "13920746920",
+        "run_id": 43165373215,
+        "env": "HIA_NAMESPACE_FOLLOW34_READBACK_DIR",
+        "github_declared_ZIP_bytes": 354451315,
+        "github_declared_ZIP_sha256": "1617fb01a364c0bbbc176562bc22ff51ca2d93efc4d8e4048c46a922d0076fc0"
+      }
+    ],
+    "output_env": "HIA_CI_OUTPUT fresh task directory outside both inputs",
+    "command": "timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/follow35-originals/read_original_follow35.py",
+    "source_syntax": [
+      "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/follow35-originals/read_original_follow35.py"
+    ],
+    "upload_always": "entire HIA_CI_OUTPUT plus complete stdout/stderr; original downloaded artifacts may be retained separately"
+  },
+  "scope": {
+    "new_native": 0,
+    "new_VM": 0,
+    "new_B3": 0,
+    "new_assembler": 0,
+    "original_member_seals": [
+      1283,
+      211,
+      82
+    ],
+    "physical35_original_status": "FAIL -7 SIGBUS, full original diagnostics pending",
+    "follow34_original_native_statuses": "FAIL unchanged; prior readback SUCCESS only",
+    "readback_only": true,
+    "physical_counts_not_inferred": true,
+    "full_original_member_bytes_modes_sha256": true,
+    "full_raw_principal_reports_emitted_before_interpretation": true,
+    "outer_ZIP_bytes_not_read_by_reader": true
+  },
+  "limits": {
+    "cpu_seconds": 90,
+    "wall_seconds": 180,
+    "address_bytes": 1073741824,
+    "core_bytes": 0
+  },
+  "actual_reader_executions": 0
+}

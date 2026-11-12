@@ -1,0 +1,76 @@
+{
+  "schema": "hia-independent-original-inventory-reader-static-review-v1",
+  "scope": "Narrow read-only source review and exact existing textual custody records; no inspected source executed",
+  "reader": {
+    "bytes": 16442,
+    "sha256": "1db5c5315d4f1d05eb5000a920c45faa74135c5e6abca9cceb0b08273bc36693",
+    "gitsha": "b0b524251f73c8bd9d1515df9fe19cdd9c9356d4"
+  },
+  "source_readback": [
+    {
+      "gitsha": "4af6da4be51458e1a34aa033658740344f9fdcb4",
+      "bytes": 52786,
+      "kind": "custody"
+    },
+    {
+      "gitsha": "4d0d2547ab43a21b808ca10e180a7b5038eacdbb",
+      "bytes": 9813,
+      "kind": "prior independent readback"
+    }
+  ],
+  "conclusion": "NO_CONFIRMED_BLOCKING_CODE_OR_CUSTODY_SHAPE_ERROR_IN_REVIEWED_SCOPE",
+  "verified_textual_shapes": {
+    "custody_members_array": true,
+    "custody_members": 123,
+    "original_bytes": 8688721,
+    "all_original_rows_have_nonnull_bytes_SHA_mode": true,
+    "all_selected_originals_present": 9,
+    "prior_members_is_integer_124": true,
+    "prior_source_files": 2798,
+    "head_exact": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+    "archive_size_and_sha_agree_with_prior": true,
+    "retained_prior_counts": {
+      "all_187_error_and_one_failure_original_chains_contain_ENOENT": true,
+      "errors": 187,
+      "expected_failures": 0,
+      "failures": 1,
+      "skipped": 18,
+      "tests_loaded": 4157,
+      "tests_run": 4157,
+      "unexpected_successes": 0
+    }
+  },
+  "static_checks": [
+    "The 123 custody rows plus exactly one embedded identical custody document are consistent with the prior 124-member record. There is no missing/null members container in the actual custody JSON.",
+    "PINS retains exact Git blob and sizes for all three inputs; the archive also has exact SHA256. Main reads the complete Git blob inventory before accepting these inputs.",
+    "No extraction into the source checkout; absolute paths, parent traversal, repeated names, non-regular files and hard/symbolic links are rejected. Every expected original byte count, SHA and archive mode is compared.",
+    "Each source descriptor is streamed with Git SHA1 and SHA256, same-file state comparisons, and executable Git mode. The whole tree and clean worktree are checked again after reading.",
+    "Inspected Python is passed to ast.parse only; no import/compile/exec of its AST occurs. Historical SyntaxError is recorded while production module parse refusal remains a gate.",
+    "The retained outcome stays FAIL_HOLD and 4157/187/1/18; no rerun or result replacement is claimed."
+  ],
+  "nonblocking_findings": [
+    {
+      "id": "SUMMARY_AST_COUNT_ON_LATE_FAILURE",
+      "kind": "reporting",
+      "confirmed_from_control_flow": true,
+      "text": "summary.new_AST stays 0 until the final success update. If an original archive/count check fails after the Python inventory was fully parsed and saved, the final failure summary reports 0 even though parsing occurred. The complete inventory still preserves the actual count.",
+      "suggested_minimal_change": "Copy parsed_Python (and optionally attempted Python/counts) into summary immediately after inventory construction, before read_originals. Keep all refusal conditions and limits unchanged."
+    },
+    {
+      "id": "OUTPUT_COPY_MODE_SCOPE",
+      "kind": "scope_clarity",
+      "confirmed_from_control_flow": true,
+      "text": "save() preserves copied member bytes and records original_mode separately; it does not chmod the extracted output copy to member.mode. Archive member mode comparison itself is correct. Do not describe output filesystem modes as restored unless chmod and readback are added."
+    }
+  ],
+  "unperformed": {
+    "AST": 0,
+    "VM": 0,
+    "native": 0,
+    "B3": 0,
+    "archive_binary_decode": 0,
+    "original_retained_rerun": 0
+  },
+  "qualification_note": "Prior JSON counters and custody text were read, not a new decompression of the 666816-byte archive. The proposed actual reader remains the new full byte readback gate.",
+  "refs_modified": false
+}

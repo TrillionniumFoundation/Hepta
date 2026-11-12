@@ -1,0 +1,291 @@
+{
+  "schema": "hia.namespace.sqlite-create-mode-uri.private-abi.v1",
+  "status": "NEW_SOURCE_UNEXECUTED",
+  "scope": "Selected SQLite 3.46.1 findCreateFileMode, databaseName, URI first-match lookup and boolean conversion; one private issuer owns the immutable filename allocation. This component does not perform unixOpen, physical stat or Store publication.",
+  "upstream": {
+    "commit": "f3d536d37825302e31ed0eddd811c689f38f85a3",
+    "selected_members": 15,
+    "whole_original_files": 5,
+    "selection_manifest_blob": "b6719c2d9929080deabdab525298fd0cd10eeea3",
+    "oracle_blob": "ae602fda1bccd7adc00260dc723d94521df9c064"
+  },
+  "source": {
+    "owner_blob": "5be027860d59b408a9768610da93693e09b37464",
+    "raw_FS8_blob": "5c64683dff44a779a8f1217c37f565e625b10910",
+    "actual_FS7_r2_predecessor_blob": "ccddae25e9187a30c30b4af7631f054f37a1ba3b"
+  },
+  "boundary": {
+    "HIA_signature": "readbuf source, mutbuf output, mutbuf workspace -> u32",
+    "workspace_bytes": 1024,
+    "header_bytes": 256,
+    "magic": "HIANCM01",
+    "BAD": 4294967293,
+    "commands": {
+      "BEGIN": 1,
+      "COMPLETED_STAT_REPLY": 2
+    },
+    "returns": {
+      "COMPLETE": 0,
+      "REQUEST_STAT": 1,
+      "GROW": 2,
+      "PERSISTENT_REJECTION": 4294967293
+    },
+    "operations": {
+      "findCreateFileMode": 1,
+      "sqlite3_uri_parameter": 2,
+      "sqlite3_uri_boolean": 3
+    }
+  },
+  "source_qwords": [
+    [
+      "0",
+      "magic"
+    ],
+    [
+      "1",
+      "command"
+    ],
+    [
+      "2..3",
+      "issuer context nonce, not external authentication"
+    ],
+    [
+      "4",
+      "nonzero call"
+    ],
+    [
+      "5",
+      "action (0 at BEGIN, 1 for completed STAT reply)"
+    ],
+    [
+      "6",
+      "operation"
+    ],
+    [
+      "7",
+      "zero"
+    ],
+    [
+      "8",
+      "SQLite open flags, u32"
+    ],
+    [
+      "9",
+      "logical filename pointer offset in immutable allocation"
+    ],
+    [
+      "10",
+      "filename allocation byte extent"
+    ],
+    [
+      "11",
+      "key byte extent"
+    ],
+    [
+      "12",
+      "default boolean original u32 bits"
+    ],
+    [
+      "13",
+      "initial errno <=4095"
+    ],
+    [
+      "14",
+      "zero"
+    ],
+    [
+      "15",
+      "nonzero source lease"
+    ],
+    [
+      "16",
+      "exact tail bytes"
+    ],
+    [
+      "17",
+      "nonzero context lease"
+    ],
+    [
+      "18..19",
+      "FS nonce for operation1"
+    ],
+    [
+      "20..21",
+      "prior FS call/action counters"
+    ],
+    [
+      "22",
+      "filename present 0/1"
+    ],
+    [
+      "23",
+      "key present 0/1"
+    ],
+    [
+      "24..31",
+      "zero"
+    ]
+  ],
+  "source_tail": "BEGIN: complete filename allocation then key bytes without NUL. REPLY: complete actual FS result, exactly 256 error bytes or 400 success bytes; all BEGIN-only fields in reply must be zero as defined by cm_ack_shape.",
+  "output_qwords": [
+    [
+      "0",
+      "HIANCM01"
+    ],
+    [
+      "1",
+      "status"
+    ],
+    [
+      "2..3",
+      "context nonce"
+    ],
+    [
+      "4",
+      "call"
+    ],
+    [
+      "5",
+      "action"
+    ],
+    [
+      "6",
+      "operation"
+    ],
+    [
+      "7",
+      "SQLite result"
+    ],
+    [
+      "8..10",
+      "mode/uid/gid"
+    ],
+    [
+      "11",
+      "errno"
+    ],
+    [
+      "12",
+      "boolean"
+    ],
+    [
+      "13",
+      "parameter found"
+    ],
+    [
+      "14..15",
+      "value allocation offset/length"
+    ],
+    [
+      "16",
+      "payload bytes"
+    ],
+    [
+      "17..18",
+      "needed workspace/output"
+    ],
+    [
+      "19",
+      "first rejection reason"
+    ],
+    [
+      "20",
+      "phase"
+    ],
+    [
+      "21..22",
+      "source/context leases"
+    ],
+    [
+      "23..24",
+      "FS call/action"
+    ],
+    [
+      "25..26",
+      "FS nonce"
+    ],
+    [
+      "27",
+      "flags"
+    ],
+    [
+      "28..29",
+      "pointer/allocation extent"
+    ],
+    [
+      "30",
+      "version1"
+    ],
+    [
+      "31",
+      "zero"
+    ]
+  ],
+  "phases": {
+    "fresh0": "Requires a fully zero 1024-byte workspace; validate source header and private bounded ranges before interpreting selected operation.",
+    "prepared1": "Stores the exact BEGIN header and derived value/path offsets. GROW does not increment either FS counter or publish a stat request. Same original immutable source lease is required on retry; complete header is checked.",
+    "waiting2": "Exactly one selected path was published to FS8 opcode29 STAT_CSTR. Completed reply must match context, call, action, operation29, actual extent, FS result state/version, reserved fields and all duplicated struct-stat fields before commit.",
+    "complete3": "No further request or reply is admitted; repeated calls permanently reject.",
+    "bad": "First reason retained; every later invocation rejects when the workspace can hold the BAD marker. A shorter-than8-byte workspace has no persistent marker capacity and is reported only as a local refusal."
+  },
+  "original_semantics": [
+    "WAL/MAIN_JOURNAL priority precedes DELETEONCLOSE and URI. Scan backward until '-' (only at index>0) or '.'; a '.' encountered first suppresses stat. DELETEONCLOSE produces0600 without stat.",
+    "URI modeof uses exact case-sensitive first key match. Empty modeof is a present empty C pathname and must issue raw stat, preserving actual ENOENT or any other raw result.",
+    "databaseName scans backward for four zero bytes in the same valid private allocation. URI key and value traversal preserves sqlite3Strlen30's 30-bit count mask.",
+    "GetBoolean inspects the first byte for an ASCII digit. sqlite3GetInt32 prefix handling, optional0x integer, leading zeros and signed-int maximum are preserved. Numeric conversion is then truncated to u8 before nonzero;256 is false.",
+    "Nondigit strings use exact case-insensitive on/no/off/false/yes/true lengths; extra/full and signed or whitespace-prefixed values retain normalized default.",
+    "Successful stat preserves incoming errno; failure produces SQLITE_IOERR_FSTAT1802 and exact errno with mode/uid/gid still0."
+  ],
+  "FS8": {
+    "new_operation": 29,
+    "name": "STAT_CSTR",
+    "difference": "Same op18 raw stat continuation and duplicate-field checks; only new op29 additionally accepts empty C pathname. Old operations1..28 unchanged.",
+    "actual_OS_syscalls": 0,
+    "physical_carrier_op29_join": "OPEN"
+  },
+  "custody": {
+    "private_issuer_only": true,
+    "source_or_workspace_headers_do_not_authenticate_external_bytes": true,
+    "immutable_source_must_remain_same_for_all_GROW_and_ACK": true,
+    "no_Graph_ID_is_namespace_authority": true,
+    "C_oracle_domain": "Only bounded cases whose C filename pointers and terminators are valid. Malformed private frames are checked by VM/native only, never passed to undefined C pointer reads.",
+    "controlled_raw_stat_is_not_physical_success": true
+  },
+  "validation_plan": {
+    "semantic_C_cases": 222,
+    "private_protocol_refusals": 389,
+    "direct_boundary_controls": 8,
+    "complete_buffers": "Every VM/native invocation compares return, whole output, whole workspace, immutable source and canaries, without masks.",
+    "protocol_plan_written_before_execution": true,
+    "raw_gzip_invocations_and_complete_cases": true,
+    "per_invocation_wall_and_CPU_measurements": true,
+    "fresh_HIA_B3_compiles": 2,
+    "controlled_C_reference_compiles": 1,
+    "limits": {
+      "B3_CPU": 10,
+      "B3_wall": 20,
+      "B3_address_bytes": 268435456,
+      "B3_output_bytes": 1048576,
+      "B3_workspace_bytes": 1048576,
+      "paired_CPU": 90,
+      "paired_wall": 180,
+      "paired_address_bytes": 1073741824,
+      "core_bytes": 0,
+      "VM_steps": 4000000,
+      "VM_arena_bytes": 33554432
+    },
+    "new_AST": 0,
+    "new_generation": 0,
+    "new_VM": 0,
+    "new_native": 0,
+    "new_B3": 0
+  },
+  "remaining_open": [
+    "actual stat carrier opcode29 integration",
+    "complete unixOpen/create/reuse/close lifecycle",
+    "high-level namespace put/get/profile/json",
+    "all31 relational operations with native persistence",
+    "crash/replay/migration/multiwriter closure",
+    "ordinary Store removal of SQLite/Python"
+  ]
+}

@@ -13,9 +13,9 @@ R3="review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-patc
 FILES=[
   {
     "path": "generate_ordinary_patch_coordinator_r1.py",
-    "gitsha": "8abc8008e8a20631da0f9f531cad775ae4faf81f",
-    "bytes": 20188,
-    "sha256": "3bcb6cc95c3ceed164112377f1c0ed016c00135d35f97f7f4ba0480b809febbb"
+    "gitsha": "1ec25d1a9e579fe077f680b7d34ff40e6db66ee1",
+    "bytes": 20836,
+    "sha256": "f4ca14d8ead54a2461b3149c1a72a2e84c9bf191c95570c005d0ec1ad34854ce"
   },
   {
     "path": "build_ordinary_patch_coordinator_r1.py",

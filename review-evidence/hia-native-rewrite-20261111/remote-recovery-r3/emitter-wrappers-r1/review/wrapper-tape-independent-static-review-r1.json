@@ -1,0 +1,98 @@
+{
+  "schema": "hepta.hia.independent-wrapper-static-review.v1",
+  "status": "STATIC_REVIEW_NO_CONFIRMED_BLOCKER_IN_REQUESTED_SCOPE",
+  "reviewer": "audit_selfhost",
+  "source_pins": {
+    "wrapper": {
+      "gitsha": "2f4253bd3c56bda55a5e7d36928c6b8f53ca355a",
+      "bytes": 20087,
+      "sha256": "332a8633a13f09fcc6021ebdf1f916e97b65b93f4b875b57264abf7eb93b0287"
+    },
+    "backend_reference": {
+      "gitsha": "1d0e0344f8300b11b5dd505cbea655170aba5be1",
+      "bytes": 46917,
+      "sha256": "bf953a8b85d1ebc6b9d7a90fbbcaa4137e40ed214c2ede2af1a13cfc01b1c07c"
+    },
+    "byte_reference": {
+      "gitsha": "4412810e9e6dfba82879dbb9ae19c19ce2de178c",
+      "bytes": 5825,
+      "sha256": "0bb40a17f76c27146a48a6d3d229228c9a89bfd96d4b9d65b3b9c70215a3edd6"
+    },
+    "tape": {
+      "gitsha": "d5b590bb7c67c34e9f994ff550da99358371a281",
+      "sha256": "e61fcb540bbe51a0e85dc09cd9afa3813b6ba24d6739da2912269c10ce1522eb",
+      "bytes": 54950
+    },
+    "frame": {
+      "gitsha": "bb475cb50848f09dc4fda62ab1aa869bc0b9891d",
+      "sha256": "27a817d4cb0d3c8131efa4c8474779f55d74d618124a987a551cb26b3e18ddbd",
+      "bytes": 32438
+    },
+    "program_reference": {
+      "gitsha": "5d0027f4453759e4156a3496e64215c441a727e4",
+      "bytes": 45247,
+      "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92",
+      "ref": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+      "path": "hepta/hia_program.py"
+    }
+  },
+  "executed": {
+    "python_ast": 0,
+    "generation": 0,
+    "vm": 0,
+    "b3_compile": 0,
+    "native": 0
+  },
+  "reviewed_scope": [
+    "Complete new wrapper authoring 2f4253bd3c56bda55a5e7d36928c6b8f53ca355a, scalar eligibility and reserved-name order.",
+    "Exact reference _Emitter.wrapper, _normalize, _prologue, scalar_entrypoints and complete hia_native_byte_abi.normalize_exports/emit_wrapper.",
+    "Shared tape/frame source only as needed for type_code, normalize, scratch constants, pool/emit/label capture, call_function and generated literal-table bounds.",
+    "All incoming words saved before borrowed-byte guards; range and alias guard order; label serial and success/failure tails.",
+    "Measurement/fill reset and disjoint workspace ranges; immutable private source and manifest prerequisites."
+  ],
+  "findings": [
+    {
+      "id": "scalar-order",
+      "conclusion": "No confirmed difference",
+      "details": "Absent exports, final wrapper-eligible signatures are exactly the width/bool parameters and at most one width/bool/unit return. Explicit exports are checked first. Parameter/return eligibility precedes the closed-runtime/loader reserved-name check; unit parameters and resources therefore skip rather than trigger that check. Actual admitted Core is required; this is not a foreign schema validator."
+    },
+    {
+      "id": "type-map",
+      "conclusion": "No confirmed difference",
+      "details": "Shared TYPES maps unit=0, bool=1, i8/u8=2/3, i16/u16=4/5, i32/u32=6/7, i64/u64=8/9, isize/usize=10/11 and resources=12..15. normalize matches unit zero, bool and1, narrow signed/unsigned shifts and 64-bit no-op. Borrowed pointer and length words use type9 u64; result type7 is u32."
+    },
+    {
+      "id": "saved-arguments",
+      "conclusion": "No confirmed difference",
+      "details": "wrapper_capture completes every mixed scalar/loan word before wrapper_guards. Only rax is scratch during incoming saves; source words use rdi,rsi,rdx,rcx,r8,r9 then rbp+16+8*(i-6). Prologue touches every 4096-byte interval with r11 before captures, matching the reference."
+    },
+    {
+      "id": "guard-order",
+      "conclusion": "No confirmed difference",
+      "details": "Failure labels1..4 are allocated first in order. Every range performs extent before empty/null/address. A zero-length range skips null and overflow after extent. Only after all ranges are checked does i<j alias order run, skipping read/read and empty pairs and accepting adjacent non-overlapping intervals. Guard failure does not call Core or read/write caller bytes."
+    },
+    {
+      "id": "serial-and-tails",
+      "conclusion": "No confirmed difference",
+      "details": "Each wrapper label increments serial before recording, and temporary range/disjoint names are copied into the tape pool before the same scratch slot is reused. Success calls the exact source-index internal function symbol and normalizes u32; failure tails are labels in1..4 order, rax=status<<32, leave, ret. Parent function-order/alignment/export-count/late text gates remain separate obligations."
+    },
+    {
+      "id": "workspace-layout",
+      "conclusion": "No confirmed overlap in inspected ranges",
+      "details": "Shared state128..487 and wrapper state512..575 precede argument scratch768..839. Labels occupy1024..3071. Literal index begins3072 and is asserted below DATA6144. Reachable rebuilt literal bytes are asserted at or below8192; ranges8192..8319 hold at most8 pairs. BASE/HEADER12288 and RECORDS12544 keep output separate. The fill pass clears only HEADER..need, preserving state, names and range metadata."
+    },
+    {
+      "id": "measure-and-grow",
+      "conclusion": "No confirmed difference in static traversal",
+      "details": "The write pass resets count, bytes and serial to the immutable original values and repeats the pure wrapper traversal. Exact count/bytes are checked afterward. Capacity GROW repeats pure generation and does not represent a second external call. Natural-u64 serial/size overflow produces a private ABI refusal; public bounds and original producer issuance still need combined tests."
+    }
+  ],
+  "limits": [
+    "Source readback and SHA identities were checked; no code was executed, no AST parse was run and no current test counts are inherited.",
+    "The borrowed-byte selection request must come from the actual original manifest admission. Rechecks here deliberately do not replace normalize_exports or structured/Core/profile admission.",
+    "Matching source header/lease integers do not authenticate a replaced Graph. Fixed issuer must retain the same immutable admitted source and actual manifest request.",
+    "Complete Code-command consumer, fixed executor, real machine bytes, malformed private protocols, runtime memory safety, whole Emitter, backend, installation and cold qualification were not established by this review.",
+    "Upstream literal-table authoring assertions and referenced helper reachability were read, not executed."
+  ],
+  "source_modified": false
+}
