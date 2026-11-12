@@ -1,0 +1,11 @@
+{
+  "schema": "hepta.git-readback-shape-correction.v1",
+  "status": "LOCAL_READER_INTERFACE_ERROR",
+  "observed": "github_fetch for git/blobs returns decoded text in structuredContent.content, not the Git REST metadata/base64 object expected by this reader.",
+  "first_failed_file": "ARCHIVE-PARTS.json",
+  "acknowledged_blobs": ["76a28fb8bb3870a784c5e83efa922c1ad2e56bbc", "cf09aa2df6ccee04affae26f8e9af3d41a418718"],
+  "tree_commit_ref_attempted": false,
+  "unknown_mutation": false,
+  "product_or_receiver_replayed": false,
+  "correction": "Verify exact decoded UTF-8 against frozen local bytes; store binary archive chunks in explicit base64-text transport files so full connector readback remains lossless. Preserve this original publication draft."
+}
