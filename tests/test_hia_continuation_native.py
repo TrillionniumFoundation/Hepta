@@ -605,8 +605,15 @@ print('installed native scheduling passed')
                 self.assertEqual(result.stderr,b'')
 
     def test_closed_output_reports_io_error_instead_of_sigpipe(self):
-        proc=subprocess.Popen([str(self.path)],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':''})
-        proc.stdout.close()
+        # Close the read end BEFORE exec. Closing Popen's PIPE afterwards races
+        # with a child which can write its 2,640-byte pool event and finish EOF
+        # handling before the parent is scheduled to close the reader.
+        reader,writer=os.pipe()
+        os.close(reader)
+        try:
+            proc=subprocess.Popen([str(self.path)],stdin=subprocess.DEVNULL,stdout=writer,stderr=subprocess.PIPE,env={'PATH':''})
+        finally:
+            os.close(writer)
         try:
             self.assertEqual(proc.wait(timeout=3),15)
             self.assertEqual(proc.stderr.read(),b'')
