@@ -1,0 +1,147 @@
+{
+  "actual_r4b_execution_proves_new_abi_consumption": false,
+  "added_parameter_bytes": [
+    64,
+    24,
+    1024
+  ],
+  "added_source_fields": {
+    "arbitrary_foreign_object_equivalence_proved": false,
+    "filesystem_and_context_operations_remain_hosted": true,
+    "foreign_effect_count": 28,
+    "limit_argument_remains_foreign": true,
+    "manifest_schema": "hepta.hia.bounded-read-native.v3",
+    "ordinary_default_input_bytes": 8388608,
+    "packet_byte_order": "little",
+    "packet_magic_ascii": "HIARDB03",
+    "packet_word_bytes": 8,
+    "production_activated": false,
+    "reference_release_schedule": "CPython-3.14.4",
+    "source": "examples/hia_bootstrap/bounded_read.hiaasm",
+    "statuses": {
+      "effect_requested": 1,
+      "protocol_refusal": 4294967293,
+      "terminal": 0
+    },
+    "terminal_kinds": {
+      "convert_oserror": 3,
+      "rethrow": 2,
+      "return": 1
+    }
+  },
+  "changed_schema": {
+    "after": "hepta.hia.bounded-read-entry-abi.v1",
+    "before": "hepta.hia.bounded-read-generated-entry-abi.v1"
+  },
+  "consumers": {
+    "builder": "tools.build_hia_bounded_read._build compares the complete ABI bytes with entry_abi(source) and includes its SHA/document in its build receipt",
+    "generator": "tools.generate_hia_bounded_read.entry_abi and generated_files produce and check the bytes",
+    "loader": "the existing v3 native manifest binds source/image; this descriptive ABI is not a substitute for that admission",
+    "native_adapter": "does not open, parse or otherwise consume this JSON; its non-documentation AST is unchanged from actual r4b",
+    "source_checks": "tests.test_hia_bounded_read_source checks generation, fields, source membership and resource membership"
+  },
+  "current_abi_native_execution_or_installation_claimed": false,
+  "known_installation_mapping_issue": {
+    "description": "Its existing NATIVE_SOURCE_FILES importer special-cases Core ABI, then derives a native module from other resource stems. Applying it to hepta/hia_bounded_read_abi.json derives nonexistent hepta.hia_hia_bounded_read_abi_native. The JSON is a descriptor; root owns resource classification and installed binding repair.",
+    "fixed_here": false,
+    "owner": "root integration",
+    "test": "tests/test_hia_agent_installed_resources.py"
+  },
+  "new": {
+    "bytes": 1153,
+    "document": {
+      "arbitrary_foreign_object_equivalence_proved": false,
+      "filesystem_and_context_operations_remain_hosted": true,
+      "foreign_effect_count": 28,
+      "function": "f0",
+      "limit_argument_remains_foreign": true,
+      "manifest_schema": "hepta.hia.bounded-read-native.v3",
+      "ordinary_default_input_bytes": 8388608,
+      "packet_byte_order": "little",
+      "packet_magic_ascii": "HIARDB03",
+      "packet_word_bytes": 8,
+      "parameters": [
+        {
+          "bytes": 64,
+          "name": "v0",
+          "type": "readbuf"
+        },
+        {
+          "bytes": 24,
+          "name": "v1",
+          "type": "mutbuf"
+        },
+        {
+          "bytes": 1024,
+          "name": "v2",
+          "type": "mutbuf"
+        }
+      ],
+      "production_activated": false,
+      "reference_release_schedule": "CPython-3.14.4",
+      "returns": [
+        "u32"
+      ],
+      "schema": "hepta.hia.bounded-read-entry-abi.v1",
+      "source": "examples/hia_bootstrap/bounded_read.hiaasm",
+      "source_sha256": "ecb7d81b3cf79b0a12a6c9f193c6a431f461a00870268e5a239154c7f42237ea",
+      "statuses": {
+        "effect_requested": 1,
+        "protocol_refusal": 4294967293,
+        "terminal": 0
+      },
+      "terminal_kinds": {
+        "convert_oserror": 3,
+        "rethrow": 2,
+        "return": 1
+      }
+    },
+    "git_blob_sha1": "4bfe7cb1c32c928443dd5bff29b3c10bdd41c5eb",
+    "kind": "source-owned descriptive entry resource",
+    "sha256": "7cf730efbcf4a64bd9446de1c3f2cbc4b1673a541116ba299b5a3cf614edee84"
+  },
+  "old": {
+    "bytes": 601,
+    "document": {
+      "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+      "function": "f0",
+      "image_sha256": "fb9763ad12e967b5543ea514e84012470dd86a8999e7e51277a5c5235badc533",
+      "parameters": [
+        {
+          "name": "v0",
+          "type": "readbuf"
+        },
+        {
+          "name": "v1",
+          "type": "mutbuf"
+        },
+        {
+          "name": "v2",
+          "type": "mutbuf"
+        }
+      ],
+      "qualification_claimed": false,
+      "returns": [
+        "u32"
+      ],
+      "schema": "hepta.hia.bounded-read-generated-entry-abi.v1",
+      "source_sha256": "ecb7d81b3cf79b0a12a6c9f193c6a431f461a00870268e5a239154c7f42237ea"
+    },
+    "git_blob_sha1": "8f0870d297c34b0609f3c72a4cfe30be291354f4",
+    "kind": "actual development instance receipt",
+    "sha256": "e95a8d2f8121fa23d1bbf253cfafa7f2ae79847e0f330698d78f777a52496a8e"
+  },
+  "removed_instance_fields": {
+    "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+    "image_sha256": "fb9763ad12e967b5543ea514e84012470dd86a8999e7e51277a5c5235badc533",
+    "qualification_claimed": false
+  },
+  "schema": "hepta.hia.bounded-read-abi-integration-delta.v1",
+  "unchanged_projections": [
+    "function",
+    "parameters[*].name",
+    "parameters[*].type",
+    "returns",
+    "source_sha256"
+  ]
+}
