@@ -56,9 +56,9 @@ def main():
     assert rows==packet['source_manifest']
     assert tree_hash(rows)==packet['source_tree']=='0a3fba637afe252f9bdf192b7a24df67b08efcbe'
     integrations=json.loads((h/'inputs/INTEGRATION-DELTAS.json').read_bytes())
-    assert set(integrations)=={'.github/workflows/hia-core.yml','docs/HIA_JOINT_OWNER_INTEGRATION.md','tests/test_hia_joint_owner_integration.py','tools/hia_selfhost_contract.py'}
+    assert set(integrations)=={'.github/workflows/hia-core.yml','docs/HIA_JOINT_OWNER_INTEGRATION.md','tests/test_hia_joint_owner_integration.py','tools/hia_selfhost_contract.py','tests/test_hia_proof_contract_native.py','hepta/hia_checker_identity.py'}
     for name,change in integrations.items():apply(name,change)
-    assert len(rows)==3257 and len(files)==24 and tree_hash(rows)==config['frozen_input_tree']
+    assert len(rows)==3257 and len(files)==25 and tree_hash(rows)==config['frozen_input_tree']
     overlay={'schema':'hepta.hia.source-overlay.v1','base_commit':packet['base_commit'],'base_tree':packet['base_tree'],
              'files':[files[n] for n in sorted(files)],'expected_generated_paths':config['generated_sources']+[
                'docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json','docs/HIA_SELFHOST_CORE_SUPPORT.json','docs/HIA_NATIVE_REWRITE_INVENTORY.json'],

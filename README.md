@@ -26,3 +26,9 @@ are separate from the successful 863-test denominator. All failures and complete
 evidence are exported. No cold, full-retained, default, or whole-native claim is
 made by this harness. The 89 generator outputs are genuinely regenerated under
 Python 3.14.4 with the original pinned source dependencies.
+
+## R2 exact mechanism registration
+
+R1 run43294252598 executed all863 source controls and all89 generators. Its sole source failure was the Proof fixture's old numeric inventory (47,19,66) after adding the required Byte import foreign mechanism. R2 changes only that fixture tuple to (47,20,67). Every provider-edge assertion, disjointness check, actual fresh identity set, all original methods, all source selectors, and all time limits remain intact. The complete original R1 failure remains preserved. The new source overlay has25 paths rather than24; no business policy changes relative to the R1 authored candidate are made.
+
+The focused original provider-edge assertion then exposed the missing declaration for the new foreign import module. R2 additionally records exactly `hia_native_byte_abi_foreign.py -> hia_program_native.py` in the existing external-provider inventory. Its actual fixed IMPORT_NAME templates already contained that dependency. The count-only local failure is preserved; neither the edge assertion nor any source identity member is removed or weakened.
