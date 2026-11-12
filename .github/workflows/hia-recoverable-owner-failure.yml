@@ -1,0 +1,33 @@
+name: Read original recoverable owner source failure
+"on":
+  push:
+    branches:
+      - codex/hia-recoverable-owner-failure-v78-r1-20261112-dda7
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.4"
+      - name: Verify original artifact and print exact failure
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -B tools/read_joint_failure.py
+      - name: Retain original bytes and readback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-recoverable-owner-r1-original-${{ github.run_id }}
+          path: evidence/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
