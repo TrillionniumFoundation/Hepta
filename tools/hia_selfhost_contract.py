@@ -13,9 +13,8 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v73-native-cli-current-build'
+PROFILE = 'selfhost-core-linux-x86_64-v74-native-cli-bootstrap-custody'
 SOURCE_FILES = (
-    'hepta/hia_cli_native.py',
     'tools/build_hia_cli_native.py',
     'tools/generate_hia_cli_control.py',
     'tools/generate_hia_cli_format.py',

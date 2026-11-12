@@ -6,11 +6,11 @@ integration entry remains [draft PR #893](https://github.com/TrillionniumFoundat
 
 **Whole-product native replacement is incomplete.**
 `whole_native_delivery_qualified=false`, `old_stack_can_be_removed=false`, and
-`production_activated=false`. The v73 source contract identifies the actual
+`production_activated=false`. The v74 source contract identifies the actual
 inputs; it is not an execution receipt. Current-source cold, installed/native,
 complete retained regression, and running-worker adoption are separate gates.
 
-## Current continuation: v73 selected fifteen-action CLI
+## Current continuation: v74 selected fifteen-action CLI
 
 The detached continuation imports the explicitly selected two-image CLI owner
 from `04ba46ad16310ebbfbf327a143b577445d40ba7d` onto the exact
@@ -35,7 +35,16 @@ six new help-wrap subcases and one incomplete installed fixture; its records
 remain outside the product tree. The corrected fixture supplies every current
 source/compiler/publication resource, not a reduced package.
 
-Those development results are not matching-source cold acceptance for v73.
+The first frozen v73 candidate passed its cold gate but failed its complete
+476-test source group: one explicit package-module bootstrap duplicate and two
+source-file permission precondition subcases. The v74 successor removes only
+the redundant package path from the non-package bootstrap list; the complete
+source identity still derives and hashes that module with every package source.
+The original closure assertion is unchanged. A fresh checkout uses umask 0022
+so immutable source resources are not group-writable. Original failed v73 bytes
+and permission observations are retained; no safety guard is relaxed.
+
+Those development results are not matching-source cold acceptance for v74.
 Current-source cold, all existing native groups and complete retained regression
 must still run after the source contract is frozen. Native worker/state/runtime
 replacement, default activation and old-owner retirement remain open.
