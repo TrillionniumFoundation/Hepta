@@ -1,0 +1,19 @@
+{
+  "schema": "hia.v88.source-publication-package-read-hold.v1",
+  "status": "LOCAL_SHALLOW_GIT_PARENT_OBJECT_UNAVAILABLE_BEFORE_PACKAGE_CREATION",
+  "actual_sdk": {
+    "status": "fulfilled",
+    "value": {
+      "chunk_id": "17e730",
+      "wall_time_seconds": 0.282609811,
+      "exit_code": 1,
+      "original_token_count": 350,
+      "output": "fatal: not a tree object\nTraceback (most recent call last):\n  File \"/workspace/scratch/e26ed3e2edcf/root/combined-native-v88-r1/prepare_pure_publication.py\", line 48, in <module>\n    base, current = leaves(BASE), leaves(tree)\n                    ^^^^^^^^^^^^\n  File \"/workspace/scratch/e26ed3e2edcf/root/combined-native-v88-r1/prepare_pure_publication.py\", line 22, in leaves\n    for row in command('ls-tree', '-r', '-z', tree).split(b'\\0'):\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/e26ed3e2edcf/root/combined-native-v88-r1/prepare_pure_publication.py\", line 15, in command\n    return subprocess.check_output(['git', '-C', str(ROOT), *args])\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py\", line 466, in check_output\n    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py\", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command '['git', '-C', '/workspace/scratch/e26ed3e2edcf/combined-native-v88-r1', 'ls-tree', '-r', '-z', '677cca3eb7a781726578aa51172012df34e7d627']' returned non-zero exit status 128.\n"
+    }
+  },
+  "source_tree": "c7aa2396bb242efb89cd4135557d51e1d2ccfda1",
+  "source_tests_affected": false,
+  "github_mutation_attempted": false,
+  "package_directory_created": false,
+  "correction": "Read the exact available base tree dc29 from the local b7 HEAD and independently bind pure parent677 via GitHub commit readback; retain this original script and failure."
+}
