@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v81-native-core-emitter'
+PROFILE = 'selfhost-core-linux-x86_64-v82-native-import-semantics'
 SOURCE_FILES = (
     'tools/qualify_hia_core_emitter_callers.py',
     'docs/HIA_CORE_EMITTER_NATIVE.md',

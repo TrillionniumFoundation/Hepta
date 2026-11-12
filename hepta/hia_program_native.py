@@ -88,6 +88,7 @@ def _implementation_hash():
         "hia_machine_state_native.py", "hia_machine_instructions_native.py", "hia_machine_plan_native.py",
         "hia_core_lowering_native.py", "hia_core_lowering_selection.py",
         "hia_core_emitter_native.py", "hia_core_emitter_selection.py",
+        "hia_host_import.py",
         "hia_json_wire_native.py", "hia_instruction_policy_native.py",
         "hia_json_preflight_native.py", "hia_machine_elf.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
         "hia_heap_bound.py", "artifact_publication.py",

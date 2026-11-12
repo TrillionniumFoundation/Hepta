@@ -202,6 +202,64 @@ class CoreEmitterNativeTests(unittest.TestCase):
             self.assertEqual(comparable(actual), comparable(wanted))
             self.assertNotEqual(actual.implementation_sha256, wanted.implementation_sha256)
 
+    def test_original_import_hook_globals_fromlist_level_and_refusal_are_preserved(self):
+        import builtins
+        from tests.test_hia_program_native import minimal_document
+        real_import = builtins.__import__
+        def observe(native, refusal):
+            events = []
+            def imported(name, globals=None, locals=None, fromlist=(), level=0):
+                if name == 'hia_machine_plan':
+                    events.append((name, globals is vars(backend), locals, fromlist, level))
+                    if refusal:
+                        raise ImportError('deliberate original import hook refusal')
+                return real_import(name, globals, locals, fromlist, level)
+            with patch.object(builtins, '__import__', imported):
+                if native:
+                    receiver = types.SimpleNamespace()
+                    result = recorded(self.owner.invoke, '_Emitter.__init__',
+                        (receiver, (minimal_document(), {'run'}, None, (), None)))
+                else:
+                    receiver = types.SimpleNamespace()
+                    result = recorded(backend._Emitter.__init__, receiver,
+                        minimal_document(), {'run'}, None, (), None)
+            self.assertTrue(events)
+            return result, events
+        for refusal in (False, True):
+            self.assertEqual(observe(True, refusal), observe(False, refusal))
+
+    def test_import_from_attribute_fallback_and_ImportError_match_original_opcodes(self):
+        import builtins
+        real_import = builtins.__import__
+        def observe(native, missing):
+            events = []
+            class ForeignModule:
+                __name__ = 'foreign_import_witness'
+                __file__ = '/witness/foreign_import_witness.py'
+                def __getattribute__(self, name):
+                    events.append(name)
+                    if name == 'code_options' and not missing:
+                        return {'marker': 'native import result'}
+                    return object.__getattribute__(self, name)
+            foreign = ForeignModule()
+            def imported(name, globals=None, locals=None, fromlist=(), level=0):
+                if name == 'hia_machine_plan':
+                    return foreign
+                return real_import(name, globals, locals, fromlist, level)
+            with patch.object(builtins, '__import__', imported):
+                if native:
+                    result = recorded(self.owner.global_value('_hia_emitter_import_member'),
+                                      'hia_machine_plan', 'code_options')
+                else:
+                    from types import FunctionType
+                    def original_site():
+                        from .hia_machine_plan import code_options
+                        return code_options
+                    result = recorded(FunctionType(original_site.__code__, vars(backend)))
+            return result, events
+        for missing in (False, True):
+            self.assertEqual(observe(True, missing), observe(False, missing))
+
     def test_layout_lookups_errors_and_foreign_iadd_keep_exact_order(self):
         for order in (None, ['b', 'a'], ['missing']):
             fn = {'name': 'run', 'blocks': [{'id': 'a'}, {'id': 'b'}]}

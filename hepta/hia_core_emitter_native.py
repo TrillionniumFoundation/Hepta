@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import builtins
-from importlib import import_module
+from .hia_host_import import member_importer
 
 from .hia_core_lowering_native import NativeCoreLowering
 
@@ -14,10 +14,6 @@ def _call_keywords(target, mapping):
 def _unpack_four(value):
     a, b, c, d = value
     return a, b, c, d
-
-
-def _import_member(module, name):
-    return getattr(import_module('.' + module, __package__), name)
 
 
 def _project_items(iterable, key):
@@ -33,7 +29,9 @@ class NativeCoreEmitter(NativeCoreLowering):
         if name == '_hia_emitter_unpack_four':
             return _unpack_four
         if name == '_hia_emitter_import_member':
-            return _import_member
+            def import_member(module, member):
+                return member_importer(self.namespace, module, member)()
+            return import_member
         if name == '_hia_emitter_project_items':
             return _project_items
         # Existing module helper entries capture the independently selected

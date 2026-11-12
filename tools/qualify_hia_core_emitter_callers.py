@@ -226,7 +226,7 @@ def main():
         'public_control_mode_count': 6, 'abi_control_mode_count': 6,
         'private_fixture_modes': [],
         'native_step_unit_index_basis': 'owner.images excludes literal pool; unit_index0 is core_emitter_000; bundle_image_index is unit_index+1; complete bundle index0 is core_emitter_pool.',
-        'component_denominator': 9, 'original_machine_denominator': 51,
+        'component_denominator': 11, 'original_machine_denominator': 51,
         'original_core_denominator': 50, 'original_methods_modified': False,
         'hosted_primitive_kinds': 18, 'Emitter_control_still_hosted': False, 'object_runtime_and_ELF_wrapper_still_hosted': True,
         'default_activated': False, 'whole_native_claimed': False,
@@ -376,7 +376,7 @@ def main():
                                       for p, raw in inputs])
         with patch.object(NativeCoreEmitter, 'invoke', invoke), patch.object(LoweringSession, 'step', step):
             for label, modules, count, expected_ids, guard_reference in (
-                ('component', COMPONENT_MODULES, 9, None, False),
+                ('component', COMPONENT_MODULES, 11, None, False),
                 ('original-machine', ORIGINAL_MODULES, 51, ORIGINAL_IDS, True),
                 ('original-core', CORE_MODULES, 50, CORE_IDS, True)):
                 if label not in expected_groups:

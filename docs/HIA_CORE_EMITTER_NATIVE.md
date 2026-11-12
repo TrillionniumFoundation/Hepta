@@ -50,3 +50,27 @@ after. The original machine and Core groups returned actual native Function
 steps, while all original Emitter/Function bodies and five scoped helper bodies
 were forbidden. This remains explicit development-only compiler/bundle reuse,
 not current-source cold acceptance or default whole-stack activation.
+
+
+## Import callback correction (successor, not inherited acceptance)
+
+A read-only diagnostic on frozen v81 found that its importlib-based bridge
+bypassed the original `__import__` hook. Existing source, native and installed
+results remain scoped historical observations, not complete equivalence. Its
+unstarted full queue was retired without modifying v81 or interrupting v80's
+actual full run. The successor uses a fixed mechanical CPython import opcode
+template with the original module globals, retaining hook parameters,
+IMPORT_FROM attribute fallback and ImportError behavior. This is still hosted
+object-runtime machinery, not HIA or Python-runtime retirement. Two added
+native regressions exercise actual HIA constructor import success/refusal and
+foreign import-from result/error observation. Current HIA source bytes are
+unchanged; current-source cold and full acceptance are not inherited.
+
+
+The corrected import successor completed all 112 paired development tests
+(11 component, 51 original machine, 50 original Core), zero anomalies, in
+166.11 seconds. Original 180-second owner completed naturally in
+166.22 seconds. The new import regressions, actual isolated wheel,
+all six native Emitter modes and both real Function caller groups passed;
+complete source and both admitted bundles remained stable. This is still
+explicit development reuse, not successor matching-source cold acceptance.
