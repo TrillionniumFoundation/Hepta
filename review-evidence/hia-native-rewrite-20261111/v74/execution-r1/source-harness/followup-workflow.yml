@@ -1,0 +1,145 @@
+name: HIA v74 isolated source generation
+
+"on":
+  push:
+    branches:
+      - codex/hia-source-generation-v74-20261112-dda7
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-generation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      CANDIDATE_SHA: ac3fb576419d9ec36841822b4be0fca420268f1b
+      CANDIDATE_TREE: 8231abac1bb2f30d7a8da8eb08a79ce92c50eb25
+      OVERLAY_SHA256: a8834a49eac7ef0c3da61fc95b93390aa1cf4028a6dbd313468d05f8263c5fc2
+    steps:
+      - name: Check out independent minimal harness
+        id: harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Check out complete exact ac3 product source
+        id: candidate
+        uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: ac3fb576419d9ec36841822b4be0fca420268f1b
+          path: source
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Set up exact source-harness Python
+        id: python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.4"
+      - name: Generate real sources and run complete source controls
+        id: driver
+        shell: bash
+        run: |
+          set -u
+          set +e
+          set -o pipefail
+          python -B harness/tools/hia_source_integration_v74.py \
+            --source "$GITHUB_WORKSPACE/source" \
+            --expected-commit "$CANDIDATE_SHA" \
+            --expected-tree "$CANDIDATE_TREE" \
+            --overlay "$GITHUB_WORKSPACE/harness/overlay/source-overlay.json" \
+            --overlay-sha256 "$OVERLAY_SHA256" \
+            --output "$GITHUB_WORKSPACE/hia-source-v74-evidence" \
+            --install-dependencies \
+            2>"$GITHUB_WORKSPACE/hia-source-v74-driver.stderr" \
+            | tee "$GITHUB_WORKSPACE/hia-source-v74-driver.stdout"
+          hia_v74_driver_status=$?
+          cat "$GITHUB_WORKSPACE/hia-source-v74-driver.stderr" >&2
+          exit "$hia_v74_driver_status"
+      - name: Export lossless source packet and complete raw evidence
+        id: export
+        if: always()
+        shell: bash
+        env:
+          HIA_HARNESS_CHECKOUT_OUTCOME: ${{ steps.harness.outcome }}
+          HIA_SOURCE_CHECKOUT_OUTCOME: ${{ steps.candidate.outcome }}
+          HIA_PYTHON_SETUP_OUTCOME: ${{ steps.python.outcome }}
+          HIA_DRIVER_OUTCOME: ${{ steps.driver.outcome }}
+        run: |
+          set -eu
+          mkdir -p "$GITHUB_WORKSPACE/hia-source-v74-evidence"
+          for hia_v74_stream in stdout stderr; do
+            hia_v74_log="$GITHUB_WORKSPACE/hia-source-v74-driver.$hia_v74_stream"
+            if test -f "$hia_v74_log"; then
+              cp "$hia_v74_log" "$GITHUB_WORKSPACE/hia-source-v74-evidence/driver-launch.$hia_v74_stream"
+            fi
+          done
+          set +e
+          python -B harness/tools/hia_source_integration_v74.py \
+            --source "$GITHUB_WORKSPACE/source" \
+            --expected-commit "$CANDIDATE_SHA" \
+            --expected-tree "$CANDIDATE_TREE" \
+            --overlay "$GITHUB_WORKSPACE/harness/overlay/source-overlay.json" \
+            --overlay-sha256 "$OVERLAY_SHA256" \
+            --output "$GITHUB_WORKSPACE/hia-source-v74-evidence" \
+            --export-only
+          hia_v74_export_status=$?
+          set -e
+          if test "$hia_v74_export_status" -ne 0; then
+            python -B - <<'PY'
+          from hashlib import sha256
+          import json
+          import os
+          from pathlib import Path
+          import zipfile
+          root = Path(os.environ["GITHUB_WORKSPACE"]) / "hia-source-v74-evidence"
+          root.mkdir(parents=True, exist_ok=True)
+          result = {
+              "schema": "hepta.hia.source-exporter-failure.v74",
+              "status": "EXPORTER_FAILED_OR_COULD_NOT_START",
+              "qualification_claimed": False,
+              "workflow_outcomes": {key: os.environ.get(key) for key in (
+                  "HIA_HARNESS_CHECKOUT_OUTCOME", "HIA_SOURCE_CHECKOUT_OUTCOME",
+                  "HIA_PYTHON_SETUP_OUTCOME", "HIA_DRIVER_OUTCOME")},
+          }
+          path = root / "EXPORTER-FAILURE.json"
+          path.write_text(json.dumps(result, indent=2) + "\n")
+          members = [p for p in sorted(root.rglob("*")) if p.is_file() and not p.is_symlink()]
+          archive = root / "FALLBACK-RAW-EVIDENCE.zip"
+          if archive.exists():
+              raise RuntimeError("refusing to overwrite fallback evidence")
+          with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
+              for member in members:
+                  bundle.write(member, member.relative_to(root).as_posix())
+          with zipfile.ZipFile(archive) as bundle:
+              if bundle.testzip() is not None:
+                  raise RuntimeError("fallback evidence CRC failure")
+              for member in members:
+                  if bundle.read(member.relative_to(root).as_posix()) != member.read_bytes():
+                      raise RuntimeError("fallback evidence bytes differ")
+          raw = archive.read_bytes()
+          print(json.dumps({"fallback_archive": str(archive), "bytes": len(raw),
+                            "sha256": sha256(raw).hexdigest(), "passed": False}), flush=True)
+          PY
+          fi
+          exit "$hia_v74_export_status"
+      - name: Preserve complete source generation and original failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-source-v74-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            hia-source-v74-evidence/EVIDENCE.zip
+            hia-source-v74-evidence/EVIDENCE-ZIP-RECEIPT.json
+            hia-source-v74-evidence/FALLBACK-RAW-EVIDENCE.zip
+            hia-source-v74-evidence/REPORT.json
+            hia-source-v74-evidence/SOURCE-PACKET.json
+            hia-source-v74-evidence/PARTIAL-FAILURE-SOURCE.json
+            hia-source-v74-driver.stdout
+            hia-source-v74-driver.stderr
+          if-no-files-found: error
