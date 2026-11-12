@@ -1,0 +1,45 @@
+const k="core.lowering.emitter.actions-r3.actual.";
+const h=new Function(load("core.lowering.bytehash.helpers"))(),s=new Function(load("core.lowering.sha1.bytes.helper"))();
+function require(ok,message){if(!ok)throw Error(message);}
+function compact(raw){let out="",quoted=false,escaped=false;for(const ch of raw){if(quoted){out+=ch;if(escaped)escaped=false;else if(ch==="\\")escaped=true;else if(ch==='"')quoted=false;}else if(ch==='"'){quoted=true;out+=ch;}else if(!/\s/.test(ch))out+=ch;}return out;}
+function field(raw,name){JSON.parse(raw);const text=compact(raw);let at=1;require(text[0]==="{","object required");const quote=()=>{const start=at++;let escape=false;while(at<text.length){const ch=text[at++];if(escape){escape=false;continue;}if(ch==="\\"){escape=true;continue;}if(ch==='"')return text.slice(start,at);}throw Error("unterminated string");};while(text[at]!=="}"){const key=JSON.parse(quote());require(text[at++]===":","colon");const start=at;let depth=0,quoted=false,escaped=false;while(at<text.length){const ch=text[at];if(quoted){if(escaped)escaped=false;else if(ch==="\\")escaped=true;else if(ch==='"')quoted=false;}else if(ch==='"')quoted=true;else if(ch==="{"||ch==="[")depth++;else if(ch==="}"||ch==="]"){if(depth===0)break;depth--;}else if(ch===","&&depth===0)break;at++;}const value=text.slice(start,at);if(key===name)return value;if(text[at]===",")at++;else break;}throw Error("missing raw key "+name);}
+const raw=n=>load(k+"raw."+n), doc=n=>JSON.parse(raw(n)),r=doc("evidence/report.json"),f=doc("FINAL.json"),g=doc("guard/guardian.json"),setup=doc("setup.json"),context=doc("context.json"),config=doc("guard/request.json");
+const records=Object.fromEntries(load(k+"original-pins").map(x=>[x.name,x]));
+const equalityChecks=[
+ ["setup.context exact integer lexemes",field(raw("setup.json"),"context")===compact(raw("context.json"))],
+ ["final.context exact integer lexemes",field(raw("FINAL.json"),"context")===compact(raw("context.json"))],
+ ["report.python exact integer lexemes",field(raw("evidence/report.json"),"python")===field(raw("context.json"),"python")],
+ ["source before/after raw metadata",field(raw("evidence/report.json"),"candidate_metadata_before")===field(raw("evidence/report.json"),"candidate_metadata_after")],
+ ["guardian before/after input identities",field(raw("guard/guardian.json"),"source_identities_before")===field(raw("guard/guardian.json"),"source_identities_after")],
+ ["guardian/setup exact inputs",field(raw("guard/guardian.json"),"source_identities_before")===field(raw("setup.json"),"source_identities")],
+ ["guardian/setup command",field(raw("guard/guardian.json"),"command")===field(raw("setup.json"),"command")],
+ ["request/setup command",field(raw("guard/request.json"),"command")===field(raw("setup.json"),"command")],
+ ["request/setup exact inputs",field(raw("guard/request.json"),"source_identities")===field(raw("setup.json"),"source_identities")]
+];
+for(const [name,ok]of equalityChecks)require(ok,name);
+require(r.schema==="hia.core-emitter-actions-authoring.v1"&&r.status==="DEVELOPMENT_ACTIONS_EMITTER_AUTHORING_PASS"&&!r.error&&!r.preservation_error,"authoring report terminal");
+require(f.schema==="hia.core-emitter-actions-final.v1"&&f.status==="SOURCE_ONLY_CORE_EMITTER_V2_AUTHORING_PASS"&&!f.error,"source final terminal");
+require(r.candidate_commit==="80ec04ae7489209b122c874531d194c67b30dfed"&&r.candidate_tree==="963e980c2486e1f7c74fa42bc8132ef6b1b8b690"&&r.actual_checkout_HEAD_is_candidate===true&&r.source_preserved===true&&r.candidate_physical_namespace_verified===true,"source binding");
+require(context.actual_control_commit==="9473e0fca206dc27ed87122f4a5d45a905d8b35c"&&context.workflow_commit==="4d508b8e7b66d8f2801e76f6b6bb4794eb4bdac7"&&context.run_id===43131161021&&context.run_attempt===1&&context.candidate_leaves===4023,"actual operation binding");
+require(h.digest256(h.utf8(raw("context.json")))===r.context_sha256&&h.digest256(h.utf8(raw("guard/request.json")))===setup.guardian_config_sha256,"raw context/config hash");
+for(const flag of ["native_compiler_executed","Core_VM_executed","product_tests_executed","cold_qualified","old_v1_results_inherited","original_limits_changed","derived_global_contracts_regenerated","formal_full_resource_prerequisites_checked","desktop_interpreter_identity_claimed"])require(r[flag]===false,"source-only scope "+flag);
+for(const [name,key]of [["evidence/report.json","report"],["guard/guardian.json",null],["setup.json",null]]){
+ const pin=key?f.outputs[key]:(name==="setup.json"?f.setup_original:f.guardian_original);
+ require(pin.bytes===records[name].bytes&&pin.sha256===records[name].sha256,"raw final pin "+name);
+}
+require(g.schema==="hepta.hia.external-qualification-guardian.v1"&&g.status==="EXTERNAL_OWNED_PROCESS_COMPLETED"&&g.input_identity_preserved===true&&g.external_controller_seconds===180&&g.qualification===null&&g.cold_180_second_gate_modified===false,"natural external owner");
+const life=g.lifecycle,clean=life.cleanup;
+require(life.status==="OWNED_PROCESS_COMPLETED"&&life.returncode===0&&life.qualification_seconds===180&&life.cleanup_seconds===3&&life.timed_out===false&&life.exit_observed_before_deadline===true&&life.event_overflow===false&&life.interrupted_signals.length===0&&life.owner_error==null,"natural lifecycle");
+require(clean.attempted===true&&clean.complete===true&&clean.observed_echild===true&&clean.leader_reaped===true&&clean.deadline_exceeded===false&&clean.errors.length===0&&clean.remaining_direct_children.length===0,"closed cleanup");
+require(JSON.stringify(life.events.map(x=>x.kind))===JSON.stringify(["qualification_started","owned_child_observed","qualification_exit_observed","owned_child_reaped"]),"four natural event sequence");
+for(const name of ["child.stdout.log","child.stderr.log"])require(g.logs[context.root+"/guard/"+name]===records["guard/"+name].sha256,"raw child log hash");
+const limits={source_bytes:1048576,functions:128,blocks_total:1536,blocks_per_function:256,instructions:8192,ssa_names_per_function:2048,parameters_or_arguments:16,source_lines:16384};
+require(JSON.stringify(Object.entries(r.unchanged_limits).sort())===JSON.stringify(Object.entries(limits).sort()),"caps");
+require(r.original_AST.all_exact===true&&r.original_AST.original_bodies===33&&r.original_AST.classes._Function.length===22&&r.original_AST.classes._Emitter.length===6&&r.original_AST.helpers.length===5,"original AST denominator");
+require(r.finite_IR.functions===36&&r.finite_IR.instructions===2428&&r.finite_IR.literal_count===312&&r.finite_IR.maximum_slots===510&&Object.keys(r.finite_IR.modes).length===36,"finite IR");
+const expected=["core_lowering_pool",...Array.from({length:38},(_,i)=>"core_lowering_"+String(i).padStart(3,"0"))];
+require(r.expected_unit_count===39&&r.units.length===39&&f.outputs.units===39&&f.outputs.unit_originals.length===39,"39 actual source units");
+let total=0;for(let i=0;i<39;i++){const unit=r.units[i],fin=f.outputs.unit_originals[i];require(unit.name===expected[i]&&fin.name===expected[i]&&unit.status==="PASS"&&unit.public_core_roundtrip===true,"unit status/order");require(unit.path===context.evidence+"/assembled/"+unit.name+".hiaasm"&&unit.size===fin.assembly.bytes&&unit.sha256===fin.assembly.sha256&&unit.authoring.size===fin.authoring.bytes&&unit.authoring.sha256===fin.authoring.sha256&&unit.checked_core_sha256===fin.checked_core_sha256,"unit/final pin binding");for(const[key,max]of Object.entries(limits))require(Number.isSafeInteger(unit.structure[key])&&unit.structure[key]>=0&&unit.structure[key]<=max,"unit cap "+key);require(unit.structure.source_bytes===unit.size,"source byte count");total+=unit.size;}
+require(total===7085393&&r.abi.size===3856&&r.abi.sha256===f.outputs.abi.sha256&&r.abi.size===f.outputs.abi.bytes,"complete asset byte denominator");
+const result={schema:"hia.core-emitter-source-only-original-readback.v1",status:"SOURCE_ONLY_ORIGINAL_REPORTS_AND_39_ASSET_PINS_VERIFIED",run_id:43131161021,attempt:1,job_id:130895354218,source_commit:r.candidate_commit,source_tree:r.candidate_tree,source_leaves:4023,raw_files:14,raw_bytes:161859,diagnostic_frames:26,missing:[],original_authoring_seconds:r.wall_seconds,original_owner_seconds:180,cleanup_seconds:3,natural_events:life.events.map(x=>x.kind),original_AST_bodies:33,modes:36,IR_instructions:2428,literals:312,max_object_slots:510,actual_reported_units:39,assembly_total_bytes:total,abi_bytes:3856,assembly_bytes_recovered:false,ABI_bytes_recovered:false,native_compiler_executed:false,Core_VM_executed:false,product_tests_executed:false,cold_qualified:false,raw_integer_lexeme_checks:equalityChecks.map(([name,ok])=>({name,exact:ok})),originals:load(k+"original-pins"),remaining:["Exact 39 assembly payloads and ABI not included in diagnostic frames.","Full source/physical inventories are separately pinned in the original report but not printed; full archive read will verify their raw hashes."]};
+store(k+"READBACK.json",JSON.stringify(result,null,2)+"\n");text(result);

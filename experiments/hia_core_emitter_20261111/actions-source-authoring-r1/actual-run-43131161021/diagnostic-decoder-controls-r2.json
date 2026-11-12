@@ -1,0 +1,98 @@
+{
+  "schema": "hia.core-emitter-diagnostic-decoder-controls.v1",
+  "scope": "SYNTHETIC_V8_DECODER_ONLY_NO_ACTIONS_OR_PRODUCT_EXECUTION",
+  "status": "PASS",
+  "controls": 15,
+  "results": [
+    {
+      "case": "14 original files including exact non-UTF8 bytes",
+      "expected": "ACCEPT",
+      "actual": "ACCEPT"
+    },
+    {
+      "case": "10 original files plus four explicitly gated originals",
+      "expected": "ACCEPT",
+      "actual": "ACCEPT"
+    },
+    {
+      "case": "wrong current control commit",
+      "expected": "REFUSE",
+      "actual": "REFUSE",
+      "reason": "Error: HIA diagnostic custody: fixed current operation identity differs"
+    },
+    {
+      "case": "missing final marker",
+      "expected": "REFUSE",
+      "actual": "REFUSE",
+      "reason": "Error: HIA diagnostic custody: missing or repeated final boundary"
+    },
+    {
+      "case": "repeated marker",
+      "expected": "REFUSE",
+      "actual": "REFUSE",
+      "reason": "Error: HIA diagnostic custody: missing or repeated final boundary"
+    },
+    {
+      "case": "missing original frame",
+      "expected": "REFUSE",
+      "actual": "REFUSE",
+      "reason": "Error: HIA diagnostic custody: missing original frame"
+    },
+    {
+      "case": "nonconsecutive frame offset",
+      "expected": "REFUSE",
+      "actual": "REFUSE",
+      "reason": "Error: HIA diagnostic custody: frame identity or length differs"
+    },
+    {
+      "case": "different original whole SHA",
+      "expected": "REFUSE",
+      "actual": "REFUSE",
+      "reason": "Error: HIA diagnostic custody: whole original or END differs"
+    },
+    {
+      "case": "different frame payload",
+      "expected": "REFUSE",
+      "actual": "REFUSE",
+      "reason": "Error: HIA diagnostic custody: frame bytes differ"
+    },
+    {
+      "case": "unexpected file name",
+      "expected": "REFUSE",
+      "actual": "REFUSE",
+      "reason": "Error: HIA diagnostic custody: fixed ordered name missing: stage/prepare.stdout.log"
+    },
+    {
+      "case": "closed flag false while gated bytes appear",
+      "expected": "REFUSE",
+      "actual": "REFUSE",
+      "reason": "Error: HIA diagnostic custody: closed operation missing"
+    },
+    {
+      "case": "wrong total byte denominator",
+      "expected": "REFUSE",
+      "actual": "REFUSE",
+      "reason": "Error: HIA diagnostic custody: final raw denominator differs"
+    },
+    {
+      "case": "missing successful observation",
+      "expected": "REFUSE",
+      "actual": "REFUSE",
+      "reason": "Error: HIA diagnostic custody: independent read denominator differs"
+    },
+    {
+      "case": "official GitHub environment echo is not a diagnostic marker",
+      "expected": "ACCEPT",
+      "actual": "ACCEPT"
+    },
+    {
+      "case": "malformed known diagnostic marker JSON",
+      "expected": "REFUSE",
+      "actual": "REFUSE"
+    }
+  ],
+  "actual_run_logs_used": false,
+  "actual_original_reports_recovered": false,
+  "product_execution": false,
+  "qualification_claimed": false
+}
