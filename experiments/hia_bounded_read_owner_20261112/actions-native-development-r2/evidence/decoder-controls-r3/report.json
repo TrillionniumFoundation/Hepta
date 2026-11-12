@@ -1,0 +1,215 @@
+{
+  "archive": {
+    "bytes": 3284,
+    "git_blob_sha1": "ad49e65cb96a9974c6c1f43e3c6455f3eadc0fc0",
+    "sha256": "6c6f88b1f5808f498db97e33e61a210da61ec215f69b56f6977e55b35b34387e"
+  },
+  "archive_metadata": "Synthetic originals normalized to mode0400 uid/gid0 mtime0; not product modes",
+  "cases": [
+    {
+      "expected_acceptance": true,
+      "id": "whole_files_with_empty_file_and_multiple_frames",
+      "observation": {
+        "accepted": true,
+        "files": 2,
+        "frames": 2,
+        "no_product_verification_claim": true,
+        "scope": "WHOLE_FILE_CHANNEL_RECOVERED_NOT_PRODUCT_VERIFIED"
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_acceptance": false,
+      "id": "different_operation",
+      "observation": {
+        "accepted": false,
+        "error": "stream belongs to a different operation",
+        "type": "ValueError"
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_acceptance": false,
+      "id": "missing_END",
+      "observation": {
+        "accepted": false,
+        "error": "missing, extra or incorrect stream END",
+        "type": "ValueError"
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_acceptance": false,
+      "id": "duplicate_END",
+      "observation": {
+        "accepted": false,
+        "error": "missing, extra or incorrect stream END",
+        "type": "ValueError"
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_acceptance": false,
+      "id": "partial_file",
+      "observation": {
+        "accepted": false,
+        "error": "missing original frame",
+        "type": "ValueError"
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_acceptance": false,
+      "id": "overlap_frame",
+      "observation": {
+        "accepted": false,
+        "error": "frame ordering or extent differs",
+        "type": "ValueError"
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_acceptance": false,
+      "id": "frame_digest_drift",
+      "observation": {
+        "accepted": false,
+        "error": "frame bytes differ",
+        "type": "ValueError"
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_acceptance": false,
+      "id": "reordered_target_population",
+      "observation": {
+        "accepted": false,
+        "error": "complete ordered 133-target ledger differs",
+        "type": "ValueError"
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_acceptance": false,
+      "id": "wrong_total_bytes",
+      "observation": {
+        "accepted": false,
+        "error": "index population or byte total differs",
+        "type": "ValueError"
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_acceptance": false,
+      "id": "missing_original_END",
+      "observation": {
+        "accepted": false,
+        "error": "missing or mismatched original end",
+        "type": "ValueError"
+      },
+      "status": "PASS"
+    },
+    {
+      "expected_acceptance": false,
+      "id": "duplicate_JSON_key",
+      "observation": {
+        "accepted": false,
+        "error": "duplicate JSON key",
+        "type": "ValueError"
+      },
+      "status": "PASS"
+    }
+  ],
+  "decoder": {
+    "bytes": 11844,
+    "git_blob_sha1": "e56c4bcba63dd107028eb1f0768347c0b11ca4c3",
+    "sha256": "71a95cf8563ee564c1300f260fd718ca1c1385912a9ed7a1adbeaf3e56bcb670"
+  },
+  "executed_ids": [
+    "whole_files_with_empty_file_and_multiple_frames",
+    "different_operation",
+    "missing_END",
+    "duplicate_END",
+    "partial_file",
+    "overlap_frame",
+    "frame_digest_drift",
+    "reordered_target_population",
+    "wrong_total_bytes",
+    "missing_original_END",
+    "duplicate_JSON_key"
+  ],
+  "expected_ids": [
+    "whole_files_with_empty_file_and_multiple_frames",
+    "different_operation",
+    "missing_END",
+    "duplicate_END",
+    "partial_file",
+    "overlap_frame",
+    "frame_digest_drift",
+    "reordered_target_population",
+    "wrong_total_bytes",
+    "missing_original_END",
+    "duplicate_JSON_key"
+  ],
+  "network_or_workflow_triggered": false,
+  "product_executed": false,
+  "raw_members": {
+    "different_operation.log": {
+      "bytes": 27998,
+      "git_blob_sha1": "c0ab71b54e4239144909c801c9a575ea2784a65b",
+      "sha256": "a657020cb2d04c42d507e1de4152de16933f476e90b990d3fa0ca6ff07bde63c"
+    },
+    "duplicate_END.log": {
+      "bytes": 28359,
+      "git_blob_sha1": "2880235613b60028261e483375c63db104dceb04",
+      "sha256": "e5f2231e8d25159b5d474cba8912f7ccfd8f1af226557a7780f079a788ceae80"
+    },
+    "duplicate_JSON_key.log": {
+      "bytes": 28014,
+      "git_blob_sha1": "cade40d30d29b8d5f6c260bd66c9b864460c0a1c",
+      "sha256": "75853db694f00956a73997fc76d6d610667f0b2db3acb15b5da710d718558821"
+    },
+    "frame_digest_drift.log": {
+      "bytes": 27998,
+      "git_blob_sha1": "8b1a1e116f1db853b246f5a0b41f36eb4cd9fab2",
+      "sha256": "511f388351c33756b4808f70502fc92e225349040d0f43fccc490a5db3cae4ee"
+    },
+    "missing_END.log": {
+      "bytes": 27637,
+      "git_blob_sha1": "4d98df2f4931becb96b39b0f6069de108122589b",
+      "sha256": "2dfea949c86bdb016fb0e07ea0017fbfb1963619e195584b9b06b4146004bf71"
+    },
+    "missing_original_END.log": {
+      "bytes": 27737,
+      "git_blob_sha1": "cace1f60562f4d6a23d9289d03549e42c35b2089",
+      "sha256": "e0d0f9884f2e9c02e0fead24be4d0ef4d93d9cce394c8b995adecc8e7cb238dc"
+    },
+    "overlap_frame.log": {
+      "bytes": 27995,
+      "git_blob_sha1": "0c9ab69b17f6577d7895c2b6336b955eab4e269f",
+      "sha256": "0f4d62764d191192d4022b75d24b25118edcbdaa6c142f34528c0c2d2a39c396"
+    },
+    "partial_file.log": {
+      "bytes": 23788,
+      "git_blob_sha1": "6780a914a9195f7c5d50acc850811775b146ab9a",
+      "sha256": "4488a4406212b74f0bc4602ca696d75e1f5330720569db48a0ac4737d29c78c7"
+    },
+    "reordered_target_population.log": {
+      "bytes": 27998,
+      "git_blob_sha1": "06ba3974ec1d2ab4969bb9a3be80a7a07d6ec656",
+      "sha256": "282bc70b127d95f3cad66c89370240a64d6b56554eeb94654f578955e045ae12"
+    },
+    "whole_files_with_empty_file_and_multiple_frames.log": {
+      "bytes": 27998,
+      "git_blob_sha1": "cddb90bc021ea6bcfc862a096807ddeeef1d5f63",
+      "sha256": "537ab2f45d0cedc861d095d5696e6d86530e6f7a83c3e93a3590b4c739ce130a"
+    },
+    "wrong_total_bytes.log": {
+      "bytes": 27994,
+      "git_blob_sha1": "d2f5f681d9af4ba5b9e8b94285595e5165b65466",
+      "sha256": "7edf1597405ccbec8a82de2744da457e7fb96551421a618521675cc02b3fecc7"
+    }
+  },
+  "schema": "hepta.hia.bounded-read-small-transport-controls.v1",
+  "scope": "SYNTHETIC_TRANSPORT_ONLY_NO_ACTUAL_OPERATION_CLAIMS",
+  "status": "PASS"
+}

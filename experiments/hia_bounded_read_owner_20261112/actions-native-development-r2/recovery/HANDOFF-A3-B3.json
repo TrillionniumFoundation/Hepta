@@ -1,0 +1,125 @@
+{
+  "schema": "hia.bounded-read-actions-decorator-repair-handoff.v1",
+  "status": "FROZEN_FOR_ROOT_REVIEW_NO_TRIGGER",
+  "A": {
+    "commit": "30f053a6585b29bf052e36806e4a657d5bda9935",
+    "tree": "0c84e1c2d73b4b44c7f9fd849bb483e378c623fa",
+    "sole_parent": "e6c6a3a4fae95c6163b22e2d002a50d8a49950ce",
+    "base_tree": "474161510ad392fdbe2f66e24074ab25c34c75fd",
+    "new_files": 88,
+    "new_file_bytes": 1360839,
+    "complete_leaf_count": 4587
+  },
+  "B": {
+    "commit": "d908b4f53d20710416dfb6a36571058ba78ea0c9",
+    "tree": "0675a0709b2b70096c09dd0d6ea281a46dd73c29",
+    "sole_parent": "30f053a6585b29bf052e36806e4a657d5bda9935",
+    "base_tree": "0c84e1c2d73b4b44c7f9fd849bb483e378c623fa",
+    "sole_added_path": ".github/workflows/hia-bounded-read-native-r4b-development-r2.yml",
+    "workflow_bytes": 7052,
+    "workflow_sha256": "325c5c1a960762933e7ee676676b538dcae27c5517e23e581744ca326b971ae4",
+    "workflow_blob": "49c23ad188e9b3405b7c2ea119d37c9ae15c39cc",
+    "complete_leaf_count": 4588
+  },
+  "prefix": "experiments/hia_bounded_read_owner_20261112/actions-native-development-r2",
+  "local_control": "/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/control",
+  "policy": {
+    "bytes": 6012,
+    "sha256": "7eeec008bc7e8b1dbdf4645c1eee96af6891e4de0de7b6d3e51554665df9451b",
+    "git_blob_sha1": "d3bd8f4bd78e47bd786785cb97d6085872589f7c"
+  },
+  "candidate": {
+    "commit": "0e36619bc65ada7072c1e8a1f1454728036fee4e",
+    "tree": "1d95802c453a006f077eb8735a6939b1957d500b",
+    "leaves": 4025,
+    "unchanged": true
+  },
+  "runtime_inverse": {
+    "old_A": "43d1d22a510916e17d49513cf0e5bfca6587e455",
+    "consumers": [
+      "controller.py",
+      "diagnostics.py"
+    ],
+    "exact_ordered_text_inverse": [
+      {
+        "from": "@contextmanager\ndef _checked_parent(path):",
+        "to": "def _checked_parent(path):",
+        "occurrences_each": 1
+      },
+      {
+        "from": "actions-native-development-r2",
+        "to": "actions-native-development-r1",
+        "occurrences_each": 1
+      },
+      {
+        "from": "native-r4b-run-r2-20261112-e26e",
+        "to": "native-r4b-run-r1-20261112-e26e",
+        "occurrences_each": 1
+      },
+      {
+        "from": "native-r4b-development-r2",
+        "to": "native-r4b-development-r1",
+        "occurrences_each": 1
+      }
+    ],
+    "result_must_be_entire_old_file_byte_equal": true,
+    "old_SHA256": {
+      "controller.py": "6fda645cb4cffdffd3d62fea7acc78e0e555df10f6f32a249eaf6ce9d43a91ef",
+      "diagnostics.py": "2e0709db77b16ecb2959a18051e22bff94b3270bcd95334686828ac3e0b8d638"
+    },
+    "new_SHA256": {
+      "controller.py": "026776460c4597615e3d26d6b802f9c2e43380efbc88890b44f6eadd5959775f",
+      "diagnostics.py": "8f8c9508490dd23fa65a6822cccc5d2409c76a7d58336ca13ddf0653fbee7276"
+    },
+    "all_22_policy_controls_changed_exactly": [
+      "controller.py",
+      "diagnostics.py",
+      "control-manifest.json"
+    ],
+    "other_19_controls_byte_equal": true,
+    "manifest_inverse": "replace only files.controller.py and files.diagnostics.py with old pins; all other fields unchanged",
+    "policy_inverse": "replace trigger_branch and runtime_root_basename r2 with r1 and replace exactly the three changed control pins; all other fields and original canonical serialization unchanged",
+    "design_and_revision_notes": "honest evidence/status additions outside the 22 runtime controls"
+  },
+  "actual_local_evidence": {
+    "scope": "real filesystem IO only, CPython3.12.14; not fixed3.14 Actions or native product",
+    "report_path": "evidence/real-io-controls-r3/report.json",
+    "report_bytes": 22567,
+    "report_sha256": "207b9eb9587fd6036c91540f1f2fec10403cce5801db0fbbd7c1579ec0bf25c0",
+    "PASS": 46,
+    "HOLD": 0,
+    "original_failed_checker_retained": "evidence/real-io-controls-r2/original-execution.json",
+    "peer_original": "evidence/peer-extraction-decorators-original.json"
+  },
+  "original_actual_run": {
+    "run": 43171066322,
+    "job": 131024212625,
+    "status": "FAILED_PREPARE_BEFORE_OWNER_OR_PRODUCT",
+    "canonical_originals": "e6c6a3a4fae95c6163b22e2d002a50d8a49950ce",
+    "results_not_rewritten": true
+  },
+  "unique_future_trigger": {
+    "branch": "codex/hia-bounded-read-native-r4b-run-r2-20261112-e26e",
+    "created_by_this_agent": false,
+    "root_only": true
+  },
+  "limits": {
+    "overall": 180,
+    "cleanup": 3,
+    "compile_wall": 20,
+    "compile_CPU": 10,
+    "finite": 55,
+    "original_methods": 8,
+    "original_CLI_children": 7,
+    "original_CLI_timeout": 20,
+    "small_raw": 524288,
+    "small_stdout": 1048576,
+    "targets": 133
+  },
+  "verification": {
+    "all_66_new_blob_bytes_read_back": true,
+    "all_A_B_tree_entries_recomputed_and_equal": true,
+    "own_ref_readback": "d908b4f53d20710416dfb6a36571058ba78ea0c9",
+    "workflow_or_native_triggered": false
+  }
+}
