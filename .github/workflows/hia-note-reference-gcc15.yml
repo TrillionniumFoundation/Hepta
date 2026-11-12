@@ -1,0 +1,56 @@
+name: Reproduce frozen HIA note reference with pinned GCC 15.2
+"on":
+  push:
+    branches:
+      - codex/hia-note-reference-gcc15-v75-20261112-dda7
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Exact independent harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Exact complete original source
+        uses: actions/checkout@v4
+        with:
+          path: source
+          ref: 7e9c5a796a29746d169f9db97392ec774f627c03
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Read actual Docker environment and pull declared immutable official compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          mkdir -m 700 "$RUNNER_TEMP/hia-reference-prerequisites"
+          docker --host=unix:///var/run/docker.sock version > "$RUNNER_TEMP/hia-reference-prerequisites/docker-version.txt"
+          docker --host=unix:///var/run/docker.sock pull --platform=linux/amd64 docker.io/library/gcc@sha256:c101370f78e4a30be178c11dd18aeee64c65d617908a98157db2392ca73ab04f 2>&1 | tee "$RUNNER_TEMP/hia-reference-prerequisites/docker-pull.log"
+      - name: Compile exact frozen reference without executing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I -S -B "$GITHUB_WORKSPACE/harness/reproduce_note_gcc15.py"
+      - name: Preserve original bytes and all actual commands
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-note-reference-gcc15-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-reference-prerequisites
+            ${{ runner.temp }}/hia-reference-reproduction
