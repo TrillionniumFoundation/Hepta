@@ -1,15 +1,15 @@
-name: HIA exception delivery independent development
+name: HIA exception delivery independent development r2
 "on":
   push:
     branches:
-      - codex/hia-exception-delivery-v75-20261112-dda7
+      - codex/hia-exception-delivery-v75-r2-20261112-dda7
   workflow_dispatch:
 permissions:
   contents: read
   actions: read
 jobs:
   exception-delivery:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       PYTHONDONTWRITEBYTECODE: '1'
@@ -44,6 +44,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
           python -I -S -B -c 'import sys; assert sys.implementation.name == "cpython" and sys.version_info[:3] == (3, 14, 4); print(sys.version)' > "$RUNNER_TEMP/hia-exception-delivery-v75/inputs/python-version.txt"
           command -v as
           command -v objcopy
