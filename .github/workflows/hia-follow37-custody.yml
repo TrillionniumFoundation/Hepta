@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   readback:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Require Ubuntu 24.04 x86_64
@@ -25,7 +25,7 @@ jobs:
       - name: Read complete immutable proposed tree
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 3
           persist-credentials: false
       - name: Verify every original binary byte and identity
         shell: bash

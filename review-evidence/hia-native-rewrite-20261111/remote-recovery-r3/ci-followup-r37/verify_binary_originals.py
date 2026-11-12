@@ -26,7 +26,7 @@ def main():
            "-c", "core.packedGitLimit=64m"]
     head = subprocess.check_output(git + ["rev-parse", "HEAD"], cwd=root, text=True).strip()
     assert head == os.environ["GITHUB_SHA"]
-    assert subprocess.check_output(git + ["rev-parse", "HEAD^"], cwd=root, text=True).strip() == manifest["source_content_commit"]
+    assert subprocess.check_output(git + ["rev-parse", "HEAD~2"], cwd=root, text=True).strip() == manifest["source_content_commit"]
     assert not subprocess.check_output(git + ["status", "--porcelain", "--untracked-files=all"], cwd=root)
     rows = []
     names = set()
@@ -40,7 +40,7 @@ def main():
         observed = dict(bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest(),
             gitsha=hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest())
         assert observed == {key: row[key] for key in ("bytes", "sha256", "gitsha")}
-        inherited = subprocess.check_output(git + ["rev-parse", "HEAD^:" + row["path"]], cwd=root, text=True).strip()
+        inherited = subprocess.check_output(git + ["rev-parse", manifest["source_content_commit"] + ":" + row["path"]], cwd=root, text=True).strip()
         assert inherited == observed["gitsha"]
         assert path.read_bytes() == raw
         actual = dict(path=row["path"], mode=row["mode"], **observed)
