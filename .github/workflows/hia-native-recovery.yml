@@ -7973,3 +7973,121 @@ jobs:
           retention-days: 90
           compression-level: 0
 
+  namespace_issued_fs_follow42_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:namespace-issued-fs-follow42-readback]')
+    name: Read all4272 issued FS originals and exact existing native replay frontier
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
+      - name: Check out exact submitted original archives and reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact completed original artifact 13932591885
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13932591885'
+          run-id: '43192344684'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-namespace-issued-fs-follow42-originals
+      - name: Read exact complete original artifacts without target execution
+        shell: bash
+        env:
+          HIA_NAMESPACE_FOLLOW42_DIR: ${{ runner.temp }}/hia-namespace-issued-fs-follow42-originals
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-issued-fs-follow42-readback
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/issued-fs-follow42-readback/read_issued_fs_follow42.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-issued-fs-follow42-readback-driver.log"
+      - name: Preserve all complete original readbacks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-namespace-issued-fs-follow42-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-namespace-issued-fs-follow42-readback
+            ${{ runner.temp }}/hia-namespace-issued-fs-follow42-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  impact41_originals_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:impact41-originals-readback]')
+    name: Read all3090 impact41 originals and large valid exact process outcome
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Require the original Ubuntu 24.04 x86_64 execution domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "${ImageOS:?}" = ubuntu24
+          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"
+      - name: Check out exact submitted original archives and reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact completed original artifact 13930443158
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13930443158'
+          run-id: '43189935529'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-impact41-originals
+      - name: Read exact complete original artifacts without target execution
+        shell: bash
+        env:
+          HIA_IMPACT41_DIR: ${{ runner.temp }}/hia-impact41-originals
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-impact41-original-readback
+        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r44/read_impact41_originals.py 2>&1 | tee "$RUNNER_TEMP/hia-impact41-original-readback-driver.log"
+      - name: Preserve all complete original readbacks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-impact41-original-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-impact41-original-readback
+            ${{ runner.temp }}/hia-impact41-original-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+

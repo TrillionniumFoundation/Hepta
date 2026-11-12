@@ -1,8 +1,20 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW43）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW44）
 
 ## 当前结论
 
 **整套仍为 OPEN。完整保留版28阶段回归和固定Worker程序服务已实际通过；impact仍有一个大输入CPU阻塞，issuedFS物理整组仍超时，完整Emitter与公开诊断、Store/SQL、各平台/API、原生安装和冷启动尚未闭合。生产入口仍依赖Python，本提交生产激活0、旧实现删除0。**
+
+## FOLLOW44 最新状态（2026-11-12 10:14:56 UTC）
+
+父状态FOLLOW43 `e2e4789b2dbaa1bf5f7fa7554cc58e2e8d0fef10` / tree `9d25ad9d1c02d39b3895cd970159d9ea0f6cab07` /6,125文件。整套OPEN，生产激活0，旧实现删除0。
+
+FOLLOW43原源码预检查run43197963253/job131113678608真实FAIL，发生于 `paths == sorted(set(paths))`，实际Python AST文件0、HIA/B3/native0。根生成636项清单时使用JS localeCompare，导致同目录 `hia_program_composite.py` 排在 `hia_program.py` 前，与原Python字序不符。原21,046B日志和完整228,067B错误清单均保全；本次仅重排原636项，逐项path/bytes/GitSHA/SHA256/mode完全不变，原checker和全部组件源码不改。新增两份只读reader后共638项，显式验证所有路径ASCII且严格按码点排序。
+
+- 重新选择因共同预检查而阻塞的5个组件tag：Emitter后9组、checked-plan、Worker初始化program桥、私有181诊断目录、P16严格公开诊断。43的两条无target只读任务继续，未重复启动。
+- 新issuedFS42只读reader读取已完成run43192344684/artifact13932591885；完整4,272成员、原native trace、已有VM ledger和全缓冲/CAS全部验证。分开观察process是否退出与replay是否完成；未flush的调用保持UNKNOWN，不执行VM/native，不再运行原900秒目标。
+- 新impact41只读reader读取run43189935529/artifact13930443158，完整3,090成员/150,697,441原bytes；保全所有文件及mode，解压large-valid/graph-long-report的原stdin/stdout/stderr及完整expected缓冲，确定实际退出和原比较前沿。不执行HIA/B3/VM/native，不把已失败large-valid改记成功。
+
+workflow共130jobs、130原Ubuntu24/x86_64域检查；本次7tags。旧28阶段FULL_RETAINED_PASS、Worker42成功、impact41与issuedFS42失败全部保留。原预算/profile不变；本次源码交付仍不构成整套原生闭合。
 
 ## FOLLOW43 最新状态（2026-11-12 10:09:04 UTC）
 
