@@ -169,8 +169,9 @@ class StorePageCIGateTests(unittest.TestCase):
             'cli_control', 'cli_format', 'agent_store_authority', 'artifact_page',
         ]
         self.assertEqual(generators[:55], legacy_generators)
-        self.assertEqual(generators[55:], [
+        self.assertEqual(generators[55:59], [
             'machine_state', 'machine_instructions', 'machine_elf', 'core_lowering'])
+        self.assertEqual(generators[59:], ['bounded_read', 'core_unpack'])
         archive = step('Preserve actual cold failure and stage evidence')
         for owner, label, slug in [('authority', 'Store reference URI and profile authority', 'store-authority'),
                                   ('page', 'ordinary artifact read and complete page boundaries', 'artifact-read')]:

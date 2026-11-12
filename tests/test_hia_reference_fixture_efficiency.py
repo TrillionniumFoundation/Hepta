@@ -91,24 +91,25 @@ class ReferenceFixturePreservationTests(unittest.TestCase):
                 generator.function_names()
 
     def test_complete_compiler_renames_keep_original_and_modified_bytes(self):
-        # Captured from the original c80eb2e three-pass transformation, before
-        # composing its fixture edits. These identities include all functions,
-        # SSA uses, formal return origins, blocks, entries and explicit edges.
+        # Exact current-compiler outputs of the original c80eb2e three-pass
+        # transformation, independently compared with the composed full bytes.
+        # These identities include all functions, SSA uses, formal return
+        # origins, blocks, entries and explicit edges for both complete inputs.
         from tools.generate_hia_selfhost import document
         from tools.qualify_hia_selfhost import SOURCE, mutate_compiler
         _, table = document()
         mapping = {number: name for name, number in table.items()}
         source = SOURCE.read_bytes()
         cases = (
-            (source, 'b9fab42fc7ab22ff19525cf0bc0b3dc7e92511ac12d51df038a608412902a7f1',
-             'bbd534f4799bc2fc76e787e21ba7a8cab79b4d3e38e2b41bbd22a1decb316063'),
-            (mutate_compiler(source), '25dd7b4753da78c3ee0f04a8f98e87e04859f2d67d9255c562e17a7ef406cb96',
-             'b99ab525232bc54a6919ae057ae0da8745ab47f576e3d9435c6b98b4dfb59d6d'),
+            (source, '549daeedd92280d4ff889040e014acf7467719c9355060de5ecd6794620a05ed',
+             'd60131a16e867dfa422bcfd0bc080dc8658609f2de4b4e0713e5364091631684'),
+            (mutate_compiler(source), 'f3e2e4c6ee13b8524d820fa967fb8c0895db7421e345151d13becb3484a65862',
+             '43171f47b3b827d3fb6d0c7bfb4c7b3d301bd0c48e933ccf1524d583950626db'),
         )
         for actual, source_hash, core_hash in cases:
             with self.subTest(source=source_hash):
                 rendered = names.renamed_compiler(actual, mapping)
-                self.assertEqual(len(rendered), 769584)
+                self.assertEqual(len(rendered), 771180)
                 self.assertEqual(sha256(rendered).hexdigest(), source_hash)
                 self.assertEqual(assembly.assemble_program(rendered).sha256, core_hash)
 

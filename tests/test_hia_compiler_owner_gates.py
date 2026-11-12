@@ -396,7 +396,9 @@ class CompilerOwnerGateTests(unittest.TestCase):
         self.assertEqual(ledger['required_gate_count'], 30)
         self.assertEqual(ledger['legacy_gate_count'], 21)
         self.assertEqual(ledger['generator_order'], list(gates.SOURCE_GENERATORS))
-        self.assertEqual(ledger['generator_count'], 59)
+        self.assertEqual(ledger['generator_order'][:59], list(gates.LEGACY_SOURCE_GENERATORS))
+        self.assertEqual(ledger['generator_order'][59:], ['bounded_read', 'core_unpack'])
+        self.assertEqual(ledger['generator_count'], 61)
         self.assertEqual(ledger['controller_seconds'], 10800)
         self.assertEqual(ledger['full_retained_seconds'], 5400)
         self.assertEqual(ledger['cold_seconds'], 180)
@@ -499,10 +501,15 @@ class CompilerOwnerGateTests(unittest.TestCase):
         self.assertEqual(len(names), 2)
         actual = re.search(r'for component in ([^;]+); do', workflow).group(1).split()
         self.assertEqual(actual, list(gates.SOURCE_GENERATORS))
-        self.assertEqual(len(actual), 59)
-        self.assertEqual(len(set(actual)), 59)
+        self.assertEqual(actual[:59], list(gates.LEGACY_SOURCE_GENERATORS))
+        self.assertEqual(len(gates.LEGACY_SOURCE_GENERATORS), 59)
+        self.assertEqual(len(set(gates.LEGACY_SOURCE_GENERATORS)), 59)
+        self.assertEqual(actual[59:], ['bounded_read', 'core_unpack'])
+        self.assertEqual(len(actual), 61)
+        self.assertEqual(len(set(actual)), 61)
         for name in ('MachineStateSourceTests', 'MachineInstructionsSourceTests',
-                     'MachineElfSourceTests', 'CoreLoweringSourceTests', 'test_hia_compiler_owner_gates'):
+                     'MachineElfSourceTests', 'CoreLoweringSourceTests', 'UnpackCompositionSourceTests',
+                     'test_hia_compiler_owner_gates'):
             self.assertIn(name, names[0])
         self.assertEqual(workflow.count('qualify_hia_compiler_owner_ci.py owned-callers'), 4)
         self.assertEqual(workflow.count('qualify_hia_compiler_owner_ci.py owned-component'), 1)

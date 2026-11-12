@@ -7,11 +7,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.14.4'
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install agent_journal json_wire worker_report machine_plan linked_observer machine_encoding cli_control cli_format agent_store_authority artifact_page machine_state machine_instructions machine_elf core_lowering bounded_read; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install agent_journal json_wire worker_report machine_plan linked_observer machine_encoding cli_control cli_format agent_store_authority artifact_page machine_state machine_instructions machine_elf core_lowering bounded_read core_unpack; do
             python -B -m "tools.generate_hia_$component"
           done
           python -B tools/generate_hia_selfhost_contract.py
@@ -118,6 +118,7 @@ jobs:
               'tests.test_hia_machine_instructions_native.MachineInstructionsSourceTests',
               'tests.test_hia_machine_elf_native.MachineElfSourceTests',
               'tests.test_hia_core_lowering_native.CoreLoweringSourceTests',
+              'tests.test_hia_core_unpack_native.UnpackCompositionSourceTests',
               'tests.test_hia_compiler_owner_gates',
           )
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
@@ -129,7 +130,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.14.4'
       - name: Install qualified Clang 20 native execution prerequisites
         run: |
           set -euo pipefail
