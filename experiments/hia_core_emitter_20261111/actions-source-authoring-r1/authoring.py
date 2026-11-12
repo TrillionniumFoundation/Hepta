@@ -368,6 +368,7 @@ def main():
                 'complete actual unit denominator differs')
         report['status'] = 'DEVELOPMENT_ACTIONS_EMITTER_AUTHORING_PASS'
     except BaseException as error:
+        report['status'] = 'HOLD'
         report['error'] = {'type': type(error).__name__, 'message': str(error),
                            'traceback': traceback.format_exc()}
         traceback.print_exc()

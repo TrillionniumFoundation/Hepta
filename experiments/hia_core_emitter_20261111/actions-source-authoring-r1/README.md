@@ -15,3 +15,9 @@ The job performs no B3/native compilation, VM run, product caller, installed-whe
 The finalizer first requires a receipt for this exact command, current inputs, 180/3 owner, natural exit, and closed ECHILD. It then reads every original unit, ABI, source inventory, stdout/stderr, and report identity. Any failure remains HOLD. The workflow always uploads the private output root and original stage logs, including failures; it never uploads the source checkout or Git credentials. An uploaded artifact alone is not PASS; the original FINAL.json and owner receipts must be checked.
 
 The two desktop controls remain unexecuted and preserved. Unknown TimSort activity is unrelated and is neither cancelled nor replayed by this independent runner.
+
+## Unexecuted control revision 2
+
+A1/B1 remain retained and unexecuted. The normal owner receipt omits `owner_error`, so its final check now uses an optional lookup. Caught exceptions reset worker/finalizer status to HOLD, and finalization rejects non-null worker exception fields. These are static findings, not fault-injection results. The authoring algorithm, original AST comparison, finite IR, unit generation, and caps are byte-identical; the only worker delta is its HOLD reset.
+
+An independent read-only diagnostic prints only 14 fixed originals as base64 frames. Each complete file and each frame carries its byte length and SHA256. The original-byte budget is 4 MiB and each frame is at most 8 KiB. Missing, refused, and budget-omitted files are reported explicitly. Worker report/guardian/child logs are printed only after the exact current command and input identities have a closed ECHILD boundary; natural PASS is not inferred by this observation. The always-run diagnostic uses continue-on-error and does not change the original authoring/finalization exit status or budget. It enumerates no directory, reads no token, and executes no product.

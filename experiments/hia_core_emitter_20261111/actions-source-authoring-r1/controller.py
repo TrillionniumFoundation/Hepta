@@ -291,6 +291,7 @@ def verify_outputs(root, setup):
     report = json.loads(report_raw)
     require(report['schema'] == 'hia.core-emitter-actions-authoring.v1'
             and report['status'] == 'DEVELOPMENT_ACTIONS_EMITTER_AUTHORING_PASS'
+            and report.get('error') is None and report.get('preservation_error') is None
             and report['candidate_commit'] == CANDIDATE and report['candidate_tree'] == TREE
             and report['actual_checkout_HEAD_is_candidate'] is True
             and report['context_sha256'] == sha256(wire(setup['context'])).hexdigest()
@@ -398,7 +399,7 @@ def finalize(args):
                 and life['status'] == 'OWNED_PROCESS_COMPLETED' and life['returncode'] == 0
                 and life['timed_out'] is False and life['exit_observed_before_deadline'] is True
                 and life['event_overflow'] is False and life['interrupted_signals'] == []
-                and life['owner_error'] is None,
+                and life.get('owner_error') is None,
                 'source-only authoring did not end naturally within its original owner')
         events = life['events']
         require(type(events) is list and events
@@ -418,6 +419,7 @@ def finalize(args):
         final['source_actual_HEAD_after'] = source_head(source, value['git']['resolved'])
         final['status'] = 'SOURCE_ONLY_CORE_EMITTER_V2_AUTHORING_PASS'
     except BaseException as error:
+        final['status'] = 'HOLD'
         final['error'] = {'type': type(error).__name__, 'message': str(error),
                           'traceback': traceback.format_exc()}
     record = save(root / 'FINAL.json', final)
