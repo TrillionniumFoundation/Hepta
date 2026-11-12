@@ -1,0 +1,207 @@
+{
+  "schema": "hia.read-bounded-original-callers-static-audit.v1",
+  "status": "STATIC_CALL_GRAPH_AND_ASSERTION_AUDIT_NOT_EXECUTION",
+  "base_commit": "acffa9262f31d073f8f0a6f0201eae201039f619",
+  "sources": [
+    {
+      "path": "tests/test_hia_program_tools.py",
+      "bytes": 8404,
+      "sha256": "8e885163d57ec41e869d5b8cb206de1b9942e0c636bcacf3b362bd5e669317c6",
+      "git_blob": "f35250f6394d097ad9fe1e1d6b9a279fe4384b33"
+    },
+    {
+      "path": "hepta/hia_program_tools.py",
+      "bytes": 22887,
+      "sha256": "953bcc57375f34210c319852091ce5a3a5a1479a723e388a4c989898911bf99c",
+      "git_blob": "3280f0127b4dc20c3b58e82a8e6ed08493d8fbda"
+    },
+    {
+      "path": "tools/hia_core_reference.py",
+      "bytes": 25256,
+      "sha256": "596b331db95ad2ebd3dba637fc4c34e8d2b0129bef63f8858edf02961e752aa4",
+      "git_blob": "2961f5c47ef14756bd7a6b687904d4bfee56e573"
+    }
+  ],
+  "source_order_ids": [
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_patch_rechecks_and_executes_changed_operations_without_source",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_stale_duplicate_and_overlapping_edits_reject",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_patch_cannot_remove_required_effect_or_use_undefined_value",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_patch_rejects_unknown_fields_bool_indices_and_nonfinite",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_publication_is_a_complete_verified_new_snapshot",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_verify_run_inspect_and_patch_need_no_rust_or_high_level_source",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_bad_program_returns_structured_error",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_trap_and_budget_are_distinct_structured_outcomes"
+  ],
+  "default_unittest_name_order_inferred_not_executed": [
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_bad_program_returns_structured_error",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_trap_and_budget_are_distinct_structured_outcomes",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_verify_run_inspect_and_patch_need_no_rust_or_high_level_source",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_patch_cannot_remove_required_effect_or_use_undefined_value",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_patch_rechecks_and_executes_changed_operations_without_source",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_patch_rejects_unknown_fields_bool_indices_and_nonfinite",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_publication_is_a_complete_verified_new_snapshot",
+    "tests.test_hia_program_tools.HIAProgramToolsTests.test_stale_duplicate_and_overlapping_edits_reject"
+  ],
+  "method_count": 8,
+  "rows": [
+    {
+      "id": "tests.test_hia_program_tools.HIAProgramToolsTests.test_patch_rechecks_and_executes_changed_operations_without_source",
+      "method": "test_patch_rechecks_and_executes_changed_operations_without_source",
+      "read_bounded": "not called by this method or its patch/runtime path",
+      "subprocesses": 0,
+      "assertions": [
+        "changed checked digest differs",
+        "both executions return normally with different result",
+        "original document unchanged",
+        "whole_module_rechecked true and behavior_equivalence_proved false"
+      ]
+    },
+    {
+      "id": "tests.test_hia_program_tools.HIAProgramToolsTests.test_stale_duplicate_and_overlapping_edits_reject",
+      "method": "test_stale_duplicate_and_overlapping_edits_reject",
+      "read_bounded": "not called; in-memory patches",
+      "subprocesses": 0,
+      "assertions": [
+        "stale snapshot rejects with stale diagnostic",
+        "duplicate edit rejects with duplicate diagnostic",
+        "overlapping function/operation edits reject with overlapping diagnostic"
+      ]
+    },
+    {
+      "id": "tests.test_hia_program_tools.HIAProgramToolsTests.test_patch_cannot_remove_required_effect_or_use_undefined_value",
+      "method": "test_patch_cannot_remove_required_effect_or_use_undefined_value",
+      "read_bounded": "not called; in-memory patches",
+      "subprocesses": 0,
+      "assertions": [
+        "removal of required effect rejects ValueError",
+        "undefined SSA value rejects ValueError"
+      ]
+    },
+    {
+      "id": "tests.test_hia_program_tools.HIAProgramToolsTests.test_patch_rejects_unknown_fields_bool_indices_and_nonfinite",
+      "method": "test_patch_rejects_unknown_fields_bool_indices_and_nonfinite",
+      "read_bounded": "not called; patch and decode_json controls only",
+      "subprocesses": 0,
+      "assertions": [
+        "unknown field rejects ValueError",
+        "bool operation index rejects ValueError",
+        "NaN constant rejects ValueError",
+        "duplicate JSON keys reject duplicate diagnostic",
+        "MAX_INPUT_BYTES patched to16; quoted six snow characters20 UTF8 bytes reject decode_json byte limit"
+      ]
+    },
+    {
+      "id": "tests.test_hia_program_tools.HIAProgramToolsTests.test_publication_is_a_complete_verified_new_snapshot",
+      "method": "test_publication_is_a_complete_verified_new_snapshot",
+      "read_bounded": "direct",
+      "direct_attempts": 2,
+      "child_attempts": 0,
+      "subprocesses": 0,
+      "assertions": [
+        "new published ordinary file read verifies exact program digest",
+        "publication receipt SHA matches",
+        "existing destination rejects new-file diagnostic",
+        "symlink publication rejects ValueError",
+        "read_bounded symlink rejects ValueError",
+        "original output bytes stay canonical"
+      ],
+      "not_asserted": [
+        "exact read_bounded OSError wrapper message/cause",
+        "numeric file size ceiling"
+      ]
+    },
+    {
+      "id": "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_verify_run_inspect_and_patch_need_no_rust_or_high_level_source",
+      "method": "test_cli_verify_run_inspect_and_patch_need_no_rust_or_high_level_source",
+      "read_bounded": "direct plus explicit reference CLI child imports",
+      "direct_attempts": 2,
+      "child_attempts": 5,
+      "subprocesses": 4,
+      "subprocess_timeout_seconds_each": 20,
+      "commands": [
+        "verify input",
+        "inspect input",
+        "run input --function increment --arguments [40]",
+        "patch input --request edit.json -o new.hia"
+      ],
+      "assertions": [
+        "all four child returncodes zero",
+        "each stdout JSON parses",
+        "original/new read-back checked digests differ",
+        "RUSTC fixed nonexistent path for these children"
+      ],
+      "child_read_details": "four common input reads plus one patch request read; two direct final readbacks"
+    },
+    {
+      "id": "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_bad_program_returns_structured_error",
+      "method": "test_cli_bad_program_returns_structured_error",
+      "read_bounded": "indirect explicit reference CLI verify",
+      "direct_attempts": 0,
+      "child_attempts": 1,
+      "subprocesses": 1,
+      "subprocess_timeout_seconds_each": 20,
+      "assertions": [
+        "bad program child returns nonzero",
+        "stdout JSON ok is false"
+      ],
+      "failure_boundary": "ordinary file read succeeds in normal test flow; semantic undefined value is rejected later"
+    },
+    {
+      "id": "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_trap_and_budget_are_distinct_structured_outcomes",
+      "method": "test_cli_trap_and_budget_are_distinct_structured_outcomes",
+      "read_bounded": "indirect explicit reference CLI run",
+      "direct_attempts": 0,
+      "child_attempts": 2,
+      "subprocesses": 2,
+      "subprocess_timeout_seconds_each": 20,
+      "assertions": [
+        "overflow input returns1 with status trapped",
+        "max-steps1 case returns1 with status budget_exceeded"
+      ],
+      "budget_boundary": "--max-steps1 is Core execution step budget, not file IO timeout or file byte ceiling"
+    }
+  ],
+  "static_normal_flow_counts": {
+    "methods_reaching_read_bounded": 4,
+    "direct_parent_attempts": 4,
+    "child_attempts": 8,
+    "total_attempts": 12,
+    "successful_file_reads_if_all_original_tests_pass": 11,
+    "expected_symlink_read_refusal": 1,
+    "child_subprocess_count": 7,
+    "observed_runtime_counts": false
+  },
+  "original_read_contract": {
+    "default_limit_bytes": 8388608,
+    "default_argument_bound_at_function_definition": true,
+    "call_order": [
+      "Path(path) before try",
+      "O_RDONLY | optional O_NOFOLLOW | optional O_NONBLOCK",
+      "os.open then os.fdopen(..., rb) context entry",
+      "fstat(stream.fileno())",
+      "nonregular or st_size>limit rejects before read",
+      "stream.read(limit+1)",
+      "context exit",
+      "len(payload)>limit rejection",
+      "payload return"
+    ],
+    "OSError_wrap": "HIAEditRejected('E_HIA_EDIT: cannot read ordinary input') from original exception",
+    "read_bounded_explicit_timeout": false
+  },
+  "scope_limits": [
+    "This is the original complete eight-method module, not only the four reaching file reads.",
+    "CLI children run tools.hia_core_reference, not the installed ordinary hia command.",
+    "The16B UTF8 control tests decode_json only; it neither invokes read_bounded nor changes its already-bound default argument.",
+    "No explicit oversized-file/exact8MiB/FIFO/file-growth/custom-limit/foreign-path/context-finalizer coverage in these eight methods.",
+    "Existing symlink test asserts ValueError category only, not exact error text or cause.",
+    "Statically inferred counts are not native completion measurements."
+  ],
+  "actions": {
+    "python_parse": false,
+    "tests": false,
+    "source_changes": false,
+    "h_calls": false,
+    "workflow_trigger": false,
+    "additional_suite": false
+  }
+}
