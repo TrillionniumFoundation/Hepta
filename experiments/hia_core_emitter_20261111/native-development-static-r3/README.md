@@ -1,0 +1,11 @@
+# Static directory custody revision
+
+The preserved b272 reader had a concrete static intermediate-directory-link gap for its four installed-control records. A diagnostic-only repair was reviewed as blob b58; that exact source and original review are retained here. This revision factors the same no-follow descriptor spine into the common helpers so the controller, verifier and diagnostic reader use it for every original read and every create-only write. The write path keeps its descriptor through complete write, fsync and exact readback. It retains the existing single-link/owner/mode checks and never opens an existing destination for writing.
+
+All intermediate directory descriptors remain open until the operation completes. The parent/name entry and held directory identity are checked before and after. Leaf reads are bounded by the observed size, and diagnostic raw-budget reservation happens before the first byte read. Failures leave the overall workflow non-passing; no existing product result is reclassified.
+
+The policy and workflow files here are explicitly unresolved templates outside .github/workflows. They cannot be dispatched as a frozen candidate: candidate/commit/policy placeholders remain, and the actual 39 source assets have not yet been recovered. The template retains two separate 180/3 phase owners, the complete unsplit 116-test command, original 20/10 compiler child limits, no API token in native execution, fixed bounded diagnostics, and always-upload of failed/partial originals. Runtime prerequisites use the original pinned dependencies. Controller invocations deliberately retain site packages for installed dependency metadata; the guardian and disposable native child remain isolated without site.
+
+The included request-size observation is a static lower bound using the known exact source/compile paths. Actual runtime tool and distribution pins are still unresolved; the original 262,144-byte request rejection remains authoritative.
+
+No Python parse, filesystem fault probe, native compiler call, product suite, native qualification or workflow trigger happened for this revision. All earlier checkpoints, static findings and the explicitly detected V8 source-text escaping error remain preserved.

@@ -1,0 +1,35 @@
+{
+  "schema": "hia.core-emitter-native-development-static-revision.v1",
+  "status": "UNEXECUTED_R3_DIRECTORY_CUSTODY_FIX",
+  "base_commit": "b2726c61d0ab6ad557ae5d3c00bec3d793584a37",
+  "python_parsed": false,
+  "filesystem_controls_executed": false,
+  "native_executed": false,
+  "cold_qualified": false,
+  "workflow_installed": false,
+  "policy_resolved": false,
+  "original_run_retriggered": false,
+  "original_source_asset_reader": {
+    "run_id": 43138417048,
+    "head": "0753cae7150e2c8d01b0d5cbec41264e831b5d3e",
+    "attempt": 1,
+    "status": "queued",
+    "observed_at": "2026-11-12T02:57:34Z"
+  },
+  "source_observation": "The b272 diagnostic checked the leaf with O_NOFOLLOW but did not retain no-follow descriptors for every installed-control parent. This is a static path-custody finding, not an executed product failure.",
+  "correction": "All common reads and create-only writes now traverse and retain directory descriptors, verify each parent/name-to-held-directory link before and after, and use the final dir_fd for the leaf. Diagnostics reuses that same read and charges the bounded raw budget before bytes are read.",
+  "unchanged": {
+    "original_116_methods": true,
+    "two_separate_180_3_owners": true,
+    "compile_20_wall_10_CPU_1MiB": true,
+    "guardian_request_262144": true,
+    "diagnostic35_files_8MiBraw_12MiBstdout": true
+  },
+  "review_scope": "Included Cold review covers the b272 compile-custody and witness changes. Included Native review covers the prior b58 diagnostic-only directory reader. Neither is an execution or blanket review of the new common create/read implementation or final workflow.",
+  "pending": [
+    "Recover the actual original 39 HIA files and ABI through the existing reader run.",
+    "Freeze exact pure candidate and final policy/workflow, then obtain independent review before root's sole trigger.",
+    "Execute all 116 default methods under the original one-owner test deadline; no split or inherited pass."
+  ],
+  "earlier_static_text_construction_error_preserved": true
+}
