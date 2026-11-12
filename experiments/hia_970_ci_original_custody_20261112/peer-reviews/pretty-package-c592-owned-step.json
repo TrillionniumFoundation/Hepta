@@ -1,0 +1,47 @@
+{
+  "schema": "hia.pretty-package-owned-step-independent-review.v1",
+  "status": "STATIC_CLEAR_OWNED_STEP_AND_FINAL_READ_BOUNDARY_NOT_FULL_INSTALLATION_QUALIFICATION",
+  "reviewer": "cold_ci_closure",
+  "candidate_commit": "5b83b822353a0a51482a9847b5605d908dbbc205",
+  "candidate_prefix": "experiments/hia_json_pretty_20261112/installed-development-r1/package-controls-static-r1",
+  "helper": {
+    "bytes": 39882,
+    "sha256": "fd5b1b014dd48b333be2cf3ed878e585661e29d282462c18911d2c4922e7fa25",
+    "git_blob": "c592021c5295e346ad8d9aecce2a0cc5610262f7"
+  },
+  "original_owner": {
+    "bytes": 17601,
+    "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+    "git_blob": "6f600ab75894859b9840c0311cc8891a67b6c53a"
+  },
+  "examined_functions": [
+    "read_owner",
+    "natural_process",
+    "owned_step",
+    "run:command/environment setup",
+    "run:finally read gating and status transition"
+  ],
+  "findings": [
+    "The helper verifies the original369460 implementation bytes before loading the dedicated owner. The original run_owned source was independently reread; its returned object adds supervisor_returncode and receipt_sha256 to the parsed on-disk record.",
+    "Each owned_step uses new fixed stdout/stderr/receipt/request/supervisor-log names. Before reading the six original outputs it requires returned cleanup complete, observed ECHILD, reaped leader, no cleanup deadline/error and empty remaining children. An unconfirmed/missing/invalid receipt result from the original owner lacks that closure and defers all six paths.",
+    "When closure is absent, the helper retains explicit paths for outer finalization rather than opening current child output. Its final source/installed/archive read section also refuses until every attempted step records closed cleanup.",
+    "After closure, the exact raw receipt/request SHA and schema, implementation, command/cwd/environment, separate budgets and all output paths are checked. The returned mapping must equal the original parsed receipt with precisely the two expected wrapper fields; it does not compare incompatible raw and augmented objects.",
+    "Natural process acceptance additionally requires exit0, exit observed before deadline, no timeout/overflow/signals/owner error, positive started/exit/reaped events and no other event kinds. The original fixed owner sets attempted during the actual cleanup path before complete/ECHILD can be true.",
+    "All packaging and consumer environments are constructed from an explicit small map. The serialized request cannot inherit an API token or ambient selectors from the parent. The isolated installed child uses -I -S -B and empty PATH.",
+    "The helper copies real declared packaging inputs into package-source and uses fresh sdist/wheels/install roots. Final source/immutable inputs, restored installed byte/mode inventory, native image/manifest, actual archives and owner source are rechecked before only the pending success state can become DEVELOPMENT_INSTALLATION_PASS.",
+    "A naturally closed child with a failing status remains HOLD. Any earlier exception remains HOLD despite later stable-input observations. Non-PASS completion raises to the authoring parent; no prior result is promoted."
+  ],
+  "limits": [
+    "This is a static review of ownership and final-read wiring. No Python parse, installation, subprocess, native execution, h call or Actions trigger was performed.",
+    "The complete installed nine-case implementation and wheel/resource mapping remain under Native/root review; this receipt does not qualify them.",
+    "The separate outer authoring finalizer and package verifier must still bind the actual helper report and preserved outputs. This review does not replace the independent outer180/3 ECHILD gate.",
+    "Original43 component and complete CLI/cold/full qualification claims are outside this narrow review."
+  ],
+  "execution": {
+    "python_parse": false,
+    "product": false,
+    "h": false,
+    "actions_trigger": false
+  },
+  "additional_blockers_in_examined_scope": []
+}
