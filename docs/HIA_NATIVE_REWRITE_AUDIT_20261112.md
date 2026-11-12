@@ -1,8 +1,29 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW44）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW45）
 
 ## 当前结论
 
 **整套仍为 OPEN。完整保留版28阶段回归和固定Worker程序服务已实际通过；impact仍有一个大输入CPU阻塞，issuedFS物理整组仍超时，完整Emitter与公开诊断、Store/SQL、各平台/API、原生安装和冷启动尚未闭合。生产入口仍依赖Python，本提交生产激活0、旧实现删除0。**
+
+## FOLLOW45 最新状态（2026-11-12 10:25:48 UTC）
+
+父状态FOLLOW44 `f8526c3b6f47f6061564707a9fbaa32d2f52704d` / tree `04dc32f12e9e592bc7de096930e21ae60598f386` /6,136文件。整套OPEN、生产激活0、旧实现删除0。FOLLOW44的638份源码预检查已实际SUCCESS；没有改变原语义门。
+
+### 新的实际证据
+
+- 私有固定诊断目录job131116460812实际PASS：2次fresh原35ee B3、181+11+41=233case、543+11+41=595次真实私有native entry，全文/完整header/容量/u64/异常协议/只读源/guard/canary及source-image before/after全部通过。实际A carrier entry=0、实际public admission entry=0；动态公开类型/字段上下文、group6/9仍OPEN。完整423,488B原log、三原group JSON和独立观察已入库。
+- impact41原件reader job131116463745实际PASS_READ_ONLY：完整3,090成员/150,697,441B全bytes/modes检查。large-valid实际原生ELF运行90,058,572,023ns后-9，timed_out=false，stdout/stderr均0；整组CPU由4.889232增至94.892995。该事实确认原生阶段本身触及CPU界限，原FAIL不变。graph-long-report完整14,827,750B输出逐字等于原expected，实际0退出，candidate5,568,715B/receipt619B/impact9,258,352B均全字节相等。下一步需机械阶段计时定位，无预算放宽。
+- namespace旧40/41 reader结果的compact43实际PASS_READBACK_ONLY：原114+119+93成员全核。旧reuse37前缀5,349records、2,411已返回VM；adopt38前缀5,435records、2,465已返回VM；两者native记录0。两gzip均没有footer，但完整前缀无JSON错误且末行完整；在途未flush命令保持UNKNOWN。
+- 最新issuedFS42原件reader job131116463813实际PASS_READBACK_ONLY：原4,272成员/323,619,640B逐字/mode通过。38tests已有原ok，test39已开始。47个实际native carrier进程全部0退出、源码未变，累计CPU1.230664秒、wall3,428,566,254ns。46个完整replay中4,817 native=4,817 returned VM，六role计数1064/26/24/1126/679/1898。第39测试carrier完成3个请求并0退出，未完成的是随后的outer VM回放。其新gzip0B，不能把第一条未记录请求叫卡住调用。原900秒FAIL不变；具体VM构造/解释/全buffer校验/JSON-gzip成本仍待度量。完整558,298B原log、531,120B原console投影及原stderr已保全，原u64字节未改写。
+
+### 本次新工作
+
+- Worker44初始化program桥的13个依赖B3实际通过；新四核在第一个生成profile被原SSA<2048门拒绝（maxSSA2185，27fn/910blocks/3631ops/max156function-blocks/15params），新四核B3=0、语义=0，原FAIL保全。r3只按原顺序将pb_result_frame的success/failure分支提为HIA helpers；4组129case/27program ELF、23fresh B3及全部原门不变。r2完整active/dependency源已物化，旧r1源仍保存，active选择按实际新版本更新。
+- P16严格诊断44实际7fresh B3、151ELF进程、38private entry，177case PASS、4公开全文case实际FAIL；100私有controls在进入native前因bytearray传ctypes失败。原10组完整日志/原JSON保全。新修仅在Buffer两处使用bytes(raw)，100case及oracle/native源完全不改；下一门只补100controls，先要求fresh7 source/image逐项与44实际指纹一致，不重复177成功用例、不继承计数、不将4公开FAIL抹掉。
+
+- 新HIA unixOpen父层，以6个精确原C函数作独立reference，计划1次fresh B3、9批85语义case、42协议control、88次原C调用（含setup及2protocol语义）。18个effects此轮仍明确为foreign；不冒实际namespace或完整Store闭合。7个active Python作者/验证源进入预检查，7份旧草稿仅保存；原10/20/256MiB/1MiB、每进程90CPU/180wall/1GiB、aggregate900wall、4M VM steps/32MiB arena/64depth均保留。新件至提交前0AST/HIA/B3/VM/native。
+- 全回归37原件reader43实际FAIL于文件定位：download-artifact把内容放入artifact-name/hia-full-custody目录，原reader错误假定root平铺。此时完整原archive未读、0target执行，原28阶段FULL_RETAINED_PASS不变。新reader只在下载树中要求唯一original-evidence.tar.xz，定位其父目录并继续原完整pin/member/mode/before-after校验；原reader/log/raw summary均保留。此次不重跑全量回归。
+
+本次选四tag：unixOpen、全回归原件reader、Worker桥r3、P16仅100私有controls。44其它原结果继续按实际终态保全。workflow131jobs/131原Ubuntu24域检查，active源码642份严格码点有序。已发布组件证据不等于156旧production模块/API完成替换；原生安装、cold、公开CLI/Worker/Store/Emitter整链和各平台仍须闭合。
 
 ## FOLLOW44 最新状态（2026-11-12 10:14:56 UTC）
 

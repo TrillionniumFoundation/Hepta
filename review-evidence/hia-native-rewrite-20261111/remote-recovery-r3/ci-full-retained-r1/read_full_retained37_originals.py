@@ -57,10 +57,16 @@ before=None;complete=False;status="FAIL";selected={};details={
 "whole_native_delivery_qualified":False,"installed_activation":False,"whole_stack_closed":False}
 try:
     before=snapshot()
+    candidates=list(ROOT.rglob("original-evidence.tar.xz"))
+    assert len(candidates)==1,[str(p.relative_to(ROOT)) for p in candidates]
+    archive_root=candidates[0].parent
+    assert archive_root.is_relative_to(ROOT)
+    details["located_archive_directory"]=archive_root.relative_to(ROOT).as_posix()
     for name,(size,digest) in PINS.items():
-        assert (before[name]["bytes"],before[name]["sha256"])==(size,digest),name
+        key=(archive_root/name).relative_to(ROOT).as_posix()
+        assert (before[key]["bytes"],before[key]["sha256"])==(size,digest),key
     (OUT/"input-files-before.json").write_text(json.dumps(before,indent=2,sort_keys=True)+"\n")
-    custody_raw=(ROOT/"custody.json").read_bytes()
+    custody_raw=(archive_root/"custody.json").read_bytes()
     (OUT/"producer-custody.original.json").write_bytes(custody_raw)
     custody=json.loads(custody_raw)
     for key,value in {
@@ -73,8 +79,8 @@ try:
     assert (custody["archive_bytes"],custody["archive_sha256"])==PINS["original-evidence.tar.xz"]
     assert (custody["index_bytes"],custody["index_sha256"])==PINS["members.jsonl"]
     count=regular=total=0;names=set()
-    with (ROOT/"members.jsonl").open("rb") as catalog:
-        with tarfile.open(ROOT/"original-evidence.tar.xz",mode="r|xz") as archive:
+    with (archive_root/"members.jsonl").open("rb") as catalog:
+        with tarfile.open(archive_root/"original-evidence.tar.xz",mode="r|xz") as archive:
             for member in archive:
                 line=catalog.readline();assert line,"extra archive member"
                 expected=json.loads(line)

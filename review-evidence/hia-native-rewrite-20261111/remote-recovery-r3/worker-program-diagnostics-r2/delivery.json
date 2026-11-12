@@ -1,0 +1,113 @@
+{
+  "schema": "hia-worker-private-diagnostic-controls-follow44-repair-delivery-r2",
+  "parent_head": "f8526c3b6f47f6061564707a9fbaa32d2f52704d",
+  "suggested_prefix": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-program-diagnostics-r2",
+  "status": "ORIGINAL_FULL_FAILED_JOB_PRESERVED_NEW_PRIVATE_FIXTURE_ONLY_SOURCE",
+  "rows": [
+    {
+      "path": "development/worker_program_diagnostic_controls_r1.py",
+      "mode": "100644",
+      "bytes": 16526,
+      "sha256": "234d41d6ed38f811f6622802a20e8775528a3df01f0a8fdef88b76b97797e19e",
+      "gitsha": "bfacc0b1b05c7ac7e962fc4079d18a251611e7f7",
+      "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+    },
+    {
+      "path": "sources.json",
+      "mode": "100644",
+      "bytes": 13120,
+      "sha256": "95c0d5974888144c4b21d44fb7b037989492845acfcb9742a613266d834c054f",
+      "gitsha": "eb8495224923e32dffd081e0cbcdfd8f844d7ff6",
+      "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+    },
+    {
+      "path": "worker_program_diagnostics_ci_r2.py",
+      "mode": "100644",
+      "bytes": 14002,
+      "sha256": "e483a79b351d42236e374b3f115d89cd64794aaf4d3ec90fa45a40bfd16f2b26",
+      "gitsha": "4a2db60257acc259a38f15fef69b1418d5f3ead6",
+      "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+    },
+    {
+      "path": "observations/follow44-diagnostics-job-131116461128.log",
+      "mode": "100644",
+      "bytes": 485847,
+      "sha256": "5a306308fe6d95f0d9697c550049402e812c0635f21d2305211d63f22a475056",
+      "gitsha": "958793e725dfcf9a07b16d71803d9f18527eeea2",
+      "classification": "ORIGINAL_FOLLOW44_FAILED_JOB_FULL_LOG_READBACK"
+    },
+    {
+      "path": "observations/follow44-diagnostics-panels-as-logged.jsonl",
+      "mode": "100644",
+      "bytes": 51923,
+      "sha256": "8fae5e72b3d2af920ca704fc7f55315311989ccba2bd8a094af499e60f04ed26",
+      "gitsha": "de47d98376eaa25e946c4068867723aadef88f4d",
+      "classification": "EXACT_ORIGINAL_ALL_11_PRINTED_JSON_PAYLOADS"
+    },
+    {
+      "path": "observations/follow44-diagnostics-all-groups.json",
+      "mode": "100644",
+      "bytes": 43539,
+      "sha256": "bb1673458c4500600e4055e8b9e34acda6cba4e1cb206d5007e98055fcf94632",
+      "gitsha": "cd1b7825f50f1ee3226f601233a5e1fa5834d5b1",
+      "classification": "READBACK_OF_ACTUAL_FAILED_FOLLOW44_JOB_AND_ALL_GROUP_COUNTS"
+    }
+  ],
+  "original_job": 131116461128,
+  "original_result": {
+    "fresh_B3": 7,
+    "actual_packer_entries": 1,
+    "passed_cases": 177,
+    "failed_public_full_payload_cases": 4,
+    "unreached_private_controls": 100,
+    "actual_ELF_processes": 151,
+    "actual_private_entries": 38,
+    "overall": "FAIL"
+  },
+  "workflow": {
+    "tag": "worker-program-diagnostics",
+    "driver": {
+      "path": "worker_program_diagnostics_ci_r2.py",
+      "mode": "100644",
+      "bytes": 14002,
+      "sha256": "e483a79b351d42236e374b3f115d89cd64794aaf4d3ec90fa45a40bfd16f2b26",
+      "gitsha": "4a2db60257acc259a38f15fef69b1418d5f3ead6",
+      "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+    },
+    "source_index": {
+      "path": "sources.json",
+      "mode": "100644",
+      "bytes": 13120,
+      "sha256": "95c0d5974888144c4b21d44fb7b037989492845acfcb9742a613266d834c054f",
+      "gitsha": "eb8495224923e32dffd081e0cbcdfd8f844d7ff6",
+      "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+    },
+    "common_gitsha": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+    "outer_minutes": 50,
+    "selected_groups": [
+      "diagnostic-protocol"
+    ],
+    "selected_cases": 100,
+    "expected_ELF_processes": 0,
+    "new_private_entries": "observed positive and all 100 control cases complete",
+    "fresh_compiles": 7,
+    "exact_seven_image_source_comparison_against_original_follow44": true,
+    "original_177_cases_not_reexecuted": true,
+    "old_pass_counts_not_inherited": true,
+    "all_original_limits_unchanged": true
+  },
+  "repair": {
+    "native_sources_changed": 0,
+    "fixture_change": "Convert raw to exact immutable bytes before ctypes.memmove in Buffer.__init__ and Buffer.write, preserving all byte content/capacity/canary/readonly handling.",
+    "test_cases_removed": 0,
+    "oracle_unchanged": true
+  },
+  "open": [
+    "Four actual public contextual-text failures",
+    "Groups 6 and 9 complete diagnostics",
+    "Native type-context owner not integrated",
+    "Whole Worker and namespace authority",
+    "Independent binary archive body readback; producer readback and full job/JSON preserved"
+  ],
+  "parent_only_updates_refs": true
+}

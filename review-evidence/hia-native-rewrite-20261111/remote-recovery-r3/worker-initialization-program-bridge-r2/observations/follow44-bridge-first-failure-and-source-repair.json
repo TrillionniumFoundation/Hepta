@@ -1,0 +1,69 @@
+{
+  "schema": "hia-worker-program-initializer-follow44-first-failure-r1",
+  "head": "f8526c3b6f47f6061564707a9fbaa32d2f52704d",
+  "run": 43198781230,
+  "job": 131116461172,
+  "status": "FAIL",
+  "log": {
+    "path": "observations/follow44-bridge-job-131116461172.log",
+    "mode": "100644",
+    "bytes": 450145,
+    "sha256": "8aa69a6098a0f44e499c71ec902c96a59bc0dd35cf6d239c4a71e48f9110d6eb",
+    "gitsha": "17d752be6c1d1b385ea50794ce01e1e85b01027e",
+    "classification": "ORIGINAL_FOLLOW44_FAILED_JOB_FULL_LOG_READBACK"
+  },
+  "original_panels": {
+    "path": "observations/follow44-bridge-panels-as-logged.jsonl",
+    "mode": "100644",
+    "bytes": 24149,
+    "sha256": "435b31c9b3a3b5f677f384b48270e74a62d1df7feafd6f9709cea2810ea3c638",
+    "gitsha": "2f23ab09d490658dd95870a8a3f3f6da66be9f5b",
+    "classification": "ORIGINAL_JOB_JSON_PAYLOADS_TIMESTAMPS_REMOVED_BYTES_OTHERWISE_PRESERVED"
+  },
+  "observed": {
+    "successful_dependency_compiles": 13,
+    "dependency_groups": [
+      8,
+      2,
+      1,
+      2
+    ],
+    "new_bridge_compiles": 0,
+    "semantic_entries": 0,
+    "first_failure": "Original max_ssa_index < 2048 gate rejected generated input bridge at 2185",
+    "profile": {
+      "functions": 27,
+      "blocks": 910,
+      "instructions": 3631,
+      "max_function_blocks": 156,
+      "max_block_parameters": 15,
+      "max_ssa_index": 2185
+    },
+    "all_four_actual_semantic_groups_not_started": true
+  },
+  "artifact": {
+    "id": 13934361868,
+    "zip_bytes": 80002827,
+    "zip_sha256": "f6606d595ad1981b802af9686ae81c21671b78c03c106cb5bc4ae6fc6f77a455",
+    "inner_bytes": 9534520,
+    "inner_sha256": "ae23e237edb617dd1ad0234c9f0f8719769dccef1e28f369229803f5239a44ec",
+    "member_index_bytes": 252345,
+    "member_index_sha256": "aa06db9e9acb2073863b25de20d03c29409dcd3f9e999bf42a988c0b9d9b5d1a",
+    "members": 667,
+    "original_bytes": 86262664,
+    "producer_readback": true,
+    "this_readback": "full job log and exact printed JSON; no ZIP/body readback claimed"
+  },
+  "repair": {
+    "scope": "New source revision only; no AST, generation, B3 or native run yet",
+    "function": "pb_result_frame",
+    "change": "Extract the kind == 4 branch and its else branch into two same-order HIA functions. Original framing checks remain before calls; P_RESULT_KIND/P_ERROR_DOMAIN writes remain after successful calls.",
+    "exact_branch_text_preserved_under_reindent": true,
+    "all_error_reasons_preserved": true,
+    "additional_reads": "Helpers reread already validated kind/domain from the same immutable input span",
+    "max_ssa_limit_unchanged": 2048,
+    "four_groups_unchanged": true,
+    "source_gate_not_relaxed": true
+  },
+  "whole_worker_closed": false
+}
