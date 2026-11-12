@@ -1,0 +1,35 @@
+{
+  "schema": "hia.core-emitter-common-file-spine-independent-review.v1",
+  "status": "STATIC_CLEAR_FIXED_PATH_READ_CREATE_DELTA_ONLY_UNEXECUTED",
+  "reviewed_commit": "986a07743963d9c91b7064e6a1d5a853cfc92c79",
+  "reviewed_tree": "fae4b32412f46a226d449b9254b79f27a99fd49e",
+  "reviewed_file": {
+    "path": "experiments/hia_core_emitter_20261111/native-development-static-r3/inputs/common.py",
+    "bytes": 19749,
+    "sha256": "0adc7fb29e279579bf039fa94e600e5fd6813d9419472519bf396ade63da1999",
+    "git_blob_sha1": "ab7ae117d301f165cd05d04a3bdcda2e32ef32d4",
+    "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/blobs/ab7ae117d301f165cd05d04a3bdcda2e32ef32d4",
+    "mode": "100644"
+  },
+  "observations": [
+    "Exact common.py UTF-8 byte size, SHA256 and Git blob SHA1 independently recomputed; recursive canonical tree is not truncated and binds this regular leaf.",
+    "parent_descriptor walks from a held '/' descriptor using O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC for every ancestor, retaining all opened directory descriptors until operation completion.",
+    "Both before yield and after successful yield, each held child descriptor's device/inode/mode/uid/gid is compared with the same named entry under its still-held parent using follow_symlinks=False.",
+    "inspect_file requires a regular leaf, bounded nonnegative size and the appropriate owned-single-link or system-binary identity before opening. O_NOFOLLOW|O_NONBLOCK prevents following a replacement link or blocking on a swapped FIFO.",
+    "The leaf descriptor is compared to the original complete identity before any read; actual byte count plus complete descriptor and named-leaf identity must match after reading before a result pin can return.",
+    "reserve is called after the verified leaf descriptor exists and before payload reading. If it raises, the leaf and ancestor descriptors still close and no success pin returns.",
+    "create uses O_EXCL|O_NOFOLLOW, mode0400, and a single O_RDWR descriptor for full writes, fsync, seek and independent byte readback.",
+    "The created leaf must be regular, owned, nlink1, mode0400 and the expected byte size; full descriptor/name identity and actual byte equality are required before the pin can return. The context manager's parent-spine post-check still runs before that return completes.",
+    "Ancestor identity intentionally excludes directory atime/mtime/size/nlink, so creating a child does not falsely require immutable directory metadata. Device/inode/type/mode/owner remain checked.",
+    "On an exceptional operation, control jumps to descriptor cleanup and does not run the post-yield stability check. This does not establish preservation on a failed path, but cannot manufacture a successful file pin; caller HOLD semantics remain necessary.",
+    "These checks bind operation-time observations. They do not claim immunity to subsequent namespace changes or hostile concurrent edits after the final observation.",
+    "The remainder of common.py from def save onward is byte-identical to the previously reviewed b272 common source."
+  ],
+  "scope_exclusions": [
+    "No Python parse, import, descriptor fault injection, product execution, native compilation, remote h call or Actions trigger.",
+    "No renewed clearance for complete diagnostics framing, policy/workflow, preparation admission, 116 product results, or the other Core control sources.",
+    "No new claim that failed operations preserve all source identities, or that any operation is atomically immune to all future mutation.",
+    "Original e03f/b272 review boundaries and all unexecuted/development statuses remain unchanged."
+  ],
+  "conclusion": "No new blocker found in this exact fixed-path read/create mechanism. The status is a narrow static review, not a runtime race-test result."
+}
