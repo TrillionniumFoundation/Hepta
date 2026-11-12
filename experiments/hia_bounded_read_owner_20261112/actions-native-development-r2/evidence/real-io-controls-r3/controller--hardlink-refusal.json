@@ -1,0 +1,13 @@
+{
+  "elapsed_ns": 342537,
+  "fd_after": 4,
+  "fd_before": 4,
+  "id": "controller--hardlink-refusal",
+  "observations": {
+    "errno": null,
+    "exception_class": "RuntimeError",
+    "message": "owned single-link input required",
+    "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/authoring/verify_real_io_r3.py\", line 64, in fail_call\n    function()\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/authoring/verify_real_io_r3.py\", line 220, in <lambda>\n    lambda: module.read(hard), RuntimeError, 'owned single-link input required'))\n            ^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/control/controller.py\", line 148, in read\n    require(before.st_uid == os.geteuid() and before.st_nlink == 1,\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/control/controller.py\", line 30, in require\n    raise RuntimeError(message)\nRuntimeError: owned single-link input required\n"
+  },
+  "status": "PASS"
+}

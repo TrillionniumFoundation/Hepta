@@ -1,0 +1,13 @@
+{
+  "elapsed_ns": 325821,
+  "fd_after": 4,
+  "fd_before": 4,
+  "id": "controller--dotdot-path-refusal",
+  "observations": {
+    "errno": null,
+    "exception_class": "RuntimeError",
+    "message": "noncanonical controlled IO path",
+    "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/authoring/verify_real_io_r3.py\", line 64, in fail_call\n    function()\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/authoring/verify_real_io_r3.py\", line 235, in <lambda>\n    lambda: module.read(base / '..' / module_name / regular.name),\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/control/controller.py\", line 137, in read\n    with _checked_parent(path) as (parent, name, stable):\n         ^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py\", line 137, in __enter__\n    return next(self.gen)\n           ^^^^^^^^^^^^^^\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/control/controller.py\", line 46, in _checked_parent\n    require(path.is_absolute() and path.anchor == '/' and '..' not in path.parts\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/control/controller.py\", line 30, in require\n    raise RuntimeError(message)\nRuntimeError: noncanonical controlled IO path\n"
+  },
+  "status": "PASS"
+}

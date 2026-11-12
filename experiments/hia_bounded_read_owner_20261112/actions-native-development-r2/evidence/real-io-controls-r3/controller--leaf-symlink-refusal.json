@@ -1,0 +1,13 @@
+{
+  "elapsed_ns": 408653,
+  "fd_after": 4,
+  "fd_before": 4,
+  "id": "controller--leaf-symlink-refusal",
+  "observations": {
+    "errno": 40,
+    "exception_class": "OSError",
+    "message": "[Errno 40] Too many levels of symbolic links: 'leaf-symlink'",
+    "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/authoring/verify_real_io_r3.py\", line 64, in fail_call\n    function()\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/authoring/verify_real_io_r3.py\", line 207, in <lambda>\n    lambda: module.read(leaf_link), OSError, error_number=(errno.ELOOP,)))\n            ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/control/controller.py\", line 138, in read\n    descriptor = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nOSError: [Errno 40] Too many levels of symbolic links: 'leaf-symlink'\n"
+  },
+  "status": "PASS"
+}

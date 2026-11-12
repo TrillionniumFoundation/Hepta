@@ -1,0 +1,25 @@
+--- actual-failed-A2/diagnostics.py
++++ new-r2/diagnostics.py
+@@ -16,11 +16,11 @@
+ import traceback
+ 
+ REPOSITORY = 'TrillionniumFoundation/Hepta'
+-PREFIX = 'experiments/hia_bounded_read_owner_20261112/actions-native-development-r1'
++PREFIX = 'experiments/hia_bounded_read_owner_20261112/actions-native-development-r2'
+ CANDIDATE = '0e36619bc65ada7072c1e8a1f1454728036fee4e'
+ TREE = '1d95802c453a006f077eb8735a6939b1957d500b'
+-TRIGGER = 'codex/hia-bounded-read-native-r4b-run-r1-20261112-e26e'
+-WORK_ROOT = 'hia-bounded-read-native-r4b-development-r1'
++TRIGGER = 'codex/hia-bounded-read-native-r4b-run-r2-20261112-e26e'
++WORK_ROOT = 'hia-bounded-read-native-r4b-development-r2'
+ MAX_RECEIPT = 32 << 20
+ NATURAL = {'qualification_started', 'owned_child_observed', 'qualification_exit_observed', 'owned_child_reaped'}
+ CONTROL_NAMES = set(['actions_custody.py', 'actions_verify.py', 'caller_observer.py', 'control-manifest.json', 'controller.py', 'diagnostic-targets.json', 'diagnostics.py', 'filesystem_cases.py', 'git_binding.py', 'guardian.py', 'lifetime_cases.py', 'native_driver.py', 'native_support.py', 'original_eight.py', 'permission_cases.py', 'populations.json', 'prepare_native.py', 'process_owner_impl.py', 'read_bounded.original.py', 'reject_cases.py', 'source-manifest.json', 'source_common.py'])
+@@ -39,6 +39,7 @@
+ def _directory_identity(info):
+     return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid)
+ 
++@contextmanager
+ def _checked_parent(path):
+     """Retain the complete absolute directory chain without following symlinks."""
+     path = Path(path)

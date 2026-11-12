@@ -1,0 +1,49 @@
+{
+  "elapsed_ns": 1143456,
+  "fd_after": 4,
+  "fd_before": 4,
+  "id": "controller--actual-parent-replacement-refusal",
+  "observations": {
+    "errno": null,
+    "exception_class": "RuntimeError",
+    "held_original_after": {
+      "bytes": 4096,
+      "ctime_ns": 1794467576466856373,
+      "dev": 27,
+      "gid": 1000,
+      "ino": 1496384,
+      "mode": 16832,
+      "mtime_ns": 1794467576465245839,
+      "nlink": 2,
+      "path": "/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/evidence/real-io-controls-r3/fixtures/controller/changed-original-parent",
+      "uid": 1000
+    },
+    "message": "controlled IO directory chain changed",
+    "original_parent": {
+      "bytes": 4096,
+      "ctime_ns": 1794467576465245839,
+      "dev": 27,
+      "gid": 1000,
+      "ino": 1496384,
+      "mode": 16832,
+      "mtime_ns": 1794467576465245839,
+      "nlink": 2,
+      "path": "/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/evidence/real-io-controls-r3/fixtures/controller/change-parent",
+      "uid": 1000
+    },
+    "replacement_parent": {
+      "bytes": 4096,
+      "ctime_ns": 1794467576466856373,
+      "dev": 27,
+      "gid": 1000,
+      "ino": 1496386,
+      "mode": 16832,
+      "mtime_ns": 1794467576466856373,
+      "nlink": 2,
+      "path": "/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/evidence/real-io-controls-r3/fixtures/controller/change-parent",
+      "uid": 1000
+    },
+    "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/authoring/verify_real_io_r3.py\", line 64, in fail_call\n    function()\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/authoring/verify_real_io_r3.py\", line 284, in operation\n    stable()\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/control/controller.py\", line 53, in stable\n    require(_directory_identity(os.fstat(child)) == expected\n  File \"/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r2/control/controller.py\", line 30, in require\n    raise RuntimeError(message)\nRuntimeError: controlled IO directory chain changed\n"
+  },
+  "status": "PASS"
+}
