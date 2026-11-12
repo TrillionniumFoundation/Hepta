@@ -24,7 +24,17 @@ from .hia_json_preflight_native import _source_resource_path
 from .hia_machine_plan_control_native import (
     PlanFrame, NativeMachinePlanControl, _Cell, _EMPTY,
     Issued, _read_word, _capture_with_handler)
-from . import hia_service_verification_foreign as foreign
+# A default import must not admit a selected-only CPython ABI. Keep the
+# original mutable global binding: only its untouched initial sentinel loads.
+_FOREIGN_NOT_LOADED = object()
+_FOREIGN_MODULE_NAMESPACE = globals()
+foreign = _FOREIGN_NOT_LOADED
+
+
+def _load_foreign_ports():
+    global foreign
+    if _FOREIGN_MODULE_NAMESPACE.get('foreign') is _FOREIGN_NOT_LOADED:
+        from . import hia_service_verification_foreign as foreign
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/service_verification.hiaasm')
 SCHEMA = 'hepta.hia.service-verification-native.v1'
@@ -287,6 +297,7 @@ class NativeVerificationImage(NativeMachinePlanControl):
             raise
 
     def _bind_namespace(self, namespace):
+        _load_foreign_ports()
         if namespace is None:
             from . import hia_agent_service
             namespace = vars(hia_agent_service)

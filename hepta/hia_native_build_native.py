@@ -15,7 +15,17 @@ import sys
 
 from .hia_json_preflight_native import _source_resource_path
 from .hia_machine_plan_control_native import PlanFrame, NativeMachinePlanControl, _Cell, _EMPTY
-from . import hia_native_build_foreign as foreign
+# A default import must not admit a selected-only CPython ABI. Keep the
+# original mutable global binding: only its untouched initial sentinel loads.
+_FOREIGN_NOT_LOADED = object()
+_FOREIGN_MODULE_NAMESPACE = globals()
+foreign = _FOREIGN_NOT_LOADED
+
+
+def _load_foreign_ports():
+    global foreign
+    if _FOREIGN_MODULE_NAMESPACE.get('foreign') is _FOREIGN_NOT_LOADED:
+        from . import hia_native_build_foreign as foreign
 
 SOURCE=_source_resource_path('examples/hia_bootstrap/native_build.hiaasm')
 SCHEMA='hepta.hia.native-build-native.v1'
@@ -256,6 +266,7 @@ class NativeBuild(NativeMachinePlanControl):
         return super().literal(index)
 
     def _bind_namespace(self,namespace=None):
+        _load_foreign_ports()
         from . import hia_program_native
         if namespace is None:namespace=vars(hia_program_native)
         if type(namespace) is not dict:raise TypeError('native-build requires its actual module namespace')

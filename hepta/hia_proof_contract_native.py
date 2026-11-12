@@ -18,7 +18,17 @@ from .hia_json_preflight_native import _source_resource_path
 from .hia_machine_plan_control_native import (
     PlanFrame, NativeMachinePlanControl, _Cell, Issued, _read_word,
     _capture_with_handler)
-from . import hia_proof_contract_foreign as foreign
+# A default import must not admit a selected-only CPython ABI. Keep the
+# original mutable global binding: only its untouched initial sentinel loads.
+_FOREIGN_NOT_LOADED = object()
+_FOREIGN_MODULE_NAMESPACE = globals()
+foreign = _FOREIGN_NOT_LOADED
+
+
+def _load_foreign_ports():
+    global foreign
+    if _FOREIGN_MODULE_NAMESPACE.get('foreign') is _FOREIGN_NOT_LOADED:
+        from . import hia_proof_contract_foreign as foreign
 from .hia_proof_contract_selection import proof_contract_scope
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/proof_contract.hiaasm')
@@ -252,6 +262,7 @@ class NativeProofContractImage(NativeMachinePlanControl):
             raise
 
     def _bind_namespace(self, namespace):
+        _load_foreign_ports()
         from . import hia_proof_contract
         if namespace is None:
             namespace = vars(hia_proof_contract)

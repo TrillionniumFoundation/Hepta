@@ -62,13 +62,27 @@ ORIGINAL_CORE = (
     "hia_heap_live_native.py",
     "hia_heap_payload_native.py",
 )
-CURRENT_CORE = ORIGINAL_CORE + ('hia_machine_transport.py',)
+CURRENT_CORE = (
+    'hia_front_continuation.py',
+    'hia_front_runtime.py',
+    'hia_front_selection.py',
+    'hia_core_verification_native.py',
+    'hia_core_verification_ports.py',
+    'hia_core_verification_selection.py',
+    'hia_exception_delivery.py',
+    *ORIGINAL_CORE, 'hia_machine_transport.py',
+)
 EXPLICIT_MECHANISMS = (
+    'hia_agent_assembly.py',
+    'hia_assembly_front_native.py',
+    'hia_assembly_front_ports.py',
+    'hia_assembly_front_selection.py',
+    'hia_service_requests_native.py',
+    'hia_service_requests_foreign.py',
     "hia_core_emitter_native.py",
     "hia_core_emitter_selection.py",
     "hia_core_lowering_native.py",
     "hia_core_lowering_selection.py",
-    "hia_exception_delivery.py",
     "hia_machine_plan.py",
     "hia_machine_plan_control_native.py",
     "hia_machine_plan_native.py",
@@ -86,6 +100,9 @@ EXPLICIT_MECHANISMS = (
     "hia_service_verification_native.py",
 )
 NEW_RESOURCES = (
+    'examples/hia_bootstrap/core_verification.hiaasm',
+    'examples/hia_bootstrap/assembly_front.hiaasm',
+    'examples/hia_bootstrap/service_requests.hiaasm',
     'examples/hia_bootstrap/core_emitter.hiaasm',
     'examples/hia_bootstrap/native_byte_abi.hiaasm',
     'examples/hia_bootstrap/native_build.hiaasm',
@@ -93,6 +110,9 @@ NEW_RESOURCES = (
     'examples/hia_bootstrap/proof_contract.hiaasm',
 )
 NEW_HELPERS = {
+    'HEPTA_HIA_CORE_VERIFICATION_MANIFEST': ('hia_core_verification_native', 'NativeCoreVerification'),
+    'HEPTA_HIA_ASSEMBLY_FRONT_MANIFEST': ('hia_assembly_front_native', 'NativeAssemblyFront'),
+    'HEPTA_HIA_SERVICE_REQUESTS_MANIFEST': ('hia_service_requests_native', 'NativeRequestsImage'),
     'HEPTA_HIA_PROOF_CONTRACT_MANIFEST': ('hia_proof_contract_native', 'NativeProofContractImage'),
     'HEPTA_HIA_CORE_EMITTER_MANIFEST': ('hia_core_emitter_native', 'NativeCoreEmitter'),
     'HEPTA_HIA_NATIVE_BYTE_ABI_MANIFEST': ('hia_native_byte_abi_native', 'NativeByteABI'),
@@ -108,7 +128,7 @@ class JointOwnerIntegrationSourceTests(unittest.TestCase):
         self.assertEqual(identity.MECHANISM_SOURCE_FILES, EXPLICIT_MECHANISMS)
         self.assertFalse(set(CURRENT_CORE) & set(EXPLICIT_MECHANISMS))
         expected = sorted(set(CURRENT_CORE) | set(EXPLICIT_MECHANISMS))
-        self.assertEqual(len(expected), 67)
+        self.assertEqual(len(expected), 79)
         root = Path(identity.__file__).parent
         original = Path.read_bytes
         observed = []
@@ -159,11 +179,13 @@ class JointOwnerIntegrationSourceTests(unittest.TestCase):
         for key in ('HEPTA_HIA_SERVICE_CONTEXT_MANIFEST',
                     'HEPTA_HIA_SERVICE_EMISSION_MANIFEST',
                     'HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST',
-                    'HEPTA_HIA_PROOF_CONTRACT_MANIFEST'):
+                    'HEPTA_HIA_PROOF_CONTRACT_MANIFEST',
+                    'HEPTA_HIA_SERVICE_REQUESTS_MANIFEST'):
             self.assertIn(key, identity.HELD_NATIVE_OWNERS)
             self.assertNotIn(key, identity.NATIVE_OWNERS)
             self.assertNotIn(key, identity.CAPTURED_NATIVE_OWNERS)
-        for key in ('HEPTA_HIA_CORE_LOWERING_MANIFEST', 'HEPTA_HIA_MACHINE_PLAN_MANIFEST',
+        for key in ('HEPTA_HIA_CORE_VERIFICATION_MANIFEST', 'HEPTA_HIA_ASSEMBLY_FRONT_MANIFEST',
+                    'HEPTA_HIA_CORE_LOWERING_MANIFEST', 'HEPTA_HIA_MACHINE_PLAN_MANIFEST',
                     'HEPTA_HIA_CORE_EMITTER_MANIFEST', 'HEPTA_HIA_NATIVE_BYTE_ABI_MANIFEST',
                     'HEPTA_HIA_NATIVE_BUILD_MANIFEST'):
             self.assertIn(key, identity.NATIVE_OWNERS)
@@ -226,6 +248,7 @@ class JointOwnerIntegrationSourceTests(unittest.TestCase):
             ('build_hia_service_context', 'REQUIRED_SOURCE_NAMES'),
             ('build_hia_service_emission', 'REQUIRED_SOURCE_NAMES'),
             ('build_hia_service_verification', 'REQUIRED_SOURCE_NAMES'),
+            ('build_hia_service_requests', 'REQUIRED_SOURCE_NAMES'),
             ('build_hia_source_admission', 'REQUIRED_SOURCE_NAMES'),
         }
         self.assertEqual(set(inventories), expected)

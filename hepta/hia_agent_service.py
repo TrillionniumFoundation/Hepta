@@ -89,6 +89,8 @@ class HIAAgentService:
         verification_admission = admitted_verification(capture_identity=True)
         from .hia_proof_contract_selection import capture_proof_contract
         proof_owner = capture_proof_contract()
+        from .hia_service_requests_native import admitted_requests, NativeRequestsService
+        requests_admission = admitted_requests(capture_identity=True)
         self.catalog, self.catalog_sha256 = catalog()
         self.tools = {t["name"]: t for t in self.catalog["tools"]}
         self.identities = installation_manifest()
@@ -97,6 +99,8 @@ class HIAAgentService:
         if any(not root.is_dir() for root in self.artifact_roots):
             reject("E_HIA_PROFILE", "configured artifact roots must be directories")
         self._native_proof_contract = proof_owner
+        self._native_requests = None if requests_admission is None else NativeRequestsService(
+            requests_admission.image, checker_custody=requests_admission)
         self._profiles()
         self._native_context = None if context_admission is None else NativeContextService(
             self, context_admission.image, checker_custody=context_admission)
@@ -106,6 +110,9 @@ class HIAAgentService:
             verification_admission.image, checker_custody=verification_admission)
 
     def close(self):
+        selected_requests = getattr(self, '_native_requests', None)
+        if selected_requests is not None:
+            selected_requests.closed = True
         selected_context = getattr(self, '_native_context', None)
         if selected_context is not None:
             selected_context.closed = True
@@ -121,6 +128,16 @@ class HIAAgentService:
         self.store.close()
 
     def _profiles(self):
+        owner = getattr(self, '_native_requests', None)
+        if owner is None:
+            arguments = {'callee': self._profiles_reference}
+            del self, owner
+            return arguments.pop('callee')()
+        frame = owner.prepare('_profiles', (self,))
+        self = None
+        return owner.finish(frame)
+
+    def _profiles_reference(self):
         from .hia_proof_contract_selection import proof_contract_scope
         with proof_contract_scope(getattr(self, '_native_proof_contract', None)):
             from .hia_program_native import TARGET, PROFILE, SUPPORTED_OPCODES, CORE_SCHEMAS, IMPORTS
@@ -227,6 +244,19 @@ class HIAAgentService:
 
     @staticmethod
     def _examples():
+        from .hia_service_requests_native import (
+            active_requests, admitted_requests, NativeRequestsService)
+        owner = active_requests()
+        if owner is None:
+            admission = admitted_requests(capture_identity=True)
+            if admission is not None:
+                owner = NativeRequestsService(admission.image, checker_custody=admission)
+        if owner is None:
+            return _NATIVE_REQUESTS_EXAMPLES_REFERENCE()
+        return owner.finish(owner.prepare('_examples', ()))
+
+    @staticmethod
+    def _examples_reference():
         from .hia_agent_assembly import assemble_program, render_assembly
         params = [{"name": "value", "type": "u8"}]
         document = {"schema": "hepta.hia.program.v6", "module": "discovery_identity",
@@ -250,6 +280,16 @@ class HIAAgentService:
                     "external_costs_complete": False, "expected_invocations": "0"}}
 
     def _error(self, request_id, exc):
+        owner = getattr(self, '_native_requests', None)
+        if owner is None:
+            arguments = {'callee': self._error_reference, 'request_id': request_id, 'exc': exc}
+            del self, request_id, exc, owner
+            return arguments.pop('callee')(arguments.pop('request_id'), arguments.pop('exc'))
+        frame = owner.prepare('_error', (self, request_id, exc))
+        self = request_id = exc = None
+        return owner.finish(frame)
+
+    def _error_reference(self, request_id, exc):
         code = getattr(exc, "code", "E_HIA_REJECTED")
         if type(code) is not str:
             code = "E_HIA_REJECTED"
@@ -467,6 +507,16 @@ class HIAAgentService:
         return max(0, (deadline - time.time_ns()) // 1_000_000)
 
     def _hia_describe(self, args):
+        owner = getattr(self, '_native_requests', None)
+        if owner is None:
+            arguments = {'callee': self._hia_describe_reference, 'args': args}
+            del self, args, owner
+            return arguments.pop('callee')(arguments.pop('args'))
+        frame = owner.prepare('_hia_describe', (self, args))
+        self = args = None
+        return owner.finish(frame)
+
+    def _hia_describe_reference(self, args):
         from .hia_opcodes import opcode_catalog
         if "cursor" in args:
             reject("E_HIA_CURSOR", "discovery has no further page for this bounded manifest")
@@ -494,6 +544,16 @@ class HIAAgentService:
             "artifact_profiles": [self.profiles["artifact"]], "resources": resources, "next_cursor": None}
 
     def _hia_artifact(self, args):
+        owner = getattr(self, '_native_requests', None)
+        if owner is None:
+            arguments = {'callee': self._hia_artifact_reference, 'args': args}
+            del self, args, owner
+            return arguments.pop('callee')(arguments.pop('args'))
+        frame = owner.prepare('_hia_artifact', (self, args))
+        self = args = None
+        return owner.finish(frame)
+
+    def _hia_artifact_reference(self, args):
         self._profile(args["artifact_profile"], "artifact")
         source = args["source"]
         if source["kind"] == "utf8":
@@ -508,6 +568,16 @@ class HIAAgentService:
                 "execution_authority_granted": False}
 
     def _hia_read(self, args):
+        owner = getattr(self, '_native_requests', None)
+        if owner is None:
+            arguments = {'callee': self._hia_read_reference, 'args': args}
+            del self, args, owner
+            return arguments.pop('callee')(arguments.pop('args'))
+        frame = owner.prepare('_hia_read', (self, args))
+        self = args = None
+        return owner.finish(frame)
+
+    def _hia_read_reference(self, args):
         ref = args["artifact"]
         data, _ = self.store.get(ref)
         offset = 0
@@ -614,6 +684,16 @@ class HIAAgentService:
             "resource_reservation_held": False, "context_is_execution_authority": False}
 
     def _hia_inspect(self, args):
+        owner = getattr(self, '_native_requests', None)
+        if owner is None:
+            arguments = {'callee': self._hia_inspect_reference, 'args': args}
+            del self, args, owner
+            return arguments.pop('callee')(arguments.pop('args'))
+        frame = owner.prepare('_hia_inspect', (self, args))
+        self = args = None
+        return owner.finish(frame)
+
+    def _hia_inspect_reference(self, args):
         from .hia_program_tools import inspect_program
         from .hia_edit_query import prepare_edit
         from .hia_program_native import emit_program_machine
@@ -656,6 +736,16 @@ class HIAAgentService:
                 "query_artifact": query, "next_cursor": None}
 
     def _hia_candidate(self, args):
+        owner = getattr(self, '_native_requests', None)
+        if owner is None:
+            arguments = {'callee': self._hia_candidate_reference, 'args': args}
+            del self, args, owner
+            return arguments.pop('callee')(arguments.pop('args'))
+        frame = owner.prepare('_hia_candidate', (self, args))
+        self = args = None
+        return owner.finish(frame)
+
+    def _hia_candidate_reference(self, args):
         from .hia_agent_assembly import assemble_program
         from .hia_program_tools import apply_program_patch
         change, base, native_payloads = args["change"], None, None
@@ -816,7 +906,9 @@ class HIAAgentService:
         verification = getattr(self, '_native_verification', None)
         held = held if verification is None else held + (verification.checker_owner(),)
         proof = getattr(self, '_native_proof_contract', None)
-        return held if proof is None else held + (proof.checker_owner(),)
+        held = held if proof is None else held + (proof.checker_owner(),)
+        requests = getattr(self, '_native_requests', None)
+        return held if requests is None else held + (requests.checker_owner(),)
 
     def _signature_values(self, program, foreign_buffer_exports=()):
         owner = getattr(self, '_native_emission', None)
@@ -1768,3 +1860,9 @@ class HIAAgentService:
             lease = self._lease(lease)
             self.store.db.execute("UPDATE leases SET active=0 WHERE id=?", (lease["id"],))
         return {"released": True, "generation": lease["generation"], "artifact_retained": True}
+
+
+# The original static example body never looked up HIAAgentService by name.
+# Preserve its definition-time function even if that public class binding is
+# replaced later; the selected HIA route is separately poison-qualified.
+_NATIVE_REQUESTS_EXAMPLES_REFERENCE = HIAAgentService._examples_reference

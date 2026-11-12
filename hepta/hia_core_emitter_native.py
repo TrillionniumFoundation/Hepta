@@ -77,7 +77,20 @@ def _mapping_merge_primitive():
     return primitive
 
 
-_merge_mapping = _mapping_merge_primitive()
+_MAPPING_NOT_LOADED = object()
+_MAPPING_MODULE_NAMESPACE = globals()
+_merge_mapping = _MAPPING_NOT_LOADED
+
+
+def _load_mapping_primitive():
+    """Admit the fixed ABI only for an explicit native factory.
+
+    Preserve a caller replacement, None, or deletion of the original
+    mutable global. The already-claimed CALL still reads that global.
+    """
+    global _merge_mapping
+    if _MAPPING_MODULE_NAMESPACE.get("_merge_mapping") is _MAPPING_NOT_LOADED:
+        _merge_mapping = _mapping_merge_primitive()
 
 
 class EmitterFrame(LoweringSession):
@@ -171,6 +184,7 @@ class EmitterFrame(LoweringSession):
 
 class NativeCoreEmitter(NativeCoreLowering):
     def _bind_namespace(self, namespace):
+        _load_mapping_primitive()
         if namespace is None:
             from . import hia_program_native
             namespace = vars(hia_program_native)

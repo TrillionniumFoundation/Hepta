@@ -18,6 +18,13 @@ from pathlib import Path
 
 
 CORE_SOURCE_FILES = (
+    'hia_front_continuation.py',
+    'hia_front_runtime.py',
+    'hia_front_selection.py',
+    'hia_core_verification_native.py',
+    'hia_core_verification_ports.py',
+    'hia_core_verification_selection.py',
+    'hia_exception_delivery.py',
     "hia_checker_identity.py", "hia_native_helpers.py", "hia_program.py", "hia_program_composite.py",
     "hia_capability_flow.py", "hia_opcodes.py", "hia_schema.py",
     "hia_json_preflight.py", "hia_json_decode.py", "hia_json_preflight_native.py",
@@ -48,11 +55,16 @@ CORE_SOURCE_FILES = (
 # Backend and held-service object bridges remain separate from the pure Core
 # import closure. They are still fresh inputs of every checker source identity.
 MECHANISM_SOURCE_FILES = (
+    'hia_agent_assembly.py',
+    'hia_assembly_front_native.py',
+    'hia_assembly_front_ports.py',
+    'hia_assembly_front_selection.py',
+    "hia_service_requests_native.py",
+    "hia_service_requests_foreign.py",
     "hia_core_emitter_native.py",
     "hia_core_emitter_selection.py",
     "hia_core_lowering_native.py",
     "hia_core_lowering_selection.py",
-    "hia_exception_delivery.py",
     "hia_machine_plan.py",
     "hia_machine_plan_control_native.py",
     "hia_machine_plan_native.py",
@@ -74,6 +86,12 @@ MECHANISM_SOURCE_FILES = (
 # name external semantic consumers; the original Core closure stays strict.
 CHECKER_MECHANISM_SOURCE_FILES = MECHANISM_SOURCE_FILES
 CHECKER_MECHANISM_EXTERNAL_PROVIDERS = {
+    "hia_agent_assembly.py": ("hia_program_tools.py",),
+    "hia_service_requests_native.py": ("hia_agent_service.py",),
+    "hia_service_requests_foreign.py": (
+        "hia_program_native.py", "hia_safe_core.py", "hia_agent_macro_discovery.py",
+        "hia_program_tools.py", "hia_edit_query.py",
+        "hia_agent_candidate_native.py"),
     "hia_core_emitter_native.py": ("hia_program_native.py",),
     "hia_core_emitter_selection.py": ("hia_program_native.py",),
     "hia_core_lowering_native.py": ("hia_program_native.py",),
@@ -93,6 +111,8 @@ CHECKER_MECHANISM_EXTERNAL_PROVIDERS = {
 # the public VM; binding only its Python caller would omit a selected HIA image.
 # New semantic delegations must extend this inventory before proof qualification.
 NATIVE_OWNERS = {
+    'HEPTA_HIA_CORE_VERIFICATION_MANIFEST': ('hia_core_verification_selection', 'installed_core_verification'),
+    'HEPTA_HIA_ASSEMBLY_FRONT_MANIFEST': ('hia_assembly_front_selection', 'installed_assembly_front'),
     "HEPTA_HIA_NATIVE_BUILD_MANIFEST": ("hia_native_build_selection", "installed_native_build"),
     "HEPTA_HIA_NATIVE_BYTE_ABI_MANIFEST": ("hia_native_byte_abi_selection", "installed_native_byte_abi"),
     "HEPTA_HIA_CORE_EMITTER_MANIFEST": ("hia_core_emitter_selection", "installed_core_emitter"),
@@ -137,6 +157,7 @@ NATIVE_OWNERS = {
 # A proof caller must explicitly supply its held capability. The default Core
 # checker selection, including all ordinary callers, remains unchanged.
 HELD_NATIVE_OWNERS = {
+    "HEPTA_HIA_SERVICE_REQUESTS_MANIFEST": ("hia_service_requests_native", "NativeRequestsImage"),
     "HEPTA_HIA_PROOF_CONTRACT_MANIFEST": ("hia_proof_contract_native", "NativeProofContractImage"),
     "HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST": ("hia_service_verification_native", "NativeVerificationImage"),
     "HEPTA_HIA_SERVICE_EMISSION_MANIFEST": ("hia_service_emission_native", "NativeEmissionImage"),
@@ -149,6 +170,8 @@ HELD_NATIVE_OWNERS = {
 # then-current ambient selector. These hooks return only admitted capabilities;
 # serialized evidence cannot choose or override one.
 CAPTURED_NATIVE_OWNERS = {
+    'HEPTA_HIA_CORE_VERIFICATION_MANIFEST': ('hia_core_verification_selection', 'captured_checker_owner', 'hia_core_verification_native', 'NativeCoreVerification'),
+    'HEPTA_HIA_ASSEMBLY_FRONT_MANIFEST': ('hia_assembly_front_selection', 'captured_checker_owner', 'hia_assembly_front_native', 'NativeAssemblyFront'),
     "HEPTA_HIA_NATIVE_BUILD_MANIFEST": (
         "hia_native_build_selection", "captured_checker_owner",
         "hia_native_build_native", "NativeBuild"),

@@ -90,8 +90,31 @@ class ProofContractSourceTests(unittest.TestCase):
         for name in ('_profiles', '_subject', '_hia_verify', '_verification', '_replay_verification',
                      '_required_claims', '_check_native_refinement_evidence'):
             with self.subTest(name=name):
+                consumer = methods[name]
+                if name == '_profiles':
+                    # Requests now owns this complete original policy. Check
+                    # both routes and the exact policy body, including the
+                    # proof scope, instead of requiring it in the thin route.
+                    retained = deepcopy(methods['_profiles_reference'])
+                    retained.name = name
+                    policy = next(n for n in ast.parse(
+                        (ROOT / 'tools/hia_service_requests_policy.py').read_bytes()).body
+                        if isinstance(n, ast.ClassDef))
+                    lowered = next(n for n in policy.body if isinstance(n, ast.FunctionDef) and n.name == name)
+                    self.assertEqual(ast.dump(retained), ast.dump(lowered))
+                    self.assertIn('_profiles_reference', {n.attr for n in ast.walk(consumer)
+                        if isinstance(n, ast.Attribute)})
+                    self.assertTrue(any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                        and isinstance(n.func.value, ast.Name) and n.func.value.id == 'owner'
+                        and n.func.attr == 'prepare' and n.args
+                        and isinstance(n.args[0], ast.Constant) and n.args[0].value == name
+                        for n in ast.walk(consumer)))
+                    self.assertTrue(any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                        and isinstance(n.func.value, ast.Name) and n.func.value.id == 'owner'
+                        and n.func.attr == 'finish' for n in ast.walk(consumer)))
+                    consumer = lowered
                 self.assertTrue(any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
-                                    and n.func.id == 'proof_contract_scope' for n in ast.walk(methods[name])))
+                                    and n.func.id == 'proof_contract_scope' for n in ast.walk(consumer)))
         self.assertTrue(any(isinstance(n, ast.Constant) and n.value == '_native_proof_contract'
                             for n in ast.walk(methods['_held_checker_owners'])))
         self.assertFalse(any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
@@ -101,7 +124,7 @@ class ProofContractSourceTests(unittest.TestCase):
     def test_core_and_mechanism_roles_have_exact_provider_edges(self):
         from hepta import hia_checker_identity as identity
         core = set(identity.CORE_SOURCE_FILES); mechanisms = set(identity.CHECKER_MECHANISM_SOURCE_FILES)
-        self.assertEqual((len(core), len(mechanisms), len(core | mechanisms)), (47, 20, 67))
+        self.assertEqual((len(core), len(mechanisms), len(core | mechanisms)), (54, 25, 79))
         self.assertFalse(core & mechanisms)
         providers = identity.CHECKER_MECHANISM_EXTERNAL_PROVIDERS
         for filename in mechanisms:
