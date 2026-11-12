@@ -101,7 +101,7 @@ class ProofContractSourceTests(unittest.TestCase):
     def test_core_and_mechanism_roles_have_exact_provider_edges(self):
         from hepta import hia_checker_identity as identity
         core = set(identity.CORE_SOURCE_FILES); mechanisms = set(identity.CHECKER_MECHANISM_SOURCE_FILES)
-        self.assertEqual((len(core), len(mechanisms), len(core | mechanisms)), (47, 19, 66))
+        self.assertEqual((len(core), len(mechanisms), len(core | mechanisms)), (47, 20, 67))
         self.assertFalse(core & mechanisms)
         providers = identity.CHECKER_MECHANISM_EXTERNAL_PROVIDERS
         for filename in mechanisms:

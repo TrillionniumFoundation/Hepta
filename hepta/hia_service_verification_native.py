@@ -144,10 +144,9 @@ class VerificationFrame(PlanFrame):
         namespace = self.image.namespace
         if name in namespace:
             return namespace[name]
-        try:
+        if name in vars(builtins):
             return vars(builtins)[name]
-        except KeyError:
-            raise NameError("name '" + name + "' is not defined") from None
+        raise NameError("name '" + name + "' is not defined", name=name)
 
     def _move(self, slot):
         # Only a separately native-claimed CALL may reach this fixed move.

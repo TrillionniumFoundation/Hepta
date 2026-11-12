@@ -770,10 +770,10 @@ jobs:
           names = ('tests.test_hia_native_byte_abi_native', 'tests.test_hia_native_byte_abi_integration',)
           loader = unittest.defaultTestLoader
           suite = loader.loadTestsFromNames(names)
-          if loader.errors or suite.countTestCases() != 29:
+          if loader.errors or suite.countTestCases() != 33:
               raise AssertionError('complete joint owner component inventory changed')
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          passed = (result.wasSuccessful() and result.testsRun == 29
+          passed = (result.wasSuccessful() and result.testsRun == 33
                     and not result.skipped and not result.expectedFailures
                     and not result.unexpectedSuccesses)
           raise SystemExit(0 if passed else 1)
@@ -793,10 +793,10 @@ jobs:
           names = ('tests.test_hia_native_build_native',)
           loader = unittest.defaultTestLoader
           suite = loader.loadTestsFromNames(names)
-          if loader.errors or suite.countTestCases() != 25:
+          if loader.errors or suite.countTestCases() != 26:
               raise AssertionError('complete joint owner component inventory changed')
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          passed = (result.wasSuccessful() and result.testsRun == 25
+          passed = (result.wasSuccessful() and result.testsRun == 26
                     and not result.skipped and not result.expectedFailures
                     and not result.unexpectedSuccesses)
           raise SystemExit(0 if passed else 1)
@@ -816,10 +816,10 @@ jobs:
           names = ('tests.test_hia_service_verification_native', 'tests.test_hia_service_verification_builder', 'tests.test_hia_service_verification_qualifier', 'tests.test_hia_service_verification_default_replay',)
           loader = unittest.defaultTestLoader
           suite = loader.loadTestsFromNames(names)
-          if loader.errors or suite.countTestCases() != 45:
+          if loader.errors or suite.countTestCases() != 46:
               raise AssertionError('complete joint owner component inventory changed')
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          passed = (result.wasSuccessful() and result.testsRun == 45
+          passed = (result.wasSuccessful() and result.testsRun == 46
                     and not result.skipped and not result.expectedFailures
                     and not result.unexpectedSuccesses)
           raise SystemExit(0 if passed else 1)

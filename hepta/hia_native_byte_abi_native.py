@@ -8,11 +8,11 @@ protocol. No authoring module or retained byte-ABI body is a runtime dependency.
 from __future__ import annotations
 
 import builtins
-import importlib
 import sys
 
 from .hia_json_preflight_native import _source_resource_path
 from .hia_machine_plan_control_native import PlanFrame, NativeMachinePlanControl, _Cell
+from . import hia_native_byte_abi_foreign as foreign
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/native_byte_abi.hiaasm')
 SCHEMA = 'hepta.hia.native-byte-abi-native.v1'
@@ -52,15 +52,15 @@ class ByteABIFrame(PlanFrame):
         return self._move_call_operand(args[0])(self._move_call_operand(args[1]), self._move_call_operand(args[2]), self._move_call_operand(args[3]), self._move_call_operand(args[4]))
 
     def _global(self, name):
-        if name in self.image._helpers:
-            return self.image._helpers[name]
         namespace = self.image.backend_namespace if self.mode in (3, 4, 5) else self.image.namespace
         if name in namespace:
+            if (namespace is self.image.backend_namespace and name in self.image._helpers
+                    and namespace[name] is self.image.public_entries[name]):
+                return self.image._helpers[name]
             return namespace[name]
-        try:
+        if name in vars(builtins):
             return vars(builtins)[name]
-        except KeyError:
-            raise NameError("name '" + name + "' is not defined") from None
+        raise NameError("name '" + name + "' is not defined", name=name)
 
     def _function(self, args, raw, vector):
         mode, generator = raw
@@ -92,15 +92,29 @@ class ByteABIFrame(PlanFrame):
     def _effect(self):
         op, destinations, args, raw, vector = self._parts()
         if op == 19:
-            if len(raw) != 2 or args or vector or len(destinations) != 1:
+            if len(raw) < 2 or vector or len(destinations) != 1:
                 raise RuntimeError('native byte ABI import representation differs')
-            module, name = self.image.literal(raw[0]), self.image.literal(raw[1])
-            if module not in _IMPORTS or name not in _IMPORTS[module]:
-                raise RuntimeError('native byte ABI import is outside its fixed foreign ports')
-            if module == 'hia_program_native' and name in self.image._helpers:
-                self._set(destinations[0], self.image._helpers[name])
+            if raw[0] == 0 and not args:
+                module = self.image.literal(raw[1])
+                names = tuple(self.image.literal(index) for index in raw[2:])
+                if module not in _IMPORTS or any(name not in _IMPORTS[module] for name in names):
+                    raise RuntimeError('native byte ABI import is outside its fixed foreign ports')
+                port = self.image._import_names.get((module, names))
+                if port is None:
+                    raise RuntimeError('native byte ABI import group differs')
+                self._set(destinations[0], port())
+            elif raw[0] == 1 and len(raw) == 2 and len(args) == 1:
+                name = self.image.literal(raw[1])
+                port = self.image._import_from.get(name)
+                if port is None:
+                    raise RuntimeError('native byte ABI imported name differs')
+                value = port(self._get(args[0]))
+                if name in self.image._helpers and value is self.image.public_entries[name]:
+                    value = self.image._helpers[name]
+                self._set(destinations[0], value)
+                value = None
             else:
-                self._set(destinations[0], getattr(importlib.import_module('.' + module, __package__), name))
+                raise RuntimeError('native byte ABI import phase differs')
             return 0
         return super()._effect()
 
@@ -117,6 +131,8 @@ class NativeByteABI(NativeMachinePlanControl):
         if type(namespace) is not dict:
             raise TypeError('native byte ABI requires its actual module namespace')
         self.namespace, self.backend_namespace = namespace, vars(hia_program_native)
+        self.public_entries = vars(hia_program_native)['_NATIVE_CORE_PUBLIC_ENTRIES']
+        self._import_names, self._import_from = foreign.import_ports(namespace)
         self.modes = {name: (number, arity)
                       for number, (name, arity) in enumerate(ARITIES.items(), 1)}
         for number, arity in self.modes.values():
@@ -137,7 +153,7 @@ class NativeByteABI(NativeMachinePlanControl):
         self._helpers = {'_reject': reject, '_normalize': normalize, '_prologue': prologue}
         for name, function in self._helpers.items():
             function.__name__ = function.__qualname__ = name
-            function.__module__ = hia_program_native.__name__
+            function.__module__ = self.public_entries[name].__module__
 
     def prepare(self, name, arguments, captures=(), *, witness=None):
         if type(name) is str:

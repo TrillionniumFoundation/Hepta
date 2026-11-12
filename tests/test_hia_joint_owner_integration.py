@@ -77,6 +77,7 @@ EXPLICIT_MECHANISMS = (
     "hia_native_build_selection.py",
     "hia_native_byte_abi.py",
     "hia_native_byte_abi_native.py",
+    "hia_native_byte_abi_foreign.py",
     "hia_native_byte_abi_selection.py",
     "hia_proof_contract_foreign.py",
     "hia_proof_contract_native.py",
@@ -107,7 +108,7 @@ class JointOwnerIntegrationSourceTests(unittest.TestCase):
         self.assertEqual(identity.MECHANISM_SOURCE_FILES, EXPLICIT_MECHANISMS)
         self.assertFalse(set(CURRENT_CORE) & set(EXPLICIT_MECHANISMS))
         expected = sorted(set(CURRENT_CORE) | set(EXPLICIT_MECHANISMS))
-        self.assertEqual(len(expected), 66)
+        self.assertEqual(len(expected), 67)
         root = Path(identity.__file__).parent
         original = Path.read_bytes
         observed = []

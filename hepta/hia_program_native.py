@@ -1154,3 +1154,13 @@ _NATIVE_BUILD_PUBLIC_ENTRIES = {
     'build_program_machine': build_program_machine,
     '_reject': _reject,
 }
+
+# Capture the actual definitions once. Admission must never promote a later
+# replacement (or a missing name) into one of the owned HIA helper entries.
+_NATIVE_CORE_PUBLIC_ENTRIES = {
+    '_reject': _reject,
+    '_words': _words,
+    '_bounds': _bounds,
+    '_normalize': _normalize,
+    '_prologue': _prologue,
+}

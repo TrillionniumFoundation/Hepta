@@ -847,6 +847,7 @@ SOURCE_FILES = (
     'tests/fixtures/hia_native_byte_abi_4b.py.txt',
     'tests/fixtures/hia_program_emitter_v76.py.txt',
     'tests/fixtures/hia_service_verification_original_v78.json',
+    'tests/hia_native_name_resolution.py',
     'tests/hia_service_verification_fixtures.py',
     'tests/hia_service_verification_foreign_fixtures.py',
     'tests/hia_service_verification_lifetimes.py',

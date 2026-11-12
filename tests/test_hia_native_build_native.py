@@ -324,6 +324,16 @@ def _read_scope_observation(native,case,selected,outer):
 
 
 class NativeBuildNativeTests(_Fixture,unittest.TestCase):
+    def test_held_importerror_releases_original_module_before_error_traceback(self):
+        from hepta.hia_native_build_native import NativeBuild
+        from tests.hia_native_name_resolution import assert_import_error_retirement
+        record = json.loads(self.manifest.read_bytes())
+        def new_owner():
+            return NativeBuild((self.manifest.parent / record['image_path']).read_bytes(),
+                               record['image_sha256'], vars(backend))
+        rows = assert_import_error_retirement(self, 'build', new_owner)
+        (self.folder / 'import-error-retirement.json').write_text(json.dumps(rows, sort_keys=True, indent=2) + '\n')
+
     def test_deleted_or_replaced_public_global_keeps_original_lookup_error_and_effects(self):
         checked=program();saved=backend._inspect_object
         try:

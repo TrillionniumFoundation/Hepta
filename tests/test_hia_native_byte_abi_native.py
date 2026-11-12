@@ -128,6 +128,10 @@ class _Fixture:
 
 
 class NativeByteABISourceTests(unittest.TestCase):
+    def test_global_nameerror_preserves_name_and_active_context(self):
+        from tests.hia_native_name_resolution import assert_missing_global_port
+        assert_missing_global_port(self, ByteABIFrame)
+
     def test_complete_original_two_bodies_and_three_closed_helpers_are_retained(self):
         ref = reference()
         original = ast.parse(FIXTURE.read_bytes())
@@ -430,6 +434,26 @@ def _temporary_call_lifecycle(call,outer,throw):
 
 
 class NativeByteABINativeTests(_Fixture, unittest.TestCase):
+    def _new_global_owner(self):
+        record = json.loads(self.manifest.read_bytes())
+        return NativeByteABI((self.manifest.parent / record['image_path']).read_bytes(),
+                             record['image_sha256'], vars(api))
+
+    def test_imported_helpers_observe_replacement_and_deletion_before_and_after_admission(self):
+        from tests.hia_native_name_resolution import assert_helper_rebindings
+        rows = assert_helper_rebindings(self, 'byte', self._new_global_owner)
+        (self.folder / 'imported-helper-rebindings.json').write_text(json.dumps(rows, sort_keys=True, indent=2) + '\n')
+
+    def test_import_groups_keep_fromlist_namespace_order_and_module_retirement(self):
+        from tests.hia_native_name_resolution import assert_byte_import_groups
+        rows = assert_byte_import_groups(self, self._new_global_owner)
+        (self.folder / 'import-group-observations.json').write_text(json.dumps(rows, sort_keys=True, indent=2) + '\n')
+
+    def test_held_importerror_releases_original_module_before_error_traceback(self):
+        from tests.hia_native_name_resolution import assert_import_error_retirement
+        rows = assert_import_error_retirement(self, 'byte', self._new_global_owner)
+        (self.folder / 'import-error-retirement.json').write_text(json.dumps(rows, sort_keys=True, indent=2) + '\n')
+
     def test_all_normalization_refusals_limits_and_empty_early_return(self):
         class Program:
             structured_bytes = None

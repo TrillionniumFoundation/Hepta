@@ -162,10 +162,14 @@ class Function(_Function):
                 if (node.level != 1 or node.module not in IMPORTS
                         or any(alias.name not in IMPORTS[node.module] for alias in node.names)):
                     raise ValueError('unreviewed byte ABI import')
+                names = tuple(alias.name for alias in node.names)
+                module = self.effect('IMPORT', raw=(0, self.compiler.literal(node.module),
+                    *(self.compiler.literal(name) for name in names)))
                 for alias in node.names:
-                    value = self.effect('IMPORT', raw=(self.compiler.literal(node.module),
-                                                       self.compiler.literal(alias.name)))
+                    value = self.effect('IMPORT', (module,),
+                        raw=(1, self.compiler.literal(alias.name)))
                     self.assign(ast.Name(id=alias.asname or alias.name, ctx=ast.Store()), value)
+                self.release((module,))
             elif isinstance(node, ast.FunctionDef):
                 if (node.decorator_list or node.args.defaults or node.args.kw_defaults
                         or node.args.posonlyargs or node.args.vararg or node.args.kwarg

@@ -29,7 +29,12 @@ from hepta import hia_program_native as backend
 from hepta.hia_core_lowering_native import NativeCoreLowering, LoweringSession, SOURCE
 from hepta.hia_core_lowering_selection import SELECTOR, installed_core_lowering, active_core_lowering
 COMPONENT_MODULES = ('tests.test_hia_core_lowering_native',)
-COMPONENT_COUNT = 23
+ORIGINAL_COMPONENT_COUNT = 23
+ADDITIONAL_GLOBAL_COMPONENT_IDS = (
+    'tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_global_nameerror_preserves_name_and_active_context',
+    'tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_global_helpers_observe_replacement_and_deletion_before_and_after_admission',
+)
+COMPONENT_COUNT = ORIGINAL_COMPONENT_COUNT + len(ADDITIONAL_GLOBAL_COMPONENT_IDS)
 HELPERS = ('_reject', '_words', '_bounds', '_normalize', '_prologue')
 CORE_MODULES = (
     'tests.test_hia_program_native', 'tests.test_hia_program_native_review',
@@ -209,6 +214,8 @@ def main():
         'development_group': args.development_group,
         'original_machine_denominator': 51, 'original_core_denominator': 50,
         'current_protocol_component_denominator': COMPONENT_COUNT,
+        'original_component_denominator': ORIGINAL_COMPONENT_COUNT,
+        'additional_global_component_ids': list(ADDITIONAL_GLOBAL_COMPONENT_IDS),
         'peer_twelve_old_protocol_results_inherited': False,
         'python': sys.version, 'source_before': before, 'groups': [],
         'retained_owner_entries': [], 'default_activated': False,
@@ -294,7 +301,8 @@ def main():
                 report['groups'].append(row)
                 if (loader.errors or not loaded or len(loaded) != len(set(loaded))
                         or expected is not None and loaded != list(expected)
-                        or label == 'component' and len(loaded) != COMPONENT_COUNT):
+                        or label == 'component' and (len(loaded) != COMPONENT_COUNT
+                            or any(name not in loaded for name in ADDITIONAL_GLOBAL_COMPONENT_IDS))):
                     raise AssertionError('complete original caller inventory differs: ' + label)
                 class Result(unittest.TextTestResult):
                     def startTest(self, test):

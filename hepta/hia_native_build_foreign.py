@@ -119,14 +119,22 @@ def _import_from_port(name, namespace):
         raise RuntimeError('native-build imported name is outside the fixed inventory')
     # Actual IMPORT_FROM includes CPython's original circular-import fallback
     # and error formatting. A generic getattr would not implement that port.
+    # Move the argument onto the interpreter stack before the import. A held
+    # ImportError must not retain an extra module parameter in this port's
+    # traceback after the HIA controller has retired its module temporary.
+    constants = _from_template.__code__.co_consts
+    if None not in constants:
+        constants += (None,)
     raw = bytes((dis.opmap['RESUME'], 0, dis.opmap['LOAD_FAST'], 0,
+                 dis.opmap['LOAD_CONST'], constants.index(None), dis.opmap['STORE_FAST'], 0,
                  dis.opmap['IMPORT_FROM'], 0, dis.opmap['SWAP'], 2,
                  dis.opmap['POP_TOP'], 0, dis.opmap['RETURN_VALUE'], 0))
-    code = _from_template.__code__.replace(co_code=raw, co_names=(name,),
+    code = _from_template.__code__.replace(co_code=raw, co_names=(name,), co_consts=constants,
         co_stacksize=2, co_name='_native_build_import_from', co_qualname='_native_build_import_from')
     function = FunctionType(code, namespace)
     if tuple(i.opname for i in dis.get_instructions(function)) != (
-            'RESUME', 'LOAD_FAST', 'IMPORT_FROM', 'SWAP', 'POP_TOP', 'RETURN_VALUE'):
+            'RESUME', 'LOAD_FAST', 'LOAD_CONST', 'STORE_FAST',
+            'IMPORT_FROM', 'SWAP', 'POP_TOP', 'RETURN_VALUE'):
         raise RuntimeError('native-build IMPORT_FROM primitive differs')
     return function
 

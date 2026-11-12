@@ -7,8 +7,8 @@ source, its fresh cold build, installed composition or the full retained suite.
 
 ## Reviewed source roles
 
-The current checker source inventory contains 47 Core files and 19 mechanism
-files, with no overlap. Its 66 unique inputs are freshly read in sorted order on
+The current checker source inventory contains 47 Core files and 20 mechanism
+files, with no overlap. Its 67 unique inputs are freshly read in sorted order on
 every checker identity request. The original 46 Core files remain present.
 The additional Core member, `hia_machine_transport.py`, is now a direct imported
 dependency of ordinary call erasure through `_private_zeroed_buffer`. The same

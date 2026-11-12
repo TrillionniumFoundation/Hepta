@@ -26,9 +26,11 @@ LABEL = 'native-byte-abi'
 REQUIRED_SOURCE_NAMES = (
     SOURCE_NAME,
     'hepta/hia_native_byte_abi_native.py',
+    'hepta/hia_native_byte_abi_foreign.py',
     'tools/generate_hia_native_byte_abi.py',
     'tools/build_hia_native_byte_abi.py',
     'tests/test_hia_native_byte_abi_native.py',
+    'tests/hia_native_name_resolution.py',
     'tests/fixtures/hia_native_byte_abi_4b.py.txt',
     'hepta/hia_native_byte_abi.py',
     'hepta/hia_native_byte_abi_selection.py',

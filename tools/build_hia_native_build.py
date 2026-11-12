@@ -46,6 +46,7 @@ REQUIRED_SOURCE_NAMES = (
     'tests/test_hia_agent_buffer_lifecycle.py',
     'tests/test_hia_agent_native_lease_snapshot.py',
     'tests/test_hia_native_build_native.py',
+    'tests/hia_native_name_resolution.py',
     'tests/fixtures/hia_native_build_before_selection.py.txt',
     'docs/HIA_NATIVE_BUILD_NATIVE.md',
     'hepta/hia_program_native.py',

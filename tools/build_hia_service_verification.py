@@ -46,6 +46,7 @@ REQUIRED_SOURCE_NAMES = (
     'tools/qualify_hia_service_verification.py',
     'tests/test_hia_service_verification_qualifier.py',
     'tests/test_hia_service_verification_native.py',
+    'tests/hia_native_name_resolution.py',
     'tests/test_hia_service_verification_default_replay.py',
     'tests/test_hia_service_verification_builder.py',
     'tests/hia_service_verification_fixtures.py',

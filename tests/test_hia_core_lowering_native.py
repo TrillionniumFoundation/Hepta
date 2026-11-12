@@ -72,6 +72,10 @@ def selected_guard(manifest):
 
 
 class CoreLoweringSourceTests(unittest.TestCase):
+    def test_global_nameerror_preserves_name_and_active_context(self):
+        from tests.hia_native_name_resolution import assert_missing_global_port
+        assert_missing_global_port(self, LoweringSession)
+
     def test_complete_original_Function_and_five_helpers_are_independent(self):
         original = original_nodes()
         current = ast.parse(inspect.getsource(backend))
@@ -184,6 +188,11 @@ class CoreLoweringSourceTests(unittest.TestCase):
 
 
 class CoreLoweringNativeTests(unittest.TestCase):
+    def test_global_helpers_observe_replacement_and_deletion_before_and_after_admission(self):
+        from tests.hia_native_name_resolution import assert_helper_rebindings
+        rows = assert_helper_rebindings(self, 'core', self.new_owner)
+        (self.folder / 'global-helper-rebindings.json').write_text(json.dumps(rows, sort_keys=True, indent=2) + '\n')
+
     @classmethod
     def setUpClass(cls):
         development, cold = os.environ.get(DEVELOPMENT), os.environ.get(COLD)

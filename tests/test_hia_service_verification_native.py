@@ -37,6 +37,10 @@ ABI = 0xfffffffd
 
 
 class ServiceVerificationSourceTests(unittest.TestCase):
+    def test_global_nameerror_preserves_name_and_active_context(self):
+        from tests.hia_native_name_resolution import assert_missing_global_port
+        assert_missing_global_port(self, native.VerificationFrame)
+
     def test_original_seven_methods_and_independent_oracle_are_exact(self):
         raw = fixtures.ORIGINAL.read_bytes()
         self.assertEqual(sha256(raw).hexdigest(), fixtures.ORIGINAL_SHA)

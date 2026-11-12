@@ -36,15 +36,15 @@ class LoweringSession(PlanFrame):
     """Private Core frame; all permission and retirement rules are shared."""
 
     def _global(self, name):
-        if name in self.image._helpers:
-            return self.image._helpers[name]
         namespace = self.image.namespace
         if name in namespace:
+            if (name in self.image._helpers
+                    and namespace[name] is self.image.public_entries[name]):
+                return self.image._helpers[name]
             return namespace[name]
-        try:
+        if name in vars(builtins):
             return vars(builtins)[name]
-        except KeyError:
-            raise NameError("name '" + name + "' is not defined") from None
+        raise NameError("name '" + name + "' is not defined", name=name)
 
     def _function(self, args, raw, vector):
         mode, generator = raw
@@ -102,6 +102,8 @@ class NativeCoreLowering(NativeMachinePlanControl):
         if type(namespace) is not dict:
             raise TypeError('native Core lowering requires an actual module namespace')
         self.namespace = namespace
+        from . import hia_program_native
+        self.public_entries = vars(hia_program_native)['_NATIVE_CORE_PUBLIC_ENTRIES']
         self.modes = {name: {'number': index, 'arity': arity}
                       for index, (name, arity) in enumerate(_ARITIES.items(), 1)}
         if self.function_count < len(self.modes):
@@ -134,7 +136,7 @@ class NativeCoreLowering(NativeMachinePlanControl):
                          '_normalize': normalize, '_prologue': prologue}
         for name, function in self._helpers.items():
             function.__name__ = function.__qualname__ = name
-            function.__module__ = namespace.get('__name__', __name__)
+            function.__module__ = self.public_entries[name].__module__
 
     def finish(self, frame):
         """Drive only after the caller transferred its parameter references."""
