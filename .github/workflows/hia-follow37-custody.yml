@@ -1,0 +1,47 @@
+name: HIA FOLLOW37 immutable evidence readback
+
+on:
+  push:
+    branches:
+      - recovery-verify/hia-follow37-20261112
+
+permissions:
+  contents: read
+
+jobs:
+  readback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Require Ubuntu 24.04 x86_64
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          test "$ImageOS" = ubuntu24
+      - name: Read complete immutable proposed tree
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Verify every original binary byte and identity
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-follow37-binary-readback
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM --kill-after=5s 180s python3 -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r37/verify_binary_originals.py 2>&1 | tee "$RUNNER_TEMP/hia-follow37-binary-readback.log"
+      - name: Preserve exact readback result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-follow37-binary-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-follow37-binary-readback
+            ${{ runner.temp }}/hia-follow37-binary-readback.log
+          if-no-files-found: error
+          retention-days: 90
