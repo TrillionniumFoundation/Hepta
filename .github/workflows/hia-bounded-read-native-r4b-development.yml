@@ -23,7 +23,7 @@ jobs:
       - name: Exact reviewed control checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 5473f1eb2c541184828f6e885af4bc8807e01a39
+          ref: 43d1d22a510916e17d49513cf0e5bfca6587e455
           path: control
           fetch-depth: 1
           persist-credentials: false
@@ -57,7 +57,7 @@ jobs:
           case "${LD_LIBRARY_PATH-}" in ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;; *) exit 64 ;; esac
           control="$GITHUB_WORKSPACE/control/experiments/hia_bounded_read_owner_20261112/actions-native-development-r1"
           python -I -S -B -c 'import hashlib,pathlib,sys; p=pathlib.Path(sys.argv[1]); b=p.read_bytes(); assert len(b)==29411 and hashlib.sha256(b).hexdigest()=="6fda645cb4cffdffd3d62fea7acc78e0e555df10f6f32a249eaf6ce9d43a91ef"' "$control/controller.py"
-          python -I -S -B "$control/controller.py" prepare --root "$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1" --source "$GITHUB_WORKSPACE/source" --control-commit 5473f1eb2c541184828f6e885af4bc8807e01a39 --policy-sha256 715525165cd4108593307e191a61210fd89ccd4facf02c294c8d03596a246389 >"$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1.prepare.stdout.log" 2>"$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1.prepare.stderr.log"
+          python -I -S -B "$control/controller.py" prepare --root "$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1" --source "$GITHUB_WORKSPACE/source" --control-commit 43d1d22a510916e17d49513cf0e5bfca6587e455 --policy-sha256 0b684a42fe176182ca90d26f2503bed8a159d08802ced34581e9129cd64e1851 >"$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1.prepare.stdout.log" 2>"$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1.prepare.stderr.log"
       - name: Fresh B0 B1 B2 and all 55 plus original 8 under original 180 seconds
         timeout-minutes: 4
         shell: bash
@@ -66,7 +66,7 @@ jobs:
           case "${LD_LIBRARY_PATH-}" in ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;; *) exit 64 ;; esac
           control="$GITHUB_WORKSPACE/control/experiments/hia_bounded_read_owner_20261112/actions-native-development-r1"
           python -I -S -B -c 'import hashlib,pathlib,sys; b=pathlib.Path(sys.argv[1]).read_bytes(); assert len(b)==29411 and hashlib.sha256(b).hexdigest()=="6fda645cb4cffdffd3d62fea7acc78e0e555df10f6f32a249eaf6ce9d43a91ef"' "$control/controller.py"
-          python -I -S -B "$control/controller.py" run --root "$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1" --source "$GITHUB_WORKSPACE/source" --control-commit 5473f1eb2c541184828f6e885af4bc8807e01a39 --policy-sha256 715525165cd4108593307e191a61210fd89ccd4facf02c294c8d03596a246389 >"$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1.run.stdout.log" 2>"$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1.run.stderr.log"
+          python -I -S -B "$control/controller.py" run --root "$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1" --source "$GITHUB_WORKSPACE/source" --control-commit 43d1d22a510916e17d49513cf0e5bfca6587e455 --policy-sha256 0b684a42fe176182ca90d26f2503bed8a159d08802ced34581e9129cd64e1851 >"$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1.run.stdout.log" 2>"$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1.run.stderr.log"
       - name: Independent closed-process verification and typed original custody
         if: always()
         timeout-minutes: 5
@@ -76,7 +76,7 @@ jobs:
           case "${LD_LIBRARY_PATH-}" in ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;; *) exit 64 ;; esac
           control="$GITHUB_WORKSPACE/control/experiments/hia_bounded_read_owner_20261112/actions-native-development-r1"
           python -I -S -B -c 'import hashlib,pathlib,sys; b=pathlib.Path(sys.argv[1]).read_bytes(); assert len(b)==29411 and hashlib.sha256(b).hexdigest()=="6fda645cb4cffdffd3d62fea7acc78e0e555df10f6f32a249eaf6ce9d43a91ef"' "$control/controller.py"
-          python -I -S -B "$control/controller.py" finalize --root "$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1" --source "$GITHUB_WORKSPACE/source" --control-commit 5473f1eb2c541184828f6e885af4bc8807e01a39 --policy-sha256 715525165cd4108593307e191a61210fd89ccd4facf02c294c8d03596a246389 >"$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1.finalize.stdout.log" 2>"$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1.finalize.stderr.log"
+          python -I -S -B "$control/controller.py" finalize --root "$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1" --source "$GITHUB_WORKSPACE/source" --control-commit 43d1d22a510916e17d49513cf0e5bfca6587e455 --policy-sha256 0b684a42fe176182ca90d26f2503bed8a159d08802ced34581e9129cd64e1851 >"$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1.finalize.stdout.log" 2>"$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1.finalize.stderr.log"
       - name: Fixed whole-file small original channel
         if: always()
         continue-on-error: true
@@ -87,7 +87,7 @@ jobs:
           case "${LD_LIBRARY_PATH-}" in ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;; *) exit 64 ;; esac
           control="$GITHUB_WORKSPACE/control/experiments/hia_bounded_read_owner_20261112/actions-native-development-r1"
           python -I -S -B -c 'import hashlib,pathlib,sys; b=pathlib.Path(sys.argv[1]).read_bytes(); assert len(b)==21236 and hashlib.sha256(b).hexdigest()=="2e0709db77b16ecb2959a18051e22bff94b3270bcd95334686828ac3e0b8d638"' "$control/diagnostics.py"
-          python -I -S -B "$control/diagnostics.py" --root "$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1" --source "$GITHUB_WORKSPACE/source" --control-commit 5473f1eb2c541184828f6e885af4bc8807e01a39 --policy-sha256 715525165cd4108593307e191a61210fd89ccd4facf02c294c8d03596a246389
+          python -I -S -B "$control/diagnostics.py" --root "$RUNNER_TEMP/hia-bounded-read-native-r4b-development-r1" --source "$GITHUB_WORKSPACE/source" --control-commit 43d1d22a510916e17d49513cf0e5bfca6587e455 --policy-sha256 0b684a42fe176182ca90d26f2503bed8a159d08802ced34581e9129cd64e1851
       - name: Preserve complete closed originals and all fixed host stage logs
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
