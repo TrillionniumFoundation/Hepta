@@ -1,0 +1,43 @@
+--- frozen-v88-template
++++ v89-uninstalled-template
+@@ -1,6 +1,6 @@
+ # DRAFT ONLY. No workflow has been installed or triggered. The policy stays
+ # ready_for_dispatch:false until actual same-source CI and Root review exist.
+-name: HIA v88 original full-retained qualification
++name: HIA v89 original full-retained qualification
+ on:
+   create:
+ permissions:
+@@ -9,7 +9,7 @@
+   full-retained:
+     if: >-
+       github.event.ref_type == 'branch' &&
+-      github.ref == 'refs/heads/codex/hia-v88-full-retained-run-r1-20261112-e26e' &&
++      github.ref == 'refs/heads/codex/hia-v89-full-retained-run-r1-20261112-e26e' &&
+       github.run_attempt == 1
+     runs-on: ubuntu-latest
+     # Hosting/setup/custody allowance; the original guardian still enforces10800
+@@ -18,7 +18,7 @@
+     env:
+       PYTHONDONTWRITEBYTECODE: '1'
+       PYTHONUNBUFFERED: '1'
+-      HIA_CONTROL_PREFIX: experiments/hia_v88_full_retained_capsule_20261112/r2
++      HIA_CONTROL_PREFIX: experiments/hia_v89_full_retained_capsule_20261112/r1
+     steps:
+       - name: Fetch immutable reviewed control A
+         uses: actions/checkout@v4
+@@ -29,12 +29,12 @@
+           fetch-tags: false
+           persist-credentials: false
+           sparse-checkout: |
+-            experiments/hia_v88_full_retained_capsule_20261112/r2
++            experiments/hia_v89_full_retained_capsule_20261112/r1
+ 
+       - name: Fetch exact same-head standard-CI Git input
+         uses: actions/checkout@v4
+         with:
+-          ref: 4202fee300d54344712d727135bef9202b92f8c7
++          ref: 784f088fcc5ad81c65de541d54e26d380c86293c
+           path: source-input
+           fetch-depth: 1
+           fetch-tags: false
