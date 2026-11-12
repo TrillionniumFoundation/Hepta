@@ -1,0 +1,39 @@
+name: Isolated frozen proof foreign CPython 3.14 mechanisms
+on:
+  push:
+    branches:
+      - codex/hia-proof-foreign-v78-20261112-dda7
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fixed-foreign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+          path: source
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Actual frozen foreign mechanisms and original opcode diagnostics
+        run: >-
+          python -B harness/inputs/run_mechanisms.py --source source --output proof-foreign-evidence
+      - name: Preserve complete original observations and frozen input
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-proof-foreign-v78-original-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            proof-foreign-evidence
+            harness/inputs
+            harness/evidence
+          if-no-files-found: error
