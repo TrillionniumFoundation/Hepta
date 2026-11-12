@@ -1,0 +1,115 @@
+{
+  "schema": "hia.independent-static-review-addendum.v1",
+  "status": "STATIC_BINDING_CLEAR_CONTROLLER_SCOPE_ONLY",
+  "reviewer": "/root/native_install_owner",
+  "prior_review": {
+    "commit": "44e6417f95b50c4ff833fbd0d250e2f3e902c3c9",
+    "path": "experiments/hia_machine_elf_recovery_20261112/peer-reviews/970-small-recovery-final-controller-static-review.json",
+    "bytes": 9432,
+    "sha256": "6e5b49d33446a21cdcbc4129fa7e1b7ac9cabd9a2e10add75029525d0920f40b",
+    "git_blob_sha1": "71c7ac867702d5a82a508d968069cbb2b3a7b0f8"
+  },
+  "final_control": {
+    "commit": "69a353edd66cc10c65388d01ca9c170318ac4303",
+    "tree": "2febbaf2caebc49e6e541392bf49653bea212e6f",
+    "leaves": 4143
+  },
+  "final_workflow": {
+    "commit": "5363b75a49b847fda890fa0bff4fae8c191d755a",
+    "tree": "7ddbaccf421c0274ab0eafd3ba4f8efabd6cd833",
+    "leaves": 4144,
+    "name": "cold-current-workflow",
+    "size": 3596,
+    "sha256": "1798d3dc801a185a5d398f12bba5fd10edbd4fd7e012a77cfbca0c14fd4a8225",
+    "git_blob_sha1": "e6833f793e6879b7f638cacf9f0255cb4186963d"
+  },
+  "exact_current_policy": {
+    "name": "cold-current-policy",
+    "size": 30780,
+    "sha256": "05abad484347d4da527ab60ef131402bad27abf33922896f0f85de254c98f160",
+    "git_blob_sha1": "1f72fa2ade4a32411e3da46927d1eb4c035f862c"
+  },
+  "exact_current_worker": {
+    "name": "cold-current-worker",
+    "size": 34189,
+    "sha256": "cf4eef3163930fa3b0b8791ce8106b47fd75060907f5a3f12fb034e0a0a97f74",
+    "git_blob_sha1": "96eb89e52b64a82f04dda4061dda0636eed0af53"
+  },
+  "controller_remains": {
+    "bytes": 43516,
+    "sha256": "bda5b73b5d0caac9779a078d827174565f231608fad40adbc04aa7657c421f2c",
+    "git_blob_sha1": "45971b9f27cb9e6159d7adc06c150db5c7767d16"
+  },
+  "scope_correction": "The earlier review's e418 policy and 255f worker are preserved as the actually reviewed pre-final bytes. This addendum binds the unchanged reviewed controller to the final A/B and 1f72 policy; it does not silently treat e418 as the final policy.",
+  "actual_checks": {
+    "tree_checks": [
+      {
+        "name": "cold-small-A",
+        "tree": "2febbaf2caebc49e6e541392bf49653bea212e6f",
+        "leaves": 4143,
+        "tree_objects_recomputed": 562
+      },
+      {
+        "name": "cold-small-B",
+        "tree": "7ddbaccf421c0274ab0eafd3ba4f8efabd6cd833",
+        "leaves": 4144,
+        "tree_objects_recomputed": 562
+      }
+    ],
+    "delta": [
+      {
+        "path": ".github/workflows/hia-970-small-artifact-recovery.yml",
+        "old": null,
+        "next": {
+          "path": ".github/workflows/hia-970-small-artifact-recovery.yml",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "e6833f793e6879b7f638cacf9f0255cb4186963d",
+          "size": 3596,
+          "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/blobs/e6833f793e6879b7f638cacf9f0255cb4186963d"
+        }
+      }
+    ],
+    "policy_delta": [
+      {
+        "path": "/control_files/worker.py/bytes",
+        "old": 34101,
+        "new": 34189
+      },
+      {
+        "path": "/control_files/worker.py/sha256",
+        "old": "6eae0b9682ba99a2dcbe35d49c90211d16295369b78b413836e69870e2840779",
+        "new": "cf4eef3163930fa3b0b8791ce8106b47fd75060907f5a3f12fb034e0a0a97f74"
+      },
+      {
+        "path": "/control_files/worker.py/git_blob_sha1",
+        "old": "255f780a65661eee664b92f798029c3438f08737",
+        "new": "96eb89e52b64a82f04dda4061dda0636eed0af53"
+      }
+    ]
+  },
+  "worker_delta": {
+    "exact_insertion": {
+      "prefix": 4703,
+      "suffix": 29398,
+      "old": "",
+      "next": "workflow_run', {}).get('head_sha') == pin['checkout_commit']\n            and value.get('"
+    },
+    "scope": "The complete new worker text was read and the only change from 255f is an 88-byte early official metadata workflow_run.head_sha equality predicate. Root owns the independent semantic/transport/inner-ZIP review of that predicate. This controller review does not substitute for it."
+  },
+  "workflow_checks": [
+    "B has A as its sole parent and preserves all 4143 A leaves; the only new leaf is the fixed 3596-byte recovery workflow.",
+    "The exact create branch and attempt 1 are required, read-only contents/actions permissions are explicit, the checkout pins A and does not persist credentials.",
+    "All three controller invocations bind the final policy SHA05abad484347d4da527ab60ef131402bad27abf33922896f0f85de254c98f160 and exact A69a353edd66cc10c65388d01ca9c170318ac4303.",
+    "Only the owned collection step receives the read token; finalization and upload have always conditions and no explicit token environment.",
+    "The upload path is the fixed public directory, including the independently retained complete or partial ZIP and bounded originals."
+  ],
+  "not_performed": {
+    "python_parse": true,
+    "local_or_h_execution": true,
+    "download": true,
+    "product_or_native_tests": true,
+    "trigger": true
+  },
+  "outcome_scope": "No new controller/frame/finalize binding blocker found. The actual original small archive, historical worker cause, runtime framing budget and recovery terminal remain unobserved."
+}
