@@ -1,0 +1,141 @@
+name: HIA integer r2 complete source and Core VM
+on:
+  create:
+permissions:
+  contents: read
+jobs:
+  integer-source:
+    if: >-
+      github.event.ref_type == 'branch' &&
+      github.ref == 'refs/heads/codex/hia-core-integer-source-r2-run-r1-20261112-e26e' &&
+      github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      HIA_CONTROL_PREFIX: experiments/hia_core_integer_20261112/actions-source-plan-r1
+    steps:
+      - name: Fetch immutable source control A
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 24b17c4eb43638125324aa0eba2ab9c6844f41b0
+          path: integer-control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout: |
+            experiments/hia_core_integer_20261112/actions-source-plan-r1
+
+      - name: Fetch exact isolated integer r2 candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 1ee54450e1d17bd241dfa09a84bc17aa2cec8190
+          path: integer-candidate
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout: |
+            experiments/hia_core_integer_20261112/source-draft-r2
+
+      - name: Fetch the complete fixed base source Git consumer
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 784f088fcc5ad81c65de541d54e26d380c86293c
+          path: integer-base
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+
+      - name: Provide exact CPython 3.14.4 for this new remote request
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          architecture: x64
+
+      - name: Prepare exact Git source and new original-owner request
+        id: prepare
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH BASH_ENV ENV
+          mkdir "$RUNNER_TEMP/hia-integer-source-controller-logs"
+          python -I -S -B "$GITHUB_WORKSPACE/integer-control/$HIA_CONTROL_PREFIX/control/controller.py" prepare \
+            --capsule "$GITHUB_WORKSPACE/integer-control/$HIA_CONTROL_PREFIX" \
+            --control-checkout "$GITHUB_WORKSPACE/integer-control" \
+            --candidate-checkout "$GITHUB_WORKSPACE/integer-candidate" \
+            --source "$GITHUB_WORKSPACE/integer-base" \
+            --operation "$RUNNER_TEMP/hia-core-integer-source-r2-actions-r1" \
+            --policy-sha256 c894c4cd2e5303a0ab0e100afcfc4edb67aceb17e7ec3922a7bb7343749d1c74 \
+            --control-commit 24b17c4eb43638125324aa0eba2ab9c6844f41b0 --control-tree 4da9c9c9050399c9d39e32aff5c285371ce73e22 \
+            > "$RUNNER_TEMP/hia-integer-source-controller-logs/prepare.stdout.log" \
+            2> "$RUNNER_TEMP/hia-integer-source-controller-logs/prepare.stderr.log"
+
+      - name: Original ten source methods and 90 VM cases under 180/3
+        timeout-minutes: 6
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH BASH_ENV ENV
+          python -I -S -B "$GITHUB_WORKSPACE/integer-control/$HIA_CONTROL_PREFIX/control/controller.py" run \
+            --capsule "$GITHUB_WORKSPACE/integer-control/$HIA_CONTROL_PREFIX" \
+            --control-checkout "$GITHUB_WORKSPACE/integer-control" \
+            --candidate-checkout "$GITHUB_WORKSPACE/integer-candidate" \
+            --source "$GITHUB_WORKSPACE/integer-base" \
+            --operation "$RUNNER_TEMP/hia-core-integer-source-r2-actions-r1" \
+            --policy-sha256 c894c4cd2e5303a0ab0e100afcfc4edb67aceb17e7ec3922a7bb7343749d1c74 \
+            --control-commit 24b17c4eb43638125324aa0eba2ab9c6844f41b0 --control-tree 4da9c9c9050399c9d39e32aff5c285371ce73e22 \
+            > "$RUNNER_TEMP/hia-integer-source-controller-logs/run.stdout.log" \
+            2> "$RUNNER_TEMP/hia-integer-source-controller-logs/run.stderr.log"
+
+      - name: Always retain closed originals and independently admit source results
+        if: always()
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH BASH_ENV ENV
+          mkdir -p "$RUNNER_TEMP/hia-integer-source-controller-logs"
+          python -I -S -B "$GITHUB_WORKSPACE/integer-control/$HIA_CONTROL_PREFIX/control/controller.py" finalize \
+            --capsule "$GITHUB_WORKSPACE/integer-control/$HIA_CONTROL_PREFIX" \
+            --control-checkout "$GITHUB_WORKSPACE/integer-control" \
+            --candidate-checkout "$GITHUB_WORKSPACE/integer-candidate" \
+            --source "$GITHUB_WORKSPACE/integer-base" \
+            --operation "$RUNNER_TEMP/hia-core-integer-source-r2-actions-r1" \
+            --policy-sha256 c894c4cd2e5303a0ab0e100afcfc4edb67aceb17e7ec3922a7bb7343749d1c74 \
+            --control-commit 24b17c4eb43638125324aa0eba2ab9c6844f41b0 --control-tree 4da9c9c9050399c9d39e32aff5c285371ce73e22 \
+            > "$RUNNER_TEMP/hia-integer-source-controller-logs/finalize.stdout.log" \
+            2> "$RUNNER_TEMP/hia-integer-source-controller-logs/finalize.stderr.log"
+
+      - name: Always publish complete bounded failure diagnostics
+        if: always()
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE LD_PRELOAD LD_LIBRARY_PATH BASH_ENV ENV
+          python -I -S -B "$GITHUB_WORKSPACE/integer-control/$HIA_CONTROL_PREFIX/diagnostics/failure_channel.py" \
+            --capsule "$GITHUB_WORKSPACE/integer-control/$HIA_CONTROL_PREFIX" \
+            --operation "$RUNNER_TEMP/hia-core-integer-source-r2-actions-r1" \
+            --controller-logs "$RUNNER_TEMP/hia-integer-source-controller-logs" \
+            --policy-sha256 c894c4cd2e5303a0ab0e100afcfc4edb67aceb17e7ec3922a7bb7343749d1c74 \
+            --control-commit 24b17c4eb43638125324aa0eba2ab9c6844f41b0 --control-tree 4da9c9c9050399c9d39e32aff5c285371ce73e22
+
+      - name: Always upload complete finite source evidence and every HOLD
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-core-integer-source-r2-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-core-integer-source-r2-actions-r1-public/
+            ${{ runner.temp }}/hia-integer-source-controller-logs/
+          include-hidden-files: true
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
