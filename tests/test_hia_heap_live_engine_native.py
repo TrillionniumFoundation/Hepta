@@ -704,6 +704,45 @@ class HeapLiveEngineNativeTests(unittest.TestCase):
         self.assertEqual(actual['result']['steps'], 12)
         self.assertEqual(actual['result']['returned'], (('int', 7),))
 
+    def test_const_ssa_fresh_insert_preserves_call_cursor_and_empty_block_forwarding(self):
+        from hepta.hia_program import HIAProgramRejected
+        helper = f('relay', [('arg', 'usize')], ['usize'], [], [
+            b('start', [('arg', 'usize')], [], ret('arg'))])
+        entry = f('entry', [], ['usize'], ['trap'], [
+            b('start', [], [c('input', 'usize', 7),
+                i('call', ['input'], [('first', 'usize')], function='relay'),
+                c('middle', 'usize', 11),
+                i('call', ['input'], [('second', 'usize')], function='relay')],
+                jump('empty', 'first', 'second', 'middle')),
+            b('empty', [('a', 'usize'), ('z', 'usize'), ('k', 'usize')], [],
+                jump('done', 'a', 'z', 'k')),
+            b('done', [('left', 'usize'), ('right', 'usize'), ('extra', 'usize')], [
+                i('int.add.checked', ['left', 'right'], [('pair', 'usize')]),
+                i('int.add.checked', ['pair', 'extra'], [('answer', 'usize')])], ret('answer'))])
+        source = versioned(helper, entry)
+        actual = self.compare(source, 2, 'entry', [], vm=True)
+        self.assertEqual(actual['result']['returned'], (('int', 25),))
+        self.assertEqual(actual['result']['contexts'], 2)
+        self.assertEqual(actual['result']['steps'], 14)
+        malformed = deepcopy(source)
+        malformed['functions'][-1]['blocks'][0]['ops'].insert(1, c('input', 'usize', 99))
+        before = self.entries
+        with self.assertRaisesRegex(HIAProgramRejected, 'SSA value input is defined more than once') as raised:
+            self.compare(malformed, 2, 'entry')
+        self.assertEqual(raised.exception.code, 'E_HIA_SSA')
+        self.assertEqual(self.entries, before)
+        # A valid Core CFG backedge is not a fresh SSA insertion permission:
+        # the legacy analysis uses its separate scoped-cycle algorithm, and
+        # finite invocation rejects the CFG before running any local transfer.
+        from tests.test_hia_scoped_alloc_loops import scoped_loop
+        loop = scoped_loop(two_allocations=True, in_entry=True)
+        cycled = self.compare(loop, vm=True)
+        self.assertEqual(cycled['result']['summaries'], [('count_down', 13)])
+        loop['schema'] = 'hepta.hia.program.v7'
+        loop['exports'] = ['count_down']
+        refused = self.compare(loop, 2, 'count_down', [3], vm=True)
+        self.assertEqual(refused['error']['native_code'], 41)
+
     def test_original_fixed_context_depth_and_transfer_boundaries(self):
         from tests.test_hia_rust_finite_heap import context_work, depth_work
         for source, counter, value in ((context_work(1023), 'contexts', 1024),

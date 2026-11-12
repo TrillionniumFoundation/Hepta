@@ -25,9 +25,10 @@ class NativeCheckerReceiptIdentityTests(AgentToolCase):
         candidate, result = self.verified()
         check = result["checks"][0]
         self.assertEqual(check["checker"]["native_selection_sha256"],
-                         digest(checker_native_selection()))
+                         digest(checker_native_selection(held_owners=self.service._held_checker_owners())))
         evidence = self.session.read_json(check["evidence_artifact"])
-        self.assertEqual(evidence["native_checker_selection"], checker_native_selection())
+        self.assertEqual(evidence["native_checker_selection"],
+                         checker_native_selection(held_owners=self.service._held_checker_owners()))
         self.service._verification(result["verification_receipt"], self.session.context, candidate)
 
     def test_ordinary_consumer_rejects_a_receipt_after_native_owner_selection_changes(self):

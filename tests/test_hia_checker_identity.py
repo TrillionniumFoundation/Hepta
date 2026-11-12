@@ -63,7 +63,8 @@ class CheckerDependencyIdentityTests(unittest.TestCase):
         # hia_program.execute is a public VM convenience wrapper, not Core
         # admission; semantic proof consumers bind their replay module separately.
         self.assertEqual(imports - set(identity.CORE_SOURCE_FILES), {"hia_program_runtime.py"})
-        self.assertEqual(selectors, set(identity.NATIVE_OWNERS))
+        self.assertEqual(selectors, set(identity.NATIVE_OWNERS) | set(identity.HELD_NATIVE_OWNERS))
+        self.assertFalse(set(identity.NATIVE_OWNERS) & set(identity.HELD_NATIVE_OWNERS))
 
     def test_every_checker_binds_the_previously_omitted_source_dependencies(self):
         from hepta import (hia_optimization, hia_program_llvm, hia_program_native,

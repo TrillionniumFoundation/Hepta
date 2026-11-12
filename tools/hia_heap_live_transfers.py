@@ -5,6 +5,8 @@ The caller pins current function/block names in workspace 96/104. Return 1
 means an ordinary completed transfer, 2 is a proved allocation-stop prefix,
 and 0 is storage/ABI/semantic failure. Calls are handled by the enclosing
 explicit invocation frames. No public selector is installed by this module.
+A verified const output is a fresh SSA definition; its known-value entry is
+prepended directly. General updates, joins and remapping keep heap_map_put.
 """
 
 BODY = r'''
@@ -53,7 +55,20 @@ def live_fold_ins(w:mutbuf, state:u64, ins:u64, op:u64) -> u64:
     attrs = field(w, ins, 18)
     if op == OP_CONST:
         value = live_scalar(w, field(w, attrs, 20))
-        return live_remember(w, known, field(w, result, 5), value)
+        name = field(w, result, 5)
+        if value == 0:
+            return 0
+        if get(w, value) == 0:
+            return 1
+        entry = heap_alloc(w, 24)
+        if entry == 0:
+            return 0
+        put(w, entry, get(w, known))
+        put(w, entry + 8, name)
+        put(w, known, entry)
+        put(w, known + 8, get(w, known + 8) + 1)
+        put(w, entry + 16, value)
+        return 1
     value = heap_alloc(w, 40)
     if value == 0:
         return 0

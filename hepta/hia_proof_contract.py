@@ -263,9 +263,10 @@ def _method(claim, status, subject, evidence):
     _require(False, "unknown proof property")
 
 
-def proof_result(*, claim, status, domain, subject, profile, installation, evidence):
+def proof_result(*, claim, status, domain, subject, profile, installation, evidence,
+                 held_native_owners=()):
     """Produce a self-contained description, never upgrade checker conclusions."""
-    native_selection = checker_native_selection()
+    native_selection = checker_native_selection(held_owners=held_native_owners)
     _require(evidence.get("native_checker_selection") == native_selection,
              "native checker selection differs from the actual verification owners")
     method = _method(claim, status, subject, evidence)

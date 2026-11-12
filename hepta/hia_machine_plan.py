@@ -6,6 +6,10 @@ preservation claim is conditional on the canonical lowering and encoder.
 """
 from __future__ import annotations
 
+from contextvars import ContextVar
+
+_NATIVE_OWNER = ContextVar('hia_machine_plan_native_owner', default=None)
+
 LAYOUT_V1 = "hepta.hia.agent.block-layout.v1"
 MACHINE_V2 = "hepta.hia.agent.machine-plan.v2"
 MACHINE_V3 = "hepta.hia.agent.machine-plan.v3"
@@ -58,7 +62,7 @@ def _terminal_arguments(term):
     return []
 
 
-def register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):
+def _reference_register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):
     """Independently check caller-supplied scalar register lifetimes.
 
     Verified Core blocks are closed: every incoming value is an explicit block
@@ -130,7 +134,7 @@ def register_assignment_witness(checked, assignments, *, allow_leaf_registers=Fa
             "functions": witnesses}
 
 
-def validate_plan(checked, plan):
+def _reference_validate_plan(checked, plan):
     """Freeze a plan against an already reverified immutable Core document."""
     _require(type(plan) is dict, "plan must be an object")
     # Capture exact built-in JSON data before inspecting any plan field. The
@@ -185,7 +189,7 @@ def validate_plan(checked, plan):
     return plan  # This exact detached snapshot was checked and is emitted.
 
 
-def code_options(plan):
+def _reference_code_options(plan):
     if plan is None or plan["schema"] == LAYOUT_V1:
         return {}
     return {"scratch_registers": dict(plan["scratch_registers"]),
@@ -193,7 +197,7 @@ def code_options(plan):
             "alu_immediate": plan["instruction_selection"]["alu_immediate"]}
 
 
-def preservation_checks(plan, checked=None):
+def _reference_preservation_checks(plan, checked=None):
     """Separate claims, with no promotion to whole-backend refinement."""
     checks = [{"choice": "block_layout", "checked": True,
                "rule": "exact block permutations; every terminator transfers explicitly"}]
@@ -222,3 +226,72 @@ def preservation_checks(plan, checked=None):
                 "rule": "r8/r9 only; exact leaf opcode inventory; no returning call; no implicit r8/r9 scratch; scalar values; inclusive lifetimes; staged entry/edge copies",
                 "trap_rule": "all trap paths call abort then UD2 and have no returning continuation"})
     return checks
+
+
+# Operator-only selection.  No field of the caller's plan selects an image.
+def _native_owner():
+    import os
+    from .hia_machine_plan_native import SELECTOR, installed_machine_plan
+    captured = _NATIVE_OWNER.get()
+    if captured is not None:
+        return captured
+    path = os.environ.get(SELECTOR)
+    return installed_machine_plan(path) if path else None
+
+
+def validate_plan(checked, plan):
+    selected = _native_owner()
+    if selected is None:
+        return _reference_validate_plan(checked, plan)
+    token = _NATIVE_OWNER.set(selected)
+    try:
+        return selected.validate(checked, plan)
+    finally:
+        _NATIVE_OWNER.reset(token)
+
+
+def register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):
+    selected = _native_owner()
+    if selected is None:
+        return _reference_register_assignment_witness(
+            checked, assignments, allow_leaf_registers=allow_leaf_registers)
+    token = _NATIVE_OWNER.set(selected)
+    try:
+        return selected.witness(checked, assignments, allow_leaf_registers=allow_leaf_registers)
+    finally:
+        _NATIVE_OWNER.reset(token)
+
+
+def code_options(plan):
+    selected = _native_owner()
+    if selected is None:
+        return _reference_code_options(plan)
+    token = _NATIVE_OWNER.set(selected)
+    try:
+        return selected.code_options(plan)
+    finally:
+        _NATIVE_OWNER.reset(token)
+
+
+def preservation_checks(plan, checked=None):
+    selected = _native_owner()
+    if selected is None:
+        return _reference_preservation_checks(plan, checked)
+    token = _NATIVE_OWNER.set(selected)
+    try:
+        return selected.preservation_checks(plan, checked)
+    finally:
+        _NATIVE_OWNER.reset(token)
+
+
+# Used only to distinguish the original public continuation from a caller's
+# explicitly replaced hook at the HIA-issued GLOBAL observation boundary.
+_NATIVE_PUBLIC_WITNESS = register_assignment_witness
+
+
+def native_implementation_identity():
+    selected = _native_owner()
+    if selected is None:
+        return b''
+    return (b'machine-plan-v2\0' + selected.image_sha256.encode() + b'\0' +
+            selected.admitted_source_sha256.encode())

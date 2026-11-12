@@ -62,7 +62,8 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
     from tools.hia_selfhost_contract import PROFILE
-    candidates = {'worker-request': ('worker_request', 'worker-request'),
+    candidates = {'machine-plan': ('machine_plan', 'machine-plan'),
+                  'worker-request': ('worker_request', 'worker-request'),
                   'program-execution': ('program_execution', 'program-execution'),
                   'static-budget': ('static_budget', 'static-budget'),
                   'heap-bound': ('heap_bound', 'heap-bound'),

@@ -6,7 +6,136 @@ remain unfinished. The source audit and remaining ownership boundaries are in
 [the audit](HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md). File counts are an
 inventory, not a native-completion percentage.
 
-## Current v75 r2: source binding repair and exact reference reproduction
+## Current v76 integration: ELF, plan control, context custody and heap work
+
+This revision is prepared on published product
+`5f7f95367e8e395863801487e969d286b9091110`, tree
+`4f4e58e06a6e03adcd6548bd8ea4ef591c20359f`. Its combined source still needs
+its own generated source contract, fresh cold replay, complete component and
+original caller gates, and the unchanged full retained regression. No component
+development result supplies qualification for a different combined tree.
+
+### Verified published source and prior complete failure
+
+The [source R3 run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43177736387)
+completed 77 generators, 147 selectors and 690 source controls without a failure,
+error, skip or duplicate test ID. All 118 commands completed. All 3,120 final
+files, their modes and Git blobs, and the complete generated Git tree were
+independently verified before publishing `5f7f953`. The four-file repair adds
+the real Rust finite-heap test dependency to the cold source closure, a new
+38-input coverage assertion, and two regenerated records. All original heap
+test methods and inputs remain intact. The support closure has 928 files.
+
+The [current Core push run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43183737274)
+completed its source job with 625 tests in 869.531 seconds. The separate source
+generation stage also ran 65 original candidate, publication and release
+controls. Fresh cold replay and the public native heap workflow step have
+succeeded; later native stages remain distinct observations until their complete
+artifact is admitted. [Candidate bindings](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43183747214)
+passed all 179 tests in 115.518175051 seconds, with exact head/tree and zero
+anomaly categories in the original artifact.
+
+The earlier [V9 complete run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43155966434)
+is still a failed run of exact `7e9c5a7` source. Its 512,188,640-byte original
+artifact was retrieved and SHA256-verified. It records 27 wheel-resource failure
+events, the missing heap source dependency, a 134-test/150-second heap failure,
+four original 3-second namespace/ledger failures, and full discovery timing out
+at the original 5,400 seconds. Its 4,479 completed partial records are not a final
+test count. A33 and P6 passed; B35 was not executed after the old compiler
+produced the wrong 261-byte reference. These original failures remain failures.
+
+### New owners and narrow integration repairs
+
+The ELF candidate moves the writer's policy and continuation control into HIA.
+Its earlier independent Python 3.14.4 CI passed 37 complete component controls
+and all 51 original callers with the retained writer forbidden. The exact
+current-source delta preserves the current shared exception-delivery bridge,
+Code identity and the original Code-before-ELF admission order. New current
+cold and caller qualification is required after integration.
+
+The machine-plan candidate moves validation, register witness construction,
+Code options and preservation-check control into HIA. Its retained Python
+object primitives, public witness hook, checker and emission owners remain
+explicit dependencies. Separate final development runs passed 5, 12, 9 and 44
+controls. These cover original counterexamples, 1,376 complete native/Core-VM
+frames, held errors, destructor timing, partial allocation cleanup, literal key
+identity and one-use effect claims. The 21 unique component controls and all
+44 original callers are registered for new complete qualification.
+
+Actual module discovery exposed imported TestCase classes being collected a
+second time. The CLI pair loaded 52 instances for 38 unique IDs; the new plan
+pair loaded 29 for 21 unique IDs. Both narrow fixes import the fixture module
+and call the same original class setup function through it. Every test-method
+AST, unique ID and original assertion remains unchanged. Actual post-fix
+discovery contains exactly 38 and 21 instances respectively; this observation
+does not claim their native tests have run on the combined source.
+
+Service-context work adds explicit held-image proof custody. A service keeps
+the image admitted at construction, so proof identity must describe that held
+image even when environment selectors or files later change. The original
+counterexamples, an initially correct stale-installation refusal, and all
+subsequent observations are retained. Its prior Python 3.14.4 run passed 48
+Agent callers but had one installed-wheel resource failure among 46 component
+controls. The new development revision passed all 52 controls, preserving all
+46 original IDs and relative order, and repairs the original literal resource
+tuple used by setup.py. Current combined and new Python 3.14.4 qualification
+remain required.
+
+Heap development measurements identified repeated map lookup as the main cost
+of large constant-transfer inputs. A separately measured sequential-cursor
+change alone did not improve that cost. The following narrow fresh-definition
+path reduced two inner-kernel boundary calls from about 30 seconds to about
+7 seconds on the same development host. The original selected 134-test suite
+passed in 76.125 seconds under its unchanged 150-second limit. General map
+replacement, joins, cycle handling and all original numerical limits remain
+separate semantic requirements; Python 3.12.14 development results do not
+replace the new Python 3.14.4 gate.
+
+That [independent Python 3.14.4 gate](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43189534380)
+has now passed all 38 outer controls in 89.012679 seconds. Its original reference
+134-test run took 2.407761 seconds and the original selected native 134-test run
+took 34.975365 seconds, with 3,582 native steps, no retained policy call and zero
+failure, error, skip, expected failure or unexpected success. The compiler limit
+remained 20 seconds and the public limit remained 150 seconds. This uses an
+explicit retained compiler, so it remains development evidence and supplies no
+current-source cold qualification.
+
+### Durable record and remaining closure
+
+The [V76 audit checkpoint](https://github.com/TrillionniumFoundation/Hepta/tree/3c52dc2cd4db0cc52cd36f4e636113e7be65b0ae/review-evidence/hia-native-rewrite-v76-20261112-dda7)
+preserves every older audit subtree and adds 210 reachable evidence blobs.
+It includes the complete source R3 and publication record, read-only source
+recovery, original V9 triage, complete ELF artifacts/logs, context originals,
+plan failure/fix originals and heap boundary observations. Archive parts are
+actual tree entries. The environment reset lost an unpublished V10 draft and
+an unsealed earlier plan R2 record; neither gap is relabelled as recovered.
+V10r2 is a newly authored harness retaining the original test bodies and limits.
+
+The [integration checkpoint](https://github.com/TrillionniumFoundation/Hepta/tree/dede3d3621a87ba718538688e10d33194dd7e528/review-evidence/hia-native-rewrite-v76-integration-20261112-dda7)
+adds 39 reachable objects without replacing any prior audit subtree. It retains
+the complete context r7 and heap r1-r3 evidence, the exact combined-source
+recovery packet, original 5f7 source-job log and binding artifact, and the new
+V10r2 baseline with its explicit CLI collection HOLD. The combined workflow
+contains 80 generators; its source-harness discovery loads 718 unique controls
+from 151 selectors with no loader error or duplicate. This is collection only:
+zero source-control test bodies ran during that observation. Four actual
+installation resource source controls passed after all three new owners were
+registered. The independent Python 3.14 heap development run is
+[43189534380](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43189534380);
+its complete original result is summarized above. The new source-owned context
+caller gate binds the four original Agent files, all 48 ordered IDs, all six
+actual machine modes and the four forbidden reference methods. Its ten source
+admission controls also passed on this combined checkout. Its real 48 callers
+remain pending new independent and combined current-source runs.
+
+The published static inventory still records 193 production Python modules and
+365 hosted tools. It establishes tracked-file and source-byte coverage, not a
+whole-module replacement percentage or every dynamic caller's semantics.
+Remaining emission, hosted authoring, process/database/provider boundaries,
+complete ordinary-entry migration and old-owner retirement stay open.
+Whole-native delivery, default migration and legacy deletion remain false.
+
+## Prior v75 r2: source binding repair and exact reference reproduction
 
 The product branch still points to 7e9c5a796a29746d169f9db97392ec774f627c03.
 This combined revision has not yet received source-matched cold, complete

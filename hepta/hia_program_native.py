@@ -80,7 +80,8 @@ def _implementation_hash():
         "hia_machine_state_native.py", "hia_machine_instructions_native.py",
         "hia_machine_transport.py", "hia_json_preflight_native.py",
         "hia_exception_delivery.py",
-        "hia_machine_elf.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
+        "hia_machine_plan_native.py", "hia_machine_plan_control_native.py",
+        "hia_machine_elf.py", "hia_machine_elf_native.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
         "hia_heap_bound.py", "artifact_publication.py",
         "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
         "object_structure.py", "native_tool_identity.py",
@@ -90,6 +91,12 @@ def _implementation_hash():
     digest.update(checker_digest().encode())
     from .hia_machine_x64 import native_implementation_identity as encoding_identity
     digest.update(b'native-machine-encoding\0' + encoding_identity() + b'\0')
+    from .hia_machine_elf import native_implementation_identity as elf_identity
+    selected_elf = elf_identity()
+    if selected_elf:
+        digest.update(b"machine-elf-native\0" + selected_elf + b"\0")
+    from .hia_machine_plan import native_implementation_identity as plan_identity
+    digest.update(b'native-machine-plan\0' + plan_identity() + b'\0')
     return digest.hexdigest()
 
 
@@ -688,7 +695,8 @@ def emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_b
     if target != TARGET:
         _reject("direct machine backend supports only x86_64 Linux", "E_HIA_PROGRAM_TARGET")
     from .hia_machine_x64 import native_encoding_scope
-    with native_encoding_scope():
+    from .hia_machine_elf import native_elf_scope
+    with native_encoding_scope(), native_elf_scope():
         before = _implementation_hash()
         if not isinstance(program, VerifiedProgram):
             _reject("an immutable VerifiedProgram from verify_program is required")

@@ -9,6 +9,7 @@ The host Python/loader and absence of hostile process mutation remain assumed.
 from __future__ import annotations
 
 from hashlib import sha256
+from dataclasses import dataclass
 import importlib
 import json
 import os
@@ -76,6 +77,76 @@ NATIVE_OWNERS = {
     "HEPTA_HIA_TASK_HELPER_CACHE_MANIFEST": ("hia_task_helper_cache_native", "installed_task_helper_cache"),
 }
 
+# These owners belong to a service which already admitted and retained its
+# executable. They are not ambient Core-checker selectors: reading their
+# current environment path would name different code after a selector change.
+# A proof caller must explicitly supply its held capability. The default Core
+# checker selection, including all ordinary callers, remains unchanged.
+HELD_NATIVE_OWNERS = {
+    "HEPTA_HIA_SERVICE_CONTEXT_MANIFEST": ("hia_service_context_native", "NativeContextImage"),
+}
+
+
+@dataclass(frozen=True, eq=False)
+class HeldNativeOwner:
+    """Actual immutable mapping and exact bytes from one admitted selection.
+
+    This in-process capability is never reconstructed from proof evidence.
+    Cached mappings can be shared by several independent admission records;
+    their manifest/source bytes must not overwrite one another on the image.
+    """
+    selector: str
+    image: object
+    manifest: bytes
+    source: bytes
+
+
+def _held_manifest_pairs(items):
+    result = {}
+    for key, value in items:
+        if key in result:
+            raise ValueError("duplicate held native manifest field")
+        result[key] = value
+    return result
+
+
+def _held_native_identity(binding):
+    if type(binding) is not HeldNativeOwner:
+        raise ValueError("held checker owner requires its admitted in-process capability")
+    if type(binding.selector) is not str or binding.selector not in HELD_NATIVE_OWNERS:
+        raise ValueError("held checker owner is outside the explicit service inventory")
+    module_name, factory_name = HELD_NATIVE_OWNERS[binding.selector]
+    module = importlib.import_module("." + module_name, __package__)
+    if type(binding.image) is not getattr(module, factory_name):
+        raise ValueError("held checker mapping differs from its native owner type")
+    if (type(binding.manifest) is not bytes or not 0 < len(binding.manifest) <= 16384
+            or type(binding.source) is not bytes or not 0 < len(binding.source) <= 8 << 20):
+        raise ValueError("held checker admission does not retain exact bounded input bytes")
+    record = json.loads(binding.manifest, object_pairs_hook=_held_manifest_pairs)
+    fields = {"schema", "source_sha256", "image_path", "image_sha256", "compiler_sha256"}
+    if (type(record) is not dict or set(record) != fields or record["schema"] != module.SCHEMA
+            or any(type(record[name]) is not str or len(record[name]) != 64
+                   or any(char not in "0123456789abcdef" for char in record[name])
+                   for name in ("source_sha256", "image_sha256", "compiler_sha256"))):
+        raise ValueError("held checker manifest differs from its admitted schema")
+    image_name = record["image_path"]
+    if (type(image_name) is not str or not image_name or image_name in (".", "..")
+            or any(ord(char) < 32 for char in image_name) or Path(image_name).name != image_name):
+        raise ValueError("held checker image must have its admitted sibling basename")
+    mapped = _mapped_identity(binding.image)
+    source_sha256 = sha256(binding.source).hexdigest()
+    if mapped["image_sha256"] != record["image_sha256"] or source_sha256 != record["source_sha256"]:
+        raise ValueError("held checker bytes differ from their admitted identity")
+    return {"manifest_sha256": sha256(binding.manifest).hexdigest(), "schema": record["schema"],
+            "sources": {"image": source_sha256}, "images": {"image": mapped}, "child_manifests": {}}
+
+
+def hold_native_owner(selector, image, manifest, source):
+    """Retain one already-admitted mapping without rereading mutable paths."""
+    binding = HeldNativeOwner(selector, image, manifest, source)
+    _held_native_identity(binding)
+    return binding
+
 
 def checker_source_identity(extra_files=()):
     """Hash the same Core closure for each consumer, retaining its own inputs."""
@@ -105,12 +176,14 @@ def _mapped_identity(image):
     return {"image_sha256": image.image_sha256, "image_bytes": len(raw)}
 
 
-def checker_native_selection():
+def checker_native_selection(*, held_owners=()):
     """Bind every selected verifier owner without invoking a native entrypoint.
 
     Configured owners are conservatively bound even when a particular input
     does not visit them. No serialized receipt can select code for this call.
     """
+    if type(held_owners) is not tuple:
+        raise ValueError("held checker owners must be an explicit immutable capability tuple")
     selected = {key: os.environ.get(key) or None for key in sorted(NATIVE_OWNERS)}
     result = {}
     for key, path in selected.items():
@@ -149,6 +222,11 @@ def checker_native_selection():
                                            for name, child in children.items()}}
     if selected != {key: os.environ.get(key) or None for key in sorted(NATIVE_OWNERS)}:
         raise ValueError("checker native selection changed during identity capture")
+    for binding in held_owners:
+        identity = _held_native_identity(binding)
+        if binding.selector in result:
+            raise ValueError("held checker selection repeats or overrides an ambient owner")
+        result[binding.selector] = identity
     return result
 
 

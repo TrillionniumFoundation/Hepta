@@ -361,6 +361,14 @@ class HeapGraphNativeTests(unittest.TestCase):
         self.assertEqual(self.invoke(2, names, [], operations[:7], vm=True), (0, expected[:7]))
         type(self).differentials += len(operations)
 
+    def test_existing_key_overwrite_and_copy_match_complete_vm_buffers(self):
+        operations = [[1, 0, 3], [1, 0, 11], [2, 0, 0],
+                      [4, 0, 0], [1, 0, 7], [2, 0, 0]]
+        expected = [(1, 0, 1), (1, 0, 1), (1, 11, 1),
+                    (1, 0, 1), (1, 0, 1), (1, 7, 1)]
+        self.assertEqual(self.invoke(2, ['existing'], [], operations, vm=True), (0, expected))
+        type(self).differentials += len(operations)
+
     def test_private_extent_refusals_never_authorize_partial_graph_results(self):
         names = ['a', 'b']; edges = [[0, 1]]
         packet = transport([0, names, edges, []])

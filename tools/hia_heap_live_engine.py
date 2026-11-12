@@ -9,7 +9,9 @@ Core verification or public admission itself. Mode 0 is legacy all-function,
 The analysis record stores functions/mode/current frame/context count/steps/
 depth/peak depth/memo/result in consecutive words. A 144-byte frame stores
 parent/function/arguments/CFG/order/states/order index/block/op index/state/
-peak/returns/phase/waiting instruction. Values and bigint results are immutable.
+peak/returns/phase/waiting instruction. Offset 120 retains the next instruction
+node, so sequential execution never rescans a block prefix. Values and bigint
+results are immutable.
 """
 
 BODY = r'''
@@ -114,11 +116,12 @@ def live_call_graph(w:mutbuf, document:u64) -> u64:
         while block_index < total(w, blocks):
             ops = field(w, element(w, blocks, block_index), 13)
             op_index = 0
+            ins = ops + 24
             while op_index < total(w, ops):
-                ins = element(w, ops, op_index)
                 if opcode_id(w, field(w, ins, 15)) == OP_CALL:
                     if live_link(w, graph, index, field(w, field(w, ins, 18), 22)) == 0:
                         return 0
+                ins = end(w, ins)
                 op_index = op_index + 1
             block_index = block_index + 1
         index = index + 1
@@ -315,6 +318,7 @@ def live_next_block(w:mutbuf, frame:u64) -> u64:
     put(w, frame + 96, 0)
     put(w, frame + 56, 0)
     put(w, frame + 64, 0)
+    put(w, frame + 120, 0)
     return 1
 
 def live_enter_block(w:mutbuf, analysis:u64, frame:u64) -> u64:
@@ -338,6 +342,7 @@ def live_enter_block(w:mutbuf, analysis:u64, frame:u64) -> u64:
         return 0
     put(w, frame + 72, state)
     put(w, frame + 96, 1)
+    put(w, frame + 120, field(w, block, 13) + 24)
     return live_peak(w, frame, 0)
 
 def live_child_bounds(w:mutbuf, frame:u64, child:u64, ins:u64, mode:u64) -> u64:
@@ -587,6 +592,7 @@ def live_drive(w:mutbuf, analysis:u64) -> u64:
             status = live_apply_child(w, analysis, frame, get(w, frame + 104), get(w, frame + 112))
             put(w, frame + 96, 1)
             put(w, frame + 64, get(w, frame + 64) + 1)
+            put(w, frame + 120, end(w, get(w, frame + 104)))
         elif phase == 4:
             status = live_complete(w, analysis, frame)
         else:
@@ -597,13 +603,14 @@ def live_drive(w:mutbuf, analysis:u64) -> u64:
             else:
                 if live_step_count(w, analysis) == 0:
                     return 0
-                ins = element(w, ops, index)
+                ins = get(w, frame + 120)
                 if opcode_id(w, field(w, ins, 15)) == OP_CALL:
                     status = live_call(w, analysis, frame, ins)
                 else:
                     status = live_local(w, frame, get(w, analysis + 8), ins)
                 if status == 1:
                     put(w, frame + 64, index + 1)
+                    put(w, frame + 120, end(w, ins))
         if status == 0:
             return 0
         if status == 2:

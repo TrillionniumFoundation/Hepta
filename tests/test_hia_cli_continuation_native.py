@@ -23,8 +23,9 @@ from unittest.mock import patch
 
 from hepta import cli
 from hepta import hia_cli_native as bridge
+from tests import test_hia_cli_native as native_fixture
 from tests.test_hia_cli_native import (
-    CliNativeTests, environment, entry_outcome, ROOT, SELECTOR,
+    environment, entry_outcome, ROOT, SELECTOR,
 )
 
 
@@ -61,11 +62,11 @@ class CliContinuationSourceTests(unittest.TestCase):
 class CliContinuationNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        CliNativeTests.setUpClass.__func__(cls)
+        native_fixture.CliNativeTests.setUpClass.__func__(cls)
 
     @classmethod
     def tearDownClass(cls):
-        CliNativeTests.tearDownClass.__func__(cls)
+        native_fixture.CliNativeTests.tearDownClass.__func__(cls)
 
     def prepare(self, argv):
         with patch.dict(os.environ, environment(), clear=True):

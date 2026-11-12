@@ -28,6 +28,9 @@ MAX_SOURCE_BYTES = 8 << 20
 # Composed heap dependencies are admitted as one complete selector set below.
 # Other multi-image and external executable contracts need separate closure.
 HELPERS = {
+    "HEPTA_HIA_SERVICE_CONTEXT_MANIFEST": ("hia_service_context_native", "NativeContextImage"),
+    "HEPTA_HIA_MACHINE_ELF_MANIFEST": ("hia_machine_elf_native", "NativeMachineElf"),
+    "HEPTA_HIA_MACHINE_PLAN_MANIFEST": ("hia_machine_plan_native", "NativeMachinePlan"),
     "HEPTA_HIA_MACHINE_ENCODING_MANIFEST": ("hia_machine_encoding_native", "NativeMachineEncoding"),
     "HEPTA_HIA_MACHINE_STATE_MANIFEST": ("hia_machine_state_native", "NativeMachineState"),
     "HEPTA_HIA_MACHINE_INSTRUCTIONS_MANIFEST": ("hia_machine_instructions_native", "NativeMachineInstructions"),

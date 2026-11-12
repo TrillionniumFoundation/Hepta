@@ -81,6 +81,8 @@ def _value_observation(observation):
 
 class HIAAgentService:
     def __init__(self, state_root, *, artifact_roots=()):
+        from .hia_service_context_native import admitted_context, NativeContextService
+        context_admission = admitted_context(capture_identity=True)
         self.catalog, self.catalog_sha256 = catalog()
         self.tools = {t["name"]: t for t in self.catalog["tools"]}
         self.identities = installation_manifest()
@@ -89,8 +91,13 @@ class HIAAgentService:
         if any(not root.is_dir() for root in self.artifact_roots):
             reject("E_HIA_PROFILE", "configured artifact roots must be directories")
         self._profiles()
+        self._native_context = None if context_admission is None else NativeContextService(
+            self, context_admission.image, checker_custody=context_admission)
 
     def close(self):
+        selected_context = getattr(self, '_native_context', None)
+        if selected_context is not None:
+            selected_context.closed = True
         self.store.close()
 
     def _profiles(self):
@@ -391,6 +398,12 @@ class HIAAgentService:
         return verify_program(decode_json(data))
 
     def _context(self, ref, *, _connection=None):
+        selected = getattr(self, '_native_context', None)
+        if selected is not None:
+            return selected.context(ref, connection=_connection)
+        return self._context_reference(ref, _connection=_connection)
+
+    def _context_reference(self, ref, *, _connection=None):
         keys(ref, ("id", "sha256"), label="context reference")
         row = (self.store.db if _connection is None else _connection).execute("SELECT * FROM contexts WHERE id=?", (ref["id"],)).fetchone()
         if row is None or row["sha256"] != ref["sha256"]:
@@ -404,6 +417,12 @@ class HIAAgentService:
         return context
 
     def _budget(self, context, *, candidate=False):
+        selected = getattr(self, '_native_context', None)
+        if selected is not None:
+            return selected.budget(context, candidate=candidate)
+        return self._budget_reference(context, candidate=candidate)
+
+    def _budget_reference(self, context, *, candidate=False):
         row = self.store.db.execute("SELECT * FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
         limits = context["budget"]
         if time.time_ns() - int(row["created_ns"]) > limits["max_total_wall_ms"] * 1_000_000:
@@ -415,6 +434,12 @@ class HIAAgentService:
                 reject("E_HIA_BUDGET", "candidate attempt budget exhausted", "context")
 
     def _remaining_ms(self, context):
+        selected = getattr(self, '_native_context', None)
+        if selected is not None:
+            return selected.remaining_ms(context)
+        return self._remaining_ms_reference(context)
+
+    def _remaining_ms_reference(self, context):
         row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
         deadline = int(row["created_ns"]) + context["budget"]["max_total_wall_ms"] * 1_000_000
         return max(0, (deadline - time.time_ns()) // 1_000_000)
@@ -508,6 +533,12 @@ class HIAAgentService:
         return {"artifact": ref, "encoding": encoding, "content": content, "next_cursor": next_cursor}
 
     def _hia_context(self, args):
+        selected = getattr(self, '_native_context', None)
+        if selected is not None:
+            return selected.freeze(args)
+        return self._hia_context_reference(args)
+
+    def _hia_context_reference(self, args):
         from .hia_agent_buffers import export_manifest, buffer_size, MAX_WORKLOAD_BUFFER_BYTES
         self._profile(args["compiler_profile"], "compiler")
         self._profile(args["target_profile"], "target")
@@ -743,9 +774,14 @@ class HIAAgentService:
                 reject("E_HIA_SUBJECT", "native build receipt belongs to a different candidate", "verification")
         return None
 
+    def _held_checker_owners(self):
+        owner = self._native_context
+        return () if owner is None else (owner.checker_owner(),)
+
     def _hia_verify(self, args):
         from .hia_checker_identity import checker_native_selection
-        native_selection = checker_native_selection()
+        held_owners = self._held_checker_owners()
+        native_selection = checker_native_selection(held_owners=held_owners)
         context = self._context(args["context"])
         self._profile(args["validation_profile"], "validation")
         program = self._program(args["candidate"])
@@ -808,13 +844,15 @@ class HIAAgentService:
                 reject("E_HIA_CLAIM", "unimplemented verification claim", "verification")
             evidence["native_checker_selection"] = native_selection
             scoped = proof_result(claim=claim, status=status, domain=domain, subject=scoped_subject,
-                profile=args["validation_profile"], installation=self.identities, evidence=evidence)
+                profile=args["validation_profile"], installation=self.identities, evidence=evidence,
+                held_native_owners=held_owners)
             if evidence.get("method") == SAFE_CORE_METHOD and status == "proved" and self._remaining_ms(context) <= 0:
                 status = "unknown"
                 evidence.update(outcome=status, deadline_met=False,
                                 reason="the frozen context deadline expired before proof publication")
                 scoped = proof_result(claim=claim, status=status, domain=domain, subject=scoped_subject,
-                    profile=args["validation_profile"], installation=self.identities, evidence=evidence)
+                    profile=args["validation_profile"], installation=self.identities, evidence=evidence,
+                    held_native_owners=held_owners)
             checks.append({**scoped,
                 "assumptions_artifact": self.store.json(assumptions_document(scoped), "verification-assumptions"),
                 "evidence_artifact": self.store.json({**evidence, "proof_binding": scoped}, "verification-evidence")})
@@ -854,7 +892,8 @@ class HIAAgentService:
             if evidence.get("method") == SAFE_CORE_METHOD:
                 self._check_native_refinement_evidence(evidence, record["subject"], context, program, **_connection_arguments(_connection))
             expected = proof_result(claim=check["claim"], status=check["status"], domain=check["domain"],
-                subject=subject, profile=record["validation_profile"], installation=self.identities, evidence=evidence)
+                subject=subject, profile=record["validation_profile"], installation=self.identities, evidence=evidence,
+                held_native_owners=self._held_checker_owners())
             actual = {key: value for key, value in check.items()
                       if key not in {"assumptions_artifact", "evidence_artifact"}}
             if (actual != expected or evidence.get("proof_binding") != expected
@@ -1167,10 +1206,16 @@ class HIAAgentService:
         observations, normal, trapping = [], [], []
         correct, complete, budget_exceeded = True, True, False
         reference_started = time.monotonic_ns()
-        context_row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (args["context"]["id"],)).fetchone()
-        context_deadline = int(context_row["created_ns"]) + context["budget"]["max_total_wall_ms"] * 1_000_000
+        context_owner = getattr(self, '_native_context', None)
+        if context_owner is None:
+            context_row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (args["context"]["id"],)).fetchone()
+            context_deadline = int(context_row["created_ns"]) + context["budget"]["max_total_wall_ms"] * 1_000_000
+        else:
+            context_row, context_deadline = context_owner.capture_deadline(args, context)
 
         def remaining_total_ms():
+            if context_owner is not None:
+                return context_owner.remaining_captured(context_deadline)
             return max(0, (context_deadline - time.time_ns()) // 1_000_000)
 
         references = {}

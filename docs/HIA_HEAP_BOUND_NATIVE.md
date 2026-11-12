@@ -227,3 +227,60 @@ The installation revision and its repository fixtures require their own
 current-source observations and later unified cold/full qualification. The
 predecessor observations above are not relabeled as qualification of newly
 changed wiring, packaging, checker identity, or the whole product.
+
+## Sequential traversal and fresh constant definitions
+
+The performance revision based on `5f7f95367e8e395863801487e969d286b9091110`
+keeps the public APIs, complete reports, first errors, and original
+1024-context / 64-depth / 32768-transfer limits. It changes only two native
+implementation paths: sequential instruction cursors in the call-graph scan
+and execution frame, and direct insertion of a verified `const` output into
+that frame's known-value map. General map insertion, replacement, copying,
+joins, owner inventories, and loan remapping remain unchanged.
+
+Fresh insertion requires the actual analysis lifecycle, not just a globally
+unique SSA spelling:
+
+- `live_push` allocates a new frame and new initial state maps for each new
+  invocation. A completed memo hit returns its immutable result; it does not
+  resume or reuse that invocation's frame or maps. Recursive private-kernel
+  invocations also allocate separate frames and retain the original depth
+  refusal; public finite admission checks the static call graph first.
+- The frame obtains a topological CFG order before local transfers. Finite
+  analysis rejects a CFG backedge. Legacy cyclic analysis uses the separate
+  `cycle_peak` algorithm or scalar-only zero-heap path; neither repeatedly
+  enters `live_fold_ins` with one retained known-value map.
+- Each DAG block is entered once. Its incoming state is copied before
+  execution; edge forwarding rebuilds the target block's parameter state.
+  The verifier checks that block parameters and instruction outputs have
+  distinct names throughout the function. A constant output therefore cannot
+  already be one of the copied incoming keys.
+- Call suspension retains the parent's current instruction. After applying
+  the child result, the original instruction count and cursor advance once.
+  A stopped child still advances to the original next-block handling rather
+  than executing the following instruction. Memo hits use the same resume
+  path. A fresh entry or storage-growth replay initializes a fresh arena.
+
+The optimized constant branch must not be reused as a general map update,
+worklist transfer, or repeated same-state instruction evaluator without
+reestablishing these conditions. The direct map API continues to replace an
+existing value without increasing its key count. Regression controls compare
+that replacement and copied-map behavior with complete independent-VM
+buffers, and separately exercise the real CFG-backedge routes, two calls
+with a memo hit, empty-block forwarding, and rejection of duplicate SSA
+outputs before native entry.
+
+The first cursor-only development revision preserved all six original
+boundary outcomes but did not materially reduce the two approximately
+30-second transfer-boundary kernel calls. The subsequent constant-insertion
+revision reduced those observed calls to approximately 7.0 and 6.7 seconds;
+all six complete reports or errors and all work counters remained identical.
+The retained original public group then ran 134 reference tests and 134
+selected native tests without skips or retained-policy calls, with the
+native group completing in 76.125 seconds under its unchanged 150-second
+supervisor. These are Python 3.12.14 / jsonschema 4.26.0 / Z3 4.15.4.0
+**development** observations, using the explicitly retained compiler. They
+are not Python 3.14 CI, current-source cold, full-product, default-selection,
+or deletion qualification. The older V9 timeout and cursor-only measurements
+remain separate original evidence; the later 5f7 Core heap step's reported
+success is also a separate observation and is not relabeled as this revision.
