@@ -1,0 +1,118 @@
+{
+  "schema": "hia.core-constructor-binding-independent-test-review.v1",
+  "status": "STATIC_CLEAR_WITHIN_FROZEN_BINDING_TEST_SCOPE_NOT_EXECUTED",
+  "candidate_commit": "f6bed05ffdfd68db3f8c72e3d6bbd291770bfbd3",
+  "candidate_tree": "3b8363ad396641fe063bf3731aabbd21e1a76e0c",
+  "reviewer": "cold_ci_closure",
+  "reviewed_utc": "2026-11-12T04:11:30Z",
+  "sources": [
+    {
+      "path": "experiments/hia_core_emitter_20261112/constructor-binding-static-r1/inputs/tests/test_hia_core_lowering_native.py",
+      "bytes": 49493,
+      "sha256": "f8ee81bde0a374ce0dedd4f4e03583e52bee62221f83a3e708e4d0133e23ef62",
+      "git_blob": "7bf5c2acb3b8447383e672e18e140157a4a34f67"
+    },
+    {
+      "path": "experiments/hia_core_emitter_20261112/constructor-binding-static-r1/inputs/hepta/hia_core_lowering_native.py",
+      "bytes": 24345,
+      "sha256": "7190753bc1e8c70e6918ef2b798a8e0dd8c006794a6b94a7dbce957ca1fdb019",
+      "git_blob": "603a5358af567602a9e24ad63fc20971f3839ab5"
+    },
+    {
+      "path": "experiments/hia_core_emitter_20261112/constructor-binding-static-r1/inputs/hepta/hia_program_native.py",
+      "bytes": 52564,
+      "sha256": "53f364081158b3070d0408482331b9308b5a1b04562c83b7d0583fda2f1d100c",
+      "git_blob": "651af89d0a4822c4c12730a834a73e3a3933eac6"
+    }
+  ],
+  "independent_fixture": {
+    "path": "tests/fixtures/hia_program_native_608.py.txt",
+    "bytes": 47839,
+    "sha256": "8f0be8c06e932fedbdd5973591310440a97e85a0c3b88ba9bc5ca95035810185",
+    "git_blob": "0be63e6465f65866ae2509457ebb52edb63857f1"
+  },
+  "correct_test_basis": {
+    "path": "experiments/hia_core_emitter_20261111/ordinary-v2-integration-static-r1/inputs/tests/test_hia_core_lowering_native.py",
+    "bytes": 44142,
+    "sha256": "e1140a1b4409ce3460c8fcd81bfafcddf59cd6868cd9bbfb53742f05e9a6ea65",
+    "git_blob": "ff4b26428f84978e032bea24d97b0752bc266d73"
+  },
+  "method_delta": {
+    "basis_path": "experiments/hia_core_emitter_20261111/ordinary-v2-integration-static-r1/inputs/tests/test_hia_core_lowering_native.py",
+    "basis_blob": "ff4b26428f84978e032bea24d97b0752bc266d73",
+    "current_blob": "7bf5c2acb3b8447383e672e18e140157a4a34f67",
+    "prior_count": 15,
+    "current_count": 15,
+    "IDs_equal": true,
+    "changed": [
+      "CoreLoweringSourceTests.test_unselected_constructor_subclass_and_early_target_errors_stay_original",
+      "CoreLoweringNativeTests.test_ordinary_backend_is_native_with_complete_metadata_and_no_retained_Function",
+      "CoreLoweringNativeTests.test_five_helpers_and_native_literal_owner_keep_errors_and_values"
+    ]
+  },
+  "fixed_fixture_class_signature_observation": [
+    {
+      "class": "_Function",
+      "start_line": 144,
+      "end_line": 564,
+      "flat_nonmethod": [],
+      "signatures": [
+        "    def __init__(self, parent, fn, index):",
+        "    def allocate(self, words):",
+        "    def label(self, suffix):",
+        "    def block_label(self, name):",
+        "    def load(self, name, reg=\"rax\", word=0):",
+        "    def store(self, name, reg=\"rax\", word=0):",
+        "    def immediate(self, name, value, word=0):",
+        "    def copy(self, source, destination):",
+        "    def fail_if(self, condition):",
+        "    def compare_imm(self, register, value):",
+        "    def range_check(self, register, typ, source=None):",
+        "    def narrow_result(self, typ, checked=False):",
+        "    def condition_value(self, condition):",
+        "    def edge(self, target, arguments):",
+        "    def operation(self, ins):",
+        "    def allocate_buffer(self, size, out, trapping):",
+        "    def range_guard(self, buffer, offset, size):",
+        "    def bulk(self, op, args):",
+        "    def push_chain(self, args, out):",
+        "    def pop_chain(self, arg, out):",
+        "    def drop_chain(self, arg):",
+        "    def render(self):"
+      ]
+    },
+    {
+      "class": "_Emitter",
+      "start_line": 565,
+      "end_line": 669,
+      "flat_nonmethod": [],
+      "signatures": [
+        "    def __init__(self, document, allowed_exports, block_order=None, foreign_buffer_exports=(), machine_plan=None):",
+        "    def ordered_blocks(self, fn):",
+        "    def label(self, suffix):",
+        "    def function_symbol(self, name):",
+        "    def wrapper(self, fn):",
+        "    def render(self):"
+      ]
+    }
+  ],
+  "findings": [
+    "The oracle compiles complete, immutable, separately pinned original class/helper definitions rather than calling the selected backend or comparing a function with itself.",
+    "Both frozen original class bodies contain only function definitions; their present defaults are literals. The added oracle does not execute lowering method/helper bodies at definition time.",
+    "All currently enumerated arguments are binding-invalid for the frozen positional-or-keyword signatures: excess positional arguments, unknown or implicit self/cls keyword, missing required prefix arguments, duplicate arguments and ordering combinations. Bound render has zero explicit parameters and receives only invalid excess/unknown shapes.",
+    "Expected observations must first be TypeError. Actual constructor selector lookup and actual method/helper invoke are poisoned with AssertionError, so observing the selector or entering native invocation fails the comparison rather than becoming a spurious TypeError match.",
+    "The 28 bound methods are obtained from the independently compiled 22 Function and 6 Emitter method definitions. Original/native receivers use object.__new__ solely to reach argument binding without running constructors.",
+    "The five original helper definitions are independent of mutable selected aliases. Their invalid-binding comparisons retain the same assertion against accidental owner.invoke.",
+    "The three changed methods retain their earlier control bodies and add the binding comparisons. All 15 ordered method identifiers remain unchanged; original 51/50 caller groups are not modified by these test edits.",
+    "The two typed no-body constructor binder functions are module-level, outside the classes patched by selected_guard. Their runtime qualnames match the original __init__ methods, and the binder is invoked before selector lookup only for known-invalid builtin-string argument shapes.",
+    "Subclass controls still bypass the exact-base signature admission; the added cls keyword case is compatible with the positional-only cls argument in __new__.",
+    "The fixed test selected_guard remains unchanged from the v2 test basis and retains all original owner prohibitions."
+  ],
+  "explicit_limits": [
+    "No Python parse, Python oracle invocation, product import, native compilation, product test, Actions dispatch or h operation was executed for this review.",
+    "Static argument-shape reasoning is restricted to these frozen signatures and plain builtin keyword names. Foreign str-subclass keyword behavior, mutation of runtime signatures/classes and direct unusual __new__/stack behavior remain OPEN.",
+    "A Python runtime may emit version-specific TypeError text. Runtime equality must still be demonstrated by the actual complete future tests on each supported interpreter.",
+    "This receipt does not establish a whole-lowering or native qualification PASS and does not change any historical results."
+  ],
+  "blockers_within_reviewed_static_scope": []
+}
