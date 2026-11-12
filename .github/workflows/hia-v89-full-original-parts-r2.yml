@@ -1,0 +1,87 @@
+name: HIA v89 complete original ZIP in bounded artifacts
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  retain_original:
+    name: Retain one historical ZIP as a fixed complete partition
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-v89-full-original-parts-run-r2-20261112-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the exact reviewed custody control without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 6b54d16efdcb65ca3bb8d8fdae6b0f63e61394d4
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Set up the fixed custody interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Verify frozen controls and create new private custody roots
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_v89_ci_original_custody_20261112/full-zip-multipart-r2/controller.py prepare --root "$RUNNER_TEMP/hia-v89-full-original-parts-r2" --policy-sha256 34f378a01bdcfb7398366cbe7595c4a504a8f69559461e54a7e9981042af370f --control-commit 6b54d16efdcb65ca3bb8d8fdae6b0f63e61394d4
+      - name: Read the one sealed original ZIP and create the fixed partition under the original 900-second guardian
+        id: owned_collection
+        timeout-minutes: 16
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_v89_ci_original_custody_20261112/full-zip-multipart-r2/controller.py run --root "$RUNNER_TEMP/hia-v89-full-original-parts-r2" --policy-sha256 34f378a01bdcfb7398366cbe7595c4a504a8f69559461e54a7e9981042af370f --control-commit 6b54d16efdcb65ca3bb8d8fdae6b0f63e61394d4
+      - name: Independently retain every fixed part and controls after closed ECHILD
+        if: always()
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_v89_ci_original_custody_20261112/full-zip-multipart-r2/controller.py finalize --root "$RUNNER_TEMP/hia-v89-full-original-parts-r2" --policy-sha256 34f378a01bdcfb7398366cbe7595c4a504a8f69559461e54a7e9981042af370f --control-commit 6b54d16efdcb65ca3bb8d8fdae6b0f63e61394d4
+      - name: Preserve original ZIP range 00 and complete small controls
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-v89-full-original-part-00-${{ github.run_id }}-1
+          path: '${{ runner.temp }}/hia-v89-full-original-parts-public-r2/part-00/'
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          retention-days: 14
+          overwrite: false
+      - name: Preserve original ZIP range 01 and complete small controls
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-v89-full-original-part-01-${{ github.run_id }}-1
+          path: '${{ runner.temp }}/hia-v89-full-original-parts-public-r2/part-01/'
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          retention-days: 14
+          overwrite: false
