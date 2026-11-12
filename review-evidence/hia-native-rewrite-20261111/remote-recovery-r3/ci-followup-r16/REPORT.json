@@ -1,0 +1,145 @@
+{
+  "schema": "hia-native-recovery-ci-followup-r16",
+  "parent": "6f41c71b3a018698f8c8a825b23f9b23eaac507a",
+  "audit_scope": "Exact original artifacts and independently verified new component development. No whole-stack closure is asserted.",
+  "original_results": {
+    "A": {
+      "run": 43122922476,
+      "job": 130867670020,
+      "status": "PASS",
+      "cases": 75,
+      "accepted": 51,
+      "rejected": 24,
+      "actual_native_processes": 75,
+      "actual_packers": 75,
+      "actual_compiles": 76,
+      "core_versions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "composite_versions": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "publication": 0,
+      "public_cli_entries": 0,
+      "source_unchanged": true
+    },
+    "E": {
+      "run": 43122922476,
+      "job": 130867669693,
+      "relay_cases_passed": 87,
+      "declared_extra_terminal_switches": 66,
+      "full_8MiB_boundary": "FAIL_CPU_90_SECONDS",
+      "boundary_exitcode": -9,
+      "boundary_wall_ns": 90073232905,
+      "boundary_cpu_s": 89.923975,
+      "plus_one_boundary": "NOT_RUN",
+      "public_cli_closed": false
+    },
+    "Core": {
+      "run": 43123353835,
+      "native_job": 130869111337,
+      "source_job": 130869111673,
+      "source_status": "PASS",
+      "cold_status": "FAIL",
+      "checks_passed": 6,
+      "checks_total": 11,
+      "whole_deadline_s": 180,
+      "wall_elapsed_ns": 180168383183,
+      "owner": "QUALIFICATION_TIMEOUT",
+      "exitcode": -9,
+      "cleanup_complete": true,
+      "terminal_qualification_json": false,
+      "allocator_child_reached": "NOT_ESTABLISHED",
+      "language_qualification": "NOT_REACHED"
+    },
+    "schema_r3": {
+      "run": 43123353889,
+      "job": 130869114856,
+      "status": "FAIL_GENERATION",
+      "cause": "unsupported ast.Break in new ASCII loop",
+      "old_peer_compiles": 4,
+      "new_schema_native_entries": 0
+    },
+    "fixed_publication_r1": {
+      "run": 43122922476,
+      "job": 130867669689,
+      "status": "FAIL_GENERATION",
+      "cause": "u32 helper results joined with u64 dispatch result",
+      "new_controller_compiles": 0,
+      "new_fixed_cases": 0
+    },
+    "fencing": {
+      "run": 43121313060,
+      "job": 130862204691,
+      "status": "PASS_FULL_ORIGINAL_READBACK",
+      "counts": {
+        "protocol_tests_vm": 16,
+        "protocol_tests_paired": 16,
+        "protocol_vm_entries": 1158,
+        "protocol_native_entries": 579,
+        "actual_packer_entries": 14,
+        "physical_tests": 12,
+        "physical_native_entries": 960,
+        "physical_vm_entries": 960,
+        "entries_by_role": {
+          "FS": 286,
+          "inode": 203,
+          "coordinator": 471
+        },
+        "actual_primitive_acks": 123,
+        "primitive_operation_counts": {
+          "openat": 34,
+          "fullstat": 34,
+          "setlk": 23,
+          "close": 32
+        },
+        "actual_child_reply_links": 326,
+        "actual_process_traces": 13,
+        "all_test_anomalies_zero": true,
+        "reader_tests_reexecuted": 0,
+        "reader_native_entries": 0,
+        "reader_vm_entries": 0
+      },
+      "all_771_inner_members_bytes_sha_modes_verified": true,
+      "original_archive_sha256": "9633775fd2fa0405eeda29c25b089aafb2222bfa3ddc16d8e241dabf7295c3dd",
+      "reader_new_native_entries": 0
+    }
+  },
+  "changes": {
+    "fixed_publication_r2": "Only new helper result types normalized to u64; original 43 planned cases and all compiler/native quotas unchanged.",
+    "schema_r4": "Only unsupported Break replaced by equivalent short-circuit while condition; original scalar differential, five large cases and 46 protocol controls retained.",
+    "path_prefix_r1": "New HIA Path.absolute, recursive mkdir, symlink, realpath and same-parent owner; 26 physical cases and 10 poison controls planned.",
+    "workflow": "Select the three new or still failing component gates; full original Core workflow remains unchanged."
+  },
+  "current_open": [
+    "Current cold qualification",
+    "E full 8MiB program admission performance and complete public CLI service",
+    "Full public CLI parent and actual publication transaction",
+    "Worker default DataJSON and fixed worker coordinator",
+    "Full Store DMS node/connection lifetime, ordinary SQL operations and migrations",
+    "Full repository regression and ordinary installed activation",
+    "Removal of legacy stack after verified replacements"
+  ],
+  "resource_limits_changed": false,
+  "historical_counts_reused_as_new": false,
+  "full_ROG": "FAIL/HOLD unchanged",
+  "selected_jobs": [
+    "cli-fixed-publication",
+    "cli-publication-path",
+    "worker-schema-remaining"
+  ],
+  "whole_stack_closed": false,
+  "production_activated": false,
+  "old_owners_deleted": false,
+  "unchanged_main": "5831f52fada45e076f8f68f198a15c0585e6104f"
+}

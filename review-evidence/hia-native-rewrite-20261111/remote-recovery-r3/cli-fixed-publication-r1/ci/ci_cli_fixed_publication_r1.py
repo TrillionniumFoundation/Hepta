@@ -14,11 +14,11 @@ FILES={
   },
   "tools/cli_publication_fixed_driver.py": {
     "bytes": 15423,
-    "sha256": "2ece16d2667bbc95e5ca4c696f280dd4f1297b6c67b29cd1685e5fbc4664bd1c"
+    "sha256": "0a953c31b252628d237f227290d3ad7c9833dc7330559ad94681c80c4af3267a"
   },
   "tools/cli_publication_filesystem_fixtures.py": {
     "bytes": 9203,
-    "sha256": "de7e6a83f1bd02de90cfa2cc069c9bb6bfb3087b2160bcb18a68a420759281ce"
+    "sha256": "5229eeb50b8d786d77f6de45757084e347d70e634b8407cabfcf72bc19216437"
   },
   "tools/compose_cli_publication_filesystem.py": {
     "bytes": 12812,
@@ -94,9 +94,9 @@ def main():
         common.PINS[Path(__file__).resolve()]=Path(__file__).read_bytes()
         save(mine/"records/materialization.json",rows)
         frozen=Path(context["workspace"])/"native-edit-candidate-next/development/build-r1/source"
-        raw=project/"development/fixed-actual-r1";failure=None
+        raw=project/"development/fixed-actual-r2";failure=None
         try:
-            common.run("fixed-publication-actual-r1",[
+            common.run("fixed-publication-actual-r2",[
                 context["python"],"-B",project/"tests/test_hia_cli_fixed_publication.py",
                 "--source",context["source"],"--reference",context["reference"],
                 "--compiler",context["compiler"],"--sha-source",frozen/"135/source.hiaasm",
@@ -124,17 +124,17 @@ def main():
         detail.update(error_class=type(error).__name__,error=str(error),traceback=traceback.format_exc())
         traceback.print_exc()
         if project is not None:
-            path=project/"development/fixed-actual-r1/summary.json"
+            path=project/"development/fixed-actual-r2/summary.json"
             if path.exists():detail["actual"]=json.loads(path.read_bytes())
     finally:
         roots={}
         if project is not None:
             candidates={"fixed-publication-tools":project/"tools","fixed-publication-tests":project/"tests",
                 "fixed-publication-reference":project/"reference","fixed-publication-docs":project/"docs",
-                "fixed-publication-raw":project/"development/fixed-actual-r1",
+                "fixed-publication-raw":project/"development/fixed-actual-r2",
                 "fixed-publication-records":mine/"records",
                 "fixed-publication-dependency":project.parent/"Hepta-agent-edit-native"}
             roots={name:path for name,path in candidates.items() if path.exists()}
-        common.finish("cli-fixed-publication-native-r1",status,detail,roots=roots)
+        common.finish("cli-fixed-publication-native-r2",status,detail,roots=roots)
     if status!="PASS":raise SystemExit(1)
 if __name__=="__main__":main()

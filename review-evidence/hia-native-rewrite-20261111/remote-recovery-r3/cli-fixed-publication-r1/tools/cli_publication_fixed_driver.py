@@ -76,7 +76,7 @@ def raw_error(value:u64) -> u64:
         return MAX - value + 1
     return 0
 
-def input_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
+def input_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 1:
         return view(o, w, 1, 0, 96, 2)
     if phase == 2:
@@ -171,7 +171,7 @@ def value_slot(w:mutbuf, source:u64) -> u64:
         return 6
     return 0
 
-def publication_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
+def publication_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 20:
         return publication_call(o, w)
     if phase == 21:
@@ -310,7 +310,7 @@ def hash_call(o:mutbuf, w:mutbuf, count:u64, phase:u64) -> u32:
     put(w, P_HASH_CALLS, get(w, P_HASH_CALLS) + 1)
     return invoke(o, w, 10, 9, 0, count, 3, 32, 10, 1184, 0, 0, 0, phase)
 
-def hash_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
+def hash_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 40:
         return protect(o, w, 9, 0, 41)
     if phase == 41:
@@ -367,7 +367,7 @@ def hash_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
         return 0
     return refuse(w, 8834)
 
-def final_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
+def final_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 80:
         zero(w, WIRE, 64)
         put(w, WIRE, FIXED_OUTPUT)

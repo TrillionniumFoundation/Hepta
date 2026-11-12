@@ -6,7 +6,7 @@ class Flow:
     def add(self,label,body):self.rows.append((label,body.strip("\n")))
     def emit(self):
         names={name:index+1 for index,(name,_) in enumerate(self.rows)}
-        lines=["def utility_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:"]
+        lines=["def utility_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:"]
         for index,(name,body) in enumerate(self.rows):
             body=body.replace("@NEXT@",str(index+2))
             for label,value in names.items():body=body.replace("@"+label+"@",str(value))

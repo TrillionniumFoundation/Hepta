@@ -188,9 +188,7 @@ def sv_string_valid(g:readbuf, w:mutbuf, at:u64) -> u64:
     count = 0
     while position < end:
         if byte(g, position) < 128:
-            while position < end:
-                if byte(g, position) >= 128:
-                    break
+            while position < end and byte(g, position) < 128:
                 count = count + 1
                 position = position + 1
             sv_put(w, V_NEXT, position)
