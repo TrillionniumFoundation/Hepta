@@ -1,9 +1,15 @@
 # Native checked machine plan: five-image development component
 
-Status: **NEW / UNEXECUTED**. This revision has not been parsed by CPython,
-generated, compiled by B3, run in the VM, or entered as native code. The Git
-readbacks prove source identity only. No previous GraphWire, Function, Emitter,
-Core, CLI, installed, or cold qualification is inherited by this component.
+Status: **revised wire SSA authoring, NEW / UNEXECUTED**. FOLLOW44 compiled
+only the snapshot image before the frozen wire_scan numeric SSA suffix 2187
+failed the retained < 2048 profile gate. No plan semantic/native cases ran.
+The original failed build, complete log and sources remain separate evidence.
+This revision changes only the spelling of SSA definitions and uses in the two
+frozen wire source documents before fresh B3. The complete inverse mapping must
+restore the entire original admitted document. All operations, attributes,
+types, literals, function/block/edge order and every test/limit remain unchanged.
+No previous GraphWire, Function, Emitter, Core, CLI, installed, or cold result
+is inherited. New-source AST, generation, B3 and native results are still zero.
 
 The original contract is exact 0ef hepta/hia_machine_plan.py,
 Git 61833e8bf8497089461bad9eb2347c82a233e8b2, SHA256
@@ -328,3 +334,27 @@ discard unchanged intervals or use final-only evidence.
 
 No predicted count is an observed result. The first actual build/test outcome,
 including any source/profile/fixture failure, must be preserved separately.
+
+## FOLLOW44 retained profile failure and reversible source revision
+
+The original wire source was 147822 bytes / SHA256
+c1cb49c1df3c4c653dfd37beebba12b3baf57a28a7d77c257157d2cc7e58cde3.
+Its reported profile was 42 functions, 586 blocks, 2405 operations, maximum 94
+blocks per function, 11 block parameters and numeric SSA suffix 2187. The
+builder's < 2048 numeric-index gate stopped before wire B3. The snapshot's
+separate source 41ecc95c3bb40340680f3e8f3884df86f4d7690075be28234795b4654e61e75e
+and image 8627f990e02a2743f5a47382e7c9432d0747f89f75f9c027f1bb7dcf675f194b
+were actually compiled; they are not a five-image/semantic qualification.
+
+The new development helper enumerates existing block parameters and operation
+outputs in their original order and gives them dense v0..vN names. Function
+parameters use that same mapping, as do operation args, ret values, jump args,
+branch cond and both branch arg arrays. No other field is changed. Each mapping
+is bijective; its complete inverse is checked against the entire original
+admitted document before source emission. Both original and new HIA, full
+original/new documents, mappings, profiles and actual compiler outputs remain
+in the archive. CI independently reconstructs the inverse from the saved data.
+The same < 2048 bound and all other original B3 limits remain mandatory. If
+there are too many actual definitions, the build still fails. The full original
+55 groups / 679 cases / 119 private controls are unchanged; no selective subset
+or old semantic result is used.

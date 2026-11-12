@@ -33,9 +33,9 @@ FILES=[
   {
     "path": "tools/build_hia_checked_plan.py",
     "mode": "100644",
-    "bytes": 10771,
-    "sha256": "3e4fc3fae2b8c382956328887eb0bc4fee61dac64c1f808294f7984ee950148b",
-    "gitsha": "21ce910e2b2807bf5b72081e83dba61e82b3df05"
+    "bytes": 11868,
+    "sha256": "e834443162d08ef5e29e47bbc9c04f0410b289ffce13fff20f08e35279028fe1",
+    "gitsha": "a50b1741eef85ba8416dbc307e345f40bb739f5d"
   },
   {
     "path": "tests/plan_mechanical_harness.py",
@@ -54,9 +54,9 @@ FILES=[
   {
     "path": "docs/HIA_CHECKED_MACHINE_PLAN_NATIVE.md",
     "mode": "100644",
-    "bytes": 17361,
-    "sha256": "cedaf9dc1f7cd47609e921fad7bd7ca65cec1c5e3d8c4c0bade1339d5a2321a2",
-    "gitsha": "b255e10219c434dd303d3afd2fa121822a476a34"
+    "bytes": 19365,
+    "sha256": "0e4f6d098f5db7445997202c22c88bc485d0ba97d944a9a57675da0036c3f0bd",
+    "gitsha": "e5585a6831e2a84e4dbc7ec99579555ff951a2da"
   },
   {
     "path": "ci/streamed_checked_plan_finish.py",
@@ -127,6 +127,13 @@ FILES=[
     "bytes": 17781,
     "sha256": "fe63327671ea51ca950b955512a0f574d706176a4a8d050e3f8f12c83ef5e3a1",
     "gitsha": "e56539a9cb76f95010ea6ca995737f40ab6e1850"
+  },
+  {
+    "path": "tools/hia_frozen_ssa_rename.py",
+    "mode": "100644",
+    "bytes": 2791,
+    "sha256": "ceafde9ccf11f5d58de8519821e8b29061de9c967c636a63901735c93f3f419b",
+    "gitsha": "13174e28113ed390ba0522e4d39096764fe6cce1"
   }
 ]
 SCHEDULE=[["shape",0,17,0],["fields",0,34,0],["hash",0,8,0],["choices",0,16,0],["choices",1,16,0],["choices",2,16,0],["choices",3,16,0],["choices",4,16,0],["choices",5,16,0],["choices",6,16,0],["choices",7,16,0],["choices",8,16,0],["choices",9,16,0],["choices",10,16,0],["choices",11,16,0],["blocks",0,15,0],["layout",0,10,0],["order",0,17,0],["invalidchoices",0,19,0],["invalidchoices",1,19,0],["assignments",0,24,0],["intervals",0,23,0],["leaf",0,15,0],["leaf",1,15,0],["resources",0,15,0],["resources",1,15,0],["calls",0,4,0],["types",0,38,0],["firsterror",0,16,0],["snapshot",0,34,0],["depth",0,6,0],["digits",0,8,0],["digits",1,8,0],["nodes",0,1,0],["nodes",1,1,0],["bytes",0,1,0],["bytes",1,1,0],["integerbytes",0,1,0],["scale",0,1,0],["scale",1,1,0],["scale",2,1,0],["initial",0,12,12],["initial",1,12,12],["ack",0,10,10],["snapshotprotocol",0,8,8],["snapshotprotocol",1,8,8],["wireprotocol",0,8,8],["wireprotocol",1,8,8],["growprotocol",0,8,8],["growprotocol",1,8,8],["growprotocol",2,2,2],["semanticprotocol",0,8,8],["semanticprotocol",1,8,8],["descriptor",0,13,13],["outputprotocol",0,6,6]]
@@ -183,6 +190,49 @@ def gates(build,manifest):
   assert 0<manifest[kind+"_bytes"]<=1<<20
  return dict(complete_source_and_mode_snapshots_equal=True,snapshots=len(before),
       original_B3_limits=True,original_profile_gates=True,max_block_ops_recorded_not_gated=True)
+
+def alpha_readback(build,manifest):
+ proof=json.loads((build/"full-SSA-alpha-proof.json").read_bytes())
+ original=json.loads((build/"original-frozen.document.json").read_bytes())
+ revised=json.loads((build/"document.json").read_bytes())
+ restored=json.loads(json.dumps(revised))
+ assert proof["schema"]=="hia-frozen-HIA-bijective-SSA-rename-v1"
+ assert all(proof[k] for k in("original_entire_document_restored_by_inverse","input_document_unmodified",
+     "only_SSA_definition_and_use_spellings_changed","operations_types_literals_attributes_labels_and_order_unchanged",
+     "original_limits_unchanged","actual_B3_compilation_required","actual_semantic_validation_required"))
+ assert identity(build/"original-frozen.hiaasm")==dict(bytes=proof["original_source_bytes"],sha256=proof["original_source_sha256"])
+ assert identity(manifest["source_path"])==dict(bytes=proof["revised_source_bytes"],sha256=proof["revised_source_sha256"])
+ assert identity(build/"original-frozen.hiaasm")=={k:WIRE[manifest["component"]][k] for k in("bytes","sha256")}
+ assert len(proof["functions"])==len(original["functions"])==len(revised["functions"])
+ for old,new,restore,row in zip(original["functions"],revised["functions"],restored["functions"],proof["functions"]):
+  def defs(fn):
+   return [v for b in fn["blocks"] for v in b["params"]+[v for op in b["ops"] for v in op["out"]]]
+  old_names=[v["name"] for v in defs(old)];new_names=[v["name"] for v in defs(new)]
+  pairs=row["old_to_new"]
+  assert [p[0] for p in pairs]==old_names and [p[1] for p in pairs]==new_names
+  assert new_names==["v"+str(i) for i in range(len(new_names))]
+  assert len(set(old_names))==len(old_names)==row["distinct_definitions"]
+  assert row["function"]==old["name"]==new["name"]
+  assert row["original_max_numeric_suffix"]==max(int(n[1:]) for n in old_names)
+  assert row["revised_max_numeric_suffix"]==len(new_names)-1<2048
+  reverse={b:a for a,b in pairs}
+  for param in restore["params"]:param["name"]=reverse[param["name"]]
+  for block in restore["blocks"]:
+   for param in block["params"]:param["name"]=reverse[param["name"]]
+   for op in block["ops"]:
+    op["args"]=[reverse[n] for n in op["args"]]
+    for output in op["out"]:output["name"]=reverse[output["name"]]
+   term=block["term"];kind=term["op"]
+   if kind=="ret":term["values"]=[reverse[n] for n in term["values"]]
+   elif kind=="jump":term["args"]=[reverse[n] for n in term["args"]]
+   elif kind=="branch":
+    term["cond"]=reverse[term["cond"]]
+    for side in("then","else"):term[side]["args"]=[reverse[n] for n in term[side]["args"]]
+   else:assert kind=="trap"
+ assert restored==original
+ return dict(complete_inverse_original_document_equal=True,functions=len(proof["functions"]),
+   changed_fields_only_SSA_spelling=True,original_and_revised_sources_retained=True,
+   original_profile_limit_retained=True,proof=identity(build/"full-SSA-alpha-proof.json"))
 
 def case_rows(directory,value):
  paths=sorted((directory/"cases").glob("*/result.json"))
@@ -269,7 +319,7 @@ def main():
      standalone_preservation_witness_JSON=False,installed=False,cold=False)
  try:
   context=common.prepare()
-  mine=Path(context["base"])/"checked-machine-plan-recovery-r1";mine.mkdir()
+  mine=Path(context["base"])/"checked-machine-plan-recovery-r2";mine.mkdir()
   project=mine/"native-checked-plan-next";project.mkdir()
   for row in FILES:
    source=common.materialize(SOURCE_PREFIX+row["path"],row["gitsha"],project/row["path"])
@@ -284,7 +334,7 @@ def main():
   env=dict(PYTHONDONTWRITEBYTECODE="1",PYTHONPATH=context["reference"],LC_ALL="C.UTF-8",LANG="C.UTF-8")
   roles={};pairs={}
   for i,component in enumerate(COMPONENTS,1):
-   build=project/"development"/("build-"+component+"-r1")
+   build=project/"development"/("build-"+component+"-r2")
    args=[context["python"],"-B",project/"tools/build_hia_checked_plan.py",
      "--reference",context["reference"],"--compiler",context["compiler"],"--out",build,"--component",component]
    if component in WIRE:
@@ -303,6 +353,8 @@ def main():
       original(path,"HIA_CHECKED_PLAN_BUILD_STDERR")
      for path in sorted(build.glob("profile-before-gates.json")):
       original(path,"HIA_CHECKED_PLAN_PROFILE_ORIGINAL")
+     for path in sorted(build.glob("full-SSA-alpha-proof.json")):
+      original(path,"HIA_CHECKED_PLAN_SSA_ALPHA_ORIGINAL")
    value=report["builds"][component]
    assert value["status"]=="PASS_BUILD_ONLY" and value["compilations"]==1
    assert value["actual_limits"]==LIMITS and value["native_semantic_entries"]==0
@@ -316,6 +368,8 @@ def main():
    if component in WIRE:expected_author=WIRE[component]["sha256"]
    assert m["author_sha256"]==expected_author
    report["builds"][component]["independent_gate_readback"]=gates(build,m)
+   if component in WIRE:
+    report["builds"][component]["independent_SSA_inverse_readback"]=alpha_readback(build,m)
    roles[str(i)]=dict(name=component,manifest=m)
    pairs[component]={kind:dict(path=m[kind+"_path"],bytes=m[kind+"_bytes"],sha256=m[kind+"_sha256"],
          mode=stat.S_IMODE(Path(m[kind+"_path"]).stat().st_mode)) for kind in("source","image")}
@@ -324,7 +378,7 @@ def main():
   save(assets,dict(schema="hia-plan-development-runtime-assets-v1",roles=roles,
        actual_fresh_B3_compilations=5,old_results_inherited=False))
   for group,variant,count,private in SCHEDULE:
-   label=group+"-"+str(variant);out=project/"development"/("native-"+label+"-r1")
+   label=group+"-"+str(variant);out=project/"development"/("native-"+label+"-r2")
    try:
     common.run("checked-plan-native-"+label,[context["python"],"-B",project/"tests/test_hia_checked_plan.py",
        "--assets",assets,"--reference",context["reference"],"--out",out,"--group",group,"--variant",str(variant)],
@@ -373,6 +427,6 @@ def main():
  finally:
   roots={}
   if project is not None and project.exists():roots["checked-plan"]=project
-  seal.finish(common,"checked-machine-plan-r1",status,report,roots=roots)
+  seal.finish(common,"checked-machine-plan-r2",status,report,roots=roots)
  if status!="PASS":raise SystemExit(1)
 if __name__=="__main__":main()

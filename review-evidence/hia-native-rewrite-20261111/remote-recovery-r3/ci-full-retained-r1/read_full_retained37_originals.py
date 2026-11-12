@@ -1,6 +1,6 @@
 """Read only the exact completed full-retained37 evidence; execute no target."""
 from __future__ import annotations
-import base64,hashlib,json,os,resource,stat,sys,tarfile,time,traceback
+import base64,gzip,hashlib,json,os,resource,stat,sys,tarfile,time,traceback
 from pathlib import Path,PurePosixPath
 sys.dont_write_bytecode=True
 resource.setrlimit(resource.RLIMIT_CPU,(90,90))
@@ -142,9 +142,18 @@ try:
     payloads=[]
     for name in ("QUALIFICATION.json","full-retained-regression.json"):
         raw=original(name)
+        encoded=raw;encoding="base64"
+        if len(raw)>250000:
+            encoded=gzip.compress(raw,compresslevel=9,mtime=0)
+            assert gzip.decompress(encoded)==raw,"complete original gzip reverse mismatch"
+            encoding="base64+gzip"
+            target=OUT/"console-encoded"/(name+".gz")
+            target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_bytes(encoded)
         payloads.append("HIA_FULL_RETAINED37_ORIGINAL "+json.dumps(dict(
             name="qualification/"+name,bytes=len(raw),sha256=sha(raw),
-            encoding="base64",data=base64.b64encode(raw).decode()),sort_keys=True))
+            encoding=encoding,encoded_bytes=len(encoded),encoded_sha256=sha(encoded),
+            data=base64.b64encode(encoded).decode()),sort_keys=True))
     assert sum(len(x.encode()) for x in payloads)<900000,"do not truncate original console evidence"
     for line in payloads:print(line,flush=True)
     status="PASS_READ_ONLY"

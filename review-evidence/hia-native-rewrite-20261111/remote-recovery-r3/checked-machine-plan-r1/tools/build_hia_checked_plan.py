@@ -11,6 +11,7 @@ import argparse,importlib.abc,importlib.util,json,resource,stat,sys,time,traceba
 sys.dont_write_bytecode=True
 COMPILER_SHA="35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"
 PINS={
+ "tools/hia_frozen_ssa_rename.py":"ceafde9ccf11f5d58de8519821e8b29061de9c967c636a63901735c93f3f419b",
  "tools/hia_checked_machine_plan.py":"8fd64a521afb771255d112e40fe7586b1c46c69f343fe5bdd6d42e643d205336",
  "tools/hia_checked_plan_controller.py":"d15c8141db699d1f6df0e6753f6220905903911cf6bd1a01accc41fbbf5103f6",
  "tools/hia_composite_lowering_driver_common.py":"fe63327671ea51ca950b955512a0f574d706176a4a8d050e3f8f12c83ef5e3a1",
@@ -81,6 +82,7 @@ def main():
   assert owner.REFERENCE_SHA==PINS["reference/hia_machine_plan.py"]
   assert owner.CORE_REFERENCE_SHA==PINS["reference/hia_program.py"]
   assert control.OWNER_SHA==PINS["tools/hia_checked_machine_plan.py"] and control.COMMON_SHA==PINS["tools/hia_composite_lowering_driver_common.py"]
+  alpha=load("checked_plan_frozen_ssa",root/"tools/hia_frozen_ssa_rename.py",PINS["tools/hia_frozen_ssa_rename.py"])
   from hepta.hia_agent_assembly import render_assembly,assemble_program
   import tools.qualify_hia_selfhost as qualifier
   assert Path(qualifier.__file__).resolve()==reference/"tools/qualify_hia_selfhost.py"
@@ -88,9 +90,22 @@ def main():
   if component in WIRE:
    assert args.wire_source is not None
    source=read(args.wire_source,WIRE[component]["sha256"]);assert len(source)==WIRE[component]["bytes"]
-   document=assemble_program(source).as_dict()
-   scope=dict(kind="EXACT_PUBLISHED_COMPLETE_HIA_SOURCE_FRESH_B3",source_identity=WIRE[component])
-   owner_sha=digest(source)
+   original_source=source
+   original_document=assemble_program(source).as_dict()
+   (out/"original-frozen.hiaasm").write_bytes(original_source)
+   save(out/"original-frozen.document.json",original_document)
+   document,alpha_proof=alpha.rename(original_document)
+   source=render_assembly(document).encode("utf-8")
+   assert assemble_program(source).as_dict()==document
+   assert author.profile(document)==author.profile(original_document)
+   alpha_proof.update(original_source_bytes=len(original_source),original_source_sha256=digest(original_source),
+      revised_source_bytes=len(source),revised_source_sha256=digest(source),
+      transform_source_sha256=PINS["tools/hia_frozen_ssa_rename.py"])
+   save(out/"full-SSA-alpha-proof.json",alpha_proof)
+   scope=dict(kind="BIJECTIVE_SSA_RENAME_OF_EXACT_PUBLISHED_HIA_FRESH_B3",
+      original_source_identity=WIRE[component],transform_source_sha256=PINS["tools/hia_frozen_ssa_rename.py"],
+      complete_inverse_document_equal=True,only_SSA_spelling_changed=True)
+   owner_sha=digest(original_source)
   else:
    assert args.wire_source is None
    if component=="controller":

@@ -1,8 +1,31 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW45）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW46）
 
 ## 当前结论
 
-**整套仍为 OPEN。完整保留版28阶段回归和固定Worker程序服务已实际通过；impact仍有一个大输入CPU阻塞，issuedFS物理整组仍超时，完整Emitter与公开诊断、Store/SQL、各平台/API、原生安装和冷启动尚未闭合。生产入口仍依赖Python，本提交生产激活0、旧实现删除0。**
+**整套仍为 OPEN。完整保留版4,157项回归和固定Worker程序服务实际通过；Emitter三轮原件已覆盖55组732案。impact大输入CPU、issuedFS整组、公开诊断、Store/SQL、完整公开工具链、各平台/API和HIA原生安装仍未闭合。生产入口仍依赖Python；生产激活0、旧实现删除0。**
+
+## FOLLOW46 最新状态（2026-11-12 10:48:42 UTC）
+
+父状态FOLLOW45 `19c9343da44ef5822c02209638b4f24a5dd7e1c2` / tree `46a7bc986926ea84d7efea0523694e43c280ad07` /6,270文件。当前整套OPEN、生产激活0、旧实现删除0。FOLLOW45的642份活动源码预检查实际SUCCESS；本轮656份源码仍须在精确提交上重新检查。
+
+### 已完整核实的实际结果
+
+- 全保留回归37的精确原件现确认：**4,157项加载、4,157项实际执行，errors/failures/skipped/expected failures/unexpected successes均0；28阶段全部成功**。只读45 job131126029128完整读取33,465成员、30,113普通文件和3,713,148,003原字节，所有成员模式/摘要及下载输入before/after相等。原QUALIFICATION全文1,054,407B、原regression JSON178B已在reader工件13935607086完整保存。该reader最终仍FAIL：所有归档/回归断言之后，完整控制台base64超900,000B安全限额；不能把reader终态改成PASS。下一版只对大原件做可逆gzip、核完整解压和编码/原始双摘要，保留全部raw文件及原console限额。旧4157/187errors/1failure/18skips的原FAIL/HOLD仍原样保存。此成功属于完整保留版，whole_native_delivery_qualified仍false。
+- Emitter44 job131116461034实际SUCCESS：11次fresh B3，剩余9组60案、3,784次native入口、50私有controls全部PASS。六protocol组共2,345入口，两个late为549/618，profile8案为272。根从39/41完整原JSON文本和44九份原JSON独立计算：三个实际run的成功集合恰好覆盖原55组、732案、1,554,267入口；没有重叠或遗漏。**这是三轮覆盖并集，不是单轮55组PASS**。原39/41失败、完整原日志和原JSON均保留；public backend/外层输入/安装仍OPEN。本轮仅保存该结果，不重跑Emitter。
+- checked-plan44原snapshot fresh B3成功；wire_scan在生成profile时maxSSA2187触发原SSA<2048门，wire_scan B3=0、全部语义=0。新修订仅对冻结HIA文档中的SSA标识做双射重命名，要求逆映射后整个原文档严格相等；函数/块/边/ops/types/attrs/literals/order均不变。仍要求5次fresh B3、55组679案和119私有controls。不得新增或声称存在128ops/block门。
+- Worker bridge45 job131126028955的23次fresh B3和1次HIA packer通过，四个runtime组均实际尝试，但完整案例为0；每组真实P16成功后，output owner错误核验decoder复用scratch中的旧入参，实际reason1057拒绝。完整513,239B原log及逐字原打印JSON保全；旧SSA修复成功不代表整桥通过。真实decoder scratch契约修复另行继续，本轮不伪造结果。
+- P16 private45 job131126029053完成83个controls/630次native入口，第84个child-binding-9触发旧harness硬断首返回NEED；冻结catalog对error999应返回BAD。完整453,707B原log和原JSON保全，具体单次返回寄存器没有从原log猜测。本轮只执行原索引83..99的17个controls，要求实际BAD并将原ACK原样交给真实父层、检查永久拒绝；7个fresh source/image必须同时与44/45原身份相等。原83和其它177成功案不重计。四个公开全文失败、groups6/9及完整上下文仍OPEN。
+- UnixOpen45 job131126031828实际FAIL于HIA author的unsupported Break，尚未进入B3、C reference、VM或native；源码不变。完整429,596B原log已保存，console投影明确不是工件中4,954B完整summary。r2仅把唯一break改为原Builder支持的短路while，反向替换必须逐字恢复原25,163B source；六原C函数、全部fixtures/validator、85语义案/42protocol/88原C调用及所有预算均保留。18个effect peers仍foreign，不能称普通Store完成。
+
+### 本轮新增的实际验收入口
+
+- 原namespace参考成本诊断先核完整42工件4,272成员，然后为6角色确定性选择first/last/max-workspace原窗口，至多18个。每个窗口使用两个fresh原Machine执行，分别记录分段CPU/wall与完整cProfile；完整return/input/output/workspace/steps逐字比较。整诊断仍90CPU/180wall/1GiB，0B3、0native，不重跑原900秒套件；尚未以任何候选优化替代原reference。
+- 原生type-context owner和reader计划3次fresh原0e09 B3，7组118案（54公共oracle场景、64私有reader controls），33种完整上下文及6个操作。必须先逐字重现旧owner，再比较完整旧/新128MiB workspace和64MiB output；仅明确排除新64B context及5个原error6→公共正确error5的优先级字。真实program/constructor/services的context续接仍待完成，这个独立门不会提前关闭四个公开P16差异。
+- 精确选择6个tag：checked-plan、namespace reference成本、type-context、UnixOpen r2、全回归只读证据输出修复、P16剩余17controls。新源码在提交前0新AST/HIA/B3/VM/native；133个workflow job保留133个Ubuntu24.04/x86_64域门。33个被替代旧活动路径只退出当前语法选择，旧文件全部仍在树中。
+
+原B3 10CPU/20wall/256MiB及各1MiB容量、Bootstrap128functions/1536blocks/8192ops/256blocks-per-function/16params/SSA<2048、公共1024函数、整组90CPU/180wall/1GiB和物理900wall全部不变。impact大输入的实际原生90秒CPU阻塞继续用机械计时定位；公开编译/CLI、Worker/namespace/Store/SQL、各平台/API、HIA安装器和原生冷启动仍须逐项闭合。
+
+证据定位：[保留回归37](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43180758665)、[Emitter/checked-plan44](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43198781230)、[实际失败及原件读回45](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43201563676)。完整原JSON/u64保持原字节，计数与解释另列derived文件。
 
 ## FOLLOW45 最新状态（2026-11-12 10:25:48 UTC）
 

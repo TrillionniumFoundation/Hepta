@@ -1,0 +1,97 @@
+{
+  "schema": "hia-source-delivery-v1",
+  "base_head": "f8526c3b6f47f6061564707a9fbaa32d2f52704d",
+  "status": "NEW_SOURCE_ONLY_UNEXECUTED",
+  "files": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/reference-cost-diagnostic-r1/profile_recorded_reference_cost.py",
+      "mode": "100644",
+      "blob": "0522f27cc34608a18bb4cd05563249afc573ff1b",
+      "bytes": 15066,
+      "sha256": "638e2fd74f2a50619b9662918f95b0b859c8a99c1d0970a27bd71fd3c20b10e3"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/reference-cost-diagnostic-r1/ci_reference_cost.py",
+      "mode": "100644",
+      "blob": "b0ae79fb34fdf4d9b38a5ab37aec67083e426d63",
+      "bytes": 4873,
+      "sha256": "fc112043232b015fca062aa5d4268ba02ade9a88c6894fb335fa2d944aa022c5"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/reference-cost-diagnostic-r1/original-input.json",
+      "mode": "100644",
+      "blob": "cd95c46b624a7adff88f153be36246e8029acd87",
+      "bytes": 1882,
+      "sha256": "a26fb90ef10afbec7da33dffe852ff4792767c88dc9a28204359193daf348441"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/reference-cost-diagnostic-r1/SCOPE.md",
+      "mode": "100644",
+      "blob": "b6f0aa296b94a39f347275567c24ed607764f671",
+      "bytes": 4554,
+      "sha256": "1f430e48398c6129dc50dae8bac03e57f7b2f9972002163d4430ed60dd7152c5"
+    }
+  ],
+  "required_existing_files": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/issued-fs-follow42-readback/read_issued_fs_follow42.py",
+      "blob": "3c7bb308de6b4481eee44e9bcbe82810d196872c",
+      "bytes": 21159,
+      "sha256": "a2d0b36d9c739afc202785b2fc3acc488c55c126dac53b78e0a9f41c998b9866"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py",
+      "blob": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+      "bytes": 16302,
+      "sha256": "3f18cec28f522722ae11216a9a94c6752d67d29120da2be9525db40ef31f8ae0"
+    }
+  ],
+  "workflow": {
+    "tag": "namespace-reference-cost-diagnostic",
+    "entry": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/reference-cost-diagnostic-r1/ci_reference_cost.py",
+    "python": "3.12.14",
+    "common_prepare": true,
+    "environment": {
+      "HIA_CI_COMMON": "absolute path of exact existing common module",
+      "HIA_CI_OUTPUT": "fresh independent output directory",
+      "HIA_NAMESPACE_COST_ORIGINALS": "download-artifact directory for exact original artifact 13932591885"
+    },
+    "download_artifacts": [
+      {
+        "id": 13932591885,
+        "run_id": 43192344684,
+        "name": "Use exact ID; recursive unique archive/index locator tolerates wrapper directories",
+        "environment": "HIA_NAMESPACE_COST_ORIGINALS"
+      }
+    ],
+    "dependencies": "The same exact common.prepare Python/project dependencies and fixed 0ef/a3c source recovery as existing namespace jobs; no strace, C compiler or B3/native call is used in this diagnostic.",
+    "syntax_files": [
+      "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/reference-cost-diagnostic-r1/profile_recorded_reference_cost.py",
+      "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/reference-cost-diagnostic-r1/ci_reference_cost.py"
+    ],
+    "limits": {
+      "cpu_seconds": 90,
+      "wall_seconds": 180,
+      "address_bytes": 1073741824,
+      "core_bytes": 0,
+      "VM_steps": 4000000,
+      "VM_heap_bytes": 33554432,
+      "VM_call_depth": 64
+    }
+  },
+  "new_counts": {
+    "AST": 0,
+    "VM": 0,
+    "B3": 0,
+    "native": 0
+  },
+  "original_qualifications_unchanged": true,
+  "original_tests_rerun": 0,
+  "expected_on_first_execution": {
+    "diagnostic_windows": "6..18 deterministic existing complete windows; exact observed count only after success",
+    "fresh_VM": "2 per selected window",
+    "fresh_native": 0,
+    "fresh_B3": 0
+  },
+  "scope": "Only selected original VM windows are measured. No whole-suite pass or optimization is claimed."
+}
