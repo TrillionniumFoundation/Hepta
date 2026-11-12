@@ -1,0 +1,1843 @@
+{
+  "schema": "hepta.hia.production-owner-delta.v1",
+  "commit": "acffa9262f31d073f8f0a6f0201eae201039f619",
+  "tree": "22a095436c94efc87b1a89aca912c8caab2eed80",
+  "status": "STATIC_OWNER_AUDIT_NOT_NATIVE_DELIVERY_ACCEPTANCE",
+  "files": [
+    {
+      "path": "hepta/cli.py",
+      "mode": "100644",
+      "bytes": 10886,
+      "sha256": "273bf9217a8f222f694ca26b5a60e6d80120734477ade7a6653cff6fc4bde556",
+      "git_blob_sha1": "95502e6e506e50de23e5bf803f4c572ad445168b",
+      "historical_sha256": "32bd495c8927286005fd6f2eeb224ea6df9752fe15e3ca8a18ce45836c2a0904",
+      "historical_status": "CHANGED",
+      "lines": 198,
+      "family": "entry_cli",
+      "purpose": "Core-only HIA Agent CLI. This hosted bridge still requires Python.",
+      "semantic_role": "host_entry_and_remaining_semantic_bodies",
+      "selected_hia_extent": "Explicit HEPTA_HIA_CLI_MANIFEST selects the argv/presentation/action continuation.",
+      "remaining_owner": "Without selection _reference_hia_main remains active. output_json uses json.dumps(indent=2); publish_json_view and ordinary action bodies remain Python owners.",
+      "next_boundary": "Pretty JSON and bounded file reading are separate new owner candidates; publication and semantic action bodies still require their own closures.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_CLI_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 13,
+          "declaration": "def agent_capabilities():"
+        },
+        {
+          "line": 31,
+          "declaration": "def output_json(value):"
+        },
+        {
+          "line": 34,
+          "declaration": "def publish_json_view(value, destination):"
+        },
+        {
+          "line": 54,
+          "declaration": "def _reference_hia_main(argv=None):"
+        },
+        {
+          "line": 191,
+          "declaration": "def hia_main(argv=None):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 31,
+          "text": "def output_json(value):"
+        },
+        {
+          "line": 34,
+          "text": "def publish_json_view(value, destination):"
+        },
+        {
+          "line": 54,
+          "text": "def _reference_hia_main(argv=None):"
+        },
+        {
+          "line": 191,
+          "text": "def hia_main(argv=None):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_agent_contract.py",
+      "mode": "100644",
+      "bytes": 20832,
+      "sha256": "830a310faf44b39a76f28eaf108f863ff016152fcdb5d4b5d62c3572fa878620",
+      "git_blob_sha1": "002c03e6f46a78a3e7a938e7049504c22a0d4633",
+      "historical_sha256": "5878c0b188cb4a31f486e4a2b6f261a30fb20c06da810cd5f079746956abb2f7",
+      "historical_status": "CHANGED",
+      "lines": 406,
+      "family": "agent_contract_service",
+      "purpose": "Closed wire contract and discoverable execution profiles for HIA tools.",
+      "semantic_role": "host_contract_and_source_identity_owner",
+      "selected_hia_extent": "Native resources are included in installation identity; this does not move catalog validation into HIA.",
+      "remaining_owner": "catalog/check_vocabulary/validate, recursive JSON-Schema decisions, filesystem enumeration and installation_manifest remain Python.",
+      "next_boundary": "Migrate the closed catalog vocabulary/validation state machine separately from source-custody and filesystem observations.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [],
+      "top_level_definitions": [
+        {
+          "line": 123,
+          "declaration": "def catalog():"
+        },
+        {
+          "line": 132,
+          "declaration": "def installation_manifest():"
+        },
+        {
+          "line": 156,
+          "declaration": "def check_vocabulary(schema):"
+        },
+        {
+          "line": 173,
+          "declaration": "def validate(value, schema, label=\"arguments\"):"
+        },
+        {
+          "line": 264,
+          "declaration": "def _valid(value, schema):"
+        },
+        {
+          "line": 272,
+          "declaration": "def input_diagnostic(tool, arguments, *, catalog_document=None):"
+        },
+        {
+          "line": 294,
+          "declaration": "def obj(properties, required=None):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 123,
+          "text": "def catalog():"
+        },
+        {
+          "line": 132,
+          "text": "def installation_manifest():"
+        },
+        {
+          "line": 156,
+          "text": "def check_vocabulary(schema):"
+        },
+        {
+          "line": 173,
+          "text": "def validate(value, schema, label=\"arguments\"):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_agent_service.py",
+      "mode": "100644",
+      "bytes": 101065,
+      "sha256": "1d8180c6a3d009350edeec5b055b9f35dbfcc84ae38d8dcd0a8cf110ad4c59c4",
+      "git_blob_sha1": "e8eb3f28e77d9e4c7d3b3f3ea018d8cec76b9271",
+      "historical_sha256": "684caf496de7e3e7c8db1fd80ef616139cf13717aa5879bbd2d6ebf834df9330",
+      "historical_status": "CHANGED",
+      "lines": 1443,
+      "family": "agent_contract_service",
+      "purpose": "Implemented HIA tool domain: explicit Agent decisions, direct native bytes.",
+      "semantic_role": "host_business_service_with_selected_slices",
+      "selected_hia_extent": "call can select the HIA journal; _hia_read can select HIA artifact-page policy; candidate patching has a separate selector.",
+      "remaining_owner": "Profiles, context admission, budgets, verify/proof, compile/evaluate, adoption/rollback, slot/lease authority and actual SQL/service calls remain Python. Selecting journal/page does not replace these business methods.",
+      "next_boundary": "Separate request/journal selection from context/slot/lease and native execution authority; preserve atomic response/effect transactions.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_AGENT_JOURNAL_MANIFEST",
+        "HEPTA_HIA_ARTIFACT_PAGE_MANIFEST",
+        "HEPTA_HIA_CORE_PATCH_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 34,
+          "declaration": "def _now():"
+        },
+        {
+          "line": 38,
+          "declaration": "def _signatures(program, foreign_buffer_exports=()):"
+        },
+        {
+          "line": 58,
+          "declaration": "def _vm_observation(program, case, *, steps=1_000_000, heap=16 * 1024 * 1024,"
+        },
+        {
+          "line": 75,
+          "declaration": "def _value_observation(observation):"
+        },
+        {
+          "line": 82,
+          "declaration": "class HIAAgentService:"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 238,
+          "text": "    def call(self, tool, arguments):"
+        },
+        {
+          "line": 245,
+          "text": "    def _reference_call(self, tool, arguments):"
+        },
+        {
+          "line": 400,
+          "text": "    def _hia_read(self, args):"
+        },
+        {
+          "line": 454,
+          "text": "    def _hia_context(self, args):"
+        },
+        {
+          "line": 1088,
+          "text": "    def _hia_evaluate(self, args):"
+        },
+        {
+          "line": 1299,
+          "text": "    def _hia_adopt(self, args):"
+        },
+        {
+          "line": 1352,
+          "text": "    def _hia_rollback(self, args):"
+        },
+        {
+          "line": 1379,
+          "text": "    def acquire_slot(self, target_slot):"
+        },
+        {
+          "line": 1404,
+          "text": "    def invoke_lease(self, lease, function, arguments):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_agent_store.py",
+      "mode": "100644",
+      "bytes": 21838,
+      "sha256": "822a493b7c6096934af384099eaadd5c4467c6d89193dc3f695887aca256e579",
+      "git_blob_sha1": "935fd9b5c327f91407f9e910afa23edd0f01f04f",
+      "historical_sha256": "fae25d48a6de7187ed465287c1491af74214ac8bf3eae2af921bd100a247b822",
+      "historical_status": "CHANGED",
+      "lines": 490,
+      "family": "agent_contract_service",
+      "purpose": "Private, durable identities for HIA tools; digests are never authority.",
+      "semantic_role": "host_store_with_selected_authority_and_file_slices",
+      "selected_hia_extent": "Six authority modes (_ref/get/resolve_uri/profile/check_profile/put) select HIA; artifact file operations, JSON, numeric identity and binary64 are independent selectors.",
+      "remaining_owner": "State/artifact directory admission, SQLite connection/WAL/FULL setup and ten-table schema, transaction BEGIN/ROLLBACK/COMMIT, capture_path and stable_read stay hosted. Unselected six-method reference implementations and immutable file publisher remain.",
+      "next_boundary": "A native persistent-store replacement needs separate SQL/storage/crash-recovery ownership, not just authority-policy migration.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST",
+        "HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST",
+        "HEPTA_HIA_AGENT_BINARY64_MANIFEST",
+        "HEPTA_HIA_AGENT_DATA_JSON_MANIFEST",
+        "HEPTA_HIA_AGENT_IDENTITY_MANIFEST",
+        "HEPTA_HIA_AGENT_STORE_AUTHORITY_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 28,
+          "declaration": "class AgentRejected(ValueError):"
+        },
+        {
+          "line": 35,
+          "declaration": "def wire(value):"
+        },
+        {
+          "line": 45,
+          "declaration": "def digest(value):"
+        },
+        {
+          "line": 49,
+          "declaration": "def decode_data(payload):"
+        },
+        {
+          "line": 122,
+          "declaration": "def reject(code, message, phase=\"admission\", **kwargs):"
+        },
+        {
+          "line": 126,
+          "declaration": "def keys(value, required, optional=(), label=\"object\"):"
+        },
+        {
+          "line": 132,
+          "declaration": "def _agent_resource_path(name):"
+        },
+        {
+          "line": 142,
+          "declaration": "def _reference_uint64(value):"
+        },
+        {
+          "line": 150,
+          "declaration": "def _reference_digest(value):"
+        },
+        {
+          "line": 154,
+          "declaration": "def _native_agent_identity():"
+        },
+        {
+          "line": 162,
+          "declaration": "def canonical_digest(value):"
+        },
+        {
+          "line": 167,
+          "declaration": "def uint64(value, label):"
+        },
+        {
+          "line": 175,
+          "declaration": "def stable_read(path, limit, *, dir_fd=None):"
+        },
+        {
+          "line": 194,
+          "declaration": "def capture_path(path, roots, limit):"
+        },
+        {
+          "line": 235,
+          "declaration": "def _native_artifact_rejection(exc):"
+        },
+        {
+          "line": 244,
+          "declaration": "def _native_artifact_admission():"
+        },
+        {
+          "line": 253,
+          "declaration": "def _native_artifact_file(operation,root,*,data=b'',content_hash='-',_admission=None):"
+        },
+        {
+          "line": 266,
+          "declaration": "def _selected_store_authority():"
+        },
+        {
+          "line": 273,
+          "declaration": "class AgentStore:"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 175,
+          "text": "def stable_read(path, limit, *, dir_fd=None):"
+        },
+        {
+          "line": 194,
+          "text": "def capture_path(path, roots, limit):"
+        },
+        {
+          "line": 266,
+          "text": "def _selected_store_authority():"
+        },
+        {
+          "line": 273,
+          "text": "class AgentStore:"
+        },
+        {
+          "line": 346,
+          "text": "    def transaction(self):"
+        },
+        {
+          "line": 360,
+          "text": "    def put(self, data, kind, metadata=None):"
+        },
+        {
+          "line": 426,
+          "text": "    def get(self, ref, *, kind=None):"
+        },
+        {
+          "line": 446,
+          "text": "    def get_json(self, ref, *, kind=None):"
+        },
+        {
+          "line": 477,
+          "text": "    def check_profile(self, ref, expected):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_agent_store_authority_native.py",
+      "mode": "100644",
+      "bytes": 13331,
+      "sha256": "d8a565fb52df4c3f14bec06679eebeacf99b3868e6c16e5d05f8ce9c6c1d923a",
+      "git_blob_sha1": "3424f046d10f18f176d9624bb1c0ed4253135bc7",
+      "historical_sha256": null,
+      "historical_status": "ADDED",
+      "lines": 310,
+      "family": "agent_contract_service",
+      "purpose": "Explicit HIA AgentStore reference/profile authority; hosted SQL and file IO.",
+      "semantic_role": "selected_hia_policy_with_foreign_store_effects",
+      "selected_hia_extent": "Continuation chooses reference/profile lookups, identity comparisons, refusals and put/metadata route for modes 0..5.",
+      "remaining_owner": "SQL execute/fetch, Store methods, retained keys() admission, JSON/sha/file adapters and _retained_publish_file are explicit foreign effects. Python object handles/materialization and image custody remain.",
+      "next_boundary": "Compose independent JSON/file owners and replace persistence; this module is not a native database.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_AGENT_STORE_AUTHORITY_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 25,
+          "declaration": "def _retained_publish_file(store, content_hash, data):"
+        },
+        {
+          "line": 55,
+          "declaration": "class StoreGraphObserver(WorkerGraphObserver):"
+        },
+        {
+          "line": 93,
+          "declaration": "class StoreAuthoritySession:"
+        },
+        {
+          "line": 304,
+          "declaration": "class NativeAgentStoreAuthority(NativeHiaJsonImage):"
+        },
+        {
+          "line": 309,
+          "declaration": "def installed_agent_store_authority(path):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 25,
+          "text": "def _retained_publish_file(store, content_hash, data):"
+        },
+        {
+          "line": 93,
+          "text": "class StoreAuthoritySession:"
+        },
+        {
+          "line": 309,
+          "text": "def installed_agent_store_authority(path):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_agent_worker.py",
+      "mode": "100644",
+      "bytes": 7703,
+      "sha256": "0e20cc05560856c9dbe2eb1abb63f3d10b0e0dc23857d2d204ad2af0f32ad96d",
+      "git_blob_sha1": "435eceba05638b04b6b52272f273d9969fbaabd3",
+      "historical_sha256": "1913586fce92813ebb57b135e75ccfa34bdf17f708c4fe2c0aeacfa4796b1d40",
+      "historical_status": "CHANGED",
+      "lines": 137,
+      "family": "agent_contract_service",
+      "purpose": "Pinned one-request worker used by hepta-runtime's existing process owner.",
+      "semantic_role": "host_worker_entry_with_selected_report_and_request",
+      "selected_hia_extent": "Report/control and request admission have independent selectors.",
+      "remaining_owner": "argparse, installation_manifest, stdin/stdout, Python service construction/calls, unselected _reference_run/_reference_admission remain. Rust runtime owns MCP, authorization, jobs and cancellation.",
+      "next_boundary": "Close the complete selected chain and replace hosted entry/IO/runtime dependencies before claiming a Python-free worker.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_WORKER_REPORT_MANIFEST",
+        "HEPTA_HIA_WORKER_REQUEST_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 20,
+          "declaration": "def main(argv=None):"
+        },
+        {
+          "line": 38,
+          "declaration": "def _reference_run(args, parser, identities):"
+        },
+        {
+          "line": 110,
+          "declaration": "def _reference_admission(raw, identities, assigned):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 20,
+          "text": "def main(argv=None):"
+        },
+        {
+          "line": 38,
+          "text": "def _reference_run(args, parser, identities):"
+        },
+        {
+          "line": 110,
+          "text": "def _reference_admission(raw, identities, assigned):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_artifact_page_native.py",
+      "mode": "100644",
+      "bytes": 14759,
+      "sha256": "fae7a042f41488d7e02530d8d81fd695efe21b8a9671d2e448a4820f8da6c814",
+      "git_blob_sha1": "e396e79632e50e4f214c87a58ac2c9ade90e45cc",
+      "historical_sha256": null,
+      "historical_status": "ADDED",
+      "lines": 315,
+      "family": "agent_contract_service",
+      "purpose": "Explicit HIA artifact-page policy with a mechanical Store/SQL boundary.",
+      "semantic_role": "selected_hia_page_policy_with_foreign_sql_io",
+      "selected_hia_extent": "HIA owns complete-artifact UTF-8 classification, safe page boundaries, base64, both wire budgets, cursor binding and issuance decisions.",
+      "remaining_owner": "Store.get, SQL, actual artifact bytes, UUID/digest/decoder/codec observations and Python object construction remain explicit effects. Declared public profile is not every arbitrary private Store replacement/page request.",
+      "next_boundary": "Keep whole artifact bytes and cursor side-effect ordering controls; storage and full public-service migration are separate.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST",
+        "HEPTA_HIA_ARTIFACT_PAGE_MANIFEST",
+        "HEPTA_HIA_JSON_WIRE_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 45,
+          "declaration": "class PageGraphObserver:"
+        },
+        {
+          "line": 138,
+          "declaration": "class PageSession:"
+        },
+        {
+          "line": 272,
+          "declaration": "class NativeArtifactPage:"
+        },
+        {
+          "line": 280,
+          "declaration": "def installed_artifact_page(path):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 138,
+          "text": "class PageSession:"
+        },
+        {
+          "line": 148,
+          "text": "    def step(self, packet=None):"
+        },
+        {
+          "line": 181,
+          "text": "    def observe(self):"
+        },
+        {
+          "line": 272,
+          "text": "class NativeArtifactPage:"
+        },
+        {
+          "line": 280,
+          "text": "def installed_artifact_page(path):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_cli_native.py",
+      "mode": "100644",
+      "bytes": 27104,
+      "sha256": "365372dade64c0e814890f54e1bcc86698e16548b11270418c62bcd863f53d27",
+      "git_blob_sha1": "16d3c8328c7ec5bd3dce37b1cd8ffa8c826d50f0",
+      "historical_sha256": null,
+      "historical_status": "ADDED",
+      "lines": 592,
+      "family": "entry_cli",
+      "purpose": "Explicit HIA argv, presentation and fifteen-action CLI continuation.",
+      "semantic_role": "selected_hia_cli_control_with_retained_action_bodies",
+      "selected_hia_extent": "Two images own argv decisions, help/error presentation, fifteen-action sequencing, input budgets, report updates and exit decisions.",
+      "remaining_owner": "Effect dispatcher calls existing assembly, verification, edit/batch/patch, build, publication and output_json bodies. Fixed CPython 3.12.14/3.14.4/3.14.10 presentation profile is explicit; arbitrary argparse/theme/foreign argv behavior is not claimed.",
+      "next_boundary": "Bounded reader and pretty JSON are useful independent slices; action-body and default activation closures remain.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_CLI_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 48,
+          "declaration": "def _utf32(value):"
+        },
+        {
+          "line": 54,
+          "declaration": "def _text(raw):"
+        },
+        {
+          "line": 63,
+          "declaration": "def _q(buffer, offset):"
+        },
+        {
+          "line": 67,
+          "declaration": "def _frame(arguments, version, environment, profile, columns, color_terminal, ignore_environment, digit_limit):"
+        },
+        {
+          "line": 95,
+          "declaration": "def _runtime_profile():"
+        },
+        {
+          "line": 103,
+          "declaration": "def _terminal_columns():"
+        },
+        {
+          "line": 112,
+          "declaration": "def _color_terminal():"
+        },
+        {
+          "line": 123,
+          "declaration": "def _print_parser_message(message, stream):"
+        },
+        {
+          "line": 133,
+          "declaration": "def _publish_assembly(program, text, destination):"
+        },
+        {
+          "line": 156,
+          "declaration": "class NativeCli:"
+        },
+        {
+          "line": 239,
+          "declaration": "class CliSession:"
+        },
+        {
+          "line": 538,
+          "declaration": "def _relative_path(value):"
+        },
+        {
+          "line": 544,
+          "declaration": "def installed_cli(manifest_path):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 95,
+          "text": "def _runtime_profile():"
+        },
+        {
+          "line": 133,
+          "text": "def _publish_assembly(program, text, destination):"
+        },
+        {
+          "line": 365,
+          "text": "    def _effect(self, operation, a, b, c, d):"
+        },
+        {
+          "line": 544,
+          "text": "def installed_cli(manifest_path):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_core_lowering_native.py",
+      "mode": "100644",
+      "bytes": 19680,
+      "sha256": "be6dae422def11727f96885df8474f57d4169ae05edb9f35bc89e08746aaabea",
+      "git_blob_sha1": "011d3539b6387f8a6174071f2171240404ce8f89",
+      "historical_sha256": null,
+      "historical_status": "ADDED",
+      "lines": 462,
+      "family": "direct_machine_backend",
+      "purpose": "Primitive observation bridge for complete HIA Function lowering.",
+      "semantic_role": "selected_hia_function_lowering_with_primitive_observer",
+      "selected_hia_extent": "HIA chooses Function lowering primitives, operands, continuations and branches. Host observer performs requested arithmetic/object/call effects.",
+      "remaining_owner": "Foreign Python object/runtime behavior, source bundle admission and all surrounding _Emitter/build/publication orchestration remain outside this slice.",
+      "next_boundary": "Root's later complete emitter candidate must be qualified separately; acffa still has a Python _Emitter.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [],
+      "top_level_definitions": [
+        {
+          "line": 36,
+          "declaration": "def _in(left, right):"
+        },
+        {
+          "line": 40,
+          "declaration": "def _not_in(left, right):"
+        },
+        {
+          "line": 47,
+          "declaration": "def _decode_pool(raw, expected_count):"
+        },
+        {
+          "line": 92,
+          "declaration": "class LoweringSession:"
+        },
+        {
+          "line": 331,
+          "declaration": "class NativeCoreLowering:"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 92,
+          "text": "class LoweringSession:"
+        },
+        {
+          "line": 215,
+          "text": "    def _primitive(self, opcode, args, vector):"
+        },
+        {
+          "line": 331,
+          "text": "class NativeCoreLowering:"
+        },
+        {
+          "line": 388,
+          "text": "    def function_class(self, base):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_core_lowering_selection.py",
+      "mode": "100644",
+      "bytes": 9798,
+      "sha256": "9a0b40975861a4bfd4014e2985c2311555354edf79ae41435571b257631703e4",
+      "git_blob_sha1": "d3d0367281dec999952230f9e7983146e67260e1",
+      "historical_sha256": null,
+      "historical_status": "ADDED",
+      "lines": 222,
+      "family": "direct_machine_backend",
+      "purpose": "Explicit source-bound selection for the HIA Core Function control owner.",
+      "semantic_role": "host_native_bundle_custody_and_explicit_selection",
+      "selected_hia_extent": "Admits and selects the fixed HIA Function/helper bundle and its ABI; no selection returns None.",
+      "remaining_owner": "Manifest/ABI JSON parsing, path admission, source/compiler/image hashes, LRU reuse, ContextVar and object construction are hosted custody.",
+      "next_boundary": "Preserve source-before/image association and scoped selection; custody is not itself HIA lowering.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_CORE_LOWERING_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 45,
+          "declaration": "def _json(raw):"
+        },
+        {
+          "line": 49,
+          "declaration": "def _digest(value):"
+        },
+        {
+          "line": 53,
+          "declaration": "def checked_abi(raw):"
+        },
+        {
+          "line": 84,
+          "declaration": "def source_names(abi):"
+        },
+        {
+          "line": 89,
+          "declaration": "def _bounded_manifest(path):"
+        },
+        {
+          "line": 98,
+          "declaration": "class _Loaded:"
+        },
+        {
+          "line": 108,
+          "declaration": "def _load_bundle(path, raw, abi_raw, unit_inputs):"
+        },
+        {
+          "line": 138,
+          "declaration": "def installed_core_lowering(manifest_path, namespace):"
+        },
+        {
+          "line": 182,
+          "declaration": "def selected_core_lowering(namespace):"
+        },
+        {
+          "line": 190,
+          "declaration": "def active_core_lowering():"
+        },
+        {
+          "line": 197,
+          "declaration": "def native_core_lowering_scope(namespace):"
+        },
+        {
+          "line": 206,
+          "declaration": "def native_implementation_identity(namespace):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 182,
+          "text": "def selected_core_lowering(namespace):"
+        },
+        {
+          "line": 190,
+          "text": "def active_core_lowering():"
+        },
+        {
+          "line": 197,
+          "text": "def native_core_lowering_scope(namespace):"
+        },
+        {
+          "line": 206,
+          "text": "def native_implementation_identity(namespace):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_json_preflight_native.py",
+      "mode": "100644",
+      "bytes": 8901,
+      "sha256": "6011fad1d2aeb1fa2deb5892c7625978c0a2398fd316b8bd53b51e9eeb7cea3f",
+      "git_blob_sha1": "7b49c4c8fff1f39ddb3958bd354a142d72fd1b6b",
+      "historical_sha256": "94d50a4ba1dcaa5c64e39554c52a28cf22105726b9234a83c6ad62308a31e5b5",
+      "historical_status": "CHANGED",
+      "lines": 196,
+      "family": "json_identity_transport",
+      "purpose": "Explicitly installed Linux x86-64 HIA JSON-preflight candidate.",
+      "semantic_role": "host_native_image_loader_and_preflight_bridge",
+      "selected_hia_extent": "Selected HIA image performs JSON preflight; NativeHiaJsonImage is shared executable ABI infrastructure.",
+      "remaining_owner": "Source lookup, manifest validation, code hashing/mapping, ctypes calls and cache admission are Python. r6b binds immutable admitted_source_sha256 for real NativeHiaJsonImage instances.",
+      "next_boundary": "A Python-free runtime needs a native code-custody/FFI loader, not deletion of this still-used bridge.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [],
+      "top_level_definitions": [
+        {
+          "line": 51,
+          "declaration": "def _source_resource_path(name):"
+        },
+        {
+          "line": 65,
+          "declaration": "def scratch_sizes(size: int, maximum: int, depth: int) -> tuple[int, int]:"
+        },
+        {
+          "line": 73,
+          "declaration": "class NativeHiaJsonImage:"
+        },
+        {
+          "line": 109,
+          "declaration": "class NativeJsonPreflight(NativeHiaJsonImage):"
+        },
+        {
+          "line": 148,
+          "declaration": "def _unique_manifest_pairs(pairs):"
+        },
+        {
+          "line": 158,
+          "declaration": "def _load_manifest(path: str, raw: bytes, source_sha: str, schema: str, factory):"
+        },
+        {
+          "line": 179,
+          "declaration": "def _installed_json_image(manifest_path: str, source: Path, schema: str, factory):"
+        },
+        {
+          "line": 194,
+          "declaration": "def installed_preflight(manifest_path: str) -> NativeJsonPreflight:"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 73,
+          "text": "class NativeHiaJsonImage:"
+        },
+        {
+          "line": 158,
+          "text": "def _load_manifest(path: str, raw: bytes, source_sha: str, schema: str, factory):"
+        },
+        {
+          "line": 179,
+          "text": "def _installed_json_image(manifest_path: str, source: Path, schema: str, factory):"
+        },
+        {
+          "line": 51,
+          "text": "def _source_resource_path(name):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_json_wire_native.py",
+      "mode": "100644",
+      "bytes": 18433,
+      "sha256": "b6034104addb305f30181632284c8eac18ff8871b13c22e18b3bf68ad3638216",
+      "git_blob_sha1": "0889f0c782535db5628169018a8fc09a2ca7bc0c",
+      "historical_sha256": null,
+      "historical_status": "ADDED",
+      "lines": 393,
+      "family": "json_identity_transport",
+      "purpose": "HIA-owned bounded JSON wire with a lazy, mechanical object observer.",
+      "semantic_role": "selected_hia_json_policy_with_foreign_graph_observer",
+      "selected_hia_extent": "HIA owns traversal, admission and bounded output; cached immutable-key protocol is a separate verified capability.",
+      "remaining_owner": "CPython builtin identity/Unicode/int/dict observations, binary64 renderer, buffers and mapped image remain hosted. encode_ordinary explicitly refuses unsupported foreign option/renderer profiles rather than claiming the entire Python call domain.",
+      "next_boundary": "Pretty JSON is not supplied here; generic foreign callback/refcount behavior and runtime removal require their own qualification.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_JSON_WIRE_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 66,
+          "declaration": "class SelectedBinary64Renderer:"
+        },
+        {
+          "line": 83,
+          "declaration": "class GraphObserver(Protocol):"
+        },
+        {
+          "line": 98,
+          "declaration": "class ForeignGraphObserver:"
+        },
+        {
+          "line": 184,
+          "declaration": "def _immutable_key_capability(observer, renderer):"
+        },
+        {
+          "line": 216,
+          "declaration": "def buffer_sizes(maximum, *, key_cache=False):"
+        },
+        {
+          "line": 230,
+          "declaration": "def _flag_fact(value):"
+        },
+        {
+          "line": 246,
+          "declaration": "def _private_zeroed_buffer(size):"
+        },
+        {
+          "line": 266,
+          "declaration": "class WireSession:"
+        },
+        {
+          "line": 369,
+          "declaration": "class NativeJsonWire(NativeHiaJsonImage):"
+        },
+        {
+          "line": 392,
+          "declaration": "def installed_json_wire(path):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 28,
+          "text": "ORDINARY_PROFILE = {"
+        },
+        {
+          "line": 98,
+          "text": "class ForeignGraphObserver:"
+        },
+        {
+          "line": 266,
+          "text": "class WireSession:"
+        },
+        {
+          "line": 381,
+          "text": "    def encode_ordinary(self, value, maximum, *, ensure_ascii=True, sort_keys=True, float_renderer=None):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_machine_elf.py",
+      "mode": "100644",
+      "bytes": 8906,
+      "sha256": "fe5f4462d6ac03203a49bd2939a285f03f0db92bffa32bab63c34df68c93de75",
+      "git_blob_sha1": "1877562a0a47637eb13df2bc3b019a34e3733b9a",
+      "historical_sha256": "c77cc453d33058ccbeea9e056191001982892a3e59386958090122ccf487c101",
+      "historical_status": "CHANGED",
+      "lines": 195,
+      "family": "direct_machine_backend",
+      "purpose": "Deterministic ELF64 relocatable writer for directly encoded HIA x86-64 code.",
+      "semantic_role": "host_selector_with_complete_retained_elf_oracle",
+      "selected_hia_extent": "Explicit ELF selector uses NativeMachineElf and source-bound identity through native_elf_scope.",
+      "remaining_owner": "Complete original write_elf_object remains _reference_write_elf_object and the default. General foreign sorting schedule is not closed by finite ordinary tests.",
+      "next_boundary": "Actual acffa original51 CI HOLD is first priority; then TimSort original-comparison traces, not a Python sort bypass.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_MACHINE_ELF_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 17,
+          "declaration": "class MachineObjectError(ValueError):"
+        },
+        {
+          "line": 21,
+          "declaration": "def _name(value):"
+        },
+        {
+          "line": 27,
+          "declaration": "def _exact_int(value, lower, upper):"
+        },
+        {
+          "line": 31,
+          "declaration": "def write_elf_object(code, symbols, relocations, *, text_alignment=16):"
+        },
+        {
+          "line": 156,
+          "declaration": "def _selected_elf_owner():"
+        },
+        {
+          "line": 168,
+          "declaration": "def native_elf_scope():"
+        },
+        {
+          "line": 177,
+          "declaration": "def native_implementation_identity():"
+        },
+        {
+          "line": 189,
+          "declaration": "def write_elf_object(code, symbols, relocations, *, text_alignment=16):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 31,
+          "text": "def write_elf_object(code, symbols, relocations, *, text_alignment=16):"
+        },
+        {
+          "line": 189,
+          "text": "def write_elf_object(code, symbols, relocations, *, text_alignment=16):"
+        },
+        {
+          "line": 145,
+          "text": "_reference_write_elf_object = write_elf_object"
+        },
+        {
+          "line": 156,
+          "text": "def _selected_elf_owner():"
+        },
+        {
+          "line": 168,
+          "text": "def native_elf_scope():"
+        },
+        {
+          "line": 177,
+          "text": "def native_implementation_identity():"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_machine_elf_native.py",
+      "mode": "100644",
+      "bytes": 12990,
+      "sha256": "2f1ff8e728c2c0459f690ceb47db92ff40daffd762a8d19761f321127e700133",
+      "git_blob_sha1": "3900c01faba6638b622fa93360eb4d5735277e34",
+      "historical_sha256": null,
+      "historical_status": "ADDED",
+      "lines": 323,
+      "family": "direct_machine_backend",
+      "purpose": "Reconstructed static ELF foreign observer, not a new qualification.",
+      "semantic_role": "selected_hia_elf_layout_with_foreign_object_observer",
+      "selected_hia_extent": "HIA owns ET_REL validation order, symbol/relocation tables, layout and output bytes; private continuation requests primitive observations.",
+      "remaining_owner": "Python object/exception/call effects, buffers, struct-compatible conversions and code custody remain. Full original foreign sorting schedule remains OPEN; acffa CI caller gate is HOLD.",
+      "next_boundary": "Recover and fix real original51 failure before new feature work; TimSort candidate/UNKNOWN source authoring are not qualified replacement evidence.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_MACHINE_ELF_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 44,
+          "declaration": "def _private_buffer(size):"
+        },
+        {
+          "line": 49,
+          "declaration": "class ElfSession:"
+        },
+        {
+          "line": 314,
+          "declaration": "class NativeMachineElf(NativeHiaJsonImage):"
+        },
+        {
+          "line": 322,
+          "declaration": "def installed_machine_elf(manifest_path):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 49,
+          "text": "class ElfSession:"
+        },
+        {
+          "line": 314,
+          "text": "class NativeMachineElf(NativeHiaJsonImage):"
+        },
+        {
+          "line": 322,
+          "text": "def installed_machine_elf(manifest_path):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_machine_encoding_native.py",
+      "mode": "100644",
+      "bytes": 11754,
+      "sha256": "c50ca79b2735ab05a88baa45c0828d11f69c22a50271df3f4a48809e1b490579",
+      "git_blob_sha1": "7d315260a74fd2242253131bb2e875cc60a63c8b",
+      "historical_sha256": null,
+      "historical_status": "ADDED",
+      "lines": 255,
+      "family": "direct_machine_backend",
+      "purpose": "Explicitly selected bridge for HIA-owned x86-64 instruction bytes.",
+      "semantic_role": "selected_hia_instruction_bytes_with_optional_additional_owners",
+      "selected_hia_extent": "37 byte commands produce instruction bytes in HIA.",
+      "remaining_owner": "Selecting only encoding retains NativeEncodedCode operand validation, method scheduling, mutable state/labels/fixups behavior in Python. Independent state/instructions selections add those HIA owners.",
+      "next_boundary": "Qualify the composed three-owner path and native loader; byte output alone is not the complete Code API.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_MACHINE_ENCODING_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 35,
+          "declaration": "class NativeMachineEncoding(NativeHiaJsonImage):"
+        },
+        {
+          "line": 58,
+          "declaration": "def _displacement(value):"
+        },
+        {
+          "line": 66,
+          "declaration": "class NativeEncodedCode(reference.Code):"
+        },
+        {
+          "line": 238,
+          "declaration": "def selected_code_class(encoding, state=None, instructions=None):"
+        },
+        {
+          "line": 253,
+          "declaration": "def installed_machine_encoding(manifest_path):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 23,
+          "text": "COMMANDS = ("
+        },
+        {
+          "line": 66,
+          "text": "class NativeEncodedCode(reference.Code):"
+        },
+        {
+          "line": 225,
+          "text": "    def finalize(self):"
+        },
+        {
+          "line": 238,
+          "text": "def selected_code_class(encoding, state=None, instructions=None):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_machine_instructions_native.py",
+      "mode": "100644",
+      "bytes": 7406,
+      "sha256": "d6473c97fe513cb65d6aa20980b6b4935b98c3f1892fca420da3d5701601255f",
+      "git_blob_sha1": "62f81050eb261e9ac66607987d167e39e3a23be0",
+      "historical_sha256": null,
+      "historical_status": "ADDED",
+      "lines": 133,
+      "family": "direct_machine_backend",
+      "purpose": "Primitive object observations requested by HIA instruction control.",
+      "semantic_role": "selected_hia_instruction_control_with_foreign_observer",
+      "selected_hia_extent": "41 instruction methods route to HIA operand decisions and scheduling; requires both byte and state owners.",
+      "remaining_owner": "Primitive Python operations, foreign method behavior and public object custody remain; subclass dispatch is intentionally preserved by Code construction rules.",
+      "next_boundary": "Keep all 41 method paths, nested state/byte actual calls and foreign exception order in the composed gate.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_MACHINE_INSTRUCTIONS_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 22,
+          "declaration": "class MachineInstructionSession(MachineStateSession):"
+        },
+        {
+          "line": 69,
+          "declaration": "class NativeMachineInstructions(NativeHiaJsonImage):"
+        },
+        {
+          "line": 85,
+          "declaration": "def selected_instruction_code_class(encoding,state,instructions):"
+        },
+        {
+          "line": 132,
+          "declaration": "def installed_machine_instructions(manifest_path):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 17,
+          "text": "MODES=('align','mov_rr','mov_imm','load','store','lea','load_u8','store_u8',"
+        },
+        {
+          "line": 22,
+          "text": "class MachineInstructionSession(MachineStateSession):"
+        },
+        {
+          "line": 69,
+          "text": "class NativeMachineInstructions(NativeHiaJsonImage):"
+        },
+        {
+          "line": 85,
+          "text": "def selected_instruction_code_class(encoding,state,instructions):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_machine_plan.py",
+      "mode": "100644",
+      "bytes": 14956,
+      "sha256": "663c05402e25e5e2f114b32001240f31d12dd0893f8e3f8e901b2f4adc9cf794",
+      "git_blob_sha1": "813ef7502aa58fbd157397f0dda1e90869ef3c61",
+      "historical_sha256": "ae3e54c4dc3299ba9b6d0a9b4caec55e26f3233e5699d3a0cab7deb1337efb8a",
+      "historical_status": "CHANGED",
+      "lines": 272,
+      "family": "direct_machine_backend",
+      "purpose": "Checked, explicit Agent choices for the finite direct x86-64 backend.",
+      "semantic_role": "host_plan_entry_with_selected_validation_and_witness",
+      "selected_hia_extent": "Explicit owner replaces validate_plan and register_assignment_witness decisions.",
+      "remaining_owner": "Unselected complete algorithms, code_options construction and preservation_checks report construction remain Python.",
+      "next_boundary": "Keep plan-validation scope separate from backend semantics/refinement and from result-report ownership.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_MACHINE_PLAN_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 42,
+          "declaration": "class MachinePlanRejected(ValueError):"
+        },
+        {
+          "line": 46,
+          "declaration": "def _require(ok, message):"
+        },
+        {
+          "line": 51,
+          "declaration": "def _permutation(order, names, label):"
+        },
+        {
+          "line": 57,
+          "declaration": "def _terminal_arguments(term):"
+        },
+        {
+          "line": 67,
+          "declaration": "def _reference_register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):"
+        },
+        {
+          "line": 139,
+          "declaration": "def _reference_validate_plan(checked, plan):"
+        },
+        {
+          "line": 194,
+          "declaration": "def _selected_owner():"
+        },
+        {
+          "line": 205,
+          "declaration": "def register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):"
+        },
+        {
+          "line": 214,
+          "declaration": "def validate_plan(checked, plan):"
+        },
+        {
+          "line": 226,
+          "declaration": "def native_implementation_identity():"
+        },
+        {
+          "line": 236,
+          "declaration": "def code_options(plan):"
+        },
+        {
+          "line": 244,
+          "declaration": "def preservation_checks(plan, checked=None):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 67,
+          "text": "def _reference_register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):"
+        },
+        {
+          "line": 139,
+          "text": "def _reference_validate_plan(checked, plan):"
+        },
+        {
+          "line": 214,
+          "text": "def validate_plan(checked, plan):"
+        },
+        {
+          "line": 236,
+          "text": "def code_options(plan):"
+        },
+        {
+          "line": 244,
+          "text": "def preservation_checks(plan, checked=None):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_machine_plan_native.py",
+      "mode": "100644",
+      "bytes": 14599,
+      "sha256": "fc72919839a01632ae68748c89e834a7a41a764f9995afefe8c6dc3cfadcbf60",
+      "git_blob_sha1": "a81f9a7128aecb53c1b04d85ff220b2b13f2d9a5",
+      "historical_sha256": null,
+      "historical_status": "ADDED",
+      "lines": 275,
+      "family": "direct_machine_backend",
+      "purpose": "Private native machine-plan sessions and mechanical Core/text observations.",
+      "semantic_role": "selected_hia_plan_policy_with_foreign_core_observations",
+      "selected_hia_extent": "HIA owns plan schemas/choices/permutations, membership, leaf/scalar constraints, inclusive lifetime conflicts and witness ordering.",
+      "remaining_owner": "VerifiedProgram custody, textual/type observations, public witness hook and Python result objects remain foreign boundaries.",
+      "next_boundary": "Preserve observation/exception order and original all-input interface; finite differential counts do not establish a universal theorem.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_MACHINE_PLAN_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 55,
+          "declaration": "def _kind(value):"
+        },
+        {
+          "line": 60,
+          "declaration": "def _text_fact(value):"
+        },
+        {
+          "line": 69,
+          "declaration": "class _Session:"
+        },
+        {
+          "line": 148,
+          "declaration": "class NativeMachinePlan(NativeHiaJsonImage):"
+        },
+        {
+          "line": 273,
+          "declaration": "def installed_machine_plan(manifest_path):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 69,
+          "text": "class _Session:"
+        },
+        {
+          "line": 148,
+          "text": "class NativeMachinePlan(NativeHiaJsonImage):"
+        },
+        {
+          "line": 149,
+          "text": "    def validate(self, checked, plan, witness):"
+        },
+        {
+          "line": 181,
+          "text": "    def witness(self, checked, assignments, *, allow_leaf_registers=False):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_machine_state_native.py",
+      "mode": "100644",
+      "bytes": 10556,
+      "sha256": "ca0b809a670958b1494958ef80ae16b21d19ff74618db13fe0645d195511df41",
+      "git_blob_sha1": "c07009f42506e1a248bb9d68aaebb9d3bea8d729",
+      "historical_sha256": null,
+      "historical_status": "ADDED",
+      "lines": 268,
+      "family": "direct_machine_backend",
+      "purpose": "HIA-owned Code state admission, labels, registers and final fixup ordering.",
+      "semantic_role": "selected_hia_mutable_code_control_with_foreign_storage",
+      "selected_hia_extent": "Six modes own initialize/emit/label/finalize/offset/register decisions while preserving actual public data/labels/fixups/relocations objects.",
+      "remaining_owner": "Mutable Python storage, primitive observation, exception semantics and selected HIA byte encoder ABI remain required.",
+      "next_boundary": "Compose with instruction owner and source-admission binding; replacing a private mirror would not preserve the public mutable API.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_MACHINE_STATE_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 27,
+          "declaration": "class MachineStateSession:"
+        },
+        {
+          "line": 218,
+          "declaration": "class NativeMachineState(NativeHiaJsonImage):"
+        },
+        {
+          "line": 239,
+          "declaration": "def selected_state_code_class(encoding, state):"
+        },
+        {
+          "line": 267,
+          "declaration": "def installed_machine_state(manifest_path):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 24,
+          "text": "MODES = ('initialize', 'emit', 'label', 'finalize', 'offset', 'register')"
+        },
+        {
+          "line": 27,
+          "text": "class MachineStateSession:"
+        },
+        {
+          "line": 69,
+          "text": "    def step(self, packet=None):"
+        },
+        {
+          "line": 97,
+          "text": "    def observe(self):"
+        },
+        {
+          "line": 239,
+          "text": "def selected_state_code_class(encoding, state):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_machine_x64.py",
+      "mode": "100644",
+      "bytes": 15167,
+      "sha256": "545b1f8a1a302cb70d30e6432af2b565c9a787454f5286c467fe1a7f0bbaa121",
+      "git_blob_sha1": "18c19c5424406c246ce7ca979a83d91581b839e1",
+      "historical_sha256": "8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9",
+      "historical_status": "CHANGED",
+      "lines": 360,
+      "family": "direct_machine_backend",
+      "purpose": "Small, deterministic x86-64 encoder used by the direct HIA backend.",
+      "semantic_role": "host_public_code_api_with_three_explicit_hia_owners",
+      "selected_hia_extent": "Ordinary Code construction can select encoding, state and instruction owners with dependency checks; emission pins all three.",
+      "remaining_owner": "Default Code methods and original helpers remain complete Python implementations; subclasses retain virtual method behavior.",
+      "next_boundary": "No default activation or old-module deletion follows merely from three selected image gates.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_MACHINE_ENCODING_MANIFEST",
+        "HEPTA_HIA_MACHINE_INSTRUCTIONS_MANIFEST",
+        "HEPTA_HIA_MACHINE_STATE_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 39,
+          "declaration": "def _selected_owner():"
+        },
+        {
+          "line": 50,
+          "declaration": "def _selected_state_owner(encoding):"
+        },
+        {
+          "line": 63,
+          "declaration": "def _selected_instruction_owner(encoding, state):"
+        },
+        {
+          "line": 77,
+          "declaration": "def native_encoding_scope():"
+        },
+        {
+          "line": 93,
+          "declaration": "def native_implementation_identity():"
+        },
+        {
+          "line": 116,
+          "declaration": "class MachineEncodingError(ValueError):"
+        },
+        {
+          "line": 120,
+          "declaration": "def _reg(value):"
+        },
+        {
+          "line": 126,
+          "declaration": "def _s32(value):"
+        },
+        {
+          "line": 132,
+          "declaration": "def _condition(value):"
+        },
+        {
+          "line": 138,
+          "declaration": "class Code:"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 39,
+          "text": "def _selected_owner():"
+        },
+        {
+          "line": 50,
+          "text": "def _selected_state_owner(encoding):"
+        },
+        {
+          "line": 63,
+          "text": "def _selected_instruction_owner(encoding, state):"
+        },
+        {
+          "line": 77,
+          "text": "def native_encoding_scope():"
+        },
+        {
+          "line": 138,
+          "text": "class Code:"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_program_native.py",
+      "mode": "100644",
+      "bytes": 50211,
+      "sha256": "d58058760c02f65aa406dd54a0d0fa40cea5df0f4b8191696d21a784e71e8344",
+      "git_blob_sha1": "290f6c806dc89c6e5b376e9353383a86b42c1e02",
+      "historical_sha256": "bf953a8b85d1ebc6b9d7a90fbbcaa4137e40ed214c2ede2af1a13cfc01b1c07c",
+      "historical_status": "CHANGED",
+      "lines": 991,
+      "family": "direct_machine_backend",
+      "purpose": "Verified standalone HIA Core -> x86-64 instructions -> ELF, without LLVM.",
+      "semantic_role": "host_general_backend_orchestration_with_selected_slices",
+      "selected_hia_extent": "Scoped Code/Core Function/ELF owners are composed; selected identities contribute to implementation hashing.",
+      "remaining_owner": "acffa _Emitter constructor/order/wrapper/render, outer normalization/admission, byte ABI wrappers, object inspection, shared linking, file publication, build reports and deadlines remain Python.",
+      "next_boundary": "Complete emitter control is the next coherent lowering slice; followed by build/publication and runtime custody, retaining exact ordinary callers.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [],
+      "top_level_definitions": [
+        {
+          "line": 65,
+          "declaration": "class HIAProgramNativeRejected(ValueError):"
+        },
+        {
+          "line": 69,
+          "declaration": "def _reject(message, code=\"E_HIA_PROGRAM_NATIVE\"):"
+        },
+        {
+          "line": 77,
+          "declaration": "def _reference_reject(message, code=\"E_HIA_PROGRAM_NATIVE\"):"
+        },
+        {
+          "line": 81,
+          "declaration": "def _implementation_hash():"
+        },
+        {
+          "line": 111,
+          "declaration": "def _words(typ):"
+        },
+        {
+          "line": 119,
+          "declaration": "def _reference_words(typ):"
+        },
+        {
+          "line": 123,
+          "declaration": "def _bounds(typ):"
+        },
+        {
+          "line": 131,
+          "declaration": "def _reference_bounds(typ):"
+        },
+        {
+          "line": 136,
+          "declaration": "def _normalize(code, reg, typ):"
+        },
+        {
+          "line": 144,
+          "declaration": "def _reference_normalize(code, reg, typ):"
+        },
+        {
+          "line": 156,
+          "declaration": "def _prologue(code, frame):"
+        },
+        {
+          "line": 164,
+          "declaration": "def _reference_prologue(code, frame):"
+        },
+        {
+          "line": 177,
+          "declaration": "class HIAProgramMachine:"
+        },
+        {
+          "line": 192,
+          "declaration": "class _Function:"
+        },
+        {
+          "line": 621,
+          "declaration": "class _Emitter:"
+        },
+        {
+          "line": 726,
+          "declaration": "def validate_block_layout_plan(program, machine_plan):"
+        },
+        {
+          "line": 740,
+          "declaration": "def emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_buffer_exports=()):"
+        },
+        {
+          "line": 753,
+          "declaration": "def _emit_program_machine_with_encoding(program, *, target, machine_plan, foreign_buffer_exports):"
+        },
+        {
+          "line": 782,
+          "declaration": "def _inspect_object(data, exports):"
+        },
+        {
+          "line": 791,
+          "declaration": "def _read_artifact(path):"
+        },
+        {
+          "line": 807,
+          "declaration": "def _run_logged(argv, *, command_log=None, parent_death_guard=False, **kwargs):"
+        },
+        {
+          "line": 850,
+          "declaration": "def _host():"
+        },
+        {
+          "line": 857,
+          "declaration": "def compile_program_machine(image, *, program, output, kind=\"shared\", linker=\"cc\", command_log=None,"
+        },
+        {
+          "line": 978,
+          "declaration": "def build_program_machine(document, output, *, kind=\"shared\", linker=\"cc\", target=TARGET,"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 621,
+          "text": "class _Emitter:"
+        },
+        {
+          "line": 648,
+          "text": "    def wrapper(self, fn):"
+        },
+        {
+          "line": 576,
+          "text": "    def render(self):"
+        },
+        {
+          "line": 686,
+          "text": "    def render(self):"
+        },
+        {
+          "line": 740,
+          "text": "def emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_buffer_exports=()):"
+        },
+        {
+          "line": 753,
+          "text": "def _emit_program_machine_with_encoding(program, *, target, machine_plan, foreign_buffer_exports):"
+        },
+        {
+          "line": 857,
+          "text": "def compile_program_machine(image, *, program, output, kind=\"shared\", linker=\"cc\", command_log=None,"
+        },
+        {
+          "line": 978,
+          "text": "def build_program_machine(document, output, *, kind=\"shared\", linker=\"cc\", target=TARGET,"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_program_tools.py",
+      "mode": "100644",
+      "bytes": 22887,
+      "sha256": "953bcc57375f34210c319852091ce5a3a5a1479a723e388a4c989898911bf99c",
+      "git_blob_sha1": "3280f0127b4dc20c3b58e82a8e6ed08493d8fbda",
+      "historical_sha256": "a1b42262d8a00fbce9057e40dd081210ad274ecad8fc0c126ffafe8c3568436a",
+      "historical_status": "CHANGED",
+      "lines": 475,
+      "family": "editing_workspace",
+      "purpose": "Snapshot-bound edits and no-replace publication of standalone HIA programs.",
+      "semantic_role": "host_editing_io_owner_with_selected_json_wire_patch_slices",
+      "selected_hia_extent": "bounded_json_wire selects the HIA serializer; native patch/admission are separate explicit routes.",
+      "remaining_owner": "read_bounded, snapshot/object normalization, retained serializer, inspect/edit/publication decisions remain hosted.",
+      "next_boundary": "read_bounded owner is STATIC_WIP 7d5a4c with no execution/hook; successful pretty JSON is a separate root task.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_JSON_WIRE_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 33,
+          "declaration": "class HIAEditRejected(ValueError):"
+        },
+        {
+          "line": 37,
+          "declaration": "def _reject(reason):"
+        },
+        {
+          "line": 41,
+          "declaration": "def _pairs(pairs):"
+        },
+        {
+          "line": 50,
+          "declaration": "def read_bounded(path, limit=MAX_INPUT_BYTES):"
+        },
+        {
+          "line": 66,
+          "declaration": "def decode_json(payload):"
+        },
+        {
+          "line": 98,
+          "declaration": "def _keys(value, expected, label):"
+        },
+        {
+          "line": 103,
+          "declaration": "def _bounded_json_string_size(value: str, maximum: int, ensure_ascii: bool) -> int:"
+        },
+        {
+          "line": 144,
+          "declaration": "def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True, float_renderer=None):"
+        },
+        {
+          "line": 156,
+          "declaration": "def _reference_bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True, float_renderer=None):"
+        },
+        {
+          "line": 277,
+          "declaration": "def function_signature(function, *, include_return_loans=False):"
+        },
+        {
+          "line": 285,
+          "declaration": "def inspect_program(document):"
+        },
+        {
+          "line": 306,
+          "declaration": "def _prepare_program_patch(original, request):"
+        },
+        {
+          "line": 413,
+          "declaration": "def _check_patch_interface(original, verified, interface_policy):"
+        },
+        {
+          "line": 425,
+          "declaration": "def apply_program_patch(document, request):"
+        },
+        {
+          "line": 453,
+          "declaration": "def publish_program(document, destination):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 50,
+          "text": "def read_bounded(path, limit=MAX_INPUT_BYTES):"
+        },
+        {
+          "line": 144,
+          "text": "def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True, float_renderer=None):"
+        },
+        {
+          "line": 156,
+          "text": "def _reference_bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True, float_renderer=None):"
+        },
+        {
+          "line": 425,
+          "text": "def apply_program_patch(document, request):"
+        },
+        {
+          "line": 453,
+          "text": "def publish_program(document, destination):"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    },
+    {
+      "path": "hepta/hia_worker_report_native.py",
+      "mode": "100644",
+      "bytes": 20011,
+      "sha256": "e2f92ad1f15357f9a2c4fa5873d5d5dc301d8b8463cac886c33e8877a0c823cc",
+      "git_blob_sha1": "2cea6748a610c69e1d2ac6af2c9c8b352db0b112",
+      "historical_sha256": null,
+      "historical_status": "ADDED",
+      "lines": 436,
+      "family": "agent_contract_service",
+      "purpose": "Explicit HIA worker control/report owner with native virtual graph output.",
+      "semantic_role": "selected_hia_worker_control_with_foreign_service_io",
+      "selected_hia_extent": "HIA chooses worker mode, identity checks, service/close/handler sequencing and report graph; wire image emits bytes.",
+      "remaining_owner": "Argument parser and request validator are independent; unselected _reference_admission is an explicitly named foreign owner. Service, IO, CPython raw-dict and exception-context observations remain hosted.",
+      "next_boundary": "Compose request/journal/store/file selection and replace process/runtime/entry owners before native-only worker delivery.",
+      "review_level": "CURRENT_ENTRY_AND_CONTROL_REVIEW_WITH_PINNED_BYTES",
+      "literal_selectors": [
+        "HEPTA_HIA_WORKER_REPORT_MANIFEST"
+      ],
+      "top_level_definitions": [
+        {
+          "line": 38,
+          "declaration": "def _activation_state(exception):"
+        },
+        {
+          "line": 58,
+          "declaration": "def _restore_activation(exception, state):"
+        },
+        {
+          "line": 65,
+          "declaration": "def _with_foreign_exception(exception, operation):"
+        },
+        {
+          "line": 81,
+          "declaration": "def _reraise_foreign(exception):"
+        },
+        {
+          "line": 91,
+          "declaration": "class WorkerGraphObserver:"
+        },
+        {
+          "line": 162,
+          "declaration": "def _dict_primitives():"
+        },
+        {
+          "line": 188,
+          "declaration": "def _pure_builtin_key_hash(key):"
+        },
+        {
+          "line": 211,
+          "declaration": "class WorkerSession:"
+        },
+        {
+          "line": 390,
+          "declaration": "class NativeWorkerReport:"
+        },
+        {
+          "line": 398,
+          "declaration": "def installed_worker_report(path):"
+        }
+      ],
+      "evidence_anchors": [
+        {
+          "line": 65,
+          "text": "def _with_foreign_exception(exception, operation):"
+        },
+        {
+          "line": 162,
+          "text": "def _dict_primitives():"
+        },
+        {
+          "line": 211,
+          "text": "class WorkerSession:"
+        },
+        {
+          "line": 242,
+          "text": "    def _observe(self):"
+        },
+        {
+          "line": 390,
+          "text": "class NativeWorkerReport:"
+        }
+      ],
+      "whole_module_native_replacement_qualified": false,
+      "old_module_deletion_authorized": false
+    }
+  ],
+  "no_product_execution": true
+}
