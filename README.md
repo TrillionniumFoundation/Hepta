@@ -103,3 +103,5 @@ CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_S
 Repository cleanup: [current audit](docs/CURRENT.md#repository-ownership-and-cleanup).
 Native rewrite: [current implementation and remaining owners](docs/CURRENT.md).
 Runtime integration: [compatibility and upgrade requirements](docs/CURRENT.md#remaining-product-acceptance).
+
+The selected [HIA JSON wire](docs/HIA_JSON_WIRE_NATIVE.md) owns bounded graph and encoding decisions, with explicit foreign-object transport and unclosed option domains. See [current status](docs/CURRENT.md) for source-bound qualification and remaining whole-product owners.

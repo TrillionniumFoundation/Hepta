@@ -6,11 +6,49 @@ integration entry remains [draft PR #893](https://github.com/TrillionniumFoundat
 
 **Whole-product native replacement is incomplete.**
 `whole_native_delivery_qualified=false`, `old_stack_can_be_removed=false`, and
-`production_activated=false`. The v74 source contract identifies the actual
+`production_activated=false`. The v75 source contract identifies the actual
 inputs; it is not an execution receipt. Current-source cold, installed/native,
 complete retained regression, and running-worker adoption are separate gates.
 
-## Current continuation: v74 selected fifteen-action CLI
+## Current continuation: v75 bounded JSON wire and ordinary callers
+
+This working continuation adds the pinned `04ba46a` JSON wire HIA owner without
+replacing the divergent branch's store. The current SQLite/WAL authority,
+execution-budget database/sidecar identity checks and transaction code remain.
+`bounded_json_wire` has an explicit native selector; its complete original body
+is retained unchanged as the independent reference. `AgentStore.wire` preserves
+the eager binary64 admission point with an exact admitted renderer object.
+
+HIA owns graph traversal, budgets, key admission/collision checks, ordering,
+Unicode escapes, integer decimal conversion and finite binary64 wire output.
+The Python bridge still observes builtin object facts and transports requested
+children, codepoints and limbs. Mutable/foreign option truth hooks and arbitrary
+renderer callbacks remain explicit native-profile refusals. This is not the
+entire foreign-object API domain and is not a replacement for durable state.
+
+Four source/Core-VM controls and all 30 native development controls passed,
+including the actual installed wheel, full 8 MiB output extents, lazy observation
+protocol, failure ordering, lifetime/reentry and immutable-key cache controls.
+The installed fixture includes all current source/compiler/publication assets.
+These observations reuse a v74 compiler explicitly as development input, not as
+matching-source cold qualification. The first ordinary caller development run executed all 89 original tests with
+the reference owner forbidden and all eleven tools observed. It failed one test
+and errored another: the incomplete source contract was regenerated while the
+run was active, causing contract/source-identity refusals. Its complete failed
+report and partial fixture evidence are retained externally. No caller is
+excluded and no identity guard is weakened. Authoring and qualification must
+be serialized on the next frozen tree; the failed run is not acceptance.
+
+The frozen v74 predecessor `006abca2b909f262835fee44ba8e6ed353e3d714`, tree
+`7240168528609a2cb93206544003c633f3cea176`, passed its own cold in
+77.468651647 seconds with the original 180+3 limits, 11 outer checks, 5,049
+nested checks and 38 phases. Independent replay checked all 2,383 source blobs,
+719 cold sources and 42,899 archive members. Its exact six source scripts and
+476 actual unittest IDs passed. Its complete native workflow is still running;
+full retained regression and whole-product replacement remain separate gates.
+Its source tree and earlier failed v73 evidence are unchanged.
+
+## v74 selected fifteen-action CLI
 
 The detached continuation imports the explicitly selected two-image CLI owner
 from `04ba46ad16310ebbfbf327a143b577445d40ba7d` onto the exact

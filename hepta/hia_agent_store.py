@@ -36,9 +36,8 @@ def wire(value):
     selected = os.environ.get('HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST')
     renderer = None
     if selected:
-        from .hia_agent_binary64_format_native import installed_agent_binary64_format
-        image = installed_agent_binary64_format(selected)
-        renderer = lambda number: image.render(number).decode('ascii')
+        from .hia_json_wire_native import SelectedBinary64Renderer
+        renderer = SelectedBinary64Renderer(selected)
     return bounded_json_wire(value, MAX_INPUT_BYTES, ensure_ascii=False,
                              sort_keys=True, float_renderer=renderer)
 

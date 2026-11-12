@@ -13,8 +13,18 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v74-native-cli-bootstrap-custody'
+PROFILE = 'selfhost-core-linux-x86_64-v75-native-json-wire'
 SOURCE_FILES = (
+    'docs/HIA_JSON_WIRE_KEY_CACHE.md',
+    'docs/HIA_JSON_WIRE_NATIVE.md',
+    'examples/hia_bootstrap/json_wire.hepta',
+    'tests/test_hia_json_wire_cache.py',
+    'tests/test_hia_json_wire_entry.py',
+    'tests/test_hia_json_wire_native.py',
+    'tools/build_hia_json_wire.py',
+    'tools/generate_hia_json_wire.py',
+    'tools/qualify_hia_json_wire_native_callers.py',
+
     'tools/build_hia_cli_native.py',
     'tools/generate_hia_cli_control.py',
     'tools/generate_hia_cli_format.py',
