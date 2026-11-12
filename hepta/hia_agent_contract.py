@@ -27,6 +27,7 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/worker_report.hepta',
     'examples/hia_bootstrap/json_wire.hepta',
     'examples/hia_bootstrap/cli_control.hepta',
     'examples/hia_bootstrap/cli_format.hepta',

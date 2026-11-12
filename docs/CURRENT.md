@@ -240,3 +240,18 @@ working behavior and change durable identities. Each replacement must take its
 real callers and effects, survive recovery with original request identities,
 pass current-source qualification, and be observed running before the old owner
 can be retired. No whole-stack deletion or production activation is claimed.
+
+
+## v76 worker policy and custody integration (unqualified candidate)
+
+The native report/control policy, HIA JSON-wire companion and native request
+image can now be composed under an explicit v2 administrator bundle pin.
+The original v1 24-helper allowlist, main outer handler and retained `_run`
+body remain the reference boundary. HIA constructs the optional helper identity
+field; the multi-image custody adapter itself remains hosted Python.
+Source and native/wheel tests are required on the exact frozen candidate;
+this section is NOT a successful execution receipt. See
+[worker policy/custody boundaries](HIA_WORKER_REPORT_NATIVE.md).
+SQLite durability, installation/hash IO, arbitrary foreign observations, runtime
+process management and other listed foreign owners remain open. Do not remove
+them, claim whole-native completion, or activate this candidate on that basis.

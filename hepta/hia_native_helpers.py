@@ -238,7 +238,17 @@ def native_helpers_scope(path=None, expected_sha256=None):
         if path is None:
             yield None
             return
-        binding = NativeHelpersBinding(path, expected_sha256)
+        if not _digest(expected_sha256):
+            raise ValueError("an exact native helper bundle SHA256 is required")
+        captured = _read(_path(path), MAX_BUNDLE_BYTES)
+        if sha256(captured.raw).hexdigest() != expected_sha256:
+            raise ValueError("native helper bundle identity mismatch")
+        record = _decode(captured.raw)
+        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v2':
+            from .hia_worker_bundle import NativeWorkerBundleBinding
+            binding = NativeWorkerBundleBinding(captured, expected_sha256)
+        else:
+            binding = NativeHelpersBinding(path, expected_sha256)
         _ACTIVE = binding
         os.environ.update(binding.selections)
         binding.check()
@@ -280,3 +290,18 @@ def pinned_image(manifest_path, source, schema, factory):
         return _ACTIVE.images[key]
     except KeyError as exc:
         raise ValueError("native helper executable is outside the pinned worker bundle") from exc
+
+
+def pinned_bundle(manifest_path, schema, factory):
+    """Return only a statically registered multi-image owner from this scope."""
+    _check_scope_owner()
+    if _ACTIVE is None:
+        if _SCOPE_OWNER is not None:
+            raise ValueError("native helper executable is outside the pinned worker bundle")
+        return None
+    _ACTIVE.check_owner()
+    key = (str(Path(manifest_path).resolve(strict=True)), schema, factory)
+    try:
+        return getattr(_ACTIVE, 'bundles', {})[key]
+    except KeyError as exc:
+        raise ValueError("native helper bundle is outside the pinned worker bundle") from exc

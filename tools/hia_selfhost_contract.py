@@ -13,8 +13,14 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v75-native-json-wire'
+PROFILE = 'selfhost-core-linux-x86_64-v76-native-worker-report-custody'
 SOURCE_FILES = (
+    'docs/HIA_WORKER_REPORT_NATIVE.md',
+    'examples/hia_bootstrap/worker_report.hepta',
+    'tools/build_hia_worker_report.py',
+    'tools/generate_hia_worker_report.py',
+    'tests/test_hia_worker_report_native.py',
+    'tests/test_hia_worker_report_custody.py',
     'docs/HIA_JSON_WIRE_KEY_CACHE.md',
     'docs/HIA_JSON_WIRE_NATIVE.md',
     'examples/hia_bootstrap/json_wire.hepta',

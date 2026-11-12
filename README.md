@@ -15,6 +15,11 @@ The [current implementation and acceptance status](docs/CURRENT.md) is the
 single current-state index. Historical observations retain their exact commit
 identities and do not qualify a later candidate.
 
+The current worker-policy candidate composes native request/report/wire images
+under an explicit administrator bundle pin; its hosted custody and durable
+service/runtime dependencies are not yet retired. See
+[worker policy and custody](docs/HIA_WORKER_REPORT_NATIVE.md).
+
 ## Agent entry
 
 ```sh

@@ -41,6 +41,15 @@ def main(argv=None):
 
 
 def _run(parser, args):
+    selected = os.environ.get('HEPTA_HIA_WORKER_REPORT_MANIFEST')
+    if selected:
+        identities = installation_manifest()
+        from .hia_worker_report_native import installed_worker_report
+        return installed_worker_report(selected).run(args, parser, identities, sys.modules[__name__])
+    return _reference_run(parser, args)
+
+
+def _reference_run(parser, args):
     identities = installation_manifest()
     if args.installation_manifest:
         if args.request_json_stdin:
@@ -112,6 +121,32 @@ def _run(parser, args):
         report["native_helpers_sha256"] = identities["native_helpers_sha256"]
     sys.stdout.buffer.write(wire(report) + b"\n")
     return 0
+
+
+def _reference_admission(raw, identities, assigned):
+    """Explicit retained request-admission boundary for the unselected profile.
+
+    The native report owner does not relabel this validation as HIA. Assignment
+    is observed at the original point so later refusal retains correlation.
+    The independent worker-request image remains selected after stdin, as in
+    the ordinary worker.
+    """
+    request = decode_data(raw)
+    assigned(request)
+    keys(request, ("schema", "tool", "arguments", "request_sha256", "profile_sha256", "catalog_sha256"), label="worker request")
+    if request["schema"] != "hia-agent-worker-request-v1":
+        raise AgentRejected("E_HIA_WORKER_SCHEMA", "unknown worker envelope")
+    for name in ("request_sha256", "profile_sha256", "catalog_sha256"):
+        if not canonical_digest(request[name]):
+            raise AgentRejected("E_HIA_WORKER_IDENTITY", "invalid worker digest field")
+    digest_input = {key: value for key, value in request.items() if key != "request_sha256"}
+    if sha256(wire(digest_input)).hexdigest() != request["request_sha256"]:
+        raise AgentRejected("E_HIA_WORKER_IDENTITY", "worker request digest mismatch")
+    if request["catalog_sha256"] != identities["catalog_sha256"]:
+        raise AgentRejected("E_HIA_CATALOG_STALE", "worker request catalog differs from installed bytes")
+    if type(request["tool"]) is not str or len(request["tool"]) > 128:
+        raise AgentRejected("E_HIA_WORKER_TOOL", "invalid worker tool name")
+    return request
 
 
 if __name__ == "__main__":
