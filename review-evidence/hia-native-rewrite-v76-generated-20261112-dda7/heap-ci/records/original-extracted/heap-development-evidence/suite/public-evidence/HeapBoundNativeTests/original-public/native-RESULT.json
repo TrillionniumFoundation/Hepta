@@ -1,0 +1,1494 @@
+{
+  "classes": [
+    "tests.test_hia_heap_bound.HIAHeapBoundTests",
+    "tests.test_hia_heap_intervals.HIAHeapIntervalTests",
+    "tests.test_hia_heap_borrowed.HIAHeapBorrowedExtentTests",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests",
+    "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests",
+    "tests.test_hia_zero_heap_loops.ZeroHeapLoopQualification",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests",
+    "tests.test_hia_p0p1_v7_guard.GuardedV7HeapProfileTests",
+    "tests.test_hia_p1_scoped_try_new_v7_guard.V7FallibleHeapVersionGuard",
+    "tests.test_hia_returned_loans.ReturnedLoans",
+    "tests.test_hia_returned_loans.ReturnedLoanSemantics"
+  ],
+  "errors": [],
+  "expected_count": 134,
+  "expected_failures": [],
+  "failures": [],
+  "finished": 1794475123.01746,
+  "mode": "native",
+  "native_fixture_deltas": {
+    "tests/test_hia_borrowed_extent_heap.py": "29cb3313a02f87656fd582979f6b766dd3776b762f9fc0b8a86c8d6c2d94b5de",
+    "tests/test_hia_finite_v8_heap.py": "bdce6033ba3a51315c0118bc3e99d5c63a6cccd96fe242f4e51106dee583c47e",
+    "tests/test_hia_partial_finite_bounds.py": "1efe720bea5bc3a5f3ccb44ece16e43aea25e09869cde17a8c3107068db9ada6"
+  },
+  "native_fixture_observations": [
+    {
+      "api": "qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents",
+      "kind": "unselected_reference",
+      "request_sha256": "e21f8ed2c649050334fa922a861c4bdc10bc5e630494cc66c64687e02d18f7ed",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"returned\":{\"analysis_work\":{\"contexts\":1024,\"max_analysis_call_depth\":64,\"max_contexts\":1024,\"max_transfer_steps\":32768,\"peak_analysis_call_depth\":2,\"transfer_steps\":4094},\"arguments\":[],\"claims\":{\"all_function_input_extents_bounded\":false,\"allocation_failure_and_stop_prefixes_in_bound\":true,\"borrowed_extents_derived_from_canonical_caller_roots\":true,\"borrowed_extents_in_call_context_key\":true,\"borrowed_length_upper_bounds_propagated\":true,\"borrowed_lengths_assumed_exact\":false,\"borrowed_returns_allocate_payload\":false,\"branch_reachability_proved\":false,\"caller_supplied_resource_extents_trusted\":false,\"canonical_core_reverified\":true,\"canonical_return_origins_reverified\":true,\"cleanup_after_trap_or_budget_stop_proved\":false,\"exact_scalar_invocation_only\":true,\"external_borrow_payload_counted_in_caller\":true,\"owned_call_transfer_accounted\":true,\"process_rss_or_native_stack_bytes_bounded\":false,\"recursive_chain_storage_bounded\":false,\"returned_loan_caller_roots_preserved\":true,\"source_or_native_backend_refinement_proved\":false,\"whole_language_soundness_proved\":false,\"whole_module_acyclic_byte_profile_checked\":true},\"core_schema\":\"hepta.hia.program.v8\",\"core_sha256\":\"f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64\",\"function\":\"entry\",\"input_sha256\":\"f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64\",\"limit_bytes\":0,\"max_allocator_interactions\":0,\"max_call_depth\":2,\"max_vm_ticks\":4094,\"peak_bound_bytes\":0,\"profile\":\"acyclic-byte-owner-transfer-caller-borrowed-extents-v8\",\"schema\":\"hepta.hia.finite-entry-live-heap-admission.v3\",\"sha256\":\"a334d58c25caefbd03da0ac2300f14bbce3bd2de6cc7ba6bd60379bdf31a9e2a\",\"static_budget_sha256\":\"05e5b96c8ed86d52b1325702ce34cff84f42b03d2b3367b0c1f397a1cb474207\",\"status\":\"qualified_exact_scalar_invocation_requested_payload_only\"}}\n",
+      "stdout_sha256": "c5eeafd5f58e40c3272ae33d404ad49217c1c578cfdf386d2380c8b86d83ef20"
+    },
+    {
+      "admitted": true,
+      "api": "qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents",
+      "boundary": "contexts",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 1024,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 2,
+            "transfer_steps": 4094
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "borrowed_extents_derived_from_canonical_caller_roots": true,
+            "borrowed_extents_in_call_context_key": true,
+            "borrowed_length_upper_bounds_propagated": true,
+            "borrowed_lengths_assumed_exact": false,
+            "borrowed_returns_allocate_payload": false,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "canonical_return_origins_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "returned_loan_caller_roots_preserved": true,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v8",
+          "core_sha256": "f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64",
+          "function": "entry",
+          "input_sha256": "f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 2,
+          "max_vm_ticks": 4094,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-caller-borrowed-extents-v8",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v3",
+          "sha256": "a334d58c25caefbd03da0ac2300f14bbce3bd2de6cc7ba6bd60379bdf31a9e2a",
+          "static_budget_sha256": "05e5b96c8ed86d52b1325702ce34cff84f42b03d2b3367b0c1f397a1cb474207",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "reference": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 1024,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 2,
+            "transfer_steps": 4094
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "borrowed_extents_derived_from_canonical_caller_roots": true,
+            "borrowed_extents_in_call_context_key": true,
+            "borrowed_length_upper_bounds_propagated": true,
+            "borrowed_lengths_assumed_exact": false,
+            "borrowed_returns_allocate_payload": false,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "canonical_return_origins_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "returned_loan_caller_roots_preserved": true,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v8",
+          "core_sha256": "f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64",
+          "function": "entry",
+          "input_sha256": "f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 2,
+          "max_vm_ticks": 4094,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-caller-borrowed-extents-v8",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v3",
+          "sha256": "a334d58c25caefbd03da0ac2300f14bbce3bd2de6cc7ba6bd60379bdf31a9e2a",
+          "static_budget_sha256": "05e5b96c8ed86d52b1325702ce34cff84f42b03d2b3367b0c1f397a1cb474207",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "source_sha256": "f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents",
+      "kind": "unselected_reference",
+      "request_sha256": "17804469efa5512e6805bf859846a96fc90e9efe9a72d9b3f36b1956300d4da1",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"error\":{\"cause\":null,\"code\":\"E_HIA_BUDGET_LIMIT\",\"message\":\"E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded\",\"type\":\"HIAHeapBoundRejected\"}}\n",
+      "stdout_sha256": "143c928d9b3d67b9aee04ade614a1f44607b311b36ed90800ff6645154fd92b9"
+    },
+    {
+      "admitted": false,
+      "api": "qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents",
+      "boundary": "contexts",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "reference": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "source_sha256": "3f926cfca1c909da65c36a32ebda88a468e1249e72a6b3de533fba2769df0cb9"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents",
+      "kind": "unselected_reference",
+      "request_sha256": "0a362832293e9a1ce5f74a6ccd4b3825e874bbc9dbaa40ccf8cf3759d370501e",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"returned\":{\"analysis_work\":{\"contexts\":64,\"max_analysis_call_depth\":64,\"max_contexts\":1024,\"max_transfer_steps\":32768,\"peak_analysis_call_depth\":64,\"transfer_steps\":191},\"arguments\":[],\"claims\":{\"all_function_input_extents_bounded\":false,\"allocation_failure_and_stop_prefixes_in_bound\":true,\"borrowed_extents_derived_from_canonical_caller_roots\":true,\"borrowed_extents_in_call_context_key\":true,\"borrowed_length_upper_bounds_propagated\":true,\"borrowed_lengths_assumed_exact\":false,\"borrowed_returns_allocate_payload\":false,\"branch_reachability_proved\":false,\"caller_supplied_resource_extents_trusted\":false,\"canonical_core_reverified\":true,\"canonical_return_origins_reverified\":true,\"cleanup_after_trap_or_budget_stop_proved\":false,\"exact_scalar_invocation_only\":true,\"external_borrow_payload_counted_in_caller\":true,\"owned_call_transfer_accounted\":true,\"process_rss_or_native_stack_bytes_bounded\":false,\"recursive_chain_storage_bounded\":false,\"returned_loan_caller_roots_preserved\":true,\"source_or_native_backend_refinement_proved\":false,\"whole_language_soundness_proved\":false,\"whole_module_acyclic_byte_profile_checked\":true},\"core_schema\":\"hepta.hia.program.v8\",\"core_sha256\":\"d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99\",\"function\":\"entry\",\"input_sha256\":\"d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99\",\"limit_bytes\":0,\"max_allocator_interactions\":0,\"max_call_depth\":64,\"max_vm_ticks\":191,\"peak_bound_bytes\":0,\"profile\":\"acyclic-byte-owner-transfer-caller-borrowed-extents-v8\",\"schema\":\"hepta.hia.finite-entry-live-heap-admission.v3\",\"sha256\":\"5e2248803aeb4dd919ae813aad0a7066556ad5a443ae6eeea976b4bef9a371dd\",\"static_budget_sha256\":\"d7bebdaaf974b5fa44f9ad67fdc8afa0e3dea6a818fcbc6b6077016c1de31e82\",\"status\":\"qualified_exact_scalar_invocation_requested_payload_only\"}}\n",
+      "stdout_sha256": "1b339840f425dd356a280a99a99bb37ae22d7d54db1c2383cb021e4821d5e42a"
+    },
+    {
+      "admitted": true,
+      "api": "qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents",
+      "boundary": "depth",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 64,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 64,
+            "transfer_steps": 191
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "borrowed_extents_derived_from_canonical_caller_roots": true,
+            "borrowed_extents_in_call_context_key": true,
+            "borrowed_length_upper_bounds_propagated": true,
+            "borrowed_lengths_assumed_exact": false,
+            "borrowed_returns_allocate_payload": false,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "canonical_return_origins_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "returned_loan_caller_roots_preserved": true,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v8",
+          "core_sha256": "d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99",
+          "function": "entry",
+          "input_sha256": "d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 64,
+          "max_vm_ticks": 191,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-caller-borrowed-extents-v8",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v3",
+          "sha256": "5e2248803aeb4dd919ae813aad0a7066556ad5a443ae6eeea976b4bef9a371dd",
+          "static_budget_sha256": "d7bebdaaf974b5fa44f9ad67fdc8afa0e3dea6a818fcbc6b6077016c1de31e82",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "reference": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 64,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 64,
+            "transfer_steps": 191
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "borrowed_extents_derived_from_canonical_caller_roots": true,
+            "borrowed_extents_in_call_context_key": true,
+            "borrowed_length_upper_bounds_propagated": true,
+            "borrowed_lengths_assumed_exact": false,
+            "borrowed_returns_allocate_payload": false,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "canonical_return_origins_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "returned_loan_caller_roots_preserved": true,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v8",
+          "core_sha256": "d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99",
+          "function": "entry",
+          "input_sha256": "d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 64,
+          "max_vm_ticks": 191,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-caller-borrowed-extents-v8",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v3",
+          "sha256": "5e2248803aeb4dd919ae813aad0a7066556ad5a443ae6eeea976b4bef9a371dd",
+          "static_budget_sha256": "d7bebdaaf974b5fa44f9ad67fdc8afa0e3dea6a818fcbc6b6077016c1de31e82",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "source_sha256": "d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents",
+      "kind": "unselected_reference",
+      "request_sha256": "ce02400d6e49cc7bc7b658118ccdc7eb9593d43af81a59b096884850bffc2e9b",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"error\":{\"cause\":null,\"code\":\"E_HIA_BUDGET_LIMIT\",\"message\":\"E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded\",\"type\":\"HIAHeapBoundRejected\"}}\n",
+      "stdout_sha256": "143c928d9b3d67b9aee04ade614a1f44607b311b36ed90800ff6645154fd92b9"
+    },
+    {
+      "admitted": false,
+      "api": "qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents",
+      "boundary": "depth",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "reference": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "source_sha256": "3530fa174fe7e0ca9cd021bc70f046283e0448d208ac7680d65162d58d60a96c"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents",
+      "kind": "unselected_reference",
+      "request_sha256": "b6b16fff9290cd8aa50773af1d60501132f7070fc9b7def6a04783e28682e209",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"returned\":{\"analysis_work\":{\"contexts\":33,\"max_analysis_call_depth\":64,\"max_contexts\":1024,\"max_transfer_steps\":32768,\"peak_analysis_call_depth\":2,\"transfer_steps\":32130},\"arguments\":[],\"claims\":{\"all_function_input_extents_bounded\":false,\"allocation_failure_and_stop_prefixes_in_bound\":true,\"borrowed_extents_derived_from_canonical_caller_roots\":true,\"borrowed_extents_in_call_context_key\":true,\"borrowed_length_upper_bounds_propagated\":true,\"borrowed_lengths_assumed_exact\":false,\"borrowed_returns_allocate_payload\":false,\"branch_reachability_proved\":false,\"caller_supplied_resource_extents_trusted\":false,\"canonical_core_reverified\":true,\"canonical_return_origins_reverified\":true,\"cleanup_after_trap_or_budget_stop_proved\":false,\"exact_scalar_invocation_only\":true,\"external_borrow_payload_counted_in_caller\":true,\"owned_call_transfer_accounted\":true,\"process_rss_or_native_stack_bytes_bounded\":false,\"recursive_chain_storage_bounded\":false,\"returned_loan_caller_roots_preserved\":true,\"source_or_native_backend_refinement_proved\":false,\"whole_language_soundness_proved\":false,\"whole_module_acyclic_byte_profile_checked\":true},\"core_schema\":\"hepta.hia.program.v8\",\"core_sha256\":\"7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6\",\"function\":\"entry\",\"input_sha256\":\"7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6\",\"limit_bytes\":0,\"max_allocator_interactions\":0,\"max_call_depth\":2,\"max_vm_ticks\":32130,\"peak_bound_bytes\":0,\"profile\":\"acyclic-byte-owner-transfer-caller-borrowed-extents-v8\",\"schema\":\"hepta.hia.finite-entry-live-heap-admission.v3\",\"sha256\":\"132d667f6d8f7c34db65ae03cc693f822ffd282e9a39c301832dfc9f72230e72\",\"static_budget_sha256\":\"df14461e5928373057b1aacaf72c98a7cd5feb1e4cb42404ef079f677fbae2d7\",\"status\":\"qualified_exact_scalar_invocation_requested_payload_only\"}}\n",
+      "stdout_sha256": "d15efd5eaa2abd0ec5804d9d768ebe9901fb60fae7106e81e3aea6bbb8ffcaa1"
+    },
+    {
+      "admitted": true,
+      "api": "qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents",
+      "boundary": "transfers",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 33,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 2,
+            "transfer_steps": 32130
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "borrowed_extents_derived_from_canonical_caller_roots": true,
+            "borrowed_extents_in_call_context_key": true,
+            "borrowed_length_upper_bounds_propagated": true,
+            "borrowed_lengths_assumed_exact": false,
+            "borrowed_returns_allocate_payload": false,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "canonical_return_origins_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "returned_loan_caller_roots_preserved": true,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v8",
+          "core_sha256": "7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6",
+          "function": "entry",
+          "input_sha256": "7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 2,
+          "max_vm_ticks": 32130,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-caller-borrowed-extents-v8",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v3",
+          "sha256": "132d667f6d8f7c34db65ae03cc693f822ffd282e9a39c301832dfc9f72230e72",
+          "static_budget_sha256": "df14461e5928373057b1aacaf72c98a7cd5feb1e4cb42404ef079f677fbae2d7",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "reference": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 33,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 2,
+            "transfer_steps": 32130
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "borrowed_extents_derived_from_canonical_caller_roots": true,
+            "borrowed_extents_in_call_context_key": true,
+            "borrowed_length_upper_bounds_propagated": true,
+            "borrowed_lengths_assumed_exact": false,
+            "borrowed_returns_allocate_payload": false,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "canonical_return_origins_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "returned_loan_caller_roots_preserved": true,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v8",
+          "core_sha256": "7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6",
+          "function": "entry",
+          "input_sha256": "7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 2,
+          "max_vm_ticks": 32130,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-caller-borrowed-extents-v8",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v3",
+          "sha256": "132d667f6d8f7c34db65ae03cc693f822ffd282e9a39c301832dfc9f72230e72",
+          "static_budget_sha256": "df14461e5928373057b1aacaf72c98a7cd5feb1e4cb42404ef079f677fbae2d7",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "source_sha256": "7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents",
+      "kind": "unselected_reference",
+      "request_sha256": "fb0e60b0aaee81b860ea410caead9942c12f9dd6d65d90bbbb370adb63b5fe56",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"error\":{\"cause\":null,\"code\":\"E_HIA_BUDGET_LIMIT\",\"message\":\"E_HIA_BUDGET_LIMIT: finite invocation abstract-transfer work limit exceeded\",\"type\":\"HIAHeapBoundRejected\"}}\n",
+      "stdout_sha256": "be753913b1bad94586fab4ab6eec8ca2a6c560ac3ca0a51be8f549fdecb961b6"
+    },
+    {
+      "admitted": false,
+      "api": "qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents",
+      "boundary": "transfers",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation abstract-transfer work limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "reference": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation abstract-transfer work limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "source_sha256": "1534d7f9e543039498c6db2c4abc12b8179aaacd0b1d021fdfdc4caefc2eeb17"
+    },
+    {
+      "captured_arguments": [
+        9,
+        false
+      ],
+      "kind": "actual_consumed_native_invocation",
+      "mode": 4,
+      "sequence": 18
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget_v8",
+      "kind": "unselected_reference",
+      "request_sha256": "7dae829b7611c731520cb424e714eb64d6f3ec6015862958bd9b289df295b762",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"returned\":{\"analysis_work\":{\"contexts\":1024,\"max_analysis_call_depth\":64,\"max_contexts\":1024,\"max_transfer_steps\":32768,\"peak_analysis_call_depth\":2,\"transfer_steps\":4094},\"arguments\":[],\"claims\":{\"all_function_input_extents_bounded\":false,\"allocation_failure_and_stop_prefixes_in_bound\":true,\"borrowed_returns_allocate_payload\":false,\"branch_reachability_proved\":false,\"caller_supplied_resource_extents_trusted\":false,\"canonical_core_reverified\":true,\"canonical_return_origins_reverified\":true,\"cleanup_after_trap_or_budget_stop_proved\":false,\"exact_scalar_invocation_only\":true,\"external_borrow_payload_counted_in_caller\":true,\"owned_call_transfer_accounted\":true,\"process_rss_or_native_stack_bytes_bounded\":false,\"recursive_chain_storage_bounded\":false,\"returned_loan_caller_roots_preserved\":true,\"source_or_native_backend_refinement_proved\":false,\"whole_language_soundness_proved\":false,\"whole_module_acyclic_byte_profile_checked\":true},\"core_schema\":\"hepta.hia.program.v8\",\"core_sha256\":\"f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64\",\"function\":\"entry\",\"input_sha256\":\"f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64\",\"limit_bytes\":0,\"max_allocator_interactions\":0,\"max_call_depth\":2,\"max_vm_ticks\":4094,\"peak_bound_bytes\":0,\"profile\":\"acyclic-byte-owner-transfer-parameter-loans-v8\",\"schema\":\"hepta.hia.finite-entry-live-heap-admission.v2\",\"sha256\":\"c38e074d889c9526fa6cb7b62a1bde696068ac0ed9eeb4dad93ac322b19f3f64\",\"static_budget_sha256\":\"05e5b96c8ed86d52b1325702ce34cff84f42b03d2b3367b0c1f397a1cb474207\",\"status\":\"qualified_exact_scalar_invocation_requested_payload_only\"}}\n",
+      "stdout_sha256": "e52abce2c82ada275163916419c59fa1bc7b881246d15e0a943fe84cbe6686f8"
+    },
+    {
+      "admitted": true,
+      "api": "qualify_finite_entry_live_heap_budget_v8",
+      "boundary": "contexts",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 1024,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 2,
+            "transfer_steps": 4094
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "borrowed_returns_allocate_payload": false,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "canonical_return_origins_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "returned_loan_caller_roots_preserved": true,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v8",
+          "core_sha256": "f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64",
+          "function": "entry",
+          "input_sha256": "f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 2,
+          "max_vm_ticks": 4094,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-parameter-loans-v8",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v2",
+          "sha256": "c38e074d889c9526fa6cb7b62a1bde696068ac0ed9eeb4dad93ac322b19f3f64",
+          "static_budget_sha256": "05e5b96c8ed86d52b1325702ce34cff84f42b03d2b3367b0c1f397a1cb474207",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "reference": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 1024,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 2,
+            "transfer_steps": 4094
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "borrowed_returns_allocate_payload": false,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "canonical_return_origins_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "returned_loan_caller_roots_preserved": true,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v8",
+          "core_sha256": "f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64",
+          "function": "entry",
+          "input_sha256": "f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 2,
+          "max_vm_ticks": 4094,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-parameter-loans-v8",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v2",
+          "sha256": "c38e074d889c9526fa6cb7b62a1bde696068ac0ed9eeb4dad93ac322b19f3f64",
+          "static_budget_sha256": "05e5b96c8ed86d52b1325702ce34cff84f42b03d2b3367b0c1f397a1cb474207",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "source_sha256": "f608b282479bfe8e00eec40a2c78aa3683ef8f23ef8679c2b11a9e40be064e64"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget_v8",
+      "kind": "unselected_reference",
+      "request_sha256": "00f6c00fc5be5afb3a4343ac5a7fc7eabf7e29093cd19d0038b607eb966d2560",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"error\":{\"cause\":null,\"code\":\"E_HIA_BUDGET_LIMIT\",\"message\":\"E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded\",\"type\":\"HIAHeapBoundRejected\"}}\n",
+      "stdout_sha256": "143c928d9b3d67b9aee04ade614a1f44607b311b36ed90800ff6645154fd92b9"
+    },
+    {
+      "admitted": false,
+      "api": "qualify_finite_entry_live_heap_budget_v8",
+      "boundary": "contexts",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "reference": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "source_sha256": "3f926cfca1c909da65c36a32ebda88a468e1249e72a6b3de533fba2769df0cb9"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget_v8",
+      "kind": "unselected_reference",
+      "request_sha256": "f499605a63460c7694371cebd7283d74eb5dd398668626736f9c86bad3144037",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"returned\":{\"analysis_work\":{\"contexts\":64,\"max_analysis_call_depth\":64,\"max_contexts\":1024,\"max_transfer_steps\":32768,\"peak_analysis_call_depth\":64,\"transfer_steps\":191},\"arguments\":[],\"claims\":{\"all_function_input_extents_bounded\":false,\"allocation_failure_and_stop_prefixes_in_bound\":true,\"borrowed_returns_allocate_payload\":false,\"branch_reachability_proved\":false,\"caller_supplied_resource_extents_trusted\":false,\"canonical_core_reverified\":true,\"canonical_return_origins_reverified\":true,\"cleanup_after_trap_or_budget_stop_proved\":false,\"exact_scalar_invocation_only\":true,\"external_borrow_payload_counted_in_caller\":true,\"owned_call_transfer_accounted\":true,\"process_rss_or_native_stack_bytes_bounded\":false,\"recursive_chain_storage_bounded\":false,\"returned_loan_caller_roots_preserved\":true,\"source_or_native_backend_refinement_proved\":false,\"whole_language_soundness_proved\":false,\"whole_module_acyclic_byte_profile_checked\":true},\"core_schema\":\"hepta.hia.program.v8\",\"core_sha256\":\"d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99\",\"function\":\"entry\",\"input_sha256\":\"d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99\",\"limit_bytes\":0,\"max_allocator_interactions\":0,\"max_call_depth\":64,\"max_vm_ticks\":191,\"peak_bound_bytes\":0,\"profile\":\"acyclic-byte-owner-transfer-parameter-loans-v8\",\"schema\":\"hepta.hia.finite-entry-live-heap-admission.v2\",\"sha256\":\"f41a4725c87f02a5cf9e87f51519e9c70c203cf0b6d28db9da503c5c4458e5a9\",\"static_budget_sha256\":\"d7bebdaaf974b5fa44f9ad67fdc8afa0e3dea6a818fcbc6b6077016c1de31e82\",\"status\":\"qualified_exact_scalar_invocation_requested_payload_only\"}}\n",
+      "stdout_sha256": "2bdd389ebb57afcf0f395860a06b64cdbbfa9fac540bc21d6ee043143684d27f"
+    },
+    {
+      "admitted": true,
+      "api": "qualify_finite_entry_live_heap_budget_v8",
+      "boundary": "depth",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 64,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 64,
+            "transfer_steps": 191
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "borrowed_returns_allocate_payload": false,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "canonical_return_origins_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "returned_loan_caller_roots_preserved": true,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v8",
+          "core_sha256": "d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99",
+          "function": "entry",
+          "input_sha256": "d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 64,
+          "max_vm_ticks": 191,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-parameter-loans-v8",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v2",
+          "sha256": "f41a4725c87f02a5cf9e87f51519e9c70c203cf0b6d28db9da503c5c4458e5a9",
+          "static_budget_sha256": "d7bebdaaf974b5fa44f9ad67fdc8afa0e3dea6a818fcbc6b6077016c1de31e82",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "reference": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 64,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 64,
+            "transfer_steps": 191
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "borrowed_returns_allocate_payload": false,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "canonical_return_origins_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "returned_loan_caller_roots_preserved": true,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v8",
+          "core_sha256": "d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99",
+          "function": "entry",
+          "input_sha256": "d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 64,
+          "max_vm_ticks": 191,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-parameter-loans-v8",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v2",
+          "sha256": "f41a4725c87f02a5cf9e87f51519e9c70c203cf0b6d28db9da503c5c4458e5a9",
+          "static_budget_sha256": "d7bebdaaf974b5fa44f9ad67fdc8afa0e3dea6a818fcbc6b6077016c1de31e82",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "source_sha256": "d2f14c8bb8c7e772396c33bd22bb2b5ae29c9ad9a724c304e8ff0314218b9b99"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget_v8",
+      "kind": "unselected_reference",
+      "request_sha256": "e0486c2f1875e0376e3625b2e7233d823c7d6de671f8d9bfa0210009edba9984",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"error\":{\"cause\":null,\"code\":\"E_HIA_BUDGET_LIMIT\",\"message\":\"E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded\",\"type\":\"HIAHeapBoundRejected\"}}\n",
+      "stdout_sha256": "143c928d9b3d67b9aee04ade614a1f44607b311b36ed90800ff6645154fd92b9"
+    },
+    {
+      "admitted": false,
+      "api": "qualify_finite_entry_live_heap_budget_v8",
+      "boundary": "depth",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "reference": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "source_sha256": "3530fa174fe7e0ca9cd021bc70f046283e0448d208ac7680d65162d58d60a96c"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget_v8",
+      "kind": "unselected_reference",
+      "request_sha256": "20db05c678ab0e5333e895ccf89c7abdbffa4cf7090dd1f5574284552ef40cb6",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"returned\":{\"analysis_work\":{\"contexts\":33,\"max_analysis_call_depth\":64,\"max_contexts\":1024,\"max_transfer_steps\":32768,\"peak_analysis_call_depth\":2,\"transfer_steps\":32130},\"arguments\":[],\"claims\":{\"all_function_input_extents_bounded\":false,\"allocation_failure_and_stop_prefixes_in_bound\":true,\"borrowed_returns_allocate_payload\":false,\"branch_reachability_proved\":false,\"caller_supplied_resource_extents_trusted\":false,\"canonical_core_reverified\":true,\"canonical_return_origins_reverified\":true,\"cleanup_after_trap_or_budget_stop_proved\":false,\"exact_scalar_invocation_only\":true,\"external_borrow_payload_counted_in_caller\":true,\"owned_call_transfer_accounted\":true,\"process_rss_or_native_stack_bytes_bounded\":false,\"recursive_chain_storage_bounded\":false,\"returned_loan_caller_roots_preserved\":true,\"source_or_native_backend_refinement_proved\":false,\"whole_language_soundness_proved\":false,\"whole_module_acyclic_byte_profile_checked\":true},\"core_schema\":\"hepta.hia.program.v8\",\"core_sha256\":\"7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6\",\"function\":\"entry\",\"input_sha256\":\"7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6\",\"limit_bytes\":0,\"max_allocator_interactions\":0,\"max_call_depth\":2,\"max_vm_ticks\":32130,\"peak_bound_bytes\":0,\"profile\":\"acyclic-byte-owner-transfer-parameter-loans-v8\",\"schema\":\"hepta.hia.finite-entry-live-heap-admission.v2\",\"sha256\":\"0aef68e8553c809325a67fe9b02d66beac452507b39abfce8d2f792cd6d2eac5\",\"static_budget_sha256\":\"df14461e5928373057b1aacaf72c98a7cd5feb1e4cb42404ef079f677fbae2d7\",\"status\":\"qualified_exact_scalar_invocation_requested_payload_only\"}}\n",
+      "stdout_sha256": "b59e18c154ac13bd8a14ca8c93205e74422ad9635c2266502bdef4de1753bdf2"
+    },
+    {
+      "admitted": true,
+      "api": "qualify_finite_entry_live_heap_budget_v8",
+      "boundary": "transfers",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 33,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 2,
+            "transfer_steps": 32130
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "borrowed_returns_allocate_payload": false,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "canonical_return_origins_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "returned_loan_caller_roots_preserved": true,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v8",
+          "core_sha256": "7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6",
+          "function": "entry",
+          "input_sha256": "7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 2,
+          "max_vm_ticks": 32130,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-parameter-loans-v8",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v2",
+          "sha256": "0aef68e8553c809325a67fe9b02d66beac452507b39abfce8d2f792cd6d2eac5",
+          "static_budget_sha256": "df14461e5928373057b1aacaf72c98a7cd5feb1e4cb42404ef079f677fbae2d7",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "reference": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 33,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 2,
+            "transfer_steps": 32130
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "borrowed_returns_allocate_payload": false,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "canonical_return_origins_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "returned_loan_caller_roots_preserved": true,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v8",
+          "core_sha256": "7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6",
+          "function": "entry",
+          "input_sha256": "7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 2,
+          "max_vm_ticks": 32130,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-parameter-loans-v8",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v2",
+          "sha256": "0aef68e8553c809325a67fe9b02d66beac452507b39abfce8d2f792cd6d2eac5",
+          "static_budget_sha256": "df14461e5928373057b1aacaf72c98a7cd5feb1e4cb42404ef079f677fbae2d7",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "source_sha256": "7e153db91e369706e9bd6762b1963a9285e457bbc55ef6bff6c2ca73c9e5b8e6"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget_v8",
+      "kind": "unselected_reference",
+      "request_sha256": "6e0dc669b2e08b7be64cc01bb972d389ca09c528103719425f2b66c6d86ca727",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"error\":{\"cause\":null,\"code\":\"E_HIA_BUDGET_LIMIT\",\"message\":\"E_HIA_BUDGET_LIMIT: finite invocation abstract-transfer work limit exceeded\",\"type\":\"HIAHeapBoundRejected\"}}\n",
+      "stdout_sha256": "be753913b1bad94586fab4ab6eec8ca2a6c560ac3ca0a51be8f549fdecb961b6"
+    },
+    {
+      "admitted": false,
+      "api": "qualify_finite_entry_live_heap_budget_v8",
+      "boundary": "transfers",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation abstract-transfer work limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "reference": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation abstract-transfer work limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "source_sha256": "1534d7f9e543039498c6db2c4abc12b8179aaacd0b1d021fdfdc4caefc2eeb17"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget",
+      "kind": "unselected_reference",
+      "request_sha256": "5cee49f23e5c8baca5b9d51a588765c01b8d7aebb2caeed8027b4a5a50b0265e",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"returned\":{\"analysis_work\":{\"contexts\":1024,\"max_analysis_call_depth\":64,\"max_contexts\":1024,\"max_transfer_steps\":32768,\"peak_analysis_call_depth\":2,\"transfer_steps\":4094},\"arguments\":[],\"claims\":{\"all_function_input_extents_bounded\":false,\"allocation_failure_and_stop_prefixes_in_bound\":true,\"branch_reachability_proved\":false,\"caller_supplied_resource_extents_trusted\":false,\"canonical_core_reverified\":true,\"cleanup_after_trap_or_budget_stop_proved\":false,\"exact_scalar_invocation_only\":true,\"external_borrow_payload_counted_in_caller\":true,\"owned_call_transfer_accounted\":true,\"process_rss_or_native_stack_bytes_bounded\":false,\"recursive_chain_storage_bounded\":false,\"source_or_native_backend_refinement_proved\":false,\"whole_language_soundness_proved\":false,\"whole_module_acyclic_byte_profile_checked\":true},\"core_schema\":\"hepta.hia.program.v7\",\"core_sha256\":\"3c3ddf75aa73841c2e400ecc9664233cbe8aa1b27df675f68c51f3603c6ab3f7\",\"function\":\"entry\",\"input_sha256\":\"3c3ddf75aa73841c2e400ecc9664233cbe8aa1b27df675f68c51f3603c6ab3f7\",\"limit_bytes\":0,\"max_allocator_interactions\":0,\"max_call_depth\":2,\"max_vm_ticks\":4094,\"peak_bound_bytes\":0,\"profile\":\"acyclic-byte-owner-transfer-v7\",\"schema\":\"hepta.hia.finite-entry-live-heap-admission.v1\",\"sha256\":\"c873c61e76a716e50a03bbe3d16f58db4bc373cca572d91f6efa6c7eb0ce0c50\",\"static_budget_sha256\":\"6c400dca6deeb8275b5d46890598311f67007030d09a983a7f0561f90a5b5ac3\",\"status\":\"qualified_exact_scalar_invocation_requested_payload_only\"}}\n",
+      "stdout_sha256": "62f87f7e7d664e29d1cd1051ee95caf006af30aa0eab35ee0854d63bf8da6ab9"
+    },
+    {
+      "admitted": true,
+      "api": "qualify_finite_entry_live_heap_budget",
+      "boundary": "contexts",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 1024,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 2,
+            "transfer_steps": 4094
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v7",
+          "core_sha256": "3c3ddf75aa73841c2e400ecc9664233cbe8aa1b27df675f68c51f3603c6ab3f7",
+          "function": "entry",
+          "input_sha256": "3c3ddf75aa73841c2e400ecc9664233cbe8aa1b27df675f68c51f3603c6ab3f7",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 2,
+          "max_vm_ticks": 4094,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-v7",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v1",
+          "sha256": "c873c61e76a716e50a03bbe3d16f58db4bc373cca572d91f6efa6c7eb0ce0c50",
+          "static_budget_sha256": "6c400dca6deeb8275b5d46890598311f67007030d09a983a7f0561f90a5b5ac3",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "reference": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 1024,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 2,
+            "transfer_steps": 4094
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v7",
+          "core_sha256": "3c3ddf75aa73841c2e400ecc9664233cbe8aa1b27df675f68c51f3603c6ab3f7",
+          "function": "entry",
+          "input_sha256": "3c3ddf75aa73841c2e400ecc9664233cbe8aa1b27df675f68c51f3603c6ab3f7",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 2,
+          "max_vm_ticks": 4094,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-v7",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v1",
+          "sha256": "c873c61e76a716e50a03bbe3d16f58db4bc373cca572d91f6efa6c7eb0ce0c50",
+          "static_budget_sha256": "6c400dca6deeb8275b5d46890598311f67007030d09a983a7f0561f90a5b5ac3",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "source_sha256": "3c3ddf75aa73841c2e400ecc9664233cbe8aa1b27df675f68c51f3603c6ab3f7"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget",
+      "kind": "unselected_reference",
+      "request_sha256": "2bbe0a6d6207791ee9a33efcde18afe89b4ccf9f752794dd08094e63b90c0341",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"error\":{\"cause\":null,\"code\":\"E_HIA_BUDGET_LIMIT\",\"message\":\"E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded\",\"type\":\"HIAHeapBoundRejected\"}}\n",
+      "stdout_sha256": "143c928d9b3d67b9aee04ade614a1f44607b311b36ed90800ff6645154fd92b9"
+    },
+    {
+      "admitted": false,
+      "api": "qualify_finite_entry_live_heap_budget",
+      "boundary": "contexts",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "reference": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "source_sha256": "c1e7e1ae78bbf2e2a125bd3430e69b74ae873848094b61c16c7a76f5b99f843f"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget",
+      "kind": "unselected_reference",
+      "request_sha256": "911280de062eeb44faf33a00691a7692f8bfced09988427ae4c286c58c7654b0",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"returned\":{\"analysis_work\":{\"contexts\":64,\"max_analysis_call_depth\":64,\"max_contexts\":1024,\"max_transfer_steps\":32768,\"peak_analysis_call_depth\":64,\"transfer_steps\":191},\"arguments\":[],\"claims\":{\"all_function_input_extents_bounded\":false,\"allocation_failure_and_stop_prefixes_in_bound\":true,\"branch_reachability_proved\":false,\"caller_supplied_resource_extents_trusted\":false,\"canonical_core_reverified\":true,\"cleanup_after_trap_or_budget_stop_proved\":false,\"exact_scalar_invocation_only\":true,\"external_borrow_payload_counted_in_caller\":true,\"owned_call_transfer_accounted\":true,\"process_rss_or_native_stack_bytes_bounded\":false,\"recursive_chain_storage_bounded\":false,\"source_or_native_backend_refinement_proved\":false,\"whole_language_soundness_proved\":false,\"whole_module_acyclic_byte_profile_checked\":true},\"core_schema\":\"hepta.hia.program.v7\",\"core_sha256\":\"5b7ed188fabdc29c8da2fa26094bee120c7f4d06be3602beb5ec837cdc04d505\",\"function\":\"entry\",\"input_sha256\":\"5b7ed188fabdc29c8da2fa26094bee120c7f4d06be3602beb5ec837cdc04d505\",\"limit_bytes\":0,\"max_allocator_interactions\":0,\"max_call_depth\":64,\"max_vm_ticks\":191,\"peak_bound_bytes\":0,\"profile\":\"acyclic-byte-owner-transfer-v7\",\"schema\":\"hepta.hia.finite-entry-live-heap-admission.v1\",\"sha256\":\"7cf926be43e2fcb789ab2a8061ac9e63e9e1b0c26b0baa8933d062b59bbbbfda\",\"static_budget_sha256\":\"b41a586b1e2ae3c8c8fe03db1e77eca082b85d43903d01ec866ae54c5faaf6cc\",\"status\":\"qualified_exact_scalar_invocation_requested_payload_only\"}}\n",
+      "stdout_sha256": "8daff762427a2d7876eeef866c6f7e66f8b9df137de07d0b42c2616e34d02b02"
+    },
+    {
+      "admitted": true,
+      "api": "qualify_finite_entry_live_heap_budget",
+      "boundary": "depth",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 64,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 64,
+            "transfer_steps": 191
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v7",
+          "core_sha256": "5b7ed188fabdc29c8da2fa26094bee120c7f4d06be3602beb5ec837cdc04d505",
+          "function": "entry",
+          "input_sha256": "5b7ed188fabdc29c8da2fa26094bee120c7f4d06be3602beb5ec837cdc04d505",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 64,
+          "max_vm_ticks": 191,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-v7",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v1",
+          "sha256": "7cf926be43e2fcb789ab2a8061ac9e63e9e1b0c26b0baa8933d062b59bbbbfda",
+          "static_budget_sha256": "b41a586b1e2ae3c8c8fe03db1e77eca082b85d43903d01ec866ae54c5faaf6cc",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "reference": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 64,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 64,
+            "transfer_steps": 191
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v7",
+          "core_sha256": "5b7ed188fabdc29c8da2fa26094bee120c7f4d06be3602beb5ec837cdc04d505",
+          "function": "entry",
+          "input_sha256": "5b7ed188fabdc29c8da2fa26094bee120c7f4d06be3602beb5ec837cdc04d505",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 64,
+          "max_vm_ticks": 191,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-v7",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v1",
+          "sha256": "7cf926be43e2fcb789ab2a8061ac9e63e9e1b0c26b0baa8933d062b59bbbbfda",
+          "static_budget_sha256": "b41a586b1e2ae3c8c8fe03db1e77eca082b85d43903d01ec866ae54c5faaf6cc",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "source_sha256": "5b7ed188fabdc29c8da2fa26094bee120c7f4d06be3602beb5ec837cdc04d505"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget",
+      "kind": "unselected_reference",
+      "request_sha256": "91913849f40fe23902c7c6485425558b4e185cdf0e641f3a552c0cc3f7a16dc8",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"error\":{\"cause\":null,\"code\":\"E_HIA_BUDGET_LIMIT\",\"message\":\"E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded\",\"type\":\"HIAHeapBoundRejected\"}}\n",
+      "stdout_sha256": "143c928d9b3d67b9aee04ade614a1f44607b311b36ed90800ff6645154fd92b9"
+    },
+    {
+      "admitted": false,
+      "api": "qualify_finite_entry_live_heap_budget",
+      "boundary": "depth",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "reference": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "source_sha256": "43fd0130a74cdf61830b59894762683f8b7b18b59201bce3b4f07c46e78db261"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget",
+      "kind": "unselected_reference",
+      "request_sha256": "2e7ea6d1066e30ab068386311020cecb8a710e4aa832ecaea537a9b83e514023",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"returned\":{\"analysis_work\":{\"contexts\":33,\"max_analysis_call_depth\":64,\"max_contexts\":1024,\"max_transfer_steps\":32768,\"peak_analysis_call_depth\":2,\"transfer_steps\":32130},\"arguments\":[],\"claims\":{\"all_function_input_extents_bounded\":false,\"allocation_failure_and_stop_prefixes_in_bound\":true,\"branch_reachability_proved\":false,\"caller_supplied_resource_extents_trusted\":false,\"canonical_core_reverified\":true,\"cleanup_after_trap_or_budget_stop_proved\":false,\"exact_scalar_invocation_only\":true,\"external_borrow_payload_counted_in_caller\":true,\"owned_call_transfer_accounted\":true,\"process_rss_or_native_stack_bytes_bounded\":false,\"recursive_chain_storage_bounded\":false,\"source_or_native_backend_refinement_proved\":false,\"whole_language_soundness_proved\":false,\"whole_module_acyclic_byte_profile_checked\":true},\"core_schema\":\"hepta.hia.program.v7\",\"core_sha256\":\"70bbdbfc8dc6de410312b88fd20e80a69adcf9660a52f8cf6a90e4a783de87ba\",\"function\":\"entry\",\"input_sha256\":\"70bbdbfc8dc6de410312b88fd20e80a69adcf9660a52f8cf6a90e4a783de87ba\",\"limit_bytes\":0,\"max_allocator_interactions\":0,\"max_call_depth\":2,\"max_vm_ticks\":32130,\"peak_bound_bytes\":0,\"profile\":\"acyclic-byte-owner-transfer-v7\",\"schema\":\"hepta.hia.finite-entry-live-heap-admission.v1\",\"sha256\":\"04780356095931f94cbc5fde9ed9b38a4d8194f65eeaf0dd46c983cdb3812c28\",\"static_budget_sha256\":\"07f95c2120e90118004fc2a5309d32849f4b8380fc29562e68152a89424d279e\",\"status\":\"qualified_exact_scalar_invocation_requested_payload_only\"}}\n",
+      "stdout_sha256": "6fce487d107a1b489e7cff6f88f7e0e34427724338a2e6b00b90d2967dbb4ec7"
+    },
+    {
+      "admitted": true,
+      "api": "qualify_finite_entry_live_heap_budget",
+      "boundary": "transfers",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 33,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 2,
+            "transfer_steps": 32130
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v7",
+          "core_sha256": "70bbdbfc8dc6de410312b88fd20e80a69adcf9660a52f8cf6a90e4a783de87ba",
+          "function": "entry",
+          "input_sha256": "70bbdbfc8dc6de410312b88fd20e80a69adcf9660a52f8cf6a90e4a783de87ba",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 2,
+          "max_vm_ticks": 32130,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-v7",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v1",
+          "sha256": "04780356095931f94cbc5fde9ed9b38a4d8194f65eeaf0dd46c983cdb3812c28",
+          "static_budget_sha256": "07f95c2120e90118004fc2a5309d32849f4b8380fc29562e68152a89424d279e",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "reference": {
+        "returned": {
+          "analysis_work": {
+            "contexts": 33,
+            "max_analysis_call_depth": 64,
+            "max_contexts": 1024,
+            "max_transfer_steps": 32768,
+            "peak_analysis_call_depth": 2,
+            "transfer_steps": 32130
+          },
+          "arguments": [],
+          "claims": {
+            "all_function_input_extents_bounded": false,
+            "allocation_failure_and_stop_prefixes_in_bound": true,
+            "branch_reachability_proved": false,
+            "caller_supplied_resource_extents_trusted": false,
+            "canonical_core_reverified": true,
+            "cleanup_after_trap_or_budget_stop_proved": false,
+            "exact_scalar_invocation_only": true,
+            "external_borrow_payload_counted_in_caller": true,
+            "owned_call_transfer_accounted": true,
+            "process_rss_or_native_stack_bytes_bounded": false,
+            "recursive_chain_storage_bounded": false,
+            "source_or_native_backend_refinement_proved": false,
+            "whole_language_soundness_proved": false,
+            "whole_module_acyclic_byte_profile_checked": true
+          },
+          "core_schema": "hepta.hia.program.v7",
+          "core_sha256": "70bbdbfc8dc6de410312b88fd20e80a69adcf9660a52f8cf6a90e4a783de87ba",
+          "function": "entry",
+          "input_sha256": "70bbdbfc8dc6de410312b88fd20e80a69adcf9660a52f8cf6a90e4a783de87ba",
+          "limit_bytes": 0,
+          "max_allocator_interactions": 0,
+          "max_call_depth": 2,
+          "max_vm_ticks": 32130,
+          "peak_bound_bytes": 0,
+          "profile": "acyclic-byte-owner-transfer-v7",
+          "schema": "hepta.hia.finite-entry-live-heap-admission.v1",
+          "sha256": "04780356095931f94cbc5fde9ed9b38a4d8194f65eeaf0dd46c983cdb3812c28",
+          "static_budget_sha256": "07f95c2120e90118004fc2a5309d32849f4b8380fc29562e68152a89424d279e",
+          "status": "qualified_exact_scalar_invocation_requested_payload_only"
+        }
+      },
+      "source_sha256": "70bbdbfc8dc6de410312b88fd20e80a69adcf9660a52f8cf6a90e4a783de87ba"
+    },
+    {
+      "api": "qualify_finite_entry_live_heap_budget",
+      "kind": "unselected_reference",
+      "request_sha256": "38608a0093fef56160061688bde54b3cb3e24af9a9989e7af087c28ed4184ec9",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"error\":{\"cause\":null,\"code\":\"E_HIA_BUDGET_LIMIT\",\"message\":\"E_HIA_BUDGET_LIMIT: finite invocation abstract-transfer work limit exceeded\",\"type\":\"HIAHeapBoundRejected\"}}\n",
+      "stdout_sha256": "be753913b1bad94586fab4ab6eec8ca2a6c560ac3ca0a51be8f549fdecb961b6"
+    },
+    {
+      "admitted": false,
+      "api": "qualify_finite_entry_live_heap_budget",
+      "boundary": "transfers",
+      "kind": "actual_native_work_boundary",
+      "native": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation abstract-transfer work limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "reference": {
+        "error": {
+          "cause": null,
+          "code": "E_HIA_BUDGET_LIMIT",
+          "message": "E_HIA_BUDGET_LIMIT: finite invocation abstract-transfer work limit exceeded",
+          "type": "HIAHeapBoundRejected"
+        }
+      },
+      "source_sha256": "16f487cc023eb75926385be119887f7b80823bd13bed7436080d5909f1ec7588"
+    },
+    {
+      "captured_arguments": [
+        7
+      ],
+      "kind": "actual_consumed_native_invocation",
+      "mode": 3,
+      "sequence": 16
+    }
+  ],
+  "native_step_count": 3582,
+  "old_policy_calls": [],
+  "original_git_blobs": {
+    "tests/test_hia_borrowed_extent_heap.py": "06f5178113b6495265a23f926106916e3f06fa8d",
+    "tests/test_hia_entry_payload_bound.py": "bb02ae772b820cbf3c4d400c71ea597d08247494",
+    "tests/test_hia_finite_v8_heap.py": "c76fcf09a2e5cda1c4e9bb03c31626a10ecb82b1",
+    "tests/test_hia_heap_borrowed.py": "64cf658f4f3ae60f424f39a38a586555f096137c",
+    "tests/test_hia_heap_bound.py": "c165ed101c24ccd5d526275a4f4796e494973c21",
+    "tests/test_hia_heap_intervals.py": "d6bb59add86ef22007bad54fe7f57d0b1ddcc6f5",
+    "tests/test_hia_p0p1_v7_guard.py": "f4d9e183a51eb1a835fe329eb3ded2312b67f41e",
+    "tests/test_hia_p1_scoped_try_new_v7_guard.py": "54ab42d1e35a6bbfccb316ee5d157541cf124096",
+    "tests/test_hia_partial_finite_bounds.py": "69c45039d0ae423d9cbdd974d20910e1bb6c1eb1",
+    "tests/test_hia_returned_loan_budgets.py": "0189fbb55329ccd613b675cbcece37dec2bae0fd",
+    "tests/test_hia_returned_loans.py": "2c5a2dd655efdd8bb646992cb0a1eafa87c6d0cf",
+    "tests/test_hia_scoped_alloc_loops.py": "061dc7f263ca918718924902d2fdff5780d95505",
+    "tests/test_hia_zero_heap_loops.py": "a7b87e39a994d0d651d599424cc492696370f639"
+  },
+  "packages": {
+    "jsonschema": "4.26.0",
+    "z3-solver": "4.15.4.0"
+  },
+  "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+  "scope": "PUBLIC_HEAP_ORIGINAL_REFERENCE_AND_EXPLICIT_NATIVE_FIXTURE_BRANCHES",
+  "separate_foreign_clang_rust_classes_not_in_scope": true,
+  "skips": [],
+  "source_test_hashes": {
+    "tests/test_hia_borrowed_extent_heap.py": "29cb3313a02f87656fd582979f6b766dd3776b762f9fc0b8a86c8d6c2d94b5de",
+    "tests/test_hia_entry_payload_bound.py": "43ea10a4dc356f157fe9a95ff23f9ddcdf682d13a6f29f877fd672064340ee52",
+    "tests/test_hia_finite_v8_heap.py": "bdce6033ba3a51315c0118bc3e99d5c63a6cccd96fe242f4e51106dee583c47e",
+    "tests/test_hia_heap_borrowed.py": "a6c69d306aaf9651dd37a79c01e1fea923374bb711e4c1778a2dea9b18382030",
+    "tests/test_hia_heap_bound.py": "df80df2c83e26b82b0b0c5071f51fe8a4a3818b0e3569404e6cca3b895f920b5",
+    "tests/test_hia_heap_intervals.py": "61cb7b1ea9bb232990c17e54105756ef096b802fb5d7e47567cec89019098d64",
+    "tests/test_hia_p0p1_v7_guard.py": "93f498d5ce03a28219912d248eab72d6bb31ead0f4bfe4fb39952600c37cebc5",
+    "tests/test_hia_p1_scoped_try_new_v7_guard.py": "f9be3e032050a57d0c36e119d1b0b40b0c87135057d46ee5550e04328bc46c62",
+    "tests/test_hia_partial_finite_bounds.py": "1efe720bea5bc3a5f3ccb44ece16e43aea25e09869cde17a8c3107068db9ada6",
+    "tests/test_hia_returned_loan_budgets.py": "73c0cc1af2e02106459cd5c54b0b664f0d29bd3a345536ec97dd1b1b868c4a06",
+    "tests/test_hia_returned_loans.py": "f3589f3eb906b5f0d4409d79287578c62972ee1810a89b0ea8f3bcd66f9d18c3",
+    "tests/test_hia_scoped_alloc_loops.py": "972c248dd6f1368459f8fe6d6f05dbd8732b8941f37a1142e6196ff355c73e43",
+    "tests/test_hia_zero_heap_loops.py": "b38c2ca968a571f1e00a361786ce0ab684af701450e6dfa0810394de4967a33a"
+  },
+  "started": 1794475088.0420952,
+  "status": "PASS",
+  "test_ids": [
+    "tests.test_hia_heap_bound.HIAHeapBoundTests.test_conditional_phi_owner_sizes_take_safe_maximum",
+    "tests.test_hia_heap_bound.HIAHeapBoundTests.test_constant_arithmetic_size_is_bounded_with_exact_machine_width",
+    "tests.test_hia_heap_bound.HIAHeapBoundTests.test_dynamic_unknown_never_qualifies_native_budget",
+    "tests.test_hia_heap_bound.HIAHeapBoundTests.test_future_core_schema_must_be_audited_before_budget_qualification",
+    "tests.test_hia_heap_bound.HIAHeapBoundTests.test_missing_policy_does_not_expand_legacy_budget",
+    "tests.test_hia_heap_bound.HIAHeapBoundTests.test_nested_scalar_only_call_adds_concurrent_live_bytes",
+    "tests.test_hia_heap_bound.HIAHeapBoundTests.test_owner_return_boundary_fails_closed",
+    "tests.test_hia_heap_bound.HIAHeapBoundTests.test_static_owner_move_and_drop_preserve_peak_bytes",
+    "tests.test_hia_heap_bound.HIAHeapBoundTests.test_unknown_dynamic_extents_fail_closed",
+    "tests.test_hia_heap_bound.HIAHeapBoundTests.test_unreviewed_future_opcode_cannot_silently_skip_byte_accounting",
+    "tests.test_hia_heap_intervals.HIAHeapIntervalTests.test_checked_arithmetic_and_owner_length_with_fallible_second_allocation",
+    "tests.test_hia_heap_intervals.HIAHeapIntervalTests.test_diamond_join_retains_safe_interval_instead_of_dropping_constant",
+    "tests.test_hia_heap_intervals.HIAHeapIntervalTests.test_exact_wrapping_semantics_cannot_forge_nonzero_owner_extent",
+    "tests.test_hia_heap_intervals.HIAHeapIntervalTests.test_nonconstant_select_never_underbounds_either_real_vm_path",
+    "tests.test_hia_heap_intervals.HIAHeapIntervalTests.test_unknown_dynamic_and_checked_overflow_cannot_claim_small_budget",
+    "tests.test_hia_heap_borrowed.HIAHeapBorrowedExtentTests.test_borrow_without_forwarded_root_rejected_by_canonical_core",
+    "tests.test_hia_heap_borrowed.HIAHeapBorrowedExtentTests.test_diamond_joins_views_by_normalized_owner_root",
+    "tests.test_hia_heap_borrowed.HIAHeapBorrowedExtentTests.test_ended_loan_cannot_supply_new_allocation_size",
+    "tests.test_hia_heap_borrowed.HIAHeapBorrowedExtentTests.test_nested_reborrow_root_survives_real_cfg_ssa_transfer",
+    "tests.test_hia_heap_borrowed.HIAHeapBorrowedExtentTests.test_same_block_borrow_length_never_uses_unproved_exact_allocation",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_actual_legacy_core_has_three_requests_and_32_byte_bound",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_allocator_in_acyclic_exit_of_cycle_is_counted_once",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_branch_sum_is_conservative_and_does_not_claim_tight_peak",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_cross_block_constant_does_not_inherit_an_unproved_extent",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_direct_allocator_in_cycle_refuses_even_zero_size",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_dynamic_allocation_size_refuses",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_forged_verified_program_rechecks_owner_linear_flow",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_future_verifier_cannot_silently_expand_closed_payload_profile",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_historical_admission_is_not_widened_by_the_new_analysis",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_oversize_object_refuses_even_though_optional_runtime_can_fail",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_owner_returns_and_moves_transfer_payload_without_reallocating",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_recursive_call_graph_refuses_including_unused_definition",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_resource_access_and_borrowed_calls_in_cycle_need_no_new_payload",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_resource_boundary_is_not_treated_as_empty_scalar_entry",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_same_core_replay_is_deterministic_and_input_snapshot_is_detached",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_transitive_allocator_call_in_cycle_refuses",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_trap_and_failing_required_allocation_keep_prefix_bound",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_unknown_opcode_and_foreign_allocator_refuse",
+    "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_zero_size_counts_opcode_but_not_allocator_attempt",
+    "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_bad_origins_aliases_hidden_helpers_and_extent_annotations_reject_first",
+    "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_different_borrowed_extents_are_distinct_memo_contexts",
+    "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_explicit_v3_closes_recorded_gap_and_legacy_apis_stay_strict",
+    "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_external_root_cfg_join_keeps_maximum_extent_without_return_authority",
+    "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_fallible_and_zero_length_are_intervals_never_assumed_maxima",
+    "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_nested_read_mut_borrows_owner_returns_failure_and_cancel",
+    "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_nominal_partial_composite_and_tasks_use_existing_normalized_contract",
+    "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_public_resource_promises_unknown_lengths_and_uncertified_graphs_refuse",
+    "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_shared_alias_payload_is_charged_once_and_reordered_origins_keep_size",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_asymmetric_reordered_loan_results_select_the_correct_retained_root",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_every_step_heap_and_call_stop_is_bounded_without_unwinding",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_exact_arguments_policy_and_captured_snapshot_remain_bound",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_existing_composite_partial_owners_and_task_cleanup_use_same_analysis",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_explicit_cancellation_and_allocation_failure_keep_distinct_values",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_external_extent_is_unknown_inside_callee_and_cannot_be_promised",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_legacy_admissions_keep_their_exact_version_and_boundary",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_mixed_owner_and_returned_loan_calls_get_a_new_explicit_bound",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_returned_loan_length_uses_its_retained_caller_extent",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_shared_actual_aliases_do_not_double_count_and_swapped_roots_stay_distinct",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_unknown_profiles_cycles_and_analysis_work_limits_refuse",
+    "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_wrong_origins_early_parent_end_and_hidden_bad_helper_reject_first",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_all_existing_budget_prefixes_are_bounded_without_implicit_cleanup",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_all_function_heap_meaning_is_not_replaced_by_exact_invocations",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_argument_policy_and_context_work_limits_fail_closed",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_borrowed_unknown_extent_never_becomes_zero_or_caller_promise",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_callee_without_normal_return_preserves_its_live_trap_prefix",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_caller_mutation_cannot_rebind_analyzed_argument_snapshot",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_canonical_alias_refusal_still_precedes_resource_estimation",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_chain_and_all_module_cycles_remain_structured_unknown",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_crossing_object_limit_and_exact_checked_overflow_remain_unknown",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_existing_oversize_cases_keep_failed_empty_logical_owners",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_infallible_oversize_allocation_preserves_trap_and_stop_prefixes",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_nested_owned_calls_and_multiple_returns_count_each_live_payload_once",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_real_partial_normalization_gets_separate_versioned_bounds",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_return_join_keeps_largest_owner_extent",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_returned_length_interval_covers_fallible_empty_owner",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_scalar_call_result_bounds_are_specialized_to_exact_entry_values",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_shared_borrowed_actuals_and_owned_actual_do_not_double_count",
+    "tests.test_hia_partial_finite_bounds.PartialFiniteBounds.test_zero_byte_partial_tokens_remain_logical_owners",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_canonical_core_rejects_wrong_origin_and_exclusive_alias_before_analysis",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_cfg_loop_with_returned_loans_has_frame_bound_but_no_tick_bound",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_chain_destructors_only_receive_synchronous_frame_qualification",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_external_loan_root_survives_cfg_renaming_and_branch_join",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_failure_and_every_tick_prefix_stay_within_peak_without_claimed_cleanup",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_forward_child_cfg_and_multiple_results_have_actual_event_bounds",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_invalid_policy_future_schema_and_forged_producer_claims_fail_closed",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_nested_calls_count_live_frames_not_returned_view_handles",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_owned_call_boundaries_and_private_entry_remain_unqualified",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_receipts_replay_from_actual_bytes_and_bind_changed_inputs",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_recursive_returns_never_receive_a_finite_dag_certificate",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_returned_loan_length_retains_actual_caller_owner_bound",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_scalar_entry_total_adds_callee_local_peak_without_duplicate_borrow_payload",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_uncalled_future_opcode_cannot_inherit_event_or_frame_accounting",
+    "tests.test_hia_returned_loan_budgets.ReturnedLoanBudgetTests.test_unknown_external_length_is_not_a_zero_length_or_caller_promise",
+    "tests.test_hia_zero_heap_loops.ZeroHeapLoopQualification.test_allocating_cycle_still_rejects_even_for_zero_byte_extent",
+    "tests.test_hia_zero_heap_loops.ZeroHeapLoopQualification.test_arbitrary_scalar_loop_still_has_no_termination_proof",
+    "tests.test_hia_zero_heap_loops.ZeroHeapLoopQualification.test_noncyclic_existing_owned_budget_is_unchanged",
+    "tests.test_hia_zero_heap_loops.ZeroHeapLoopQualification.test_repeated_scalar_callee_not_silently_treated_as_pure",
+    "tests.test_hia_zero_heap_loops.ZeroHeapLoopQualification.test_verified_scalar_backedge_has_zero_heap_but_not_finite_ticks",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_checked_small_cast_bounds_dynamic_loop_even_without_termination",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_full_u32_machine_domain_binds_repeat_allocation_peak",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_independent_scopes_on_distinct_blocks_take_max_not_sum",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_owner_transferred_across_block_boundary_remains_unqualified",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_partially_overflowing_or_wrapping_interval_stays_unqualified",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_proven_exact_wrapping_extent_matches_fixed_width_native_semantics",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_proven_u32_interval_plus_one_qualifies_without_caller_assumptions",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_same_block_checked_constant_arithmetic_qualifies_cyclic_peak",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_scoped_fallible_owner_loop_bounds_success_and_allocation_failure",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_scoped_try_new_dynamic_bound_is_conservative_on_failure",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_scoped_try_new_requires_owner_cleanup_before_every_cfg_edge",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_strict_live_heap_only_admission_cannot_promote_other_budgets",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_true_native_hia_vm_loop_peak_is_iteration_independent",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_two_concurrently_live_block_local_owners_are_summed",
+    "tests.test_hia_scoped_alloc_loops.ScopedAllocatingLoopTests.test_unknown_opcode_has_no_new_cyclic_resource_authority",
+    "tests.test_hia_p0p1_v7_guard.GuardedV7HeapProfileTests.test_byte_identical_operations_do_not_inherit_v7_resource_authority",
+    "tests.test_hia_p0p1_v7_guard.GuardedV7HeapProfileTests.test_v7_scalar_only_is_also_outside_the_resource_admission_profile",
+    "tests.test_hia_p0p1_v7_guard.GuardedV7HeapProfileTests.test_verified_v6_scope_retains_a_finite_peak",
+    "tests.test_hia_p1_scoped_try_new_v7_guard.V7FallibleHeapVersionGuard.test_equivalent_v7_core_cannot_inherit_v6_fallible_budget",
+    "tests.test_hia_p1_scoped_try_new_v7_guard.V7FallibleHeapVersionGuard.test_v6_strict_scope_can_certify_fallible_payload_only",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_contract_shape_bound_input_and_permissions",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_duplicate_return_and_exclusive_call_alias_refuse",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_error_as_value_cleans_actual_allocations",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_explicit_new_schema_and_legacy_refusal",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_exported_resource_descriptor_is_refused",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_forward_child_cfg_recursion_execute_with_balanced_resources",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_legacy_and_v8_nonreturning_loan_cfg_join_still_agree",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_multi_result_aliases_create_independent_runtime_views",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_parent_and_owner_remain_suspended_until_returned_child_ends",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_partial_multi_result_failure_and_caller_trap_keep_live_loans",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_read_child_can_return_from_mutable_parameter_without_escalation",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_resource_analyses_keep_separate_v8_qualification_profiles",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_traps_and_budget_stops_retain_stopped_resource_ledger",
+    "tests.test_hia_returned_loans.ReturnedLoans.test_wrong_origin_owner_escape_and_deeper_child_refuse",
+    "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_identity_child_relay_join_and_original_parent_survives",
+    "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_other_version_consumers_fail_closed"
+  ],
+  "tests_run": 134,
+  "unexpected_successes": []
+}

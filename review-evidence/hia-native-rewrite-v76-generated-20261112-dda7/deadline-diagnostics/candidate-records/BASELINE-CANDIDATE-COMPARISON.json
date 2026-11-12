@@ -1,0 +1,1732 @@
+{
+  "after_return_is_only_a_conservative_subset_of_deadline_lifetime": true,
+  "all_eight_original_observations_retained": true,
+  "candidate_fixes_original_3s_gate": false,
+  "current_source_cold": false,
+  "exact_deadline_clock_assignment_was_not_instrumented": true,
+  "inclusive_timers_overlap_do_not_sum": true,
+  "qualification": false,
+  "rows": [
+    {
+      "after_second_context_return": {
+        "calls": 47,
+        "cpu_seconds": 2.181699143,
+        "second_context_return_ns": 5599296810,
+        "wall_seconds": 2.182501084
+      },
+      "case": "observe-ledger-expired-r1",
+      "compile": [
+        {
+          "actual_timeout_ms": 0,
+          "cpu_ns": 15143,
+          "name": "service._compile",
+          "parent": "service._hia_emit",
+          "raised": true,
+          "start_ns": 8707274584,
+          "wall_ns": 14472
+        }
+      ],
+      "failure_tail": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-24878752441ca943bf5838d2e70bc6a05a10731611b265860b06e1d2b03a2043\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"codegen\", \"message\": \"frozen context deadline expired before emission\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "old_policy_calls": [],
+      "per_tool_source": [
+        {
+          "name": "service.call:hia_describe",
+          "source_calls": 1,
+          "source_cpu_ns": 43430695,
+          "source_wall_ns": 43459061,
+          "start_ns": 2232138693,
+          "wall_ns": 133573994
+        },
+        {
+          "name": "service.call:hia_read",
+          "source_calls": 1,
+          "source_cpu_ns": 134444696,
+          "source_wall_ns": 134451453,
+          "start_ns": 2366694194,
+          "wall_ns": 259699241
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 96114976,
+          "source_wall_ns": 99579672,
+          "start_ns": 2632089781,
+          "wall_ns": 198677961
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 82173349,
+          "source_wall_ns": 93190583,
+          "start_ns": 2831726866,
+          "wall_ns": 204336043
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 82888616,
+          "source_wall_ns": 95367807,
+          "start_ns": 3036679688,
+          "wall_ns": 180652943
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 6,
+          "source_cpu_ns": 309305439,
+          "source_wall_ns": 522311563,
+          "start_ns": 3218032384,
+          "wall_ns": 711283400
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 79886431,
+          "source_wall_ns": 79962778,
+          "start_ns": 3929958502,
+          "wall_ns": 143985197
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 239081573,
+          "source_wall_ns": 239180930,
+          "start_ns": 4074391283,
+          "wall_ns": 354160888
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 350313185,
+          "source_wall_ns": 350322770,
+          "start_ns": 4429060677,
+          "wall_ns": 429557531
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 78755497,
+          "source_wall_ns": 78749881,
+          "start_ns": 4860776468,
+          "wall_ns": 168964776
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 75759320,
+          "source_wall_ns": 75754463,
+          "start_ns": 5030349099,
+          "wall_ns": 133425549
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 7,
+          "source_cpu_ns": 290652962,
+          "source_wall_ns": 290712730,
+          "start_ns": 5164379318,
+          "wall_ns": 434917492
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 96170960,
+          "source_wall_ns": 96168828,
+          "start_ns": 5599808430,
+          "wall_ns": 170991477
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 251413264,
+          "source_wall_ns": 251565569,
+          "start_ns": 5771487101,
+          "wall_ns": 382946582
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 594019361,
+          "source_wall_ns": 594143800,
+          "start_ns": 6155149250,
+          "wall_ns": 896246292
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 519018752,
+          "source_wall_ns": 519346642,
+          "start_ns": 7053058937,
+          "wall_ns": 714589579
+        },
+        {
+          "name": "service.call:hia_emit",
+          "source_calls": 17,
+          "source_cpu_ns": 721076806,
+          "source_wall_ns": 721276245,
+          "start_ns": 7769248324,
+          "wall_ns": 941259198
+        }
+      ],
+      "revision": "baseline",
+      "second_context_entry_onward_including_pre_deadline_setup": {
+        "calls": 54,
+        "cpu_seconds": 2.472352105,
+        "wall_seconds": 2.473213814
+      },
+      "test_status": "FAIL",
+      "whole_test": {
+        "native.entry:NativeArtifactNamespaceImage": {
+          "calls": 1341,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 524615777,
+          "inclusive_cpu_ns": 524962002,
+          "inclusive_wall_ns": 524615777
+        },
+        "native.entry:NativeExecutionBudgetImage": {
+          "calls": 12,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 4738644,
+          "inclusive_cpu_ns": 4743400,
+          "inclusive_wall_ns": 4738644
+        },
+        "native.entry:NativeRequestJournalImage": {
+          "calls": 218,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 39074315,
+          "inclusive_cpu_ns": 39026636,
+          "inclusive_wall_ns": 39074315
+        },
+        "publication._admitted_code": {
+          "calls": 110,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 162189909,
+          "inclusive_cpu_ns": 5653528473,
+          "inclusive_wall_ns": 5901515528
+        },
+        "publication.current_sources": {
+          "calls": 110,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 31186188,
+          "inclusive_cpu_ns": 5495753334,
+          "inclusive_wall_ns": 5739325619
+        },
+        "source.file_digests": {
+          "calls": 110,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 5518314316,
+          "inclusive_cpu_ns": 5275028047,
+          "inclusive_wall_ns": 5518314316
+        },
+        "source.validate_contract": {
+          "calls": 110,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 189825115,
+          "inclusive_cpu_ns": 5464594835,
+          "inclusive_wall_ns": 5708139431
+        }
+      }
+    },
+    {
+      "after_second_context_return": {
+        "calls": 53,
+        "cpu_seconds": 2.630264956,
+        "second_context_return_ns": 4732848789,
+        "wall_seconds": 2.640638597
+      },
+      "case": "observe-ledger-loop-r1",
+      "compile": [
+        {
+          "actual_timeout_ms": 182,
+          "cpu_ns": 119048612,
+          "name": "service._compile",
+          "parent": "service._hia_emit",
+          "raised": false,
+          "start_ns": 7542685327,
+          "wall_ns": 198613229
+        }
+      ],
+      "failure_tail": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-cd85b9805f43e2e590cfcb732dc8ce03ee07aa08751ce140c172badb9ffecc5c\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "old_policy_calls": [],
+      "per_tool_source": [
+        {
+          "name": "service.call:hia_describe",
+          "source_calls": 1,
+          "source_cpu_ns": 46210048,
+          "source_wall_ns": 46346949,
+          "start_ns": 2122375777,
+          "wall_ns": 139126650
+        },
+        {
+          "name": "service.call:hia_read",
+          "source_calls": 1,
+          "source_cpu_ns": 43330968,
+          "source_wall_ns": 43424599,
+          "start_ns": 2262303694,
+          "wall_ns": 109313323
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 105653385,
+          "source_wall_ns": 106450659,
+          "start_ns": 2372484764,
+          "wall_ns": 186202522
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 82407280,
+          "source_wall_ns": 82773812,
+          "start_ns": 2559303804,
+          "wall_ns": 157494319
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 90906991,
+          "source_wall_ns": 91095482,
+          "start_ns": 2717277444,
+          "wall_ns": 185169211
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 6,
+          "source_cpu_ns": 243724472,
+          "source_wall_ns": 244276851,
+          "start_ns": 2903087590,
+          "wall_ns": 354794977
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 86444068,
+          "source_wall_ns": 86534822,
+          "start_ns": 3258460257,
+          "wall_ns": 159224349
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 288833502,
+          "source_wall_ns": 289566003,
+          "start_ns": 3418211639,
+          "wall_ns": 406257630
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 90225626,
+          "source_wall_ns": 90320130,
+          "start_ns": 3825064024,
+          "wall_ns": 157879574
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 89472275,
+          "source_wall_ns": 89592404,
+          "start_ns": 3983384602,
+          "wall_ns": 152702060
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 80903619,
+          "source_wall_ns": 80997225,
+          "start_ns": 4136643039,
+          "wall_ns": 150719616
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 7,
+          "source_cpu_ns": 325056416,
+          "source_wall_ns": 325951718,
+          "start_ns": 4287992242,
+          "wall_ns": 444856547
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 90497441,
+          "source_wall_ns": 90606011,
+          "start_ns": 4733580560,
+          "wall_ns": 159105885
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 267487378,
+          "source_wall_ns": 268083531,
+          "start_ns": 4893164395,
+          "wall_ns": 373358554
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 469433158,
+          "source_wall_ns": 470155036,
+          "start_ns": 5267249563,
+          "wall_ns": 662183365
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 465810767,
+          "source_wall_ns": 466363991,
+          "start_ns": 5930943022,
+          "wall_ns": 663674446
+        },
+        {
+          "name": "service.call:hia_emit",
+          "source_calls": 20,
+          "source_cpu_ns": 1203319801,
+          "source_wall_ns": 1211708782,
+          "start_ns": 6596256636,
+          "wall_ns": 1650584988
+        },
+        {
+          "name": "service.call:hia_emit",
+          "source_calls": 3,
+          "source_cpu_ns": 133716411,
+          "source_wall_ns": 133721246,
+          "start_ns": 8247729371,
+          "wall_ns": 219090843
+        }
+      ],
+      "revision": "baseline",
+      "second_context_entry_onward_including_pre_deadline_setup": {
+        "calls": 60,
+        "cpu_seconds": 2.955321372,
+        "wall_seconds": 2.966590315
+      },
+      "test_status": "FAIL",
+      "whole_test": {
+        "native.entry:NativeArtifactNamespaceImage": {
+          "calls": 1405,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 559637469,
+          "inclusive_cpu_ns": 559175556,
+          "inclusive_wall_ns": 559637469
+        },
+        "native.entry:NativeExecutionBudgetImage": {
+          "calls": 12,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 5038184,
+          "inclusive_cpu_ns": 5043400,
+          "inclusive_wall_ns": 5038184
+        },
+        "native.entry:NativeRequestJournalImage": {
+          "calls": 230,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 43391649,
+          "inclusive_cpu_ns": 43207803,
+          "inclusive_wall_ns": 43391649
+        },
+        "publication._admitted_code": {
+          "calls": 116,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 158237011,
+          "inclusive_cpu_ns": 5762251621,
+          "inclusive_wall_ns": 5783149770
+        },
+        "publication.current_sources": {
+          "calls": 116,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 30713799,
+          "inclusive_cpu_ns": 5604361057,
+          "inclusive_wall_ns": 5624912759
+        },
+        "source.file_digests": {
+          "calls": 116,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 5415674032,
+          "inclusive_cpu_ns": 5396039958,
+          "inclusive_wall_ns": 5415674032
+        },
+        "source.validate_contract": {
+          "calls": 116,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 178524928,
+          "inclusive_cpu_ns": 5573696437,
+          "inclusive_wall_ns": 5594198960
+        }
+      }
+    },
+    {
+      "after_second_context_return": {
+        "calls": 47,
+        "cpu_seconds": 2.148210666,
+        "second_context_return_ns": 5328676868,
+        "wall_seconds": 2.163405079
+      },
+      "case": "observe-namespace-expired-r1",
+      "compile": [
+        {
+          "actual_timeout_ms": 74,
+          "cpu_ns": 16221875,
+          "name": "service._compile",
+          "parent": "service._hia_emit",
+          "raised": true,
+          "start_ns": 8246840325,
+          "wall_ns": 76326187
+        }
+      ],
+      "failure_tail": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-deec3189ffbb18aec2292a4828c2e3e04c509dbe8f35e90e7a17a2e6b69d00bc\", \"status\": \"rejected\", \"error\": {\"code\": \"E_CAPTURE_TIMEOUT\", \"phase\": \"admission\", \"message\": \"Compiler exceeded wall-time budget\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "old_policy_calls": [],
+      "per_tool_source": [
+        {
+          "name": "service.call:hia_describe",
+          "source_calls": 1,
+          "source_cpu_ns": 39809001,
+          "source_wall_ns": 39813025,
+          "start_ns": 2598520473,
+          "wall_ns": 120234537
+        },
+        {
+          "name": "service.call:hia_read",
+          "source_calls": 1,
+          "source_cpu_ns": 59991693,
+          "source_wall_ns": 65768517,
+          "start_ns": 2719782167,
+          "wall_ns": 134026712
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 85387771,
+          "source_wall_ns": 85452983,
+          "start_ns": 2854939902,
+          "wall_ns": 155592886
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 86242082,
+          "source_wall_ns": 86501886,
+          "start_ns": 3011658743,
+          "wall_ns": 191123664
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 88876775,
+          "source_wall_ns": 89603331,
+          "start_ns": 3203463182,
+          "wall_ns": 169248230
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 6,
+          "source_cpu_ns": 234285359,
+          "source_wall_ns": 234392241,
+          "start_ns": 3373246898,
+          "wall_ns": 377537312
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 78710309,
+          "source_wall_ns": 78737963,
+          "start_ns": 3751341679,
+          "wall_ns": 138816433
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 252213415,
+          "source_wall_ns": 252370073,
+          "start_ns": 3890619076,
+          "wall_ns": 365250304
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 80807721,
+          "source_wall_ns": 80829778,
+          "start_ns": 4256740011,
+          "wall_ns": 145512870
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 74775694,
+          "source_wall_ns": 74800394,
+          "start_ns": 4403118754,
+          "wall_ns": 153641854
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 87749798,
+          "source_wall_ns": 87888970,
+          "start_ns": 4557384948,
+          "wall_ns": 156249761
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 7,
+          "source_cpu_ns": 459380113,
+          "source_wall_ns": 459634411,
+          "start_ns": 4714257867,
+          "wall_ns": 614419001
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 76958597,
+          "source_wall_ns": 76961528,
+          "start_ns": 5329170531,
+          "wall_ns": 141006490
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 244429106,
+          "source_wall_ns": 244610711,
+          "start_ns": 5470745027,
+          "wall_ns": 353255139
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 488798955,
+          "source_wall_ns": 488992699,
+          "start_ns": 5824678687,
+          "wall_ns": 681164871
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 652695835,
+          "source_wall_ns": 666913313,
+          "start_ns": 6507191377,
+          "wall_ns": 853857545
+        },
+        {
+          "name": "service.call:hia_emit",
+          "source_calls": 17,
+          "source_cpu_ns": 685328173,
+          "source_wall_ns": 685926828,
+          "start_ns": 7362253305,
+          "wall_ns": 964608009
+        }
+      ],
+      "revision": "baseline",
+      "second_context_entry_onward_including_pre_deadline_setup": {
+        "calls": 54,
+        "cpu_seconds": 2.607590779,
+        "wall_seconds": 2.62303949
+      },
+      "test_status": "FAIL",
+      "whole_test": {
+        "native.entry:NativeArtifactNamespaceImage": {
+          "calls": 1341,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 510487332,
+          "inclusive_cpu_ns": 510949208,
+          "inclusive_wall_ns": 510487332
+        },
+        "native.entry:NativeExecutionBudgetImage": {
+          "calls": 12,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 4693386,
+          "inclusive_cpu_ns": 4721609,
+          "inclusive_wall_ns": 4693386
+        },
+        "native.entry:NativeRequestJournalImage": {
+          "calls": 218,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 36531709,
+          "inclusive_cpu_ns": 36431130,
+          "inclusive_wall_ns": 36531709
+        },
+        "publication._admitted_code": {
+          "calls": 110,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 139404277,
+          "inclusive_cpu_ns": 5333898280,
+          "inclusive_wall_ns": 5603999980
+        },
+        "publication.current_sources": {
+          "calls": 110,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 29563323,
+          "inclusive_cpu_ns": 5197674036,
+          "inclusive_wall_ns": 5464595703
+        },
+        "source.file_digests": {
+          "calls": 110,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 5282009665,
+          "inclusive_cpu_ns": 5015924059,
+          "inclusive_wall_ns": 5282009665
+        },
+        "source.validate_contract": {
+          "calls": 110,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 153022715,
+          "inclusive_cpu_ns": 5168576929,
+          "inclusive_wall_ns": 5435032380
+        }
+      }
+    },
+    {
+      "after_second_context_return": {
+        "calls": 53,
+        "cpu_seconds": 2.215336264,
+        "second_context_return_ns": 5000779216,
+        "wall_seconds": 2.216481401
+      },
+      "case": "observe-namespace-loop-r1",
+      "compile": [
+        {
+          "actual_timeout_ms": 298,
+          "cpu_ns": 84308522,
+          "name": "service._compile",
+          "parent": "service._hia_emit",
+          "raised": false,
+          "start_ns": 7694667674,
+          "wall_ns": 159932085
+        }
+      ],
+      "failure_tail": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-7365a853f83f555f25b6f9818dcb3dac1c93f5ef5c3f89f1b92e00cc5ba34393\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "old_policy_calls": [],
+      "per_tool_source": [
+        {
+          "name": "service.call:hia_describe",
+          "source_calls": 1,
+          "source_cpu_ns": 39650580,
+          "source_wall_ns": 39648843,
+          "start_ns": 2216814225,
+          "wall_ns": 135580443
+        },
+        {
+          "name": "service.call:hia_read",
+          "source_calls": 1,
+          "source_cpu_ns": 38089863,
+          "source_wall_ns": 38087613,
+          "start_ns": 2353062854,
+          "wall_ns": 91477283
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 81626040,
+          "source_wall_ns": 81642462,
+          "start_ns": 2445176815,
+          "wall_ns": 149244094
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 120429778,
+          "source_wall_ns": 120731392,
+          "start_ns": 2595060733,
+          "wall_ns": 470526419
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 73548924,
+          "source_wall_ns": 73547329,
+          "start_ns": 3066428228,
+          "wall_ns": 149378306
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 6,
+          "source_cpu_ns": 259128187,
+          "source_wall_ns": 259187977,
+          "start_ns": 3216339356,
+          "wall_ns": 371209392
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 81427882,
+          "source_wall_ns": 81424569,
+          "start_ns": 3588284566,
+          "wall_ns": 153457758
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 248386199,
+          "source_wall_ns": 248461846,
+          "start_ns": 3742188556,
+          "wall_ns": 357689253
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 87748788,
+          "source_wall_ns": 87778590,
+          "start_ns": 4100585003,
+          "wall_ns": 149453685
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 82590104,
+          "source_wall_ns": 82600439,
+          "start_ns": 4250586282,
+          "wall_ns": 141322457
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 80797541,
+          "source_wall_ns": 80811436,
+          "start_ns": 4392451767,
+          "wall_ns": 140273689
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 7,
+          "source_cpu_ns": 320758796,
+          "source_wall_ns": 326580127,
+          "start_ns": 4533293621,
+          "wall_ns": 467485595
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 82345370,
+          "source_wall_ns": 82356491,
+          "start_ns": 5001283485,
+          "wall_ns": 160117014
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 240161008,
+          "source_wall_ns": 240268286,
+          "start_ns": 5161930107,
+          "wall_ns": 339705086
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 475759148,
+          "source_wall_ns": 475975276,
+          "start_ns": 5502254305,
+          "wall_ns": 656501553
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 450268555,
+          "source_wall_ns": 450402793,
+          "start_ns": 6160175776,
+          "wall_ns": 627565148
+        },
+        {
+          "name": "service.call:hia_emit",
+          "source_calls": 20,
+          "source_cpu_ns": 828466467,
+          "source_wall_ns": 829101774,
+          "start_ns": 6788896834,
+          "wall_ns": 1209913370
+        },
+        {
+          "name": "service.call:hia_emit",
+          "source_calls": 3,
+          "source_cpu_ns": 138335716,
+          "source_wall_ns": 138376781,
+          "start_ns": 7999940927,
+          "wall_ns": 222365395
+        }
+      ],
+      "revision": "baseline",
+      "second_context_entry_onward_including_pre_deadline_setup": {
+        "calls": 60,
+        "cpu_seconds": 2.53609506,
+        "wall_seconds": 2.543061528
+      },
+      "test_status": "FAIL",
+      "whole_test": {
+        "native.entry:NativeArtifactNamespaceImage": {
+          "calls": 1405,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 517101904,
+          "inclusive_cpu_ns": 517311764,
+          "inclusive_wall_ns": 517101904
+        },
+        "native.entry:NativeExecutionBudgetImage": {
+          "calls": 12,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 5017623,
+          "inclusive_cpu_ns": 5023819,
+          "inclusive_wall_ns": 5017623
+        },
+        "native.entry:NativeRequestJournalImage": {
+          "calls": 230,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 39251175,
+          "inclusive_cpu_ns": 39187496,
+          "inclusive_wall_ns": 39251175
+        },
+        "publication._admitted_code": {
+          "calls": 116,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 146189927,
+          "inclusive_cpu_ns": 5393579367,
+          "inclusive_wall_ns": 5410195186
+        },
+        "publication.current_sources": {
+          "calls": 116,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 30009125,
+          "inclusive_cpu_ns": 5247407033,
+          "inclusive_wall_ns": 5264005259
+        },
+        "source.file_digests": {
+          "calls": 116,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 5077391905,
+          "inclusive_cpu_ns": 5061103216,
+          "inclusive_wall_ns": 5077391905
+        },
+        "source.validate_contract": {
+          "calls": 116,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 156604229,
+          "inclusive_cpu_ns": 5217422145,
+          "inclusive_wall_ns": 5233996134
+        }
+      }
+    },
+    {
+      "after_second_context_return": {
+        "calls": 33,
+        "cpu_seconds": 2.596250733,
+        "second_context_return_ns": 7817066934,
+        "wall_seconds": 2.596690342
+      },
+      "case": "observe-ledger-expired-r1",
+      "compile": [],
+      "failure_tail": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-cc0c5f51c8ab95e3edf4047f0a8b58df508f45548de13e13343934988c5e2102\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "old_policy_calls": [],
+      "per_tool_source": [
+        {
+          "name": "service.call:hia_describe",
+          "source_calls": 1,
+          "source_cpu_ns": 37347186,
+          "source_wall_ns": 37344883,
+          "start_ns": 3626467180,
+          "wall_ns": 162513539
+        },
+        {
+          "name": "service.call:hia_read",
+          "source_calls": 1,
+          "source_cpu_ns": 44739310,
+          "source_wall_ns": 44737889,
+          "start_ns": 3789673893,
+          "wall_ns": 102393137
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 80523948,
+          "source_wall_ns": 80535303,
+          "start_ns": 3893183771,
+          "wall_ns": 154729200
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 74292313,
+          "source_wall_ns": 74288915,
+          "start_ns": 4049022421,
+          "wall_ns": 176516422
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 70229836,
+          "source_wall_ns": 70239197,
+          "start_ns": 4225973016,
+          "wall_ns": 132901579
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 6,
+          "source_cpu_ns": 1199101359,
+          "source_wall_ns": 1199255866,
+          "start_ns": 4359430081,
+          "wall_ns": 2072570627
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 77922029,
+          "source_wall_ns": 77930011,
+          "start_ns": 6433664243,
+          "wall_ns": 171322747
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 225059412,
+          "source_wall_ns": 225123781,
+          "start_ns": 6605425140,
+          "wall_ns": 338127343
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 68728228,
+          "source_wall_ns": 68748093,
+          "start_ns": 6944081449,
+          "wall_ns": 125705103
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 71084871,
+          "source_wall_ns": 71091851,
+          "start_ns": 7070782832,
+          "wall_ns": 151644967
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 82484034,
+          "source_wall_ns": 82505176,
+          "start_ns": 7222969154,
+          "wall_ns": 146439450
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 7,
+          "source_cpu_ns": 286513792,
+          "source_wall_ns": 286543477,
+          "start_ns": 7370171933,
+          "wall_ns": 446895001
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 74714362,
+          "source_wall_ns": 74727834,
+          "start_ns": 7817862332,
+          "wall_ns": 138594849
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 222915138,
+          "source_wall_ns": 222948394,
+          "start_ns": 7957234361,
+          "wall_ns": 328220372
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 1752462302,
+          "source_wall_ns": 1752671843,
+          "start_ns": 8286196520,
+          "wall_ns": 2117245656
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 438319626,
+          "source_wall_ns": 438428684,
+          "start_ns": 10405108916,
+          "wall_ns": 617598115
+        },
+        {
+          "name": "service.call:hia_emit",
+          "source_calls": 3,
+          "source_cpu_ns": 107839305,
+          "source_wall_ns": 107913587,
+          "start_ns": 11024103383,
+          "wall_ns": 177467533
+        }
+      ],
+      "revision": "candidate",
+      "second_context_entry_onward_including_pre_deadline_setup": {
+        "calls": 40,
+        "cpu_seconds": 2.882764525,
+        "wall_seconds": 2.883233819
+      },
+      "test_status": "FAIL",
+      "whole_test": {
+        "native.entry:NativeArtifactNamespaceImage": {
+          "calls": 1215,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 488407897,
+          "inclusive_cpu_ns": 489764694,
+          "inclusive_wall_ns": 488407897
+        },
+        "native.entry:NativeExecutionBudgetImage": {
+          "calls": 12,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 5831942,
+          "inclusive_cpu_ns": 5840054,
+          "inclusive_wall_ns": 5831942
+        },
+        "native.entry:NativeRequestJournalImage": {
+          "calls": 216,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 37522102,
+          "inclusive_cpu_ns": 37469601,
+          "inclusive_wall_ns": 37522102
+        },
+        "publication._admitted_code": {
+          "calls": 96,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 176659597,
+          "inclusive_cpu_ns": 7970118847,
+          "inclusive_wall_ns": 7976177954
+        },
+        "publication.current_sources": {
+          "calls": 96,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 37909562,
+          "inclusive_cpu_ns": 7793413235,
+          "inclusive_wall_ns": 7799518357
+        },
+        "source.file_digests": {
+          "calls": 96,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 7492010847,
+          "inclusive_cpu_ns": 7486817314,
+          "inclusive_wall_ns": 7492010847
+        },
+        "source.validate_contract": {
+          "calls": 96,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 269597948,
+          "inclusive_cpu_ns": 7755537107,
+          "inclusive_wall_ns": 7761608795
+        }
+      }
+    },
+    {
+      "after_second_context_return": {
+        "calls": 33,
+        "cpu_seconds": 2.305902834,
+        "second_context_return_ns": 7394486201,
+        "wall_seconds": 2.308303865
+      },
+      "case": "observe-ledger-loop-r1",
+      "compile": [],
+      "failure_tail": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-e885682933c14e0062e828707e384fe47b5c2ecdd513915b93b6d16f071b20c3\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "old_policy_calls": [],
+      "per_tool_source": [
+        {
+          "name": "service.call:hia_describe",
+          "source_calls": 1,
+          "source_cpu_ns": 40356012,
+          "source_wall_ns": 40353965,
+          "start_ns": 3553502428,
+          "wall_ns": 138469942
+        },
+        {
+          "name": "service.call:hia_read",
+          "source_calls": 1,
+          "source_cpu_ns": 39590791,
+          "source_wall_ns": 39589243,
+          "start_ns": 3692852455,
+          "wall_ns": 108925851
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 73789163,
+          "source_wall_ns": 73795622,
+          "start_ns": 3802580674,
+          "wall_ns": 137193109
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 77652383,
+          "source_wall_ns": 78154876,
+          "start_ns": 3940488189,
+          "wall_ns": 150190867
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 82556644,
+          "source_wall_ns": 82564544,
+          "start_ns": 4091123325,
+          "wall_ns": 146492009
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 6,
+          "source_cpu_ns": 244735192,
+          "source_wall_ns": 245056055,
+          "start_ns": 4238221586,
+          "wall_ns": 357250202
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 80639977,
+          "source_wall_ns": 80815991,
+          "start_ns": 4595972442,
+          "wall_ns": 147808170
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 1522769801,
+          "source_wall_ns": 1525442754,
+          "start_ns": 4744418152,
+          "wall_ns": 1852295494
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 78463111,
+          "source_wall_ns": 78469769,
+          "start_ns": 6597488513,
+          "wall_ns": 148591029
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 77930802,
+          "source_wall_ns": 77927809,
+          "start_ns": 6746534717,
+          "wall_ns": 142015485
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 88896623,
+          "source_wall_ns": 88905480,
+          "start_ns": 6888994581,
+          "wall_ns": 155758034
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 7,
+          "source_cpu_ns": 242886998,
+          "source_wall_ns": 242938903,
+          "start_ns": 7045381131,
+          "wall_ns": 349105070
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 71144120,
+          "source_wall_ns": 71151971,
+          "start_ns": 7395025784,
+          "wall_ns": 127850293
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 215490116,
+          "source_wall_ns": 215547878,
+          "start_ns": 7523337241,
+          "wall_ns": 316221883
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 383533847,
+          "source_wall_ns": 383657858,
+          "start_ns": 7840214531,
+          "wall_ns": 548769391
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 1533384152,
+          "source_wall_ns": 1535589776,
+          "start_ns": 8390361817,
+          "wall_ns": 2062648520
+        },
+        {
+          "name": "service.call:hia_emit",
+          "source_calls": 3,
+          "source_cpu_ns": 102350599,
+          "source_wall_ns": 102356382,
+          "start_ns": 10454536475,
+          "wall_ns": 167807580
+        }
+      ],
+      "revision": "candidate",
+      "second_context_entry_onward_including_pre_deadline_setup": {
+        "calls": 40,
+        "cpu_seconds": 2.548789832,
+        "wall_seconds": 2.551242768
+      },
+      "test_status": "FAIL",
+      "whole_test": {
+        "native.entry:NativeArtifactNamespaceImage": {
+          "calls": 1203,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 511198104,
+          "inclusive_cpu_ns": 512102967,
+          "inclusive_wall_ns": 511198104
+        },
+        "native.entry:NativeExecutionBudgetImage": {
+          "calls": 12,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 4547065,
+          "inclusive_cpu_ns": 4550775,
+          "inclusive_wall_ns": 4547065
+        },
+        "native.entry:NativeRequestJournalImage": {
+          "calls": 216,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 37943803,
+          "inclusive_cpu_ns": 37862753,
+          "inclusive_wall_ns": 37943803
+        },
+        "publication._admitted_code": {
+          "calls": 96,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 459557997,
+          "inclusive_cpu_ns": 7734276296,
+          "inclusive_wall_ns": 7755754031
+        },
+        "publication.current_sources": {
+          "calls": 96,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 54743726,
+          "inclusive_cpu_ns": 7274639441,
+          "inclusive_wall_ns": 7296196034
+        },
+        "source.file_digests": {
+          "calls": 96,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 6816833743,
+          "inclusive_cpu_ns": 6796277474,
+          "inclusive_wall_ns": 6816833743
+        },
+        "source.validate_contract": {
+          "calls": 96,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 424618565,
+          "inclusive_cpu_ns": 7219866672,
+          "inclusive_wall_ns": 7241452308
+        }
+      }
+    },
+    {
+      "after_second_context_return": {
+        "calls": 22,
+        "cpu_seconds": 2.763862795,
+        "second_context_return_ns": 8841605295,
+        "wall_seconds": 2.769011261
+      },
+      "case": "observe-namespace-expired-r1",
+      "compile": [],
+      "failure_tail": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_verify: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-d03336b5832c05086d774058306223fbf89803f174bbb83d0e57663fbf5bd0b1\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "old_policy_calls": [],
+      "per_tool_source": [
+        {
+          "name": "service.call:hia_describe",
+          "source_calls": 1,
+          "source_cpu_ns": 77420105,
+          "source_wall_ns": 77450664,
+          "start_ns": 3925385741,
+          "wall_ns": 189430915
+        },
+        {
+          "name": "service.call:hia_read",
+          "source_calls": 1,
+          "source_cpu_ns": 83356475,
+          "source_wall_ns": 83355224,
+          "start_ns": 4120067842,
+          "wall_ns": 208266478
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 157668407,
+          "source_wall_ns": 159670149,
+          "start_ns": 4334194222,
+          "wall_ns": 535661092
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 205840490,
+          "source_wall_ns": 206404489,
+          "start_ns": 4873260511,
+          "wall_ns": 487532122
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 727721810,
+          "source_wall_ns": 728421509,
+          "start_ns": 5362360974,
+          "wall_ns": 1080123265
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 6,
+          "source_cpu_ns": 250211607,
+          "source_wall_ns": 250244524,
+          "start_ns": 6452654861,
+          "wall_ns": 986439301
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 75095960,
+          "source_wall_ns": 75101287,
+          "start_ns": 7439992424,
+          "wall_ns": 141131834
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 235994719,
+          "source_wall_ns": 236122409,
+          "start_ns": 7581619554,
+          "wall_ns": 351533661
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 74941511,
+          "source_wall_ns": 74947908,
+          "start_ns": 7933805487,
+          "wall_ns": 141709094
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 86165276,
+          "source_wall_ns": 86173642,
+          "start_ns": 8076348105,
+          "wall_ns": 179986422
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 79697080,
+          "source_wall_ns": 79706982,
+          "start_ns": 8256958757,
+          "wall_ns": 153918500
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 7,
+          "source_cpu_ns": 277747678,
+          "source_wall_ns": 277795503,
+          "start_ns": 8411626736,
+          "wall_ns": 429978559
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 76949403,
+          "source_wall_ns": 76955569,
+          "start_ns": 8842154081,
+          "wall_ns": 146580002
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 852678517,
+          "source_wall_ns": 853017557,
+          "start_ns": 8989266715,
+          "wall_ns": 1159217282
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 1725598929,
+          "source_wall_ns": 1730384286,
+          "start_ns": 10151344584,
+          "wall_ns": 2102945160
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 3,
+          "source_cpu_ns": 108635946,
+          "source_wall_ns": 108653849,
+          "start_ns": 12256513662,
+          "wall_ns": 179700322
+        }
+      ],
+      "revision": "candidate",
+      "second_context_entry_onward_including_pre_deadline_setup": {
+        "calls": 29,
+        "cpu_seconds": 3.041610473,
+        "wall_seconds": 3.046806764
+      },
+      "test_status": "FAIL",
+      "whole_test": {
+        "native.entry:NativeArtifactNamespaceImage": {
+          "calls": 1093,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 480257368,
+          "inclusive_cpu_ns": 475122866,
+          "inclusive_wall_ns": 480257368
+        },
+        "native.entry:NativeExecutionBudgetImage": {
+          "calls": 12,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 4490562,
+          "inclusive_cpu_ns": 4494540,
+          "inclusive_wall_ns": 4490562
+        },
+        "native.entry:NativeRequestJournalImage": {
+          "calls": 202,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 48371132,
+          "inclusive_cpu_ns": 47935728,
+          "inclusive_wall_ns": 48371132
+        },
+        "publication._admitted_code": {
+          "calls": 85,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 178087313,
+          "inclusive_cpu_ns": 6868287479,
+          "inclusive_wall_ns": 8306923076
+        },
+        "publication.current_sources": {
+          "calls": 85,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 42857101,
+          "inclusive_cpu_ns": 6702936774,
+          "inclusive_wall_ns": 8128835763
+        },
+        "source.file_digests": {
+          "calls": 85,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 7866470443,
+          "inclusive_cpu_ns": 6442794506,
+          "inclusive_wall_ns": 7866470443
+        },
+        "source.validate_contract": {
+          "calls": 85,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 219508219,
+          "inclusive_cpu_ns": 6660456333,
+          "inclusive_wall_ns": 8085978662
+        }
+      }
+    },
+    {
+      "after_second_context_return": {
+        "calls": 22,
+        "cpu_seconds": 1.07640277,
+        "second_context_return_ns": 6227706715,
+        "wall_seconds": 1.076916223
+      },
+      "case": "observe-namespace-loop-r1",
+      "compile": [],
+      "failure_tail": [
+        "tools.hia_agent_native_transport.QualificationFailure: hia_verify: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-431fba6c9fbf2564b8251e7f6d862238b10b643f10506ce37f993afd55315d85\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"context\", \"message\": \"context total wall budget has expired\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}"
+      ],
+      "old_policy_calls": [],
+      "per_tool_source": [
+        {
+          "name": "service.call:hia_describe",
+          "source_calls": 1,
+          "source_cpu_ns": 33886857,
+          "source_wall_ns": 33884935,
+          "start_ns": 3677501276,
+          "wall_ns": 109210496
+        },
+        {
+          "name": "service.call:hia_read",
+          "source_calls": 1,
+          "source_cpu_ns": 36635435,
+          "source_wall_ns": 36707986,
+          "start_ns": 3787328290,
+          "wall_ns": 95332187
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 67303645,
+          "source_wall_ns": 67299571,
+          "start_ns": 3883717338,
+          "wall_ns": 130835078
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 76223231,
+          "source_wall_ns": 76243258,
+          "start_ns": 4014993300,
+          "wall_ns": 141981309
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 72263978,
+          "source_wall_ns": 72271107,
+          "start_ns": 4157644408,
+          "wall_ns": 148568065
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 6,
+          "source_cpu_ns": 205139054,
+          "source_wall_ns": 205309062,
+          "start_ns": 4306832857,
+          "wall_ns": 306207669
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 67172690,
+          "source_wall_ns": 67176387,
+          "start_ns": 4613565707,
+          "wall_ns": 126307841
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 204211202,
+          "source_wall_ns": 204337800,
+          "start_ns": 4740311638,
+          "wall_ns": 301023043
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 71950121,
+          "source_wall_ns": 72048983,
+          "start_ns": 5041853893,
+          "wall_ns": 136293145
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 75837142,
+          "source_wall_ns": 75876621,
+          "start_ns": 5178619218,
+          "wall_ns": 134450106
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 67866783,
+          "source_wall_ns": 67861989,
+          "start_ns": 5313515005,
+          "wall_ns": 126821405
+        },
+        {
+          "name": "service.call:hia_context",
+          "source_calls": 7,
+          "source_cpu_ns": 570765093,
+          "source_wall_ns": 571188353,
+          "start_ns": 5440951266,
+          "wall_ns": 786755449
+        },
+        {
+          "name": "service.call:hia_artifact",
+          "source_calls": 2,
+          "source_cpu_ns": 365383142,
+          "source_wall_ns": 365418124,
+          "start_ns": 6228506249,
+          "wall_ns": 1714514229
+        },
+        {
+          "name": "service.call:hia_candidate",
+          "source_calls": 6,
+          "source_cpu_ns": 210475839,
+          "source_wall_ns": 210769772,
+          "start_ns": 7955977255,
+          "wall_ns": 788090664
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 11,
+          "source_cpu_ns": 398702947,
+          "source_wall_ns": 398854782,
+          "start_ns": 8745210239,
+          "wall_ns": 573470206
+        },
+        {
+          "name": "service.call:hia_verify",
+          "source_calls": 3,
+          "source_cpu_ns": 101840842,
+          "source_wall_ns": 101873545,
+          "start_ns": 9319903577,
+          "wall_ns": 167441529
+        }
+      ],
+      "revision": "candidate",
+      "second_context_entry_onward_including_pre_deadline_setup": {
+        "calls": 29,
+        "cpu_seconds": 1.647167863,
+        "wall_seconds": 1.648104576
+      },
+      "test_status": "FAIL",
+      "whole_test": {
+        "native.entry:NativeArtifactNamespaceImage": {
+          "calls": 1081,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 431131704,
+          "inclusive_cpu_ns": 431611470,
+          "inclusive_wall_ns": 431131704
+        },
+        "native.entry:NativeExecutionBudgetImage": {
+          "calls": 12,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 4498614,
+          "inclusive_cpu_ns": 4504495,
+          "inclusive_wall_ns": 4498614
+        },
+        "native.entry:NativeRequestJournalImage": {
+          "calls": 202,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 48127338,
+          "inclusive_cpu_ns": 47722681,
+          "inclusive_wall_ns": 48127338
+        },
+        "publication._admitted_code": {
+          "calls": 85,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 180482743,
+          "inclusive_cpu_ns": 5247801757,
+          "inclusive_wall_ns": 5253684846
+        },
+        "publication.current_sources": {
+          "calls": 85,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 46615703,
+          "inclusive_cpu_ns": 5067297883,
+          "inclusive_wall_ns": 5073202103
+        },
+        "source.file_digests": {
+          "calls": 85,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 4754090855,
+          "inclusive_cpu_ns": 4748766428,
+          "inclusive_wall_ns": 4754090855
+        },
+        "source.validate_contract": {
+          "calls": 85,
+          "exceptions": 0,
+          "exclusive_observed_wall_ns": 272495545,
+          "inclusive_cpu_ns": 5020720661,
+          "inclusive_wall_ns": 5026586400
+        }
+      }
+    }
+  ],
+  "schema": "hia.context-fresh-source-comparison.v1"
+}
