@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install agent_journal json_wire worker_report machine_plan linked_observer machine_encoding cli_control cli_format agent_store_authority artifact_page machine_state machine_instructions machine_elf core_lowering; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install agent_journal json_wire worker_report machine_plan linked_observer machine_encoding cli_control cli_format agent_store_authority artifact_page machine_state machine_instructions machine_elf core_lowering bounded_read; do
             python -B -m "tools.generate_hia_$component"
           done
           python -B tools/generate_hia_selfhost_contract.py
@@ -44,6 +44,7 @@ jobs:
               'tests.test_hia_agent_identity_native.AgentIdentitySourceTests',
               'tests.test_hia_agent_slice_native.AgentSliceSourceTests',
               'tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests',
+              'tests.test_hia_bounded_read_source.BoundedReadSourceTests',
               'tests.test_hia_agent_stdio.AgentStdioSourceTests',
               'tests.test_hia_agent_snapshot_native.AgentSnapshotSourceTests',
               'tests.test_hia_agent_snapshot_json_native.AgentSnapshotJsonSourceTests',
@@ -143,6 +144,12 @@ jobs:
       - run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
       - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
+      - name: Matching-cold bounded read and original public callers
+        run: |
+          python -B -m tools.qualify_hia_bounded_read \
+            --compiler "$RUNNER_TEMP/hia-cold.cold/qualification.evidence/B3.image.bin" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-bounded-read"
       - name: Native applications and actual Core memory controls
         run: |
           python -B - <<'PYTEST'
@@ -466,7 +473,7 @@ jobs:
             --evidence-dir "$RUNNER_TEMP/hia-machine-instructions-callers-evidence" \
             --process-evidence "$RUNNER_TEMP/hia-machine-instructions-owner" \
             --output "$RUNNER_TEMP/hia-machine-instructions-gate.json"
-      - name: Complete 32-image Core lowering component and original 51 plus 50 callers
+      - name: Complete 39-image Core lowering component and original 51 plus 50 callers
         run: |
           set -eu
           python -B tools/qualify_hia_compiler_owner_ci.py owned-callers \
@@ -504,6 +511,7 @@ jobs:
             ${{ runner.temp }}/hia-language.json
             ${{ runner.temp }}/hia-language.assertions.json
             ${{ runner.temp }}/hia-language.evidence/
+            ${{ runner.temp }}/hia-bounded-read/
             ${{ runner.temp }}/hia-nominal-fixture/
             ${{ runner.temp }}/hia-module-projects/
             ${{ runner.temp }}/hia-release-install/

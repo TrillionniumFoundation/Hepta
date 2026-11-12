@@ -20,6 +20,11 @@ BUNDLED_SOURCE_BINDINGS={
     'composite_outer_render':('hepta.hia_composite_outer_native','render'),
 }
 
+# This ABI is a source-owned build descriptor. The runtime bridge binds
+# HIA bytes directly; checking its installed path does not claim an ABI
+# consumer in that bridge.
+NATIVE_METADATA_RESOURCE_FILES=('hepta/hia_bounded_read_abi.json',)
+
 CORE_LOWERING_RESOURCE_FILES=(
     'hepta/hia_core_lowering_abi.json',
     'examples/hia_bootstrap/core_lowering_pool.hiaasm',
@@ -56,10 +61,11 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
         core_resources=(ABI_SOURCE,*source_names(checked_abi(abi_source.read_bytes())))
         self.assertEqual(core_resources,CORE_LOWERING_RESOURCE_FILES)
         self.assertLessEqual(set(core_resources),set(NATIVE_SOURCE_FILES))
+        self.assertLessEqual(set(NATIVE_METADATA_RESOURCE_FILES),set(NATIVE_SOURCE_FILES))
         observed={}
         for resource in NATIVE_SOURCE_FILES:
             name=Path(resource).stem
-            if resource in core_resources:
+            if resource in core_resources or resource in NATIVE_METADATA_RESOURCE_FILES:
                 source=_source_resource_path(resource)
             elif name in BUNDLED_SOURCE_BINDINGS:
                 module,key=BUNDLED_SOURCE_BINDINGS[name]
@@ -171,7 +177,7 @@ class AgentInstalledResourceTests(unittest.TestCase):
                 executable_path='hia-artifact',executable_sha256=sha256(code).hexdigest(),
                 source_sha256={name:sha256((ROOT/name).read_bytes()).hexdigest() for name in SOURCES},development_only=True)))
         prefix=CHILD.split('from hepta.cli import')[0]
-        cls.child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+'\nBUNDLED_SOURCE_BINDINGS='+repr(BUNDLED_SOURCE_BINDINGS)+'\nCORE_LOWERING_RESOURCE_FILES='+repr(CORE_LOWERING_RESOURCE_FILES)+'\n'+'''
+        cls.child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+'\nBUNDLED_SOURCE_BINDINGS='+repr(BUNDLED_SOURCE_BINDINGS)+'\nCORE_LOWERING_RESOURCE_FILES='+repr(CORE_LOWERING_RESOURCE_FILES)+'\nNATIVE_METADATA_RESOURCE_FILES='+repr(NATIVE_METADATA_RESOURCE_FILES)+'\n'+'''
 from pathlib import Path
 from hepta import hia_agent_store as store
 from hepta.hia_agent_identity_native import SOURCE
@@ -247,10 +253,11 @@ elif sys.argv[2]=='source-bindings':
     core_resources=(ABI_SOURCE,*source_names(checked_abi(abi_source.read_bytes())))
     assert core_resources==CORE_LOWERING_RESOURCE_FILES,core_resources
     assert set(core_resources)<=set(NATIVE_SOURCE_FILES)
+    assert set(NATIVE_METADATA_RESOURCE_FILES)<=set(NATIVE_SOURCE_FILES)
     observed={}
     for resource in NATIVE_SOURCE_FILES:
         name=Path(resource).stem
-        if resource in core_resources:
+        if resource in core_resources or resource in NATIVE_METADATA_RESOURCE_FILES:
             source=_source_resource_path(resource)
         elif name in BUNDLED_SOURCE_BINDINGS:
             module,key=BUNDLED_SOURCE_BINDINGS[name]

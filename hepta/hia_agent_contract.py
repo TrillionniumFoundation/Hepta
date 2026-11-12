@@ -27,6 +27,8 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'hepta/hia_bounded_read_abi.json',
+    'examples/hia_bootstrap/bounded_read.hiaasm',
     'hepta/hia_core_lowering_abi.json',
     'examples/hia_bootstrap/core_lowering_pool.hiaasm',
     'examples/hia_bootstrap/core_lowering_000.hiaasm',

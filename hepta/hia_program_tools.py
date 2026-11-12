@@ -63,6 +63,30 @@ def read_bounded(path, limit=MAX_INPUT_BYTES):
         raise HIAEditRejected("E_HIA_EDIT: cannot read ordinary input") from exc
 
 
+# Preserve the exact original function/code for fallback and environment
+# observation. The selected native owner never invokes its policy body.
+_RETAINED_READ_BOUNDED = read_bounded
+_READ_BOUNDED_REFERENCE = read_bounded
+
+
+def _native_selected_read_bounded(path, limit=MAX_INPUT_BYTES):
+    from .hia_bounded_read_native import selected_bounded_read
+    owner = selected_bounded_read()
+    # Transfer the two call references; an extra wrapper-local path would
+    # otherwise postpone the original Path(path) replacement finalizer.
+    arguments = [path, limit]
+    del path, limit
+    if owner is None:
+        return _RETAINED_READ_BOUNDED(arguments.pop(0), arguments.pop(0))
+    return owner.read(arguments.pop(0), arguments.pop(0),
+                      reference=_READ_BOUNDED_REFERENCE)
+
+
+_native_selected_read_bounded.__name__ = "read_bounded"
+_native_selected_read_bounded.__qualname__ = "read_bounded"
+read_bounded = _native_selected_read_bounded
+
+
 def decode_json(payload):
     if type(payload) not in (str, bytes):
         _reject("JSON input must be text or bytes")

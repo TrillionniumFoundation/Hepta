@@ -211,7 +211,7 @@ class CoreWorkflowContractTests(unittest.TestCase):
         self.assertNotIn('continue-on-error', source)
         self.assertIn('--output "$RUNNER_TEMP/hia-cold.json"', source)
         for path in ['hia-cold.json', 'hia-cold.cold/', 'hia-language.json', 'hia-language.assertions.json',
-                     'hia-language.evidence/', 'hia-nominal-fixture/',
+                     'hia-language.evidence/', 'hia-bounded-read/', 'hia-nominal-fixture/',
                      'hia-module-projects/', 'hia-journal-callers.json',
                      'hia-native-components.json', 'hia-json-wire-fixture/', 'hia-json-wire-entry-fixture/',
                      'hia-worker-report-fixture/', 'hia-machine-plan-fixture/',
