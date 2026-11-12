@@ -88,6 +88,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'core-workspace-json': ('core_workspace_json', 'core-workspace-json'),
                   'core-module-graph': ('core_module_graph', 'core-module-graph'),
                   'preflight': ('json_preflight', 'json-preflight'),
+                  'pretty': ('json_pretty', 'json-pretty'),
                   'decode': ('json_decode', 'json-decode'),
                   'canonical': ('json_canonical', 'json-canonical'),
                   'core-frontend': ('core_json_frontend', 'core-json-frontend'),
