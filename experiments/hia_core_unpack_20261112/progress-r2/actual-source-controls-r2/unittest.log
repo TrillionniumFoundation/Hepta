@@ -1,0 +1,69 @@
+test_bounds_and_write_failures_leave_hold_originals (tests.test_hia_core_unpack_progress.UnpackQualificationProgressTests.test_bounds_and_write_failures_leave_hold_originals) ... ok
+test_complete_readback_rejects_missing_truncated_duplicated_events (tests.test_hia_core_unpack_progress.UnpackQualificationProgressTests.test_complete_readback_rejects_missing_truncated_duplicated_events) ... ok
+test_diagnostic_failure_preserves_original_exception (tests.test_hia_core_unpack_progress.UnpackQualificationProgressTests.test_diagnostic_failure_preserves_original_exception) ... ERROR
+test_fixture_failures_and_baseexceptions_are_distinct (tests.test_hia_core_unpack_progress.UnpackQualificationProgressTests.test_fixture_failures_and_baseexceptions_are_distinct) ... ok
+test_nested_suite_fixture_order_and_original_callbacks (tests.test_hia_core_unpack_progress.UnpackQualificationProgressTests.test_nested_suite_fixture_order_and_original_callbacks) ... ok
+test_new_gate_rereads_progress_and_cannot_accept_summary_alone (tests.test_hia_core_unpack_progress.UnpackQualificationProgressTests.test_new_gate_rereads_progress_and_cannot_accept_summary_alone) ... ok
+test_receipt_cannot_substitute_original_report_or_current_bytes (tests.test_hia_core_unpack_progress.UnpackQualificationProgressTests.test_receipt_cannot_substitute_original_report_or_current_bytes) ... ok
+test_uncovered_or_reordered_inner_suite_is_rejected (tests.test_hia_core_unpack_progress.UnpackQualificationProgressTests.test_uncovered_or_reordered_inner_suite_is_rejected) ... ok
+test_unpack_wrapper_keeps_default_main_and_old_gate_paths (tests.test_hia_core_unpack_progress.UnpackQualificationProgressTests.test_unpack_wrapper_keeps_default_main_and_old_gate_paths) ... ok
+
+======================================================================
+ERROR: test_diagnostic_failure_preserves_original_exception (tests.test_hia_core_unpack_progress.UnpackQualificationProgressTests.test_diagnostic_failure_preserves_original_exception)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hia-core-unpack-progress-r2/actual-source-controls-r2/validation-root/tests/test_hia_core_unpack_progress.py", line 218, in test_diagnostic_failure_preserves_original_exception
+    run_original_group(groups[0])
+  File "/tmp/hia-core-unpack-progress-r2/actual-source-controls-r2/validation-root/tests/test_hia_core_unpack_progress.py", line 88, in run_original_group
+    result = unittest.TextTestRunner(stream=io.StringIO(), verbosity=2).run(suite)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/runner.py", line 240, in run
+    test(result)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hia-core-unpack-progress-r2/actual-source-controls-r2/validation-root/tools/hia_core_unpack_progress.py", line 320, in run
+    value = super().run(result, debug)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/suite.py", line 122, in run
+    test(result)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hia-core-unpack-progress-r2/actual-source-controls-r2/validation-root/tools/hia_core_unpack_progress.py", line 314, in run
+    return super().run(result, debug)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/suite.py", line 122, in run
+    test(result)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hia-core-unpack-progress-r2/actual-source-controls-r2/validation-root/tools/hia_core_unpack_progress.py", line 314, in run
+    return super().run(result, debug)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/suite.py", line 122, in run
+    test(result)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hia-core-unpack-progress-r2/actual-source-controls-r2/validation-root/tools/hia_core_unpack_progress.py", line 314, in run
+    return super().run(result, debug)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/suite.py", line 113, in run
+    self._handleModuleFixture(test, result)
+  File "/tmp/hia-core-unpack-progress-r2/actual-source-controls-r2/validation-root/tools/hia_core_unpack_progress.py", line 361, in _handleModuleFixture
+    return owner.fixture('module_fixture', current, result, call,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hia-core-unpack-progress-r2/actual-source-controls-r2/validation-root/tools/hia_core_unpack_progress.py", line 300, in fixture
+    emit('fixture_end', subject, {'kind': kind,
+  File "/tmp/hia-core-unpack-progress-r2/actual-source-controls-r2/validation-root/tools/hia_core_unpack_progress.py", line 272, in event
+    require(os.write(self.fd, raw) == len(raw), 'short progress event write')
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hia-core-unpack-progress-r2/actual-source-controls-r2/validation-root/tests/test_hia_core_unpack_progress.py", line 213, in fail_end
+    raise OSError('secondary progress failure')
+OSError: secondary progress failure
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.124s
+
+FAILED (errors=1)
