@@ -1,16 +1,35 @@
-name: Isolated service context development v76
+name: Isolated service context development v76 r2
 on:
   push:
     branches:
-      - codex/hia-context-development-v76-20261112-dda7
+      - codex/hia-context-development-v76-r2-20261112-dda7
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   context-development:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      - name: Verify actual Linux Ubuntu 24.04 x86_64 runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, platform
+          release = platform.freedesktop_os_release()
+          observed = {
+              "system": platform.system(),
+              "architecture": platform.machine(),
+              "distribution": release.get("ID"),
+              "version_id": release.get("VERSION_ID"),
+          }
+          Path("runner-platform.json").write_text(json.dumps(observed, sort_keys=True, indent=2) + "\n")
+          print(json.dumps(observed, sort_keys=True))
+          if observed != {"system": "Linux", "architecture": "x86_64", "distribution": "ubuntu", "version_id": "24.04"}:
+              raise RuntimeError("context development requires actual Linux Ubuntu 24.04 x86_64")
+          PY
       - name: Checkout isolated harness
         uses: actions/checkout@v4
         with:
@@ -50,4 +69,5 @@ jobs:
           path: |
             context-development-evidence
             harness/inputs
+            runner-platform.json
           if-no-files-found: error

@@ -1,0 +1,82 @@
+{
+  "controlled_guard_inputs_only": true,
+  "inputs_after": {
+    "HOST-DISPATCH-R2.json": "16ffd13e606e1be45e74425e67e6b8b27743c256256cba2057e5a02265028660",
+    "original.yml": "3679aa8385336e8368a573cbe0812ebb1215eccee1c0423b72c815c5fe674130",
+    "revised.yml": "2f561643ecba5c808092c3a10ba60b72f48b69609269febeeb916dc30bc378f0"
+  },
+  "inputs_before": {
+    "HOST-DISPATCH-R2.json": "16ffd13e606e1be45e74425e67e6b8b27743c256256cba2057e5a02265028660",
+    "original.yml": "3679aa8385336e8368a573cbe0812ebb1215eccee1c0423b72c815c5fe674130",
+    "revised.yml": "2f561643ecba5c808092c3a10ba60b72f48b69609269febeeb916dc30bc378f0"
+  },
+  "native_execution_performed": false,
+  "observations": [
+    {
+      "name": "complete workflow projection",
+      "status": "PASS",
+      "unchanged_original_steps": 7
+    },
+    {
+      "name": "actual guard body with controlled None",
+      "observed": {
+        "architecture": "x86_64",
+        "distribution": "ubuntu",
+        "system": "Linux",
+        "version_id": "24.04"
+      },
+      "refused": false,
+      "status": "PASS"
+    },
+    {
+      "name": "actual guard body with controlled system",
+      "observed": {
+        "architecture": "x86_64",
+        "distribution": "ubuntu",
+        "system": "Darwin",
+        "version_id": "24.04"
+      },
+      "refused": true,
+      "status": "PASS"
+    },
+    {
+      "name": "actual guard body with controlled architecture",
+      "observed": {
+        "architecture": "aarch64",
+        "distribution": "ubuntu",
+        "system": "Linux",
+        "version_id": "24.04"
+      },
+      "refused": true,
+      "status": "PASS"
+    },
+    {
+      "name": "actual guard body with controlled distribution",
+      "observed": {
+        "architecture": "x86_64",
+        "distribution": "debian",
+        "system": "Linux",
+        "version_id": "24.04"
+      },
+      "refused": true,
+      "status": "PASS"
+    },
+    {
+      "name": "actual guard body with controlled version_id",
+      "observed": {
+        "architecture": "x86_64",
+        "distribution": "ubuntu",
+        "system": "Linux",
+        "version_id": "22.04"
+      },
+      "refused": true,
+      "status": "PASS"
+    }
+  ],
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "qualification_transferred": false,
+  "remote_platform_observed": false,
+  "schema": "hia.context-ci.dispatch-static-controls.v1",
+  "status": "PASS",
+  "tests": 6
+}
