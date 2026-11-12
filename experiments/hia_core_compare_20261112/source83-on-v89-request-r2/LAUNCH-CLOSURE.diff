@@ -1,0 +1,93 @@
+--- S1/control/launch.py
++++ S2/control/launch.py
+@@ -41,19 +41,68 @@
+         'request': pin(HERE / 'REQUEST.json'), 'command': command,
+         'native_executed': False, 'complete18_executed': False, 'complete116_executed': False,
+         'cold_executed': False, 'installed_executed': False}
++    closed = False
++    parent_pins = [pin(folder / 'RESOURCE-OBSERVATION.json')]
+     try:
+         returned = owner.run_owned(command, cwd=HERE, env=environment,
+             stdout_path=folder / 'child.stdout.log', stderr_path=folder / 'child.stderr.log',
+             receipt_path=folder / 'lifecycle.json', qualification_seconds=180, cleanup_seconds=3)
+         save(folder / 'wrapper.json', returned)
+-        life_raw = (folder / 'lifecycle.json').read_bytes()
++        parent_pins.append(pin(folder / 'wrapper.json'))
++        provisional = returned.get('cleanup', {})
++        require(type(returned.get('supervisor_returncode')) is int
++                and type(returned.get('receipt_sha256')) is str
++                and provisional.get('complete') is True
++                and provisional.get('observed_echild') is True
++                and provisional.get('leader_reaped') is True
++                and provisional.get('deadline_exceeded') is False
++                and provisional.get('errors') == []
++                and provisional.get('remaining_direct_children') == [],
++                'owner closure is unconfirmed; child originals must not be read')
++        life_path = folder / 'lifecycle.json'
++        life_pin = pin(life_path)
++        life_raw = life_path.read_bytes()
++        require(sha256(life_raw).hexdigest() == life_pin['sha256']
++                and pin(life_path) == life_pin, 'owner receipt changed while binding')
+         life = json.loads(life_raw)
++        request_path = folder / 'lifecycle.json.request.json'
++        request_pin = pin(request_path)
++        owner_request_raw = request_path.read_bytes()
++        require(sha256(owner_request_raw).hexdigest() == request_pin['sha256']
++                and pin(request_path) == request_pin, 'owner request changed while binding')
++        owner_request = json.loads(owner_request_raw)
+         require(returned['receipt_sha256'] == sha256(life_raw).hexdigest()
+-                and all(returned.get(key) == value for key, value in life.items())
+-                and returned['supervisor_returncode'] == 0,
++                and {key: value for key, value in returned.items()
++                     if key not in {'receipt_sha256', 'supervisor_returncode'}} == life,
+                 'original lifecycle/wrapper binding differs')
++        require(owner_request['schema'] == life['schema'] == 'hepta.hia.selfhost-process-owner.v1'
++                and life['request_sha256'] == sha256(owner_request_raw).hexdigest()
++                and owner_request['command'] == command and owner_request['cwd'] == str(HERE)
++                and owner_request['env'] == environment
++                and owner_request['stdout_path'] == str(folder / 'child.stdout.log')
++                and owner_request['stderr_path'] == str(folder / 'child.stderr.log')
++                and owner_request['receipt_path'] == str(life_path)
++                and owner_request['qualification_seconds'] == life['qualification_seconds'] == 180
++                and owner_request['cleanup_seconds'] == life['cleanup_seconds'] == 3
++                and owner_request['implementation_sha256'] == life['implementation_sha256'] == expected['sha256']
++                and type(owner_request['started_ns']) is int
++                and type(owner_request['deadline_ns']) is int
++                and owner_request['deadline_ns'] - owner_request['started_ns'] == 180_000_000_000,
++                'original owner command/request/deadline binding differs')
+         cleanup = life['cleanup']
+-        require(life['schema'] == 'hepta.hia.selfhost-process-owner.v1'
++        require(life['subreaper_enabled'] is True
++                and cleanup.get('attempted') is True and cleanup.get('complete') is True
++                and cleanup.get('observed_echild') is True and cleanup.get('leader_reaped') is True
++                and cleanup.get('deadline_exceeded') is False
++                and cleanup.get('remaining_direct_children') == [] and cleanup.get('errors') == [],
++                'bound original owner does not confirm ECHILD closure')
++        closed = True
++        final['bound_owner_observation'] = {
++            'lifecycle': life_pin, 'request': request_pin,
++            'status': life['status'], 'returncode': life['returncode'],
++            'supervisor_returncode': returned['supervisor_returncode']}
++        require(returned['supervisor_returncode'] == 0
++                and life['schema'] == 'hepta.hia.selfhost-process-owner.v1'
+                 and life['implementation_sha256'] == expected['sha256']
+                 and life['status'] == 'OWNED_PROCESS_COMPLETED' and life['returncode'] == 0
+                 and life['qualification_seconds'] == 180 and life['cleanup_seconds'] == 3
+@@ -83,7 +132,16 @@
+         final['status'] = 'HOLD'
+         final['error'] = traceback.format_exc()
+     finally:
+-        final['actual_originals'] = [pin(path) for path in sorted(folder.rglob('*')) if path.is_file()]
++        final['closed_owner_confirmed'] = closed
++        final['child_originals_read'] = closed
++        if closed:
++            final['actual_originals'] = [pin(path) for path in sorted(folder.rglob('*')) if path.is_file()]
++        else:
++            final['actual_originals'] = []
++            save(folder / 'PARENT-OBSERVATIONS.json', {
++                'files': parent_pins, 'closed_owner_confirmed': False,
++                'child_originals_read': False,
++                'scope': 'Only files written by this parent; no traversal or child-body read.'})
+         save(folder / 'FINAL.json', final)
+     print(json.dumps({key: final[key] for key in ('status', 'native_executed', 'complete116_executed')}))
+     return 0 if final['status'] == 'SOURCE_INTEGRATION_PASS' else 1
