@@ -1,0 +1,66 @@
+{
+  "schema": "hia.json-pretty-bulk-source-design.v1",
+  "status": "DEVELOPMENT_IR_ONLY_NATIVE_PENDING",
+  "source_sha256": "dccf5a93dcdeed7877c9ec05d261cff06257dd53d980b89fcfcb614a1d732f73",
+  "source_bytes": 20124,
+  "source_lines": 468,
+  "structure": {
+    "functions": 7,
+    "blocks_total": 80,
+    "blocks_per_function": 46,
+    "instructions": 293,
+    "ssa_names_per_function": 488,
+    "parameters_or_arguments": 8
+  },
+  "predecessor_control": "7b3cce17334eae4d5590fc1fb367a537320f0c90",
+  "predecessor_source_sha256": "7a49da7115945fe90a1672e379e1f06a7f7778ef9f402c73afdbf7ce8cbad216",
+  "predecessor_native_run": 43134139906,
+  "predecessor_run_unchanged": true,
+  "changes": [
+    "Retain unmodified quoted/atomic lexemes as a source span and flush with the existing HIA buffer.copy_range primitive at structural punctuation/end.",
+    "Replace per-space indentation calls with one checked existing HIA buffer.fill_range operation.",
+    "Retain explicit source scan and escape/quote tracking in HIA, current entry u32, header layout, success bytes and status classes.",
+    "Failing output bytes/length remain invalid and must be discarded; no prefix-equivalence promise."
+  ],
+  "compiler_caps_unchanged": {
+    "source_bytes": 1048576,
+    "source_lines": 16384,
+    "functions": 128,
+    "blocks_total": 1536,
+    "blocks_per_function": 256,
+    "instructions": 8192,
+    "ssa_names_per_function": 2048,
+    "parameters_or_arguments": 16
+  },
+  "actual_development_evidence": {
+    "original_fixed_cases": 31,
+    "additional_cases": 2,
+    "failed": 0,
+    "deep_case_output_sha256": "3a28efed353402f8b3942731c0abcfc26f559dcc6fa582054f145ee7baa91093",
+    "deep_case_IR_steps_before": 20752690,
+    "deep_case_IR_steps_after": 496462,
+    "bulk_IR_operations_do_not_count_each_native_machine_operation": true,
+    "native_speedup_claimed": false
+  },
+  "failure_contract": "Only success authorizes result length/output; invalid mode/oversized source may leave an earlier length, as already clarified for r2.",
+  "caller_obligations": [
+    "valid compact JSON already admitted upstream",
+    "input/output/workspace allocations live, private and disjoint",
+    "source immutable throughout measurement and emission",
+    "all nonzero-status output and length discarded"
+  ],
+  "public_Core_run": false,
+  "native_compiler_run": false,
+  "native_execution": false,
+  "original_CLI_callers_run": false,
+  "whole_CLI_call_domain_closed": false,
+  "cold_qualified": false,
+  "default_activation": false,
+  "old_owner_deletion": false,
+  "prior_static_draft": {
+    "status": "DEVELOPMENT_STATIC_REJECTED",
+    "error": "edge interface f0/b26",
+    "cause": "One explicit close-pop branch omitted the new source-span start argument.",
+    "fix": "Pass the original v.start on that branch; preserve rejected draft and rerun independent IR validation and cases."
+  }
+}
