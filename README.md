@@ -1,72 +1,62 @@
-# HIA Core
+# Independent Core / assembly front development, V81 R4
 
-Typed abstract assembly and structured Core for AI agents. HIA checks explicit
-control flow, types, capabilities, ownership and borrowed resources before
-machine-code generation. There is no high-level source language or migration
-frontend in this tree.
+This isolated harness does not change a product or audit ref. It checks out actual
+`64f67ae897c3cb49d45a1e1a4622db974812e3fe`, independently verifies its parent,
+tree, clean Git inventory, and all 3,255 tracked bytes/modes, then applies the
+22-path source capsule `4c184f2ac2eeca39eee1b4c6e2e04a7dbfdbcf62`.
 
-## Agent entry
+The Core image owns only `hia_program._reject` and `verify_program`. The separate
+application image owns all 12 original assembly functions and four lazy frames.
+The owner-local continuation contains no original Code/Plan business entry or
+hidden assembly/backend import. JSON, regular-expression and existing semantic
+providers remain explicit dependencies. Complete JSON object-domain and physical
+recursion equivalence remain open. No default selection or legacy deletion is
+enabled, and no old source/cold/native result is transferred to this revision.
 
-```sh
-python -m pip install .
-hia capabilities
-hia check-assembly examples/hia_bootstrap/bytesum.hiaasm
-hia verify examples/hia_program/counter.hia
-```
+## Actual interpreter jobs
 
-The `hia` entry is currently a Python-hosted bridge. The independently built
-HIA-native stdio application supports `capabilities`, `verify`, `compile`,
-`render-assembly` and direct HIA-source `assemble` on
-Linux x86-64 without Python at runtime; see [native stdio](docs/HIA_AGENT_STDIO_NATIVE.md).
-The separate [native patch application](docs/HIA_CORE_PATCH_CLI.md) performs
-snapshot-bound edits with native whole-Core checks of both base and candidate.
-The [native patch-result application](docs/HIA_CORE_PATCH_RESULT_CLI.md) also
-constructs the complete diagnostic bytes. Its explicit ordinary Agent route
-consumes and stores opaque payload bytes, preserving the existing request journal.
-An explicitly selected [native nominal type session](docs/HIA_COMPOSITE_TYPES_NATIVE.md)
-owns declaration checks, generic binding, finite layouts and partial-record
-obligations for all four composite versions, source-level returned-loan origins,
-parameter admission and task-protocol checks. A separately selected
-[native task-helper generator](docs/HIA_TASK_HELPERS_NATIVE.md) constructs the
-complete start, poll, cancel, join and close Core functions. Two explicit
-native nominal routes are retained during integration: the
-[complete function bundle](docs/HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md) and
-the [individual nominal owners](docs/HIA_NOMINAL_FUNCTION_NATIVE.md).
-The [complete selected nominal route](docs/HIA_COMPOSITE_NATIVE_INTEGRATION.md)
-moves constructor admission, ordered signatures, complete function/helper
-aggregation, late limits, exports and primitive schema selection into HIA.
-An explicitly selected [native worker request kernel](docs/HIA_WORKER_REQUEST_NATIVE.md)
-owns ordinary JSON, finite binary64 canonical bytes, request digests and envelope
-admission. Separate native request journal and execution budget owners retain
-the existing service's transaction and foreign-resource boundaries.
-The [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md) checks and
-publishes a bounded immutable release from an operator-pinned bundle.
-Default selection and whole-stack delivery remain unqualified; the old owners
-are retained until the corresponding complete replacement is qualified.
-Full native Agent editing/persistence, modules/build, runtime and installation
-acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
-the Agent entry. Standalone Core research backends remain explicitly scoped.
+The native job requires CPython 3.14.4 on actual Ubuntu 24.04 x86_64. It permits
+generation of exactly two `.hiaasm` assets and their two fixed ports files,
+checks regeneration, and compiles two new images with the original 20-second
+`compile_stage` limit. The retained compiler is exactly 669,494 bytes, SHA-256
+`81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109`; its original
+receipt is preserved as a development input, never admitted as current cold.
 
-## Source and native qualification
+The original 21 Program, 25 Composite and 18 Assembly callers execute in five
+separate profiles: Core 46, Core+Assembly-callers 18, Assembly 18, both 64, and
+default 64. These overlapping profiles are not 210 unique tests. Actual selected
+old policy bodies are poisoned, and original module bytes, ordered IDs, loaded
+and executed counts, all anomaly collections and actual machine entries are
+checked. Additional groups retain the exact 9 capture, 10 transport, 4 admission
+and 3 namespace methods (32 namespace observations). Full before/reference/after
+buffers, real lost-ACK failures and unknown-custody controls remain in the raw
+artifact. Every group uses the original 1,800-second supervisor unchanged.
 
-```sh
-python -B tools/check_hia_core_only.py
-python -B tools/generate_hia_selfhost_contract.py --check
-python -B tools/replay_hia_selfhost_cold.py --output /var/tmp/NEW-hia-cold.json
-python -B tests/test_hia_selfhost_language_coverage.py --output /var/tmp/NEW-hia-language.json
-```
+The separate actual CPython 3.11 job runs the 64 original default callers,
+observes that unselected imports do not load native ports or invoke their ABI
+guards, and selects each of the two real prior development images only to prove
+explicit unsupported-ABI refusal before any native entry. This is not Python3.11
+native qualification. The original two images and compiler provenance are
+retained; no image is compiled or executed in that compatibility job.
 
-Cold qualification preserves original and modified-source native fixed points,
-independent reference controls and resource refusal witnesses. Source contracts
-are identities, not correctness or release approvals. Old high-level-specific
-CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
+## Source and evidence custody
 
-Repository cleanup: [current audit](docs/HIA_REPOSITORY_CLEANUP_20261110.md).
-Native rewrite: [current audit, implementation and remaining owners](docs/HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md).
-Earlier source-bound observations remain in the [rewrite history](docs/HIA_NATIVE_REWRITE_STATUS_20261111.md).
-The selected [native enum-match owner](docs/HIA_ENUM_MATCH_NATIVE.md) produces
-complete match control flow; other nominal operations remain separate owners.
-The [native release selector](docs/HIA_RELEASE_SELECTION_NATIVE.md) implements
-explicit status, compare-and-swap activation and previous-version rollback for
-verified immutable releases. Ordinary CLI/service migration remains open.
-Runtime integration: [compatibility and upgrade requirements](docs/HIA_RUNTIME_COMPATIBILITY_AUDIT_20261110.md).
+The old R1 22-path input is reconstructed against the same verified base solely
+for the unchanged original-source guards. Its complete 3,273-file guard must
+equal the previously frozen SHA-256. The actual runtime source is a separate
+complete byte/mode-verified export of the new staged Git tree; it is not called
+a Git checkout. Every group rechecks both complete sources and all held images,
+manifests, receipts and immutable harness inputs.
+
+All original failure records are retained. R2's too-large generic table minimum,
+the two misidentified error-ACK test assertions, the unselected-port observation,
+the first CI capsule-layout preparation error and the two authoring EOF findings
+are not rewritten as passes. R4 only removes one final LF from each of two policy
+authoring files. Their full AST including source positions is unchanged, and
+both generated HIA/ports pairs were checked byte-for-byte locally.
+
+The workflow uploads complete raw evidence, original logs, all fixed inputs and
+a readback-checked complete source archive even on failure. A separate completed
+text capsule is a read-only convenience and does not claim complete artifact ZIP
+CRC verification. Full cold, installed, combined product and whole-normalization
+qualification remain false.
