@@ -1,0 +1,26 @@
+import ast,base64,hashlib,json,os,pathlib,sys,traceback
+root=pathlib.Path('/tmp/hia-elf-static-checks-20261111-r1')
+root.mkdir(mode=0o700,exist_ok=False)
+rows=json.loads(base64.b64decode(sys.stdin.buffer.readline(2 << 20).strip(),validate=True))
+report={'schema':'hia.elf.static-parse-observations.v1','scope':'PYTHON_AST_ONLY_NO_PROJECT_IMPORT_OR_NATIVE_EXECUTION','python':sys.version,'executable':sys.executable,'rows':[],'status':'HOLD','product_executed':False,'HIA_generation_executed':False}
+try:
+ for row in rows:
+  raw=base64.b64decode(row['base64'],validate=True)
+  assert len(raw)==row['bytes'] and hashlib.sha256(raw).hexdigest()==row['sha256']
+  folder=root/row['group']
+  folder.mkdir(mode=0o700,exist_ok=True)
+  path=folder/row['name']
+  with path.open('xb') as f:
+   f.write(raw);f.flush();os.fsync(f.fileno())
+  again=path.read_bytes()
+  assert again==raw
+  ast.parse(raw,filename=str(path))
+  report['rows'].append({'path':str(path),'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'AST_parse':True,'byte_readback':True})
+ report['status']='STATIC_PYTHON_AST_PASS_NOT_PRODUCT_QUALIFICATION'
+except BaseException:
+ report['error']=traceback.format_exc()
+finally:
+ with (root/'REPORT.json').open('x') as f:
+  json.dump(report,f,sort_keys=True,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+ print(json.dumps(report,sort_keys=True))
+raise SystemExit(0 if report['status'].startswith('STATIC_PYTHON_AST_PASS') else 1)
