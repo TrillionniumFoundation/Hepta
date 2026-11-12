@@ -382,7 +382,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=ROOT / 'examples/hia_bootstrap')
-    parser.add_argument('--metadata', type=Path, default=ROOT / 'hepta/hia_core_lowering_abi.json')
+    parser.add_argument('--metadata', type=Path, default=ROOT / 'docs/HIA_CORE_LOWERING_ABI.json')
     arguments = parser.parse_args()
     for path in write(arguments.output, arguments.metadata):
         print(path)

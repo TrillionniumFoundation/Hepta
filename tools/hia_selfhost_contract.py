@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v79-native-Core-lowering'
+PROFILE = 'selfhost-core-linux-x86_64-v80-native-core-resources'
 SOURCE_FILES = (
     'docs/HIA_CORE_LOWERING_NATIVE.md',
     'examples/hia_bootstrap/core_lowering_000.hepta',
@@ -55,7 +55,7 @@ SOURCE_FILES = (
     'tools/hia_core_lowering_ir.py',
     'tools/hia_core_lowering_policy.py',
     'tools/qualify_hia_core_lowering_callers.py',
-    'hepta/hia_core_lowering_abi.json',
+    'docs/HIA_CORE_LOWERING_ABI.json',
 
     'docs/HIA_MACHINE_PLAN_NATIVE.md',
     'examples/hia_bootstrap/machine_plan.hepta',

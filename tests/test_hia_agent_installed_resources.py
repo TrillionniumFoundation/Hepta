@@ -2,10 +2,10 @@
 from pathlib import Path
 from hashlib import sha256
 import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
-from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,SOURCE_BUILD_FILES,COMPILER_BUILD_FILES,PUBLICATION_BUILD_FILES,installation_manifest
+from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, installation_manifest, BACKEND_BUILD_FILES
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
-RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES
+RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES
 # Source-distribution test inputs are not installed Agent resources and must
 # never expand the worker's production source identity or _data payload.
 SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',)
@@ -35,6 +35,13 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
             (*NATIVE_SOURCE_FILES,*SOURCE_BUILD_FILES,*PUBLICATION_BUILD_FILES)))
         self.assertLessEqual(set(COMPILER_BUILD_FILES),set(RESOURCES))
         self.assertEqual(len(RESOURCES),len(set(RESOURCES)))
+        from hepta.hia_core_lowering_selection import ABI_SOURCE, checked_abi, source_names
+        backend_abi=checked_abi((ROOT/ABI_SOURCE).read_bytes())
+        self.assertEqual(BACKEND_BUILD_FILES,(ABI_SOURCE,*source_names(backend_abi)))
+        self.assertEqual(len(source_names(backend_abi)),32)
+        self.assertTrue(set(BACKEND_BUILD_FILES).isdisjoint(
+            (*NATIVE_SOURCE_FILES,*SOURCE_BUILD_FILES,*COMPILER_BUILD_FILES,*PUBLICATION_BUILD_FILES)))
+        self.assertLessEqual(set(BACKEND_BUILD_FILES),set(RESOURCES))
 
     def test_actual_build_hook_uses_distinct_discovery_and_native_resource_paths(self):
         import ast

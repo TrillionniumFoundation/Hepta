@@ -99,7 +99,7 @@ def _implementation_hash():
     from .hia_machine_plan import native_implementation_identity as plan_identity
     digest.update(b'native-machine-plan\0' + plan_identity() + b'\0')
     from .hia_json_preflight_native import _source_resource_path
-    digest.update(b'core-lowering-abi\0' + _source_resource_path('hepta/hia_core_lowering_abi.json').read_bytes() + b'\0')
+    digest.update(b'core-lowering-abi\0' + _source_resource_path('docs/HIA_CORE_LOWERING_ABI.json').read_bytes() + b'\0')
     from .hia_core_lowering_selection import native_implementation_identity as lowering_identity
     digest.update(b'native-core-lowering\0' + lowering_identity(globals()) + b'\0')
     return digest.hexdigest()

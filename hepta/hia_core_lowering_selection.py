@@ -22,7 +22,7 @@ from .hia_json_preflight_native import (
 SELECTOR = 'HEPTA_HIA_CORE_LOWERING_MANIFEST'
 SCHEMA = 'hepta.hia.core-lowering-native.v1'
 UNIT_SCHEMA = 'hepta.hia.core-lowering-unit-native.v1'
-ABI_SOURCE = 'hepta/hia_core_lowering_abi.json'
+ABI_SOURCE = 'docs/HIA_CORE_LOWERING_ABI.json'
 _UNSELECTED = object()
 _OWNER = ContextVar('hia_core_lowering_selected_owner', default=_UNSELECTED)
 _OWNER_CACHE = []

@@ -27,41 +27,7 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
-    'hepta/hia_core_lowering_abi.json',
-    'examples/hia_bootstrap/core_lowering_000.hepta',
-    'examples/hia_bootstrap/core_lowering_001.hepta',
-    'examples/hia_bootstrap/core_lowering_002.hepta',
-    'examples/hia_bootstrap/core_lowering_003.hepta',
-    'examples/hia_bootstrap/core_lowering_004.hepta',
-    'examples/hia_bootstrap/core_lowering_005.hepta',
-    'examples/hia_bootstrap/core_lowering_006.hepta',
-    'examples/hia_bootstrap/core_lowering_007.hepta',
-    'examples/hia_bootstrap/core_lowering_008.hepta',
-    'examples/hia_bootstrap/core_lowering_009.hepta',
-    'examples/hia_bootstrap/core_lowering_010.hepta',
-    'examples/hia_bootstrap/core_lowering_011.hepta',
-    'examples/hia_bootstrap/core_lowering_012.hepta',
-    'examples/hia_bootstrap/core_lowering_013.hepta',
-    'examples/hia_bootstrap/core_lowering_014.hepta',
-    'examples/hia_bootstrap/core_lowering_015.hepta',
-    'examples/hia_bootstrap/core_lowering_016.hepta',
-    'examples/hia_bootstrap/core_lowering_017.hepta',
-    'examples/hia_bootstrap/core_lowering_018.hepta',
-    'examples/hia_bootstrap/core_lowering_019.hepta',
-    'examples/hia_bootstrap/core_lowering_020.hepta',
-    'examples/hia_bootstrap/core_lowering_021.hepta',
-    'examples/hia_bootstrap/core_lowering_022.hepta',
-    'examples/hia_bootstrap/core_lowering_023.hepta',
-    'examples/hia_bootstrap/core_lowering_024.hepta',
-    'examples/hia_bootstrap/core_lowering_025.hepta',
-    'examples/hia_bootstrap/core_lowering_026.hepta',
-    'examples/hia_bootstrap/core_lowering_027.hepta',
-    'examples/hia_bootstrap/core_lowering_028.hepta',
-    'examples/hia_bootstrap/core_lowering_029.hepta',
-    'examples/hia_bootstrap/core_lowering_030.hepta',
-    'examples/hia_bootstrap/core_lowering_pool.hepta',
-
-    "examples/hia_bootstrap/machine_plan.hepta",
+    'examples/hia_bootstrap/machine_plan.hepta',
     'examples/hia_bootstrap/machine_encoding.hepta',
     'examples/hia_bootstrap/machine_state.hepta',
     'examples/hia_bootstrap/machine_instructions.hepta',
@@ -124,8 +90,43 @@ SOURCE_BUILD_FILES = (
 
 # Additional Core JSON compiler build data, not source-builder repack roles or
 # loadable native-image adapters. Shared compiler/frontend inputs stay above.
-COMPILER_BUILD_FILES = (
-    'examples/hia_bootstrap/core_json_cli_packer.hepta',
+COMPILER_BUILD_FILES = ('examples/hia_bootstrap/core_json_cli_packer.hepta',)
+
+# Complete multi-image backend source and typed ABI resources.
+BACKEND_BUILD_FILES = (
+    'docs/HIA_CORE_LOWERING_ABI.json',
+    'examples/hia_bootstrap/core_lowering_pool.hepta',
+    'examples/hia_bootstrap/core_lowering_000.hepta',
+    'examples/hia_bootstrap/core_lowering_001.hepta',
+    'examples/hia_bootstrap/core_lowering_002.hepta',
+    'examples/hia_bootstrap/core_lowering_003.hepta',
+    'examples/hia_bootstrap/core_lowering_004.hepta',
+    'examples/hia_bootstrap/core_lowering_005.hepta',
+    'examples/hia_bootstrap/core_lowering_006.hepta',
+    'examples/hia_bootstrap/core_lowering_007.hepta',
+    'examples/hia_bootstrap/core_lowering_008.hepta',
+    'examples/hia_bootstrap/core_lowering_009.hepta',
+    'examples/hia_bootstrap/core_lowering_010.hepta',
+    'examples/hia_bootstrap/core_lowering_011.hepta',
+    'examples/hia_bootstrap/core_lowering_012.hepta',
+    'examples/hia_bootstrap/core_lowering_013.hepta',
+    'examples/hia_bootstrap/core_lowering_014.hepta',
+    'examples/hia_bootstrap/core_lowering_015.hepta',
+    'examples/hia_bootstrap/core_lowering_016.hepta',
+    'examples/hia_bootstrap/core_lowering_017.hepta',
+    'examples/hia_bootstrap/core_lowering_018.hepta',
+    'examples/hia_bootstrap/core_lowering_019.hepta',
+    'examples/hia_bootstrap/core_lowering_020.hepta',
+    'examples/hia_bootstrap/core_lowering_021.hepta',
+    'examples/hia_bootstrap/core_lowering_022.hepta',
+    'examples/hia_bootstrap/core_lowering_023.hepta',
+    'examples/hia_bootstrap/core_lowering_024.hepta',
+    'examples/hia_bootstrap/core_lowering_025.hepta',
+    'examples/hia_bootstrap/core_lowering_026.hepta',
+    'examples/hia_bootstrap/core_lowering_027.hepta',
+    'examples/hia_bootstrap/core_lowering_028.hepta',
+    'examples/hia_bootstrap/core_lowering_029.hepta',
+    'examples/hia_bootstrap/core_lowering_030.hepta',
 )
 
 
@@ -158,7 +159,7 @@ def installation_manifest():
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
-    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES):
+    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES):
         entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
     from .hia_program_native import _implementation_hash
     from .hia_native_helpers import native_helpers_identity
