@@ -1,0 +1,89 @@
+name: HIA Core and Emitter v2 source authoring
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  author:
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-core-emitter-authoring-r2-run-20261112-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HIA_CORE_EMITTER_WORKFLOW_SHA: '${{ github.sha }}'
+    steps:
+      - name: Check out only the reviewed control commit without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 9473e0fca206dc27ed87122f4a5d45a905d8b35c
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Check out the complete actual 80ec source commit and Git objects
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 80ec04ae7489209b122c874531d194c67b30dfed
+          path: source
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Install the fixed version and observe this runner's actual interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Bind real source HEAD and prepare the new private authoring operation
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          set -C
+          python -I -S -B control/experiments/hia_core_emitter_20261111/actions-source-authoring-r1/controller.py prepare --root "$RUNNER_TEMP/hia-core-emitter-source-authoring-r2" --source "$GITHUB_WORKSPACE/source" --policy-sha256 0cf91131f947850badb125537249c94229f5cf0590653363702b378913a84dcf --control-commit 9473e0fca206dc27ed87122f4a5d45a905d8b35c > "$RUNNER_TEMP/hia-core-emitter-authoring-prepare.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-authoring-prepare.stderr.log"
+      - name: Generate all 39 prospective units under the unchanged 180-second owner
+        id: owned_author
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          set -C
+          python -I -S -B control/experiments/hia_core_emitter_20261111/actions-source-authoring-r1/controller.py run --root "$RUNNER_TEMP/hia-core-emitter-source-authoring-r2" --source "$GITHUB_WORKSPACE/source" --policy-sha256 0cf91131f947850badb125537249c94229f5cf0590653363702b378913a84dcf --control-commit 9473e0fca206dc27ed87122f4a5d45a905d8b35c > "$RUNNER_TEMP/hia-core-emitter-authoring-run.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-authoring-run.stderr.log"
+      - name: Verify natural cleanup and every retained source-only output
+        if: always()
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          set -C
+          python -I -S -B control/experiments/hia_core_emitter_20261111/actions-source-authoring-r1/controller.py finalize --root "$RUNNER_TEMP/hia-core-emitter-source-authoring-r2" --source "$GITHUB_WORKSPACE/source" --policy-sha256 0cf91131f947850badb125537249c94229f5cf0590653363702b378913a84dcf --control-commit 9473e0fca206dc27ed87122f4a5d45a905d8b35c > "$RUNNER_TEMP/hia-core-emitter-authoring-finalize.stdout.log" 2> "$RUNNER_TEMP/hia-core-emitter-authoring-finalize.stderr.log"
+      - name: Print fixed original receipts and logs as bounded SHA-bound frames
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          python -I -S -B control/experiments/hia_core_emitter_20261111/actions-source-authoring-r1/diagnostics.py --policy-sha256 0cf91131f947850badb125537249c94229f5cf0590653363702b378913a84dcf --control-commit 9473e0fca206dc27ed87122f4a5d45a905d8b35c
+      - name: Preserve original authoring output and HOLD logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-core-emitter-v2-source-${{ github.run_id }}-1
+          path: |
+            ${{ runner.temp }}/hia-core-emitter-source-authoring-r2/
+            ${{ runner.temp }}/hia-core-emitter-authoring-*.log
+          if-no-files-found: warn
+          include-hidden-files: true
+          compression-level: 0
+          retention-days: 14
