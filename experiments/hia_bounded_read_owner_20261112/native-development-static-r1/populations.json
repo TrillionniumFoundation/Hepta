@@ -1,0 +1,130 @@
+{
+  "schema": "hepta.hia.bounded-read-native-development-populations.v1",
+  "status": "STATIC_UNEXECUTED_EXPECTATIONS",
+  "finite_component_cases": 55,
+  "original_methods": 8,
+  "original_CLI_children": 7,
+  "original_CLI_child_timeout_seconds": 20,
+  "original_CLI_body_read_attempts_normal_path": 8,
+  "parent_read_attempts_normal_path": 4,
+  "groups": [
+    {
+      "name": "reject",
+      "script": "reject_cases.py",
+      "schema": "hepta.hia.bounded-read-reject-continuation-controls.v1",
+      "status": "FINITE_REJECT_CONTINUATIONS_PASS_NOT_FULL_QUALIFICATION",
+      "expected_ids": [
+        "ordinary_without_reject",
+        "nonregular_helper_returns",
+        "pre_size_helper_returns",
+        "post_size_helper_returns",
+        "pre_helper_replaces_read",
+        "pre_return_finalizer",
+        "post_return_finalizer",
+        "pre_helper_raises_oserror",
+        "post_helper_raises_oserror",
+        "pre_helper_raises_baseexception",
+        "reg_test_rebinds_helper",
+        "default_helper_keeps_original_diagnostic"
+      ],
+      "method_count": 12,
+      "qualification_seconds": 30,
+      "oracle": true
+    },
+    {
+      "name": "lifetime",
+      "script": "lifetime_cases.py",
+      "schema": "hepta.hia.bounded-read-lifetime-controls.v1",
+      "status": "FINITE_LIFETIME_CONTROLS_PASS_NOT_QUALIFICATION",
+      "expected_ids": [
+        "temporary_manager_static_exit",
+        "input_path_replacement_finalizer",
+        "flags_expression_operands",
+        "open_callable_and_descriptor",
+        "stat_nested_call_temporaries",
+        "isreg_bool_result_release",
+        "isreg_len_result_release",
+        "stat_comparison_result_release",
+        "read_count_and_callable_release",
+        "local_cleanup_return_order",
+        "dynamic_len_rebound_at_exit",
+        "captured_builtins_after_global_rebind",
+        "global_getattr_replacement",
+        "key_equality_KeyError_not_missing",
+        "custom_limit_all_operations",
+        "prebound_fdopen_unwind_before_match",
+        "nonregular_returning_reject",
+        "body_exception_close_order",
+        "close_exception_replacement_context",
+        "suppress_before_payload_then_unbound",
+        "dynamic_exception_tuple_match",
+        "malformed_exception_match_type",
+        "path_error_outside_try",
+        "old_ambient_context_chain_restore"
+      ],
+      "method_count": 24,
+      "qualification_seconds": 30,
+      "oracle": true
+    },
+    {
+      "name": "permission",
+      "script": "permission_cases.py",
+      "schema": "hepta.hia.bounded-read-permission-controls.v1",
+      "status": "TEN_REAL_ENTRY_PERMISSION_CONTROLS_PASS",
+      "expected_ids": [
+        "repeat_observe_does_not_repeat_Path",
+        "malformed_ACK_seals_effect_permission",
+        "successful_finish_is_single_use",
+        "closed_session_cannot_finish",
+        "diagnostic_constructor_is_single_use",
+        "foreign_exception_finish_is_single_use",
+        "after_entry_transition_counter_fault",
+        "after_actual_entry_exception_fault",
+        "after_foreign_effect_return_counter_fault",
+        "before_foreign_effect_attempt_counter_fault"
+      ],
+      "method_count": 10,
+      "qualification_seconds": 30,
+      "oracle": true
+    },
+    {
+      "name": "filesystem",
+      "script": "filesystem_cases.py",
+      "schema": "hepta.hia.bounded-read-filesystem-controls.v1",
+      "status": "NINE_FILESYSTEM_BOUNDARIES_PASS_NOT_QUALIFICATION",
+      "expected_ids": [
+        "empty_ordinary_file",
+        "binary_ordinary_file",
+        "exact_eight_MiB_default_input",
+        "one_byte_above_eight_MiB_stat_refusal",
+        "symbolic_link_refusal",
+        "nonblocking_FIFO_refusal",
+        "directory_refusal",
+        "growth_after_stat_postread_refusal",
+        "default_argument_survives_MAX_INPUT_BYTES_rebinding"
+      ],
+      "method_count": 9,
+      "qualification_seconds": 30,
+      "oracle": true
+    },
+    {
+      "name": "original-eight",
+      "script": "original_eight.py",
+      "schema": "hepta.hia.bounded-read-original-eight.v1",
+      "status": "ORIGINAL_EIGHT_AND_SEVEN_CLI_CHILDREN_PASS",
+      "expected_ids": [
+        "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_bad_program_returns_structured_error",
+        "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_trap_and_budget_are_distinct_structured_outcomes",
+        "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_verify_run_inspect_and_patch_need_no_rust_or_high_level_source",
+        "tests.test_hia_program_tools.HIAProgramToolsTests.test_patch_cannot_remove_required_effect_or_use_undefined_value",
+        "tests.test_hia_program_tools.HIAProgramToolsTests.test_patch_rechecks_and_executes_changed_operations_without_source",
+        "tests.test_hia_program_tools.HIAProgramToolsTests.test_patch_rejects_unknown_fields_bool_indices_and_nonfinite",
+        "tests.test_hia_program_tools.HIAProgramToolsTests.test_publication_is_a_complete_verified_new_snapshot",
+        "tests.test_hia_program_tools.HIAProgramToolsTests.test_stale_duplicate_and_overlapping_edits_reject"
+      ],
+      "method_count": 8,
+      "qualification_seconds": 180,
+      "oracle": false
+    }
+  ]
+}

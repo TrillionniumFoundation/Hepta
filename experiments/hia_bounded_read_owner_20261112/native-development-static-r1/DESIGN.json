@@ -1,0 +1,150 @@
+{
+  "schema": "hepta.hia.bounded-read-native-development-design.v1",
+  "status": "STATIC_UNPARSED_UNEXECUTED_NOT_DISPATCHABLE",
+  "source_candidate": {
+    "commit": "0e36619bc65ada7072c1e8a1f1454728036fee4e",
+    "tree": "1d95802c453a006f077eb8735a6939b1957d500b"
+  },
+  "source_members": 4025,
+  "baseline": {
+    "commit": "9704596acc4470bd0042838586602e26bac7b3d1",
+    "tree": "c3ca94c57f9bd75f22f2c694e32bca2dfc6b329b",
+    "members": 4023
+  },
+  "product_delta": [
+    {
+      "path": "hepta/hia_program_tools.py",
+      "mode": "100644",
+      "size": 23846,
+      "sha256": "f25118745cd5eb4a9b9023f531812597b776196498591232f49d5bc93966c501",
+      "git_blob_sha1": "475244cc907869303889369d3ed8be561ad1c3c1"
+    },
+    {
+      "path": "hepta/hia_bounded_read_native.py",
+      "mode": "100644",
+      "size": 19858,
+      "sha256": "1898326dbec1619a397ff14d1558e171db2f1dd03b3e43ed3e3cfda2272bf57e",
+      "git_blob_sha1": "edb202f9a31e870b6bfdc2ebbe50136d08514240"
+    },
+    {
+      "path": "tools/generate_hia_bounded_read.py",
+      "mode": "100644",
+      "size": 10836,
+      "sha256": "9f2c6951bc91f157359b22d3a30bf46e2d9a3b9236054b31469dc3ac70fb23bc",
+      "git_blob_sha1": "d5288e90d33a67f5ae7aa9525f2679dc53525433"
+    }
+  ],
+  "preserved_predecessors": {
+    "static_r4": "856551e9b233c1c2ccc81dcbcd3c7867c2c3b5fb",
+    "pure_r4": "3241be194a817574a0cd08c798981cacb67c4e8d",
+    "no_execution_inherited": true
+  },
+  "dispatch": {
+    "workflow": null,
+    "remote_job": null,
+    "stable_key": null,
+    "outer_script": "native_outer.py",
+    "control_manifest": "control-manifest.json",
+    "control_manifest_sha256": "8f59460e6e2fa68a29db7092b2dbc9f1e95a44c0cf89d58c791903d29f74e0f7",
+    "source_manifest_sha256": "cc7fd4c40506bde614b615e3d6c86691e5c14a0f114d5ce47b8f87944a3f11b3",
+    "compiler": {
+      "bytes": 668608,
+      "sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+      "scope": "Known original B3 development compiler; a future exact physical copy and receipt must be supplied. Never represented as this candidate's cold build."
+    },
+    "requires_before_run": [
+      "Independent review of these full exact bytes",
+      "Exact fixed compiler input delivery and actual interpreter identity",
+      "Fresh independent source checkout/materialization satisfying all4025 member pins",
+      "Reviewed provider bootstrap/failure-upload custody and unique request",
+      "Root-coordinated exclusive execution window"
+    ]
+  },
+  "original_constraints": {
+    "outer_seconds": 180,
+    "cleanup_seconds": 3,
+    "native_compile_seconds": 20,
+    "native_compile_CPU_seconds": 10,
+    "compiler_output_bytes": 1048576,
+    "compiler_workspace_bytes": 1048576,
+    "input_default_bytes": 8388608,
+    "original_test_methods": 8,
+    "original_CLI_children": 7,
+    "original_CLI_child_seconds": 20,
+    "source_authoring_caps_unchanged": true
+  },
+  "new_development_steps": {
+    "prepare_aggregate_seconds": 60,
+    "finite_groups": [
+      12,
+      24,
+      10,
+      9
+    ],
+    "finite_cases": 55,
+    "finite_group_seconds": [
+      30,
+      30,
+      30,
+      30
+    ],
+    "original_eight_owner_seconds": 180,
+    "all_nested_under_same_outer_180_seconds": true,
+    "new_55_are_not_ELF_55": true
+  },
+  "semantic_changes": [
+    "Keep complete original read_bounded AST and definition-time8MiB default.",
+    "Explicit selected wrapper passes saved original function globals/builtins/co_consts and moves path/limit out of wrapper arguments.",
+    "HIA owns global/foreign effect order, ownership masks, exception phases and named-root cleanup plan.",
+    "Separate opaque slots preserve independently owned references even for aliased Python objects.",
+    "Manager single-use cell lets actual with machinery own __exit__ and release the temporary manager.",
+    "HIA r4b now emits reverse local cleanup required by actual CPython3.14.4 frame implementation.",
+    "Dynamic len/getattr/OSError/_reject resolution and returning _reject continuation remain in the original domain."
+  ],
+  "specific_r4_static_correction": {
+    "evidence_url": "https://raw.githubusercontent.com/python/cpython/v3.14.4/Python/frame.c",
+    "bytes": 5732,
+    "sha256": "037f87cb1a0f149661f3192428c85aba50a6fe81c18ed755d99cefdbc773afc5",
+    "function": "_PyFrame_ClearLocals",
+    "finding": "Actual implementation decrements stackpointer toward localsplus; old r4 HIA plan emitted fast locals in forward order.",
+    "old_plan": [
+      "path",
+      "limit",
+      "flags",
+      "stream",
+      "info",
+      "payload"
+    ],
+    "new_HIA_plan": [
+      "payload",
+      "info",
+      "stream",
+      "flags",
+      "limit",
+      "path"
+    ],
+    "old_native_reproduction": false,
+    "new_native_verification": false,
+    "original_test_expectation_changed": false
+  },
+  "native_evidence_required": [
+    "14-function full Core roundtrip, all original compiler caps and actual source resource",
+    "Actual compile stdout/stderr/request/receipt/image/manifest and unchanged20/10 limits",
+    "All12 original finite reject-control IDs in unchanged order",
+    "24 lifetime/global/exception exact traces against full original AST",
+    "10 permission faults around real HIA entry and real foreign effects",
+    "9 real filesystem/default cases including exact8MiB,8MiB+1,FIFO,symlink,stale-stat growth",
+    "Original8 exact unittest IDs/zero5 anomalies plus all7 actual CLI child observer receipts",
+    "No retained original code-object entry through aliases in native lifetime/public caller gates",
+    "All4025 old source bytes+mode+identity before/after; sole new generated resource",
+    "Actual physical source/manifest/image pins before/after; natural inner and outer owned cleanup"
+  ],
+  "limitations_and_open": [
+    "No Python AST parse or HIA generation/compilation/execution has occurred for this revision.",
+    "Exact CPython foreign destructor/exception trace parity remains a real-image gate, not a proved result.",
+    "Raw traceback frames are preserved as evidence; their additional bridge locations are not equated to the original frame layout.",
+    "Finite tests do not prove every asynchronous interruption, cyclic-GC schedule or reflection case; these remain open and do not narrow the public input domain.",
+    "Only explicit development manifest selection is added. No installed resource, strict cold selector, global contract or ordinary default replacement is claimed.",
+    "A later fixed provider control must retain the entire typed evidence tree on any failure; successful report output lists alone are insufficient."
+  ]
+}

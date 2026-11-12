@@ -1,0 +1,139 @@
+{
+  "schema": "hepta.hia.bounded-read-lifetime-candidate.v1",
+  "status": "STATIC_WIP_UNPARSED_UNGENERATED_UNCOMPILED_UNEXECUTED",
+  "predecessor": {
+    "revision": "static-r4",
+    "canonical_commit": "856551e9b233c1c2ccc81dcbcd3c7867c2c3b5fb",
+    "pure_explicit_dispatch_candidate": "3241be194a817574a0cd08c798981cacb67c4e8d",
+    "execution_inherited": false
+  },
+  "inputs": {
+    "hepta/hia_program_tools.py": {
+      "bytes": 23846,
+      "sha256": "f25118745cd5eb4a9b9023f531812597b776196498591232f49d5bc93966c501",
+      "git_blob_sha1": "475244cc907869303889369d3ed8be561ad1c3c1"
+    },
+    "hepta/hia_bounded_read_native.py": {
+      "bytes": 19858,
+      "sha256": "1898326dbec1619a397ff14d1558e171db2f1dd03b3e43ed3e3cfda2272bf57e",
+      "git_blob_sha1": "edb202f9a31e870b6bfdc2ebbe50136d08514240"
+    },
+    "tools/generate_hia_bounded_read.py": {
+      "bytes": 10836,
+      "sha256": "9f2c6951bc91f157359b22d3a30bf46e2d9a3b9236054b31469dc3ac70fb23bc",
+      "git_blob_sha1": "d5288e90d33a67f5ae7aa9525f2679dc53525433"
+    }
+  },
+  "protocol": {
+    "magic": "HIARDB03",
+    "manifest_schema": "hepta.hia.bounded-read-native.v3",
+    "packet_bytes": 64,
+    "output_bytes": 24,
+    "workspace_bytes": 1024,
+    "added_effect_opcode": {
+      "UNWIND_TEMPORARIES": 28
+    },
+    "ownership_word_offset": 280,
+    "operand_move_bits": {
+      "a": 1,
+      "b": 2,
+      "c": 4,
+      "replace_path_after_result": 8
+    },
+    "local_plan_offsets": [
+      304,
+      312,
+      320,
+      328,
+      336,
+      344
+    ],
+    "local_order": [
+      "payload",
+      "info",
+      "stream",
+      "flags",
+      "limit",
+      "path"
+    ],
+    "original_function_limit_default_bytes": 8388608
+  },
+  "changes": [
+    "Opaque handles now denote independently owned references rather than deduplicated object identities; aliases can be released independently.",
+    "HIA emits explicit operand move masks for bitwise operations, temporary callable/argument consumption, comparison and truth conversion. The host executes the selected foreign operation with moved operands.",
+    "HIA marks which named locals have actually been assigned, emits a six-root plan, and requests reverse pending-temporary unwinding before context-exit/error matching. Suppressed error references are dropped before the post-with continuation.",
+    "The context manager enters through a one-shot cell.pop() expression. Its generator does not retain the manager argument, and the manager's table ownership is transferred before actual __enter__.",
+    "Ordinary return protects its payload and releases HIA-selected named locals in CPython3.14.4 reverse fast-local cleanup order; exception paths retain their frame/session state rather than clearing traceback-visible locals.",
+    "Dynamic global lookup uses the actual bound reference function's globals, captured builtins and co_names; no original policy function is invoked. Literal observations return the matching original co_consts string object.",
+    "len/getattr/OSError/HIAEditRejected remain dynamically resolved at their original effect. CPython exception-class/tuple validation and actual matching use actual type flags and PyErr_GivenExceptionMatches rather than foreign __class__ or metaclass subclass hooks.",
+    "The explicit development selector passes the saved original function as reference; absent selector retains the unchanged original Python body. Wrapper path/limit references move into the selected call."
+  ],
+  "unchanged": [
+    "HIA selects regular-file admission, both limit branches, dynamic _reject calls and their normal-return continuations, close/error disposition.",
+    "No path/limit/returned-payload behavior domain was narrowed; limit remains an opaque foreign object. No new UID, permission, hardlink, EOF, parent-path or post-read stat policy.",
+    "Original Path conversion is outside the try region; default 8MiB limit and complete original eight test methods remain.",
+    "Original Python owner remains available as the exact complete AST oracle. No global contract, default activation, installed resource or strict cold selector is claimed.",
+    "Original compiler20s/10CPU, suite180s/3cleanup and original CLI child20s remain requirements, not increased by this candidate."
+  ],
+  "open": [
+    "No Python parse, HIA generation/Core roundtrip, native compilation or actual native control has run for this revision.",
+    "Exact temporary-finalizer and active-exception traces, including specialized CPython call/decref order, require the real-image differential controls; the proposed ownership masks are not a proof.",
+    "Traceback frame/function locations differ across implementations and will be retained as raw observations; exception identity/cause/context and callback order must be compared without concealing discrepancies.",
+    "Private continuation lifecycle/BaseException controls, normal-return named-local release, dynamic globals/builtins and malformed exception matcher cases remain unexecuted.",
+    "The new14-function anticipated source must meet original uniqueSSA/parameter/block/branch/call-depth caps after actual generation; no cap is relaxed.",
+    "Explicit development dispatch is source code only; its actual original8/7child gate, resource packaging, strict cold selection and full qualification remain unexecuted."
+  ],
+  "primary_runtime_sources": [
+    {
+      "url": "https://raw.githubusercontent.com/python/cpython/v3.14.4/Python/bytecodes.c",
+      "sha256": "35dd69e81973c10d8632cecb0613b7cf3bef95946e3d980dcb13d9fbeed83d52",
+      "subjects": [
+        "CALL",
+        "BINARY_OP",
+        "COMPARE_OP",
+        "TO_BOOL",
+        "CHECK_EXC_MATCH",
+        "LOAD_SPECIAL",
+        "WITH_EXCEPT_START"
+      ]
+    },
+    {
+      "url": "https://raw.githubusercontent.com/python/cpython/v3.14.4/Python/ceval.c",
+      "sha256": "6911b61bf05098cfe09e65d9aa7356952a511509b0d03388f62e248aa0207cb0",
+      "subjects": [
+        "_PyEval_LoadGlobalStackRef",
+        "_PyEval_CheckExceptTypeValid"
+      ]
+    },
+    {
+      "url": "https://raw.githubusercontent.com/python/cpython/v3.14.4/Python/codegen.c",
+      "sha256": "f6dca6620b32971edf71cc1678ec81c86688e550790978c4a8aaf4c8539cfcfd",
+      "subjects": [
+        "codegen_with_inner",
+        "codegen_try_except",
+        "codegen_boolop"
+      ]
+    },
+    {
+      "url": "https://raw.githubusercontent.com/python/cpython/v3.14.4/Python/frame.c",
+      "bytes": 5732,
+      "sha256": "037f87cb1a0f149661f3192428c85aba50a6fe81c18ed755d99cefdbc773afc5",
+      "subjects": [
+        "_PyFrame_ClearLocals",
+        "_PyFrame_ClearExceptCode"
+      ]
+    }
+  ],
+  "original_eight_audit": {
+    "commit": "d681d36a6b4f09780ca9c249dde6c0ebef436ea8",
+    "path": "experiments/hia_970_ci_original_custody_20261112/peer-reviews/bounded-read-original-eight-callers-acffa.json",
+    "sha256": "b50db721e09fa7fd4db7fa19d3fca08a874e899562ea8b47ecf4f9dacae264db",
+    "inferred_read_attempts": 12,
+    "actual_run": false
+  },
+  "generation_executed": false,
+  "native_executed": false,
+  "public_dispatch_changed": true,
+  "whole_native_delivery_qualified": false,
+  "public_dispatch_default_changed": false
+}
