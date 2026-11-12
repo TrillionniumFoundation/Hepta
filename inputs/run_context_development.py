@@ -1,4 +1,8 @@
-"""Exact f8 + frozen context r6: isolated actual development, never cold."""
+"""Exact 5f7 + frozen context r7 and source-owned original Agent48 gate.
+
+Independent CPython 3.14.4 DEVELOPMENT; no prior result grants current cold
+authority. Retains original test methods, assertions, limits and failures.
+"""
 from __future__ import annotations
 
 import argparse
@@ -19,11 +23,13 @@ import time
 import traceback
 import zlib
 
-BASE = 'f8d9680a9b0ae609850c006480a7d1f68ea00979'
-TREE = '473404cdccc38a7e6bba633ef4a894877540d70e'
-BASE_PARENT = '7e9c5a796a29746d169f9db97392ec774f627c03'
+BASE = '5f7f95367e8e395863801487e969d286b9091110'
+TREE = '4f4e58e06a6e03adcd6548bd8ea4ef591c20359f'
+BASE_PARENT = 'f8d9680a9b0ae609850c006480a7d1f68ea00979'
 BASE_FILES = 3120
-OWNER_SHA = 'c02c4965776e0f16c229553290937476b842f1fe50cdc279dd278876fe37f8f5'
+OWNER_SHA = '77b6e568d63b800effce368d7065eb13dab213fa4c38ebf9e97f5745d8e04613'
+QUALIFIER_SHA = '7ba4932910eb913d8aa3b60e0dc76326bf8302f00f641549b7d824cde07ad8c8'
+ORIGINAL_COMPONENT_SHA = '7033ae41cf8feba2eacbcb191c3ec61d8645b8f2fdbeb8c92c01b0f900a3200a'
 COMPILER_PACKET_SHA = 'df542582525e52f7855f2746ae9dc7501f6835e41aa46b209e59f2e121177b8b'
 ORIGINAL_SUITE_SHA = '9397c321d04b2c55c3cf297065c27a12ef58908f10e14d546a9cad765493e7e4'
 COMPILER_SHA = '81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109'
@@ -108,14 +114,7 @@ def admit_git_snapshot(root, observed, tree_records):
     return tracked
 
 
-def append_development_tuple(root, relative, name, additions):
-    path = root / relative
-    before = path.read_bytes()
-    suffix = ('\n# Isolated service-context development export; not product activation.\n'
-              + name + ' += ' + repr(tuple(additions)) + '\n').encode()
-    path.write_bytes(before + suffix)
-    if path.read_bytes() != before + suffix:
-        raise ValueError('development tuple publication differs')
+from development_literal_registry import extend_development_tuple
 
 
 def main():
@@ -128,7 +127,7 @@ def main():
     inputs = args.inputs.resolve(strict=True)
     out = args.output.absolute()
     out.mkdir(mode=0o700, exist_ok=False)
-    report = {'schema': 'hia.service-context.v76.development-ci.v1',
+    report = {'schema': 'hia.service-context.v76.development-ci.r4',
               'status': 'STARTED', 'source_base': BASE, 'source_tree': TREE,
               'base_parent': BASE_PARENT, 'python': sys.version,
               'platform': platform.platform(), 'commands': [],
@@ -224,12 +223,27 @@ def main():
         if len(original) != BASE_FILES:
             raise ValueError('complete original 3120-file checkout required')
         write(out / 'source-before.json', wire(original))
+        command('harness-source-controls', [sys.executable, '-B', inputs / 'test_context_ci_driver.py'], seconds=60)
+        literal_env = dict(env, HIA_CONTEXT_BASE=str(root))
+        command('literal-registry-controls', [sys.executable, '-B', inputs / 'test_development_literal_registry.py'], seconds=60, environment=literal_env)
         owner_raw = (inputs / 'context-owner.json').read_bytes()
         if digest(owner_raw) != OWNER_SHA:
-            raise ValueError('frozen context r6 source packet differs')
+            raise ValueError('frozen context r7 source packet differs')
         owner = json.loads(owner_raw)
-        if len(owner['owned_files']) != 10:
-            raise ValueError('exact ten owner files required')
+        if (len(owner['owned_files']) != 10 or len(owner['shared_files']) != 4
+                or owner['base_commit'] != BASE or owner['base_tree'] != TREE):
+            raise ValueError('exact ten owner plus four shared r7 files required')
+        qualifier_raw = (inputs / 'caller-qualifier-addendum.json').read_bytes()
+        if digest(qualifier_raw) != QUALIFIER_SHA:
+            raise ValueError('source-owned original Agent48 qualifier differs')
+        qualifier = json.loads(qualifier_raw)
+        if set(qualifier['owned_files']) != {'tools/qualify_hia_service_context.py', 'tests/test_hia_service_context_qualifier.py'}:
+            raise ValueError('exact two-path caller addendum required')
+        selected_sources = {**owner['owned_files'], **owner['shared_files'], **qualifier['owned_files']}
+        if len(selected_sources) != 16:
+            raise ValueError('overlapping source ownership')
+        if digest((inputs / 'original-component-46.json').read_bytes()) != ORIGINAL_COMPONENT_SHA:
+            raise ValueError('original component denominator evidence differs')
         if digest((inputs / 'original-agent-suite.json').read_bytes()) != ORIGINAL_SUITE_SHA:
             raise ValueError('original Agent suite identity differs')
         for name, row in owner['external_dependencies'].items():
@@ -241,10 +255,14 @@ def main():
         service = 'hepta/hia_agent_service.py'
         if original[service]['sha256'] != owner['parent_integration']['original_service']['sha256']:
             raise ValueError('original service changed; function merge required')
-        for name, row in owner['owned_files'].items():
+        for name, row in selected_sources.items():
             path = root / safe(name)
-            if name != service and name in original:
-                raise ValueError('owner addition would overwrite an existing owner: ' + name)
+            before = owner['base_paths'].get(name)
+            if before is None:
+                if name in original:
+                    raise ValueError('source addition would overwrite an existing owner: ' + name)
+            elif name not in original or any(original[name][key] != before[key] for key in ('bytes', 'sha256', 'git_blob_sha')):
+                raise ValueError('exact shared/base owner input differs: ' + name)
             raw = row['utf8'].encode('utf-8')
             if len(raw) != row['bytes'] or digest(raw) != row['sha256']:
                 raise ValueError('owner source bytes differ: ' + name)
@@ -253,18 +271,19 @@ def main():
             path.chmod(int(row['mode'], 8))
             if metadata(path)['sha256'] != row['sha256']:
                 raise ValueError('owner publication differs: ' + name)
-        # These two append-only changes are an explicit development export.
-        # The product branch and original contract bytes remain unchanged.
-        append_development_tuple(root, 'hepta/hia_agent_contract.py',
-                                 'NATIVE_SOURCE_FILES', (SOURCE_NAME,))
-        append_development_tuple(root, 'tools/hia_selfhost_contract.py',
-                                 'SOURCE_FILES', tuple(owner['owned_files']))
+        # Literal edits preserve the real setup.py resource reader and all five
+        # existing resource roles. Only this isolated development export changes.
+        native_edit = extend_development_tuple(root, 'hepta/hia_agent_contract.py',
+                                              'NATIVE_SOURCE_FILES', (SOURCE_NAME,))
+        source_edit = extend_development_tuple(root, 'tools/hia_selfhost_contract.py',
+            'SOURCE_FILES', tuple(selected_sources) + tuple(qualifier['original48_files']))
+        write(out / 'literal-development-registration.json', wire([native_edit, source_edit]))
         post_overlay = files(root)
-        if len(post_overlay) != BASE_FILES + 9:
+        if len(post_overlay) != BASE_FILES + 11:
             raise ValueError('unexpected owner source inventory')
         overlay_changed = {name for name in set(original) | set(post_overlay)
                            if original.get(name) != post_overlay.get(name)}
-        if overlay_changed != set(owner['owned_files']) | {'hepta/hia_agent_contract.py', 'tools/hia_selfhost_contract.py'}:
+        if overlay_changed != set(selected_sources) | {'hepta/hia_agent_contract.py', 'tools/hia_selfhost_contract.py'}:
             raise ValueError('development overlay changed an unrelated path')
         write(out / 'source-after-overlay.json', wire(post_overlay))
         command('generate-context', [sys.executable, '-B', '-m', 'tools.generate_hia_service_context'])
@@ -323,24 +342,32 @@ def main():
             selected_inputs[path] = metadata(path)
         report['selected_inputs_before'] = {str(path): row for path, row in selected_inputs.items()}
         guard('after-build')
+        command('qualifier-source-10', [sys.executable, '-B', inputs / 'run_context_r7_group.py',
+            '--source', root, '--stage', 'qualifier', '--original-component', inputs / 'original-component-46.json',
+            '--output', out / 'qualifier-source-10'], seconds=60, allow_failure=True)
+        guard('after-qualifier-source-10')
         component_env = env.copy()
         component_env['HEPTA_HIA_SERVICE_CONTEXT_DEVELOPMENT_MANIFEST'] = str(manifest)
         component_env['HEPTA_HIA_SERVICE_CONTEXT_EVIDENCE'] = str(out / 'component-observations')
-        command('component-46', [sys.executable, '-B', inputs / 'run_context_suite.py',
-            '--source', root, '--kind', 'component', '--original-suite', inputs / 'original-agent-suite.json',
-            '--output', out / 'component-46.json'], seconds=240, environment=component_env, allow_failure=True)
-        guard('after-component-46')
-        agent_env = env.copy()
-        agent_env['HEPTA_HIA_SERVICE_CONTEXT_MANIFEST'] = str(manifest)
-        command('original-agent-48', [sys.executable, '-B', inputs / 'run_context_suite.py',
-            '--source', root, '--kind', 'original-agent', '--original-suite', inputs / 'original-agent-suite.json',
-            '--output', out / 'original-agent-48.json'], seconds=1800, environment=agent_env, allow_failure=True)
+        command('component-52', [sys.executable, '-B', inputs / 'run_context_r7_group.py',
+            '--source', root, '--stage', 'component', '--original-component', inputs / 'original-component-46.json',
+            '--output', out / 'component-52'], seconds=240, environment=component_env, allow_failure=True)
+        guard('after-component-52')
+        # The source-owned gate creates its own fresh image and inherits no
+        # component-test authority. Its internal Agent48 supervisor stays1800.
+        command('original-agent-48', [sys.executable, '-B', '-m', 'tools.qualify_hia_service_context',
+            '--development-compiler', compiler, '--evidence', out / 'original-agent-48'],
+            seconds=1800, environment=env, allow_failure=True)
         guard('after-original-agent-48')
-        report['component'] = json.loads((out / 'component-46.json').read_bytes())
-        report['original_agent'] = json.loads((out / 'original-agent-48.json').read_bytes())
-        if report['component']['status'] != 'PASS' or report['component']['tests_run'] != 46:
+        report['qualifier_source'] = json.loads((out / 'qualifier-source-10/REPORT.json').read_bytes())
+        report['component'] = json.loads((out / 'component-52/REPORT.json').read_bytes())
+        report['original_agent'] = json.loads((out / 'original-agent-48/report.json').read_bytes())
+        if report['qualifier_source']['status'] != 'PASS' or report['qualifier_source']['tests_run'] != 10:
+            raise ValueError('complete source-owned caller controls failed')
+        if report['component']['status'] != 'PASS' or report['component']['tests_run'] != 52:
             raise ValueError('complete context component group failed')
-        if report['original_agent']['status'] != 'PASS' or report['original_agent']['tests_run'] != 48:
+        if (report['original_agent']['status'] != 'DEVELOPMENT_CALLERS_PASS'
+                or report['original_agent']['original_agent']['tests_run'] != 48):
             raise ValueError('complete original Agent group failed')
         if any(row.get('returncode') != 0 or row.get('timed_out') is not False for row in report['commands']):
             raise ValueError('one original command failed')

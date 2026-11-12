@@ -1,8 +1,8 @@
-name: Isolated service context development v76 r3
+name: Isolated service context development v76 r4
 on:
   push:
     branches:
-      - codex/hia-context-development-v76-r3-20261112-dda7
+      - codex/hia-context-development-v76-r4-20261112-dda7
   workflow_dispatch:
 permissions:
   contents: read
@@ -38,7 +38,7 @@ jobs:
       - name: Checkout exact current product source
         uses: actions/checkout@v4
         with:
-          ref: f8d9680a9b0ae609850c006480a7d1f68ea00979
+          ref: 5f7f95367e8e395863801487e969d286b9091110
           path: source
           persist-credentials: false
           fetch-depth: 2
@@ -58,7 +58,7 @@ jobs:
           printf 'CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n' >> "$GITHUB_ENV"
       - name: Install original pinned Python prerequisites
         run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
-      - name: Actual context component and complete original Agent controls
+      - name: Actual context52 and source-owned original Agent48 controls
         run: >-
           python -B harness/inputs/run_context_development.py
           --source source --inputs harness/inputs --output context-development-evidence

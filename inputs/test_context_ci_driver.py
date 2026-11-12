@@ -57,12 +57,15 @@ class ContextCIDriverTests(unittest.TestCase):
     def test_all_frozen_input_packets_have_exact_identities(self):
         for name, expected in [('context-owner.json', driver.OWNER_SHA),
                                ('retained-compiler.json', driver.COMPILER_PACKET_SHA),
-                               ('original-agent-suite.json', driver.ORIGINAL_SUITE_SHA)]:
+                               ('original-agent-suite.json', driver.ORIGINAL_SUITE_SHA),
+                               ('caller-qualifier-addendum.json', driver.QUALIFIER_SHA),
+                               ('original-component-46.json', driver.ORIGINAL_COMPONENT_SHA)]:
             with self.subTest(name=name):
                 self.assertEqual(driver.digest((HERE / name).read_bytes()), expected)
         owner = json.loads((HERE / 'context-owner.json').read_bytes())
         self.assertEqual(len(owner['owned_files']), 10)
-        for name, row in owner['owned_files'].items():
+        self.assertEqual(len(owner['shared_files']), 4)
+        for name, row in {**owner['owned_files'], **owner['shared_files']}.items():
             raw = row['utf8'].encode()
             self.assertEqual(len(raw), row['bytes'], name)
             self.assertEqual(driver.digest(raw), row['sha256'], name)
