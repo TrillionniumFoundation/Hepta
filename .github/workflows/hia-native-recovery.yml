@@ -3987,7 +3987,7 @@ jobs:
       contains(github.event.head_commit.message, '[hia-ci:namespace-engine-original-sources]')
     name: Read complete four original namespace engines without target execution
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[hia-ci:clean-builder-self-rebuild]') && 55 || 25 }}
     permissions:
       contents: read
       actions: read
@@ -4016,7 +4016,14 @@ jobs:
         env:
           PYTHONDONTWRITEBYTECODE: '1'
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-engine-original-sources
-        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-four-engine-original-sources-readback.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-engine-original-sources-driver.log"
+          HIA_TRUE_SELF_REBUILD_SELECTED: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[hia-ci:clean-builder-self-rebuild]') }}
+        run: |
+          set -euo pipefail
+          if [[ "$HIA_TRUE_SELF_REBUILD_SELECTED" == true ]]; then
+            timeout --signal=TERM --kill-after=5s 2800s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-four-engine-original-sources-readback.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-engine-original-sources-driver.log"
+          else
+            timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-four-engine-original-sources-readback.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-engine-original-sources-driver.log"
+          fi
       - name: Retain original input and complete new evidence
         if: always()
         uses: actions/upload-artifact@v4

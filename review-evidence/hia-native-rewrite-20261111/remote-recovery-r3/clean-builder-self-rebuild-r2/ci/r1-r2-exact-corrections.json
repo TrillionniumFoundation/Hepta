@@ -1,0 +1,46 @@
+{
+  "schema": "hia-selfbuild-ci-static-corrections-r2",
+  "prior": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/clean-builder-self-rebuild-r2/history/ci_self_rebuild_r1.py",
+    "mode": "100644",
+    "bytes": 28930,
+    "sha256": "ab2a86a67c0fe3202caa410200e929de07a28d8f771bf6289ee7dd981e86acd7",
+    "gitsha": "aa5c5a93c1594ab41fe0495654632b0ee1c15910",
+    "classification": "LOCAL_AST_PASS_ONLY_STATIC_COLD_STATUS_AND_FINALIZATION_DRAFT_SUPERSEDED"
+  },
+  "current": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/clean-builder-self-rebuild-r2/ci/ci_self_rebuild_r2.py",
+    "mode": "100644",
+    "bytes": 29168,
+    "sha256": "568bcf034008b4c19d1ca99d70c7eee5af7dc1ee71e2054ae27237c01191693a",
+    "gitsha": "2cc1d9eb445d544f98433e2dd7d5bb953ee61299",
+    "classification": "LOCAL_AST_AND_EXACT_644_KIT_PREPARE_PASS_0_TARGET_CI_EXECUTION"
+  },
+  "edits": [
+    {
+      "old": "and cold['status'] == 'PASS'",
+      "new": "and cold['status'] == 'COLD_SELFHOST_REPLAY_PASS'"
+    },
+    {
+      "old": "                self.attempt(label + '/failed-process-receipt', lambda: write_json(folder / 'process.json', row))",
+      "new": "                try:\n                    write_json(folder / 'process.json', row)\n                except BaseException as exc:\n                    primary.add_note('failed-process-receipt: ' + repr(exc))"
+    },
+    {
+      "old": "        self.archive_complete = True\n        self.custody =",
+      "new": "        self.custody ="
+    },
+    {
+      "old": "        write_json(self.out / 'custody.json', self.custody)\n\n    def finish",
+      "new": "        write_json(self.out / 'custody.json', self.custody)\n        self.archive_complete = True\n\n    def finish"
+    },
+    {
+      "old": "        self.attempt('final-summary', lambda: write_json(self.out / 'summary.json', summary))\n        self.attempt('compact-final-stdout',",
+      "new": "        self.attempt('final-summary', lambda: write_json(self.out / 'summary.json', summary))\n        if self.primary is not None:\n            summary.update(status='FAIL', primary=self.primary, secondary=self.secondary)\n        self.attempt('compact-final-stdout',"
+    }
+  ],
+  "complete_reverse_equal": true,
+  "prior_local_AST_pass": true,
+  "prior_whole_CI_execution": 0,
+  "current_whole_CI_execution": 0,
+  "reason": "Original actual cold status is COLD_SELFHOST_REPLAY_PASS; preserve first subprocess exception across receipt failure; seal success only after custody; stdout must reflect final-summary I/O failure."
+}

@@ -1,0 +1,1 @@
+print('ordinary child returned')

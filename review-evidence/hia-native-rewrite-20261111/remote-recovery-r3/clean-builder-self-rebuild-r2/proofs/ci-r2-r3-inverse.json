@@ -1,0 +1,69 @@
+{
+  "schema": "hia-selfbuild-ci-r2-r3-seal-accounting-inverse-r1",
+  "old": {
+    "gitsha": "2cc1d9eb445d544f98433e2dd7d5bb953ee61299",
+    "sha256": "568bcf034008b4c19d1ca99d70c7eee5af7dc1ee71e2054ae27237c01191693a",
+    "bytes": 29168
+  },
+  "new": {
+    "gitsha": "b265b5428625ae36f4d870df043b423354dc569c",
+    "sha256": "3279379619b740cdaf3862c1916c9a8125c2608d52be053cc22659477704d7fa",
+    "bytes": 32677
+  },
+  "edits": [
+    {
+      "old": "INDEX_SHA256 = '962520b491fa41ebe2ef875eb5691b3e6fa6ea018a565455d7cd3efd17344853'",
+      "new": "INDEX_SHA256 = '2fda495e899352c5a3ee81011b4f20b7bcf5e01cf6ce3c124288f108175b2cd8'"
+    },
+    {
+      "old": "INDEX_GITSHA = '84a0710879f255192fb3ffe61178814bae4b8c10'",
+      "new": "INDEX_GITSHA = 'b9b54267541ea4a02643caafe041ddab4977b75c'"
+    },
+    {
+      "old": "        assert index['schema'] == 'hia-clean-builder-self-rebuild-ci-source-index-r1'\n        assert len(index['source_files']) == 16",
+      "new": "        assert index['schema'] == 'hia-clean-builder-self-rebuild-ci-source-index-r2'\n        assert len(index['source_files']) == 17"
+    },
+    {
+      "old": "default=Path(__file__).with_name('source-index-r1.json')",
+      "new": "default=Path(__file__).with_name('source-index-r2.json')"
+    },
+    {
+      "old": "class Qualification:\n",
+      "new": "\ndef become_subreaper():\n    libc = ctypes.CDLL(None, use_errno=True)\n    libc.prctl.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong]\n    libc.prctl.restype = ctypes.c_int\n    assert libc.prctl(36, 1, 0, 0, 0) == 0\n    actual = ctypes.c_int(0)\n    assert libc.prctl(37, ctypes.addressof(actual), 0, 0, 0) == 0 and actual.value == 1\n    assert hasattr(os, 'pidfd_open') and hasattr(signal, 'pidfd_send_signal')\n    return {'PR_SET_CHILD_SUBREAPER': 36, 'PR_GET_CHILD_SUBREAPER': 37, 'observed': actual.value}\n\n\nclass Qualification:\n"
+    },
+    {
+      "old": "    def run(self, label, script, args=(), *, cpu=90, wall=150):\n",
+      "new": "    def reap_residual(self, pgid):\n        \"\"\"Always retire the stage group and every actual adopted child.\"\"\"\n        rows = []\n        requested = set()\n        if pgid is not None:\n            try:\n                os.killpg(pgid, signal.SIGKILL)\n            except ProcessLookupError:\n                pass\n        deadline = time.monotonic_ns() + 3000000000\n        children_path = Path('/proc/self/task') / str(os.getpid()) / 'children'\n        while True:\n            while True:\n                try:\n                    pid, status, usage = os.wait4(-1, os.WNOHANG)\n                except ChildProcessError:\n                    pid = 0\n                if pid == 0:\n                    break\n                rows.append({'pid': pid, 'wait4_status': status, 'returncode': os.waitstatus_to_exitcode(status),\n                             'cpu_seconds': usage.ru_utime + usage.ru_stime,\n                             'user_seconds': usage.ru_utime, 'system_seconds': usage.ru_stime,\n                             'maxrss_kib': usage.ru_maxrss, 'pidfd_kill_requested': pid in requested})\n            children = [int(x) for x in children_path.read_text().split()]\n            if not children:\n                break\n            for pid in children:\n                try:\n                    fd = os.pidfd_open(pid, 0)\n                except ProcessLookupError:\n                    continue\n                try:\n                    try:\n                        text = Path('/proc', str(pid), 'stat').read_text()\n                    except FileNotFoundError:\n                        continue\n                    fields = text[text.rfind(')') + 2:].split()\n                    # The pidfd pins this exact process.  Only our actual child\n                    # may be signalled, including adopted native descendants.\n                    assert int(fields[1]) == os.getpid(), (pid, fields[1])\n                    try:\n                        signal.pidfd_send_signal(fd, signal.SIGKILL, None, 0)\n                        requested.add(pid)\n                    except ProcessLookupError:\n                        pass\n                finally:\n                    os.close(fd)\n            assert time.monotonic_ns() < deadline, ('unreaped-owned-children', children)\n            time.sleep(0.01)\n        return rows\n\n    def run(self, label, script, args=(), *, cpu=90, wall=150):\n"
+    },
+    {
+      "old": "            for name in ('stdout', 'stderr'):\n",
+      "new": "            try:\n                row['residual_descendants'] = self.reap_residual(proc.pid if proc is not None else None)\n                assert not row['residual_descendants'], row['residual_descendants']\n            except BaseException as exc:\n                if primary is None:\n                    primary = exc\n                else:\n                    primary.add_note('all-terminal process-tree cleanup: ' + repr(exc))\n            for name in ('stdout', 'stderr'):\n"
+    },
+    {
+      "old": "            row['parent_observation_cpu_seconds'] = self_cpu() - parent0\n",
+      "new": "            row['adopted_cpu_seconds'] = sum(x['cpu_seconds'] for x in row.get('residual_descendants', []))\n            row['child_cpu_seconds'] = row.get('child_cpu_seconds', 0) + row['adopted_cpu_seconds']\n            row['parent_observation_cpu_seconds'] = self_cpu() - parent0\n"
+    },
+    {
+      "old": "    def seal(self):\n        reserved = {'evidence.tar.xz', 'evidence-members.json', 'custody.json', 'summary.json'}\n        rows = []\n        for path in sorted(self.out.rglob('*'), key=lambda p: p.relative_to(self.out).as_posix()):\n            name = path.relative_to(self.out).as_posix()\n            if name in reserved:\n                continue\n            st = path.lstat()\n            if stat.S_ISDIR(st.st_mode):\n                rows.append({'path': name, 'kind': 'directory', 'mode': stat.S_IMODE(st.st_mode), 'bytes': 0})\n            else:\n                assert stat.S_ISREG(st.st_mode), str(path)\n                rows.append({'path': name, 'kind': 'file', **record(path)})\n        write_json(self.out / 'evidence-members.json', rows)\n        target = self.out / 'evidence.tar.xz'\n        with lzma.open(target, 'wb', filters=[{'id': lzma.FILTER_LZMA2, 'dict_size': 1 << 26,\n                                            'mode': lzma.MODE_FAST, 'nice_len': 32, 'mf': lzma.MF_HC4}]) as compressed:\n            with tarfile.open(fileobj=compressed, mode='w|', format=tarfile.PAX_FORMAT) as archive:\n                for row in rows:\n                    item = tarfile.TarInfo(row['path'])\n                    item.mode, item.mtime = row['mode'], 0\n                    if row['kind'] == 'directory':\n                        item.type = tarfile.DIRTYPE\n                        archive.addfile(item)\n                    else:\n                        raw = (self.out / row['path']).read_bytes()\n                        assert len(raw) == row['bytes'] and sha(raw) == row['sha256']\n                        item.size = len(raw)\n                        archive.addfile(item, io.BytesIO(raw))\n        expected, seen = {x['path']: x for x in rows}, set()\n        assert len(expected) == len(rows)\n        with tarfile.open(target, 'r|xz') as archive:\n            for item in archive:\n                assert item.name in expected and item.name not in seen\n                seen.add(item.name)\n                row = expected[item.name]\n                assert item.mode == row['mode'] and item.size == row['bytes']\n                if row['kind'] == 'directory':\n                    assert item.isdir()\n                else:\n                    assert item.isfile() and not item.issparse()\n                    raw = archive.extractfile(item).read()\n                    assert len(raw) == row['bytes'] and sha(raw) == row['sha256']\n                    require(record(self.out / row['path']), row)\n        assert seen == set(expected)\n        self.custody = {'schema': 'hia-self-rebuild-fresh-ci-original-custody-r1',\n                        'archive': record(target), 'members': len(rows),\n                        'files': sum(x['kind'] == 'file' for x in rows),\n                        'raw_file_bytes': sum(x['bytes'] for x in rows),\n                        'member_index': record(self.out / 'evidence-members.json'),\n                        'complete_member_bytes_sha_mode_and_after_checked': True}\n        write_json(self.out / 'custody.json', self.custody)\n        self.archive_complete = True\n\n",
+      "new": "    def seal(self):\n        self.run('full-original-seal', self.project / 'ci_self_rebuild_seal_r1.py',\n                 ['--root', self.out], cpu=90, wall=180)\n        custody = json.loads((self.out / 'custody.json').read_bytes())\n        assert custody['status'] == 'PASS' and custody['primary'] is None and custody['secondary'] == []\n        assert custody['complete_member_bytes_sha_mode_and_after_checked'] is True\n        require(record(self.out / 'evidence.tar.xz'), custody['archive'])\n        require(record(self.out / 'evidence-members.json'), custody['member_index'])\n        post = json.loads((self.out / 'seal-post-output-budget.json').read_bytes())\n        assert post['status'] == 'PASS'\n        assert 0 <= post['usage']['aggregate_cpu_seconds'] < 90\n        assert 0 <= post['usage']['elapsed_ns'] < 180000000000\n        self.custody = custody\n        self.archive_complete = True\n\n"
+    },
+    {
+      "old": "        self.after()\n        self.result.update(primary=self.primary",
+      "new": "        final_residual = self.attempt('final-owned-child-reap', lambda: self.reap_residual(None))\n        if final_residual:\n            self.failed('unreaped-descendants-at-finalization', RuntimeError(repr(final_residual)))\n        self.after()\n        self.result.update(primary=self.primary"
+    },
+    {
+      "old": "        self.result['fresh_external_B3_calls'] = 14\n        self.result['fresh_external_HIA_packer_calls'] = 2\n",
+      "new": "        receipt_rows = []\n        roots = [('words', 'self-rebuild-word-pairs-r1'), ('builder', 'build-self-rebuild-r2'),\n                 ('mutation', 'self-rebuild-mutation-r2')]\n        counts = {name: 0 for name, _ in roots}\n        packers = []\n        compiler_sha = self.index['cold_compiler']['sha256']\n        for label, directory in roots:\n            for path in sorted((self.project / 'development' / directory).glob('*.receipt.json')):\n                value = json.loads(path.read_bytes())\n                if value.get('artifact_sha256') == compiler_sha:\n                    assert value['status'] == 'returned' and value['abi_status'] == 0\n                    assert value['source_unchanged'] is True and value['forbidden_compiler_modules_loaded'] == []\n                    assert value['limits']['cpu_seconds'] == 10 and value['limits']['address_bytes'] == 268435456\n                    assert value['wall_elapsed_ns'] < 20000000000\n                    assert value['produced_bytes'] > 0\n                    counts[label] += 1\n                    receipt_rows.append({'group': label, 'receipt_path': str(path), **record(path)})\n                elif label != 'words' and value.get('artifact_sha256') == '87bb61f172a6197cbf6abdeba397178cc6a426069accde1d39479a29c0bc229a':\n                    assert value['status'] == 'returned' and value['abi_status'] == 0\n                    assert value['limits']['cpu_seconds'] == 10 and value['limits']['address_bytes'] == 268435456\n                    assert value['wall_elapsed_ns'] < 20000000000\n                    packers.append({'group': label, 'receipt_path': str(path), **record(path)})\n        assert counts == {'words': 10, 'builder': 3, 'mutation': 1}, counts\n        assert len(packers) == 2\n        write_json(self.out / 'actual-external-compile-receipts.json', {'compilers': receipt_rows, 'packers': packers, 'counts': counts})\n        self.result['fresh_external_B3_calls'] = sum(counts.values())\n        self.result['fresh_external_HIA_packer_calls'] = len(packers)\n"
+    },
+    {
+      "old": "        state.materialize()\n",
+      "new": "        state.result['process_tree_owner'] = become_subreaper()\n        state.materialize()\n"
+    }
+  ],
+  "forward_exact": true,
+  "inverse_exact": true,
+  "target_HIA_changed": false,
+  "target_tests_or_budgets_changed": false,
+  "scope": "CI_ONLY_INDEPENDENT_SEAL_PROCESS_TREE_OWNERSHIP_AND_ACTUAL_EXTERNAL_RECEIPT_COUNTS",
+  "execution": "R3_FIRST_MECHANICAL_CONTROL_FAILED_AND_RETAINED; R4_REPLACES_ONLY_CLEANUP"
+}

@@ -1,0 +1,231 @@
+{
+  "B3_calls": 0,
+  "all_owned_children_reaped": true,
+  "cases": [
+    {
+      "all_children_reaped": true,
+      "expected_rejection": false,
+      "label": "normal",
+      "observed": null,
+      "process": {
+        "address_bytes": 1073741824,
+        "adopted_cpu_seconds": 0,
+        "aggregate_cpu_seconds": 0.01312700000000001,
+        "child_cpu_seconds": 0.011061999999999999,
+        "child_maxrss_kib": 10540,
+        "child_system_seconds": 0.0036869999999999997,
+        "child_user_seconds": 0.007375,
+        "cpu_seconds_strict": 2,
+        "elapsed_ns": 12895384,
+        "label": "normal",
+        "parent_observation_cpu_seconds": 0.0020650000000000113,
+        "residual_descendants": [],
+        "returncode": 0,
+        "status": "PASS",
+        "stderr": {
+          "bytes": 0,
+          "gitsha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "mode": 420,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 24,
+          "gitsha": "b422cd5c87e8ef83af906331965259af46320515",
+          "mode": 420,
+          "sha256": "6c63c6432f1302dde7c67488783253054de03a5b6a9d3260cb12dddd4f410f98"
+        },
+        "wait4_status": 0,
+        "wall_seconds_strict": 3
+      }
+    },
+    {
+      "all_children_reaped": true,
+      "expected_rejection": true,
+      "label": "orphan-same-group",
+      "observed": {
+        "class": "AssertionError",
+        "message": "[{'pid': 6, 'wait4_status': 9, 'returncode': -9, 'cpu_seconds': 0.000327, 'user_seconds': 0.000327, 'system_seconds': 0.0, 'maxrss_kib': 3172, 'pidfd_kill_requested': True}]",
+        "notes": []
+      },
+      "process": {
+        "address_bytes": 1073741824,
+        "adopted_cpu_seconds": 0.000327,
+        "aggregate_cpu_seconds": 0.013842000000000002,
+        "child_cpu_seconds": 0.011909999999999999,
+        "child_maxrss_kib": 10548,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.011583,
+        "cpu_seconds_strict": 2,
+        "elapsed_ns": 33005760,
+        "label": "orphan-same-group",
+        "parent_observation_cpu_seconds": 0.0019320000000000032,
+        "primary": {
+          "class": "AssertionError",
+          "message": "[{'pid': 6, 'wait4_status': 9, 'returncode': -9, 'cpu_seconds': 0.000327, 'user_seconds': 0.000327, 'system_seconds': 0.0, 'maxrss_kib': 3172, 'pidfd_kill_requested': True}]"
+        },
+        "residual_descendants": [
+          {
+            "cpu_seconds": 0.000327,
+            "maxrss_kib": 3172,
+            "pid": 6,
+            "pidfd_kill_requested": true,
+            "returncode": -9,
+            "system_seconds": 0.0,
+            "user_seconds": 0.000327,
+            "wait4_status": 9
+          }
+        ],
+        "returncode": 0,
+        "status": "FAIL",
+        "stderr": {
+          "bytes": 0,
+          "gitsha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "mode": 420,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 0,
+          "gitsha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "mode": 420,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "wait4_status": 0,
+        "wall_seconds_strict": 3
+      }
+    },
+    {
+      "all_children_reaped": true,
+      "expected_rejection": true,
+      "label": "orphan-detached",
+      "observed": {
+        "class": "AssertionError",
+        "message": "[{'pid': 8, 'wait4_status': 9, 'returncode': -9, 'cpu_seconds': 0.000739, 'user_seconds': 0.00037999999999999997, 'system_seconds': 0.000359, 'maxrss_kib': 3204, 'pidfd_kill_requested': True}]",
+        "notes": []
+      },
+      "process": {
+        "address_bytes": 1073741824,
+        "adopted_cpu_seconds": 0.000739,
+        "aggregate_cpu_seconds": 0.01297799999999999,
+        "child_cpu_seconds": 0.010532,
+        "child_maxrss_kib": 10588,
+        "child_system_seconds": 0.003241,
+        "child_user_seconds": 0.006552,
+        "cpu_seconds_strict": 2,
+        "elapsed_ns": 23545588,
+        "label": "orphan-detached",
+        "parent_observation_cpu_seconds": 0.00244599999999999,
+        "primary": {
+          "class": "AssertionError",
+          "message": "[{'pid': 8, 'wait4_status': 9, 'returncode': -9, 'cpu_seconds': 0.000739, 'user_seconds': 0.00037999999999999997, 'system_seconds': 0.000359, 'maxrss_kib': 3204, 'pidfd_kill_requested': True}]"
+        },
+        "residual_descendants": [
+          {
+            "cpu_seconds": 0.000739,
+            "maxrss_kib": 3204,
+            "pid": 8,
+            "pidfd_kill_requested": true,
+            "returncode": -9,
+            "system_seconds": 0.000359,
+            "user_seconds": 0.00037999999999999997,
+            "wait4_status": 9
+          }
+        ],
+        "returncode": 0,
+        "status": "FAIL",
+        "stderr": {
+          "bytes": 0,
+          "gitsha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "mode": 420,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 0,
+          "gitsha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "mode": 420,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "wait4_status": 0,
+        "wall_seconds_strict": 3
+      }
+    },
+    {
+      "all_children_reaped": true,
+      "expected_rejection": true,
+      "label": "timeout-detached",
+      "observed": {
+        "class": "TimeoutError",
+        "message": "unchanged full stage wall limit: timeout-detached",
+        "notes": [
+          "all-terminal process-tree cleanup: AssertionError([{'pid': 10, 'wait4_status': 9, 'returncode': -9, 'cpu_seconds': 0.000567, 'user_seconds': 0.000567, 'system_seconds': 0.0, 'maxrss_kib': 3204, 'pidfd_kill_requested': True}])",
+          "stage final budget: AssertionError({'label': 'timeout-detached', 'status': 'FAIL', 'cpu_seconds_strict': 2, 'wall_seconds_strict': 1, 'address_bytes': 1073741824, 'error_class': 'TimeoutError', 'error': 'unchanged full stage wall limit: timeout-detached', 'termination_returncode': -9, 'residual_descendants': [{'pid': 10, 'wait4_status': 9, 'returncode': -9, 'cpu_seconds': 0.000567, 'user_seconds': 0.000567, 'system_seconds': 0.0, 'maxrss_kib': 3204, 'pidfd_kill_requested': True}], 'stdout': {'bytes': 0, 'sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'gitsha': 'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391', 'mode': 420}, 'stderr': {'bytes': 0, 'sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'gitsha': 'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391', 'mode': 420}, 'child_cpu_seconds': 0.011753999999999999, 'child_user_seconds': 0.00364, 'child_system_seconds': 0.007547, 'child_maxrss_kib': 10616, 'adopted_cpu_seconds': 0.000567, 'parent_observation_cpu_seconds': 0.03365900000000001, 'aggregate_cpu_seconds': 0.04541300000000001, 'elapsed_ns': 1029095733})",
+          "process receipt: AssertionError()"
+        ]
+      },
+      "process": {
+        "address_bytes": 1073741824,
+        "adopted_cpu_seconds": 0.000567,
+        "aggregate_cpu_seconds": 0.04541300000000001,
+        "child_cpu_seconds": 0.011753999999999999,
+        "child_maxrss_kib": 10616,
+        "child_system_seconds": 0.007547,
+        "child_user_seconds": 0.00364,
+        "cpu_seconds_strict": 2,
+        "elapsed_ns": 1029095733,
+        "error": "unchanged full stage wall limit: timeout-detached",
+        "error_class": "TimeoutError",
+        "label": "timeout-detached",
+        "parent_observation_cpu_seconds": 0.03365900000000001,
+        "primary": {
+          "class": "TimeoutError",
+          "message": "unchanged full stage wall limit: timeout-detached"
+        },
+        "residual_descendants": [
+          {
+            "cpu_seconds": 0.000567,
+            "maxrss_kib": 3204,
+            "pid": 10,
+            "pidfd_kill_requested": true,
+            "returncode": -9,
+            "system_seconds": 0.0,
+            "user_seconds": 0.000567,
+            "wait4_status": 9
+          }
+        ],
+        "status": "FAIL",
+        "stderr": {
+          "bytes": 0,
+          "gitsha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "mode": 420,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 0,
+          "gitsha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "mode": 420,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "termination_returncode": -9,
+        "wall_seconds_strict": 1
+      }
+    },
+    {
+      "all_children_reaped": true,
+      "label": "primary-before-receipt",
+      "primary_class": "AssertionError",
+      "primary_message": "('primary-before-receipt', 7)",
+      "secondary_notes": [
+        "process receipt: OSError('controlled receipt failure')",
+        "failed-process-receipt: OSError('controlled receipt failure')"
+      ]
+    }
+  ],
+  "native_HIA_entries": 0,
+  "schema": "hia-selfbuild-ci-process-local-precheck-r2",
+  "scope": "ONLY_MECHANICAL_TOY_PROCESS_CONTROLS_NOT_HIA_QUALIFICATION",
+  "status": "PASS",
+  "subreaper": {
+    "PR_GET_CHILD_SUBREAPER": 37,
+    "PR_SET_CHILD_SUBREAPER": 36,
+    "observed": 1
+  }
+}

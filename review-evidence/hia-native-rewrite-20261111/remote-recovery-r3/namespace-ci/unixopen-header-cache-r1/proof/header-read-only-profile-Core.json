@@ -1,0 +1,740 @@
+{
+  "B3": 0,
+  "VM": 0,
+  "actual_CI_or_qualification": false,
+  "after_errors": [],
+  "all_other_functions_exact": true,
+  "call_edges": {
+    "get": [
+      "byte"
+    ],
+    "read64": [
+      "byte"
+    ],
+    "ui_capsule": [
+      "choose",
+      "length",
+      "read64",
+      "ui_span"
+    ],
+    "ui_child_shape": [
+      "byte",
+      "get",
+      "length",
+      "read64",
+      "ui_capsule"
+    ],
+    "ui_span": [
+      "choose"
+    ]
+  },
+  "changed_DSL_function": [
+    "ui_child_shape"
+  ],
+  "changed_generated_function_ids": [
+    "f13"
+  ],
+  "exact_two_source_edits": [
+    {
+      "after": "    at = 0\n    if length(w) >= 256:\n        first_size = get(w, 232)\n        first_base = get(w, 224)\n        while at < first_size:\n            if byte(s, 384 + at) != byte(w, first_base + at):\n                return 0\n            at = at + 1\n    else:\n        while at < get(w, 232):\n            if byte(s, 384 + at) != byte(w, get(w, 224) + at):\n                return 0\n            at = at + 1\n",
+      "before": "    at = 0\n    while at < get(w, 232):\n        if byte(s, 384 + at) != byte(w, get(w, 224) + at):\n            return 0\n        at = at + 1\n"
+    },
+    {
+      "after": "        at = 0\n        if length(w) >= 256:\n            second_size = get(w, 248)\n            second_base = get(w, 240)\n            while at < second_size:\n                if byte(s, start + at) != byte(w, second_base + at):\n                    return 0\n                at = at + 1\n        else:\n            while at < get(w, 248):\n                if byte(s, start + at) != byte(w, get(w, 240) + at):\n                    return 0\n                at = at + 1\n",
+      "before": "        at = 0\n        while at < get(w, 248):\n            if byte(s, start + at) != byte(w, get(w, 240) + at):\n                return 0\n            at = at + 1\n"
+    }
+  ],
+  "explicit_nonclaims": [
+    "No arbitrary concurrently rewritten workspace equivalence.",
+    "No arbitrary fuel-by-fuel or exact step-count equivalence.",
+    "No native success, full28 case qualification or budget relaxation."
+  ],
+  "fixed_executor_pin": {
+    "bytes": 95632,
+    "gitsha": "af439d426a8acb1a2bc114077185fc24ca42cc8a",
+    "mode": 420,
+    "path": "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/inputs/native_unixopen_issued_executor.S",
+    "sha256": "b7dfd47c4887ecb4ba423b75b1d1432f0a28f293cb0ed925aae729f1c54e5ef2"
+  },
+  "full_author_forward_inverse": true,
+  "generated_read_only_proof": [
+    {
+      "exact_ops": [
+        "bit.or",
+        "bool.and",
+        "bool.or",
+        "buffer.len",
+        "buffer.load",
+        "call",
+        "compare.eq",
+        "compare.gt",
+        "compare.le",
+        "compare.lt",
+        "compare.ne",
+        "const",
+        "int.add.wrap",
+        "int.cast",
+        "int.mul.wrap",
+        "int.shl.checked",
+        "int.sub.wrap",
+        "select"
+      ],
+      "label": "old",
+      "no_buffer_write_or_allocation_or_drop_or_syscall": true,
+      "read_only_function_ids": [
+        "f13",
+        "f23",
+        "f24",
+        "f3",
+        "f4"
+      ]
+    },
+    {
+      "exact_ops": [
+        "bit.or",
+        "bool.and",
+        "bool.or",
+        "buffer.len",
+        "buffer.load",
+        "call",
+        "compare.eq",
+        "compare.ge",
+        "compare.gt",
+        "compare.le",
+        "compare.lt",
+        "compare.ne",
+        "const",
+        "int.add.wrap",
+        "int.cast",
+        "int.mul.wrap",
+        "int.shl.checked",
+        "int.sub.wrap",
+        "select"
+      ],
+      "label": "new",
+      "no_buffer_write_or_allocation_or_drop_or_syscall": true,
+      "read_only_function_ids": [
+        "f13",
+        "f23",
+        "f24",
+        "f3",
+        "f4"
+      ]
+    }
+  ],
+  "guard_workspace_bytes": 256,
+  "header_offsets": [
+    224,
+    232,
+    240,
+    248
+  ],
+  "header_read_bytes": 8,
+  "native": 0,
+  "planned_tests": [
+    "old/new/direct VM on empty/first inequality/all mismatch offsets/bad spans/u64wrap/short W",
+    "old/new actual native full buffers and traps under original profiles",
+    "original12+8+8 complete fresh gate without split or inherited cases"
+  ],
+  "profiles": {
+    "new": {
+      "blocks": 602,
+      "functions": 26,
+      "max_block_params": 11,
+      "max_blocks": 95,
+      "max_ssa_numeric_suffix": 705,
+      "ops": 2248,
+      "source_bytes": 138957
+    },
+    "old": {
+      "blocks": 592,
+      "functions": 26,
+      "max_block_params": 11,
+      "max_blocks": 95,
+      "max_ssa_numeric_suffix": 705,
+      "ops": 2205,
+      "source_bytes": 136235
+    }
+  },
+  "proof": [
+    "All hoisted fixed index+i accesses have 0<=index+i<=255 for i0..7; no u64 addition overflow and no bounds trap under W length>=256.",
+    "ui_child_shape and the complete transitive five-function closure contain only scalar control, buffer.len/load and their read-only calls; no write to W or S occurs during either loop.",
+    "In this fixed single-thread carrier each role9 workspace is a private anonymous mmap descriptor (flags0x22,fd-1). The image executes synchronously between before/after records; input/capsule records are copied bytes and no callback/syscall is invoked inside this read-only closure.",
+    "For the fixed invocation, these four words remain constant. Cached unsigned values therefore equal every original repeated get. Original byte(s) then byte(w), addition expressions, loop increment and first mismatch return remain in order.",
+    "The W length<256 branch is the exact original loop, including short-W traps. For W>=256 extra empty-loop reads are total, read-only and unobservable except costs.",
+    "Same u64 arithmetic/wrap and first load/trap ordering are preserved in the byte comparisons; no full-span shortcut or wide load is introduced."
+  ],
+  "scope": "NEW_ISSUER_HEADER_READ_HOIST_SOURCE_PROOF_ONLY",
+  "source_after": {
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/__init__.py": {
+      "bytes": 93,
+      "gitsha": "e6552fb9c70e53bf50f4887bfc1cbaa1ee0c7d5e",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/__init__.py",
+      "sha256": "43cd8172431b605cf0dde08fded7f88fce808aab7018b2b0158334c114ff7fec"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/artifact_publication.py": {
+      "bytes": 6374,
+      "gitsha": "67b4a06babb2098f71f130a72aff362790117a78",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/artifact_publication.py",
+      "sha256": "09e17b2982a990706e8ee2ee23d3c009b1d2753261c5da2cf76927529122360d"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_agent_assembly.py": {
+      "bytes": 15216,
+      "gitsha": "aa4462d5ee8cd29df1a9cd9762e1edcb6dd00a3f",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_agent_assembly.py",
+      "sha256": "e37095496bf159ad573a31214d4d73e916648b4f0664edb541014f54681fbc03"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_capability_flow.py": {
+      "bytes": 3064,
+      "gitsha": "145fa7b3a79531f9db65527d60677cc5831ddb25",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_capability_flow.py",
+      "sha256": "305b5f747761f72c57dd5ff726ef6ef1350242cbdd5524931b7548eb5d7a5587"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_core_admission_native.py": {
+      "bytes": 3295,
+      "gitsha": "014313c0d573321bd0b968614c2853417c4b0389",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_core_admission_native.py",
+      "sha256": "20905facd961c5e6d5d88cda368ea1fabe90ea4adb31ba197b81fdd6cfba25cd"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_function_shape_native.py": {
+      "bytes": 3975,
+      "gitsha": "43d7bd80106d7f3d62b824adf0006eaff5d6c070",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_function_shape_native.py",
+      "sha256": "fde29f99e10c25f62d742ddd7c7079e882351f5ca21ad846be9bcf22c2ec86e9"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_instruction_policy_native.py": {
+      "bytes": 3144,
+      "gitsha": "f3225cd3978f446033658566c887ae6206e0a052",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_instruction_policy_native.py",
+      "sha256": "def1fefdc407b78e98b408891e8781b5b2b33630770ba69aafccb92eff724845"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_canonical_native.py": {
+      "bytes": 3570,
+      "gitsha": "86614bc7947291cc08157445eaf10607afbce528",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_canonical_native.py",
+      "sha256": "d83227dfa6431884656355d42d2312107e4dff2495464368a276754e3ffb2c0b"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_decode.py": {
+      "bytes": 2342,
+      "gitsha": "ccbb2db08fed3088fb4dc8c79ed5b44c2bdd6500",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_decode.py",
+      "sha256": "7abc295b7a64502f71e410dce8903a917d431527b3fb627958cd08e3b23f43d4"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_decode_native.py": {
+      "bytes": 6765,
+      "gitsha": "e1c1fccc902e58fede9d05e929d14d30f3b6755f",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_decode_native.py",
+      "sha256": "92bb24aa401f10341a39a2ba4b3c2550fbeecd4d73546e87558cac958bbc9d9e"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_preflight.py": {
+      "bytes": 9696,
+      "gitsha": "53da30b76d3fd5c07dd7aece3363994ee4ae41a7",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_preflight.py",
+      "sha256": "a416fd10b755bbc0ae106e57076a940ee9c4732bd6a156ccf6bd50872d7b6f30"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_preflight_native.py": {
+      "bytes": 8267,
+      "gitsha": "b661ae0b42b1ba83b89c123309f216d18ba6a36d",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_preflight_native.py",
+      "sha256": "94d50a4ba1dcaa5c64e39554c52a28cf22105726b9234a83c6ad62308a31e5b5"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_machine_x64.py": {
+      "bytes": 11057,
+      "gitsha": "8e87bd317c5f61e00993bb0bf8d803c5385d6556",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_machine_x64.py",
+      "sha256": "8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_opcodes.py": {
+      "bytes": 19813,
+      "gitsha": "dafe100fdc3ffe7edf0f60b97079066ca070803b",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_opcodes.py",
+      "sha256": "7c3e1a531b790883da2f74ca0e06e37b18073a594063afb9aeb07be9bd34fd65"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_program.py": {
+      "bytes": 45247,
+      "gitsha": "5d0027f4453759e4156a3496e64215c441a727e4",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_program.py",
+      "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_program_shape_native.py": {
+      "bytes": 2705,
+      "gitsha": "eff8803491ebdd8684ccd2ebdb8f506a83c2e05a",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_program_shape_native.py",
+      "sha256": "0bd9dbf935c992b18a26990a58b0b8d2fa2bc8230a32cbc7c40727c2b5905054"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_program_tools.py": {
+      "bytes": 22198,
+      "gitsha": "c2be38ffe2871ca199783103d4dfa9867771df10",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_program_tools.py",
+      "sha256": "a1b42262d8a00fbce9057e40dd081210ad274ecad8fc0c126ffafe8c3568436a"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_schema.py": {
+      "bytes": 5652,
+      "gitsha": "28a7de9d1317a720f09e066427631b957bfdf16b",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_schema.py",
+      "sha256": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_sha256_native.py": {
+      "bytes": 2313,
+      "gitsha": "ec81ed4f41cb900b9868dae7caf92dbeb42134f4",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_sha256_native.py",
+      "sha256": "0dfa57492162f8009d2a25c4933a948e02e695a77c443c745633312d1fd16cd1"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/generate_hia_selfhost.py": {
+      "bytes": 81729,
+      "gitsha": "540de9366827900d0b82b4893922ffd383c44fef",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/generate_hia_selfhost.py",
+      "sha256": "e4cff0c45d9138ff50b32ef2f6c0c768583ac88b634f2b932411e4ecb2b50ed0"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_chain_elf.py": {
+      "bytes": 6721,
+      "gitsha": "227764f9febde969b2e1fda68932924926252667",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_chain_elf.py",
+      "sha256": "b928ce29d26ecf24c390b70c924ee57957550f20696e1537657364a084421f00"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_cli.py": {
+      "bytes": 4124,
+      "gitsha": "3c395f9a44754c4bf4709e91e9efabb3c0fb082c",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_cli.py",
+      "sha256": "bad278f878746841f284a290bcaef473b309b4eb13ef126f81e7de0c88c6d02f"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_effects.py": {
+      "bytes": 13948,
+      "gitsha": "63016aaf9a70f6c97c2fa4ada89c06da3a2e0f05",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_effects.py",
+      "sha256": "7e4297659c6108767e593e43c36f247fb8dfd1b192b95e80ccea72ca0b9709cf"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_exports.py": {
+      "bytes": 6932,
+      "gitsha": "59d0e454e7c562d962b821b5417b03de64dfaa0b",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_exports.py",
+      "sha256": "d429d405c30cdfda9c9ed8141591c9803cf2a5670459d7eecf34e85230537382"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_keywords.py": {
+      "bytes": 14062,
+      "gitsha": "4387f62dfba97afdab0405f4e19d7ff8d98fac40",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_keywords.py",
+      "sha256": "bdf6d9f8747ff0ae037e6b28b59dee38dbab91fedf30c443e2d09ea88f468bd7"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_limits.py": {
+      "bytes": 1853,
+      "gitsha": "5705a617e63d0e5f65766ab85b7588f7b9b73d66",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_limits.py",
+      "sha256": "e232997b64253b8f8150785b8947f78d91dfe93a0b41537edc54eaeede52a055"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_multi_results.py": {
+      "bytes": 21747,
+      "gitsha": "1dac7fb2fb0985076288e9ca6a8fd62a8bc081dc",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_multi_results.py",
+      "sha256": "59163d4a11bc7fdf21ce4cee3bda75ffce5c0de371ac58d1e65fa7f87673274f"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_names.py": {
+      "bytes": 40371,
+      "gitsha": "b82499ee0982a110df58560999b69cb4ceea9c64",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_names.py",
+      "sha256": "4a249ef86348109b774eb7618f2971303a13b491cbf8d0e126be132faa83297a"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_owned_elf.py": {
+      "bytes": 7494,
+      "gitsha": "01e8d83ecb086f7ab6ea1dc6949711aa645eca3d",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_owned_elf.py",
+      "sha256": "7faa48f93664b3804d250d29dd6bd7a7c0b58b13e6c9849445b3ab19ac09f0ff"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_returned_loans.py": {
+      "bytes": 11401,
+      "gitsha": "5d72d7c407d4aeb59947fb2ee68b4e42b3514dcb",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_returned_loans.py",
+      "sha256": "2c71acbaf736dc5a01d9fc7c12cab40c451bc1f5ae686c2def30521ac0136ddb"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_signed.py": {
+      "bytes": 3642,
+      "gitsha": "d831a704c6e21eb9d2bcf145d18a229c53916b5d",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_signed.py",
+      "sha256": "eb3140aed200e975f613b68b9e4d386dd3a8343596439dfa747646e93c40b555"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_traps.py": {
+      "bytes": 10231,
+      "gitsha": "a81df7502219caa20923b8a04cf304f4add479a9",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_traps.py",
+      "sha256": "9f13ce716c8a7018f53e0586a568b322384be83c8199175af597692723ee67c0"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/evidence/actual-unixopen-build-r1/generation-frontier/role-9.document.json": {
+      "bytes": 343340,
+      "gitsha": "c1e4ef47ef9d4ecc8d3049f4e063336ee97cd676",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/evidence/actual-unixopen-build-r1/generation-frontier/role-9.document.json",
+      "sha256": "ef9c024f75a98155a49b4fcda9e4ef60e052a5e31ec3be9b0e995802c1344caa"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/inputs/native_unixopen_issued_executor.S": {
+      "bytes": 95632,
+      "gitsha": "af439d426a8acb1a2bc114077185fc24ca42cc8a",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/inputs/native_unixopen_issued_executor.S",
+      "sha256": "b7dfd47c4887ecb4ba423b75b1d1432f0a28f293cb0ed925aae729f1c54e5ef2"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/tools/generate_hia_agent_namespace_objects.py": {
+      "bytes": 27802,
+      "gitsha": "a188e9553b61ffc4293950908a71a93a3a9a27bb",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/tools/generate_hia_agent_namespace_objects.py",
+      "sha256": "2320a0363d312f1f07b48cc370f06ac7dbaedefa28437c28230fff6fba4dc3de"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/tools/generate_hia_agent_namespace_store.py": {
+      "bytes": 11623,
+      "gitsha": "3d45466a68eca7a88d2352879ea1979848318f63",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/tools/generate_hia_agent_namespace_store.py",
+      "sha256": "7c3f0299291cf4b99d5c2296351dcfd5e471507d4903ab9da171420c126c5c50"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/exact-edits.json": {
+      "bytes": 1281,
+      "gitsha": "9b52882cf509aa09ab6bd1a03c5b48bbd799058c",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/exact-edits.json",
+      "sha256": "068ff35b5713ae17674002ecbcbe913f98fa438e3d55eefed60f2fe811d76bf8"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/new.py": {
+      "bytes": 23934,
+      "gitsha": "dc45ba1fc5910be5d591b7433ce79cb814229e40",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/new.py",
+      "sha256": "3155f5374169f03fa1ff5c7a846a6e5daa79228f712bb57bc358e6e786ab25fa"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/old.py": {
+      "bytes": 23378,
+      "gitsha": "33c3bde4fdae6781ae33a20be776a22ea29222f8",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/old.py",
+      "sha256": "2e50a50bc205d208adc79a62f68e3270d26ea54c874d2380bba6f1cfb6393e12"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/prove.py": {
+      "bytes": 10191,
+      "gitsha": "ed01328e2920b8e9267481520c6469eeb2e15a47",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/prove.py",
+      "sha256": "03e6278b0e5e83b5a6ceed5edd0275ec19bea054a2d7d826ccfe6b7d5f6e697d"
+    }
+  },
+  "source_before": {
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/__init__.py": {
+      "bytes": 93,
+      "gitsha": "e6552fb9c70e53bf50f4887bfc1cbaa1ee0c7d5e",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/__init__.py",
+      "sha256": "43cd8172431b605cf0dde08fded7f88fce808aab7018b2b0158334c114ff7fec"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/artifact_publication.py": {
+      "bytes": 6374,
+      "gitsha": "67b4a06babb2098f71f130a72aff362790117a78",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/artifact_publication.py",
+      "sha256": "09e17b2982a990706e8ee2ee23d3c009b1d2753261c5da2cf76927529122360d"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_agent_assembly.py": {
+      "bytes": 15216,
+      "gitsha": "aa4462d5ee8cd29df1a9cd9762e1edcb6dd00a3f",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_agent_assembly.py",
+      "sha256": "e37095496bf159ad573a31214d4d73e916648b4f0664edb541014f54681fbc03"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_capability_flow.py": {
+      "bytes": 3064,
+      "gitsha": "145fa7b3a79531f9db65527d60677cc5831ddb25",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_capability_flow.py",
+      "sha256": "305b5f747761f72c57dd5ff726ef6ef1350242cbdd5524931b7548eb5d7a5587"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_core_admission_native.py": {
+      "bytes": 3295,
+      "gitsha": "014313c0d573321bd0b968614c2853417c4b0389",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_core_admission_native.py",
+      "sha256": "20905facd961c5e6d5d88cda368ea1fabe90ea4adb31ba197b81fdd6cfba25cd"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_function_shape_native.py": {
+      "bytes": 3975,
+      "gitsha": "43d7bd80106d7f3d62b824adf0006eaff5d6c070",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_function_shape_native.py",
+      "sha256": "fde29f99e10c25f62d742ddd7c7079e882351f5ca21ad846be9bcf22c2ec86e9"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_instruction_policy_native.py": {
+      "bytes": 3144,
+      "gitsha": "f3225cd3978f446033658566c887ae6206e0a052",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_instruction_policy_native.py",
+      "sha256": "def1fefdc407b78e98b408891e8781b5b2b33630770ba69aafccb92eff724845"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_canonical_native.py": {
+      "bytes": 3570,
+      "gitsha": "86614bc7947291cc08157445eaf10607afbce528",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_canonical_native.py",
+      "sha256": "d83227dfa6431884656355d42d2312107e4dff2495464368a276754e3ffb2c0b"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_decode.py": {
+      "bytes": 2342,
+      "gitsha": "ccbb2db08fed3088fb4dc8c79ed5b44c2bdd6500",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_decode.py",
+      "sha256": "7abc295b7a64502f71e410dce8903a917d431527b3fb627958cd08e3b23f43d4"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_decode_native.py": {
+      "bytes": 6765,
+      "gitsha": "e1c1fccc902e58fede9d05e929d14d30f3b6755f",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_decode_native.py",
+      "sha256": "92bb24aa401f10341a39a2ba4b3c2550fbeecd4d73546e87558cac958bbc9d9e"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_preflight.py": {
+      "bytes": 9696,
+      "gitsha": "53da30b76d3fd5c07dd7aece3363994ee4ae41a7",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_preflight.py",
+      "sha256": "a416fd10b755bbc0ae106e57076a940ee9c4732bd6a156ccf6bd50872d7b6f30"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_preflight_native.py": {
+      "bytes": 8267,
+      "gitsha": "b661ae0b42b1ba83b89c123309f216d18ba6a36d",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_json_preflight_native.py",
+      "sha256": "94d50a4ba1dcaa5c64e39554c52a28cf22105726b9234a83c6ad62308a31e5b5"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_machine_x64.py": {
+      "bytes": 11057,
+      "gitsha": "8e87bd317c5f61e00993bb0bf8d803c5385d6556",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_machine_x64.py",
+      "sha256": "8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_opcodes.py": {
+      "bytes": 19813,
+      "gitsha": "dafe100fdc3ffe7edf0f60b97079066ca070803b",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_opcodes.py",
+      "sha256": "7c3e1a531b790883da2f74ca0e06e37b18073a594063afb9aeb07be9bd34fd65"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_program.py": {
+      "bytes": 45247,
+      "gitsha": "5d0027f4453759e4156a3496e64215c441a727e4",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_program.py",
+      "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_program_shape_native.py": {
+      "bytes": 2705,
+      "gitsha": "eff8803491ebdd8684ccd2ebdb8f506a83c2e05a",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_program_shape_native.py",
+      "sha256": "0bd9dbf935c992b18a26990a58b0b8d2fa2bc8230a32cbc7c40727c2b5905054"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_program_tools.py": {
+      "bytes": 22198,
+      "gitsha": "c2be38ffe2871ca199783103d4dfa9867771df10",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_program_tools.py",
+      "sha256": "a1b42262d8a00fbce9057e40dd081210ad274ecad8fc0c126ffafe8c3568436a"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_schema.py": {
+      "bytes": 5652,
+      "gitsha": "28a7de9d1317a720f09e066427631b957bfdf16b",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_schema.py",
+      "sha256": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_sha256_native.py": {
+      "bytes": 2313,
+      "gitsha": "ec81ed4f41cb900b9868dae7caf92dbeb42134f4",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/hepta/hia_sha256_native.py",
+      "sha256": "0dfa57492162f8009d2a25c4933a948e02e695a77c443c745633312d1fd16cd1"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/generate_hia_selfhost.py": {
+      "bytes": 81729,
+      "gitsha": "540de9366827900d0b82b4893922ffd383c44fef",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/generate_hia_selfhost.py",
+      "sha256": "e4cff0c45d9138ff50b32ef2f6c0c768583ac88b634f2b932411e4ecb2b50ed0"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_chain_elf.py": {
+      "bytes": 6721,
+      "gitsha": "227764f9febde969b2e1fda68932924926252667",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_chain_elf.py",
+      "sha256": "b928ce29d26ecf24c390b70c924ee57957550f20696e1537657364a084421f00"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_cli.py": {
+      "bytes": 4124,
+      "gitsha": "3c395f9a44754c4bf4709e91e9efabb3c0fb082c",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_cli.py",
+      "sha256": "bad278f878746841f284a290bcaef473b309b4eb13ef126f81e7de0c88c6d02f"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_effects.py": {
+      "bytes": 13948,
+      "gitsha": "63016aaf9a70f6c97c2fa4ada89c06da3a2e0f05",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_effects.py",
+      "sha256": "7e4297659c6108767e593e43c36f247fb8dfd1b192b95e80ccea72ca0b9709cf"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_exports.py": {
+      "bytes": 6932,
+      "gitsha": "59d0e454e7c562d962b821b5417b03de64dfaa0b",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_exports.py",
+      "sha256": "d429d405c30cdfda9c9ed8141591c9803cf2a5670459d7eecf34e85230537382"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_keywords.py": {
+      "bytes": 14062,
+      "gitsha": "4387f62dfba97afdab0405f4e19d7ff8d98fac40",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_keywords.py",
+      "sha256": "bdf6d9f8747ff0ae037e6b28b59dee38dbab91fedf30c443e2d09ea88f468bd7"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_limits.py": {
+      "bytes": 1853,
+      "gitsha": "5705a617e63d0e5f65766ab85b7588f7b9b73d66",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_limits.py",
+      "sha256": "e232997b64253b8f8150785b8947f78d91dfe93a0b41537edc54eaeede52a055"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_multi_results.py": {
+      "bytes": 21747,
+      "gitsha": "1dac7fb2fb0985076288e9ca6a8fd62a8bc081dc",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_multi_results.py",
+      "sha256": "59163d4a11bc7fdf21ce4cee3bda75ffce5c0de371ac58d1e65fa7f87673274f"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_names.py": {
+      "bytes": 40371,
+      "gitsha": "b82499ee0982a110df58560999b69cb4ceea9c64",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_names.py",
+      "sha256": "4a249ef86348109b774eb7618f2971303a13b491cbf8d0e126be132faa83297a"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_owned_elf.py": {
+      "bytes": 7494,
+      "gitsha": "01e8d83ecb086f7ab6ea1dc6949711aa645eca3d",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_owned_elf.py",
+      "sha256": "7faa48f93664b3804d250d29dd6bd7a7c0b58b13e6c9849445b3ab19ac09f0ff"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_returned_loans.py": {
+      "bytes": 11401,
+      "gitsha": "5d72d7c407d4aeb59947fb2ee68b4e42b3514dcb",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_returned_loans.py",
+      "sha256": "2c71acbaf736dc5a01d9fc7c12cab40c451bc1f5ae686c2def30521ac0136ddb"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_signed.py": {
+      "bytes": 3642,
+      "gitsha": "d831a704c6e21eb9d2bcf145d18a229c53916b5d",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_signed.py",
+      "sha256": "eb3140aed200e975f613b68b9e4d386dd3a8343596439dfa747646e93c40b555"
+    },
+    "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_traps.py": {
+      "bytes": 10231,
+      "gitsha": "a81df7502219caa20923b8a04cf304f4add479a9",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/reference0ef/tools/hia_selfhost_traps.py",
+      "sha256": "9f13ce716c8a7018f53e0586a568b322384be83c8199175af597692723ee67c0"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/evidence/actual-unixopen-build-r1/generation-frontier/role-9.document.json": {
+      "bytes": 343340,
+      "gitsha": "c1e4ef47ef9d4ecc8d3049f4e063336ee97cd676",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/evidence/actual-unixopen-build-r1/generation-frontier/role-9.document.json",
+      "sha256": "ef9c024f75a98155a49b4fcda9e4ef60e052a5e31ec3be9b0e995802c1344caa"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/inputs/native_unixopen_issued_executor.S": {
+      "bytes": 95632,
+      "gitsha": "af439d426a8acb1a2bc114077185fc24ca42cc8a",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/inputs/native_unixopen_issued_executor.S",
+      "sha256": "b7dfd47c4887ecb4ba423b75b1d1432f0a28f293cb0ed925aae729f1c54e5ef2"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/tools/generate_hia_agent_namespace_objects.py": {
+      "bytes": 27802,
+      "gitsha": "a188e9553b61ffc4293950908a71a93a3a9a27bb",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/tools/generate_hia_agent_namespace_objects.py",
+      "sha256": "2320a0363d312f1f07b48cc370f06ac7dbaedefa28437c28230fff6fba4dc3de"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/tools/generate_hia_agent_namespace_store.py": {
+      "bytes": 11623,
+      "gitsha": "3d45466a68eca7a88d2352879ea1979848318f63",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/nine-role-local-r4/source/tools/generate_hia_agent_namespace_store.py",
+      "sha256": "7c3f0299291cf4b99d5c2296351dcfd5e471507d4903ab9da171420c126c5c50"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/exact-edits.json": {
+      "bytes": 1281,
+      "gitsha": "9b52882cf509aa09ab6bd1a03c5b48bbd799058c",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/exact-edits.json",
+      "sha256": "068ff35b5713ae17674002ecbcbe913f98fa438e3d55eefed60f2fe811d76bf8"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/new.py": {
+      "bytes": 23934,
+      "gitsha": "dc45ba1fc5910be5d591b7433ce79cb814229e40",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/new.py",
+      "sha256": "3155f5374169f03fa1ff5c7a846a6e5daa79228f712bb57bc358e6e786ab25fa"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/old.py": {
+      "bytes": 23378,
+      "gitsha": "33c3bde4fdae6781ae33a20be776a22ea29222f8",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/old.py",
+      "sha256": "2e50a50bc205d208adc79a62f68e3270d26ea54c874d2380bba6f1cfb6393e12"
+    },
+    "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/prove.py": {
+      "bytes": 10191,
+      "gitsha": "ed01328e2920b8e9267481520c6469eeb2e15a47",
+      "mode": 420,
+      "path": "/workspace/scratch/9acdfa9f5639/runtime-development/unix9-header-cache-r1/prove.py",
+      "sha256": "03e6278b0e5e83b5a6ceed5edd0275ec19bea054a2d7d826ccfe6b7d5f6e697d"
+    }
+  },
+  "status": "PASS_SOURCE_PROFILE_CORE_ONLY",
+  "transitive_function_names": [
+    "get",
+    "read64",
+    "ui_capsule",
+    "ui_child_shape",
+    "ui_span"
+  ]
+}

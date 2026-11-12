@@ -1,0 +1,10 @@
+[
+  {
+    "before": "    at = 0\n    while at < get(w, 232):\n        if byte(s, 384 + at) != byte(w, get(w, 224) + at):\n            return 0\n        at = at + 1\n",
+    "after": "    at = 0\n    if length(w) >= 256:\n        first_size = get(w, 232)\n        first_base = get(w, 224)\n        while at < first_size:\n            if byte(s, 384 + at) != byte(w, first_base + at):\n                return 0\n            at = at + 1\n    else:\n        while at < get(w, 232):\n            if byte(s, 384 + at) != byte(w, get(w, 224) + at):\n                return 0\n            at = at + 1\n"
+  },
+  {
+    "before": "        at = 0\n        while at < get(w, 248):\n            if byte(s, start + at) != byte(w, get(w, 240) + at):\n                return 0\n            at = at + 1\n",
+    "after": "        at = 0\n        if length(w) >= 256:\n            second_size = get(w, 248)\n            second_base = get(w, 240)\n            while at < second_size:\n                if byte(s, start + at) != byte(w, second_base + at):\n                    return 0\n                at = at + 1\n        else:\n            while at < get(w, 248):\n                if byte(s, start + at) != byte(w, get(w, 240) + at):\n                    return 0\n                at = at + 1\n"
+  }
+]

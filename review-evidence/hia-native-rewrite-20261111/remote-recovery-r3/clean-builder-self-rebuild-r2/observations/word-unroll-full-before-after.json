@@ -1,0 +1,108 @@
+[
+  {
+    "new": "if uint(s, 64) != KMAGIC or uint(s, 72) != 2:",
+    "old": "if uint(s, 64) != KMAGIC or uint(s, 72) != 1:",
+    "owner": "gate"
+  },
+  {
+    "new": "if uint(s, 80) > 2 or uint(s, 112) != 13 or uint(s, 120) != 0:",
+    "old": "if uint(s, 80) > 2 or uint(s, 112) != 0 or uint(s, 120) != 0:",
+    "owner": "gate"
+  },
+  {
+    "new": "        if own_name(s, cursor, name, 13) == 1:\n            put(w, 624, start)\n            put(w, 632, size)\n        cursor = start + size\n        index = index + 1\n    put(w, OWN_START, cursor)\n    if get(w, 80) == 0 or get(w, 88) == 0 or get(w, 88) > 8388608:",
+    "old": "        cursor = start + size\n        index = index + 1\n    if cursor != length(s) or get(w, 80) == 0 or get(w, 88) == 0 or get(w, 88) > 8388608:",
+    "owner": "gate"
+  },
+  {
+    "count": 2,
+    "new": "return build_begin(s, w)",
+    "old": "return build_begin(w)",
+    "owner": "driver"
+  },
+  {
+    "new": "def build_begin(s:readbuf, w:mutbuf) -> u32:\n    if own_sources(s, w) != 1:\n        return BAD\n    put(w, B_CURSOR, get(w, 336))",
+    "old": "def build_begin(w:mutbuf) -> u32:\n    put(w, B_CURSOR, get(w, 336))",
+    "owner": "driver"
+  },
+  {
+    "new": "while i < 13 * 96:",
+    "old": "while i < 9 * 96:",
+    "owner": "driver"
+  },
+  {
+    "new": "    if index > 11 or index == 7 or index == 8:\n        return bad(w, 102)\n    source = get(w, 512 + index * 16)\n    size = get(w, 520 + index * 16)\n    if index == 9:\n        source = get(w, OWN_ROWS + 11 * 64)\n        size = get(w, OWN_ROWS + 11 * 64 + 8)\n    if index == 10:\n        source = get(w, 624)\n        size = get(w, 632)\n    if index == 11:\n        source = get(w, OWN_ROWS + 12 * 64)\n        size = get(w, OWN_ROWS + 12 * 64 + 8)",
+    "old": "    if index > 6:\n        return bad(w, 102)\n    source = get(w, 512 + index * 16)\n    size = get(w, 520 + index * 16)",
+    "owner": "driver"
+  },
+  {
+    "new": "    if index == 9:\n        copy_work(w, OWN_ROWS + 11 * 64 + 16, row + 64, 32)\n        found = found + 1\n    if index == 11:\n        copy_work(w, OWN_ROWS + 12 * 64 + 16, row + 64, 32)\n        found = found + 1\n    if found != 1:\n        return bad(w, 103)",
+    "old": "    if found != 1:\n        return bad(w, 103)",
+    "owner": "driver"
+  },
+  {
+    "new": "    if phase == 16:\n        return package(s, w)\n    if phase == 17:\n        return builder_frame(w)\n    return bad(w, 104)",
+    "old": "    if phase == 16:\n        return package(s, w)\n    return bad(w, 104)",
+    "owner": "driver"
+  },
+  {
+    "new": "    if index < 6:\n        return request_compile(w)\n    if index == 6:\n        put(w, 16, 11)\n        return agent_frame(w)\n    if index < 11:\n        return request_compile(w)\n    put(w, 16, 17)\n    return builder_frame(w)",
+    "old": "    if index < 6:\n        return request_compile(w)\n    put(w, 16, 11)\n    return agent_frame(w)",
+    "owner": "driver"
+  },
+  {
+    "new": "    put(w, B_INDEX, 9)\n    return request_compile(w)",
+    "old": "    return build_call(w, 7, 0, 0, 0, 0, 0, 15)",
+    "owner": "driver"
+  },
+  {
+    "new": "def self_reply(r:readbuf, w:mutbuf) -> u32:\n    if length(r) < 64:\n        return bad(w, 116)\n    size = reply_size(r, w, 3, IMAGE_CAP)",
+    "old": "def self_reply(r:readbuf, w:mutbuf) -> u32:\n    if length(r) < 64:\n        return bad(w, 116)\n    size = reply_size(r, w, 4, length(r) - 64)",
+    "owner": "driver"
+  },
+  {
+    "new": "    row = B_ROWS + 12 * 96\n    put(w, row, get(w, B_FRAME))\n    put(w, row + 8, get(w, B_FRAME_BYTES))\n    put(w, row + 16, cursor)\n    put(w, row + 24, size)\n    copy_work(w, B_TEMP, row + 32, 32)\n    put(w, B_SELF, cursor)\n    put(w, B_SELF_BYTES, size)",
+    "old": "    put(w, B_SELF, cursor)\n    put(w, B_SELF_BYTES, size)",
+    "owner": "driver"
+  },
+  {
+    "new": "while index < 13:",
+    "old": "while index < 9:",
+    "owner": "package"
+  },
+  {
+    "function": "uint",
+    "new": "def uint(s: readbuf, at: u64) -> u64:\n    value = 0\n    value = value | byte(s, at + 0) << 0 * 8\n    value = value | byte(s, at + 1) << 1 * 8\n    value = value | byte(s, at + 2) << 2 * 8\n    value = value | byte(s, at + 3) << 3 * 8\n    value = value | byte(s, at + 4) << 4 * 8\n    value = value | byte(s, at + 5) << 5 * 8\n    value = value | byte(s, at + 6) << 6 * 8\n    value = value | byte(s, at + 7) << 7 * 8\n    return value",
+    "old": "def uint(s: readbuf, at: u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | byte(s, at + i) << i * 8\n        i = i + 1\n    return value",
+    "owner": "expanded-word-helper",
+    "width": 8
+  },
+  {
+    "function": "get",
+    "new": "def get(w: mutbuf, at: u64) -> u64:\n    value = 0\n    value = value | byte(w, at + 0) << 0 * 8\n    value = value | byte(w, at + 1) << 1 * 8\n    value = value | byte(w, at + 2) << 2 * 8\n    value = value | byte(w, at + 3) << 3 * 8\n    value = value | byte(w, at + 4) << 4 * 8\n    value = value | byte(w, at + 5) << 5 * 8\n    value = value | byte(w, at + 6) << 6 * 8\n    value = value | byte(w, at + 7) << 7 * 8\n    return value",
+    "old": "def get(w: mutbuf, at: u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | byte(w, at + i) << i * 8\n        i = i + 1\n    return value",
+    "owner": "expanded-word-helper",
+    "width": 8
+  },
+  {
+    "function": "put",
+    "new": "def put(w: mutbuf, at: u64, value: u64) -> u64:\n    store(w, at + 0, value & 255)\n    value = value >> 8\n    store(w, at + 1, value & 255)\n    value = value >> 8\n    store(w, at + 2, value & 255)\n    value = value >> 8\n    store(w, at + 3, value & 255)\n    value = value >> 8\n    store(w, at + 4, value & 255)\n    value = value >> 8\n    store(w, at + 5, value & 255)\n    value = value >> 8\n    store(w, at + 6, value & 255)\n    value = value >> 8\n    store(w, at + 7, value & 255)\n    value = value >> 8\n    return 0",
+    "old": "def put(w: mutbuf, at: u64, value: u64) -> u64:\n    i = 0\n    while i < 8:\n        store(w, at + i, value & 255)\n        value = value >> 8\n        i = i + 1\n    return 0",
+    "owner": "expanded-word-helper",
+    "width": 8
+  },
+  {
+    "function": "hget",
+    "new": "def hget(w: mutbuf, index: u64) -> u64:\n    value = 0\n    value = value | byte(w, 4096 + index + 0) << 0 * 8\n    value = value | byte(w, 4096 + index + 1) << 1 * 8\n    value = value | byte(w, 4096 + index + 2) << 2 * 8\n    value = value | byte(w, 4096 + index + 3) << 3 * 8\n    value = value | byte(w, 4096 + index + 4) << 4 * 8\n    value = value | byte(w, 4096 + index + 5) << 5 * 8\n    value = value | byte(w, 4096 + index + 6) << 6 * 8\n    value = value | byte(w, 4096 + index + 7) << 7 * 8\n    return value",
+    "old": "def hget(w: mutbuf, index: u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | byte(w, 4096 + index + i) << i * 8\n        i = i + 1\n    return value",
+    "owner": "expanded-word-helper",
+    "width": 8
+  },
+  {
+    "function": "hput",
+    "new": "def hput(w: mutbuf, index: u64, value: u64) -> u64:\n    store(w, 4096 + index + 0, value & 255)\n    value = value >> 8\n    store(w, 4096 + index + 1, value & 255)\n    value = value >> 8\n    store(w, 4096 + index + 2, value & 255)\n    value = value >> 8\n    store(w, 4096 + index + 3, value & 255)\n    value = value >> 8\n    store(w, 4096 + index + 4, value & 255)\n    value = value >> 8\n    store(w, 4096 + index + 5, value & 255)\n    value = value >> 8\n    store(w, 4096 + index + 6, value & 255)\n    value = value >> 8\n    store(w, 4096 + index + 7, value & 255)\n    value = value >> 8\n    return 0",
+    "old": "def hput(w: mutbuf, index: u64, value: u64) -> u64:\n    i = 0\n    while i < 8:\n        store(w, 4096 + index + i, value & 255)\n        value = value >> 8\n        i = i + 1\n    return 0",
+    "owner": "expanded-word-helper",
+    "width": 8
+  }
+]

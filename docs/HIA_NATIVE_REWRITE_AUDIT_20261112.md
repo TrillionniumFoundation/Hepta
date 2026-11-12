@@ -1,3 +1,100 @@
+# HIA 原生重写当前状态：FOLLOW57（2026-11-12，提交前核验）
+
+**整套仍为 OPEN。156 个生产 Python 模块、旧安装配置和默认 `hia=hepta.cli:hia_main` 入口仍未切换；生产激活 0，旧实现删除 0。** 本轮把真实自重建和 Unix 九角色 header-cache 候选接入精确正式入口。上一轮统一 Graph 和后端物理发布的正式结果均已通过，原 Core 冷启动仍失败；各作用域分别记账，不能相互替代。
+
+本轮直接父提交为 `d438a5bf52d2ecddf53850e7f2f0fd0a433d2676`，父 tree 为 `32336492843e1dd8e321f9fc7a1239a0aa6d01af`。父树有 9,230 文件、11,141 递归条目。本地开发执行域仍为 Linux 6.18/glibc 2.41/CPython 3.12.14，不是正式 Ubuntu 24.04 资格域。下文“正式”仅指精确 GitHub job 的原始执行。
+
+## 1. FOLLOW56 的正式终态与完整原件
+
+[恢复工作流 run43276498118](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43276498118)的两个选中任务均为 SUCCESS；[源码语法 run43276497891](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43276497891)也为 SUCCESS。Core 的 source 和 native 结果相互独立。
+
+| 精确任务 | 实际结果 | 已验证的边界 |
+|---|---|---|
+| 统一 Graph，job131386199220 | 1 fresh B3、1原生HIA packer；26新组283案，其中185 ELF案和98私有案/243入口；209 GraphWire入口 | 另3个旧模式对照组51 ELF案、2个旧私有入口单列；29个最终完整组均PASS，47镜像组合保留42个旧镜像。 |
+| 物理后验 backend，job131386199051 | 23 fresh B3、2机械C构建；20组47案，25 ordinary/22 private；187,126 backend与18,845 before入口 | 35 before进程/3,280实际FS、25 backend进程/2,097实际after syscall；3完整C交叉、25完整CAS；20零目标读取组、120无损原件。 |
+| 源码语法，job131386171435 | 1,110份活动Python源的完整有序身份和AST全部通过 | 仅源码语法，不能计作HIA语义或安装资格。 |
+| Core source，job131386174703 | 331测试，505.951秒，SUCCESS | 保持现有参考实现和源合同的结果。 |
+| Core native，job131386174351 | FAIL；冷启动6/11、180.170779207秒、rc−9 | 38个phase中36个完成且PASS，names-modified、exports-modified仍pending。不是55B的35个完成前沿。 |
+
+Graph正式subject的最大最终post-output为32.312933 CPU秒/32.388752147 wall秒；外层逐组最大32.52675699999999 CPU秒/32.647015146 wall秒，均在原90/180内。旧恢复步骤134.126691 CPU秒/197.440931645 wall秒是其原恢复合同，不追溯添加新组90/180门。新独立seal完整父子58.627647127 CPU秒/59.899454051 wall秒，原90/180内PASS。
+
+物理正式subject最大24.258016 CPU秒/24.472710506 wall秒，零目标readback最大15.274043 CPU秒/15.298044211 wall秒；独立seal完整父子为**89.469773262 CPU秒/90.571560127 wall秒**，仍按原90/180判定PASS。seal内部88.761029077 CPU秒与完整父子数不同，不拿内部数替代总数。
+
+根已实际完整读取以下外ZIP和全部内包成员，原字节、长度、mode与SHA均按原账本核验，最后再核源和归档身份；没有重新执行被读目标：
+
+| 原工件 | 外ZIP及完整读取 | 内包及完整读取 |
+|---|---|---|
+| Graph13970413635 | 414,178,682B；1,246成员、413,662,904原B；SHA1499b70f25000c5778d29cf49bb7fb61f1c278b21d685457f01437129dfe6f4d | 246,231,892B包；8,600成员、1,456,783,421原B；SHA0179017c9fce4a86513acfbe7443e08db9923c8ff17a4565e8a56ae829c7cf1c。根第二次读取12.469682CPU/12.534676611wall。 |
+| Physical13971147766 | 349,266,299B；1,348成员、348,728,823原B；SHA1a87d8a956cfd165a0e3751064615cc23cd2a23cee09e5d056d582098e6d1229 | 199,377,588B包；161,887成员、1,119,637,158原B；SHA4a91beb491c2ae15c50fbace1467954ef6869fe277e04e255686cd15bd5ff13d。根读取23.515215CPU/24.741653623wall。 |
+| Core13971156800 | 57,997,495B；3,937成员、340,201,758原B；SHA80255daff108960626d98d4ea7ba4a7399c37ceac15fba04300c746b3c48441d | 没有将空aggregate generation列表解释为0native；原6个B/M stdout、全部实际phase均按原文件保留。 |
+
+Graph根第一次读取的执行会话终态丢失，记录为 UNKNOWN_FIRST_READER_TERMINAL_STATUS，既不推断PASS也不伪造目标FAIL。之后使用相同读取逻辑和独立输出目录完成全量读取，第二次实际PASS。Graph的29份最终原JSON从完整日志的无损记录逐字解码，再与全部成员账本比对。Physical的318份原文本共519,779B也被根逐份核对大小/Git/SHA；其中u64保持原JSON文本，不经过JavaScript数值重序列化。
+
+Core的907份选中原报告/请求/phase文件共39,498,777B，以1,085,976B无损档保存并逐成员重新读回；这明确是907份选中原件，不声称该档包含整个3,937文件ZIP。完整外ZIP读取单独记录。相关原日志、读取程序、逐组原件和根检查收据见本轮 `ci-followup-r57/root-observations` 与 `backend-physical-after56-formal-r1`。
+
+## 2. 真实自重建正式入口
+
+新入口位于 `clean-builder-self-rebuild-r2`。entry为d13bbfcedf134332f4c5bc8d1893311fbfaf11ef，CI为fed8c50796a4b9b5f4a0de9195bfdffda70ebe2d。151项交付共27,172,990B，包含18份活动Python源码、实际HIA源、完整开发原件及正式CI；源码清单17个输入为16 Python和1 JSON，完整pin和实际调用链由根核对。
+
+HIA构建器实际消费自己的源码，重新生成driver/decoder/packer，再由HIA打包；不再把当前builder ELF直接复制到输出。开发r4源码381,320B、124functions/1,511blocks/7,045ops、最大16参数/SSA1312，保持bootstrap原容量。单次名义构建26.908064CPU。完整安装组包括3次install/no-replace/verify、11个stdio案例和安装后完整第二代包，在**72.456394CPU/72.723232164wall**内通过新90/150门；旧104.510899CPU失败保留。
+
+own HIA拒绝原因130→137的真实源码变更被builder消费，生成不同的新ELF，第二代再次达到完整修改包固定点。116对word helper/232实际native入口、57对真实SIGILL的部分写入与wrap边界，以及18个私有入口、4个实际decoder、2次poison永久拒绝和2个固定ELF拒绝均保留。固定ELF原接口仍exit126且空stdout/stderr，不能编造公共错误文本。
+
+完整开发档10,616,512B、1,989成员/417,224,059原B已由根完整读取；140个Git文本对象16,556,478B及11个文本分片逐个全文GET，解码后整包SHA为d377a923d147933837fe42c1d916ee5418eafd0516cdf66c0149c5d2eec5807e。直接二进制GET不受接口支持，未声称做过。
+
+正式driver有14个独立阶段：旧R13完整814原件读取、12个新的源码/运行组、新独立seal。新运行组90CPU/150wall，seal90CPU/180wall，内部B3/packer仍10CPU/20wall/256MiB。14份外部B3收据为10 word、3 build、1 mutation，另外2次外部packer；4次完整native构建调用各自实际执行13条内部recipe，不能混成同一计数。进程owner使用subreaper、wait4到ECHILD和精确子进程身份，任何残留清理均使该阶段失败。5个进程管理控制已实际通过；被测HIA目标数为0。
+
+原R13的120CPU/150wall合同保持不变。旧644源基线和新增13 own-source分别列明；新的657源原生cold owner已经完成一次完整本地执行，三个真实builder均exit0、三代完整20,123,571B包与13条receipt在HIA中逐字比较相同，但最终完整组104.375614CPU/105.136369026wall超过90CPU，明确FAIL。本轮自重建正式入口不借用该失败组作为cold资格，也不覆盖原Core180wall失败。自重建开发通过仍不是全部15 CLI动作、11 Worker工具、全部策略/支持生成和整套纯HIA安装通过。
+
+## 3. Unix九角色原28案已在本地完整通过
+
+新候选位于 `namespace-ci/unixopen-header-cache-r1`。author为dc45ba1fc5910be5d591b7433ce79cb814229e40，builder为4f52a55321f23c335b7d5635146a6157f43f22df，inputs为de18524eea97e5062f5f2272cd53c7988b3c858c，CI为723a40e7a299db9ed97f7515d6d39a2a06f1e3ad。
+
+在此前四处修复之上，只改issuer的ui_child_shape/f13：W长度至少256时，将固定头232/224、248/240的只读读取提到逐字节比较循环之外；短W保留原路径。传递调用不写内存、不分配、不释放、不发syscall，实际运行使用独立私有缓冲区和同步调用区间。其它25个函数保持完整字节相同；不声称对任意并发外部写入或任意VM fuel保持同一轨迹。
+
+8 fresh B3分别构建旧/新完整issuer及原f13和两段循环probe。796组oldVM/newVM/oldnative/newnative控制全部通过，193返回对与603真实SIGILL对的完整S/O/W、guards及部分写入一致；40.986681CPU/41.558798198wall。初次probe缺失callee的前置FAIL和0B3原件保留。
+
+随后原完整subject重新运行：10个原DMS源码证明、9 fresh role B3和1 fresh packer B3、45个实际packer控制均通过；**28/28物理案例、531 native=531 fresh VM完整buffer对照**，14次真实parent ACK和15次真实getpid。原12+8+8三个组及900秒整体subject均不拆分、不缩小。原raw-prefix12组实际56.991673CPU/57.309864313wall通过；parent-refusal8组9.449223CPU/9.607224028wall，transport8组亦完整通过；完整subject最终95.756249633秒。
+
+完整Unix开发原件共8,848成员/444,807,153原B，根已逐成员重读mode/长度/SHA/Git，2.043911CPU/2.025372515wall，0目标。3,927,276B归档从10个完整Git文本分片重建；4,145,224B原成员索引的直接GET发生Transport closed，随后从11个独立完整Git文本分片精确重建。整个453,724,160B tar流SHA也与原封存相等。原直取失败和第一次中断压缩的UNKNOWN均保留，不声称直接二进制GET或删去失败原件。
+
+旧raw-prefix在94.583282CPU时被SIGKILL的FAIL仍原样保留，不把旧4案继承到新28案。796私有对照也不替代原28个物理案例。本轮只选择这条九角色路径的正式复验。
+
+十二角色路径仍OPEN：真实logger配置/callback、低FD0..2关闭后的retry和传输保护尚未闭合；不得预占FD0..2掩盖问题。普通Store、SQL31及迁移仍OPEN；原trace word9=28是默认errno，不是ENOSPC或已证实的logger原因。
+
+## 4. 普通impact329仍有两个资源失败
+
+FOLLOW55B原11组327案PASS、large-valid和graph-long-report两案FAIL保持不变。新SHA热循环仅精确展开原helper调用，保留逐字节访存、写入和陷阱顺序；4次B3通过，144组完整状态对照、4组VM分区对照、78组压缩边界对照通过，其中72组真实SIGILL和完整部分写入一致。
+
+将该SHA接回62个精确原镜像后，真实HIA packer完成新63镜像ELF，但两个完整原组仍FAIL：外层完整进程树分别99.826127CPU和94.57434400000001CPU，原90CPU不放宽。large-valid实际native返回−9；graph-long-report实际返回0且输出完整，但总组仍超限，不可因此计为完成案例。全部原329案例、三次admission、完整oracle/CAS和原90/180谓词保持不变。
+
+纯标量源化简的另一候选已实际完成9次B3和1次HIA打包，54个其它角色镜像保持精确不变。该候选的graph-long-report原完整组实际PASS：完整进程树87.65821000000001CPU/87.917476465wall，完整oracle/三份输出/CAS一致；large-valid原完整组仍FAIL，99.90829000000001CPU。没有把这一个新组PASS与旧327案合并成一次329通过。新候选继续接受完整回归，尚未进入本轮正式选择，生产仍未激活。
+
+## 5. 源码、精确路由与本轮正式选择
+
+活动源码由1,110增至1,153：所有旧路径保留，2个既有carrier精确更新，新增18个自重建和25个Unix候选源。根逐项核对完整mode/长度/Git/SHA并AST解析1,153份，全部PASS。Unix的28个实际输入及builder/inputs/CI连锁pin逐项核验，carrier仅替换3个target path/Git/SHA字符串，完整逆变换等于旧d84c66602adc6bdadbb85bdb4149c11156da514b。自重建carrier删除唯一新显式路由后，完整回到旧56bf6ebc970998620f7fc33bc7ff8903d99da6f5。
+
+恢复工作流保留155jobs，154个其它job全文相同。既有namespace_engine_original_sources_r1的原值确实是25分钟及180秒外层命令；不是110分钟。本轮只对push中显式clean-builder-self-rebuild选择改为55分钟和2800秒外部failsafe，内部driver2700秒，各独立阶段预算不变。旧fallback25分钟/180秒、原R13路由和权限完全保留；没有将新预算强加给旧门。
+
+| 既有job | 本轮显式tag | 必须重新完成的正式门 |
+|---|---|---|
+| namespace_engine_original_sources_r1 | namespace-engine-original-sources + clean-builder-self-rebuild | 14个实际新阶段、完整旧原件、真实own-source重建/安装固定点/修改拒绝、独立seal |
+| namespace_unixopen_native_parent_r1 | namespace-unixopen-native-parent + namespace-unixopen-actual-native-issuer | 10源证明、9+1 fresh B3、45packer、原12+8+8全部VM/native/真实OS路径、完整seal |
+
+工作流仍有Ubuntu24.04/x86_64硬域门及contents/actions read权限。新的正式结果须等精确提交自己的run/job终态和原件，不能预借本地PASS。concurrency包含ref与sha且不cancel旧run。
+
+B3原10CPU/20wall/256MiB、源/输出/工作区各1MiB；bootstrap128fn/1536blocks/8192ops/每函数256blocks/16参数/SSA<2048；公共1024fn另列；不存在额外128ops/block门。原配对完整进程树90CPU/180wall/1GiB及实际<=90谓词、原42组900wall均保留，旧存储步骤不追溯新seal门。
+
+## 6. 清理门仍未满足
+
+当前默认安装仍为setuptools/Python≥3.11，156生产模块和pyproject保持0ef参考的完整mode/字节/Git/SHA。组件通过与安装替换登记分别记录。完整公共编译父事务、普通impact资源失败、十二角色Unix/Store、Worker全工具、15公共动作、原生支持/策略生成、纯HIA冷启动与最终安装更新/恢复仍需闭合。
+
+只有在旧业务实现不可调用的实际安装环境中，完整功能、失败路径、冷启动、包重建和平台验收都通过，才能启用HIA默认入口并删除旧整套。**本轮不删除仓库文件，不激活生产入口，不把历史FAIL、UNKNOWN或未执行范围改写为PASS。**
+
+---
+
+# 历史完整审计（FOLLOW56及更早，原文保留）
+
 # HIA 原生重写当前状态：FOLLOW56（2026-11-12 17:59:08 UTC）
 
 **整套仍为 OPEN。156 个生产 Python 模块、旧安装配置和默认 `hia=hepta.cli:hia_main` 入口均尚未切换；生产激活 0，旧实现删除 0。** 本轮实际完成统一 type/late-Core/P16/Graph 入口与物理 backend 发布链的完整本地组验证，保存 UnixOpen 四处修复及新的真实资源失败，并准备两个既有 job 的正式复验。新的 HIA 构建器已在独立开发链完成自身源码再生成、安装后第二代和源码修改后的固定点；其正式 CI 仍在补齐进程树清理与独立封存，不把本地结果计作整套原生安装。
