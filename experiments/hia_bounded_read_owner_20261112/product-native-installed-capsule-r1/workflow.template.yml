@@ -1,0 +1,106 @@
+name: HIA bounded-read v80 native and installed development
+
+on:
+  create:
+
+permissions: {}
+
+jobs:
+  bounded-read-native-installation:
+    if: >-
+      github.repository == 'TrillionniumFoundation/Hepta' &&
+      github.event.ref_type == 'branch' &&
+      github.event.ref == 'codex/hia-bounded-read-v80-native-installed-r1-run-20261112-e26e' &&
+      github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HIA_BOUNDED_READ_WORKFLOW_SHA: ${{ github.workflow_sha }}
+    steps:
+      - name: Exact reviewed control checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: CONTROL_COMMIT
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+          submodules: false
+          lfs: false
+      - name: Exact ba714f v80 pure product checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ba714f34b8dcb248c779bb5fc0b9538d9151c685
+          path: source
+          fetch-depth: 1
+          persist-credentials: false
+          submodules: false
+          lfs: false
+      - name: Fixed CPython target
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+      - name: Original CI dependency versions
+        timeout-minutes: 3
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;; *) exit 64 ;; esac
+          python -I -B -m pip --disable-pip-version-check install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Prepare fixed current-source operation
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;; *) exit 64 ;; esac
+          control="$GITHUB_WORKSPACE/control/experiments/hia_bounded_read_owner_20261112/product-native-installed-capsule-r1"
+          python -I -S -B -c 'import hashlib,pathlib,sys; p=pathlib.Path(sys.argv[1]); b=p.read_bytes(); assert len(b)==29710 and hashlib.sha256(b).hexdigest()=="3806756fcb2673aebff997caebc97f1b18fc54c96b3e026ae536464787eb464b"' "$control/controller.py"
+          python -I -S -B "$control/controller.py" prepare --root "$RUNNER_TEMP/hia-bounded-read-v80-native-installed-r1" --source "$GITHUB_WORKSPACE/source" --control-commit CONTROL_COMMIT --policy-sha256 aca860a9dfae551103afb897069ec9aa42df9fc9f221d3891f75f7fcac0a3628 >"$RUNNER_TEMP/hia-bounded-read-v80-native-installed-r1.prepare.stdout.log" 2>"$RUNNER_TEMP/hia-bounded-read-v80-native-installed-r1.prepare.stderr.log"
+      - name: Fresh compiler, original 55 and 8/7 callers, and nine installed cases under 180 seconds
+        timeout-minutes: 4
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;; *) exit 64 ;; esac
+          control="$GITHUB_WORKSPACE/control/experiments/hia_bounded_read_owner_20261112/product-native-installed-capsule-r1"
+          python -I -S -B -c 'import hashlib,pathlib,sys; b=pathlib.Path(sys.argv[1]).read_bytes(); assert len(b)==29710 and hashlib.sha256(b).hexdigest()=="3806756fcb2673aebff997caebc97f1b18fc54c96b3e026ae536464787eb464b"' "$control/controller.py"
+          python -I -S -B "$control/controller.py" run --root "$RUNNER_TEMP/hia-bounded-read-v80-native-installed-r1" --source "$GITHUB_WORKSPACE/source" --control-commit CONTROL_COMMIT --policy-sha256 aca860a9dfae551103afb897069ec9aa42df9fc9f221d3891f75f7fcac0a3628 >"$RUNNER_TEMP/hia-bounded-read-v80-native-installed-r1.run.stdout.log" 2>"$RUNNER_TEMP/hia-bounded-read-v80-native-installed-r1.run.stderr.log"
+      - name: Independent closed-process verification and typed original custody
+        if: always()
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;; *) exit 64 ;; esac
+          control="$GITHUB_WORKSPACE/control/experiments/hia_bounded_read_owner_20261112/product-native-installed-capsule-r1"
+          python -I -S -B -c 'import hashlib,pathlib,sys; b=pathlib.Path(sys.argv[1]).read_bytes(); assert len(b)==29710 and hashlib.sha256(b).hexdigest()=="3806756fcb2673aebff997caebc97f1b18fc54c96b3e026ae536464787eb464b"' "$control/controller.py"
+          python -I -S -B "$control/controller.py" finalize --root "$RUNNER_TEMP/hia-bounded-read-v80-native-installed-r1" --source "$GITHUB_WORKSPACE/source" --control-commit CONTROL_COMMIT --policy-sha256 aca860a9dfae551103afb897069ec9aa42df9fc9f221d3891f75f7fcac0a3628 >"$RUNNER_TEMP/hia-bounded-read-v80-native-installed-r1.finalize.stdout.log" 2>"$RUNNER_TEMP/hia-bounded-read-v80-native-installed-r1.finalize.stderr.log"
+      - name: Fixed whole-file small original channel
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${LD_LIBRARY_PATH-}" in ""|"${pythonLocation}/lib") unset LD_LIBRARY_PATH ;; *) exit 64 ;; esac
+          control="$GITHUB_WORKSPACE/control/experiments/hia_bounded_read_owner_20261112/product-native-installed-capsule-r1"
+          python -I -S -B -c 'import hashlib,pathlib,sys; b=pathlib.Path(sys.argv[1]).read_bytes(); assert len(b)==21434 and hashlib.sha256(b).hexdigest()=="27e3b53ad435cb00f5c41495479beee1354a98e33754d1ca412b8bd27c833835"' "$control/diagnostics.py"
+          python -I -S -B "$control/diagnostics.py" --root "$RUNNER_TEMP/hia-bounded-read-v80-native-installed-r1" --source "$GITHUB_WORKSPACE/source" --control-commit CONTROL_COMMIT --policy-sha256 aca860a9dfae551103afb897069ec9aa42df9fc9f221d3891f75f7fcac0a3628
+      - name: Preserve complete closed originals and all fixed host stage logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-bounded-read-v80-native-installed-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 6
+          path: |
+            ${{ runner.temp }}/hia-bounded-read-v80-native-installed-r1/public/
+            ${{ runner.temp }}/hia-bounded-read-v80-native-installed-r1.prepare.stdout.log
+            ${{ runner.temp }}/hia-bounded-read-v80-native-installed-r1.prepare.stderr.log
+            ${{ runner.temp }}/hia-bounded-read-v80-native-installed-r1.run.stdout.log
+            ${{ runner.temp }}/hia-bounded-read-v80-native-installed-r1.run.stderr.log
+            ${{ runner.temp }}/hia-bounded-read-v80-native-installed-r1.finalize.stdout.log
+            ${{ runner.temp }}/hia-bounded-read-v80-native-installed-r1.finalize.stderr.log
