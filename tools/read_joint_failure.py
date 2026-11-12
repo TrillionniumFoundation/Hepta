@@ -1,4 +1,4 @@
-"""Read only the completed joint R2 artifact; never execute project code."""
+"""Read only the completed joint Proof R1 artifact; never execute project code."""
 from pathlib import Path, PurePosixPath
 from hashlib import sha256
 import base64
@@ -10,14 +10,14 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-ARTIFACT_ID = 13967101980
-EXPECTED_BYTES = 92730326
-EXPECTED_SHA256 = "d5016ec209e9580188942ad975dc0015efa2d9c2fa4e2d3d451e5f4ec9969f07"
-STDERR_SUFFIX = "125-complete-original-and-additional-source-controls.stderr"
-STDERR_BYTES = 162184
-STDERR_SHA256 = "0a611175688f845fc44155853924fb9b1d4bf591d4aa1e1ada3364b566c06edb"
-REPORT_BYTES = 2254513
-REPORT_SHA256 = "f6993d0d72b9092f08b222bc9182499fb746405632b5db1e67c828a56ef4f71b"
+ARTIFACT_ID = 13970186178
+EXPECTED_BYTES = 98072192
+EXPECTED_SHA256 = "6b29811302c6419af20d885d36411ab766e41d4a9e330e867cebf044dbfddf85"
+STDERR_SUFFIX = "127-complete-original-and-additional-source-controls.stderr"
+STDERR_BYTES = 169961
+STDERR_SHA256 = "232f52940f0ab82803dcbc32a36631be1568ea7d2b04e78708a49deb4871025f"
+REPORT_BYTES = 2596874
+REPORT_SHA256 = "23aa865182101217480707e1f3f32020a22a427a4b389636af31df53582ca624"
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, request, file_pointer, code, message, headers, new_url):
@@ -49,7 +49,7 @@ def main():
             require(urllib.parse.urlsplit(location).scheme == "https", "artifact redirect is not HTTPS")
             # The GitHub bearer token never accompanies the storage request.
             response = urllib.request.urlopen(urllib.request.Request(location), timeout=60)
-        target = output / "original-joint-r2-artifact.zip"
+        target = output / "original-joint-proof-r1-artifact.zip"
         with response, target.open("xb") as stream:
             while block := response.read(1 << 20):
                 stream.write(block)
@@ -90,8 +90,8 @@ def main():
             require(len(packets) == 1, "actual original source packet is not unique")
             packet = archive.read(packets[0])
             require(identity(packet) == {
-                "bytes": 9521085,
-                "sha256": "0fdf556bc32a78f255fae388b6091d3e781c1ed3c384b0a04ec77db00e85f46d"},
+                "bytes": 10245186,
+                "sha256": "7b0ecbdcebcfd2bb8d5ae12f5b5682cf35c1851c75e8bcef2d6416f5950691ab"},
                 "original source packet differs from original log capsule")
             result["original_source_packet"] = {"path": packets[0], **identity(packet)}
             (output / "original-SOURCE-PACKET.json").write_bytes(packet)
