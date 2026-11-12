@@ -1,0 +1,382 @@
+{
+  "all_terminal": true,
+  "cases": [
+    {
+      "analysis_work": {
+        "contexts": 1024,
+        "max_analysis_call_depth": 64,
+        "max_contexts": 1024,
+        "max_transfer_steps": 32768,
+        "peak_analysis_call_depth": 2,
+        "transfer_steps": 4094
+      },
+      "case": "contexts-positive",
+      "inclusive_layer_totals_not_additive": {
+        "heap_controller_step": {
+          "calls": 21,
+          "cpu_seconds": 0.3648172050000006,
+          "wall_seconds": 0.3662573459992018
+        },
+        "heap_foreign_request": {
+          "calls": 20,
+          "cpu_seconds": 3.2041430560000004,
+          "wall_seconds": 3.2125772279996454
+        },
+        "static_controller_step": {
+          "calls": 10,
+          "cpu_seconds": 0.3063509709999999,
+          "wall_seconds": 0.3083635330008292
+        },
+        "static_foreign_request": {
+          "calls": 8,
+          "cpu_seconds": 0.21574274600000004,
+          "wall_seconds": 0.21574610499965274
+        }
+      },
+      "inputs_unchanged": true,
+      "kernel_events": [
+        {
+          "event": "live_machine_enter",
+          "since_start_seconds": 1.160821505000058,
+          "source_bytes": 619318,
+          "workspace_bytes": 9974624
+        },
+        {
+          "abi": 0,
+          "arena_used": 1528552,
+          "cpu_seconds": 2.4980325189999997,
+          "event": "live_machine_return",
+          "needed": 0,
+          "semantic": 0,
+          "since_start_seconds": 3.6595398160002333,
+          "status": 0,
+          "wall_seconds": 2.498565249999956
+        }
+      ],
+      "outcome": {
+        "kind": "returned"
+      },
+      "public_cpu_seconds": 3.586945623,
+      "public_wall_seconds": 3.5968383110002833,
+      "raw_result": {
+        "bytes": 29191,
+        "path": "/workspace/scratch/dda74a4fae35/heap-boundary-diagnostic-v9-r2/runs/contexts-positive/RESULT.json",
+        "sha256": "5a3246ebb113d85ebef1c3a722db3238fe8d1e3a1a58afb041fd4fd2c2834c48"
+      }
+    },
+    {
+      "analysis_work": null,
+      "case": "contexts-negative",
+      "inclusive_layer_totals_not_additive": {
+        "heap_controller_step": {
+          "calls": 16,
+          "cpu_seconds": 0.35341709600000004,
+          "wall_seconds": 0.35403391399950124
+        },
+        "heap_foreign_request": {
+          "calls": 15,
+          "cpu_seconds": 2.959973045,
+          "wall_seconds": 2.9710586579990377
+        },
+        "static_controller_step": {
+          "calls": 10,
+          "cpu_seconds": 0.2467609040000001,
+          "wall_seconds": 0.2467733200001021
+        },
+        "static_foreign_request": {
+          "calls": 8,
+          "cpu_seconds": 0.0815954450000001,
+          "wall_seconds": 0.08159468099984224
+        }
+      },
+      "inputs_unchanged": true,
+      "kernel_events": [
+        {
+          "event": "live_machine_enter",
+          "since_start_seconds": 0.8633150239998031,
+          "source_bytes": 619925,
+          "workspace_bytes": 9984336
+        },
+        {
+          "abi": 0,
+          "arena_used": 1529200,
+          "cpu_seconds": 2.531264706,
+          "event": "live_machine_return",
+          "needed": 0,
+          "semantic": 50,
+          "since_start_seconds": 3.405738804000066,
+          "status": 3,
+          "wall_seconds": 2.5422517800002424
+        }
+      ],
+      "outcome": {
+        "code": "E_HIA_BUDGET_LIMIT",
+        "kind": "semantic_rejection",
+        "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+        "type": "HIAHeapBoundRejected"
+      },
+      "public_cpu_seconds": 3.3290099630000003,
+      "public_wall_seconds": 3.340752018999865,
+      "raw_result": {
+        "bytes": 21988,
+        "path": "/workspace/scratch/dda74a4fae35/heap-boundary-diagnostic-v9-r2/runs/contexts-negative/RESULT.json",
+        "sha256": "9aa101ca892cae6589da5a97b51adec54c5c1b48b9e3677ec4d0ecb403a76b49"
+      }
+    },
+    {
+      "analysis_work": {
+        "contexts": 64,
+        "max_analysis_call_depth": 64,
+        "max_contexts": 1024,
+        "max_transfer_steps": 32768,
+        "peak_analysis_call_depth": 64,
+        "transfer_steps": 191
+      },
+      "case": "depth-positive",
+      "inclusive_layer_totals_not_additive": {
+        "heap_controller_step": {
+          "calls": 20,
+          "cpu_seconds": 0.01740892200000002,
+          "wall_seconds": 0.017406653999842092
+        },
+        "heap_foreign_request": {
+          "calls": 19,
+          "cpu_seconds": 0.10069967099999999,
+          "wall_seconds": 0.10069955000062691
+        },
+        "static_controller_step": {
+          "calls": 10,
+          "cpu_seconds": 0.030616131000000074,
+          "wall_seconds": 0.030614113999945403
+        },
+        "static_foreign_request": {
+          "calls": 8,
+          "cpu_seconds": 0.007174696000000008,
+          "wall_seconds": 0.0071731190000718925
+        }
+      },
+      "inputs_unchanged": true,
+      "kernel_events": [
+        {
+          "event": "live_machine_enter",
+          "since_start_seconds": 0.14424660399981803,
+          "source_bytes": 52237,
+          "workspace_bytes": 1048576
+        },
+        {
+          "abi": 0,
+          "arena_used": 110560,
+          "cpu_seconds": 0.049493733999999984,
+          "event": "live_machine_return",
+          "needed": 0,
+          "semantic": 0,
+          "since_start_seconds": 0.19380258599994704,
+          "status": 0,
+          "wall_seconds": 0.049490011999751005
+        }
+      ],
+      "outcome": {
+        "kind": "returned"
+      },
+      "public_cpu_seconds": 0.127319324,
+      "public_wall_seconds": 0.12732615200002328,
+      "raw_result": {
+        "bytes": 28588,
+        "path": "/workspace/scratch/dda74a4fae35/heap-boundary-diagnostic-v9-r2/runs/depth-positive/RESULT.json",
+        "sha256": "3803249215f613155d773ab8ba0adcdc1b8f92701bfe8880b1d427b8f1eb8913"
+      }
+    },
+    {
+      "analysis_work": null,
+      "case": "depth-negative",
+      "inclusive_layer_totals_not_additive": {
+        "heap_controller_step": {
+          "calls": 15,
+          "cpu_seconds": 0.016327833,
+          "wall_seconds": 0.01632409799913148
+        },
+        "heap_foreign_request": {
+          "calls": 14,
+          "cpu_seconds": 0.08501495800000003,
+          "wall_seconds": 0.08503631000075984
+        },
+        "static_controller_step": {
+          "calls": 10,
+          "cpu_seconds": 0.031808721000000054,
+          "wall_seconds": 0.031825301000935724
+        },
+        "static_foreign_request": {
+          "calls": 8,
+          "cpu_seconds": 0.006686329000000019,
+          "wall_seconds": 0.006684543000119447
+        }
+      },
+      "inputs_unchanged": true,
+      "kernel_events": [
+        {
+          "event": "live_machine_enter",
+          "since_start_seconds": 0.12225805299976855,
+          "source_bytes": 53052,
+          "workspace_bytes": 1048576
+        },
+        {
+          "abi": 0,
+          "arena_used": 100824,
+          "cpu_seconds": 0.03371975799999999,
+          "event": "live_machine_return",
+          "needed": 0,
+          "semantic": 50,
+          "since_start_seconds": 0.15604957699997613,
+          "status": 3,
+          "wall_seconds": 0.03371361600011369
+        }
+      ],
+      "outcome": {
+        "code": "E_HIA_BUDGET_LIMIT",
+        "kind": "semantic_rejection",
+        "message": "E_HIA_BUDGET_LIMIT: finite invocation context/depth analysis limit exceeded",
+        "type": "HIAHeapBoundRejected"
+      },
+      "public_cpu_seconds": 0.109848619,
+      "public_wall_seconds": 0.10987775599960514,
+      "raw_result": {
+        "bytes": 21292,
+        "path": "/workspace/scratch/dda74a4fae35/heap-boundary-diagnostic-v9-r2/runs/depth-negative/RESULT.json",
+        "sha256": "c2068de04e0bf1aaec152a3b434cda23c15069d605297ac0b7190f0e4c1af564"
+      }
+    },
+    {
+      "analysis_work": {
+        "contexts": 33,
+        "max_analysis_call_depth": 64,
+        "max_contexts": 1024,
+        "max_transfer_steps": 32768,
+        "peak_analysis_call_depth": 2,
+        "transfer_steps": 32130
+      },
+      "case": "transfers-positive",
+      "inclusive_layer_totals_not_additive": {
+        "heap_controller_step": {
+          "calls": 21,
+          "cpu_seconds": 0.22516935499999158,
+          "wall_seconds": 0.22516517500025657
+        },
+        "heap_foreign_request": {
+          "calls": 20,
+          "cpu_seconds": 29.734924418,
+          "wall_seconds": 29.836517119998916
+        },
+        "static_controller_step": {
+          "calls": 10,
+          "cpu_seconds": 0.1068717190000002,
+          "wall_seconds": 0.10686837200046284
+        },
+        "static_foreign_request": {
+          "calls": 8,
+          "cpu_seconds": 0.047180627000000086,
+          "wall_seconds": 0.047177637000004324
+        }
+      },
+      "inputs_unchanged": true,
+      "kernel_events": [
+        {
+          "event": "live_machine_enter",
+          "since_start_seconds": 0.7145669460001045,
+          "source_bytes": 367669,
+          "workspace_bytes": 5948240
+        },
+        {
+          "abi": 0,
+          "arena_used": 2452824,
+          "cpu_seconds": 29.520839008,
+          "event": "live_machine_return",
+          "needed": 0,
+          "semantic": 0,
+          "since_start_seconds": 30.33708030300022,
+          "status": 0,
+          "wall_seconds": 29.62243072299998
+        }
+      ],
+      "outcome": {
+        "kind": "returned"
+      },
+      "public_cpu_seconds": 29.978913201,
+      "public_wall_seconds": 30.080525772999863,
+      "raw_result": {
+        "bytes": 29261,
+        "path": "/workspace/scratch/dda74a4fae35/heap-boundary-diagnostic-v9-r2/runs/transfers-positive/RESULT.json",
+        "sha256": "223293234f0b62e9cbb29197e5772302b61ee8987ea6c14e2197d10170915036"
+      }
+    },
+    {
+      "analysis_work": null,
+      "case": "transfers-negative",
+      "inclusive_layer_totals_not_additive": {
+        "heap_controller_step": {
+          "calls": 16,
+          "cpu_seconds": 0.20499044500000063,
+          "wall_seconds": 0.20521286099801728
+        },
+        "heap_foreign_request": {
+          "calls": 15,
+          "cpu_seconds": 30.485059108999998,
+          "wall_seconds": 30.62894227600009
+        },
+        "static_controller_step": {
+          "calls": 10,
+          "cpu_seconds": 0.10958553699999987,
+          "wall_seconds": 0.10958215599976029
+        },
+        "static_foreign_request": {
+          "calls": 8,
+          "cpu_seconds": 0.04513453500000006,
+          "wall_seconds": 0.04513199800021539
+        }
+      },
+      "inputs_unchanged": true,
+      "kernel_events": [
+        {
+          "event": "live_machine_enter",
+          "since_start_seconds": 0.47877454499985106,
+          "source_bytes": 368270,
+          "workspace_bytes": 5957856
+        },
+        {
+          "abi": 0,
+          "arena_used": 2494784,
+          "cpu_seconds": 30.273736586000002,
+          "event": "live_machine_return",
+          "needed": 0,
+          "semantic": 51,
+          "since_start_seconds": 30.896544255999743,
+          "status": 3,
+          "wall_seconds": 30.417449918999864
+        }
+      ],
+      "outcome": {
+        "code": "E_HIA_BUDGET_LIMIT",
+        "kind": "semantic_rejection",
+        "message": "E_HIA_BUDGET_LIMIT: finite invocation abstract-transfer work limit exceeded",
+        "type": "HIAHeapBoundRejected"
+      },
+      "public_cpu_seconds": 30.703272276,
+      "public_wall_seconds": 30.84739457800015,
+      "raw_result": {
+        "bytes": 22001,
+        "path": "/workspace/scratch/dda74a4fae35/heap-boundary-diagnostic-v9-r2/runs/transfers-negative/RESULT.json",
+        "sha256": "34ffe64177442a3669654d77f4ca1318cb8cb53de3f72a82fb33ea4f87e5e50d"
+      }
+    }
+  ],
+  "current_source_cold": false,
+  "limitations": [
+    "Six original boundary inputs run individually, not the original 134-test process",
+    "Inclusive nested timing totals are not additive",
+    "No inside-kernel instruction timing instrumented; static loop counts are hypotheses for source-level localization",
+    "Current source and retained images byte-verified before/after each case; original V9 timeout remains FAIL"
+  ],
+  "original_134_rerun": false,
+  "qualification": false,
+  "schema": "hia.heap-boundary.profile-summary.v1",
+  "scope": "DEVELOPMENT_ONLY_PYTHON_3_12_RETAINED_7E9_IMAGES_WITH_BYTE_IDENTICAL_F8_COMPONENT_ASSETS"
+}
