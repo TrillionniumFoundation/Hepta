@@ -1,0 +1,5 @@
+# Source-closure repair: original 401 source tests
+
+This readback compares the actual original acffa source job 130849576940 in run 43117621509 with the new 9704596 source job 130926793909 in run 43140734709. Both full decoded log byte strings are retained unchanged. All 401 unique qualified method IDs occur with `ok`, in the same order. The new run reports 423.801 seconds; the older run reports 584.453 seconds. This comparison is not a speed qualification because the actual executions are separate environments.
+
+The added source-manifest assertions execute inside the original existing owner-gate method, so the original source-test denominator is preserved. Regeneration and unchanged-source checks also succeeded in the new source job. The complete native job is still running at this evidence checkpoint. Its compiler owner gates, cold originals and any full 5400-second suite result are not inferred from the source test result. Historical acffa native CI failures and their source-map cause remain unchanged.
