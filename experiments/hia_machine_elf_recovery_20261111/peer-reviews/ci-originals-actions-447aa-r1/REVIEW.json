@@ -1,0 +1,93 @@
+{
+  "schema": "hia.independent-static-peer-review.v1",
+  "status": "LIMITED_STATIC_REVIEW_WITH_CONCRETE_CUSTODY_DEFECT",
+  "canonical": "447aa7b07fe142e168f7052e401bc96c607c1020",
+  "scope": "Original API credential/redirect/anonymous storage boundary,900/3 lifecycle and fixed selected-file custody; no network or product execution.",
+  "exact_files": [
+    {
+      "name": "controller.py",
+      "bytes": 28027,
+      "sha256": "9bd271032e7028e4f4429a2247581d01c0b98e61b54078f6ca85f138d630acd3",
+      "git_blob_sha1": "e977761a92fa5c319519b4f705ff610ff75f807c",
+      "byte_readback": true
+    },
+    {
+      "name": "worker.py",
+      "bytes": 15837,
+      "sha256": "77dec7a3dafa17cfd69e7c6128acd5ea5712ba5a4517164847140aeb7e851b33",
+      "git_blob_sha1": "8c07bc7342945e6c193b75fa722c470f443c48ab",
+      "byte_readback": true
+    },
+    {
+      "name": "original_receiver.py",
+      "bytes": 29584,
+      "sha256": "24d8aadb1ab9630e8168c0b61c10e0934b7ad22d5cf58b92b56a7af1e88519c6",
+      "git_blob_sha1": "f53a3ed128f38a766028ce543bb3045ec80e2e71",
+      "byte_readback": true
+    },
+    {
+      "name": "guardian.py",
+      "bytes": 10257,
+      "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023",
+      "git_blob_sha1": "1a7b8588871d1a0eb485dacc2dac2f1fe373b8a7",
+      "byte_readback": true
+    },
+    {
+      "name": "process_owner_impl.py",
+      "bytes": 17601,
+      "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+      "git_blob_sha1": "6f600ab75894859b9840c0311cc8891a67b6c53a",
+      "byte_readback": true
+    },
+    {
+      "name": "artifact-pins.json",
+      "bytes": 3778,
+      "sha256": "91bb6f6a1d138a7118f0d38ba473aecc3689ec803f4300fda7d7beb1a2755b86",
+      "git_blob_sha1": "677baffb3706e2fdd447fa6ced41e7bf145e2ef4",
+      "byte_readback": true
+    }
+  ],
+  "observations": [
+    "Only fixed api.github.com metadata and /zip requests carry the dedicated token; automatic redirects and ambient proxies are disabled.",
+    "The one Location must be HTTPS with an approved storage suffix, no credentials, fragment or unusual port; a separate anonymous request/client carries neither Authorization nor Cookie.",
+    "The original whole receiver and15103-byte shared helper are byte-identical to8501/23226; both historical full ZIP seals and the fixed17-member present/missing accounting are preserved.",
+    "The unchanged guardian calls supervise directly; its serialized config/receipt does not contain the child environment. Finalization requires token absent and only captures fixed public file paths.",
+    "Whole-size/SHA verification,create-only partial/no-replace publication,two full original reads,selected raw CRC/hash and natural900/3 cleanup remain explicit."
+  ],
+  "findings": [
+    {
+      "id": "PARTIAL_ZIP_HIDES_RAW_MEMBERS",
+      "status": "CONFIRMED_STATIC_NOT_EXECUTED",
+      "location": "controller.py:fixed_capture_paths",
+      "detail": "Any existing selected-originals.zip suppresses all17 .raw paths, including if bundle_selected failed midway and the ZIP is partial while sealed raw originals exist. The resulting HOLD can lose the omitted original bytes from the small capture.",
+      "requested_fix": "Only omit raw members after a validated complete CUSTODY record and actual ZIP binding; otherwise retain existing ZIP plus all available fixed raw paths."
+    },
+    {
+      "id": "SUCCESS_CAPTURE_BINDING",
+      "status": "INDEPENDENT_STATIC_CONCURRENCE_WITH_PEER_FINDING_NOT_EXECUTED",
+      "location": "controller.py:accept_worker/finalize",
+      "detail": "Worker custody fields are checked without tying every required actual captured archive/directory/selection/custody/observation file to those original records; missing_capture_paths alone does not force HOLD. The producer is preparing A2."
+    }
+  ],
+  "AST_attempt": {
+    "schema": "hia.peer.static-parse-attempt-unavailable.v1",
+    "canonical": "447aa7b07fe142e168f7052e401bc96c607c1020",
+    "expected_python_files": 5,
+    "observed_AST_results": 0,
+    "exact_tool_error": "exec_command failed: CreateProcess { message: \"Rejected(\\\"Failed to create unified exec process: exec-server transport disconnected; failed to resume exec-server session: recovery timed out after 45s\\\")\" }",
+    "user_environment_status": "unavailable",
+    "new_attempts_after_unavailable": 0,
+    "project_import_requested": false,
+    "product_run_requested": false,
+    "original_source_readback_complete": true,
+    "original_AST_results_not_claimed": true
+  },
+  "api_version_primary_source": {
+    "url": "https://docs.github.com/en/rest/about-the-rest-api/api-versions?apiVersion=2026-03-10",
+    "observed_supported_version": "2026-03-10"
+  },
+  "not_a2_clear": true,
+  "product_executed": false,
+  "downloads_executed": false,
+  "h_invoked": false
+}
