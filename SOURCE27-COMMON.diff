@@ -1,0 +1,842 @@
+--- a/MANIFEST.in
++++ b/MANIFEST.in
+@@ -86,4 +86,5 @@
+ include examples/hia_bootstrap/machine_state.hiaasm
+ include examples/hia_bootstrap/machine_instructions.hiaasm
+ include examples/hia_bootstrap/machine_plan.hiaasm
++include examples/hia_bootstrap/core_lowering.hiaasm
+ include examples/hia_bootstrap/service_context.hiaasm
+--- a/docs/HIA_MACHINE_PLAN_NATIVE.md
++++ b/docs/HIA_MACHINE_PLAN_NATIVE.md
+@@ -159,3 +159,26 @@
+ observations and overlap; they are not presented as one combined suite. The
+ original 44-caller regression is a separately reported gate. Current-source
+ cold and full repository qualification are required after integration.
++
++## Shared physical-frame and whole-emission revision
++
++The Core-lowering integration revises the shared continuation's named-local
++retirement to use the exact observed CPython 3.12/3.13 forward or 3.14 reverse
++profile. HIA retains the temporary-birth LIFO phase, then omits only proven-empty
++non-cell temporary slots. Unknown interpreter profiles are explicitly refused
++on this selected path. Original real-interpreter lifecycle assertions remain
++unchanged; forced profile-word VM/native matrices are separate protocol evidence.
++
++Public Plan facades transfer their argument owners before driving the HIA frame.
++A complete backend emission captures one Plan admission, including explicit
++absence, for its entire duration. The reviewed checker capture names the actual
++immutable mapping; a callback changing the ambient selector cannot enter an old
++Plan body or silently replace the held identity. Fresh selection checks source,
++manifest and executable bytes again. Captured capabilities cannot be supplied
++through serialized proof evidence or used as service-held overrides.
++
++Original failures, including the real Python 3.14 iterator/parameter release
++order and the actual callback-induced old-body entry before a late stale error,
++remain separately archived. The Core owner document records new development
++scope and the full six-owner composition controls. No old qualification is
++transferred to this revision.
+--- a/hepta/hia_agent_contract.py
++++ b/hepta/hia_agent_contract.py
+@@ -27,6 +27,7 @@
+ 
+ 
+ NATIVE_SOURCE_FILES = (
++    'examples/hia_bootstrap/core_lowering.hiaasm',
+     'examples/hia_bootstrap/machine_elf.hiaasm',
+     'examples/hia_bootstrap/cli_control.hiaasm',
+     'examples/hia_bootstrap/cli_format.hiaasm',
+--- a/hepta/hia_checker_identity.py
++++ b/hepta/hia_checker_identity.py
+@@ -2,8 +2,9 @@
+ 
+ Source bytes alone cannot identify a checker which delegates to native images.
+ This module records both the reviewed Python dependency closure and the actual
+-immutable mappings returned by the existing native loaders. It neither executes
+-those mappings nor treats an image/manifest digest as a correctness theorem.
++immutable mappings returned by the existing native loaders. Some loaders
++initialize their fixed table or transport emitter; identity capture does not
++invoke a business-policy entry or treat a digest as a correctness theorem.
+ The host Python/loader and absence of hostile process mutation remain assumed.
+ """
+ from __future__ import annotations
+@@ -17,6 +18,9 @@
+ 
+ 
+ CORE_SOURCE_FILES = (
++    "hia_core_lowering_native.py", "hia_core_lowering_selection.py",
++    "hia_machine_plan_control_native.py", "hia_exception_delivery.py", "hia_machine_transport.py",
++    "hia_machine_plan.py", "hia_machine_plan_native.py",
+     "hia_checker_identity.py", "hia_native_helpers.py", "hia_program.py", "hia_program_composite.py",
+     "hia_capability_flow.py", "hia_opcodes.py", "hia_schema.py",
+     "hia_json_preflight.py", "hia_json_decode.py", "hia_json_preflight_native.py",
+@@ -44,6 +48,8 @@
+ # the public VM; binding only its Python caller would omit a selected HIA image.
+ # New semantic delegations must extend this inventory before proof qualification.
+ NATIVE_OWNERS = {
++    "HEPTA_HIA_MACHINE_PLAN_MANIFEST": ("hia_machine_plan_native", "installed_machine_plan"),
++    "HEPTA_HIA_CORE_LOWERING_MANIFEST": ("hia_core_lowering_selection", "installed_core_lowering"),
+     "HEPTA_HIA_PROGRAM_EXECUTION_MANIFEST": ("hia_program_execution_native", "installed_program_execution"),
+     "HEPTA_HIA_STATIC_BUDGET_MANIFEST": ("hia_static_budget_native", "installed_static_budget"),
+     "HEPTA_HIA_HEAP_BOUND_MANIFEST": ("hia_heap_bound_native", "installed_heap_controller"),
+@@ -86,6 +92,20 @@
+     "HEPTA_HIA_SERVICE_CONTEXT_MANIFEST": ("hia_service_context_native", "NativeContextImage"),
+ }
+ 
++# Backend rederivation captures an ordinary selection for the duration of its
++# emit, including an explicit absence. Its identity must name the mapping
++# actually used in that scope, while later independent consumers re-admit the
++# then-current ambient selector. These hooks return only admitted capabilities;
++# serialized evidence cannot choose or override one.
++CAPTURED_NATIVE_OWNERS = {
++    "HEPTA_HIA_MACHINE_PLAN_MANIFEST": (
++        "hia_machine_plan_native", "captured_checker_owner",
++        "hia_machine_plan_control_native", "NativeMachinePlanControl"),
++    "HEPTA_HIA_CORE_LOWERING_MANIFEST": (
++        "hia_core_lowering_selection", "captured_checker_owner",
++        "hia_core_lowering_native", "NativeCoreLowering"),
++}
++
+ 
+ @dataclass(frozen=True, eq=False)
+ class HeldNativeOwner:
+@@ -113,9 +133,20 @@
+ def _held_native_identity(binding):
+     if type(binding) is not HeldNativeOwner:
+         raise ValueError("held checker owner requires its admitted in-process capability")
+-    if type(binding.selector) is not str or binding.selector not in HELD_NATIVE_OWNERS:
+-        raise ValueError("held checker owner is outside the explicit service inventory")
+-    module_name, factory_name = HELD_NATIVE_OWNERS[binding.selector]
++    if type(binding.selector) is not str:
++        raise ValueError("held checker selector must be an exact string")
++    if binding.selector in HELD_NATIVE_OWNERS:
++        if binding.selector in NATIVE_OWNERS or binding.selector in CAPTURED_NATIVE_OWNERS:
++            raise ValueError("service-held checker owner overlaps an ordinary selector")
++        module_name, factory_name = HELD_NATIVE_OWNERS[binding.selector]
++    elif binding.selector in CAPTURED_NATIVE_OWNERS:
++        record = CAPTURED_NATIVE_OWNERS[binding.selector]
++        if (binding.selector not in NATIVE_OWNERS or type(record) is not tuple
++                or len(record) != 4 or any(type(part) is not str for part in record)):
++            raise ValueError("captured checker type is outside its reviewed ordinary owner")
++        module_name, factory_name = record[2:]
++    else:
++        raise ValueError("held checker owner is outside the explicit capability inventory")
+     module = importlib.import_module("." + module_name, __package__)
+     if type(binding.image) is not getattr(module, factory_name):
+         raise ValueError("held checker mapping differs from its native owner type")
+@@ -177,16 +208,38 @@
+ 
+ 
+ def checker_native_selection(*, held_owners=()):
+-    """Bind every selected verifier owner without invoking a native entrypoint.
++    """Bind each admitted verifier mapping without running a business-policy entry.
+ 
+     Configured owners are conservatively bound even when a particular input
+     does not visit them. No serialized receipt can select code for this call.
+     """
+     if type(held_owners) is not tuple:
+         raise ValueError("held checker owners must be an explicit immutable capability tuple")
++    captured = {}
++    for key, record in CAPTURED_NATIVE_OWNERS.items():
++        if (key not in NATIVE_OWNERS or key in HELD_NATIVE_OWNERS
++                or type(record) is not tuple or len(record) != 4
++                or any(type(part) is not str for part in record)):
++            raise ValueError("captured checker hook is outside the reviewed owner inventory")
++        module_name, hook_name = record[:2]
++        module = importlib.import_module("." + module_name, __package__)
++        observation = getattr(module, hook_name)()
++        if (type(observation) is not tuple or len(observation) != 2
++                or type(observation[0]) is not bool):
++            raise ValueError("captured checker owner observation is malformed")
++        if observation[0]:
++            binding = observation[1]
++            if binding is not None and (type(binding) is not HeldNativeOwner or binding.selector != key):
++                raise ValueError("captured checker owner differs from its declared selector")
++            captured[key] = None if binding is None else _held_native_identity(binding)
++        elif observation[1] is not None:
++            raise ValueError("uncaptured checker owner supplied a capability")
+     selected = {key: os.environ.get(key) or None for key in sorted(NATIVE_OWNERS)}
+     result = {}
+     for key, path in selected.items():
++        if key in captured:
++            result[key] = captured[key]
++            continue
+         if path is None:
+             result[key] = None
+             continue
+@@ -220,7 +273,8 @@
+                        "sources": source_identity, "images": image_identity,
+                        "child_manifests": {name: sha256(child).hexdigest()
+                                            for name, child in children.items()}}
+-    if selected != {key: os.environ.get(key) or None for key in sorted(NATIVE_OWNERS)}:
++    if ({key: path for key, path in selected.items() if key not in captured}
++            != {key: os.environ.get(key) or None for key in sorted(NATIVE_OWNERS) if key not in captured}):
+         raise ValueError("checker native selection changed during identity capture")
+     for binding in held_owners:
+         identity = _held_native_identity(binding)
+--- a/hepta/hia_machine_plan.py
++++ b/hepta/hia_machine_plan.py
+@@ -230,58 +230,75 @@
+ 
+ # Operator-only selection.  No field of the caller's plan selects an image.
+ def _native_owner():
+-    import os
+-    from .hia_machine_plan_native import SELECTOR, installed_machine_plan
++    from .hia_machine_plan_native import selected_machine_plan
+     captured = _NATIVE_OWNER.get()
+     if captured is not None:
+         return captured
+-    path = os.environ.get(SELECTOR)
+-    return installed_machine_plan(path) if path else None
++    return selected_machine_plan()
+ 
+ 
+ def validate_plan(checked, plan):
+     selected = _native_owner()
+     if selected is None:
+-        return _reference_validate_plan(checked, plan)
+-    token = _NATIVE_OWNER.set(selected)
+-    try:
+-        return selected.validate(checked, plan)
++        _arguments = [checked, plan]
++        checked = plan = None
++        return _reference_validate_plan(_arguments.pop(0), _arguments.pop(0))
++    previous = _NATIVE_OWNER.get()
++    try:
++        _NATIVE_OWNER.set(selected)
++        _arguments = [checked, plan]
++        checked = plan = None
++        return selected.validate(_arguments.pop(0), _arguments.pop(0))
+     finally:
+-        _NATIVE_OWNER.reset(token)
++        _NATIVE_OWNER.set(previous)
+ 
+ 
+ def register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):
+     selected = _native_owner()
+     if selected is None:
+-        return _reference_register_assignment_witness(
+-            checked, assignments, allow_leaf_registers=allow_leaf_registers)
+-    token = _NATIVE_OWNER.set(selected)
+-    try:
+-        return selected.witness(checked, assignments, allow_leaf_registers=allow_leaf_registers)
++        _arguments = [checked, assignments, allow_leaf_registers]
++        checked = assignments = allow_leaf_registers = None
++        return _reference_register_assignment_witness(_arguments.pop(0), _arguments.pop(0), allow_leaf_registers=_arguments.pop(0))
++    previous = _NATIVE_OWNER.get()
++    try:
++        _NATIVE_OWNER.set(selected)
++        _arguments = [checked, assignments, allow_leaf_registers]
++        checked = assignments = allow_leaf_registers = None
++        return selected.witness(_arguments.pop(0), _arguments.pop(0), allow_leaf_registers=_arguments.pop(0))
+     finally:
+-        _NATIVE_OWNER.reset(token)
++        _NATIVE_OWNER.set(previous)
+ 
+ 
+ def code_options(plan):
+     selected = _native_owner()
+     if selected is None:
+-        return _reference_code_options(plan)
+-    token = _NATIVE_OWNER.set(selected)
+-    try:
+-        return selected.code_options(plan)
++        _arguments = [plan]
++        plan = None
++        return _reference_code_options(_arguments.pop(0))
++    previous = _NATIVE_OWNER.get()
++    try:
++        _NATIVE_OWNER.set(selected)
++        _arguments = [plan]
++        plan = None
++        return selected.code_options(_arguments.pop(0))
+     finally:
+-        _NATIVE_OWNER.reset(token)
++        _NATIVE_OWNER.set(previous)
+ 
+ 
+ def preservation_checks(plan, checked=None):
+     selected = _native_owner()
+     if selected is None:
+-        return _reference_preservation_checks(plan, checked)
+-    token = _NATIVE_OWNER.set(selected)
+-    try:
+-        return selected.preservation_checks(plan, checked)
++        _arguments = [plan, checked]
++        plan = checked = None
++        return _reference_preservation_checks(_arguments.pop(0), _arguments.pop(0))
++    previous = _NATIVE_OWNER.get()
++    try:
++        _NATIVE_OWNER.set(selected)
++        _arguments = [plan, checked]
++        plan = checked = None
++        return selected.preservation_checks(_arguments.pop(0), _arguments.pop(0))
+     finally:
+-        _NATIVE_OWNER.reset(token)
++        _NATIVE_OWNER.set(previous)
+ 
+ 
+ # Used only to distinguish the original public continuation from a caller's
+--- a/hepta/hia_machine_plan_control_native.py
++++ b/hepta/hia_machine_plan_control_native.py
+@@ -17,7 +17,7 @@
+ import struct
+ import sys
+ 
+-from .hia_exception_delivery import ExceptionDelivery
++from .hia_exception_delivery import ExceptionDelivery, ExceptionDeliveryUnavailable
+ from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
+ from .hia_machine_transport import _private_zeroed_buffer
+ 
+@@ -78,9 +78,24 @@
+         return _capture(frame)
+ 
+ 
++def _runtime_profile():
++    """Observe only explicitly reviewed interpreter frame ABIs.
++
++    Public unselected Python paths keep their existing package support. This
++    native continuation requires the same CPython 3.12+ exception mechanism;
++    unreviewed interpreter families and future versions cannot silently borrow
++    the 3.14 frame ABI. HIA, rather than this transport, chooses retirement order.
++    """
++    version = sys.version_info[:2]
++    if sys.implementation.name != 'cpython' or version not in ((3, 12), (3, 13), (3, 14)):
++        raise ExceptionDeliveryUnavailable('native frame transport requires a reviewed CPython 3.12, 3.13 or 3.14 ABI')
++    return version[0] * 100 + version[1]
++
++
+ class PlanFrame:
+     def __init__(self, image, mode, arguments, captures=(), *, witness=None):
+         self.closed = False
++        self._runtime_profile = image.runtime_profile
+         self.state = self.output = None
+         self.pending = self.frame_bytes = None
+         self.executed = self.completed = False
+@@ -188,8 +203,12 @@
+                 self._retiring = False
+         else:
+             # A partial constructor has not executed a policy instruction.
+-            # Its argument slots have only the fixed forward frame ownership.
+-            for index in range(len(self.values)):
++            # Its argument slots have only physical frame ownership. No HIA
++            # instruction or foreign policy operation has been permitted.
++            indices = range(len(self.values))
++            if self._runtime_profile == 314:
++                indices = reversed(indices)
++            for index in indices:
+                 self.values[index] = _EMPTY
+         self.values.clear()
+         self.cells.clear()
+@@ -211,7 +230,8 @@
+             raise RuntimeError('native machine-plan frame is closed')
+         sequence = 0 if not self._started else _read_word(self.state, 144)
+         value = self.mode if command == 0 else op if command == 2 else flag
+-        struct.pack_into('<5Q', self.state, 0, command, self.nonce, sequence, value, error)
++        struct.pack_into('<6Q', self.state, 0, command, self.nonce, sequence, value, error,
++                         self._runtime_profile)
+         self.image.entries += 1
+         return self.image._entry(self.image._table_buffer, len(self.image.table),
+                                  self.output, len(self.output), self.state, len(self.state))
+@@ -360,8 +380,9 @@
+             return native_generator()
+         image, witness = self.image, self.witness
+         def native_function(*arguments):
+-            return image.run(mode, *arguments, _captures=captures,
+-                             _witness=witness)
++            frame = image.prepare(mode, arguments, captures, witness=witness)
++            arguments = None
++            return image.finish(frame)
+         return native_function
+ 
+     def _effect(self):
+@@ -510,6 +531,7 @@
+         self._initialize_control()
+ 
+     def _initialize_control(self):
++        self.runtime_profile = _runtime_profile()
+         self.entries = 0
+         self.observations = Counter()
+         self._delivery = ExceptionDelivery.from_hia(self)
+@@ -568,8 +590,11 @@
+             self._literals[index] = value
+         return self._literals[index]
+ 
+-    def run(self, mode, *arguments, _captures=(), _witness=None):
+-        frame = PlanFrame(self, mode, arguments, _captures, witness=_witness)
++    def prepare(self, mode, arguments, captures=(), *, witness=None):
++        return PlanFrame(self, mode, arguments, captures, witness=witness)
++
++    def finish(self, frame):
++        """Drive after the fixed facade has transferred its parameter owners."""
+         try:
+             if frame.drive() != 0:
+                 raise RuntimeError('native machine-plan public entry yielded')
+@@ -577,18 +602,32 @@
+         finally:
+             frame.close(release=sys.exc_info()[0] is None)
+ 
++    def run(self, mode, *arguments, _captures=(), _witness=None):
++        frame = self.prepare(mode, arguments, _captures, witness=_witness)
++        arguments = _captures = None
++        return self.finish(frame)
++
+     def validate(self, checked, plan, witness=None):
+-        return self.run(1, checked, plan, _witness=witness)
++        frame = self.prepare(1, (checked, plan), witness=witness)
++        checked = plan = witness = None
++        return self.finish(frame)
+ 
+     def witness(self, checked, assignments, *, allow_leaf_registers=False):
+-        return self.run(2, checked, assignments, allow_leaf_registers)
++        frame = self.prepare(2, (checked, assignments, allow_leaf_registers))
++        checked = assignments = allow_leaf_registers = None
++        return self.finish(frame)
+ 
+     def code_options(self, plan):
+-        return self.run(3, plan)
++        frame = self.prepare(3, (plan,))
++        plan = None
++        return self.finish(frame)
+ 
+     def preservation_checks(self, plan, checked=None, *, witness=None):
+-        return self.run(4, plan, checked, _witness=witness)
++        frame = self.prepare(4, (plan, checked), witness=witness)
++        plan = checked = witness = None
++        return self.finish(frame)
+ 
+ 
+ def installed_machine_plan(manifest_path):
+-    return _installed_json_image(manifest_path, SOURCE, SCHEMA, NativeMachinePlanControl)
++    from .hia_machine_plan_native import installed_machine_plan as admitted
++    return admitted(manifest_path)
+--- a/hepta/hia_machine_plan_native.py
++++ b/hepta/hia_machine_plan_native.py
+@@ -1,11 +1,105 @@
+-"""Public loader names for the complete HIA machine-plan control owner."""
++"""Source-bound loader and whole-emission capture for HIA machine plans.
++
++Each fresh selection reads the exact manifest, source and executable. A scope
++holds its actual immutable mapping and checker capability, including an
++explicit absence; a foreign callback cannot silently change that selection.
++"""
++from __future__ import annotations
++
++from contextlib import contextmanager
++from contextvars import ContextVar
++from dataclasses import dataclass
++from hashlib import sha256
++import json
++import os
++from pathlib import Path
++
+ from .hia_machine_plan_control_native import (
+     SOURCE, SCHEMA, SELECTOR, NativeMachinePlanControl,
+ )
+-from .hia_json_preflight_native import _installed_json_image
++from .hia_json_preflight_native import (
++    MAX_IMAGE_BYTES, _installed_json_image, _unique_manifest_pairs,
++)
+ 
+ NativeMachinePlan = NativeMachinePlanControl
++_UNSELECTED = object()
++_SELECTION = ContextVar('hia_machine_plan_admitted_selection', default=_UNSELECTED)
++
++
++@dataclass(frozen=True, eq=False)
++class _Admission:
++    owner: NativeMachinePlanControl
++    checker_owner: object
++
++
++def _bounded(path, maximum):
++    with path.open('rb') as stream:
++        raw = stream.read(maximum + 1)
++    if len(raw) > maximum:
++        raise ValueError('native machine-plan admission exceeds its private input extent')
++    return raw
++
++
++def _admit(manifest_path):
++    path = Path(manifest_path).resolve(strict=True)
++    raw = _bounded(path, 16384)
++    manifest = json.JSONDecoder(object_pairs_hook=_unique_manifest_pairs).decode(raw.decode('utf-8'))
++    if (type(manifest) is not dict or set(manifest) != {
++            'schema', 'source_sha256', 'image_path', 'image_sha256', 'compiler_sha256'}
++            or manifest['schema'] != SCHEMA or type(manifest['image_path']) is not str
++            or any(type(manifest[key]) is not str or len(manifest[key]) != 64
++                   or any(c not in '0123456789abcdef' for c in manifest[key])
++                   for key in ('source_sha256', 'image_sha256', 'compiler_sha256'))):
++        raise ValueError('invalid native HIA JSON manifest')
++    source = SOURCE.read_bytes()
++    if sha256(source).hexdigest() != manifest['source_sha256']:
++        raise ValueError('native HIA JSON source identity mismatch')
++    image_path = (path.parent / manifest['image_path']).resolve(strict=True)
++    image = _bounded(image_path, MAX_IMAGE_BYTES)
++    if sha256(image).hexdigest() != manifest['image_sha256']:
++        raise ValueError('native HIA JSON executable identity mismatch')
++    owner = _installed_json_image(str(path), SOURCE, SCHEMA, NativeMachinePlan)
++    if (owner.admitted_source_sha256 != manifest['source_sha256']
++            or owner.image_sha256 != manifest['image_sha256']
++            or _bounded(path, 16384) != raw or SOURCE.read_bytes() != source
++            or _bounded(image_path, MAX_IMAGE_BYTES) != image):
++        raise ValueError('native machine-plan admission inputs changed')
++    from .hia_checker_identity import hold_native_owner
++    return _Admission(owner, hold_native_owner(SELECTOR, owner, raw, source))
+ 
+ 
+ def installed_machine_plan(manifest_path):
+-    return _installed_json_image(manifest_path, SOURCE, SCHEMA, NativeMachinePlan)
++    return _admit(manifest_path).owner
++
++
++def _selected_admission():
++    captured = _SELECTION.get()
++    if captured is not _UNSELECTED:
++        return captured
++    path = os.environ.get(SELECTOR)
++    return _admit(path) if path else None
++
++
++def selected_machine_plan():
++    captured = _selected_admission()
++    return None if captured is None else captured.owner
++
++
++def captured_checker_owner():
++    captured = _SELECTION.get()
++    if captured is _UNSELECTED:
++        return False, None
++    return True, None if captured is None else captured.checker_owner
++
++
++@contextmanager
++def native_machine_plan_scope():
++    captured = _selected_admission()
++    previous = _SELECTION.get()
++    try:
++        # Keep the previous value independently of set()'s returned token:
++        # losing its STORE acknowledgement must still unwind this scope.
++        _SELECTION.set(captured)
++        yield
++    finally:
++        _SELECTION.set(previous)
+--- a/hepta/hia_native_helpers.py
++++ b/hepta/hia_native_helpers.py
+@@ -28,6 +28,7 @@
+ # Composed heap dependencies are admitted as one complete selector set below.
+ # Other multi-image and external executable contracts need separate closure.
+ HELPERS = {
++    "HEPTA_HIA_CORE_LOWERING_MANIFEST": ("hia_core_lowering_native", "NativeCoreLowering"),
+     "HEPTA_HIA_SERVICE_CONTEXT_MANIFEST": ("hia_service_context_native", "NativeContextImage"),
+     "HEPTA_HIA_MACHINE_ELF_MANIFEST": ("hia_machine_elf_native", "NativeMachineElf"),
+     "HEPTA_HIA_MACHINE_PLAN_MANIFEST": ("hia_machine_plan_native", "NativeMachinePlan"),
+--- a/hepta/hia_program_native.py
++++ b/hepta/hia_program_native.py
+@@ -66,7 +66,19 @@
+     """The exact program, target, object or publication is not admitted."""
+ 
+ 
+-def _reject(message, code="E_HIA_PROGRAM_NATIVE"):
++def _reject(message, code='E_HIA_PROGRAM_NATIVE'):
++    from .hia_core_lowering_selection import active_core_lowering
++    owner = active_core_lowering()
++    if owner is not None:
++        _invocation = owner.prepare('_reject', (message, code))
++        message = code = None
++        return owner.finish(_invocation)
++    _arguments = [message, code]
++    message = code = None
++    return _reference_reject(_arguments.pop(0), _arguments.pop(0))
++
++
++def _reference_reject(message, code="E_HIA_PROGRAM_NATIVE"):
+     raise HIAProgramNativeRejected(code + ": " + message)
+ 
+ 
+@@ -80,6 +92,7 @@
+         "hia_machine_state_native.py", "hia_machine_instructions_native.py",
+         "hia_machine_transport.py", "hia_json_preflight_native.py",
+         "hia_exception_delivery.py",
++        "hia_core_lowering_native.py", "hia_core_lowering_selection.py",
+         "hia_machine_plan_native.py", "hia_machine_plan_control_native.py",
+         "hia_machine_elf.py", "hia_machine_elf_native.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
+         "hia_heap_bound.py", "artifact_publication.py",
+@@ -97,19 +110,57 @@
+         digest.update(b"machine-elf-native\0" + selected_elf + b"\0")
+     from .hia_machine_plan import native_implementation_identity as plan_identity
+     digest.update(b'native-machine-plan\0' + plan_identity() + b'\0')
++    from .hia_core_lowering_selection import native_implementation_identity as lowering_identity
++    digest.update(b'native-core-lowering\0' + lowering_identity(globals()) + b'\0')
+     return digest.hexdigest()
+ 
+ 
+ def _words(typ):
++    from .hia_core_lowering_selection import active_core_lowering
++    owner = active_core_lowering()
++    if owner is not None:
++        _invocation = owner.prepare('_words', (typ,))
++        typ = None
++        return owner.finish(_invocation)
++    _arguments = [typ]
++    typ = None
++    return _reference_words(_arguments.pop(0))
++
++
++def _reference_words(typ):
+     return 2 if typ in BYTE_RESOURCES else 1
+ 
+ 
+ def _bounds(typ):
++    from .hia_core_lowering_selection import active_core_lowering
++    owner = active_core_lowering()
++    if owner is not None:
++        _invocation = owner.prepare('_bounds', (typ,))
++        typ = None
++        return owner.finish(_invocation)
++    _arguments = [typ]
++    typ = None
++    return _reference_bounds(_arguments.pop(0))
++
++
++def _reference_bounds(typ):
+     bits = WIDTHS[typ]
+     return (-(1 << (bits - 1)), (1 << (bits - 1)) - 1) if typ.startswith("i") else (0, (1 << bits) - 1)
+ 
+ 
+ def _normalize(code, reg, typ):
++    from .hia_core_lowering_selection import active_core_lowering
++    owner = active_core_lowering()
++    if owner is not None:
++        _invocation = owner.prepare('_normalize', (code, reg, typ))
++        code = reg = typ = None
++        return owner.finish(_invocation)
++    _arguments = [code, reg, typ]
++    code = reg = typ = None
++    return _reference_normalize(_arguments.pop(0), _arguments.pop(0), _arguments.pop(0))
++
++
++def _reference_normalize(code, reg, typ):
+     """Canonical full-register representation, including dirty incoming highs."""
+     if typ == "unit":
+         code.mov_imm(reg, 0)
+@@ -122,6 +173,18 @@
+ 
+ 
+ def _prologue(code, frame):
++    from .hia_core_lowering_selection import active_core_lowering
++    owner = active_core_lowering()
++    if owner is not None:
++        _invocation = owner.prepare('_prologue', (code, frame))
++        code = frame = None
++        return owner.finish(_invocation)
++    _arguments = [code, frame]
++    code = frame = None
++    return _reference_prologue(_arguments.pop(0), _arguments.pop(0))
++
++
++def _reference_prologue(code, frame):
+     code.push("rbp")
+     code.mov_rr("rbp", "rsp")
+     # Touch each 4-KiB interval so a large frame cannot jump a stack guard.
+@@ -150,6 +213,14 @@
+ 
+ 
+ class _Function:
++    def __new__(cls, parent, fn, index):
++        if cls is _Function:
++            from .hia_core_lowering_selection import selected_core_lowering
++            owner = selected_core_lowering(globals())
++            if owner is not None:
++                return object.__new__(owner.function_class(cls))
++        return object.__new__(cls)
++
+     def __init__(self, parent, fn, index):
+         self.parent, self.fn, self.index = parent, fn, index
+         self.c = parent.c
+@@ -696,7 +767,9 @@
+         _reject("direct machine backend supports only x86_64 Linux", "E_HIA_PROGRAM_TARGET")
+     from .hia_machine_x64 import native_encoding_scope
+     from .hia_machine_elf import native_elf_scope
+-    with native_encoding_scope(), native_elf_scope():
++    from .hia_core_lowering_selection import native_core_lowering_scope
++    from .hia_machine_plan_native import native_machine_plan_scope
++    with native_encoding_scope(), native_elf_scope(), native_core_lowering_scope(globals()), native_machine_plan_scope():
+         before = _implementation_hash()
+         if not isinstance(program, VerifiedProgram):
+             _reject("an immutable VerifiedProgram from verify_program is required")
+--- a/tests/test_hia_machine_plan_control_lifecycle.py
++++ b/tests/test_hia_machine_plan_control_lifecycle.py
+@@ -447,5 +447,74 @@
+         next_frame.close()
+ 
+ 
++    def test_three_physical_profiles_and_empty_slot_retirement_match_complete_VM(self):
++        from hepta.hia_machine_plan_native import SOURCE
++        from tests.hia_machine_frame_profile_controls import profile_matrix
++        plan = {'schema': plans.LAYOUT_V1}
++        report = profile_matrix(self, self.new_owner(), bridge.PlanFrame,
++                                SOURCE, 4, (plan, None), plans._reference_preservation_checks(plan))
++        (self.folder / 'physical-frame-profile-matrix.json').write_text(json.dumps(report, indent=2) + '\n')
++
++    def test_public_and_direct_facades_transfer_original_parameter_lifetimes(self):
++        rows = _plan_facade_observations(self.native, self.manifest)
++        (self.folder / 'facade-parameter-lifetime-traces.json').write_text(json.dumps(rows, indent=2) + '\n')
++        self.assertEqual(len(rows), 12)
++        for row in rows:
++            with self.subTest(route=row['route'], fail=row['fail'], outer=row['outer']):
++                self.assertEqual(row['actual'], row['reference'])
++                if row['route'] == 'default-public':
++                    self.assertEqual(row['actual_native_entries'], 0)
++                else:
++                    self.assertGreater(row['actual_native_entries'], 0)
++
++
+ if __name__ == '__main__':
+     unittest.main(verbosity=2)
++
++
++def _plan_facade_observations(owner,manifest):
++    base = verify_program(minimal_document())
++    MANIFEST = manifest
++    from hepta.hia_machine_plan_native import SELECTOR
++    def observe(route,fail,outer):
++     events=[];refs=[];held=None;outcome=None
++     def mark(name):
++      handled=sys.exception();events.append([name,None if handled is None else type(handled).__name__])
++     class Function(dict):
++      def __del__(self):mark('function-del')
++     class Checked(VerifiedProgram):
++      def as_dict(self):
++       mark('as_dict');doc=super().as_dict()
++       for index,fn in enumerate(doc['functions']):
++        value=Function(fn);refs.append(weakref.ref(value));doc['functions'][index]=value
++       return doc
++      def __del__(self):mark('checked-del')
++     def invoke():
++      if route=='reference':return plans._reference_register_assignment_witness(Checked(base.canonical_bytes), {'missing':{}} if fail else {})
++      if route=='native-direct':return owner.witness(Checked(base.canonical_bytes), {'missing':{}} if fail else {})
++      with patch.dict(os.environ,{SELECTOR:str(MANIFEST) if route=='native-public' else ''}):
++       return plans.register_assignment_witness(Checked(base.canonical_bytes), {'missing':{}} if fail else {})
++     def capture():
++      nonlocal held,outcome
++      try:outcome=['value',invoke()]
++      except BaseException as error:held=error;outcome=['error',type(error).__name__,str(error)]
++     previous=gc.isenabled();gc.disable()
++     try:
++      if outer:
++       try:raise LookupError('actual outer handled')
++       except LookupError:capture()
++      else:capture()
++      before=list(events);live=[r() is not None for r in refs]
++      if held is not None:held.__traceback__=None
++      return {'outcome':outcome,'with_error':before,'live_with_error':live,'after_detach':list(events),'live_after_detach':[r() is not None for r in refs]}
++     finally:
++      held=None
++      if previous:gc.enable()
++    rows=[]
++    for fail in (False,True):
++     for outer in (False,True):
++      expected=observe('reference',fail,outer)
++      for route in ('native-direct','native-public','default-public'):
++       entries=owner.entries;actual=observe(route,fail,outer)
++       rows.append({'route':route,'fail':fail,'outer':outer,'reference':expected,'actual':actual,'equal':expected==actual,'actual_native_entries':owner.entries-entries})
++    return rows
+--- a/tests/test_hia_machine_plan_native.py
++++ b/tests/test_hia_machine_plan_native.py
+@@ -320,12 +320,17 @@
+         from hepta.hia_program_native import _implementation_hash
+         with patch.dict(os.environ, {SELECTOR: ''}):
+             retained = _implementation_hash()
+-        with self.selected():
++        from hepta.hia_machine_plan_native import native_machine_plan_scope, selected_machine_plan
++        with self.selected(), native_machine_plan_scope():
++            admitted = selected_machine_plan()
+             selected = _implementation_hash()
+             self.assertNotEqual(selected, retained)
+             self.assertIn(self.native.image_sha256.encode(), plans.native_implementation_identity())
+-            with patch.object(self.native, 'image_sha256', '0' * 64):
+-                self.assertNotEqual(_implementation_hash(), selected)
++            before = admitted.entries
++            with patch.object(admitted, 'image_sha256', '0' * 64):
++                with self.assertRaisesRegex(ValueError, 'native mapping differs from its loaded identity'):
++                    _implementation_hash()
++            self.assertEqual(admitted.entries, before)
+ 
+     def test_actual_wheel_native_calls_without_authoring_or_checkout_fallback(self):
+         from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES,
+--- a/tools/generate_hia_machine_plan_control.py
++++ b/tools/generate_hia_machine_plan_control.py
+@@ -121,7 +121,7 @@
+         return ABI
+     command=get(w,0)
+     if command == 0:
+-        if get(w,128) != 0 or get(w,8) == 0 or get(w,16) != 0:
++        if get(w,128) != 0 or get(w,8) == 0 or get(w,16) != 0 or (get(w,40) != 312 and get(w,40) != 313 and get(w,40) != 314):
+             return ABI
+         mode=get(w,24)
+         if mode == 0 or mode > word(s,16):
+@@ -138,8 +138,10 @@
+         put(w,248,word(s,info+8))
+         put(w,256,word(s,info+24))
+         put(w,264,0)
++        put(w,312,get(w,40))
++        put(w,320,0)
+     else:
+-        if get(w,128) != MAGIC or get(w,8) != get(w,136) or get(w,16) != get(w,144):
++        if get(w,128) != MAGIC or get(w,8) != get(w,136) or get(w,16) != get(w,144) or get(w,40) != get(w,312):
+             return ABI
+         stage=get(w,168)
+         if command == 2:
+@@ -279,25 +281,34 @@
+     return ABI
+ 
+ def frame_retire(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
+-    latest=0
+-    selected=0
+-    i=0
+-    while i < get(w,248):
+-        birth=get(w,1024+i*8)
+-        if birth > latest:
+-            latest=birth
+-            selected=i
+-        i=i+1
+-    if latest != 0:
+-        put(w,280,selected)
+-        header(o,w,RELEASE,0,0,0,1,5)
+-        put(o,128,selected)
+-        return 1
++    if get(w,320) == 0:
++        latest=0
++        selected=0
++        i=0
++        while i < get(w,248):
++            birth=get(w,1024+i*8)
++            if birth > latest:
++                latest=birth
++                selected=i
++            i=i+1
++        if latest != 0:
++            put(w,280,selected)
++            header(o,w,RELEASE,0,0,0,1,5)
++            put(o,128,selected)
++            return 1
++        put(w,320,1)
+     index=get(w,304)
+-    if index < get(w,248):
+-        header(o,w,DROP_SLOT,0,0,0,1,6)
+-        put(o,128,index)
+-        return 1
++    while index < get(w,248):
++        slot=index
++        if get(w,312) == 314:
++            slot=get(w,248)-1-index
++        flags=byte(s,get(w,256)+slot)
++        if (flags&1) == 0 or (flags&2) != 0:
++            header(o,w,DROP_SLOT,0,0,0,1,6)
++            put(o,128,slot)
++            return 1
++        index=index+1
++        put(w,304,index)
+     put(w,168,9)
+     finish(o,w,0)
+     return 5
