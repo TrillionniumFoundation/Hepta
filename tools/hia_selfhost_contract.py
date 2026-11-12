@@ -13,8 +13,25 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v80-native-core-resources'
+PROFILE = 'selfhost-core-linux-x86_64-v81-native-core-emitter'
 SOURCE_FILES = (
+    'tools/qualify_hia_core_emitter_callers.py',
+    'docs/HIA_CORE_EMITTER_NATIVE.md',
+    'docs/HIA_CORE_EMITTER_ABI.json',
+    'tools/build_hia_core_emitter.py',
+    'tools/generate_hia_core_emitter.py',
+    'tools/hia_core_emitter_ir.py',
+    'tools/hia_core_emitter_policy.py',
+    'tests/test_hia_core_emitter_native.py',
+    'examples/hia_bootstrap/core_emitter_pool.hepta',
+    'examples/hia_bootstrap/core_emitter_000.hepta',
+    'examples/hia_bootstrap/core_emitter_001.hepta',
+    'examples/hia_bootstrap/core_emitter_002.hepta',
+    'examples/hia_bootstrap/core_emitter_003.hepta',
+    'examples/hia_bootstrap/core_emitter_004.hepta',
+    'examples/hia_bootstrap/core_emitter_005.hepta',
+    'examples/hia_bootstrap/core_emitter_006.hepta',
+    'examples/hia_bootstrap/core_emitter_007.hepta',
     'docs/HIA_CORE_LOWERING_NATIVE.md',
     'examples/hia_bootstrap/core_lowering_000.hepta',
     'examples/hia_bootstrap/core_lowering_001.hepta',

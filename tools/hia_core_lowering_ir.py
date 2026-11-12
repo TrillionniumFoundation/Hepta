@@ -390,6 +390,10 @@ def compile_policy(source):
             pass
         else:
             raise ValueError('policy contains an unreviewed top-level declaration')
+    return link_functions(literals, functions)
+
+
+def link_functions(literals, functions):
     instructions, entries, labels = [], {}, {}
     for mode, function in enumerate(functions, 1):
         entries[function.name] = {'mode':mode,'pc':len(instructions)+1,'parameters':function.parameters,

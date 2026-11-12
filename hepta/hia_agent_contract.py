@@ -130,6 +130,20 @@ BACKEND_BUILD_FILES = (
 )
 
 
+# Separately source-bound whole-program Emitter bundle.
+EMITTER_BUILD_FILES = (
+    'docs/HIA_CORE_EMITTER_ABI.json',
+    'examples/hia_bootstrap/core_emitter_pool.hepta',
+    'examples/hia_bootstrap/core_emitter_000.hepta',
+    'examples/hia_bootstrap/core_emitter_001.hepta',
+    'examples/hia_bootstrap/core_emitter_002.hepta',
+    'examples/hia_bootstrap/core_emitter_003.hepta',
+    'examples/hia_bootstrap/core_emitter_004.hepta',
+    'examples/hia_bootstrap/core_emitter_005.hepta',
+    'examples/hia_bootstrap/core_emitter_006.hepta',
+    'examples/hia_bootstrap/core_emitter_007.hepta',
+)
+
 # Build-input custody assets, not loadable native image adapters. The streaming
 # SHA source is already in NATIVE_SOURCE_FILES and is deliberately not repeated.
 PUBLICATION_BUILD_FILES = (
@@ -159,7 +173,7 @@ def installation_manifest():
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
-    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES):
+    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES):
         entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
     from .hia_program_native import _implementation_hash
     from .hia_native_helpers import native_helpers_identity

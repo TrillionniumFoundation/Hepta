@@ -331,8 +331,10 @@ class LoweringSession:
 class NativeCoreLowering:
     """Composition of admitted images and explicitly hosted object primitives."""
 
+    ABI_SCHEMA = 'hepta.hia.core-lowering-abi.v1'
+
     def __init__(self, images, pool, abi, namespace):
-        if type(abi) is not dict or abi.get('schema') != 'hepta.hia.core-lowering-abi.v1':
+        if type(abi) is not dict or abi.get('schema') != self.ABI_SCHEMA:
             raise ValueError('native lowering ABI metadata differs')
         if abi.get('protocol_magic') != MAGIC or abi.get('pool_magic') != POOL_MAGIC or abi.get('packet_bytes') != 128:
             raise ValueError('native lowering protocol identity differs')

@@ -87,6 +87,7 @@ def _implementation_hash():
         "hia_machine_x64.py", "hia_machine_encoding_native.py",
         "hia_machine_state_native.py", "hia_machine_instructions_native.py", "hia_machine_plan_native.py",
         "hia_core_lowering_native.py", "hia_core_lowering_selection.py",
+        "hia_core_emitter_native.py", "hia_core_emitter_selection.py",
         "hia_json_wire_native.py", "hia_instruction_policy_native.py",
         "hia_json_preflight_native.py", "hia_machine_elf.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
         "hia_heap_bound.py", "artifact_publication.py",
@@ -102,6 +103,9 @@ def _implementation_hash():
     digest.update(b'core-lowering-abi\0' + _source_resource_path('docs/HIA_CORE_LOWERING_ABI.json').read_bytes() + b'\0')
     from .hia_core_lowering_selection import native_implementation_identity as lowering_identity
     digest.update(b'native-core-lowering\0' + lowering_identity(globals()) + b'\0')
+    digest.update(b'core-emitter-abi\0' + _source_resource_path('docs/HIA_CORE_EMITTER_ABI.json').read_bytes() + b'\0')
+    from .hia_core_emitter_selection import native_implementation_identity as emitter_identity
+    digest.update(b'native-core-emitter\0' + emitter_identity(globals()) + b'\0')
     return digest.hexdigest()
 
 
@@ -616,6 +620,14 @@ class _Function:
 
 
 class _Emitter:
+    def __new__(cls, document, allowed_exports, block_order=None, foreign_buffer_exports=(), machine_plan=None):
+        if cls is _Emitter:
+            from .hia_core_emitter_selection import selected_core_emitter
+            owner = selected_core_emitter(globals())
+            if owner is not None:
+                return object.__new__(owner.emitter_class(cls))
+        return object.__new__(cls)
+
     def __init__(self, document, allowed_exports, block_order=None, foreign_buffer_exports=(), machine_plan=None):
         from .hia_machine_plan import code_options
         self.document, self.allowed_exports = document, allowed_exports
@@ -740,7 +752,8 @@ def emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_b
         _reject("direct machine backend supports only x86_64 Linux", "E_HIA_PROGRAM_TARGET")
     from .hia_machine_x64 import native_encoding_scope
     from .hia_core_lowering_selection import native_core_lowering_scope
-    with native_encoding_scope(), native_core_lowering_scope(globals()):
+    from .hia_core_emitter_selection import native_core_emitter_scope
+    with native_encoding_scope(), native_core_lowering_scope(globals()), native_core_emitter_scope(globals()):
         return _emit_program_machine_with_encoding(
             program, target=target, machine_plan=machine_plan,
             foreign_buffer_exports=foreign_buffer_exports)
