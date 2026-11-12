@@ -273,6 +273,10 @@ def function_signature(function, *, include_return_loans=False):
 def inspect_program(document):
     from .hia_program import verify_program
     verified = verify_program(document)
+    from .hia_cli_inspect_native import selected_inspect
+    selected = selected_inspect(verified)
+    if selected is not None:
+        return selected
     data = verified.as_dict()
     return {
         "schema": ("hepta.hia.inspect.v2" if data["schema"] == "hepta.hia.program.v8"

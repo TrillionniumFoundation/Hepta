@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger agent_read agent_query agent_native_metadata; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger agent_read agent_query agent_native_metadata agent_json_wire cli_inspect core_bytes sqlite_store; do
             if [ "$component" = agent_query ]; then
               python -B -m tools.generate_hia_agent_query \
                 --output "$RUNNER_TEMP/hia-agent-query-source.hepta" \
@@ -245,6 +245,8 @@ jobs:
           PY
       - name: Bootstrap ASCII oracle escaped-string regression
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_bootstrap_components.BootstrapSourceTests.test_ascii_reference_lexer_handles_long_escaped_strings
+      - name: Integrated native component source controls
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_agent_json_wire.AgentJsonWireSourceTests tests.test_hia_cli_inspect_native.CliInspectSourceTests tests.test_hia_core_bytes_native.CoreBytesSourceTests tests.test_hia_sqlite_store.SqliteStoreSourceTests
       - name: Preserve actual query source reproduction
         if: always()
         uses: actions/upload-artifact@v4
@@ -283,7 +285,7 @@ jobs:
           sudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc
           printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list
           sudo apt-get update
-          sudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace
+          sudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace libsqlite3-0
           printf 'CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n' >> "$GITHUB_ENV"
       - run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
       - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
@@ -390,6 +392,65 @@ jobs:
           HEPTA_HIA_CORE_ADMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_CORE_DIAGNOSTICS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_CORE_DIAGNOSTICS_EVIDENCE: ${{ runner.temp }}/hia-core-diagnostics
+      - name: Native exact Core bytes and selected ordinary verification
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_bytes_native tests.test_hia_core_bytes_integration tests.test_hia_core_bytes_ordinary
+        env:
+          HEPTA_HIA_CORE_BYTES_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_BYTES_EVIDENCE: ${{ runner.temp }}/hia-core-bytes
+      - name: Native ordinary CLI inspect reports
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_cli_inspect_native
+        env:
+          HEPTA_HIA_CLI_INSPECT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CLI_INSPECT_EVIDENCE: ${{ runner.temp }}/hia-cli-inspect
+      - name: Native JSON wire component and matching production images
+        run: |
+          set -eu
+          unset HEPTA_HIA_AGENT_JSON_WIRE_DEVELOPMENT_COMPILER HEPTA_HIA_AGENT_JSON_WIRE_DEVELOPMENT_COMPILER_SHA256
+          python -B tools/build_hia_agent_json_wire.py --output "$RUNNER_TEMP/hia-agent-json-wire-production" --compiler "$RUNNER_TEMP/hia-cold.cold/qualification.evidence/B3.image.bin" --cold-report "$RUNNER_TEMP/hia-cold.json"
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_agent_json_wire
+          python -B - "$RUNNER_TEMP/hia-agent-json-wire-production" "$RUNNER_TEMP/hia-agent-json-wire" "$RUNNER_TEMP/hia-cold.cold/qualification.evidence/B3.image.bin" <<'PYWIRE'
+          from hashlib import sha256
+          import json
+          from pathlib import Path
+          import sys
+          production, fixture, compiler = map(Path, sys.argv[1:4])
+          manifest_path = production / 'manifest.json'
+          manifest_raw = manifest_path.read_bytes()
+          manifest = json.loads(manifest_raw)
+          paths = {'production_manifest': manifest_path, 'current_compiler': compiler,
+                   'fixture_B2': fixture / 'B2.image.bin',
+                   'production_image': production / manifest['image_path'],
+                   'fixture_image': fixture / 'agent-json-wire.image.bin'}
+          captured = {name: path.read_bytes() for name, path in paths.items()}
+          if (captured['current_compiler'] != captured['fixture_B2']
+                  or captured['production_image'] != captured['fixture_image']
+                  or sha256(captured['production_image']).hexdigest() != manifest['image_sha256']
+                  or sha256(captured['current_compiler']).hexdigest() != manifest['compiler_sha256']):
+              raise SystemExit('writer fixture images differ from current cold production build')
+          if any(path.read_bytes() != captured[name] for name, path in paths.items()):
+              raise SystemExit('writer production comparison inputs changed')
+          proof = {'schema': 'hepta.hia.agent-json-wire-production-comparison.v1',
+                   'status': 'CURRENT_COLD_AND_FIXTURE_IMAGES_BYTE_EQUAL',
+                   'files': {name: {'path': str(paths[name]), 'bytes': len(raw),
+                                   'sha256': sha256(raw).hexdigest()}
+                             for name, raw in captured.items()},
+                   'original_development_receipts_rewritten': False,
+                   'ordinary_Agent_wire_selected': False}
+          with (fixture / 'production-equivalence.json').open('x', encoding='utf-8') as stream:
+              stream.write(json.dumps(proof, indent=2, sort_keys=True) + '\n')
+          print(json.dumps({'status': proof['status']}, sort_keys=True))
+          PYWIRE
+        env:
+          HEPTA_HIA_AGENT_JSON_WIRE_EVIDENCE: ${{ runner.temp }}/hia-agent-json-wire
+      - name: Native SQLite platform production build and complete controls
+        run: |
+          set -eu
+          unset HIA_SQLITE_PLATFORM_TEST_DEVELOPMENT
+          python -B tools/build_hia_sqlite_store.py --output "$RUNNER_TEMP/hia-sqlite-platform-production" --compiler "$RUNNER_TEMP/hia-cold.cold/qualification.evidence/B3.image.bin" --cold-report "$RUNNER_TEMP/hia-cold.json" --sqlite-library /usr/lib/x86_64-linux-gnu/libsqlite3.so.0
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_sqlite_store tests.test_hia_sqlite_store_integration
+        env:
+          HIA_SQLITE_PLATFORM_TEST_BUILD: ${{ runner.temp }}/hia-sqlite-platform-production/build.json
+          HIA_SQLITE_PLATFORM_EVIDENCE: ${{ runner.temp }}/hia-sqlite-platform
       - name: Standalone native complete Core admission CLI
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_admission_cli
         env:
@@ -662,6 +723,12 @@ jobs:
             ${{ runner.temp }}/hia-source-build/
             ${{ runner.temp }}/hia-selfhost-build/
             ${{ runner.temp }}/hia-core-diagnostics/
+            ${{ runner.temp }}/hia-core-bytes/
+            ${{ runner.temp }}/hia-cli-inspect/
+            ${{ runner.temp }}/hia-agent-json-wire-production/
+            ${{ runner.temp }}/hia-agent-json-wire/
+            ${{ runner.temp }}/hia-sqlite-platform-production/
+            ${{ runner.temp }}/hia-sqlite-platform/
             ${{ runner.temp }}/hia-execution-budget/
             ${{ runner.temp }}/hia-candidate-budget/
             ${{ runner.temp }}/hia-slot-ledger/

@@ -1,0 +1,63 @@
+{
+  "schema": "hepta.hia.agent-json-wire-abi.v1",
+  "entry": "f0(raw:readbuf, output:mutbuf, state:mutbuf) -> u32",
+  "source": "examples/hia_bootstrap/agent_json_wire.hepta",
+  "manifest_schema": "hepta.hia.agent-json-wire-native.v1",
+  "domain": "Private actual HIADATA1 tree and original raw bytes from the separately admitted native Agent-data decoder; decoded string keys only.",
+  "limits": {
+    "raw_bytes": 8388608,
+    "output_bytes": 8388608,
+    "nodes": 262144,
+    "depth": 128,
+    "numeric_workspace_bytes": 16384
+  },
+  "arena": {
+    "magic": "HIADATA1",
+    "header_bytes": 64,
+    "node_bytes": 56,
+    "layout": "Unchanged Agent-data decoder arena. The complete arena is copied; this entry owns the copy and sorts its sibling links.",
+    "native_binary64_slots": "arena_used + 8 * node_index, before private workspace"
+  },
+  "private_base": "len(state) - 16384",
+  "request_offsets": {
+    "16000": "u64 little-endian HIAJWRQ1 magic",
+    "16008": "u64 version 1",
+    "16016": "u64 fixed output limit 8388608",
+    "16024": "u64 actual integer repr digit limit; 0 means unlimited",
+    "16032": "u64 reserved 0",
+    "16040": "u64 reserved 0",
+    "16048": "u64 native status",
+    "16056": "u64 failed node or UINT64_MAX"
+  },
+  "numeric_private_offsets": {
+    "12288": "native binary64 bits",
+    "12304": "original raw decimal span start",
+    "12312": "original raw decimal span size",
+    "12320": "up to 32 native formatted bytes"
+  },
+  "success": "1..8388608 complete wire bytes; status 0, failed_node UINT64_MAX. UTF-8, ensure_ascii=false, sort_keys=true, compact comma/colon separators.",
+  "failure_statuses": {
+    "0xfffffffd": "private ABI refusal",
+    "0xfffffffc": "invalid arena or internal numeric result",
+    "0xfffffffb": "nonfinite binary64 span",
+    "0xfffffffa": "integer output digit limit, visited in sorted output order",
+    "0xfffffff9": "encoded output exceeds 8 MiB",
+    "0xfffffff8": "decoded tree exceeds depth 128"
+  },
+  "order": [
+    "validate the entire private tree and UTF-8 extents",
+    "convert float spans in original preorder; store actual native bits",
+    "sort object string keys and reject duplicates",
+    "write complete tree in sorted output order, including integer repr limit"
+  ],
+  "refusal_publication": "Caller must not expose partial output. Output remains untouched on structural/numeric prepass refusal; later output refusals may leave private partial bytes.",
+  "source_custody": "Standard five-field manifest. Production builder requires complete matching-source cold report at original 180-second/3-second limits. No default selection.",
+  "exclusions": [
+    "Python object graphs and foreign objects",
+    "numeric Python dict keys and coercion collisions",
+    "the original decode_data UTF-8/preflight/int-parse error order",
+    "SQLite transactions and persistence",
+    "ordinary Agent wire(data) replacement",
+    "whole-stack native qualification"
+  ]
+}

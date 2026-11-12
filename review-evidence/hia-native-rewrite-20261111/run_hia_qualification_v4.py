@@ -19,6 +19,7 @@ p = argparse.ArgumentParser()
 p.add_argument('--source', type=Path, required=True)
 p.add_argument('--output', type=Path, required=True)
 p.add_argument('--full', action='store_true')
+p.add_argument('--sqlite-library', type=Path, default=Path('/usr/lib/x86_64-linux-gnu/libsqlite3.so.0'))
 a = p.parse_args()
 root = a.source.resolve(); out = a.output.resolve()
 if out == root or out.is_relative_to(root):
@@ -87,7 +88,12 @@ development_selectors = ('HEPTA_HIA_AGENT_CANDIDATE_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_WORKER_HELPERS_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_WORKER_REQUEST_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_AGENT_JOURNAL_DEVELOPMENT_MANIFEST',
-                         'HEPTA_HIA_RETIREMENT_DEVELOPMENT_COMPILER')
+                         'HEPTA_HIA_RETIREMENT_DEVELOPMENT_COMPILER',
+                         'HEPTA_HIA_CLI_INSPECT_DEVELOPMENT_COMPILER',
+                         'HEPTA_HIA_CORE_BYTES_DEVELOPMENT_COMPILER',
+                         'HEPTA_HIA_AGENT_JSON_WIRE_DEVELOPMENT_COMPILER',
+                         'HEPTA_HIA_AGENT_JSON_WIRE_DEVELOPMENT_COMPILER_SHA256',
+                         'HIA_SQLITE_PLATFORM_TEST_DEVELOPMENT')
 discarded_development_selectors = [name for name in development_selectors if name in environment]
 for development_selector in development_selectors:
     environment.pop(development_selector, None)
@@ -104,7 +110,9 @@ production_selectors = ('HEPTA_HIA_COMPOSITE_TYPES_MANIFEST',
                         'HEPTA_HIA_AGENT_QUERY_MANIFEST',
                         'HEPTA_HIA_AGENT_NATIVE_METADATA_MANIFEST',
                         'HEPTA_HIA_AGENT_JOURNAL_MANIFEST',
-                        'HEPTA_HIA_RETIREMENT_STATE_MANIFEST')
+                        'HEPTA_HIA_RETIREMENT_STATE_MANIFEST',
+                        'HEPTA_HIA_CLI_INSPECT_MANIFEST',
+                        'HEPTA_HIA_CORE_BYTES_MANIFEST')
 discarded_production_selectors = [name for name in production_selectors if name in environment]
 for production_selector in production_selectors:
     environment.pop(production_selector, None)
@@ -116,7 +124,8 @@ for name in ('AGENT_STDIO', 'CORE_MODULE_GRAPH', 'CAPABILITY_RENAMING',
              'TASK_HELPERS', 'COMPOSITE_FUNCTIONS', 'COMPOSITE_CONSTRUCTOR', 'COMPOSITE_OUTER',
              'WORKER_REQUEST', 'WORKER_HELPERS', 'AGENT_JOURNAL', 'RELEASE_INSTALL', 'RELEASE_SELECTION',
              'SOURCE_BUILD', 'NOMINAL_JSON', 'EXECUTION_BUDGET', 'CANDIDATE_BUDGET', 'RETIREMENT_STATE',
-             'SLOT_LEDGER', 'AGENT_READ', 'AGENT_QUERY', 'AGENT_NATIVE_METADATA'):
+             'SLOT_LEDGER', 'AGENT_READ', 'AGENT_QUERY', 'AGENT_NATIVE_METADATA',
+             'CLI_INSPECT', 'CORE_BYTES'):
     environment['HEPTA_HIA_' + name + '_COLD_REPORT'] = str(cold)
 steps = []
 suite_outcomes = {}
@@ -145,6 +154,15 @@ def run(name, args, *, timeout=1800):
     step_environment['HEPTA_HIA_AGENT_NATIVE_METADATA_EVIDENCE'] = str(out / (name + '-agent-native-metadata'))
     step_environment['HEPTA_HIA_NOMINAL_JSON_EVIDENCE'] = str(out / (name + '-nominal-json'))
     step_environment['HEPTA_HIA_NOMINAL_JSON_INGRESS_EVIDENCE'] = str(out / (name + '-nominal-json-ingress'))
+    step_environment['HEPTA_HIA_CLI_INSPECT_EVIDENCE'] = str(out / (name + '-cli-inspect'))
+    step_environment['HEPTA_HIA_CORE_BYTES_EVIDENCE'] = str(out / (name + '-core-bytes'))
+    step_environment['HEPTA_HIA_AGENT_JSON_WIRE_EVIDENCE'] = str(out / (name + '-agent-json-wire'))
+    step_environment['HIA_SQLITE_PLATFORM_EVIDENCE'] = str(out / (name + '-sqlite-platform'))
+    # The full retained launcher supplies its own bound production manifest.
+    # This v4-only branch is deliberately outside frozen_configuration's
+    # direct evidence-expression extraction.
+    if name in ('sqlite-platform', 'full-retained-regression'):
+        step_environment['HIA_SQLITE_PLATFORM_TEST_BUILD'] = str(out / 'sqlite-platform-production' / 'build.json')
     owner = run_workflow_step(result['command'], cwd=root, env=step_environment,
                       stdout_path=stdout, stderr_path=stderr,
                       receipt_path=out / (name + '.owner.json'),
@@ -374,6 +392,7 @@ ok = run('source-contract', ['tools/generate_hia_selfhost_contract.py', '--check
 ok = run('source-scope', ['tools/check_hia_core_only.py']) and ok
 ok = suite('source-tests', named[0]) and ok
 ok = suite('bootstrap-ascii-oracle', ['tests.test_hia_bootstrap_components.BootstrapSourceTests.test_ascii_reference_lexer_handles_long_escaped_strings']) and ok
+ok = suite('integrated-component-source-tests', ['tests.test_hia_agent_json_wire.AgentJsonWireSourceTests','tests.test_hia_cli_inspect_native.CliInspectSourceTests','tests.test_hia_core_bytes_native.CoreBytesSourceTests','tests.test_hia_sqlite_store.SqliteStoreSourceTests']) and ok
 cold_completed = run('cold', ['tools/replay_hia_selfhost_cold.py', '--output', str(cold)], timeout=240)
 cold_error = None
 try:
@@ -387,9 +406,22 @@ except (OSError, ValueError, AttributeError) as error:
     cold_ok = False
 ok = cold_ok and ok
 if cold_ok:
+    qualification_compiler = out / 'cold.cold' / 'qualification.evidence' / 'B3.image.bin'
+    ok = run('agent-json-wire-production', ['tools/build_hia_agent_json_wire.py',
+             '--output', str(out / 'agent-json-wire-production'),
+             '--compiler', str(qualification_compiler), '--cold-report', str(cold)]) and ok
+    ok = run('sqlite-platform-production', ['tools/build_hia_sqlite_store.py',
+             '--output', str(out / 'sqlite-platform-production'),
+             '--compiler', str(qualification_compiler), '--cold-report', str(cold),
+             '--sqlite-library', str(a.sqlite_library)]) and ok
     ok = run('language', ['tests/test_hia_selfhost_language_coverage.py', '--output', str(out / 'language.json')]) and ok
     ok = suite('native-applications', named[1]) and ok
     groups = {
+        'agent-json-wire': ['tests.test_hia_agent_json_wire'],
+        'cli-inspect': ['tests.test_hia_cli_inspect_native'],
+        'core-bytes': ['tests.test_hia_core_bytes_native', 'tests.test_hia_core_bytes_integration',
+                       'tests.test_hia_core_bytes_ordinary'],
+        'sqlite-platform': ['tests.test_hia_sqlite_store', 'tests.test_hia_sqlite_store_integration'],
         'worker-request': ['tests.test_hia_worker_request_native', 'tests.test_hia_worker_request_review'],
         'worker-helpers': ['tests.test_hia_worker_native_helpers'],
         'agent-journal': ['tests.test_hia_agent_journal_native'],
@@ -442,6 +474,10 @@ if cold_ok:
     }
     for name, names in groups.items():
         ok = suite(name, names) and ok
+    wire_comparison = "from hashlib import sha256\nimport json\nfrom pathlib import Path\nimport sys\nproduction, fixture, compiler = map(Path, sys.argv[1:4])\nmanifest_path = production / 'manifest.json'\nmanifest_raw = manifest_path.read_bytes()\nmanifest = json.loads(manifest_raw)\npaths = {'production_manifest': manifest_path, 'current_compiler': compiler,\n         'fixture_B2': fixture / 'B2.image.bin',\n         'production_image': production / manifest['image_path'],\n         'fixture_image': fixture / 'agent-json-wire.image.bin'}\ncaptured = {name: path.read_bytes() for name, path in paths.items()}\nif (captured['current_compiler'] != captured['fixture_B2']\n        or captured['production_image'] != captured['fixture_image']\n        or sha256(captured['production_image']).hexdigest() != manifest['image_sha256']\n        or sha256(captured['current_compiler']).hexdigest() != manifest['compiler_sha256']):\n    raise SystemExit('writer fixture images differ from current cold production build')\nif any(path.read_bytes() != captured[name] for name, path in paths.items()):\n    raise SystemExit('writer production comparison inputs changed')\nproof = {'schema': 'hepta.hia.agent-json-wire-production-comparison.v1',\n         'status': 'CURRENT_COLD_AND_FIXTURE_IMAGES_BYTE_EQUAL',\n         'files': {name: {'path': str(paths[name]), 'bytes': len(raw),\n                         'sha256': sha256(raw).hexdigest()}\n                   for name, raw in captured.items()},\n         'original_development_receipts_rewritten': False,\n         'ordinary_Agent_wire_selected': False}\nwith (fixture / 'production-equivalence.json').open('x', encoding='utf-8') as stream:\n    stream.write(json.dumps(proof, indent=2, sort_keys=True) + '\\n')\nprint(json.dumps({'status': proof['status']}, sort_keys=True))\n"
+    ok = run('agent-json-wire-production-comparison', ['-c', wire_comparison,
+             str(out / 'agent-json-wire-production'),
+             str(out / 'agent-json-wire-agent-json-wire'), str(qualification_compiler)]) and ok
     journal_modules = (
         'tests.test_hia_agent_native_tools',
         'tests.test_hia_agent_native_proof_contract',
@@ -460,6 +496,9 @@ if cold_ok:
     ok = run('ordinary-journal-callers', journal_args) and ok
     if a.full:
         ok = suite('full-retained-regression', discover=True) and ok
+        ok = run('full-writer-production-comparison', ['-c', wire_comparison,
+                 str(out / 'agent-json-wire-production'),
+                 str(out / 'full-retained-regression-agent-json-wire'), str(qualification_compiler)]) and ok
 try:
     source_after = _pinned_state()
     preserved = source_after == source_before

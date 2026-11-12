@@ -28,6 +28,8 @@ MAX_SOURCE_BYTES = 8 << 20
 # Only single-image contracts with the existing six-argument byte ABI.
 # Multi-image and external executable contracts need a separate custody closure.
 HELPERS = {
+    "HEPTA_HIA_CLI_INSPECT_MANIFEST": ("hia_cli_inspect_native", "NativeCliInspect"),
+    "HEPTA_HIA_CORE_BYTES_MANIFEST": ("hia_core_bytes_native", "NativeCoreBytes"),
     "HEPTA_HIA_WORKER_REQUEST_MANIFEST": ("hia_worker_request_native", "NativeWorkerRequest"),
     "HEPTA_HIA_AGENT_IDENTITY_MANIFEST": ("hia_agent_identity_native", "NativeAgentIdentity"),
     "HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST": ("hia_agent_snapshot_native", "NativeAgentSnapshot"),
@@ -167,6 +169,9 @@ class NativeHelpersBinding:
                 or admission_entry[0].resolve(strict=True) !=
                 patch_entry[0].resolve(strict=True).parent / "admission-manifest.json"):
             raise ValueError("native Core patch requires its exact adjacent admission helper")
+        bytes_entry = entries.get('HEPTA_HIA_CORE_BYTES_MANIFEST')
+        if bytes_entry is not None and (admission_entry is None or admission_entry[0].resolve(strict=True) != bytes_entry[0].resolve(strict=True).parent / 'admission-manifest.json'):
+            raise ValueError('native Core bytes requires its exact adjacent admission helper')
         for selector, (manifest_path, manifest_sha256) in entries.items():
             manifest = _read(manifest_path, MAX_MANIFEST_BYTES)
             if sha256(manifest.raw).hexdigest() != manifest_sha256:

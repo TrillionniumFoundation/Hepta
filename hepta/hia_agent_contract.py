@@ -71,6 +71,12 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/composite_outer_owner.hepta',
     'examples/hia_bootstrap/composite_outer_render.hepta',
     'examples/hia_bootstrap/retirement_state.hepta',
+    'examples/hia_bootstrap/agent_json_wire.hepta',
+    'examples/hia_bootstrap/cli_inspect.hepta',
+    'examples/hia_bootstrap/sqlite_agent_transaction.hepta',
+    'examples/hia_bootstrap/sqlite_rollback_policy.hepta',
+    'examples/hia_bootstrap/sqlite_store.hepta',
+    'examples/hia_bootstrap/core_bytes.hepta',
 )
 
 

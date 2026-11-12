@@ -65,6 +65,11 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
             if name in BUNDLED_SOURCE_BINDINGS:
                 module,key=BUNDLED_SOURCE_BINDINGS[name]
                 source=import_module(module).SOURCES[key]
+            elif name in ('sqlite_agent_transaction','sqlite_rollback_policy'):
+                from hepta.hia_sqlite_store_native import _runtime_source_paths
+                matches=[path for label,path in _runtime_source_paths() if label==resource]
+                self.assertEqual(len(matches),1)
+                source,=matches
             else:
                 source=import_module('hepta.hia_'+name+'_native').SOURCE
             self.assertEqual(source,ROOT/resource)
@@ -355,6 +360,12 @@ elif sys.argv[2]=='source-bindings':
         if name in BUNDLED_SOURCE_BINDINGS:
             module,key=BUNDLED_SOURCE_BINDINGS[name]
             source=import_module(module).SOURCES[key]
+        elif name in ('sqlite_agent_transaction','sqlite_rollback_policy'):
+            from hepta.hia_sqlite_store_native import _runtime_source_paths
+            matches=[path for label,path in _runtime_source_paths()
+                     if label=='examples/hia_bootstrap/'+name+'.hepta']
+            assert len(matches)==1,(name,matches)
+            source,=matches
         else:
             source=import_module('hepta.hia_'+name+'_native').SOURCE
         assert Path(sys.argv[1]) in source.parents,source
