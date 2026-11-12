@@ -1,0 +1,14 @@
+{
+  "actual_count": 4,
+  "assertion": "workflow.count(\"@@ADAPTER_COMMIT@@\") == 5",
+  "cause": "Checker counted five A substitutions; actual fixed workflow has one checkout plus three adapter commands, four total. Worker launch directly uses the prepared operation, with no A argument.",
+  "correction": "New static_checks_r2.py changes only expected5 to4; original checker bytes retained.",
+  "exit_code": 1,
+  "generators_executed": false,
+  "location": "static_checks.py:56",
+  "native_executed": false,
+  "schema": "hepta.hia.static-reader-observation.v1",
+  "source83_executed": false,
+  "status": "STATIC_CHECKER_R1_FAILED",
+  "tool_chunk": "b27f7b"
+}
