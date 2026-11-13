@@ -1,63 +1,65 @@
-# Two independent completed Normal Core originals
+# Resume retained original evidence, revision 2
 
-This minimal four-file branch is an evidence custodian, not a product branch.
-Its only job downloads these already terminal artifacts once:
-- main 51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8, run 43347872271,
-  artifact 14001609250 (54,655,243 bytes).
-- a733926a2786a3d4a37304bd2d18ebb2eac57ac9, run 43347253395,
-  artifact 14006895740 (193,650,347 bytes).
+This branch is an evidence custodian, not a product branch. Its only parent is
+the failed custodian f59d24eb78055d217e329d7e447ff2c1e428c171. It never compiles,
+imports or executes Hepta, runs tests, changes product or audit refs, posts
+statuses, or changes original results.
 
-The previous five-original collector f7fef2575fccdfe46915ceb2c7759fe078755f2d
-and its 5/5 complete output remain unchanged. No product import, compiler,
-business test, original gate, or native entry runs in this custodian.
+The prior collector run43358604029 preserved the complete main51bc content
+pool (89 chunks), then stopped while publishing a733 receipts. Its final
+partial manifest is fedc691aeb5fb2004d76e5afdcc17374b92fae80. The prior failure
+and all ACK boundaries are retained.
 
-## Verification and exact custody
+## Required first observation
 
-The API authority must match each fixed artifact ID, terminal run, source head,
-bytes, original digest and retention. The complete outer ZIP and every
-recognized nested ZIP are read for CRC, SHA256, Git object hash and ZIP modes.
-Each source commit/tree is independently reconstructed from its full Git
-inventory. The cold-export member set must match the actual cold request,
-report and frozen support document; each actual export byte extent and Git
-blob must match its exact pinned source path.
+This successor downloads only the prior collector artifact14007242551,
+294955566 bytes, SHA256
+05114049ee8b8311f82bc237731182a768e452aab894b89a401531713408adf1.
+It validates the authority, full file hash and every ZIP member, then publishes
+the exact original FAILURE.json and FINAL.json before checking the error.
+The resume proceeds only if the actual error is precisely the original
+900000-byte receipt guard at the a733 cold-authority stage. A different error
+stops and is preserved. The expected error in inputs is a condition, not a
+claim that it has already been observed.
 
-The main original FAIL and any pending/unconsumed report remain failures or
-unconsumed evidence. A claimed cold PASS is accepted only with the actual
-180+3-second owner, exit-before-deadline and complete-cleanup receipt, full
-nested qualification/checks, complete phase inventory/receipts/archives and
-the retained B/M image byte hashes. A log line is insufficient.
+## Narrow change
 
-The lossless content pool stores every non-source original member once per
-SHA256, including the entire original byte stream of each nested ZIP.
-Only fully verified cold source members may be explicit external Git
-references. RECOVERY.json binds every logical member, original ZIP transport
-mode, exact commit/tree/path/blob/bytes/SHA256, original metadata and all
-nested inventories. Source Git mode and cold ZIP transport mode stay separate.
-The pool is fully decompressed and every member is read back before immutable
-512-KiB wrapper publication. Each created Git wrapper is then fetched in full.
-archive.blob is a computed raw-file identity, not a claim that a raw binary Git
-blob was separately uploaded.
+collect_originals.py and inputs/ORIGINALS.json remain byte-for-byte the
+reviewed revision. resume_a733.py supplies two transport functions: a retained
+ZIP member source and an explicitly indexed oversized JSON receipt encoder.
+The original CRC, source binding, phase/reference/deadline/cleanup validation,
+content pool and complete gzip/tar verification functions are unchanged.
 
-Original outer ZIP byte streams are not reconstructed from content pools.
-The original provider retention is recorded. The always-upload step also
-retains the exact downloaded outer ZIP files, receipts and derived pools for
-90 days, including a partial collector failure, under a new custody artifact.
+Receipts retain every JSON field. Small and medium receipt encodings remain
+the original format. Larger receipts use numbered 512 KiB chunks of the
+zlib stream, with per-chunk, compressed-stream and original UTF-8 identities,
+ordered offsets and complete Git readback. Original report bytes, including
+their original formatting and modes, also remain in the unchanged original
+ZIP members in the content pool.
 
-## Mutation and trust boundary
+The completed main pool is referenced, not rebuilt. The producer original
+ZIP is not downloaded again. a733 bytes come only from the exact member
+a733-original-core-original-artifact.zip in the retained prior collector
+artifact. Previously existing immutable Git objects are read and matched;
+they are not POSTed again. An ambiguous mutation stops instead of replaying.
 
-Only immutable Git blobs are writable. No product/audit refs, commit statuses,
-comments or messages are changed. POST ambiguity stops publication and is
-recorded; it is never blindly retried. Signed download URLs and credentials
-are never printed, and Authorization is absent on the redirected storage
-request. The only branch/ref change is this separately authorized minimal
-custody harness publication before execution.
+## Scope
 
-The transfer helpers are reused verbatim from the actually completed first
-collector. The new read-only cold verifier follows the separately retained
-974743947aef5c508c85783e23679f41a4b988f4 verifier, with explicit treatment of
-a failed cold run and pending/unconsumed originals. Its own frozen code is
-parsed and executed only in this custody job; it conveys no new product
-qualification. Before Actions executes it, status is AUTHORED_NOT_EXECUTED.
+The two original source identities and results stay separate. main51bc has
+original cold FAIL6/11 with a real qualification timeout and complete cleanup.
+a733 has original cold11/11 and the admitted 5052-check fixed-core report,
+while its later business step27 is still failure. This custodian success can
+mean only evidence custody completed; it grants no new product qualification.
 
-The 45-minute bound belongs to evidence transfer only. Original 180+3 cold,
-20-second compiler and business gate limits are not modified or rerun.
+The derived pool does not reconstruct the original outer ZIP byte stream.
+That exact stream remains in the prior collector artifact and in this
+successor's always-retained artifact. All original logical members and
+unchanged complete nested ZIP byte streams are recoverable from the pool
+plus exact immutable Git source references. Computed raw archive Git hashes
+are identities; the actual Git objects published are UTF-8 lossless wrappers.
+
+The only token use is approved repository GETs and immutable /git/blobs POSTs.
+No token or signed download URL is logged. Storage-host GETs carry no GitHub
+Authorization header. Workflow artifacts retain originals and partial
+receipts for 90 days on success or failure. No original product deadline is
+changed; the 45-minute limit is solely evidence transfer and verification.
