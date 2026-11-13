@@ -1,0 +1,56 @@
+{
+  "changes": [
+    {
+      "after": {
+        "bytes": 3479,
+        "git_blob": "3a7f29d126b56b494617ceef8f7d555951ee7f93",
+        "mode": "100644",
+        "sha256": "4e2fdc4151eec850ded5e738e251b8cde17c65923a328980be5521fcf34699a5"
+      },
+      "before": {
+        "bytes": 3479,
+        "git_blob": "709d3dc3b671365af94dcef42dfd908660da45ba",
+        "mode": "100644",
+        "sha256": "3c9cda7da3b23755edaa93c9d1cd89f7da7f1dfd6d62d3afc9c82d8506a8a600"
+      },
+      "diff": "--- R16-R1/.github/workflows/hia-combined-source.yml\n+++ R16-R2/.github/workflows/hia-combined-source.yml\n@@ -46,7 +46,7 @@\n             --root \"${RUNNER_TEMP}/hia-combined-source-v103-r16\"\n       - name: Require complete Source projection and original43 plus Source10 plus Native9 on actual314\n         env:\n-          EXPECTED_PARSER_CONTROLS_BLOB: 4b8089357c1095d189847d8c66cc27fd6b76d9ff\n+          EXPECTED_PARSER_CONTROLS_BLOB: 7d7c6a92b029d130dc917f59c8e8ca1b68b5a0c1\n         run: |\n           python -I -B \"${GITHUB_WORKSPACE}/harness/tools/run_parser_bounded.py\" \\\n             --materialization-root \"${RUNNER_TEMP}/hia-combined-source-v103-r16\" \\\n",
+      "path": ".github/workflows/hia-combined-source.yml"
+    },
+    {
+      "after": {
+        "bytes": 7992,
+        "git_blob": "7d7c6a92b029d130dc917f59c8e8ca1b68b5a0c1",
+        "mode": "100644",
+        "sha256": "248c85cdca4a56957fd88901ba4421d5dcb71c88831ba0eebdbaeca6df56d9ba"
+      },
+      "before": {
+        "bytes": 7992,
+        "git_blob": "4b8089357c1095d189847d8c66cc27fd6b76d9ff",
+        "mode": "100644",
+        "sha256": "cf1f0c58848be6b156bae376d92e147e4f96edad6158136abdb73cbe6a625b18"
+      },
+      "diff": "--- R16-R1/inputs/PARSER-CONTROLS.json\n+++ R16-R2/inputs/PARSER-CONTROLS.json\n@@ -109,10 +109,10 @@\n       \"sha256\": \"d75cd13935e9161490cc7a8a97c874112cda7951f3f55997d67bfe3700766566\"\n     },\n     \"tools/run_parser_bounded.py\": {\n-      \"bytes\": 16437,\n-      \"git_blob\": \"87aa0bd329aaa82063e9793a98be9eb2a92bea5a\",\n-      \"mode\": \"100644\",\n-      \"sha256\": \"447cbc83e42ffdab55874eba8e3d029527259eaa32e92b0544333391bffd1228\"\n+      \"bytes\": 16454,\n+      \"git_blob\": \"78329c33ff3dc2486821f3861acae17aff61aa66\",\n+      \"mode\": \"100644\",\n+      \"sha256\": \"3b465d93dedae5bb1ce0fc3884a796ec12a179f354e380c0f6295cbcb864f736\"\n     },\n     \"tools/run_source_gate.py\": {\n       \"bytes\": 6837,\n",
+      "path": "inputs/PARSER-CONTROLS.json"
+    },
+    {
+      "after": {
+        "bytes": 16454,
+        "git_blob": "78329c33ff3dc2486821f3861acae17aff61aa66",
+        "mode": "100644",
+        "sha256": "3b465d93dedae5bb1ce0fc3884a796ec12a179f354e380c0f6295cbcb864f736"
+      },
+      "before": {
+        "bytes": 16437,
+        "git_blob": "87aa0bd329aaa82063e9793a98be9eb2a92bea5a",
+        "mode": "100644",
+        "sha256": "447cbc83e42ffdab55874eba8e3d029527259eaa32e92b0544333391bffd1228"
+      },
+      "diff": "--- R16-R1/tools/run_parser_bounded.py\n+++ R16-R2/tools/run_parser_bounded.py\n@@ -1,7 +1,7 @@\n \"\"\"Require exact whole Source success, then the unchanged 43 + 10 + 9 controls.\n \n This is a development image repair gate, not matching-source cold qualification.\n-The Source runner and product workflow are unchanged; the fixed materializer adds only the reviewed fourth evidence location.\n+The original Source runner and Native workflow fragment are unchanged; the fixed materializer adds only the reviewed fourth evidence location.\n \"\"\"\n from __future__ import annotations\n \n",
+      "path": "tools/run_parser_bounded.py"
+    }
+  ],
+  "product_execution": 0,
+  "r1_preserved": true,
+  "runtime_definition_AST_equal": true,
+  "schema": "hepta.r16-harness-doc-correction.v1"
+}
