@@ -1,43 +1,45 @@
-name: Immutable custody of completed v84 originals
+name: Immutable custody of main and a733 completed Core originals
 on:
   push:
-    branches: ["codex/hia-v84-terminal-custody-20261113-dda7"]
+    branches: ["codex/hia-normal-core-custody-v85-20261113-dda7"]
 permissions:
   actions: read
   contents: write
 jobs:
   preserve:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
           fetch-depth: 1
-      - name: Parse pinned custody source without product execution
+      - name: Parse fixed custody source without importing the product
         run: |
           python -B - <<'PY'
           import ast, json, pathlib
           ast.parse(pathlib.Path("collect_originals.py").read_bytes())
           d=json.loads(pathlib.Path("inputs/ORIGINALS.json").read_bytes())
-          assert len(d["originals"]) == 5
-          assert d["original_tests_rerun"] is False
-          assert d["original_budgets_changed"] is False
-          print("Custody source parsed; no product imported or executed.")
+          assert len(d["originals"]) == 2
+          assert [x["artifact"]["id"] for x in d["originals"]] == [14001609250, 14006895740]
+          assert [x["source_commit"] for x in d["originals"]] == ["51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8", "a733926a2786a3d4a37304bd2d18ebb2eac57ac9"]
+          assert d["source_replay"] is False and d["product_imports"] is False and d["new_qualification"] is False
+          print("Fixed custody source parsed. Original product execution count: 0.")
           PY
-      - name: Verify original archives and publish immutable raw blobs
+      - name: Verify and preserve the two terminal originals
         env:
           GH_TOKEN: ${{ github.token }}
         run: python -B collect_originals.py
-      - name: Retain custody receipts even on partial failure
+      - name: Preserve partial receipts and exact downloaded original ZIPs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v84-original-custody-receipts
+          name: v85-normal-core-original-custody
           path: |
-            ${{ runner.temp }}/hia-v84-terminal-custody-${{ github.run_id }}/*.json
-            ${{ runner.temp }}/hia-v84-terminal-custody-${{ github.run_id }}/*/VERIFICATION.json
-            ${{ runner.temp }}/hia-v84-terminal-custody-${{ github.run_id }}/*/ORIGINAL-OBSERVATIONS.json
+            ${{ runner.temp }}/hia-v85-normalcore-custody-${{ github.run_id }}/*.json
+            ${{ runner.temp }}/hia-v85-normalcore-custody-${{ github.run_id }}/*.zip
+            ${{ runner.temp }}/hia-v85-normalcore-custody-${{ github.run_id }}/*.tar.gz
           retention-days: 90
+          compression-level: 0
           if-no-files-found: error
           include-hidden-files: true

@@ -1,11 +1,10 @@
-"""Read and retain completed originals only; never imports the product."""
+"""Preserve two completed Normal Core originals; never import project modules."""
 from __future__ import annotations
-import base64, hashlib, io, json, os, pathlib, stat, sys, time, urllib.error, urllib.parse, urllib.request, zipfile, zlib
-
+import base64, gzip, hashlib, io, json, os, pathlib, stat, sys, tarfile, time, urllib.error, urllib.parse, urllib.request, zipfile, zlib
 REPOSITORY = "TrillionniumFoundation/Hepta"
 API = "https://api.github.com/repos/" + REPOSITORY
 TOKEN = os.environ["GH_TOKEN"]
-OUT = pathlib.Path(os.environ["RUNNER_TEMP"]) / ("hia-v84-terminal-custody-" + os.environ["GITHUB_RUN_ID"])
+OUT = pathlib.Path(os.environ["RUNNER_TEMP"]) / ("hia-v85-normalcore-custody-" + os.environ["GITHUB_RUN_ID"])
 OUT.mkdir(mode=0o700, exist_ok=False)
 INPUTS = json.loads(pathlib.Path("inputs/ORIGINALS.json").read_bytes())
 ACKS, INTENTS, ENTRIES, RESULTS, CACHE, TREES = [], [], [], [], {}, {}
@@ -16,12 +15,15 @@ def require(ok, message):
     if not ok:
         raise ValueError(message)
 
+
 def wire(value):
     return (json.dumps(value, sort_keys=True, indent=2, ensure_ascii=True, allow_nan=False) + "\n").encode()
+
 
 def identity(raw):
     return {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
             "blob": hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()}
+
 
 def save(path, raw):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -30,8 +32,10 @@ def save(path, raw):
         f.flush()
         os.fsync(f.fileno())
 
+
 def record(name, value):
     save(OUT / name, wire(value))
+
 
 def api(path, value=None):
     require(path.startswith(("/git/commits/", "/git/trees/", "/git/blobs/", "/actions/artifacts/", "/actions/runs/"))
@@ -45,12 +49,14 @@ def api(path, value=None):
     with urllib.request.urlopen(request, timeout=90) as response:
         return json.load(response)
 
+
 def blob_bytes(sha):
     value = api("/git/blobs/" + sha)
     require(value["sha"] == sha and value["encoding"] == "base64", "blob response differs")
     raw = base64.b64decode("".join(value["content"].split()), validate=True)
     require(identity(raw)["blob"] == sha and len(raw) == value["size"], "blob bytes differ")
     return raw
+
 
 def publish_text(raw, path):
     """One POST at most. Ambiguous POST failures stop; never replay mutations."""
@@ -80,6 +86,7 @@ def publish_text(raw, path):
     print(json.dumps({"saved": path, "blob": meta["blob"], "bytes": len(raw), "full_readback": True}), flush=True)
     return meta
 
+
 def canonical_tree(rows):
     root = {}
     for path, row in rows.items():
@@ -101,6 +108,7 @@ def canonical_tree(rows):
         return hashlib.sha1(b"tree " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
     return visit(root)
 
+
 def git_tree(commit, expected_tree, expected_count):
     if commit in TREES:
         return TREES[commit]
@@ -118,25 +126,10 @@ def git_tree(commit, expected_tree, expected_count):
     TREES[commit] = rows
     return rows
 
-def expected_harness(item):
-    key = item["harness_commit"]
-    if key in CACHE:
-        return CACHE[key]
-    expected = INPUTS["harnesses"][key]
-    rows = git_tree(key, expected["tree"], len(expected["files"]))
-    result = {}
-    require(set(rows) == set(expected["files"]), "harness path inventory differs")
-    for name, row in expected["files"].items():
-        require({k: row[k] for k in ("blob", "mode", "bytes")} == rows[name], "harness tree row differs")
-        raw = blob_bytes(row["blob"])
-        require(identity(raw) == {k: row[k] for k in ("blob", "bytes", "sha256")}, "harness file bytes differ")
-        result[name] = {k: row[k] for k in ("blob", "bytes", "sha256")}
-    CACHE[key] = result
-    return result
-
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
+
 
 def download(item, target):
     authority = api("/actions/artifacts/" + str(item["artifact"]["id"]))
@@ -179,6 +172,7 @@ def download(item, target):
             "original outer ZIP identity differs")
     return authority, run, digest.hexdigest()
 
+
 def zip_inventory(archive):
     rows = {}
     for info in archive.infolist():
@@ -199,208 +193,451 @@ def zip_inventory(archive):
         rows[info.filename] = row
     return rows
 
-def normalized(rows):
-    return {name: {"bytes": row["bytes"], "sha256": row["sha256"],
-                   "blob": row.get("blob", row.get("git_blob_sha")),
-                   "mode": row.get("mode", row.get("git_mode"))} for name, row in rows.items()}
 
-def source_from_archive(item, outer, inner_name, original_report, inner):
-    commit, tree, count = item["source_commit"], item["source_tree"], item["source_files"]
-    expected = git_tree(commit, tree, count)
-    if item["kind"] == "four-profile":
-        prefix = inner_name.removesuffix("COMPLETE-RAW.zip") + "source/"
-        actual = {}
-        for name, row in outer.items():
-            if name.startswith(prefix) and not row["directory"]:
-                actual[name[len(prefix):]] = {k: row[k] for k in ("bytes", "sha256", "blob")}
-                actual[name[len(prefix):]]["mode"] = "100755" if int(row["zip_mode"], 8) & 0o111 else "100644"
-        require({p: {k:r[k] for k in ("bytes", "blob", "mode")} for p,r in actual.items()} == expected,
-                "outer source differs from actual immutable Git tree")
-        require(canonical_tree(actual) == tree, "outer source tree recomputation differs")
-        require(normalized(original_report["source_manifest"]) == actual,
-                "original authored source record differs from outer bytes")
-        if original_report["profile"] in ("native314", "evaluation314"):
-            require(normalized(original_report["generated_source_manifest"]) == actual,
-                    "original generated source record differs from outer bytes")
+
+def file_identity(path):
+    size = path.stat().st_size
+    sha = hashlib.sha256()
+    blob = hashlib.sha1(b"blob " + str(size).encode() + b"\0")
+    count = 0
+    with path.open("rb") as stream:
+        while part := stream.read(1024 * 1024):
+            count += len(part); sha.update(part); blob.update(part)
+    require(count == size and path.stat().st_size == size, "owned file extent changed")
+    return {"bytes": size, "sha256": sha.hexdigest(), "blob": blob.hexdigest()}
+
+def publish_record(value, path):
+    raw = wire(value)
+    if len(raw) > 350000:
+        original = path
+        raw = wire({"schema": "hia.lossless-zlib-text-capsule.v1",
+                    "original_name": original, **identity(raw),
+                    "encoding": "base64(zlib(UTF-8))",
+                    "data": base64.b64encode(zlib.compress(raw, 9)).decode("ascii")})
+        path += ".zlib.json"
+    require(len(raw) <= 900000, "receipt requires an additional explicit chunk index")
+    return {"path": path, **publish_text(raw, path)}
+
+def verify_nested(archive, rows, prefix, nested, depth=0):
+    require(depth <= 6, "nested ZIP depth exceeds evidence limit")
+    for name in sorted(rows):
+        if rows[name]["directory"] or not name.lower().endswith(".zip"):
+            continue
+        raw = archive.read(name)
+        require(identity(raw) == {k: rows[name][k] for k in ("bytes", "sha256", "blob")},
+                "nested container readback differs")
+        key = prefix + name
+        if not zipfile.is_zipfile(io.BytesIO(raw)):
+            nested[key] = {"container": rows[name], "recognized_zip": False,
+                           "opaque_original_bytes_preserved": True}
+            continue
+        with zipfile.ZipFile(io.BytesIO(raw)) as child:
+            members = zip_inventory(child)
+            value = {"container": rows[name], "recognized_zip": True, "members": members}
+            if "HIA_ARCHIVE_MANIFEST.json" in members:
+                manifest_raw = child.read("HIA_ARCHIVE_MANIFEST.json")
+                manifest = json.loads(manifest_raw)
+                expected = manifest["files"]
+                require(set(members) == set(expected) | {"HIA_ARCHIVE_MANIFEST.json"},
+                        "nested original member set differs")
+                for path, wanted in expected.items():
+                    row = members[path]
+                    require(row["bytes"] == wanted["bytes"] and row["sha256"] == wanted["sha256"]
+                            and stat.S_IMODE(int(row["zip_mode"], 8)) == wanted["mode"],
+                            "nested original member bytes or mode differ")
+                require(sum(x["bytes"] for x in expected.values()) == manifest["unpacked_bytes"],
+                        "nested original total differs")
+                value.update(original_manifest=manifest,
+                             original_manifest_identity=identity(manifest_raw))
+            nested[key] = value
+            verify_nested(child, members, key + "::", nested, depth + 1)
+
+def cold_source_bindings(item, archive, rows, git_rows):
+    cold_raw = archive.read("hia-cold.json")
+    cold = json.loads(cold_raw)
+    require(cold["schema"] == "hepta.hia.selfhost-cold-replay.v1", "unexpected cold report schema")
+    require(cold["qualification_wall_limit_seconds"] == 180 and cold["cleanup_wall_limit_seconds"] == 3,
+            "original 180+3 limits differ")
+    require(type(cold["checks"]) is dict and len(cold["checks"]) == 11 and all(type(x) is bool for x in cold["checks"].values()),
+            "cold checks are not strict booleans")
+    request = json.loads(archive.read("hia-cold.cold/request.json"))
+    require(request["source_manifest"] == cold["source_manifest"], "cold request/report source mismatch")
+    source_prefix = "hia-cold.cold/source/"
+    source_rows = {p[len(source_prefix):]: r for p, r in rows.items()
+                   if p.startswith(source_prefix) and not r["directory"]}
+    require(set(source_rows) == set(cold["source_manifest"]), "actual cold export set differs")
+    contract_path = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
+    contract = json.loads(archive.read(source_prefix + contract_path))
+    expected = dict(contract["source_identity"]["files"])
+    expected[contract_path] = rows[source_prefix + contract_path]["sha256"]
+    require(expected == cold["source_manifest"], "frozen support contract/source export mismatch")
+    bindings = {}
+    for name, row in source_rows.items():
+        wanted = git_rows[name]
+        require(row["bytes"] == wanted["bytes"] and row["blob"] == wanted["blob"]
+                and row["sha256"] == cold["source_manifest"][name],
+                "actual cold export differs from pinned Git source")
+        bindings[source_prefix + name] = {
+            "repository": REPOSITORY, "commit": item["source_commit"],
+            "tree": item["source_tree"], "path": name,
+            "blob": row["blob"], "bytes": row["bytes"], "sha256": row["sha256"],
+            "git_mode": wanted["mode"], "zip_mode": row["zip_mode"],
+            "mode_boundary": "ZIP transport mode is retained separately from original Git source mode"}
+    return cold, bindings
+
+def read_cold_authority(item, archive, rows, nested, cold, bindings):
+    owner_raw = archive.read("hia-cold.cold/process-owner.json")
+    owner = json.loads(owner_raw)
+    embedded = cold["process_owner"]
+    require(embedded.get("receipt_sha256") == hashlib.sha256(owner_raw).hexdigest()
+            and all(embedded.get(k) == v for k, v in owner.items()),
+            "cold process-owner receipt mismatch")
+    prefix = "hia-cold.cold/qualification.evidence/"
+    phases, pending, references, unconsumed = [], {}, {}, None
+    process_names = sorted(n for n in rows if n.startswith(prefix + "phase-")
+                           and n.count("/") == 2 and n.endswith(".process.json"))
+    for name in process_names:
+        process = json.loads(archive.read(name))
+        stem = name[len(prefix + "phase-"):-len(".process.json")]
+        report_name = prefix + "phase-" + stem + ".json"
+        phase = None
+        if report_name in rows:
+            raw = archive.read(report_name)
+            if process.get("report_sha256") is not None:
+                require(hashlib.sha256(raw).hexdigest() == process["report_sha256"],
+                        "phase report hash differs")
+            phase = json.loads(raw)
+        packed_name = prefix + "phase-runs/" + stem + ".zip"
+        if "raw_artifacts" in process:
+            packed, custody = nested[packed_name], process["raw_artifacts"]
+            require(packed.get("recognized_zip") is True and "original_manifest" in packed,
+                    "receipted phase ZIP lacks its full original manifest")
+            require(custody["archive_sha256"] == rows[packed_name]["sha256"]
+                    and custody["packed_bytes"] == rows[packed_name]["bytes"]
+                    and custody["manifest_sha256"] == packed["original_manifest_identity"]["sha256"]
+                    and custody["files"] == len(packed["original_manifest"]["files"])
+                    and custody["unpacked_bytes"] == packed["original_manifest"]["unpacked_bytes"],
+                    "phase original archive custody differs")
+        phases.append({"key": stem, "process": process,
+                       "process_identity": rows[name],
+                       "phase_report_identity": rows.get(report_name),
+                       "phase_report_status": None if phase is None else phase.get("status"),
+                       "archive_identity": rows.get(packed_name),
+                       "direct_originals": {n: r for n, r in rows.items()
+                                            if n.startswith(prefix + "phase-runs/" + stem + "/")}})
+    completed = {p["key"] for p in phases if p["process"].get("returncode") == 0
+                 and p["phase_report_identity"] is not None}
+    for name in sorted(rows):
+        if name.startswith(prefix + "phase-") and name.count("/") == 2 and name.endswith(".request.json"):
+            stem = name[len(prefix + "phase-"):-len(".request.json")]
+            if stem not in completed:
+                pending[stem] = {"request": json.loads(archive.read(name)),
+                                 "partial_originals": {n: r for n, r in rows.items()
+                                                      if n.startswith(prefix + "phase-runs/" + stem + "/")}}
+        if name.startswith(prefix + "reference-") and name.count("/") == 2 and name.endswith(".worker.json"):
+            envelope = json.loads(archive.read(name))
+            reference_raw = json.dumps(envelope["reference"], sort_keys=True, separators=(",", ":")).encode()
+            manifest_raw = json.dumps(cold["source_manifest"], sort_keys=True, separators=(",", ":")).encode()
+            require(envelope["schema"] == "hepta.hia.selfhost-independent-reference-process.v1"
+                    and envelope["before_B0"] is True
+                    and type(envelope["worker_pid"]) is int and envelope["worker_pid"] > 0
+                    and type(envelope["reference"]) is dict
+                    and hashlib.sha256(reference_raw).hexdigest() == envelope["reference_sha256"]
+                    and hashlib.sha256(manifest_raw).hexdigest() == envelope["source_manifest_sha256"]
+                    and envelope["family"] not in references,
+                    "original independent reference complete payload/source mismatch")
+            references[envelope["family"]] = {"member": name, "identity": rows[name], "envelope": envelope}
+    qualification = None
+    qname = "hia-cold.cold/qualification.json"
+    if qname in rows:
+        raw = archive.read(qname)
+        if cold.get("nested_report_sha256") is not None:
+            require(hashlib.sha256(raw).hexdigest() == cold["nested_report_sha256"],
+                    "admitted final qualification report identity differs")
+            qualification = json.loads(raw)
         else:
-            require(original_report["profile"] in ("default311", "source314")
-                    and "generated_source_manifest" not in original_report,
-                    "unexpected original source-report schema")
-        require(normalized(json.loads(inner.read("FINAL-SOURCE.json"))) == actual, "original source-after differs")
-        require(original_report["harness_inputs_unchanged"] is True
-                and original_report["final_inputs_and_source_unchanged"] is True,
-                "original harness/source integrity report failed")
-        require(original_report["original_compiler_limit_seconds"] == 20
-                and original_report["original_work_limit_seconds"] == 1800, "original limits differ")
-        CACHE["source:" + commit] = actual
-    else:
-        reference = CACHE["source:" + INPUTS["a733_source_commit"]]
-        actual = {}
-        for path, row in expected.items():
-            cached = reference.get(path)
-            if cached is not None and all(cached[k] == row[k] for k in ("bytes", "blob", "mode")):
-                actual[path] = cached
+            unconsumed = {"identity": rows[qname],
+                          "reason": "Original cold owner did not admit this report; raw bytes preserved, not promoted."}
+    images = {label: rows.get(prefix + label + ".image.bin")
+              for label in ("B0", "B1", "B2", "B3", "M1", "M2", "M3")}
+    if cold["status"] == "COLD_SELFHOST_REPLAY_PASS":
+        require(type(cold["returncode"]) is int and cold["returncode"] == 0 and all(v is True for v in cold["checks"].values())
+                and qualification is not None and not pending
+                and owner["timed_out"] is False and owner["cleanup"]["complete"] is True
+                and owner["exit_observed_before_deadline"] is True
+                and owner["status"] == "OWNED_PROCESS_COMPLETED",
+                "cold success lacks complete original deadline/cleanup authority")
+        require(qualification["status"] == "SELF_HOSTED_FIXED_CORE_PASS"
+                and qualification["checks"] and all(type(v) is bool and v for v in qualification["checks"].values())
+                and qualification["source_manifest"] == cold["source_manifest"],
+                "nested qualification checks/source mismatch")
+        scheduling = qualification["qualification_scheduling"]
+        require(set(scheduling["phase_inventory"]) == completed
+                and len(scheduling["phase_inventory"]) == len(phases)
+                and {r["family"] + "-" + r["compiler_label"]: r for r in scheduling["phases"]}
+                    == {r["key"]: r["process"] for r in phases}
+                and all(type(p["process"]["returncode"]) is int and p["process"]["returncode"] == 0
+                        and p["phase_report_status"] == "PASS" and p["archive_identity"] is not None for p in phases),
+                "nested complete phase inventory/receipts mismatch")
+        require([images[k]["sha256"] for k in ("B1", "B2", "B3")] == cold["generation_sha256"]
+                and [images[k]["sha256"] for k in ("M1", "M2", "M3")] == cold["modified_generation_sha256"]
+                and [g["produced_sha256"] for g in qualification["generations"]] == cold["generation_sha256"]
+                and [g["produced_sha256"] for g in qualification["modified_generations"]] == cold["modified_generation_sha256"],
+                "retained B/M images do not match admitted generation records")
+    summary = {
+        "schema": "hia.normal-core-original-byte-verification.v1",
+        "verification_status": "ORIGINAL_BYTES_AND_AVAILABLE_AUTHORITY_VERIFIED",
+        "source_commit": item["source_commit"], "source_tree": item["source_tree"],
+        "full_git_source_files": item["source_files"], "actual_cold_export_files": len(bindings),
+        "full_git_tree_present_in_artifact": len(bindings) == item["source_files"],
+        "cold_status": cold["status"], "checks": cold["checks"],
+        "cold_checks_passed": sum(cold["checks"].values()), "cold_checks_total": len(cold["checks"]),
+        "cold_wall_elapsed_ns": cold["wall_elapsed_ns"], "cold_limits": {"qualification": 180, "cleanup": 3},
+        "owner": owner, "phase_processes": len(phases),
+        "phase_archives": sum(p["archive_identity"] is not None for p in phases),
+        "completed_phases": sorted(completed), "pending_phases": sorted(pending),
+        "reference_workers": len(references), "actual_generation_images": images,
+        "admitted_final_qualification_present": qualification is not None,
+        "unconsumed_final_report": unconsumed,
+        "final_qualification_status": None if qualification is None else qualification["status"],
+        "final_qualification_checks": None if qualification is None else len(qualification["checks"]),
+        "original_business_result_reclassified": False, "business_reexecuted": False,
+        "new_qualification": False, "whole_native_inferred": False}
+    return summary, {"cold": cold, "owner": owner, "phases": phases, "pending": pending,
+                     "references": references, "qualification": qualification}
+
+def verify_original_business_reports(archive, rows):
+    # Preserve both full reports and exact text originals in the content pool.
+    # This projection is descriptive; all nested failure reports remain raw.
+    result = {}
+    for name in sorted(rows):
+        if rows[name]["directory"] or not name.endswith((".json", ".log", ".txt")):
+            continue
+        if name.endswith(".json") and rows[name]["bytes"] <= 16 * 1024 * 1024:
+            try:
+                value = json.loads(archive.read(name))
+            except (UnicodeError, json.JSONDecodeError):
+                continue
+            if isinstance(value, dict) and any(k in value for k in ("tests_run", "testsRun", "status", "checks", "returncode")):
+                result[name] = {"identity": rows[name],
+                                "observation": {k: value[k] for k in
+                                ("schema", "status", "tests_run", "testsRun", "returncode",
+                                 "elapsed_ns", "seconds", "timed_out", "failures", "errors",
+                                 "skips", "skipped", "expected_failures", "unexpected_successes",
+                                 "source_and_inputs_unchanged", "actual_machine_returns")
+                                if k in value}}
+    return result
+
+def make_pool(item, archive, rows, nested, bindings, git_rows, observations, authority):
+    # Source references are allowed only after complete actual Git-byte binding.
+    objects, logical = {}, {}
+    for name, row in rows.items():
+        if row["directory"]:
+            logical[name] = {"original": row, "storage": "directory-metadata"}
+        elif name in bindings:
+            logical[name] = {"original": row, "storage": "external-exact-git-source",
+                             "external": bindings[name]}
+        else:
+            key = row["sha256"]
+            if key in objects:
+                require(all(objects[key]["identity"][k] == row[k] for k in ("bytes", "sha256", "blob")),
+                        "content key collision")
             else:
-                actual[path] = {**identity(blob_bytes(row["blob"])), "mode": row["mode"]}
-        require(normalized(json.loads(inner.read("GENERATED-SOURCE.json"))) == actual
-                and normalized(json.loads(inner.read("SOURCE-AFTER.json"))) == actual,
-                "diagnostic source before/after differs from immutable Git")
-        require(original_report["source_unchanged"] is True
-                and original_report["harness_inputs_unchanged"] is True
-                and original_report["authentic_head_unchanged"] is True
-                and original_report["retained_compiler_unchanged"] is True, "diagnostic input preservation failed")
-        require(json.loads(inner.read("HARNESS-INPUTS.json")) == expected_harness(item),
-                "diagnostic retained harness bytes differ")
-    return actual
+                objects[key] = {"representative": name, "identity": row}
+            logical[name] = {"original": row, "storage": "pool-object", "object": "objects/" + key + ".bin"}
+    recovery = {
+        "schema": "hia.normal-core-original-content-pool.v1", "key": item["key"],
+        "original_artifact": item["artifact"], "run_id": item["run_id"],
+        "source_commit": item["source_commit"], "source_tree": item["source_tree"],
+        "original_outer_zip_reconstructed": False,
+        "original_outer_bytes_retained_in": "Actions original artifact, exact ID/digest/retention above",
+        "all_original_logical_members_recoverable": True,
+        "all_original_nested_zip_bytes_unchanged": True,
+        "logical_members": logical, "nested_archives": nested,
+        "exact_git_tree": git_rows, "verification": observations, "authority": authority,
+        "external_source_references": len(bindings),
+        "unique_pool_objects": len(objects),
+        "qualification_transferred": False
+    }
+    recovery_raw = wire(recovery)
+    target = OUT / (item["key"] + "-CONTENT-POOL.tar.gz")
+    expected_objects = {name: {"bytes": len(recovery_raw), "sha256": hashlib.sha256(recovery_raw).hexdigest()}
+                        for name in ("RECOVERY.json",)}
+    with target.open("xb") as file:
+        with gzip.GzipFile(filename="", mode="wb", fileobj=file, compresslevel=6, mtime=0) as compressed:
+            with tarfile.open(fileobj=compressed, mode="w|", format=tarfile.USTAR_FORMAT) as packed:
+                header = tarfile.TarInfo("RECOVERY.json"); header.size=len(recovery_raw); header.mode=0o644; header.mtime=0
+                packed.addfile(header, io.BytesIO(recovery_raw))
+                for key, value in sorted(objects.items()):
+                    raw = archive.read(value["representative"])
+                    require(identity(raw) == {k: value["identity"][k] for k in ("bytes", "sha256", "blob")},
+                            "original changed while pooling")
+                    name = "objects/" + key + ".bin"
+                    header = tarfile.TarInfo(name); header.size=len(raw); header.mode=0o644; header.mtime=0
+                    packed.addfile(header, io.BytesIO(raw))
+                    expected_objects[name] = {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+    tar_sha = hashlib.sha256(); tar_bytes = 0
+    with gzip.open(target, "rb") as stream:
+        while part := stream.read(1024 * 1024):
+            tar_sha.update(part); tar_bytes += len(part)
+    seen = {}
+    with tarfile.open(target, "r:gz") as packed:
+        for member in packed:
+            require(member.isfile() and member.name not in seen and member.mode == 0o644,
+                    "derived pool path/type/mode differs")
+            reader = packed.extractfile(member)
+            sha = hashlib.sha256(); size = 0
+            while part := reader.read(1024 * 1024):
+                sha.update(part); size += len(part)
+            seen[member.name] = {"bytes": size, "sha256": sha.hexdigest()}
+    require(seen == expected_objects, "complete derived pool readback differs")
+    return target, {"logical_members": len(logical), "external_source_references": len(bindings),
+                    "unique_pool_objects": len(objects), "pool_members": len(seen),
+                    "complete_decompression_and_member_hashes_verified": True,
+                    "complete_gzip_crc_verified": True,
+                    "tar_stream_bytes": tar_bytes, "tar_stream_sha256": tar_sha.hexdigest(),
+                    "recovery_manifest": identity(recovery_raw)}
 
-def publish_archive(raw, item):
-    name = item["key"] + "/original-inner.zip"
-    archive_meta = identity(raw)
-    if item.get("inner_sha256") is not None:
-        require(archive_meta["sha256"] == item["inner_sha256"] and len(raw) == item["inner_bytes"],
-                "previously observed inner identity differs")
+def publish_pool(path, item, pool_report):
+    meta = file_identity(path)
     chunks = []
-    for index, offset in enumerate(range(0, len(raw), 512 * 1024)):
-        part = raw[offset:offset + 512 * 1024]
-        data = {"schema": "hia.lossless-archive-chunk.v1", "archive_name": name,
-                "archive_bytes": len(raw), "archive_sha256": archive_meta["sha256"],
-                "index": index, "offset": offset, "bytes": len(part),
-                "sha256": hashlib.sha256(part).hexdigest(), "encoding": "base64",
-                "data": base64.b64encode(part).decode("ascii")}
-        wrapper = wire(data)
-        ref = publish_text(wrapper, item["key"] + "/chunk-" + str(index).zfill(3) + ".json")
-        chunks.append({"index": index, "offset": offset, "bytes": len(part),
-                       "sha256": data["sha256"], "wrapper": ref})
-    require(sum(row["bytes"] for row in chunks) == len(raw), "archive chunk extent incomplete")
-    index = {"schema": "hia.lossless-archive-chunks.complete.v1", "archive": archive_meta,
-             "archive_name": name, "chunks": chunks, "original_run_id": item["run_id"],
-             "original_artifact": item["artifact"], "ordered_offsets_complete": True,
-             "all_wrappers_full_readback": True, "all_published": True,
-             "outer_zip_reconstructed": False, "original_outer_retention": "original Actions artifact identity and retention are retained separately",
-             "old_result_changed": False, "current_cold": False, "whole_native": False}
-    ref = publish_text(wire(index), item["key"] + "/INDEX.json")
-    return archive_meta, ref
-
-def compact_original_report(inner):
-    output = {}
-    for name in inner.namelist():
-        if (name == "REPORT.json" or name.endswith("/original-agent-48.json")
-                or name.endswith("/original-suite.json") or name.endswith("observations/REPORT.json")
-                or name.endswith("default-front-64/REPORT.json") or name.endswith("actual-combinations/REPORT.json")
-                or name.endswith("COST-REPORT.json")):
-            value = json.loads(inner.read(name))
-            fields = ("schema", "status", "tests_run", "elapsed_ns", "actual_machine_returns",
-                      "actual_machine_mode_returns", "source_and_inputs_unchanged", "source_unchanged",
-                      "failures", "errors", "skips", "skipped", "expected_failures", "unexpected_successes",
-                      "loaded_ids", "executed_ids", "all_executed_ids", "loaded", "executed",
-                      "comparisons", "actual_returns", "original_method_outcomes", "outcome")
-            output[name] = {k:value[k] for k in fields if k in value}
-            output[name]["original_identity"] = identity(inner.read(name))
-    return output
+    name = item["key"] + "/CONTENT-POOL.tar.gz"
+    offset = 0
+    with path.open("rb") as stream:
+        while part := stream.read(512 * 1024):
+            number = len(chunks)
+            value = {"schema": "hia.lossless-archive-chunk.v1", "archive_name": name,
+                     "archive_bytes": meta["bytes"], "archive_sha256": meta["sha256"],
+                     "index": number, "offset": offset, "bytes": len(part),
+                     "sha256": hashlib.sha256(part).hexdigest(),
+                     "encoding": "base64", "data": base64.b64encode(part).decode("ascii")}
+            ref = publish_text(wire(value), item["key"] + "/chunk-" + str(number).zfill(3) + ".json")
+            chunks.append({"index": number, "offset": offset, "bytes": len(part),
+                           "sha256": value["sha256"], "wrapper": ref})
+            offset += len(part)
+    require(offset == meta["bytes"] and file_identity(path) == meta, "pooled archive changed during publication")
+    index = {"schema": "hia.lossless-original-content-pool-index.v1", "archive": meta,
+             "archive_name": name, "chunks": chunks, "original": item,
+             "pool_verification": pool_report, "all_published": True,
+             "all_wrappers_full_readback": True, "ordered_offsets_complete": True,
+             "archive_blob_is_computed_identity_only": True,
+             "raw_binary_git_blob_separately_uploaded": False,
+             "original_outer_zip_reconstructed": False,
+             "original_nested_zip_bytes_repacked": False,
+             "qualification_transferred": False}
+    ref = publish_record(index, item["key"] + "/INDEX.json")
+    return meta, ref
 
 def collect(item):
     global STAGE
-    STAGE = item["key"] + ": authority"
-    require(item["artifact"]["workflow_run"]["id"] == item["run_id"]
-            and item["artifact"]["workflow_run"]["head_sha"] == item["harness_commit"], "frozen authority inconsistent")
-    expected_harness(item)
-    folder = OUT / item["key"]
-    folder.mkdir(parents=True)
-    archive = folder / "original-artifact.zip"
-    authority, run, outer_sha = download(item, archive)
-    STAGE = item["key"] + ": complete CRC and source"
-    with zipfile.ZipFile(archive) as outer_zip:
-        outer = zip_inventory(outer_zip)
-        suffix = "COMPLETE-RAW.zip" if item["kind"] == "four-profile" else "RAW-EVIDENCE.zip"
-        candidates = [n for n,r in outer.items() if not r["directory"] and pathlib.PurePosixPath(n).name == suffix]
-        require(len(candidates) == 1, "original inner ZIP is not unique")
-        name = candidates[0]
-        raw = outer_zip.read(name)
-    with zipfile.ZipFile(io.BytesIO(raw)) as inner:
-        members = zip_inventory(inner)
-        report = json.loads(inner.read("REPORT.json"))
-        actual_source = source_from_archive(item, outer, name, report, inner)
-        if item["kind"] == "diagnostic":
-            manifest = json.loads(inner.read("EVIDENCE-MANIFEST.json"))
-            require(set(manifest) | {"EVIDENCE-MANIFEST.json"} == set(members), "diagnostic complete member inventory differs")
-            for path, row in manifest.items():
-                require(all(members[path][key] == row[key] for key in ("bytes","sha256","blob")), "diagnostic manifest bytes differ")
-                require(int(members[path]["zip_mode"],8)&0o7777 == int(row["local_mode"],8), "diagnostic original member mode differs")
-        observations = compact_original_report(inner)
-        # This wrapper keeps the exact complete original root report, even when it is large.
-        root_raw = inner.read("REPORT.json")
-        root_wrapper = {"schema":"hia.lossless-zlib-text-capsule.v1", **identity(root_raw),
-                        "encoding":"base64(zlib(UTF-8))", "data":base64.b64encode(zlib.compress(root_raw,6)).decode("ascii")}
-    verification = {"schema":"hia.original-artifact-custody.v1", "key":item["key"],
-        "original_run_id":item["run_id"], "original_run_conclusion":run["conclusion"],
-        "original_artifact":authority, "outer_bytes":archive.stat().st_size, "outer_sha256":outer_sha,
-        "outer_members":len(outer), "inner_original_member":name, "inner":identity(raw),
-        "inner_members":len(members), "all_outer_inner_crc_sha_git_verified":True,
-        "source_commit":item["source_commit"], "source_tree":item["source_tree"], "source_files":len(actual_source),
-        "source_matches_actual_git":True, "source_before_after_matches":True,
-        "harness_commit":item["harness_commit"], "harness_git_bytes_full_readback":True,
-        "original_harness_unchanged_report":report.get("harness_inputs_unchanged"),
-        "original_status":report["status"], "product_tests_executed_by_custodian":0,
-        "current_cold":False,"whole_native":False,"observation_is_not_qualification":True}
-    record(item["key"]+"/VERIFICATION.json",verification)
-    record(item["key"]+"/ORIGINAL-OBSERVATIONS.json",observations)
-    STAGE=item["key"]+": immutable custody"
-    archive_meta,index=publish_archive(raw,item)
-    refs={}
-    for leaf,value in (("VERIFICATION.json",verification),("ORIGINAL-OBSERVATIONS.json",observations),
-                       ("OUTER-MEMBERS.json",outer),("INNER-MEMBERS.json",members),
-                       ("ROOT-REPORT.zlib.json",root_wrapper)):
-        payload=wire(value)
-        if len(payload)>400000:
-            original_leaf=leaf
-            leaf=leaf.removesuffix(".json")+".zlib.json"
-            payload=wire({"schema":"hia.lossless-zlib-text-capsule.v1",**identity(payload),
-                          "original_name":original_leaf,"encoding":"base64(zlib(UTF-8))",
-                          "data":base64.b64encode(zlib.compress(payload,6)).decode("ascii")})
-        refs[leaf]=publish_text(payload,item["key"]+"/"+leaf)
-    RESULTS.append({"key":item["key"],"original_status":report["status"],
-                    "archive":archive_meta,"index":index,"receipts":refs})
-    # Do not delete or rewrite original ZIP bytes in this job.
-    require(hashlib.sha256(archive.read_bytes()).hexdigest()==outer_sha,"outer original changed after custody")
-    print(json.dumps({"completed_original":item["key"],"original_status":report["status"],
-                      "index_blob":index["blob"],"no_product_execution":True}),flush=True)
+    STAGE = item["key"] + ":download"
+    target = OUT / (item["key"] + "-original-artifact.zip")
+    artifact, run, outer_sha = download(item, target)
+    jobs = api("/actions/runs/" + str(item["run_id"]) + "/jobs?filter=latest&per_page=100&page=1")
+    require(jobs["total_count"] == len(jobs["jobs"]), "original jobs response truncated")
+    actual_jobs = {j["id"]: j for j in jobs["jobs"]}
+    require(actual_jobs[item["native_job_id"]]["status"] == "completed"
+            and actual_jobs[item["native_job_id"]]["conclusion"] == item["expected_original_native_conclusion"]
+            and actual_jobs[item["source_job_id"]]["status"] == "completed"
+            and actual_jobs[item["source_job_id"]]["conclusion"] == item["expected_original_source_conclusion"],
+            "pinned original job conclusion changed")
+    STAGE = item["key"] + ":git-and-crc"
+    git_rows = git_tree(item["source_commit"], item["source_tree"], item["source_files"])
+    authority = {"artifact": artifact, "run": run, "jobs": jobs,
+                 "original_outer": {"bytes": target.stat().st_size, "sha256": outer_sha}}
+    direct = {}
+    for label, blob in item.get("log_anchors", {}).items():
+        raw = blob_bytes(blob)
+        direct["original-" + label + "-job.log"] = publish_text(raw, item["key"] + "/original-" + label + "-job.log")
+    with zipfile.ZipFile(target) as archive:
+        rows = zip_inventory(archive)
+        nested = {}
+        verify_nested(archive, rows, "", nested)
+        print(json.dumps({"original": item["key"], "outer_crc_members": len(rows),
+                          "nested_archives": len(nested),
+                          "nested_crc_members": sum(len(v.get("members", {})) for v in nested.values())}), flush=True)
+        STAGE = item["key"] + ":source-binding"
+        cold, bindings = cold_source_bindings(item, archive, rows, git_rows)
+        STAGE = item["key"] + ":original-cold-authority"
+        summary, detailed = read_cold_authority(item, archive, rows, nested, cold, bindings)
+        summary.update(outer_members=len(rows), nested_archives=len(nested),
+                       nested_members=sum(len(v.get("members", {})) for v in nested.values()),
+                       all_original_outer_and_recognized_nested_crc_sha_git_checked=True,
+                       recognized_nested_zip_count=sum(v.get("recognized_zip") is True for v in nested.values()),
+                       original_native_job_conclusion=actual_jobs[item["native_job_id"]]["conclusion"],
+                       original_source_job_conclusion=actual_jobs[item["source_job_id"]]["conclusion"])
+        observations = {"summary": summary, "cold_authority": detailed,
+                        "original_report_observations": verify_original_business_reports(archive, rows)}
+        direct["VERIFICATION.json"] = publish_record(summary, item["key"] + "/VERIFICATION.json")
+        direct["ORIGINAL-COLD.json"] = publish_record(cold, item["key"] + "/ORIGINAL-COLD.json")
+        direct["ORIGINAL-OWNER.json"] = publish_record(detailed["owner"], item["key"] + "/ORIGINAL-OWNER.json")
+        if detailed["qualification"] is not None:
+            direct["ORIGINAL-QUALIFICATION.json"] = publish_record(detailed["qualification"], item["key"] + "/ORIGINAL-QUALIFICATION.json")
+        direct["PHASES-AND-REFERENCES.json"] = publish_record(
+            {"phases": detailed["phases"], "pending": detailed["pending"],
+             "reference_worker_identities": {k: {"member": v["member"], "identity": v["identity"]}
+                                            for k, v in detailed["references"].items()}},
+            item["key"] + "/PHASES-AND-REFERENCES.json")
+        direct["SOURCE-BINDINGS.json"] = publish_record(bindings, item["key"] + "/SOURCE-BINDINGS.json")
+        direct["AUTHORITY.json"] = publish_record(authority, item["key"] + "/AUTHORITY.json")
+        print(json.dumps({"original": item["key"], "cold_status": summary["cold_status"],
+                          "cold_checks": [summary["cold_checks_passed"], summary["cold_checks_total"]],
+                          "cold_elapsed_ns": summary["cold_wall_elapsed_ns"],
+                          "cold_export_files": len(bindings), "pending_phases": summary["pending_phases"],
+                          "business_result_unchanged": True}), flush=True)
+        STAGE = item["key"] + ":lossless-content-pool"
+        path, pool_report = make_pool(item, archive, rows, nested, bindings, git_rows, observations, authority)
+    require(file_identity(target)["sha256"] == outer_sha, "original outer changed after inspection")
+    STAGE = item["key"] + ":immutable-publication"
+    meta, index = publish_pool(path, item, pool_report)
+    RESULTS.append({"key": item["key"], "original_run_id": item["run_id"],
+                    "original_native_conclusion": actual_jobs[item["native_job_id"]]["conclusion"],
+                    "original_cold_status": cold["status"], "original_artifact": artifact,
+                    "archive": meta, "index": index, "receipts": direct,
+                    "source_commit": item["source_commit"], "source_tree": item["source_tree"],
+                    "all_logical_original_members_recoverable": True,
+                    "outer_zip_bytes_in_git": False, "nested_zip_original_bytes_preserved": True})
+    record(item["key"] + "-COMPLETE.json", RESULTS[-1])
+    STAGE = item["key"] + ":complete"
 
 def main():
     global STAGE
-    before={str(p):identity(p.read_bytes()) for p in sorted(pathlib.Path(".").rglob("*"))
-            if p.is_file() and ".git" not in p.parts and "__pycache__" not in p.parts}
-    require(os.environ["GITHUB_REPOSITORY"]==REPOSITORY, "repository differs")
-    record("CUSTODIAN-SOURCE-BEFORE.json",before)
-    success=False
+    before = {str(p): identity(p.read_bytes()) for p in sorted(pathlib.Path(".").rglob("*"))
+              if p.is_file() and ".git" not in p.parts and "__pycache__" not in p.parts}
+    require(os.environ["GITHUB_REPOSITORY"] == REPOSITORY, "repository differs")
+    record("CUSTODIAN-SOURCE-BEFORE.json", before)
+    success = False
     try:
         for item in INPUTS["originals"]:
             collect(item)
-        success=True
+        success = True
     except BaseException as error:
-        record("FAILURE.json",{"stage":STAGE,"error_type":type(error).__name__,
-                               "http_code":getattr(error,"code",None),"message":"See pinned source and stage; credentials and storage URLs are never logged",
-                               "original_results_reclassified":False})
+        record("FAILURE.json", {"stage": STAGE, "error_type": type(error).__name__,
+                               "http_code": getattr(error, "code", None),
+                               "detail": str(error) if isinstance(error, (ValueError, KeyError, AssertionError)) else "Transport or runtime failure; no credential or signed URL is logged.",
+                               "original_results_reclassified": False})
     finally:
-        after={str(p):identity(p.read_bytes()) for p in sorted(pathlib.Path(".").rglob("*"))
-               if p.is_file() and ".git" not in p.parts and "__pycache__" not in p.parts}
-        unchanged=before==after
-        final={"schema":"hia.evidence-only-complete-or-partial.v1",
-               "status":"CUSTODY_COMPLETE" if success and unchanged else "CUSTODY_INCOMPLETE",
-               "expected_originals":len(INPUTS["originals"]),"completed_originals":RESULTS,
-               "last_stage":STAGE,"intents":INTENTS,"acks":ACKS,"entries":ENTRIES,"custodian_source_unchanged":unchanged,
-               "unpreserved_originals":[x["key"] for x in INPUTS["originals"] if x["key"] not in {r["key"] for r in RESULTS}],
-               "actual_custodian_commit":os.environ["GITHUB_SHA"],"actual_custodian_run":os.environ["GITHUB_RUN_ID"],
-               "product_execution":False,"compiler_execution":False,"tests_execution":False,
-               "old_results_reclassified":False,"product_or_audit_refs_changed":False,
-               "current_cold":False,"whole_native":False}
-        record("FINAL.json",final)
+        after = {str(p): identity(p.read_bytes()) for p in sorted(pathlib.Path(".").rglob("*"))
+                 if p.is_file() and ".git" not in p.parts and "__pycache__" not in p.parts}
+        unchanged = before == after
+        final = {"schema": "hia.normal-core-evidence-custody-complete-or-partial.v1",
+                 "status": "CUSTODY_COMPLETE" if success and unchanged else "CUSTODY_INCOMPLETE",
+                 "expected_originals": len(INPUTS["originals"]), "completed_originals": RESULTS,
+                 "last_stage": STAGE, "intents": INTENTS, "acks": ACKS, "entries": ENTRIES,
+                 "custodian_source_unchanged": unchanged,
+                 "unpreserved_originals": [x["key"] for x in INPUTS["originals"] if x["key"] not in {r["key"] for r in RESULTS}],
+                 "actual_custodian_commit": os.environ["GITHUB_SHA"], "actual_custodian_run": os.environ["GITHUB_RUN_ID"],
+                 "product_execution": False, "compiler_execution": False, "tests_execution": False,
+                 "old_results_reclassified": False, "product_or_audit_refs_changed": False,
+                 "whole_native": False}
+        record("FINAL.json", final)
         try:
-            ref=publish_text(wire(final),"FINAL.json")
-            print(json.dumps({"custody_status":final["status"],"manifest_blob":ref["blob"],
-                              "bytes":ref["bytes"],"sha256":ref["sha256"]}),flush=True)
+            ref = publish_text(wire(final), "FINAL.json")
+            print(json.dumps({"custody_status": final["status"], "manifest_blob": ref["blob"],
+                              "bytes": ref["bytes"], "sha256": ref["sha256"]}), flush=True)
         except BaseException as error:
-            record("FINAL-PUBLISH-FAILURE.json",{"stage":STAGE,"error_type":type(error).__name__})
-            success=False
+            record("FINAL-PUBLISH-FAILURE.json", {"stage": STAGE, "error_type": type(error).__name__})
+            success = False
         return 0 if success and unchanged else 1
 
 if __name__ == "__main__":
