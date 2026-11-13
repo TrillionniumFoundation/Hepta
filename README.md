@@ -19,3 +19,5 @@ branch contains only this isolated harness; product workflows are restored as
 data beneath the temporary working directory and never used to trigger jobs.
 
 R2 keeps the six owner sources, all 26 IDs, every assertion, and all limits unchanged. R1 run 43395539995 executed 21 ordinary controls and four syscall-fault methods successfully. The fifth ptrace-group method did not start because the previous group's evidence directory already existed. R2 assigns each group its own kernel/<group> directory; the unchanged complete archive recursively retains both. Original R1 remains FAIL.
+
+R3 preserves R2's complete 25 PASS / one trace assertion FAIL. Only the new trace test explicitly adds close_range to strace's observation filter; every original assertion, method ID, deadline, and all five implementation/HIA source files remain unchanged. Same-run trace=all fault controls already recorded the successful operation; this revision still requires a fresh complete 26-control result.
