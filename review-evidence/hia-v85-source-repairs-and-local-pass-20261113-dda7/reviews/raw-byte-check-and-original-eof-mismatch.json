@@ -1,0 +1,50 @@
+{
+  "schema": "hepta.raw-source-readback-narrow-review.v1",
+  "status": "NO_DEFINITE_SEGMENT_LOGIC_BUG_FOUND_EXACT_EOF_PIN_DIFFERENCE_REPORTED",
+  "scope": "Only new assert_current_tree segment, its three call sites and the supplied control receipt; source review, no product/helper guard execution by this reviewer",
+  "observed": {
+    "observed_local": {
+      "bytes": 48320,
+      "sha256": "db36172a1067ea189a3b3287f308ba0c7c8476e7c3581b2a9298fe430f57f82e",
+      "blob": "9b748caee5af3f8383405cc8bfc2d3df82eda60e"
+    },
+    "without_one_trailing_lf": {
+      "bytes": 48319,
+      "sha256": "24735484c36cc79c94b1e22a9540331702b8b16b7d9802a36399fc56433edfc2",
+      "blob": "53aa71018420afd2db6a46e7afd2d66bbbe87274"
+    },
+    "control": {
+      "identity": {
+        "bytes": 456,
+        "sha256": "cfab7eb8f2109b425ef53604d1a48daec90f4c581e6205bcdb4a1775f49aca55",
+        "blob": "8a248ec892f22d3d396a472ea644e994db7c80c8"
+      },
+      "report": {
+        "actual_error": "raw source readback differs from frozen tree: only.py",
+        "driver_blob": "53aa71018420afd2db6a46e7afd2d66bbbe87274",
+        "git_diff_with_assume_unchanged_returned_zero": true,
+        "independent_raw_readback_rejected_mutation": true,
+        "native": false,
+        "normal_frozen_bytes_pass": true,
+        "product_tests": 0,
+        "same_size_mutation_preserved_mtime": true,
+        "schema": "hepta.harness-independent-source-byte-control.v1",
+        "status": "PASS"
+      }
+    },
+    "ast_same": true
+  },
+  "code_findings": [],
+  "publication_identity": {
+    "difference": "Observed local file contains one extra trailing LF compared with the fixture/announced 53aa identity. Removing only the last byte gives exact 53aa and identical AST.",
+    "action": "Freeze one exact file and set EXPECTED_DRIVER_GIT_BLOB to that published file. The existing fixture receipt remains bound to 53aa."
+  },
+  "checks": [
+    "Fixed Git tree leaves independently read as raw bytes and recomputed Git blob.",
+    "Actual filesystem kind and Git executable/symlink mode compared to frozen mode.",
+    "Ancestor directories lstat-checked to reject symlinks.",
+    "Every leaf failure recorded before final rejection; original git/index/untracked checks retained.",
+    "New guard called after reproduction and before/after Source."
+  ],
+  "boundary": "Mode comparison covers Git mode 100644/100755/120000, not every POSIX read/write permission bit. This is a scope clarification, not an asserted observed source failure."
+}

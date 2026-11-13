@@ -1,0 +1,47 @@
+{
+  "schema": "hepta.front-builder-compat-handoff.v1",
+  "status": "EXACT_FROZEN_FRONT_GENERATION_RESTORED",
+  "product_delta": {
+    "path": "tools/hia_front_generator.py",
+    "before": {
+      "blob": "8a872e85b3eb97295e93dd0b67d6250adb35578e",
+      "bytes": 11768,
+      "sha256": "972870483c7be4f953cb0c62a801af11c7213a05410753f61fd33d956383d0d7",
+      "mode": "100644"
+    },
+    "after": {
+      "blob": "61fa20a475ab2d0f1daa5879526143818eb7f8d7",
+      "bytes": 12394,
+      "sha256": "8375499782e4a4717b4d28304ce7d10440c147363e6b9bca5024bec463bcdf2d",
+      "mode": "100644"
+    },
+    "packet": "280c1bc9d25ea5a89020ea49292e57b035adc554"
+  },
+  "root_cause": "New main same-block scalar CSE changes front emitted HIA bytes while its policy tables and fixed ports stay byte-identical. The original main head does not itself contain these two front owners. Remote's minimal Builder-only A/B isolates the changed authoring behavior; this patch opts only the two front documents into the exact original scalar allocation method.",
+  "retained_tests": "All eight FrontRegistrationSourceTests methods and literal hashes/2,16 counts unchanged.",
+  "verification": {
+    "actual_python": "3.12.14",
+    "generator_checks": 2,
+    "core_sha256": "2931664bb7af879f48c82bb36e897654ca25d3708d198b9edb06da34de647546",
+    "assembly_sha256": "440e65fc0e41b8b586b44d3ab3bdad65bf4705eed50ab11d9a123d0d9a40d9d2",
+    "ports_tables_same_as_original": true,
+    "shared_main_CSE_preserved": true,
+    "front_op_AST_exact_to_a733": true,
+    "source_3039_before_after_unchanged": true,
+    "native": false,
+    "cold": false,
+    "whole": false,
+    "source_full_8_suite_executed": false
+  },
+  "full_observations": {
+    "blob": "d39114809d3eb1ef9aaad87fc5fea40296f3a071",
+    "inline_files": 9,
+    "external_Git_identical_outputs": 4,
+    "full_snapshot_exact_derivation": true
+  },
+  "original_failure_AB": {
+    "index": "dd0e22b7a05ffc64306752f0d3aa65e51e4e943e",
+    "recipe": "ad8ecbd13b886a48f977e022379fadf9b4509a18"
+  },
+  "integration": "Check exact before bytes/mode, apply this one file in a successor. Re-run the two front generators in the full original 109-owner sequence and preserve all source/native/cold qualification boundaries. No shared Builder or other owner files are in this delta."
+}
