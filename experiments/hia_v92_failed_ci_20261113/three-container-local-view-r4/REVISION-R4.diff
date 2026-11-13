@@ -1,0 +1,169 @@
+--- r3/POLICY.json
++++ r4/POLICY.json
+@@ -158,7 +158,7 @@
+     "owner_seconds": 900
+   },
+   "mandatory_source_controls": {
+-    "actual_root": "/tmp/hia-v92-three-view-source20-r3-20261113-e26e",
++    "actual_root": "/tmp/hia-v92-three-view-source20-r4-20261113-e26e",
+     "expected_ids": [
+       "StoredContainerControls.test_01_cross_boundary_seek_exact_whole_original",
+       "StoredContainerControls.test_02_all_fourteen_bodies_and_signed_descriptors",
+@@ -260,7 +260,7 @@
+   "prior_small_canonical": "b32b3e5ff65e8161cd705c3e90724559c7aa04a8",
+   "private_inputs": "Only mode0600 owned single-link exact external refs/proxy bytes; opaque SHA/runtime identity accepted on fixed launch argv. Original values never public.",
+   "product_execution_permitted": false,
+-  "provider_references_path": "/tmp/hia-v92-three-view-provider-refs-r1-20261113-e26e.private.json",
++  "provider_references_path": "/tmp/hia-v92-three-view-provider-refs-r4-20261113-e26e.private.json",
+   "proxy_configuration_path": "/tmp/hia-v92-three-view-original-proxy-r3-20261113-e26e.private.json",
+   "receiver": {
+     "attempt": 1,
+--- r3/CONTROL-REQUEST.json
++++ r4/CONTROL-REQUEST.json
+@@ -5,7 +5,7 @@
+     "-I",
+     "-S",
+     "-B",
+-    "/home/agent/hia-v92-three-view-plan-r3-20261113-e26e/controls/run_controls.py"
++    "/home/agent/hia-v92-three-view-plan-r4-20261113-e26e/controls/run_controls.py"
+   ],
+   "environment": {
+     "LANG": "C.UTF-8",
+@@ -40,7 +40,7 @@
+   "inputs": {
+     "POLICY.json": {
+       "bytes": 13090,
+-      "sha256": "9740c6b3808bd5561978e6e547f118042e69de01bbe6ff5b5a538045fb4e0ee7"
++      "sha256": "c7986d03e981c25dbc003917c1b436e6898a757b2766034ee857097a6e93e402"
+     },
+     "control/common.py": {
+       "bytes": 11402,
+@@ -183,8 +183,8 @@
+   "minimum_free_bytes": 134217728,
+   "minimum_free_inodes": 4096,
+   "network_used": false,
+-  "operation_root": "/tmp/hia-v92-three-view-source20-r3-20261113-e26e",
+-  "output": "/tmp/hia-v92-three-view-source20-r3-20261113-e26e/tests",
++  "operation_root": "/tmp/hia-v92-three-view-source20-r4-20261113-e26e",
++  "output": "/tmp/hia-v92-three-view-source20-r4-20261113-e26e/tests",
+   "private_inputs_captured": false,
+   "product_execution": false,
+   "qualification_seconds": 20,
+@@ -207,6 +207,6 @@
+     "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7"
+   },
+   "schema": "hia.v92-three-view-source20-request.v1",
+-  "scope": "The same20 synthetic tiny-file controls under a new R3 metadata binding, including the new proxy input path and part02 home-volume allocation. All20 must execute under the original20/3 owner in separate r3 output. R1/R2 actual source PASS and R2 environment preflight HOLD remain historical, not adopted. No receiver, network, private capture or product execution. FROZEN_UNEXECUTED.",
++  "scope": "The same20 synthetic tiny-file controls under a new R4 provider-input binding. All20 must execute once under the original20/3 owner in separate r4 output. R2 source20 PASS and R3 expired-reference HOLD remain history, not R4 acceptance. No receiver, network, private capture or product execution. FROZEN_UNEXECUTED.",
+   "status": "FROZEN_UNEXECUTED"
+ }
+--- r3/CONTROL-LAUNCH.json
++++ r4/CONTROL-LAUNCH.json
+@@ -5,9 +5,9 @@
+     "-I",
+     "-S",
+     "-B",
+-    "/home/agent/hia-v92-three-view-plan-r3-20261113-e26e/controls/launch_controls.py"
++    "/home/agent/hia-v92-three-view-plan-r4-20261113-e26e/controls/launch_controls.py"
+   ],
+-  "cwd": "/home/agent/hia-v92-three-view-plan-r3-20261113-e26e",
++  "cwd": "/home/agent/hia-v92-three-view-plan-r4-20261113-e26e",
+   "environment": {
+     "LANG": "C.UTF-8",
+     "LC_ALL": "C.UTF-8",
+@@ -19,9 +19,9 @@
+   "executions_authorized_by_this_file": 0,
+   "owner_seconds": 20,
+   "request": {
+-    "bytes": 8758,
+-    "git_blob_sha1": "551a554e175f012f757cdd730b0e5c83f9474f9e",
+-    "sha256": "94b414f4c848fa164ce4948f06e33965ab4cf7010f605bed9fa627e63c82de49"
++    "bytes": 8690,
++    "git_blob_sha1": "d098e691293cf07c10f2d1a1a3c43fb7f1493e7d",
++    "sha256": "79513a28c8a559857f1b82435a5538d8b7857f9857a30bc0c11a5edfd282ecbf"
+   },
+   "schema": "hia.exact-one-source20-launch.v1"
+ }
+--- r3/REQUEST.json
++++ r4/REQUEST.json
+@@ -215,8 +215,8 @@
+   ],
+   "policy": {
+     "bytes": 13090,
+-    "git_blob_sha1": "ca5e17ee6580e18d9455de9eb0f0de04ced64264",
+-    "sha256": "9740c6b3808bd5561978e6e547f118042e69de01bbe6ff5b5a538045fb4e0ee7"
++    "git_blob_sha1": "964050203c244aed6a10377199f69bfd17d2d95c",
++    "sha256": "c7986d03e981c25dbc003917c1b436e6898a757b2766034ee857097a6e93e402"
+   },
+   "private_input_capture_required_before_invocation": true,
+   "private_input_shapes": {
+@@ -241,15 +241,15 @@
+       "receiver_run_id": 43338002642,
+       "schema": "hia.v92.three-official-provider-references.v1"
+     },
+-    "proxy": "After R3 source20 is accepted, Root creates one new mode0600 private proxy input at /tmp/hia-v92-three-view-original-proxy-r3-20261113-e26e.private.json from the actual inherited environment, preserving the old r1 capture. Capture and unique receiver invocation are performed continuously within the same inheriting Root process. The unchanged full fresh equality remains mandatory. The existing three provider references at /tmp/hia-v92-three-view-provider-refs-r1-20261113-e26e.private.json (1562 bytes/SHA256 89ac4f110cc6e3d5c4dc2471f3ecd801200b479bba06f0ba6c5fffd548cf8606) must be reused; no provider reference is acquired again. Opaque private seals only; no secret body or URL enters public evidence."
++    "proxy": "R4 changes only the provider-reference input path and source20 output identity. The old r1 provider references are proved expired and must never be used for a local GET. Preserve all old refs/ACKs/expiry and the old r1 proxy capture. After the complete R4 review and actual R4 source20 PASS, Root obtains exactly one new official reference for each of the three unchanged artifacts into /tmp/hia-v92-three-view-provider-refs-r4-20261113-e26e.private.json. These new references are obtained at the last moment, not before source20 or canonical review. Immediately, in one inheriting Root process, create the still-fresh r3 proxy input at /tmp/hia-v92-three-view-original-proxy-r3-20261113-e26e.private.json and invoke the unchanged receiver once after its full fresh equality, runtime/source/actual and per-volume gates. No URL/private value is published, no expired URL is tried, no retry or direct fallback is permitted, and no resource or algorithm changes are introduced."
+   },
+   "receiver_execution_permitted_only_by_separate_root_authorization": true,
+   "root_cause_original_native42": "UNKNOWN until actual step42 originals read",
+   "schema": "hia.v92.three-container-view-readonly-request.v1",
+   "source20_request": {
+-    "bytes": 8758,
+-    "git_blob_sha1": "551a554e175f012f757cdd730b0e5c83f9474f9e",
+-    "sha256": "94b414f4c848fa164ce4948f06e33965ab4cf7010f605bed9fa627e63c82de49"
++    "bytes": 8690,
++    "git_blob_sha1": "d098e691293cf07c10f2d1a1a3c43fb7f1493e7d",
++    "sha256": "79513a28c8a559857f1b82435a5538d8b7857f9857a30bc0c11a5edfd282ecbf"
+   },
+   "source_only_validation_pending": true,
+   "status": "FROZEN_UNEXECUTED",
+--- r3/LAUNCH.json
++++ r4/LAUNCH.json
+@@ -4,18 +4,18 @@
+     "-I",
+     "-S",
+     "-B",
+-    "/home/agent/hia-v92-three-view-plan-r3-20261113-e26e/control/launch.py"
++    "/home/agent/hia-v92-three-view-plan-r4-20261113-e26e/control/launch.py"
+   ],
+   "cleanup_seconds": 3,
+-  "cwd": "/home/agent/hia-v92-three-view-plan-r3-20261113-e26e",
++  "cwd": "/home/agent/hia-v92-three-view-plan-r4-20261113-e26e",
+   "environment": "inherit current original proxy/CA only for launcher preflight; frozen launch constructs public worker env without proxy URLs",
+   "executions_authorized_by_this_file": 0,
+   "global_complete_seconds": 720,
+   "owner_seconds": 900,
+   "request": {
+-    "bytes": 10359,
+-    "git_blob_sha1": "df5f2e8f773f7f95deaeee3f4011d8a72b67830b",
+-    "sha256": "c18f8115b0ffc8fd19402ff0b1eabde7a49e0e3407357de1bb775027c720d955"
++    "bytes": 10626,
++    "git_blob_sha1": "ae9ea08f2413790d2e1307602b9ba311942ce539",
++    "sha256": "0eeb2c540d50b28ab78e1f7f40d4d85e7c0bdac51e595c72bbcfdd92ff6be04d"
+   },
+   "required_final_argv": [
+     "--provider-references-sha256",
+--- r3/CAPACITY-PROOF.json
++++ r4/CAPACITY-PROOF.json
+@@ -11,8 +11,8 @@
+       "metadata_maximum": 8388608,
+       "minimum_free_inodes": 4096,
+       "minimum_start_free_bytes": 956703893,
+-      "observed_authoring_free_bytes": 1070391296,
+-      "observed_authoring_free_inodes": 1250660,
++      "observed_authoring_free_bytes": 1069424640,
++      "observed_authoring_free_inodes": 1250572,
+       "parent": "/tmp",
+       "parent_metadata_maximum": 8388608,
+       "persistent_total_maximum": 419832981,
+@@ -26,8 +26,8 @@
+       "metadata_maximum": 67108864,
+       "minimum_free_inodes": 4096,
+       "minimum_start_free_bytes": 1009489532,
+-      "observed_authoring_free_bytes": 5079121920,
+-      "observed_authoring_free_inodes": 1274484,
++      "observed_authoring_free_bytes": 5070405632,
++      "observed_authoring_free_inodes": 1274176,
+       "parent": "/home/agent",
+       "parent_metadata_maximum": 16777216,
+       "persistent_total_maximum": 472618620,
