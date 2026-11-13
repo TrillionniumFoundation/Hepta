@@ -1,0 +1,242 @@
+--- old/controller.py
++++ new/controller.py
+@@ -351,7 +351,7 @@
+     require(type(pin) is dict
+             and all(type(pin.get(name)) is int and 0 < pin[name] < 1 << 63
+                     for name in ('id', 'run_id', 'job_id'))
+-            and type(pin.get('run_attempt')) is int and pin['run_attempt'] == 1
++            and type(pin.get('run_attempt')) is int and pin['run_attempt'] == 2
+             and type(pin.get('sha256')) is str and re.fullmatch(r'[0-9a-f]{64}', pin['sha256'])
+             and all(type(pin.get(name)) is str and re.fullmatch(r'[0-9a-f]{40}', pin[name])
+                     for name in ('checkout_commit', 'checkout_tree'))
+@@ -387,8 +387,8 @@
+     require(type(pin.get('bytes')) is int and 0 < pin['bytes'] <= 3 << 30
+             and policy.get('parts') == [] and policy.get('partition_files_created') is False,
+             'this request permits no partition production or publication')
+-    require(policy.get('expected_diagnostics') == {'members': 22385, 'expanded_bytes': 1987786640, 'selected_count': 460, 'selected_bytes': 3012789, 'missing_expected': ['hia-core-unpack-evidence/callers/integer-report.json', 'hia-core-unpack-evidence/callers/numeric/numeric-report.json', 'hia-core-unpack-evidence/callers/numeric/callers/report.json', 'hia-core-unpack-evidence/callers/numeric/callers/progress.receipt.json', 'hia-core-unpack-evidence/callers/numeric/callers/core-callers/report.json'], 'metadata_files': 3},
+-            'fixed full original inventory or available diagnostic population differs')
++    require(policy.get('expected_diagnostics') == {'population': 'OBSERVE_CURRENT_COMPLETE_ZIP', 'selector_sha256': '50c1d07dd3a452ba189a8a87a06f49114da061a76256c9a69fa06391e5884831', 'metadata_files': 3},
++            'fixed current-artifact selection declaration differs')
+     return pin
+ 
+ def same_original_record(expected, actual):
+@@ -676,8 +676,8 @@
+         observed_population = {'members': len(inventory), 'expanded_bytes': value['expanded_bytes'],
+             'selected_count': len(selected), 'selected_bytes': value['selected_bytes'],
+             'missing_expected': expected_missing, 'metadata_files': 3}
+-        require(observed_population == policy.get('expected_diagnostics'),
+-                'fixed original available460 and missing5 population differs')
++        require(observed_population['metadata_files'] == policy['expected_diagnostics']['metadata_files'],
++                'complete current diagnostic metadata population differs')
+         require(set(os.listdir(folder)) == set(expected_records),
+                 'complete diagnostic namespace differs from original INDEX')
+         result.update(index_original=index_pin, complete_members=len(inventory),
+--- old/worker.py
++++ new/worker.py
+@@ -258,7 +258,7 @@
+     require(type(pin) is dict
+             and all(type(pin.get(name)) is int and 0 < pin[name] < 1 << 63
+                     for name in ('id', 'run_id', 'job_id'))
+-            and type(pin.get('run_attempt')) is int and pin['run_attempt'] == 1
++            and type(pin.get('run_attempt')) is int and pin['run_attempt'] == 2
+             and type(pin.get('sha256')) is str and re.fullmatch(r'[0-9a-f]{64}', pin['sha256'])
+             and all(type(pin.get(name)) is str and re.fullmatch(r'[0-9a-f]{40}', pin[name])
+                     for name in ('checkout_commit', 'checkout_tree'))
+@@ -294,8 +294,8 @@
+     require(type(pin.get('bytes')) is int and 0 < pin['bytes'] <= 3 << 30
+             and policy.get('parts') == [] and policy.get('partition_files_created') is False,
+             'this request permits no partition production or publication')
+-    require(policy.get('expected_diagnostics') == {'members': 22385, 'expanded_bytes': 1987786640, 'selected_count': 460, 'selected_bytes': 3012789, 'missing_expected': ['hia-core-unpack-evidence/callers/integer-report.json', 'hia-core-unpack-evidence/callers/numeric/numeric-report.json', 'hia-core-unpack-evidence/callers/numeric/callers/report.json', 'hia-core-unpack-evidence/callers/numeric/callers/progress.receipt.json', 'hia-core-unpack-evidence/callers/numeric/callers/core-callers/report.json'], 'metadata_files': 3},
+-            'fixed full original inventory or available diagnostic population differs')
++    require(policy.get('expected_diagnostics') == {'population': 'OBSERVE_CURRENT_COMPLETE_ZIP', 'selector_sha256': '50c1d07dd3a452ba189a8a87a06f49114da061a76256c9a69fa06391e5884831', 'metadata_files': 3},
++            'fixed current-artifact selection declaration differs')
+     return pin
+ 
+ 
+--- old/render_workflow.py
++++ new/render_workflow.py
+@@ -11,7 +11,7 @@
+ import re
+ 
+ 
+-PREFIX = 'experiments/hia_v92_failed_ci_20261113/diagnostics-only-r2'
++PREFIX = 'experiments/hia_core_lowering_20261113/pc-ci-a2-diagnostics-only-r1'
+ EXPECTED_LIMITS = {
+     'controller_seconds': 900, 'cleanup_seconds': 3, 'transfer_seconds': 720,
+     'maximum_original_bytes': 3 << 30, 'maximum_parts': 10,
+@@ -43,7 +43,7 @@
+     pin = policy['artifact']
+     require(type(pin) is dict
+             and all(type(pin.get(k)) is int and pin[k] > 0 for k in ('id', 'run_id', 'job_id'))
+-            and type(pin.get('run_attempt')) is int and pin['run_attempt'] == 1
++            and type(pin.get('run_attempt')) is int and pin['run_attempt'] == 2
+             and type(pin.get('bytes')) is int and 0 < pin['bytes'] <= 3 << 30
+             and type(pin.get('sha256')) is str and re.fullmatch('[0-9a-f]{64}', pin['sha256'])
+             and all(type(pin.get(k)) is str and re.fullmatch('[0-9a-f]{40}', pin[k])
+--- old/workflow-template.yml
++++ new/workflow-template.yml
+@@ -1,4 +1,4 @@
+-name: HIA v92 failed CI diagnostics-only recovery r2
++name: HIA Core PC attempt2 failed CI diagnostics-only recovery r1
+ 
+ on: [create]
+ 
+@@ -11,7 +11,7 @@
+       ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+           github.event_name == 'create' &&
+           github.event.ref_type == 'branch' &&
+-          github.event.ref == 'codex/hia-v92-failed-ci-diagnostics-only-r2-20261113-e26e' &&
++          github.event.ref == 'codex/hia-core-pc-ci-a2-diagnostics-only-r1-20261113-e26e' &&
+           github.run_attempt == '1' }}
+     runs-on: ubuntu-latest
+     timeout-minutes: 25
+@@ -43,7 +43,7 @@
+           HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+         run: |
+           unset LD_LIBRARY_PATH LD_PRELOAD
+-          python -I -S -B control/experiments/hia_v92_failed_ci_20261113/diagnostics-only-r2/controller.py prepare --root "$RUNNER_TEMP/hia-v92-failed-ci-diagnostics-r2" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
++          python -I -S -B control/experiments/hia_core_lowering_20261113/pc-ci-a2-diagnostics-only-r1/controller.py prepare --root "$RUNNER_TEMP/hia-core-pc-ci-a2-diagnostics-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+       - name: Read one sealed original ZIP and all fixed diagnostics under the original 900-second guardian
+         id: owned_collection
+         timeout-minutes: 16
+@@ -53,7 +53,7 @@
+           HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+         run: |
+           unset LD_LIBRARY_PATH LD_PRELOAD
+-          python -I -S -B control/experiments/hia_v92_failed_ci_20261113/diagnostics-only-r2/controller.py run --root "$RUNNER_TEMP/hia-v92-failed-ci-diagnostics-r2" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
++          python -I -S -B control/experiments/hia_core_lowering_20261113/pc-ci-a2-diagnostics-only-r1/controller.py run --root "$RUNNER_TEMP/hia-core-pc-ci-a2-diagnostics-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+       - name: Independently retain every fixed diagnostic and controls after closed ECHILD
+         if: always()
+         timeout-minutes: 5
+@@ -62,13 +62,13 @@
+           HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+         run: |
+           unset LD_LIBRARY_PATH LD_PRELOAD
+-          python -I -S -B control/experiments/hia_v92_failed_ci_20261113/diagnostics-only-r2/controller.py finalize --root "$RUNNER_TEMP/hia-v92-failed-ci-diagnostics-r2" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
++          python -I -S -B control/experiments/hia_core_lowering_20261113/pc-ci-a2-diagnostics-only-r1/controller.py finalize --root "$RUNNER_TEMP/hia-core-pc-ci-a2-diagnostics-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+       - name: Preserve available step42 original diagnostics and current closed owner first
+         if: always()
+         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+         with:
+-          name: hia-v92-step42-diagnostics-only-r2-${{ github.run_id }}-1
+-          path: '${{ runner.temp }}/hia-v92-failed-ci-diagnostics-public-r2/small/'
++          name: hia-core-pc-ci-a2-diagnostics-only-r1-${{ github.run_id }}-1
++          path: '${{ runner.temp }}/hia-core-pc-ci-a2-diagnostics-public-r1/small/'
+           if-no-files-found: error
+           include-hidden-files: false
+           compression-level: 0
+--- old/policy.json
++++ new/policy.json
+@@ -1,22 +1,22 @@
+ {
+   "artifact": {
+-    "bytes": 656362802,
+-    "checkout_commit": "d96a5ae4783a123013351a511be9fc1a6d8f1c2c",
+-    "checkout_tree": "596ab07e8813e4811a8dca51800cd51eb397aeb2",
++    "bytes": 656480621,
++    "checkout_commit": "92078682dcf2a8cc760290e2ec26624594cddf1d",
++    "checkout_tree": "d60dbcda95d3c06797fae7a4d97c4640fe37f627",
+     "event": "push",
+-    "id": 13994959899,
+-    "job_id": 131554853309,
+-    "run_attempt": 1,
+-    "run_id": 43324913647,
+-    "sha256": "f9d15287c668bd8d84f5d564b4829ba40813c9372de322d2f33bc65ecf40b105",
++    "id": 14021690212,
++    "job_id": 131759824385,
++    "run_attempt": 2,
++    "run_id": 43384675486,
++    "sha256": "ccb1142c4780c3172c8f870e006cc5ef8b5191d2ba00cc0def2fe200e3cd4075",
+     "workflow_terminal": "failure"
+   },
+-  "artifact_carrier_scope": "Current exact d96 failed standard CI artifact; source129 PASS and former native results are not upgraded by this read-only receiver.",
+-  "capacity_scope": "Exact656362802 original + one complete raw partition; selected step42 originals <=128MiB and full ZIP metadata <=64MiB are relocated after bound ECHILD without a third copy. Three parts <=256MiB raw/320MiB public; small public <=224MiB. Original8GiB/100000 preflight and remaining512MiB filesystem reserve remain.",
++  "artifact_carrier_scope": "Exact current PC fixture standard CI attempt2 failed at step42; retain original attempt1 runner shutdown, old wire89 assertion failure, and all original product thresholds without reclassification.",
++  "capacity_scope": "Exact656480621 original ZIP remains private. No partitions are created. Available fixed step42 originals <=128MiB and full ZIP metadata <=64MiB are relocated after bound ECHILD without another original ZIP copy; small public <=224MiB. Original8GiB/100000 preflight and remaining512MiB reserve are unchanged.",
+   "control_files": {
+     "controller.py": {
+-      "bytes": 60651,
+-      "sha256": "6fe4b8ab5536b5a21f5dc8cff57e29136e3f7a50ff701eb0b6f4f555d11069d7"
++      "bytes": 60337,
++      "sha256": "6dd0552e8400a3d7e521d26c8e1192aa07875f17beda2b379fc6c255aefe5082"
+     },
+     "diagnostics.py": {
+       "bytes": 12433,
+@@ -35,11 +35,11 @@
+       "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+     },
+     "worker.py": {
+-      "bytes": 20070,
+-      "sha256": "5192e7bd71c2252211b2be61f0399df81e7be911fbe07b179058370bffb8e8c1"
++      "bytes": 19728,
++      "sha256": "420fa7b25f6690e47f21e7713d0f48ade50a017404864d33493bcf5582d35db5"
+     }
+   },
+-  "control_prefix": "experiments/hia_v92_failed_ci_20261113/diagnostics-only-r2",
++  "control_prefix": "experiments/hia_core_lowering_20261113/pc-ci-a2-diagnostics-only-r1",
+   "diagnostic_publication": "RELOCATE_SAME_FILESYSTEM_AFTER_CLOSED_ECHILD",
+   "diagnostics": {
+     "maximum_expanded_bytes": 8589934592,
+@@ -50,20 +50,11 @@
+     "maximum_selected_file_bytes": 67108864,
+     "maximum_selected_files": 1024
+   },
+-  "downstream_acceptance": "Require unique current receiver run/attempt/head/control/policy and natural900/3; all3 official parts with identical FINAL and exact PART ranges, plus small originals/full directory and inventory. Reconstruct external656362802/SHA, never derive qualification or timeout from receipt status. Missing original reports remain explicit.",
++  "downstream_acceptance": "Require unique current recovery run/create/attempt1/head/control/policy and natural900/3; one small artifact, current complete ZIP directory/body inventory and every available original selected by unchanged diagnostics.py. Independently compute current member/expanded/selected counts and missing12-path observations from exact ZIP; never treat missing reports or custody PASS as product qualification.",
+   "expected_diagnostics": {
+-    "expanded_bytes": 1987786640,
+-    "members": 22385,
+-    "metadata_files": 3,
+-    "missing_expected": [
+-      "hia-core-unpack-evidence/callers/integer-report.json",
+-      "hia-core-unpack-evidence/callers/numeric/numeric-report.json",
+-      "hia-core-unpack-evidence/callers/numeric/callers/report.json",
+-      "hia-core-unpack-evidence/callers/numeric/callers/progress.receipt.json",
+-      "hia-core-unpack-evidence/callers/numeric/callers/core-callers/report.json"
+-    ],
+-    "selected_bytes": 3012789,
+-    "selected_count": 460
++    "population": "OBSERVE_CURRENT_COMPLETE_ZIP",
++    "selector_sha256": "50c1d07dd3a452ba189a8a87a06f49114da061a76256c9a69fa06391e5884831",
++    "metadata_files": 3
+   },
+   "full_5400_retained_suite_executed": false,
+   "historical_custody_results_reclassified": false,
+@@ -93,22 +84,22 @@
+   "partition_files_created": false,
+   "parts": [],
+   "proxy_policy": "USE_CONFIGURED_ENVIRONMENT_PROXIES",
+-  "public_root_name": "hia-v92-failed-ci-diagnostics-public-r2",
++  "public_root_name": "hia-core-pc-ci-a2-diagnostics-public-r1",
+   "repository": "TrillionniumFoundation/Hepta",
+   "runner_label_requested": "ubuntu-latest",
+   "schema": "hia.actions.v92-ci-diagnostics-only-policy.v2",
+   "slice_publication": "NONE_DIAGNOSTICS_ONLY",
+   "source": {
+-    "cold_source_count": 889,
+-    "contract_sha256": "b5d6edc58693b17f8e4b3baf1bea08e5912fcd766a79f11a2ce87b5e8b91048f",
+-    "head": "d96a5ae4783a123013351a511be9fc1a6d8f1c2c",
+-    "profile": "selfhost-core-linux-x86_64-v92-unpack-bounded-read-sha-word-access-publication-observer-exact-numeric-and-integer-selected-development",
+-    "source_manifest_canonical_sha256": "325d013cef16a7fb87ed2540173e8eb6a8516878c2d8d0e077b6d71c22f545ac",
+-    "tree": "596ab07e8813e4811a8dca51800cd51eb397aeb2"
++    "head": "92078682dcf2a8cc760290e2ec26624594cddf1d",
++    "tree": "d60dbcda95d3c06797fae7a4d97c4640fe37f627",
++    "cold_source_count": 892,
++    "contract_sha256": "5b9f8780fc2f93bca2e076ab3026a8119e87a6f24d68f6e1f389c5990ed1aa21",
++    "source_manifest_canonical_sha256": "5cc4a57f0ad86794bf2926807c09c9e7ad38fc83affbe7be54e3f90d1df9335d",
++    "profile": "selfhost-core-linux-x86_64-v93-unpack-bounded-read-sha-word-access-publication-observer-exact-numeric-and-integer-selected-pc-forwarding-development"
+   },
+   "source_scope": "The exact failed standard CI carrier and its existing source provenance only; no new product source or qualification execution.",
+   "status": "FROZEN_OFFICIAL_TRANSPORT_INPUTS_UNEXECUTED",
+-  "trigger_branch": "codex/hia-v92-failed-ci-diagnostics-only-r2-20261113-e26e",
++  "trigger_branch": "codex/hia-core-pc-ci-a2-diagnostics-only-r1-20261113-e26e",
+   "unchanged_original_workflows": {
+     ".github/workflows/hia-core.yml": {
+       "bytes": 37918,
+@@ -127,5 +118,5 @@
+     }
+   },
+   "whole_ZIP_members_decompressed": true,
+-  "work_root_name": "hia-v92-failed-ci-diagnostics-r2"
++  "work_root_name": "hia-core-pc-ci-a2-diagnostics-r1"
+ }
