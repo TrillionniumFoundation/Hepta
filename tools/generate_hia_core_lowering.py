@@ -263,7 +263,7 @@ def lower(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             put(o, 16, 21)
             put(o, 24, target)
             return 2
-        result = dispatch(w, o)
+        result = dispatch(w, o, pc)
         if result != 4:
             return result
     return {ABI}
@@ -276,18 +276,16 @@ def unit_source(unit, selected, entries, total, workspace, output):
     main = main_source(unit, first, last, total, workspace, output)
     leaves = []
     for number, group in enumerate(chunks):
-        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf) -> u64:',
-                 '    pc = get(w, 24)']
+        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf, pc:u64) -> u64:']
         for instruction in group:
             lines.append('    if pc == ' + str(instruction['pc']) + ':')
             lines += ['        ' + line for line in instruction_lines(instruction)]
         lines.append('    return ' + str(ABI))
         leaves.append('\n'.join(lines))
-    lines = ['def dispatch(w:mutbuf, o:mutbuf) -> u64:',
-             '    pc = get(w, 24)']
+    lines = ['def dispatch(w:mutbuf, o:mutbuf, pc:u64) -> u64:']
     for number, group in enumerate(chunks):
         lines += ['    if pc <= ' + str(group[-1]['pc']) + ':',
-                  '        return group_' + str(number) + '(w, o)']
+                  '        return group_' + str(number) + '(w, o, pc)']
     lines.append('    return ' + str(ABI))
     # Initial mode admission exists in unit zero only; other units cannot start.
     startup = start_source(entries) if unit == 0 else (

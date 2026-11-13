@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v92-unpack-bounded-read-sha-word-access-publication-observer-exact-numeric-and-integer-selected-development'
+PROFILE = 'selfhost-core-linux-x86_64-v93-unpack-bounded-read-sha-word-access-publication-observer-exact-numeric-and-integer-selected-pc-forwarding-development'
 SOURCE_FILES = (
     'tools/hia_core_integer_qualification.py',
     'tools/qualify_hia_core_integer_callers.py',
