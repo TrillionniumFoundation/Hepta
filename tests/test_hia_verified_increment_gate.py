@@ -7,8 +7,15 @@ plan/start/stop identities, and source/worktree consistency are all mandatory.
 from __future__ import annotations
 
 from io import StringIO
+from hashlib import sha256
+from pathlib import Path
+import subprocess
+import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
+
+from tools import qualify_hia_verified_increment as gate
 
 from tools.qualify_hia_verified_increment import (
     MODULES, _IdentityRecordingResult, _outcome_admissible,
@@ -32,10 +39,138 @@ def accepted(result, planned=("one", "two"), source=True, worktree=True):
     )
 
 
+class VerifiedIncrementInventoryTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix="hia-inventory-")
+        self.addCleanup(self.temporary.cleanup)
+        self.parent = Path(self.temporary.name)
+        self.root = self.parent / "repo"
+        self.root.mkdir()
+        self.git("init", "--quiet", "--object-format=sha1")
+        for name, value in (("user.name", "Integration inventory fixture"),
+                            ("user.email", "fixture@example.invalid"),
+                            ("commit.gpgsign", "false"), ("core.hooksPath", "/dev/null"),
+                            ("core.fileMode", "true"), ("core.autocrlf", "false")):
+            self.git("config", name, value)
+        self.inputs = {
+            "examples/hia_recursive_chain/core_v7.hepta":
+                (gate.ROOT / "examples/hia_recursive_chain/core_v7.hepta").read_bytes(),
+            "examples/hia_recursive_chain/composite_v2.hepta":
+                (gate.ROOT / "examples/hia_recursive_chain/composite_v2.hepta").read_bytes(),
+            "examples/hia_program/offset_copy_v5.hepta":
+                (gate.ROOT / "examples/hia_program/offset_copy_v5.hepta").read_bytes(),
+            "rust/hia-core-shadow/Cargo.toml": b"[package]\nname = 'test-input'\n",
+            "rust/hia-core-shadow/src/lib.rs": b"pub fn actual_input() {}\n",
+            "tools/native_syscalls.S": b".text\n",
+            "tests/fixtures/oracle.c": b"int oracle(void) { return 17; }\n",
+        }
+        for name, raw in self.inputs.items():
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(raw)
+        self.git("add", ".")
+        self.git("commit", "--quiet", "-m", "committed integration inputs")
+
+    def git(self, *arguments):
+        return subprocess.check_output(["git", "--no-replace-objects", *arguments],
+                                       cwd=self.root, timeout=10)
+
+    def inventory(self):
+        with patch.object(gate, "ROOT", self.root):
+            return gate.inventory()
+
+    def identity(self):
+        with patch.object(gate, "ROOT", self.root):
+            return gate._source_identity()
+
+    def test_complete_tree_binds_native_sources_build_inputs_and_real_changes(self):
+        before = self.inventory()
+        self.assertEqual(before, {p: sha256(b).hexdigest() for p, b in self.inputs.items()})
+        for name, raw in self.inputs.items():
+            with self.subTest(input=name):
+                path = self.root / name
+                path.write_bytes(raw + b"\n")
+                with self.assertRaisesRegex(ValueError, "source bytes differ from raw HEAD blob"):
+                    self.inventory()
+                path.write_bytes(raw)
+                self.assertEqual(self.inventory(), before)
+        # A newly retained native input needs no hand-maintained path allowlist.
+        added = self.root / "examples/new-native.hepta"
+        added.write_bytes(next(iter(self.inputs.values())))
+        self.git("add", "examples/new-native.hepta")
+        self.assertNotIn("examples/new-native.hepta", self.inventory())
+        self.assertTrue(self.identity()["status"])
+        self.git("commit", "--quiet", "-m", "retain new native input")
+        self.assertIn("examples/new-native.hepta", self.inventory())
+        (self.root / "generated-output.bin").write_bytes(b"not a source input")
+        self.assertNotIn("generated-output.bin", self.inventory())
+
+    def test_missing_tracked_native_input_is_not_silently_omitted(self):
+        (self.root / "examples/hia_recursive_chain/core_v7.hepta").unlink()
+        with self.assertRaises(FileNotFoundError):
+            self.inventory()
+
+    def test_tracked_symlink_cannot_bind_untracked_external_bytes(self):
+        outside = self.parent / "outside.hepta"
+        outside.write_bytes(b"outside the source tree")
+        alias = self.root / "examples/external.hepta"
+        alias.symlink_to(outside)
+        self.git("add", "examples/external.hepta")
+        self.git("commit", "--quiet", "-m", "inadmissible source symlink")
+        with self.assertRaisesRegex(ValueError, "raw HEAD tree member"):
+            self.inventory()
+
+    def assert_hidden_source_change_refuses_before_discovery(self, flag):
+        name = "examples/hia_recursive_chain/core_v7.hepta"
+        before = self.inventory()
+        self.git("update-index", flag, "--", name)
+        # Index hints are harmless when the actual committed bytes still match.
+        self.assertEqual(self.inventory(), before)
+        (self.root / name).write_bytes(self.inputs[name] + b"\n")
+        self.assertEqual(self.identity()["status"], "")
+        self.assertNotEqual(self.git("rev-parse", "HEAD:" + name).strip(),
+                            self.git("hash-object", "--no-filters", "--", name).strip())
+        output = self.parent / "must-not-exist"
+        with patch.object(gate, "ROOT", self.root), \
+                patch.object(gate, "load_declared_suite") as discovery:
+            with self.assertRaisesRegex(ValueError, "source bytes differ from raw HEAD blob"):
+                gate.run(output)
+            discovery.assert_not_called()
+        self.assertFalse(output.exists())
+
+    def test_assume_unchanged_cannot_hide_uncommitted_native_input(self):
+        self.assert_hidden_source_change_refuses_before_discovery("--assume-unchanged")
+
+    def test_skip_worktree_cannot_hide_uncommitted_native_input(self):
+        self.assert_hidden_source_change_refuses_before_discovery("--skip-worktree")
+
+    def test_replacement_commit_cannot_rebind_reported_source_identity(self):
+        before = self.identity()
+        name = "examples/hia_recursive_chain/core_v7.hepta"
+        (self.root / name).write_bytes(self.inputs[name] + b"\n")
+        self.git("add", name)
+        self.git("commit", "--quiet", "-m", "replacement source")
+        replacement = self.git("rev-parse", "HEAD").decode().strip()
+        self.git("reset", "--hard", before["commit"])
+        self.git("replace", before["commit"], replacement)
+        self.assertEqual(self.identity(), before)
+        self.assertEqual(self.inventory(), {p: sha256(b).hexdigest() for p, b in self.inputs.items()})
+
+    def test_source_export_cannot_inherit_an_ancestor_git_inventory(self):
+        child = self.root / "export"
+        child.mkdir()
+        with patch.object(gate, "ROOT", child), self.assertRaisesRegex(ValueError, "worktree root"):
+            gate.inventory()
+
+
 class VerifiedIncrementAdmissionTests(unittest.TestCase):
     def test_full_gate_includes_its_independent_adversarial_tests(self):
         self.assertEqual(MODULES.count("tests.test_hia_verified_increment_gate"), 1)
         self.assertEqual(len(MODULES), len(set(MODULES)))
+
+    def test_retired_empty_performance_selector_is_explicit_and_never_counted(self):
+        self.assertEqual(gate.RETIRED_EMPTY_SELECTORS, ("tests.test_hia_release_parity_tail_gate",))
+        self.assertTrue(set(gate.RETIRED_EMPTY_SELECTORS).isdisjoint(MODULES))
 
     def test_clean_complete_outcome_and_source_are_necessary(self):
         self.assertTrue(accepted(fake_result()))

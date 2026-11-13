@@ -1,10 +1,64 @@
 """Task provenance and candidate-admission controls; no model success fixtures."""
+from hashlib import sha256
+import json
+from pathlib import Path
+import shutil
+import tempfile
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from benchmarks.hia_upstream_factorial import tasks, evaluator
 from tools import qualify_hia_upstream_factorial as study
 from tools.provider_adapter.llama_cpp_engine import canonical
+
+
+class RetainedSourceBindingTests(unittest.TestCase):
+    def test_current_and_frontier_bind_the_retained_sources_without_capture_frontend(self):
+        from tools import qualify_hia_agent_frontier_factorial as frontier
+
+        metadata = {name: (tasks.HERE / name).read_bytes()
+                    for name in ('PROTOCOL.json', 'UPSTREAM_TASKS.json', 'UPSTREAM_FIX.json')}
+        provenance = json.loads(metadata['UPSTREAM_TASKS.json'])
+        required = {
+            'benchmarks/hia_upstream_factorial/tasks.py',
+            'benchmarks/hia_upstream_factorial/evaluator.py',
+            'tools/qualify_hia_upstream_ports.py',
+        }
+        for version in provenance['versions'].values():
+            for selected in version['selected'].values():
+                source = tasks.HERE / selected['path']
+                self.assertEqual(source.suffix, '.hepta')
+                self.assertEqual(sha256(source.read_bytes()).hexdigest(), selected['sha256'])
+                required.add(source.relative_to(study.ROOT).as_posix())
+        for consumer in (study.source_bindings, frontier.bindings):
+            binding = consumer()
+            with self.subTest(consumer=consumer.__module__):
+                self.assertNotIn('tools/capture_hia_upstream_tasks.py', binding)
+                for name in required:
+                    self.assertEqual(binding[name], sha256((study.ROOT / name).read_bytes()).hexdigest())
+        for name, original in metadata.items():
+            self.assertEqual((tasks.HERE / name).read_bytes(), original)
+
+    def test_missing_selected_hia_source_cannot_disappear_from_a_glob_inventory(self):
+        with tempfile.TemporaryDirectory(prefix='hia-upstream-source-') as temporary:
+            captured = Path(temporary) / 'fixtures'
+            shutil.copytree(tasks.HERE, captured)
+            missing = captured / 'floor_reference.hepta'
+            missing.unlink()
+            with patch.object(tasks, 'HERE', captured), self.assertRaises(FileNotFoundError) as caught:
+                study.source_bindings()
+            self.assertEqual(caught.exception.filename, str(missing))
+
+    def test_changed_selected_hia_source_is_refused_against_retained_provenance(self):
+        with tempfile.TemporaryDirectory(prefix='hia-upstream-source-') as temporary:
+            captured = Path(temporary) / 'fixtures'
+            shutil.copytree(tasks.HERE, captured)
+            changed = captured / 'c_stb_mod_eucl-after.hepta'
+            changed.write_bytes(changed.read_bytes() + b'\n')
+            with patch.object(tasks, 'HERE', captured), self.assertRaisesRegex(
+                    ValueError, 'captured upstream fixture changed'):
+                study.source_bindings()
 
 
 class UpstreamFactorialTests(unittest.TestCase):

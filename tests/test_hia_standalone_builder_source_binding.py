@@ -52,6 +52,8 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
         ('build_hia_core_workspace_pipeline', 'core_workspace_pipeline_packer', 'hia-workspace-compile'),
         ('build_hia_core_patch_cli', 'core_patch_cli_packer', 'hia-patch-core'),
         ('build_hia_core_patch_result_cli', 'core_patch_result_cli_packer', 'hia-patch-result'),
+        ('build_hia_release_install', 'release_install_packer', 'hia-release'),
+        ('build_hia_release_selection', 'release_selection_packer', 'hia-select'),
     )
 
     def setUp(self):
@@ -64,6 +66,14 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
         self.applications = tuple((importlib.import_module('tools.' + module),
                                    'examples/hia_bootstrap/' + source + '.hepta', target)
                                   for module, source, target in self.APPLICATION_BUILDERS)
+        self.source_builder = importlib.import_module('tools.build_hia_source_build')
+        self.invoked_packers = tuple(
+            (module, target, 'filter-build.json' if target == 'hia-agent-slice' else 'build.json')
+            for module, _, target in self.applications
+            if not hasattr(module, 'NativeHiaJsonImage')) + (
+                (self.publication, 'hia-artifact', 'build.json'),
+                (self.source_builder, 'hia-source-build', 'build.json'),
+            )
         admission_wrapper = importlib.import_module('tools.build_hia_core_admission')
         temporary = tempfile.TemporaryDirectory(prefix='hia-standalone-custody-')
         self.addCleanup(temporary.cleanup)
@@ -71,7 +81,7 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
         sources = ({row[3] for row in self.builders} | set(self.publication.SOURCES)
                    | {'related-source.py', CONTRACT_PATH})
         all_modules = ({row[1] for row in self.builders} | {row[0] for row in self.applications}
-                       | {admission_wrapper})
+                       | {admission_wrapper, self.source_builder})
         for module in all_modules:
             sources.update(getattr(module, 'SOURCES', ()))
             for field in ('SOURCE', 'PACKER', 'PACKER_SOURCE', 'DISPATCH', 'ADMISSION'):
@@ -102,6 +112,8 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
         self.calls = []
         self.mutation = None
         self.pack_mutation = None
+        self.pack_receipt_mutation = None
+        self.pack_output_mutation = None
         self.inspection_mutation = None
         self.latest_image = None
         self.addCleanup(patch.stopall)
@@ -145,23 +157,38 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
         if self.mutation:
             self.mutation()
         return image, {'custody_stub': True, 'native_execution': False,
-                       'produced_sha256': sha256(raw).hexdigest(), 'produced_bytes': len(raw)}
+                       'produced_sha256': sha256(raw).hexdigest(), 'produced_bytes': len(raw),
+                       'status': 'returned', 'abi_status': 0, 'core_u32': len(raw),
+                       'artifact_sha256': sha256(compiler.read_bytes()).hexdigest(),
+                       'image_sha256': sha256(compiler.read_bytes()).hexdigest(),
+                       'input_sha256': sha256(source).hexdigest(),
+                       'source_sha256': sha256(source).hexdigest(), 'input_bytes': len(source),
+                       'source_unchanged': True, 'forbidden_compiler_modules_loaded': []}
 
     def pack(self, *args):
         # Bind the actual fixture image and input at the recording boundary.
         # This nonexecuting stub never constitutes native qualification.
+        raw = b'not an ELF executable; custody fixture only'
         receipt = {'status': 'returned', 'custody_stub': True,
-                   'native_execution': False}
+                   'native_execution': False, 'core_u32': len(raw),
+                   'result_u64': len(raw), 'format': 'flat-x86-64',
+                   'return_encoding': 'zero-extended-u32',
+                   'output_sha256': sha256(raw).hexdigest(),
+                   'forbidden_compiler_modules_loaded': []}
         if len(args) >= 4:
             _, _, image, source = args[:4]
             receipt.update(abi_status=0,
+                           artifact_sha256=sha256(image.read_bytes()).hexdigest(),
                            image_sha256=sha256(image.read_bytes()).hexdigest(),
+                           input_sha256=sha256(source).hexdigest(), input_bytes=len(source),
                            source_sha256=sha256(source).hexdigest(),
                            source_unchanged=True)
         if self.pack_mutation:
             self.pack_mutation()
-        raw = b'not an ELF executable; custody fixture only'
-        receipt['core_u32'] = len(raw)
+        if self.pack_receipt_mutation:
+            self.pack_receipt_mutation(receipt)
+        if self.pack_output_mutation:
+            raw = self.pack_output_mutation(raw)
         return receipt, raw
 
     def inspect(self, raw):
@@ -377,6 +404,56 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
                 self.assertFalse(receipt.get('whole_native_delivery_qualified',
                                             receipt.get('native_only_delivery_qualified',
                                                         receipt.get('whole_stack_rewritten_in_hia', False))))
+
+    def test_native_packers_refuse_failed_or_unbound_native_receipts(self):
+        self.write_report()
+        changes = [
+            ('actual-nonzero-ABI-return', lambda r: r.update(
+                abi_status=1, result_u64=(1 << 32) | r['core_u32'])),
+            ('missing-ABI', lambda r: r.pop('abi_status')),
+            ('missing-input-identity', lambda r: r.pop('input_sha256')),
+        ]
+        for field, value in (
+                ('status', 'child_failed'), ('abi_status', False), ('abi_status', 0.0),
+                ('result_u64', True), ('result_u64', -1),
+                ('result_u64', 0x100000000), ('core_u32', True),
+                ('core_u32', 0), ('core_u32', (1 << 20) + 1),
+                ('format', 'seed-shared'), ('return_encoding', 'packed-ABI-status-and-u32'),
+                ('artifact_sha256', '0' * 64), ('image_sha256', '0' * 64),
+                ('input_sha256', '0' * 64), ('source_sha256', '0' * 64),
+                ('input_bytes', False), ('input_bytes', 0),
+                ('source_unchanged', 1), ('source_unchanged', False),
+                ('output_sha256', '0' * 64), ('forbidden_compiler_modules_loaded', None),
+                ('forbidden_compiler_modules_loaded', ['hepta.hia_program_native'])):
+            changes.append((field + '-' + str(len(changes)),
+                            lambda r, k=field, v=value: r.update({k: v})))
+        for module, target, receipt_name in self.invoked_packers:
+            for label, mutation in changes:
+                with self.subTest(builder=module.__name__, receipt=label):
+                    self.pack_receipt_mutation = mutation
+                    output = self.root / (module.__name__ + '-bad-pack-' + label)
+                    with self.assertRaises(ValueError):
+                        module.build(output, self.compiler, self.cold)
+                    self.assertFalse((output / target).exists())
+                    self.assertFalse((output / receipt_name).exists())
+
+    def test_native_packers_bind_complete_captured_output_bytes(self):
+        self.write_report()
+        changes = (
+            ('changed', lambda raw: b'X' + raw[1:]),
+            ('truncated', lambda raw: raw[:-1]),
+            ('extended', lambda raw: raw + b'X'),
+            ('mutable', bytearray),
+        )
+        for module, target, receipt_name in self.invoked_packers:
+            for label, mutation in changes:
+                with self.subTest(builder=module.__name__, output=label):
+                    self.pack_output_mutation = mutation
+                    output = self.root / (module.__name__ + '-pack-output-' + label)
+                    with self.assertRaises(ValueError):
+                        module.build(output, self.compiler, self.cold)
+                    self.assertFalse((output / target).exists())
+                    self.assertFalse((output / receipt_name).exists())
 
     def test_outer_builders_refuse_stale_captured_source_before_creating_output(self):
         self.write_report()

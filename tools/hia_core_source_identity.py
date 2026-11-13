@@ -15,10 +15,11 @@ def _require(condition, message):
         raise ValueError(message)
 
 
-def _git(*arguments, root=ROOT):
+def _git(*arguments, root=None):
     # A local refs/replace entry must not reinterpret the commit/blob whose
     # immutable identity is being qualified. This also covers source_state.
-    return subprocess.check_output(["git", "--no-replace-objects", *map(str, arguments)], cwd=root)
+    return subprocess.check_output(["git", "--no-replace-objects", *map(str, arguments)],
+                                   cwd=ROOT if root is None else root)
 
 
 def _digest_file(path, *, expected_blob=None, expected_mode=None):
@@ -58,14 +59,16 @@ def _digest_file(path, *, expected_blob=None, expected_mode=None):
     return digest.hexdigest()
 
 
-def _inventory(tree):
+def _inventory(tree, *, root=None):
     # The index is not a source of truth: assume-unchanged/skip-worktree can
     # hide modified or missing working bytes even from a clean `git status`.
     # One raw tree listing plus a bounded dual-hash read per file avoids loading
     # all tracked evidence blobs or forking cat-file once per source file.
     # Include directory entries: -r alone hides empty subtrees, including any
     # unsafe paths present in a deliberately constructed raw tree object.
-    listing = _git("ls-tree", "-r", "-t", "--full-tree", "-z", tree)
+    source_root = Path(ROOT if root is None else root).resolve()
+    git_root = {} if root is None else {"root": source_root}
+    listing = _git("ls-tree", "-r", "-t", "--full-tree", "-z", tree, **git_root)
     _require(not listing or listing.endswith(b"\0"), "incomplete raw HEAD tree inventory")
     entries = {}
     for record in listing.split(b"\0")[:-1]:
@@ -81,17 +84,35 @@ def _inventory(tree):
         _require(name and all(part not in {"", ".", "..", ".git"} for part in name.split("/"))
                  and name not in entries, "unsafe or duplicate raw HEAD tree path")
         entries[name] = (mode.decode("ascii"), blob.decode("ascii"))
-    return {name: _digest_file(ROOT / name, expected_mode=mode, expected_blob=blob)
-            for name, (mode, blob) in sorted(entries.items()) if mode != "040000"}
+    files = {}
+    for name, (mode, blob) in sorted(entries.items()):
+        if mode == "040000":
+            continue
+        path = source_root / name
+        # O_NOFOLLOW protects the file itself. Reject parent links as well,
+        # including links to identical bytes outside the admitted source tree.
+        for parent in path.parents:
+            if parent == source_root:
+                break
+            _require(not parent.is_symlink(), "source parent is a symlink: " + str(parent))
+        files[name] = _digest_file(path, expected_mode=mode, expected_blob=blob)
+    return files
 
 
-def _source_state():
-    head = _git("rev-parse", "HEAD").decode().strip()
+def _source_state(*, root=None):
+    source_root = Path(ROOT if root is None else root).resolve()
+    # Preserve no-argument callers and their Git redirection hooks; an explicit
+    # root does not require patching this module's process-wide ROOT.
+    git_root = {} if root is None else {"root": source_root}
+    top = _git("rev-parse", "--show-toplevel", **git_root).decode().strip()
+    _require(Path(top).resolve() == source_root,
+             "source must be its own Git worktree root")
+    head = _git("rev-parse", "HEAD", **git_root).decode().strip()
     _require(re.fullmatch(r"[0-9a-f]{40}", head), "source HEAD must use full SHA-1 identity")
-    tree = _git("rev-parse", head + "^{tree}").decode().strip()
+    tree = _git("rev-parse", head + "^{tree}", **git_root).decode().strip()
     _require(re.fullmatch(r"[0-9a-f]{40}", tree), "source tree must use full SHA-1 identity")
-    files = _inventory(tree)
-    status = _git("status", "--porcelain", "--untracked-files=all").decode()
-    _require(_git("rev-parse", "HEAD").decode().strip() == head,
+    files = _inventory(tree, **git_root)
+    status = _git("status", "--porcelain", "--untracked-files=all", **git_root).decode()
+    _require(_git("rev-parse", "HEAD", **git_root).decode().strip() == head,
              "source HEAD changed during identity read")
     return {"head": head, "tree": tree, "status": status, "files": files}
