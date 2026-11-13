@@ -1,0 +1,57 @@
+{
+  "earlier_r4_mode_hold_preserved": true,
+  "findings": [
+    {
+      "check": "ET_EXEC origin",
+      "evidence": "bias=anchor-symbol_value; ET_EXEC explicitly requires zero; image_base must equal bias+lowest_load_page and first actual map start.",
+      "result": "PASS_STATIC"
+    },
+    {
+      "check": "RELRO",
+      "evidence": "file-backed LOAD coverage walks every unique contiguous actual map with exact file-coordinate relation; write permission may be removed for RELRO, cannot be added to non-writable LOAD; executable ranges must remain read/execute and non-writable.",
+      "result": "PASS_STATIC"
+    },
+    {
+      "check": "Complete map/function range",
+      "evidence": "all file-backed LOAD bytes require coverage; each admitted inode map must fit a rounded LOAD page range; each entire function span is checked against executable segment/section coordinates, endpoints dladdr and all actual bytes; maps are reread after live-byte admission.",
+      "result": "PASS_STATIC"
+    },
+    {
+      "check": "Fresh base/control binding",
+      "evidence": "control admission obtains a fresh base_binding, compares fresh runtime identity to both base before/after, requires exact whole mapping equality and same evaluator address, then full runtime bytes/identity after.",
+      "result": "PASS_STATIC"
+    }
+  ],
+  "limits": [
+    "Static source reading only. No import, ELF execution, C compilation, ctypes call, or product test by this reviewer.",
+    "Six LOAD and seven maps are not newly observed here; the code permits a legitimate split within a LOAD.",
+    "Observation-time mapping and full-byte identity are checked; no promise of lifetime immutability is inferred.",
+    "Original 8+10 methods and 48+11 invocation populations were not reread or executed in this narrow review."
+  ],
+  "minor_documentation_note": "CONTROL_SYMBOLS has five entries including the existing evaluator anchor; it contributes four additional distinct functions. No behavioral defect identified in this narrow scope.",
+  "reviewer": "cold_ci_closure",
+  "schema": "hia.peer.static-runtime-mapping-review.v1",
+  "scope": [
+    "ELF link-time coordinates versus dladdr image mapping base",
+    "PT_LOAD file spans versus actual inode-bound maps including RELRO splits",
+    "complete function file offset and live mapped byte admission",
+    "same fresh runtime and full mapping across base/control tables"
+  ],
+  "source_pins": [
+    {
+      "bytes": 21495,
+      "git_blob_sha1": "211c0d52e1888698143360cb9272cbb6bc3bd879",
+      "mode": "0o600",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-c-runtime-lifetime-plan-r4b/source/hepta/hia_cli_json_runtime312.py",
+      "sha256": "5eeaa2720dcd347ff3e3cc62a828d2eb5a582aa61f3bfb8813524b4c3ee925d1"
+    },
+    {
+      "bytes": 2471,
+      "git_blob_sha1": "dd6df87835c5bba37c5a8256d1740c553acae6b4",
+      "mode": "0o600",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-c-runtime-lifetime-plan-r4b/source/hepta/hia_cli_json_runtime312_control.py",
+      "sha256": "bdf006b5283d6394d201d9b7ec95f70fd73c277b4ec2721f680ff169e1b39188"
+    }
+  ],
+  "status": "STATIC_CLEAR_LIMITED_SCOPE"
+}

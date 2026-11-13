@@ -1,0 +1,412 @@
+"""Author a separate runtime mapping correction; do not admit or execute it."""
+from __future__ import annotations
+
+import ast
+import hashlib
+from pathlib import Path
+
+OLD = Path('/tmp/hia-cli-json-c-runtime-lifetime-plan-r3-20261112-e26e')
+ROOT = Path(__file__).resolve().parent
+
+PARSER = r'''
+def _runtime_profile(raw):
+    """Read link-time coordinates without treating a mapping base as a bias."""
+    def extent(offset, size):
+        if offset < 0 or size < 0 or offset > len(raw) - size:
+            raise ValueError('ELF span exceeds the frozen runtime')
+        return raw[offset:offset + size]
+
+    if len(raw) < HEADER.size:
+        raise ValueError('ELF header is incomplete')
+    (ident, kind, machine, version, _entry, program_at, section_at, _flags,
+     header_bytes, program_bytes, program_count, section_bytes,
+     section_count, section_names) = HEADER.unpack_from(raw)
+    if (ident[:7] != b'\x7fELF\x02\x01\x01' or kind not in (2, 3) or machine != 62
+            or version != 1 or header_bytes != HEADER.size
+            or program_bytes != PROGRAM.size or section_bytes != SECTION.size
+            or not program_count or not section_count
+            or section_names >= section_count):
+        raise ValueError('runtime ELF profile differs')
+    extent(program_at, program_count * PROGRAM.size)
+    extent(section_at, section_count * SECTION.size)
+    page_bytes = os.sysconf('SC_PAGE_SIZE')
+    if (type(page_bytes) is not int or page_bytes <= 0
+            or page_bytes & (page_bytes - 1)):
+        raise ValueError('runtime page size is not a positive power of two')
+    loads = []
+    for index in range(program_count):
+        (p_kind, flags, file_at, address, _physical, file_size,
+         memory_size, alignment) = PROGRAM.unpack_from(raw, program_at + index * PROGRAM.size)
+        if p_kind != 1:
+            continue
+        extent(file_at, file_size)
+        if (file_size > memory_size or memory_size > (1 << 64) - address
+                or flags & ~7 or address % page_bytes != file_at % page_bytes
+                or (alignment not in (0, 1)
+                    and (alignment & (alignment - 1)
+                         or address % alignment != file_at % alignment))):
+            raise ValueError('runtime load segment is not a valid file/memory extent')
+        if loads and address < loads[-1]['virtual_address']:
+            raise ValueError('runtime load segments are not in virtual-address order')
+        loads.append({'program_index': index, 'flags': flags,
+                      'file_offset': file_at, 'virtual_address': address,
+                      'file_bytes': file_size, 'memory_bytes': memory_size,
+                      'alignment': alignment})
+    nonempty = [p for p in loads if p['memory_bytes']]
+    if not nonempty or not any(p['flags'] & 1 and p['file_bytes'] for p in nonempty):
+        raise ValueError('runtime has no nonempty executable load segment')
+    sections = [SECTION.unpack_from(raw, section_at + i * SECTION.size)
+                for i in range(section_count)]
+    layout = {'elf_type': kind, 'elf_type_name': 'ET_EXEC' if kind == 2 else 'ET_DYN',
+              'page_bytes': page_bytes, 'load_segments': loads,
+              'lowest_load_page': min(p['virtual_address'] & -page_bytes for p in nonempty)}
+    return layout, sections
+
+
+def _symbol_records(raw, names):
+    layout, sections = _runtime_profile(raw)
+
+    def extent(offset, size):
+        if offset < 0 or size < 0 or offset > len(raw) - size:
+            raise ValueError('ELF span exceeds the frozen runtime')
+        return raw[offset:offset + size]
+
+    if (type(names) is not tuple or not names or len(set(names)) != len(names)
+            or any(type(name) is not str for name in names)):
+        raise ValueError('an exact unique symbol population is required')
+    found = {name: set() for name in names}
+    tables = 0
+    for section in sections:
+        _name, section_kind, _flags, _address, at, size, link, _info, _align, stride = section
+        if section_kind != 2:
+            continue
+        tables += 1
+        if stride != SYMBOL.size or size % stride or link >= len(sections):
+            raise ValueError('runtime ELF symbol table differs')
+        extent(at, size)
+        string_section = sections[link]
+        if string_section[1] != 3:
+            raise ValueError('runtime symbol-name table differs')
+        strings = extent(string_section[4], string_section[5])
+        for offset in range(at, at + size, stride):
+            name_at, info, other, index, value, symbol_size = SYMBOL.unpack_from(raw, offset)
+            if name_at >= len(strings):
+                raise ValueError('runtime symbol name exceeds its table')
+            end = strings.find(b'\0', name_at)
+            if end < 0:
+                raise ValueError('runtime symbol name is unterminated')
+            name = strings[name_at:end].decode('ascii', 'strict')
+            if name not in found:
+                continue
+            if (info & 15) != 2 or not index or index >= len(sections) or not symbol_size:
+                raise ValueError('required runtime symbol is not a defined function')
+            found[name].add((value, symbol_size, other, index))
+    if not tables or any(len(rows) != 1 for rows in found.values()):
+        raise ValueError('exact private runtime functions are unavailable or ambiguous')
+    records = []
+    for name in names:
+        value, size, _visibility, section_index = next(iter(found[name]))
+        section = sections[section_index]
+        if (section[1] != 1 or section[2] & 6 != 6 or value < section[3]
+                or value - section[3] > section[5]
+                or size > section[5] - (value - section[3])):
+            raise ValueError('runtime function is outside its allocated executable section')
+        section_file_at = section[4] + value - section[3]
+        extent(section_file_at, size)
+        matches = []
+        for program in layout['load_segments']:
+            address = program['virtual_address']
+            file_size = program['file_bytes']
+            if program['flags'] & 5 == 5 and value >= address:
+                relative = value - address
+                if relative <= file_size and size <= file_size - relative:
+                    matches.append((program['file_offset'] + relative, program['program_index']))
+        if len(matches) != 1 or matches[0][0] != section_file_at:
+            raise ValueError('runtime function has no unique consistent executable file mapping')
+        code = extent(matches[0][0], size)
+        records.append({'name': name, 'value': value, 'bytes': size,
+                        'file_offset': matches[0][0], 'section': section_index,
+                        'segment_index': matches[0][1],
+                        'sha256': sha256(code).hexdigest()})
+    return records, layout
+
+
+def symbol_table(raw):
+    return _symbol_records(raw, SYMBOLS)[0]
+
+
+def _parse_runtime_maps(raw, runtime):
+    """Keep only the admitted inode; a same-path replacement is a refusal."""
+    device, inode = runtime['identity'][:2]
+    expected_device = (os.major(device), os.minor(device))
+    rows = []
+    for line in raw.splitlines():
+        parts = line.split(None, 5)
+        if len(parts) not in (5, 6):
+            raise ValueError('process map record is malformed')
+        try:
+            start, end = [int(x, 16) for x in parts[0].split(b'-')]
+            major, minor = [int(x, 16) for x in parts[3].split(b':')]
+            offset, observed_inode = int(parts[2], 16), int(parts[4], 10)
+            permissions = parts[1].decode('ascii', 'strict')
+        except (ValueError, UnicodeError):
+            raise ValueError('process map fields are malformed') from None
+        if (not 0 <= start < end <= 1 << 64 or offset < 0 or observed_inode < 0
+                or len(permissions) != 4 or permissions[0] not in 'r-'
+                or permissions[1] not in 'w-' or permissions[2] not in 'x-'
+                or permissions[3] not in 'ps'):
+            raise ValueError('process map extent or permissions are malformed')
+        path = os.fsdecode(parts[5]) if len(parts) == 6 else ''
+        same_file = (major, minor) == expected_device and observed_inode == inode
+        if path != runtime['path'] and not same_file:
+            continue
+        if not same_file or path != runtime['path']:
+            raise ValueError('runtime map pathname and physical inode differ')
+        if rows and start < rows[-1]['end']:
+            raise ValueError('runtime file maps overlap or are not ordered')
+        rows.append({'start': start, 'end': end, 'permissions': permissions,
+                     'file_offset': offset, 'device_major': major,
+                     'device_minor': minor, 'inode': observed_inode, 'path': path})
+    if not rows:
+        raise ValueError('the admitted runtime has no process file mapping')
+    return rows
+
+
+def _runtime_maps(runtime):
+    # This is a kernel metadata observation in the current process, not a
+    # stored map from the failed child. The limit bounds evidence only.
+    fd = os.open('/proc/%d/maps' % os.getpid(), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise ValueError('process maps is not a regular proc record')
+        parts = []
+        length = 0
+        while True:
+            part = os.read(fd, min(65536, (1 << 20) + 1 - length))
+            if not part:
+                break
+            parts.append(part)
+            length += len(part)
+            if length > 1 << 20:
+                raise ValueError('process mapping evidence exceeds one MiB')
+    finally:
+        os.close(fd)
+    return _parse_runtime_maps(b''.join(parts), runtime)
+
+
+def _cover_file_span(rows, start, size, file_offset, flags):
+    if (type(start) is not int or type(size) is not int or start < 0 or size <= 0
+            or start > (1 << 64) - size):
+        raise ValueError('mapped runtime span is outside the address domain')
+    cursor = start
+    end = start + size
+    covered = []
+    while cursor < end:
+        matches = [(i, row) for i, row in enumerate(rows) if row['start'] <= cursor < row['end']]
+        if len(matches) != 1:
+            raise ValueError('runtime span has no unique actual map')
+        index, row = matches[0]
+        permissions = row['permissions']
+        if (permissions[3] != 'p' or bool(flags & 4) != (permissions[0] == 'r')
+                or bool(flags & 1) != (permissions[2] == 'x')
+                or (permissions[1] == 'w' and not flags & 2)
+                or (flags & 1 and permissions[1] != '-')
+                or row['file_offset'] + cursor - row['start'] != file_offset + cursor - start):
+            raise ValueError('runtime map permissions or file-coordinate relation differs')
+        covered.append(index)
+        cursor = min(row['end'], end)
+    return covered
+
+
+def _mapping_relation(layout, records, runtime, anchor, image_base, rows):
+    if (type(anchor) is not int or type(image_base) is not int
+            or not 0 < anchor < 1 << 64 or not 0 < image_base < 1 << 64):
+        raise ValueError('runtime anchor and loader mapping base must be actual addresses')
+    if not records or records[0]['name'] != '_PyEval_EvalFrameDefault':
+        raise ValueError('the exact evaluator anchor must head the table')
+    bias = anchor - records[0]['value']
+    if (bias < 0 or bias % layout['page_bytes']
+            or (layout['elf_type'] == 2 and bias != 0)
+            or image_base != bias + layout['lowest_load_page']
+            or image_base != rows[0]['start']):
+        raise ValueError('runtime ELF coordinates, relocation bias and mapping base disagree')
+    file_segments = []
+    for segment in layout['load_segments']:
+        if not segment['file_bytes']:
+            continue
+        start = bias + segment['virtual_address']
+        covered = _cover_file_span(rows, start, segment['file_bytes'],
+                                   segment['file_offset'], segment['flags'])
+        file_segments.append({'program_index': segment['program_index'],
+                              'actual_start': start, 'bytes': segment['file_bytes'],
+                              'file_offset': segment['file_offset'], 'map_indices': covered})
+    for row in rows:
+        # Every page of this inode must be explainable by a file-backed LOAD.
+        candidates = []
+        for segment in layout['load_segments']:
+            if not segment['file_bytes']:
+                continue
+            begin = bias + (segment['virtual_address'] & -layout['page_bytes'])
+            finish = bias + ((segment['virtual_address'] + segment['file_bytes']
+                              + layout['page_bytes'] - 1) & -layout['page_bytes'])
+            mapped_offset = segment['file_offset'] & -layout['page_bytes']
+            if (begin <= row['start'] < row['end'] <= finish
+                    and row['file_offset'] == mapped_offset + row['start'] - begin):
+                candidates.append(segment['program_index'])
+        if not candidates:
+            raise ValueError('an actual runtime file map has no matching load segment')
+    for record in records:
+        _cover_file_span(rows, bias + record['value'], record['bytes'], record['file_offset'], 5)
+    return {'elf_type': layout['elf_type'], 'elf_type_name': layout['elf_type_name'],
+            'page_bytes': layout['page_bytes'], 'lowest_load_page': layout['lowest_load_page'],
+            'image_mapping_base': image_base, 'relocation_bias': bias,
+            'load_segments': layout['load_segments'], 'mapped_file_segments': file_segments,
+            'process_file_maps': rows,
+            'physical_device': runtime['identity'][0], 'physical_inode': runtime['identity'][1]}
+'''
+
+LIVE = r'''
+def _live_symbols(raw, runtime, records, layout, required_mapping=None):
+    dladdr = ctypes.CDLL(None).dladdr
+    dladdr.argtypes = (ctypes.c_void_p, ctypes.POINTER(DlInfo))
+    dladdr.restype = ctypes.c_int
+    anchor = ctypes.cast(ctypes.pythonapi._PyEval_EvalFrameDefault, ctypes.c_void_p).value
+    info = DlInfo()
+    if not anchor or not dladdr(anchor, ctypes.byref(info)) or not info.base or not info.filename:
+        raise ValueError('the running Python evaluator mapping is unavailable')
+    actual_path = Path(os.fsdecode(info.filename)).resolve(strict=True)
+    if str(actual_path) != runtime['path']:
+        raise ValueError('runtime file does not identify the running interpreter')
+    maps = _runtime_maps(runtime)
+    mapping = _mapping_relation(layout, records, runtime, anchor, info.base, maps)
+    if required_mapping is not None and mapping != required_mapping:
+        raise ValueError('base and additional tables have different actual runtime mappings')
+    words = [31214]
+    for record in records:
+        address = mapping['relocation_bias'] + record['value']
+        for edge in (address, address + record['bytes'] - 1):
+            observed = DlInfo()
+            if (not dladdr(edge, ctypes.byref(observed)) or observed.base != info.base
+                    or not observed.filename
+                    or Path(os.fsdecode(observed.filename)).resolve(strict=True) != actual_path):
+                raise ValueError('private function is outside the admitted runtime mapping')
+        actual = ctypes.string_at(address, record['bytes'])
+        expected = raw[record['file_offset']:record['file_offset'] + record['bytes']]
+        if actual != expected:
+            raise ValueError('mapped runtime function bytes differ from the frozen ELF')
+        record['actual_address'] = address
+        record['actual_sha256'] = sha256(actual).hexdigest()
+        words.append(address)
+    if _runtime_maps(runtime) != maps:
+        raise ValueError('runtime file mappings changed during live-code admission')
+    return tuple(words), mapping
+
+
+def admit_runtime(path, *, sha256_pin, bytes_pin):
+    """Return the original twelve-word table with distinct ELF address origins."""
+    if sys.implementation.name != 'cpython' or tuple(sys.version_info[:3]) != (3, 12, 14):
+        raise ValueError('this private runtime binding requires exact CPython 3.12.14')
+    raw, before = read_runtime(path, sha256_pin, bytes_pin)
+    records, layout = _symbol_records(raw, SYMBOLS)
+    words, mapping = _live_symbols(raw, before, records, layout)
+    vectorcall = ctypes.cast(ctypes.pythonapi._PyFunction_Vectorcall, ctypes.c_void_p).value
+    if words[2] != vectorcall:
+        raise ValueError('running Python function-call entry differs')
+    after_raw, after = read_runtime(path, sha256_pin, bytes_pin)
+    if after != before or after_raw != raw:
+        raise ValueError('runtime changed during mapped-code admission')
+    return words, {
+        'schema': 'hia.cli-json.cpython312-runtime-binding.v1',
+        'profile': 31214, 'runtime': before, 'runtime_after': after,
+        'load_base': mapping['image_mapping_base'],
+        'relocation_bias': mapping['relocation_bias'], 'mapping': mapping,
+        'symbols': records, 'owned_call_executed': False, 'graph_qualified': False,
+    }
+'''
+
+CONTROL = r'''"""Admit five additional helpers in the same exact CPython 3.12 mapping.
+
+The original eleven-function table and the control table use one strict ELF
+parser and the same physical mapping proof. No C leaf or generator body is
+called here. ET_EXEC absolute values and ET_DYN relocation bias are distinct
+from the loader's image mapping base; live full-function bytes remain required.
+"""
+from __future__ import annotations
+
+import sys
+
+from hepta.hia_cli_json_runtime312 import (
+    _live_symbols, _symbol_records, admit_runtime, read_runtime,
+)
+
+CONTROL_SYMBOLS = (
+    '_PyEval_EvalFrameDefault', '_Py_Instrument',
+    '_Py_call_instrumentation_arg', '_Py_HandlePending', '_PyErr_ChainStackItem',
+)
+
+
+def control_symbol_table(raw):
+    return _symbol_records(raw, CONTROL_SYMBOLS)[0]
+
+
+def admit_runtime_control(path, *, sha256_pin, bytes_pin):
+    """Bind the unchanged base table and five additional live functions."""
+    if sys.implementation.name != 'cpython' or tuple(sys.version_info[:3]) != (3, 12, 14):
+        raise ValueError('the additional private table requires exact CPython 3.12.14')
+    base_words, base_binding = admit_runtime(path, sha256_pin=sha256_pin, bytes_pin=bytes_pin)
+    raw, before = read_runtime(path, sha256_pin, bytes_pin)
+    if before != base_binding['runtime'] or before != base_binding['runtime_after']:
+        raise ValueError('base and additional tables do not share one unchanged runtime')
+    records, layout = _symbol_records(raw, CONTROL_SYMBOLS)
+    words, mapping = _live_symbols(raw, before, records, layout,
+                                  required_mapping=base_binding['mapping'])
+    if words[1] != base_words[1]:
+        raise ValueError('the additional table has a different live evaluator address')
+    after_raw, after = read_runtime(path, sha256_pin, bytes_pin)
+    if after != before or after_raw != raw:
+        raise ValueError('the additional runtime changed during its actual-byte admission')
+    return words, {
+        'schema': 'hia.cli-json.cpython312-control-runtime-binding.v1',
+        'profile': 31214, 'runtime': before, 'runtime_after': after,
+        'load_base': mapping['image_mapping_base'],
+        'relocation_bias': mapping['relocation_bias'], 'mapping': mapping,
+        'symbols': records, 'base_words': base_words, 'base_binding': base_binding,
+        'activation_executed': False, 'body_driver_qualified': False,
+        'original17_executed': False, 'original46_executed': False,
+    }
+'''
+
+
+def main():
+    base = (OLD / 'source/hepta/hia_cli_json_runtime312.py').read_bytes()
+    control = (OLD / 'source/hepta/hia_cli_json_runtime312_control.py').read_bytes()
+    prefix = base.decode().split('def symbol_table(raw):\n', 1)[0]
+    prefix = prefix.replace("admitted libpython's actual symbol", "admitted interpreter ELF's actual symbol", 1)
+    dl_info = base.decode().split('class DlInfo(ctypes.Structure):\n', 1)[1].split('\n\ndef admit_runtime(', 1)[0]
+    corrected = (prefix.rstrip() + '\n\n' + PARSER.lstrip() + '\n\n'
+                 + 'class DlInfo(ctypes.Structure):\n' + dl_info + '\n\n' + LIVE.lstrip()).encode()
+    after = {'hepta/hia_cli_json_runtime312.py': corrected,
+             'hepta/hia_cli_json_runtime312_control.py': CONTROL.encode()}
+    old_asts = [ast.parse(x) for x in (base, control)]
+    new_asts = [ast.parse(x) for x in after.values()]
+    for name in ('identity', 'read_runtime'):
+        before = next(n for n in old_asts[0].body if isinstance(n, ast.FunctionDef) and n.name == name)
+        new = next(n for n in new_asts[0].body if isinstance(n, ast.FunctionDef) and n.name == name)
+        assert ast.dump(before, include_attributes=False) == ast.dump(new, include_attributes=False)
+    for index, name in enumerate(('SYMBOLS', 'CONTROL_SYMBOLS')):
+        def value(tree):
+            node = next(n for n in tree.body if isinstance(n, ast.Assign)
+                        and any(isinstance(t, ast.Name) and t.id == name for t in n.targets))
+            return ast.literal_eval(node.value)
+        assert value(old_asts[index]) == value(new_asts[index])
+    for relative, raw in after.items():
+        path = ROOT / 'source' / relative
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with path.open('xb') as file:
+            file.write(raw)
+        assert path.read_bytes() == raw
+        print(relative, len(raw), hashlib.sha256(raw).hexdigest())
+
+
+if __name__ == '__main__':
+    main()
