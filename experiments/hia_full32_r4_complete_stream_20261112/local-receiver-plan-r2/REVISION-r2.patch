@@ -1,0 +1,313 @@
+--- unexecuted-r1/control/local_io.py
++++ unexecuted-r2/control/local_io.py
+@@ -2,6 +2,7 @@
+ from pathlib import Path
+ import hashlib
+ import json
++import math
+ import os
+ import stat
+ import time
+@@ -36,6 +37,10 @@
+             'fixed_refusal': str(error) if type(error) is Refusal else None}
+ def check_deadline(deadline):
+     require(time.monotonic() < deadline, '720-second complete local reader deadline reached')
++
++def require_elapsed(value, maximum):
++    require(type(value) in (int, float) and math.isfinite(value) and 0 <= value <= maximum,
++            'complete elapsed time is not finite or exceeds the unchanged deadline')
+ 
+ def seal(path, maximum, *, body=False, deadline=None):
+     path = Path(path)
+@@ -99,7 +104,9 @@
+             self.original_written += count
+             require(self.original_written <= self.original_reserved, 'unreserved original write')
+ 
+-def create(path, value, *, raw=False, budget=None, category='metadata'):
++def create(path, value, *, raw=False, budget=None, category='metadata', deadline=None):
++    if deadline is not None:
++        check_deadline(deadline)
+     body = value if raw else wire(value)
+     if budget is not None:
+         budget.reserve(len(body), category)
+@@ -108,13 +115,15 @@
+         out.write(body); out.flush(); os.fsync(out.fileno())
+     if budget is not None:
+         budget.wrote(len(body), category)
+-    record, actual = seal(path, max(len(body), 1), body=True)
++    record, actual = seal(path, max(len(body), 1), body=True, deadline=deadline)
+     require(actual == body, 'new whole original readback differs')
+     parent = os.open(Path(path).parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+     try:
+         os.fsync(parent)
+     finally:
+         os.close(parent)
++    if deadline is not None:
++        check_deadline(deadline)
+     return record
+ 
+ class Journal:
+@@ -133,9 +142,11 @@
+     def close(self):
+         if not self.closed:
+             self.stream.flush(); os.fsync(self.stream.fileno()); self.stream.close(); self.closed = True
+-    def finish(self):
++    def finish(self, deadline=None):
++        if deadline is not None:
++            check_deadline(deadline)
+         self.close()
+-        result = seal(self.path, self.maximum)
++        result = seal(self.path, self.maximum, deadline=deadline)
+         result['complete_lines'] = self.lines
+         return result
+ 
+--- unexecuted-r1/control/stream_format.py
++++ unexecuted-r2/control/stream_format.py
+@@ -157,7 +157,11 @@
+             'complete observed directory sequence required')
+     names = [safe_name(r['name']) for r in rows]
+     require(len(set(names)) == len(names), 'duplicate original ZIP member')
+-    expected = {r['path']: r for r in inventory['files']}
++    original_inventory = inventory['files']
++    require(type(original_inventory) is list and len(original_inventory) == len(rows)
++            and len({r['path'] for r in original_inventory}) == len(original_inventory),
++            'original full inventory length or unique paths differ')
++    expected = {r['path']: r for r in original_inventory}
+     require(inventory.get('complete') is True and len(expected) == len(rows)
+             and set(expected) == set(names), 'whole-body inventory set differs')
+     for name in (TAR_NAME, 'hia-v87-full-public/ORIGINAL-CATALOG.json',
+--- unexecuted-r1/control/worker.py
++++ unexecuted-r2/control/worker.py
+@@ -20,11 +20,11 @@
+     pin, raw = io.seal(path, maximum, body=True)
+     return io.json_value(raw), pin, raw
+ 
+-def input_records(policy):
++def input_records(policy, deadline=None):
+     actual = {}
+     for name, pin in policy['inputs'].items():
+         path = ROOT / name
+-        value = io.seal(path, 64 << 20)
++        value = io.seal(path, 64 << 20, deadline=deadline)
+         io.require(value['bytes'] == pin['bytes'] and value['sha256'] == pin['sha256'],
+                    'frozen local reader input changed')
+         actual[name] = value
+@@ -203,6 +203,7 @@
+     budget = io.Budget(operation, policy)
+     began = time.monotonic(); deadline = began + policy['limits']['worker_seconds']
+     report = {'schema': 'hia.full32.ten-range-stream-consumer.v1', 'status': 'HOLD',
++              'started_monotonic': began, 'deadline_monotonic': deadline,
+               'policy': policy_pin, 'historical_receiver_status': 'FULL_ZIP_CUSTODY_HOLD',
+               'historical_full32_status': 'HOLD', 'historical_results_reclassified': False,
+               'new_product_execution': False, 'project_code_imported': False,
+@@ -216,7 +217,7 @@
+     inner = io.Journal(operation / 'readback/INNER-ACTUAL.jsonl', budget, 32 << 20)
+     parts = None; chunks = None
+     try:
+-        before = input_records(policy)
++        before = input_records(policy, deadline)
+         io.create(operation / 'INPUTS-BEFORE.json', before, budget=budget)
+         previous_final, final_raw, previous_worker = bind_historical(policy)
+         directory, _, _ = document(ROOT / 'inputs/directory.original.json')
+@@ -255,8 +256,8 @@
+                    and report['inner']['regular_files'] == policy['expected_inner']['regular_files']
+                    and report['inner']['regular_bytes'] == policy['expected_inner']['regular_bytes'],
+                    'all actual typed body reads or selected whole originals incomplete')
+-        after = input_records(policy)
+-        io.create(operation / 'INPUTS-AFTER.json', after, budget=budget)
++        after = input_records(policy, deadline)
++        io.create(operation / 'INPUTS-AFTER.json', after, budget=budget, deadline=deadline)
+         io.require(before == after, 'reader frozen inputs changed')
+         report.update(all_parts_complete=True, all_original_ZIP_members_physically_read=True,
+                       all_inner_members_physically_read=True, source_inputs_preserved=True,
+@@ -275,14 +276,30 @@
+         report['parts'] = [] if parts is None else parts.complete
+         for journal, key in ((outer, 'outer_actual_records'), (inner, 'inner_actual_records')):
+             try:
+-                report[key] = journal.finish()
++                report[key] = journal.finish(deadline if report['status'] == 'COMPLETE_PHYSICAL_STREAM_READ_ONLY_NOT_FULL32' else None)
+             except BaseException as error:
+                 report['status'] = 'HOLD'; report['errors'].append(io.safe_error(error))
+-        report['elapsed_seconds'] = time.monotonic() - began
++        try:
++            io.check_deadline(deadline)
++            report['elapsed_seconds'] = time.monotonic() - began
++            io.require_elapsed(report['elapsed_seconds'], 720)
++        except BaseException as error:
++            report['status'] = 'HOLD'; report['errors'].append(io.safe_error(error))
++            report['elapsed_seconds'] = time.monotonic() - began
+         report['storage_budget'] = {'metadata_reserved': budget.metadata_reserved,
+             'metadata_written': budget.metadata_written, 'original_reserved': budget.original_reserved,
+             'original_written': budget.original_written}
+-        io.create(operation / 'WORKER-RESULT.json', report, budget=budget)
++        try:
++            io.create(operation / 'WORKER-RESULT.json', report, budget=budget,
++                      deadline=deadline if report['status'] == 'COMPLETE_PHYSICAL_STREAM_READ_ONLY_NOT_FULL32' else None)
++            if report['status'] == 'COMPLETE_PHYSICAL_STREAM_READ_ONLY_NOT_FULL32':
++                io.check_deadline(deadline)
++        except BaseException as error:
++            report['status'] = 'HOLD'; report['errors'].append(io.safe_error(error))
++            report['elapsed_seconds'] = time.monotonic() - began
++            # Preserve a late failed publication separately; do not overwrite
++            # an already-created result or let it authorize a successful exit.
++            io.create(operation / 'WORKER-FINALIZATION-HOLD.json', report, budget=budget)
+     print(json.dumps({'status': report['status'], 'parts_complete': len(report['parts']),
+                       'historical_receiver_status': report['historical_receiver_status'],
+                       'original_product_results_changed': False, 'output': str(operation)}))
+--- unexecuted-r1/control/launch.py
++++ unexecuted-r2/control/launch.py
+@@ -18,14 +18,14 @@
+ spec = importlib.util.spec_from_file_location('full32_stream_local_io', ROOT / 'control/local_io.py')
+ io = importlib.util.module_from_spec(spec); spec.loader.exec_module(io)
+ 
+-def read_doc(path, maximum=16 << 20):
+-    pin, raw = io.seal(path, maximum, body=True)
++def read_doc(path, maximum=16 << 20, deadline=None):
++    pin, raw = io.seal(path, maximum, body=True, deadline=deadline)
+     return io.json_value(raw), pin, raw
+ 
+-def source_inputs(policy):
++def source_inputs(policy, deadline=None):
+     output = {}
+     for name, expected in policy['inputs'].items():
+-        actual = io.seal(ROOT / name, 64 << 20)
++        actual = io.seal(ROOT / name, 64 << 20, deadline=deadline)
+         io.require(actual['bytes'] == expected['bytes'] and actual['sha256'] == expected['sha256'],
+                    'complete frozen consumer input differs')
+         output[str(ROOT / name)] = actual
+@@ -94,6 +94,7 @@
+              'product_execution_performed': False, 'original_receiver_HOLD_retained': True,
+              'private_URLs_captured': False, 'errors': []}
+     began = time.monotonic()
++    worker_deadline = None
+     try:
+         with (operation / 'supervisor.stdout.log').open('xb') as stdout, (operation / 'supervisor.stderr.log').open('xb') as stderr:
+             completed = subprocess.run(launch, cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
+@@ -115,6 +116,20 @@
+             and cleanup.get('deadline_exceeded') is False and cleanup.get('errors') == [])
+         io.require(final['closed_owner'], 'do not read child evidence before bound ECHILD')
+         final['guardian'] = guardian_pin
++        worker, worker_pin, _ = read_doc(operation / 'WORKER-RESULT.json')
++        io.require_elapsed(worker.get('elapsed_seconds'), 720)
++        worker_started = worker.get('started_monotonic')
++        worker_deadline = worker.get('deadline_monotonic')
++        io.require_elapsed(worker_started, time.monotonic())
++        io.require_elapsed(worker_deadline, time.monotonic() + 720)
++        io.require(worker_started >= began and worker_deadline == worker_started + 720,
++                   'same worker clock/deadline is not bound to this invocation')
++        io.require(not os.path.lexists(operation / 'WORKER-FINALIZATION-HOLD.json'),
++                   'worker final result publication failed')
++        io.check_deadline(worker_deadline)
++        final['worker'] = worker_pin
++        final['worker_started_monotonic'] = worker_started
++        final['worker_deadline_monotonic'] = worker_deadline
+         final['natural_owner'] = (completed.returncode == 0
+             and guardian.get('status') == 'EXTERNAL_OWNED_PROCESS_COMPLETED'
+             and guardian.get('input_identity_preserved') is True and guardian.get('source_identities_after') == identities
+@@ -123,27 +138,29 @@
+             and life.get('exit_observed_before_deadline') is True and life.get('timed_out') is False
+             and life.get('interrupted_signals') == [] and life.get('owner_error') is None
+             and not any(x.get('kind') == 'owned_child_sigkill' for x in life.get('events', [])))
+-        # A closed nonzero worker still receives complete observed-file custody.
++        # A closed nonzero worker receives bounded observed-file custody only
++        # while the same deadline permits it. Earlier deadline refusal leaves
++        # every file in place and complete_observed_output_custody stays false.
+         originals, total = [], 0
+         for path in sorted(operation.rglob('*')):
+             value = path.lstat()
+             io.require(not stat.S_ISLNK(value.st_mode), 'unexpected child output symlink')
+             if stat.S_ISDIR(value.st_mode):
+                 continue
+-            actual = io.seal(path, limits['part_artifact_bytes'])
++            actual = io.seal(path, limits['part_artifact_bytes'], deadline=worker_deadline)
+             total += actual['bytes']
+             io.require(len(originals) < 1024 and total <= limits['part_artifact_bytes']
+                        + limits['captured_original_bytes'] + limits['metadata_bytes'], 'observed output bound exceeded')
+             originals.append(actual)
+         io.create(operation / 'PARENT-ORIGINAL-CATALOG.json', {'all_observed_files_fully_read': True,
+             'files': originals, 'bytes': total, 'after_current_ECHILD': True,
+-            'temporary_previous_parts_have_explicit_disposal_receipts': True})
++            'temporary_previous_parts_have_explicit_disposal_receipts': True}, deadline=worker_deadline)
+         final['complete_observed_output_custody'] = True
+-        after = source_inputs(policy)
+-        io.create(operation / 'PARENT-INPUTS-AFTER.json', after)
++        after = source_inputs(policy, worker_deadline)
++        io.create(operation / 'PARENT-INPUTS-AFTER.json', after, deadline=worker_deadline)
+         io.require(after == inputs, 'frozen consumer source/metadata changed')
+-        worker, worker_pin, _ = read_doc(operation / 'WORKER-RESULT.json')
+-        final['worker'] = worker_pin
++        worker_after, worker_after_pin, _ = read_doc(operation / 'WORKER-RESULT.json', deadline=worker_deadline)
++        io.require(worker_after == worker and worker_after_pin == worker_pin, 'worker result changed during parent readback')
+         io.require(worker.get('errors') == []
+                    and worker.get('status') == 'COMPLETE_PHYSICAL_STREAM_READ_ONLY_NOT_FULL32'
+                    and worker.get('policy', {}).get('sha256') == policy_pin['sha256']
+@@ -165,22 +182,33 @@
+         for key, expected_lines in (('outer_actual_records', policy['expected_outer']['members']),
+                                     ('inner_actual_records', policy['expected_inner']['members'])):
+             row = worker[key]
+-            actual, raw_lines = io.seal(Path(row['path']), 32 << 20, body=True)
++            actual, raw_lines = io.seal(Path(row['path']), 32 << 20, body=True, deadline=worker_deadline)
+             io.require(actual == {k: row[k] for k in actual} and raw_lines.endswith(b'\n')
+                        and len(raw_lines.splitlines()) == row['complete_lines'] == expected_lines,
+                        'complete actual member read-record original differs')
+         io.require(len(worker['captured_originals']) == 2, 'both whole omitted originals required')
+         for row in worker['captured_originals']:
+-            actual = io.seal(Path(row['actual_complete_copy']['path']), limits['captured_original_bytes'])
++            actual = io.seal(Path(row['actual_complete_copy']['path']), limits['captured_original_bytes'], deadline=worker_deadline)
+             io.require(actual == row['actual_complete_copy'] and row['whole_original'] is True
+                        and row['truncated'] is False, 'actual whole omitted-original copy differs')
+         final['actual_stream_all_body_pass'] = True
+         io.require(final['natural_owner'], 'consumer is not a natural successful operation')
++        io.check_deadline(worker_deadline)
++        final['all_complete_readback_elapsed_from_worker_start'] = time.monotonic() - worker_started
++        io.require_elapsed(final['all_complete_readback_elapsed_from_worker_start'], 720)
+         final['status'] = 'ALL_TEN_RANGES_AND_ALL_ORIGINAL_BODIES_READ_ONLY_PASS'
+     except BaseException as error:
+         final['status'] = 'HOLD'; final['errors'].append(io.safe_error(error))
+     final['elapsed_seconds'] = time.monotonic() - began
+-    io.create(operation / 'FINAL.json', final)
++    try:
++        io.create(operation / 'FINAL.json', final,
++                  deadline=worker_deadline if final['status'] == 'ALL_TEN_RANGES_AND_ALL_ORIGINAL_BODIES_READ_ONLY_PASS' else None)
++        if final['status'] == 'ALL_TEN_RANGES_AND_ALL_ORIGINAL_BODIES_READ_ONLY_PASS':
++            io.check_deadline(worker_deadline)
++    except BaseException as error:
++        final['status'] = 'HOLD'; final['errors'].append(io.safe_error(error))
++        final['elapsed_seconds'] = time.monotonic() - began
++        io.create(operation / 'FINAL-PUBLICATION-HOLD.json', final)
+     print(json.dumps({'status': final['status'], 'closed_owner': final['closed_owner'],
+                       'original_receiver_HOLD_retained': True, 'output': str(operation)}))
+     return 0 if final['status'] == 'ALL_TEN_RANGES_AND_ALL_ORIGINAL_BODIES_READ_ONLY_PASS' and not final['errors'] else 1
+--- unexecuted-r1/controls/check_stream_consumer.py
++++ unexecuted-r2/controls/check_stream_consumer.py
+@@ -162,12 +162,15 @@
+         raw, directory, inventory = zip_fixture()
+         directory['members'][1]['name'] = directory['members'][0]['name']
+         with self.assertRaises(fmt.Refusal): read_zip(raw, directory, inventory)
++        raw, directory, inventory = zip_fixture()
++        inventory['files'].append(dict(inventory['files'][0]))
++        with self.assertRaises(fmt.Refusal): read_zip(raw, directory, inventory)
+     def test_11_overlap_or_gap_rejected(self):
+         raw, directory, inventory = zip_fixture()
+         directory['members'][1]['header_offset'] -= 1
+         with self.assertRaises(fmt.Refusal): read_zip(raw, directory, inventory)
+     def test_12_single_gzip_full_read(self):
+-        data = bytes(range(256)) * 100
++        data = bytes(range(256)) * 8193
+         actual, report = gzip_read(gzip.compress(data, mtime=0), data)
+         self.assertEqual(actual, data); self.assertTrue(report['complete'])
+     def test_13_gzip_crc_corruption_rejected(self):
+@@ -215,6 +218,13 @@
+             self.assertEqual(budget.capacity()['remaining_persistent_reservation'], before - 100)
+             status.f_bavail = 2000
+             with self.assertRaises(local.Refusal): budget.capacity()
++        for elapsed in (True, False, float('nan'), float('inf'), -0.01, 720.0001):
++            with self.subTest(elapsed=repr(elapsed)), self.assertRaises(local.Refusal):
++                local.require_elapsed(elapsed, 720)
++        local.require_elapsed(0, 720)
++        local.require_elapsed(720.0, 720)
++        with patch.object(local.time, 'monotonic', return_value=721):
++            with self.assertRaises(local.Refusal): local.check_deadline(720)
+     def test_22_provider_host_and_auth_boundary(self):
+         self.assertEqual(local.provider_host('https://sdmntprfixture.oaiusercontent.com/a?q=signed'), 'sdmntprfixture.oaiusercontent.com')
+         for url in ('http://sdmntprfixture.oaiusercontent.com/a', 'https://user:secret@sdmntprfixture.oaiusercontent.com/a',

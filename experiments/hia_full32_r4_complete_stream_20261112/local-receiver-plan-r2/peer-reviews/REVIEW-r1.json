@@ -1,0 +1,127 @@
+{
+  "claim_limits": [
+    "Static review is not evidence all ten artifacts have actually been read.",
+    "Original receiver/full32 HOLD remains unchanged.",
+    "Pinned source and metadata checks do not establish continued future file identity."
+  ],
+  "coverage": [
+    "Complete PLAN/POLICY/CONTROL-REQUEST/LAUNCH and four execution-control sources read; original guardian d0b and owner369 pins bound.",
+    "All29 policy input bytes and SHA256 independently matched. Actual original directory/inventory each48 unique and typed TAR catalog23967 unique.",
+    "Ten ordered ranges sum to3010752230, one fixed official artifact at a time; full part ZIP checksum and14member reads precede range consumption/disposal.",
+    "Single gzip EOF/CRC/no concatenation, local ZIP headers/descriptors/central directory/EOCD and exact continuous offsets, whole ZIP digest and no trailing bytes.",
+    "Inner TAR all23967 typed members,21823 regular full bodies5931499553B; metadata-only specials and complete padding, embedded catalog raw equality.",
+    "Two full omitted stdout files136468480 and164628480B independently preserved/readback; no bulk extraction.",
+    "Dispose only new fixed verified part identity after durable proof; ordinal9 retained. Earlier official containers are not claimed permanently retained locally.",
+    "Original900/3 external owner and worker720, initial1280MiB/4096inodes and continuous512MiB reserve; no product imports, supplier or CI rerun.",
+    "All24 source controls read, not executed; normal and failing preservation and closed-owner gating statically reviewed."
+  ],
+  "execution": {
+    "controls": false,
+    "network_download": false,
+    "product": false,
+    "receiver": false
+  },
+  "findings": [
+    {
+      "id": "R1_FINAL_DEADLINE_NOT_ADMITTED",
+      "locations": [
+        "control/worker.py: input_records; finally journal.finish and elapsed_seconds",
+        "control/launch.py: natural_owner and worker-success conjunction"
+      ],
+      "mechanism": "After streaming ends, input_records and Journal.finish full readback had no same720 deadline; worker elapsed was recorded without rejection, and parent did not require finite non-bool elapsed <=720. A late final readback could report success between720 and900 seconds. No execution or measured runtime claim.",
+      "status": "STATIC_BLOCKER"
+    },
+    {
+      "id": "R1_INVENTORY_DUPLICATE_ROW_FOLDED",
+      "locations": [
+        "control/stream_format.py: original_zip expected inventory map"
+      ],
+      "mechanism": "original_zip constructed a path-keyed dict before checking original list length/uniqueness, so an extra identical inventory row could be silently folded. Actual frozen original inventory is48 unique rows; this is not an observed artifact failure.",
+      "status": "STATIC_READER_GAP"
+    }
+  ],
+  "inputs": [
+    {
+      "bytes": 5386,
+      "git_blob_sha1": "ca1ccc99b520e9509ae4dbb8d110b4b66ea0616e",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/PLAN.json",
+      "sha256": "3a6044a92a57ce89ab9c22d72eb442d699ec662355d4555bbaf18da146ffa8c9"
+    },
+    {
+      "bytes": 19923,
+      "git_blob_sha1": "dd5a2aa6d7f60db898f213c370ec74b74cb6c512",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/POLICY.json",
+      "sha256": "d39fa62ee40eb88d02df8da6bf8e7f8c8cf64a9dd1f39470fea1f833d88f3698"
+    },
+    {
+      "bytes": 4432,
+      "git_blob_sha1": "0e94f33c4d9d34f5194c29aa77fff2211c1d8066",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/CONTROL-REQUEST.json",
+      "sha256": "84fbabed5791450c71b9b10243eb964cd78a0321cef82fb5c605d4a142aef416"
+    },
+    {
+      "bytes": 1086,
+      "git_blob_sha1": "2a6f0d526b263489a0dd24464349f748cdffc22e",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/LAUNCH.json",
+      "sha256": "90176f13a01bc22c22774997764516e361124cdf6d189c6644f07519b3f24040"
+    },
+    {
+      "bytes": 1172,
+      "git_blob_sha1": "6ffda23926befa35502da934d237db25d65a9989",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/PRIVATE-INPUT-SCHEMA.json",
+      "sha256": "42003a51ac56d6f8f5ba1b714c1798c3862c5e38d59278f1e8518b57ab054f6d"
+    },
+    {
+      "bytes": 15384,
+      "git_blob_sha1": "ef085dde9e5833f6f4480db89bf47f45654347ab",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/control/local_io.py",
+      "sha256": "b9cfc3b921b9a5c41f810b71eb48a1de4344cf97d47472af3f1f7e2a9e968619"
+    },
+    {
+      "bytes": 23144,
+      "git_blob_sha1": "bd3cea5773a33da2553aa4c86e8895ae2f736875",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/control/stream_format.py",
+      "sha256": "bd24b8cccd87c284b2390fea12a1bc0d3220fcbdb1e046426a80a29ce9117b8a"
+    },
+    {
+      "bytes": 20317,
+      "git_blob_sha1": "9967a16d5264b7a78cf79ec9745493c6d0a267c4",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/control/worker.py",
+      "sha256": "70b22078235a514bef27988f204f29fb86640b34945ddb0dfd6e736e85d997d7"
+    },
+    {
+      "bytes": 13098,
+      "git_blob_sha1": "f33db3d3414e0e201aba444419d06865742dd775",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/control/launch.py",
+      "sha256": "5c352121a89de2ee1d4584233eed9dbe7252d285d8bbf0e052d5cfaf5caf7662"
+    },
+    {
+      "bytes": 10257,
+      "git_blob_sha1": "1a7b8588871d1a0eb485dacc2dac2f1fe373b8a7",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/control/guardian.py",
+      "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023"
+    },
+    {
+      "bytes": 17601,
+      "git_blob_sha1": "6f600ab75894859b9840c0311cc8891a67b6c53a",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/control/process_owner_impl.py",
+      "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+    },
+    {
+      "bytes": 14847,
+      "git_blob_sha1": "8ed33e574aa348e75d2e52f376c0f8592732a002",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/controls/check_stream_consumer.py",
+      "sha256": "871a0c067a6ce3c101c313a40136051c7303a8208a8cc5095e062deb9c5b0345"
+    },
+    {
+      "bytes": 5486,
+      "git_blob_sha1": "6d4e4dc7c01148501eeee1cb1fcd239dbc55af96",
+      "path": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e/controls/run_controls.py",
+      "sha256": "14d5a02ace38307889d2ba73c0c2823ec95094d61e1f21a827532a84a3ac7767"
+    }
+  ],
+  "reviewer": "hia_remote_audit",
+  "root": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r1-20261112-e26e",
+  "schema": "hia.independent.full32-ten-range-stream-static-review.v1",
+  "status": "STATIC_HOLD_UNEXECUTED"
+}

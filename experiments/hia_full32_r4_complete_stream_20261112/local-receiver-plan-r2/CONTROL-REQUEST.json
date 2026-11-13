@@ -1,0 +1,105 @@
+{
+  "Root_review_and_separate_source_control_authorization_required": true,
+  "cleanup_seconds": 3,
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "-I",
+    "-S",
+    "-B",
+    "/tmp/hia-full32-r4-gzip-stream-reader-plan-r2-20261112-e26e/controls/run_controls.py"
+  ],
+  "environment": {
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONUNBUFFERED": "1"
+  },
+  "expected_ids": [
+    "StreamFormatControls.test_01_stored_complete_zip",
+    "StreamFormatControls.test_02_signed_data_descriptors",
+    "StreamFormatControls.test_03_zip64_local_headers",
+    "StreamFormatControls.test_04_every_boundary_chunk",
+    "StreamFormatControls.test_05_truncated_original_stops",
+    "StreamFormatControls.test_06_descriptor_corruption_rejected",
+    "StreamFormatControls.test_07_central_metadata_corruption_rejected",
+    "StreamFormatControls.test_08_missing_end_record_rejected",
+    "StreamFormatControls.test_09_bytes_after_end_rejected",
+    "StreamFormatControls.test_10_duplicate_directory_names_rejected",
+    "StreamFormatControls.test_11_overlap_or_gap_rejected",
+    "StreamFormatControls.test_12_single_gzip_full_read",
+    "StreamFormatControls.test_13_gzip_crc_corruption_rejected",
+    "StreamFormatControls.test_14_second_gzip_stream_rejected",
+    "StreamFormatControls.test_15_raw_range_hash_is_not_inherited",
+    "StreamFormatControls.test_16_inner_all_bodies_and_embedded_catalog",
+    "StreamFormatControls.test_17_inner_body_mismatch_rejected",
+    "StreamFormatControls.test_18_buffered_nonzero_tar_tail_rejected",
+    "StreamFormatControls.test_19_special_original_is_metadata_only",
+    "StreamFormatControls.test_20_original_callback_exception_stops",
+    "LocalBoundaryControls.test_21_unwritten_reservation_still_requires_free_space",
+    "LocalBoundaryControls.test_22_provider_host_and_auth_boundary",
+    "LocalBoundaryControls.test_23_configured_proxy_kept_or_rejected_before_serialization",
+    "LocalBoundaryControls.test_24_only_exact_verified_temporary_can_be_disposed"
+  ],
+  "expected_methods": 24,
+  "inputs": {
+    "control/guardian.py": {
+      "bytes": 10257,
+      "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023"
+    },
+    "control/launch.py": {
+      "bytes": 15275,
+      "sha256": "0535a208e1294bd6a558258adf1fe67f34f5376361d7c5fef9d0542070a989eb"
+    },
+    "control/local_io.py": {
+      "bytes": 15873,
+      "sha256": "00ac08b251cd872d1d46eae30c959b039efaa25dcd48c7d64f275b693c0d2b02"
+    },
+    "control/process_owner_impl.py": {
+      "bytes": 17601,
+      "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+    },
+    "control/stream_format.py": {
+      "bytes": 23432,
+      "sha256": "e5b2571ceae90505538134bfbfe47f38f5e914c7257dd1d1ca7874c00c118d95"
+    },
+    "control/worker.py": {
+      "bytes": 21565,
+      "sha256": "a102e8ec413f9e8fab38206464f1e9069beb48f167959b343aa45e95484a5e01"
+    },
+    "controls/check_stream_consumer.py": {
+      "bytes": 15492,
+      "sha256": "c8199acfb95714bfeadea381a213b1fc2268ecaa513fdcd259ff03cc1012b011"
+    },
+    "controls/run_controls.py": {
+      "bytes": 5486,
+      "sha256": "14d5a02ace38307889d2ba73c0c2823ec95094d61e1f21a827532a84a3ac7767"
+    }
+  },
+  "output": "/tmp/hia-full32-r4-stream-source-controls-r2-20261112-e26e",
+  "owner_implementation": "/tmp/hia-full32-r4-gzip-stream-reader-plan-r2-20261112-e26e/control/process_owner_impl.py",
+  "owner_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+  "qualification_seconds": 180,
+  "real_receiver_execution_permitted_by_this_request": false,
+  "runtime": {
+    "bytes": 30894944,
+    "git_blob": "cdff710ca21bf61260e4c7d7f3818ecd65cba2e7",
+    "identity": [
+      27,
+      9223372036854862948,
+      33261,
+      65534,
+      65534,
+      1,
+      30894944,
+      1794418893000000000,
+      1794418893000000000
+    ],
+    "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7"
+  },
+  "schema": "hia.full32.stream-reader-control-request.v1",
+  "scope": "Small synthetic ZIP/gzip/TAR plus one self-owned tempfile removal control. No provider body, download, actual supplier, process or native code.",
+  "status": "STATIC_NOT_EXECUTED"
+}
