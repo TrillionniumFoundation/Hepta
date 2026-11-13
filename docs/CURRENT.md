@@ -144,7 +144,12 @@ candidate tree is `f2bc61c11104136d3f56e3c4aefa00a4dada910b`; the harness commit
 executed zero native or cold qualification jobs and did not publish a candidate
 commit or change a product ref. It does not qualify a native replacement.
 The subsequent [R9 Source run 43455699432](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43455699432)
-is a separate run whose result must be read under its own identity. These
+failed: 1,306 planned, started and finished IDs agree; 1,305 passed and one
+failed, with no error or skip. Its actual candidate tree is
+`a76ebf7e393b9e1472e289235fcac3df326366a3`. The archive-coverage assertion found
+that `hia-linux-process-matching-cold` was absent from the main evidence
+archive, although a separate upload step included it. That run published no
+candidate commit/ref and executed no native or cold qualification. These
 active branches and their original artifacts must be reconciled before
 combining changes or retiring duplicate implementations.
 
@@ -168,8 +173,9 @@ and [integration checkpoint retirements](../review-evidence/hia-native-cleanup-2
 record exact removed paths, hashes, Git objects and consumer checks. They do
 not establish retirement of the remaining production stack.
 
-The current cleanup also closes concrete admission gaps. Every declared
-unittest selector must resolve to at least one unique test before execution;
+The current cleanup also closes concrete admission gaps. The shared unittest
+runner, complete-increment gate and execution-observation caller gate require
+each declared selector to resolve to distinct tests before execution;
 the complete-increment gate checks every raw HEAD blob and executable mode,
 including changes hidden by Git index flags. The existing recursive-chain
 module now executes 17 resource, cancellation and rejection controls against
@@ -188,6 +194,15 @@ is explicitly a fixture; those executions do not claim matching-current-source
 cold qualification. Two obsolete, unconsumed process tools were retired with
 their Git objects and hashes. Current upstream benchmark consumers now verify
 their retained HIA fixtures instead of depending on a removed capture tool.
+
+The [Store initialization custody evidence](../review-evidence/hia-native-cleanup-20261111/store-initialization-custody.json)
+preserves a separate real SQLite failure: three failed constructions retained
+three database descriptors until cyclic garbage collection. The existing
+failure handler now covers every initialization operation after the connection
+opens. The original database error, bytes and inode remain intact; the failed
+connection closes immediately. Normal WAL/FULL initialization, transactional
+artifact persistence and reopening have separate real SQLite controls. This
+repairs the current hosted owner and does not claim native SQLite replacement.
 
 This index replaces the repeated version-by-version current-status narrative.
 The [previous full index at f33d8da](https://github.com/TrillionniumFoundation/Hepta/blob/f33d8da316de8fdf27b504371f1a5310997ff548/docs/CURRENT.md)

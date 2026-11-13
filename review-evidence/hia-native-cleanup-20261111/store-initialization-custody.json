@@ -1,0 +1,74 @@
+{
+  "baseline_commit": "ddf8444b776a3b7aae6b86d7cd028e433fc8cb1c",
+  "baseline_source_sha256": "d51503beefbf043075deb7e626f1810b42d8842a51da21f4f71abddf1a3f0f9e",
+  "baseline_tree": "41f53e37e269a7fbf05cf22eb40f69d00f6e0996",
+  "ci_coverage": "The existing journal and JSON-wire caller gates load the complete tests.test_hia_agent_native_tools module, including both new tests; the Source job does not load this module.",
+  "corrected_behavior": "The existing cleanup handler now covers all initialization after a successful sqlite3.connect. Failed initialization closes immediately and preserves the original DatabaseError, database bytes and inode.",
+  "corrected_source_sha256": "120d4aad2ef33991089c5b011db19bc59bef926912eb377acabde73093de99cd",
+  "original_artifacts": [
+    {
+      "bytes": 1916,
+      "name": "witness.py",
+      "sha256": "936e325c97cbea1be4ca27dd9cf9b68cbfd6015d92589f13de9e30be166a7eab",
+      "utf8": "\"\"\"Observe real malformed-SQLite construction without mocking or changing GC.\"\"\"\nimport gc\nfrom hashlib import sha256\nimport json\nimport os\nfrom pathlib import Path\nimport subprocess\nimport sys\nimport tempfile\n\nrepository = Path(sys.argv[1]).resolve()\nsys.path.insert(0, str(repository))\nfrom hepta.hia_agent_store import AgentStore\n\n\ndef owned_fds(target):\n    descriptors = []\n    for path in Path('/proc/self/fd').iterdir():\n        try:\n            if os.readlink(path) == str(target):\n                descriptors.append(int(path.name))\n        except OSError:\n            pass\n    return sorted(descriptors)\n\n\nwith tempfile.TemporaryDirectory(prefix='hia-store-init-review-') as directory:\n    database = Path(directory) / 'state.sqlite3'\n    data = b'this is not a sqlite database\\n' * 8\n    database.write_bytes(data)\n    database.chmod(0o600)\n    identity = database.stat()\n    gc.collect()\n    before = owned_fds(database)\n    errors = []\n    for _ in range(3):\n        try:\n            AgentStore(directory)\n        except Exception as error:\n            errors.append({'type': type(error).__name__, 'message': str(error)})\n    after = owned_fds(database)\n    same_inode = (identity.st_dev, identity.st_ino) == (\n        database.stat().st_dev, database.stat().st_ino)\n    unchanged = database.read_bytes() == data\n    gc.collect()\n    after_gc = owned_fds(database)\n    print(json.dumps({\n        'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repository, text=True).strip(),\n        'source_sha256': sha256((repository / 'hepta/hia_agent_store.py').read_bytes()).hexdigest(),\n        'gc_enabled': gc.isenabled(),\n        'before': before,\n        'errors': errors,\n        'after_three_failed_constructions': after,\n        'after_explicit_gc': after_gc,\n        'database_bytes_unchanged': unchanged,\n        'database_inode_unchanged': same_inode,\n    }, indent=2, sort_keys=True))\n"
+    },
+    {
+      "bytes": 622,
+      "name": "before.json",
+      "sha256": "aaefcfbba985da5ee314cac83dd887b1bf57e80b39d36fb82c75977adcb9ff65",
+      "utf8": "{\n  \"after_explicit_gc\": [],\n  \"after_three_failed_constructions\": [\n    3,\n    4,\n    5\n  ],\n  \"before\": [],\n  \"database_bytes_unchanged\": true,\n  \"database_inode_unchanged\": true,\n  \"errors\": [\n    {\n      \"message\": \"file is not a database\",\n      \"type\": \"DatabaseError\"\n    },\n    {\n      \"message\": \"file is not a database\",\n      \"type\": \"DatabaseError\"\n    },\n    {\n      \"message\": \"file is not a database\",\n      \"type\": \"DatabaseError\"\n    }\n  ],\n  \"gc_enabled\": true,\n  \"head\": \"ddf8444b776a3b7aae6b86d7cd028e433fc8cb1c\",\n  \"source_sha256\": \"d51503beefbf043075deb7e626f1810b42d8842a51da21f4f71abddf1a3f0f9e\"\n}\n"
+    },
+    {
+      "bytes": 1152,
+      "name": "before-tests.log",
+      "sha256": "03292c0177a878688a3455c422bdcfe8b44fb9a41f6bc79f77ea4994f8c078e0",
+      "utf8": "test_malformed_database_closes_connection_and_preserves_input (tests.test_hia_agent_native_tools.AgentStoreInitializationTests.test_malformed_database_closes_connection_and_preserves_input) ... ERROR\ntest_normal_store_retains_wal_durability_and_artifact_across_reopen (tests.test_hia_agent_native_tools.AgentStoreInitializationTests.test_normal_store_retains_wal_durability_and_artifact_across_reopen) ... ok\n\n======================================================================\nERROR: test_malformed_database_closes_connection_and_preserves_input (tests.test_hia_agent_native_tools.AgentStoreInitializationTests.test_malformed_database_closes_connection_and_preserves_input)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/scratch/37204f9845e5/Hepta-store-fix/tests/test_hia_agent_native_tools.py\", line 741, in test_malformed_database_closes_connection_and_preserves_input\n    connections[0].execute(\"SELECT 1\")\nsqlite3.DatabaseError: file is not a database\n\n----------------------------------------------------------------------\nRan 2 tests in 0.030s\n\nFAILED (errors=1)\n"
+    },
+    {
+      "bytes": 599,
+      "name": "after.json",
+      "sha256": "d2a61560e83be1d372fe4861af5943a9eaf4bd90c6407096d6217b54bf9ad2ac",
+      "utf8": "{\n  \"after_explicit_gc\": [],\n  \"after_three_failed_constructions\": [],\n  \"before\": [],\n  \"database_bytes_unchanged\": true,\n  \"database_inode_unchanged\": true,\n  \"errors\": [\n    {\n      \"message\": \"file is not a database\",\n      \"type\": \"DatabaseError\"\n    },\n    {\n      \"message\": \"file is not a database\",\n      \"type\": \"DatabaseError\"\n    },\n    {\n      \"message\": \"file is not a database\",\n      \"type\": \"DatabaseError\"\n    }\n  ],\n  \"gc_enabled\": true,\n  \"head\": \"ddf8444b776a3b7aae6b86d7cd028e433fc8cb1c\",\n  \"source_sha256\": \"120d4aad2ef33991089c5b011db19bc59bef926912eb377acabde73093de99cd\"\n}\n"
+    },
+    {
+      "bytes": 708,
+      "name": "after-tests.log",
+      "sha256": "cf651f4424b665fecb418f2317621aba328446f6052368d33e985a5371d02a23",
+      "utf8": "test_malformed_database_closes_connection_and_preserves_input (tests.test_hia_agent_native_tools.AgentStoreInitializationTests.test_malformed_database_closes_connection_and_preserves_input) ... ok\ntest_normal_store_retains_wal_durability_and_artifact_across_reopen (tests.test_hia_agent_native_tools.AgentStoreInitializationTests.test_normal_store_retains_wal_durability_and_artifact_across_reopen) ... ok\ntest_preexisting_world_writable_artifact_directory_is_rejected (tests.test_hia_agent_native_tools.AgentStoreDirectoryPermissionTests.test_preexisting_world_writable_artifact_directory_is_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.305s\n\nOK\n"
+    }
+  ],
+  "original_failure": "Three real failed constructions retained three database descriptors until cyclic garbage collection; this is delayed cleanup, not a demonstrated permanent leak.",
+  "original_failure_preserved": true,
+  "qualification": {
+    "after_tests": {
+      "errors": 0,
+      "failures": 0,
+      "passed": 3,
+      "run": 3,
+      "seconds": 0.305,
+      "skipped": 0
+    },
+    "automatic_gc_unchanged": true,
+    "before_tests": {
+      "errors": 1,
+      "passed": 1,
+      "run": 2
+    },
+    "matching_cold_qualification": false,
+    "real_sqlite_used": true,
+    "regression_connection_wrapper": "Captures a real sqlite3.Connection to verify its closed state; it does not simulate SQLite operations.",
+    "whole_native_delivery_qualified": false,
+    "witness_uses_mock": false
+  },
+  "regression_path": "tests/test_hia_agent_native_tools.py",
+  "regression_sha256": "c7a3b2b486e55a600ddd5e691729e8cddc6acd5935e5aad337e27c1f20be856a",
+  "reproduction": [
+    "Restore witness.py from original_artifacts without changing its bytes.",
+    "Run python -B witness.py /absolute/path/to/checkout.",
+    "Run python -B tools/run_hia_unittest_gate.py tests.test_hia_agent_native_tools.AgentStoreInitializationTests tests.test_hia_agent_native_tools.AgentStoreDirectoryPermissionTests.",
+    "Compare baseline and corrected source hashes; the corrected original observation was captured before commit, so its recorded HEAD remains the baseline."
+  ],
+  "schema": "hepta.hia.store-initialization-custody.v1",
+  "scope": "Actual SQLite connection cleanup on failed AgentStore construction; not a native SQLite replacement.",
+  "source_path": "hepta/hia_agent_store.py"
+}
