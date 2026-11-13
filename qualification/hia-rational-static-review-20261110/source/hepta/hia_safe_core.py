@@ -1,0 +1,589 @@
+"""All-input translation validation for a small, explicit direct-native profile.
+
+The checker independently interprets admitted Core and *final linked machine
+bytes*.  It asks Z3 whether any scalar inputs, caller bytes or ABI state can
+change the return/abort outcome, caller memory, memory bounds or saved state.
+Only UNSAT for every obligation passes.  The Python encoders, decoder, ELF
+parser, Z3, libc/loader contract and x86 semantics are a stated trust base;
+this is not a Lean-kernel proof of a complete ISA or the whole HIA language.
+"""
+from __future__ import annotations
+
+from hashlib import sha256
+import importlib
+import json
+import os
+from pathlib import Path
+import tempfile
+import time
+
+from .hia_program import verify_program
+from .hia_program_native import HIAProgramMachine, emit_program_machine, compile_program_machine
+from .hia_safe_core_elf import bind_final_image
+from .hia_safe_core_x64 import Executor
+
+
+SCHEMA = "hepta.hia.safe-core-machine-validation.v1"
+PROFILE = "hia.safe-core.unsigned-acyclic-single-borrow.x86_64.v1"
+PINNED_Z3_VERSION = "4.15.4"
+WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64, "bool": 1}
+LOANS = {"readbuf", "mutbuf"}
+OPERATIONS = frozenset({"const", "int.add.wrap", "int.sub.wrap", "int.add.checked", "int.sub.checked",
+                        "bit.and", "bit.or", "bit.xor", "bit.not", "bool.and", "bool.or", "bool.not",
+                        "int.cast", "select", "buffer.len", "buffer.load", "buffer.store", "call",
+                        *["compare." + c for c in ("eq", "ne", "lt", "le", "gt", "ge")]})
+LIMITS = {
+    "functions": 8, "blocks": 16, "operations": 64, "abi_argument_words": 6,
+    "borrowed_ranges": 1, "foreign_extent": 1 << 20, "machine_text_bytes": 65536,
+    "stack_bytes": 16384, "machine_steps_across_paths": 65536, "machine_paths": 4096,
+    "core_paths": 1024,
+}
+CLAIMS = {
+    "all_input_refinement_in_independent_model": True,
+    "exact_final_image_and_relocations_bound": True,
+    "core_abort_and_foreign_memory_effects_preserved": True,
+    "foreign_memory_access_bounds_checked": True,
+    "sysv_saved_registers_and_stack_checked": True,
+    "acyclic_model_termination_checked": True,
+    "machine_checked_isa_refinement_proved": False,
+    "python_checker_soundness_proved": False,
+    "foreign_pointer_provenance_or_liveness_proved": False,
+    "whole_language_soundness_proved": False,
+    "timing_or_side_channels_proved": False,
+    "serialized_receipt_authorizes_execution": False,
+}
+ASSUMPTIONS = [
+    "The caller obeys SysV AMD64, provides a live nonwrapping stack with 16 KiB available below RSP, and uses a conforming return address.",
+    "For ABI-admitted nonempty borrowed ranges the caller supplies a live initialized allocation disjoint from the active stack; mutable ranges are exclusive for the synchronous call.",
+    "The loader maps the inspected file bytes with the checked permissions and resolves the immediately bound abort slot to a nonreturning libc abort; hostile interposition is outside the contract.",
+    "The independent Python Core/x86/ELF models, canonical Core verifier and the identified Z3 implementation are trusted; their refinement to the complete hardware ISA is not kernel-proved.",
+    "Native traps are observed as nonreturning abort, with preceding caller-memory effects retained; distinct HIA trap codes are not promised by the existing native ABI.",
+    "No concurrency, signals, hardware faults, stack exhaustion, timing, side-channel or arbitrary native-caller safety claim is made.",
+]
+
+
+class SafeCoreRejected(ValueError):
+    def __init__(self, message, *, counterexample=None):
+        super().__init__("E_HIA_SAFE_CORE: " + message)
+        self.counterexample = counterexample
+
+
+def require(condition, message):
+    if not condition:
+        raise SafeCoreRejected(message)
+
+
+def _source_identity():
+    names = ("hia_safe_core.py", "hia_safe_core_x64.py", "hia_safe_core_elf.py",
+             "hia_program.py", "hia_opcodes.py", "hia_capability_flow.py", "hia_schema.py",
+             "hia_json_preflight.py", "hia_program_native.py", "hia_machine_x64.py",
+             "hia_machine_elf.py", "hia_native_byte_abi.py", "elf_shared_abi.py")
+    return {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() for name in names}
+
+
+def _solver_identity(z):
+    require(z.get_version_string() == PINNED_Z3_VERSION, "the pinned Z3 version is required")
+    function = z.z3core.Z3_get_version.__defaults__[0].f
+    libraries = [item for item in function._objects.values() if hasattr(item, "_name")]
+    require(len(libraries) == 1, "ambiguous loaded solver library")
+    library = Path(libraries[0]._name).resolve(strict=True)
+    require(library.stat().st_size <= 128 * 1024 * 1024, "solver library size is outside the identity budget")
+    digest = sha256()
+    for path in sorted(Path(z.__file__).parent.glob("*.py")):
+        digest.update(path.name.encode() + b"\0" + path.read_bytes() + b"\0")
+    return {"name": "Z3", "version": z.get_version_string(), "binding_sha256": digest.hexdigest(),
+            "library_sha256": sha256(library.read_bytes()).hexdigest()}
+
+
+def _profile(checked, image=None, *, foreign_buffer_exports=()):
+    require(checked.structured_bytes is None, "an explicit primitive Core is required")
+    document = checked.as_dict()
+    require(document["schema"] in {"hepta.hia.program.v" + str(i) for i in range(1, 9)} and
+            1 <= len(document["functions"]) <= LIMITS["functions"], "Safe Core function budget exceeded")
+    fn = document["functions"][0]
+    if image is not None:
+        require(image.machine_plan_sha256 is None, "agent machine plans need a separate Safe Core profile")
+        require(fn["name"] in image.exports, "the selected Core entry must be exported")
+        foreign_buffer_exports = image.foreign_buffer_exports
+    require(len(fn["returns"]) == 1 and fn["returns"][0] in WIDTHS,
+            "exactly one scalar entry/return is required")
+    require(set(fn["effects"]) <= {"read", "write", "trap"}, "unreviewed resource effects")
+    loan_count = sum(p["type"] in LOANS for p in fn["params"])
+    require(loan_count <= 1 and sum(2 if p["type"] in LOANS else 1 for p in fn["params"]) <= 6,
+            "one borrowed range and at most six ABI argument words are admitted")
+    if loan_count:
+        require(type(foreign_buffer_exports) is tuple and len(foreign_buffer_exports) == 1 and
+                type(foreign_buffer_exports[0]) is tuple and len(foreign_buffer_exports[0]) == 2 and
+                foreign_buffer_exports[0][0] == fn["name"] and type(foreign_buffer_exports[0][1]) is int and
+                1 <= foreign_buffer_exports[0][1] <= LIMITS["foreign_extent"] and fn["returns"] == ["u32"],
+                "borrowed range requires an exact extent and the u32 packed-result ABI")
+    else:
+        require(foreign_buffer_exports == (), "scalar entry cannot carry a foreign range manifest")
+    blocks = {block["id"]: block for block in fn["blocks"]}
+    require(len(blocks) <= 16 and sum(len(b["ops"]) for b in blocks.values()) <= 64,
+            "Safe Core block/operation budget exceeded")
+    types = [p["type"] for p in fn["params"]] + fn["returns"]
+    for block in blocks.values():
+        types.extend(p["type"] for p in block["params"])
+        for op in block["ops"]:
+            require(op["op"] in OPERATIONS, "operation lies outside Safe Core: " + op["op"])
+            require(op["op"] != "int.cast" or op["attrs"]["mode"] == "wrap",
+                    "checked casts are outside Safe Core v1")
+            types.extend(p["type"] for p in op["out"])
+    require(all(t in WIDTHS or t in LOANS for t in types), "type lies outside Safe Core")
+    visiting, done = set(), set()
+
+    def visit(name):
+        require(name not in visiting, "loops or recursion lie outside Safe Core")
+        if name in done:
+            return
+        visiting.add(name)
+        term = blocks[name]["term"]
+        require(term["op"] in {"ret", "trap", "jump", "branch"}, "unreviewed terminator")
+        edges = [term] if term["op"] == "jump" else [term["then"], term["else"]] if term["op"] == "branch" else []
+        for edge in edges:
+            visit(edge["target"])
+        visiting.remove(name)
+        done.add(name)
+    for name in blocks:
+        visit(name)
+    if any(op["op"] == "call" for f in document["functions"] for b in f["blocks"] for op in b["ops"]) or len(document["functions"]) > 1:
+        functions = {f["name"]: f for f in document["functions"]}
+        active, complete = set(), set()
+        def calls(name):
+            require(name not in active, "recursive callgraph lies outside Safe Core")
+            if name in complete: return
+            active.add(name)
+            for b in functions[name]["blocks"]:
+                for op in b["ops"]:
+                    if op["op"] == "call": calls(op["attrs"]["function"])
+            active.remove(name); complete.add(name)
+        for function in document["functions"]:
+            calls(function["name"])
+            require(not any(p["type"] in LOANS for p in function["params"]),
+                    "multi-function Safe Core currently admits scalar calls only")
+            local = dict(document, functions=[function])
+            local.pop("exports", None)
+            _profile(verify_program(local)) if not any(op["op"] == "call" for b in function["blocks"] for op in b["ops"]) else _check_call_function(function)
+    return fn, blocks
+
+
+def _check_call_function(fn):
+    require(len(fn["returns"]) == 1 and fn["returns"][0] in WIDTHS and
+            all(p["type"] in WIDTHS for p in fn["params"]) and len(fn["params"]) <= 6,
+            "internal scalar ABI outside Safe Core")
+    require(set(fn["effects"]) <= {"trap"}, "internal call effects outside scalar profile")
+    blocks = {b["id"]: b for b in fn["blocks"]}
+    require(len(blocks) <= 16 and sum(len(b["ops"]) for b in blocks.values()) <= 64,
+            "internal block/operation budget exceeded")
+    active, done = set(), set()
+    def visit(bid):
+        require(bid not in active, "loops lie outside Safe Core")
+        if bid in done: return
+        active.add(bid)
+        b = blocks[bid]
+        require(all(p["type"] in WIDTHS for p in b["params"]), "internal block type")
+        for op in b["ops"]:
+            require(op["op"] in OPERATIONS and all(p["type"] in WIDTHS for p in op["out"]), "internal operation/type")
+            require(op["op"] != "int.cast" or op["attrs"]["mode"] == "wrap", "internal checked cast")
+        term = b["term"]
+        require(term["op"] in {"ret", "trap", "jump", "branch"}, "internal terminator")
+        for e in ([term] if term["op"] == "jump" else [term["then"], term["else"]] if term["op"] == "branch" else []): visit(e["target"])
+        active.remove(bid); done.add(bid)
+    for bid in blocks: visit(bid)
+
+
+class _Theory:
+    def __init__(self, z, timeout_ms):
+        self.z, self.ctx = z, z.Context()
+        self.started = time.monotonic()
+        self.deadline = self.started + timeout_ms / 1000
+        self.memory = z.Array("initial_caller_bytes", z.BitVecSort(64, self.ctx), z.BitVecSort(8, self.ctx))
+        self.inputs, self.words, self.loan = {}, [], None
+
+    def check_time(self):
+        require(time.monotonic() < self.deadline, "total validation deadline exhausted")
+
+    def bv(self, value):
+        return self.z.BitVecVal(value & ((1 << 64) - 1), 64, ctx=self.ctx)
+
+    def normalized(self, value, typ):
+        return self.z.simplify(value & self.bv((1 << WIDTHS[typ]) - 1))
+
+    def arguments(self, fn):
+        for param in fn["params"]:
+            name, typ = param["name"], param["type"]
+            first = self.z.BitVec("abi_word_" + str(len(self.words)), 64, ctx=self.ctx)
+            self.words.append(first)
+            if typ in LOANS:
+                length = self.z.BitVec("abi_word_" + str(len(self.words)), 64, ctx=self.ctx)
+                self.words.append(length)
+                self.loan = (first, length, typ)
+                self.inputs[name] = self.loan
+            else:
+                self.inputs[name] = self.normalized(first, typ)
+
+    def reference(self, fn, blocks, extent, *, inputs=None, initial_memory=None, initial_path=None):
+        z = self.z
+        outcomes, path = [], z.BoolVal(True, ctx=self.ctx) if initial_path is None else initial_path
+        memory0 = self.memory if initial_memory is None else initial_memory
+
+        def outcome(kind, path, memory, value=None):
+            outcomes.append(dict(kind=kind, path=z.simplify(path), memory=memory,
+                                 value=self.bv(0) if value is None else value))
+
+        if self.loan is not None and inputs is None:
+            pointer, length, typ = self.loan
+            for code, bad in ((1, z.UGT(length, extent)), (2, z.And(length != 0, pointer == 0)),
+                              (3, z.And(length != 0, z.ULT(pointer + length, pointer)))):
+                outcome("return", z.And(path, bad), self.memory, self.bv(code << 32))
+                path = z.simplify(z.And(path, z.Not(bad)))
+        pending = [(fn["entry"], dict(self.inputs if inputs is None else inputs), memory0, path, 0)]
+        paths = 0
+        while pending:
+            ident, env, memory, path, opstart = pending.pop()
+            self.check_time()
+            paths += 1
+            require(paths <= 1024, "Core path budget exceeded")
+            block = blocks[ident]
+            types = {p["name"]: p["type"] for p in block["params"]}
+            resumed_call = False
+            for opindex, operation in enumerate(block["ops"][opstart:], opstart):
+                self.check_time()
+                name, attrs = operation["op"], operation["attrs"]
+                args = [env[p] for p in operation["args"]]
+                out = operation["out"]
+                typ = out[0]["type"] if out else None
+                value, trap = None, None
+                if name == "call":
+                    callee = self.functions[attrs["function"]]
+                    callee_inputs = {p["name"]: a for p, a in zip(callee["params"], args)}
+                    called = self.reference(callee, {b["id"]: b for b in callee["blocks"]}, None,
+                                            inputs=callee_inputs, initial_memory=memory, initial_path=path)
+                    for row in called:
+                        if row["kind"] == "abort": outcomes.append(row)
+                        else:
+                            continued = dict(env)
+                            continued[out[0]["name"]] = row["value"]
+                            pending.append((ident, continued, row["memory"], row["path"], opindex+1))
+                    resumed_call = True
+                    break
+                elif name == "const":
+                    value = self.bv(int(attrs["value"]))
+                elif name.startswith("int.add.") or name.startswith("int.sub."):
+                    a, b = args
+                    value = self.normalized(a + b if name.startswith("int.add.") else a - b, typ)
+                    if name.endswith("checked"):
+                        trap = z.ULT(value, a) if name.startswith("int.add.") else z.ULT(a, b)
+                elif name in ("bit.and", "bool.and", "bit.or", "bool.or", "bit.xor"):
+                    a, b = args
+                    value = a & b if name.endswith("and") else a | b if name.endswith("or") and name != "bit.xor" else a ^ b
+                elif name in ("bit.not", "bool.not"):
+                    value = self.normalized(~args[0], typ)
+                elif name == "int.cast":
+                    value = self.normalized(args[0], typ)
+                elif name.startswith("compare."):
+                    a, b = args
+                    relation = {"eq": lambda: a == b, "ne": lambda: a != b, "lt": lambda: z.ULT(a, b),
+                                "le": lambda: z.ULE(a, b), "gt": lambda: z.UGT(a, b), "ge": lambda: z.UGE(a, b)}[name.split(".")[1]]()
+                    value = z.If(relation, self.bv(1), self.bv(0))
+                elif name == "select":
+                    value = z.If(args[0] != 0, args[1], args[2])
+                elif name == "buffer.len":
+                    value = args[0][1]
+                elif name in ("buffer.load", "buffer.store"):
+                    pointer, length, permission = args[0]
+                    index = args[1]
+                    trap = z.UGE(index, length)
+                    outcome("abort", z.And(path, trap), memory)
+                    path = z.simplify(z.And(path, z.Not(trap)))
+                    trap = None
+                    if name == "buffer.load":
+                        value = z.ZeroExt(56, z.Select(memory, pointer + index))
+                    else:
+                        require(permission == "mutbuf", "reference cannot write a read-only loan")
+                        memory = z.Store(memory, pointer + index, z.Extract(7, 0, args[2]))
+                else:
+                    raise SafeCoreRejected("missing independent Core semantics")
+                if trap is not None:
+                    outcome("abort", z.And(path, trap), memory)
+                    path = z.simplify(z.And(path, z.Not(trap)))
+                if out:
+                    require(len(out) == 1 and value is not None, "unsupported Core result shape")
+                    env[out[0]["name"]], types[out[0]["name"]] = z.simplify(value), typ
+            if resumed_call: continue
+            term = block["term"]
+            if term["op"] == "ret":
+                outcome("return", path, memory, env[term["values"][0]])
+            elif term["op"] == "trap":
+                outcome("abort", path, memory)
+            else:
+                edges = [(term, path)] if term["op"] == "jump" else [
+                    (term["then"], z.And(path, env[term["cond"]] != 0)),
+                    (term["else"], z.And(path, env[term["cond"]] == 0))]
+                for edge, guard in edges:
+                    values = [env[name] for name in edge["args"]]
+                    incoming = {p["name"]: value for p, value in zip(blocks[edge["target"]]["params"], values)}
+                    pending.append((edge["target"], incoming, memory, z.simplify(guard), 0))
+        return outcomes
+
+    def merge(self, outcomes):
+        z = self.z
+        require(outcomes, "model has no terminal outcome")
+        result, memory = self.bv(0), self.memory
+        for row in outcomes:
+            result = z.If(row["path"], row["value"], result)
+            memory = z.If(row["path"], row["memory"], memory)
+        aborts = z.Or(*[row["path"] for row in outcomes if row["kind"] == "abort"], z.BoolVal(False, ctx=self.ctx))
+        coverage = z.Or(*[row["path"] for row in outcomes])
+        return coverage, aborts, result, memory
+
+
+def validate_safe_core_image(document, image, final_bytes, *, timeout_ms=15000, query_directory=None):
+    """Recompute all obligations on exact bytes; a saved receipt is not accepted."""
+    require(type(timeout_ms) is int and 100 <= timeout_ms <= 60000, "timeout must be 100..60000 milliseconds")
+    checked = verify_program(document)
+    require(isinstance(image, HIAProgramMachine), "a direct-native machine image is required")
+    fn, blocks = _profile(checked, image)
+    require(image == emit_program_machine(checked, foreign_buffer_exports=image.foreign_buffer_exports),
+            "candidate image is not rederived from the exact Core")
+    identity = _source_identity()
+    binding = bind_final_image(image.object_bytes, image.text_bytes, final_bytes, fn["name"],
+                               exports=image.exports, function_count=len(checked.as_dict()["functions"]))
+    try:
+        z = importlib.import_module("z3")
+    except ImportError as exc:
+        raise SafeCoreRejected("pinned z3-solver is unavailable; no proof result") from exc
+    solver_identity = _solver_identity(z)
+    retained = None
+    if query_directory is not None:
+        retained = Path(query_directory).absolute()
+        retained.mkdir(parents=False, exist_ok=False)
+    t = _Theory(z, timeout_ms)
+    t.arguments(fn)
+    t.functions = {f["name"]: f for f in checked.as_dict()["functions"]}
+    extent = None if not image.foreign_buffer_exports else image.foreign_buffer_exports[0][1]
+    reference = t.reference(fn, blocks, extent)
+    machine = Executor(t, binding, t.words, t.loan)
+    observed = machine.run()
+    # The abstract stack is keyed by exact offsets.  Foreign data is a separate
+    # array only under this explicit disjointness premise; numeric ABI guards
+    # are still modelled and proved for every invalid pointer/length word pair.
+    assumptions = [z.UGE(machine.sp, 16384), z.ULE(machine.sp, (1 << 64) - 16),
+                   machine.sp & t.bv(15) == 8]
+    if t.loan is not None:
+        pointer, length, typ = t.loan
+        admitted = z.And(z.ULE(length, extent), z.Or(length == 0, z.And(pointer != 0, z.UGE(pointer + length, pointer))))
+        disjoint = z.Or(length == 0, z.ULE(pointer + length, machine.sp - 16384), z.UGE(pointer, machine.sp + 8))
+        assumptions.append(z.Implies(admitted, disjoint))
+    rc, ra, rv, rm = t.merge(reference)
+    mc, ma, mv, mm = t.merge(observed)
+    false = z.BoolVal(False, ctx=t.ctx)
+    obligations = [
+        ("caller_contract_nonvacuous", z.BoolVal(True, ctx=t.ctx), "sat"),
+        ("machine_memory_access_bounds", z.Or(*machine.faults, false), "unsat"),
+        ("sysv_stack_alignment_and_preservation", z.Or(*machine.abi_faults, false), "unsat"),
+        ("all_inputs_reach_a_terminal_model_outcome", z.Or(z.Not(rc), z.Not(mc)), "unsat"),
+        ("core_to_final_image_return_abort_and_caller_bytes",
+         z.Or(ra != ma, z.And(z.Not(ra), rv != mv), rm != mm), "unsat"),
+    ]
+    reports = []
+    for index, (name, violation, expected) in enumerate(obligations):
+        t.check_time()
+        solver = z.Solver(ctx=t.ctx)
+        solver.set(timeout=max(1, int((t.deadline - time.monotonic()) * 1000)))
+        solver.add(*assumptions, violation)
+        query_bytes = (solver.sexpr() + "\n(check-sat)\n").encode()
+        require(len(query_bytes) <= 16 * 1024 * 1024, "SMT query byte budget exceeded")
+        query_hash = sha256(query_bytes).hexdigest()
+        filename = f"{index:02d}-{name}.smt2"
+        if retained is not None:
+            with (retained / filename).open("xb") as stream:
+                stream.write(query_bytes)
+        started = time.monotonic()
+        result = str(solver.check())
+        reports.append({"name": name, "result": result, "expected": expected,
+                        "query_sha256": query_hash, "elapsed_seconds": time.monotonic() - started})
+        if retained is not None:
+            reports[-1]["query_file"] = filename
+            (retained / (filename + ".result.json")).write_text(json.dumps(reports[-1], indent=2) + "\n")
+        if result != expected:
+            counterexample = None
+            if result == "sat":
+                model = solver.model()
+                counterexample = {"abi_words": [model.eval(v, model_completion=True).as_long() for v in t.words],
+                                  "initial_rsp": model.eval(machine.sp, model_completion=True).as_long(),
+                                  "obligation": name}
+            raise SafeCoreRejected(name + ": " + result + (" (" + solver.reason_unknown() + ")" if result == "unknown" else ""),
+                                   counterexample=counterexample)
+    require(identity == _source_identity() and solver_identity == _solver_identity(z),
+            "checker or solver source changed during validation")
+    return {"schema": SCHEMA, "profile": PROFILE, "ok": True, "status": "smt_validated",
+            "core_sha256": checked.sha256, "input_sha256": checked.input_sha256,
+            "core_schema": checked.as_dict()["schema"], "backend_implementation_sha256": image.implementation_sha256,
+            "source_identity": identity, "solver": solver_identity, "image_binding": binding["binding"],
+            "function": fn["name"], "foreign_buffer_exports": [list(pair) for pair in image.foreign_buffer_exports],
+            "model_counts": {"decoded_instructions": len(machine.code), "symbolic_machine_steps": machine.steps,
+                             "machine_terminal_paths": len(observed), "core_terminal_paths": len(reference),
+                             "maximum_observed_stack_bytes": -machine.minimum_stack_offset},
+            "obligations": reports, "claims": dict(CLAIMS), "assumptions": list(ASSUMPTIONS), "limits": dict(LIMITS),
+            "elapsed_seconds": time.monotonic() - t.started}
+
+
+def build_safe_core(document, output, *, foreign_extent=None, linker="ld", timeout_ms=15000, query_directory=None):
+    """Build privately, validate final bytes, then atomically publish those bytes."""
+    from .artifact_publication import publish_verified, verify_published, withdraw_own_link
+    checked = verify_program(document)
+    functions = checked.as_dict()["functions"]
+    require(1 <= len(functions) <= LIMITS["functions"], "Safe Core function budget exceeded")
+    exports = () if foreign_extent is None else ((functions[0]["name"], foreign_extent),)
+    _profile(checked, foreign_buffer_exports=exports)
+    image = emit_program_machine(checked, foreign_buffer_exports=exports)
+    destination = Path(os.path.abspath(output))
+    require(not destination.exists() and not destination.is_symlink() and destination.parent.is_dir(),
+            "output must be a new path in an existing directory")
+    with tempfile.TemporaryDirectory(prefix=".hia-safe-core-", dir=destination.parent) as temporary:
+        candidate = Path(temporary) / "candidate.so"
+        compilation = compile_program_machine(image, program=checked, output=candidate, linker=linker)
+        data = candidate.read_bytes()
+        report = validate_safe_core_image(checked, image, data, timeout_ms=timeout_ms, query_directory=query_directory)
+        published = publish_verified(candidate, destination, data)
+        try:
+            verify_published(candidate, destination, data)
+            require(report["source_identity"] == _source_identity(), "checker changed before final publication")
+        except BaseException:
+            withdraw_own_link(candidate, destination)
+            raise
+    return {"schema": "hepta.hia.safe-core-build.v1", "ok": True, "output": str(destination),
+            "artifact_sha256": published["sha256"], "artifact_bytes": published["bytes"],
+            "compilation": compilation, "validation": report,
+            "status": "smt_validated_not_executed", "claims": dict(CLAIMS)}
+
+
+class LoadedSafeCore:
+    """A live sealed image, with actual executable bytes checked before calls.
+
+    No serialized receipt can construct this authority. Keep this object alive
+    while calling its entrypoint; foreign storage still obeys the caller contract.
+    """
+    def __init__(self, fd, library, base, document, image, final_bytes, report):
+        self.fd, self.library, self.base = fd, library, base
+        # Bind this handle to the exact validated entry once. Never consult the
+        # caller's mutable document or a mutable receipt to choose a later call.
+        import ctypes
+        checked = verify_program(document)
+        functions = checked.as_dict()["functions"]
+        require(report["core_sha256"] == checked.sha256 and report["function"] == functions[0]["name"],
+                "loaded entry differs from validated Core")
+        entry = functions[0]
+        self.canonical_core_bytes = bytes(checked.canonical_bytes)
+        self._entry_name = entry["name"]
+        self._parameter_types = tuple(p["type"] for p in entry["params"])
+        address = ctypes.cast(getattr(library, self._entry_name), ctypes.c_void_p).value
+        self._entry = ctypes.CFUNCTYPE(ctypes.c_uint64,
+                                     *([ctypes.c_uint64] * len(self._parameter_types)))(address)
+        self.image, self.final_bytes, self.report = image, final_bytes, report
+
+    def verify_mapping(self):
+        return verify_safe_core_mapping(self.image, self.final_bytes, self.base, self.fd)
+
+    def scalar_call(self, *arguments):
+        require(all(typ in WIDTHS for typ in self._parameter_types), "use the borrowed caller contract for foreign entries")
+        require(len(arguments) == len(self._parameter_types) and all(type(x) is int and 0 <= x < 1 << 64 for x in arguments), "scalar ABI arguments must be raw u64 words")
+        self.verify_mapping()
+        return self._entry(*arguments)
+
+    def close(self):
+        if self.fd is not None:
+            import _ctypes
+            _ctypes.dlclose(self.library._handle)
+            self.library = None
+            os.close(self.fd)
+            self.fd = None
+
+
+def verify_safe_core_mapping(image, final_bytes, base, fd):
+    """Read actual RX PT_LOAD bytes and the NOW abort GOT binding.
+
+    /proc/self/maps proves permissions, backing inode and offsets before any
+    ctypes read. This is an in-process admission check; concurrent tampering and
+    hostile interposition remain excluded by the explicit profile contract.
+    """
+    import ctypes
+    import fcntl
+    from .hia_safe_core_elf import _ELF
+    require(type(base) is int and base > 0 and type(fd) is int, "live mapping coordinates required")
+    seals = 0x0008 | 0x0004 | 0x0002 | 0x0001
+    require(fcntl.fcntl(fd, 1034) & seals == seals, "image backing is not immutably sealed")
+    require(os.pread(fd, len(final_bytes)+1, 0) == final_bytes, "sealed image backing differs")
+    elf = _ELF(final_bytes, 3)
+    backing = os.fstat(fd)
+    inode, device = backing.st_ino, (os.major(backing.st_dev), os.minor(backing.st_dev))
+    maps = []
+    for line in Path('/proc/self/maps').read_text().splitlines():
+        fields = line.split(maxsplit=5)
+        lo, hi = (int(x,16) for x in fields[0].split('-'))
+        maps.append((lo,hi,fields[1],int(fields[2],16),int(fields[4]),
+                     tuple(int(x,16) for x in fields[3].split(':'))))
+    count, total = 0, 0
+    def mapped(address, length, *, executable, file_offset=None):
+        cursor = address
+        while cursor < address+length:
+            row = next((r for r in maps if r[0] <= cursor < r[1]), None)
+            require(row is not None and row[4] == inode and row[5] == device and row[2][0] == 'r' and row[2][1] != 'w' and
+                    row[2][2] == ('x' if executable else '-'), "mapped range permissions/backing differ")
+            if file_offset is not None:
+                require(row[3] + cursor-row[0] == file_offset+cursor-address, "mapped file offset differs")
+            cursor = min(row[1],address+length)
+    for segment in elf.segments:
+        if segment['type'] == 1 and segment['flags'] & 1:
+            address, length = base+segment['addr'], segment['filesz']
+            mapped(address,length,executable=True,file_offset=segment['offset'])
+            actual = ctypes.string_at(address,length)
+            require(actual == final_bytes[segment['offset']:segment['offset']+length], "actual RX bytes differ from validated final image")
+            count += 1; total += length
+    require(count > 0, "missing executable mapping")
+    got = elf.section('.got')
+    address = base+got['addr']+24
+    mapped(address,8,executable=False,file_offset=got['offset']+24)
+    target = int.from_bytes(ctypes.string_at(address,8),'little')
+    expected = ctypes.cast(ctypes.CDLL('libc.so.6').abort,ctypes.c_void_p).value
+    require(target == expected, "loaded abort GOT binding differs from libc")
+    return {'actual_rx_bytes_checked':True,'executable_segments_checked':count,'executable_bytes_checked':total,
+            'sealed_backing_checked':True,'mapping_permissions_checked':True,'loaded_abort_binding_checked':True,
+            'backing_device_checked':True,'got_exact_offset_checked':True,'got_readonly_nonexecutable_checked':True,
+            'formal_loader_or_hardware_proof':False}
+
+
+def load_safe_core_image(document, image, final_bytes, *, timeout_ms=15000):
+    """Revalidate Core/ELF/SMT, seal bytes in memfd, load NOW, verify actual RX."""
+    import ctypes
+    import fcntl
+    import platform
+    import sys
+    from .hia_safe_core_elf import _ELF
+    require(sys.platform == 'linux' and platform.machine() == 'x86_64', "RX binding requires Linux x86_64")
+    checked = verify_program(document)
+    report = validate_safe_core_image(checked,image,final_bytes,timeout_ms=timeout_ms)
+    fd = os.memfd_create('hia-safe-core',os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+    library = None
+    try:
+        view = memoryview(final_bytes)
+        while view:
+            written = os.write(fd,view)
+            require(written > 0, "short memfd write")
+            view = view[written:]
+        fcntl.fcntl(fd,1033,0x0008|0x0004|0x0002|0x0001)
+        library = ctypes.CDLL('/proc/self/fd/'+str(fd), mode=os.RTLD_NOW|os.RTLD_LOCAL)
+        elf = _ELF(final_bytes,3)
+        symbol = next(r for r in elf.symbols('.dynsym') if r['name'] == report['function'])
+        base = ctypes.cast(getattr(library,report['function']),ctypes.c_void_p).value-symbol['value']
+        loaded = LoadedSafeCore(fd,library,base,checked,image,final_bytes,report)
+        loaded.mapping_certificate = loaded.verify_mapping()
+        return loaded
+    except BaseException:
+        if library is not None:
+            import _ctypes
+            _ctypes.dlclose(library._handle)
+        os.close(fd)
+        raise

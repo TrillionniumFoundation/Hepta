@@ -1,0 +1,295 @@
+"""Rust-qualified source -> sole canonical HSIR -> verified scalar SSA -> LLVM.
+
+This is a strict native i32-only build path. No complete backend refinement,
+foreign C ABI or whole-language safety claim is granted by successful output.
+"""
+from __future__ import annotations
+
+from hashlib import sha256
+import os
+from pathlib import Path
+import tempfile
+
+from .cfg import lower_hsir_cfg
+from .hsir import lower_checked_program
+from .hia_core import seal_hia_scalar_core
+from .native_resource_gate import qualify_native_resource_source
+from .llvm_ssa_backend import LLVMSSARejected, compile_scalar_ssa_llvm, emit_scalar_ssa_llvm
+from .llvm_ssa_target import _TARGETS, compile_ssa_target_object
+from .pipeline import analyze_project
+from .ssa import lower_cfg_scalar_ssa
+from .ssa_verify import verify_scalar_ssa
+from .object_symbols import inspect_object_symbols
+from .elf_shared_abi import ELFSharedABIRejected
+from .scalar_host_abi import inspect_scalar_host_elf
+from .artifact_publication import (PublicationRejected, publish_verified,
+                                   verify_published, withdraw_own_link)
+
+
+def build_llvm_ssa_source(source: str | Path, output: str | Path, *,
+                          rustc: str | None = None,
+                          clang: str = "clang",
+                          target: str | None = None,
+                          locked: bool = False) -> dict:
+    """Publish a native object or host shared library only after every gate.
+
+    The source graph is checked before and after compilation. The artifact
+    is first built inside a private directory on the output filesystem and
+    then hard-linked using no-replace publication. This coordinates neither
+    noncooperating writers nor a malicious same-user filesystem adversary.
+    """
+    result = {
+        "schema": "hepta.build-llvm-ssa.v1",
+        "status": "rejected",
+        "ok": False,
+        "scope": "checked_i32_or_u32_scalar_ssa_with_pinned_rustc_reference_not_full_language",
+        "source": str(source),
+        "output": str(output),
+        "target": target,
+        "claims": {
+            "native_rust_reference_required": True,
+            "independent_scalar_ssa_structure_checked": False,
+            "source_bound_resource_cfg_checked": False,
+            "hia_scalar_core_source_replayed": False,
+            "ssa_cfg_origin_rechecked": False,
+            "native_artifact_compiled": False,
+            "host_elf_dynamic_symbols_checked": False,
+            "target_program_executed": False,
+            "foreign_c_abi_qualified": False,
+            "backend_refinement_proved": False,
+            "whole_language_soundness_proved": False,
+        },
+    }
+    try:
+        if target is not None and target not in _TARGETS:
+            raise LLVMSSARejected("E_LLVM_SSA_TARGET: requested target is outside the qualified object subset")
+        dest = Path(os.path.abspath(output))
+        if dest.exists() or dest.is_symlink() or not dest.parent.is_dir():
+            raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: existing/symlink output or missing parent directory")
+        analyzed = analyze_project(
+            Path(source), backend="rust", rustc=rustc,
+            native=True, crate_type="rlib", locked=locked)
+        result["reference_validation"] = analyzed.report
+        if (analyzed.report.get("ok") is not True
+                or analyzed.report.get("checks", {}).get("rust_borrows_types") != "rustc_checked"
+                or analyzed.program is None or analyzed.checked is None or analyzed.project is None):
+            raise LLVMSSARejected("E_LLVM_SSA_REFERENCE: pinned native rustc qualification required")
+        project = analyzed.project
+        # Reject aliasing even through a symlinked parent directory. Never
+        # follow the output leaf when determining overwrite behavior.
+        protected = {Path(path).resolve() for path in project.sources}
+        if dest.resolve(strict=False) in protected:
+            raise LLVMSSARejected("E_LLVM_SSA_OUTPUT: refusing to write into a source input")
+        if not project.unchanged():
+            raise LLVMSSARejected("E_LLVM_SSA_STALE: source graph changed before semantic projection")
+        scalar_hsir = lower_checked_program(analyzed.program, analyzed.checked)
+        # The scalar adapter's canonical-source digest is not a native safety
+        # receipt. Require the same checked AST to produce and independently
+        # validate a complete owner/loan Resource IR *before* Clang runs.
+        scalar_source = scalar_hsir.as_dict()
+        resource_gate = qualify_native_resource_source(
+            analyzed.program, analyzed.checked,
+            canonical_hsir_sha256=scalar_source["source_semantic_sha256"],
+            project_sha256=project.identity)
+        expected_claims = {
+            "exact_checked_source_resource_graph_rederived": True,
+            "independent_resource_cfg_verified": True,
+            "foreign_resource_obligations_absent": True,
+            "source_to_resource_ir_refinement_proved": False,
+            "native_codegen_consumes_resource_ir": False,
+            "whole_language_memory_safety_proved": False,
+        }
+        if (type(resource_gate) is not dict
+                or set(resource_gate) != {
+                    "schema", "status", "canonical_hsir_sha256",
+                    "resource_ir_sha256", "source_sha256", "project_sha256",
+                    "functions_checked", "claims"}
+                or resource_gate.get("schema") != "hepta.native.resource-gate.v1"
+                or resource_gate.get("status") !=
+                    "source_bound_resource_cfg_checked_not_refinement_proof"
+                or resource_gate.get("canonical_hsir_sha256") !=
+                    scalar_source["source_semantic_sha256"]
+                or resource_gate.get("source_sha256") != scalar_source["source_sha256"]
+                or resource_gate.get("project_sha256") != project.identity
+                or type(resource_gate.get("resource_ir_sha256")) is not str
+                or len(resource_gate["resource_ir_sha256"]) != 64
+                or any(value not in "0123456789abcdef" for value in
+                       resource_gate["resource_ir_sha256"])
+                or type(resource_gate.get("functions_checked")) is not int
+                or resource_gate["functions_checked"] != sum(
+                    not function.extern_c for function in analyzed.program.functions)
+                or type(resource_gate.get("claims")) is not dict
+                or set(resource_gate["claims"]) != set(expected_claims)
+                or any(resource_gate["claims"][key] is not value
+                       for key, value in expected_claims.items())):
+            raise LLVMSSARejected(
+                "E_NATIVE_RESOURCE_GATE: missing trusted checked-source Resource IR receipt")
+        result["resource_verification"] = resource_gate
+        result["claims"]["source_bound_resource_cfg_checked"] = True
+        cfg = lower_hsir_cfg(scalar_hsir)
+        ssa = lower_cfg_scalar_ssa(cfg)
+        verification = verify_scalar_ssa(ssa, cfg)
+        # HIA v0 is the mandatory executable scalar SSA carrier for the
+        # source-qualified LLVM path. The existing Resource IR remains a
+        # source-bound independent gate; it is NOT executable owned SSA.
+        # Source replay must succeed before the emitter sees the *decoded*
+        # typed CFG/SSA. A self-rehashed envelope is never sufficient.
+        core = seal_hia_scalar_core(
+            scalar_hsir, cfg, ssa, verification, resource_gate,
+            project_sha256=project.identity)
+        ssa, cfg, verification = core.qualified_for(
+            analyzed.program, analyzed.checked, project_sha256=project.identity)
+        ir = emit_scalar_ssa_llvm(ssa, cfg)
+        if verification.sha256 != ir.verification_sha256:
+            raise LLVMSSARejected("E_LLVM_SSA_VERIFY: emitted LLVM provenance does not match verifier")
+        result["claims"]["independent_scalar_ssa_structure_checked"] = True
+        result["claims"]["hia_scalar_core_source_replayed"] = True
+        result["identities"] = {
+            "source_sha256": analyzed.report.get("source_sha256"),
+            "compiler_sha256": analyzed.report.get("compiler_sha256"),
+            "canonical_hsir_sha256": scalar_source["source_semantic_sha256"],
+            "resource_ir_sha256": resource_gate["resource_ir_sha256"],
+            "native_resource_gate_schema": resource_gate["schema"],
+            "canonical_ssa_sha256": ssa.sha256,
+            "hia_scalar_core_schema": "hepta.hia.scalar-core.v0",
+            "hia_scalar_core_sha256": core.sha256,
+            "structural_verification_sha256": verification.sha256,
+            "llvm_ir_sha256": ir.sha256,
+            "llvm_source_profile": ir.profile,
+        }
+        if not project.unchanged():
+            raise LLVMSSARejected("E_LLVM_SSA_STALE: graph changed before native backend")
+        with tempfile.TemporaryDirectory(prefix=".hepta-llvm-source-", dir=dest.parent) as directory:
+            stage = Path(directory) / ("candidate.o" if target is not None else "candidate.so")
+            native = (compile_ssa_target_object(ir, target=target, clang=clang, output=stage,
+                                                ssa=ssa, cfg=cfg)
+                      if target is not None else compile_scalar_ssa_llvm(
+                          ir, clang=clang, output=stage, ssa=ssa, cfg=cfg))
+            # Backend receipts cannot elevate an object-only or host-compile
+            # result to a soundness proof. Bind status, source IR and verifier
+            # identity to the exact artifact being staged.
+            expected_status = ("cross_object_only_not_executed" if target is not None
+                               else "native_host_compiled_unqualified")
+            proof_key = ("structural_ssa_verification_sha256" if target is not None
+                         else "ssa_verification_sha256")
+            forbidden_claim = ("native_backend_semantics_proved" if target is not None
+                               else "backend_refinement_proven")
+            if (not isinstance(native, dict) or native.get("status") != expected_status
+                    or native.get("llvm_ir_sha256") != ir.sha256
+                    or native.get("llvm_source_profile") != ir.profile
+                    or native.get("ssa_sha256") != ssa.sha256
+                    or native.get(proof_key) != verification.sha256
+                    or not isinstance(native.get("claims"), dict)
+                    or native["claims"].get("ssa_cfg_origin_rechecked") is not True
+                    or native["claims"].get(forbidden_claim) is not False
+                    or (target is not None and (
+                        native.get("target") != target
+                        or native.get("object_structure_qualified") is not True
+                        or native.get("object_symbols_qualified") is not True
+                        or native.get("defined_export_symbols") != list(ir.functions)
+                        or not isinstance(native.get("undefined_external_symbols"), list)
+                        or any(symbol != "abort" for symbol in native["undefined_external_symbols"])))):
+                raise LLVMSSARejected("E_LLVM_SSA_RECEIPT: native backend identity or proof scope mismatch")
+            # Validate real staged bytes *before* external publication. An
+            # incorrect compiler receipt must never leave a published output
+            # even if the command subsequently reports rejection.
+            artifact = stage.read_bytes() if stage.is_file() else b""
+            if (not artifact or sha256(artifact).hexdigest() != native.get("artifact_sha256")
+                    or len(artifact) != native.get("artifact_bytes")):
+                raise LLVMSSARejected("E_LLVM_SSA_ARTIFACT: staged native bytes differ from compiler receipt")
+            # Do not trust a matching SHA or a self-asserted native receipt.
+            # Re-read actual staged ELF/COFF/Mach-O symbol tables from this
+            # strict source-facing entrypoint; no merely named functions pass.
+            host_dynamic_abi = None
+            if target is not None:
+                fmt, machine = _TARGETS[target]
+                inspected = inspect_object_symbols(artifact, fmt, machine)
+                if (sorted(inspected["defined"]) != list(ir.functions)
+                        or inspected["undefined"] - {"abort"}
+                        or native["defined_export_symbols"] != sorted(inspected["defined"])
+                        or native["undefined_external_symbols"] != sorted(inspected["undefined"])):
+                    raise LLVMSSARejected(
+                        "E_LLVM_SSA_SYMBOLS: native object or receipt differs from source-verified exports/imports")
+            else:
+                # The shared ELF path previously relied on the reported
+                # artifact digest only. That does not prove that the *actual*
+                # native library exports only source-reviewed C functions.
+                # Reuse the existing strict owned-LLVM dynamic ELF parser;
+                # do not introduce an independent, weaker symbol authority.
+                try:
+                    host_dynamic_abi = inspect_scalar_host_elf(
+                        artifact, tuple(ir.functions))
+                except ELFSharedABIRejected as exc:
+                    raise LLVMSSARejected(
+                        "E_LLVM_SSA_HOST_ABI: " + str(exc)) from exc
+                abi_claims = {
+                    "binary_abi_observed": True,
+                    "native_execution_proven": False,
+                    "whole_language_memory_safety_proven": False,
+                    "backend_refinement_proven": False,
+                }
+                if (type(host_dynamic_abi) is not dict
+                        or set(host_dynamic_abi) != {
+                            "schema", "format", "machine", "kind",
+                            "dynamic_exports", "unresolved_imports",
+                            "source_exports_rechecked", "claims"}
+                        or host_dynamic_abi.get("schema") != "hepta.elf-shared-abi.v1"
+                        or host_dynamic_abi.get("format") != "ELF64"
+                        or type(host_dynamic_abi.get("machine")) is not int
+                        or host_dynamic_abi["machine"] != 62
+                        or host_dynamic_abi.get("kind") != "ET_DYN"
+                        or host_dynamic_abi.get("dynamic_exports") != list(ir.functions)
+                        or type(host_dynamic_abi.get("unresolved_imports")) is not list
+                        or any(type(symbol) is not str
+                               for symbol in host_dynamic_abi["unresolved_imports"])
+                        or host_dynamic_abi.get("source_exports_rechecked") is not True
+                        or type(host_dynamic_abi.get("claims")) is not dict
+                        or set(host_dynamic_abi["claims"]) != set(abi_claims)
+                        or any(host_dynamic_abi["claims"][key] is not val
+                               for key, val in abi_claims.items())):
+                    raise LLVMSSARejected(
+                        "E_LLVM_SSA_HOST_ABI: dynamic symbols or proof scope differ from checked source")
+            if not project.unchanged():
+                raise LLVMSSARejected("E_LLVM_SSA_STALE: graph changed during native compilation")
+            # Use the *single* publication authority also used by Owned LLVM:
+            # no-replace hardlink, exact inode/byte checks and removal of
+            # only our own pathname when in-place corruption is detected.
+            try:
+                publication = publish_verified(stage, dest, artifact)
+            except PublicationRejected as exc:
+                raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: " + str(exc)) from exc
+            if publication != {"sha256": native["artifact_sha256"],
+                               "bytes": native["artifact_bytes"]}:
+                withdraw_own_link(stage, dest)
+                raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: native receipt identity mismatch")
+            if not project.unchanged():
+                withdraw_own_link(stage, dest)
+                raise LLVMSSARejected("E_LLVM_SSA_STALE: source graph changed after publication")
+            try:
+                final = verify_published(stage, dest, artifact)
+            except PublicationRejected as exc:
+                withdraw_own_link(stage, dest)
+                raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: " + str(exc)) from exc
+            if final != publication:
+                withdraw_own_link(stage, dest)
+                raise LLVMSSARejected("E_LLVM_SSA_PUBLICATION: final receipt mismatch")
+            published_bytes = artifact
+        result["native_backend"] = dict(native)
+        if host_dynamic_abi is not None:
+            result["native_backend"]["host_dynamic_abi"] = host_dynamic_abi
+            result["claims"]["host_elf_dynamic_symbols_checked"] = True
+        result["native_backend"]["output"] = str(dest)
+        result["native_backend"]["artifact_sha256"] = sha256(published_bytes).hexdigest()
+        result["claims"]["native_artifact_compiled"] = True
+        result["claims"]["ssa_cfg_origin_rechecked"] = True
+        result["ok"] = True
+        result["status"] = ("cross_object_only_not_executed" if target is not None
+                            else "native_host_compiled_unqualified")
+        return result
+    except (ValueError, OSError, UnicodeError) as error:
+        result["status"] = "rejected"
+        result["diagnostics"] = [{
+            "code": str(error).split(":", 1)[0] if str(error).startswith("E_") else "E_LLVM_SSA_PIPELINE",
+            "message": str(error),
+        }]
+        return result

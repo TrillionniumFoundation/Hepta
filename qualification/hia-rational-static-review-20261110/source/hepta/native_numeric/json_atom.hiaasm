@@ -1,0 +1,219 @@
+hia-asm.v1 hepta.hia.program.v8 bounded_json_atoms
+fn scan_atom(source_b0:readbuf,output_b0:mutbuf,continuing_b0:bool) -> (u32) effects(read,write,trap) entry(start)
+block start(source_b0:readbuf,output_b0:mutbuf,continuing_b0:bool)
+  n_b0:usize = buffer.len(source_b0)
+  z_b0:usize = const() {"value":0}
+  branch continuing_b0 digits(source_b0,output_b0,n_b0,z_b0) initial(source_b0,output_b0,n_b0)
+block initial(s_b1:readbuf,d_b1:mutbuf,n_b1:usize)
+  z_b1:usize = const() {"value":0}
+  nonempty_b1:bool = compare.gt(n_b1,z_b1)
+  branch nonempty_b1 first(s_b1,d_b1,n_b1,z_b1) missing()
+block first(s_b2:readbuf,d_b2:mutbuf,n_b2:usize,z_b2:usize)
+  ch_b2:u8 = buffer.load(s_b2,z_b2)
+  quote_b2:u8 = const() {"value":34}
+  string_b2:bool = compare.eq(ch_b2,quote_b2)
+  branch string_b2 delegate() literal(s_b2,d_b2,n_b2,ch_b2)
+block literal(s_b3:readbuf,d_b3:mutbuf,n_b3:usize,ch_b3:u8)
+  t_b3:u8 = const() {"value":116}
+  is_t_b3:bool = compare.eq(ch_b3,t_b3)
+  branch is_t_b3 try_true(s_b3,d_b3,n_b3) check_f(s_b3,d_b3,n_b3,ch_b3)
+block check_f(s_b4:readbuf,d_b4:mutbuf,n_b4:usize,ch_b4:u8)
+  f_b4:u8 = const() {"value":102}
+  is_f_b4:bool = compare.eq(ch_b4,f_b4)
+  branch is_f_b4 try_false(s_b4,d_b4,n_b4) check_n(s_b4,d_b4,n_b4,ch_b4)
+block check_n(s_b5:readbuf,d_b5:mutbuf,n_b5:usize,ch_b5:u8)
+  nul_b5:u8 = const() {"value":110}
+  is_n_b5:bool = compare.eq(ch_b5,nul_b5)
+  branch is_n_b5 try_null(s_b5,d_b5,n_b5) number(s_b5,d_b5,n_b5,ch_b5)
+block try_true(s_b6:readbuf,d_b6:mutbuf,n_b6:usize)
+  four_b6:usize = const() {"value":4}
+  enough_b6:bool = compare.ge(n_b6,four_b6)
+  branch enough_b6 true_bytes(s_b6,d_b6,four_b6) bad()
+block true_bytes(s_b7:readbuf,d_b7:mutbuf,four_b7:usize)
+  i1_b7:usize = const() {"value":1}
+  i2_b7:usize = const() {"value":2}
+  i3_b7:usize = const() {"value":3}
+  a_b7:u8 = buffer.load(s_b7,i1_b7)
+  b_b7:u8 = buffer.load(s_b7,i2_b7)
+  c_b7:u8 = buffer.load(s_b7,i3_b7)
+  r_b7:u8 = const() {"value":114}
+  u_b7:u8 = const() {"value":117}
+  e_b7:u8 = const() {"value":101}
+  x_b7:bool = compare.eq(a_b7,r_b7)
+  y_b7:bool = compare.eq(b_b7,u_b7)
+  z_b7:bool = compare.eq(c_b7,e_b7)
+  xy_b7:bool = bool.and(x_b7,y_b7)
+  ok_b7:bool = bool.and(xy_b7,z_b7)
+  branch ok_b7 accepted(d_b7,four_b7) bad()
+block try_false(s_b8:readbuf,d_b8:mutbuf,n_b8:usize)
+  five_b8:usize = const() {"value":5}
+  enough_b8:bool = compare.ge(n_b8,five_b8)
+  branch enough_b8 false_bytes(s_b8,d_b8,five_b8) bad()
+block false_bytes(s_b9:readbuf,d_b9:mutbuf,five_b9:usize)
+  i1_b9:usize = const() {"value":1}
+  i2_b9:usize = const() {"value":2}
+  i3_b9:usize = const() {"value":3}
+  i4_b9:usize = const() {"value":4}
+  a_b9:u8 = buffer.load(s_b9,i1_b9)
+  b_b9:u8 = buffer.load(s_b9,i2_b9)
+  c_b9:u8 = buffer.load(s_b9,i3_b9)
+  e_b9:u8 = buffer.load(s_b9,i4_b9)
+  av_b9:u8 = const() {"value":97}
+  lv_b9:u8 = const() {"value":108}
+  sv_b9:u8 = const() {"value":115}
+  ev_b9:u8 = const() {"value":101}
+  aa_b9:bool = compare.eq(a_b9,av_b9)
+  bb_b9:bool = compare.eq(b_b9,lv_b9)
+  cc_b9:bool = compare.eq(c_b9,sv_b9)
+  ee_b9:bool = compare.eq(e_b9,ev_b9)
+  ab_b9:bool = bool.and(aa_b9,bb_b9)
+  ce_b9:bool = bool.and(cc_b9,ee_b9)
+  ok_b9:bool = bool.and(ab_b9,ce_b9)
+  branch ok_b9 accepted(d_b9,five_b9) bad()
+block try_null(s_b10:readbuf,d_b10:mutbuf,n_b10:usize)
+  four_b10:usize = const() {"value":4}
+  enough_b10:bool = compare.ge(n_b10,four_b10)
+  branch enough_b10 null_bytes(s_b10,d_b10,four_b10) bad()
+block null_bytes(s_b11:readbuf,d_b11:mutbuf,four_b11:usize)
+  i1_b11:usize = const() {"value":1}
+  i2_b11:usize = const() {"value":2}
+  i3_b11:usize = const() {"value":3}
+  a_b11:u8 = buffer.load(s_b11,i1_b11)
+  b_b11:u8 = buffer.load(s_b11,i2_b11)
+  c_b11:u8 = buffer.load(s_b11,i3_b11)
+  u_b11:u8 = const() {"value":117}
+  l_b11:u8 = const() {"value":108}
+  aa_b11:bool = compare.eq(a_b11,u_b11)
+  bb_b11:bool = compare.eq(b_b11,l_b11)
+  cc_b11:bool = compare.eq(c_b11,l_b11)
+  ab_b11:bool = bool.and(aa_b11,bb_b11)
+  ok_b11:bool = bool.and(ab_b11,cc_b11)
+  branch ok_b11 accepted(d_b11,four_b11) bad()
+block number(s_b12:readbuf,d_b12:mutbuf,n_b12:usize,ch_b12:u8)
+  minus_b12:u8 = const() {"value":45}
+  negative_b12:bool = compare.eq(ch_b12,minus_b12)
+  zero_b12:usize = const() {"value":0}
+  one_b12:usize = const() {"value":1}
+  first_b12:usize = select(negative_b12,one_b12,zero_b12)
+  available_b12:bool = compare.lt(first_b12,n_b12)
+  branch available_b12 first_digit(s_b12,d_b12,n_b12,first_b12) bad()
+block first_digit(s_b13:readbuf,d_b13:mutbuf,n_b13:usize,i_b13:usize)
+  ch_b13:u8 = buffer.load(s_b13,i_b13)
+  lo_b13:u8 = const() {"value":48}
+  hi_b13:u8 = const() {"value":57}
+  ge_b13:bool = compare.ge(ch_b13,lo_b13)
+  le_b13:bool = compare.le(ch_b13,hi_b13)
+  digit_b13:bool = bool.and(ge_b13,le_b13)
+  branch digit_b13 zero_case(s_b13,d_b13,n_b13,i_b13,ch_b13,lo_b13) bad()
+block zero_case(s_b14:readbuf,d_b14:mutbuf,n_b14:usize,i_b14:usize,ch_b14:u8,lo_b14:u8)
+  zero_b14:bool = compare.eq(ch_b14,lo_b14)
+  one_b14:usize = const() {"value":1}
+  next_b14:usize = int.add.checked(i_b14,one_b14)
+  branch zero_b14 accepted(d_b14,next_b14) digits(s_b14,d_b14,n_b14,next_b14)
+block digits(s_b15:readbuf,d_b15:mutbuf,n_b15:usize,i_b15:usize)
+  more_b15:bool = compare.lt(i_b15,n_b15)
+  branch more_b15 digit(s_b15,d_b15,n_b15,i_b15) more_chunk(d_b15,i_b15)
+block digit(s_b16:readbuf,d_b16:mutbuf,n_b16:usize,i_b16:usize)
+  ch_b16:u8 = buffer.load(s_b16,i_b16)
+  lo_b16:u8 = const() {"value":48}
+  hi_b16:u8 = const() {"value":57}
+  ge_b16:bool = compare.ge(ch_b16,lo_b16)
+  le_b16:bool = compare.le(ch_b16,hi_b16)
+  decimal_b16:bool = bool.and(ge_b16,le_b16)
+  branch decimal_b16 advance(s_b16,d_b16,n_b16,i_b16) accepted(d_b16,i_b16)
+block advance(s_b17:readbuf,d_b17:mutbuf,n_b17:usize,i_b17:usize)
+  one_b17:usize = const() {"value":1}
+  next_b17:usize = int.add.checked(i_b17,one_b17)
+  jump digits(s_b17,d_b17,n_b17,next_b17)
+block accepted(d_b18:mutbuf,count_b18:usize)
+  _ = call(d_b18,count_b18) {"function":"write_count"}
+  ok_b18:u32 = const() {"value":0}
+  ret(ok_b18)
+block more_chunk(d_b19:mutbuf,count_b19:usize)
+  _ = call(d_b19,count_b19) {"function":"write_count"}
+  more_b19:u32 = const() {"value":4}
+  ret(more_b19)
+block delegate()
+  string_b20:u32 = const() {"value":3}
+  ret(string_b20)
+block missing()
+  error_b21:u32 = const() {"value":1}
+  ret(error_b21)
+block bad()
+  error_b22:u32 = const() {"value":2}
+  ret(error_b22)
+end
+fn skip_whitespace(source_b23:readbuf,output_b23:mutbuf) -> (u32) effects(read,write,trap) entry(start)
+block start(source_b23:readbuf,output_b23:mutbuf)
+  n_b23:usize = buffer.len(source_b23)
+  zero_b23:usize = const() {"value":0}
+  jump loop(source_b23,output_b23,n_b23,zero_b23)
+block loop(s_b24:readbuf,d_b24:mutbuf,n_b24:usize,i_b24:usize)
+  more_b24:bool = compare.lt(i_b24,n_b24)
+  branch more_b24 inspect(s_b24,d_b24,n_b24,i_b24) done(d_b24,i_b24)
+block inspect(s_b25:readbuf,d_b25:mutbuf,n_b25:usize,i_b25:usize)
+  ch_b25:u8 = buffer.load(s_b25,i_b25)
+  space_b25:u8 = const() {"value":32}
+  tab_b25:u8 = const() {"value":9}
+  nl_b25:u8 = const() {"value":10}
+  cr_b25:u8 = const() {"value":13}
+  a_b25:bool = compare.eq(ch_b25,space_b25)
+  b_b25:bool = compare.eq(ch_b25,tab_b25)
+  c_b25:bool = compare.eq(ch_b25,nl_b25)
+  e_b25:bool = compare.eq(ch_b25,cr_b25)
+  ab_b25:bool = bool.or(a_b25,b_b25)
+  ce_b25:bool = bool.or(c_b25,e_b25)
+  whitespace_b25:bool = bool.or(ab_b25,ce_b25)
+  branch whitespace_b25 advance(s_b25,d_b25,n_b25,i_b25) done(d_b25,i_b25)
+block advance(s_b26:readbuf,d_b26:mutbuf,n_b26:usize,i_b26:usize)
+  one_b26:usize = const() {"value":1}
+  next_b26:usize = int.add.checked(i_b26,one_b26)
+  jump loop(s_b26,d_b26,n_b26,next_b26)
+block done(d_b27:mutbuf,count_b27:usize)
+  _ = call(d_b27,count_b27) {"function":"write_count"}
+  ok_b27:u32 = const() {"value":0}
+  ret(ok_b27)
+end
+fn write_count(output_b28:mutbuf,count_b28:usize) -> () effects(write,trap) entry(start)
+block start(output_b28:mutbuf,count_b28:usize)
+  value_b28:u64 = int.cast(count_b28) {"mode":"wrap"}
+  i0_b28:usize = const() {"value":0}
+  b0_b28:u8 = int.cast(value_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i0_b28,b0_b28)
+  i1_b28:usize = const() {"value":1}
+  s1_b28:u64 = const() {"value":8}
+  p1_b28:u64 = int.shr.checked(value_b28,s1_b28)
+  b1_b28:u8 = int.cast(p1_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i1_b28,b1_b28)
+  i2_b28:usize = const() {"value":2}
+  s2_b28:u64 = const() {"value":16}
+  p2_b28:u64 = int.shr.checked(value_b28,s2_b28)
+  b2_b28:u8 = int.cast(p2_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i2_b28,b2_b28)
+  i3_b28:usize = const() {"value":3}
+  s3_b28:u64 = const() {"value":24}
+  p3_b28:u64 = int.shr.checked(value_b28,s3_b28)
+  b3_b28:u8 = int.cast(p3_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i3_b28,b3_b28)
+  i4_b28:usize = const() {"value":4}
+  s4_b28:u64 = const() {"value":32}
+  p4_b28:u64 = int.shr.checked(value_b28,s4_b28)
+  b4_b28:u8 = int.cast(p4_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i4_b28,b4_b28)
+  i5_b28:usize = const() {"value":5}
+  s5_b28:u64 = const() {"value":40}
+  p5_b28:u64 = int.shr.checked(value_b28,s5_b28)
+  b5_b28:u8 = int.cast(p5_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i5_b28,b5_b28)
+  i6_b28:usize = const() {"value":6}
+  s6_b28:u64 = const() {"value":48}
+  p6_b28:u64 = int.shr.checked(value_b28,s6_b28)
+  b6_b28:u8 = int.cast(p6_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i6_b28,b6_b28)
+  i7_b28:usize = const() {"value":7}
+  s7_b28:u64 = const() {"value":56}
+  p7_b28:u64 = int.shr.checked(value_b28,s7_b28)
+  b7_b28:u8 = int.cast(p7_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i7_b28,b7_b28)
+  ret()
+end

@@ -1,0 +1,97 @@
+hia-asm.v1 hepta.hia.program.v8 uint64_parser
+fn parse_u64(source:readbuf,output:mutbuf) -> (u32) effects(read,write,trap) entry(entry)
+block entry(source:readbuf,output:mutbuf)
+  n:usize = buffer.len(source)
+  zero:usize = const() {"value":0}
+  twenty:usize = const() {"value":20}
+  nonempty:bool = compare.gt(n,zero)
+  short:bool = compare.le(n,twenty)
+  length_ok:bool = bool.and(nonempty,short)
+  branch length_ok first(source,output,n) bad()
+block first(s:readbuf,d:mutbuf,n1:usize)
+  z:usize = const() {"value":0}
+  first_byte:u8 = buffer.load(s,z)
+  ascii0:u8 = const() {"value":48}
+  starts_zero:bool = compare.eq(first_byte,ascii0)
+  one:usize = const() {"value":1}
+  multi:bool = compare.gt(n1,one)
+  leading:bool = bool.and(starts_zero,multi)
+  acc0:u64 = const() {"value":0}
+  branch leading bad() loop(s,d,n1,z,acc0)
+block loop(s2:readbuf,d2:mutbuf,n2:usize,idx:usize,acc:u64)
+  more:bool = compare.lt(idx,n2)
+  branch more digit(s2,d2,n2,idx,acc) write(d2,acc)
+block digit(s3:readbuf,d3:mutbuf,n3:usize,ix:usize,a:u64)
+  ch:u8 = buffer.load(s3,ix)
+  lo:u8 = const() {"value":48}
+  hi:u8 = const() {"value":57}
+  ge:bool = compare.ge(ch,lo)
+  le:bool = compare.le(ch,hi)
+  decimal:bool = bool.and(ge,le)
+  branch decimal overflow(s3,d3,n3,ix,a,ch) bad()
+block overflow(s4:readbuf,d4:mutbuf,n4:usize,i4:usize,a4:u64,ch4:u8)
+  base:u8 = const() {"value":48}
+  digit8:u8 = int.sub.wrap(ch4,base)
+  digit64:u64 = int.cast(digit8) {"mode":"wrap"}
+  cap:u64 = const() {"value":1844674407370955161}
+  last:u64 = const() {"value":5}
+  too_big:bool = compare.gt(a4,cap)
+  at_cap:bool = compare.eq(a4,cap)
+  last_big:bool = compare.gt(digit64,last)
+  over_last:bool = bool.and(at_cap,last_big)
+  over:bool = bool.or(too_big,over_last)
+  branch over bad() advance(s4,d4,n4,i4,a4,digit64)
+block advance(s5:readbuf,d5:mutbuf,n5:usize,i5:usize,a5:u64,v5:u64)
+  ten:u64 = const() {"value":10}
+  times:u64 = int.mul.wrap(a5,ten)
+  next_acc:u64 = int.add.wrap(times,v5)
+  step:usize = const() {"value":1}
+  next_idx:usize = int.add.wrap(i5,step)
+  jump loop(s5,d5,n5,next_idx,next_acc)
+block write(dest:mutbuf,value:u64)
+  offset0:usize = const() {"value":0}
+  shift0:u64 = const() {"value":0}
+  part0:u64 = int.shr.checked(value,shift0)
+  byte0:u8 = int.cast(part0) {"mode":"wrap"}
+  _ = buffer.store(dest,offset0,byte0)
+  offset1:usize = const() {"value":1}
+  shift1:u64 = const() {"value":8}
+  part1:u64 = int.shr.checked(value,shift1)
+  byte1:u8 = int.cast(part1) {"mode":"wrap"}
+  _ = buffer.store(dest,offset1,byte1)
+  offset2:usize = const() {"value":2}
+  shift2:u64 = const() {"value":16}
+  part2:u64 = int.shr.checked(value,shift2)
+  byte2:u8 = int.cast(part2) {"mode":"wrap"}
+  _ = buffer.store(dest,offset2,byte2)
+  offset3:usize = const() {"value":3}
+  shift3:u64 = const() {"value":24}
+  part3:u64 = int.shr.checked(value,shift3)
+  byte3:u8 = int.cast(part3) {"mode":"wrap"}
+  _ = buffer.store(dest,offset3,byte3)
+  offset4:usize = const() {"value":4}
+  shift4:u64 = const() {"value":32}
+  part4:u64 = int.shr.checked(value,shift4)
+  byte4:u8 = int.cast(part4) {"mode":"wrap"}
+  _ = buffer.store(dest,offset4,byte4)
+  offset5:usize = const() {"value":5}
+  shift5:u64 = const() {"value":40}
+  part5:u64 = int.shr.checked(value,shift5)
+  byte5:u8 = int.cast(part5) {"mode":"wrap"}
+  _ = buffer.store(dest,offset5,byte5)
+  offset6:usize = const() {"value":6}
+  shift6:u64 = const() {"value":48}
+  part6:u64 = int.shr.checked(value,shift6)
+  byte6:u8 = int.cast(part6) {"mode":"wrap"}
+  _ = buffer.store(dest,offset6,byte6)
+  offset7:usize = const() {"value":7}
+  shift7:u64 = const() {"value":56}
+  part7:u64 = int.shr.checked(value,shift7)
+  byte7:u8 = int.cast(part7) {"mode":"wrap"}
+  _ = buffer.store(dest,offset7,byte7)
+  ok:u32 = const() {"value":0}
+  ret(ok)
+block bad()
+  error:u32 = const() {"value":1}
+  ret(error)
+end

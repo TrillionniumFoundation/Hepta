@@ -1,0 +1,11 @@
+# HIA rational static source custody (2026-11-10)
+
+STATUS: **DRAFT / RESEARCH_ONLY / HOLD_NO_GO**. Source preservation only. No native execution or production authority is granted by this repository location.
+
+This reviewed source was recovered from the account's personal ChatGPT Page, `HIA rational bridge static review handoff` (2026-11-08), using eight UTF-8 source-item groups. Exactly 231 original UTF-8 source files are preserved under `source/` and nine original reference/contract/review records under `handoff/`. Each `source/` file is a byte-preserving copy of the corresponding `source/` item in the Page. Their Git blob OIDs match the frozen `BASE_SOURCE_BLOBS.json` for **all 221 recorded baseline entries** (zero missing, zero mismatched), plus ten separately frozen source-overlay entries. The 221 baseline files and ten overlays are kept together for static review, not integrated into the root language backend.
+
+Original Page claims base commit `57d8a56db669fabae4d2fabc7d624ebff3911890` and base tree `888624dd07f08c040b43e74642e7a649e69a7efc`; that commit could not be fetched from the checked Hepta, hepta-runtime or hepta-private-ci GitHub repositories. Do not claim this review copy reproduces the original Git commit, the full original repository root tree, file modes beyond the exported source text, or any unprovided historical commits. The recovered **source-subtree** Git tree is `e4b1ecd58b532bc0cdad5984f1624d60c23b7fc4`; the frozen Page's overlay SHA-256 is `7b79db99ff05a7410586115483b430feb11dd44c6523d15ec2affcd918b963a8`.
+
+Original static review includes decimal/rational/power5/quotient and ABI analysis. Static Fraction/binary64 checks are not HIA native runtime checks or formal whole-system safety proof. Native 77, 256, 72, 180 test sets and smoke 10 remain **NOT_RUN**, with outstanding short-state error-path/checked trap behavior and recovery/mutation negative controls. Unreviewed native builds, production consumers, secret-capability validation, resource limits and independent validation remain HOLD.
+
+High-confidence credential-token/PEM/private-home/email pattern scan of the 240 preserved items yielded no match; it does not replace security review. These files must not be silently promoted, merged, or substituted for the current root language implementation.
