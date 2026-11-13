@@ -1,0 +1,39 @@
+{
+  "schema": "hia.independent-static-peer.btree-native-matrix-trace.v1",
+  "status": "STATIC_CLEAR_LIMITED_NO_EXECUTION",
+  "reviewer": "cold_ci_closure",
+  "scope": "Frozen source-matrix C applicability and complete three-span/native plus two-C trace population only.",
+  "inputs": [
+    {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/control/matrix.py",
+      "bytes": 9974,
+      "sha256": "22ba40993640eb38f9467ffa978927e720300c292279ed09d8374109b29d4940",
+      "git_blob_sha1": "8d3b23bd09194c1ceeac0854471d462ab8e72aba"
+    },
+    {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/control/trace.py",
+      "bytes": 8508,
+      "sha256": "3cc90e85f18df7a431f540df405062c0bd6e62e81ba06042c6bb23a35e076867",
+      "git_blob_sha1": "ae1c6b546147592c2e40d2135f677191134362b2"
+    },
+    {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/control/native_cases.py",
+      "bytes": 16083,
+      "sha256": "7325ab84219c206bfeabeda5a931f15fd6b3cbbc6b76e3b174e617ddf5d7b752",
+      "git_blob_sha1": "c47b784fcc0cb80dfaa5e799b0c5a139a64135c9"
+    }
+  ],
+  "findings": [
+    "The 12 exact IDs retain counts [0,72,36,108,22,14,24,14,30,16,3,0]=339. The original VM-RAW full-byte SHA is required; this reads retained data and does not rerun the VM.",
+    "253 C-applicable cells are selected from frozen successful source rows and independently revalidated by expected_success, including full command/page geometry, bounded complete varints, local/overflow partition and selected-cell extent. The 86 frozen refusals are explicitly NOT_CALLED. New HIA status never selects the C domain.",
+    "Each HIA PRE and POST retains all three logical spans and all 64-byte canaries. Each accepted C observation retains the full page plus canary and the full six-word/48-byte output plus canary before derived projection.",
+    "C observation is appended before the call. Actual return and full after buffers are recorded before project_cell assertion; exception POST retains those raw observations and the exception.",
+    "Writer carries complete canonical JSONL records across fixed 4 MiB physical parts and increments record count only after the complete raw line. Reader restores pending bytes across parts, compares each whole line to exact expected serialized bytes, rejects trailing partial rows, and binds all part SHA/Git/length plus frozen whole trace SHA.",
+    "Independent readback regenerates the full ordered 339 expected rows, exact per-method population, and both 253-call/86-no-call counts. It requires 678 complete PRE/POST records and an exact trace namespace."
+  ],
+  "limitations": [
+    "No Python module import, source test, HIA generation, VM, C compile, native image load or matrix execution was performed.",
+    "No independent read of the 16,366,443-byte historical VM-RAW body in this peer task; its frozen bytes remain the existing Source12 audit responsibility.",
+    "This does not review the current full system/source inventory, common owner/map/compile controls, or the full two C source wrappers. It is not native qualification or whole-page/tree/SQLite durability closure."
+  ]
+}

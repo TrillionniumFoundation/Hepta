@@ -1,0 +1,116 @@
+{
+  "schema": "hia.sqlite.btree.cell.oracle-independent-static-review.v1",
+  "status": "STATIC_CLEAR_FINITE_VALID_CELL_DOMAIN_ONLY",
+  "sources": [
+    {
+      "version": "3.46.0",
+      "bytes": 20712,
+      "sha256": "844158c27679e53ba9d04b5ff54cfb58849ddb0159cf045dcab6b66751d510c0"
+    },
+    {
+      "version": "3.53.2",
+      "bytes": 20915,
+      "sha256": "f1fffbc73240dadfa94dea73fa3c05528f21e77b4ee7b33c89557c563b72bb6f"
+    }
+  ],
+  "original_section_joins": [
+    {
+      "version": "3.46.0",
+      "label": "original primitives",
+      "bytes": 1691,
+      "sha256": "48192ecbbf5eef1e79f3e1af18741582a45e15489848c004b1cda75e94bd55e7",
+      "exact_original": true
+    },
+    {
+      "version": "3.46.0",
+      "label": "complete original structures",
+      "bytes": 4502,
+      "sha256": "d7c69058fed0a72c9ea260572ed385c4a5295acb14b9faabf4f0bedcc3d37052",
+      "exact_original": true
+    },
+    {
+      "version": "3.46.0",
+      "label": "complete original varint functions",
+      "bytes": 3411,
+      "sha256": "8e95eb55d51bfacd7e8f7a879d0f16fdadce6f0b364ac7266372e37b0369f000",
+      "exact_original": true
+    },
+    {
+      "version": "3.46.0",
+      "label": "complete original cell functions",
+      "bytes": 5575,
+      "sha256": "7e6c0adceca07d758a7521fc0e966754aa6f156483406ebb978c41fbbbd1ef4d",
+      "exact_original": true
+    },
+    {
+      "version": "3.46.0",
+      "label": "original local payload limits",
+      "bytes": 222,
+      "sha256": "14d27878582c4c21d96a357a9b25e05553608c83df380d7b20ec5a544aea97a5",
+      "exact_original": true
+    },
+    {
+      "version": "3.53.2",
+      "label": "original primitives",
+      "bytes": 1623,
+      "sha256": "99a2c9e133c0e6310b940c467193fbb330cbbf1b599627e099e37a316b570873",
+      "exact_original": true
+    },
+    {
+      "version": "3.53.2",
+      "label": "original BT_MAX_LOCAL",
+      "bytes": 46,
+      "sha256": "be495d742bd6a995b48af64268a639d501ebdbe1a904e3c00c8530090df409c9",
+      "exact_original": true
+    },
+    {
+      "version": "3.53.2",
+      "label": "complete original structures",
+      "bytes": 4502,
+      "sha256": "d7c69058fed0a72c9ea260572ed385c4a5295acb14b9faabf4f0bedcc3d37052",
+      "exact_original": true
+    },
+    {
+      "version": "3.53.2",
+      "label": "complete original varint functions",
+      "bytes": 3411,
+      "sha256": "8e95eb55d51bfacd7e8f7a879d0f16fdadce6f0b364ac7266372e37b0369f000",
+      "exact_original": true
+    },
+    {
+      "version": "3.53.2",
+      "label": "complete original cell functions",
+      "bytes": 5733,
+      "sha256": "2a91e3b7668aacc1d30f09feda4eaaa0d08a55a0cc493f53d9bcbb20980f7985",
+      "exact_original": true
+    },
+    {
+      "version": "3.53.2",
+      "label": "original local payload limits",
+      "bytes": 222,
+      "sha256": "14d27878582c4c21d96a357a9b25e05553608c83df380d7b20ec5a544aea97a5",
+      "exact_original": true
+    }
+  ],
+  "full_upstream_sources_joined": 14,
+  "wrapper_same_bytes": true,
+  "assertions_enabled_required": true,
+  "required_compile_flags": [
+    "-fno-strict-aliasing",
+    "-fno-fast-math"
+  ],
+  "applicability": "253 frozen accepted complete cells selected before observing the new HIA status; 86 refused calls NOT_CALLED",
+  "observations": [
+    "Complete original structs, varints, cell functions and primitives match the preserved full sources.",
+    "Original local-limit assignments and page kind mapping preserve the finite CellInfo inputs.",
+    "nKey is memcpy-copied as u64 bits; NULL has a separate flag; ret 2 preserves all scalar outputs with UINT64_MAX offset.",
+    "Raw page/output/canary/return must enter the trace before any result assertion or projection."
+  ],
+  "no_claims": [
+    "C compiled or called",
+    "new HIA generation",
+    "native qualification",
+    "malformed C safety",
+    "SQL/pager/wholepage/tree validity"
+  ]
+}

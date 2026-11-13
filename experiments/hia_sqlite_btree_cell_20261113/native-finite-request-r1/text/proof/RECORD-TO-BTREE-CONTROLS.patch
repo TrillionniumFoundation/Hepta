@@ -1,0 +1,1090 @@
+--- record-original/compile_child.py
++++ btree-native/compile_child.py
+@@ -9,7 +9,7 @@
+     q=json.loads(raw);out=Path(q['output'])
+     common.require(q['wall_seconds']==20 and q['cpu_seconds']==10 and q['max_image_bytes']==1<<20,
+                    'original finite C compile limits')
+-    report={'schema':'hia.sqlite.record.C-compile.v1','status':'HOLD','request':pin,
++    report={'schema':'hia.sqlite.btree.cell.C-compile.v1','status':'HOLD','request':pin,
+             'argv':q['argv'],'cwd':q['cwd'],'environment':q['environment'],
+             'attempted':False,'returncode':None,'timed_out':False,'exception':None,'secondary_errors':[],
+             'limits':{'wall_seconds':20,'cpu_seconds':10,'address_bytes':256<<20,
+--- record-original/compile_io.py
++++ btree-native/compile_io.py
+@@ -6,17 +6,15 @@
+ def child_request(request,version,directory):
+     directory=Path(directory)
+     common.require(version in matrix.VERSIONS,'one fixed original C version')
+-    adapter=ROOT/'candidate/reference/oracle_adapter.c'
+-    selected=adapter.parent/('sqlite-'+version)
+-    inputs=[adapter,*(selected/n for n in ('oracle-primitives.inc','serial-length.inc','serial-get.inc'))]
+-    macro={'3.46.0':3046000,'3.53.2':3053002}[version]
++    adapter=ROOT/('candidate/reference/native-oracle/oracle-sqlite-'+version+'.c')
++    inputs=[adapter]
+     gcc=request['system_binaries']['gcc']
+     argv=[gcc,'-std=c11','-O2','-fPIC','-shared','-fno-lto','-fno-common','-g0','-save-temps=obj',
+-          '-fno-strict-aliasing','-fno-fast-math','-DHIA_SQLITE_ORACLE_VERSION='+str(macro),
++          '-fno-strict-aliasing','-fno-fast-math',
+           '-Wl,-Bsymbolic','-Wl,-z,defs','-MD','-MF',str(directory/'oracle.d'),
+           '-MT',str(directory/'oracle.so'),'-Wl,-Map,'+str(directory/'oracle.map'),
+           '-o',str(directory/'oracle.so'),str(adapter)]
+-    return {'schema':'hia.sqlite.record.C-compile-request.v1','version':version,
++    return {'schema':'hia.sqlite.btree.cell.C-compile-request.v1','version':version,
+             'output':str(directory),'cwd':str(directory),'argv':argv,
+             'environment':{'PATH':'/usr/bin:/bin','LC_ALL':'C','LANG':'C','TZ':'UTC','TMPDIR':str(directory/'tmp')},
+             'source_inputs':{str(p):common.read(p)[0] for p in inputs},
+--- record-original/generation.py
++++ btree-native/generation.py
+@@ -1,11 +1,11 @@
+-"""Same-owner new RECORD source generation. No existing Source12 VM result is replayed."""
++"""Same-owner new BTREE_CELL source generation. No existing Source12 VM result is replayed."""
+ from pathlib import Path
+ import ast,importlib,json,sys,time,traceback
+ import common,support
+ ROOT=support.ROOT
+ def generate(request):
+     output=Path(request['output'])/'source-generation';output.mkdir(mode=0o700)
+-    report={'schema':'hia.sqlite.record.source-generation.v1','status':'HOLD','exception':None,
++    report={'schema':'hia.sqlite.btree.cell.source-generation.v1','status':'HOLD','exception':None,
+             'denied_effects':[],'VM_executed':False,'native_executed':False,
+             'new_authoring_in_current_owner':True,'old_cloud_actual_reconstructed':False}
+     started=time.monotonic_ns();active=[True]
+@@ -26,18 +26,18 @@
+             report['denied_effects'].append('hepta.hia_program_runtime._Machine')
+             raise RuntimeError('source generation must not execute VM')
+         runtime._Machine=forbidden_VM
+-        author=importlib.import_module('tools.generate_hia_sqlite_record')
++        author=importlib.import_module('tools.generate_hia_sqlite_btree_cell')
+         assembly=importlib.import_module('hepta.hia_agent_assembly')
+         program_module=importlib.import_module('hepta.hia_program')
+-        report['inputs']={'author':common.read(ROOT/'candidate/inputs/tools/generate_hia_sqlite_record.py')[0],
+-            'test':common.read(ROOT/'candidate/inputs/tests/test_hia_sqlite_record_source.py')[0]}
++        report['inputs']={'author':common.read(ROOT/'candidate/inputs/tools/generate_hia_sqlite_btree_cell.py')[0],
++            'test':common.read(ROOT/'candidate/inputs/tests/test_hia_sqlite_btree_cell_source.py')[0]}
+         document=author.document();program=program_module.verify_program(document)
+         text=assembly.render_assembly(document);raw=text.encode()
+         common.require(assembly.assemble_program(text).as_dict()==program.as_dict(),'new Core/render roundtrip')
+         common.require(len(raw)<=1<<20 and len(text.split('\n'))<=16384,'original full source caps')
+         funcs=document['functions'];blocks=[b for f in funcs for b in f['blocks']]
+         ops=sum(len(b['ops']) for b in blocks);ssa=[]
+-        common.require(len(funcs)==9<=128 and len(blocks)<=1536 and ops<=8192,'original Core total caps')
++        common.require(len(funcs)==10<=128 and len(blocks)<=1536 and ops<=8192,'original Core total caps')
+         def walk(v):
+             if isinstance(v,dict):
+                 for key,item in v.items():
+@@ -53,13 +53,13 @@
+                 for op in block['ops']:common.require(len(op.get('out',[]))<=3,'original result cap')
+         report['outputs']={'CORE.json':common.create(output/'CORE.json',document),
+             'PROGRAM.json':common.create(output/'PROGRAM.json',program.as_dict()),
+-            'sqlite_record.hiaasm':common.create(output/'sqlite_record.hiaasm',raw,raw=True)}
++            'sqlite_btree_cell.hiaasm':common.create(output/'sqlite_btree_cell.hiaasm',raw,raw=True)}
+         report['caps']={'functions':len(funcs),'blocks':len(blocks),'operations':ops,
+                        'ssa_max':max(ssa),'lines':len(text.split('\n'))}
+         common.require(report['denied_effects']==[] and runtime._Machine is forbidden_VM,'new generation guard')
+-        actual_source=common.read(ROOT/'reference/source12-actual-sqlite_record.hiaasm',1<<20)
+-        common.require(raw==actual_source[1] and actual_source[0]['bytes']==18639
+-            and actual_source[0]['sha256']=='54faf428b5070a0dbf64a25769fe5d9aecc77e36ac37646ae11276ab3e039cc5',
++        actual_source=common.read(ROOT/'reference/source12-actual/tests/sqlite_btree_cell.hiaasm',1<<20)
++        common.require(raw==actual_source[1] and actual_source[0]['bytes']==40803
++            and actual_source[0]['sha256']=='86776116010d389bf65c453917fda929627f3ee564330e56a3e33af32726a6b7',
+             'new generation differs from retained actual Source12 assembly')
+         report['source12_actual_assembly']=actual_source[0]
+         report['roundtrip_equal']=True;report['status']='SOURCE_GENERATION_ONLY'
+--- record-original/launch.py
++++ btree-native/launch.py
+@@ -1,4 +1,4 @@
+-"""New RECORD original-ten native owner. Root alone authorizes this one invocation."""
++"""New BTREE_CELL original-twelve native owner. Root alone authorizes this one invocation."""
+ from pathlib import Path
+ import importlib.util,json,os,sys,time,traceback
+ sys.path.insert(0,str(Path(__file__).resolve().parent))
+@@ -6,31 +6,31 @@
+ ROOT=support.ROOT
+ def load_owner():
+     p=ROOT/'control/process_owner_impl.py'
+-    spec=importlib.util.spec_from_file_location('record_original_369_owner_r1',p)
++    spec=importlib.util.spec_from_file_location('btree_cell_original_369_owner_r1',p)
+     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
+ def main():
+     request_path=Path(sys.argv[1]);expected_sha=sys.argv[2]
+     pin,raw=common.read(request_path)
+-    common.require(request_path==ROOT/'REQUEST.json' and pin['sha256']==expected_sha,'exact RECORD native request SHA')
++    common.require(request_path==ROOT/'REQUEST.json' and pin['sha256']==expected_sha,'exact BTREE_CELL native request SHA')
+     request=json.loads(raw);output=Path(request['output'])
+-    common.require(request['schema']=='hia.sqlite.record.native-finite-request.v1'
+-        and request['status']=='RECORD_ORIGINAL_TWELVE_NATIVE_TWO_C_ORACLES_UNEXECUTED'
++    common.require(request['schema']=='hia.sqlite.btree.cell.native-finite-request.v1'
++        and request['status']=='BTREE_CELL_ORIGINAL_TWELVE_NATIVE_TWO_C_ORACLES_UNEXECUTED'
+         and request['qualification_seconds']==180 and request['cleanup_seconds']==3
+         and request['expected_ids']==list(matrix.IDS) and request['expected_methods']==12
+-        and request['native_returns']==159 and request['original_source_methods']==12 and request['old_VM_actual_reconstructed'] is False
++        and request['native_returns']==339 and request['original_source_methods']==12 and request['old_VM_actual_reconstructed'] is False
+         and request['trace_bytes_limit']==256<<20 and request['trace_chunk_limit']==4<<20 and request['trace_record_limit']==16<<20
+         and request['output_bytes_limit']==384<<20 and request['output_files_limit']==192
+         and request['initial_free_bytes']==1<<30 and request['reserve_free_bytes']==512<<20
+         and request['free_inodes']==4096 and dict(os.environ)==request['environment'],
+         'frozen complete limits/environment')
+-    common.require(output==ROOT.parent/'sqlite-record-native-r1-actual' and not os.path.lexists(output),
++    common.require(output==ROOT.parent/'sqlite-btree-cell-native-r1-actual' and not os.path.lexists(output),
+                    'new exact disjoint actual root required')
+     initial_capacity=support.capacity(ROOT.parent,True)
+     runtime=support.runtime(request)
+     before=support.input_records(request);source_before=support.source_records(request);system_before=support.system_records(request)
+     with common.held_parent(output) as (parent,name):os.mkdir(name,0o700,dir_fd=parent);os.fsync(parent)
+     (output/'tmp').mkdir(mode=0o700)
+-    final={'schema':'hia.sqlite.record.native-final.v1','status':'HOLD','request':pin,
++    final={'schema':'hia.sqlite.btree.cell.native-final.v1','status':'HOLD','request':pin,
+            'runtime':runtime,'initial_capacity':initial_capacity,'owner_closed':False,'owner_natural':False,
+            'errors':[],'source12_VM_reexecuted':False,'matching_cold_qualification':False,
+            'SQL_engine_or_durability_qualification':False,'output':str(output)}
+@@ -69,8 +69,8 @@
+         common.require(child['status']=='FINITE_NATIVE_AND_TWO_C_ORACLES_PASS_ONLY'
+             and child['exception'] is None and child['secondary_errors']==[] and child['denied_effects']==[]
+             and child['expected_ids']==child['loaded_ids']==child['actual_ids']==child['success_ids']==list(matrix.IDS)
+-            and child['tests_run']==12 and child['native_returns']==child['validated_returns']==child['actual_native_starts']==159
+-            and child['C_field_calls']=={v:{'started':2774,'returned':2774} for v in matrix.VERSIONS}
++            and child['tests_run']==12 and child['native_returns']==child['validated_returns']==child['actual_native_starts']==339
++            and child['C_cell_calls']=={v:{'started':253,'returned':253} for v in matrix.VERSIONS}
+             and all(child[x]==[] for x in ('failures','errors','skipped','expected_failures','unexpected_successes'))
+             and child['source12_VM_reexecuted'] is False and child['database_opened'] is False
+             and child['network_used'] is False and child['matching_cold_qualification'] is False,
+@@ -94,7 +94,7 @@
+         final['source_after']=common.create(output/'PARENT-SOURCE-AFTER.json',source_after)
+         final['system_after']=common.create(output/'PARENT-SYSTEM-AFTER.json',system_after)
+         final['capacity_after']=support.capacity(output)
+-        final['status']='FINITE_NATIVE_RECORD_AND_TWO_ORACLES_PASS_ONLY'
++        final['status']='FINITE_NATIVE_BTREE_CELL_AND_TWO_ORACLES_PASS_ONLY'
+     except BaseException as e:
+         final['status']='HOLD';final['errors'].append({'type':type(e).__module__+'.'+type(e).__qualname__,
+             'message':str(e)[:1024],'traceback':traceback.format_exc()})
+@@ -104,5 +104,5 @@
+         common.create(output/'FINAL.json',final)
+     print(json.dumps({'status':final['status'],'owner_closed':final['owner_closed'],
+                       'owner_natural':final['owner_natural'],'output':str(output)}))
+-    return 0 if final['status']=='FINITE_NATIVE_RECORD_AND_TWO_ORACLES_PASS_ONLY' and not final['errors'] else 1
++    return 0 if final['status']=='FINITE_NATIVE_BTREE_CELL_AND_TWO_ORACLES_PASS_ONLY' and not final['errors'] else 1
+ if __name__=='__main__':raise SystemExit(main())
+--- record-original/matrix.py
++++ btree-native/matrix.py
+@@ -1,197 +1,161 @@
+-"""Original twelve record methods, complete byte expectations; no HIA/VM/C execution."""
+-import hashlib,json,math,struct
+-MAGIC=int.from_bytes(b'HIASRC01','little')
+-PROTOCOL,TRUNCATED,CAPACITY,FORMAT,RESERVED,LIMIT=0xfffffffd,0xfffffffe,0xfffffffc,0xfffffffb,0xfffffffa,0xfffffff9
+-REFUSALS=(PROTOCOL,TRUNCATED,CAPACITY,FORMAT,RESERVED,LIMIT)
+-MAX_PAYLOAD=1<<20
+-MAX_FIELDS=2000
+-MAX_OUTPUT=80032
++"""Original 12 selected-cell methods / 339 calls; pure expectations, no HIA/VM/C execution."""
++from pathlib import Path
++import hashlib,json,struct
++import common
++MAGIC=int.from_bytes(b'HIABTC01','little')
++PROTOCOL,TRUNCATED,CAPACITY,FORMAT,LIMIT,INDEX=0xfffffffd,0xfffffffe,0xfffffffc,0xfffffffb,0xfffffffa,0xfffffff9
++REFUSALS=(PROTOCOL,TRUNCATED,CAPACITY,FORMAT,INDEX,LIMIT)
++MAX_PAYLOAD=65536
++MAX_OUTPUT=128
++MAX_COMMAND=72
+ CANARY=bytes(range(64))
+-NAMES=(
+-'test_01_Core_roundtrip_and_original_caps',
+-'test_02_every_signed_storage_width_and_boundaries',
+-'test_03_binary64_patterns_and_nan_null_classification',
+-'test_04_mixed_fields_and_opaque_text_encodings',
+-'test_05_header_size_boundaries_and_field_order',
+-'test_06_nonminimal_header_and_serial_varints',
+-'test_07_all_selected_truncations_and_header_boundary_refusals',
+-'test_08_protocol_extent_magic_format_and_reserved_controls',
+-'test_09_reserved_types_schema_versions_capacity_and_trailing_bytes',
+-'test_10_declared_payload_field_limits_and_empty_extension',
+-'test_11_public_bridge_types_and_foreign_custody_refusals',
+-'test_12_complete_upstream_sources_and_oracle_excerpts')
+-MODULE='tests.hia_sqlite_record_source_r1'
+-IDS=tuple(MODULE+'.SQLiteRecordSourceTests.'+x for x in NAMES)
+-COUNTS=(0,42,18,10,7,18,29,11,17,4,3,0)
++EXPECTED_NAMES = (
++    'test_01_Core_roundtrip_and_original_caps',
++    'test_02_all_page_kinds_sizes_reserves_and_page_one',
++    'test_03_all_rowid_boundaries_and_nonminimal_widths',
++    'test_04_overflow_local_partition_and_large_payload_descriptors',
++    'test_05_page_one_database_header_admission',
++    'test_06_selected_cell_bounds_and_truncations',
++    'test_07_protocol_controls_and_output_capacity',
++    'test_08_pointer_geometry_index_and_page_number_refusals',
++    'test_09_nonminimal_payload_width_and_numeric_limit',
++    'test_10_minimum_cell_padding_and_zero_payloads',
++    'test_11_bridge_custody_and_exact_public_types',
++    'test_12_complete_upstream_sources_and_explicit_scope',
++)
++EXPECTED_COUNTS = (0, 72, 36, 108, 22, 14, 24, 14, 30, 16, 3, 0)
++NAMES=EXPECTED_NAMES
++COUNTS=EXPECTED_COUNTS
++MODULE='tests.hia_sqlite_btree_cell_source_r1'
++IDS=tuple(MODULE+'.SQLiteBtreeCellSourceTests.'+x for x in NAMES)
+ VERSIONS=('3.46.0','3.53.2')
++SOURCE12_RAW_BYTES=16366443
++SOURCE12_RAW_SHA='d1e23200de22b2a39aafc6258e74155fd667fea08489cdff913fd6acdf6b7cca'
+ def wire(v):return (json.dumps(v,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n').encode()
+-def command(file_format=4,magic=MAGIC,operation=1,reserved=0):
+-    return struct.pack('<4Q',magic,operation,file_format,reserved)
+-def varint(value,width=None):
+-    if type(value)is not int or not 0<=value<1<<64:raise ValueError('fixture exact u64')
+-    minimum=9 if value>=1<<56 else max(1,(value.bit_length()+6)//7)
+-    width=minimum if width is None else width
+-    if type(width)is not int or not minimum<=width<=9:raise ValueError('fixture varint extent')
+-    if width==9:
+-        return bytes([128|(((value>>8)>>(7*i))&127) for i in range(7,-1,-1)]+[value&255])
+-    return bytes([((value>>(7*i))&127)|(128 if i else 0) for i in range(width-1,-1,-1)])
+-def record(fields,header_width=None,serial_widths=None):
+-    widths=[None]*len(fields) if serial_widths is None else serial_widths
+-    if len(widths)!=len(fields):raise ValueError('fixture serial count')
+-    serials=b''.join(varint(serial,width) for (serial,_),width in zip(fields,widths))
+-    header=len(serials)+(1 if header_width is None else header_width)
+-    while True:
+-        prefix=varint(header,header_width)
+-        measured=len(prefix)+len(serials)
+-        if measured==header:return prefix+serials+b''.join(b for _,b in fields),header
+-        header=measured
+-def serial_length(serial):
+-    if serial<12:return (0,1,2,3,4,6,8,8,0,0,0,0)[serial]
+-    return (serial-12)//2
+-def field_scalar(serial,raw):
+-    if serial==0:return 0,0,1
+-    if 1<=serial<=6:return int.from_bytes(raw,'big',signed=True)%(1<<64),1,4
+-    if serial in (8,9):return serial-8,1,4
+-    if serial==7:
+-        bits=int.from_bytes(raw,'big')
+-        nan=math.isnan(struct.unpack('>d',raw)[0])
+-        return bits,0 if nan else 2,1 if nan else 8
+-    return 0,3 if serial%2 else 4,0x4002 if serial%2 else 0x4010
+-def read_varint(raw,offset,end):
+-    value=0
+-    for i in range(9):
+-        if offset+i>=end:return None
+-        byte=raw[offset+i]
+-        if i==8:return value*256+byte,9
+-        value=value*128+(byte%128)
+-        if byte<128:return value,i+1
+-    raise AssertionError('unreachable')
+-def expected(raw,out,cmd):
+-    """Independent complete-payload parser; no generator/test helper import."""
+-    def refuse(code):return {'status':code,'source_after_hex':raw.hex(),'output_after_hex':out.hex(),
+-        'command_after_hex':cmd.hex(),'fields':None,'header_bytes':None,'schema_format':None}
+-    if len(cmd)!=32:return refuse(PROTOCOL)
+-    magic,op,version,reserved=struct.unpack('<4Q',cmd)
+-    if magic!=MAGIC or op!=1 or not 1<=version<=4 or reserved or len(raw)>MAX_PAYLOAD or len(out)>MAX_OUTPUT:
+-        return refuse(PROTOCOL)
+-    first=read_varint(raw,0,len(raw))
+-    if first is None:return refuse(TRUNCATED)
+-    header,prefix=first
+-    if header<prefix:return refuse(FORMAT)
+-    if header>len(raw):return refuse(TRUNCATED)
+-    at=prefix;body=header;fields=[]
+-    while at<header:
+-        part=read_varint(raw,at,header)
+-        if part is None:return refuse(FORMAT)
+-        serial,width=part
+-        if serial in (10,11):return refuse(RESERVED)
+-        if serial in (8,9) and version<4:return refuse(FORMAT)
+-        n=serial_length(serial)
+-        if n>len(raw)-body:return refuse(TRUNCATED)
+-        bits,kind,flags=field_scalar(serial,raw[body:body+n])
+-        fields.append({'serial_type':serial,'offset':body,'length':n,'bits':bits,'kind':kind,'C_flags':flags})
+-        at+=width;body+=n
+-        if len(fields)>MAX_FIELDS:return refuse(LIMIT)
+-    if body!=len(raw):return refuse(FORMAT)
+-    used=32+40*len(fields)
+-    if len(out)<used:return refuse(CAPACITY)
+-    result=bytearray(struct.pack('<4Q',len(fields),header,len(raw)-header,len(raw)))
+-    for f in fields:result.extend(struct.pack('<5Q',*(f[k] for k in ('serial_type','offset','length','bits','kind'))))
+-    return {'status':used,'source_after_hex':raw.hex(),'output_after_hex':(bytes(result)+out[used:]).hex(),
+-            'command_after_hex':cmd.hex(),'fields':fields,'header_bytes':header,'schema_format':version}
+-def project_field(field,returned,words):
+-    if type(returned)is not int or returned!=0 or type(words)is not list or len(words)!=4 \
+-       or any(type(x)is not int or not 0<=x<1<<64 for x in words):
+-        raise ValueError('C field result exact scalar types/arity/status')
+-    length,bits,kind,flags=words
+-    if length!=field['length'] or kind not in (0,1,2,3,4):raise ValueError('C field descriptor domain')
+-    return {'content_length':length,'scalar_bits':bits,'kind':kind,
+-            'original_Mem_flags':flags,'whole_record_validity_claim':False}
++def need(value,message):
++    if not value:raise ValueError(message)
++def varint(raw,offset,end):
++ x=0
++ for j in range(9):
++  need(offset<end,'complete successful varint');b=raw[offset];offset+=1
++  if j==8:return (x<<8)|b,offset
++  x=(x<<7)|(b&127)
++  if b<128:return x,offset
++ raise AssertionError('unreachable')
++def expected_success(raw,control):
++ need(len(control)==64,'successful command extent')
++ magic,op,size,reserved,page,index,pages,zero=struct.unpack('<8Q',control)
++ need(magic==int.from_bytes(b'HIABTC01','little') and op==1 and zero==0,'successful command constants')
++ need(size in (512,1024,2048,4096,8192,16384,32768,65536) and len(raw)==size,'successful exact page size')
++ need(0<=reserved<=255 and size-reserved>=480 and 1<=page<=pages<=4294967294,'successful page control bounds')
++ usable=size-reserved
++ def be(at,n):
++  need(0<=at<=usable-n,'full big endian scalar span')
++  return int.from_bytes(raw[at:at+n],'big')
++ h=100 if page==1 else 0
++ if page==1:
++  need(raw[:16]==b'SQLite format 3\0','database magic')
++  encoded=be(16,2);need((65536 if encoded==1 else encoded)==size and raw[20]==reserved,'database size and reserve')
++  need(raw[18] in (1,2) and raw[19] in (1,2) and raw[21:24]==bytes((64,32,32)),'header versions and fractions')
++  need(1<=be(44,4)<=4 and 1<=be(56,4)<=3 and raw[72:92]==bytes(20),'schema encoding reserved header')
++  if be(24,4)==be(92,4) and be(28,4)!=0:need(be(28,4)==pages,'valid in-header database size')
++ kind=raw[h];need(kind in (2,5,10,13) and (h!=100 or kind in (5,13)),'declared page kind')
++ count,content=be(h+3,2),be(h+5,2);content=65536 if content==0 else content
++ ptr=h+(12 if kind in (2,5) else 8)
++ if kind in (2,5):need(1<=be(h+8,4)<=pages and be(h+8,4)!=page,'right child bound')
++ need(content<=usable and ptr+count*2<=content and raw[h+7]<=60,'pointer-array geometry')
++ free=be(h+1,2);need(free==0 or content<=free<=usable-4,'first freeblock position')
++ need(index<count,'selected index')
++ offset=be(ptr+index*2,2);need(content<=offset<=usable-4,'selected cell offset')
++ at=offset;child=0
++ if kind in (2,5):
++  child=be(at,4);need(1<=child<=pages and child!=page,'left child bound');at+=4
++ payload=0
++ if kind!=5:
++  payload,end=varint(raw,at,usable);need(end-at<=5 and payload<=2147483647,'payload width and numerical domain');at=end
++ key=payload
++ if kind in (5,13):key,at=varint(raw,at,usable)
++ local=payload_at=overflow=overflow_at=overflow_pages=overflow_last=0
++ end=at
++ if kind!=5:
++  payload_at=at;maxlocal=usable-35 if kind==13 else (usable-12)*64//255-23
++  minlocal=(usable-12)*32//255-23
++  local=payload
++  if payload>maxlocal:
++   surplus=minlocal+(payload-minlocal)%(usable-4);local=surplus if surplus<=maxlocal else minlocal
++  need(local<=usable-at,'complete local payload')
++  end=at+local
++  if payload>local:
++   overflow_at=end;overflow=be(end,4);need(1<=overflow<=pages and overflow!=page,'overflow page bound');end+=4
++   overflow_pages,overflow_last=divmod(payload-local,usable-4)
++   if overflow_last:overflow_pages+=1
++   else:overflow_last=usable-4
++  end=max(end,offset+4)
++ need(end<=usable,'complete cell and padding')
++ return struct.pack('<16Q',page,kind,usable,count,index,offset,end-offset,payload_at,payload,local,child,key,overflow,overflow_at,overflow_pages,overflow_last)
++
++def project_cell(expected,returned,words):
++    need(type(returned)is int and returned==0 and type(words)is list and len(words)==6
++        and all(type(x)is int and 0<=x<1<<64 for x in words),'C exact CellInfo result types/arity/status')
++    need(words==expected,'C complete CellInfo six-word projection differs')
++    return dict(zip(('nKey_bits','payload_is_NULL','payload_page_offset','nPayload','nLocal','nSize'),words))
+ def specifications(root=None):
+-    ordinal=0;per=[0]*12
+-    def row(method,raw,out,cmd):
+-        nonlocal ordinal
+-        ordinal+=1;per[method-1]+=1
+-        return {'index':ordinal,'method':IDS[method-1],'label':'m%02d-%04d'%(method,per[method-1]),
+-                'source_hex':raw.hex(),'output_hex':out.hex(),'command_hex':cmd.hex(),
+-                'expected':expected(raw,out,cmd)}
+-    def accepted(method,fields,header_width=None,serial_widths=None,capacity=None,version=4):
+-        raw,_=record(fields,header_width,serial_widths)
+-        if capacity is None:capacity=32+40*len(fields)+5
+-        return row(method,raw,b'\xa5'*capacity,command(version))
+-    def rejected(method,raw,capacity=77,cmd=None):
+-        return row(method,raw,b'\xa5'*capacity,command() if cmd is None else cmd)
+-    for serial,size in enumerate((1,2,3,4,6,8),1):
+-        edge=1<<(8*size-1)
+-        for value in (-edge,1-edge,-1,0,1,edge-2,edge-1):
+-            yield accepted(2,[(serial,value.to_bytes(size,'big',signed=True))])
+-    patterns=(0,1<<63,0x3ff0000000000000,0xbff0000000000000,1,0x8000000000000001,
+-        0x000fffffffffffff,0x0010000000000000,0x7fefffffffffffff,0xffefffffffffffff,
+-        0x7ff0000000000000,0xfff0000000000000,0x7ff8000000000000,0xfff8000000000000,
+-        0x7ff0000000000001,0xfff0000000000001,0x7fffffffffffffff,0xffffffffffffffff)
+-    for bits in patterns:yield accepted(3,[(7,bits.to_bytes(8,'big'))])
+-    for version in (1,2,3,4):yield accepted(4,[(0,b''),(12,b''),(13,b'')],version=version)
+-    for payload in (b'abc',b'\xff\x00\x80','中文'.encode('utf-8'),'中文'.encode('utf-16le'),'中文'.encode('utf-16be')):
+-        yield accepted(4,[(0,b''),(2,b'\xff\xfe'),(12+2*len(payload),payload),
+-                          (13+2*len(payload),payload),(8,b''),(9,b'')])
+-    yield accepted(4,[(s,b'') for s in (9,8,0,13,12)])
+-    for count in (1,8,126,127,128,255,2000):yield accepted(5,[(0,b'')]*count,capacity=32+40*count)
+-    for width in range(1,10):yield accepted(6,[(1,b'\x80')],header_width=width)
+-    for width in range(1,10):yield accepted(6,[(1,b'\x7f')],serial_widths=[width])
+-    raw,_=record([(1,b'\x7f'),(6,b'\x80'+b'\0'*7),(23,b'abcde')])
+-    if len(raw)!=18:raise ValueError('original truncation fixture extent')
+-    for n in range(len(raw)):yield rejected(7,raw[:n])
+-    for width in range(1,9):yield rejected(7,b'\x80'*width)
+-    for raw in (b'\x02\x80',b'\x03\x80\x80',b'\x09'+b'\x80'*8):yield rejected(7,raw)
+-    raw,_=record([(1,b'\x01')])
+-    for cmd in (b'',command()[:-1],command()+b'\0',command(magic=0),command(operation=0),
+-                command(operation=2),command(file_format=0),command(file_format=5),command(reserved=1)):
+-        yield rejected(8,raw,cmd=cmd)
+-    yield rejected(8,b'\0'*(MAX_PAYLOAD+1))
+-    yield rejected(8,raw,capacity=MAX_OUTPUT+1)
+-    for serial in (10,11):yield rejected(9,record([(serial,b'')])[0])
+-    for version in (1,2,3):
+-        for serial in (8,9):yield rejected(9,record([(serial,b'')])[0],cmd=command(version))
+-    for raw in (b'\0',b'\x80\0',b'\x01\0'):yield rejected(9,raw)
+-    raw,_=record([(1,b'\x01')])
+-    for cap in (0,1,31,32,71):yield rejected(9,raw,capacity=cap)
+-    serial=varint((1<<64)-1)
+-    yield rejected(9,varint(1+len(serial))+serial)
+-    yield accepted(10,[],capacity=32)
+-    yield accepted(10,[],header_width=9,capacity=32)
+-    yield rejected(10,record([(0,b'')]*2001)[0],capacity=MAX_OUTPUT)
+-    payload=b'\x5a'*(MAX_PAYLOAD-5)
+-    raw,header=record([(12+2*len(payload),payload)])
+-    if (len(raw),header)!=(MAX_PAYLOAD,5):raise ValueError('maximum original payload')
+-    yield accepted(10,[(12+2*len(payload),payload)],capacity=72)
+-    fields=[(1,b'\xff'),(7,bytes.fromhex('7ff8000000000001')),(19,b'abc')]
+-    raw,_=record(fields)
+-    yield row(11,raw,b'\xa5'*MAX_OUTPUT,command())
+-    yield rejected(11,b'\x02\x80',capacity=MAX_OUTPUT)
+-    yield row(11,b'\x01',b'\xa5'*MAX_OUTPUT,command())
+-    if tuple(per)!=COUNTS or ordinal!=159:raise ValueError('original full record population')
++    need(root is not None,'frozen source12 actual root required')
++    path=Path(root)/'reference/source12-actual/tests/VM-RAW.json'
++    pin,body=common.read(path,32<<20)
++    need(pin['bytes']==SOURCE12_RAW_BYTES and pin['sha256']==SOURCE12_RAW_SHA,'actual complete Source12 matrix byte pin')
++    old=json.loads(body);calls=old['calls']
++    need(old['schema']=='hia.sqlite-btree-cell.source-vm-raw.v1' and old['native_executed'] is False
++        and old['compiler_executed'] is False and type(calls)is list and len(calls)==339,'frozen source12 matrix domain')
++    per={name:0 for name in IDS};order=[name for name,count in zip(IDS,COUNTS) for _ in range(count)]
++    accepted=refused=0
++    for index,row in enumerate(calls,1):
++        need(row['case']==order[index-1] and row['actual_returned'] is True and type(row['status'])is int
++            and 'exception_type' not in row,'complete original ordered actual returns')
++        spans={}
++        for key in ('source_before_hex','source_after_hex','output_before_hex','output_after_hex',
++                    'control_before_hex','control_after_hex'):
++            need(type(row[key])is str,'original raw buffer text type')
++            b=bytes.fromhex(row[key]);need(b.hex()==row[key],'original full buffer canonical encoding');spans[key]=b
++        source,out,cmd=(spans[k] for k in ('source_before_hex','output_before_hex','control_before_hex'))
++        need(spans['source_after_hex']==source and spans['control_after_hex']==cmd
++            and len(out)==len(spans['output_after_hex']),'immutable original source/control/full output extent')
++        need(len(source)<=MAX_PAYLOAD+1 and len(out)<=MAX_OUTPUT+1 and len(cmd)<=MAX_COMMAND,'fixed original raw spans')
++        status=row['status'];words=cell=None
++        if status in REFUSALS:
++            need(spans['output_after_hex']==out,'original refusal made no output write');refused+=1
++        else:
++            need(status==128 and len(out)==128,'fixed actual success extent/status')
++            layout=expected_success(source,cmd)
++            need(layout==spans['output_after_hex'],'independent complete legal selected-cell admission')
++            words=list(struct.unpack('<16Q',layout));kind=words[1]
++            cell=[words[11],int(kind==5),0 if kind==5 else words[7],words[8],words[9],words[6]]
++            project_cell(cell,0,cell);accepted+=1
++        per[row['case']]+=1;method_index=IDS.index(row['case'])+1
++        yield {'index':index,'method':row['case'],'label':'m%02d-%04d'%(method_index,per[row['case']]),
++            'source_hex':source.hex(),'output_hex':out.hex(),'command_hex':cmd.hex(),
++            'expected':{'status':status,'source_after_hex':source.hex(),'output_after_hex':spans['output_after_hex'].hex(),
++                'command_after_hex':cmd.hex(),'words':words,'cell_info':cell,
++                'C_applicability':'PREVALIDATED_COMPLETE_CELL' if cell is not None else 'NOT_CALLED_FROZEN_REFUSAL'}}
++    need(tuple(per.values())==COUNTS and accepted==253 and refused==86,'original full 339 / 253 / 86 population')
+ def manifest(root=None):
+-    counts={k:0 for k in IDS};oracle={'field_calls':0,'accepted_records':0,'empty_record_extensions':0,
+-                                     'refused_records_not_called':0}
++    counts={k:0 for k in IDS};oracle={'cell_calls':0,'accepted_cells':0,'refused_cells_not_called':0}
+     statuses={};digest=hashlib.sha256()
+     for row in specifications(root):
+-        digest.update(wire(row));counts[row['method']]+=1
+-        e=row['expected'];statuses[str(e['status'])]=statuses.get(str(e['status']),0)+1
+-        if e['fields'] is None:oracle['refused_records_not_called']+=1
++        digest.update(wire(row));counts[row['method']]+=1;e=row['expected']
++        statuses[str(e['status'])]=statuses.get(str(e['status']),0)+1
++        if e['cell_info'] is None:oracle['refused_cells_not_called']+=1
+         else:
+-            oracle['accepted_records']+=1
+-            if not e['fields']:oracle['empty_record_extensions']+=1
+-            for field in e['fields']:
+-                words=[field['length'],field['bits'],field['kind'],field['C_flags']]
+-                projection=project_field(field,0,words)
+-                if projection['content_length']!=field['length'] or projection['scalar_bits']!=field['bits'] \
+-                    or projection['kind']!=field['kind']:raise ValueError('C field reference projection')
+-                oracle['field_calls']+=1
+-    if list(counts.values())!=list(COUNTS) or oracle!={'field_calls':2774,'accepted_records':100,
+-            'empty_record_extensions':3,'refused_records_not_called':59}:
+-        raise ValueError('original HIA and new field-only C denominator')
+-    return {'schema':'hia.sqlite.record.native-matrix.v1','ids':list(IDS),'counts':counts,
+-        'native_returns':159,'oracle_calls_each':oracle,'oracle_versions':list(VERSIONS),
++            oracle['accepted_cells']+=1;oracle['cell_calls']+=1
++            project_cell(e['cell_info'],0,e['cell_info'])
++    need(list(counts.values())==list(COUNTS) and oracle=={'cell_calls':253,'accepted_cells':253,'refused_cells_not_called':86},
++        'complete HIA and original C denominator')
++    need(statuses=={'128':253,'4294967291':44,'4294967293':23,'4294967294':11,'4294967292':3,'4294967289':2,'4294967290':3},
++        'all original fixture status classes')
++    return {'schema':'hia.sqlite.btree.cell.native-matrix.v1','ids':list(IDS),'counts':counts,
++        'native_returns':339,'oracle_calls_each':oracle,'oracle_versions':list(VERSIONS),
+         'status_counts':statuses,'ordered_expected_rows_sha256':digest.hexdigest(),
+         'original_methods_unchanged':12,'backend':'NativeImage; original _Machine denied, no VM rerun',
+-        'scope':'Finite strict record byte kernel; C fields only, no whole-record C admission oracle, SQL, database or durability'}
++        'matrix_source':'Frozen actual R3 complete339 before/after records, plus independent complete-cell admission for C.',
++        'source12_original_raw':{'bytes':SOURCE12_RAW_BYTES,'sha256':SOURCE12_RAW_SHA},
++        'scope':'Single selected-cell byte kernel; C CellInfo only, no malformed C, wholepage/tree, SQL, database or durability'}
+--- record-original/native_cases.py
++++ btree-native/native_cases.py
+@@ -1,4 +1,4 @@
+-"""Original twelve RECORD methods with one actual HIA entry and two separately built C oracles."""
++"""Original twelve BTREE_CELL methods with one actual HIA entry and two separately built C oracles."""
+ from pathlib import Path
+ import ctypes,hashlib,importlib,importlib.util,json,mmap,os,resource,socket,subprocess,sys,time,traceback,unittest
+ sys.path.insert(0,str(Path(__file__).resolve().parent))
+@@ -6,56 +6,52 @@
+ ROOT=support.ROOT
+ CTX=None
+ class COracle:
+-    """Each version is a field primitive; refused whole records are never passed to C."""
++    """Original cell parsers run only on the independently admitted frozen valid cells."""
+     def __init__(self,version,path,pin):
+         actual,raw=common.read(path,1<<20)
+         common.require(all(actual[k]==pin[k] for k in ('bytes','sha256','git_blob','identity')),'new C oracle binary pin')
+         self.version=version;self.path=Path(path);self.pin=actual
+         self.started=self.returned=0
+         self.library=ctypes.CDLL(str(path),mode=os.RTLD_LOCAL|os.RTLD_NOW)
+-        self.field=self.library.record_oracle_field
+-        self.field.argtypes=[ctypes.c_uint64,ctypes.c_void_p,ctypes.c_uint64,ctypes.c_uint64,
+-                             ctypes.c_void_p,ctypes.c_uint64]
+-        self.field.restype=ctypes.c_int
++        self.cell=self.library.oracle_cell
++        self.cell.argtypes=[ctypes.c_void_p,ctypes.c_uint64,ctypes.c_uint64,ctypes.c_uint64,
++                           ctypes.c_uint64,ctypes.c_void_p]
++        self.cell.restype=ctypes.c_uint32
+     def observe(self,spec,sink):
+-        fields=spec['expected']['fields']
+-        if fields is None:
++        expected=spec['expected']['cell_info']
++        if expected is None:
+             sink.append({'version':self.version,'called':False,
+-                         'reason':'whole_record_refused_not_a_C_field_oracle_domain','fields':[]});return
+-        if not fields:
+-            sink.append({'version':self.version,'called':False,
+-                         'reason':'explicit_zero_field_byte_API_extension_no_C_call','fields':[]});return
+-        bundle={'version':self.version,'called':True,'operation':'field','fields':[]}
+-        sink.append(bundle) # Raw observations survive any later field/projection failure.
+-        raw=bytes.fromhex(spec['source_hex']);schema=spec['expected']['schema_format']
+-        common.require(type(schema)is int and 1<=schema<=4,'C schema exact domain before ctypes')
+-        for index,field in enumerate(fields,1):
+-            serial=field['serial_type'];offset=field['offset'];size=field['length']
+-            common.require(all(type(x)is int for x in (serial,offset,size)) and 0<=serial<=0xffffffff
+-                and serial not in (10,11) and (serial not in (8,9) or schema==4)
+-                and 0<=offset<=len(raw) and 0<=size<=len(raw)-offset
+-                and matrix.serial_length(serial)==size,'C full single-field domain before narrowing')
+-            before_source=raw[offset:offset+size]+matrix.CANARY;before=b'\xa5'*32+matrix.CANARY
+-            source=ctypes.create_string_buffer(before_source,len(before_source))
+-            output=ctypes.create_string_buffer(before,len(before))
+-            alignment=ctypes.addressof(output)%8
+-            common.require(alignment==0,'actual C u64 output alignment')
+-            observation={'field_index':index,'serial_type':serial,'payload_offset':offset,
+-                'field_bytes':size,'schema_format':schema,'actual_returned':False,
+-                'input_before_hex':before_source.hex(),'output_before_hex':before.hex(),
+-                'output_alignment_mod8':alignment}
+-            bundle['fields'].append(observation)
+-            self.started+=1
+-            try:
+-                rc=self.field(serial,source,size,schema,output,4)
+-                self.returned+=1
+-                observation.update(actual_returned=True,returned=rc)
+-            finally:
+-                observation['input_after_hex']=source.raw.hex()
+-                observation['output_after_hex']=output.raw.hex()
+-            words=[int.from_bytes(output.raw[i:i+8],'little') for i in range(0,32,8)]
+-            observation['output_words']=words
+-            observation['derived_projection']=matrix.project_field(field,rc,words)
++                         'reason':'frozen_refused_cell_not_a_C_parser_domain'});return
++        raw=bytes.fromhex(spec['source_hex']);command=bytes.fromhex(spec['command_hex'])
++        words=spec['expected']['words']
++        common.require(matrix.expected_success(raw,command)==bytes.fromhex(spec['expected']['output_after_hex']),
++                       'independent complete legal cell before original C; not chosen from new HIA status')
++        size,usable,kind,offset=len(raw),words[2],words[1],words[5]
++        common.require(all(type(x)is int for x in (size,usable,kind,offset))
++            and size in (512,1024,2048,4096,8192,16384,32768,65536) and 480<=usable<=size
++            and size-usable<=255 and kind in (2,5,10,13) and 0<=offset<=usable-4,
++            'C ordinary scalar domain before ctypes narrowing')
++        before_source=raw+matrix.CANARY;before=b'\xa5'*48+matrix.CANARY
++        source=ctypes.create_string_buffer(before_source,len(before_source))
++        output=ctypes.create_string_buffer(before,len(before))
++        alignment=ctypes.addressof(output)%8
++        common.require(alignment==0,'actual C u64 output alignment')
++        observation={'version':self.version,'called':True,'operation':'cell','page_bytes':size,'usable':usable,
++            'page_kind':kind,'cell_offset':offset,'actual_returned':False,
++            'input_before_hex':before_source.hex(),'output_before_hex':before.hex(),
++            'output_alignment_mod8':alignment}
++        sink.append(observation) # Raw C state survives any later return/projection assertion.
++        self.started+=1
++        try:
++            rc=self.cell(source,size,usable,kind,offset,output)
++            self.returned+=1
++            observation.update(actual_returned=True,returned=rc)
++        finally:
++            observation['input_after_hex']=source.raw.hex()
++            observation['output_after_hex']=output.raw.hex()
++        observed=[int.from_bytes(output.raw[i:i+8],'little') for i in range(0,48,8)]
++        observation['output_words']=observed
++        observation['derived_projection']=matrix.project_cell(expected,rc,observed)
+ class Context:
+     def __init__(self,request,output,spec):
+         self.request=request;self.output=output;self.spec=spec
+@@ -67,11 +63,11 @@
+         hepta.__path__.insert(0,str(ROOT/'candidate/inputs/hepta'))
+         tools.__path__=[str(ROOT/'candidate/inputs/tools'),*list(tools.__path__)]
+         tests.__path__.insert(0,str(ROOT/'candidate/inputs/tests'))
+-        from hepta import hia_sqlite_record_native as bridge
++        from hepta import hia_sqlite_btree_cell_native as bridge
+         self.bridge=bridge
+         p,b=common.read(spec['image']['path'],1<<20)
+         common.require(all(p[k]==spec['image'][k] for k in ('bytes','sha256','git_blob','identity')),'same-owner generated HIA image')
+-        self.codec=bridge.NativeSQLiteRecord(b,p['sha256']);self.original_entry=self.codec._entry
++        self.codec=bridge.NativeSQLiteBtreeCell(b,p['sha256']);self.original_entry=self.codec._entry
+         self.oracles=[COracle(v,Path(spec['oracles'][v]['path']),spec['oracles'][v]) for v in matrix.VERSIONS]
+         self.installed_entry=self.entry;self.codec._entry=self.installed_entry
+     def entry(self,source,size,out,capacity,control,control_size):
+@@ -80,7 +76,7 @@
+             and self.method==self.backend.label==spec['method'],'original native method and ordered call')
+         extents=[size,capacity,control_size]
+         common.require(all(type(x)is int for x in extents) and 0<=size<=matrix.MAX_PAYLOAD+1
+-            and 0<=capacity<=matrix.MAX_OUTPUT+1 and 0<=control_size<=33,'finite original raw extents')
++            and 0<=capacity<=matrix.MAX_OUTPUT+1 and 0<=control_size<=matrix.MAX_COMMAND,'finite original raw extents')
+         pointers=(source,out,control)
+         before=[ctypes.string_at(p,n+64) for p,n in zip(pointers,extents)]
+         pre={'event':'pre','index':self.started,'method':self.method,'label':spec['label'],
+@@ -108,7 +104,7 @@
+         try:next(self.sequence)
+         except StopIteration:pass
+         else:raise RuntimeError('missing original native calls')
+-        common.require(self.started==self.entry_returns==self.returned==159 and list(self.by_method.values())==list(matrix.COUNTS),
++        common.require(self.started==self.entry_returns==self.returned==339 and list(self.by_method.values())==list(matrix.COUNTS),
+                        'complete original native denominator')
+ class NativeImage:
+     """Substitutes only the original VM transport class; all twelve methods stay byte-exact."""
+@@ -133,11 +129,11 @@
+ def main():
+     global CTX
+     path=Path(sys.argv[1]);pin,raw=common.read(path)
+-    common.require(path==ROOT/'REQUEST.json' and pin['sha256']==sys.argv[2],'exact RECORD finite child request')
++    common.require(path==ROOT/'REQUEST.json' and pin['sha256']==sys.argv[2],'exact BTREE_CELL finite child request')
+     request=json.loads(raw);output=Path(request['output'])/'native'
+     common.require(output.is_dir() and dict(os.environ)==request['environment']
+-        and 'HEPTA_SQLITE_RECORD_SOURCE_EVIDENCE' not in os.environ,'new native-only output/environment')
+-    report={'schema':'hia.sqlite.record.native-result.v1','status':'HOLD','expected_ids':list(matrix.IDS),
++        and 'HEPTA_SQLITE_BTREE_CELL_SOURCE_EVIDENCE' not in os.environ,'new native-only output/environment')
++    report={'schema':'hia.sqlite.btree.cell.native-result.v1','status':'HOLD','expected_ids':list(matrix.IDS),
+             'started_ids':[],'actual_ids':[],'success_ids':[],'denied_effects':[],
+             'exception':None,'secondary_errors':[],'native_returns':0,'database_opened':False,
+             'network_used':False,'source12_VM_reexecuted':False,'matching_cold_qualification':False,
+@@ -163,14 +159,14 @@
+             report['denied_effects'].append('hepta.hia_program_runtime._Machine')
+             raise RuntimeError('VM execution forbidden in this native request')
+         runtime._Machine=forbidden_VM
+-        test_spec=importlib.util.spec_from_file_location(matrix.MODULE,ROOT/'candidate/inputs/tests/test_hia_sqlite_record_source.py')
++        test_spec=importlib.util.spec_from_file_location(matrix.MODULE,ROOT/'candidate/inputs/tests/test_hia_sqlite_btree_cell_source.py')
+         module=importlib.util.module_from_spec(test_spec);sys.modules[matrix.MODULE]=module;test_spec.loader.exec_module(module)
+         common.require(module.EXPECTED_NAMES==matrix.NAMES and module.EXPECTED_COUNTS==matrix.COUNTS and module._Machine is forbidden_VM,
+                        'exact original test module and explicit VM poison')
+         original_VM=module.VMImage;module.VMImage=NativeImage;module._Machine=forbidden_VM
+         report['mapped_files_before']=support.loaded_file_maps(request,own_maps,CTX.codec,CTX.original_entry,
+             CTX.installed_entry,spec['image'],output/'mapping-before')
+-        suite=unittest.TestSuite(module.SQLiteRecordSourceTests(name) for name in matrix.NAMES)
++        suite=unittest.TestSuite(module.SQLiteBtreeCellSourceTests(name) for name in matrix.NAMES)
+         report['loaded_ids']=[x.id() for x in suite]
+         common.require(report['loaded_ids']==list(matrix.IDS),'original twelve IDs/order unchanged')
+         with (output/'unittest.log').open('x',encoding='utf-8') as stream:
+@@ -180,18 +176,18 @@
+             expected_failures=[x.id() for x,_ in result.expectedFailures],
+             unexpected_successes=[x.id() for x in result.unexpectedSuccesses],
+             native_returns=CTX.entry_returns,validated_returns=CTX.returned,actual_native_starts=CTX.started,native_counts=CTX.by_method,
+-            C_field_calls={o.version:{'started':o.started,'returned':o.returned} for o in CTX.oracles})
++            C_cell_calls={o.version:{'started':o.started,'returned':o.returned} for o in CTX.oracles})
+         common.require(result.actual==result.success==list(matrix.IDS) and result.testsRun==12
+             and not(result.failure_ids or result.error_ids or result.skipped or result.expectedFailures or result.unexpectedSuccesses),
+             'complete original twelve methods did not pass')
+         common.require(module.VMImage is NativeImage and module._Machine is runtime._Machine is forbidden_VM
+             and CTX.backend.calls==[],'native transport replacement or VM poison changed')
+-        assembly=common.read(Path(request['output'])/'source-generation/sqlite_record.hiaasm',1<<20)[1]
++        assembly=common.read(Path(request['output'])/'source-generation/sqlite_btree_cell.hiaasm',1<<20)[1]
+         _,document=support.read_json(Path(request['output'])/'source-generation/CORE.json')
+-        common.require(module.SQLiteRecordSourceTests.assembly.encode()==assembly
+-            and module.SQLiteRecordSourceTests.document==document,'new setup source exactly matches actual compiled input')
++        common.require(module.SQLiteBtreeCellSourceTests.assembly.encode()==assembly
++            and module.SQLiteBtreeCellSourceTests.document==document,'new setup source exactly matches actual compiled input')
+         CTX.full_finished()
+-        common.require(all(o.started==o.returned==2774 for o in CTX.oracles),'two original C field populations')
++        common.require(all(o.started==o.returned==253 for o in CTX.oracles),'two original C valid-cell populations')
+         CTX.writer.finish(True)
+         _,expected=support.read_json(ROOT/'EXPECTED-MATRIX.json')
+         report['full_trace_readback']=trace.inspect(ROOT,output/'trace',expected)
+@@ -214,7 +210,7 @@
+             except BaseException as exc:report['secondary_errors'].append(type(exc).__name__+': '+str(exc)[:256])
+         if CTX is not None:
+             report['native_returns']=CTX.entry_returns;report['validated_returns']=CTX.returned;report['actual_native_starts']=CTX.started
+-            report['C_field_calls']={o.version:{'started':o.started,'returned':o.returned} for o in CTX.oracles}
++            report['C_cell_calls']={o.version:{'started':o.started,'returned':o.returned} for o in CTX.oracles}
+         report['elapsed_ns']=time.monotonic_ns()-started
+         if report['exception'] is not None or report['secondary_errors']:report['status']='HOLD'
+         common.create(output/'REPORT.json',report)
+--- record-original/support.py
++++ btree-native/support.py
+@@ -1,4 +1,4 @@
+-"""RECORD finite-native readback; shared proven owner, capacity and exact image-map binding."""
++"""BTREE_CELL finite-native readback; shared proven owner, capacity and exact image-map binding."""
+ from pathlib import Path
+ import ast,ctypes,hashlib,importlib.util,json,mmap,os,platform,stat,struct,sys,zlib
+ import common,matrix
+@@ -115,7 +115,7 @@
+     common.require(type(address)is int and address>0 and address%page==0
+         and type(entry_address)is int and entry_address==address,'original entry equals current mmap start')
+     end=address+((size+page-1)//page)*page
+-    descriptor={'schema':'hia.sqlite.record.current-image-mapping.v1','mapping_object_id':id(mapped),
++    descriptor={'schema':'hia.sqlite.btree.cell.current-image-mapping.v1','mapping_object_id':id(mapped),
+         'entry_object_id':id(entry),'observer_object_id':id(installed_entry),'address':address,
+         'entry_address':entry_address,'logical_bytes':size,'page_size':page,'mapping_end':end,
+         'image':image_pin,'requires_exact_single_segment':True}
+@@ -265,24 +265,24 @@
+         'historical B3 full original chain')
+     return {'pins':pins,'historical_run':43220208164,'current_source_cold':False}
+ def inspect_new_compile(directory,request):
+-    directory=Path(directory);label='record'
++    directory=Path(directory);label='btree_cell'
+     names=[label+s for s in ('.input.bin','.output.bin','.request.json','.receipt.json','.stdout.log','.stderr.log','.image.bin')]
+     bodies={};pins={}
+     for n in names:pins[n],bodies[n]=common.read(directory/n,2<<20)
+-    r=json.loads(bodies['record.receipt.json']);q=json.loads(bodies['record.request.json']);s=json.loads(bodies['record.stdout.log'])
++    r=json.loads(bodies['btree_cell.receipt.json']);q=json.loads(bodies['btree_cell.request.json']);s=json.loads(bodies['btree_cell.stdout.log'])
+     added={'case','input_sha256','input_bytes','artifact_sha256','format','runner_sha256','wall_elapsed_ns','produced_image','produced_bytes','produced_sha256'}
+     common.require(set(r)-set(s)==added and {k:v for k,v in r.items() if k not in added}==s,'new compiler stdout complete projection')
+-    source=common.read(Path(request['output'])/'source-generation/sqlite_record.hiaasm')[1];image=bodies['record.image.bin'];output=bodies['record.output.bin']
++    source=common.read(Path(request['output'])/'source-generation/sqlite_btree_cell.hiaasm')[1];image=bodies['btree_cell.image.bin'];output=bodies['btree_cell.output.bin']
+     b3=request['inputs']['compiler-inputs/B3.image.bin']['sha256']
+     source_sha=hashlib.sha256(source).hexdigest();image_sha=hashlib.sha256(image).hexdigest()
+-    common.require(bodies['record.input.bin']==source and image==output[:len(image)]
++    common.require(bodies['btree_cell.input.bin']==source and image==output[:len(image)]
+         and len(output)==1<<20 and 0<len(image)<=1<<20 and q['image']==str(ROOT/'compiler-inputs/B3.image.bin')
+-        and q['source']==str(directory/'record.input.bin') and q['output']==str(directory/'record.output.bin')
++        and q['source']==str(directory/'btree_cell.input.bin') and q['output']==str(directory/'btree_cell.output.bin')
+         and q['image_sha256']==b3 and q['source_sha256']==source_sha and q['format']=='flat-x86-64'
+         and q['capacity']==1<<20 and q['workspace_size']==1<<20 and q['workspace_fill']==0
+         and r['status']=='returned' and type(r['abi_status'])is int and r['abi_status']==0
+         and type(r['core_u32'])is int and r['core_u32']==len(image)==r['result_u64']==r['produced_bytes']
+-        and r['produced_image']==str(directory/'record.image.bin') and r['produced_sha256']==image_sha
++        and r['produced_image']==str(directory/'btree_cell.image.bin') and r['produced_sha256']==image_sha
+         and r['source_unchanged'] is True and r['forbidden_compiler_modules_loaded']==[]
+         and r['source_sha256']==r['input_sha256']==source_sha and r['image_sha256']==r['artifact_sha256']==b3
+         and r['runner_sha256']==request['original_child_sha256'] and r['input_bytes']==len(source)
+@@ -297,20 +297,20 @@
+     gp,g=read_json(directory/'GENERATION.json')
+     common.require(g['status']=='SOURCE_GENERATION_ONLY' and g['exception'] is None and g['denied_effects']==[]
+         and g['VM_executed'] is False and g['native_executed'] is False and g['roundtrip_equal'] is True
+-        and g['inputs']['author']==common.read(ROOT/'candidate/inputs/tools/generate_hia_sqlite_record.py')[0]
+-        and g['inputs']['test']==common.read(ROOT/'candidate/inputs/tests/test_hia_sqlite_record_source.py')[0],
++        and g['inputs']['author']==common.read(ROOT/'candidate/inputs/tools/generate_hia_sqlite_btree_cell.py')[0]
++        and g['inputs']['test']==common.read(ROOT/'candidate/inputs/tests/test_hia_sqlite_btree_cell_source.py')[0],
+         'new same-owner source generation and no old VM actual reconstruction')
+     cp,doc=read_json(directory/'CORE.json');pp,program=read_json(directory/'PROGRAM.json')
+-    ap,assembly=common.read(directory/'sqlite_record.hiaasm',1<<20)
+-    old_pin,old_assembly=common.read(ROOT/'reference/source12-actual-sqlite_record.hiaasm',1<<20)
+-    common.require(assembly==old_assembly and old_pin['bytes']==18639
+-        and old_pin['sha256']=='54faf428b5070a0dbf64a25769fe5d9aecc77e36ac37646ae11276ab3e039cc5'
++    ap,assembly=common.read(directory/'sqlite_btree_cell.hiaasm',1<<20)
++    old_pin,old_assembly=common.read(ROOT/'reference/source12-actual/tests/sqlite_btree_cell.hiaasm',1<<20)
++    common.require(assembly==old_assembly and old_pin['bytes']==40803
++        and old_pin['sha256']=='86776116010d389bf65c453917fda929627f3ee564330e56a3e33af32726a6b7'
+         and g['source12_actual_assembly']==old_pin,'new source exactly matches retained actual Source12 assembly')
+-    common.require(g['outputs']=={'CORE.json':cp,'PROGRAM.json':pp,'sqlite_record.hiaasm':ap},
++    common.require(g['outputs']=={'CORE.json':cp,'PROGRAM.json':pp,'sqlite_btree_cell.hiaasm':ap},
+                    'actual whole generated documents and assembly')
+     funcs=doc['functions'];blocks=[block for f in funcs for block in f['blocks']]
+     operations=sum(len(block['ops']) for block in blocks);ssa=[]
+-    common.require(len(funcs)==9<=128 and len(blocks)<=1536 and operations<=8192
++    common.require(len(funcs)==10<=128 and len(blocks)<=1536 and operations<=8192
+         and len(assembly.decode().split('\n'))<=16384,'original total Core and line limits')
+     def walk(value):
+         if isinstance(value,dict):
+@@ -325,9 +325,9 @@
+         common.require(len(f['blocks'])<=256 and len(f['returns'])<=3,'original per-function limits')
+         for block in f['blocks']:
+             for op in block['ops']:common.require(len(op.get('out',[]))<=3,'original result cap')
+-    testpin,test=common.read(ROOT/'candidate/inputs/tests/test_hia_sqlite_record_source.py')
++    testpin,test=common.read(ROOT/'candidate/inputs/tests/test_hia_sqlite_btree_cell_source.py')
+     parsed=ast.parse(test)
+-    classes=[x for x in parsed.body if isinstance(x,ast.ClassDef) and x.name=='SQLiteRecordSourceTests']
++    classes=[x for x in parsed.body if isinstance(x,ast.ClassDef) and x.name=='SQLiteBtreeCellSourceTests']
+     common.require(len(classes)==1 and [x.name for x in classes[0].body
+         if isinstance(x,(ast.FunctionDef,ast.AsyncFunctionDef)) and x.name.startswith('test_')]==list(matrix.NAMES),
+         'original twelve source method bodies and order remain physically frozen')
+@@ -337,51 +337,64 @@
+             'original_methods':12,'new_native_backend':True,'old_VM_actual_reconstructed':False}
+ def inspect_official_oracles():
+     reference=ROOT/'candidate/reference'
+-    _,up=read_json(reference/'UPSTREAM.json');_,add=read_json(reference/'ORACLE-ADDITIONS.json')
+-    common.require([r['version'] for r in up['sources']]==list(matrix.VERSIONS)
+-        and len(add['exact_extractions'])==14,'two complete original field domains')
+-    original_root=Path(add['root'])
+-    new_pins={}
+-    for item in add['new_files']:
+-        relative=Path(item['path']).relative_to(original_root)
+-        p,b=common.read(reference/relative)
++    up_pin,up=read_json(reference/'UPSTREAM.json')
++    common.require(up_pin['sha256']=='94a16286455350e92b280194c3e7c756e56e1a66997fd658776ef734dbd8c9b3'
++        and [r['version'] for r in up['versions']]==list(matrix.VERSIONS)
++        and len(up['files'])==24,'complete original two-version cell reference manifest')
++    records={};bodies={}
++    for item in up['files']:
++        name=item['relative_path'];p,b=common.read(reference/name)
+         common.require(p['bytes']==item['bytes'] and p['sha256']==item['sha256']
+-            and p['git_blob']==item['git_blob_sha1'],'all original C adapter/primitive/header additions')
+-        new_pins[str(relative)]=p
+-    rows=[]
+-    for item in up['sources']:
+-        version=item['version'];base=reference/('sqlite-'+version)
+-        vp,full=common.read(base/'vdbeaux.c.original')
+-        ip,internal=common.read(base/'vdbeInt.h.original')
+-        common.require(vp['bytes']==item['vdbeaux']['bytes'] and vp['sha256']==item['vdbeaux']['sha256']
+-            and ip['bytes']==item['vdbeInt']['bytes'] and ip['sha256']==item['vdbeInt']['sha256'],
+-            'complete official vdbeaux/vdbeInt sources')
+-        excerpts=[]
+-        for e in item['excerpts']:
+-            p,body=common.read(base/e['path'])
+-            common.require(body==full[e['start_byte']:e['end_byte_exclusive']]+b'\n'
+-                and p['bytes']==e['bytes'] and p['sha256']==e['sha256'],'complete original serial length/get body')
+-            excerpts.append(p)
+-        pp,primitives=common.read(base/'oracle-primitives.inc')
+-        primitive_records=[]
+-        for e in add['exact_extractions']:
+-            if e['version']!=version:continue
+-            fp,source=common.read(reference/e['source'])
+-            part=source[e['start_byte']:e['end_byte_exclusive']]
+-            common.require(fp['sha256']==e['source_sha256'] and len(part)==e['bytes']
+-                and hashlib.sha256(part).hexdigest()==e['sha256']
+-                and hashlib.sha1(b'blob '+str(len(part)).encode()+b'\0'+part).hexdigest()==e['git_blob_sha1'],
+-                'full original primitive extraction source/range/hash')
+-            marker=b'/* BEGIN ORIGINAL '+e['label'].encode()+b' */\n'
+-            end=b'\n/* END ORIGINAL '+e['label'].encode()+b' */'
+-            at=primitives.find(marker)+len(marker)
+-            common.require(primitives.count(marker)==1 and primitives[at:at+len(part)]==part
+-                and end.lstrip(b'\n') in primitives[at+len(part):],'original primitive body inclusion')
+-            primitive_records.append({'label':e['label'],'full_source':fp,'bytes':len(part),'sha256':e['sha256']})
+-        common.require(len(primitive_records)==7,'all seven primitive source sections retained')
+-        inputs={str(p):common.read(p)[0] for p in [reference/'oracle_adapter.c',
+-            base/'oracle-primitives.inc',base/'serial-length.inc',base/'serial-get.inc']}
+-        rows.append({'version':version,'full_vdbeaux':vp,'full_vdbeInt':ip,'serial_originals':excerpts,
+-            'primitives':pp,'primitive_sections':primitive_records,'native_inputs':inputs,
+-            'whole_record_C_validity_claim':False,'serial10_11_and_incomplete_fields_excluded':True})
++            and p['git_blob']==item['git_blob_sha1'],'complete original reference bytes: '+name)
++        records[name]=p;bodies[name]=b
++    original_sections=[]
++    for item in up['files']:
++        parts=[]
++        for e in item.get('sections',[]):
++            full=bodies[e['source_path']];part=full[e['start_utf8']:e['end_utf8']]
++            common.require(len(part)==e['bytes'] and hashlib.sha256(part).hexdigest()==e['sha256'],
++                'complete original function/type/constant range')
++            parts.append(part)
++            original_sections.append({'source':records[e['source_path']],'label':e['label'],
++                'bytes':len(part),'sha256':e['sha256']})
++        if parts:
++            common.require(b'\n'.join(parts)==bodies[item['relative_path']],
++                'full excerpt exactly concatenates original source ranges')
++    mp,m=read_json(reference/'native-oracle/ORACLE-DRAFT.json')
++    common.require(mp['sha256']=='e3138734a0ac6178a1c2074cfaf94e74749c4de4a47e82a7cb0c723cdd3465fa'
++        and m['schema']=='hia.sqlite.btree.cell.c-oracle-static-draft.v1'
++        and m['reference_manifest_sha256']==up_pin['sha256']
++        and [r['version'] for r in m['units']]==list(matrix.VERSIONS)
++        and m['required_compile_flags']==['-fno-strict-aliasing','-fno-fast-math']
++        and m['NDEBUG_allowed'] is False and m['export']['name']=='oracle_cell'
++        and m['export']['output_bytes']==48 and m['export']['raw_output_must_be_recorded_before_asserting_return_or_projecting'] is True,
++        'fixed ordinary cell oracle contract and assertion policy')
++    rows=[];embedded_count=0
++    for unit in m['units']:
++        version=unit['version'];path=reference/'native-oracle'/('oracle-sqlite-'+version+'.c')
++        p,c=common.read(path)
++        common.require(p['bytes']==unit['bytes'] and p['sha256']==unit['sha256'],'whole C translation unit pin')
++        included=[]
++        for e in unit['original_sections']:
++            part=c[e['start_utf8']:e['end_utf8']]
++            common.require(len(part)==e['bytes'] and hashlib.sha256(part).hexdigest()==e['sha256'],
++                'C embedded whole original section')
++            if e['role']=='complete_original_excerpt_file':
++                original=bodies[e['reference_relative']]
++            else:
++                common.require(e['role']=='exact_original_section','unknown original C section role')
++                source=e['source_section'];original=bodies[source['source_path']][source['start_utf8']:source['end_utf8']]
++            common.require(part==original,'C source includes exact full original excerpt')
++            included.append({'label':e['label'],'bytes':len(part),'sha256':e['sha256']});embedded_count+=1
++        full={}
++        for item in unit['original_full_sources']:
++            observed=records[item['relative_path']]
++            common.require(observed['bytes']==item['bytes'] and observed['sha256']==item['sha256']
++                and observed['git_blob']==item['git_blob_sha1'],'C manifest complete upstream source join')
++            full[item['relative_path']]=observed
++        rows.append({'version':version,'translation_unit':p,'embedded_originals':included,
++            'full_original_sources':full,'native_inputs':{str(path):p},
++            'manifest':mp,'upstream':up_pin,'whole_record_or_page_C_validity_claim':False,
++            'only_frozen_complete_cells_admitted':253,'refusal_cells_never_called':86})
++    common.require(embedded_count==11 and len(original_sections)>20,'full two-version original range denominator')
+     return rows
+--- record-original/trace.py
++++ btree-native/trace.py
+@@ -1,12 +1,12 @@
+-"""Complete record PRE/POST stream; physical chunks retain every byte of large records."""
++"""Complete selected-cell PRE/POST stream; physical chunks retain every byte of large records."""
+ from pathlib import Path
+ import hashlib,json,os
+ import common,matrix
+ CHUNK_BYTES=4<<20
+ MAX_BYTES=256<<20
+-# A full 1 MiB field appears in HIA and both original C before/after transports.
++# Every complete page appears in HIA and both original C before/after transports.
+ # Records may cross fixed 4 MiB physical files; no buffer is truncated or omitted.
+-MAX_RECORD_BYTES=16<<20
++MAX_BTREE_CELL_BYTES=16<<20
+ RESERVE=512<<20
+ MIN_INODES=4096
+ def capacity(path):
+@@ -18,22 +18,17 @@
+     after=[bytes.fromhex(spec['expected'][k])+matrix.CANARY for k in ('source_after_hex','output_after_hex','command_after_hex')]
+     return before,after
+ def expected_oracle(spec,version):
+-    fields=spec['expected']['fields']
+-    if fields is None:return {'version':version,'called':False,'reason':'whole_record_refused_not_a_C_field_oracle_domain','fields':[]}
+-    if not fields:return {'version':version,'called':False,'reason':'explicit_zero_field_byte_API_extension_no_C_call','fields':[]}
+-    source=bytes.fromhex(spec['source_hex']);rows=[]
+-    for index,field in enumerate(fields,1):
+-        raw=source[field['offset']:field['offset']+field['length']]
+-        inp=raw+matrix.CANARY;before=b'\xa5'*32+matrix.CANARY
+-        words=[field['length'],field['bits'],field['kind'],field['C_flags']]
+-        after=b''.join(x.to_bytes(8,'little') for x in words)+matrix.CANARY
+-        rows.append({'field_index':index,'serial_type':field['serial_type'],'payload_offset':field['offset'],
+-            'field_bytes':field['length'],'schema_format':spec['expected']['schema_format'],
+-            'actual_returned':True,'returned':0,'output_words':words,
+-            'input_before_hex':inp.hex(),'input_after_hex':inp.hex(),
+-            'output_before_hex':before.hex(),'output_after_hex':after.hex(),'output_alignment_mod8':0,
+-            'derived_projection':matrix.project_field(field,0,words)})
+-    return {'version':version,'called':True,'operation':'field','fields':rows}
++    cell=spec['expected']['cell_info']
++    if cell is None:
++        return {'version':version,'called':False,'reason':'frozen_refused_cell_not_a_C_parser_domain'}
++    raw=bytes.fromhex(spec['source_hex']);words=spec['expected']['words']
++    before_source=raw+matrix.CANARY;before=b'\xa5'*48+matrix.CANARY
++    after=b''.join(x.to_bytes(8,'little') for x in cell)+matrix.CANARY
++    return {'version':version,'called':True,'operation':'cell','page_bytes':len(raw),'usable':words[2],
++        'page_kind':words[1],'cell_offset':words[5],'actual_returned':True,'returned':0,'output_words':cell,
++        'input_before_hex':before_source.hex(),'input_after_hex':before_source.hex(),
++        'output_before_hex':before.hex(),'output_after_hex':after.hex(),'output_alignment_mod8':0,
++        'derived_projection':matrix.project_cell(cell,0,cell)}
+ def expected_records(spec):
+     before,after=expected_buffers(spec)
+     return ({'event':'pre','index':spec['index'],'method':spec['method'],'label':spec['label'],
+@@ -56,7 +51,7 @@
+     def write(self,row):
+         common.require(not self.closed,'trace writer closed')
+         raw=matrix.wire(row)
+-        common.require(len(raw)<=MAX_RECORD_BYTES and self.bytes+len(raw)<=MAX_BYTES,'full trace capacity')
++        common.require(len(raw)<=MAX_BTREE_CELL_BYTES and self.bytes+len(raw)<=MAX_BYTES,'full trace capacity')
+         pos=0
+         while pos<len(raw):
+             if self.fd is None or self.part_bytes==CHUNK_BYTES:
+@@ -71,27 +66,26 @@
+     def finish(self,complete):
+         common.require(not self.closed,'trace finish twice')
+         self._close();self.closed=True
+-        doc={'schema':'hia.sqlite.record.full-native-trace.v1','complete':complete,
++        doc={'schema':'hia.sqlite.btree.cell.full-native-trace.v1','complete':complete,
+             'parts':self.parts,'bytes':self.bytes,'records':self.records,
+             'native_returns':self.records//2 if complete else None,
+-            'chunk_limit':CHUNK_BYTES,'total_limit':MAX_BYTES,'record_limit':MAX_RECORD_BYTES,
++            'chunk_limit':CHUNK_BYTES,'total_limit':MAX_BYTES,'record_limit':MAX_BTREE_CELL_BYTES,
+             'records_may_cross_physical_chunks':True}
+         common.create(self.path/('INDEX.json' if complete else 'INDEX.partial.json'),doc)
+         return doc
+ def inspect(root,path,expected_manifest):
+     root,path=Path(root),Path(path)
+     pin,raw=common.read(path/'INDEX.json',1<<20);index=json.loads(raw)
+-    common.require(index.get('schema')=='hia.sqlite.record.full-native-trace.v1'
++    common.require(index.get('schema')=='hia.sqlite.btree.cell.full-native-trace.v1'
+         and index.get('complete') is True and type(index['bytes'])is int and 0<index['bytes']<=MAX_BYTES
+         and type(index['records'])is int and index['records']==2*sum(matrix.COUNTS)
+         and type(index['native_returns'])is int and index['native_returns']==sum(matrix.COUNTS)
+         and index['chunk_limit']==CHUNK_BYTES and index['total_limit']==MAX_BYTES
+-        and index['record_limit']==MAX_RECORD_BYTES and index['records_may_cross_physical_chunks'] is True,
++        and index['record_limit']==MAX_BTREE_CELL_BYTES and index['records_may_cross_physical_chunks'] is True,
+         'complete trace index population')
+     sequence=iter(matrix.specifications(root));spec=None;counts={x:0 for x in matrix.IDS}
+     matrix_hash=hashlib.sha256();full_hash=hashlib.sha256();total=records=0;observed=[]
+-    oracle_counts={v:{'field_calls':0,'accepted_records':0,'empty_record_extensions':0,
+-                     'refused_records_not_called':0} for v in matrix.VERSIONS}
++    oracle_counts={v:{'cell_calls':0,'accepted_cells':0,'refused_cells_not_called':0} for v in matrix.VERSIONS}
+     pending=b''
+     for number,item in enumerate(index['parts']):
+         name='part-%04d.jsonl'%number
+@@ -104,7 +98,7 @@
+             at=pending.find(b'\n')
+             if at<0:break
+             line,pending=pending[:at+1],pending[at+1:]
+-            common.require(len(line)<=MAX_RECORD_BYTES,'complete record exceeds frozen bound')
++            common.require(len(line)<=MAX_BTREE_CELL_BYTES,'complete record exceeds frozen bound')
+             row=json.loads(line);common.require(matrix.wire(row)==line,'canonical raw JSON types')
+             if records%2==0:
+                 try:spec=next(sequence)
+@@ -115,15 +109,14 @@
+             else:
+                 _,expected_post=expected_records(spec)
+                 common.require(line==matrix.wire(expected_post),'actual full native/C POST bytes/types differ')
+-                counts[spec['method']]+=1;fields=spec['expected']['fields']
++                counts[spec['method']]+=1;cell=spec['expected']['cell_info']
+                 for v in matrix.VERSIONS:
+                     count=oracle_counts[v]
+-                    if fields is None:count['refused_records_not_called']+=1
++                    if cell is None:count['refused_cells_not_called']+=1
+                     else:
+-                        count['accepted_records']+=1;count['field_calls']+=len(fields)
+-                        count['empty_record_extensions']+=int(not fields)
++                        count['accepted_cells']+=1;count['cell_calls']+=1
+             records+=1
+-        common.require(len(pending)<=MAX_RECORD_BYTES,'unterminated record exceeds bound')
++        common.require(len(pending)<=MAX_BTREE_CELL_BYTES,'unterminated record exceeds bound')
+     common.require(pending==b'','partial final JSON record')
+     try:next(sequence)
+     except StopIteration:pass
+--- record-original/worker.py
++++ btree-native/worker.py
+@@ -8,13 +8,13 @@
+     path=Path(sys.argv[1]);pin,raw=common.read(path)
+     common.require(path==ROOT/'REQUEST.json' and pin['sha256']==sys.argv[2],'frozen native request path/SHA')
+     request=json.loads(raw);output=Path(request['output'])
+-    common.require(request['schema']=='hia.sqlite.record.native-finite-request.v1'
++    common.require(request['schema']=='hia.sqlite.btree.cell.native-finite-request.v1'
+         and request['qualification_seconds']==180 and request['cleanup_seconds']==3
+-        and request['native_returns']==159 and request['expected_methods']==12
++        and request['native_returns']==339 and request['expected_methods']==12
+         and request['expected_ids']==list(matrix.IDS) and dict(os.environ)==request['environment'],
+         'same frozen finite scope and exact environment')
+     common.require(output.is_dir(),'launcher-created output')
+-    report={'schema':'hia.sqlite.record.native-worker.v1','status':'HOLD','request':pin,
++    report={'schema':'hia.sqlite.btree.cell.native-worker.v1','status':'HOLD','request':pin,
+         'exception':None,'secondary_errors':[],'native_executed':False,'HIA_compile_executed':False,
+         'C_compiles_executed':0,'source12_VM_reexecuted':False,'matching_cold_qualification':False,
+         'SQL_or_durability_closed':False,'commands':[]}
+@@ -36,8 +36,8 @@
+         common.require(qualifier.NATIVE_OBSERVER is None and qualifier.NATIVE_LINKED_OBSERVER is None,
+                        'original direct 20-wall native compile path')
+         report['HIA_compile_executed']=True
+-        source=common.read(output/'source-generation/sqlite_record.hiaasm',1<<20)[1]
+-        qualifier.compile_stage(qdir,'record',ROOT/'compiler-inputs/B3.image.bin',source)
++        source=common.read(output/'source-generation/sqlite_btree_cell.hiaasm',1<<20)[1]
++        qualifier.compile_stage(qdir,'btree_cell',ROOT/'compiler-inputs/B3.image.bin',source)
+         report['HIA_compile']=support.inspect_new_compile(qdir,request)
+         oracle_pins={}
+         for version in matrix.VERSIONS:
+@@ -57,7 +57,7 @@
+             result=compile_io.inspect(request,version,directory);report['C-'+version]=result
+             oracle_pins[version]=result['image']
+         native=output/'native';native.mkdir(mode=0o700)
+-        image_pin=report['HIA_compile']['pins']['record.image.bin']
++        image_pin=report['HIA_compile']['pins']['btree_cell.image.bin']
+         native_spec={'image':image_pin,'oracles':oracle_pins,'limits':{'cpu_seconds':180,
+             'address_bytes':256<<20,'stack_bytes':8<<20,'file_bytes':4<<20,'outer_wall_seconds':180}}
+         common.create(native/'NATIVE-INPUTS.json',native_spec)
+@@ -76,8 +76,8 @@
+         common.require(child['status']=='FINITE_NATIVE_AND_TWO_C_ORACLES_PASS_ONLY'
+             and child['exception'] is None and child['secondary_errors']==[] and child['denied_effects']==[]
+             and child['expected_ids']==child['loaded_ids']==child['actual_ids']==child['success_ids']==list(matrix.IDS)
+-            and child['tests_run']==12 and child['native_returns']==child['validated_returns']==child['actual_native_starts']==159
+-            and child['C_field_calls']=={v:{'started':2774,'returned':2774} for v in matrix.VERSIONS}
++            and child['tests_run']==12 and child['native_returns']==child['validated_returns']==child['actual_native_starts']==339
++            and child['C_cell_calls']=={v:{'started':253,'returned':253} for v in matrix.VERSIONS}
+             and child['native_counts']==expected['counts']
+             and all(child[k]==[] for k in ('failures','errors','skipped','expected_failures','unexpected_successes')),
+             'full native child result population')

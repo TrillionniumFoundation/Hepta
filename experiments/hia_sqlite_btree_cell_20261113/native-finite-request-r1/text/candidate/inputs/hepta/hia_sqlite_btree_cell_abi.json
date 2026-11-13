@@ -1,0 +1,75 @@
+{
+  "schema": "hepta.hia.sqlite-btree-cell-byte-abi.v1",
+  "entry": "sqlite_btree_cell",
+  "command": {
+    "bytes": 64,
+    "endian": "little",
+    "words": [
+      "HIABTC01",
+      "operation=1",
+      "page_size",
+      "reserved_bytes",
+      "page_number",
+      "cell_index",
+      "database_page_count",
+      "zero"
+    ]
+  },
+  "source": {
+    "bytes": "exact page size: power of two 512..65536",
+    "usable": "page_size-reserved_bytes; >=480",
+    "reserved": "0..255",
+    "page_number": "1..database_page_count<=4294967294",
+    "page_one": "100-byte database header plus table-page header; format/read-write versions limited to known 1/2, schema1..4 and encoding1..3",
+    "selected": "one pointer-array index; all reads within usable page"
+  },
+  "output": {
+    "bytes": 128,
+    "endian": "little",
+    "fields": [
+      "page_number",
+      "page_type",
+      "usable_size",
+      "cell_count",
+      "cell_index",
+      "cell_offset",
+      "cell_size",
+      "payload_offset",
+      "payload_size",
+      "local_payload_size",
+      "left_child",
+      "key_bits",
+      "overflow_page",
+      "overflow_pointer_offset",
+      "overflow_page_count",
+      "last_overflow_payload_size"
+    ]
+  },
+  "numeric": {
+    "rowid": "all 64-bit two's-complement bit patterns; one through nine varint bytes",
+    "payload": "0..2147483647; one through five varint bytes; longer nonminimal payload encodings explicitly refused",
+    "index_key_bits": "CellInfo nKey equals payload byte count; not a decoded SQL key"
+  },
+  "refusals": {
+    "protocol": 4294967293,
+    "truncated": 4294967294,
+    "capacity": 4294967292,
+    "format": 4294967291,
+    "payload_limit": 4294967290,
+    "index": 4294967289
+  },
+  "immutable_on_all_returns": [
+    "source",
+    "command",
+    "output canary"
+  ],
+  "output_on_refusal": "whole output unchanged",
+  "minimum_cell_storage": "four bytes for payload cells; interior table cell is four-byte child plus key varint",
+  "single_cell_validation_only": true,
+  "whole_page_cell_overlap_freeblock_chain_key_order_or_tree_integrity": false,
+  "overflow_chain_read": false,
+  "SQL_pager_btree_mutation_transactions_locks_recovery": false,
+  "default_agent_store_changed": false,
+  "reference": "https://www.sqlite.org/fileformat2.html#b_tree_pages",
+  "development_status": "UNEXECUTED_SOURCE_DRAFT"
+}
