@@ -1,0 +1,208 @@
+{
+  "schema": "hepta.hia.sqlite-wal-snapshot-abi.v1",
+  "status": "SOURCE_AUTHORED_UNEXECUTED",
+  "entry": "f0",
+  "source": "examples/hia_bootstrap/sqlite_wal_snapshot.hiaasm",
+  "native_arguments": [
+    "input_address",
+    "input_bytes",
+    "output_address",
+    "output_bytes",
+    "state_address",
+    "state_bytes"
+  ],
+  "logical_spans": 3,
+  "actual_abi_arguments": 6,
+  "state_bytes": 256,
+  "output_bytes": 128,
+  "maximum_input_bytes": 65576,
+  "input": {
+    "prefix_u64_little": [
+      "ASCII HIASWS01",
+      "operation"
+    ],
+    "operations": {
+      "1": {
+        "name": "START",
+        "bytes": 40,
+        "fields_after_prefix": [
+          "wal byte extent",
+          "base database page count",
+          "base database page size"
+        ],
+        "requires": "all 256 state bytes zero"
+      },
+      "2": {
+        "name": "HEADER",
+        "bytes": 48,
+        "fields_after_prefix": [
+          "the exact requested 32-byte WAL header"
+        ]
+      },
+      "3": {
+        "name": "FRAME",
+        "bytes": "40+validated WAL page size",
+        "fields_after_prefix": [
+          "the exact requested 24+page-size frame"
+        ]
+      },
+      "4": {
+        "name": "LOOKUP",
+        "bytes": 24,
+        "fields_after_prefix": [
+          "target database page number"
+        ],
+        "requires": "a copy of this image's immutable snapshot-issued state"
+      },
+      "5": {
+        "name": "FINISH",
+        "bytes": 16,
+        "fields_after_prefix": [],
+        "requires": "READY state; consumes this session"
+      }
+    }
+  },
+  "state": {
+    "fields_u64_little_by_offset": {
+      "0": "state magic",
+      "8": "phase: header=1/frame=2/ready=3/snapshot-issued=4/location-issued=5",
+      "16": "scan=1/lookup=2",
+      "24": "captured WAL byte extent (signed-i64-compatible)",
+      "32": "base database page count",
+      "40": "validated WAL page size",
+      "48": "checksum order little=0/big=1",
+      "56": "salt0",
+      "64": "salt1",
+      "72": "checkpoint sequence",
+      "80": "header checksum0",
+      "88": "header checksum1",
+      "96": "working checksum0",
+      "104": "working checksum1",
+      "112": "validated frame count in current pass",
+      "120": "next frame byte offset",
+      "128": "committed frame end mark",
+      "136": "committed DB page count, or base page count if no commit",
+      "144": "committed checksum0",
+      "152": "committed checksum1",
+      "160": "committed byte end offset, or zero",
+      "168": "scan stop reason",
+      "176": "lookup target page",
+      "184": "latest matching frame within fixed committed prefix",
+      "192": "latest matching frame header offset",
+      "200": "matching frame checksum after0",
+      "208": "matching frame checksum after1",
+      "216": "base database page size",
+      "224": "location missing=0/database=1/WAL=2",
+      "232": "matching frame checksum before0",
+      "240": "matching frame checksum before1",
+      "248": "reserved zero"
+    },
+    "host_contract": "Only zeroed state or a prior successful reply state issued by this exact image/session is valid. This is an opaque continuation, not a caller-authorized mutable record.",
+    "memory_bound": "256 bytes independent of WAL length and database page count"
+  },
+  "output": {
+    "fields_u64_little": [
+      "ASCII HIASWR01",
+      "action",
+      "read or page-data byte offset",
+      "read or page-data byte count",
+      "request/selected frame number; scan result uses valid frame count",
+      "effective page size",
+      "database page count",
+      "committed frame end mark",
+      "committed byte end offset",
+      "scan stop reason",
+      "target page",
+      "location tag",
+      "selected frame checksum before0",
+      "selected frame checksum before1",
+      "selected frame checksum after0",
+      "selected frame checksum after1"
+    ],
+    "actions": {
+      "1": "READ_HEADER (offset 0, count 32)",
+      "2": "READ_FRAME (contiguous next frame)",
+      "3": "SCAN_READY",
+      "4": "LOOKUP_READY",
+      "5": "SNAPSHOT_RESULT",
+      "6": "PAGE_LOCATION_RESULT"
+    },
+    "location_tags": {
+      "0": "target exceeds committed/base database page count; no page",
+      "1": "read from base database at the returned byte offset under the same external snapshot",
+      "2": "read page data from the selected WAL frame under the same external snapshot"
+    },
+    "read_authority": "Offsets describe requested bytes. They do not perform I/O or acquire permission, locks, descriptor identity or filesystem custody."
+  },
+  "scan": {
+    "extent": "Captured file extent is fixed for the pass; bytes appended later are excluded.",
+    "short_WAL": "extent <=32: no WAL header is read and base DB view remains unchanged, matching walIndexRecover nSize>WAL_HDRSIZE.",
+    "header_admission": [
+      "magic and page-size domain",
+      "checksum of first 24 bytes",
+      "supported version 3007000"
+    ],
+    "invalid_header": "Magic/size/checksum failures yield an ignored-WAL snapshot with an explicit reason. Unsupported version refuses; it never silently grants an empty view.",
+    "frame_admission": [
+      "exact transport and internally bound page size",
+      "salts",
+      "nonzero page number",
+      "rolling checksum of first8 header bytes then page data"
+    ],
+    "commit": "Only a checksum-valid frame whose big-endian dbsize field is nonzero advances committed frame, committed DB size, committed byte offset and committed checksum together.",
+    "tail": "A short final frame based on captured extent or the first invalid full frame stops the scan. Later valid bytes are never searched to restart a chain. Valid dbsize=0 frames after the last commit are not visible.",
+    "checksum_failure_difference": "The failed C decoder may modify a transient checksum seed. This core leaves its last valid working seed in state, and exposes only the saved committed seed for snapshot identity. It is not a drop-in mutable Wal object."
+  },
+  "lookup": {
+    "algorithm": "Replay exactly the selected committed prefix from the retained header under an externally stable generation; retain only the last matching page position. No unbounded page map is allocated.",
+    "header_binding": "All eight 32-bit header fields must match the snapshot. The header checksum is also recomputed.",
+    "end_binding": "Final replayed frame index, byte end, nonzero dbsize and rolling checksum must equal the snapshot. Any invalid or changed prefix is a refusal, not an ignored tail.",
+    "after_snapshot": "No frame after committed_end_offset is requested or selected.",
+    "out_of_range": "Pages above the snapshot DB size return missing without reading WAL.",
+    "no_commit": "When committed_frame=0, valid uncommitted frames grant no WAL visibility. Page lookup uses base DB count/size.",
+    "latest_match": "Only matching frames at or before the frozen end mark may win. Earlier commits and matching frames within the final committed transaction participate.",
+    "cost": "O(number of committed frames) per nontrivial lookup; fixed storage. A future index may optimize this without changing the snapshot rules."
+  },
+  "stop_reasons": {
+    "0": "exact full-frame EOF",
+    "1": "WAL extent <=32; header not inspected",
+    "2": "partial frame tail",
+    "3": "invalid WAL magic/page size",
+    "4": "invalid WAL header checksum",
+    "5": "frame salt mismatch",
+    "6": "zero frame page number",
+    "7": "frame checksum mismatch"
+  },
+  "refusals": {
+    "4294967288": "fixed snapshot prefix differs or lookup state cannot match",
+    "4294967289": "unsupported WAL version after valid format/checksum",
+    "4294967293": "protocol, extent, phase or replay misuse"
+  },
+  "refusals_leave_all_spans_unchanged": true,
+  "success_return": 128,
+  "domains": {
+    "base_page_count": "0 through 2^32-1",
+    "page_number": "1 through 2^32-1, as the retained byte decoder; pager limits remain external",
+    "page_size": "power of two 512 through 65536",
+    "wal_extent": "0 through 2^63-1, the existing SQLite signed-i64 file-offset representation; no new byte-volume policy limit",
+    "frame_number": "u64; not restricted to an in-memory wal-index population",
+    "fixed_input": "one frame <=65560 bytes plus 16-byte command; the SQLite maximum page size is a format limit, not a whole-WAL cap"
+  },
+  "external_requirements": [
+    "The scanner input must correspond to one stable database/WAL generation protected by the proper recovery/read locks.",
+    "The captured size and each exact read must come from the bound WAL descriptor; read errors must abort and cannot be reported as EOF.",
+    "Keep required reader locks through locator replay and the final database/WAL page read; salts and checksums are not cryptographic identity or synchronization.",
+    "Admit base DB header geometry, page count, checkpoint/backfill relationship and WAL generation before exposing the page source as a production transaction.",
+    "WAL reset, writer serialization, WAL-index shared memory, checkpoints, fsync/durable commit, page mutation and SQL/AgentStore transactions remain external."
+  ],
+  "hosted_bridge_responsibilities": [
+    "exact Python transport types",
+    "bounded fresh buffer allocation/copying and object materialization",
+    "image and opaque snapshot association",
+    "per-session one-use and permanent closure after errors/caught reentry",
+    "native executable source/image/ABI qualification supplied externally"
+  ],
+  "external_locks_io_checkpoint_and_AgentStore_default_implemented": false,
+  "historical_byte_kernel_PASS_grants_snapshot_qualification": false,
+  "actual_generation_VM_C_native_or_tests_executed": false
+}

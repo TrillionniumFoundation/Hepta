@@ -1,0 +1,142 @@
+{
+  "schema": "hia.wal-snapshot.static-freeze-authoring-failure.v1",
+  "status": "STATIC_FREEZE_HOLD_NO_REQUEST_OR_OWNER",
+  "cause": "h_text_editor newly-created files have mode 0660; the stronger pre-request own-file guard rejects group write. Product/native/VM execution count zero. Existing runtime bodies unchanged.",
+  "intent": {
+    "host": "ai395",
+    "executable": "/usr/bin/python3.14",
+    "args": [
+      "-I",
+      "-S",
+      "-B",
+      "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/freeze_native_request.py"
+    ],
+    "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1",
+    "idempotency_key": "hia-wal-snapshot-native-static-freeze-r1",
+    "timeout_seconds": 60,
+    "scope": "stdlib-only AST and complete existing input/source/system read, then create-only metadata. No original tests, generation, VM, C compile/oracle or native execution.",
+    "freezer": {
+      "bytes": 14940,
+      "sha256": "e740a17748acbb462def89aa7a5e251b8b9e456b7be19dd00c60eec23b4d378d",
+      "git_blob": "f789c3b17392919dd9473a6f4b07e377ecdeb221"
+    }
+  },
+  "start": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-I\",\n      \"-S\",\n      \"-B\",\n      \"/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/freeze_native_request.py\"\n    ],\n    \"created_unix_ms\": 1794569346560,\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1\",\n    \"env_keys\": [],\n    \"executable\": \"/usr/bin/python3.14\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1d4ab1e00-392-511\",\n    \"idempotency_key\": \"hia-wal-snapshot-native-static-freeze-r1\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d4ab1e00-392-511\",\n    \"request_digest\": \"05b7cb00e9fab4a0afa1881d546f231791b81fb75fd3c2959485b1be6fa5c36b\",\n    \"request_fingerprint\": 412021095713649824,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1d4ab1e00-392-511\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1d4ab1e00-392-511\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "status_read": {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"at_unix_ms\": 1794569348316,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 1,\n  \"job_id\": \"1a1d4ab1e00-392-511\",\n  \"launch_nonce\": \"47a9c1f6d62ba504ef8fd3c0279a1c6a\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 940,\n      \"stored\": 940\n    },\n    \"stdout\": {\n      \"seen\": 0,\n      \"stored\": 0\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"failed\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+        }
+      ],
+      "structuredContent": null,
+      "isError": false
+    }
+  },
+  "streams": {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1d4ab1e00-392-511\",\n  \"stderr\": {\n    \"bytes_hex\": \"54726163656261636b20286d6f737420726563656e742063616c6c206c617374293a0a202046696c6520222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f73716c6974652d77616c2d736e617073686f742d6e61746976652d72312f70726f6f662f667265657a655f6e61746976655f726571756573742e7079222c206c696e652039372c20696e203c6d6f64756c653e0a20202020636f6e74726f6c5f70696e733d6a736f6e2e6c6f616473287265616428524f4f542f27434f4e54524f4c2d50494e532e6a736f6e27295b315d295b27636f6e74726f6c73275d0a202020202020202020202020202020202020202020202020202020207e7e7e7e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e0a202046696c6520222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f73716c6974652d77616c2d736e617073686f742d6e61746976652d72312f70726f6f662f667265657a655f6e61746976655f726571756573742e7079222c206c696e652032352c20696e20726561640a202020207265717569726528732e73745f7569643d3d6f732e676574756964282920616e6420732e73745f6769643d3d6f732e676574676964282920616e6420732e73745f6e6c696e6b3d3d3120616e64206e6f7420732e73745f6d6f646526306f3032322c276f776e65642073696e676c652d6c696e6b20696e70757427290a202020207e7e7e7e7e7e7e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e0a202046696c6520222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f73716c6974652d77616c2d736e617073686f742d6e61746976652d72312f70726f6f662f667265657a655f6e61746976655f726571756573742e7079222c206c696e652031342c20696e20726571756972650a202020206966206e6f742076616c75653a72616973652052756e74696d654572726f72286d657373616765290a20202020202020202020202020202020205e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e0a52756e74696d654572726f723a206f776e65642073696e676c652d6c696e6b20696e7075740a\",\n    \"eof\": true,\n    \"next_offset\": 940,\n    \"offset\": 0,\n    \"size\": 940,\n    \"text\": \"Traceback (most recent call last):\\n  File \\\"/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/freeze_native_request.py\\\", line 97, in <module>\\n    control_pins=json.loads(read(ROOT/'CONTROL-PINS.json')[1])['controls']\\n                            ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/freeze_native_request.py\\\", line 25, in read\\n    require(s.st_uid==os.getuid() and s.st_gid==os.getgid() and s.st_nlink==1 and not s.st_mode&0o022,'owned single-link input')\\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/freeze_native_request.py\\\", line 14, in require\\n    if not value:raise RuntimeError(message)\\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^\\nRuntimeError: owned single-link input\\n\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  }\n}"
+        }
+      ],
+      "structuredContent": null,
+      "isError": false
+    }
+  },
+  "metadata": [
+    {
+      "name": "CONTROL-PINS.json",
+      "observed": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"metadata\":{\"acl_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"gid\":1000,\"link_count\":1,\"metadata_platform\":\"linux\",\"mode\":432,\"uid\":1000,\"xattr_names\":[],\"xattr_sha256\":{}},\"mode\":432,\"path\":\"/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/CONTROL-PINS.json\",\"sha256\":\"dd4761bbee39e8027ab8a5ec0b9476fdf8904e0d5dd5a4dd3ed9a264745638de\",\"size\":2671,\"version\":\"66306:80243539:2671:1794569197410806523:1794569197413283635\"}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "name": "README.md",
+      "observed": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"metadata\":{\"acl_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"gid\":1000,\"link_count\":1,\"metadata_platform\":\"linux\",\"mode\":432,\"uid\":1000,\"xattr_names\":[],\"xattr_sha256\":{}},\"mode\":432,\"path\":\"/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/README.md\",\"sha256\":\"f592fce236ff21f4d3202821bc62bf08c47580a9b367873ebbf1429dcfc3c76d\",\"size\":4184,\"version\":\"66306:80243538:4184:1794569194091978958:1794569194127400462\"}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "name": "proof/freeze_native_request.py",
+      "observed": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"metadata\":{\"acl_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"gid\":1000,\"link_count\":1,\"metadata_platform\":\"linux\",\"mode\":432,\"uid\":1000,\"xattr_names\":[],\"xattr_sha256\":{}},\"mode\":432,\"path\":\"/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/freeze_native_request.py\",\"sha256\":\"e740a17748acbb462def89aa7a5e251b8b9e456b7be19dd00c60eec23b4d378d\",\"size\":14940,\"version\":\"66306:80243540:14940:1794569328707202006:1794569328738615266\"}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "name": "control/model.py",
+      "observed": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"metadata\":{\"acl_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"gid\":1000,\"link_count\":1,\"metadata_platform\":\"linux\",\"mode\":432,\"uid\":1000,\"xattr_names\":[],\"xattr_sha256\":{}},\"mode\":432,\"path\":\"/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/model.py\",\"sha256\":\"a6f970715d046ffb35c25127545bf7c9f9ea81f80ba469e1f8c50c6397266089\",\"size\":10625,\"version\":\"66306:80243348:10625:1794568302736480818:1794568302745175578\"}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "name": "control/process_owner_impl.py",
+      "observed": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"metadata\":{\"acl_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"gid\":1000,\"link_count\":1,\"metadata_platform\":\"linux\",\"mode\":384,\"uid\":1000,\"xattr_names\":[],\"xattr_sha256\":{}},\"mode\":384,\"path\":\"/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/process_owner_impl.py\",\"sha256\":\"36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2\",\"size\":17601,\"version\":\"66306:80243356:17601:1794568339242432702:1794568339242432702\"}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,1531 @@
+{
+  "C_calls_each": 639,
+  "C_domain": "Frozen finite full WAL or fixed snapshot prefix <=8 MiB, chosen without HIA status; excluded original protocol/large-extent cases still execute in HIA.",
+  "C_full_page_drives_each": 464,
+  "C_original_drives_each": 175,
+  "C_raw_recording": "Record complete source before/after, all32 raw words and all read-pair buffer before/after first; then independently apply accepted snapshot and database-page projection.",
+  "actual_HIA_source": {
+    "bytes": 56137,
+    "git_blob": "bddd6b022a6f7e5bcf518fb60d50b9884076f6a7",
+    "identity": [
+      66306,
+      80243402,
+      33152,
+      1000,
+      1000,
+      1,
+      56137,
+      1794568339276081040,
+      1794568339276081040
+    ],
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-actual/sqlite_wal_snapshot.hiaasm",
+    "sha256": "1c65110f745ba4e1b3d2773a4c12e39924bbeee2ee27d873d24ac519b4a38163"
+  },
+  "added_full_page_method_count": 1,
+  "added_full_page_native_calls": 2096,
+  "added_full_page_scenarios": 144,
+  "boot_id": "b1620269-aaef-43e7-bf47-bc6eb1c1a447",
+  "cleanup_seconds": 3,
+  "command": [
+    "/usr/bin/python3.14",
+    "-I",
+    "-S",
+    "-B",
+    "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/worker.py",
+    "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/REQUEST.json",
+    "@REQUEST_SHA256@"
+  ],
+  "compiler_cpu_seconds": 10,
+  "compiler_output_capacity": 1048576,
+  "compiler_wall_seconds": 20,
+  "compiler_workspace_bytes": 1048576,
+  "development_compiler": {
+    "complete_original_count": 7,
+    "current_source_matching_cold": false,
+    "donor": "df7cc43d9b225108924aef972b10f67a5a0dfb29",
+    "historical_run": 43220208164,
+    "image_bytes": 670467,
+    "image_sha256": "9de8606c153e50f2e742a18d4eb9f3b7c210b404f005346e95b550648d8f2892"
+  },
+  "environment": {
+    "LANG": "C",
+    "LC_ALL": "C",
+    "PATH": "/usr/bin:/bin",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONHASHSEED": "0",
+    "TMPDIR": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1-actual/tmp",
+    "TZ": "UTC"
+  },
+  "expected_ids": [
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_01_Core_roundtrip_and_original_nine_caps",
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_02_last_commit_and_latest_same_page_in_both_orders",
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_03_checksum_valid_uncommitted_frames_are_not_visible",
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_04_partial_tail_at_header_and_frame_structural_edges",
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_05_first_corrupt_frame_stops_before_later_valid_commit",
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_06_header_admission_order_and_all_page_sizes",
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_07_fixed_snapshot_ignores_later_append_and_rejects_changed_prefix",
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_08_commit_truncation_database_fallback_and_u32_pages",
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_09_large_extent_uses_bounded_packets_without_whole_WAL_limit",
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_10_protocol_refusals_and_one_use_states_preserve_spans",
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_11_bridge_caught_reentry_exception_identity_and_custody",
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_12_retained_official_recovery_and_reused_arithmetic_are_exact",
+    "tests.hia_wal_snapshot_native_pages_r1.FullPageSizesNativeTests.test_13_complete_frames_lookup_and_recovery_all_page_sizes"
+  ],
+  "expected_methods": 13,
+  "forbidden": "No retry, extra qualification time, substituted B3, VM execution, method omission, partial-trace acceptance or failed-C-domain inferred from HIA status.",
+  "free_inodes": 4096,
+  "gid": 1000,
+  "host": "ai395",
+  "initial_free_bytes": 1073741824,
+  "inputs": {
+    "CONTROL-PINS.json": {
+      "bytes": 2671,
+      "git_blob": "6227474eaf8089e22ce568425c2acf214968dbad",
+      "identity": [
+        66306,
+        80243539,
+        33152,
+        1000,
+        1000,
+        1,
+        2671,
+        1794569197410806523,
+        1794569458769994295
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/CONTROL-PINS.json",
+      "sha256": "dd4761bbee39e8027ab8a5ec0b9476fdf8904e0d5dd5a4dd3ed9a264745638de"
+    },
+    "EXPECTED-MATRIX.json": {
+      "bytes": 682670,
+      "git_blob": "1b0024362861ea3a80366e7cbd2cfec0a2be71d9",
+      "identity": [
+        66306,
+        80243420,
+        33152,
+        1000,
+        1000,
+        1,
+        682670,
+        1794568341785743808,
+        1794568341822776670
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/EXPECTED-MATRIX.json",
+      "sha256": "3dd86711aae8526ce2aa6660277050d66d198dee0ed87709e9b9b2c2918ca35c"
+    },
+    "MATERIALIZATION.json": {
+      "bytes": 34943,
+      "git_blob": "c17a1a76b6fee50307d38c76f66bdd9b4e5a7894",
+      "identity": [
+        66306,
+        80243419,
+        33152,
+        1000,
+        1000,
+        1,
+        34943,
+        1794568339286812363,
+        1794568339286867424
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/MATERIALIZATION.json",
+      "sha256": "15af7759cafa4a6eba31b8653d3e67f90fb349b91382c9e63ed9394bbc57a9ab"
+    },
+    "MODE-PREPARATION.json": {
+      "bytes": 48536,
+      "git_blob": "b91c36bc77776f5f72bda98b417cd96ce9bca05c",
+      "identity": [
+        66306,
+        80243547,
+        33152,
+        1000,
+        1000,
+        1,
+        48536,
+        1794569458791897956,
+        1794569458791897956
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/MODE-PREPARATION.json",
+      "sha256": "4e5c4a970a9f0c592b4d843efdf0d520cd91bcec1c3d45f41656a6c2f5eec5a7"
+    },
+    "NEW-C-ORACLES.json": {
+      "bytes": 29816,
+      "git_blob": "eca3333f6deef2f9978885d05d645b6d6f342467",
+      "identity": [
+        66306,
+        80243416,
+        33152,
+        1000,
+        1000,
+        1,
+        29816,
+        1794568339282465836,
+        1794568339282465836
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/NEW-C-ORACLES.json",
+      "sha256": "574b71069a2d701e1b23a2a441411ccfc5bb306f697726db81d790a501f44c63"
+    },
+    "README.md": {
+      "bytes": 4184,
+      "git_blob": "056d09c4c8a47b0b5797a3cbdce79d90163ab825",
+      "identity": [
+        66306,
+        80243538,
+        33152,
+        1000,
+        1000,
+        1,
+        4184,
+        1794569194091978958,
+        1794569458770994259
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/README.md",
+      "sha256": "f592fce236ff21f4d3202821bc62bf08c47580a9b367873ebbf1429dcfc3c76d"
+    },
+    "SOURCE-BASE.json": {
+      "bytes": 1490897,
+      "git_blob": "a0548732bc756ef7dd5bf4ca37d65c8e287ef49c",
+      "identity": [
+        66306,
+        80243353,
+        33152,
+        1000,
+        1000,
+        1,
+        1490897,
+        1794568339229502436,
+        1794568339229869464
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/SOURCE-BASE.json",
+      "sha256": "024dcc58b18e72b6f093b3de7f1db5112505af6942f9a4bfb108134326c9a023"
+    },
+    "STATIC-FREEZE.json": {
+      "bytes": 13406,
+      "git_blob": "684180f7e5b02a67d090c167b102166bda54938b",
+      "identity": [
+        66306,
+        80243551,
+        33152,
+        1000,
+        1000,
+        1,
+        13406,
+        1794569459178928662,
+        1794569459178928662
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/STATIC-FREEZE.json",
+      "sha256": "658b1a336e83b34437979e1b948e728403f1b63cba2810a6d3a31c58415da53a"
+    },
+    "STATIC-REFERENCE-JOINS.json": {
+      "bytes": 13900,
+      "git_blob": "bf9ffe7371575800ee12c009540bdb4bf16a3039",
+      "identity": [
+        66306,
+        80243521,
+        33152,
+        1000,
+        1000,
+        1,
+        13900,
+        1794568869219541586,
+        1794568869219541586
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/STATIC-REFERENCE-JOINS.json",
+      "sha256": "860a77b8e6cc83426c3bfb7e77fc8456d5d0a4c4c2594acb11fc6f090ed9243a"
+    },
+    "SYSTEM-INPUTS.json": {
+      "bytes": 2052924,
+      "git_blob": "38402f00c4fec26abb6b61583c6c235fc54aea39",
+      "identity": [
+        66306,
+        80243354,
+        33152,
+        1000,
+        1000,
+        1,
+        2052924,
+        1794568339237651150,
+        1794568339237869178
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/SYSTEM-INPUTS.json",
+      "sha256": "21bb26985d7b5be8d136d12cbb80ac87b80e10338335885dc9f79f16a8491bba"
+    },
+    "candidate/inputs/hepta/hia_sqlite_wal_snapshot_abi.json": {
+      "bytes": 9695,
+      "git_blob": "900cf6f9472bea898d9adb83e464f27232fb0065",
+      "identity": [
+        66306,
+        80243371,
+        33152,
+        1000,
+        1000,
+        1,
+        9695,
+        1794568339257614618,
+        1794568339257614618
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/inputs/hepta/hia_sqlite_wal_snapshot_abi.json",
+      "sha256": "171ff8fa4cdbe7871462c2be0146d1006407b68ea3cf958be3e2c1109075cc28"
+    },
+    "candidate/inputs/hepta/hia_sqlite_wal_snapshot_native.py": {
+      "bytes": 11015,
+      "git_blob": "00556f5e863aed38876d47c087542e2141d8d189",
+      "identity": [
+        66306,
+        80243372,
+        33152,
+        1000,
+        1000,
+        1,
+        11015,
+        1794568339258348523,
+        1794568339258348523
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/inputs/hepta/hia_sqlite_wal_snapshot_native.py",
+      "sha256": "c96970ed45860e2e30e7c62bdf9cf22749b9e0559bf6d111d49344ca129bc02b"
+    },
+    "candidate/inputs/tests/test_hia_sqlite_wal_snapshot_source.py": {
+      "bytes": 27618,
+      "git_blob": "f15fa39b47e74987b871de425a70013d4cd9054a",
+      "identity": [
+        66306,
+        80243374,
+        33152,
+        1000,
+        1000,
+        1,
+        27618,
+        1794568339258956561,
+        1794568339258956561
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/inputs/tests/test_hia_sqlite_wal_snapshot_source.py",
+      "sha256": "2bde9e21ca1de533449658464edea5dcd1597d9e880d9c9dfa0e1fab3cb10659"
+    },
+    "candidate/inputs/tools/generate_hia_sqlite_wal_snapshot.py": {
+      "bytes": 14145,
+      "git_blob": "572871b304169ad150dc11768b1a1298073d7f02",
+      "identity": [
+        66306,
+        80243376,
+        33152,
+        1000,
+        1000,
+        1,
+        14145,
+        1794568339259548980,
+        1794568339259548980
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/inputs/tools/generate_hia_sqlite_wal_snapshot.py",
+      "sha256": "fead3c8f3cbb755a012975024eeae67853c12cd1b82ffc374d3ccde54cb2caf5"
+    },
+    "candidate/native-oracles/sqlite-3.46.0/adapter.c": {
+      "bytes": 47450,
+      "git_blob": "46fd91b971090d4becf3cf90dd2004ff73705912",
+      "identity": [
+        66306,
+        80243411,
+        33152,
+        1000,
+        1000,
+        1,
+        47450,
+        1794568339279864867,
+        1794568339279867675
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/native-oracles/sqlite-3.46.0/adapter.c",
+      "sha256": "9ee3aa2ea7c71e87badb8df3bf191f03ec20220e39779fbd19efc76c9a812a4d"
+    },
+    "candidate/native-oracles/sqlite-3.53.2/adapter.c": {
+      "bytes": 47823,
+      "git_blob": "50221e9d6d6a765b1c8419990d20ec74b6042e0d",
+      "identity": [
+        66306,
+        80243414,
+        33152,
+        1000,
+        1000,
+        1,
+        47823,
+        1794568339281249168,
+        1794568339281249168
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/native-oracles/sqlite-3.53.2/adapter.c",
+      "sha256": "0e6fc37bf4cfea5f71bb996199dabc1331d37b2b81dc580d92a7e9e0a4799d14"
+    },
+    "candidate/reference/UPSTREAM.original.json": {
+      "bytes": 2888,
+      "git_blob": "ea0c002642e407c81be7182e22d97c141551f954",
+      "identity": [
+        66306,
+        80243378,
+        33152,
+        1000,
+        1000,
+        1,
+        2888,
+        1794568339260269355,
+        1794568339260269355
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/UPSTREAM.original.json",
+      "sha256": "ce79014a7e74c7e6170aaca5bcf5130ca58377edce7d4103290e9a63634937d1"
+    },
+    "candidate/reference/retained-generate_hia_sqlite_wal.py": {
+      "bytes": 6746,
+      "git_blob": "25ba896730af9c6edc9f2dbe5f76fbc4ecafb7ae",
+      "identity": [
+        66306,
+        80243379,
+        33152,
+        1000,
+        1000,
+        1,
+        6746,
+        1794568339260802896,
+        1794568339260868355
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/retained-generate_hia_sqlite_wal.py",
+      "sha256": "7eb498e36005e951dab698823a38ec8f367c57f8d20e2ea0d81aa109d58a14a3"
+    },
+    "candidate/reference/retained-hia_sqlite_wal_abi.json": {
+      "bytes": 3887,
+      "git_blob": "7edcb9779e5de7ae3cf6d84af70761ffbd265be3",
+      "identity": [
+        66306,
+        80243380,
+        33152,
+        1000,
+        1000,
+        1,
+        3887,
+        1794568339261322788,
+        1794568339261322788
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/retained-hia_sqlite_wal_abi.json",
+      "sha256": "92a47c34fafa07973ceb51a68b1faa2047d46b6c875859ecb491ca1373c5fb2b"
+    },
+    "candidate/reference/retained-hia_sqlite_wal_native.py": {
+      "bytes": 4826,
+      "git_blob": "d64723385381f2e7f63b18b09dcc7923fe62e84e",
+      "identity": [
+        66306,
+        80243381,
+        33152,
+        1000,
+        1000,
+        1,
+        4826,
+        1794568339261867809,
+        1794568339261868319
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/retained-hia_sqlite_wal_native.py",
+      "sha256": "76b784ff283d9a9f692e44fde486cb1d97594107c3f7b5a3bb339f1beffe5f2c"
+    },
+    "candidate/reference/retained-test_hia_sqlite_wal_source.py": {
+      "bytes": 14922,
+      "git_blob": "a978282df33fbfa431ea1df5bc8756dd02857de6",
+      "identity": [
+        66306,
+        80243382,
+        33152,
+        1000,
+        1000,
+        1,
+        14922,
+        1794568339262394970,
+        1794568339262394970
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/retained-test_hia_sqlite_wal_source.py",
+      "sha256": "41000266f959f4abb931ceef7709c6a2110b9cb83084489b72a54e668d0308ea"
+    },
+    "candidate/reference/source12-record/control--clean_exec.py": {
+      "bytes": 778,
+      "git_blob": "cea33c90024114d9cc10fe0b7322ea2fbf61bc72",
+      "identity": [
+        66306,
+        80243384,
+        33152,
+        1000,
+        1000,
+        1,
+        778,
+        1794568339262934631,
+        1794568339262934631
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/source12-record/control--clean_exec.py",
+      "sha256": "bfdebcc3fe4c666f04ee629bcc62ccf9ae37c59010fd8e371069ce49212471d8"
+    },
+    "candidate/reference/source12-record/control--source12.py": {
+      "bytes": 16620,
+      "git_blob": "64020e4ee9d4b5d8ae168eae58824a047ad7271c",
+      "identity": [
+        66306,
+        80243385,
+        33152,
+        1000,
+        1000,
+        1,
+        16620,
+        1794568339263458503,
+        1794568339263458503
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/source12-record/control--source12.py",
+      "sha256": "b32057a6603934419212d045081f053081775842e61cbd5de2302be1850f1b47"
+    },
+    "candidate/reference/source12-record/freeze_source12.py": {
+      "bytes": 8057,
+      "git_blob": "8fc37323ac0f7fbb95b38bb3c0336068a18724b9",
+      "identity": [
+        66306,
+        80243386,
+        33152,
+        1000,
+        1000,
+        1,
+        8057,
+        1794568339263967655,
+        1794568339263967655
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/source12-record/freeze_source12.py",
+      "sha256": "596a5dc776ea4767bb60c3abf4911e836599be4d483910194fe56e4cbe100e0e"
+    },
+    "candidate/reference/sqlite-3.46.0/util.c.original": {
+      "bytes": 51716,
+      "git_blob": "3b10ba60ada646c6e5f4ceca358fa09a59263eb4",
+      "identity": [
+        66306,
+        80243412,
+        33152,
+        1000,
+        1000,
+        1,
+        51716,
+        1794568339280570172,
+        1794568339280570172
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/sqlite-3.46.0/util.c.original",
+      "sha256": "93318efdd7140bbb7cba31f341b29eff558d9efd7f4543e001d043e73ca733eb"
+    },
+    "candidate/reference/sqlite-3.46.0/wal.c.original": {
+      "bytes": 174376,
+      "git_blob": "fd2eabfd963c6b07ace6d9a6fde8824a26e36d4e",
+      "identity": [
+        66306,
+        80243388,
+        33152,
+        1000,
+        1000,
+        1,
+        174376,
+        1794568339264678510,
+        1794568339264868212
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/sqlite-3.46.0/wal.c.original",
+      "sha256": "d4a104b5f3cb807e026a9dbcdb77519358b06b66f76cb6b6ef70e3793379dd62"
+    },
+    "candidate/reference/sqlite-3.46.0/walFindFrame.original.c": {
+      "bytes": 3779,
+      "git_blob": "b9cadd6f09f7c81f64d8a6403f64f7f15c30f3fd",
+      "identity": [
+        66306,
+        80243389,
+        33152,
+        1000,
+        1000,
+        1,
+        3779,
+        1794568339265459103,
+        1794568339265459103
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/sqlite-3.46.0/walFindFrame.original.c",
+      "sha256": "dd5eb486b2ca88c9b9f4fd3e2d7700eb2c203975d870f3c29ad3280c39349405"
+    },
+    "candidate/reference/sqlite-3.46.0/walIndexRecover.original.c": {
+      "bytes": 8454,
+      "git_blob": "29d7389f0930aa2ee38ce62abaa5b2da3ab7fbd8",
+      "identity": [
+        66306,
+        80243390,
+        33152,
+        1000,
+        1000,
+        1,
+        8454,
+        1794568339266028223,
+        1794568339266028223
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/sqlite-3.46.0/walIndexRecover.original.c",
+      "sha256": "507414892fa603fb8566a38c341c20b12f9427379866e533664c166de53cbeb6"
+    },
+    "candidate/reference/sqlite-3.53.2/util.c.original": {
+      "bytes": 63901,
+      "git_blob": "57b98ad4c94aa5825f697d196e1bfe3e9e6051d6",
+      "identity": [
+        66306,
+        80243415,
+        33152,
+        1000,
+        1000,
+        1,
+        63901,
+        1794568339281828418,
+        1794568339281867603
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/sqlite-3.53.2/util.c.original",
+      "sha256": "f3ad5a891625459352c1b57c053d3b89dcc973206644126a857c0ff82b7ce37f"
+    },
+    "candidate/reference/sqlite-3.53.2/wal.c.original": {
+      "bytes": 177651,
+      "git_blob": "cc8ed326cbabcb90c0ab490f8ed61ec8155b4c79",
+      "identity": [
+        66306,
+        80243392,
+        33152,
+        1000,
+        1000,
+        1,
+        177651,
+        1794568339266714209,
+        1794568339266868140
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/sqlite-3.53.2/wal.c.original",
+      "sha256": "64d2a6695fbf5d661a9ccb82d160a5fb18698d7175e41828c5ed9428992c7752"
+    },
+    "candidate/reference/sqlite-3.53.2/walFindFrame.original.c": {
+      "bytes": 3821,
+      "git_blob": "8af2811843610d83ca027697f251d20241c29911",
+      "identity": [
+        66306,
+        80243393,
+        33152,
+        1000,
+        1000,
+        1,
+        3821,
+        1794568339267533890,
+        1794568339267533890
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/sqlite-3.53.2/walFindFrame.original.c",
+      "sha256": "9b38ad5c8f0e88f6fe511d88aee278666381a12f593aacacf288da58fbe52d94"
+    },
+    "candidate/reference/sqlite-3.53.2/walIndexRecover.original.c": {
+      "bytes": 8454,
+      "git_blob": "29d7389f0930aa2ee38ce62abaa5b2da3ab7fbd8",
+      "identity": [
+        66306,
+        80243394,
+        33152,
+        1000,
+        1000,
+        1,
+        8454,
+        1794568339268173058,
+        1794568339268173058
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/candidate/reference/sqlite-3.53.2/walIndexRecover.original.c",
+      "sha256": "507414892fa603fb8566a38c341c20b12f9427379866e533664c166de53cbeb6"
+    },
+    "compiler-inputs/B3.image.bin": {
+      "bytes": 670467,
+      "git_blob": "ee06c095ec153085da670ffd4c496fb7d7fd5c4d",
+      "identity": [
+        66306,
+        80243361,
+        33152,
+        1000,
+        1000,
+        1,
+        670467,
+        1794568339248975882,
+        1794568339248975882
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/compiler-inputs/B3.image.bin",
+      "sha256": "9de8606c153e50f2e742a18d4eb9f3b7c210b404f005346e95b550648d8f2892"
+    },
+    "compiler-inputs/B3.input.bin": {
+      "bytes": 462939,
+      "git_blob": "9e6beb5822fb9553cd0623907f8457de27a74cb6",
+      "identity": [
+        66306,
+        80243360,
+        33152,
+        1000,
+        1000,
+        1,
+        462939,
+        1794568339246328505,
+        1794568339246328505
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/compiler-inputs/B3.input.bin",
+      "sha256": "c6fbbc080b9167933b8003531a81b3782aa2e57b3a9148fa39c3794a13878699"
+    },
+    "compiler-inputs/B3.output.bin": {
+      "bytes": 1048576,
+      "git_blob": "0ca9573318715f37737bf55091c89cb7eb7dc5d9",
+      "identity": [
+        66306,
+        80243363,
+        33152,
+        1000,
+        1000,
+        1,
+        1048576,
+        1794568339253431035,
+        1794568339253868605
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/compiler-inputs/B3.output.bin",
+      "sha256": "53ab60d4484a45235d49c5eb250672575060db096dd93fd74bd7f4f1b75f9083"
+    },
+    "compiler-inputs/B3.receipt.json": {
+      "bytes": 1675,
+      "git_blob": "a94a68e0b9be86b0c8a2b09be4cc4eab2c4bdf5e",
+      "identity": [
+        66306,
+        80243359,
+        33152,
+        1000,
+        1000,
+        1,
+        1675,
+        1794568339243961878,
+        1794568339243961878
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/compiler-inputs/B3.receipt.json",
+      "sha256": "8e95265337f0f77e55fca45cb7a086781de1294c8a082cd148c7843644d135aa"
+    },
+    "compiler-inputs/B3.request.json": {
+      "bytes": 526,
+      "git_blob": "7ecce97aecdcdd8ab6a9a460f28bcaae3f8aeef0",
+      "identity": [
+        66306,
+        80243364,
+        33152,
+        1000,
+        1000,
+        1,
+        526,
+        1794568339255284490,
+        1794568339255284490
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/compiler-inputs/B3.request.json",
+      "sha256": "5f4da01548404a14671b67a536fa49cb9dde06048a4aa2c0166d1e431c8c274e"
+    },
+    "compiler-inputs/B3.stderr.log": {
+      "bytes": 0,
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "identity": [
+        66306,
+        80243358,
+        33152,
+        1000,
+        1000,
+        1,
+        0,
+        1794568339242432702,
+        1794568339242868999
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/compiler-inputs/B3.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "compiler-inputs/B3.stdout.log": {
+      "bytes": 967,
+      "git_blob": "1e4c95dcae2126b6cb606e2f1dbed825e54ff2a4",
+      "identity": [
+        66306,
+        80243362,
+        33152,
+        1000,
+        1000,
+        1,
+        967,
+        1794568339250419941,
+        1794568339250419941
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/compiler-inputs/B3.stdout.log",
+      "sha256": "368e46084df251f9801b24660466c41ccb9902c31423afd16e289368d8df53c6"
+    },
+    "control/clean_exec.py": {
+      "bytes": 566,
+      "git_blob": "c8cf9de1ad67a14860971e9afccfa423de3b5ae6",
+      "identity": [
+        66306,
+        80243511,
+        33152,
+        1000,
+        1000,
+        1,
+        566,
+        1794568768532433982,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/clean_exec.py",
+      "sha256": "260742b8632ec849b00a884e8685c950a81a759e84374d2a41fb90855078f9f2"
+    },
+    "control/common.py": {
+      "bytes": 4165,
+      "git_blob": "3e5cef478a77fbeb043d3ab9117084dd239a6705",
+      "identity": [
+        66306,
+        80243355,
+        33152,
+        1000,
+        1000,
+        1,
+        4165,
+        1794568339241375629,
+        1794568339241375629
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/common.py",
+      "sha256": "4bbf3343b3b48bf30b553a49db4fa9696e50ac48dc86762832bfecbbacb5ff8b"
+    },
+    "control/compile_child.py": {
+      "bytes": 3348,
+      "git_blob": "a4c4b89bb568af2d8a5fbfe01bfc015262f918e7",
+      "identity": [
+        66306,
+        80243507,
+        33152,
+        1000,
+        1000,
+        1,
+        3348,
+        1794568756240032035,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/compile_child.py",
+      "sha256": "319b1688852042389383eab0c9e5f8ddb4241252a33a768c16abe4c806c8e772"
+    },
+    "control/compile_io.py": {
+      "bytes": 4655,
+      "git_blob": "be2d6d26e8cac092497d7c7b7d99ab34d2a4acd3",
+      "identity": [
+        66306,
+        80243506,
+        33152,
+        1000,
+        1000,
+        1,
+        4655,
+        1794568753931565332,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/compile_io.py",
+      "sha256": "891bad8d61a3c53581c871b9a9e4391af0ffb5bc4590e46efbb78b4745ef0414"
+    },
+    "control/launch.py": {
+      "bytes": 9105,
+      "git_blob": "5852adf17221fb64016427b4c3ad00a00d6dcbcb",
+      "identity": [
+        66306,
+        80243510,
+        33152,
+        1000,
+        1000,
+        1,
+        9105,
+        1794568766140119445,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/launch.py",
+      "sha256": "49803e10187674efd327397c47dbc9a086f846dd0259c621705c23208e026c30"
+    },
+    "control/matrix.py": {
+      "bytes": 13484,
+      "git_blob": "8a01e73c0335ad8fa9cae6b88949e091ec70ad35",
+      "identity": [
+        66306,
+        80243349,
+        33152,
+        1000,
+        1000,
+        1,
+        13484,
+        1794568305636848233,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/matrix.py",
+      "sha256": "af5547ec583a37d70513a6f14e1df9d587969f4323468dc89c3628f250946311"
+    },
+    "control/model.py": {
+      "bytes": 10625,
+      "git_blob": "cf1e9e08e989f54e3a99ba84f15b484bf82bcd8e",
+      "identity": [
+        66306,
+        80243348,
+        33152,
+        1000,
+        1000,
+        1,
+        10625,
+        1794568302736480818,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/model.py",
+      "sha256": "a6f970715d046ffb35c25127545bf7c9f9ea81f80ba469e1f8c50c6397266089"
+    },
+    "control/native_cases.py": {
+      "bytes": 23100,
+      "git_blob": "22b8c9f69cff240bfc51bd23b9a95d7c7bbbb2c8",
+      "identity": [
+        66306,
+        80243508,
+        33152,
+        1000,
+        1000,
+        1,
+        23100,
+        1794568758828792310,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/native_cases.py",
+      "sha256": "ee424a401ab005204bfb7e89dc691771152a2bc8f19f3f08e04fc3d3f9496e40"
+    },
+    "control/process_owner_impl.py": {
+      "bytes": 17601,
+      "git_blob": "6f600ab75894859b9840c0311cc8891a67b6c53a",
+      "identity": [
+        66306,
+        80243356,
+        33152,
+        1000,
+        1000,
+        1,
+        17601,
+        1794568339242432702,
+        1794568339242432702
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/process_owner_impl.py",
+      "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+    },
+    "control/support.py": {
+      "bytes": 27358,
+      "git_blob": "efc8a466dfdaa5ec090685db174e4556d9ebad12",
+      "identity": [
+        66306,
+        80243505,
+        33152,
+        1000,
+        1000,
+        1,
+        27358,
+        1794568751559509873,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/support.py",
+      "sha256": "2329e38bcf8191f379fa16b48638220aeef21014d7a92c6e700e5e9e1ae106a1"
+    },
+    "control/trace.py": {
+      "bytes": 5860,
+      "git_blob": "017ff5d4d47d06abcde4753dfcb4b19a53b551ed",
+      "identity": [
+        66306,
+        80243504,
+        33152,
+        1000,
+        1000,
+        1,
+        5860,
+        1794568741705501100,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/trace.py",
+      "sha256": "0aa3e4e32ea7f5ff7702aeef29381f349b7400a3d0c19a685b87877634987411"
+    },
+    "control/worker.py": {
+      "bytes": 8126,
+      "git_blob": "c4e45eb86d13cb887152caf51557f4ee7322bdc2",
+      "identity": [
+        66306,
+        80243509,
+        33152,
+        1000,
+        1000,
+        1,
+        8126,
+        1794568762857006832,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/control/worker.py",
+      "sha256": "d511b415d01ef1162cd886518a7a055e89a65c5bc543e57ff41fb8f07d96cf6c"
+    },
+    "peer-reviews/C-oracles-static.json": {
+      "bytes": 20180,
+      "git_blob": "131675c9f452396b47830b7e2d0e3db249569eeb",
+      "identity": [
+        66306,
+        80243418,
+        33152,
+        1000,
+        1000,
+        1,
+        20180,
+        1794568339283019616,
+        1794568339283019616
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/peer-reviews/C-oracles-static.json",
+      "sha256": "3516278a571e6cb0dcb1881b958335d367b49b3b8ccc0d0f2783fe6dfc9d104d"
+    },
+    "proof/FREEZE-INTENT.json": {
+      "bytes": 742,
+      "git_blob": "0f84be888eca1d513b7951eacec8122e84edf272",
+      "identity": [
+        66306,
+        80243541,
+        33152,
+        1000,
+        1000,
+        1,
+        742,
+        1794569332570974255,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/FREEZE-INTENT.json",
+      "sha256": "d226f13a84b3f3b9fa8821480550d15312a9b85bcba1a2e745407460e99b7dd8"
+    },
+    "proof/FREEZE-r1-HOLD.json": {
+      "bytes": 11230,
+      "git_blob": "0c2972772f12ecf7a30c70e171ca81b580e92570",
+      "identity": [
+        66306,
+        80243543,
+        33152,
+        1000,
+        1000,
+        1,
+        11230,
+        1794569419772524267,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/FREEZE-r1-HOLD.json",
+      "sha256": "ee36038e7ec233dc2fda02d9857834e61e8b43ba0976ca2d295a02fd6c065266"
+    },
+    "proof/FREEZE-r2-INTENT.json": {
+      "bytes": 692,
+      "git_blob": "61bb7655258523d482acba261bd5bac2c52bec3f",
+      "identity": [
+        66306,
+        80243545,
+        33152,
+        1000,
+        1000,
+        1,
+        692,
+        1794569426326703373,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/FREEZE-r2-INTENT.json",
+      "sha256": "81dc0fe0ae7933ad5a42efeba6d5aa50facdee12a74d8d6187055ec46f00d9df"
+    },
+    "proof/MATERIALIZATION-HJOB.json": {
+      "bytes": 16509,
+      "git_blob": "f6553c0efa4156e298fc6a5a042cb53b045c1b57",
+      "identity": [
+        66306,
+        80243421,
+        33152,
+        1000,
+        1000,
+        1,
+        16509,
+        1794568456065691647,
+        1794569458784993762
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/MATERIALIZATION-HJOB.json",
+      "sha256": "a2feb68de0c269477e0605a86db4958ab738085b7e50228d71fcb0d6dae9e596"
+    },
+    "proof/MATERIALIZATION-INTENT.json": {
+      "bytes": 5426,
+      "git_blob": "4a13cfc2c1a62c561a02699dedbae604452e3f16",
+      "identity": [
+        66306,
+        80243352,
+        33152,
+        1000,
+        1000,
+        1,
+        5426,
+        1794568330710358391,
+        1794569458785993726
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/MATERIALIZATION-INTENT.json",
+      "sha256": "28ba05c745e5bb49a60b483d7bd49ffd10ad4cb44eee13b89c8f10d770025efd"
+    },
+    "proof/STATIC-JOINS-HJOB.json": {
+      "bytes": 10328,
+      "git_blob": "f8da66a4759dd03ce5faa6fb49b703773388322a",
+      "identity": [
+        66306,
+        80243537,
+        33152,
+        1000,
+        1000,
+        1,
+        10328,
+        1794569191381186543,
+        1794569458785993726
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/STATIC-JOINS-HJOB.json",
+      "sha256": "8ddb6425936d87959f1f5fb439f447c0dc704c431db0237d8e0d95ed3bc465ec"
+    },
+    "proof/STATIC-JOINS-INTENT.json": {
+      "bytes": 527,
+      "git_blob": "f79b154e388154c075cb123142a498ab7f133119",
+      "identity": [
+        66306,
+        80243520,
+        33152,
+        1000,
+        1000,
+        1,
+        527,
+        1794568851519808386,
+        1794569458785993726
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/STATIC-JOINS-INTENT.json",
+      "sha256": "e1e63f5af579a9d33f8f258dd309f3761da00435c6a40172e5f97e1c33eed72e"
+    },
+    "proof/freeze_native_request.py": {
+      "bytes": 14940,
+      "git_blob": "f789c3b17392919dd9473a6f4b07e377ecdeb221",
+      "identity": [
+        66306,
+        80243540,
+        33152,
+        1000,
+        1000,
+        1,
+        14940,
+        1794569328707202006,
+        1794569458785993726
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/freeze_native_request.py",
+      "sha256": "e740a17748acbb462def89aa7a5e251b8b9e456b7be19dd00c60eec23b4d378d"
+    },
+    "proof/materialize_static_r1.py": {
+      "bytes": 4439,
+      "git_blob": "fb5591d4d9fe152bbb7bd0e96059e24982c6991c",
+      "identity": [
+        66306,
+        80243351,
+        33152,
+        1000,
+        1000,
+        1,
+        4439,
+        1794568308425042924,
+        1794569458785993726
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/materialize_static_r1.py",
+      "sha256": "416cdd3ed74d7e5f1ae0ccb0c0bad41135afcdabedffc45c95d60d2e92175b89"
+    },
+    "proof/prepare_modes_and_freeze_r2.py": {
+      "bytes": 2855,
+      "git_blob": "81aa68244605a089be29ed3aacd20d203e05b880",
+      "identity": [
+        66306,
+        80243544,
+        33152,
+        1000,
+        1000,
+        1,
+        2855,
+        1794569423936379070,
+        1794569458785993726
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/prepare_modes_and_freeze_r2.py",
+      "sha256": "2dbfd6ebd49aa96c9cfa33ca47157009757c39b780615cc8a9b84519ab37bafc"
+    },
+    "proof/static_reference_joins_r1.py": {
+      "bytes": 4390,
+      "git_blob": "bfc8a915f0c110fb6c37fedebc95109997e11921",
+      "identity": [
+        66306,
+        80243519,
+        33152,
+        1000,
+        1000,
+        1,
+        4390,
+        1794568848797492084,
+        1794569458785993726
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/proof/static_reference_joins_r1.py",
+      "sha256": "f7a92b52103e3345c734e070a5f96f021a3c4bdb63d0a49a8bb84a5e1657f176"
+    },
+    "reference/B3-ORIGINALS-CUSTODY.json": {
+      "bytes": 2756,
+      "git_blob": "e928f758bb0983a88430c6e23d9bc6cea7c5733a",
+      "identity": [
+        66306,
+        80243366,
+        33152,
+        1000,
+        1000,
+        1,
+        2756,
+        1794568339255919018,
+        1794568339255919018
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/B3-ORIGINALS-CUSTODY.json",
+      "sha256": "b4260ba356ac88e870068a2cf85e0b9a65e7f395a47d1af354d873371a6d1fe4"
+    },
+    "reference/COMPILER-ORIGIN.json": {
+      "bytes": 5234,
+      "git_blob": "358e549e4fc108d6e45a0c30922e4032f455358b",
+      "identity": [
+        66306,
+        80243367,
+        33152,
+        1000,
+        1000,
+        1,
+        5234,
+        1794568339256642363,
+        1794568339256642363
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/COMPILER-ORIGIN.json",
+      "sha256": "08462cb127f8c5d1833376790d97ea6c8c1e3ca2f124437a99111d571616f21e"
+    },
+    "reference/source12-actual/CANONICAL-HANDOFF.json": {
+      "bytes": 10474,
+      "git_blob": "47dcd8564c1179ff99e624ee170294775f4bca7c",
+      "identity": [
+        66306,
+        80243407,
+        33152,
+        1000,
+        1000,
+        1,
+        10474,
+        1794568339278604341,
+        1794568339278604341
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-actual/CANONICAL-HANDOFF.json",
+      "sha256": "1e95e6ba1db5c85d292f2bd21fef86b94009bcad8e9822e8aed426732193ca00"
+    },
+    "reference/source12-actual/CORE.json": {
+      "bytes": 465678,
+      "git_blob": "94c11a33e2cf92b5b11718c260267c7849231003",
+      "identity": [
+        66306,
+        80243401,
+        33152,
+        1000,
+        1000,
+        1,
+        465678,
+        1794568339275003488,
+        1794568339275003488
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-actual/CORE.json",
+      "sha256": "5e7d0bcf8acd2af46da4048047fd9780a0ed1c6fc800fc2df10010f97e425391"
+    },
+    "reference/source12-actual/FINAL.json": {
+      "bytes": 793,
+      "git_blob": "271394b94bd9132c350e82dffa750fc72c9bbe48",
+      "identity": [
+        66306,
+        80243403,
+        33152,
+        1000,
+        1000,
+        1,
+        793,
+        1794568339276611771,
+        1794568339276611771
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-actual/FINAL.json",
+      "sha256": "8ff6c3efe9283650c257e1169775d974f62d445d35942a588b13e20de85a9691"
+    },
+    "reference/source12-actual/INDEPENDENT-READBACK.json": {
+      "bytes": 35253,
+      "git_blob": "4b169e849b25833ee0b8b661ae5bb095373c90cb",
+      "identity": [
+        66306,
+        80243408,
+        33152,
+        1000,
+        1000,
+        1,
+        35253,
+        1794568339279193330,
+        1794568339279193330
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-actual/INDEPENDENT-READBACK.json",
+      "sha256": "50a1d3dfa263da7dee20c60a0d29f778d89919639473a92a036c980f2f0795c1"
+    },
+    "reference/source12-actual/OWNER-WRAPPER.json": {
+      "bytes": 2011,
+      "git_blob": "c5c0fc869c5c13f299095c02fa97d12aa90a7a97",
+      "identity": [
+        66306,
+        80243406,
+        33152,
+        1000,
+        1000,
+        1,
+        2011,
+        1794568339278136748,
+        1794568339278136748
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-actual/OWNER-WRAPPER.json",
+      "sha256": "177c0339607fe2ade804fdc264b619ceca59fc340191271b8e948790721e1943"
+    },
+    "reference/source12-actual/REPORT.json": {
+      "bytes": 29115,
+      "git_blob": "aa9f0a6f067336851748d7055bff1ea9d53b256a",
+      "identity": [
+        66306,
+        80243400,
+        33152,
+        1000,
+        1000,
+        1,
+        29115,
+        1794568339274077410,
+        1794568339274077410
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-actual/REPORT.json",
+      "sha256": "58cd5573baa358bafe686fe9523444689b0b6e7325676bd437566512e7a3f09d"
+    },
+    "reference/source12-actual/VM-RAW.json": {
+      "bytes": 1518008,
+      "git_blob": "32cc86a1716002c2229a622d69b39e476b623933",
+      "identity": [
+        66306,
+        80243399,
+        33152,
+        1000,
+        1000,
+        1,
+        1518008,
+        1794568339271651015,
+        1794568339271867961
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-actual/VM-RAW.json",
+      "sha256": "9e8f17b9fb353bf249e072ea6f93e6e6efa11c8dbb3de2d0f0e540458fbff182"
+    },
+    "reference/source12-actual/owner.json": {
+      "bytes": 1491,
+      "git_blob": "2cbc1fdb19064ebbf3ed9a8778cdefeb26a20227",
+      "identity": [
+        66306,
+        80243404,
+        33152,
+        1000,
+        1000,
+        1,
+        1491,
+        1794568339277153452,
+        1794568339277153452
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-actual/owner.json",
+      "sha256": "bfaa2471a0d78dd34af1c865a752822278de36205409500600e8b50fbfec50a7"
+    },
+    "reference/source12-actual/owner.json.request.json": {
+      "bytes": 1109,
+      "git_blob": "b89520eb36e30b89baf41b8aa53af51c5be74c12",
+      "identity": [
+        66306,
+        80243405,
+        33152,
+        1000,
+        1000,
+        1,
+        1109,
+        1794568339277630495,
+        1794568339277630495
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-actual/owner.json.request.json",
+      "sha256": "dab29ea79bb58c1d83a5a02d957d52e39d5f8d14408d39f277d4c5d7326c99f7"
+    },
+    "reference/source12-actual/sqlite_wal_snapshot.hiaasm": {
+      "bytes": 56137,
+      "git_blob": "bddd6b022a6f7e5bcf518fb60d50b9884076f6a7",
+      "identity": [
+        66306,
+        80243402,
+        33152,
+        1000,
+        1000,
+        1,
+        56137,
+        1794568339276081040,
+        1794568339276081040
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-actual/sqlite_wal_snapshot.hiaasm",
+      "sha256": "1c65110f745ba4e1b3d2773a4c12e39924bbeee2ee27d873d24ac519b4a38163"
+    },
+    "reference/source12-request/REQUEST.json": {
+      "bytes": 17192,
+      "git_blob": "491bda48f387910c74e173d1ca54524928c20213",
+      "identity": [
+        66306,
+        80243396,
+        33152,
+        1000,
+        1000,
+        1,
+        17192,
+        1794568339268760767,
+        1794568339268868069
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-request/REQUEST.json",
+      "sha256": "21b2313e1134cbc5c10a098dbbc343d805d63d5db44ae6c79e78718fc78be308"
+    },
+    "reference/source12-request/STATIC-FREEZE.json": {
+      "bytes": 13838,
+      "git_blob": "8914a16274f5dacc10fa3e9a7bd8d5224dec30db",
+      "identity": [
+        66306,
+        80243397,
+        33152,
+        1000,
+        1000,
+        1,
+        13838,
+        1794568339269616657,
+        1794568339269616657
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/reference/source12-request/STATIC-FREEZE.json",
+      "sha256": "a144f1c9cd23d86cdd942f7d01d2371120103f13d6a8a590f53650a9739050be"
+    }
+  },
+  "native_counts": {
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_01_Core_roundtrip_and_original_nine_caps": 0,
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_02_last_commit_and_latest_same_page_in_both_orders": 76,
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_03_checksum_valid_uncommitted_frames_are_not_visible": 46,
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_04_partial_tail_at_header_and_frame_structural_edges": 141,
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_05_first_corrupt_frame_stops_before_later_valid_commit": 108,
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_06_header_admission_order_and_all_page_sizes": 136,
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_07_fixed_snapshot_ignores_later_append_and_rejects_changed_prefix": 24,
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_08_commit_truncation_database_fallback_and_u32_pages": 43,
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_09_large_extent_uses_bounded_packets_without_whole_WAL_limit": 7,
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_10_protocol_refusals_and_one_use_states_preserve_spans": 13,
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_11_bridge_caught_reentry_exception_identity_and_custody": 14,
+    "tests.hia_sqlite_wal_snapshot_source_r1.SQLiteWalSnapshotSourceTests.test_12_retained_official_recovery_and_reused_arithmetic_are_exact": 0,
+    "tests.hia_wal_snapshot_native_pages_r1.FullPageSizesNativeTests.test_13_complete_frames_lookup_and_recovery_all_page_sizes": 2096
+  },
+  "native_returns": 2704,
+  "new_same_owner_source_generation": false,
+  "old_WAL_native_request": {
+    "bytes": 41794,
+    "git_blob": "74081c4c6e57c55bf4985a58de14c6d535188250",
+    "identity": [
+      66306,
+      79830438,
+      33152,
+      1000,
+      1000,
+      1,
+      41794,
+      1794553938928317846,
+      1794553938928317846
+    ],
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-native-r2/REQUEST.json",
+    "sha256": "f81436adba2e858327e474facfbf54476100d8d046e5eb8fcdf92a7488d52e92"
+  },
+  "original_VM_actual_retained": true,
+  "original_VM_calls": 608,
+  "original_caps": {
+    "args": 16,
+    "blocks": 1536,
+    "blocks_per_function": 256,
+    "functions": 128,
+    "input_bytes": 1048576,
+    "lines": 16384,
+    "operations": 8192,
+    "results": 3,
+    "ssa_slots": 2048
+  },
+  "original_child_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+  "original_source_methods": 12,
+  "original_test_bytes": 27618,
+  "original_test_independent_reemission_retained": true,
+  "original_test_sha256": "2bde9e21ca1de533449658464edea5dcd1597d9e880d9c9dfa0e1fab3cb10659",
+  "output": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1-actual",
+  "output_bytes_limit": 402653184,
+  "output_files_limit": 192,
+  "python_version": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "qualification_seconds": 180,
+  "reserve_free_bytes": 536870912,
+  "root": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1",
+  "runtime": {
+    "bytes": 7477160,
+    "git_blob": "7b80a4c7dd84e362a605aa22d30e46309ef2e460",
+    "identity": [
+      66306,
+      82182572,
+      33261,
+      0,
+      0,
+      1,
+      7477160,
+      1787222518000000000,
+      1791031877815904042
+    ],
+    "path": "/usr/bin/python3.14",
+    "sha256": "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41"
+  },
+  "schema": "hia.wal-snapshot.native-finite-request.v1",
+  "scope": "Original12/608 plus one independent144-scenario full-page method/2096 calls and two639-call original C recovery/find oracles. Historicaldevelopment B3 only. No matching-current-cold, SQL, locks, database I/O, checkpoint, transactions, crash-durability or AgentStore activation claim.",
+  "source12_VM_reexecute": false,
+  "source12_actual_commit": "9f2aed8b240ebe70a3de8084f062fae04f93709d",
+  "source12_request_commit": "d217e137db1b46b70199a56d7c9cde94811b68f4",
+  "source_commit": "0504beb11c0dae875d8590660c42488b7bc634fb",
+  "source_map": "SOURCE-BASE.json",
+  "source_root": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r3/source-base",
+  "source_tree": "596ab07e8813e4811a8dca51800cd51eb397aeb2",
+  "stage_order": [
+    "one_HIA_compile_20wall_10CPU_1MiB",
+    "two_C_compiles_each20wall_10CPU_1MiB",
+    "one_native_child_original12_plus_full_page1",
+    "whole_trace_reread_inside_same180_owner",
+    "exact_input_source_system_after_reads"
+  ],
+  "static_freeze": {
+    "bytes": 13406,
+    "git_blob": "684180f7e5b02a67d090c167b102166bda54938b",
+    "identity": [
+      66306,
+      80243551,
+      33152,
+      1000,
+      1000,
+      1,
+      13406,
+      1794569459178928662,
+      1794569459178928662
+    ],
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-native-r1/STATIC-FREEZE.json",
+    "sha256": "658b1a336e83b34437979e1b948e728403f1b63cba2810a6d3a31c58415da53a"
+  },
+  "status": "SNAPSHOT_ORIGINAL12_PLUS_FULL_PAGES_NATIVE_UNEXECUTED",
+  "system_binaries": {
+    "as": "/usr/bin/x86_64-linux-gnu-as",
+    "cc1": "/usr/libexec/gcc/x86_64-linux-gnu/15/cc1",
+    "collect2": "/usr/libexec/gcc/x86_64-linux-gnu/15/collect2",
+    "gcc": "/usr/bin/x86_64-linux-gnu-gcc-15",
+    "ld": "/usr/bin/x86_64-linux-gnu-ld.bfd",
+    "python": "/usr/bin/python3.14"
+  },
+  "system_bytes": 179325490,
+  "system_count": 4806,
+  "system_map": "SYSTEM-INPUTS.json",
+  "trace_bytes_limit": 268435456,
+  "trace_chunk_limit": 4194304,
+  "trace_expected": {
+    "C": {
+      "bytes": 144240168,
+      "maximum_record_bytes": 676506,
+      "records": 2556,
+      "sha256": "669fdac758781c872037a68be496a08770d1caa6d1b8a9d650eeff5f1a67cbf3"
+    },
+    "hia": {
+      "bytes": 58947530,
+      "maximum_record_bytes": 132553,
+      "records": 5408,
+      "sha256": "3cc9223d34768fb1c0062a6e918cec782a749246a6843eed9c0c597f0facecfe"
+    }
+  },
+  "trace_expected_total_bytes": 203187698,
+  "trace_record_limit": 1048576,
+  "uid": 1000
+}
