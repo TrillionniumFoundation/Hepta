@@ -1,0 +1,198 @@
+--- r1/POLICY.json
++++ r2/POLICY.json
+@@ -158,7 +158,7 @@
+     "owner_seconds": 900
+   },
+   "mandatory_source_controls": {
+-    "actual_root": "/tmp/hia-v92-three-view-source20-r1-20261113-e26e",
++    "actual_root": "/tmp/hia-v92-three-view-source20-r2-20261113-e26e",
+     "expected_ids": [
+       "StoredContainerControls.test_01_cross_boundary_seek_exact_whole_original",
+       "StoredContainerControls.test_02_all_fourteen_bodies_and_signed_descriptors",
+@@ -330,9 +330,9 @@
+         "reserve": 536870912,
+         "selected": 0
+       },
+-      "parent": "/workspace/scratch/e26ed3e2edcf/core",
+-      "parent_device": 27,
+-      "root": "/workspace/scratch/e26ed3e2edcf/core/v92-three-part-view-r1-20261113-e26e"
++      "parent": "/home/agent",
++      "parent_device": 41,
++      "root": "/home/agent/hia-v92-three-view-r2-20261113-e26e"
+     }
+   },
+   "whole_656MB_copy_permitted": false
+--- r1/CONTROL-REQUEST.json
++++ r2/CONTROL-REQUEST.json
+@@ -5,7 +5,7 @@
+     "-I",
+     "-S",
+     "-B",
+-    "/workspace/scratch/e26ed3e2edcf/v92-three-part-view-plan-r1-20261113-e26e/controls/run_controls.py"
++    "/home/agent/hia-v92-three-view-plan-r2-20261113-e26e/controls/run_controls.py"
+   ],
+   "environment": {
+     "LANG": "C.UTF-8",
+@@ -39,8 +39,8 @@
+   ],
+   "inputs": {
+     "POLICY.json": {
+-      "bytes": 13135,
+-      "sha256": "ff47d0f2002a04d780e6d4c35621cd0e30425198552b331c9736304990e84eff"
++      "bytes": 13084,
++      "sha256": "053ef7a72f8502378061b21606ebb8f30195f7cfffe3d8354cce7be7fa5bcf10"
+     },
+     "control/common.py": {
+       "bytes": 11402,
+@@ -183,8 +183,8 @@
+   "minimum_free_bytes": 134217728,
+   "minimum_free_inodes": 4096,
+   "network_used": false,
+-  "operation_root": "/tmp/hia-v92-three-view-source20-r1-20261113-e26e",
+-  "output": "/tmp/hia-v92-three-view-source20-r1-20261113-e26e/tests",
++  "operation_root": "/tmp/hia-v92-three-view-source20-r2-20261113-e26e",
++  "output": "/tmp/hia-v92-three-view-source20-r2-20261113-e26e/tests",
+   "private_inputs_captured": false,
+   "product_execution": false,
+   "qualification_seconds": 20,
+@@ -207,6 +207,6 @@
+     "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7"
+   },
+   "schema": "hia.v92-three-view-source20-request.v1",
+-  "scope": "20 newly written synthetic tiny-file boundary controls. Not inherited74static/old20+8 runtime controls; all UNEXECUTED.",
++  "scope": "The same20 synthetic tiny-file boundary controls under a new physical storage binding. All20 must execute under the original20/3 owner in the separate r2 output; r1 actualPASS is retained, not adopted. No receiver, network, private capture or product execution. FROZEN_UNEXECUTED.",
+   "status": "FROZEN_UNEXECUTED"
+ }
+--- r1/CONTROL-LAUNCH.json
++++ r2/CONTROL-LAUNCH.json
+@@ -5,9 +5,9 @@
+     "-I",
+     "-S",
+     "-B",
+-    "/workspace/scratch/e26ed3e2edcf/v92-three-part-view-plan-r1-20261113-e26e/controls/launch_controls.py"
++    "/home/agent/hia-v92-three-view-plan-r2-20261113-e26e/controls/launch_controls.py"
+   ],
+-  "cwd": "/workspace/scratch/e26ed3e2edcf/v92-three-part-view-plan-r1-20261113-e26e",
++  "cwd": "/home/agent/hia-v92-three-view-plan-r2-20261113-e26e",
+   "environment": {
+     "LANG": "C.UTF-8",
+     "LC_ALL": "C.UTF-8",
+@@ -19,9 +19,9 @@
+   "executions_authorized_by_this_file": 0,
+   "owner_seconds": 20,
+   "request": {
+-    "bytes": 8515,
+-    "git_blob_sha1": "cafdd45cc5262aeec5589eaa44437648c595d7a5",
+-    "sha256": "0790ddd50194977e46c4137ed8bca80a4a0e0e21d4c440e59ffa5e05b43fda3d"
++    "bytes": 8655,
++    "git_blob_sha1": "acf9aa910ec98832d7428a1fc844de608c8febee",
++    "sha256": "252e4aba13964c45d1515334b825a16a214200d61ed5e6685f28d35072d353e6"
+   },
+   "schema": "hia.exact-one-source20-launch.v1"
+ }
+--- r1/REQUEST.json
++++ r2/REQUEST.json
+@@ -214,9 +214,9 @@
+     }
+   ],
+   "policy": {
+-    "bytes": 13135,
+-    "git_blob_sha1": "fe2e208fd4c4cfcfbf0415ef562612926de44198",
+-    "sha256": "ff47d0f2002a04d780e6d4c35621cd0e30425198552b331c9736304990e84eff"
++    "bytes": 13084,
++    "git_blob_sha1": "62f3ce93c6f54a356f98ee80222025c08523f87a",
++    "sha256": "053ef7a72f8502378061b21606ebb8f30195f7cfffe3d8354cce7be7fa5bcf10"
+   },
+   "private_input_capture_required_before_invocation": true,
+   "private_input_shapes": {
+@@ -241,15 +241,15 @@
+       "receiver_run_id": 43338002642,
+       "schema": "hia.v92.three-official-provider-references.v1"
+     },
+-    "proxy": "exact copied control/freeze_private_proxy.py reads actual original proxy/CA environment once into a fresh0600file; no network or owner"
++    "proxy": "Reuse the exact existing Root r1 private proxy file, opaque receipt 3426B/99844e0230469a6e614f6e1e3d35be0b0b0bab87109044053785266d9770eaaf, because operation_root and private paths remain unchanged. No recapture. The unchanged launcher must still seal it, bind its whole identity, and compare it with the actual inherited configuration."
+   },
+   "receiver_execution_permitted_only_by_separate_root_authorization": true,
+   "root_cause_original_native42": "UNKNOWN until actual step42 originals read",
+   "schema": "hia.v92.three-container-view-readonly-request.v1",
+   "source20_request": {
+-    "bytes": 8515,
+-    "git_blob_sha1": "cafdd45cc5262aeec5589eaa44437648c595d7a5",
+-    "sha256": "0790ddd50194977e46c4137ed8bca80a4a0e0e21d4c440e59ffa5e05b43fda3d"
++    "bytes": 8655,
++    "git_blob_sha1": "acf9aa910ec98832d7428a1fc844de608c8febee",
++    "sha256": "252e4aba13964c45d1515334b825a16a214200d61ed5e6685f28d35072d353e6"
+   },
+   "source_only_validation_pending": true,
+   "status": "FROZEN_UNEXECUTED",
+@@ -277,9 +277,9 @@
+         "reserve": 536870912,
+         "selected": 0
+       },
+-      "parent": "/workspace/scratch/e26ed3e2edcf/core",
+-      "parent_device": 27,
+-      "root": "/workspace/scratch/e26ed3e2edcf/core/v92-three-part-view-r1-20261113-e26e"
++      "parent": "/home/agent",
++      "parent_device": 41,
++      "root": "/home/agent/hia-v92-three-view-r2-20261113-e26e"
+     }
+   }
+ }
+--- r1/LAUNCH.json
++++ r2/LAUNCH.json
+@@ -4,18 +4,18 @@
+     "-I",
+     "-S",
+     "-B",
+-    "/workspace/scratch/e26ed3e2edcf/v92-three-part-view-plan-r1-20261113-e26e/control/launch.py"
++    "/home/agent/hia-v92-three-view-plan-r2-20261113-e26e/control/launch.py"
+   ],
+   "cleanup_seconds": 3,
+-  "cwd": "/workspace/scratch/e26ed3e2edcf/v92-three-part-view-plan-r1-20261113-e26e",
++  "cwd": "/home/agent/hia-v92-three-view-plan-r2-20261113-e26e",
+   "environment": "inherit current original proxy/CA only for launcher preflight; frozen launch constructs public worker env without proxy URLs",
+   "executions_authorized_by_this_file": 0,
+   "global_complete_seconds": 720,
+   "owner_seconds": 900,
+   "request": {
+-    "bytes": 9831,
+-    "git_blob_sha1": "a6b25dbca9a83ea95c803bc849b8e4d39d34ee07",
+-    "sha256": "9bb3585ba332f0c32d73166ab3b7a0af585e7429073ea8a6070e318f01543393"
++    "bytes": 9982,
++    "git_blob_sha1": "beae212469a36085562d61882c7ddeb3d68a82d6",
++    "sha256": "7df38ef507dadfd7900c569f18e78ed95641cfb2663c50884001ba0f155cbdc2"
+   },
+   "required_final_argv": [
+     "--provider-references-sha256",
+--- r1/CAPACITY-PROOF.json
++++ r2/CAPACITY-PROOF.json
+@@ -11,8 +11,8 @@
+       "metadata_maximum": 8388608,
+       "minimum_free_inodes": 4096,
+       "minimum_start_free_bytes": 1076598380,
+-      "observed_authoring_free_bytes": 1114079232,
+-      "observed_authoring_free_inodes": 1252264,
++      "observed_authoring_free_bytes": 1087447040,
++      "observed_authoring_free_inodes": 1251391,
+       "parent": "/tmp",
+       "parent_metadata_maximum": 8388608,
+       "persistent_total_maximum": 539727468,
+@@ -21,14 +21,14 @@
+     },
+     "workspace": {
+       "container_bytes": 268838053,
+-      "device": 27,
++      "device": 41,
+       "fresh_check_required_at_launch_and_each_read_write": true,
+       "metadata_maximum": 67108864,
+       "minimum_free_inodes": 4096,
+       "minimum_start_free_bytes": 889595045,
+-      "observed_authoring_free_bytes": 549773312,
+-      "observed_authoring_free_inodes": 3167722,
+-      "parent": "/workspace/scratch/e26ed3e2edcf/core",
++      "observed_authoring_free_bytes": 5089193984,
++      "observed_authoring_free_inodes": 1274818,
++      "parent": "/home/agent",
+       "parent_metadata_maximum": 16777216,
+       "persistent_total_maximum": 352724133,
+       "reserve": 536870912,
