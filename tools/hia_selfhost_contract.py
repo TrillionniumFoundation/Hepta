@@ -525,6 +525,13 @@ SOURCE_FILES = (
     'tools/hia_native_observer_template.S',
     'tests/test_hia_selfhost_native_observer.py',
     'examples/hia_bootstrap/native_observer_packer.hepta',
+    'tools/generate_hia_linked_observer.py',
+    'tools/hia_selfhost_linked_observer.py',
+    'tools/hia_linked_observer_bridge.S',
+    'tests/test_hia_selfhost_linked_observer.py',
+    'tests/test_hia_linked_observer_build_custody.py',
+    'examples/hia_bootstrap/linked_observer_policy.hepta',
+    'examples/hia_bootstrap/linked_observer_packer.hepta',
     'tools/hia_selfhost_signed.py',
     'tools/hia_selfhost_signed_cases.py',
     'tools/hia_selfhost_scalar_casts.py',
@@ -802,6 +809,21 @@ def file_digests(root=ROOT):
 
 def support_contract(root=ROOT):
     return {
+        'linked_qualification_observer': {
+            'policy_source': 'examples/hia_bootstrap/linked_observer_policy.hepta',
+            'packer_source': 'examples/hia_bootstrap/linked_observer_packer.hepta',
+            'adapter': 'tools/hia_selfhost_linked_observer.py',
+            'independent_reference': 'tools/hia_linked_observer_bridge.S',
+            'selector': 'NATIVE_LINKED_OBSERVER',
+            'phase_input': 'linked_observer',
+            'scope': 'fresh sealed HIA-policy-directed ELF for explicit linked qualification phases',
+            'target_loading': 'complete sealed shared object through the system dynamic loader',
+            'HIA_owned': ['admission', 'continuation actions', 'limits', 'response construction',
+                         'snapshot and terminal decisions'],
+            'retained_hosted_boundaries': ['libc startup and exit', 'system dlopen/dlsym',
+                                          'independent seed and generation references'],
+            'whole_product_claim': False,
+        },
         'native_assembly_source_build': {
             'policy': 'examples/hia_bootstrap/source_build_policy.hepta',
             'compiler': 'examples/hia_bootstrap/selfhost.hepta',

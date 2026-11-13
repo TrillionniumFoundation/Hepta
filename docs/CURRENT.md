@@ -66,6 +66,50 @@ regression suite, an installed default native service or a running-worker
 migration executed on every later commit. A documentation-only successor does
 not relabel these executions as tests of its entire later tree.
 
+## Current repair candidate
+
+[PR #895](https://github.com/TrillionniumFoundation/Hepta/pull/895) applies the
+packer, source-gate, recursive-chain and Store-initialization repairs described
+below. Its published `f44c09fcc2c1cec25867c886ff477e83df774561` source passed all
+573 Source tests in 895.122 seconds in the original
+[push Source job 132014867892](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43463079021/job/132014867892).
+The separate [PR Source job](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43463098159/job/132014933545)
+also succeeded. This is not a whole-native acceptance.
+
+The same source tree `c9d2e855ebd1eefb45163152786aff2ab0120ca0` had different
+cold outcomes in the two original workflows. Push cold completed; the
+[PR Native job](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43463098159/job/132014933923)
+timed out after 180.212952258 seconds with 36/38 independent phases complete.
+The two explicit-traps phases were incomplete. The owner returned -9 and
+confirmed complete cleanup within the original three-second cleanup limit.
+The original failed artifact `14055954670` and all later skipped stages remain
+a failure; the push observation does not replace that result.
+
+The next change reuses the existing HIA linked-ELF observer from published
+development commit `a733926a2786a3d4a37304bd2d18ebb2eac57ac9`, with canonical
+`.hepta` paths. Its HIA policy controls admission, resource-limit requests,
+loader continuation, result construction and output snapshots; its HIA packer
+emits the complete relocatable object. Every qualification call execs fresh
+sealed bytes and loads the complete sealed target through the real system
+dynamic loader. Independent pre-B0 VM/object observations, the original
+seed/generation loader, libc startup/finalization, source readback, traps and
+original deadlines remain explicit dependencies and controls.
+
+The [reuse and admission evidence](../review-evidence/hia-native-cleanup-20261111/linked-observer-reuse.json)
+records exact original blobs, current source hashes and original observations.
+All 31 component tests passed, with 59 paired observations and 62 actual
+entries through each loader. The additional admission controls first exposed
+five malformed receipts reaching object publication, then passed after using
+the same complete receipt check as the other packers. These publication tests
+use explicit nonexecuting fixtures. The 68-test integration group passed 67
+tests and failed its real cold replay at 180.476719175 seconds, with 19/38
+phases complete, zero phase exceptions and complete cleanup. That original
+test automatically removed its temporary cold directory; the complete test
+log and its original diagnostic are retained, not a complete raw cold archive.
+Neither component success nor this source change is labelled a cold pass.
+The original CI now runs the linked-observer controls against its own admitted
+current-source cold compiler and archives their evidence.
+
 ## Current native implementation
 
 | Area | Implemented selected path | Remaining boundary |
