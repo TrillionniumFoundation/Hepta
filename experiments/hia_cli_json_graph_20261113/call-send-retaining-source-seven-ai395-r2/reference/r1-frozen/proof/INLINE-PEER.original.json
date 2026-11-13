@@ -1,0 +1,93 @@
+{
+  "execution": {
+    "C_compile": false,
+    "generated_HIA": false,
+    "native": false,
+    "original_sources_modified": false,
+    "product": false,
+    "source_tests": false
+  },
+  "observations": [
+    {
+      "conclusion": "SEND moves the existing owned top argument to child without an added INCREF or DECREF; FOR_ITER writes the same immortal None input. The receiver remains in the published parent stack, keeping the generator alive. This matches the selected original generated-case transition for exact admitted PyGen.",
+      "name": "Original argument owner"
+    },
+    {
+      "conclusion": "The child shares the retained root C frame and enters only the Python recursion counter. No new EvalFrame entry or protective generator/result reference occurs in these inline leaves. Published parent stacktop and child previous/exc links are validated before and after the only potentially exceptional recursion-entry leaf.",
+      "name": "Single C entry"
+    },
+    {
+      "conclusion": "RETURN/error first publish child top, leave Python recursion and switch current_frame to the parent, then clear the generator frame with original c-recursion decrement/increment. The copied frame-object ownership case does not clear the original frame previous link; the post-clear check is consistent with the actual frame.c source. Parent chain/TLS/current-frame/exception and generator state must still match before accounting/previous is restored.",
+      "name": "Clear order and revalidation"
+    },
+    {
+      "conclusion": "Finished/returned flags prevent a second clear or exit. A structural failure sets blocked/quarantine and retains the internal ownership obligation; it does not authorize an ordinary Python return. Root-only quarantine refuses inlined activations.",
+      "name": "One-use and broken links"
+    },
+    {
+      "conclusion": "The single result stays owned in ctx->slot across clear and is later moved out of the terminal child context. This only matches the original immediate parent push if the retaining driver performs no Python callback before the actual push. The source explicitly states this obligation; the missing complete executable driver is not certified by this review.",
+      "name": "Result handoff obligation"
+    }
+  ],
+  "open_boundaries": [
+    "The inline attach currently admits PyGen_CheckExact; generic SEND also supports exact PyCoro, whose completed admission/route is not covered here.",
+    "Ordinary bound PyFunction thread-frame and RETURN_GENERATOR prologue remain a separate unfinished path.",
+    "No full SEND specialization/instrumentation/coroutine, all CALL, raw packet safety, public activation, compiler, native, lifetime or differential qualification is claimed."
+  ],
+  "read_scope": {
+    "activation": "types, current frame/link checks, recursion helper, operand publication, entry/exit dispatch, clear/unlink and include boundaries",
+    "body": "cjb_attach_inline, cjb_exit_245, entry and terminal predicates",
+    "inline": "entire file",
+    "official": "SEND, SEND_GEN, FOR_ITER_GEN, RETURN_VALUE/RETURN_CONST, YIELD_VALUE, start_frame, exit_unwind, clear_gen_frame, _PyFrame_Copy, take_ownership and _PyFrame_ClearExceptCode",
+    "send": "read current full file for child-slot transfer context; its complete semantics are expressly excluded from this conclusion"
+  },
+  "reviewer": "/root/cold_ci_closure",
+  "schema": "hia.independent.static.peer-review.v1",
+  "scope": "Exact admitted generator inline ownership and activation/exit boundaries only, not all SEND/CALL or a completed executable retaining driver.",
+  "source_pins": [
+    {
+      "bytes": 17380,
+      "git_blob_sha1": "99fdb3bd26c44ec2ce61ab490a4e8018ab526178",
+      "path": "/home/agent/hia-cli-r4g-rebuild-r3-20261113-e26e/inputs/hepta/hia_cli_json_cpython312_inline.inc",
+      "sha256": "0ac4b85729f19ed1489a4b0df1896b8638b14fe5d90166f0a6b8b2e64612451e"
+    },
+    {
+      "bytes": 25243,
+      "git_blob_sha1": "58e25caef6c8e833326a61d19d82f07a937b61ef",
+      "path": "/home/agent/hia-cli-r4g-rebuild-r3-20261113-e26e/inputs/hepta/hia_cli_json_cpython312_activation.inc",
+      "sha256": "6871e2f71dae64eed0d415c253564007dd725ad80d350286dbbcf45ba980c5ba"
+    },
+    {
+      "bytes": 39014,
+      "git_blob_sha1": "ad969927f6109b357103844eb1830d826a5cf752",
+      "path": "/home/agent/hia-cli-r4g-rebuild-r3-20261113-e26e/inputs/hepta/hia_cli_json_cpython312_body.inc",
+      "sha256": "82234ac00f8fe518cf2610c60daff1c40478e773464ef26f5251686591e21b9b"
+    },
+    {
+      "bytes": 24300,
+      "git_blob_sha1": "60968ecbac90dc276499cf20f5a91e37b794d006",
+      "path": "/home/agent/hia-cli-r4g-rebuild-r3-20261113-e26e/inputs/hepta/hia_cli_json_cpython312_send_body.inc",
+      "sha256": "30be5c9f1463ff0730305867a63257ca74b33f946d7b5acab5e69f4a0c81d03e"
+    },
+    {
+      "bytes": 195111,
+      "git_blob_sha1": "246d37e771e3c30845d726f9dc24b956e82a7568",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/implementation-r4c/reference/cpython-v3.12.14/Python/generated_cases.c.h",
+      "sha256": "579706b9011997eed918fb546bd9382e8416d8cba3f9e87282aa5fa472c08b29"
+    },
+    {
+      "bytes": 88767,
+      "git_blob_sha1": "3985b52649cc827ccb4b919b1ed7cf7d06f6a32f",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/implementation-r4b/reference/cpython-v3.12.14/Python/ceval.c",
+      "sha256": "29640a033f373391a5b000253f74a7a1bc3182265412c0b40a76c4615acd1fda"
+    },
+    {
+      "bytes": 5657,
+      "git_blob_sha1": "b84fd9b6a9380af1ab7a174cbf9faae952dd0ce0",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-json-graph-r1/implementation-r4b/reference/cpython-v3.12.14/Python/frame.c",
+      "sha256": "38802bde6c212d3ffdb8f9e92430df3ca510e6a95a8c91d3312f77d0817752fa"
+    }
+  ],
+  "specific_blocker_in_limited_scope": null,
+  "status": "LIMITED_STATIC_CLEAR_NO_EXECUTION"
+}

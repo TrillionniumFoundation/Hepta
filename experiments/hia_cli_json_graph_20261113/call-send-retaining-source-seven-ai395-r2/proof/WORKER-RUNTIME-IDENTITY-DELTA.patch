@@ -1,0 +1,71 @@
+--- r1/source_authoring_worker.py
++++ r2/source_authoring_worker.py
+@@ -19,7 +19,7 @@
+ import traceback
+ 
+ 
+-SCHEMA = 'hia.cli-json.call-send-source-seven.r1.v1'
++SCHEMA = 'hia.cli-json.call-send-source-seven.r2.v1'
+ COMPONENTS = (('body', 'tools.generate_hia_cli_json_py312_body'), ('unpack', 'tools.generate_hia_cli_json_py312_unpack'), ('call_dispatch', 'tools.generate_hia_cli_json_py312_call_dispatch'), ('call', 'tools.generate_hia_cli_json_py312_call'), ('call_fast', 'tools.generate_hia_cli_json_py312_call_fast'), ('call_prologue', 'tools.generate_hia_cli_json_py312_call_prologue'), ('send', 'tools.generate_hia_cli_json_py312_send'))
+ 
+ LIMITS = {
+@@ -93,7 +93,7 @@
+     return record
+ 
+ 
+-def snapshot(root, pins):
++def snapshot(root, pins, fixed_identities):
+     actual = sorted(path.relative_to(root).as_posix() for path in root.rglob('*') if path.is_file())
+     if actual != sorted(pins):
+         raise ValueError('source-only physical leaf set differs')
+@@ -102,6 +102,8 @@
+         current, raw = file_record(root / name)
+         if (current['sha256'], current['bytes']) != (expected['sha256'], expected['bytes']):
+             raise ValueError('source-only fixed bytes differ: ' + name)
++        if current['identity'] != fixed_identities[name]:
++            raise ValueError('source-only frozen physical identity differs: ' + name)
+         answer[name] = current
+     return answer
+ 
+@@ -155,7 +157,7 @@
+     output = Path(sys.argv[2]).absolute()
+     configuration_record, configuration_raw = file_record(configuration)
+     config = json.loads(configuration_raw)
+-    if config['schema'] != 'hia.cli-json.call-send-source-seven.request.r1.v1':
++    if config['schema'] != 'hia.cli-json.call-send-source-seven.request.r2.v1':
+         raise ValueError('source-only configuration schema differs')
+     if config['components'] != [list(row) for row in COMPONENTS] or config['limits'] != LIMITS:
+         raise ValueError('source-only fixed denominator or original caps differ')
+@@ -173,7 +175,14 @@
+     original_sys_path = list(sys.path)
+     before = None
+     try:
+-        before = snapshot(source, config['source_pins'])
++        runtime_before, _ = file_record(Path(sys.executable).resolve())
++        report['runtime_before'] = runtime_before
++        if (runtime_before != config['runtime']['file']
++                or list(sys.version_info[:3]) != config['runtime']['version_info']
++                or sys.version != config['runtime']['version']
++                or Path('/proc/sys/kernel/random/boot_id').read_text().strip() != config['runtime']['boot_id']):
++            raise ValueError('new source-only Python runtime differs')
++        before = snapshot(source, config['source_pins'], config['source_identity9'])
+         report['source_before'] = create(output / 'source.before.json', wire(before))
+         # Syntax validation never imports a raw-object adapter or leaf DSO.
+         for name in sorted(config['source_pins']):
+@@ -230,7 +239,15 @@
+     finally:
+         sys.path[:] = original_sys_path
+         try:
+-            after = snapshot(source, config['source_pins'])
++            runtime_after, _ = file_record(Path(sys.executable).resolve())
++            report['runtime_after'] = runtime_after
++            if (runtime_after != config['runtime']['file']
++                    or runtime_after != report.get('runtime_before')
++                    or list(sys.version_info[:3]) != config['runtime']['version_info']
++                    or sys.version != config['runtime']['version']
++                    or Path('/proc/sys/kernel/random/boot_id').read_text().strip() != config['runtime']['boot_id']):
++                raise ValueError('source-only Python runtime changed')
++            after = snapshot(source, config['source_pins'], config['source_identity9'])
+             report['source_after'] = create(output / 'source.after.json', wire(after))
+             if before != after:
+                 raise ValueError('source-only input identity changed')
