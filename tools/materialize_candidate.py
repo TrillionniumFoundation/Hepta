@@ -633,34 +633,59 @@ def source_gate(capture, inputs, harness_root):
     plan.write_bytes(canonical(inputs["source_registration"]))
     report = capture.raw / "checks" / "SOURCE-TESTS.json"
     report.parent.mkdir(parents=True, exist_ok=True)
-    environment_name = "HEPTA_HIA_CANDIDATE_BUILD_TEST_EVIDENCE"
-    expected_environment = {environment_name: "@EVIDENCE@/checks/hia-candidate-build-source"}
+    candidate_name = "HEPTA_HIA_CANDIDATE_BUILD_TEST_EVIDENCE"
+    portable_name = "HEPTA_HIA_LINUX_STDIO_SOURCE_EVIDENCE"
+    expected_environment = {
+        candidate_name: "@EVIDENCE@/checks/hia-candidate-build-source",
+        portable_name: "@EVIDENCE@/checks/hia-linux-stdio-source",
+    }
     check(inputs.get("source_test_environment") == expected_environment,
           "unreviewed Source evidence environment")
-    check(environment_name not in capture.env, "ambient Source evidence path is not permitted")
+    check(all(name not in capture.env for name in expected_environment),
+          "ambient Source evidence path is not permitted")
     evidence = capture.raw / "checks" / "hia-candidate-build-source"
-    check(not evidence.resolve().is_relative_to(capture.repo.resolve()),
-          "Source VM evidence must be outside the source tree")
+    portable_evidence = capture.raw / "checks" / "hia-linux-stdio-source"
+    locations = {candidate_name: evidence, portable_name: portable_evidence}
+    for location in locations.values():
+        check(not location.resolve().is_relative_to(capture.repo.resolve()),
+              "Source evidence must be outside the source tree")
+        check(not location.exists() and not location.is_symlink(),
+              "Source evidence must use a fresh ordinary location")
     evidence.mkdir(parents=True, exist_ok=False)
+    # The portable Source test itself creates its exclusive directory. Creating
+    # it here would bypass its original exist_ok=False collision refusal.
     capture.json("checks/SOURCE-EVIDENCE-ENVIRONMENT.json", {
-        "schema": "hia.fixed-source-vm-evidence-environment.v1",
-        "environment_name": environment_name, "path": str(evidence),
-        "outside_source_tree": True, "exclusive_fresh_directory": True,
-        "source_gate_changed": False, "original_ids_changed": False,
+        "schema": "hia.fixed-source-evidence-environment.v2",
+        "locations": {name: str(path) for name, path in locations.items()},
+        "outside_source_tree": True, "exclusive_fresh_locations": True,
+        "candidate_directory_created_by": "materializer",
+        "portable_directory_created_by": "original Source fixture",
+        "source_runner_changed": False, "original_ids_changed": False,
         "group_seconds": 1800, "qualification": False})
-    capture.env[environment_name] = str(evidence)
+    for name, location in locations.items():
+        capture.env[name] = str(location)
     try:
         _, result = python_command(capture, [str(harness_root / "tools" / "run_source_gate.py"),
                              "--registration", str(plan), "--source", str(capture.repo),
                              "--original-ids", str(harness_root / "inputs" / "ORIGINAL-SOURCE-IDS.json"),
                              "--output", str(report)], "complete-source-tests", limit=1800, enforce=False, local_git_fixture=True)
     finally:
-        del capture.env[environment_name]
+        for name in locations:
+            del capture.env[name]
     if report.is_file():
         value = strict_json(report.read_bytes())
     else:
         value = {"status": "INCOMPLETE", "returncode": result["returncode"], "timed_out": result["timed_out"]}
-    return value, result["returncode"] == 0 and not result["timed_out"] and value.get("status") == "PASS"
+    passed = result["returncode"] == 0 and not result["timed_out"] and value.get("status") == "PASS"
+    if passed:
+        retained = portable_evidence / "RESOURCE-READBACK.json"
+        check(retained.is_file() and not retained.is_symlink(),
+              "successful portable Source fixture did not retain its original resource readback")
+        capture.json("checks/PORTABLE-SOURCE-READBACK-PRESERVED.json", {
+            "path": str(retained), "bytes": retained.stat().st_size,
+            "sha256": sha(retained.read_bytes()), "complete_original_directory_retained": True,
+            "native_qualification": False})
+    return value, passed
 
 def prepare_candidate_tree(capture, inputs, original_trees, tree_sha, source_pass):
     """Record the exact local tree; publish source blobs only after Source passes.
