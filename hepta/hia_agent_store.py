@@ -30,6 +30,11 @@ def _connection_arguments(connection):
     return {} if connection is None else {'_connection': connection}
 
 
+# Capture the defining function before a caller can replace the public store
+# attribute or before another module imports that possibly replaced attribute.
+_NATIVE_EVALUATION_CONNECTION_ARGUMENTS = _connection_arguments
+
+
 class AgentRejected(ValueError):
     def __init__(self, code, message, phase="admission", *, retry_action="correct_input", details_artifact=None):
         super().__init__(message)

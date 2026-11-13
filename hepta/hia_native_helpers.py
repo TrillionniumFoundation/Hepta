@@ -27,7 +27,8 @@ MAX_SOURCE_BYTES = 8 << 20
 # Each entry owns one image with the existing six-argument byte ABI.
 # Composed heap dependencies are admitted as one complete selector set below.
 # Other multi-image and external executable contracts need separate closure.
-HELPERS = {'HEPTA_HIA_CORE_VERIFICATION_MANIFEST': ('hia_core_verification_native', 'NativeCoreVerification'),
+HELPERS = {
+    'HEPTA_HIA_SERVICE_EVALUATION_MANIFEST': ('hia_service_evaluation_native', 'NativeEvaluationImage'),'HEPTA_HIA_CORE_VERIFICATION_MANIFEST': ('hia_core_verification_native', 'NativeCoreVerification'),
  'HEPTA_HIA_ASSEMBLY_FRONT_MANIFEST': ('hia_assembly_front_native', 'NativeAssemblyFront'),
  'HEPTA_HIA_SERVICE_REQUESTS_MANIFEST': ('hia_service_requests_native', 'NativeRequestsImage'),
  'HEPTA_HIA_PROOF_CONTRACT_MANIFEST': ('hia_proof_contract_native', 'NativeProofContractImage'),

@@ -7,6 +7,11 @@ from __future__ import annotations
 
 from hashlib import sha256
 import json
+import io
+import warnings
+import types as _source_types
+import pathlib as _source_pathlib
+import io as _source_io
 from pathlib import Path
 from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
     MAX_FUNCTIONS, MAX_BLOCKS, MAX_RELOCATIONS, RELOCATION_UPPER_BOUND, CORE_BYTES_UPPER_BOUND)
@@ -955,21 +960,405 @@ SOURCE_FILES = (
     'tools/hia_service_artifacts_control.py',
     'tools/hia_service_artifacts_policy.py',
     'tools/qualify_hia_service_artifacts.py',
+    'examples/hia_bootstrap/service_evaluation.hiaasm',
+    'hepta/hia_service_evaluation_native.py',
+    'hepta/hia_service_evaluation_foreign.py',
+    'tools/hia_service_evaluation_policy.py',
+    'tools/hia_service_evaluation_control.py',
+    'tools/generate_hia_service_evaluation.py',
+    'tools/generate_hia_service_evaluation_foreign.py',
+    'tools/build_hia_service_evaluation.py',
+    'tools/qualify_hia_service_evaluation.py',
+    'tests/test_hia_service_evaluation_native.py',
+    'tests/test_hia_service_evaluation_builder.py',
+    'tests/test_hia_service_evaluation_qualifier.py',
+    'tests/hia_service_evaluation_fixtures.py',
+    'tests/hia_service_evaluation_binding_probe.py',
+    'tests/hia_service_evaluation_import_probe.py',
+    'tests/hia_service_evaluation_import_retirement_probe.py',
+    'tests/fixtures/hia_service_evaluation_original_v79.json',
+    'docs/HIA_SERVICE_EVALUATION_NATIVE.md',
 )
+
+
+# Fixed protocol metadata derived from CPython pathlib 3.12.14 / 3.14.4.
+# The template methods are never invoked; source operations remain in file_digests.
+class _SourcePathProtocol312:
+    # Metadata templates only; these methods are never called.
+
+    def read_bytes(self):
+        """
+        Open the file in bytes mode, read it, and close the file.
+        """
+        with self.open(mode='rb') as f:
+            return f.read()
+
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+        return io.open(self, mode, buffering, encoding, errors, newline)
+
+
+    def __truediv__(self, key):
+        try:
+            return self.joinpath(key)
+        except TypeError:
+            return NotImplemented
+
+
+    def as_posix(self):
+        """Return the string representation of the path with forward (/)
+        slashes."""
+        f = self._flavour
+        return str(self).replace(f.sep, '/')
+
+
+    def relative_to(self, other, /, *_deprecated, walk_up=False):
+        """Return the relative path to another path identified by the passed
+        arguments.  If the operation is not possible (because this is not
+        related to the other path), raise ValueError.
+
+        The *walk_up* parameter controls whether `..` may be used to resolve
+        the path.
+        """
+        if _deprecated:
+            msg = ("support for supplying more than one positional argument "
+                   "to pathlib.PurePath.relative_to() is deprecated and "
+                   "scheduled for removal in Python {remove}")
+            warnings._deprecated("pathlib.PurePath.relative_to(*args)", msg,
+                                 remove=(3, 14))
+        other = self.with_segments(other, *_deprecated)
+        for step, path in enumerate([other] + list(other.parents)):
+            if self.is_relative_to(path):
+                break
+            elif not walk_up:
+                raise ValueError(f"{str(self)!r} is not in the subpath of {str(other)!r}")
+            elif path.name == '..':
+                raise ValueError(f"'..' segment in {str(other)!r} cannot be walked")
+        else:
+            raise ValueError(f"{str(self)!r} and {str(other)!r} have different anchors")
+        parts = ['..'] * step + self._tail[len(path._tail):]
+        return self.with_segments(*parts)
+
+
+    def __fspath__(self):
+        return str(self)
+
+
+    def __str__(self):
+        """Return the string representation of the path, suitable for
+        passing to system calls."""
+        try:
+            return self._str
+        except AttributeError:
+            self._str = self._format_parsed_parts(self.drive, self.root,
+                                                  self._tail) or '.'
+            return self._str
+
+
+    def joinpath(self, *pathsegments):
+        """Combine this path with one or several arguments, and return a
+        new path representing either a subpath (if all arguments are relative
+        paths) or a totally different path (if one of the arguments is
+        anchored).
+        """
+        return self.with_segments(self, *pathsegments)
+
+
+    def with_segments(self, *pathsegments):
+        """Construct a new path object from any number of path-like objects.
+        Subclasses may override this method to customize how new path objects
+        are created from methods like `iterdir()`.
+        """
+        return type(self)(*pathsegments)
+
+
+class _SourcePathProtocol314:
+    # Metadata templates only; these methods are never called.
+
+    def read_bytes(self):
+        """
+        Open the file in bytes mode, read it, and close the file.
+        """
+        with self.open(mode='rb', buffering=0) as f:
+            return f.read()
+
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+        return io.open(self, mode, buffering, encoding, errors, newline)
+
+
+    def __truediv__(self, key):
+        try:
+            return self.with_segments(self, key)
+        except TypeError:
+            return NotImplemented
+
+
+    def as_posix(self):
+        """Return the string representation of the path with forward (/)
+        slashes."""
+        return str(self).replace(self.parser.sep, '/')
+
+
+    def relative_to(self, other, *, walk_up=False):
+        """Return the relative path to another path identified by the passed
+        arguments.  If the operation is not possible (because this is not
+        related to the other path), raise ValueError.
+
+        The *walk_up* parameter controls whether `..` may be used to resolve
+        the path.
+        """
+        if not hasattr(other, 'with_segments'):
+            other = self.with_segments(other)
+        for step, path in enumerate(chain([other], other.parents)):
+            if path == self or path in self.parents:
+                break
+            elif not walk_up:
+                raise ValueError(f"{str(self)!r} is not in the subpath of {str(other)!r}")
+            elif path.name == '..':
+                raise ValueError(f"'..' segment in {str(other)!r} cannot be walked")
+        else:
+            raise ValueError(f"{str(self)!r} and {str(other)!r} have different anchors")
+        parts = ['..'] * step + self._tail[len(path._tail):]
+        return self._from_parsed_parts('', '', parts)
+
+
+    def __fspath__(self):
+        return str(self)
+
+
+    def __str__(self):
+        """Return the string representation of the path, suitable for
+        passing to system calls."""
+        try:
+            return self._str
+        except AttributeError:
+            self._str = self._format_parsed_parts(self.drive, self.root,
+                                                  self._tail) or '.'
+            return self._str
+
+
+    def joinpath(self, *pathsegments):
+        """Combine this path with one or several arguments, and return a
+        new path representing either a subpath (if all arguments are relative
+        paths) or a totally different path (if one of the arguments is
+        anchored).
+        """
+        return self.with_segments(self, *pathsegments)
+
+
+    def with_segments(self, *pathsegments):
+        """Construct a new path object from any number of path-like objects.
+        Subclasses may override this method to customize how new path objects
+        are created from methods like `iterdir()`.
+        """
+        return type(self)(*pathsegments)
+
+
+_SOURCE_PATH_MISSING = object()
+
+
+def _source_code_constants(value):
+    """Normalize only exact immutable code constants, without foreign equality."""
+    if type(value) is tuple:
+        result = []
+        for item in value:
+            item = _source_code_constants(item)
+            if item is _SOURCE_PATH_MISSING:
+                return item
+            result.append(item)
+        return tuple(result)
+    if value is None or type(value) in (str, bytes, int, bool, float):
+        return type(value), value
+    return _SOURCE_PATH_MISSING
+
+
+def _source_same_protocol(function, reference):
+    if type(function) is not _source_types.FunctionType:
+        return False
+    actual, expected = function.__code__, reference.__code__
+    # Names/qualnames, source positions and docstring spelling do not govern
+    # these fixed binary I/O and lexical path operations. Executable bytecode,
+    # exception regions, constants and signatures do.
+    actual_constants = _source_code_constants(actual.co_consts[1:])
+    expected_constants = _source_code_constants(expected.co_consts[1:])
+    if actual_constants is _SOURCE_PATH_MISSING or expected_constants is _SOURCE_PATH_MISSING:
+        return False
+    actual_kw, expected_kw = function.__kwdefaults__, reference.__kwdefaults__
+    if actual_kw is not None:
+        if type(actual_kw) is not dict or any(type(key) is not str for key in actual_kw):
+            return False
+        actual_kw = _source_code_constants(tuple(sorted(actual_kw.items())))
+        if actual_kw is _SOURCE_PATH_MISSING:
+            return False
+    if expected_kw is not None:
+        expected_kw = _source_code_constants(tuple(sorted(expected_kw.items())))
+    fields = ('co_code', 'co_exceptiontable', 'co_names', 'co_varnames',
+              'co_freevars', 'co_cellvars', 'co_argcount', 'co_posonlyargcount',
+              'co_kwonlyargcount', 'co_nlocals', 'co_stacksize')
+    return (all(getattr(actual, name) == getattr(expected, name) for name in fields)
+            and actual_constants == expected_constants
+            and _source_code_constants(function.__defaults__)
+                == _source_code_constants(reference.__defaults__)
+            and actual_kw == expected_kw)
+
+
+def _source_static_member(cls, name):
+    for parent in cls.__mro__:
+        namespace = parent.__dict__
+        if name in namespace:
+            return namespace[name]
+    return _SOURCE_PATH_MISSING
+
+
+def _source_capture_protocol():
+    # This is an immutable protocol identity, never a path/file/digest cache.
+    # Unknown runtimes or pre-import provider replacements use the original
+    # public Path protocol. Both reviewed read_bytes buffer modes are explicit.
+    path_class, concrete = _source_pathlib.Path, _source_pathlib.PosixPath
+    if type(path_class) is not type or type(concrete) is not type:
+        return None
+    if type(_source_io) is not _source_types.ModuleType:
+        return None
+    opened = _source_io.__dict__.get('open')
+    if (type(opened) is not _source_types.BuiltinFunctionType
+            or opened.__module__ != '_io' or opened.__name__ != 'open'
+            or type(sha256) is not _source_types.BuiltinFunctionType
+            or sha256.__module__ != '_hashlib' or sha256.__name__ != 'openssl_sha256'):
+        return None
+    functions = []
+    names = ('read_bytes', 'open', '__truediv__', 'as_posix', 'relative_to',
+             '__fspath__', '__str__', 'joinpath', 'with_segments')
+    buffering = None
+    for name in names:
+        function = _source_static_member(concrete, name)
+        matches = [profile for profile in (_SourcePathProtocol312, _SourcePathProtocol314)
+                   if _source_same_protocol(function, profile.__dict__[name])]
+        if not matches:
+            return None
+        if name == 'read_bytes':
+            buffering = -1 if _SourcePathProtocol312 in matches else 0
+        kw = function.__kwdefaults__
+        if kw is not None and (type(kw) is not dict or any(type(k) is not str for k in kw)):
+            return None
+        functions.append((name, function, function.__code__, function.__defaults__,
+                          kw, tuple(kw.items()) if kw is not None else ()))
+    if _source_static_member(concrete, 'open').__globals__.get('io') is not _source_io:
+        return None
+    classes = []
+    for cls in concrete.__mro__:
+        if cls is object:
+            continue
+        namespace = cls.__dict__
+        # Reject foreign descriptors/methods before freezing their identities.
+        for value in namespace.values():
+            function = value.__func__ if type(value) in (classmethod, staticmethod) else value
+            if type(function) is _source_types.FunctionType:
+                if (function.__globals__ is not _source_pathlib.__dict__
+                        or function.__code__.co_filename != _source_pathlib.__file__):
+                    return None
+        classes.append((cls, len(namespace), tuple((name, namespace.get(name, _SOURCE_PATH_MISSING))
+                                                 for name in names)))
+    return (path_class, concrete, opened, sha256, buffering, tuple(classes), tuple(functions))
+
+
+_SOURCE_PATH_PROTOCOL = _source_capture_protocol()
+
+
+def _source_protocol_current(root):
+    protocol = _SOURCE_PATH_PROTOCOL
+    if protocol is None or Path is not protocol[0] or type(root) is not protocol[1]:
+        return False
+    if (type(_source_io) is not _source_types.ModuleType
+            or _source_io.__dict__.get('open') is not protocol[2]
+            or sha256 is not protocol[3]):
+        return False
+    for cls, length, members in protocol[5]:
+        namespace = cls.__dict__
+        if len(namespace) != length:
+            return False
+        for name, value in members:
+            if namespace.get(name, _SOURCE_PATH_MISSING) is not value:
+                return False
+    for name, function, code, defaults, kw, items in protocol[6]:
+        if function.__code__ is not code or function.__defaults__ is not defaults:
+            return False
+        if function.__kwdefaults__ is not kw:
+            return False
+        if kw is not None:
+            if len(kw) != len(items) or any(type(key) is not str for key in kw):
+                return False
+            if any(kw.get(key, _SOURCE_PATH_MISSING) is not value for key, value in items):
+                return False
+    return _source_static_member(protocol[1], 'open').__globals__.get('io') is _source_io
+
+
+def _source_relative_name(path, root, prefix):
+    # A foreign path executes the original expression in the caller's set
+    # comprehension; this helper neither calls nor retains its protocol.
+    if type(path) is not type(root) or not _source_protocol_current(root):
+        return None
+    full = path.as_posix()
+    if prefix:
+        if full.startswith(prefix) and len(full) > len(prefix):
+            return full[len(prefix):]
+    elif not full.startswith('/'):
+        return full
+    return None
+
+
+def _source_lexical_read(root, relative, prefix):
+    # Recheck mutable public providers at each read, including replacements
+    # introduced by an earlier file's audit hook/hash operation. Exact bytes
+    # leave this frame before sha256; close always precedes hashing.
+    if (type(relative) is str and relative and not relative.startswith('/')
+            and not relative.endswith('/') and '//' not in relative
+            and relative != '.' and not relative.startswith('./')
+            and not relative.endswith('/.') and '/./' not in relative
+            and _source_protocol_current(root)):
+        with _source_io.open(prefix + relative, 'rb', buffering=_SOURCE_PATH_PROTOCOL[4]) as stream:
+            return stream.read()
+    return (root / relative).read_bytes()
 
 
 def file_digests(root=ROOT):
     root = Path(root)
-    # Include the complete Python seed package, not a hand-maintained subset
-    # that can omit a transitively imported checker or native ABI dependency.
-    paths = sorted(set(SOURCE_FILES) | {
-        p.relative_to(root).as_posix() for p in (root / "hepta").rglob("*.py")
+    # The original expression remains the full provider fallback. No path
+    # inventory, source bytes or digest survives any invocation of this API.
+    if (not _source_protocol_current(root) or type(SOURCE_FILES) is not tuple
+            or any(type(name) is not str for name in SOURCE_FILES)):
+        paths = sorted(set(SOURCE_FILES) | {
+            p.relative_to(root).as_posix() for p in (root / "hepta").rglob("*.py")
+        })
+        return {path: sha256((root / path).read_bytes()).hexdigest() for path in paths}
+    declared = set(SOURCE_FILES)
+    root_name = root.as_posix()
+    prefix = '' if root_name == '.' else root_name if root_name.endswith('/') else root_name + '/'
+    paths = sorted(declared | {
+        name if (name := _source_relative_name(p, root, prefix)) is not None
+        else p.relative_to(root).as_posix()
+        for p in (root / "hepta").rglob("*.py")
     })
-    return {path: sha256((root / path).read_bytes()).hexdigest() for path in paths}
+    return {path: sha256(_source_lexical_read(root, path, prefix)).hexdigest() for path in paths}
 
 
 def support_contract(root=ROOT):
     return {
+        "native_service_evaluation": {'source': 'examples/hia_bootstrap/service_evaluation.hiaasm', 'manifest_schema': 'hepta.hia.service-evaluation-native.v1', 'builder': 'tools/build_hia_service_evaluation.py', 'selection': 'explicit service-held HEPTA_HIA_SERVICE_EVALUATION_MANIFEST capability', 'original_methods': ['_native', '_build_inputs', '_build_receipt', '_cost_ledger', '_hia_evaluate', '_hia_adopt_native', 'invoke_lease'], 'original_helpers': ['_connection_arguments', '_value_observation'], 'overlap_dispatch': 'Artifact has priority for the three shared public entries; Evaluation is selected only when Artifact is absent', 'original_caller_qualification': 'tools/qualify_hia_service_evaluation.py', 'original_caller_groups': {'agent': 48, 'namespace': 35, 'ledger': 48}, 'reviewed_frame_profiles': [312, 313, 314], 'independent_dependencies': ['store/SQLite/clock/runner', 'proof/verification/emission/compiler child owners', 'fixed CPython object/import/mapping/exception mechanisms'], 'integration_status': 'PENDING_MATCHING_SOURCE_COLD_AND_COMPLETE_NATIVE_QUALIFICATION', 'original_reference_bodies_retained': True, 'default_changed': False, 'old_host_owners_removed': False, 'whole_native_delivery_qualified': False},
         "native_service_artifacts": {'source': 'examples/hia_bootstrap/service_artifacts.hiaasm',
          'manifest_schema': 'hepta.hia.service-artifacts-native.v1',
          'builder': 'tools/build_hia_service_artifacts.py',

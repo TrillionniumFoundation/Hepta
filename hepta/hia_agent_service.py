@@ -24,6 +24,7 @@ from .hia_agent_contract import (VERSION, ROOT, COST_POLICY_SCHEMA, OBJECTIVE_SC
     PLAN_SCHEMA, WORKLOAD_SCHEMA, catalog, installation_manifest, validate)
 from .hia_agent_store import (AgentRejected, AgentStore, capture_path, digest, keys,
     reject, uint64, wire, decode_data, _agent_resource_path, _connection_arguments)
+from .hia_agent_store import _NATIVE_EVALUATION_CONNECTION_ARGUMENTS
 from .hia_program import verify_program
 from .hia_program_tools import decode_json
 from .hia_proof_contract import (PROOF_SCHEMA, PROVED_MEANING, proof_subject, proof_result,
@@ -79,6 +80,11 @@ def _value_observation(observation):
         value["buffers"] = observation["buffers"]
     return value
 
+# Immutable definition-time helpers; never capture a replaced public binding.
+_NATIVE_EVALUATION_PUBLIC_ENTRIES = (
+    _NATIVE_EVALUATION_CONNECTION_ARGUMENTS, _value_observation)
+
+
 class HIAAgentService:
     def __init__(self, state_root, *, artifact_roots=()):
         from .hia_service_context_native import admitted_context, NativeContextService
@@ -87,6 +93,8 @@ class HIAAgentService:
         emission_admission = admitted_emission(capture_identity=True)
         from .hia_service_verification_native import admitted_verification, NativeVerificationService
         verification_admission = admitted_verification(capture_identity=True)
+        from .hia_service_evaluation_native import admitted_evaluation, NativeEvaluationService
+        evaluation_admission = admitted_evaluation(capture_identity=True)
         from .hia_proof_contract_selection import capture_proof_contract
         proof_owner = capture_proof_contract()
         from .hia_service_requests_native import admitted_requests, NativeRequestsService
@@ -112,6 +120,8 @@ class HIAAgentService:
             self, emission_admission.image, checker_custody=emission_admission)
         self._native_verification = None if verification_admission is None else NativeVerificationService(
             verification_admission.image, checker_custody=verification_admission)
+        self._native_evaluation = None if evaluation_admission is None else NativeEvaluationService(
+            evaluation_admission.image, checker_custody=evaluation_admission)
 
     def close(self):
         selected_artifacts = getattr(self, '_native_artifacts', None)
@@ -132,6 +142,9 @@ class HIAAgentService:
         selected_proof = getattr(self, '_native_proof_contract', None)
         if selected_proof is not None:
             selected_proof.closed = True
+        selected_evaluation = getattr(self, '_native_evaluation', None)
+        if selected_evaluation is not None:
+            selected_evaluation.closed = True
         self.store.close()
 
     def _profiles(self):
@@ -937,7 +950,9 @@ class HIAAgentService:
         requests = getattr(self, '_native_requests', None)
         held = held if requests is None else held + (requests.checker_owner(),)
         artifacts = getattr(self, '_native_artifacts', None)
-        return held if artifacts is None else held + (artifacts.checker_owner(),)
+        held = held if artifacts is None else held + (artifacts.checker_owner(),)
+        evaluation = getattr(self, '_native_evaluation', None)
+        return held if evaluation is None else held + (evaluation.checker_owner(),)
 
     def _signature_values(self, program, foreign_buffer_exports=()):
         owner = getattr(self, '_native_artifacts', None)
@@ -1218,6 +1233,8 @@ class HIAAgentService:
     def _native(self, ref, context=None, *, _connection=None):
         owner = getattr(self, '_native_artifacts', None)
         if owner is None:
+            owner = getattr(self, '_native_evaluation', None)
+        if owner is None:
             arguments = {'callee': _NATIVE_ARTIFACTS_NATIVE_REFERENCE, 'self': self, 'ref': ref, 'context': context, '_connection': _connection}
             del self, ref, context, _connection, owner
             return arguments.pop('callee')(arguments.pop('self'), arguments.pop('ref'), arguments.pop('context'), _connection=arguments.pop('_connection'))
@@ -1240,6 +1257,8 @@ class HIAAgentService:
     def _build_receipt(self, ref, context, artifact, *, _connection=None):
         owner = getattr(self, '_native_artifacts', None)
         if owner is None:
+            owner = getattr(self, '_native_evaluation', None)
+        if owner is None:
             arguments = {'callee': _NATIVE_ARTIFACTS_BUILD_RECEIPT_REFERENCE, 'self': self, 'ref': ref, 'context': context, 'artifact': artifact, '_connection': _connection}
             del self, ref, context, artifact, _connection, owner
             return arguments.pop('callee')(arguments.pop('self'), arguments.pop('ref'), arguments.pop('context'), arguments.pop('artifact'), _connection=arguments.pop('_connection'))
@@ -1252,6 +1271,8 @@ class HIAAgentService:
 
     def _build_inputs(self, ref, context, artifact, *, _connection=None):
         owner = getattr(self, '_native_artifacts', None)
+        if owner is None:
+            owner = getattr(self, '_native_evaluation', None)
         if owner is None:
             arguments = {'callee': _NATIVE_ARTIFACTS_BUILD_INPUTS_REFERENCE, 'self': self, 'ref': ref, 'context': context, 'artifact': artifact, '_connection': _connection}
             del self, ref, context, artifact, _connection, owner
@@ -1459,6 +1480,16 @@ class HIAAgentService:
         return objective
 
     def _cost_ledger(self, context, evaluation_wall_ns, native_wall_ns):
+        owner = getattr(self, '_native_evaluation', None)
+        if owner is None:
+            arguments = {'callee': self._cost_ledger_reference, 'context': context, 'evaluation_wall_ns': evaluation_wall_ns, 'native_wall_ns': native_wall_ns}
+            del self, context, evaluation_wall_ns, native_wall_ns, owner
+            return arguments.pop('callee')(arguments.pop('context'), arguments.pop('evaluation_wall_ns'), arguments.pop('native_wall_ns'))
+        frame = owner.prepare('_cost_ledger', (self, context, evaluation_wall_ns, native_wall_ns))
+        self = context = evaluation_wall_ns = native_wall_ns = None
+        return owner.finish(frame)
+
+    def _cost_ledger_reference(self, context, evaluation_wall_ns, native_wall_ns):
         rows = self.store.db.execute("SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001",
                                      (context["ref"]["id"],)).fetchall()
         truncated = len(rows) > 10000
@@ -1488,6 +1519,16 @@ class HIAAgentService:
             "scope": "observed request prefix; unscoped calls cannot be uniquely attributed and adoption/future/model cost may be unknown"}
 
     def _hia_evaluate(self, args):
+        owner = getattr(self, '_native_evaluation', None)
+        if owner is None:
+            arguments = {'callee': self._hia_evaluate_reference, 'args': args}
+            del self, args, owner
+            return arguments.pop('callee')(arguments.pop('args'))
+        frame = owner.prepare('_hia_evaluate', (self, args))
+        self = args = None
+        return owner.finish(frame)
+
+    def _hia_evaluate_reference(self, args):
         from .hia_agent_runner import run_native_batch, run_reference_batch
         from .hia_agent_buffers import validate_cases
         started = time.monotonic_ns()
@@ -1765,6 +1806,16 @@ class HIAAgentService:
                 "active_artifact": args["candidate_artifact"], "adoption_receipt": receipt, "future_calls_only": True}
 
     def _hia_adopt_native(self, args, *, _connection=None):
+        owner = getattr(self, '_native_evaluation', None)
+        if owner is None:
+            arguments = {'callee': self._hia_adopt_native_reference, 'args': args, '_connection': _connection}
+            del self, args, _connection, owner
+            return arguments.pop('callee')(arguments.pop('args'), _connection=arguments.pop('_connection'))
+        frame = owner.prepare('_hia_adopt_native', (self, args, _connection))
+        self = args = _connection = None
+        return owner.finish(frame)
+
+    def _hia_adopt_native_reference(self, args, *, _connection=None):
         """Existing foreign evidence checks, then the complete native ledger."""
         context = self._context(args["context"], **_connection_arguments(_connection))
         evaluation, _ = self.store.get_json(args["evaluation_receipt"], kind="evaluation-receipt", **_connection_arguments(_connection))
@@ -1883,6 +1934,16 @@ class HIAAgentService:
                 "artifact": decode_data(row["artifact"])}
 
     def invoke_lease(self, lease, function, arguments):
+        owner = getattr(self, '_native_evaluation', None)
+        if owner is None:
+            carrier = {'callee': self.invoke_lease_reference, 'lease': lease, 'function': function, 'arguments': arguments}
+            del self, lease, function, arguments, owner
+            return carrier.pop('callee')(carrier.pop('lease'), carrier.pop('function'), carrier.pop('arguments'))
+        frame = owner.prepare('invoke_lease', (self, lease, function, arguments))
+        self = lease = function = arguments = None
+        return owner.finish(frame)
+
+    def invoke_lease_reference(self, lease, function, arguments):
         from .hia_agent_runner import run_native_batch
         from .hia_agent_buffers import validate_arguments
         lease = self._lease(lease)

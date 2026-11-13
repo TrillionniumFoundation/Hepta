@@ -108,6 +108,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/cpython_note_packer.hiaasm',
     'hepta/hia_program_normalization_notes.py',
     'examples/hia_bootstrap/service_artifacts.hiaasm',
+    'examples/hia_bootstrap/service_evaluation.hiaasm',
 )
 
 

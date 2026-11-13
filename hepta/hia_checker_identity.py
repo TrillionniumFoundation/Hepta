@@ -82,6 +82,8 @@ MECHANISM_SOURCE_FILES = (
     'hia_service_verification_native.py',
     'hia_service_artifacts_native.py',
     'hia_service_artifacts_foreign.py',
+    'hia_service_evaluation_native.py',
+    'hia_service_evaluation_foreign.py',
 )
 
 # The proof owner uses the same complete mechanism inventory. Provider edges
@@ -110,7 +112,9 @@ CHECKER_MECHANISM_EXTERNAL_PROVIDERS = {'hia_agent_assembly.py': ('hia_program_t
  'hia_service_verification_native.py': ('hia_agent_service.py',
                                         'hia_program_native.py',
                                         'hia_safe_core_elf.py'),
- 'hia_service_artifacts_native.py': ('hia_agent_service.py',)}
+ 'hia_service_artifacts_native.py': ('hia_agent_service.py',),
+ 'hia_service_evaluation_native.py': ('hia_agent_service.py',),
+ 'hia_service_evaluation_foreign.py': ('hia_agent_buffers.py', 'hia_agent_runner.py')}
 
 # Exact verifier and checked-replay selectors. Finite-context checks also execute
 # the public VM; binding only its Python caller would omit a selected HIA image.
@@ -161,7 +165,8 @@ NATIVE_OWNERS = {
 # current environment path would name different code after a selector change.
 # A proof caller must explicitly supply its held capability. The default Core
 # checker selection, including all ordinary callers, remains unchanged.
-HELD_NATIVE_OWNERS = {'HEPTA_HIA_SERVICE_REQUESTS_MANIFEST': ('hia_service_requests_native', 'NativeRequestsImage'),
+HELD_NATIVE_OWNERS = {
+    'HEPTA_HIA_SERVICE_EVALUATION_MANIFEST': ('hia_service_evaluation_native', 'NativeEvaluationImage'),'HEPTA_HIA_SERVICE_REQUESTS_MANIFEST': ('hia_service_requests_native', 'NativeRequestsImage'),
  'HEPTA_HIA_PROOF_CONTRACT_MANIFEST': ('hia_proof_contract_native', 'NativeProofContractImage'),
  'HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST': ('hia_service_verification_native', 'NativeVerificationImage'),
  'HEPTA_HIA_SERVICE_EMISSION_MANIFEST': ('hia_service_emission_native', 'NativeEmissionImage'),
