@@ -1,0 +1,2488 @@
+{
+  "actual_frame_native_invocations": 49312,
+  "old_image_sha256": "e3e65c901a231ab93aceec6268cf1c9d5c11b3f928fa67aede04c6c0c93acc73",
+  "original90": {
+    "matching": 88,
+    "mismatches": [
+      {
+        "actual": {
+          "attributes": {
+            "artifact_namespace": {
+              "owner": "namespace"
+            },
+            "artifacts": {
+              "path": "root/artifacts"
+            },
+            "database": {
+              "path": "root/state.sqlite3"
+            },
+            "database_identity": [
+              7,
+              11
+            ],
+            "database_sidecars": {
+              "-shm": [
+                7,
+                11
+              ],
+              "-wal": [
+                7,
+                11
+              ]
+            },
+            "db": {
+              "database": true
+            },
+            "execution_budgets": {
+              "owner": "budget"
+            },
+            "lock": {
+              "lock": true
+            },
+            "request_journal": {
+              "owner": "request"
+            },
+            "root": {
+              "path": "root"
+            },
+            "slot_ledger": null
+          },
+          "error": {
+            "args": [
+              "cannot access local variable 'error' where it is not associated with a value"
+            ],
+            "cause": null,
+            "code": null,
+            "context": [
+              "InjectedFailure",
+              "cleanup:namespace"
+            ],
+            "injected_identity": null,
+            "notes": null,
+            "phase": null,
+            "suppress_context": false,
+            "type": "UnboundLocalError"
+          },
+          "result": null,
+          "trace": [
+            [
+              "admit:budget",
+              [],
+              {},
+              null
+            ],
+            [
+              "admit:request",
+              [],
+              {},
+              null
+            ],
+            [
+              "admit:namespace",
+              [],
+              {},
+              null
+            ],
+            [
+              "admit:ledger",
+              [],
+              {
+                "namespace_admission": "admission:namespace",
+                "request_admission": "admission:request"
+              },
+              null
+            ],
+            [
+              "Path",
+              [
+                "root"
+              ],
+              {},
+              null
+            ],
+            [
+              "absolute:root",
+              [],
+              {},
+              null
+            ],
+            [
+              "mkdir:root",
+              [],
+              {
+                "exist_ok": true,
+                "mode": 448,
+                "parents": true
+              },
+              null
+            ],
+            [
+              "symlink:root",
+              [],
+              {},
+              null
+            ],
+            [
+              "resolve:root",
+              [],
+              {},
+              null
+            ],
+            [
+              "set:root",
+              [
+                {
+                  "path": "root"
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "stat:root",
+              [],
+              {},
+              null
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              null
+            ],
+            [
+              "join:root",
+              [
+                "artifacts"
+              ],
+              {},
+              null
+            ],
+            [
+              "set:artifacts",
+              [
+                {
+                  "path": "root/artifacts"
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "mkdir:root/artifacts",
+              [],
+              {
+                "exist_ok": true,
+                "mode": 448
+              },
+              null
+            ],
+            [
+              "symlink:root/artifacts",
+              [],
+              {},
+              null
+            ],
+            [
+              "lstat:root/artifacts",
+              [],
+              {},
+              null
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              null
+            ],
+            [
+              "join:root",
+              [
+                "state.sqlite3"
+              ],
+              {},
+              null
+            ],
+            [
+              "exists:root/state.sqlite3",
+              [],
+              {},
+              null
+            ],
+            [
+              "symlink:root/state.sqlite3",
+              [],
+              {},
+              null
+            ],
+            [
+              "connect",
+              [
+                {
+                  "path": "root/state.sqlite3"
+                }
+              ],
+              {
+                "check_same_thread": false,
+                "isolation_level": null,
+                "timeout": 10
+              },
+              null
+            ],
+            [
+              "set:db",
+              [
+                {
+                  "database": true
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "chmod",
+              [
+                {
+                  "path": "root/state.sqlite3"
+                },
+                384
+              ],
+              {},
+              null
+            ],
+            [
+              "set:database",
+              [
+                {
+                  "path": "root/state.sqlite3"
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "lstat:root/state.sqlite3",
+              [],
+              {},
+              null
+            ],
+            [
+              "set:database_identity",
+              [
+                [
+                  7,
+                  11
+                ]
+              ],
+              {},
+              null
+            ],
+            [
+              "db-set:row_factory",
+              [
+                {
+                  "row_type": true
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "execute:PRAGMA journal_mode=WAL",
+              [],
+              {},
+              null
+            ],
+            [
+              "execute:PRAGMA synchronous=FULL",
+              [],
+              {},
+              null
+            ],
+            [
+              "RLock",
+              [],
+              {},
+              null
+            ],
+            [
+              "set:lock",
+              [
+                {
+                  "lock": true
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "schema",
+              [
+                "\n            CREATE TABLE IF NOT EXISTS artifacts (\n                id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, uri TEXT UNIQUE NOT NULL,\n                kind TEXT NOT NULL, metadata TEXT NOT NULL, content_key TEXT UNIQUE NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS profiles (\n                id TEXT NOT NULL, sha256 TEXT NOT NULL, artifact TEXT NOT NULL,\n                PRIMARY KEY (id,sha256)\n            );\n            CREATE TABLE IF NOT EXISTS contexts (\n                id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, artifact TEXT NOT NULL,\n                created_ns TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0\n            );\n            CREATE TABLE IF NOT EXISTS requests (\n                key TEXT PRIMARY KEY, digest TEXT NOT NULL, tool TEXT NOT NULL,\n                state TEXT NOT NULL, response TEXT, started_ns TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS costs (\n                sequence INTEGER PRIMARY KEY AUTOINCREMENT, context_id TEXT,\n                tool TEXT NOT NULL, request_id TEXT NOT NULL, wall_ns TEXT NOT NULL,\n                status TEXT NOT NULL, details TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS cursors (\n                id TEXT PRIMARY KEY, artifact_id TEXT NOT NULL,\n                sha256 TEXT NOT NULL, offset INTEGER NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS slots (\n                name TEXT PRIMARY KEY, context_id TEXT NOT NULL,\n                generation TEXT NOT NULL, epoch TEXT NOT NULL, abi_sha256 TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS versions (\n                slot TEXT NOT NULL, generation TEXT NOT NULL, artifact TEXT NOT NULL,\n                PRIMARY KEY (slot,generation)\n            );\n            CREATE TABLE IF NOT EXISTS leases (\n                id TEXT PRIMARY KEY, slot TEXT NOT NULL, generation TEXT NOT NULL,\n                artifact TEXT NOT NULL, active INTEGER NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS execution_budgets (\n                context_id TEXT PRIMARY KEY, used_native_ns TEXT NOT NULL,\n                owner TEXT\n            );\n        "
+              ],
+              {},
+              null
+            ],
+            [
+              "set:execution_budgets",
+              [
+                null
+              ],
+              {},
+              null
+            ],
+            [
+              "set:request_journal",
+              [
+                null
+              ],
+              {},
+              null
+            ],
+            [
+              "set:artifact_namespace",
+              [
+                null
+              ],
+              {},
+              null
+            ],
+            [
+              "set:slot_ledger",
+              [
+                null
+              ],
+              {},
+              null
+            ],
+            [
+              "set:database_sidecars",
+              [
+                null
+              ],
+              {},
+              null
+            ],
+            [
+              "execute:SELECT name FROM sqlite_master LIMIT 1",
+              [],
+              {},
+              null
+            ],
+            [
+              "fetchone",
+              [],
+              {},
+              null
+            ],
+            [
+              "str:root/state.sqlite3",
+              [],
+              {},
+              null
+            ],
+            [
+              "Path",
+              [
+                "root/state.sqlite3-wal"
+              ],
+              {},
+              null
+            ],
+            [
+              "lstat:root/state.sqlite3-wal",
+              [],
+              {},
+              null
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              null
+            ],
+            [
+              "str:root/state.sqlite3",
+              [],
+              {},
+              null
+            ],
+            [
+              "Path",
+              [
+                "root/state.sqlite3-shm"
+              ],
+              {},
+              null
+            ],
+            [
+              "lstat:root/state.sqlite3-shm",
+              [],
+              {},
+              null
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              null
+            ],
+            [
+              "set:database_sidecars",
+              [
+                {
+                  "-shm": [
+                    7,
+                    11
+                  ],
+                  "-wal": [
+                    7,
+                    11
+                  ]
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "create:budget",
+              [
+                "admission:budget"
+              ],
+              {},
+              null
+            ],
+            [
+              "set:execution_budgets",
+              [
+                {
+                  "owner": "budget"
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "create:request",
+              [
+                "admission:request"
+              ],
+              {
+                "shared_lock": {
+                  "lock": true
+                }
+              },
+              null
+            ],
+            [
+              "set:request_journal",
+              [
+                {
+                  "owner": "request"
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "create:namespace",
+              [
+                "admission:namespace"
+              ],
+              {},
+              null
+            ],
+            [
+              "set:artifact_namespace",
+              [
+                {
+                  "owner": "namespace"
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "create:ledger",
+              [
+                "admission:ledger"
+              ],
+              {},
+              null
+            ],
+            [
+              "close:namespace",
+              [],
+              {},
+              [
+                "InjectedFailure",
+                "create:ledger"
+              ]
+            ]
+          ]
+        },
+        "entry": "__init__",
+        "equal": false,
+        "expected": {
+          "attributes": {
+            "artifact_namespace": {
+              "owner": "namespace"
+            },
+            "artifacts": {
+              "path": "root/artifacts"
+            },
+            "database": {
+              "path": "root/state.sqlite3"
+            },
+            "database_identity": [
+              7,
+              11
+            ],
+            "database_sidecars": {
+              "-shm": [
+                7,
+                11
+              ],
+              "-wal": [
+                7,
+                11
+              ]
+            },
+            "db": {
+              "database": true
+            },
+            "execution_budgets": {
+              "owner": "budget"
+            },
+            "lock": {
+              "lock": true
+            },
+            "request_journal": {
+              "owner": "request"
+            },
+            "root": {
+              "path": "root"
+            },
+            "slot_ledger": null
+          },
+          "error": {
+            "args": [
+              "create:ledger"
+            ],
+            "cause": null,
+            "code": null,
+            "context": null,
+            "injected_identity": "create:ledger",
+            "notes": [
+              "AgentStore construction cleanup failed: InjectedFailure",
+              "AgentStore construction cleanup failed: InjectedFailure",
+              "AgentStore construction cleanup failed: InjectedFailure",
+              "AgentStore construction cleanup failed: InjectedFailure"
+            ],
+            "phase": null,
+            "suppress_context": false,
+            "type": "InjectedFailure"
+          },
+          "result": null,
+          "trace": [
+            [
+              "admit:budget",
+              [],
+              {},
+              null
+            ],
+            [
+              "admit:request",
+              [],
+              {},
+              null
+            ],
+            [
+              "admit:namespace",
+              [],
+              {},
+              null
+            ],
+            [
+              "admit:ledger",
+              [],
+              {
+                "namespace_admission": "admission:namespace",
+                "request_admission": "admission:request"
+              },
+              null
+            ],
+            [
+              "Path",
+              [
+                "root"
+              ],
+              {},
+              null
+            ],
+            [
+              "absolute:root",
+              [],
+              {},
+              null
+            ],
+            [
+              "mkdir:root",
+              [],
+              {
+                "exist_ok": true,
+                "mode": 448,
+                "parents": true
+              },
+              null
+            ],
+            [
+              "symlink:root",
+              [],
+              {},
+              null
+            ],
+            [
+              "resolve:root",
+              [],
+              {},
+              null
+            ],
+            [
+              "set:root",
+              [
+                {
+                  "path": "root"
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "stat:root",
+              [],
+              {},
+              null
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              null
+            ],
+            [
+              "join:root",
+              [
+                "artifacts"
+              ],
+              {},
+              null
+            ],
+            [
+              "set:artifacts",
+              [
+                {
+                  "path": "root/artifacts"
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "mkdir:root/artifacts",
+              [],
+              {
+                "exist_ok": true,
+                "mode": 448
+              },
+              null
+            ],
+            [
+              "symlink:root/artifacts",
+              [],
+              {},
+              null
+            ],
+            [
+              "lstat:root/artifacts",
+              [],
+              {},
+              null
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              null
+            ],
+            [
+              "join:root",
+              [
+                "state.sqlite3"
+              ],
+              {},
+              null
+            ],
+            [
+              "exists:root/state.sqlite3",
+              [],
+              {},
+              null
+            ],
+            [
+              "symlink:root/state.sqlite3",
+              [],
+              {},
+              null
+            ],
+            [
+              "connect",
+              [
+                {
+                  "path": "root/state.sqlite3"
+                }
+              ],
+              {
+                "check_same_thread": false,
+                "isolation_level": null,
+                "timeout": 10
+              },
+              null
+            ],
+            [
+              "set:db",
+              [
+                {
+                  "database": true
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "chmod",
+              [
+                {
+                  "path": "root/state.sqlite3"
+                },
+                384
+              ],
+              {},
+              null
+            ],
+            [
+              "set:database",
+              [
+                {
+                  "path": "root/state.sqlite3"
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "lstat:root/state.sqlite3",
+              [],
+              {},
+              null
+            ],
+            [
+              "set:database_identity",
+              [
+                [
+                  7,
+                  11
+                ]
+              ],
+              {},
+              null
+            ],
+            [
+              "db-set:row_factory",
+              [
+                {
+                  "row_type": true
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "execute:PRAGMA journal_mode=WAL",
+              [],
+              {},
+              null
+            ],
+            [
+              "execute:PRAGMA synchronous=FULL",
+              [],
+              {},
+              null
+            ],
+            [
+              "RLock",
+              [],
+              {},
+              null
+            ],
+            [
+              "set:lock",
+              [
+                {
+                  "lock": true
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "schema",
+              [
+                "\n            CREATE TABLE IF NOT EXISTS artifacts (\n                id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, uri TEXT UNIQUE NOT NULL,\n                kind TEXT NOT NULL, metadata TEXT NOT NULL, content_key TEXT UNIQUE NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS profiles (\n                id TEXT NOT NULL, sha256 TEXT NOT NULL, artifact TEXT NOT NULL,\n                PRIMARY KEY (id,sha256)\n            );\n            CREATE TABLE IF NOT EXISTS contexts (\n                id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, artifact TEXT NOT NULL,\n                created_ns TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0\n            );\n            CREATE TABLE IF NOT EXISTS requests (\n                key TEXT PRIMARY KEY, digest TEXT NOT NULL, tool TEXT NOT NULL,\n                state TEXT NOT NULL, response TEXT, started_ns TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS costs (\n                sequence INTEGER PRIMARY KEY AUTOINCREMENT, context_id TEXT,\n                tool TEXT NOT NULL, request_id TEXT NOT NULL, wall_ns TEXT NOT NULL,\n                status TEXT NOT NULL, details TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS cursors (\n                id TEXT PRIMARY KEY, artifact_id TEXT NOT NULL,\n                sha256 TEXT NOT NULL, offset INTEGER NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS slots (\n                name TEXT PRIMARY KEY, context_id TEXT NOT NULL,\n                generation TEXT NOT NULL, epoch TEXT NOT NULL, abi_sha256 TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS versions (\n                slot TEXT NOT NULL, generation TEXT NOT NULL, artifact TEXT NOT NULL,\n                PRIMARY KEY (slot,generation)\n            );\n            CREATE TABLE IF NOT EXISTS leases (\n                id TEXT PRIMARY KEY, slot TEXT NOT NULL, generation TEXT NOT NULL,\n                artifact TEXT NOT NULL, active INTEGER NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS execution_budgets (\n                context_id TEXT PRIMARY KEY, used_native_ns TEXT NOT NULL,\n                owner TEXT\n            );\n        "
+              ],
+              {},
+              null
+            ],
+            [
+              "set:execution_budgets",
+              [
+                null
+              ],
+              {},
+              null
+            ],
+            [
+              "set:request_journal",
+              [
+                null
+              ],
+              {},
+              null
+            ],
+            [
+              "set:artifact_namespace",
+              [
+                null
+              ],
+              {},
+              null
+            ],
+            [
+              "set:slot_ledger",
+              [
+                null
+              ],
+              {},
+              null
+            ],
+            [
+              "set:database_sidecars",
+              [
+                null
+              ],
+              {},
+              null
+            ],
+            [
+              "execute:SELECT name FROM sqlite_master LIMIT 1",
+              [],
+              {},
+              null
+            ],
+            [
+              "fetchone",
+              [],
+              {},
+              null
+            ],
+            [
+              "str:root/state.sqlite3",
+              [],
+              {},
+              null
+            ],
+            [
+              "Path",
+              [
+                "root/state.sqlite3-wal"
+              ],
+              {},
+              null
+            ],
+            [
+              "lstat:root/state.sqlite3-wal",
+              [],
+              {},
+              null
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              null
+            ],
+            [
+              "str:root/state.sqlite3",
+              [],
+              {},
+              null
+            ],
+            [
+              "Path",
+              [
+                "root/state.sqlite3-shm"
+              ],
+              {},
+              null
+            ],
+            [
+              "lstat:root/state.sqlite3-shm",
+              [],
+              {},
+              null
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              null
+            ],
+            [
+              "set:database_sidecars",
+              [
+                {
+                  "-shm": [
+                    7,
+                    11
+                  ],
+                  "-wal": [
+                    7,
+                    11
+                  ]
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "create:budget",
+              [
+                "admission:budget"
+              ],
+              {},
+              null
+            ],
+            [
+              "set:execution_budgets",
+              [
+                {
+                  "owner": "budget"
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "create:request",
+              [
+                "admission:request"
+              ],
+              {
+                "shared_lock": {
+                  "lock": true
+                }
+              },
+              null
+            ],
+            [
+              "set:request_journal",
+              [
+                {
+                  "owner": "request"
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "create:namespace",
+              [
+                "admission:namespace"
+              ],
+              {},
+              null
+            ],
+            [
+              "set:artifact_namespace",
+              [
+                {
+                  "owner": "namespace"
+                }
+              ],
+              {},
+              null
+            ],
+            [
+              "create:ledger",
+              [
+                "admission:ledger"
+              ],
+              {},
+              null
+            ],
+            [
+              "close:namespace",
+              [],
+              {},
+              [
+                "InjectedFailure",
+                "create:ledger"
+              ]
+            ],
+            [
+              "close:request",
+              [],
+              {},
+              [
+                "InjectedFailure",
+                "create:ledger"
+              ]
+            ],
+            [
+              "close:budget",
+              [],
+              {},
+              [
+                "InjectedFailure",
+                "create:ledger"
+              ]
+            ],
+            [
+              "close:database",
+              [],
+              {},
+              [
+                "InjectedFailure",
+                "create:ledger"
+              ]
+            ]
+          ]
+        },
+        "outer_handled_exception": false,
+        "scenario": "fail:create:ledger+cleanup_failure"
+      },
+      {
+        "actual": {
+          "attributes": {
+            "artifact_namespace": {
+              "owner": "namespace"
+            },
+            "artifacts": {
+              "path": "root/artifacts"
+            },
+            "database": {
+              "path": "root/state.sqlite3"
+            },
+            "database_identity": [
+              7,
+              11
+            ],
+            "database_sidecars": {
+              "-shm": [
+                7,
+                11
+              ],
+              "-wal": [
+                7,
+                11
+              ]
+            },
+            "db": {
+              "database": true
+            },
+            "execution_budgets": {
+              "owner": "budget"
+            },
+            "lock": {
+              "lock": true
+            },
+            "request_journal": {
+              "owner": "request"
+            },
+            "root": {
+              "path": "root"
+            },
+            "slot_ledger": null
+          },
+          "error": {
+            "args": [
+              "cannot access local variable 'error' where it is not associated with a value"
+            ],
+            "cause": null,
+            "code": null,
+            "context": [
+              "InjectedFailure",
+              "cleanup:namespace"
+            ],
+            "injected_identity": null,
+            "notes": null,
+            "phase": null,
+            "suppress_context": false,
+            "type": "UnboundLocalError"
+          },
+          "result": null,
+          "trace": [
+            [
+              "admit:budget",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "admit:request",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "admit:namespace",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "admit:ledger",
+              [],
+              {
+                "namespace_admission": "admission:namespace",
+                "request_admission": "admission:request"
+              },
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "Path",
+              [
+                "root"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "absolute:root",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "mkdir:root",
+              [],
+              {
+                "exist_ok": true,
+                "mode": 448,
+                "parents": true
+              },
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "symlink:root",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "resolve:root",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:root",
+              [
+                {
+                  "path": "root"
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "stat:root",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "join:root",
+              [
+                "artifacts"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:artifacts",
+              [
+                {
+                  "path": "root/artifacts"
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "mkdir:root/artifacts",
+              [],
+              {
+                "exist_ok": true,
+                "mode": 448
+              },
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "symlink:root/artifacts",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "lstat:root/artifacts",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "join:root",
+              [
+                "state.sqlite3"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "exists:root/state.sqlite3",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "symlink:root/state.sqlite3",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "connect",
+              [
+                {
+                  "path": "root/state.sqlite3"
+                }
+              ],
+              {
+                "check_same_thread": false,
+                "isolation_level": null,
+                "timeout": 10
+              },
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:db",
+              [
+                {
+                  "database": true
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "chmod",
+              [
+                {
+                  "path": "root/state.sqlite3"
+                },
+                384
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:database",
+              [
+                {
+                  "path": "root/state.sqlite3"
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "lstat:root/state.sqlite3",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:database_identity",
+              [
+                [
+                  7,
+                  11
+                ]
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "db-set:row_factory",
+              [
+                {
+                  "row_type": true
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "execute:PRAGMA journal_mode=WAL",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "execute:PRAGMA synchronous=FULL",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "RLock",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:lock",
+              [
+                {
+                  "lock": true
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "schema",
+              [
+                "\n            CREATE TABLE IF NOT EXISTS artifacts (\n                id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, uri TEXT UNIQUE NOT NULL,\n                kind TEXT NOT NULL, metadata TEXT NOT NULL, content_key TEXT UNIQUE NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS profiles (\n                id TEXT NOT NULL, sha256 TEXT NOT NULL, artifact TEXT NOT NULL,\n                PRIMARY KEY (id,sha256)\n            );\n            CREATE TABLE IF NOT EXISTS contexts (\n                id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, artifact TEXT NOT NULL,\n                created_ns TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0\n            );\n            CREATE TABLE IF NOT EXISTS requests (\n                key TEXT PRIMARY KEY, digest TEXT NOT NULL, tool TEXT NOT NULL,\n                state TEXT NOT NULL, response TEXT, started_ns TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS costs (\n                sequence INTEGER PRIMARY KEY AUTOINCREMENT, context_id TEXT,\n                tool TEXT NOT NULL, request_id TEXT NOT NULL, wall_ns TEXT NOT NULL,\n                status TEXT NOT NULL, details TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS cursors (\n                id TEXT PRIMARY KEY, artifact_id TEXT NOT NULL,\n                sha256 TEXT NOT NULL, offset INTEGER NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS slots (\n                name TEXT PRIMARY KEY, context_id TEXT NOT NULL,\n                generation TEXT NOT NULL, epoch TEXT NOT NULL, abi_sha256 TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS versions (\n                slot TEXT NOT NULL, generation TEXT NOT NULL, artifact TEXT NOT NULL,\n                PRIMARY KEY (slot,generation)\n            );\n            CREATE TABLE IF NOT EXISTS leases (\n                id TEXT PRIMARY KEY, slot TEXT NOT NULL, generation TEXT NOT NULL,\n                artifact TEXT NOT NULL, active INTEGER NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS execution_budgets (\n                context_id TEXT PRIMARY KEY, used_native_ns TEXT NOT NULL,\n                owner TEXT\n            );\n        "
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:execution_budgets",
+              [
+                null
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:request_journal",
+              [
+                null
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:artifact_namespace",
+              [
+                null
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:slot_ledger",
+              [
+                null
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:database_sidecars",
+              [
+                null
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "execute:SELECT name FROM sqlite_master LIMIT 1",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "fetchone",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "str:root/state.sqlite3",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "Path",
+              [
+                "root/state.sqlite3-wal"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "lstat:root/state.sqlite3-wal",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "str:root/state.sqlite3",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "Path",
+              [
+                "root/state.sqlite3-shm"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "lstat:root/state.sqlite3-shm",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:database_sidecars",
+              [
+                {
+                  "-shm": [
+                    7,
+                    11
+                  ],
+                  "-wal": [
+                    7,
+                    11
+                  ]
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "create:budget",
+              [
+                "admission:budget"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:execution_budgets",
+              [
+                {
+                  "owner": "budget"
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "create:request",
+              [
+                "admission:request"
+              ],
+              {
+                "shared_lock": {
+                  "lock": true
+                }
+              },
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:request_journal",
+              [
+                {
+                  "owner": "request"
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "create:namespace",
+              [
+                "admission:namespace"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:artifact_namespace",
+              [
+                {
+                  "owner": "namespace"
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "create:ledger",
+              [
+                "admission:ledger"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "close:namespace",
+              [],
+              {},
+              [
+                "InjectedFailure",
+                "create:ledger"
+              ]
+            ]
+          ]
+        },
+        "entry": "__init__",
+        "equal": false,
+        "expected": {
+          "attributes": {
+            "artifact_namespace": {
+              "owner": "namespace"
+            },
+            "artifacts": {
+              "path": "root/artifacts"
+            },
+            "database": {
+              "path": "root/state.sqlite3"
+            },
+            "database_identity": [
+              7,
+              11
+            ],
+            "database_sidecars": {
+              "-shm": [
+                7,
+                11
+              ],
+              "-wal": [
+                7,
+                11
+              ]
+            },
+            "db": {
+              "database": true
+            },
+            "execution_budgets": {
+              "owner": "budget"
+            },
+            "lock": {
+              "lock": true
+            },
+            "request_journal": {
+              "owner": "request"
+            },
+            "root": {
+              "path": "root"
+            },
+            "slot_ledger": null
+          },
+          "error": {
+            "args": [
+              "create:ledger"
+            ],
+            "cause": null,
+            "code": null,
+            "context": [
+              "LookupError",
+              "outer handled exception"
+            ],
+            "injected_identity": "create:ledger",
+            "notes": [
+              "AgentStore construction cleanup failed: InjectedFailure",
+              "AgentStore construction cleanup failed: InjectedFailure",
+              "AgentStore construction cleanup failed: InjectedFailure",
+              "AgentStore construction cleanup failed: InjectedFailure"
+            ],
+            "phase": null,
+            "suppress_context": false,
+            "type": "InjectedFailure"
+          },
+          "result": null,
+          "trace": [
+            [
+              "admit:budget",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "admit:request",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "admit:namespace",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "admit:ledger",
+              [],
+              {
+                "namespace_admission": "admission:namespace",
+                "request_admission": "admission:request"
+              },
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "Path",
+              [
+                "root"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "absolute:root",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "mkdir:root",
+              [],
+              {
+                "exist_ok": true,
+                "mode": 448,
+                "parents": true
+              },
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "symlink:root",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "resolve:root",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:root",
+              [
+                {
+                  "path": "root"
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "stat:root",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "join:root",
+              [
+                "artifacts"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:artifacts",
+              [
+                {
+                  "path": "root/artifacts"
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "mkdir:root/artifacts",
+              [],
+              {
+                "exist_ok": true,
+                "mode": 448
+              },
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "symlink:root/artifacts",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "lstat:root/artifacts",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "join:root",
+              [
+                "state.sqlite3"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "exists:root/state.sqlite3",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "symlink:root/state.sqlite3",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "connect",
+              [
+                {
+                  "path": "root/state.sqlite3"
+                }
+              ],
+              {
+                "check_same_thread": false,
+                "isolation_level": null,
+                "timeout": 10
+              },
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:db",
+              [
+                {
+                  "database": true
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "chmod",
+              [
+                {
+                  "path": "root/state.sqlite3"
+                },
+                384
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:database",
+              [
+                {
+                  "path": "root/state.sqlite3"
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "lstat:root/state.sqlite3",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:database_identity",
+              [
+                [
+                  7,
+                  11
+                ]
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "db-set:row_factory",
+              [
+                {
+                  "row_type": true
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "execute:PRAGMA journal_mode=WAL",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "execute:PRAGMA synchronous=FULL",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "RLock",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:lock",
+              [
+                {
+                  "lock": true
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "schema",
+              [
+                "\n            CREATE TABLE IF NOT EXISTS artifacts (\n                id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, uri TEXT UNIQUE NOT NULL,\n                kind TEXT NOT NULL, metadata TEXT NOT NULL, content_key TEXT UNIQUE NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS profiles (\n                id TEXT NOT NULL, sha256 TEXT NOT NULL, artifact TEXT NOT NULL,\n                PRIMARY KEY (id,sha256)\n            );\n            CREATE TABLE IF NOT EXISTS contexts (\n                id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, artifact TEXT NOT NULL,\n                created_ns TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0\n            );\n            CREATE TABLE IF NOT EXISTS requests (\n                key TEXT PRIMARY KEY, digest TEXT NOT NULL, tool TEXT NOT NULL,\n                state TEXT NOT NULL, response TEXT, started_ns TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS costs (\n                sequence INTEGER PRIMARY KEY AUTOINCREMENT, context_id TEXT,\n                tool TEXT NOT NULL, request_id TEXT NOT NULL, wall_ns TEXT NOT NULL,\n                status TEXT NOT NULL, details TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS cursors (\n                id TEXT PRIMARY KEY, artifact_id TEXT NOT NULL,\n                sha256 TEXT NOT NULL, offset INTEGER NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS slots (\n                name TEXT PRIMARY KEY, context_id TEXT NOT NULL,\n                generation TEXT NOT NULL, epoch TEXT NOT NULL, abi_sha256 TEXT NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS versions (\n                slot TEXT NOT NULL, generation TEXT NOT NULL, artifact TEXT NOT NULL,\n                PRIMARY KEY (slot,generation)\n            );\n            CREATE TABLE IF NOT EXISTS leases (\n                id TEXT PRIMARY KEY, slot TEXT NOT NULL, generation TEXT NOT NULL,\n                artifact TEXT NOT NULL, active INTEGER NOT NULL\n            );\n            CREATE TABLE IF NOT EXISTS execution_budgets (\n                context_id TEXT PRIMARY KEY, used_native_ns TEXT NOT NULL,\n                owner TEXT\n            );\n        "
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:execution_budgets",
+              [
+                null
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:request_journal",
+              [
+                null
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:artifact_namespace",
+              [
+                null
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:slot_ledger",
+              [
+                null
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:database_sidecars",
+              [
+                null
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "execute:SELECT name FROM sqlite_master LIMIT 1",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "fetchone",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "str:root/state.sqlite3",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "Path",
+              [
+                "root/state.sqlite3-wal"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "lstat:root/state.sqlite3-wal",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "str:root/state.sqlite3",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "Path",
+              [
+                "root/state.sqlite3-shm"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "lstat:root/state.sqlite3-shm",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "geteuid",
+              [],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:database_sidecars",
+              [
+                {
+                  "-shm": [
+                    7,
+                    11
+                  ],
+                  "-wal": [
+                    7,
+                    11
+                  ]
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "create:budget",
+              [
+                "admission:budget"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:execution_budgets",
+              [
+                {
+                  "owner": "budget"
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "create:request",
+              [
+                "admission:request"
+              ],
+              {
+                "shared_lock": {
+                  "lock": true
+                }
+              },
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:request_journal",
+              [
+                {
+                  "owner": "request"
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "create:namespace",
+              [
+                "admission:namespace"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "set:artifact_namespace",
+              [
+                {
+                  "owner": "namespace"
+                }
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "create:ledger",
+              [
+                "admission:ledger"
+              ],
+              {},
+              [
+                "LookupError",
+                "outer handled exception"
+              ]
+            ],
+            [
+              "close:namespace",
+              [],
+              {},
+              [
+                "InjectedFailure",
+                "create:ledger"
+              ]
+            ],
+            [
+              "close:request",
+              [],
+              {},
+              [
+                "InjectedFailure",
+                "create:ledger"
+              ]
+            ],
+            [
+              "close:budget",
+              [],
+              {},
+              [
+                "InjectedFailure",
+                "create:ledger"
+              ]
+            ],
+            [
+              "close:database",
+              [],
+              {},
+              [
+                "InjectedFailure",
+                "create:ledger"
+              ]
+            ]
+          ]
+        },
+        "outer_handled_exception": true,
+        "scenario": "fail:create:ledger+cleanup_failure"
+      }
+    ],
+    "total": 90
+  },
+  "qualification": false,
+  "r2_is_separate_source_and_evidence": true,
+  "scope": "ORIGINAL_PROVIDER_DIFFERENTIAL_LOCAL_CPYTHON312",
+  "source_unchanged": true,
+  "whole_native": false
+}
