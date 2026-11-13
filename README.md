@@ -1,27 +1,11 @@
-# Artifact and Evaluation joint development
+# Completed-original custody only
 
-This is an independent development harness, not a product checkout or current-cold authority.
-It checks out exact published65ce (`65ceb711e47548f85ecf6b2ec2ae90f11dd50743` / `49a48cef565b78d0a353822026ec525789768840`),
-verifies all3257 Git source objects, then applies only the complete finite delta in inputs.
-The candidate contains3324 files with authored tree `bc276bc832a7d6f04a21d63f55645859b75a01ee`. No future HEAD is asserted.
+This independent harness reads the five pinned, already-completed artifacts in inputs/ORIGINALS.json. It does not import the product, compile any HIA, execute any original test, change a deadline, post comments/statuses, or move product/audit refs. The only repository write API used by the job is immutable Git blob creation. Actions read permission fetches the original artifact metadata and bytes; contents write permission creates those blobs.
 
-The independent jobs retain the original Artifact Source45, compatibility27, Native12 and
-original Agent48 / namespace35 / ledger48. The Evaluation job adds Source73, actual Native14,
-the complete96 Artifact-only / Evaluation-only / both / neither comparisons, and the original
-Evaluation Agent48 / namespace35 / ledger48. These qualifiers deliberately keep their original
-selection scopes; the96 comparisons separately prove the three overlapping public routes.
-The full source job runs all97 generators and973 unique source controls, preserving all930
-previous IDs in order. The actual3.11 job retains the original default Artifact8, adds the
-frozen original Program21+Composite25+Assembly18, and observes both unsupported selections.
+Every artifact ID/run/head/size/SHA256/retention record is checked. All outer and inner members are fully read for CRC32/SHA256/Git-blob identity and their original ZIP modes are recorded. The a733 source bytes must reconstruct the actual 3324-file Git tree and match all original before/generated/after records that exist in the original profile schema. The earlier 4925 diagnostic is checked against its own original Git tree, sharing only byte identities of the same immutable Git blobs; its distinct three source files are read and verified separately. Original harness trees and all files are independently read from their pinned Git objects; original retained harness-unchanged fields remain explicit.
 
-Every original compilation remains20 seconds and every ordinary group remains1800 seconds.
-All original per-test deadlines, source freshness, observations and refusal assertions remain.
-Source, compiler and input bytes are checked before/after. Raw stdout, stderr, receipts and ZIPs
-are uploaded even on failure. No historical pass is promoted to this source.
-The six original R8 budget failures remain unresolved until these original gates actually run.
+Each original inner ZIP is preserved in original byte order, split into 512 KiB binary chunks carried in UTF-8 JSON/base64 wrappers. Each immutable blob creation is followed by a complete GET and byte comparison. Ambiguous POST failures stop without replay. A complete or partial index and exact mount recipe are retained and printed. The custodian's own success means completed custody only. Original FAIL/HOLD results remain original FAIL/HOLD, and no cold/full/whole-native qualification is conferred.
 
-This successor keeps the entire previous driver, supervisor, 96-comparison fixture, all four profiles, all caller IDs and all limits byte-for-byte. Only the triggering branch and source data change. The source commit parent is `936aee286e30ee271b8d09235aba57d6ba76cd9e`; the harness parent is `dd5357a85e4f8812d1d16ad50c5d771da9d2d68a`. Three HIA receipt-checksum implementations are independently revised; their functional and kernel observations confer no result on the original budgets. The previous run, including the two source-inventory failures and all budget failures, is retained.
+Original outer ZIPs are not reconstructed from the inners. Their original Actions artifact identity and 90-day expiry remain separately recorded; previously downloaded local original ZIPs are not modified by this job.
 
-## Independent v84 source successor
-
-The exact published source is `a733926a2786a3d4a37304bd2d18ebb2eac57ac9` / `1c5ba7e1217f46f2b95512640d08f19e2cc8b1fd`, parent `4925e72d9f51f4dc3e8f4d1d2a7b24cce2f5772b`. It changes only two default assembly/Core selection modules and the regenerated support record. The previous four-profile failures remain unchanged. This harness has parent `eb39aaaeeb8cb55d478e7c7045ccf67d4a4ca22a`. All eight Python driver/fixture inputs, four profiles, 96 actual combinations, default 8+64, all original 48/35/48 caller bodies and IDs, 97 generators/973 source tests, compile20 and group1800 are byte-identical to the preceding harness. Only source packet data, this provenance and the trigger branch change. No cold or native result is inherited.
+Source authoring occurred while the local executor was unavailable. Static source review preceded publication; the first actual parser and custody execution will be this independent Actions job. One V8 authoring call failed at template-string parsing before any statements or mutations ran; the final literal workflow string was then authored independently. This was not a product execution or original test outcome.
