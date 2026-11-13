@@ -21,3 +21,7 @@ are uploaded even on failure. No historical pass is promoted to this source.
 The six original R8 budget failures remain unresolved until these original gates actually run.
 
 This successor keeps the entire previous driver, supervisor, 96-comparison fixture, all four profiles, all caller IDs and all limits byte-for-byte. Only the triggering branch and source data change. The source commit parent is `936aee286e30ee271b8d09235aba57d6ba76cd9e`; the harness parent is `dd5357a85e4f8812d1d16ad50c5d771da9d2d68a`. Three HIA receipt-checksum implementations are independently revised; their functional and kernel observations confer no result on the original budgets. The previous run, including the two source-inventory failures and all budget failures, is retained.
+
+## Independent v84 source successor
+
+The exact published source is `a733926a2786a3d4a37304bd2d18ebb2eac57ac9` / `1c5ba7e1217f46f2b95512640d08f19e2cc8b1fd`, parent `4925e72d9f51f4dc3e8f4d1d2a7b24cce2f5772b`. It changes only two default assembly/Core selection modules and the regenerated support record. The previous four-profile failures remain unchanged. This harness has parent `eb39aaaeeb8cb55d478e7c7045ccf67d4a4ca22a`. All eight Python driver/fixture inputs, four profiles, 96 actual combinations, default 8+64, all original 48/35/48 caller bodies and IDs, 97 generators/973 source tests, compile20 and group1800 are byte-identical to the preceding harness. Only source packet data, this provenance and the trigger branch change. No cold or native result is inherited.
