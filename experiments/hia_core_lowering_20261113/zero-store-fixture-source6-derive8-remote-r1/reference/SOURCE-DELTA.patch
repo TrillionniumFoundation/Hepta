@@ -1,0 +1,68 @@
+--- a/tests/hia_core_pc_expected.py
++++ b/tests/hia_core_pc_expected.py
+@@ -2,7 +2,8 @@
+ 
+ The original UNPACK and comparison snapshot files stay byte-identical.  Their
+ provenance describes historical bytes.  This loader returns separately labelled
+-current expectations from exact legacy, PC-forwarding or fixed-word-read identities;
++current expectations from exact legacy, PC-forwarding or fixed-word-read identities.
++The fixed Core39 revision also admits the exact two-loop UNPACK zero-store successor;
+ it never computes expected HIA hashes from the current HIA files.  The original
+ callers still read and compare all 40 actual files, so mixed revisions fail.
+ No generator, compiler, native entry or qualification is executed here.
+@@ -56,6 +57,42 @@
+     wanted["size"] = size
+     if _pin(raw) != wanted:
+         raise ValueError("Core39 fixture or generator identity differs")
++
++
++def _zero_store_unpack(fixed_raw, actual):
++    """Admit only the exact two-loop UNPACK successor; Core39 pins stay v94."""
++    before = (
++        "    at = 0\n"
++        "    while at < 256:\n"
++        "        put(o, at, 0)\n"
++        "        at = at + 8\n"
++    )
++    after = (
++        "    at = 0\n"
++        "    while at < 256:\n"
++        "        store(o, at + 0, 0)\n"
++        "        store(o, at + 1, 0)\n"
++        "        store(o, at + 2, 0)\n"
++        "        store(o, at + 3, 0)\n"
++        "        store(o, at + 4, 0)\n"
++        "        store(o, at + 5, 0)\n"
++        "        store(o, at + 6, 0)\n"
++        "        store(o, at + 7, 0)\n"
++        "        at = at + 8\n"
++    )
++    text = fixed_raw.decode("utf-8")
++    if text.count(before) != 2 or text.count(after) != 0:
++        raise ValueError("ambiguous UNPACK zero-store predecessor")
++    successor = text.replace(before, after)
++    _require_pin(successor.encode("utf-8"), {
++        "size": 13351,
++        "sha256": "98ee56e38e2faf13a040f1749fb4152cc3080f0c930dc6378725e93b22c5bce1",
++        "git_blob_sha1": "4c5c0b84b0b9ff28d6923d9b88ac11259d0cc57e",
++    })
++    if (successor.count(after) != 2
++            or successor.replace(after, before).encode("utf-8") != fixed_raw
++            or actual != successor.encode("utf-8")):
++        raise ValueError("mixed fixed-word-read generator revisions")
+ 
+ 
+ def _fixed_word_reads(root, pc_raw, actual, by_path, numbered):
+@@ -107,8 +144,11 @@
+         if text.count(after) != 1:
+             raise ValueError("ambiguous inverse fixed-word-read UNPACK derivation")
+         text = text.replace(after, before, 1)
+-    if text.encode("utf-8") != baseline_raw or (root / unpack["path"]).read_bytes() != unpack_raw:
++    if text.encode("utf-8") != baseline_raw:
+         raise ValueError("mixed fixed-word-read generator revisions")
++    current_unpack = (root / unpack["path"]).read_bytes()
++    if current_unpack != unpack_raw:
++        _zero_store_unpack(unpack_raw, current_unpack)
+ 
+     rows = manifest["files"]
+     if type(rows) is not list or len(rows) != 40:

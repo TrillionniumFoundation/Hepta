@@ -1,0 +1,34 @@
+--- 60b3/tools/generate_hia_core_unpack.py
++++ d87-current/tools/generate_hia_core_unpack.py
+@@ -250,7 +250,14 @@
+     put(w, 88, opcode)
+     at = 0
+     while at < 256:
+-        put(o, at, 0)
++        store(o, at + 0, 0)
++        store(o, at + 1, 0)
++        store(o, at + 2, 0)
++        store(o, at + 3, 0)
++        store(o, at + 4, 0)
++        store(o, at + 5, 0)
++        store(o, at + 6, 0)
++        store(o, at + 7, 0)
+         at = at + 8
+     put(o, 0, UNPACK_MAGIC)
+     put(o, 8, seq)
+@@ -273,7 +280,14 @@
+     put(w, 8, 99)
+     at = 0
+     while at < 256:
+-        put(o, at, 0)
++        store(o, at + 0, 0)
++        store(o, at + 1, 0)
++        store(o, at + 2, 0)
++        store(o, at + 3, 0)
++        store(o, at + 4, 0)
++        store(o, at + 5, 0)
++        store(o, at + 6, 0)
++        store(o, at + 7, 0)
+         at = at + 8
+     put(o, 0, UNPACK_MAGIC)
+     put(o, 8, get(w, 16))

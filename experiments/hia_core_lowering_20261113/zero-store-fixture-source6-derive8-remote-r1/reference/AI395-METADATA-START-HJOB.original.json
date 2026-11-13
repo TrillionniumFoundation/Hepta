@@ -1,0 +1,44 @@
+{
+  "schema": "hia.core-unpack-fixture.source6-metadata-start-observation.v1",
+  "status": "UNKNOWN_NO_REPLAY",
+  "intent": {
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-unpack-zero-store-fixture-source6-r1-METADATA-INTENT.json",
+    "bytes": 1711,
+    "sha256": "e6880390085e608b7a08de641e1196836392d75d4729577d0a4427e0ef2ec3f9"
+  },
+  "start": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-c\",\n      \"'/usr/bin/python3.14' '-I' '-S' '-B' '/home/qq/hia-rewrite-20261113-e26e-r1/author_core_unpack_zero_store_fixture_source6_r1.py' '/home/qq/hia-rewrite-20261113-e26e-r1/core-unpack-zero-store-fixture-source6-r1-CONFIG.json' 'e7184c5e8f2d2ee475b1bce600e277269a5b158dc22cf17ce32a3029a87ba066'\"\n    ],\n    \"created_unix_ms\": 1794610079698,\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1\",\n    \"env_keys\": [],\n    \"executable\": \"/bin/sh\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1d718a7d2-392-9ef\",\n    \"idempotency_key\": \"cold-core-unpack-zero-store-fixture-source6-metadata-r1-once\",\n    \"launch_error\": \"Remote launch outcome unavailable\",\n    \"launch_state\": \"launch_unknown\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d718a7d2-392-9ef\",\n    \"request_digest\": \"9503ccd255936632805554ee24ae1e2e505ad0ad64a9e6c861b0e2d514ead62d\",\n    \"request_fingerprint\": 10737651140332316210,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1d718a7d2-392-9ef\"\n  },\n  \"launch\": {\n    \"automatic_retry\": false,\n    \"job_id\": \"1a1d718a7d2-392-9ef\",\n    \"outcome\": \"unknown\",\n    \"reconcile_via\": \"process_status\",\n    \"state\": \"launch_unknown\",\n    \"status_authoritative\": false\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "exact_status_observation": {
+    "content": [
+      {
+        "type": "text",
+        "text": "remote helper on ai395-lan failed with 1\nstdout:\n\nstderr:\nTraceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    _bound_job = private_job_directory(_original_query[\"job_dir\"])\n  File \"<string>\", line 25, in private_job_directory\nFileNotFoundError: [Errno 2] No such file or directory: '1a1d718a7d2-392-9ef'"
+      }
+    ],
+    "structuredContent": {
+      "error_code": "INVALID_ARGUMENT"
+    },
+    "isError": true
+  },
+  "expected_request_observation": {
+    "content": [
+      {
+        "type": "text",
+        "text": "remote helper on ai395-lan failed with 1\nstdout:\n\nstderr:\nFileNotFoundError: [Errno 2] No such file or directory: 'core-unpack-zero-store-fixture-source6-r1'"
+      }
+    ],
+    "structuredContent": {
+      "error_code": "INVALID_ARGUMENT"
+    },
+    "isError": true
+  },
+  "scope": "Only metadata materializer; no Source6/product/VM/native/compile/CI/Git invoked. Missing output does not prove absence of execution. No replay or new key."
+}
