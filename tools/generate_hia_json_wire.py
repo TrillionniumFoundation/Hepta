@@ -750,13 +750,22 @@ def integer_decimal(w:mutbuf) -> u64:
             index = index - 1
             value = get32(w, get(w, LIMB_BASE) + index * 4)
             quotient = 0
-            bit = 32
-            while bit > 0:
-                bit = bit - 1
-                carry = (carry << 1) | ((value >> bit) & 1)
-                if carry >= 1000000000:
-                    carry = carry - 1000000000
-                    quotient = quotient | (1 << bit)
+            if words == 1:
+                if value < 2000000000:
+                    quotient = choose(value < 1000000000, 0, 1)
+                elif value < 3000000000:
+                    quotient = 2
+                else:
+                    quotient = choose(value < 4000000000, 3, 4)
+                carry = value - quotient * 1000000000
+            else:
+                bit = 32
+                while bit > 0:
+                    bit = bit - 1
+                    carry = (carry << 1) | ((value >> bit) & 1)
+                    if carry >= 1000000000:
+                        carry = carry - 1000000000
+                        quotient = quotient | (1 << bit)
             put32(w, get(w, LIMB_BASE) + index * 4, quotient)
         while words > 0 and get32(w, get(w, LIMB_BASE) + (words - 1) * 4) == 0:
             words = words - 1
