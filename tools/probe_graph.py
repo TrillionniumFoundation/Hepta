@@ -73,6 +73,8 @@ def graph(value):
             row = ['tuple', [visit(child) for child in item]]
         elif kind is dict:
             row = ['dict', [[visit(k), visit(v)] for k, v in item.items()]]
+        elif kind is set:
+            row = ['set', [visit(child) for child in item]]
         elif kind is types.FunctionType:
             row = ['function', item.__module__, item.__qualname__,
                    hashlib.sha256(item.__code__.co_code).hexdigest(),
@@ -132,6 +134,9 @@ def main():
         assert Path(cli.__file__).read_bytes() == expected
         result['reference_source_sha256'] = hashlib.sha256(inspect.getsource(cli._reference_hia_main).encode()).hexdigest()
         parser = capture(cli)
+        sys.path.insert(0, str(root / 'tools'))
+        from export_interpreter import export_interpreter
+        result['interpreter_export'] = export_interpreter(output)
         import _colorize
         for module in (argparse, _colorize):
             raw = Path(module.__file__).read_bytes()

@@ -7,3 +7,5 @@ This is explicitly a partial source diagnostic. It does not reconstruct the prod
 The original R11 failure is preserved: run 43468679071/job 132034512598, unsupported authoring graph value _colorize.Argparse, before any product tests. The exact original CLI and schema bytes are checked before and after all observations. No color setting, graph field or original behavior is disabled to make this diagnostic pass. Alternate environment cases expose actual construction differences.
 
 Only this independent harness branch is created. Product, main, audit and PR refs are unchanged.
+
+R2 preserves the R1 actual unknown-set failure. It records that real set and exports the exact Actions interpreter as a development-tool input. Exported tool bytes are not product qualification.
