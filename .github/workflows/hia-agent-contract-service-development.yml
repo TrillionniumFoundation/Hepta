@@ -1,9 +1,9 @@
-name: HIA Agent contract seven-function development V82
+name: HIA Agent contract and captured Service development V83
 
 "on":
   push:
     branches:
-      - codex/hia-agent-contract-development-v82-r1-20261112-dda7
+      - codex/hia-agent-contract-service-v83-r1-20261113-dda7
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   development:
-    name: contract-${{ matrix.profile }}
+    name: contract-service-${{ matrix.profile }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
@@ -32,7 +32,7 @@ jobs:
       - name: Check out the exact published source base
         uses: actions/checkout@v4
         with:
-          ref: 65ceb711e47548f85ecf6b2ec2ae90f11dd50743
+          ref: 1cd416ab028a4c59ac76bf4b8e2c4018fb552d9d
           path: base-source
           persist-credentials: false
           fetch-depth: 1
@@ -59,22 +59,22 @@ jobs:
         run: |
           python -B harness/inputs/run_development.py \
             --base "$GITHUB_WORKSPACE/base-source" \
-            --workspace "$RUNNER_TEMP/contract-${{ matrix.profile }}" \
+            --workspace "$RUNNER_TEMP/contract-service-${{ matrix.profile }}" \
             --profile '${{ matrix.profile }}'
       - name: Export every completed selected text record
         if: always()
-        run: python -B harness/inputs/export_text.py "$RUNNER_TEMP/contract-${{ matrix.profile }}"
+        run: python -B harness/inputs/export_text.py "$RUNNER_TEMP/contract-service-${{ matrix.profile }}"
       - name: Preserve complete original development records
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hia-agent-contract-${{ matrix.profile }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: hia-agent-contract-service-${{ matrix.profile }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/contract-${{ matrix.profile }}/evidence/
-            ${{ runner.temp }}/contract-${{ matrix.profile }}/component/
-            ${{ runner.temp }}/contract-${{ matrix.profile }}/original55/
-            ${{ runner.temp }}/contract-${{ matrix.profile }}/default311/
-            ${{ runner.temp }}/contract-${{ matrix.profile }}/retained-development-compiler.bin
+            ${{ runner.temp }}/contract-service-${{ matrix.profile }}/evidence/
+            ${{ runner.temp }}/contract-service-${{ matrix.profile }}/component/
+            ${{ runner.temp }}/contract-service-${{ matrix.profile }}/original55/
+            ${{ runner.temp }}/contract-service-${{ matrix.profile }}/default311/
+            ${{ runner.temp }}/contract-service-${{ matrix.profile }}/retained-development-compiler.bin
             harness/inputs/
             harness/tests/
             harness/README.md

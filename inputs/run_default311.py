@@ -29,6 +29,29 @@ assert selection.capture_agent_contract() is None
 with selection.held_agent_contract_scope(None), patch.dict(os.environ, {SELECTOR: '/unsupported/ambient'}):
     assert selection.selected_agent_contract() is None
     assert api._valid(1, True)
+from hepta import hia_agent_service as service
+from tests.test_hia_agent_contract_service import _original_method
+import tempfile
+with tempfile.TemporaryDirectory() as temporary:
+    instance = service.HIAAgentService(temporary)
+    try:
+        assert instance._native_contract is None
+        original_call = _original_method('call')
+        expected = original_call(instance, 'hia_describe', {'section': 'manifest'})
+        with patch.dict(os.environ, {SELECTOR: '/changed/unsupported-contract'}):
+            actual = instance.call('hia_describe', {'section': 'manifest'})
+        assert expected['status'] == actual['status'] == 'completed'
+        assert expected['result'] == actual['result']
+        assert selection.captured_checker_owner() == (False, None)
+        service_observation = {'actual_default_constructor': True, 'captured_explicit_none': True,
+                               'original_and_public_call_match': True,
+                               'changed_ambient_selection_ignored_in_capture': True,
+                               'capture_reset_after_call': True}
+    finally:
+        instance.close()
+assert 'hepta.hia_agent_contract_native' not in sys.modules
+assert 'hepta.hia_agent_contract_foreign' not in sys.modules
+
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 mapped = []
 def forbidden(*args, **kwargs):
@@ -47,7 +70,7 @@ passed = all(row['equal'] for row in rows)
 report = {'schema': 'hia.agent-contract.default311.v1', 'status': 'PASS' if passed else 'FAIL',
     'scope': 'ORIGINAL_DEFAULT_MATCH_AND_EXPLICIT_UNSUPPORTED_NATIVE_REFUSAL',
     'python': sys.version, 'rows': rows, 'count': len(rows), 'native_mappings': len(mapped),
-    'unsupported_refusal': refusal,
+    'unsupported_refusal': refusal, 'service_capture': service_observation,
     'original_baseline_exceptions': [row for row in rows if row['original'][0] == 'error'],
     'baseline_exceptions_are_not_reclassified_as_successful_policy_results': True,
     'current_cold': False, 'whole': False, 'default_replaced': False}

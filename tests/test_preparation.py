@@ -20,7 +20,7 @@ from workflow_process import run_workflow_step
 
 class PreparationTests(unittest.TestCase):
     def packet(self):
-        raw = (ROOT / 'inputs/SOURCE-R7.zlib.json').read_bytes()
+        raw = (ROOT / 'inputs/SOURCE-SERVICE.zlib.json').read_bytes()
         return raw, driver.decode_packet(raw)
 
     def encoded(self, packet):
@@ -31,9 +31,9 @@ class PreparationTests(unittest.TestCase):
     def test_exact_overlay_and_all_declared_member_bytes(self):
         raw, packet = self.packet()
         self.assertEqual(sha256(raw).hexdigest(), driver.PACKET_SHA)
-        self.assertEqual(len(packet['files']), 21)
-        self.assertEqual(len(packet['source_manifest']), 3272)
-        self.assertEqual(sum(row['before'] is None for row in packet['files'].values()), 15)
+        self.assertEqual(len(packet['files']), 28)
+        self.assertEqual(len(packet['source_manifest']), 3323)
+        self.assertEqual(sum(row['before'] is None for row in packet['files'].values()), 17)
 
     def test_outer_tamper_is_rejected_before_decode(self):
         raw, _ = self.packet()
@@ -103,7 +103,7 @@ class PreparationTests(unittest.TestCase):
             self.assertEqual(sha256(raw).hexdigest(), expected['sha256'], name)
             if name.endswith('.py'):
                 ast.parse(raw, filename=name)
-        workflow = (ROOT / '.github/workflows/hia-agent-contract-development.yml').read_text()
+        workflow = (ROOT / '.github/workflows/hia-agent-contract-service-development.yml').read_text()
         self.assertIn('runs-on: ubuntu-latest', workflow)
         self.assertIn('persist-credentials: false', workflow)
         self.assertNotIn('contents: write', workflow)

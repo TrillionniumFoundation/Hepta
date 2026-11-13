@@ -15,9 +15,9 @@ import zlib
 from workflow_process import run_workflow_step
 
 HERE = Path(__file__).resolve().parent
-BASE = '65ceb711e47548f85ecf6b2ec2ae90f11dd50743'
-BASE_TREE = '49a48cef565b78d0a353822026ec525789768840'
-PACKET_SHA = '453be4c7be01fafa20142bd3e49da40a9c4c9d6fd80ec484fba560ac1c698354'
+BASE = '1cd416ab028a4c59ac76bf4b8e2c4018fb552d9d'
+BASE_TREE = 'eca3dd8ba5067d77fb56454ee354bd0eddb9cfe9'
+PACKET_SHA = 'b98c77aa32e2388a89fc21af8d57c8f6357d7d45e20a42d333867a91b85c7b36'
 COMPILER_SHA = '81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109'
 
 
@@ -55,8 +55,8 @@ def decode_packet(raw):
     assert len(payload) == wrapper['bytes'] and sha256(payload).hexdigest() == wrapper['sha256']
     packet = json.loads(payload)
     assert packet['base_commit'] == BASE and packet['base_tree'] == BASE_TREE
-    assert packet['base_count'] == 3257 and packet['final_count'] == 3272 and len(packet['files']) == 21
-    assert len(packet['source_manifest']) == 3272
+    assert packet['base_count'] == 3306 and packet['final_count'] == 3323 and len(packet['files']) == 28
+    assert len(packet['source_manifest']) == 3323
     for name, record in packet['files'].items():
         relative = Path(name)
         assert not relative.is_absolute() and '..' not in relative.parts
@@ -71,7 +71,7 @@ def prepare(base, development, evidence):
     assert git(base, 'rev-parse', 'HEAD').decode().strip() == BASE
     assert git(base, 'rev-parse', 'HEAD^{tree}').decode().strip() == BASE_TREE
     assert not git(base, 'status', '--porcelain=v1', '--untracked-files=all').strip()
-    packet = decode_packet((HERE / 'SOURCE-R7.zlib.json').read_bytes())
+    packet = decode_packet((HERE / 'SOURCE-SERVICE.zlib.json').read_bytes())
     tracked = {}
     for record in git(base, 'ls-tree', '-r', '-z', 'HEAD').split(b'\0'):
         if not record:
@@ -81,7 +81,7 @@ def prepare(base, development, evidence):
         assert kind == 'blob' and mode in ('100644', '100755')
         tracked[name.decode()] = {'mode': mode, 'git_blob_sha': blob}
     before = snapshot(base)
-    assert len(before) == len(tracked) == 3257 and set(before) == set(tracked)
+    assert len(before) == len(tracked) == 3306 and set(before) == set(tracked)
     for name, actual in before.items():
         assert {key: actual[key] for key in tracked[name]} == tracked[name], name
         expected = packet['files'][name]['before'] if name in packet['files'] else packet['source_manifest'][name]
@@ -167,15 +167,16 @@ def main():
             for script in ('tools/generate_hia_agent_contract.py', 'tools/generate_hia_agent_contract_foreign.py',
                            'tools/generate_hia_selfhost_contract.py'):
                 checks.append(run(Path(script).stem, [sys.executable, '-B', script, '--check'], source, 240))
-            controls = run('component27-plus-original-resource4', [sys.executable, '-B', str(HERE / 'run_component_group.py'),
+            controls = run('component42-plus-original-resource4', [sys.executable, '-B', str(HERE / 'run_component_group.py'),
                 '--output', str(workspace / 'component'), '--compiler', str(compiler_path),
                 'tests.test_hia_agent_contract_native', 'tests.test_hia_agent_contract_qualifier',
+                'tests.test_hia_agent_contract_service',
                 'tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests'], source)
             component_path = workspace / 'component/REPORT.json'
             component = json.loads(component_path.read_bytes()) if component_path.exists() else None
             report['component'] = component
             controls = controls and component is not None and component['status'] == 'PASS'
-            controls = controls and component['tests_run'] == 31 and component['loaded_ids'] == component['executed_ids']
+            controls = controls and component['tests_run'] == 46 and component['loaded_ids'] == component['executed_ids']
             checks.append(controls)
             # A failed component remains failed; the independent unchanged
             # caller gate still records its own actual outcome and limits.
