@@ -1,0 +1,518 @@
+{
+  "schema": "hia.pc-fixture.durable-tool-history.v1",
+  "scope": "Actual single source6/derive4 HOLD and distinct remaining4 continuation; no product/native replay",
+  "entries": [
+    {
+      "key": "pc.fixture.materialization.run.intent",
+      "value": {
+        "host": "ai395",
+        "executable": "/usr/bin/python3.14",
+        "args": [
+          "-I",
+          "-S",
+          "-B",
+          "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/materialize.py"
+        ],
+        "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1",
+        "env": {
+          "PATH": "",
+          "LANG": "C.UTF-8",
+          "LC_ALL": "C.UTF-8",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "PYTHONNOUSERSITE": "1",
+          "PYTHONHASHSEED": "0"
+        },
+        "timeout_seconds": 120,
+        "idempotency_key": "hia-pc-fixture-materialize-metadata-r1-20261113-e26e"
+      }
+    },
+    {
+      "key": "pc.fixture.materialization.run.ack",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-I\",\n      \"-S\",\n      \"-B\",\n      \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/materialize.py\"\n    ],\n    \"created_unix_ms\": 1794553170583,\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1\",\n    \"env_keys\": [\n      \"LANG\",\n      \"LC_ALL\",\n      \"PATH\",\n      \"PYTHONDONTWRITEBYTECODE\",\n      \"PYTHONHASHSEED\",\n      \"PYTHONNOUSERSITE\"\n    ],\n    \"executable\": \"/usr/bin/python3.14\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1d3b44a97-392-1af\",\n    \"idempotency_key\": \"hia-pc-fixture-materialize-metadata-r1-20261113-e26e\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d3b44a97-392-1af\",\n    \"request_digest\": \"10f787597510c96d4218cfc8be97f6fe38e5349c5d45f7e2dba5a066c44e20d9\",\n    \"request_fingerprint\": 1222594642140252525,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1d3b44a97-392-1af\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1d3b44a97-392-1af\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "key": "pc.fixture.materialization.run.status",
+      "value": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"at_unix_ms\": 1794553177754,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1d3b44a97-392-1af\",\n  \"launch_nonce\": \"a2a6a90af7451a0e4ee3b63fc948ecfd\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 1326,\n      \"stored\": 1326\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.materialization.run.read",
+      "value": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1d3b44a97-392-1af\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b22534f555243455f46494c45535f636f756e74223a203731392c2022534f555243455f46494c45535f756e69717565223a203731392c202261646465645f7061746873223a205b2274657374732f66697874757265732f6869615f636f72655f70635f666f7277617264696e675f7639332e6a736f6e222c202274657374732f6869615f636f72655f70635f65787065637465642e7079225d2c2022626173655f636f6d6d6974223a202237623035633133663236346463643530363964636230343366316537393164656534376266323363222c2022626173655f74726565223a202266376334633364643066336261326539303637393835356561313235643930336363306534376565222c20226279746573223a203431313731323930312c20226368616e6765645f7061746873223a205b2274657374732f66697874757265732f6869615f636f72655f70635f666f7277617264696e675f7639332e6a736f6e222c202274657374732f6869615f636f72655f70635f65787065637465642e7079222c202274657374732f746573745f6869615f636f72655f636f6d706172655f696e746567726174696f6e2e7079222c202274657374732f746573745f6869615f636f72655f636f6d706172655f736f757263652e7079222c202274657374732f746573745f6869615f636f72655f696e74656765725f696e746567726174696f6e2e7079222c202274657374732f746573745f6869615f636f72655f696e74656765725f6e61746976655f696e746567726174696f6e2e7079222c202274657374732f746573745f6869615f636f72655f756e7061636b5f6e61746976652e7079222c2022746f6f6c732f6869615f73656c66686f73745f636f6e74726163742e7079225d2c202266696c655f636f756e74223a20343132372c202266726573685f73706163655f6265666f7265223a207b226279746573223a203239303636303533323232342c2022696e6f646573223a203130363239313431327d2c2022696e7075745f6f7665726c61795f736861323536223a202232393737396336346538646563633230643366326162343831363063356235373233353063613637616664353630313838303830313438376635396333633931222c20226d6174657269616c697a6174696f6e223a207b226279746573223a20333430303934382c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f534f555243452d4d4154455249414c495a4154494f4e2e6a736f6e222c2022736861323536223a202234613566343761653639306537303735336636346662343434613233626265316438333436386438666636346437343933383161653631373232363535323535227d2c20226f6c645f666978747572655f62797465735f707265736572766564223a20747275652c202270726f647563745f67656e657261746f725f616e6433395f756e6368616e676564223a20747275652c202270726f6a6563745f67656e65726174696f6e5f6578656375746564223a2066616c73652c2022736f757263655f726f6f74223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f736f75726365222c2022736f757263655f74657374735f6578656375746564223a2066616c73652c2022737461747573223a20224d4154455249414c495a45445f554e4558454355544544227d0a\",\n    \"eof\": true,\n    \"next_offset\": 1326,\n    \"offset\": 0,\n    \"size\": 1326,\n    \"text\": \"{\\\"SOURCE_FILES_count\\\": 719, \\\"SOURCE_FILES_unique\\\": 719, \\\"added_paths\\\": [\\\"tests/fixtures/hia_core_pc_forwarding_v93.json\\\", \\\"tests/hia_core_pc_expected.py\\\"], \\\"base_commit\\\": \\\"7b05c13f264dcd5069dcb043f1e791dee47bf23c\\\", \\\"base_tree\\\": \\\"f7c4c3dd0f3ba2e90679855ea125d903cc0e47ee\\\", \\\"bytes\\\": 411712901, \\\"changed_paths\\\": [\\\"tests/fixtures/hia_core_pc_forwarding_v93.json\\\", \\\"tests/hia_core_pc_expected.py\\\", \\\"tests/test_hia_core_compare_integration.py\\\", \\\"tests/test_hia_core_compare_source.py\\\", \\\"tests/test_hia_core_integer_integration.py\\\", \\\"tests/test_hia_core_integer_native_integration.py\\\", \\\"tests/test_hia_core_unpack_native.py\\\", \\\"tools/hia_selfhost_contract.py\\\"], \\\"file_count\\\": 4127, \\\"fresh_space_before\\\": {\\\"bytes\\\": 290660532224, \\\"inodes\\\": 106291412}, \\\"input_overlay_sha256\\\": \\\"29779c64e8decc20d3f2ab48160c5b572350ca67afd5601880801487f59c3c91\\\", \\\"materialization\\\": {\\\"bytes\\\": 3400948, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/SOURCE-MATERIALIZATION.json\\\", \\\"sha256\\\": \\\"4a5f47ae690e70753f64fb444a23bbe1d83468d8ff64d749381ae61722655255\\\"}, \\\"old_fixture_bytes_preserved\\\": true, \\\"product_generator_and39_unchanged\\\": true, \\\"project_generation_executed\\\": false, \\\"source_root\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/source\\\", \\\"source_tests_executed\\\": false, \\\"status\\\": \\\"MATERIALIZED_UNEXECUTED\\\"}\\n\"\n  }\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.freeze.run.intent",
+      "value": {
+        "host": "ai395",
+        "executable": "/usr/bin/python3.14",
+        "args": [
+          "-I",
+          "-S",
+          "-B",
+          "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/freeze_derive8.py"
+        ],
+        "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control",
+        "env": {
+          "PATH": "",
+          "LANG": "C.UTF-8",
+          "LC_ALL": "C.UTF-8",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "PYTHONNOUSERSITE": "1",
+          "PYTHONHASHSEED": "0"
+        },
+        "timeout_seconds": 90,
+        "idempotency_key": "hia-pc-fixture-freeze-source6-derive8-metadata-r1-20261113-e26e"
+      }
+    },
+    {
+      "key": "pc.fixture.freeze.run.ack",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-I\",\n      \"-S\",\n      \"-B\",\n      \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/freeze_derive8.py\"\n    ],\n    \"created_unix_ms\": 1794553297872,\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control\",\n    \"env_keys\": [\n      \"LANG\",\n      \"LC_ALL\",\n      \"PATH\",\n      \"PYTHONDONTWRITEBYTECODE\",\n      \"PYTHONHASHSEED\",\n      \"PYTHONNOUSERSITE\"\n    ],\n    \"executable\": \"/usr/bin/python3.14\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1d3b63bd0-392-1b5\",\n    \"idempotency_key\": \"hia-pc-fixture-freeze-source6-derive8-metadata-r1-20261113-e26e\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d3b63bd0-392-1b5\",\n    \"request_digest\": \"a68e1b79e18cc01bf312389f2aee16e2a61a2df3f3c80272caed140c5ba22016\",\n    \"request_fingerprint\": 12001560267278041115,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1d3b63bd0-392-1b5\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1d3b63bd0-392-1b5\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "key": "pc.fixture.freeze.run.status",
+      "value": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"at_unix_ms\": 1794553299427,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1d3b63bd0-392-1b5\",\n  \"launch_nonce\": \"360e182416c7e6bf95818e5ca1ac9ee9\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 1160,\n      \"stored\": 1160\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.freeze.run.read",
+      "value": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1d3b63bd0-392-1b5\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b226c61756e6368223a207b226279746573223a20313534332c20226964656e74697479223a207b226374696d655f6e73223a20313739343535333239393430353831393930382c2022646576223a2036363330362c2022676964223a20313030302c2022696e6f223a2037393733313335382c20226d6f6465223a203338342c20226d74696d655f6e73223a20313739343535333239393430353831393930382c20226e6c696e6b223a20312c202273697a65223a20313534332c2022756964223a20313030307d2c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f444552495645382d4c41554e43482e6a736f6e222c2022736861323536223a202238646339653463386330353335326435666435623632396134333237346430316564653337633138663232306235616230633761326339376463613235393361227d2c202270726565786563223a207b226279746573223a20393030332c20226964656e74697479223a207b226374696d655f6e73223a20313739343535333239393430363938343935372c2022646576223a2036363330362c2022676964223a20313030302c2022696e6f223a2037393733313335392c20226d6f6465223a203338342c20226d74696d655f6e73223a20313739343535333239393430363938343935372c20226e6c696e6b223a20312c202273697a65223a20393030332c2022756964223a20313030307d2c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f444552495645382d505245455845432e6a736f6e222c2022736861323536223a202265363333643364323632393866636435633432363036656139623333306365636232383630383237333965653064333431383930356635303665333536656533227d2c202272657175657374223a207b226279746573223a2031343733382c20226964656e74697479223a207b226374696d655f6e73223a20313739343535333239393430353039353037332c2022646576223a2036363330362c2022676964223a20313030302c2022696e6f223a2037393733313335372c20226d6f6465223a203338342c20226d74696d655f6e73223a20313739343535333239393430353039353037332c20226e6c696e6b223a20312c202273697a65223a2031343733382c2022756964223a20313030307d2c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f636f6e74726f6c2f524551554553542e6a736f6e222c2022736861323536223a202261356239653938396438323031623138623339353831623162316165653231343539343065373135313766336634616634353064616162323837393461303035227d2c2022737461747573223a202246524f5a454e5f554e4558454355544544227d0a\",\n    \"eof\": true,\n    \"next_offset\": 1160,\n    \"offset\": 0,\n    \"size\": 1160,\n    \"text\": \"{\\\"launch\\\": {\\\"bytes\\\": 1543, \\\"identity\\\": {\\\"ctime_ns\\\": 1794553299405819908, \\\"dev\\\": 66306, \\\"gid\\\": 1000, \\\"ino\\\": 79731358, \\\"mode\\\": 384, \\\"mtime_ns\\\": 1794553299405819908, \\\"nlink\\\": 1, \\\"size\\\": 1543, \\\"uid\\\": 1000}, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/DERIVE8-LAUNCH.json\\\", \\\"sha256\\\": \\\"8dc9e4c8c05352d5fd5b629a43274d01ede37c18f220b5ab0c7a2c97dca2593a\\\"}, \\\"preexec\\\": {\\\"bytes\\\": 9003, \\\"identity\\\": {\\\"ctime_ns\\\": 1794553299406984957, \\\"dev\\\": 66306, \\\"gid\\\": 1000, \\\"ino\\\": 79731359, \\\"mode\\\": 384, \\\"mtime_ns\\\": 1794553299406984957, \\\"nlink\\\": 1, \\\"size\\\": 9003, \\\"uid\\\": 1000}, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/DERIVE8-PREEXEC.json\\\", \\\"sha256\\\": \\\"e633d3d26298fcd5c42606ea9b330cecb286082739ee0d3418905f506e356ee3\\\"}, \\\"request\\\": {\\\"bytes\\\": 14738, \\\"identity\\\": {\\\"ctime_ns\\\": 1794553299405095073, \\\"dev\\\": 66306, \\\"gid\\\": 1000, \\\"ino\\\": 79731357, \\\"mode\\\": 384, \\\"mtime_ns\\\": 1794553299405095073, \\\"nlink\\\": 1, \\\"size\\\": 14738, \\\"uid\\\": 1000}, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/REQUEST.json\\\", \\\"sha256\\\": \\\"a5b9e989d8201b18b39581b1b1aee2145940e71517f3f4af450daab28794a005\\\"}, \\\"status\\\": \\\"FROZEN_UNEXECUTED\\\"}\\n\"\n  }\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.execution.intent",
+      "value": {
+        "raw": "{\n  \"schema\": \"hia.pc-fixture.single-invocation.v1\",\n  \"launch_sha256\": \"8dc9e4c8c05352d5fd5b629a43274d01ede37c18f220b5ab0c7a2c97dca2593a\",\n  \"request_sha256\": \"a5b9e989d8201b18b39581b1b1aee2145940e71517f3f4af450daab28794a005\",\n  \"invoke_once\": {\n    \"bytes\": 778,\n    \"sha256\": \"428a1070db7a9dfef9ee067d0c7ff140e2816fac80578fa4685be8296d6fae28\",\n    \"git_blob_sha1\": \"57c2f72907111f6f5ac26a0d5d4fdd409c33590a\"\n  },\n  \"tool\": {\n    \"host\": \"ai395\",\n    \"executable\": \"/usr/bin/python3.14\",\n    \"args\": [\n      \"-I\",\n      \"-S\",\n      \"-B\",\n      \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/invoke_once.py\"\n    ],\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control\",\n    \"env\": {\n      \"PATH\": \"\",\n      \"LANG\": \"C.UTF-8\",\n      \"LC_ALL\": \"C.UTF-8\",\n      \"PYTHONDONTWRITEBYTECODE\": \"1\",\n      \"PYTHONNOUSERSITE\": \"1\",\n      \"PYTHONHASHSEED\": \"0\"\n    },\n    \"timeout_seconds\": 240,\n    \"idempotency_key\": \"hia-pc-fixture-source6-derive8-once-r1-20261113-e26e\"\n  }\n}\n",
+        "tool": {
+          "host": "ai395",
+          "executable": "/usr/bin/python3.14",
+          "args": [
+            "-I",
+            "-S",
+            "-B",
+            "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/invoke_once.py"
+          ],
+          "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control",
+          "env": {
+            "PATH": "",
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONNOUSERSITE": "1",
+            "PYTHONHASHSEED": "0"
+          },
+          "timeout_seconds": 240,
+          "idempotency_key": "hia-pc-fixture-source6-derive8-once-r1-20261113-e26e"
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.execution.ack",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-I\",\n      \"-S\",\n      \"-B\",\n      \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/invoke_once.py\"\n    ],\n    \"created_unix_ms\": 1794553376897,\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control\",\n    \"env_keys\": [\n      \"LANG\",\n      \"LC_ALL\",\n      \"PATH\",\n      \"PYTHONDONTWRITEBYTECODE\",\n      \"PYTHONHASHSEED\",\n      \"PYTHONNOUSERSITE\"\n    ],\n    \"executable\": \"/usr/bin/python3.14\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1d3b77081-392-1b8\",\n    \"idempotency_key\": \"hia-pc-fixture-source6-derive8-once-r1-20261113-e26e\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d3b77081-392-1b8\",\n    \"request_digest\": \"7a0871575739b1cccff7aef68c18e439476fe9466e8fb7c2daa8eb3b489852c9\",\n    \"request_fingerprint\": 8793402892380385740,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1d3b77081-392-1b8\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1d3b77081-392-1b8\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "key": "pc.fixture.execution.status1",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"at_unix_ms\": 1794553382113,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 1,\n  \"job_id\": \"1a1d3b77081-392-1b8\",\n  \"launch_nonce\": \"f73a07480e40b424c14d55169a6cf197\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 5,\n      \"stored\": 5\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"failed\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "key": "pc.fixture.ownerfirst.intent",
+      "value": {
+        "host": "ai395",
+        "executable": "/usr/bin/python3.14",
+        "args": [
+          "-I",
+          "-S",
+          "-B",
+          "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/read_owner_first.py"
+        ],
+        "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control",
+        "env": {
+          "PATH": "",
+          "LANG": "C.UTF-8",
+          "LC_ALL": "C.UTF-8",
+          "PYTHONDONTWRITEBYTECODE": "1"
+        },
+        "timeout_seconds": 30,
+        "idempotency_key": "hia-pc-fixture-owner-first-readback-r1-20261113-e26e"
+      }
+    },
+    {
+      "key": "pc.fixture.ownerfirst.ack",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-I\",\n      \"-S\",\n      \"-B\",\n      \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/read_owner_first.py\"\n    ],\n    \"created_unix_ms\": 1794553410834,\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control\",\n    \"env_keys\": [\n      \"LANG\",\n      \"LC_ALL\",\n      \"PATH\",\n      \"PYTHONDONTWRITEBYTECODE\"\n    ],\n    \"executable\": \"/usr/bin/python3.14\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1d3b7f512-392-1b9\",\n    \"idempotency_key\": \"hia-pc-fixture-owner-first-readback-r1-20261113-e26e\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d3b7f512-392-1b9\",\n    \"request_digest\": \"978029de6c9db8129b6760204fc7e27480eb61707a328e105aff4cbd2659176e\",\n    \"request_fingerprint\": 10916771532027836434,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1d3b7f512-392-1b9\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1d3b7f512-392-1b9\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "key": "pc.fixture.ownerfirst.status",
+      "value": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"at_unix_ms\": 1794553418226,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1d3b7f512-392-1b9\",\n  \"launch_nonce\": \"5ca0589fe1df3074fb16e48d89fa3327\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 4279,\n      \"stored\": 4279\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.ownerfirst.read",
+      "value": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1d3b7f512-392-1b9\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b22636c6f736564223a20747275652c20226e61747572616c5f7a65726f223a2066616c73652c20226f776e6572223a207b226368696c645f656e756d65726174696f6e223a2022626f756e6465642070726f632050504944207363616e3b2066696e616c206b65726e656c2077616974696420454348494c44207265717569726564222c2022636c65616e7570223a207b22617474656d70746564223a20747275652c2022636f6d706c657465223a20747275652c2022646561646c696e655f6578636565646564223a2066616c73652c2022656c61707365645f6e73223a2031313231383730382c20226572726f7273223a205b5d2c20226c65616465725f726561706564223a20747275652c20226f627365727665645f656368696c64223a20747275652c202272656d61696e696e675f6469726563745f6368696c6472656e223a205b5d2c2022737461727465645f6e73223a20313537393134333330373132373130347d2c2022636c65616e75705f7365636f6e6473223a20332c20226469726563745f616e645f61646f707465645f6368696c6472656e223a205b7b2270676964223a20323638393039342c2022706964223a20323638393039352c202270706964223a20323638393039342c2022736964223a20323638393039342c202273746172745f7469636b73223a203135373931343031377d5d2c20226576656e745f6f766572666c6f77223a2066616c73652c20226576656e7473223a205b7b226b696e64223a20227175616c696669636174696f6e5f73746172746564222c20226d6f6e6f746f6e69635f6e73223a20313537393134303137343438333332312c2022706964223a20323638393039357d2c207b226b696e64223a20226f776e65645f6368696c645f6f62736572766564222c20226d6f6e6f746f6e69635f6e73223a20313537393134303137343530393938302c202270676964223a20323638393039342c2022706964223a20323638393039352c202270706964223a20323638393039342c2022736964223a20323638393039342c202273746172745f7469636b73223a203135373931343031377d2c207b226b696e64223a20227175616c696669636174696f6e5f657869745f6f62736572766564222c20226d6f6e6f746f6e69635f6e73223a20313537393134333330373132333236342c2022706964223a20323638393039352c202273695f636f6465223a20312c202273695f737461747573223a20317d2c207b226b696e64223a20226f776e65645f6368696c645f726561706564222c20226d6f6e6f746f6e69635f6e73223a20313537393134333331343237363233342c2022706964223a20323638393039352c202272657475726e636f6465223a20312c202273746172745f7469636b73223a203135373931343031377d5d2c2022657869745f6f627365727665645f6265666f72655f646561646c696e65223a20747275652c2022686973746f726963616c5f64657363656e64616e745f696e76656e746f72795f636f6d706c657465223a2066616c73652c2022696d706c656d656e746174696f6e5f736861323536223a202233363934363038326233333435663435656532623238663166383130613232393336643138326135383663643034303431353464666230316233626435336132222c2022696e7465727275707465645f7369676e616c73223a205b5d2c2022706172656e745f706964223a20323638393039312c2022706c6174666f726d223a20226c696e7578222c20227175616c696669636174696f6e5f706964223a20323638393039352c20227175616c696669636174696f6e5f7365636f6e6473223a203138302c20227175616c696669636174696f6e5f73746172746564223a20747275652c2022726571756573745f736861323536223a202239346564636563663133626237616462303732626164633837316164653036303161633163656334343930306266356630303962343537353432663363396661222c202272657475726e636f6465223a20312c2022736368656d61223a202268657074612e6869612e73656c66686f73742d70726f636573732d6f776e65722e7631222c2022737461747573223a20225155414c494649434154494f4e5f4641494c4544222c20227375627265617065725f656e61626c6564223a20747275652c202273757065727669736f725f706964223a20323638393039342c202274696d65645f6f7574223a2066616c73657d2c20226f776e65725f70696e223a207b226279746573223a20313438382c20226964656e74697479223a207b226374696d655f6e73223a20313739343535333338313636363434383234342c2022646576223a2036363330362c2022676964223a20313030302c2022696e6f223a2037393733313430382c20226d6f6465223a203338342c20226d74696d655f6e73223a20313739343535333338313636363434383234342c20226e6c696e6b223a20312c202273697a65223a20313438382c2022756964223a20313030307d2c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f736f75726365362d646572697665382d61637475616c2d72312f70726f636573732d6f776e65722e6a736f6e222c2022736861323536223a202264633434303139663464363238363432646130333438346335383432343831623136666435306364346537383363623330646238306637313337643236373536227d2c20226f776e65725f726571756573745f70696e223a207b226279746573223a20313235332c20226964656e74697479223a207b226374696d655f6e73223a20313739343535333337383438323934323236362c2022646576223a2036363330362c2022676964223a20313030302c2022696e6f223a2037393733313336392c20226d6f6465223a203338342c20226d74696d655f6e73223a20313739343535333337383438323934323236362c20226e6c696e6b223a20312c202273697a65223a20313235332c2022756964223a20313030307d2c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f736f75726365362d646572697665382d61637475616c2d72312f70726f636573732d6f776e65722e6a736f6e2e726571756573742e6a736f6e222c2022736861323536223a202239346564636563663133626237616462303732626164633837316164653036303161633163656334343930306266356630303962343537353432663363396661227d2c2022726571756573745f736861323536223a202261356239653938396438323031623138623339353831623162316165653231343539343065373135313766336634616634353064616162323837393461303035222c202277726170706572223a207b226368696c645f656e756d65726174696f6e223a2022626f756e6465642070726f632050504944207363616e3b2066696e616c206b65726e656c2077616974696420454348494c44207265717569726564222c2022636c65616e7570223a207b22617474656d70746564223a20747275652c2022636f6d706c657465223a20747275652c2022646561646c696e655f6578636565646564223a2066616c73652c2022656c61707365645f6e73223a2031313231383730382c20226572726f7273223a205b5d2c20226c65616465725f726561706564223a20747275652c20226f627365727665645f656368696c64223a20747275652c202272656d61696e696e675f6469726563745f6368696c6472656e223a205b5d2c2022737461727465645f6e73223a20313537393134333330373132373130347d2c2022636c65616e75705f7365636f6e6473223a20332c20226469726563745f616e645f61646f707465645f6368696c6472656e223a205b7b2270676964223a20323638393039342c2022706964223a20323638393039352c202270706964223a20323638393039342c2022736964223a20323638393039342c202273746172745f7469636b73223a203135373931343031377d5d2c20226576656e745f6f766572666c6f77223a2066616c73652c20226576656e7473223a205b7b226b696e64223a20227175616c696669636174696f6e5f73746172746564222c20226d6f6e6f746f6e69635f6e73223a20313537393134303137343438333332312c2022706964223a20323638393039357d2c207b226b696e64223a20226f776e65645f6368696c645f6f62736572766564222c20226d6f6e6f746f6e69635f6e73223a20313537393134303137343530393938302c202270676964223a20323638393039342c2022706964223a20323638393039352c202270706964223a20323638393039342c2022736964223a20323638393039342c202273746172745f7469636b73223a203135373931343031377d2c207b226b696e64223a20227175616c696669636174696f6e5f657869745f6f62736572766564222c20226d6f6e6f746f6e69635f6e73223a20313537393134333330373132333236342c2022706964223a20323638393039352c202273695f636f6465223a20312c202273695f737461747573223a20317d2c207b226b696e64223a20226f776e65645f6368696c645f726561706564222c20226d6f6e6f746f6e69635f6e73223a20313537393134333331343237363233342c2022706964223a20323638393039352c202272657475726e636f6465223a20312c202273746172745f7469636b73223a203135373931343031377d5d2c2022657869745f6f627365727665645f6265666f72655f646561646c696e65223a20747275652c2022686973746f726963616c5f64657363656e64616e745f696e76656e746f72795f636f6d706c657465223a2066616c73652c2022696d706c656d656e746174696f6e5f736861323536223a202233363934363038326233333435663435656532623238663166383130613232393336643138326135383663643034303431353464666230316233626435336132222c2022696e7465727275707465645f7369676e616c73223a205b5d2c2022706172656e745f706964223a20323638393039312c2022706c6174666f726d223a20226c696e7578222c20227175616c696669636174696f6e5f706964223a20323638393039352c20227175616c696669636174696f6e5f7365636f6e6473223a203138302c20227175616c696669636174696f6e5f73746172746564223a20747275652c2022726563656970745f736861323536223a202264633434303139663464363238363432646130333438346335383432343831623136666435306364346537383363623330646238306637313337643236373536222c2022726571756573745f736861323536223a202239346564636563663133626237616462303732626164633837316164653036303161633163656334343930306266356630303962343537353432663363396661222c202272657475726e636f6465223a20312c2022736368656d61223a202268657074612e6869612e73656c66686f73742d70726f636573732d6f776e65722e7631222c2022737461747573223a20225155414c494649434154494f4e5f4641494c4544222c20227375627265617065725f656e61626c6564223a20747275652c202273757065727669736f725f706964223a20323638393039342c202273757065727669736f725f72657475726e636f6465223a20312c202274696d65645f6f7574223a2066616c73657d7d0a\",\n    \"eof\": true,\n    \"next_offset\": 4279,\n    \"offset\": 0,\n    \"size\": 4279,\n    \"text\": \"{\\\"closed\\\": true, \\\"natural_zero\\\": false, \\\"owner\\\": {\\\"child_enumeration\\\": \\\"bounded proc PPID scan; final kernel waitid ECHILD required\\\", \\\"cleanup\\\": {\\\"attempted\\\": true, \\\"complete\\\": true, \\\"deadline_exceeded\\\": false, \\\"elapsed_ns\\\": 11218708, \\\"errors\\\": [], \\\"leader_reaped\\\": true, \\\"observed_echild\\\": true, \\\"remaining_direct_children\\\": [], \\\"started_ns\\\": 1579143307127104}, \\\"cleanup_seconds\\\": 3, \\\"direct_and_adopted_children\\\": [{\\\"pgid\\\": 2689094, \\\"pid\\\": 2689095, \\\"ppid\\\": 2689094, \\\"sid\\\": 2689094, \\\"start_ticks\\\": 157914017}], \\\"event_overflow\\\": false, \\\"events\\\": [{\\\"kind\\\": \\\"qualification_started\\\", \\\"monotonic_ns\\\": 1579140174483321, \\\"pid\\\": 2689095}, {\\\"kind\\\": \\\"owned_child_observed\\\", \\\"monotonic_ns\\\": 1579140174509980, \\\"pgid\\\": 2689094, \\\"pid\\\": 2689095, \\\"ppid\\\": 2689094, \\\"sid\\\": 2689094, \\\"start_ticks\\\": 157914017}, {\\\"kind\\\": \\\"qualification_exit_observed\\\", \\\"monotonic_ns\\\": 1579143307123264, \\\"pid\\\": 2689095, \\\"si_code\\\": 1, \\\"si_status\\\": 1}, {\\\"kind\\\": \\\"owned_child_reaped\\\", \\\"monotonic_ns\\\": 1579143314276234, \\\"pid\\\": 2689095, \\\"returncode\\\": 1, \\\"start_ticks\\\": 157914017}], \\\"exit_observed_before_deadline\\\": true, \\\"historical_descendant_inventory_complete\\\": false, \\\"implementation_sha256\\\": \\\"36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2\\\", \\\"interrupted_signals\\\": [], \\\"parent_pid\\\": 2689091, \\\"platform\\\": \\\"linux\\\", \\\"qualification_pid\\\": 2689095, \\\"qualification_seconds\\\": 180, \\\"qualification_started\\\": true, \\\"request_sha256\\\": \\\"94edcecf13bb7adb072badc871ade0601ac1cec44900bf5f009b457542f3c9fa\\\", \\\"returncode\\\": 1, \\\"schema\\\": \\\"hepta.hia.selfhost-process-owner.v1\\\", \\\"status\\\": \\\"QUALIFICATION_FAILED\\\", \\\"subreaper_enabled\\\": true, \\\"supervisor_pid\\\": 2689094, \\\"timed_out\\\": false}, \\\"owner_pin\\\": {\\\"bytes\\\": 1488, \\\"identity\\\": {\\\"ctime_ns\\\": 1794553381666448244, \\\"dev\\\": 66306, \\\"gid\\\": 1000, \\\"ino\\\": 79731408, \\\"mode\\\": 384, \\\"mtime_ns\\\": 1794553381666448244, \\\"nlink\\\": 1, \\\"size\\\": 1488, \\\"uid\\\": 1000}, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/source6-derive8-actual-r1/process-owner.json\\\", \\\"sha256\\\": \\\"dc44019f4d628642da03484c5842481b16fd50cd4e783cb30db80f7137d26756\\\"}, \\\"owner_request_pin\\\": {\\\"bytes\\\": 1253, \\\"identity\\\": {\\\"ctime_ns\\\": 1794553378482942266, \\\"dev\\\": 66306, \\\"gid\\\": 1000, \\\"ino\\\": 79731369, \\\"mode\\\": 384, \\\"mtime_ns\\\": 1794553378482942266, \\\"nlink\\\": 1, \\\"size\\\": 1253, \\\"uid\\\": 1000}, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/source6-derive8-actual-r1/process-owner.json.request.json\\\", \\\"sha256\\\": \\\"94edcecf13bb7adb072badc871ade0601ac1cec44900bf5f009b457542f3c9fa\\\"}, \\\"request_sha256\\\": \\\"a5b9e989d8201b18b39581b1b1aee2145940e71517f3f4af450daab28794a005\\\", \\\"wrapper\\\": {\\\"child_enumeration\\\": \\\"bounded proc PPID scan; final kernel waitid ECHILD required\\\", \\\"cleanup\\\": {\\\"attempted\\\": true, \\\"complete\\\": true, \\\"deadline_exceeded\\\": false, \\\"elapsed_ns\\\": 11218708, \\\"errors\\\": [], \\\"leader_reaped\\\": true, \\\"observed_echild\\\": true, \\\"remaining_direct_children\\\": [], \\\"started_ns\\\": 1579143307127104}, \\\"cleanup_seconds\\\": 3, \\\"direct_and_adopted_children\\\": [{\\\"pgid\\\": 2689094, \\\"pid\\\": 2689095, \\\"ppid\\\": 2689094, \\\"sid\\\": 2689094, \\\"start_ticks\\\": 157914017}], \\\"event_overflow\\\": false, \\\"events\\\": [{\\\"kind\\\": \\\"qualification_started\\\", \\\"monotonic_ns\\\": 1579140174483321, \\\"pid\\\": 2689095}, {\\\"kind\\\": \\\"owned_child_observed\\\", \\\"monotonic_ns\\\": 1579140174509980, \\\"pgid\\\": 2689094, \\\"pid\\\": 2689095, \\\"ppid\\\": 2689094, \\\"sid\\\": 2689094, \\\"start_ticks\\\": 157914017}, {\\\"kind\\\": \\\"qualification_exit_observed\\\", \\\"monotonic_ns\\\": 1579143307123264, \\\"pid\\\": 2689095, \\\"si_code\\\": 1, \\\"si_status\\\": 1}, {\\\"kind\\\": \\\"owned_child_reaped\\\", \\\"monotonic_ns\\\": 1579143314276234, \\\"pid\\\": 2689095, \\\"returncode\\\": 1, \\\"start_ticks\\\": 157914017}], \\\"exit_observed_before_deadline\\\": true, \\\"historical_descendant_inventory_complete\\\": false, \\\"implementation_sha256\\\": \\\"36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2\\\", \\\"interrupted_signals\\\": [], \\\"parent_pid\\\": 2689091, \\\"platform\\\": \\\"linux\\\", \\\"qualification_pid\\\": 2689095, \\\"qualification_seconds\\\": 180, \\\"qualification_started\\\": true, \\\"receipt_sha256\\\": \\\"dc44019f4d628642da03484c5842481b16fd50cd4e783cb30db80f7137d26756\\\", \\\"request_sha256\\\": \\\"94edcecf13bb7adb072badc871ade0601ac1cec44900bf5f009b457542f3c9fa\\\", \\\"returncode\\\": 1, \\\"schema\\\": \\\"hepta.hia.selfhost-process-owner.v1\\\", \\\"status\\\": \\\"QUALIFICATION_FAILED\\\", \\\"subreaper_enabled\\\": true, \\\"supervisor_pid\\\": 2689094, \\\"supervisor_returncode\\\": 1, \\\"timed_out\\\": false}}\\n\"\n  }\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.audit_hold.intent",
+      "value": {
+        "host": "ai395",
+        "executable": "/usr/bin/python3.14",
+        "args": [
+          "-I",
+          "-S",
+          "-B",
+          "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/audit_hold.py"
+        ],
+        "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control",
+        "env": {
+          "PATH": "",
+          "LANG": "C.UTF-8",
+          "LC_ALL": "C.UTF-8",
+          "PYTHONDONTWRITEBYTECODE": "1"
+        },
+        "timeout_seconds": 120,
+        "idempotency_key": "hia-pc-fixture-hold-complete-custody-r1-20261113-e26e"
+      }
+    },
+    {
+      "key": "pc.fixture.audit_hold.ack",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-I\",\n      \"-S\",\n      \"-B\",\n      \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/audit_hold.py\"\n    ],\n    \"created_unix_ms\": 1794553535789,\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control\",\n    \"env_keys\": [\n      \"LANG\",\n      \"LC_ALL\",\n      \"PATH\",\n      \"PYTHONDONTWRITEBYTECODE\"\n    ],\n    \"executable\": \"/usr/bin/python3.14\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1d3b9dd2d-392-1bf\",\n    \"idempotency_key\": \"hia-pc-fixture-hold-complete-custody-r1-20261113-e26e\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d3b9dd2d-392-1bf\",\n    \"request_digest\": \"3bb53bcdb157a226244a2d6fb4348079bc86bc030cab0d1563f78418bd31a5ef\",\n    \"request_fingerprint\": 4302410773652021798,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1d3b9dd2d-392-1bf\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1d3b9dd2d-392-1bf\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "key": "pc.fixture.audit_hold.status",
+      "value": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"at_unix_ms\": 1794553538143,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1d3b9dd2d-392-1bf\",\n  \"launch_nonce\": \"036d35da639f873260528ea184c5a494\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 1264,\n      \"stored\": 1264\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.audit_hold.read",
+      "value": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1d3b9dd2d-392-1bf\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b2261726368697665223a207b226279746573223a20323635343537342c20226964656e74697479223a207b226374696d655f6e73223a20313739343535333533383033303933353535362c2022646576223a2036363330362c2022676964223a20313030302c2022696e6f223a2037393733313531342c20226d6f6465223a203338342c20226d74696d655f6e73223a20313739343535333533383033303933353535362c20226e6c696e6b223a20312c202273697a65223a20323635343537342c2022756964223a20313030307d2c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f686f6c642d637573746f64792d72312f534f55524345362d444552495645342d484f4c442e7461722e677a222c2022736861323536223a202264393961623932663535653336303232653839646665316331333937316265333233343935363832366433383463343935633064363430376430363163313834227d2c2022617263686976655f6d656d62657273223a2039362c2022617263686976655f7261775f6279746573223a2031373739323939322c202263616e6469646174655f74726565223a202264363064626364613935643363303637393766616537613464393763343634306665333766363237222c20226465636c617265645f736f757263655f636f756e74223a203839312c20226465726976655f636f6d6d616e64735f636f6d706c65746564223a20342c20226f6e6c795f6368616e6765645f646f63756d656e7473223a205b22646f63732f4849415f53454c46484f53545f434f52455f535550504f52542e6a736f6e225d2c2022726561646261636b223a207b226279746573223a20353630372c20226964656e74697479223a207b226374696d655f6e73223a20313739343535333533373838313435343032372c2022646576223a2036363330362c2022676964223a20313030302c2022696e6f223a2037393733313531322c20226d6f6465223a203338342c20226d74696d655f6e73223a20313739343535333533373838313435343032372c20226e6c696e6b223a20312c202273697a65223a20353630372c2022756964223a20313030307d2c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f686f6c642d637573746f64792d72312f524541444241434b2e6a736f6e222c2022736861323536223a202262346437303039343566306335346237313633336233666634316634393938353861306530356639626238326134343931356530313430346264363466383030227d2c202272656d61696e696e675f6964656d706f74656e63655f636f6d6d616e64735f6578656375746564223a20302c2022736f75726365365f737461747573223a2022534f55524345365f504153535f4f4e4c59222c2022736f757263655f6279746573223a203431313731333133322c2022736f757263655f636f756e74223a20343132372c2022737461747573223a2022504153535f524541444241434b5f4f465f434f4e54524f4c4c45525f484f4c44222c202277686f6c655f6f7065726174696f6e5f737461747573223a2022484f4c445f4e4f545f5550475241444544227d0a\",\n    \"eof\": true,\n    \"next_offset\": 1264,\n    \"offset\": 0,\n    \"size\": 1264,\n    \"text\": \"{\\\"archive\\\": {\\\"bytes\\\": 2654574, \\\"identity\\\": {\\\"ctime_ns\\\": 1794553538030935556, \\\"dev\\\": 66306, \\\"gid\\\": 1000, \\\"ino\\\": 79731514, \\\"mode\\\": 384, \\\"mtime_ns\\\": 1794553538030935556, \\\"nlink\\\": 1, \\\"size\\\": 2654574, \\\"uid\\\": 1000}, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/hold-custody-r1/SOURCE6-DERIVE4-HOLD.tar.gz\\\", \\\"sha256\\\": \\\"d99ab92f55e36022e89dfe1c13971be3234956826d384c495c0d6407d061c184\\\"}, \\\"archive_members\\\": 96, \\\"archive_raw_bytes\\\": 17792992, \\\"candidate_tree\\\": \\\"d60dbcda95d3c06797fae7a4d97c4640fe37f627\\\", \\\"declared_source_count\\\": 891, \\\"derive_commands_completed\\\": 4, \\\"only_changed_documents\\\": [\\\"docs/HIA_SELFHOST_CORE_SUPPORT.json\\\"], \\\"readback\\\": {\\\"bytes\\\": 5607, \\\"identity\\\": {\\\"ctime_ns\\\": 1794553537881454027, \\\"dev\\\": 66306, \\\"gid\\\": 1000, \\\"ino\\\": 79731512, \\\"mode\\\": 384, \\\"mtime_ns\\\": 1794553537881454027, \\\"nlink\\\": 1, \\\"size\\\": 5607, \\\"uid\\\": 1000}, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/hold-custody-r1/READBACK.json\\\", \\\"sha256\\\": \\\"b4d700945f0c54b71633b3ff41f499858a0e05f9bb82a44915e01404bd64f800\\\"}, \\\"remaining_idempotence_commands_executed\\\": 0, \\\"source6_status\\\": \\\"SOURCE6_PASS_ONLY\\\", \\\"source_bytes\\\": 411713132, \\\"source_count\\\": 4127, \\\"status\\\": \\\"PASS_READBACK_OF_CONTROLLER_HOLD\\\", \\\"whole_operation_status\\\": \\\"HOLD_NOT_UPGRADED\\\"}\\n\"\n  }\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.completion.freeze.intent",
+      "value": {
+        "host": "ai395",
+        "executable": "/usr/bin/python3.14",
+        "args": [
+          "-I",
+          "-S",
+          "-B",
+          "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/prepare_completion.py"
+        ],
+        "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control",
+        "env": {
+          "PATH": "",
+          "LANG": "C.UTF-8",
+          "LC_ALL": "C.UTF-8",
+          "PYTHONDONTWRITEBYTECODE": "1"
+        },
+        "timeout_seconds": 60,
+        "idempotency_key": "hia-pc-fixture-freeze-remaining4-metadata-r2-20261113-e26e"
+      }
+    },
+    {
+      "key": "pc.fixture.completion.freeze.ack",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-I\",\n      \"-S\",\n      \"-B\",\n      \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control/prepare_completion.py\"\n    ],\n    \"created_unix_ms\": 1794553640681,\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/control\",\n    \"env_keys\": [\n      \"LANG\",\n      \"LC_ALL\",\n      \"PATH\",\n      \"PYTHONDONTWRITEBYTECODE\"\n    ],\n    \"executable\": \"/usr/bin/python3.14\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1d3bb76e9-392-1c5\",\n    \"idempotency_key\": \"hia-pc-fixture-freeze-remaining4-metadata-r2-20261113-e26e\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d3bb76e9-392-1c5\",\n    \"request_digest\": \"415ff5fa43b18cd927085cd4dd206d726e57beb02a7cc54d3befb321cd4c8603\",\n    \"request_fingerprint\": 4710754190479166681,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1d3bb76e9-392-1c5\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1d3bb76e9-392-1c5\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "key": "pc.fixture.completion.freeze.status",
+      "value": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"at_unix_ms\": 1794553648923,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1d3bb76e9-392-1c5\",\n  \"launch_nonce\": \"b2e6f4c6239c6a89662440474307d6ce\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 1186,\n      \"stored\": 1186\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.completion.freeze.read",
+      "value": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1d3bb76e9-392-1c5\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b226c61756e6368223a207b226279746573223a20313637302c20226964656e74697479223a207b226374696d655f6e73223a20313739343535333634383839343532323630342c2022646576223a2036363330362c2022676964223a20313030302c2022696e6f223a2037393733313536372c20226d6f6465223a203338342c20226d74696d655f6e73223a20313739343535333634383839343532323630342c20226e6c696e6b223a20312c202273697a65223a20313637302c2022756964223a20313030307d2c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f636f6d706c6574696f6e2d72322f4c41554e43482e6a736f6e222c2022736861323536223a202233383238393131313436666332323665396535636137643430346233613038393162636636366235393432636138623337656265363864376232656337323734227d2c202270726565786563223a207b226279746573223a20383236342c20226964656e74697479223a207b226374696d655f6e73223a20313739343535333634383839353039393532342c2022646576223a2036363330362c2022676964223a20313030302c2022696e6f223a2037393733313536382c20226d6f6465223a203338342c20226d74696d655f6e73223a20313739343535333634383839353039393532342c20226e6c696e6b223a20312c202273697a65223a20383236342c2022756964223a20313030307d2c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f636f6d706c6574696f6e2d72322f505245455845432e6a736f6e222c2022736861323536223a202239643262613636636636663864313562633736656537616664633230386638396461336663653561363662353263333034656530386163313534333966313937227d2c202272657175657374223a207b226279746573223a2031333338392c20226964656e74697479223a207b226374696d655f6e73223a20313739343535333634383839333931383632352c2022646576223a2036363330362c2022676964223a20313030302c2022696e6f223a2037393733313536362c20226d6f6465223a203338342c20226d74696d655f6e73223a20313739343535333634383839333931383632352c20226e6c696e6b223a20312c202273697a65223a2031333338392c2022756964223a20313030307d2c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f636f6d706c6574696f6e2d72322f636f6e74726f6c2f524551554553542e6a736f6e222c2022736861323536223a202263623561643230616238303063626166393431626536613239393837336136333134356465323964633666366361393831376134326332336131353837613562227d2c2022737461747573223a202246524f5a454e5f554e4558454355544544227d0a\",\n    \"eof\": true,\n    \"next_offset\": 1186,\n    \"offset\": 0,\n    \"size\": 1186,\n    \"text\": \"{\\\"launch\\\": {\\\"bytes\\\": 1670, \\\"identity\\\": {\\\"ctime_ns\\\": 1794553648894522604, \\\"dev\\\": 66306, \\\"gid\\\": 1000, \\\"ino\\\": 79731567, \\\"mode\\\": 384, \\\"mtime_ns\\\": 1794553648894522604, \\\"nlink\\\": 1, \\\"size\\\": 1670, \\\"uid\\\": 1000}, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/LAUNCH.json\\\", \\\"sha256\\\": \\\"3828911146fc226e9e5ca7d404b3a0891bcf66b5942ca8b37ebe68d7b2ec7274\\\"}, \\\"preexec\\\": {\\\"bytes\\\": 8264, \\\"identity\\\": {\\\"ctime_ns\\\": 1794553648895099524, \\\"dev\\\": 66306, \\\"gid\\\": 1000, \\\"ino\\\": 79731568, \\\"mode\\\": 384, \\\"mtime_ns\\\": 1794553648895099524, \\\"nlink\\\": 1, \\\"size\\\": 8264, \\\"uid\\\": 1000}, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/PREEXEC.json\\\", \\\"sha256\\\": \\\"9d2ba66cf6f8d15bc76ee7afdc208f89da3fce5a66b52c304ee08ac15439f197\\\"}, \\\"request\\\": {\\\"bytes\\\": 13389, \\\"identity\\\": {\\\"ctime_ns\\\": 1794553648893918625, \\\"dev\\\": 66306, \\\"gid\\\": 1000, \\\"ino\\\": 79731566, \\\"mode\\\": 384, \\\"mtime_ns\\\": 1794553648893918625, \\\"nlink\\\": 1, \\\"size\\\": 13389, \\\"uid\\\": 1000}, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/control/REQUEST.json\\\", \\\"sha256\\\": \\\"cb5ad20ab800cbaf941be6a299873a63145de29dc6f6ca9817a42c23a1587a5b\\\"}, \\\"status\\\": \\\"FROZEN_UNEXECUTED\\\"}\\n\"\n  }\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.completion.execution.intent",
+      "value": {
+        "raw": "{\n  \"scope\": \"Only four not-yet-executed idempotence commands; prior whole HOLD stays HOLD\",\n  \"request_sha256\": \"cb5ad20ab800cbaf941be6a299873a63145de29dc6f6ca9817a42c23a1587a5b\",\n  \"launch_sha256\": \"3828911146fc226e9e5ca7d404b3a0891bcf66b5942ca8b37ebe68d7b2ec7274\",\n  \"tool\": {\n    \"host\": \"ai395\",\n    \"executable\": \"/usr/bin/python3.14\",\n    \"args\": [\n      \"-I\",\n      \"-S\",\n      \"-B\",\n      \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/control/invoke_once.py\"\n    ],\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/control\",\n    \"env\": {\n      \"PATH\": \"\",\n      \"LANG\": \"C.UTF-8\",\n      \"LC_ALL\": \"C.UTF-8\",\n      \"PYTHONDONTWRITEBYTECODE\": \"1\",\n      \"PYTHONNOUSERSITE\": \"1\",\n      \"PYTHONHASHSEED\": \"0\"\n    },\n    \"timeout_seconds\": 240,\n    \"idempotency_key\": \"hia-pc-fixture-remaining-idempotence4-once-r2-20261113-e26e\"\n  }\n}\n",
+        "tool": {
+          "host": "ai395",
+          "executable": "/usr/bin/python3.14",
+          "args": [
+            "-I",
+            "-S",
+            "-B",
+            "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/control/invoke_once.py"
+          ],
+          "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/control",
+          "env": {
+            "PATH": "",
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONNOUSERSITE": "1",
+            "PYTHONHASHSEED": "0"
+          },
+          "timeout_seconds": 240,
+          "idempotency_key": "hia-pc-fixture-remaining-idempotence4-once-r2-20261113-e26e"
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.completion.execution.ack",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-I\",\n      \"-S\",\n      \"-B\",\n      \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/control/invoke_once.py\"\n    ],\n    \"created_unix_ms\": 1794553721002,\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/control\",\n    \"env_keys\": [\n      \"LANG\",\n      \"LC_ALL\",\n      \"PATH\",\n      \"PYTHONDONTWRITEBYTECODE\",\n      \"PYTHONHASHSEED\",\n      \"PYTHONNOUSERSITE\"\n    ],\n    \"executable\": \"/usr/bin/python3.14\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1d3bcb0aa-392-1cd\",\n    \"idempotency_key\": \"hia-pc-fixture-remaining-idempotence4-once-r2-20261113-e26e\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d3bcb0aa-392-1cd\",\n    \"request_digest\": \"8b5f441260e231987d40af734133bf0212db578953a59b05d2f61e2b2e213536\",\n    \"request_fingerprint\": 10042820539785032088,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1d3bcb0aa-392-1cd\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1d3bcb0aa-392-1cd\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "key": "pc.fixture.completion.execution.status1",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"at_unix_ms\": 1794553725394,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1d3bcb0aa-392-1cd\",\n  \"launch_nonce\": \"1c199b5e7b25f707d54f827e7f5e2b85\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 36,\n      \"stored\": 36\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "key": "pc.fixture.completion.ownerfirst.intent",
+      "value": {
+        "host": "ai395",
+        "executable": "/usr/bin/python3.14",
+        "args": [
+          "-I",
+          "-S",
+          "-B",
+          "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/control/read_owner_first.py"
+        ],
+        "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/control",
+        "env": {
+          "PATH": "",
+          "LANG": "C.UTF-8",
+          "LC_ALL": "C.UTF-8",
+          "PYTHONDONTWRITEBYTECODE": "1"
+        },
+        "timeout_seconds": 30,
+        "idempotency_key": "hia-pc-fixture-continuation-owner-first-r2-20261113-e26e"
+      }
+    },
+    {
+      "key": "pc.fixture.completion.ownerfirst.ack",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-I\",\n      \"-S\",\n      \"-B\",\n      \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/control/read_owner_first.py\"\n    ],\n    \"created_unix_ms\": 1794553758640,\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/control\",\n    \"env_keys\": [\n      \"LANG\",\n      \"LC_ALL\",\n      \"PATH\",\n      \"PYTHONDONTWRITEBYTECODE\"\n    ],\n    \"executable\": \"/usr/bin/python3.14\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1d3bd43b0-392-1cf\",\n    \"idempotency_key\": \"hia-pc-fixture-continuation-owner-first-r2-20261113-e26e\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d3bd43b0-392-1cf\",\n    \"request_digest\": \"b451fdedaf03b2f2229f6c35a9a537b4780ddbc2e126cd368cd40c3124dd96ae\",\n    \"request_fingerprint\": 12993445597225923314,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1d3bd43b0-392-1cf\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1d3bd43b0-392-1cf\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    },
+    {
+      "key": "pc.fixture.completion.ownerfirst.status",
+      "value": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"at_unix_ms\": 1794553765834,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1d3bd43b0-392-1cf\",\n  \"launch_nonce\": \"bfb4691de4ed049655436e77cee9b784\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 4274,\n      \"stored\": 4274\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "key": "pc.fixture.completion.ownerfirst.read",
+      "value": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1d3bd43b0-392-1cf\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b22636c6f736564223a20747275652c20226e61747572616c5f7a65726f223a20747275652c20226f776e6572223a207b226368696c645f656e756d65726174696f6e223a2022626f756e6465642070726f632050504944207363616e3b2066696e616c206b65726e656c2077616974696420454348494c44207265717569726564222c2022636c65616e7570223a207b22617474656d70746564223a20747275652c2022636f6d706c657465223a20747275652c2022646561646c696e655f6578636565646564223a2066616c73652c2022656c61707365645f6e73223a2031313539333733352c20226572726f7273223a205b5d2c20226c65616465725f726561706564223a20747275652c20226f627365727665645f656368696c64223a20747275652c202272656d61696e696e675f6469726563745f6368696c6472656e223a205b5d2c2022737461727465645f6e73223a20313537393438363536363636303935317d2c2022636c65616e75705f7365636f6e6473223a20332c20226469726563745f616e645f61646f707465645f6368696c6472656e223a205b7b2270676964223a20323730313237382c2022706964223a20323730313237392c202270706964223a20323730313237382c2022736964223a20323730313237382c202273746172745f7469636b73223a203135373934383432387d5d2c20226576656e745f6f766572666c6f77223a2066616c73652c20226576656e7473223a205b7b226b696e64223a20227175616c696669636174696f6e5f73746172746564222c20226d6f6e6f746f6e69635f6e73223a20313537393438343238383533313732392c2022706964223a20323730313237397d2c207b226b696e64223a20226f776e65645f6368696c645f6f62736572766564222c20226d6f6e6f746f6e69635f6e73223a20313537393438343238383535373638382c202270676964223a20323730313237382c2022706964223a20323730313237392c202270706964223a20323730313237382c2022736964223a20323730313237382c202273746172745f7469636b73223a203135373934383432387d2c207b226b696e64223a20227175616c696669636174696f6e5f657869745f6f62736572766564222c20226d6f6e6f746f6e69635f6e73223a20313537393438363536363635343435322c2022706964223a20323730313237392c202273695f636f6465223a20312c202273695f737461747573223a20307d2c207b226b696e64223a20226f776e65645f6368696c645f726561706564222c20226d6f6e6f746f6e69635f6e73223a20313537393438363537343134373136302c2022706964223a20323730313237392c202272657475726e636f6465223a20302c202273746172745f7469636b73223a203135373934383432387d5d2c2022657869745f6f627365727665645f6265666f72655f646561646c696e65223a20747275652c2022686973746f726963616c5f64657363656e64616e745f696e76656e746f72795f636f6d706c657465223a2066616c73652c2022696d706c656d656e746174696f6e5f736861323536223a202233363934363038326233333435663435656532623238663166383130613232393336643138326135383663643034303431353464666230316233626435336132222c2022696e7465727275707465645f7369676e616c73223a205b5d2c2022706172656e745f706964223a20323730313237352c2022706c6174666f726d223a20226c696e7578222c20227175616c696669636174696f6e5f706964223a20323730313237392c20227175616c696669636174696f6e5f7365636f6e6473223a203138302c20227175616c696669636174696f6e5f73746172746564223a20747275652c2022726571756573745f736861323536223a202236326637663237653239633062306566623364663434663032666538373334616438653864343036343430323531613530326435653833376433346532646432222c202272657475726e636f6465223a20302c2022736368656d61223a202268657074612e6869612e73656c66686f73742d70726f636573732d6f776e65722e7631222c2022737461747573223a20224f574e45445f50524f434553535f434f4d504c45544544222c20227375627265617065725f656e61626c6564223a20747275652c202273757065727669736f725f706964223a20323730313237382c202274696d65645f6f7574223a2066616c73657d2c20226f776e65725f70696e223a207b226279746573223a20313439312c20226964656e74697479223a207b226374696d655f6e73223a20313739343535333732343932373035373233342c2022646576223a2036363330362c2022676964223a20313030302c2022696e6f223a2037393733313630362c20226d6f6465223a203338342c20226d74696d655f6e73223a20313739343535333732343932373035373233342c20226e6c696e6b223a20312c202273697a65223a20313439312c2022756964223a20313030307d2c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f636f6d706c6574696f6e2d72322f61637475616c2f70726f636573732d6f776e65722e6a736f6e222c2022736861323536223a202236366430653539383464303036306661353862653138623632646561383663633232393464333331633339306630623861326331373035383235386236353833227d2c20226f776e65725f726571756573745f70696e223a207b226279746573223a20313236312c20226964656e74697479223a207b226374696d655f6e73223a20313739343535333732323539363638303534372c2022646576223a2036363330362c2022676964223a20313030302c2022696e6f223a2037393733313537382c20226d6f6465223a203338342c20226d74696d655f6e73223a20313739343535333732323539363638303534372c20226e6c696e6b223a20312c202273697a65223a20313236312c2022756964223a20313030307d2c202270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f70632d666978747572652d737563636573736f722d72312f636f6d706c6574696f6e2d72322f61637475616c2f70726f636573732d6f776e65722e6a736f6e2e726571756573742e6a736f6e222c2022736861323536223a202236326637663237653239633062306566623364663434663032666538373334616438653864343036343430323531613530326435653833376433346532646432227d2c2022726571756573745f736861323536223a202263623561643230616238303063626166393431626536613239393837336136333134356465323964633666366361393831376134326332336131353837613562222c202277726170706572223a207b226368696c645f656e756d65726174696f6e223a2022626f756e6465642070726f632050504944207363616e3b2066696e616c206b65726e656c2077616974696420454348494c44207265717569726564222c2022636c65616e7570223a207b22617474656d70746564223a20747275652c2022636f6d706c657465223a20747275652c2022646561646c696e655f6578636565646564223a2066616c73652c2022656c61707365645f6e73223a2031313539333733352c20226572726f7273223a205b5d2c20226c65616465725f726561706564223a20747275652c20226f627365727665645f656368696c64223a20747275652c202272656d61696e696e675f6469726563745f6368696c6472656e223a205b5d2c2022737461727465645f6e73223a20313537393438363536363636303935317d2c2022636c65616e75705f7365636f6e6473223a20332c20226469726563745f616e645f61646f707465645f6368696c6472656e223a205b7b2270676964223a20323730313237382c2022706964223a20323730313237392c202270706964223a20323730313237382c2022736964223a20323730313237382c202273746172745f7469636b73223a203135373934383432387d5d2c20226576656e745f6f766572666c6f77223a2066616c73652c20226576656e7473223a205b7b226b696e64223a20227175616c696669636174696f6e5f73746172746564222c20226d6f6e6f746f6e69635f6e73223a20313537393438343238383533313732392c2022706964223a20323730313237397d2c207b226b696e64223a20226f776e65645f6368696c645f6f62736572766564222c20226d6f6e6f746f6e69635f6e73223a20313537393438343238383535373638382c202270676964223a20323730313237382c2022706964223a20323730313237392c202270706964223a20323730313237382c2022736964223a20323730313237382c202273746172745f7469636b73223a203135373934383432387d2c207b226b696e64223a20227175616c696669636174696f6e5f657869745f6f62736572766564222c20226d6f6e6f746f6e69635f6e73223a20313537393438363536363635343435322c2022706964223a20323730313237392c202273695f636f6465223a20312c202273695f737461747573223a20307d2c207b226b696e64223a20226f776e65645f6368696c645f726561706564222c20226d6f6e6f746f6e69635f6e73223a20313537393438363537343134373136302c2022706964223a20323730313237392c202272657475726e636f6465223a20302c202273746172745f7469636b73223a203135373934383432387d5d2c2022657869745f6f627365727665645f6265666f72655f646561646c696e65223a20747275652c2022686973746f726963616c5f64657363656e64616e745f696e76656e746f72795f636f6d706c657465223a2066616c73652c2022696d706c656d656e746174696f6e5f736861323536223a202233363934363038326233333435663435656532623238663166383130613232393336643138326135383663643034303431353464666230316233626435336132222c2022696e7465727275707465645f7369676e616c73223a205b5d2c2022706172656e745f706964223a20323730313237352c2022706c6174666f726d223a20226c696e7578222c20227175616c696669636174696f6e5f706964223a20323730313237392c20227175616c696669636174696f6e5f7365636f6e6473223a203138302c20227175616c696669636174696f6e5f73746172746564223a20747275652c2022726563656970745f736861323536223a202236366430653539383464303036306661353862653138623632646561383663633232393464333331633339306630623861326331373035383235386236353833222c2022726571756573745f736861323536223a202236326637663237653239633062306566623364663434663032666538373334616438653864343036343430323531613530326435653833376433346532646432222c202272657475726e636f6465223a20302c2022736368656d61223a202268657074612e6869612e73656c66686f73742d70726f636573732d6f776e65722e7631222c2022737461747573223a20224f574e45445f50524f434553535f434f4d504c45544544222c20227375627265617065725f656e61626c6564223a20747275652c202273757065727669736f725f706964223a20323730313237382c202273757065727669736f725f72657475726e636f6465223a20302c202274696d65645f6f7574223a2066616c73657d7d0a\",\n    \"eof\": true,\n    \"next_offset\": 4274,\n    \"offset\": 0,\n    \"size\": 4274,\n    \"text\": \"{\\\"closed\\\": true, \\\"natural_zero\\\": true, \\\"owner\\\": {\\\"child_enumeration\\\": \\\"bounded proc PPID scan; final kernel waitid ECHILD required\\\", \\\"cleanup\\\": {\\\"attempted\\\": true, \\\"complete\\\": true, \\\"deadline_exceeded\\\": false, \\\"elapsed_ns\\\": 11593735, \\\"errors\\\": [], \\\"leader_reaped\\\": true, \\\"observed_echild\\\": true, \\\"remaining_direct_children\\\": [], \\\"started_ns\\\": 1579486566660951}, \\\"cleanup_seconds\\\": 3, \\\"direct_and_adopted_children\\\": [{\\\"pgid\\\": 2701278, \\\"pid\\\": 2701279, \\\"ppid\\\": 2701278, \\\"sid\\\": 2701278, \\\"start_ticks\\\": 157948428}], \\\"event_overflow\\\": false, \\\"events\\\": [{\\\"kind\\\": \\\"qualification_started\\\", \\\"monotonic_ns\\\": 1579484288531729, \\\"pid\\\": 2701279}, {\\\"kind\\\": \\\"owned_child_observed\\\", \\\"monotonic_ns\\\": 1579484288557688, \\\"pgid\\\": 2701278, \\\"pid\\\": 2701279, \\\"ppid\\\": 2701278, \\\"sid\\\": 2701278, \\\"start_ticks\\\": 157948428}, {\\\"kind\\\": \\\"qualification_exit_observed\\\", \\\"monotonic_ns\\\": 1579486566654452, \\\"pid\\\": 2701279, \\\"si_code\\\": 1, \\\"si_status\\\": 0}, {\\\"kind\\\": \\\"owned_child_reaped\\\", \\\"monotonic_ns\\\": 1579486574147160, \\\"pid\\\": 2701279, \\\"returncode\\\": 0, \\\"start_ticks\\\": 157948428}], \\\"exit_observed_before_deadline\\\": true, \\\"historical_descendant_inventory_complete\\\": false, \\\"implementation_sha256\\\": \\\"36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2\\\", \\\"interrupted_signals\\\": [], \\\"parent_pid\\\": 2701275, \\\"platform\\\": \\\"linux\\\", \\\"qualification_pid\\\": 2701279, \\\"qualification_seconds\\\": 180, \\\"qualification_started\\\": true, \\\"request_sha256\\\": \\\"62f7f27e29c0b0efb3df44f02fe8734ad8e8d406440251a502d5e837d34e2dd2\\\", \\\"returncode\\\": 0, \\\"schema\\\": \\\"hepta.hia.selfhost-process-owner.v1\\\", \\\"status\\\": \\\"OWNED_PROCESS_COMPLETED\\\", \\\"subreaper_enabled\\\": true, \\\"supervisor_pid\\\": 2701278, \\\"timed_out\\\": false}, \\\"owner_pin\\\": {\\\"bytes\\\": 1491, \\\"identity\\\": {\\\"ctime_ns\\\": 1794553724927057234, \\\"dev\\\": 66306, \\\"gid\\\": 1000, \\\"ino\\\": 79731606, \\\"mode\\\": 384, \\\"mtime_ns\\\": 1794553724927057234, \\\"nlink\\\": 1, \\\"size\\\": 1491, \\\"uid\\\": 1000}, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/actual/process-owner.json\\\", \\\"sha256\\\": \\\"66d0e5984d0060fa58be18b62dea86cc2294d331c390f0b8a2c17058258b6583\\\"}, \\\"owner_request_pin\\\": {\\\"bytes\\\": 1261, \\\"identity\\\": {\\\"ctime_ns\\\": 1794553722596680547, \\\"dev\\\": 66306, \\\"gid\\\": 1000, \\\"ino\\\": 79731578, \\\"mode\\\": 384, \\\"mtime_ns\\\": 1794553722596680547, \\\"nlink\\\": 1, \\\"size\\\": 1261, \\\"uid\\\": 1000}, \\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/completion-r2/actual/process-owner.json.request.json\\\", \\\"sha256\\\": \\\"62f7f27e29c0b0efb3df44f02fe8734ad8e8d406440251a502d5e837d34e2dd2\\\"}, \\\"request_sha256\\\": \\\"cb5ad20ab800cbaf941be6a299873a63145de29dc6f6ca9817a42c23a1587a5b\\\", \\\"wrapper\\\": {\\\"child_enumeration\\\": \\\"bounded proc PPID scan; final kernel waitid ECHILD required\\\", \\\"cleanup\\\": {\\\"attempted\\\": true, \\\"complete\\\": true, \\\"deadline_exceeded\\\": false, \\\"elapsed_ns\\\": 11593735, \\\"errors\\\": [], \\\"leader_reaped\\\": true, \\\"observed_echild\\\": true, \\\"remaining_direct_children\\\": [], \\\"started_ns\\\": 1579486566660951}, \\\"cleanup_seconds\\\": 3, \\\"direct_and_adopted_children\\\": [{\\\"pgid\\\": 2701278, \\\"pid\\\": 2701279, \\\"ppid\\\": 2701278, \\\"sid\\\": 2701278, \\\"start_ticks\\\": 157948428}], \\\"event_overflow\\\": false, \\\"events\\\": [{\\\"kind\\\": \\\"qualification_started\\\", \\\"monotonic_ns\\\": 1579484288531729, \\\"pid\\\": 2701279}, {\\\"kind\\\": \\\"owned_child_observed\\\", \\\"monotonic_ns\\\": 1579484288557688, \\\"pgid\\\": 2701278, \\\"pid\\\": 2701279, \\\"ppid\\\": 2701278, \\\"sid\\\": 2701278, \\\"start_ticks\\\": 157948428}, {\\\"kind\\\": \\\"qualification_exit_observed\\\", \\\"monotonic_ns\\\": 1579486566654452, \\\"pid\\\": 2701279, \\\"si_code\\\": 1, \\\"si_status\\\": 0}, {\\\"kind\\\": \\\"owned_child_reaped\\\", \\\"monotonic_ns\\\": 1579486574147160, \\\"pid\\\": 2701279, \\\"returncode\\\": 0, \\\"start_ticks\\\": 157948428}], \\\"exit_observed_before_deadline\\\": true, \\\"historical_descendant_inventory_complete\\\": false, \\\"implementation_sha256\\\": \\\"36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2\\\", \\\"interrupted_signals\\\": [], \\\"parent_pid\\\": 2701275, \\\"platform\\\": \\\"linux\\\", \\\"qualification_pid\\\": 2701279, \\\"qualification_seconds\\\": 180, \\\"qualification_started\\\": true, \\\"receipt_sha256\\\": \\\"66d0e5984d0060fa58be18b62dea86cc2294d331c390f0b8a2c17058258b6583\\\", \\\"request_sha256\\\": \\\"62f7f27e29c0b0efb3df44f02fe8734ad8e8d406440251a502d5e837d34e2dd2\\\", \\\"returncode\\\": 0, \\\"schema\\\": \\\"hepta.hia.selfhost-process-owner.v1\\\", \\\"status\\\": \\\"OWNED_PROCESS_COMPLETED\\\", \\\"subreaper_enabled\\\": true, \\\"supervisor_pid\\\": 2701278, \\\"supervisor_returncode\\\": 0, \\\"timed_out\\\": false}}\\n\"\n  }\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    }
+  ]
+}
