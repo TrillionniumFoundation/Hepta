@@ -1,0 +1,27 @@
+{
+  "schema": "hia.varint-native-trace-exact-row-correction-static-review.v1",
+  "status": "STATIC_CLEAR_TWO_COMPARISONS_ONLY",
+  "reviewer": "hia_remote_audit",
+  "prior_receipt": {
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/pc-dispatch-r1/peer-varint-native-matrix-trace-r2-static-review.json",
+    "sha256": "5736c4b73b77426e4448bc53989783b13a9297498d195123c2573913fbc916e9",
+    "old_finding_preserved": true
+  },
+  "file": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r2/control/trace.py",
+  "mechanical": {
+    "old": {
+      "bytes": 7469,
+      "sha256": "df2ed1c8ad5a0493e2b0781f5f87fb2507dc82141fccbbddec829ce84cd89f0b",
+      "git_blob_sha1": "c4e5a819995d079f386a110b44021892fe608f4d"
+    },
+    "after": {
+      "bytes": 7497,
+      "sha256": "489c14dd9981f1995af121b45073fc7d4bb6f955c9f878c48c57d3ba9f29081f",
+      "git_blob_sha1": "14dfa5baa59e0ad5ed9e43ad8cb08a1ffa80a600"
+    },
+    "two_substitutions_only": true
+  },
+  "proof": "Replacing exactly the two comparisons row==expected_pre/post with line==matrix.wire(expected_pre/post) reproduces the complete new file byte-for-byte. The already canonical full raw JSONL line must now have the exact expected scalar types, all buffers and ordered keys. bool/int equality no longer admits altered index/status/actual_returned fields.",
+  "unchanged": "All other bytes,8 method IDs,76054 returns,PRE/POST buffers,two C oracle shapes,part order and readback remain unchanged. This receipt does not re-review the rest of the request or claim a C/native invocation.",
+  "source_or_native_execution": false
+}

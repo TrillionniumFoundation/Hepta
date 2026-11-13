@@ -1,0 +1,84 @@
+{
+  "schema": "hia.sqlite-varint.finite-native.matrix-trace-static-review.v1",
+  "status": "STATIC_HOLD_EXACT_JSON_SCALAR_TYPE_GUARD",
+  "reviewer": "hia_remote_audit",
+  "host": "ai395",
+  "input_files": [
+    {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r2/control/matrix.py",
+      "bytes": 6659,
+      "sha256": "413b7931f5b7f40b9f6560081023200e9dd98bbd39a1cd3d973d3d47b597daca",
+      "git_blob_sha1": "4e55523389722a65332aa4adb85cf92fa11a0e21"
+    },
+    {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r2/control/trace.py",
+      "bytes": 7469,
+      "sha256": "df2ed1c8ad5a0493e2b0781f5f87fb2507dc82141fccbbddec829ce84cd89f0b",
+      "git_blob_sha1": "c4e5a819995d079f386a110b44021892fe608f4d"
+    }
+  ],
+  "execution": {
+    "modules_imported": false,
+    "source_controls_run": false,
+    "native_calls": false,
+    "files_modified": false
+  },
+  "scope": "Only the two supplied complete source bodies; not the native producer, C compiler requests, guardian or final launch.",
+  "static_observations": [
+    {
+      "name": "population",
+      "method_counts": [
+        1618,
+        65536,
+        8192,
+        597,
+        108,
+        3,
+        0,
+        0
+      ],
+      "sum": 76054,
+      "meaning": "Eight original method IDs. 1618 fixed source8 VM rows; all 65536 initialized two-byte prefixes; 4096 deterministic u64 values each put/get; 191 public boundary values x3 plus24 nonminimal;18 truncation plus90 capacity;3 caught canaries."
+    },
+    {
+      "name": "original_VM_order",
+      "meaning": "specifications consumes original_rows list order, compares recorded actual_returned/status/source/output/workspace results to its independently authored arithmetic, then yields one row per original. The outer request still must pin the historical VM-RAW body; this review has not read that body."
+    },
+    {
+      "name": "initialized_prefixes",
+      "meaning": "Each of 65536 prefixes is followed by six0x80 bytes and terminal0x55; each decode buffer is a full initialized9 bytes. This is a finite prefix domain, not all u64 or all variable-length inputs."
+    },
+    {
+      "name": "complete_buffers",
+      "meaning": "PRE and POST cover complete source/output/16-byte command plus64-byte canary; READ oracle includes full initialized9-byte input and8-byte output pluscanaries; PUT oracle includes full9-byte output pluscanary. Unchanged tails and inputs are compared, not only valid output prefixes."
+    },
+    {
+      "name": "C_oracles",
+      "versions": [
+        "3.46.0",
+        "3.53.2"
+      ],
+      "meaning": "Each POST requires two ordered oracle records with input/output/return/value expectations; not_called is explicit for invalid/truncated cases. This proves the planned reader's expected data shape, not that a future producer really invokes the C functions."
+    },
+    {
+      "name": "trace_whole_reread",
+      "meaning": "4MiB contiguous named parts, wholepartSHA/Git, complete canonical JSONL rows, alternatingPRE/POST, exact regenerated matrix order/hash, fullrecord/native/oracle denominators and namespace closure. Writer retains partialINDEX on incomplete finish. All real execution predicates remain unexecuted."
+    }
+  ],
+  "blocking_finding": {
+    "id": "exact_json_scalar_types",
+    "file": "control/trace.py",
+    "functions": [
+      "inspect",
+      "expected_records"
+    ],
+    "mechanism": "inspect verifies canonical serialization of the received row itself, then uses Python row == expected_pre or expected_post. Python numeric equality conflates bool with int. A canonical PRE index true equals expected index1; a canonical POST actual_returned1 equals expected true; a status true equals expected integer1. These altered raw rows are not excluded by the separate canonical-self check.",
+    "minimal_correction": "Compare the received full line directly with matrix.wire(expected_pre) or matrix.wire(expected_post), in addition to existing read/parse and total checks; alternatively enforce recursive exact scalar types. Keep all8 IDs,76054 returns, buffers, chunks and budgets unchanged.",
+    "history": "Preserve supplied df2ed1c8 trace as an unexecuted draft. This is a static reader correction, not an actual finite-native failure or a request to rerun."
+  },
+  "nonblocking_boundaries": [
+    "No remaining offset/prefix-only gap was identified within the supplied matrix/trace code.",
+    "The three caught-canary cases' actual producer behavior and exception ownership are outside this two-file review.",
+    "No assertion of native performance, SQLite completeness, SQL semantics or durability qualification."
+  ]
+}
