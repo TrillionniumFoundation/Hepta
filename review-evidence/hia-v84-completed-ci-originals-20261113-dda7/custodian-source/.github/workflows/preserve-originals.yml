@@ -1,0 +1,43 @@
+name: Immutable custody of completed v84 originals
+on:
+  push:
+    branches: ["codex/hia-v84-terminal-custody-20261113-dda7"]
+permissions:
+  actions: read
+  contents: write
+jobs:
+  preserve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Parse pinned custody source without product execution
+        run: |
+          python -B - <<'PY'
+          import ast, json, pathlib
+          ast.parse(pathlib.Path("collect_originals.py").read_bytes())
+          d=json.loads(pathlib.Path("inputs/ORIGINALS.json").read_bytes())
+          assert len(d["originals"]) == 5
+          assert d["original_tests_rerun"] is False
+          assert d["original_budgets_changed"] is False
+          print("Custody source parsed; no product imported or executed.")
+          PY
+      - name: Verify original archives and publish immutable raw blobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -B collect_originals.py
+      - name: Retain custody receipts even on partial failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v84-original-custody-receipts
+          path: |
+            ${{ runner.temp }}/hia-v84-terminal-custody-${{ github.run_id }}/*.json
+            ${{ runner.temp }}/hia-v84-terminal-custody-${{ github.run_id }}/*/VERIFICATION.json
+            ${{ runner.temp }}/hia-v84-terminal-custody-${{ github.run_id }}/*/ORIGINAL-OBSERVATIONS.json
+          retention-days: 90
+          if-no-files-found: error
+          include-hidden-files: true

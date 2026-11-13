@@ -1,0 +1,263 @@
+{
+  "schema": "hepta.current-main-tree-and-backend-readonly-audit.v1",
+  "observed_at_utc": "2026-11-13T03:08:47Z",
+  "repository": "TrillionniumFoundation/Hepta",
+  "subject": {
+    "commit": "51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8",
+    "tree": "578a72d9bd6dadf0375bed33e3d1aa5341c8f452",
+    "parents": [
+      "5831f52fada45e076f8f68f198a15c0585e6104f",
+      "9a12b6cd13ba103fc7495aa8d5decf8cd5948143",
+      "bbc5551e97d9d7d995416e553531cff656e21f7a"
+    ],
+    "same_tree_commit": "bbc5551e97d9d7d995416e553531cff656e21f7a"
+  },
+  "scope": {
+    "complete_recursive_tree": true,
+    "all_246_subtree_hashes_reconstructed": true,
+    "all_file_contents_read": false,
+    "product_source_and_document_full_byte_reads": 27,
+    "tracked_review_evidence_text_files": 321,
+    "tracked_review_evidence_text_bytes": 6420668,
+    "binary_archives_not_decoded": 10,
+    "product_execution": false,
+    "new_tests": 0,
+    "local_runtime_used": false,
+    "ref_mutation": false,
+    "whole_native_qualified": false
+  },
+  "counts": {
+    "files": 2579,
+    "hepta": 178,
+    "hiaasm": 0,
+    "python": 1149,
+    "package_python": 186,
+    "tools_python": 365,
+    "tests_python": 488,
+    "rust": 48,
+    "assembly": 10,
+    "support_source_entries": 914,
+    "support_hepta_entries": 150,
+    "note": "Syntactic file counts are not native-completion percentages. The support subset alone is not evidence of an omission."
+  },
+  "claim_matrix": [
+    {
+      "claim": "178 .hepta sources",
+      "status": "VERIFIED_TREE_METADATA",
+      "evidence": "main-recursive-tree.json; all 246 subtree hashes independently reconstruct root578a72"
+    },
+    {
+      "claim": "Main tree is byte/mode-identical to bbc5551",
+      "status": "VERIFIED_GIT_TREE_IDENTITY",
+      "evidence": "Both actual Git commit objects name exactly root578a72. No qualification transfer is implied by commit-name identity."
+    },
+    {
+      "claim": "528 source controls",
+      "status": "VERIFIED_CURRENT_MAIN_ORIGINAL_CI",
+      "run": 43347872271,
+      "job": 131631489979,
+      "tests": 528,
+      "unique_ok_ids": 528,
+      "seconds": 649.699
+    },
+    {
+      "claim": "Earlier local cold 11/5049",
+      "status": "NOT_TRACED_TO_MATCHING_ORIGINAL_REPORT",
+      "note": "Commit message asserts it. Current tracked review text contains no matching bbc/main source record. CURRENT.md 11/5049 belongs to older006abca/719cold-source predecessor. This is not a conclusion that the earlier run did not occur."
+    },
+    {
+      "claim": "Earlier 57 native stages and 4657 retained tests",
+      "status": "NOT_TRACED_TO_MATCHING_ORIGINAL_REPORT",
+      "note": "No bbc Actions runs returned. Current main CI fails cold and skips language plus56native groups. Neither proves nor disproves an earlier external local success."
+    },
+    {
+      "claim": "Whole native product / legacy retirement",
+      "status": "NOT_CLAIMED_BY_MAIN_AND_NOT_ESTABLISHED",
+      "note": "Commit, README and current-state docs explicitly retain Python/SQLite/runtime duties."
+    }
+  ],
+  "current_ci": {
+    "run": 43347872271,
+    "conclusion": "failure",
+    "python": "3.14.10 (original logs)",
+    "source": {
+      "job": 131631489979,
+      "result": "528/528 OK",
+      "seconds": 649.699
+    },
+    "native": {
+      "job": 131631489336,
+      "cold_checks": "6/11",
+      "generation_sha256": [],
+      "modified_generation_sha256": [],
+      "process_exit": 1,
+      "following_skipped_steps": 57,
+      "breakdown": "1 language +56native groups; separate post-setup skip excluded",
+      "detailed_cold_report_pending": true
+    },
+    "artifact": {
+      "id": 14001609250,
+      "bytes": 54655243,
+      "sha256": "50292694785f7e579b4cb1cc906de32f07c3fc4ce1440bcc7d2c9833385f4840",
+      "byte_crc_verification": "Assigned independently to native_composite_lowering, not claimed by this report"
+    }
+  },
+  "backend_findings": [
+    {
+      "id": "selected-function",
+      "paths": [
+        "hepta/hia_program_native.py",
+        "hepta/hia_core_lowering_native.py",
+        "hepta/hia_core_lowering_selection.py"
+      ],
+      "evidence": "_Function.__new__ selects a native subclass; all22 methods and5 helpers have HIA invoke routes. NativeCoreLowering invokes real image entries. Default/no-owner uses retained Python bodies.",
+      "remaining": "Full object primitive execution, global lookup, allocation, callbacks, exceptions and transport remain Python. Native naming is not a complete object-runtime replacement."
+    },
+    {
+      "id": "selected-emitter",
+      "paths": [
+        "hepta/hia_program_native.py",
+        "hepta/hia_core_emitter_native.py"
+      ],
+      "evidence": "_Emitter.__new__ and seven class methods invoke a distinct HIA owner. Whole-emit scope captures Function/Emitter/Code/byte/ELF selection.",
+      "remaining": "Four named object mechanisms (_call_keywords/_unpack_four/_project_items/member_importer) remain Python. Top-level build orchestration is separate."
+    },
+    {
+      "id": "selected-byte-and-elf",
+      "paths": [
+        "hepta/hia_native_byte_abi.py",
+        "hepta/hia_byte_wrapper_native.py",
+        "hepta/hia_machine_elf.py",
+        "hepta/hia_machine_object_native.py"
+      ],
+      "evidence": "Byte normalize_exports/emit_wrapper and ELF _name/_exact_int/write_elf_object retain original default bodies and explicit HIA facades. These are real native policy paths and must not be reported absent.",
+      "remaining": "Regex, sorting, iterators, CPython object/closure/call mechanisms remain hosted."
+    },
+    {
+      "id": "top-level-build-policy",
+      "path": "hepta/hia_program_native.py",
+      "functions": [
+        "_implementation_hash",
+        "validate_block_layout_plan",
+        "emit_program_machine",
+        "_inspect_object",
+        "_read_artifact",
+        "_run_logged",
+        "_host",
+        "compile_program_machine",
+        "build_program_machine"
+      ],
+      "evidence": "Full function bodies remain Python, including fresh implementation reads/hash, verification and bound identity, scope admission, deadline closures, tool inspection, subprocess/PDEATHSIG controls, temporary output and publication/recheck.",
+      "remaining": "There is no corresponding a733 NativeBuild selector/native/foreign module in current-main tree."
+    },
+    {
+      "id": "native-scheduling",
+      "paths": [
+        "hepta/hia_native_continuation.py",
+        "hepta/hia_native_continuation_inprocess.py",
+        "hepta/hia_native_helpers.py"
+      ],
+      "evidence": "Explicit native multi-image scheduling exists in subprocess and no-child in-process forms; HIA owns internal unit handoff. The in-process bridge uses a real RX mapping and ordinary image entry.",
+      "remaining": "Foreign object effects and their exception/lifetime semantics are still Python; process/FD/mapping and source admission are hosted. No default activation is inferred."
+    },
+    {
+      "id": "foreign-object-lifetime-boundary",
+      "path": "hepta/hia_core_lowering_native.py",
+      "lines": [
+        95,
+        145,
+        239,
+        344,
+        401,
+        411
+      ],
+      "evidence": "register uses id(value) interning and a strong values list; _close marks flags/request only. The18 foreign opcodes contain no independent per-slot RELEASE. global_value substitutes private helpers before namespace and converts builtin AttributeError to NameError.",
+      "classification": "SOURCE_OBSERVED_MECHANISM_AND_UNPROVEN_FOREIGN_DOMAIN",
+      "not_a_new_test_failure": true,
+      "implication": "Do not transfer a733 independent-slot retirement, completed-finish, global-anchor or precise NameError/lifetime controls to this different implementation. Main docs themselves qualify its foreign-domain claims."
+    }
+  ],
+  "peer_reports": {
+    "service_front": {
+      "report_blob": "0ac635e914da1d269e330545b19db4ad5cd5ec59",
+      "full_source_capsule": "e244bc19b3a885a8bafb58e8b1268157345a4054",
+      "scope": "10 exact files independently read/hashed; no execution",
+      "facts": [
+        "Seven Agent contract functions remain direct Python policy.",
+        "Service context/requests/artifact/emission coordination and SQLite transaction/namespace policies remain Python with selected journal/budget/file subowners.",
+        "bounded_json_wire has a genuine opt-in HIA continuation profile; default Python DFS/JSONEncoder and unsupported foreign domains remain.",
+        "Public verify_program and assembly parser/render orchestration remain Python; selected JSON decoder/primitive frontend are distinct."
+      ]
+    },
+    "toolchain_packaging": {
+      "report_blob": "6906df5e52a4ede559d16a1b0c34d1ea7545d4e1",
+      "scope": "Root's independent11-source review; no execution",
+      "facts": [
+        "HIA native compiler exists; Python AST authoring/build/cold drivers remain.",
+        "Setuptools/CPython CLI installation remains; default CLI is retained Python unless explicit selector.",
+        "Cold180+3 and Python isolated worker process remain original."
+      ]
+    }
+  },
+  "inventory_drift": {
+    "inventory_blob": "70a93ef491e1f80888a95235f758240b5c2340fe",
+    "recorded_head": "2776305326d2d9fb62a6eb8bd78556bde2fde18b",
+    "recorded_files": 2424,
+    "recorded_hepta": 103,
+    "current_files_excluding_inventory": 2578,
+    "omitted_current_paths": 154,
+    "omitted_package_modules": 16,
+    "size_mismatches": 36,
+    "actual_digest_mismatches_confirmed": 5,
+    "note": "Static inventory/report freshness defect, distinct from current support-contract generation/check that passed. Full drift details in separate JSON."
+  },
+  "a733_relation": {
+    "commit": "a733926a2786a3d4a37304bd2d18ebb2eac57ac9",
+    "tree": "1c5ba7e1217f46f2b95512640d08f19e2cc8b1fd",
+    "files": 3324,
+    "git_status": "diverged",
+    "common_ancestor": "93d66bcc3acb88212c9b153d7852ba22eeab24c8",
+    "a733_ahead": 29,
+    "main_ahead": 83,
+    "same_paths": 1597,
+    "different_shared_paths": 419,
+    "only_main": 563,
+    "only_a733": 1308,
+    "three_way": {
+      "both_changed_different": 163,
+      "both_changed_same": 35,
+      "main_only_changed": 1601,
+      "a733_only_changed": 526
+    },
+    "suffix_correspondence": {
+      "heuristic_paths": 96,
+      "byte_identical": 69,
+      "byte_different": 27,
+      "not_a_semantic_equivalence_proof": true
+    }
+  },
+  "integration_implications": [
+    "No whole-file overlay or branch-result inheritance is justified.",
+    "Preserve exactmain raw failures and a733 raw failures independently.",
+    "Review the32 package modules in the163 both-modified paths plus workflow/manifest/setup/contract as semantic merges.",
+    "Do not duplicate already-present selected Function/Emitter/byte/ELF/wire/journal owners; a733 contains different continuation/lifetime/global/Service/front owners requiring deliberate reconciliation.",
+    "Preserve .hepta resource identity and suffix bindings if future integration chooses currentmain as base;69 corresponding HIA source files are byte-identical but path/hash contracts still differ.",
+    "Before accepting claimed local full qualification, require complete bbc-bound report/owner/raw/source manifests and exact denominator/limits; current Git text scan does not establish that provenance.",
+    "Regenerate/review outdated inventory and current-state documentation separately without rewriting historical evidence."
+  ],
+  "remaining_review": {
+    "main_cold_artifact": "Pure custody pending.",
+    "pr893_storage": "Additional exacthead831110 audit underway. Actual push43305434289SUCCESS and PR43305453525FAIL are separately observed metadata; originals not yet analyzed in this report."
+  },
+  "linked_interim_custody": {
+    "index": "f81d2c33f70058417dbf2a298f3825957c1b9bb6",
+    "recipe": "9a7eed90a2c9804a5ce2b74ab5ff17f87d0d9e97"
+  },
+  "limitations": [
+    "Complete path/blob/mode audit is not every-line semantic audit.",
+    "Text search/read coverage is not proof that external or undecoded historical archives contain no additional record.",
+    "No binary archive was decoded here, no native or VM test ran, no current-source cold/full pass is asserted.",
+    "Three-way classifications are path/blob identity comparisons, not executed git merge-file or textual conflict resolution.",
+    "Observed source mechanisms are not labeled new runtime failures without actual witnesses."
+  ]
+}
