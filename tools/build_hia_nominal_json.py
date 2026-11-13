@@ -45,6 +45,15 @@ def admit_compile_receipt(receipt, *, compiler_bytes: bytes,
         raise ValueError('native nominal JSON compile receipt does not bind the consumed inputs and output')
 
 
+def _receipt_pairs(items):
+    result = {}
+    for key, value in items:
+        if key in result:
+            raise ValueError('duplicate native compile receipt field')
+        result[key] = value
+    return result
+
+
 def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     from tools.build_hia_json_preflight import admit_cold_build, current_sources
     from tools.hia_selfhost_contract import PROFILE
@@ -57,19 +66,31 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     source_bytes = source_path.read_bytes()
     if sources.get(SOURCE_NAME) != sha256(source_bytes).hexdigest():
         raise ValueError('nominal JSON source is not in the matching complete cold source contract')
+    consumed = {compiler: compiler_bytes, cold_report: cold_bytes, source_path: source_bytes}
+
+    def recheck():
+        if (any(path.read_bytes() != raw for path, raw in consumed.items())
+                or current_sources() != sources):
+            raise ValueError('nominal JSON build inputs or publication changed')
+
+    recheck()
     output.mkdir(mode=0o700)
     image, receipt = compile_stage(output, 'nominal-json', compiler, source_bytes)
+    image = Path(image)
+    if image.parent != output or image.name != 'nominal-json.image.bin':
+        raise ValueError('nominal JSON compiler published an unexpected image path')
     image_bytes = image.read_bytes()
     admit_compile_receipt(receipt, compiler_bytes=compiler_bytes,
                           source_bytes=source_bytes, image_bytes=image_bytes)
     receipt_path = output / 'nominal-json.receipt.json'
     receipt_bytes = receipt_path.read_bytes()
-    if json.loads(receipt_bytes) != receipt:
+    recorded = json.loads(receipt_bytes, object_pairs_hook=_receipt_pairs)
+    admit_compile_receipt(recorded, compiler_bytes=compiler_bytes,
+                          source_bytes=source_bytes, image_bytes=image_bytes)
+    if json.dumps(recorded, sort_keys=True) != json.dumps(receipt, sort_keys=True):
         raise ValueError('nominal JSON compile receipt readback differs')
-    if (source_path.read_bytes() != source_bytes or compiler.read_bytes() != compiler_bytes
-            or cold_report.read_bytes() != cold_bytes or current_sources() != sources
-            or image.read_bytes() != image_bytes or receipt_path.read_bytes() != receipt_bytes):
-        raise ValueError('nominal JSON build input, receipt or image bytes changed')
+    consumed[image], consumed[receipt_path] = image_bytes, receipt_bytes
+    recheck()
     manifest = {'schema': SCHEMA, 'source_sha256': sha256(source_bytes).hexdigest(),
                 'image_path': image.name, 'image_sha256': sha256(image_bytes).hexdigest(),
                 'compiler_sha256': sha256(compiler_bytes).hexdigest()}
@@ -78,6 +99,8 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     path.write_bytes(raw_manifest)
     if path.read_bytes() != raw_manifest:
         raise ValueError('nominal JSON manifest readback differs')
+    consumed[path] = raw_manifest
+    recheck()
     report = {'schema': 'hepta.hia.nominal-json-build.v1',
               'status': 'NATIVE_CANDIDATE_BUILT', 'scope': 'MATCHING_SOURCE_COLD',
               'profile': PROFILE, 'source_manifest': sources, 'manifest': manifest,
@@ -92,6 +115,8 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     report_path.write_bytes(report_bytes)
     if report_path.read_bytes() != report_bytes:
         raise ValueError('nominal JSON build report readback differs')
+    consumed[report_path] = report_bytes
+    recheck()
     return path
 
 

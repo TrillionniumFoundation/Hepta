@@ -21,7 +21,9 @@ COMMANDS = {
     31: "ok_is_true", 32: "str_exception", 33: "format_driver_error",
     34: "print_formatted_error", 35: "import_common", 36: "import_assembly",
     37: "import_edit_query", 38: "import_edit_apply", 39: "import_batch_query",
-    40: "import_batch_apply", 41: "import_impact", 42: "build_selfhost",
+    40: "import_batch_apply", 41: "import_impact",
+    42: "build_selfhost", 43: "release_handler_temporaries",
+    44: "read_with_pending_call_argument",
 }
 # These remain foreign implementation boundaries and are not called HIA
 # implementations merely because the continuation selects their invocation.
@@ -40,9 +42,11 @@ SYMBOLS = {
     "C_CLOSED": 2080, "C_ACTION": 2088, "C_NS": 2096, "C_PROGRAM": 2104,
     "C_REVISED": 2112, "C_RECEIPT": 2120, "C_VALUE": 2128, "C_QUERY": 2136,
     "C_RESPONSE": 2144, "C_OUTPUT": 2152, "C_LIST": 2160,
-    "C_SPLIT_START": 2168, "C_SPLIT_END": 2176, "C_SPLIT_DONE": 2184, "C_BACKEND": 2240,
+    "C_SPLIT_START": 2168, "C_SPLIT_END": 2176, "C_SPLIT_DONE": 2184,
     "C_A": 2192, "C_B": 2200, "C_C": 2208, "C_HANDLER": 2216,
-    "C_CATCH": 2224, "C_EXCEPTION": 2232, "C_COMMAND": 2304,
+    "C_CATCH": 2224, "C_EXCEPTION": 2232, "C_NONCE": 2240,
+    "C_SELFHOST": 2248, "C_CLAIMED": 2256, "C_COMMAND": 2304,
+    "C_LOCALS": 2560, "C_FINAL": 2816,
     "COMMAND_MAGIC": int.from_bytes(b"HCLICMD4", "little"),
     "C_LITERAL_BASE": 4096, "C_LITERAL_DATA": 6144,
 }
@@ -55,15 +59,14 @@ for _name, _index in {
     SYMBOLS[_name] = (1 << 63) | _index
 
 SOURCE = r'''
-def control_seed(w:mutbuf, action:u64, output:u64, backend:u64) -> u64:
+def control_seed(w:mutbuf, action:u64, output:u64) -> u64:
     index = C_MAGIC
-    while index < C_COMMAND + 128:
+    while index < C_FINAL + 128:
         store(w, index, 0)
         index = index + 1
     put(w, C_MAGIC, CONTROL_MAGIC)
     put(w, C_ACTION, action)
     put(w, C_OUTPUT, output)
-    put(w, C_BACKEND, backend)
     control_constants(w)
     return 0
 
@@ -73,10 +76,40 @@ def control_refuse(w:mutbuf) -> u32:
     put(w, C_PENDING, 0)
     return 199
 
+def control_consumes(w:mutbuf, operation:u64, c:u64) -> u64:
+    action = get(w, C_ACTION)
+    if operation == 4 and action != 4:
+        return 1
+    if operation == 12 or operation == 24 or operation == 34 or operation == 44:
+        return 1
+    if operation == 13 or operation == 14 or operation == 17 or operation == 28:
+        return 2
+    if operation == 16 or operation == 18:
+        return 6
+    if operation == 15:
+        return 4
+    if operation == 25 and c < 9223372036854775808:
+        if get(w, C_PHASE) == 72 or get(w, C_PHASE) == 74:
+            return 4
+    if operation == 22:
+        if action == 5 or action == 9 or action == 10 or action == 13 or action == 15:
+            return 0
+        if (action == 12 or action == 14) and get(w, C_OUTPUT) == 0:
+            return 0
+        return 1
+    if operation == 43:
+        return 3
+    return 0
+
+def control_keep(w:mutbuf, slot:u64, handle:u64) -> u64:
+    put(w, C_LOCALS + slot * 8, handle)
+    return 0
+
 def control_ask(w:mutbuf, operation:u64, next_phase:u64, a:u64, b:u64, c:u64, d:u64) -> u64:
     sequence = get(w, C_SEQ) + 1
     put(w, C_SEQ, sequence)
     put(w, C_PENDING, operation)
+    put(w, C_CLAIMED, 0)
     put(w, C_PHASE, next_phase)
     catching = choose(get(w, C_HANDLER) == 0, 1, 0)
     put(w, C_CATCH, catching)
@@ -92,6 +125,7 @@ def control_ask(w:mutbuf, operation:u64, next_phase:u64, a:u64, b:u64, c:u64, d:
     put(w, C_COMMAND + 40, b)
     put(w, C_COMMAND + 48, c)
     put(w, C_COMMAND + 56, d)
+    put(w, C_COMMAND + 64, control_consumes(w, operation, c))
     return 1
 
 def control_done(w:mutbuf, code:u64) -> u64:
@@ -104,7 +138,48 @@ def control_done(w:mutbuf, code:u64) -> u64:
     put(w, C_COMMAND, COMMAND_MAGIC)
     put(w, C_COMMAND + 16, get(w, C_SEQ))
     put(w, C_COMMAND + 32, code)
+    # Slots follow the retained function's co_varnames order:
+    # raw, result, program, text, receipt, query, revised, _revised, impact.
+    # The admitted CPython 3.12 frame clears these slots forwards; both
+    # admitted 3.14 profiles clear them backwards. Evaluation temporaries
+    # keep their separate native consumption plan.
+    count = 0
+    slot = 0
+    while slot < 9:
+        named_slot = slot
+        if get(w, 128) != 312:
+            named_slot = 8 - slot
+        handle = get(w, C_LOCALS + named_slot * 8)
+        if handle != 0:
+            put(w, C_FINAL + count * 8, handle)
+            count = count + 1
+        slot = slot + 1
+    put(w, C_COMMAND + 64, count)
+    put(w, C_COMMAND + 72, C_FINAL)
     return 2
+
+def control_claim(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) != 96 or length(o) < 128 or length(w) < 65536:
+        return control_refuse(w)
+    if get(w, C_MAGIC) != CONTROL_MAGIC or get(w, C_CLOSED) != 0 or get(w, C_CLAIMED) != 0:
+        return control_refuse(w)
+    if read64(s, 8) != 4 or read64(s, 16) != get(w, C_SEQ) or read64(s, 24) != get(w, C_PENDING) or get(w, C_PENDING) == 0:
+        return control_refuse(w)
+    if read64(s, 32) != get(w, C_NONCE):
+        return control_refuse(w)
+    at = 40
+    while at < 96:
+        if read64(s, at) != 0:
+            return control_refuse(w)
+        at = at + 8
+    # This transition precedes the first foreign callback. Lost native ACK
+    # keeps the permission spent; a repeated claim permanently refuses.
+    put(w, C_CLAIMED, 1)
+    at = 0
+    while at < 128:
+        store(o, at, byte(w, C_COMMAND + at))
+        at = at + 1
+    return 3
 
 def control_step(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) != 96 or length(o) < 128 or length(w) < 65536:
@@ -113,11 +188,13 @@ def control_step(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return control_refuse(w)
     if read64(s, 8) != 4 or read64(s, 16) != get(w, C_SEQ) or read64(s, 24) != get(w, C_PENDING):
         return control_refuse(w)
-    if read64(s, 32) > 1 or read64(s, 64) != 0 or read64(s, 72) != 0 or read64(s, 80) != 0 or read64(s, 88) != 0:
+    if read64(s, 32) > 1 or read64(s, 64) != 0 or read64(s, 72) != 0 or read64(s, 80) != 0 or read64(s, 88) != get(w, C_NONCE):
         return control_refuse(w)
     if get(w, C_SEQ) >= 9223372036854775807:
         return control_refuse(w)
     if get(w, C_PENDING) == 0 and get(w, C_PHASE) != 0:
+        return control_refuse(w)
+    if get(w, C_PENDING) != 0 and get(w, C_CLAIMED) != 1:
         return control_refuse(w)
     if control_reply_valid(s, w) == 0:
         return control_refuse(w)
@@ -160,13 +237,13 @@ def control_reply_valid(s:readbuf, w:mutbuf) -> u64:
     operation = get(w, C_PENDING)
     if read64(s, 32) == 1:
         return choose(a > 0 and a < 9223372036854775808 and b == 0 and c == 0, 1, 0)
-    if operation == 22 or operation == 23 or operation == 25 or operation == 28 or operation == 34 or (operation >= 35 and operation <= 41):
+    if operation == 22 or operation == 23 or operation == 25 or operation == 28 or operation == 34 or (operation >= 35 and operation <= 41) or operation == 43:
         return choose(a == 0 and b == 0 and c == 0, 1, 0)
     if operation == 30 or operation == 31:
         return choose(a <= 1 and b == 0 and c == 0, 1, 0)
     if a == 0 or a >= 9223372036854775808:
         return 0
-    if operation == 13 or operation == 16 or operation == 18:
+    if operation == 13 or operation == 16 or operation == 18 or operation == 44:
         return choose(b > 0 and b < 9223372036854775808 and c == 0, 1, 0)
     if operation == 14:
         return choose(b > 0 and b < 9223372036854775808 and c > 0 and c < 9223372036854775808, 1, 0)
@@ -192,22 +269,27 @@ def control_initial(w:mutbuf) -> u64:
     if phase == 2:
         return control_ask(w, 3, 10, get(w, C_NS), 15, 8388608, 0)
     if phase == 10:
+        if action == 3 or action == 4 or action == 5:
+            control_keep(w, 0, value)
         if action == 3:
             return control_ask(w, 5, 11, value, 0, 0, 0)
         if action == 5:
             return control_ask(w, 6, 14, value, 0, 0, 0)
         return control_ask(w, 4, 20, value, 0, 0, 0)
     if phase == 11:
+        control_keep(w, 2, value)
         put(w, C_PROGRAM, value)
         put(w, C_PHASE, 80)
         return 0
     if phase == 12:
         return control_ask(w, 7, 13, get(w, C_PROGRAM), 0, 0, 0)
     if phase == 13:
+        control_keep(w, 3, value)
         if get(w, C_OUTPUT) != 0:
             return control_ask(w, 21, 200, get(w, C_PROGRAM), value, get(w, C_NS), 3)
         return control_ask(w, 23, 201, value, 0, 0, 0)
     if phase == 14:
+        control_keep(w, 1, value)
         put(w, C_VALUE, value)
         return control_ask(w, 22, 15, value, 0, 0, 0)
     if phase == 15:
@@ -217,6 +299,7 @@ def control_initial(w:mutbuf) -> u64:
             return 199
         return control_done(w, 1 - value)
     if phase == 20:
+        control_keep(w, 2, value)
         put(w, C_PROGRAM, value)
         if action == 4:
             put(w, C_PHASE, 12)
@@ -229,8 +312,8 @@ def control_initial(w:mutbuf) -> u64:
             put(w, C_PHASE, 80)
             return 0
         if action == 9:
-            if get(w, C_BACKEND) == 1:
-                return control_ask(w, 42, 24, value, get(w, C_NS), 0, 0)
+            if get(w, C_SELFHOST) != 0:
+                return control_ask(w, 42, 24, value, get(w, C_NS), 3, 0)
             return control_ask(w, 11, 24, value, get(w, C_NS), 3, 0)
         if action == 10:
             return control_ask(w, 3, 30, get(w, C_NS), 7, 8388608, 0)
@@ -253,6 +336,7 @@ def control_initial(w:mutbuf) -> u64:
     if phase == 23:
         return control_ask(w, 25, 202, get(w, C_VALUE), K_NATIVE, V_FALSE, 0)
     if phase == 24:
+        control_keep(w, 1, value)
         put(w, C_VALUE, value)
         return control_ask(w, 22, 25, value, 0, 0, 0)
     if phase == 25:
@@ -311,6 +395,7 @@ def control_edits(w:mutbuf) -> u64:
             put(w, C_SPLIT_DONE, 1)
         return control_ask(w, 29, 51, get(w, C_NS), 11, start, end - start)
     if phase == 55:
+        control_keep(w, 5, value)
         if get(w, C_OUTPUT) != 0:
             return control_ask(w, 20, 200, value, get(w, C_NS), 3, 0)
         put(w, C_VALUE, value)
@@ -319,20 +404,20 @@ def control_edits(w:mutbuf) -> u64:
     if phase == 60:
         return control_ask(w, 12, 61, value, 0, 0, 0)
     if phase == 61:
-        put(w, C_QUERY, value)
-        return control_ask(w, 3, 62, get(w, C_NS), 14, 16384, 0)
+        return control_ask(w, 44, 62, value, get(w, C_NS), 14, 16384)
     if phase == 62:
-        return control_ask(w, 16, 70, get(w, C_PROGRAM), get(w, C_QUERY), value, 0)
+        return control_ask(w, 16, 70, get(w, C_PROGRAM), value, get(w, C_B), 0)
     if phase == 65:
         return control_ask(w, 12, 66, value, 0, 0, 0)
     if phase == 66:
         return control_ask(w, 17, 55, get(w, C_PROGRAM), value, 0, 0)
     if phase == 67:
-        put(w, C_QUERY, value)
-        return control_ask(w, 3, 68, get(w, C_NS), 14, 65536, 0)
+        return control_ask(w, 44, 68, value, get(w, C_NS), 14, 65536)
     if phase == 68:
-        return control_ask(w, 18, 70, get(w, C_PROGRAM), get(w, C_QUERY), value, 0)
+        return control_ask(w, 18, 70, get(w, C_PROGRAM), value, get(w, C_B), 0)
     if phase == 70:
+        control_keep(w, 6, value)
+        control_keep(w, 4, get(w, C_B))
         put(w, C_REVISED, value)
         put(w, C_RECEIPT, get(w, C_B))
         if get(w, C_OUTPUT) != 0:
@@ -358,6 +443,9 @@ def control_reports(w:mutbuf) -> u64:
             return control_ask(w, 19, 200, get(w, C_PROGRAM), get(w, C_NS), 3, 0)
         return control_ask(w, 8, 200, get(w, C_PROGRAM), 0, 0, 0)
     if phase == 90:
+        control_keep(w, 7, value)
+        control_keep(w, 4, get(w, C_B))
+        control_keep(w, 8, get(w, C_C))
         put(w, C_RECEIPT, get(w, C_B))
         put(w, C_RESPONSE, get(w, C_C))
         return control_ask(w, 26, 91, 0, 0, 0, 0)
@@ -388,10 +476,13 @@ def control_terminal(w:mutbuf) -> u64:
     if phase == 900:
         return control_ask(w, 32, 901, get(w, C_EXCEPTION), 0, 0, 0)
     if phase == 901:
+        put(w, C_RESPONSE, value)
         return control_ask(w, 33, 902, value, 0, 0, 0)
     if phase == 902:
         return control_ask(w, 34, 903, value, 0, 0, 0)
     if phase == 903:
+        return control_ask(w, 43, 904, get(w, C_RESPONSE), get(w, C_EXCEPTION), 0, 0)
+    if phase == 904:
         return control_done(w, 2)
     return 199
 '''

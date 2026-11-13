@@ -285,3 +285,17 @@ routes remain. Any later public replacement must retain the byte/UTF-8/Core64/
 integer-policy error order and original diagnostics, plus downstream primitive
 Core verification. Fixed native image dispatch does not by itself replace the
 host payload adapters listed above.
+
+## Fixed-head integration note
+
+The reviewed main/a733 runtime bodies are identical after the single active-source
+path extension is normalized to the main canonical resource. The generator and
+the original native test module have the same property. This integration therefore
+retains the exact main runtime, generator and test bytes, including the independent
+constructor-ingress test module present on main.
+
+The codec status API still does not replace the public JSON diagnostic or object
+entry contracts. Main byte limits, integer-digit policy, packet identity fields,
+fixed response checks and installed source custody remain in force. A merged
+builder or new support inventory requires its own actual regeneration and
+qualification; the fixed-head textual comparison supplies no new execution claim.

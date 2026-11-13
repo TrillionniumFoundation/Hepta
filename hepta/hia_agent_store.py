@@ -25,6 +25,16 @@ MAX_INPUT_BYTES = 8 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
 
 
+def _connection_arguments(connection):
+    """Pass only an explicitly supplied private effect connection onward."""
+    return {} if connection is None else {'_connection': connection}
+
+
+# Capture the defining function before a caller can replace the public store
+# attribute or before another module imports that possibly replaced attribute.
+_NATIVE_EVALUATION_CONNECTION_ARGUMENTS = _connection_arguments
+
+
 class AgentRejected(ValueError):
     def __init__(self, code, message, phase="admission", *, retry_action="correct_input", details_artifact=None):
         super().__init__(message)
@@ -265,7 +275,14 @@ def _native_artifact_file(operation,root,*,data=b'',content_hash='-',_admission=
 class AgentStore:
     def __init__(self, root):
         from .hia_execution_budget import admitted_execution_budget, execution_budget_store
+        from .hia_request_journal_native import admitted_request_journal, request_journal_store
+        from .hia_artifact_namespace_native import admitted_artifact_namespace, artifact_namespace_store
+        from .hia_slot_ledger_continuation_native import admitted_slot_ledger, slot_ledger_store
         budget_admission = admitted_execution_budget()
+        request_admission = admitted_request_journal()
+        namespace_admission = admitted_artifact_namespace()
+        ledger_admission = admitted_slot_ledger(namespace_admission=namespace_admission,
+                                                request_admission=request_admission)
         supplied = Path(root).absolute()
         supplied.mkdir(mode=0o700, parents=True, exist_ok=True)
         if supplied.is_symlink():
@@ -340,11 +357,16 @@ class AgentStore:
                 owner TEXT
             );
         """)
-        self.database_sidecars = None
+        self.execution_budgets = None
+        self.request_journal = None
+        self.artifact_namespace = None
+        self.slot_ledger = None
         try:
-            if budget_admission is not None:
-                # Bind the official WAL namespace before the budget adapter opens
-                # its dedicated connection to this same durable journal.
+            self.database_sidecars = None
+            if budget_admission is not None or request_admission is not None or namespace_admission is not None:
+                # Capture the official connection's WAL namespace before a second
+                # connection can open it. Never adopt a replacement sidecar as the
+                # identity merely because a new connection can read it.
                 self.db.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
                 sidecars = {}
                 for suffix in ('-wal', '-shm'):
@@ -355,7 +377,22 @@ class AgentStore:
                     sidecars[suffix] = (sidecar.st_dev, sidecar.st_ino)
                 self.database_sidecars = sidecars
             self.execution_budgets = execution_budget_store(self, budget_admission)
+            if namespace_admission is None:
+                self.request_journal = request_journal_store(self, request_admission)
+            else:
+                self.request_journal = request_journal_store(self, request_admission, shared_lock=self.lock)
+            self.artifact_namespace = artifact_namespace_store(self, namespace_admission)
+            self.slot_ledger = slot_ledger_store(self, ledger_admission)
         except BaseException as error:
+            # Construction retains the main cleanup boundary. Close only owners
+            # actually returned by earlier admissions, in ordinary close order.
+            for owner in (self.slot_ledger, self.artifact_namespace,
+                          self.request_journal, self.execution_budgets):
+                if owner is not None:
+                    try:
+                        owner.close()
+                    except BaseException as failure:
+                        error.add_note('AgentStore construction cleanup failed: ' + type(failure).__name__)
             try:
                 self.db.close()
             except BaseException as failure:
@@ -364,6 +401,45 @@ class AgentStore:
 
     @contextmanager
     def transaction(self):
+        owner = self.artifact_namespace
+        with (self._transaction_reference() if owner is None else owner.transaction()):
+            yield
+
+    def put(self, data, kind, metadata=None, *, _connection=None):
+        owner = self.artifact_namespace
+        target = self._put_reference if owner is None else owner.put
+        return target(data, kind, metadata, **_connection_arguments(_connection))
+
+    def json(self, value, kind, metadata=None, *, _connection=None):
+        owner = self.artifact_namespace
+        target = self._json_reference if owner is None else owner.json
+        return target(value, kind, metadata, **_connection_arguments(_connection))
+
+    def get(self, ref, *, kind=None, _connection=None):
+        owner = self.artifact_namespace
+        target = self._get_reference if owner is None else owner.get
+        return target(ref, kind=kind, **_connection_arguments(_connection))
+
+    def get_json(self, ref, *, kind=None, _connection=None):
+        owner = self.artifact_namespace
+        target = self._get_json_reference if owner is None else owner.get_json
+        return target(ref, kind=kind, **_connection_arguments(_connection))
+
+    def resolve_uri(self, uri):
+        owner = self.artifact_namespace
+        return self._resolve_uri_reference(uri) if owner is None else owner.resolve_uri(uri)
+
+    def profile(self, identifier, value):
+        owner = self.artifact_namespace
+        return self._profile_reference(identifier, value) if owner is None else owner.profile(identifier, value)
+
+    def check_profile(self, ref, expected, *, _connection=None):
+        owner = self.artifact_namespace
+        target = self._check_profile_reference if owner is None else owner.check_profile
+        return target(ref, expected, **_connection_arguments(_connection))
+
+    @contextmanager
+    def _transaction_reference(self):
         with self.lock:
             self.db.execute("BEGIN IMMEDIATE")
             try:
@@ -375,10 +451,16 @@ class AgentStore:
                 self.db.execute("COMMIT")
 
     def close(self):
+        if self.slot_ledger is not None:
+            self.slot_ledger.close()
+        if self.artifact_namespace is not None:
+            self.artifact_namespace.close()
+        if self.request_journal is not None:
+            self.request_journal.close()
         self.execution_budgets.close()
         self.db.close()
 
-    def put(self, data, kind, metadata=None):
+    def _put_reference(self, data, kind, metadata=None, *, _connection=None):
         if type(data) is not bytes or len(data) > MAX_ARTIFACT_BYTES:
             reject("E_HIA_ARTIFACT_LIMIT", "artifact exceeds the 64 MiB store limit")
         metadata = {} if metadata is None else metadata
@@ -387,10 +469,10 @@ class AgentStore:
                        if admission is not None else None)
         content_hash = native_hash['sha256'] if native_hash is not None else sha256(data).hexdigest()
         content_key = digest({"sha256": content_hash, "kind": kind, "metadata": metadata})
-        previous = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
+        previous = (self.db if _connection is None else _connection).execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
         if previous is not None:
             ref = self._ref(previous)
-            self.get(ref, kind=kind)
+            self.get(ref, kind=kind, **_connection_arguments(_connection))
             return ref
         if native_hash is not None:
             stored = _native_artifact_file('store-put',self.artifacts,data=data,_admission=admission)
@@ -419,21 +501,21 @@ class AgentStore:
                 temporary.unlink(missing_ok=True)
         ref = {"id": "a-" + uuid.uuid4().hex, "sha256": content_hash,
                "uri": "hia://artifacts/" + uuid.uuid4().hex}
-        self.db.execute("INSERT OR IGNORE INTO artifacts VALUES (?,?,?,?,?,?)",
+        (self.db if _connection is None else _connection).execute("INSERT OR IGNORE INTO artifacts VALUES (?,?,?,?,?,?)",
                         (ref["id"], content_hash, ref["uri"], kind, wire(metadata).decode(), content_key))
-        row = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
+        row = (self.db if _connection is None else _connection).execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
         return self._ref(row)
 
-    def json(self, value, kind, metadata=None):
-        return self.put(wire(value), kind, metadata)
+    def _json_reference(self, value, kind, metadata=None, *, _connection=None):
+        return self.put(wire(value), kind, metadata, **_connection_arguments(_connection))
 
     @staticmethod
     def _ref(row):
         return {name: row[name] for name in ("id", "sha256", "uri")}
 
-    def get(self, ref, *, kind=None):
+    def _get_reference(self, ref, *, kind=None, _connection=None):
         keys(ref, ("id", "sha256", "uri"), label="artifact reference")
-        row = self.db.execute("SELECT * FROM artifacts WHERE id=?", (ref["id"],)).fetchone()
+        row = (self.db if _connection is None else _connection).execute("SELECT * FROM artifacts WHERE id=?", (ref["id"],)).fetchone()
         if row is None or self._ref(row) != ref:
             reject("E_HIA_ARTIFACT_IDENTITY", "artifact reference was not issued in this runtime namespace")
         if kind is not None and row["kind"] != kind:
@@ -445,11 +527,11 @@ class AgentStore:
                 reject("E_HIA_ARTIFACT_CORRUPT", "artifact bytes no longer match their recorded digest")
         return data, decode_data(row["metadata"])
 
-    def get_json(self, ref, *, kind=None):
-        data, metadata = self.get(ref, kind=kind)
+    def _get_json_reference(self, ref, *, kind=None, _connection=None):
+        data, metadata = self.get(ref, kind=kind, **_connection_arguments(_connection))
         return decode_data(data), metadata
 
-    def resolve_uri(self, uri):
+    def _resolve_uri_reference(self, uri):
         row = self.db.execute("SELECT * FROM artifacts WHERE uri=?", (uri,)).fetchone()
         if row is None:
             reject("E_HIA_ARTIFACT_IDENTITY", "resource URI was not issued in this runtime namespace")
@@ -457,18 +539,18 @@ class AgentStore:
         self.get(ref)
         return ref
 
-    def profile(self, identifier, value):
+    def _profile_reference(self, identifier, value):
         ref = self.json(value, "profile")
         profile = {"id": identifier, "sha256": ref["sha256"]}
         self.db.execute("INSERT OR IGNORE INTO profiles VALUES (?,?,?)",
                         (identifier, ref["sha256"], wire(ref).decode()))
         return profile, ref
 
-    def check_profile(self, ref, expected):
+    def _check_profile_reference(self, ref, expected, *, _connection=None):
         if ref != expected:
             reject("E_HIA_PROFILE_STALE", "profile is unavailable or differs from the installed implementation")
-        row = self.db.execute("SELECT artifact FROM profiles WHERE id=? AND sha256=?",
+        row = (self.db if _connection is None else _connection).execute("SELECT artifact FROM profiles WHERE id=? AND sha256=?",
                               (ref["id"], ref["sha256"])).fetchone()
         if row is None:
             reject("E_HIA_PROFILE_AUTHORITY", "profile does not resolve to a retained server record")
-        return self.get_json(decode_data(row["artifact"]), kind="profile")[0]
+        return self.get_json(decode_data(row["artifact"]), kind="profile", **_connection_arguments(_connection))[0]

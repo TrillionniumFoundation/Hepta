@@ -11,6 +11,7 @@ ROOT=Path(__file__).resolve().parents[1]
 if __package__ in {None,''}:sys.path.insert(0,str(ROOT))
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_selfhost import Builder,compact_authoring_cfg,total_scalar_functions
+from tools.hia_exception_delivery import BODY as EXCEPTION_DELIVERY_BODY
 MODES=('align','mov_rr','mov_imm','load','store','lea','load_u8','store_u8',
 'add','sub','and_','or_','xor','cmp','test','alu_imm','shift','shift_imm',
 'shift_cl','shl','shr','sar','imul','imul_rr','mul','imul_full','div','idiv',
@@ -27,7 +28,7 @@ CONSTANTS={'MAGIC':int.from_bytes(b'HIACIN01','little'),'ABI':0xfffffffd,
 'CALL0':23,'CALL1':24,'CALL2':25,'NEW_INT':27,'RAISE_ERROR':29,
 'STR_SUMMARY':30,'INT_SUMMARY':31,'TUPLE_TWO':32,'SET_ITEM':19,
 'EQUAL':36,'TRUTH':37,'CALL3':38,'SIGNED_BYTE_REFUSAL':39,'CODEPOINT':40,
-'NEW_SIGNED':41,'ENCODE':42,'NEW_BOOL':43,'E_ALIGN':21,'E_IMMEDIATE':22,
+'NEW_SIGNED':41,'ENCODE':42,'NEW_BOOL':43,'LITERAL_BYTES':44,'E_ALIGN':21,'E_IMMEDIATE':22,
 'E_DISP':23,'E_ALU':24,'E_SHIFT':25,'E_COUNT':26,'E_CONDITION':27,
 'E_BRANCH':28,'E_SYMBOL':29}
 CONDITIONS=(('o',0),('no',1),('b',2),('c',2),('nae',2),('ae',3),('nb',3),('nc',3),
@@ -36,6 +37,8 @@ CONDITIONS=(('o',0),('no',1),('b',2),('c',2),('nae',2),('ae',3),('nb',3),('nc',3
 ('ge',13),('nl',13),('le',14),('ng',14),('g',15),('nle',15))
 SOURCE=r"""
 def machine_instructions(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
+    if length(s) == 64:
+        return emit_exception_delivery(s,o,w)
     if length(s) != 80 or length(o) < 8 or length(w) != 2048:
         return ABI
     if word(s,0) != MAGIC:
@@ -63,11 +66,14 @@ def machine_instructions(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return ABI
         if word(s,24) != 0 or word(s,64) != 0 or word(s,72) != 0:
             return ABI
+    put(w, 640, 0)
+    put(w, 776, 0)
+    put(w, 912, 0)
     pc=get(w,32)
     mode=get(w,24)
     if pc == 990:
         return ask(w,RAISE_ERROR,word(s,32),0,0,0,991)
-    if pc >= 900 and pc <= 902:
+    if pc >= 900 and pc <= 903:
         return finish_emit(s,o,w)
     if (mode == 32 or mode == 33 or mode == 40) and pc < 3:
         return condition_prefix(s,o,w)
@@ -126,7 +132,12 @@ def finish_emit(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,160,x)
         return ask(w,ENCODE,0,0,0,0,901)
     if pc == 901:
-        return ask(w,CALL1,get(w,160),x,0,0,902)
+        literal_id=get(w,576)
+        if literal_id == 25 or literal_id == 32 or literal_id == 36:
+            return ask_owned(w,LITERAL_BYTES,x,literal_id,0,0,903,1)
+        return ask_discard(w,CALL1,get(w,160),x,0,0,902,3)
+    if pc == 903:
+        return ask_discard(w,CALL1,get(w,160),x,0,0,902,3)
     if pc == 902:
         return done(w,o)
     return ABI
@@ -149,7 +160,7 @@ def align_instruction(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,160,x)
         return attribute(w,get(w,40),2,4)
     if pc == 4:
-        return ask(w,LEN,x,0,0,0,5)
+        return ask_owned(w,LEN,x,0,0,0,5,1)
     if pc == 5:
         put(w,624,word(s,40))
         return ask(w,ENCODE,0,0,0,0,901)
@@ -163,12 +174,12 @@ def pair_instruction(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,88,choose(get(w,24) == 23,get(w,56),get(w,48)))
         return attribute(w,get(w,40),1,1)
     if pc == 1:
-        return ask(w,CALL1,x,get(w,80),0,0,2)
+        return ask_owned(w,CALL1,x,get(w,80),0,0,2,1)
     if pc == 2:
         put(w,96,x)
         return attribute(w,get(w,40),1,3)
     if pc == 3:
-        return ask(w,CALL1,x,get(w,88),0,0,4)
+        return ask_owned(w,CALL1,x,get(w,88),0,0,4,1)
     if pc == 4:
         if get(w,24) == 23:
             put(w,584,get(w,96))
@@ -185,7 +196,7 @@ def move_immediate(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if pc == 0:
         return attribute(w,get(w,40),1,1)
     if pc == 1:
-        return ask(w,CALL1,x,get(w,48),0,0,2)
+        return ask_owned(w,CALL1,x,get(w,48),0,0,2,1)
     if pc == 2:
         put(w,584,x)
         return ask(w,TYPE,get(w,56),0,0,0,3)
@@ -209,9 +220,9 @@ def move_immediate(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,80,x)
         return constant(w,11,6)
     if pc == 6:
-        return ask(w,EQUAL,get(w,80),x,0,0,7)
+        return ask_owned(w,EQUAL,get(w,80),x,0,0,7,3)
     if pc == 7:
-        return ask(w,TRUTH,x,0,0,0,8)
+        return ask_owned(w,TRUTH,x,0,0,0,8,1)
     if pc == 8:
         compact=x != 0 and get(w,128) != 0
         put(w,616,choose(compact,1,0))
@@ -234,12 +245,12 @@ def memory_instruction(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,96,choose(store_mode,get(w,56),get(w,64)))
         return attribute(w,get(w,40),1,1)
     if pc == 1:
-        return ask(w,CALL1,x,get(w,80),0,0,2)
+        return ask_owned(w,CALL1,x,get(w,80),0,0,2,1)
     if pc == 2:
         put(w,584,x)
         return attribute(w,get(w,40),1,3)
     if pc == 3:
-        return ask(w,CALL1,x,get(w,88),0,0,4)
+        return ask_owned(w,CALL1,x,get(w,88),0,0,4,1)
     if pc == 4:
         put(w,592,x)
         return ask(w,TYPE,get(w,96),0,0,0,5)
@@ -296,7 +307,7 @@ def alu_instruction(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,608,group)
         return attribute(w,get(w,40),1,3)
     if pc == 3:
-        return ask(w,CALL1,x,get(w,56),0,0,4)
+        return ask_owned(w,CALL1,x,get(w,56),0,0,4,1)
     if pc == 4:
         put(w,584,x)
         return ask(w,TYPE,get(w,64),0,0,0,5)
@@ -315,13 +326,14 @@ def alu_instruction(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,80,x)
         return constant(w,12,8)
     if pc == 8:
-        return ask(w,EQUAL,get(w,80),x,0,0,9)
+        return ask_owned(w,EQUAL,get(w,80),x,0,0,9,3)
     if pc == 9:
         put(w,136,x)
         return ask(w,TRUTH,x,0,0,0,10)
     if pc == 10:
         if x == 0:
             return ask(w,TRUTH,get(w,136),0,0,0,12)
+        release_before(w, get(w, 136))
         return ask(w,NEW_BOOL,get(w,128),0,0,0,11)
     if pc == 11:
         put(w,136,x)
@@ -355,14 +367,14 @@ def shift_instruction(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,608,group)
         return attribute(w,get(w,40),1,3)
     if pc == 3:
-        return ask(w,CALL1,x,get(w,56),0,0,4)
+        return ask_owned(w,CALL1,x,get(w,56),0,0,4,1)
     if pc == 4:
         put(w,584,x)
         return constant(w,13,5)
     if pc == 5:
-        return ask(w,EQUAL,get(w,64),x,0,0,6)
+        return ask_owned(w,EQUAL,get(w,64),x,0,0,6,2)
     if pc == 6:
-        return ask(w,TRUTH,x,0,0,0,7)
+        return ask_owned(w,TRUTH,x,0,0,0,7,1)
     if pc == 7:
         if x != 0:
             put(w,616,1)
@@ -388,16 +400,16 @@ def alias_instruction(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if pc == 1:
         put(w,80,x)
         if mode == 24:
-            return ask(w,CALL2,x,get(w,48),get(w,56),0,4)
+            return ask_discard(w,CALL2,x,get(w,48),get(w,56),0,4,1)
         if mode == 18:
-            return ask(w,CALL3,x,get(w,48),get(w,56),get(w,64),4)
+            return ask_discard(w,CALL3,x,get(w,48),get(w,56),get(w,64),4,1)
         if mode == 19:
             return constant(w,13,2)
         return constant(w,mode-6,3)
     if pc == 2:
-        return ask(w,CALL3,get(w,80),get(w,48),get(w,56),x,4)
+        return ask_discard(w,CALL3,get(w,80),get(w,48),get(w,56),x,4,9)
     if pc == 3:
-        return ask(w,CALL3,get(w,80),x,get(w,48),get(w,56),4)
+        return ask_discard(w,CALL3,get(w,80),x,get(w,48),get(w,56),4,3)
     if pc == 4:
         return done(w,o)
     return ABI
@@ -408,7 +420,7 @@ def unary_instruction(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if pc == 0:
         return attribute(w,get(w,40),1,1)
     if pc == 1:
-        return ask(w,CALL1,x,get(w,48),0,0,2)
+        return ask_owned(w,CALL1,x,get(w,48),0,0,2,1)
     if pc == 2:
         put(w,584,x)
         return begin_emit(w)
@@ -444,7 +456,7 @@ def set_condition(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     pc=get(w,32)
     x=word(s,32)
     if pc == 4:
-        return ask(w,CALL1,x,get(w,56),0,0,5)
+        return ask_owned(w,CALL1,x,get(w,56),0,0,5,1)
     if pc == 5:
         put(w,584,x)
         return attribute(w,get(w,40),6,6)
@@ -452,7 +464,7 @@ def set_condition(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,80,x)
         return ask(w,NEW_INT,0,0,0,0,7)
     if pc == 7:
-        return ask(w,CALL2,get(w,80),get(w,56),x,0,8)
+        return ask_discard(w,CALL2,get(w,80),get(w,56),x,0,8,5)
     if pc == 8:
         return begin_emit(w)
     return ABI
@@ -461,12 +473,12 @@ def conditional_move(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     pc=get(w,32)
     x=word(s,32)
     if pc == 4:
-        return ask(w,CALL1,x,get(w,56),0,0,5)
+        return ask_owned(w,CALL1,x,get(w,56),0,0,5,1)
     if pc == 5:
         put(w,584,x)
         return attribute(w,get(w,40),1,6)
     if pc == 6:
-        return ask(w,CALL1,x,get(w,64),0,0,7)
+        return ask_owned(w,CALL1,x,get(w,64),0,0,7,1)
     if pc == 7:
         put(w,592,x)
         return begin_emit(w)
@@ -490,20 +502,20 @@ def branch_instruction(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return error(w,E_BRANCH)
         return attribute(w,get(w,40),0,7)
     if pc == 7:
-        return ask(w,CALL1,x,get(w,88),0,0,8)
+        return ask_discard(w,CALL1,x,get(w,88),0,0,8,1)
     if pc == 8:
         return attribute(w,get(w,40),3,9)
     if pc == 9:
-        return attribute(w,x,5,10)
+        return attribute_owned(w,x,5,10)
     if pc == 10:
         put(w,96,x)
         return attribute(w,get(w,40),2,11)
     if pc == 11:
-        return ask(w,LEN,x,0,0,0,12)
+        return ask_owned(w,LEN,x,0,0,0,12,1)
     if pc == 12:
-        return ask(w,TUPLE_TWO,x,get(w,80),0,0,13)
+        return ask_owned(w,TUPLE_TWO,x,get(w,80),0,0,13,1)
     if pc == 13:
-        return ask(w,CALL1,get(w,96),x,0,0,14)
+        return ask_discard(w,CALL1,get(w,96),x,0,0,14,3)
     if pc == 14:
         set_encoding(w,36,0,0,0,0,0,0)
         return begin_emit(w)
@@ -540,16 +552,16 @@ def call_instruction(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,160,x)
         return ask(w,ENCODE,0,0,0,0,5)
     if pc == 5:
-        return ask(w,CALL1,get(w,160),x,0,0,6)
+        return ask_discard(w,CALL1,get(w,160),x,0,0,6,3)
     if pc == 6:
         return attribute(w,get(w,40),4,7)
     if pc == 7:
-        return attribute(w,x,5,8)
+        return attribute_owned(w,x,5,8)
     if pc == 8:
         put(w,96,x)
         return attribute(w,get(w,40),2,9)
     if pc == 9:
-        return ask(w,LEN,x,0,0,0,10)
+        return ask_owned(w,LEN,x,0,0,0,10,1)
     if pc == 10:
         put(w,104,x)
         return ask(w,DICT_NEW,0,0,0,0,11)
@@ -557,27 +569,27 @@ def call_instruction(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,112,x)
         return constant(w,17,12)
     if pc == 12:
-        return ask(w,SET_ITEM,get(w,112),x,get(w,104),0,13)
+        return ask_owned(w,SET_ITEM,get(w,112),x,get(w,104),0,13,6)
     if pc == 13:
         return constant(w,18,14)
     if pc == 14:
-        return ask(w,SET_ITEM,get(w,112),x,get(w,48),0,15)
+        return ask_owned(w,SET_ITEM,get(w,112),x,get(w,48),0,15,2)
     if pc == 15:
         return ask(w,NEW_INT,4,0,0,0,16)
     if pc == 16:
         put(w,104,x)
         return constant(w,19,17)
     if pc == 17:
-        return ask(w,SET_ITEM,get(w,112),x,get(w,104),0,18)
+        return ask_owned(w,SET_ITEM,get(w,112),x,get(w,104),0,18,6)
     if pc == 18:
         return ask(w,NEW_SIGNED,18446744073709551612,0,0,0,19)
     if pc == 19:
         put(w,104,x)
         return constant(w,20,20)
     if pc == 20:
-        return ask(w,SET_ITEM,get(w,112),x,get(w,104),0,21)
+        return ask_owned(w,SET_ITEM,get(w,112),x,get(w,104),0,21,6)
     if pc == 21:
-        return ask(w,CALL1,get(w,96),get(w,112),0,0,22)
+        return ask_discard(w,CALL1,get(w,96),get(w,112),0,0,22,3)
     if pc == 22:
         set_encoding(w,36,0,0,0,0,0,0)
         return begin_emit(w)
@@ -618,6 +630,42 @@ def done(w:mutbuf,o:mutbuf) -> u32:
     put(w,32,TERMINAL)
     put(o,0,get(w,72))
     return 0
+
+
+def release_before(w:mutbuf, handle:u64) -> u64:
+    if handle != 0 and handle != get(w, 72):
+        count = get(w, 640)
+        if count < 16:
+            put(w, 648 + count * 8, handle)
+        put(w, 640, count + 1)
+    return 0
+
+def release_after(w:mutbuf, handle:u64) -> u64:
+    if handle != 0 and handle != get(w, 72):
+        count = get(w, 776)
+        if count < 16:
+            put(w, 784 + count * 8, handle)
+        put(w, 776, count + 1)
+    return 0
+
+def ask_owned(w:mutbuf, opcode:u64, a:u64, b:u64, c:u64, d:u64, pc:u64, mask:u64) -> u32:
+    if mask & 1 != 0:
+        release_after(w, a)
+    if mask & 2 != 0:
+        release_after(w, b)
+    if mask & 4 != 0:
+        release_after(w, c)
+    if mask & 8 != 0:
+        release_after(w, d)
+    return ask(w, opcode, a, b, c, d, pc)
+
+def ask_discard(w:mutbuf, opcode:u64, a:u64, b:u64, c:u64, d:u64, pc:u64, mask:u64) -> u32:
+    put(w, 912, 1)
+    return ask_owned(w, opcode, a, b, c, d, pc, mask)
+
+def attribute_owned(w:mutbuf, object:u64, which:u64, pc:u64) -> u32:
+    n = literal(w, which)
+    return ask_owned(w, GETATTR, object, 1024, n, 0, pc, 1)
 
 def word(s:readbuf,at:u64) -> u64:
     value=0
@@ -667,7 +715,7 @@ def source_program():
     class Expand(ast.NodeTransformer):
         def visit_Name(self,node):
             return ast.copy_location(ast.Constant(CONSTANTS[node.id]),node) if node.id in CONSTANTS else node
-    nodes=ast.parse(SOURCE+'\n'+generated_helpers())
+    nodes=ast.parse(SOURCE+'\n'+generated_helpers()+'\n'+EXCEPTION_DELIVERY_BODY)
     return ast.unparse(ast.fix_missing_locations(Expand().visit(nodes)))+'\n'
 def document():
     nodes=ast.parse(source_program()).body

@@ -52,6 +52,32 @@ HELPERS = {
     "HEPTA_HIA_CANDIDATE_BUDGET_MANIFEST": ("hia_candidate_budget_native", "NativeCandidateBudgetImage"),
     "HEPTA_HIA_SLOT_LEDGER_MANIFEST": ("hia_slot_ledger_native", "NativeSlotLedger"),
     "HEPTA_HIA_RETIREMENT_STATE_MANIFEST": ("hia_retirement_state_native", "NativeRetirementImage"),
+    "HEPTA_HIA_SERVICE_EVALUATION_MANIFEST": ("hia_service_evaluation_native", "NativeEvaluationImage"),
+    "HEPTA_HIA_CORE_VERIFICATION_MANIFEST": ("hia_core_verification_native", "NativeCoreVerification"),
+    "HEPTA_HIA_ASSEMBLY_FRONT_MANIFEST": ("hia_assembly_front_native", "NativeAssemblyFront"),
+    "HEPTA_HIA_SERVICE_REQUESTS_MANIFEST": ("hia_service_requests_native", "NativeRequestsImage"),
+    "HEPTA_HIA_PROOF_CONTRACT_MANIFEST": ("hia_proof_contract_native", "NativeProofContractImage"),
+    "HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST": ("hia_service_verification_native", "NativeVerificationImage"),
+    "HEPTA_HIA_SERVICE_EMISSION_MANIFEST": ("hia_service_emission_native", "NativeEmissionImage"),
+    "HEPTA_HIA_NATIVE_BYTE_ABI_MANIFEST": ("hia_native_byte_abi_native", "NativeByteABI"),
+    "HEPTA_HIA_NATIVE_BUILD_MANIFEST": ("hia_native_build_native", "NativeBuild"),
+    "HEPTA_HIA_CORE_EMITTER_CONTROL_MANIFEST": ("hia_core_emitter_control_native", "NativeCoreEmitter"),
+    "HEPTA_HIA_CORE_LOWERING_CONTROL_MANIFEST": ("hia_core_lowering_control_native", "NativeCoreLowering"),
+    "HEPTA_HIA_SERVICE_CONTEXT_MANIFEST": ("hia_service_context_native", "NativeContextImage"),
+    "HEPTA_HIA_MACHINE_ELF_MANIFEST": ("hia_machine_elf_native", "NativeMachineElf"),
+    "HEPTA_HIA_MACHINE_PLAN_CONTROL_MANIFEST": ("hia_machine_plan_control_native", "NativeMachinePlanControl"),
+    "HEPTA_HIA_MACHINE_ENCODING_MANIFEST": ("hia_machine_encoding_native", "NativeMachineEncoding"),
+    "HEPTA_HIA_MACHINE_STATE_MANIFEST": ("hia_machine_state_native", "NativeMachineState"),
+    "HEPTA_HIA_MACHINE_INSTRUCTIONS_MANIFEST": ("hia_machine_instructions_native", "NativeMachineInstructions"),
+    "HEPTA_HIA_PROGRAM_EXECUTION_MANIFEST": ("hia_program_execution_native", "NativeProgramExecution"),
+    "HEPTA_HIA_STATIC_BUDGET_MANIFEST": ("hia_static_budget_native", "NativeStaticBudget"),
+    "HEPTA_HIA_HEAP_BOUND_MANIFEST": ("hia_heap_bound_native", "NativeHeapController"),
+    "HEPTA_HIA_HEAP_LIVE_ENGINE_MANIFEST": ("hia_heap_live_native", "NativeLiveHeap"),
+    "HEPTA_HIA_HEAP_PAYLOAD_MANIFEST": ("hia_heap_payload_native", "NativePayloadHeap"),
+    "HEPTA_HIA_SERVICE_ARTIFACTS_MANIFEST": ("hia_service_artifacts_native", "NativeArtifactsImage"),
+    "HEPTA_HIA_REQUEST_JOURNAL_MANIFEST": ("hia_request_journal_native", "NativeRequestJournalImage"),
+    "HEPTA_HIA_ARTIFACT_NAMESPACE_MANIFEST": ("hia_artifact_namespace_native", "NativeArtifactNamespaceImage"),
+    "HEPTA_HIA_SLOT_LEDGER_CONTINUATION_MANIFEST": ("hia_slot_ledger_continuation_native", "NativeSlotLedgerImage"),
 }
 # The ordinary CLI and Agent use different methods on the same patch image.
 # Admit only these named views of its captured bytes, never arbitrary subclasses
@@ -199,12 +225,28 @@ class NativeHelpersBinding:
             entries[entry["selector"]] = (_path(entry["manifest_path"], bundle.path.parent), entry["manifest_sha256"])
         # Refuse an incomplete transitive executable set before importing any
         # selected adapter or creating any executable mapping.
+        if ("HEPTA_HIA_MACHINE_STATE_MANIFEST" in entries
+                and "HEPTA_HIA_MACHINE_ENCODING_MANIFEST" not in entries):
+            raise ValueError("native Code state requires its pinned instruction-byte helper")
+        if ("HEPTA_HIA_MACHINE_INSTRUCTIONS_MANIFEST" in entries and not {
+                "HEPTA_HIA_MACHINE_STATE_MANIFEST",
+                "HEPTA_HIA_MACHINE_ENCODING_MANIFEST"} <= entries.keys()):
+            raise ValueError("native Code instructions require both pinned state and byte helpers")
         patch_entry = entries.get("HEPTA_HIA_CORE_PATCH_MANIFEST")
         admission_entry = entries.get("HEPTA_HIA_CORE_ADMISSION_MANIFEST")
         if patch_entry is not None and (admission_entry is None
                 or admission_entry[0].resolve(strict=True) !=
                 patch_entry[0].resolve(strict=True).parent / "admission-manifest.json"):
             raise ValueError("native Core patch requires its exact adjacent admission helper")
+        if "HEPTA_HIA_HEAP_BOUND_MANIFEST" in entries and not {
+                "HEPTA_HIA_HEAP_LIVE_ENGINE_MANIFEST",
+                "HEPTA_HIA_STATIC_BUDGET_MANIFEST",
+                "HEPTA_HIA_HEAP_PAYLOAD_MANIFEST"} <= entries.keys():
+            raise ValueError("native heap controller requires its complete pinned dependency set")
+        if "HEPTA_HIA_SLOT_LEDGER_CONTINUATION_MANIFEST" in entries and not {
+                "HEPTA_HIA_REQUEST_JOURNAL_MANIFEST",
+                "HEPTA_HIA_ARTIFACT_NAMESPACE_MANIFEST"} <= entries.keys():
+            raise ValueError("native slot continuation requires both pinned journal and namespace helpers")
         for selector, (manifest_path, manifest_sha256) in entries.items():
             manifest = _read(manifest_path, MAX_MANIFEST_BYTES)
             if sha256(manifest.raw).hexdigest() != manifest_sha256:
@@ -239,7 +281,11 @@ class NativeHelpersBinding:
             # Every declared view is checked before its first executable mapping.
             # Both factories receive the same captured, hash-verified bytes.
             for key, view in zip(keys, factories):
-                self.images[key] = view(image.raw, record["image_sha256"])
+                selected = view(image.raw, record["image_sha256"])
+                from .hia_json_preflight_native import NativeHiaJsonImage
+                if issubclass(type(selected), NativeHiaJsonImage):
+                    selected._bind_manifest_source(record["source_sha256"])
+                self.images[key] = selected
             self.selections[selector] = str(manifest_path)
             self.snapshots.extend(((manifest, MAX_MANIFEST_BYTES), (source, MAX_SOURCE_BYTES), (image, MAX_IMAGE_BYTES)))
         self.check_files()

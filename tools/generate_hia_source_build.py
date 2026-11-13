@@ -116,7 +116,14 @@ def admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                     return bad(w, 16)
             j = j + 1
         if op == 1:
-            if n < 7 or n > 123 or uint(s, at + n - 6, 6) != SUFFIX_WORD:
+            if n < 7 or n > 123:
+                return bad(w, 16)
+            suffix = 0
+            if uint(s, at + n - 6, 6) == SUFFIX_WORD:
+                suffix = 1
+            if n >= 8 and uint(s, at + n - 7, 7) == ASM_SUFFIX_WORD:
+                suffix = 1
+            if suffix == 0:
                 return bad(w, 16)
         j = 0
         while j < i:
@@ -342,17 +349,21 @@ def template():
 def policy_source():
     roles = ['def role(s:readbuf, at:u64, n:u64) -> u64:']
     for index, name in enumerate((*ROLE_NAMES, *(n + '.bin' for n in ROLE_NAMES)), 1):
-        raw = name.encode('ascii')
-        terms = [f'n == {len(raw)}']
-        terms += [f'uint(s, at + {at}, {len(raw[at:at+8])}) == {int.from_bytes(raw[at:at+8], "little")}'
-                  for at in range(0, len(raw), 8)]
-        roles += ['    if ' + ' and '.join(terms) + ':', f'        return {index}']
+        # Wire roles accept both actual source suffixes. The closed three-role
+        # inventory/count/bitset still rejects duplicate aliases of one role.
+        for spelling in (name, name.replace('.hepta', '.hiaasm')):
+            raw = spelling.encode('ascii')
+            terms = [f'n == {len(raw)}']
+            terms += [f'uint(s, at + {at}, {len(raw[at:at+8])}) == {int.from_bytes(raw[at:at+8], "little")}'
+                      for at in range(0, len(raw), 8)]
+            roles += ['    if ' + ' and '.join(terms) + ':', f'        return {index}']
     roles += ['    return 0']
     source = POLICY.replace('ROLE_FUNCTION', '\n'.join(roles))
     values = {'POLICY_WORK_BYTES': POLICY_WORK_BYTES, 'TEMPLATE_SIZE': len(template()[0]),
               'BUNDLE_MAGIC': BUNDLE_MAGIC, 'PACK_MAGIC': PACK_MAGIC,
               'BUILD_WORD': int.from_bytes(b'build', 'little'), 'PACK_WORD': int.from_bytes(b'pack', 'little'),
               'SUFFIX_WORD': int.from_bytes(b'.hepta', 'little'),
+              'ASM_SUFFIX_WORD': int.from_bytes(b'.hiaasm', 'little'),
               'IMAGE_SUFFIX_WORD': int.from_bytes(b'.bin', 'little')}
     # Replace longer tokens first because IMAGE_SUFFIX_WORD contains SUFFIX_WORD.
     for key in sorted(values, key=len, reverse=True):

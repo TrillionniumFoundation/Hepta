@@ -517,7 +517,7 @@ class MachineStateNativeTests(unittest.TestCase):
         self.assertEqual(repeated.implementation_sha256, current.implementation_sha256)
         with self.selected():
             assert_primitive_bridge_identity_bound(
-                self, backend, ('hia_machine_state_native.py', 'hia_json_wire_native.py'))
+                self, backend, ('hia_machine_state_native.py', 'hia_json_wire_native.py', 'hia_machine_transport.py'))
             from hepta import hia_machine_encoding_native as encoding_bridge
             from hepta import hia_machine_state_native as state_bridge
             self.save('source-admission-window.json', assert_scope_source_admission_bound(

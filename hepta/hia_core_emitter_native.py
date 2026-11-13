@@ -38,10 +38,9 @@ class NativeCoreEmitter(NativeCoreLowering):
         # Core-lowering scope; this bundle contains no copy of their policy.
         if name in self.namespace:
             return self.namespace[name]
-        try:
-            return getattr(builtins, name)
-        except AttributeError:
-            raise NameError("name '" + name + "' is not defined") from None
+        if name in vars(builtins):
+            return vars(builtins)[name]
+        raise NameError("name '" + name + "' is not defined", name=name)
 
     def emitter_class(self, base):
         previous = self._classes.get(base)

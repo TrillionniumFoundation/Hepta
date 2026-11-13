@@ -128,16 +128,28 @@ No error path enters Core or touches caller bytes.
 # The exact original policies above remain unselected owners and independent
 # oracles. An explicit admitted image never falls back after refusal.
 def normalize_exports(exports, program):
-    from .hia_byte_wrapper_selection import selected_byte_wrapper
-    owner = selected_byte_wrapper(globals())
-    if owner is not None:
+    from .hia_byte_policy_selection import selected_byte_policy
+    family, owner = selected_byte_policy(globals())
+    if family == 'bundle':
         return owner.invoke('normalize_exports', (exports, program))
-    return _reference_normalize_exports(exports, program)
+    if family == 'control':
+        frame = owner.prepare('normalize_exports', (exports, program))
+        exports = program = None
+        return owner.finish(frame)
+    arguments = [exports, program]
+    exports = program = None
+    return _reference_normalize_exports(arguments.pop(0), arguments.pop(0))
 
 
 def emit_wrapper(emitter, fn, extent):
-    from .hia_byte_wrapper_selection import selected_byte_wrapper
-    owner = selected_byte_wrapper(globals())
-    if owner is not None:
+    from .hia_byte_policy_selection import selected_byte_policy
+    family, owner = selected_byte_policy(globals())
+    if family == 'bundle':
         return owner.invoke('emit_wrapper', (emitter, fn, extent))
-    return _reference_emit_wrapper(emitter, fn, extent)
+    if family == 'control':
+        frame = owner.prepare('emit_wrapper', (emitter, fn, extent))
+        emitter = fn = extent = None
+        return owner.finish(frame)
+    arguments = [emitter, fn, extent]
+    emitter = fn = extent = None
+    return _reference_emit_wrapper(arguments.pop(0), arguments.pop(0), arguments.pop(0))

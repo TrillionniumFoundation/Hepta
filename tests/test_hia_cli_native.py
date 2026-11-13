@@ -183,8 +183,10 @@ class CliNativeTests(unittest.TestCase):
         cls.temporary = None
         evidence = os.environ.get(FIXTURE_EVIDENCE)
         if evidence:
-            cls.folder = Path(evidence).absolute()
-            cls.folder.mkdir(mode=0o700, parents=True)
+            base = Path(evidence).absolute()
+            base.mkdir(mode=0o700, parents=True, exist_ok=True)
+            cls.folder = base / cls.__name__
+            cls.folder.mkdir(mode=0o700)
         else:
             cls.temporary = tempfile.TemporaryDirectory(prefix="hia-cli-native-tests-")
             cls.folder = Path(cls.temporary.name)
