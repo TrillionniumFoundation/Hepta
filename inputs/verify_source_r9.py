@@ -1,0 +1,248 @@
+"""Independently validate the actual R9 failed Source artifact including R13 exact permission capture; expected pins are supplied only from the terminal run."""
+import gzip
+import os
+import stat
+import hashlib
+import io
+import json
+import pathlib
+import tarfile
+import zipfile
+
+BASE = pathlib.Path(__file__).resolve().parent
+CONFIG = json.loads((BASE / 'EXPECTED.json').read_bytes())
+LOCAL = BASE.parent / 'v91-union-r9/local-source-r1'
+OUT = BASE / 'artifact'
+RAW = OUT / 'raw'
+TREE = CONFIG['candidate_tree']
+OURS = 'f33d8da316de8fdf27b504371f1a5310997ff548'
+OURS_TREE = '378bc0dc613befc7006f1514bd2229357ae0d07c'
+
+def blob(raw):
+    return hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+def unique(pairs):
+    value = {}
+    for k, v in pairs:
+        assert k not in value, ('duplicate JSON key', k)
+        value[k] = v
+    return value
+
+def parse(raw):
+    return json.loads(raw, object_pairs_hook=unique)
+
+def put(path, raw):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        assert path.is_file() and not path.is_symlink() and path.read_bytes() == raw
+    else:
+        with path.open('xb') as stream:
+            stream.write(raw)
+        path.chmod(0o644)
+
+def tree(rows):
+    direct, groups = [], {}
+    for path, mode, sha in rows:
+        name, sep, rest = path.partition('/')
+        if sep:
+            groups.setdefault(name, []).append((rest, mode, sha))
+        else:
+            direct.append((name, mode, sha, False))
+    for name, children in groups.items():
+        direct.append((name, '40000', tree(children), True))
+    direct.sort(key=lambda r: r[0].encode() + (b'/' if r[3] else b''))
+    raw = b''.join(m.lstrip('0').encode() + b' ' + n.encode() + b'\0' + bytes.fromhex(s)
+                   for n, m, s, _ in direct)
+    return hashlib.sha1(b'tree ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+
+packed_zip = (BASE / 'artifact.zip').read_bytes()
+assert len(packed_zip) == CONFIG['zip_bytes']
+assert digest(packed_zip) == CONFIG['zip_sha256']
+archive = zipfile.ZipFile(io.BytesIO(packed_zip))
+outer_count = len(archive.namelist())
+assert outer_count == len(set(archive.namelist()))
+assert archive.testzip() is None
+
+outer_rows = []
+for member in archive.infolist():
+    path = pathlib.PurePosixPath(member.filename)
+    assert not path.is_absolute() and '..' not in path.parts and str(path) == member.filename
+    assert not member.is_dir()
+    content = archive.read(member)
+    assert len(content) == member.file_size
+    outer_rows.append({'path': member.filename, 'bytes': len(content), 'blob': blob(content),
+                       'sha256': digest(content), 'crc32': member.CRC,
+                       'external_attr': member.external_attr, 'create_system': member.create_system})
+    put(OUT / path, content)
+put(OUT / 'OUTER-MEMBERS.json', (json.dumps(outer_rows, indent=2, sort_keys=True) + '\n').encode())
+
+manifest_raw = archive.read('EVIDENCE-MANIFEST.json')
+assert blob(manifest_raw) == CONFIG['manifest_blob']
+assert len(manifest_raw) == CONFIG['manifest_bytes']
+assert digest(manifest_raw) == CONFIG['manifest_sha256']
+assert parse(archive.read('EVIDENCE-PIN.json'))['full_readback_equal'] is True
+manifest = parse(manifest_raw)
+compressed = archive.read('FROZEN-SOURCE-EVIDENCE.tar.gz')
+assert len(compressed) == manifest['bytes']
+assert digest(compressed) == manifest['sha256']
+assert manifest['schema'] == 'hepta.combined-source-build-evidence.v2'
+assert len(manifest['chunks']) == (len(compressed) + 524287) // 524288
+for i, chunk in enumerate(manifest['chunks']):
+    assert chunk['index'] == i and chunk['offset'] == i * 524288
+    raw = compressed[chunk['offset']:chunk['offset'] + chunk['bytes']]
+    assert len(raw) == chunk['bytes'] and digest(raw) == chunk['sha256'] and blob(raw) == chunk['blob']
+    assert chunk['full_readback_equal'] is True
+    receipt = parse(archive.read('raw/upload-readbacks/' + chunk['blob'] + '.json'))
+    assert receipt['blob'] == chunk['blob'] and receipt['bytes'] == len(raw)
+    assert receipt['sha256'] == digest(raw) and receipt['full_readback_equal'] is True
+tar_raw = gzip.decompress(compressed)
+members = {m['path']: m for m in manifest['members']}
+assert len(members) == len(manifest['members'])
+directories = {row['path']: row for row in manifest['directories']}
+assert len(directories) == len(manifest['directories'])
+assert not set(directories) & set(members)
+seen_directories = set()
+seen = set()
+with tarfile.open(fileobj=io.BytesIO(tar_raw), mode='r:') as packed:
+    for member in packed:
+        path = pathlib.PurePosixPath(member.name)
+        assert not path.is_absolute() and '..' not in path.parts and str(path) == member.name
+        if member.isdir():
+            assert member.name in directories and member.name not in seen_directories
+            assert member.mode == directories[member.name]['mode']
+            assert type(member.mode) is int and 0 <= member.mode <= 0o777
+            destination = RAW / path
+            destination.mkdir(parents=True, exist_ok=True)
+            assert destination.is_dir() and not destination.is_symlink()
+            seen_directories.add(member.name)
+            continue
+        assert member.isfile() and member.name not in seen
+        pin = members[member.name]
+        assert member.mode == pin['mode'] and type(member.mode) is int and 0 <= member.mode <= 0o777
+        raw = packed.extractfile(member).read()
+        assert len(raw) == pin['bytes'] == member.size
+        assert digest(raw) == pin['sha256'] and blob(raw) == pin['blob']
+        assert raw == archive.read('raw/' + member.name)
+        put(RAW / path, raw)
+        (RAW / path).chmod(pin['mode'])
+        assert stat.S_IMODE((RAW / path).lstat().st_mode) == pin['mode']
+        seen.add(member.name)
+assert seen == set(members) and seen_directories == set(directories)
+for name, row in sorted(directories.items(), key=lambda item: item[0].count('/'), reverse=True):
+    (RAW / name).chmod(row['mode'])
+    assert stat.S_IMODE((RAW / name).lstat().st_mode) == row['mode']
+assert type(manifest['root_mode']) is int and 0 <= manifest['root_mode'] <= 0o777
+RAW.chmod(manifest['root_mode'])
+assert stat.S_IMODE(RAW.lstat().st_mode) == manifest['root_mode']
+result = parse((RAW / 'RESULT.json').read_bytes())
+assert result == manifest['result'] and result['status'] == 'SOURCE_FAIL' and not result['failures']
+assert result['python'].startswith('3.14.4 ')
+assert result['generation'] == {'tree': TREE, 'generator_count': 118,
+    'real_generation_passes': 2, 'physical_paths_retired_in_development_tree': 55}
+assert result['syntax'] == {'checked': 1499, 'failures': 0}
+assert not result['whole_native'] and not result['default_changed'] and not result['product_ref_changed']
+assert result['native_qualification_jobs_executed'] == result['cold_qualifications'] == 0
+assert blob((RAW / 'harness/INPUTS.json').read_bytes()) == 'bf8ef4c018f75f6ba2ca413988440c7bee223feb'
+assert blob((RAW / 'harness/DRIVER.py').read_bytes()) == 'cfe319279641b124bcd724437857686f36d1aa07'
+assert blob((RAW / 'harness/tools/run_source_gate.py').read_bytes()) == '40b230288e6db39817aeee26b616d5a613af4f2c'
+ids_raw = (RAW / 'harness/inputs/ORIGINAL-SOURCE-IDS.json').read_bytes()
+assert blob(ids_raw) == 'ca3fe97c2baaafc519d2fe3705062c1e8c13a577'
+originals = parse(ids_raw)
+plan = parse((RAW / 'harness/INPUTS.json').read_bytes())
+source = parse((RAW / 'checks/SOURCE-TESTS.json').read_bytes())
+assert source == result['source_tests'] and source['status'] == 'FAIL' and source['complete'] is True
+assert source['expected'] == source['tests_run'] == result['product_tests_executed'] == 1306
+assert len(source['ordered_ids']) == len(set(source['ordered_ids'])) == 1306
+assert source['ordered_ids'] == source['actual_started_ids'] == source['actual_stopped_ids']
+assert source['selectors'] == plan['source_registration']['selectors'] and len(source['selectors']) == 227
+for key in ('errors', 'skipped', 'expected_failures', 'unexpected_successes',
+            'duplicate_ids', 'missing_main_ids', 'missing_a733_ids', 'missing_frozen_main_ids', 'missing_frozen_a733_ids'):
+    assert not source[key], key
+assert all(not v for v in source['loader_errors'].values())
+
+assert len(source['failures']) == 1
+assert source['failures'][0]['id'] == 'tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_native_archives_cover_every_explicit_fixture_and_caller_destination'
+assert 'AssertionError:' in source['failures'][0]['traceback']
+assert result['candidate']['source_gate_pass'] is False
+assert not result['candidate']['commit_created'] and not result['candidate']['remote_tree_created']
+assert not result['candidate']['ref_changed'] and not result['legacy_host_implementation_deleted']
+
+assert source['frozen_original_main_ids'] == originals['main']['ids'] and len(originals['main']['ids']) == 530
+renames = plan['source_registration']['selector_renames']
+def mapped(name):
+    prefixes = [p for p in renames if name == p or name.startswith(p + '.')]
+    if not prefixes:
+        return name
+    prefix = max(prefixes, key=len)
+    return renames[prefix] + name[len(prefix):]
+assert source['frozen_original_a733_projected_ids'] == list(map(mapped, originals['a733']['ids']))
+assert len(originals['a733']['ids']) == 973
+events = [parse(line) for line in (RAW / 'checks/SOURCE-TESTS.events.jsonl').read_bytes().splitlines()]
+assert [(r['event'], r['id']) for r in events] == [(event, name) for name in source['ordered_ids'] for event in ('start', 'stop')]
+inventory = parse((RAW / 'sources/candidate-final.json').read_bytes())
+leaves = {r['path']: r for r in inventory['entries'] if r['type'] != 'tree'}
+assert len(leaves) == inventory['files'] == 3074 and inventory['tree'] == TREE
+assert all(r['type'] == 'blob' for r in leaves.values())
+assert tree([(p, r['mode'], r['oid']) for p, r in leaves.items()]) == TREE
+before = parse((RAW / 'checks/before-complete-source-tests-raw-worktree.json').read_bytes())
+after = parse((RAW / 'checks/after-complete-source-tests-raw-worktree.json').read_bytes())
+assert not before['failures'] and not after['failures']
+assert before['frozen_tree'] == after['frozen_tree'] == TREE and before['files'] == after['files']
+assert len(before['files']) == len(leaves)
+for row in before['files']:
+    pin = leaves[row['path']]
+    assert row['expected_mode'] == row['actual_mode'] == pin['mode']
+    assert row['expected_blob'] == row['actual_blob'] == pin['oid']
+ours = parse((RAW / 'sources/ours.json').read_bytes())
+assert ours['commit'] == OURS and ours['tree'] == OURS_TREE and ours['files'] == 2580
+old = {r['path']: r for r in ours['entries'] if r['type'] != 'tree'}
+assert tree([(p, r['mode'], r['oid']) for p, r in old.items()]) == OURS_TREE
+delta_raw = (RAW / 'publication/TREE-DELTA.json').read_bytes()
+assert blob(delta_raw) == CONFIG['delta_blob']
+delta = parse(delta_raw)
+assert len(delta) == len({r['path'] for r in delta}) == CONFIG['changed_paths']
+expected_delta = []
+for name in sorted(set(old) | set(leaves)):
+    a, b = old.get(name), leaves.get(name)
+    if a and b and (a['mode'], a['type'], a['oid']) == (b['mode'], b['type'], b['oid']):
+        continue
+    expected_delta.append({'path': name, 'mode': (b or a)['mode'], 'type': (b or a)['type'], 'sha': b['oid'] if b else None})
+assert delta == expected_delta
+upload_path = RAW / 'publication/UPLOADED-BLOBS.json'
+uploads = parse(upload_path.read_bytes()) if upload_path.is_file() else {}
+assert not uploads
+assert len(uploads) == result['candidate']['new_blobs_full_readback'] == CONFIG['source_blobs_uploaded']
+assert all(row['blob'] == sha and row['full_readback_equal'] is True for sha, row in uploads.items())
+terminal = parse((RAW / 'terminal-worktree/INDEX.json').read_bytes())
+assert len(terminal['files']) == len(leaves)
+changes, restored = [], []
+for row in terminal['files']:
+    name = row['path']; pin = leaves[name]
+    assert row['kind'] == 'regular' and row['mode'] == 0o644 and pin['mode'] == '100644'
+    assert row['blob'] == pin['oid']
+    custody = row['content_custody']
+    raw = (RAW / custody['file']).read_bytes() if 'file' in custody else (LOCAL / name).read_bytes()
+    assert len(raw) == row['bytes'] and blob(raw) == row['blob'] and digest(raw) == row['sha256']
+    local = (LOCAL / name).read_bytes()
+    if local != raw:
+        changes.append({'path': name, 'local_blob': blob(local), 'ci_blob': row['blob'], 'local_bytes': len(local), 'ci_bytes': len(raw)})
+    put(BASE / 'candidate-ci314' / name, raw)
+    restored.append({'path': name, 'mode': pin['mode'], 'type': 'blob', 'sha': pin['oid']})
+report = {'schema': 'hepta.source-r9.independent-complete-failure-readback.v2', 'status': 'PASS',
+    'run': 43455699432, 'job': 131989125837, 'harness_commit': '2df61cbfe17db622a7a0bdc65a09c73ff51de487',
+    'zip_bytes': len(packed_zip), 'zip_sha256': digest(packed_zip), 'outer_members': outer_count, 'outer_all_crc': True,
+    'archive_bytes': len(compressed), 'archive_sha256': digest(compressed), 'archive_chunks': len(manifest['chunks']),
+    'inner_members': len(members), 'all_inner_bytes_modes_hashes_and_zip_copies_equal': True, 'all_evidence_directory_and_root_modes_restored': True, 'directory_count': len(directories), 'uid_gid_mtime_normalized_explicitly': True,
+    'source_status': 'FAIL', 'actual_source_failures': 1, 'actual_source_errors': 0, 'actual_source_skips': 0, 'actual_source_methods': 1306, 'source_wall_seconds': source['wall_seconds'],
+    'original_main_ids': 530, 'original_development_ids': 973, 'exact_events': len(events),
+    'source_before_after_equal': True, 'candidate_tree': TREE, 'candidate_files': len(restored),
+    'changed_paths_vs_fixed_main': len(delta), 'new_source_blobs_full_get': len(uploads),
+    'restored_source': str(BASE / 'candidate-ci314'), 'local312_vs_actual314_differences': changes,
+    'candidate_commit_created': False, 'product_ref_changed': False, 'native_qualification': False, 'whole_native': False}
+put(OUT / 'ARTIFACT-FULL-READBACK.json', (json.dumps(report, indent=2, sort_keys=True) + '\n').encode())
+put(OUT / 'CANDIDATE-LEAVES.json', (json.dumps(restored, indent=2, sort_keys=True) + '\n').encode())
+put(OUT / 'TREE-DELTA.json', delta_raw)
+print(json.dumps(report, sort_keys=True), flush=True)
