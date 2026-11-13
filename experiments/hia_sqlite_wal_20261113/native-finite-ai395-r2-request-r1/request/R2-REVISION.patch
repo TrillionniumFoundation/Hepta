@@ -1,0 +1,71 @@
+--- r1/control/launch.py
++++ r2/control/launch.py
+@@ -23,7 +23,7 @@
+         and request['initial_free_bytes']==1<<30 and request['reserve_free_bytes']==512<<20
+         and request['free_inodes']==4096 and dict(os.environ)==request['environment'],
+         'frozen complete limits/environment')
+-    common.require(output==ROOT.parent/'sqlite-wal-native-r1-actual' and not os.path.lexists(output),
++    common.require(output==ROOT.parent/'sqlite-wal-native-r2-actual' and not os.path.lexists(output),
+                    'new exact disjoint actual root required')
+     initial_capacity=support.capacity(ROOT.parent,True)
+     runtime=support.runtime(request)
+--- r1/control/native_cases.py
++++ r2/control/native_cases.py
+@@ -51,8 +51,6 @@
+                 'input_before_hex':before_source.hex(),'input_after_hex':source.raw.hex(),
+                 'output_before_hex':before.hex(),'output_after_hex':observed.hex(),
+                 'input_alignment_mod4':sa,'output_alignment_mod4':oa}
+-        # Preserve actual raw state before independently deriving the HIA refusal projection.
+-        record['derived_projection']=matrix.project_oracle(spec,rc,words)
+         return record
+ class Context:
+     def __init__(self,request,output,spec):
+@@ -90,7 +88,13 @@
+             status=self.original_entry(source,size,out,capacity,control,control_size)
+             post.update(actual_returned=True,status=status,
+                 buffers_hex=[ctypes.string_at(p,n+64).hex() for p,n in zip(pointers,extents)],oracles=[])
+-            for oracle in self.oracles:post['oracles'].append(oracle.call(spec))
++            for oracle in self.oracles:
++                observation=oracle.call(spec)
++                post['oracles'].append(observation)
++                # Raw C state is retained in post before any projection may raise.
++                if observation['called']:
++                    observation['derived_projection']=matrix.project_oracle(spec,
++                        observation['returned'],observation['output_words'])
+             self.writer.write(post);written=True
+             common.require(matrix.wire(post)==matrix.wire(wanted_post),'actual HIA/C full POST and seed projection differ')
+             self.returned+=1;self.by_method[self.method]+=1
+--- r1/control/trace.py
++++ r2/control/trace.py
+@@ -83,7 +83,7 @@
+         and index['chunk_limit']==CHUNK_BYTES and index['total_limit']==MAX_BYTES
+         and index['record_limit']==MAX_RECORD_BYTES,'complete trace index population')
+     expected_iter=iter(matrix.specifications(root));spec=None;counts={x:0 for x in matrix.IDS}
+-    matrix_hash=hashlib.sha256();total=records=0;observed_parts=[]
++    matrix_hash=hashlib.sha256();full_hash=hashlib.sha256();total=records=0;observed_parts=[]
+     oracle_counts={v:{'checksum':0,'header':0,'frame':0,'not_called':0} for v in matrix.VERSIONS}
+     for number,item in enumerate(index['parts']):
+         name='part-%04d.jsonl'%number
+@@ -107,7 +107,7 @@
+                 for v in matrix.VERSIONS:
+                     o=spec['expected']['oracle'];oracle_counts[v][o['operation'] if o else 'not_called']+=1
+             records+=1
+-        total+=len(b);observed_parts.append(p)
++        total+=len(b);full_hash.update(b);observed_parts.append(p)
+     try:next(expected_iter)
+     except StopIteration:pass
+     else:raise RuntimeError('missing native records')
+@@ -116,8 +116,12 @@
+         and matrix_hash.hexdigest()==expected_manifest['ordered_expected_rows_sha256']
+         and all(x==expected_manifest['oracle_calls_each'] for x in oracle_counts.values()),
+         'whole native trace matrix denominator')
++    _,expected_raw=common.read(root/'EXPECTED-TRACE.json',1<<20)
++    expected_trace=json.loads(expected_raw)
++    common.require(total==expected_trace['bytes'] and records==expected_trace['records']
++        and full_hash.hexdigest()==expected_trace['sha256'],'frozen complete trace byte SHA/length')
+     observed={p.name for p in path.iterdir()}
+     common.require(observed=={'INDEX.json',*(p['path'] for p in index['parts'])},'unexpected trace namespace')
+-    return {'index':pin,'parts':observed_parts,'bytes':total,'records':records,'native_returns':records//2,
++    return {'index':pin,'parts':observed_parts,'bytes':total,'records':records,'native_returns':records//2,'sha256':full_hash.hexdigest(),
+             'counts':counts,'oracle_counts':oracle_counts,'expected_rows_sha256':matrix_hash.hexdigest(),
+             'all_pre_post_and_full_C_buffers_read':True}

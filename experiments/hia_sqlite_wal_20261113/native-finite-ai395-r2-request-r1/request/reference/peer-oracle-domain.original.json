@@ -1,0 +1,94 @@
+{
+  "schema": "hia-peer-sqlite-wal-C-oracle-domain-static-v1",
+  "status": "STATIC_SCOPE_REVIEW",
+  "base_commit": "fbbac0417195122a3261a1bfc708e997a8cd69e5",
+  "inputs": [
+    {
+      "path": "experiments/hia_sqlite_wal_20261113/source10-request-r1/reference/UPSTREAM.json",
+      "bytes": 2888,
+      "sha256": "ce79014a7e74c7e6170aaca5bcf5130ca58377edce7d4103290e9a63634937d1",
+      "git_blob_sha1": "ea0c002642e407c81be7182e22d97c141551f954"
+    },
+    {
+      "path": "experiments/hia_sqlite_wal_20261113/source10-request-r1/reference/oracle_adapter.c",
+      "bytes": 2077,
+      "sha256": "e51437f407285cf47710eaf5772ed67b347dd9b919ebda7e0039ea0b34ed2377",
+      "git_blob_sha1": "8eccdd540842e69183bdcb0278a1a7434e324d4f"
+    },
+    {
+      "path": "experiments/hia_sqlite_wal_20261113/source10-request-r1/reference/sqlite-3.46.0/checksum.inc",
+      "bytes": 1413,
+      "sha256": "3b0ceceff21b8aff915740bf137800b0bd3f60eec4cd7a7746e5faf0045138d1",
+      "git_blob_sha1": "988227d7561f0655006c32b52a33a1c7535457db"
+    },
+    {
+      "path": "experiments/hia_sqlite_wal_20261113/source10-request-r1/reference/sqlite-3.46.0/decode-frame.inc",
+      "bytes": 1663,
+      "sha256": "5743c1927cadbcb53eaa6455d7ef7a29c640aca18d5f889a58887373a9b92e40",
+      "git_blob_sha1": "636604cb7781e071ed823a1d917087929e1c7610"
+    },
+    {
+      "path": "experiments/hia_sqlite_wal_20261113/source10-request-r1/reference/sqlite-3.53.2/checksum.inc",
+      "bytes": 1413,
+      "sha256": "3fe5fba6f227843edf276da346a544fdc255496e90bc86595d0b9989e9f7f9ed",
+      "git_blob_sha1": "a7d652c914a63db758e4f76ac85c6dac8b806d2b"
+    },
+    {
+      "path": "experiments/hia_sqlite_wal_20261113/source10-request-r1/reference/sqlite-3.53.2/decode-frame.inc",
+      "bytes": 1663,
+      "sha256": "5743c1927cadbcb53eaa6455d7ef7a29c640aca18d5f889a58887373a9b92e40",
+      "git_blob_sha1": "636604cb7781e071ed823a1d917087929e1c7610"
+    }
+  ],
+  "scope": "Only the fixed independent C adapter, both exact checksum excerpts, identical decode-frame excerpts and their upstream manifest were read. No HIA product, finite matrix, compiler or native execution was invoked.",
+  "findings": [
+    {
+      "id": "CHECKSUM_DOMAIN",
+      "result": "STATIC_CLEAR",
+      "detail": "The adapter admits byte length 8 through 65536 inclusive, divisible by 8, order exactly 0 or 1, and non-null pointers. The caller must additionally retain readable n-byte storage and writable/aligned two-u32 output storage. The aligned local array has exact capacity 65536 bytes."
+    },
+    {
+      "id": "FRAME_DOMAIN",
+      "result": "STATIC_CLEAR",
+      "detail": "The adapter admits power-of-two page_size from 512 through 65536, n equal to page_size+24, order 0 or 1 and non-null pointers. The caller must retain all n readable bytes and aligned four-u32 output storage. aligned[16390] has 65560 bytes and frame+24 stays u32 aligned. The upper/lower checks short-circuit before the length calculation."
+    },
+    {
+      "id": "INTEGER_ABI",
+      "result": "REQUIRED_CALLER_BOUNDARY",
+      "detail": "Call the C oracle only for a separately verified domain. Do not silently coerce bool, out-of-range values or malformed HIA control buffers through ctypes u32/int conversions and then label the result an original-domain C oracle. Record NOT_CALLED for cases outside the adapter's legitimate call domain."
+    },
+    {
+      "id": "EARLY_REFUSAL",
+      "result": "OBSERVABLE_C_OUTPUT",
+      "detail": "On salt mismatch or zero pgno, walDecodeFrame returns before either checksum call. oracle_frame still writes all four outputs: input seed0, input seed1, page0, commit0."
+    },
+    {
+      "id": "CHECKSUM_REFUSAL",
+      "result": "OBSERVABLE_C_STATE_DIFFERENCE",
+      "detail": "When header and page checksum computation finishes but the stored checksum differs, return0 leaves the running checksum mutated to the computed values. oracle_frame writes both computed words and zero page/commit. Preserve these exact actual output bytes and return value. Compare with the HIA refusal semantics through a separately named projection; never overwrite the actual C seed with the input seed."
+    },
+    {
+      "id": "SUCCESS",
+      "result": "OBSERVABLE_C_OUTPUT",
+      "detail": "On return1, the adapter writes computed checksum words, decoded page number, and decoded commit/page-count word. Inputs stay copied into aligned locals; the wrapper should still retain actual before/after buffers."
+    },
+    {
+      "id": "VERSION_DIFFERENCE",
+      "result": "STATIC_CLEAR_IN_DECLARED_DOMAIN",
+      "detail": "Checksum implementations have the same unsigned32 algorithm and byte-order branches; the assert statements are regrouped in 3.53.2. Both decode-frame excerpts are byte-identical."
+    },
+    {
+      "id": "HEADER_COMMENT",
+      "result": "KNOWN_DISCREPANCY_PRESERVED",
+      "detail": "The executable decoder checks the first 8 header bytes and the page bytes. The upstream prose mentions first16; use executable code and preserve the manifest's explicit discrepancy."
+    }
+  ],
+  "not_claimed": [
+    "238 finite cases reviewed or executed",
+    "native timing or qualification",
+    "whole SQLite/WAL integration",
+    "full source10 qualification"
+  ],
+  "product_execution": false,
+  "source_execution": false
+}
