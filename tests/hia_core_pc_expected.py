@@ -2,7 +2,7 @@
 
 The original UNPACK and comparison snapshot files stay byte-identical.  Their
 provenance describes historical bytes.  This loader returns separately labelled
-current expectations from the exact legacy or PC-forwarding generator identity;
+current expectations from exact legacy, PC-forwarding or fixed-word-read identities;
 it never computes expected HIA hashes from the current HIA files.  The original
 callers still read and compare all 40 actual files, so mixed revisions fail.
 No generator, compiler, native entry or qualification is executed here.
@@ -15,6 +15,8 @@ from pathlib import Path
 
 MANIFEST = "tests/fixtures/hia_core_pc_forwarding_v93.json"
 MANIFEST_SHA256 = "a3d49510a846b05c5a0985d747f2e87aaceb14ed6932bf8f1ee3ce6372c71ea4"
+FIXED_READS_MANIFEST = "tests/fixtures/hia_core_fixed_word_reads_v94.json"
+FIXED_READS_MANIFEST_SHA256 = "cb8def3b93a6ed6c285fe40dcc3f2cc5ed79af1b6f8bc182e74b5880a86ce6c9"
 EXPECTED_PATHS = {
     *(f"examples/hia_bootstrap/core_lowering_{number:03d}.hiaasm" for number in range(38)),
     "examples/hia_bootstrap/core_lowering_pool.hiaasm",
@@ -54,6 +56,87 @@ def _require_pin(raw, expected):
     wanted["size"] = size
     if _pin(raw) != wanted:
         raise ValueError("Core39 fixture or generator identity differs")
+
+
+def _fixed_word_reads(root, pc_raw, actual, by_path, numbered):
+    raw = (root / FIXED_READS_MANIFEST).read_bytes()
+    if sha256(raw).hexdigest() != FIXED_READS_MANIFEST_SHA256:
+        raise ValueError("fixed-word-read expectation manifest differs")
+    manifest = _json(raw)
+    if manifest["schema"] != "hepta.hia.core39.explicit-fixed-word-reads-v94.v1":
+        raise ValueError("unknown fixed-word-read expectation schema")
+    if manifest["pc_forwarding_manifest"] != {"path": MANIFEST, "sha256": MANIFEST_SHA256}:
+        raise ValueError("fixed-word-read predecessor differs")
+    generator = manifest["generator"]
+    _require_pin(pc_raw, generator["pc_forwarding"])
+    text = pc_raw.decode("utf-8")
+    replacements = generator["exact_forward_replacements"]
+    if type(replacements) is not list or len(replacements) != 1:
+        raise ValueError("fixed-word-read Core derivation must have one substitution")
+    for replacement in replacements:
+        before, after = replacement["before"], replacement["after"]
+        if not before or not after or text.count(before) != 1:
+            raise ValueError("ambiguous fixed-word-read Core derivation")
+        text = text.replace(before, after, 1)
+    fixed_raw = text.encode("utf-8")
+    _require_pin(fixed_raw, generator["fixed_word_reads"])
+    for replacement in reversed(replacements):
+        before, after = replacement["before"], replacement["after"]
+        if text.count(after) != 1:
+            raise ValueError("ambiguous inverse fixed-word-read Core derivation")
+        text = text.replace(after, before, 1)
+    if text.encode("utf-8") != pc_raw or actual != fixed_raw:
+        raise ValueError("unknown Core39 generator revision")
+
+    unpack = manifest["unpack_generator"]
+    baseline_raw = unpack["pc_forwarding"]["source_utf8"].encode("utf-8")
+    _require_pin(baseline_raw, unpack["pc_forwarding"])
+    text = baseline_raw.decode("utf-8")
+    replacements = unpack["exact_forward_replacements"]
+    if type(replacements) is not list or len(replacements) != 3:
+        raise ValueError("fixed-word-read UNPACK derivation must have three substitutions")
+    for replacement in replacements:
+        before, after = replacement["before"], replacement["after"]
+        if not before or not after or text.count(before) != 1:
+            raise ValueError("ambiguous fixed-word-read UNPACK derivation")
+        text = text.replace(before, after, 1)
+    unpack_raw = text.encode("utf-8")
+    _require_pin(unpack_raw, unpack["fixed_word_reads"])
+    for replacement in reversed(replacements):
+        before, after = replacement["before"], replacement["after"]
+        if text.count(after) != 1:
+            raise ValueError("ambiguous inverse fixed-word-read UNPACK derivation")
+        text = text.replace(after, before, 1)
+    if text.encode("utf-8") != baseline_raw or (root / unpack["path"]).read_bytes() != unpack_raw:
+        raise ValueError("mixed fixed-word-read generator revisions")
+
+    rows = manifest["files"]
+    if type(rows) is not list or len(rows) != 40:
+        raise ValueError("fixed-word-read expectation population differs")
+    fixed = {}
+    for row in rows:
+        if type(row) is not dict or set(row) != {"path", "pc_forwarding", "fixed_word_reads"}:
+            raise ValueError("malformed fixed-word-read expectation")
+        path = row["path"]
+        if type(path) is not str or path in fixed or path not in EXPECTED_PATHS:
+            raise ValueError("duplicate or unknown fixed-word-read expectation")
+        for revision in ("pc_forwarding", "fixed_word_reads"):
+            pin = row[revision]
+            if (type(pin) is not dict or set(pin) != {"size", "sha256", "git_blob_sha1"}
+                    or type(pin["size"]) is not int or pin["size"] < 0):
+                raise ValueError("malformed fixed-word-read identity")
+        if row["pc_forwarding"] != by_path[path]["pc_forwarding"]:
+            raise ValueError("fixed-word-read predecessor file differs")
+        fixed[path] = row
+    if set(fixed) != EXPECTED_PATHS:
+        raise ValueError("fixed-word-read expected paths differ")
+    changed = {path for path, row in fixed.items()
+               if row["pc_forwarding"] != row["fixed_word_reads"]}
+    if changed != numbered:
+        raise ValueError("only the 38 numbered fixed-word-read Core units may differ")
+    for path, row in fixed.items():
+        by_path[path]["fixed_word_reads"] = row["fixed_word_reads"]
+    return "fixed_word_reads"
 
 
 def current_core39_fixture(root, kind):
@@ -146,7 +229,7 @@ def current_core39_fixture(root, kind):
     elif actual == pc_raw:
         revision = "pc_forwarding"
     else:
-        raise ValueError("unknown Core39 generator revision")
+        revision = _fixed_word_reads(root, pc_raw, actual, by_path, numbered)
 
     baseline = snapshots[kind]
     if kind == "unpack":

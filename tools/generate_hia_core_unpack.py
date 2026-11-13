@@ -75,9 +75,9 @@ def unpack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, 128, read(s, 32))
         put(w, 56, read(s, 40))
     while True:
-        phase = get(w, 8)
-        value = get(w, 128)
-        error = get(w, 56)
+        phase = ((((((((0 | (byte(w, 8) << 0)) | (byte(w, 9) << 8)) | (byte(w, 10) << 16)) | (byte(w, 11) << 24)) | (byte(w, 12) << 32)) | (byte(w, 13) << 40)) | (byte(w, 14) << 48)) | (byte(w, 15) << 56))
+        value = ((((((((0 | (byte(w, 128) << 0)) | (byte(w, 129) << 8)) | (byte(w, 130) << 16)) | (byte(w, 131) << 24)) | (byte(w, 132) << 32)) | (byte(w, 133) << 40)) | (byte(w, 134) << 48)) | (byte(w, 135) << 56))
+        error = ((((((((0 | (byte(w, 56) << 0)) | (byte(w, 57) << 8)) | (byte(w, 58) << 16)) | (byte(w, 59) << 24)) | (byte(w, 60) << 32)) | (byte(w, 61) << 40)) | (byte(w, 62) << 48)) | (byte(w, 63) << 56))
         if phase == 10:
             if value == 0:
                 if error == 0:

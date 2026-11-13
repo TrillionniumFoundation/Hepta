@@ -1,0 +1,605 @@
+{
+  "schema": "hepta.hia.core39.explicit-fixed-word-reads-v94.v1",
+  "scope": "Explicit Core39 plus ABI version expectations from one closed actual generation; UNPACK is retained as a separate generated resource.",
+  "pc_forwarding_manifest": {
+    "path": "tests/fixtures/hia_core_pc_forwarding_v93.json",
+    "sha256": "a3d49510a846b05c5a0985d747f2e87aaceb14ed6932bf8f1ee3ce6372c71ea4"
+  },
+  "base_commit": "8556199d761540f84c15856a6a9cf1a6f863ffc5",
+  "base_tree": "d60dbcda95d3c06797fae7a4d97c4640fe37f627",
+  "provenance": {
+    "request_sha256": "1f368386463cd990927f1ce3fc593377b705898f076d7b5153ef40c59bad114b",
+    "actual_report_sha256": "8d829c4f23eaf085c9bb9cc366f3d40ec7bc27bd9bbe3d2c9a5bff052de33d4b",
+    "independent_readback_sha256": "2db765e4fbbe84f19e05e6bfe85b52ef25456cd2f86f504a6e9ebb9c556fe4dc",
+    "expected_population": 40,
+    "generated_assembly_population": 40,
+    "physical_generated_population": 41,
+    "core_original_source_methods": 4,
+    "qualification_seconds": 180,
+    "cleanup_seconds": 3,
+    "qualification_scope": "GENERATION2_SOURCE4_PASS_ONLY",
+    "native_or_matching_cold_or116_or18_claimed": false
+  },
+  "generator": {
+    "path": "tools/generate_hia_core_lowering.py",
+    "pc_forwarding": {
+      "size": 16866,
+      "sha256": "5f6e1a73c1d0e52d19deaa816e1c4d64b107115f165afb6584783aec0f86b978",
+      "git_blob_sha1": "ead0915f2c55759aa11065e777cf6500ffb8398c"
+    },
+    "fixed_word_reads": {
+      "size": 17047,
+      "sha256": "d7f60d40971873a68e743fe3b3c99625219cb3d7203ea1c79a3bc5017452f3be",
+      "git_blob_sha1": "ff1d479f8251542740ab9f03069c24894959736e"
+    },
+    "exact_forward_replacements": [
+      {
+        "before": "        pc = get(w, 24)\n",
+        "after": "        pc = ((((((((0 | (byte(w, 24) << 0)) | (byte(w, 25) << 8)) | (byte(w, 26) << 16)) | (byte(w, 27) << 24)) | (byte(w, 28) << 32)) | (byte(w, 29) << 40)) | (byte(w, 30) << 48)) | (byte(w, 31) << 56))\n"
+      }
+    ]
+  },
+  "unpack_generator": {
+    "path": "tools/generate_hia_core_unpack.py",
+    "pc_forwarding": {
+      "size": 12398,
+      "sha256": "de602c19f6977a0b669c04d7e0dd23202623be03212e122540c726d9225466b4",
+      "git_blob_sha1": "657d3f3f4ae8b22563ce0ac28adf7cb80c839449",
+      "source_utf8": "\"\"\"Author the experimental UNPACK control owner; no object policy in Python.\n\nThis module is an author, not a production runtime import. The HIA machine owns\ncardinality, the n+1 probe, diagnostic choice and all ordinary release order.\nThe value bridge remains explicitly dependent on CPython object primitives.\n\"\"\"\nfrom __future__ import annotations\n\nimport ast\nfrom pathlib import Path\n\nfrom hepta.hia_agent_assembly import render_assembly\nfrom tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions\n\nMAGIC = int.from_bytes(b'HIAUNP01', 'little')\n\nSOURCE = r'''\ndef unpack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n    if length(s) != 128 or length(o) < 256 or length(w) < 256:\n        return 4294967293\n    if read(s, 0) != UNPACK_MAGIC:\n        return 4294967293\n    kind = read(s, 8)\n    if get(w, 0) == 0:\n        if kind != 0 or read(s, 16) != 0:\n            return 4294967293\n        arity = read(s, 24)\n        profile = read(s, 32)\n        if arity < 1 or arity > 4 or (profile != 31214 and profile != 31404):\n            return 4294967293\n        at = 64\n        while at < 128:\n            if read(s, at) != 0:\n                return 4294967293\n            at = at + 8\n        # A new invocation requires fresh zero workspace. Cached state or\n        # manual magic reset is not an admitted public entry.\n        at = 0\n        while at < 256:\n            if get(w, at) != 0:\n                return 4294967293\n            at = at + 8\n        put(w, 0, UNPACK_MAGIC)\n        put(w, 24, arity)\n        put(w, 32, profile)\n        put(w, 64, read(s, 40))\n        put(w, 72, read(s, 48))\n        put(w, 80, read(s, 56))\n        return request(o, w, 1, 2, 1, 0, 0, 10)\n    if get(w, 0) != UNPACK_MAGIC or get(w, 8) == 99:\n        return 4294967293\n    if kind == 2:\n        # An infrastructure failure seals the public adapter first. The\n        # private abort packet reports mechanically owned cells, never a\n        # replacement semantic outcome. HIA still chooses every release.\n        if read(s, 16) != get(w, 16) or read(s, 24) & 18446744073709551107 != 0 or read(s, 32) > 1:\n            return 4294967293\n        at = 40\n        while at < 128:\n            if read(s, at) != 0:\n                return 4294967293\n            at = at + 8\n        put(w, 48, read(s, 24))\n        put(w, 56, read(s, 32))\n        put(w, 120, 1)\n        put(w, 8, 80)\n    else:\n        if kind != 1 or read(s, 16) != get(w, 16) or read(s, 24) != get(w, 88) or read(s, 40) > 1:\n            return 4294967293\n        at = 48\n        while at < 128:\n            if read(s, at) != 0:\n                return 4294967293\n            at = at + 8\n        put(w, 128, read(s, 32))\n        put(w, 56, read(s, 40))\n    while True:\n        phase = get(w, 8)\n        value = get(w, 128)\n        error = get(w, 56)\n        if phase == 10:\n            if value == 0:\n                if error == 0:\n                    return 4294967293\n                return request(o, w, 3, 0, 9, 0, 0, 11)\n            if error != 0:\n                return 4294967293\n            put(w, 48, get(w, 48) | 4)\n            put(w, 8, 20)\n        elif phase == 11:\n            if value == 0:\n                put(w, 8, 80)\n            else:\n                return request(o, w, 4, 0, 1, 0, 0, 12)\n        elif phase == 12:\n            put(w, 112, value)\n            return request(o, w, 5, 0, value, 0, 0, 13)\n        elif phase == 13:\n            if value != 0:\n                put(w, 8, 80)\n            else:\n                return request(o, w, 6, 0, 1, 0, 0, 14)\n        elif phase == 14:\n            if value != 0:\n                put(w, 8, 80)\n            else:\n                return request(o, w, 7, 0, get(w, 112), 0, 0, 15)\n        elif phase == 15:\n            return diagnostic(o, w, 1, value, 0)\n        elif phase == 16:\n            if value != 0 or error != 1:\n                return 4294967293\n            put(w, 8, 80)\n        elif phase == 20:\n            got = get(w, 40)\n            if got < get(w, 24):\n                return request(o, w, 2, 3 + got, 2, 0, 0, 21)\n            return request(o, w, 2, 7, 2, 0, 0, 21)\n        elif phase == 21:\n            got = get(w, 40)\n            if got < get(w, 24):\n                if value == 0:\n                    if error != 0:\n                        put(w, 8, 80)\n                    else:\n                        return diagnostic(o, w, 2, get(w, 24), got)\n                else:\n                    if error != 0:\n                        return 4294967293\n                    put(w, 48, get(w, 48) | (1 << (3 + got)))\n                    put(w, 40, got + 1)\n                    put(w, 8, 20)\n            else:\n                if value == 0:\n                    if error != 0:\n                        put(w, 8, 80)\n                    else:\n                        return request(o, w, 9, 0, 2, 0, 0, 30)\n                else:\n                    if error != 0:\n                        return 4294967293\n                    put(w, 48, get(w, 48) | 128)\n                    return request(o, w, 9, 0, 7, 0, 0, 25)\n        elif phase == 25:\n            put(w, 48, get(w, 48) & 18446744073709551487)\n            # Release the excess value BEFORE the 3.14 exact-container size\n            # observation: its finalizer is allowed to mutate the container.\n            if get(w, 32) == 31404:\n                return request(o, w, 4, 0, 1, 0, 0, 26)\n            return diagnostic(o, w, 3, get(w, 24), 0)\n        elif phase == 26:\n            size_kind = 0\n            if value == get(w, 64):\n                size_kind = 1\n            elif value == get(w, 72):\n                size_kind = 2\n            elif value == get(w, 80):\n                size_kind = 3\n            if size_kind == 0:\n                return diagnostic(o, w, 3, get(w, 24), 0)\n            return request(o, w, 10, 0, 1, size_kind, 0, 27)\n        elif phase == 27:\n            if value > get(w, 24):\n                return diagnostic(o, w, 4, get(w, 24), value)\n            return diagnostic(o, w, 3, get(w, 24), 0)\n        elif phase == 30:\n            put(w, 48, get(w, 48) & 18446744073709551611)\n            if error != 0:\n                put(w, 8, 80)\n            else:\n                return request(o, w, 11, 8, get(w, 24), 0, 0, 31)\n        elif phase == 31:\n            if value == 0:\n                if error == 0:\n                    return 4294967293\n                put(w, 8, 80)\n            else:\n                if error != 0:\n                    return 4294967293\n                put(w, 48, get(w, 48) | 256)\n                put(w, 104, 0)\n                put(w, 8, 32)\n        elif phase == 32:\n            index = get(w, 104)\n            if index < get(w, 24):\n                return request(o, w, 12, 0, 8, index, 3 + index, 33)\n            return request(o, w, 13, 0, 8, 0, 0, 34)\n        elif phase == 33:\n            index = get(w, 104)\n            put(w, 48, get(w, 48) & (18446744073709551615 ^ (1 << (3 + index))))\n            if error != 0:\n                put(w, 8, 80)\n            else:\n                if value != 0:\n                    return 4294967293\n                put(w, 104, index + 1)\n                put(w, 8, 32)\n        elif phase == 34:\n            if value != 0 or error != 0:\n                return 4294967293\n            return request(o, w, 9, 0, 8, 0, 0, 35)\n        elif phase == 35:\n            put(w, 48, get(w, 48) & 18446744073709551359)\n            if error != 0 or get(w, 48) != 0:\n                return 4294967293\n            return complete(o, w, 0)\n        elif phase == 80:\n            mask = get(w, 48)\n            selected = 0\n            if mask & 128 != 0:\n                selected = 7\n            else:\n                index = 6\n                while index > 2:\n                    if selected == 0 and mask & (1 << index) != 0:\n                        selected = index\n                    index = index - 1\n                if selected == 0 and mask & 256 != 0:\n                    selected = 8\n                if selected == 0 and mask & 4 != 0:\n                    selected = 2\n            if selected != 0:\n                put(w, 96, selected)\n                return request(o, w, 9, 0, selected, 0, 0, 81)\n            if get(w, 120) != 0:\n                if error != 0:\n                    return request(o, w, 15, 0, 9, 0, 0, 82)\n                return complete(o, w, 2)\n            if error != 1:\n                return 4294967293\n            return request(o, w, 14, 0, 9, 0, 0, 99)\n        elif phase == 81:\n            put(w, 48, get(w, 48) & (18446744073709551615 ^ (1 << get(w, 96))))\n            put(w, 8, 80)\n        elif phase == 82:\n            if error != 0:\n                return 4294967293\n            return complete(o, w, 2)\n        else:\n            return 4294967293\n    return 4294967293\n\ndef request(o:mutbuf, w:mutbuf, opcode:u64, destination:u64, a:u64, b:u64, c:u64, phase:u64) -> u64:\n    seq = get(w, 16)\n    if seq == 18446744073709551615:\n        return 4294967293\n    seq = seq + 1\n    put(w, 16, seq)\n    put(w, 8, phase)\n    put(w, 88, opcode)\n    at = 0\n    while at < 256:\n        put(o, at, 0)\n        at = at + 8\n    put(o, 0, UNPACK_MAGIC)\n    put(o, 8, seq)\n    put(o, 16, opcode)\n    put(o, 24, destination)\n    put(o, 32, a)\n    put(o, 40, b)\n    put(o, 48, c)\n    return 1\n\ndef diagnostic(o:mutbuf, w:mutbuf, kind:u64, a:u64, b:u64) -> u64:\n    exception = choose(kind == 1, 1, 2)\n    status = request(o, w, 8, 0, exception, a, b, 16)\n    if status != 1:\n        return status\n    FORMAT_EMISSION\n    return status\n\ndef complete(o:mutbuf, w:mutbuf, status:u64) -> u64:\n    put(w, 8, 99)\n    at = 0\n    while at < 256:\n        put(o, at, 0)\n        at = at + 8\n    put(o, 0, UNPACK_MAGIC)\n    put(o, 8, get(w, 16))\n    put(o, 16, status)\n    return status\n\nWORD_HELPERS\n'''\n\nFORMATS = (\n    'cannot unpack non-iterable %.200s object',\n    'not enough values to unpack (expected %d, got %d)',\n    'too many values to unpack (expected %d)',\n    'too many values to unpack (expected %d, got %zd)',\n)\n\n\ndef source():\n    emissions = []\n    for number, text in enumerate(FORMATS, 1):\n        emissions.append(('if' if number == 1 else 'elif') + f' kind == {number}:')\n        for offset, byte in enumerate(text.encode('ascii') + b'\\0', 128):\n            emissions.append(f'    store(o, {offset}, {byte})')\n    helpers = []\n    for name, buffer_type in (('read', 'readbuf'), ('get', 'mutbuf')):\n        helpers.extend([f'def {name}(w:{buffer_type}, index:u64) -> u64:', '    value = 0'])\n        for i in range(8):\n            helpers.append(f'    value = value | (byte(w, index + {i}) << {i * 8})')\n        helpers.append('    return value')\n    helpers.append('def put(w:mutbuf, index:u64, value:u64) -> u64:')\n    for i in range(8):\n        helpers.append(f'    store(w, index + {i}, value >> {i * 8})')\n    helpers.append('    return value')\n    return SOURCE.replace('UNPACK_MAGIC', str(MAGIC)).replace(\n        'FORMAT_EMISSION', '\\n    '.join(emissions)).replace('WORD_HELPERS', '\\n'.join(helpers))\n\n\ndef document():\n    nodes = ast.parse(source()).body\n    names = {node.name: 'f' + str(i) for i, node in enumerate(nodes)}\n    signatures = {node.name: ([a.annotation.id for a in node.args.args], node.returns.id) for node in nodes}\n    total = total_scalar_functions(nodes)\n    functions = []\n    for node in nodes:\n        builder = Builder(node, names, signatures, total)\n        builder.statements(node.body)\n        functions.append({'name': names[node.name], 'params': [builder.param(p) for p in builder.params],\n                          'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],\n                          'entry': 'b0', 'blocks': builder.blocks})\n    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'core_unpack', 'functions': functions})\n\n\ndef main():\n    import argparse\n    parser = argparse.ArgumentParser(description=__doc__)\n    parser.add_argument('--output', type=Path)\n    args = parser.parse_args()\n    assembly = render_assembly(document())\n    if args.output is None:\n        target = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/core_unpack.hiaasm'\n        target.write_text(assembly)\n    else:\n        target = args.output\n        with target.open('x') as handle:\n            handle.write(assembly)\n    print(target.name, target.stat().st_size)\n\n\nif __name__ == '__main__':\n    main()\n"
+    },
+    "fixed_word_reads": {
+      "size": 12947,
+      "sha256": "3da38b746583e19709b9a32ee13b3ac60754ab16d58ee6596cf31795c701b31c",
+      "git_blob_sha1": "cbc8c0ff17f069c75856c9ecb6d18aff85e25ff5"
+    },
+    "exact_forward_replacements": [
+      {
+        "before": "        phase = get(w, 8)\n",
+        "after": "        phase = ((((((((0 | (byte(w, 8) << 0)) | (byte(w, 9) << 8)) | (byte(w, 10) << 16)) | (byte(w, 11) << 24)) | (byte(w, 12) << 32)) | (byte(w, 13) << 40)) | (byte(w, 14) << 48)) | (byte(w, 15) << 56))\n"
+      },
+      {
+        "before": "        value = get(w, 128)\n",
+        "after": "        value = ((((((((0 | (byte(w, 128) << 0)) | (byte(w, 129) << 8)) | (byte(w, 130) << 16)) | (byte(w, 131) << 24)) | (byte(w, 132) << 32)) | (byte(w, 133) << 40)) | (byte(w, 134) << 48)) | (byte(w, 135) << 56))\n"
+      },
+      {
+        "before": "        error = get(w, 56)\n",
+        "after": "        error = ((((((((0 | (byte(w, 56) << 0)) | (byte(w, 57) << 8)) | (byte(w, 58) << 16)) | (byte(w, 59) << 24)) | (byte(w, 60) << 32)) | (byte(w, 61) << 40)) | (byte(w, 62) << 48)) | (byte(w, 63) << 56))\n"
+      }
+    ],
+    "assembly": {
+      "path": "examples/hia_bootstrap/core_unpack.hiaasm",
+      "pc_forwarding": {
+        "size": 88485,
+        "sha256": "f16b072ba6a3daa7dd162b8653eef7abb47d5da770197c2ebdc717bd2eaf81b0",
+        "git_blob_sha1": "c4d815005adc3d0bef4e00e0218cf692ded18fa9"
+      },
+      "fixed_word_reads": {
+        "size": 94150,
+        "sha256": "2b1155602858faeb375f9d0de3cc453befe447c9790ad959a160391d25052420",
+        "git_blob_sha1": "1f10d4ec6adefd21a4f15bd19d0297210b724d9b"
+      }
+    }
+  },
+  "files": [
+    {
+      "path": "examples/hia_bootstrap/core_lowering_000.hiaasm",
+      "pc_forwarding": {
+        "size": 316031,
+        "sha256": "f6a3de4131a502b5adaad4a33de9bc59c78414314a51caea4b4123ccb018982b",
+        "git_blob_sha1": "2ea2521a8c3d8a3aa780ee95bfcd93ff889029f6"
+      },
+      "fixed_word_reads": {
+        "size": 317992,
+        "sha256": "483c64d9dfc650db932e4e1d7659193694a9ace47cd8a6179cf9ad6cd63e215e",
+        "git_blob_sha1": "2b6147183d3fbe0c355b22e7dada8f2ae15688e1"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_001.hiaasm",
+      "pc_forwarding": {
+        "size": 178136,
+        "sha256": "f6c3f4fcb27eed10fe1eba4620fc42e8f7783797c028ed7116b684ea49624c92",
+        "git_blob_sha1": "5d49ba1ed401f3c13895777ae9ae4c6c6d916f0e"
+      },
+      "fixed_word_reads": {
+        "size": 180097,
+        "sha256": "97e17037b82dda09c3ea063a07cdc51012b69c7484a9c34bf820e9cb8fede08f",
+        "git_blob_sha1": "7dcb46fdbd7f34b5302ef4cbfed4640a00422e00"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_002.hiaasm",
+      "pc_forwarding": {
+        "size": 158250,
+        "sha256": "7c6744eb3cd82104d91bc9e02593e659b1afaa4035f246420749e9d2ff248b62",
+        "git_blob_sha1": "749594b812b7d3ad4aa49691c9bcdf4afa9ddda0"
+      },
+      "fixed_word_reads": {
+        "size": 160211,
+        "sha256": "4e75de3689f9723eccbe4c416d8b2539b5f2456151a4462866ad2ca3bfacfe34",
+        "git_blob_sha1": "e5670ed460683a57544bbacbf29cfe53f2c00a76"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_003.hiaasm",
+      "pc_forwarding": {
+        "size": 139836,
+        "sha256": "187633e0c0879bd2ee99dce98a59811bf86a9a46197b1a82441a1d7d4ad8660f",
+        "git_blob_sha1": "c84544793883afbd021d17e3b4e410573e93796d"
+      },
+      "fixed_word_reads": {
+        "size": 141797,
+        "sha256": "4d4b761f0071cee57eb575d77b02186c10518165fd170cd24655a06ec824b41e",
+        "git_blob_sha1": "1ff66c344872a6c0c39cd9559aa570af31f22273"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_004.hiaasm",
+      "pc_forwarding": {
+        "size": 170088,
+        "sha256": "0c3816ddda2e3937bde8abbf62ed285133b45ec0b9529a8110917d5d8d98eece",
+        "git_blob_sha1": "68052937a647d9bc2d9a5352b09b264221acebcb"
+      },
+      "fixed_word_reads": {
+        "size": 172049,
+        "sha256": "1046222b3ae0dbf94711529e643063a88cd7e15d7873eba5ecb45616d8557bfa",
+        "git_blob_sha1": "d7fcce0be3baf180a88f6aac038f74e2318ec9df"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_005.hiaasm",
+      "pc_forwarding": {
+        "size": 186076,
+        "sha256": "27e6400e3a69f8cc1617f651450b1d60b55f7c1308265651f41f586dd2dd9caa",
+        "git_blob_sha1": "70ba2898206a84b0c839ec51ecc8017a7c3f309b"
+      },
+      "fixed_word_reads": {
+        "size": 188037,
+        "sha256": "c22d50ce22ce1c4e0e7ff8b3de936e0ace093c900d3b9a55c57bdd1b1ee915f7",
+        "git_blob_sha1": "1401a8347db251d81a977c32a394955fc74f501b"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_006.hiaasm",
+      "pc_forwarding": {
+        "size": 186084,
+        "sha256": "1f5a7357b2d768570890e6c98a4891ab322bd9f5c6533904b069d3ad5c764670",
+        "git_blob_sha1": "9e6f57d42815e666e32ec8913edac58a23650ffc"
+      },
+      "fixed_word_reads": {
+        "size": 188045,
+        "sha256": "1065d1c48553081d6f0e5ac4a3162cb45d8ea5865387813610165847e0577963",
+        "git_blob_sha1": "56628048f9d2bbba9d76317638c1f74a41cd2cd1"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_007.hiaasm",
+      "pc_forwarding": {
+        "size": 152581,
+        "sha256": "b356c00ea7c304b589fbb16642c9ee8ca7e6d5e5643cdbcc873cec2d99cf0199",
+        "git_blob_sha1": "55f1af76b667e7b6a1cbaaf7c341c0e9f822762a"
+      },
+      "fixed_word_reads": {
+        "size": 154542,
+        "sha256": "ba46273b2a6b87eae45781adaacdb1cb31deb4a796e7fe2a75aa55dbf0563f08",
+        "git_blob_sha1": "e463317c052797ccaed407c6f914bfe121df9554"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_008.hiaasm",
+      "pc_forwarding": {
+        "size": 168043,
+        "sha256": "a631af52a45a5932be4b1a19ed1e5c9713407a6d1f6f66b6e08be4415a98a190",
+        "git_blob_sha1": "e1db864f22fd9a3039a125d2b5a5a317b4d31e61"
+      },
+      "fixed_word_reads": {
+        "size": 170004,
+        "sha256": "8bc1e7ae834b73aca1ddc8cc0fd5e6de5e5a2fa1f9e349d2798d79b19c52116a",
+        "git_blob_sha1": "e93801b31063cfd90e84f1b00405f43e5f75aeb1"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_009.hiaasm",
+      "pc_forwarding": {
+        "size": 159240,
+        "sha256": "94b97f2a01ddf06c0b25976755cedcad1159772683ad2db68828fda2e092e339",
+        "git_blob_sha1": "cb37a8abf40e23e536adaded3736a53f8503237d"
+      },
+      "fixed_word_reads": {
+        "size": 161201,
+        "sha256": "add1b09d42e2459b0321af2f97e2a5065d7adbfe5a8b31e05dbc23c29f3a4a55",
+        "git_blob_sha1": "41aedd2d5b7595d18ccb47eed7a781b9cc68214e"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_010.hiaasm",
+      "pc_forwarding": {
+        "size": 173350,
+        "sha256": "8709bda8653b28d1e5c0f0125ee4cabebe80d0f5593353707d5812c752105c92",
+        "git_blob_sha1": "449e0ef25a7b66c8bc91b2aba7ef19bf1acf179c"
+      },
+      "fixed_word_reads": {
+        "size": 175311,
+        "sha256": "be1bf97909bb5d11a579949c474f2a1b58f9158e10d18bcddbec63a244cf897b",
+        "git_blob_sha1": "fb8b39f167b75915763491e1b98b62f95c69352a"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_011.hiaasm",
+      "pc_forwarding": {
+        "size": 194159,
+        "sha256": "e7fe85a167f497fd1bd36d33f4c29315a183ef70bad4317597888b54341a56c3",
+        "git_blob_sha1": "c1bfcaa29c8d63169ea663c7d474709b656568bf"
+      },
+      "fixed_word_reads": {
+        "size": 196120,
+        "sha256": "a5f6b18e5c94b6d2adf266371d2d049a82af3c57adedd570a7db96665bb8df33",
+        "git_blob_sha1": "97684b32926b0ef237f1664dd5ae5fc467588471"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_012.hiaasm",
+      "pc_forwarding": {
+        "size": 181836,
+        "sha256": "570918b5e461f307917fe2d6a0c608c5847017b5a395a4f4f3ca11b68c747f0b",
+        "git_blob_sha1": "4ea788a17b2c84b9e06b0ea716685faa7a196240"
+      },
+      "fixed_word_reads": {
+        "size": 183797,
+        "sha256": "72eb92bf5bdbccf53f386242928090bbf36e9ea724d4b745277ac4a460670e03",
+        "git_blob_sha1": "a7ac561e11e11fc13dc019648d8026c83b0ebc32"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_013.hiaasm",
+      "pc_forwarding": {
+        "size": 189990,
+        "sha256": "6c6c0388ba04d7c6cf765357c788e15dffd94507bfbb272d6cb49f74c8f25c5d",
+        "git_blob_sha1": "74f0931c6d417003de26fbc0f154544a3b2f63cd"
+      },
+      "fixed_word_reads": {
+        "size": 191951,
+        "sha256": "bc0d4dc7fcb2ea22f7db61be46e61eb36545794dbbb4052f0137ef2f52b8440f",
+        "git_blob_sha1": "c2a1f5c99b8897aeb33df0eadf82d52bb28ca548"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_014.hiaasm",
+      "pc_forwarding": {
+        "size": 182763,
+        "sha256": "4083733a7bb7b08a178f1503f85bfc32edef38f720fcf89083947eb93b55675c",
+        "git_blob_sha1": "7c041f2a1c87458df38a68f6676b2982030eb820"
+      },
+      "fixed_word_reads": {
+        "size": 184724,
+        "sha256": "a781146eb2e091500ffac44b111972417c4bd071764080c9251059c5c8cb6d02",
+        "git_blob_sha1": "25640dc0e5d8106645dae2988451bf45a6773c47"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_015.hiaasm",
+      "pc_forwarding": {
+        "size": 184659,
+        "sha256": "9c3d1586918c85c447b9cdec1ba3434ae21c36b130805773355926b1a6852044",
+        "git_blob_sha1": "7ebfcbbfa51aac9794b5ec027845d7b06f5e96c8"
+      },
+      "fixed_word_reads": {
+        "size": 186620,
+        "sha256": "e49ebcebe8785323932c1105bc9ee5776e72c18bb7f619850680f1cf929d92ab",
+        "git_blob_sha1": "6bbd9b6dcb9792a1ac32cbeb610e3c45f813c7f2"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_016.hiaasm",
+      "pc_forwarding": {
+        "size": 178518,
+        "sha256": "968030c04a1bdfaac95eca1a8cc0bd431d44110195089b393801a4b4b0a28606",
+        "git_blob_sha1": "0e81520763db0784e4301c0339f3a0b672078d96"
+      },
+      "fixed_word_reads": {
+        "size": 180479,
+        "sha256": "9c8d5be77ee150b19720f6f6fdad11c355213ffeeae7143b6e5cb56520127c16",
+        "git_blob_sha1": "3c3fbf998134795a14b546e2380165816a755cf3"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_017.hiaasm",
+      "pc_forwarding": {
+        "size": 192290,
+        "sha256": "8330d22dd5ae66fa1c29074bc5976a4b22f920eb6edbbc8887087150f398a548",
+        "git_blob_sha1": "e0ea1193152c3f2cf23ee9e86e2bff419050277e"
+      },
+      "fixed_word_reads": {
+        "size": 194251,
+        "sha256": "e983bc44f069d6102429d782ef6baff9c8dd8acfe7db7448a8aa5d51501fce1c",
+        "git_blob_sha1": "a351325e7153539b0973a69aa2c9bd93c70d34ce"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_018.hiaasm",
+      "pc_forwarding": {
+        "size": 200349,
+        "sha256": "51e7c66881a4c4199ce7b6f0e29706b7e6579860df00c2fc2a7b8c151ee0dda4",
+        "git_blob_sha1": "f9712a6abd2db0db58ef0e93dad16677cafa4d76"
+      },
+      "fixed_word_reads": {
+        "size": 202310,
+        "sha256": "737ba2f2213d81ddc62fa0499b2d9b50933e26f4b82f01ad32be6537a065c3a5",
+        "git_blob_sha1": "eb8a3fdfbeab913474acd65d52e2ff675538aca8"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_019.hiaasm",
+      "pc_forwarding": {
+        "size": 180960,
+        "sha256": "a1e7b7f43673d5ec0f74ccfe0c5a67ed55409c91a1f44463106f0f8a47685b9b",
+        "git_blob_sha1": "6fa1706f055505e2a3e1908c9dca65fc1e5153a8"
+      },
+      "fixed_word_reads": {
+        "size": 182921,
+        "sha256": "f9617905eb2e2300e51127afbfdd15e5b7f83a18e3dbbb7cca514ec9c24831fe",
+        "git_blob_sha1": "17020128aceaf81f6914325dfe7ddc9e58fe3f69"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_020.hiaasm",
+      "pc_forwarding": {
+        "size": 201612,
+        "sha256": "67912f2b1ee06d3fa962fecd02910e4bcf3809300938ccfee72472d6000fb48c",
+        "git_blob_sha1": "3cda39c83b4f7bb1105ff76914417bba803618a0"
+      },
+      "fixed_word_reads": {
+        "size": 203573,
+        "sha256": "dd40e0aad3866e32c9660f6b9d803863a82df7956b13b9e3d9d8e470440c15bb",
+        "git_blob_sha1": "86347c37d55c655287f6fc5069fb85aa1a22a4f7"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_021.hiaasm",
+      "pc_forwarding": {
+        "size": 183145,
+        "sha256": "185cc2785a358149e0125b545059bfdbcbcc39c66d2d702a3efe51a3c2f62c1e",
+        "git_blob_sha1": "33badea2c47107715a027b62ebd863e459544ae5"
+      },
+      "fixed_word_reads": {
+        "size": 185106,
+        "sha256": "1940c393e6907a22d3a6b2351287efafbb88cdd26bb119e22415a222538f11a8",
+        "git_blob_sha1": "a7c47933f4fb82dc734e568063670e00f7c56054"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_022.hiaasm",
+      "pc_forwarding": {
+        "size": 193286,
+        "sha256": "c6cd2f7a557ce3ac089b58af791d64a56d627a1e87e543ebcb5bba70a130da3d",
+        "git_blob_sha1": "a7902389301aa1f959e85bc3aeea77866bd59826"
+      },
+      "fixed_word_reads": {
+        "size": 195247,
+        "sha256": "e608ec151800cda8a4de5cbb52ed83f351364e5a1c621c6bdf0136c19ab738f7",
+        "git_blob_sha1": "52d8fa7851e03fe4e968865599131704880e1fa2"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_023.hiaasm",
+      "pc_forwarding": {
+        "size": 171153,
+        "sha256": "5b183422876ee70da73ac49c6765a8754a65ad6023725ad846f43e35ffc1ecac",
+        "git_blob_sha1": "3683ecaf41e1f39cf8f344721191afc9bd9ad6be"
+      },
+      "fixed_word_reads": {
+        "size": 173114,
+        "sha256": "61011da0ce1b58e3c551613be66540a4788c9eb554d48825788fd1893ad849f0",
+        "git_blob_sha1": "ff9fdd01baed6e4d612cb84bc361bb02f25d2669"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_024.hiaasm",
+      "pc_forwarding": {
+        "size": 206579,
+        "sha256": "39050d8a94b49f343a9ff696838e12f7255174ba1fb27c6787b7698f97e90157",
+        "git_blob_sha1": "4b2d92f5acb4bc9743c14d62491586e101eff593"
+      },
+      "fixed_word_reads": {
+        "size": 208540,
+        "sha256": "aa5fa4dd025923c0d88ec84047918c74437b1b29fc5f5050acc29e30e36c4c38",
+        "git_blob_sha1": "d5f1fe53ebad1cb7baf66ad6e7d456f004bacbe1"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_025.hiaasm",
+      "pc_forwarding": {
+        "size": 197693,
+        "sha256": "c1ba54650622b7e01d78c142098ccf2810a5b48aff3562e03c08d21d51cf02df",
+        "git_blob_sha1": "1fa7ad7049155095d22babc6fde9e6a1ef669d88"
+      },
+      "fixed_word_reads": {
+        "size": 199654,
+        "sha256": "fea4e5b194511ec476acfbf958171bf5933d89eceace4c52ec2bc16fadce7a11",
+        "git_blob_sha1": "0b4a06f322161ef8a4f441264cea28a2ef01b3d5"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_026.hiaasm",
+      "pc_forwarding": {
+        "size": 194517,
+        "sha256": "37cc5feee153c54ab9cba3a68979da22bb62b45c5bf2d883dd9558d3b067ea2f",
+        "git_blob_sha1": "f7de42b7c72bbd833e314149945e4440e0fd0a1e"
+      },
+      "fixed_word_reads": {
+        "size": 196478,
+        "sha256": "08af2aeffc069cfa395fd5755445bdcf7a000273ef96ea2434ae65b88188a7ca",
+        "git_blob_sha1": "dce4ff099c5fb06dcac434b7e5ea6a3b9f00cfa4"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_027.hiaasm",
+      "pc_forwarding": {
+        "size": 180030,
+        "sha256": "c0fb8b5c2a409b21bfc10007ab308a8812be4a7efbe87a73fed77277ccd18cc1",
+        "git_blob_sha1": "75c134017bf7e2d0417cd98ae24c7f60f9244693"
+      },
+      "fixed_word_reads": {
+        "size": 181991,
+        "sha256": "3c8ea0a6588fcf786e1c8e8263e260bc24fae423392d67a5f2712737ddd652c7",
+        "git_blob_sha1": "8535b1996107c19db458cf5faaed00aa74c3008c"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_028.hiaasm",
+      "pc_forwarding": {
+        "size": 184789,
+        "sha256": "0c5430311c7aa4beca8377c052c0315c3725d2144f7d41bfefa56faa49ac87e7",
+        "git_blob_sha1": "b529b428f1c9505cb75b64a1daf67f214a3fe622"
+      },
+      "fixed_word_reads": {
+        "size": 186750,
+        "sha256": "797649a7b468279918469ff0d0f44f4b8ad797ffb6f1923629ef40126d113808",
+        "git_blob_sha1": "9aed05f3479971cb5bba54bc1d10ae8c1fc48e3b"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_029.hiaasm",
+      "pc_forwarding": {
+        "size": 197473,
+        "sha256": "11c991b438fc32837e4547166acfc8d1a940d3478a7871032ecf592bf218e64d",
+        "git_blob_sha1": "0762dd2be73a0add0d02ce2b9a7464a842188093"
+      },
+      "fixed_word_reads": {
+        "size": 199434,
+        "sha256": "b7a3403c31068aa07e19d40f93ea5fde6f7123fafd29ff939eacf45737d6e9dc",
+        "git_blob_sha1": "80d81797bc228cb85ac9e2637bec8872ef7aa865"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_030.hiaasm",
+      "pc_forwarding": {
+        "size": 172620,
+        "sha256": "eeca00e9c218217038cf028afa673e183eb36ccb1501fff7d2be5a4f58455221",
+        "git_blob_sha1": "2cc8bf78f9787e8f872b16e091b88c149afd9104"
+      },
+      "fixed_word_reads": {
+        "size": 174581,
+        "sha256": "aa5abfe44014800a23914481498a25d90ab78507dacdf610561b8e4f89b938aa",
+        "git_blob_sha1": "8eee9aa423df305db9068d14c81b075462e6e813"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_031.hiaasm",
+      "pc_forwarding": {
+        "size": 158251,
+        "sha256": "aad44c364835a3f6d9dd1a849f8c62ffc6e48267566881cd781266693fa0e7c3",
+        "git_blob_sha1": "92ed14db3c77486a1bd2766ac77b53be48dbbe73"
+      },
+      "fixed_word_reads": {
+        "size": 160212,
+        "sha256": "f02ebff39992809ee50c6c4809b882efe571cce9a49cfd6fc7a9474a82da7316",
+        "git_blob_sha1": "63e5fbad97d5ce4932d15fb5856cf28e3c19033a"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_032.hiaasm",
+      "pc_forwarding": {
+        "size": 163455,
+        "sha256": "e171688f9edd115b81d3ec8a8692d417a856e2d135caba1cf52137b2799b8a95",
+        "git_blob_sha1": "9765ffe3a4619e47a06002091a44a5f5fb469801"
+      },
+      "fixed_word_reads": {
+        "size": 165416,
+        "sha256": "9ee8d54f1d3a2b72821b2ba34b00d4656afb3548b3f413084af7a2bc0dc53213",
+        "git_blob_sha1": "925b50e96f065fd4f52a956180e0f49a49e39a67"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_033.hiaasm",
+      "pc_forwarding": {
+        "size": 184398,
+        "sha256": "0c7087d611d68684b98ef2cd2a5a1f394ed045b40609876390b17fb80d0eaf13",
+        "git_blob_sha1": "73612f5f4c6ef0393a9564ae4a3f9b4f3c1af9bd"
+      },
+      "fixed_word_reads": {
+        "size": 186359,
+        "sha256": "eb8647b654cf4268d1709b56656d783bf61cee2d9a33947d2781773f7db721d3",
+        "git_blob_sha1": "41847704b2ec526d767aac3470cc0cb9bd032dc5"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_034.hiaasm",
+      "pc_forwarding": {
+        "size": 188277,
+        "sha256": "917c0d71bbe701c886fcb0e5d127d3f45d6ad084b91301806eaff3205987c9f0",
+        "git_blob_sha1": "b935241bbabf10e5b9d1441e89ea9feeee21aa1c"
+      },
+      "fixed_word_reads": {
+        "size": 190238,
+        "sha256": "e9be8a6932e3802d5f4bc9eed1280d96a6e8a6e61ff13e2b8f422da27dea631d",
+        "git_blob_sha1": "a7ef0a661b00cbaa98b47ea62270650add80c5a7"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_035.hiaasm",
+      "pc_forwarding": {
+        "size": 158716,
+        "sha256": "874681a2f052a94a2acca2a6907ecff5965bb9ed877c1c59de36fa9080642996",
+        "git_blob_sha1": "52fec0342e1bc50858968014a7cd5c8649ad2982"
+      },
+      "fixed_word_reads": {
+        "size": 160677,
+        "sha256": "536ed822fd97e94c1f92b966c5b5c78b198f948d443543708ba0f8b7b60810e8",
+        "git_blob_sha1": "d23f29d5867df1db90bfa1001a05cee9195bbc07"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_036.hiaasm",
+      "pc_forwarding": {
+        "size": 172410,
+        "sha256": "9dc13b3e2ea8e0e2601c6c76fcd65bae9d260ab03f4c4b30425f3563910c762a",
+        "git_blob_sha1": "e19b887790078568bf6e95a8127cd2b0a5394dd9"
+      },
+      "fixed_word_reads": {
+        "size": 174371,
+        "sha256": "dca97f5f3c41a870812cb1b27e8f5d1e39bc0bb56de07211987abf867323ed75",
+        "git_blob_sha1": "ffcb49469caf599496888a5f5e3f7f291160bc66"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_037.hiaasm",
+      "pc_forwarding": {
+        "size": 156813,
+        "sha256": "2b28618688885cbc83906feb091b2b0c75209c0e0782aa313f05f77fa9f4f05d",
+        "git_blob_sha1": "8cd5301306cc854e0f49e0236e1fe89b9aef8239"
+      },
+      "fixed_word_reads": {
+        "size": 158774,
+        "sha256": "ef45ce791cbe5b0190abf34969c56aa1c85d396d1a94c5084f921036b557f878",
+        "git_blob_sha1": "50b38b1c1111d2d5ce72322bafaea800a8c5de77"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_pool.hiaasm",
+      "pc_forwarding": {
+        "size": 130156,
+        "sha256": "4b72e35fd614173a3a65e9faf6e407f3d65c3d63cab49608a8a29f72f9854d90",
+        "git_blob_sha1": "48e1543d62462ba2fd466f95f7ac59c7a87e9cb3"
+      },
+      "fixed_word_reads": {
+        "size": 130156,
+        "sha256": "4b72e35fd614173a3a65e9faf6e407f3d65c3d63cab49608a8a29f72f9854d90",
+        "git_blob_sha1": "48e1543d62462ba2fd466f95f7ac59c7a87e9cb3"
+      }
+    },
+    {
+      "path": "hepta/hia_core_lowering_abi.json",
+      "pc_forwarding": {
+        "size": 3856,
+        "sha256": "2f7a35ea6089c81e6af5b91ec2a065be9307b93155219571156fed7d822e45d9",
+        "git_blob_sha1": "0aae4d7584ef3b6c523b6c3765bfb188e8c89e6e"
+      },
+      "fixed_word_reads": {
+        "size": 3856,
+        "sha256": "2f7a35ea6089c81e6af5b91ec2a065be9307b93155219571156fed7d822e45d9",
+        "git_blob_sha1": "0aae4d7584ef3b6c523b6c3765bfb188e8c89e6e"
+      }
+    }
+  ]
+}

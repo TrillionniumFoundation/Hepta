@@ -248,7 +248,7 @@ def lower(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 return {ABI}
             put(w, 8, 0)
     while True:
-        pc = get(w, 24)
+        pc = ((((((((0 | (byte(w, 24) << 0)) | (byte(w, 25) << 8)) | (byte(w, 26) << 16)) | (byte(w, 27) << 24)) | (byte(w, 28) << 32)) | (byte(w, 29) << 40)) | (byte(w, 30) << 48)) | (byte(w, 31) << 56))
         if pc == 0 or pc > {total}:
             return {ABI}
         if pc < {first} or pc > {last}:
