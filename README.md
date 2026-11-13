@@ -1,18 +1,26 @@
-# Fixed source admission diagnostic
+# Narrow source guard successor: actual runtime observations
 
-This isolated helper observes CPython 3.14.4 against immutable product commit
-`abeef212e34023534d91f8f952280e2a8d0cbde6`, tree
-`f2bc61c11104136d3f56e3c4aefa00a4dada910b` (3,055 files).
+This helper fixes the original product input to `abeef212e34023534d91f8f952280e2a8d0cbde6`
+and runs on CPython 3.14.4. A separate copy changes exactly two definitions in
+`tools/hia_selfhost_contract.py`, then regenerates only its source support contract.
+Both original and prepared source are checked byte for byte after all observations.
 
-It verifies all source bytes and modes before and after eight fresh scans and
-one instrumented scan. It records standard Path protocol capture, actual scan
-maps, timings and complete cProfile data. The source snapshots warm filesystem
-caches; fixed-order timings and instrumented times are descriptive.
+The candidate preserves the complete 1,429-file fresh scan, read/close/hash order,
+and every per-file provider check. A captured real type dictionary with exclusively
+exact string keys may use a C key-view disjointness check for originally absent
+names. Any such name appearing, a changed sentinel, or an initially foreign key
+retains the original per-member identity checks. No file/digest/inventory cache is
+introduced. All other product definitions and all original tests remain unchanged.
 
-No product source is changed, and no generator, original business method or native
-compiler is executed. All original deadline failures remain unchanged. A successful
-helper run means observations were preserved and fixed source remained unchanged;
-it is not a Source, Native or whole-program qualification result.
+The observations are 91 mutation/descriptor checks, 2 actual foreign type-dictionary
+key controls, all 9 original source freshness methods, and a warmed fixed-CPU ABBA
+comparison of the complete original fresh map. Limits remain 1,800 seconds per
+control process. No original business deadline test or native compiler runs here.
 
-This helper does not write Git objects, statuses, comments or product/audit refs.
-Its workflow uses read-only repository permissions and always retains raw evidence.
+Local R2 comparisons were unstable and did not establish a performance improvement.
+The original two preparation deadline failures and the original 5.721897753-second
+timeout remain failures. This helper can only establish its stated source/control
+observations, never Native, cold, whole-program, or 3s/5s deadline qualification.
+
+All prior local fixture failures and source revisions remain immutable outside this
+helper. The workflow writes only evidence artifacts and has no Git mutation token.
