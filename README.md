@@ -17,3 +17,5 @@ Nothing here grants matching-source cold, default CLI/worker/MCP migration,
 production activation, old-stack deletion, or whole-native authority. The
 branch contains only this isolated harness; product workflows are restored as
 data beneath the temporary working directory and never used to trigger jobs.
+
+R2 keeps the six owner sources, all 26 IDs, every assertion, and all limits unchanged. R1 run 43395539995 executed 21 ordinary controls and four syscall-fault methods successfully. The fifth ptrace-group method did not start because the previous group's evidence directory already existed. R2 assigns each group its own kernel/<group> directory; the unchanged complete archive recursively retains both. Original R1 remains FAIL.

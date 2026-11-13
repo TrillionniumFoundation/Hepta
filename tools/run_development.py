@@ -236,9 +236,9 @@ def main():
             check(snapshot(source)==before,'source changed during build')
         env['HEPTA_HIA_RELEASE_LAUNCH_DEVELOPMENT_BUILD']=str(work/'development-build-r1/BUILD.json')
         env['HEPTA_HIA_RELEASE_LAUNCH_DEVELOPMENT_AGENT']=str(work/'agent-payload-development-r1/AGENT.json')
-        env['HEPTA_HIA_RELEASE_LAUNCH_DEVELOPMENT_EVIDENCE']=str(work/'kernel')
         (work/'controls').mkdir()
         for group,count in zip(config['groups'],config['tests']):
+            env['HEPTA_HIA_RELEASE_LAUNCH_DEVELOPMENT_EVIDENCE']=str(work/'kernel'/group)
             argv=[sys.executable,'-B',str(work/'run_launch_controls.py'),'--group',group,'--output',str(work/'controls'/group)]
             result=command(argv,source,env,evidence,group);report['stages'].append(result)
             path=work/'controls'/group/'REPORT.json'
