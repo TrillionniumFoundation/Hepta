@@ -1,0 +1,138 @@
+--- a/diagnostics.py
++++ b/diagnostics.py
+@@ -37,6 +37,16 @@
+           'maximum_selected_files': 1024, 'maximum_selected_file_bytes': 64 << 20,
+           'maximum_selected_bytes': 128 << 20, 'maximum_metadata_bytes': 64 << 20,
+           'maximum_public_small_bytes': 224 << 20}
++
++# Independent exact report/trace additions; the original Core12 order remains intact.
++WIRE_REPORTS_AND_TRACE = (
++    'hia-json-wire-callers.json',
++    'hia-json-wire-leaf-cache-evidence/child/report.json',
++    'hia-json-wire-leaf-cache-evidence/FINAL.json',
++    'hia-json-wire-leaf-cache-evidence/child/native8-projection-trace.jsonl',
++)
++TOP_LEVEL = TOP_LEVEL + WIRE_REPORTS_AND_TRACE
++EXPECTED = EXPECTED + WIRE_REPORTS_AND_TRACE
+ 
+ 
+ class Refusal(RuntimeError):
+--- a/controller.py
++++ b/controller.py
+@@ -351,7 +351,7 @@
+     require(type(pin) is dict
+             and all(type(pin.get(name)) is int and 0 < pin[name] < 1 << 63
+                     for name in ('id', 'run_id', 'job_id'))
+-            and type(pin.get('run_attempt')) is int and pin['run_attempt'] == 2
++            and type(pin.get('run_attempt')) is int and pin['run_attempt'] == 1
+             and type(pin.get('sha256')) is str and re.fullmatch(r'[0-9a-f]{64}', pin['sha256'])
+             and all(type(pin.get(name)) is str and re.fullmatch(r'[0-9a-f]{40}', pin[name])
+                     for name in ('checkout_commit', 'checkout_tree'))
+@@ -387,7 +387,7 @@
+     require(type(pin.get('bytes')) is int and 0 < pin['bytes'] <= 3 << 30
+             and policy.get('parts') == [] and policy.get('partition_files_created') is False,
+             'this request permits no partition production or publication')
+-    require(policy.get('expected_diagnostics') == {'population': 'OBSERVE_CURRENT_COMPLETE_ZIP', 'selector_sha256': '50c1d07dd3a452ba189a8a87a06f49114da061a76256c9a69fa06391e5884831', 'metadata_files': 3},
++    require(policy.get('expected_diagnostics') == {'population': 'OBSERVE_CURRENT_COMPLETE_ZIP', 'selector_sha256': '09b19f3f0c143b701b5df5508ddedb3056744b133f6684e8e8bb9048c6eb4627', 'metadata_files': 3},
+             'fixed current-artifact selection declaration differs')
+     return pin
+ 
+--- a/worker.py
++++ b/worker.py
+@@ -258,7 +258,7 @@
+     require(type(pin) is dict
+             and all(type(pin.get(name)) is int and 0 < pin[name] < 1 << 63
+                     for name in ('id', 'run_id', 'job_id'))
+-            and type(pin.get('run_attempt')) is int and pin['run_attempt'] == 2
++            and type(pin.get('run_attempt')) is int and pin['run_attempt'] == 1
+             and type(pin.get('sha256')) is str and re.fullmatch(r'[0-9a-f]{64}', pin['sha256'])
+             and all(type(pin.get(name)) is str and re.fullmatch(r'[0-9a-f]{40}', pin[name])
+                     for name in ('checkout_commit', 'checkout_tree'))
+@@ -294,7 +294,7 @@
+     require(type(pin.get('bytes')) is int and 0 < pin['bytes'] <= 3 << 30
+             and policy.get('parts') == [] and policy.get('partition_files_created') is False,
+             'this request permits no partition production or publication')
+-    require(policy.get('expected_diagnostics') == {'population': 'OBSERVE_CURRENT_COMPLETE_ZIP', 'selector_sha256': '50c1d07dd3a452ba189a8a87a06f49114da061a76256c9a69fa06391e5884831', 'metadata_files': 3},
++    require(policy.get('expected_diagnostics') == {'population': 'OBSERVE_CURRENT_COMPLETE_ZIP', 'selector_sha256': '09b19f3f0c143b701b5df5508ddedb3056744b133f6684e8e8bb9048c6eb4627', 'metadata_files': 3},
+             'fixed current-artifact selection declaration differs')
+     return pin
+ 
+--- a/render_workflow.py
++++ b/render_workflow.py
+@@ -11,7 +11,7 @@
+ import re
+ 
+ 
+-PREFIX = 'experiments/hia_core_lowering_20261113/pc-ci-a2-diagnostics-only-r1'
++PREFIX = 'experiments/hia_json_wire_u32_decimal_20261113/core116-ci-diagnostics-r1'
+ EXPECTED_LIMITS = {
+     'controller_seconds': 900, 'cleanup_seconds': 3, 'transfer_seconds': 720,
+     'maximum_original_bytes': 3 << 30, 'maximum_parts': 10,
+@@ -43,7 +43,7 @@
+     pin = policy['artifact']
+     require(type(pin) is dict
+             and all(type(pin.get(k)) is int and pin[k] > 0 for k in ('id', 'run_id', 'job_id'))
+-            and type(pin.get('run_attempt')) is int and pin['run_attempt'] == 2
++            and type(pin.get('run_attempt')) is int and pin['run_attempt'] == 1
+             and type(pin.get('bytes')) is int and 0 < pin['bytes'] <= 3 << 30
+             and type(pin.get('sha256')) is str and re.fullmatch('[0-9a-f]{64}', pin['sha256'])
+             and all(type(pin.get(k)) is str and re.fullmatch('[0-9a-f]{40}', pin[k])
+--- a/workflow-template.yml
++++ b/workflow-template.yml
+@@ -1,4 +1,4 @@
+-name: HIA Core PC attempt2 failed CI diagnostics-only recovery r1
++name: HIA Wire U32 Core116 failed CI diagnostics-only recovery r1
+ 
+ on: [create]
+ 
+@@ -6,12 +6,12 @@
+ 
+ jobs:
+   retain_original:
+-    name: Retain every available original step42 diagnostic
++    name: Retain Core116 step43 originals and exact Wire reports
+     if: >-
+       ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+           github.event_name == 'create' &&
+           github.event.ref_type == 'branch' &&
+-          github.event.ref == 'codex/hia-core-pc-ci-a2-diagnostics-only-r1-20261113-e26e' &&
++          github.event.ref == 'codex/hia-wire-u32-core116-diagnostics-r1-20261113-e26e' &&
+           github.run_attempt == '1' }}
+     runs-on: ubuntu-latest
+     timeout-minutes: 25
+@@ -43,7 +43,7 @@
+           HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+         run: |
+           unset LD_LIBRARY_PATH LD_PRELOAD
+-          python -I -S -B control/experiments/hia_core_lowering_20261113/pc-ci-a2-diagnostics-only-r1/controller.py prepare --root "$RUNNER_TEMP/hia-core-pc-ci-a2-diagnostics-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
++          python -I -S -B control/experiments/hia_json_wire_u32_decimal_20261113/core116-ci-diagnostics-r1/controller.py prepare --root "$RUNNER_TEMP/hia-wire-u32-core116-diagnostics-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+       - name: Read one sealed original ZIP and all fixed diagnostics under the original 900-second guardian
+         id: owned_collection
+         timeout-minutes: 16
+@@ -53,7 +53,7 @@
+           HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+         run: |
+           unset LD_LIBRARY_PATH LD_PRELOAD
+-          python -I -S -B control/experiments/hia_core_lowering_20261113/pc-ci-a2-diagnostics-only-r1/controller.py run --root "$RUNNER_TEMP/hia-core-pc-ci-a2-diagnostics-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
++          python -I -S -B control/experiments/hia_json_wire_u32_decimal_20261113/core116-ci-diagnostics-r1/controller.py run --root "$RUNNER_TEMP/hia-wire-u32-core116-diagnostics-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+       - name: Independently retain every fixed diagnostic and controls after closed ECHILD
+         if: always()
+         timeout-minutes: 5
+@@ -62,13 +62,13 @@
+           HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+         run: |
+           unset LD_LIBRARY_PATH LD_PRELOAD
+-          python -I -S -B control/experiments/hia_core_lowering_20261113/pc-ci-a2-diagnostics-only-r1/controller.py finalize --root "$RUNNER_TEMP/hia-core-pc-ci-a2-diagnostics-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+-      - name: Preserve available step42 original diagnostics and current closed owner first
++          python -I -S -B control/experiments/hia_json_wire_u32_decimal_20261113/core116-ci-diagnostics-r1/controller.py finalize --root "$RUNNER_TEMP/hia-wire-u32-core116-diagnostics-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
++      - name: Preserve Core116 and Wire original diagnostics and closed owner
+         if: always()
+         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+         with:
+-          name: hia-core-pc-ci-a2-diagnostics-only-r1-${{ github.run_id }}-1
+-          path: '${{ runner.temp }}/hia-core-pc-ci-a2-diagnostics-public-r1/small/'
++          name: hia-wire-u32-core116-diagnostics-r1-${{ github.run_id }}-1
++          path: '${{ runner.temp }}/hia-wire-u32-core116-diagnostics-public-r1/small/'
+           if-no-files-found: error
+           include-hidden-files: false
+           compression-level: 0

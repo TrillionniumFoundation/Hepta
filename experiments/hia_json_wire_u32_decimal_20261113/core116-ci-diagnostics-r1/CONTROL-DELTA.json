@@ -1,0 +1,188 @@
+{
+  "schema": "hia.u32-ci-diagnostic-exact-control-inverse.v1",
+  "donor_commit": "1fbeb3f2706e7521f4b234c7ccabbbcad7009767",
+  "donor_prefix": "experiments/hia_core_lowering_20261113/pc-ci-a2-diagnostics-only-r1",
+  "changes": [
+    {
+      "file": "diagnostics.py",
+      "original": {
+        "bytes": 12433,
+        "sha256": "50c1d07dd3a452ba189a8a87a06f49114da061a76256c9a69fa06391e5884831",
+        "git_blob_sha1": "035e1db9f904449272687014dd75d75f2ac6a57b"
+      },
+      "candidate": {
+        "bytes": 12864,
+        "sha256": "09b19f3f0c143b701b5df5508ddedb3056744b133f6684e8e8bb9048c6eb4627",
+        "git_blob_sha1": "1b2e4a93a21097bac90fa66a18fe7009405b276b"
+      },
+      "replacements": [
+        {
+          "from": "\n\nclass Refusal(RuntimeError):",
+          "to": "\n# Independent exact report/trace additions; the original Core12 order remains intact.\nWIRE_REPORTS_AND_TRACE = (\n    'hia-json-wire-callers.json',\n    'hia-json-wire-leaf-cache-evidence/child/report.json',\n    'hia-json-wire-leaf-cache-evidence/FINAL.json',\n    'hia-json-wire-leaf-cache-evidence/child/native8-projection-trace.jsonl',\n)\nTOP_LEVEL = TOP_LEVEL + WIRE_REPORTS_AND_TRACE\nEXPECTED = EXPECTED + WIRE_REPORTS_AND_TRACE\n\n\nclass Refusal(RuntimeError):",
+          "count": 1
+        }
+      ],
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "file": "controller.py",
+      "original": {
+        "bytes": 60337,
+        "sha256": "6dd0552e8400a3d7e521d26c8e1192aa07875f17beda2b379fc6c255aefe5082",
+        "git_blob_sha1": "7ff8058442b7f00ffe6517a2b59c4d0fac9e90b9"
+      },
+      "candidate": {
+        "bytes": 60337,
+        "sha256": "e964d6e9c0d9fc687ac8bd80e4f055c39ba575ec973705217c23f98070b043f3",
+        "git_blob_sha1": "114ea764a84ce5b6869f1e198ecd31dfe0a23f62"
+      },
+      "replacements": [
+        {
+          "from": "pin['run_attempt'] == 2",
+          "to": "pin['run_attempt'] == 1",
+          "count": 1
+        },
+        {
+          "from": "50c1d07dd3a452ba189a8a87a06f49114da061a76256c9a69fa06391e5884831",
+          "to": "09b19f3f0c143b701b5df5508ddedb3056744b133f6684e8e8bb9048c6eb4627",
+          "count": 1
+        }
+      ],
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "file": "worker.py",
+      "original": {
+        "bytes": 19728,
+        "sha256": "420fa7b25f6690e47f21e7713d0f48ade50a017404864d33493bcf5582d35db5",
+        "git_blob_sha1": "f7ae472eac912357ebb69358f34233901e8dabe2"
+      },
+      "candidate": {
+        "bytes": 19728,
+        "sha256": "6b389301bd887ed39fe061f49f7a6b5e4085dc85eb36f0d328f5c9f2369cb5bb",
+        "git_blob_sha1": "b830dcee53a7bbe18b0cae0eefdfbd0ae5a7766c"
+      },
+      "replacements": [
+        {
+          "from": "pin['run_attempt'] == 2",
+          "to": "pin['run_attempt'] == 1",
+          "count": 1
+        },
+        {
+          "from": "50c1d07dd3a452ba189a8a87a06f49114da061a76256c9a69fa06391e5884831",
+          "to": "09b19f3f0c143b701b5df5508ddedb3056744b133f6684e8e8bb9048c6eb4627",
+          "count": 1
+        }
+      ],
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "file": "render_workflow.py",
+      "original": {
+        "bytes": 4889,
+        "sha256": "26d8cbea1943f6267b3a0a3e75f8ec9e2860ad0930158aaeb0ee963873a232a1",
+        "git_blob_sha1": "b21ae5ff36c09371d2f86b35b9e7629cc21a1d2c"
+      },
+      "candidate": {
+        "bytes": 4894,
+        "sha256": "0a6a403812dbafbac57ec01b94c67ada3ea6dd41a54b75746399db03f469d701",
+        "git_blob_sha1": "cc587beaa9448fadcbd35c334bacdcd7999ebd02"
+      },
+      "replacements": [
+        {
+          "from": "pin['run_attempt'] == 2",
+          "to": "pin['run_attempt'] == 1",
+          "count": 1
+        },
+        {
+          "from": "experiments/hia_core_lowering_20261113/pc-ci-a2-diagnostics-only-r1",
+          "to": "experiments/hia_json_wire_u32_decimal_20261113/core116-ci-diagnostics-r1",
+          "count": 1
+        }
+      ],
+      "inverse_full_bytes_equal": true
+    },
+    {
+      "file": "workflow-template.yml",
+      "original": {
+        "bytes": 3568,
+        "sha256": "9fe97962407fd2439a59d44325c84ee4f38922944306c0b1d5f070d8d9bcc3b0",
+        "git_blob_sha1": "0c93787aa02c59818c2e69d295d7b985e9968760"
+      },
+      "candidate": {
+        "bytes": 3582,
+        "sha256": "008fddb1508de34295264f6b9be9a6c78d04902f58f975312321802bf5baa838",
+        "git_blob_sha1": "31c96f150c3c256b9f136b4083d1e805c2531a5a"
+      },
+      "replacements": [
+        {
+          "from": "name: HIA Core PC attempt2 failed CI diagnostics-only recovery r1",
+          "to": "name: HIA Wire U32 Core116 failed CI diagnostics-only recovery r1",
+          "count": 1
+        },
+        {
+          "from": "name: Retain every available original step42 diagnostic",
+          "to": "name: Retain Core116 step43 originals and exact Wire reports",
+          "count": 1
+        },
+        {
+          "from": "codex/hia-core-pc-ci-a2-diagnostics-only-r1-20261113-e26e",
+          "to": "codex/hia-wire-u32-core116-diagnostics-r1-20261113-e26e",
+          "count": 1
+        },
+        {
+          "from": "experiments/hia_core_lowering_20261113/pc-ci-a2-diagnostics-only-r1",
+          "to": "experiments/hia_json_wire_u32_decimal_20261113/core116-ci-diagnostics-r1",
+          "count": 3
+        },
+        {
+          "from": "\"$RUNNER_TEMP/hia-core-pc-ci-a2-diagnostics-r1\"",
+          "to": "\"$RUNNER_TEMP/hia-wire-u32-core116-diagnostics-r1\"",
+          "count": 3
+        },
+        {
+          "from": "hia-core-pc-ci-a2-diagnostics-public-r1",
+          "to": "hia-wire-u32-core116-diagnostics-public-r1",
+          "count": 1
+        },
+        {
+          "from": "hia-core-pc-ci-a2-diagnostics-only-r1-${{ github.run_id }}-1",
+          "to": "hia-wire-u32-core116-diagnostics-r1-${{ github.run_id }}-1",
+          "count": 1
+        },
+        {
+          "from": "name: Preserve available step42 original diagnostics and current closed owner first",
+          "to": "name: Preserve Core116 and Wire original diagnostics and closed owner",
+          "count": 1
+        }
+      ],
+      "inverse_full_bytes_equal": true
+    }
+  ],
+  "unchanged": [
+    {
+      "file": "original_receiver.py",
+      "bytes": 25558,
+      "sha256": "3967f8e0203e20f5c0f0fcb552cf1e1e66c9b8e0d9fe01863f3ed1d0484d76a2",
+      "git_blob_sha1": "708d384d3728efcbf88908e497e5b91004cd179d",
+      "full_original_bytes_equal": true
+    },
+    {
+      "file": "guardian.py",
+      "bytes": 10257,
+      "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023",
+      "git_blob_sha1": "1a7b8588871d1a0eb485dacc2dac2f1fe373b8a7",
+      "full_original_bytes_equal": true
+    },
+    {
+      "file": "process_owner_impl.py",
+      "bytes": 17601,
+      "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+      "git_blob_sha1": "6f600ab75894859b9840c0311cc8891a67b6c53a",
+      "full_original_bytes_equal": true
+    }
+  ],
+  "source_controls_executed": 0,
+  "product_executed": 0,
+  "workflow_triggered": false
+}

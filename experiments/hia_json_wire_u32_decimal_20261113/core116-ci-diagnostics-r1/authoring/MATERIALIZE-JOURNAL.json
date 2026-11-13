@@ -1,0 +1,85 @@
+{
+  "schema": "hia.u32-diagnostics-static-materialization-journal.v1",
+  "config_create": {
+    "intent": {
+      "operation": "CREATE_ONLY_STATIC_CONFIG",
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/wire-u32-ci-core116-diagnostics-r1-MATERIALIZE-CONFIG.json",
+      "bytes": 486635,
+      "sha256": "2aecfb9c7c3e236f188281ec45aa9a707f926fe02e184aa0c983ec0d4942e826",
+      "expected_version": "absent",
+      "product_execution": false
+    },
+    "ack": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"mode\":384,\"sha256\":\"2aecfb9c7c3e236f188281ec45aa9a707f926fe02e184aa0c983ec0d4942e826\",\"size\":486635,\"version\":\"66306:79480478:486635:1794595075088080353:1794595075124455052\",\"written\":486635}"
+        }
+      ],
+      "structuredContent": null,
+      "isError": false
+    }
+  },
+  "script_create": {
+    "intent": {
+      "operation": "CREATE_ONLY_STATIC_MATERIALIZER",
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/wire-u32-ci-core116-diagnostics-r1-materialize.py",
+      "bytes": 4063,
+      "sha256": "1ea756a0af41fffd39f965258b43344758ee38c62b37cb9eeaf929476b2a9ee5",
+      "expected_version": "absent",
+      "product_execution": false
+    },
+    "ack": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"mode\":384,\"sha256\":\"1ea756a0af41fffd39f965258b43344758ee38c62b37cb9eeaf929476b2a9ee5\",\"size\":4063,\"version\":\"66306:79480480:4063:1794595081219591006:1794595081220239251\",\"written\":4063}"
+        }
+      ],
+      "structuredContent": null,
+      "isError": false
+    }
+  },
+  "start": {
+    "intent": {
+      "host": "ai395",
+      "command": "/usr/bin/python3.14 -I -S -B '/home/qq/hia-rewrite-20261113-e26e-r1/wire-u32-ci-core116-diagnostics-r1-materialize.py'",
+      "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1",
+      "idempotency_key": "cold-u32-core116-diagnostics-static-materialize-r1",
+      "timeout_seconds": 30
+    },
+    "ack": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-c\",\n      \"/usr/bin/python3.14 -I -S -B '/home/qq/hia-rewrite-20261113-e26e-r1/wire-u32-ci-core116-diagnostics-r1-materialize.py'\"\n    ],\n    \"created_unix_ms\": 1794595092117,\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1\",\n    \"env_keys\": [],\n    \"executable\": \"/bin/sh\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1d633f695-392-908\",\n    \"idempotency_key\": \"cold-u32-core116-diagnostics-static-materialize-r1\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d633f695-392-908\",\n    \"request_digest\": \"5f20ed459ffa645b6e3566b7dcb3f365106d5a39ee5488fc3c3165c4ee1d4f86\",\n    \"request_fingerprint\": 6854739516150408283,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1d633f695-392-908\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1d633f695-392-908\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+        }
+      ],
+      "structuredContent": null,
+      "isError": false
+    }
+  },
+  "status": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"at_unix_ms\": 1794595093356,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1d633f695-392-908\",\n  \"launch_nonce\": \"aefb531cdbdb60fad64d049ea5767a8e\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 198,\n      \"stored\": 198\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "output": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1d633f695-392-908\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b2266696c6573223a2032372c2022726561646261636b223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f776972652d7533322d63692d636f72653131362d646961676e6f73746963732d72312f4d4154455249414c495a452d524541444241434b2e6a736f6e222c2022737461747573223a20225354415449435f46494c45535f435245415445445f4e4f545f4558454355544544222c2022746f74616c5f6279746573223a203437303932397d0a\",\n    \"eof\": true,\n    \"next_offset\": 198,\n    \"offset\": 0,\n    \"size\": 198,\n    \"text\": \"{\\\"files\\\": 27, \\\"readback\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/wire-u32-ci-core116-diagnostics-r1/MATERIALIZE-READBACK.json\\\", \\\"status\\\": \\\"STATIC_FILES_CREATED_NOT_EXECUTED\\\", \\\"total_bytes\\\": 470929}\\n\"\n  }\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "product_execution": 0,
+  "receiver_execution": 0,
+  "Git_mutation_at_this_record": 0
+}
