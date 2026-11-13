@@ -635,9 +635,11 @@ def source_gate(capture, inputs, harness_root):
     report.parent.mkdir(parents=True, exist_ok=True)
     candidate_name = "HEPTA_HIA_CANDIDATE_BUILD_TEST_EVIDENCE"
     portable_name = "HEPTA_HIA_LINUX_STDIO_SOURCE_EVIDENCE"
+    process_name = "HEPTA_HIA_LINUX_PROCESS_SOURCE_EVIDENCE"
     expected_environment = {
         candidate_name: "@EVIDENCE@/checks/hia-candidate-build-source",
         portable_name: "@EVIDENCE@/checks/hia-linux-stdio-source",
+        process_name: "@EVIDENCE@/checks/hia-linux-process-source",
     }
     check(inputs.get("source_test_environment") == expected_environment,
           "unreviewed Source evidence environment")
@@ -645,7 +647,8 @@ def source_gate(capture, inputs, harness_root):
           "ambient Source evidence path is not permitted")
     evidence = capture.raw / "checks" / "hia-candidate-build-source"
     portable_evidence = capture.raw / "checks" / "hia-linux-stdio-source"
-    locations = {candidate_name: evidence, portable_name: portable_evidence}
+    process_evidence = capture.raw / "checks" / "hia-linux-process-source"
+    locations = {candidate_name: evidence, portable_name: portable_evidence, process_name: process_evidence}
     for location in locations.values():
         check(not location.resolve().is_relative_to(capture.repo.resolve()),
               "Source evidence must be outside the source tree")
@@ -655,11 +658,12 @@ def source_gate(capture, inputs, harness_root):
     # The portable Source test itself creates its exclusive directory. Creating
     # it here would bypass its original exist_ok=False collision refusal.
     capture.json("checks/SOURCE-EVIDENCE-ENVIRONMENT.json", {
-        "schema": "hia.fixed-source-evidence-environment.v2",
+        "schema": "hia.fixed-source-evidence-environment.v3",
         "locations": {name: str(path) for name, path in locations.items()},
         "outside_source_tree": True, "exclusive_fresh_locations": True,
         "candidate_directory_created_by": "materializer",
         "portable_directory_created_by": "original Source fixture",
+        "process_directory_created_by": "original process Source fixture",
         "source_runner_changed": False, "original_ids_changed": False,
         "group_seconds": 1800, "qualification": False})
     for name, location in locations.items():
@@ -684,6 +688,13 @@ def source_gate(capture, inputs, harness_root):
         capture.json("checks/PORTABLE-SOURCE-READBACK-PRESERVED.json", {
             "path": str(retained), "bytes": retained.stat().st_size,
             "sha256": sha(retained.read_bytes()), "complete_original_directory_retained": True,
+            "native_qualification": False})
+        process_retained = process_evidence / "RESOURCE-READBACK.json"
+        check(process_retained.is_file() and not process_retained.is_symlink(),
+              "successful process portable Source fixture did not retain its original resource readback")
+        capture.json("checks/PROCESS-PORTABLE-SOURCE-READBACK-PRESERVED.json", {
+            "path": str(process_retained), "bytes": process_retained.stat().st_size,
+            "sha256": sha(process_retained.read_bytes()), "complete_original_directory_retained": True,
             "native_qualification": False})
     return value, passed
 
