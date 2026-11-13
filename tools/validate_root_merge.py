@@ -125,7 +125,7 @@ def validate(final_sources, originals):
         return {ast.literal_eval(k): v for k, v in zip(returns[0].value.keys, returns[0].value.values)}
     old_fields = support_fields(originals["main"][contract_path])
     new_fields = support_fields(source_contract)
-    if len(old_fields) != 53 or len(new_fields) != 83 or not set(old_fields) <= set(new_fields):
+    if len(old_fields) != 52 or len(new_fields) != 83 or not set(old_fields) <= set(new_fields):
         raise AssertionError("support field inventory differs")
     extended = {"native_worker_helper_bundle", "native_assembly_source_build"}
     for name in set(old_fields) - extended:
@@ -138,7 +138,7 @@ def validate(final_sources, originals):
     if ast.literal_eval(helper_values["supported_single_image_selectors"]) != 50:
         raise AssertionError("helper contract count differs")
     report["checks"].append({"source_protocol_full_AST": preserved, "source_inventory": 1197,
-                            "original_support_fields": 53, "current_support_fields": 83,
+                            "original_support_fields": 52, "current_support_fields": 83,
                             "explicit_extended_fields": sorted(extended), "actual_helpers": 50})
     generic = "tools/build_hia_json_preflight.py"
     for name in ("current_sources", "admit_cold_build"):

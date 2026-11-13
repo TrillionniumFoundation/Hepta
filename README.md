@@ -19,3 +19,10 @@ execution, and zero cold or whole-native qualification. New backend R4 and the
 pending checker are excluded from this frozen revision. No product branch,
 default, budget or deletion decision changes. All failures and source bytes are
 retained as run artifacts, including the exact validator source.
+
+## Harness correction R2b
+
+Run 43373857456 preserves the original failure: the checker assumed 53
+original support fields, while the fixed original source and exact retained-key
+list contain 52. This revision corrects only that checker count and report field.
+All 22 packets and all 251 resulting product source bytes remain unchanged.
