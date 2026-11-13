@@ -93,7 +93,7 @@ class WorkerHelperSourceTests(unittest.TestCase):
         import importlib
         from hepta.hia_agent_contract import NATIVE_SOURCE_FILES
         from hepta.hia_json_preflight_native import NativeHiaJsonImage
-        self.assertEqual(len(HELPERS), 24)
+        self.assertEqual(len(HELPERS), 26)
         for selector, (name, factory_name) in HELPERS.items():
             with self.subTest(selector=selector):
                 module = importlib.import_module('hepta.' + name)

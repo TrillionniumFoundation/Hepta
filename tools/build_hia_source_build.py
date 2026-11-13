@@ -51,6 +51,30 @@ def _check_call_receipt(receipt, *, artifact, source, size):
         raise ValueError('actual native call identity does not match captured inputs')
 
 
+def _check_pack_output(receipt, output, *, artifact, source, capacity=1 << 20):
+    """Bind an ordinary flat packer's complete return and captured output.
+
+    A returned child can still report a nonzero ABI status or changed input.
+    Its low-u32 output length and a parseable ELF do not establish success.
+    ``artifact`` and ``source`` are the caller's snapshots taken before invoke,
+    not values reconstructed from the returned receipt.
+    """
+    if (type(receipt) is not dict or type(output) is not bytes
+            or type(artifact) is not bytes or type(source) is not bytes
+            or type(capacity) is not int or not 0 < capacity <= 1 << 20):
+        raise ValueError('native pack output transport differs')
+    size = receipt.get('core_u32')
+    if (type(size) is not int or not 0 < size <= len(output) <= capacity
+            or type(receipt.get('result_u64')) is not int
+            or receipt['result_u64'] != size
+            or receipt.get('format') != 'flat-x86-64'
+            or receipt.get('return_encoding') != 'zero-extended-u32'
+            or receipt.get('output_sha256') != sha256(output).hexdigest()):
+        raise ValueError('native pack return or output bytes differ')
+    _check_call_receipt(receipt, artifact=artifact, source=source, size=size)
+    return output[:size]
+
+
 def _check_compile_receipt(receipt, *, compiler, source, produced):
     _check_call_receipt(receipt, artifact=compiler, source=source, size=len(produced))
     if (not 0 < len(produced) <= 1 << 20
@@ -237,13 +261,7 @@ def build(output: Path, compiler: Path, cold_report: Path):
     policy, packer = images['policy'][1], images['packer'][1]
     frame = struct.pack('<4Q', PACK_MAGIC, len(policy), len(compiler_bytes), len(packer)) + policy + compiler_bytes + packer
     receipt, packed = invoke(output, 'bootstrap-pack', images['packer'][0], frame)
-    size = receipt.get('core_u32')
-    if type(size) is not int or not 0 < size <= len(packed):
-        raise ValueError('HIA source-builder packer refused the bootstrap frame')
-    _check_call_receipt(receipt, artifact=packer, source=frame, size=size)
-    if receipt.get('output_sha256') != sha256(packed).hexdigest():
-        raise ValueError('packer output bytes do not match the actual receipt')
-    executable_bytes = packed[:size]
+    executable_bytes = _check_pack_output(receipt, packed, artifact=packer, source=frame)
     inspection = inspect_executable(executable_bytes)
     wire = _source_bundle([source_bytes[name] for name in SOURCES[:3]])
     built = _run_captured(executable_bytes, 'build', wire, output)

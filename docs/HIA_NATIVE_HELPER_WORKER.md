@@ -38,11 +38,12 @@ existing identities. Native selection is not enabled by default.
 The example digest is a placeholder. Actual admission requires lowercase
 64-character hexadecimal digests. Paths may be absolute or relative to the
 containing pinned manifest; parent traversal and control characters refuse.
-The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-four
+The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-six
 current single-image contracts include the original nineteen helper adapters
 and the current **agent-journal-native.v2**, **execution-budget-native.v1**,
 **candidate-budget-native.v1**, **retirement-state-native.v1** and
-**slot-ledger-native.v1** owners.
+**slot-ledger-native.v1**, **native-mapping-native.v1** and
+**publication-measurement-native.v1** owners.
 A source test imports each
 actual factory and checks its `.hepta` source against the packaged resources.
 Unknown selectors, duplicate entries, extra fields and old journal schemas
@@ -50,6 +51,27 @@ refuse. Multi-image owners require their own explicit custody integration.
 Retirement also maps its fixed 45-byte open syscall primitive from the installed
 Python source closure; that primitive transports the selected HIA policy's
 effect and is not another selectable policy image.
+
+`HEPTA_HIA_NATIVE_MAPPING_MANIFEST` selects the HIA mapping parser and admission
+decisions used by `verify_loaded_symbols`. The actual descriptor, seals, ctypes
+entry addresses, bounded kernel maps snapshot and final descriptor readback
+remain hosted. This helper uses the existing anonymous executable loader,
+which does not invoke the mapping admission it supplies. The default path
+retains the original Python mapping policy; a selected helper never falls back.
+
+`HEPTA_HIA_PUBLICATION_MEASUREMENT_MANIFEST` selects the complete finite
+measurement admission used before preparation and under the publication commit
+lock. HIA computes paired medians and deviations, ordered refusal reasons and
+exact cost projections, including intermediate products above 64 bits. The
+input is the original frozen measurement envelope plus an exact integer
+preparation time, transported without narrowing. Envelope capture, actual
+monotonic observations, cancellation and locks, Core proofs, compilation,
+loading and resource ownership remain hosted. The selected measurement owner
+can only refuse publication and never substitutes for those requirements.
+The ordinary default remains the original policy; an explicitly selected
+helper has no fallback. The installed resource and pinned worker scope use the
+same source-bound image contract, with the existing process/thread owner and
+terminal identity checks.
 
 The bundle binds every child manifest; each child binds its schema, packaged
 source, image and compiler digest. Only owned, bounded, ordinary files with

@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -65,6 +65,10 @@ jobs:
               'tests.test_hia_selfhost_exports.ExportSourceTests',
               'tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaSourceTests',
               'tests.test_hia_selfhost.SelfhostSourceTests',
+              'tests.test_hia_selfhost_linked_observer.LinkedObserverSourceTests',
+              'tests.test_hia_linked_observer_build_custody',
+              'tests.test_hia_native_mapping_native.NativeMappingSourceTests',
+              'tests.test_hia_publication_measurement_native.PublicationMeasurementSourceTests',
               'tests.test_hia_selfhost_call_graph_efficiency.CallGraphSourceTests',
               'tests.test_hia_selfhost_contract.SelfhostContractTests',
               'tests.test_hia_selfhost_cli',
@@ -107,6 +111,9 @@ jobs:
               'tests.test_hia_standalone_builder_source_binding',
               'tests.test_hia_compile_stage_custody',
               'tests.test_hia_unittest_gate',
+              'tests.test_hia_verified_increment_gate',
+              'tests.test_hia_increment_source_admission',
+              'tests.test_hia_recursive_chain',
               'tests.test_hia_sha256_builder_source_binding',
               'tests.test_hia_source_build_entrypoint',
               'tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests',
@@ -175,6 +182,35 @@ jobs:
           sha256sum --check "$RUNNER_TEMP/hia-rust-caller-inputs.sha256"
           git diff --exit-code -- rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock
       - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - name: Native linked observer and independent loader lifecycle controls
+        env:
+          HEPTA_HIA_LINKED_OBSERVER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_LINKED_OBSERVER_EVIDENCE: ${{ runner.temp }}/hia-linked-observer
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_selfhost_linked_observer
+      - name: Native loaded mapping policy and original kernel evidence controls
+        env:
+          HEPTA_HIA_NATIVE_MAPPING_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_MAPPING_EVIDENCE: ${{ runner.temp }}/hia-native-mapping
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_native_mapping_native
+      - name: Original runtime and lease callers with selected HIA mapping policy
+        env:
+          HEPTA_HIA_NATIVE_MAPPING_MANIFEST: ${{ runner.temp }}/hia-native-mapping/candidate/build/manifest.json
+          HEPTA_TEST_CLANG: /usr/bin/clang-20
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_native_mapping_identity tests.test_hia_multiversion_mapping tests.test_hia_host_region 2>&1 | tee "$RUNNER_TEMP/hia-native-mapping-original-callers.log"
+      - name: Native publication measurement policy and installed scope controls
+        env:
+          HEPTA_HIA_PUBLICATION_MEASUREMENT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_PUBLICATION_MEASUREMENT_EVIDENCE: ${{ runner.temp }}/hia-publication-measurement
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_publication_measurement_native 2>&1 | tee "$RUNNER_TEMP/hia-publication-measurement.log"
+      - name: Complete original publication callers with selected HIA measurement policy
+        run: >-
+          python -B tools/qualify_hia_publication_measurement_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-publication-measurement-callers"
       - name: Original call graph and native convergence controls
         run: python -B -m unittest tests.test_hia_selfhost_call_graph_efficiency.CallGraphNativeTests -v
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
@@ -748,6 +784,12 @@ jobs:
             ${{ runner.temp }}/hia-language.assertions.json
             ${{ runner.temp }}/hia-language.evidence/
             ${{ runner.temp }}/hia-language.json
+            ${{ runner.temp }}/hia-linked-observer/
+            ${{ runner.temp }}/hia-native-mapping/
+            ${{ runner.temp }}/hia-native-mapping-original-callers.log
+            ${{ runner.temp }}/hia-publication-measurement/
+            ${{ runner.temp }}/hia-publication-measurement.log
+            ${{ runner.temp }}/hia-publication-measurement-callers/
             ${{ runner.temp }}/hia-llvm.asc
             ${{ runner.temp }}/hia-module-projects/
             ${{ runner.temp }}/hia-nominal-fixture/

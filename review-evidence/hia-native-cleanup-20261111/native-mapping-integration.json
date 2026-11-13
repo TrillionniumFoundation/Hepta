@@ -1,0 +1,475 @@
+{
+  "embedded_original_text_files": {
+    "component-r1.log": {
+      "bytes": 4019,
+      "sha256": "0ad3e3a08e1c959be49b684b8648b61e30a5a57703ad9003a4f9ba40713c29ad",
+      "text": "setUpClass (tests.test_hia_native_mapping_native.NativeMappingNativeTests) ... ERROR\ntest_generated_HIA_stays_in_original_compiler_profile (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_generated_HIA_stays_in_original_compiler_profile) ... ok\ntest_native_loader_does_not_reenter_mapping_admission (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_native_loader_does_not_reenter_mapping_admission) ... ok\ntest_ordinary_VM_matches_original_numeric_and_refusal_order (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_ordinary_VM_matches_original_numeric_and_refusal_order) ... \n  test_ordinary_VM_matches_original_numeric_and_refusal_order (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_ordinary_VM_matches_original_numeric_and_refusal_order) (name='different-inode') ... FAIL\n  test_ordinary_VM_matches_original_numeric_and_refusal_order (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_ordinary_VM_matches_original_numeric_and_refusal_order) (name='large-matching-inode') ... FAIL\ntest_original_parser_body_is_preserved_as_independent_reference (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_original_parser_body_is_preserved_as_independent_reference) ... ok\n\n======================================================================\nERROR: setUpClass (tests.test_hia_native_mapping_native.NativeMappingNativeTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/scratch/37204f9845e5/Hepta-native-mapping/tests/test_hia_native_mapping_native.py\", line 171, in setUpClass\n    raise AssertionError('pre-native mapping VM differs from original parser')\nAssertionError: pre-native mapping VM differs from original parser\n\n======================================================================\nFAIL: test_ordinary_VM_matches_original_numeric_and_refusal_order (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_ordinary_VM_matches_original_numeric_and_refusal_order) (name='different-inode')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/scratch/37204f9845e5/Hepta-native-mapping/tests/test_hia_native_mapping_native.py\", line 131, in test_ordinary_VM_matches_original_numeric_and_refusal_order\n    self.assertEqual(decoded(code, output, ADDRESSES), reference(raw))\nAssertionError: Tuples differ: ('rejected', 'E_NATIVE_MAPPING: native entry [58 chars]sed') != ('returned', {'entry': [{'file_offset': 564, [20 chars]'}]})\n\nFirst differing element 0:\n'rejected'\n'returned'\n\n+ ('returned', {'entry': [{'file_offset': 564, 'permissions': 'r-xp'}]})\n- ('rejected',\n-  'E_NATIVE_MAPPING: native entry maps a different file object; retained loader '\n-  'mapping refused')\n\n======================================================================\nFAIL: test_ordinary_VM_matches_original_numeric_and_refusal_order (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_ordinary_VM_matches_original_numeric_and_refusal_order) (name='large-matching-inode')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/scratch/37204f9845e5/Hepta-native-mapping/tests/test_hia_native_mapping_native.py\", line 131, in test_ordinary_VM_matches_original_numeric_and_refusal_order\n    self.assertEqual(decoded(code, output, ADDRESSES), reference(raw))\nAssertionError: Tuples differ: ('rejected', 'E_NATIVE_MAPPING: native entry [58 chars]sed') != ('returned', {'entry': [{'file_offset': 564, [20 chars]'}]})\n\nFirst differing element 0:\n'rejected'\n'returned'\n\n+ ('returned', {'entry': [{'file_offset': 564, 'permissions': 'r-xp'}]})\n- ('rejected',\n-  'E_NATIVE_MAPPING: native entry maps a different file object; retained loader '\n-  'mapping refused')\n\n----------------------------------------------------------------------\nRan 4 tests in 2.770s\n\nFAILED (failures=2, errors=1)\n"
+    },
+    "component-r2.log": {
+      "bytes": 1267,
+      "sha256": "c3e97fd14757858c7103f343e8383dedad0d2cce4a7a8644124eda534b9bd412",
+      "text": "Traceback (most recent call last):\n  File \"/workspace/scratch/37204f9845e5/Hepta-native-mapping/tools/run_hia_unittest_gate.py\", line 76, in <module>\n    main()\n  File \"/workspace/scratch/37204f9845e5/Hepta-native-mapping/tools/run_hia_unittest_gate.py\", line 68, in main\n    suite, _ = load_declared_suite(args.tests)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/37204f9845e5/Hepta-native-mapping/tools/run_hia_unittest_gate.py\", line 39, in load_declared_suite\n    selected = loader.loadTestsFromName(selector)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/loader.py\", line 137, in loadTestsFromName\n    module = __import__(module_name)\n             ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/37204f9845e5/Hepta-native-mapping/tests/test_hia_native_mapping_native.py\", line 19, in <module>\n    from hepta import native_mapping_identity as current\n  File \"/workspace/scratch/37204f9845e5/Hepta-native-mapping/hepta/native_mapping_identity.py\", line 112\n    reject(\"native entry maps a different file object; retained loader mapping refused\")\n    ^^^^^^\nIndentationError: expected an indented block after 'if' statement on line 111\n"
+    },
+    "component-r3.log": {
+      "bytes": 1857,
+      "sha256": "c147f70edab5d8ee979cb1c44304f3893d935e27d14cc8dada10e2a63612f2a1",
+      "text": "test_actual_HIA_complete_buffers_match_independent_VM_and_original (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_actual_HIA_complete_buffers_match_independent_VM_and_original) ... ok\ntest_all_128_symbols_and_original_maps_capacity_remain_supported (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_all_128_symbols_and_original_maps_capacity_remain_supported) ... ok\ntest_decimal_digit_limit_and_large_unmatched_values_preserve_python (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_decimal_digit_limit_and_large_unmatched_values_preserve_python) ... ok\ntest_original_input_rejections_still_precede_native_selection (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_original_input_rejections_still_precede_native_selection) ... ok\ntest_real_sealed_DSO_entries_equal_unchanged_original_and_execute (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_real_sealed_DSO_entries_equal_unchanged_original_and_execute) ... ok\ntest_generated_HIA_stays_in_original_compiler_profile (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_generated_HIA_stays_in_original_compiler_profile) ... ok\ntest_native_loader_does_not_reenter_mapping_admission (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_native_loader_does_not_reenter_mapping_admission) ... ok\ntest_ordinary_VM_matches_original_numeric_and_refusal_order (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_ordinary_VM_matches_original_numeric_and_refusal_order) ... ok\ntest_original_parser_body_is_preserved_as_independent_reference (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_original_parser_body_is_preserved_as_independent_reference) ... ok\n\n----------------------------------------------------------------------\nRan 9 tests in 9.532s\n\nOK\n"
+    },
+    "component-r4.log": {
+      "bytes": 2525,
+      "sha256": "bba9c8f4664b1628191d9d0a64e22036b4021c5db711efebeda0ffe33fbe9975",
+      "text": "test_actual_HIA_complete_buffers_match_independent_VM_and_original (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_actual_HIA_complete_buffers_match_independent_VM_and_original) ... ok\ntest_actual_compiler_receipts_cannot_publish_inconsistent_mapping_manifest (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_actual_compiler_receipts_cannot_publish_inconsistent_mapping_manifest) ... ok\ntest_actual_fd_reuse_refuses_retained_loader_object_before_new_entry (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_actual_fd_reuse_refuses_retained_loader_object_before_new_entry) ... ok\ntest_all_128_symbols_and_original_maps_capacity_remain_supported (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_all_128_symbols_and_original_maps_capacity_remain_supported) ... ok\ntest_anonymous_helper_loader_and_real_bad_ABI_do_not_reenter_mapping (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_anonymous_helper_loader_and_real_bad_ABI_do_not_reenter_mapping) ... ok\ntest_decimal_digit_limit_and_large_unmatched_values_preserve_python (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_decimal_digit_limit_and_large_unmatched_values_preserve_python) ... ok\ntest_original_input_rejections_still_precede_native_selection (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_original_input_rejections_still_precede_native_selection) ... ok\ntest_real_sealed_DSO_entries_equal_unchanged_original_and_execute (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_real_sealed_DSO_entries_equal_unchanged_original_and_execute) ... ok\ntest_unknown_kernel_evidence_and_final_readback_keep_original_order (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_unknown_kernel_evidence_and_final_readback_keep_original_order) ... ok\ntest_generated_HIA_stays_in_original_compiler_profile (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_generated_HIA_stays_in_original_compiler_profile) ... ok\ntest_ordinary_VM_matches_original_numeric_and_refusal_order (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_ordinary_VM_matches_original_numeric_and_refusal_order) ... ok\ntest_original_parser_body_is_preserved_as_independent_reference (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_original_parser_body_is_preserved_as_independent_reference) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 9.764s\n\nOK\n"
+    },
+    "component-r5.log": {
+      "bytes": 2946,
+      "sha256": "3d28912ff51597dec079791b7ba4543334317682f1ca2600742297e4900fe6ce",
+      "text": "test_actual_HIA_complete_buffers_match_independent_VM_and_original (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_actual_HIA_complete_buffers_match_independent_VM_and_original) ... ok\ntest_actual_compiler_receipts_cannot_publish_inconsistent_mapping_manifest (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_actual_compiler_receipts_cannot_publish_inconsistent_mapping_manifest) ... ok\ntest_actual_fd_reuse_refuses_retained_loader_object_before_new_entry (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_actual_fd_reuse_refuses_retained_loader_object_before_new_entry) ... ok\ntest_all_128_symbols_and_original_maps_capacity_remain_supported (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_all_128_symbols_and_original_maps_capacity_remain_supported) ... ok\ntest_anonymous_helper_loader_and_real_bad_ABI_do_not_reenter_mapping (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_anonymous_helper_loader_and_real_bad_ABI_do_not_reenter_mapping) ... ok\ntest_complete_public_exception_causes_equal_original_first_bad_token (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_complete_public_exception_causes_equal_original_first_bad_token) ... ok\ntest_decimal_digit_limit_and_large_unmatched_values_preserve_python (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_decimal_digit_limit_and_large_unmatched_values_preserve_python) ... ok\ntest_default_has_no_native_import_and_empty_selection_cannot_fallback (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_default_has_no_native_import_and_empty_selection_cannot_fallback) ... ok\ntest_original_input_rejections_still_precede_native_selection (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_original_input_rejections_still_precede_native_selection) ... ok\ntest_real_sealed_DSO_entries_equal_unchanged_original_and_execute (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_real_sealed_DSO_entries_equal_unchanged_original_and_execute) ... ok\ntest_unknown_kernel_evidence_and_final_readback_keep_original_order (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_unknown_kernel_evidence_and_final_readback_keep_original_order) ... ok\ntest_generated_HIA_stays_in_original_compiler_profile (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_generated_HIA_stays_in_original_compiler_profile) ... ok\ntest_ordinary_VM_matches_original_numeric_and_refusal_order (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_ordinary_VM_matches_original_numeric_and_refusal_order) ... ok\ntest_original_parser_body_is_preserved_as_independent_reference (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_original_parser_body_is_preserved_as_independent_reference) ... ok\n\n----------------------------------------------------------------------\nRan 14 tests in 13.608s\n\nOK\n"
+    },
+    "component-r6.log": {
+      "bytes": 3382,
+      "sha256": "d7799cdfb250b61da96c2f7063dcc7d55006a7a7cb391c0d1afb39209f72852d",
+      "text": "test_actual_HIA_complete_buffers_match_independent_VM_and_original (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_actual_HIA_complete_buffers_match_independent_VM_and_original) ... ok\ntest_actual_compiler_receipts_cannot_publish_inconsistent_mapping_manifest (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_actual_compiler_receipts_cannot_publish_inconsistent_mapping_manifest) ... ok\ntest_actual_fd_reuse_refuses_retained_loader_object_before_new_entry (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_actual_fd_reuse_refuses_retained_loader_object_before_new_entry) ... ok\ntest_actual_installed_wheel_uses_selected_HIA_and_rejects_warm_source_drift (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_actual_installed_wheel_uses_selected_HIA_and_rejects_warm_source_drift) ... ok\ntest_actual_operator_pinned_helper_scope_preserves_owner_and_selection (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_actual_operator_pinned_helper_scope_preserves_owner_and_selection) ... ok\ntest_all_128_symbols_and_original_maps_capacity_remain_supported (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_all_128_symbols_and_original_maps_capacity_remain_supported) ... ok\ntest_anonymous_helper_loader_and_real_bad_ABI_do_not_reenter_mapping (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_anonymous_helper_loader_and_real_bad_ABI_do_not_reenter_mapping) ... ok\ntest_complete_public_exception_causes_equal_original_first_bad_token (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_complete_public_exception_causes_equal_original_first_bad_token) ... ok\ntest_decimal_digit_limit_and_large_unmatched_values_preserve_python (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_decimal_digit_limit_and_large_unmatched_values_preserve_python) ... ok\ntest_default_has_no_native_import_and_empty_selection_cannot_fallback (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_default_has_no_native_import_and_empty_selection_cannot_fallback) ... ok\ntest_original_input_rejections_still_precede_native_selection (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_original_input_rejections_still_precede_native_selection) ... ok\ntest_real_sealed_DSO_entries_equal_unchanged_original_and_execute (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_real_sealed_DSO_entries_equal_unchanged_original_and_execute) ... ok\ntest_unknown_kernel_evidence_and_final_readback_keep_original_order (tests.test_hia_native_mapping_native.NativeMappingNativeTests.test_unknown_kernel_evidence_and_final_readback_keep_original_order) ... ok\ntest_generated_HIA_stays_in_original_compiler_profile (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_generated_HIA_stays_in_original_compiler_profile) ... ok\ntest_ordinary_VM_matches_original_numeric_and_refusal_order (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_ordinary_VM_matches_original_numeric_and_refusal_order) ... ok\ntest_original_parser_body_is_preserved_as_independent_reference (tests.test_hia_native_mapping_native.NativeMappingSourceTests.test_original_parser_body_is_preserved_as_independent_reference) ... ok\n\n----------------------------------------------------------------------\nRan 16 tests in 20.916s\n\nOK\n"
+    },
+    "component-r6/candidate/independent-reference.json": {
+      "bytes": 7687,
+      "sha256": "a16e5ad938d55e9784df4f281c221c816fae91a8353777394f3abfed547caa3b",
+      "text": "[\n  {\n    \"code\": 0,\n    \"name\": \"ordinary\",\n    \"output_hex\": \"4849414d5052303101000000000000003404000000000000\",\n    \"source_sha256\": \"8c59b7d2504d45a8f41c2326d555fe00c3cf7736363cdcf855ed9f06ec095856\",\n    \"state_sha256\": \"33665b8f18aa7211c40984da8b6137309c67a19e11a584c74b311b6263e949f5\",\n    \"steps\": 19126\n  },\n  {\n    \"code\": 0,\n    \"name\": \"prefix-underscore\",\n    \"output_hex\": \"4849414d5052303101000000000000003404000000000000\",\n    \"source_sha256\": \"c000e980de88ba84f2aca865f8c48e0038af4003f9d449ed9db2423b4b761acd\",\n    \"state_sha256\": \"859c6758ecea33e0e6447e4699b04dbe0dc60656532740dd9240aa2133d34d3a\",\n    \"steps\": 20107\n  },\n  {\n    \"code\": 0,\n    \"name\": \"zero-and-whitespace\",\n    \"output_hex\": \"4849414d5052303101000000000000003404000000000000\",\n    \"source_sha256\": \"24eb99daa123cce28ebfae4c9fd0726d9722d006329939396fcf9e1a520c7043\",\n    \"state_sha256\": \"9b88141c0801588a0e0821806c13b612bb631db344f670a66ea346ecd698ed18\",\n    \"steps\": 20419\n  },\n  {\n    \"code\": 0,\n    \"name\": \"crlf\",\n    \"output_hex\": \"4849414d5052303101000000000000003404000000000000\",\n    \"source_sha256\": \"6b851a29c6addb661407f7800ca98c4f761a685d4e8f12b102cb8ba3ff64506f\",\n    \"state_sha256\": \"190b1b535ca184ce110501ac494806a0d54f59462a2ca985384414f1ac5146e5\",\n    \"steps\": 34304\n  },\n  {\n    \"code\": 0,\n    \"name\": \"unmatched-large\",\n    \"output_hex\": \"4849414d5052303101000000000000003404000000000000\",\n    \"source_sha256\": \"ad829c8873f53cd131e461efe7a854c581fa06a9b6a6f46518d5bcbeee4edbf4\",\n    \"state_sha256\": \"90efeee55d070f7d4d4874571b8a5acffd111618a177a18851e20451478d7264\",\n    \"steps\": 63962\n  },\n  {\n    \"code\": 0,\n    \"name\": \"unmatched-large-inode\",\n    \"output_hex\": \"4849414d5052303101000000000000003404000000000000\",\n    \"source_sha256\": \"dad8238401061191145474ff2fa6dc67d8e30fc7d40642ab9f2c7d0e3f57e19f\",\n    \"state_sha256\": \"db7553473c28fc310944da24e12cff58f57ff1c6718c1454fe6ea23939ac7fcb\",\n    \"steps\": 42828\n  },\n  {\n    \"code\": 3,\n    \"name\": \"equal-large-interval\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"56fb7ea02455e34d339c52b91967927bdddb9f0db76b5a35a621c75f02ec5274\",\n    \"state_sha256\": \"105bbcd4306c8a816bb96175109fdffa9d562e186aad09364ee7bb126820a972\",\n    \"steps\": 34447\n  },\n  {\n    \"code\": 0,\n    \"name\": \"ordered-large-interval\",\n    \"output_hex\": \"4849414d5052303101000000000000003404000000000000\",\n    \"source_sha256\": \"41434586d986f18ffdeb31824130326338064d13ab9168acfc1af30395f66c55\",\n    \"state_sha256\": \"bcc8f8d55e0aa39752bcaea21cd120968f1d0039ac60a85c556ee0777986670a\",\n    \"steps\": 52910\n  },\n  {\n    \"code\": 7,\n    \"name\": \"duplicate\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"4d0c4ac5b2c280369989c1019006fce7e249bb70b55f06f1358d8cc40ca7599e\",\n    \"state_sha256\": \"bd5701e2dfa41ff572ece955d0dae84d44f7c3fa363cb4566afda2aa4c75cc05\",\n    \"steps\": 36149\n  },\n  {\n    \"code\": 7,\n    \"name\": \"missing\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"ef79e1f50b09bdbf1f13419e8e4e09944f827f6625541f4b5685ae1396e8a05c\",\n    \"state_sha256\": \"b8a1b073ad11434fcaaf242805b7c2eb392d050c0c28afe8146d545eefa5c45d\",\n    \"steps\": 15874\n  },\n  {\n    \"code\": 1,\n    \"name\": \"blank\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"15ed559d0cdd3c1d4ee3a4c938966d1d589146d3d88b17bd512bdf374aad7d39\",\n    \"state_sha256\": \"313ce675bb6f0d3a1e6cf9cd15f39fa187f3fdd7697ac3d13d32ef69326fee34\",\n    \"steps\": 961\n  },\n  {\n    \"code\": 1,\n    \"name\": \"missing-field\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"20b991161f9eec387ab889c572291f169f8d2d16a5279c2adecf47f36c003278\",\n    \"state_sha256\": \"905aef0b62e3962082fdc3248ab286b4572d2ef87235b2c4d4f61480518fc769\",\n    \"steps\": 3241\n  },\n  {\n    \"code\": 2,\n    \"name\": \"separator-priority\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"de9af9e1c48e947d587c14f0891999f1eaffa1376f3755800b054b6b5cb706fa\",\n    \"state_sha256\": \"f5b1ee4282ad47e2fd3795bc330efe1c7032af43c314e9a895333ca9726e43dd\",\n    \"steps\": 4196\n  },\n  {\n    \"code\": 9,\n    \"name\": \"integer-before-interval\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"4ca21ba9635c92faf6bdc7395d143e1966a9ddfe77cf693465358052929fe966\",\n    \"state_sha256\": \"1742751d9d6f77a3d0fa731d750aa14d7875ca1e8ae19de067f7ac7431777ab7\",\n    \"steps\": 8083\n  },\n  {\n    \"code\": 9,\n    \"name\": \"ascii-before-interval\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"7c7ef468379ae0dda55d119810464efde5ef5e83b8ca4b583d89997bc64639ed\",\n    \"state_sha256\": \"a79c4e4524e4aeeda07c8bcf42320d8c905f92912eaef23f4c5d0859c2e2fb01\",\n    \"steps\": 14206\n  },\n  {\n    \"code\": 4,\n    \"name\": \"bad-permissions\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"e61520ef5d34eb5ff0ddb54ce1d253822c206b27841555739bcd6f5feb9b7d8b\",\n    \"state_sha256\": \"613251e01ac14bb7245d2a320d2d7351dc7557bec0c2881547a5201bb0e9750a\",\n    \"steps\": 15876\n  },\n  {\n    \"code\": 5,\n    \"name\": \"different-inode\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"b4cfaab520356bc3b8502095fae6f1909fe3eb56be17325fe31d5d6c0a88996f\",\n    \"state_sha256\": \"5adaccfc617f658d99830a39c4db3158defc2399d5c5dad1ede10dab183f1b15\",\n    \"steps\": 17000\n  },\n  {\n    \"code\": 5,\n    \"name\": \"large-matching-inode\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"ae40523ca5d34e89ddc281a54603bccb474b735adc64ebf42e62454d284c14d4\",\n    \"state_sha256\": \"fd4ad16b3f5e1f9c0828953c44a06b8c28c95e88a214c2a1d0c569421891c706\",\n    \"steps\": 24953\n  },\n  {\n    \"code\": 3,\n    \"name\": \"negative-offset\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"c139193bd188d500272f9c1a8db060f862e1bcc98159b304b8246cbc5ddf4133\",\n    \"state_sha256\": \"e76d159c9f31f32f13f83bedad8a3835a9f8ad371dee7c603fbde4cba34ea695\",\n    \"steps\": 14222\n  },\n  {\n    \"code\": 0,\n    \"name\": \"negative-zero\",\n    \"output_hex\": \"4849414d5052303101000000000000003402000000000000\",\n    \"source_sha256\": \"43058532c72b4db8ff302c39770606a2e188c6d660596a3586cee2a0f81dd5fa\",\n    \"state_sha256\": \"cc1fa721738a35e33549e39b39999b8658b6f646e3d2c1ac2fec64e9ebd21472\",\n    \"steps\": 18734\n  },\n  {\n    \"code\": 6,\n    \"name\": \"offset-overflow\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"3f656cbf14c999eee65043189845f91a6ea82e11a193ec1bcd10a1d0eae1e71d\",\n    \"state_sha256\": \"7f71193b49548ce52339d1c29760c214f2e82d454d7edf7b1775b1f6fa595bd1\",\n    \"steps\": 18915\n  },\n  {\n    \"code\": 6,\n    \"name\": \"addition-overflow\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"38fbd9527310ae5eb0f1dee95034986ffae07c04568962cd5cd56ac52725ced1\",\n    \"state_sha256\": \"2ba81d01557e7e3e004e8586a6818df679fc6963c84378ec268b37b3c98a5483\",\n    \"steps\": 19032\n  },\n  {\n    \"code\": 6,\n    \"name\": \"past-file\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"d3093f9a3e8b16fb4e9d68516c5fd0683b7eb35bec224d7d994d1f0cd23ece1b\",\n    \"state_sha256\": \"463120424f72326467a1643999ecc6a1ecd64bbf2911f04cc166778aefa08cd5\",\n    \"steps\": 17796\n  },\n  {\n    \"code\": 7,\n    \"name\": \"empty\",\n    \"output_hex\": \"a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\n    \"source_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n    \"state_sha256\": \"313ce675bb6f0d3a1e6cf9cd15f39fa187f3fdd7697ac3d13d32ef69326fee34\",\n    \"steps\": 1064\n  }\n]\n"
+    },
+    "component-r6/candidate/observations.json": {
+      "bytes": 13993,
+      "sha256": "d3efc0b48ed11436bd450ff7034d500ad5a776595975a878150aca327b04f9d9",
+      "text": "{\n  \"all_input_equivalence_proved\": false,\n  \"native_image_sha256\": \"6654f0f2374f1f00c3f21a9533119ebd7d353f8a54f7a0d2c439af3b0d6c2a88\",\n  \"observations\": [\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"ordinary\",\n      \"source_sha256\": \"8c59b7d2504d45a8f41c2326d555fe00c3cf7736363cdcf855ed9f06ec095856\",\n      \"status\": 0\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"prefix-underscore\",\n      \"source_sha256\": \"c000e980de88ba84f2aca865f8c48e0038af4003f9d449ed9db2423b4b761acd\",\n      \"status\": 0\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"zero-and-whitespace\",\n      \"source_sha256\": \"24eb99daa123cce28ebfae4c9fd0726d9722d006329939396fcf9e1a520c7043\",\n      \"status\": 0\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"crlf\",\n      \"source_sha256\": \"6b851a29c6addb661407f7800ca98c4f761a685d4e8f12b102cb8ba3ff64506f\",\n      \"status\": 0\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"unmatched-large\",\n      \"source_sha256\": \"ad829c8873f53cd131e461efe7a854c581fa06a9b6a6f46518d5bcbeee4edbf4\",\n      \"status\": 0\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"unmatched-large-inode\",\n      \"source_sha256\": \"dad8238401061191145474ff2fa6dc67d8e30fc7d40642ab9f2c7d0e3f57e19f\",\n      \"status\": 0\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"equal-large-interval\",\n      \"source_sha256\": \"56fb7ea02455e34d339c52b91967927bdddb9f0db76b5a35a621c75f02ec5274\",\n      \"status\": 3\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"ordered-large-interval\",\n      \"source_sha256\": \"41434586d986f18ffdeb31824130326338064d13ab9168acfc1af30395f66c55\",\n      \"status\": 0\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"duplicate\",\n      \"source_sha256\": \"4d0c4ac5b2c280369989c1019006fce7e249bb70b55f06f1358d8cc40ca7599e\",\n      \"status\": 7\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"missing\",\n      \"source_sha256\": \"ef79e1f50b09bdbf1f13419e8e4e09944f827f6625541f4b5685ae1396e8a05c\",\n      \"status\": 7\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"blank\",\n      \"source_sha256\": \"15ed559d0cdd3c1d4ee3a4c938966d1d589146d3d88b17bd512bdf374aad7d39\",\n      \"status\": 1\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"missing-field\",\n      \"source_sha256\": \"20b991161f9eec387ab889c572291f169f8d2d16a5279c2adecf47f36c003278\",\n      \"status\": 1\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"separator-priority\",\n      \"source_sha256\": \"de9af9e1c48e947d587c14f0891999f1eaffa1376f3755800b054b6b5cb706fa\",\n      \"status\": 2\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"integer-before-interval\",\n      \"source_sha256\": \"4ca21ba9635c92faf6bdc7395d143e1966a9ddfe77cf693465358052929fe966\",\n      \"status\": 9\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"ascii-before-interval\",\n      \"source_sha256\": \"7c7ef468379ae0dda55d119810464efde5ef5e83b8ca4b583d89997bc64639ed\",\n      \"status\": 9\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"bad-permissions\",\n      \"source_sha256\": \"e61520ef5d34eb5ff0ddb54ce1d253822c206b27841555739bcd6f5feb9b7d8b\",\n      \"status\": 4\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"different-inode\",\n      \"source_sha256\": \"b4cfaab520356bc3b8502095fae6f1909fe3eb56be17325fe31d5d6c0a88996f\",\n      \"status\": 5\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"large-matching-inode\",\n      \"source_sha256\": \"ae40523ca5d34e89ddc281a54603bccb474b735adc64ebf42e62454d284c14d4\",\n      \"status\": 5\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"negative-offset\",\n      \"source_sha256\": \"c139193bd188d500272f9c1a8db060f862e1bcc98159b304b8246cbc5ddf4133\",\n      \"status\": 3\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"negative-zero\",\n      \"source_sha256\": \"43058532c72b4db8ff302c39770606a2e188c6d660596a3586cee2a0f81dd5fa\",\n      \"status\": 0\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"offset-overflow\",\n      \"source_sha256\": \"3f656cbf14c999eee65043189845f91a6ea82e11a193ec1bcd10a1d0eae1e71d\",\n      \"status\": 6\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"addition-overflow\",\n      \"source_sha256\": \"38fbd9527310ae5eb0f1dee95034986ffae07c04568962cd5cd56ac52725ced1\",\n      \"status\": 6\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"past-file\",\n      \"source_sha256\": \"d3093f9a3e8b16fb4e9d68516c5fd0683b7eb35bec224d7d994d1f0cd23ece1b\",\n      \"status\": 6\n    },\n    {\n      \"all_output_and_workspace_bytes_equal_VM\": true,\n      \"case\": \"empty\",\n      \"source_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n      \"status\": 7\n    },\n    {\n      \"case\": \"actual-compiler-bad-receipt\",\n      \"field\": \"result_u64\",\n      \"manifest_published\": false\n    },\n    {\n      \"case\": \"actual-compiler-bad-receipt\",\n      \"field\": \"image_sha256\",\n      \"manifest_published\": false\n    },\n    {\n      \"case\": \"actual-compiler-bad-receipt\",\n      \"field\": \"source_sha256\",\n      \"manifest_published\": false\n    },\n    {\n      \"case\": \"actual-compiler-bad-receipt\",\n      \"field\": \"output_sha256\",\n      \"manifest_published\": false\n    },\n    {\n      \"case\": \"actual-retained-loader-fd-reuse\",\n      \"new_inode\": 6114,\n      \"old_inode\": 6113,\n      \"refusal\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: native entry maps a different file object; retained loader mapping refused\"\n      ],\n      \"same_function_address\": true\n    },\n    {\n      \"case\": \"actual-sdist-wheel-installed-mapping\",\n      \"observations\": {\n        \"actual_result\": 47,\n        \"installed_source\": \"/workspace/scratch/37204f9845e5/native-mapping-review/component-r6/candidate/installed-mapping/installed/hepta/_data/examples/hia_bootstrap/native_mapping.hepta\",\n        \"mapping\": {\n          \"basis\": \"actual entry address in kernel executable mapping of the sealed descriptor\",\n          \"device_major\": 0,\n          \"device_minor\": 1,\n          \"file_bytes\": 13096,\n          \"inode\": 33914,\n          \"schema\": \"hepta.native.loaded-symbol-identity.v1\",\n          \"seals\": 15,\n          \"serialized_evidence_is_authority\": false,\n          \"symbols\": {\n            \"entry\": {\n              \"file_offset\": 4096,\n              \"permissions\": \"r-xp\"\n            }\n          }\n        },\n        \"python_policy_fallback\": false,\n        \"warm_source_refusals\": [\n          [\n            \"ValueError\",\n            \"native HIA JSON source identity mismatch\"\n          ],\n          [\n            \"FileNotFoundError\",\n            \"[Errno 2] No such file or directory: '/workspace/scratch/37204f9845e5/native-mapping-review/component-r6/candidate/installed-mapping/installed/hepta/_data/examples/hia_bootstrap/native_mapping.hepta'\"\n          ]\n        ]\n      },\n      \"wheel_sha256\": \"864cb327b99d29da539d6d3838da399b9231c851e4dd0ea08b779b7724f2e71b\"\n    },\n    {\n      \"actual_result\": 49,\n      \"bundle_sha256\": \"348642f8d24d217046273d9fccd78c0ef3d90716220dac6700a9246b3ff8ebf8\",\n      \"case\": \"operator-pinned-mapping-helper\",\n      \"changed_selection_refused\": true,\n      \"environment_restored\": true,\n      \"foreign_thread_refused\": true\n    },\n    {\n      \"case\": \"original-capacity\",\n      \"maps_bytes\": 16777216,\n      \"symbols\": 128\n    },\n    {\n      \"case\": \"full-public-synthetic-maps-lower\",\n      \"exception\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: unable to establish actual loaded file identity\",\n        [\n          \"ValueError\",\n          \"invalid literal for int() with base 16: b'wrong'\"\n        ]\n      ],\n      \"source_sha256\": \"e3d1feea5d091e5a77556a7ca89d55a8c13a7b64f90afcde15839b04a78274a0\"\n    },\n    {\n      \"case\": \"full-public-synthetic-maps-upper\",\n      \"exception\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: unable to establish actual loaded file identity\",\n        [\n          \"ValueError\",\n          \"invalid literal for int() with base 16: b'wrong'\"\n        ]\n      ],\n      \"source_sha256\": \"bfac910dafccfca3f034a6a2c7e8d4beea6d1d903624fde4b6b0325322c17801\"\n    },\n    {\n      \"case\": \"full-public-synthetic-maps-offset\",\n      \"exception\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: unable to establish actual loaded file identity\",\n        [\n          \"ValueError\",\n          \"invalid literal for int() with base 16: b'nope'\"\n        ]\n      ],\n      \"source_sha256\": \"533e9fbb1a2b16b4862f36cfa660d3e2052f8ece7afd40f15f105fa1fc1ce370\"\n    },\n    {\n      \"case\": \"full-public-synthetic-maps-major\",\n      \"exception\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: unable to establish actual loaded file identity\",\n        [\n          \"ValueError\",\n          \"invalid literal for int() with base 16: b'wrong'\"\n        ]\n      ],\n      \"source_sha256\": \"286d67999ddad5bb4309af5bc1766f79d7670bce71fb85da56fc024a1f3bd694\"\n    },\n    {\n      \"case\": \"full-public-synthetic-maps-minor\",\n      \"exception\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: unable to establish actual loaded file identity\",\n        [\n          \"ValueError\",\n          \"invalid literal for int() with base 16: b'wrong'\"\n        ]\n      ],\n      \"source_sha256\": \"c935afbc026409d4cbfe1342c2d1b8c84e8b3f36b9e2d6d08a3a560b74249bcf\"\n    },\n    {\n      \"case\": \"full-public-synthetic-maps-inode\",\n      \"exception\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: unable to establish actual loaded file identity\",\n        [\n          \"ValueError\",\n          \"invalid literal for int() with base 10: b'nope'\"\n        ]\n      ],\n      \"source_sha256\": \"cc29f610c9f50828940eb5de848f1994c2798eec5ce63773fa4e62eff0808808\"\n    },\n    {\n      \"case\": \"full-public-synthetic-maps-non-ascii\",\n      \"exception\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: unable to establish actual loaded file identity\",\n        [\n          \"UnicodeDecodeError\",\n          \"'ascii' codec can't decode byte 0xff in position 3: ordinal not in range(128)\"\n        ]\n      ],\n      \"source_sha256\": \"be66fbe6c8fdf0a69d3c20641622c3092b06775df958b4b8e19957f1c04b32f7\"\n    },\n    {\n      \"case\": \"full-public-synthetic-maps-number-before-ascii\",\n      \"exception\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: unable to establish actual loaded file identity\",\n        [\n          \"ValueError\",\n          \"invalid literal for int() with base 16: b'wrong'\"\n        ]\n      ],\n      \"source_sha256\": \"52bc6e0450208ca1d58634f7f2519f8b755fe0fadf64e6cdfdd4714077c043fa\"\n    },\n    {\n      \"case\": \"full-public-synthetic-maps-ascii-before-interval\",\n      \"exception\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: unable to establish actual loaded file identity\",\n        [\n          \"UnicodeDecodeError\",\n          \"'ascii' codec can't decode byte 0xff in position 3: ordinal not in range(128)\"\n        ]\n      ],\n      \"source_sha256\": \"c025c381b6c76d52834e455884cd1208e73467f690b4abe25b46baa2c3254e9a\"\n    },\n    {\n      \"case\": \"full-public-synthetic-maps-separator-before-number\",\n      \"exception\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: unrecognized kernel mapping record\",\n        null\n      ],\n      \"source_sha256\": \"0c37a86b512dc9fadfafa1705ff49f4338ac82cec4e90daa2c8ec8432bb91db7\"\n    },\n    {\n      \"case\": \"full-public-synthetic-maps-long-invalid-token\",\n      \"exception\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: unable to establish actual loaded file identity\",\n        [\n          \"ValueError\",\n          \"invalid literal for int() with base 16: b'000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\"\n        ]\n      ],\n      \"source_sha256\": \"cb0661c187c291f2e615d404d90b643aa04736515d673a74f8a1a4e45a2cd4f8\"\n    },\n    {\n      \"case\": \"full-public-synthetic-maps-actual-decimal-digit-limit\",\n      \"exception\": [\n        \"NativeMappingRejected\",\n        \"E_NATIVE_MAPPING: unable to establish actual loaded file identity\",\n        [\n          \"ValueError\",\n          \"Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits; use sys.set_int_max_str_digits() to increase the limit\"\n        ]\n      ],\n      \"source_sha256\": \"4c6c8fd0a3bb6e37e9b7ee8d2bdfdf15175f4bc17355e4bcb829405f5a7029ac\"\n    },\n    {\n      \"actual_digit_limit\": 4300,\n      \"case\": \"decimal-limit\"\n    },\n    {\n      \"case\": \"default-and-empty-selection\",\n      \"default_native_imports\": 0,\n      \"empty_selection_refused_without_fallback\": true\n    },\n    {\n      \"case\": \"real-loader\",\n      \"mapping\": {\n        \"basis\": \"actual entry address in kernel executable mapping of the sealed descriptor\",\n        \"device_major\": 0,\n        \"device_minor\": 1,\n        \"file_bytes\": 13096,\n        \"inode\": 33918,\n        \"schema\": \"hepta.native.loaded-symbol-identity.v1\",\n        \"seals\": 15,\n        \"serialized_evidence_is_authority\": false,\n        \"symbols\": {\n          \"entry\": {\n            \"file_offset\": 4096,\n            \"permissions\": \"r-xp\"\n          }\n        }\n      },\n      \"native_result\": 37\n    },\n    {\n      \"actual_inode\": 33919,\n      \"case\": \"unknown-and-final-readback\",\n      \"final_stat_drift_refused\": true,\n      \"unknown_refused_before_selection\": true\n    }\n  ],\n  \"scope\": \"ISOLATED_CURRENT_SOURCE_BOOTSTRAP_COMPONENT\",\n  \"source_and_compiler_unchanged\": true,\n  \"whole_stack_rewritten_in_hia\": false\n}\n"
+    },
+    "generated-fixed-point.log": {
+      "bytes": 1248,
+      "sha256": "43b66bc77d40fc23c2713f463e736bc06f0eca218449faf2c4bc000e2e453add",
+      "text": "native_mapping.hepta 49181\n{\"inventory\": \"docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json\", \"sha256\": \"16b43f52134976c4da60d4847bc238c74a8166785d0d65b4ea61c00a96fde4f7\"}\n{\"mode\": \"written\", \"path\": \"docs/HIA_SELFHOST_CORE_SUPPORT.json\", \"profile\": \"selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec\", \"source_files\": 966}\n{\"mode\": \"checked\", \"path\": \"docs/HIA_SELFHOST_CORE_SUPPORT.json\", \"profile\": \"selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec\", \"source_files\": 966}\n{\n  \"unchanged\": true,\n  \"before\": {\n    \"docs/HIA_SELFHOST_CORE_SUPPORT.json\": \"93bff825dd77137209119d02e936594d3ab8d69dcf3ddfbc78949227615a29af\",\n    \"docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json\": \"16b43f52134976c4da60d4847bc238c74a8166785d0d65b4ea61c00a96fde4f7\",\n    \"examples/hia_bootstrap/native_mapping.hepta\": \"0e12bd01eedb608144a8871c3ac7860cfb12b43ca73eb197bb900f303f60a56d\"\n  },\n  \"after\": {\n    \"docs/HIA_SELFHOST_CORE_SUPPORT.json\": \"93bff825dd77137209119d02e936594d3ab8d69dcf3ddfbc78949227615a29af\",\n    \"docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json\": \"16b43f52134976c4da60d4847bc238c74a8166785d0d65b4ea61c00a96fde4f7\",\n    \"examples/hia_bootstrap/native_mapping.hepta\": \"0e12bd01eedb608144a8871c3ac7860cfb12b43ca73eb197bb900f303f60a56d\"\n  }\n}\n"
+    },
+    "source-controls-r1.log": {
+      "bytes": 10184,
+      "sha256": "6306c0c5df56bcb643c895706c9424ec59cf2892733f2218f7e28b9d0186ec92",
+      "text": "test_actual_build_hook_uses_distinct_discovery_and_native_resource_paths (tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests.test_actual_build_hook_uses_distinct_discovery_and_native_resource_paths) ... ok\ntest_complete_source_binding_map_matches_each_actual_runtime_bridge (tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests.test_complete_source_binding_map_matches_each_actual_runtime_bridge) ... ok\ntest_every_actual_worker_asset_is_in_source_release_and_shared_identity (tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests.test_every_actual_worker_asset_is_in_source_release_and_shared_identity) ... ok\ntest_sdist_manifest_explicitly_preserves_every_agent_resource (tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests.test_sdist_manifest_explicitly_preserves_every_agent_resource) ... ok\ntest_source_builder_roles_remain_closed_and_compiler_data_remains_packaged (tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests.test_source_builder_roles_remain_closed_and_compiler_data_remains_packaged) ... ok\ntest_explicit_whole_package_copy_fixtures_cover_all_current_roles (tests.test_hia_installed_fixture_resources.InstalledFixtureRoleInventoryTests.test_explicit_whole_package_copy_fixtures_cover_all_current_roles) ... ok\ntest_allowlist_has_real_single_image_contracts_and_packaged_sources (tests.test_hia_worker_native_helpers.WorkerHelperSourceTests.test_allowlist_has_real_single_image_contracts_and_packaged_sources) ... ok\ntest_any_ambient_selector_and_incomplete_pair_refuse_and_restore (tests.test_hia_worker_native_helpers.WorkerHelperSourceTests.test_any_ambient_selector_and_incomplete_pair_refuse_and_restore) ... ok\ntest_empty_authority_selectors_refuse_before_ordinary_reference_or_effects (tests.test_hia_worker_native_helpers.WorkerHelperSourceTests.test_empty_authority_selectors_refuse_before_ordinary_reference_or_effects) ... ok\ntest_fork_cannot_reuse_parent_scope_or_release_its_owner (tests.test_hia_worker_native_helpers.WorkerHelperSourceTests.test_fork_cannot_reuse_parent_scope_or_release_its_owner) ... ok\ntest_patch_factory_view_identity_refuses_before_any_mapping (tests.test_hia_worker_native_helpers.WorkerHelperSourceTests.test_patch_factory_view_identity_refuses_before_any_mapping) ... ok\ntest_unselected_scope_refuses_new_image_and_restores_complete_environment (tests.test_hia_worker_native_helpers.WorkerHelperSourceTests.test_unselected_scope_refuses_new_image_and_restores_complete_environment) ... ok\ntest_unselected_scope_rejects_nested_and_foreign_thread_requests (tests.test_hia_worker_native_helpers.WorkerHelperSourceTests.test_unselected_scope_rejects_nested_and_foreign_thread_requests) ... ok\ntest_capacity_growth_preserves_workspace_and_core_byte_limits (tests.test_hia_selfhost_contract.SelfhostContractTests.test_capacity_growth_preserves_workspace_and_core_byte_limits) ... ok\ntest_changed_loader_or_broadened_support_cannot_reuse_the_contract (tests.test_hia_selfhost_contract.SelfhostContractTests.test_changed_loader_or_broadened_support_cannot_reuse_the_contract) ... ok\ntest_cold_output_refuses_existing_and_symbolic_paths_before_creating_artifacts (tests.test_hia_selfhost_contract.SelfhostContractTests.test_cold_output_refuses_existing_and_symbolic_paths_before_creating_artifacts) ... ok\ntest_contract_binds_support_and_complete_seed_source_closure (tests.test_hia_selfhost_contract.SelfhostContractTests.test_contract_binds_support_and_complete_seed_source_closure) ... ok\ntest_hosted_agent_discovery_resources_are_in_actual_source_identity (tests.test_hia_selfhost_contract.SelfhostContractTests.test_hosted_agent_discovery_resources_are_in_actual_source_identity) ... ok\ntest_release_freeze_inventory_covers_the_complete_selfhost_closure (tests.test_hia_selfhost_contract.SelfhostContractTests.test_release_freeze_inventory_covers_the_complete_selfhost_closure) ... ok\ntest_upgrade_refuses_an_unpinned_historical_image_before_execution (tests.test_hia_selfhost_contract.SelfhostContractTests.test_upgrade_refuses_an_unpinned_historical_image_before_execution) ... ok\ntest_boolean_equality_has_the_full_truth_table_and_input_dependent_programs (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_boolean_equality_has_the_full_truth_table_and_input_dependent_programs) ... ok\ntest_chain_fixtures_cover_six_chain_opcodes_without_general_signature_claims (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_chain_fixtures_cover_six_chain_opcodes_without_general_signature_claims) ... ok\ntest_checked_arithmetic_covers_width_boundaries_and_both_write_orders (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_checked_arithmetic_covers_width_boundaries_and_both_write_orders) ... ok\ntest_checked_casts_cover_all_pairs_and_narrowing_overflow_with_runtime_inputs (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_checked_casts_cover_all_pairs_and_narrowing_overflow_with_runtime_inputs) ... ok\ntest_every_supported_integer_opcode_and_width_has_independent_inputs (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_every_supported_integer_opcode_and_width_has_independent_inputs) ... ok\ntest_flat_native_fixtures_cover_all_flat_input_opcodes_and_observe_full_width (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_flat_native_fixtures_cover_all_flat_input_opcodes_and_observe_full_width) ... ok\ntest_independent_core_vm_agrees_with_scalar_buffer_and_boundary_oracles (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_independent_core_vm_agrees_with_scalar_buffer_and_boundary_oracles) ... ok\ntest_inventory_matches_supported_features_actual_hia_and_source_closure (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_inventory_matches_supported_features_actual_hia_and_source_closure) ... ok\ntest_language_inventory_does_not_claim_unavailable_whole_v8_or_formal_proof (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_language_inventory_does_not_claim_unavailable_whole_v8_or_formal_proof) ... ok\ntest_module_names_keep_core_identity_and_output_profile_boundaries (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_module_names_keep_core_identity_and_output_profile_boundaries) ... ok\ntest_owned_fixtures_cover_only_the_explicit_elf_extension (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_owned_fixtures_cover_only_the_explicit_elf_extension) ... ok\ntest_rejections_retain_invalid_core_and_valid_outside_profile_distinction (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_rejections_retain_invalid_core_and_valid_outside_profile_distinction) ... ok\ntest_select_covers_each_scalar_type_and_changing_inputs (tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests.test_select_covers_each_scalar_type_and_changing_inputs) ... ok\ntest_actual_failure_archive_runs_after_cold_failure_without_continuing_test_steps (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_actual_failure_archive_runs_after_cold_failure_without_continuing_test_steps) ... ok\ntest_actual_native_ci_requires_complete_nonempty_execution_and_zero_anomalies (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_actual_native_ci_requires_complete_nonempty_execution_and_zero_anomalies) ... ok\ntest_actual_native_ci_retains_original_applications_and_all_core_region_controls (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_actual_native_ci_retains_original_applications_and_all_core_region_controls) ... ok\ntest_actual_source_ci_requires_complete_nonempty_execution_and_zero_anomalies (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_actual_source_ci_requires_complete_nonempty_execution_and_zero_anomalies) ... ok\ntest_actual_source_generator_shell_refuses_mutation_and_first_failed_generator (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_actual_source_generator_shell_refuses_mutation_and_first_failed_generator) ... ok\ntest_candidate_budget_ci_requires_complete_bundle_composition_and_zero_anomalies (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_candidate_budget_ci_requires_complete_bundle_composition_and_zero_anomalies) ... ok\ntest_complete_nominal_ci_retains_every_native_owner_and_rejects_incomplete_runs (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_complete_nominal_ci_retains_every_native_owner_and_rejects_incomplete_runs) ... ok\ntest_execution_budget_ci_requires_both_journals_and_zero_anomalies (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_execution_budget_ci_requires_both_journals_and_zero_anomalies) ... ok\ntest_journal_ci_requires_complete_nonempty_execution_and_zero_anomalies (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_journal_ci_requires_complete_nonempty_execution_and_zero_anomalies) ... ok\ntest_release_install_ci_requires_complete_nonempty_execution_and_zero_anomalies (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_release_install_ci_requires_complete_nonempty_execution_and_zero_anomalies) ... ok\ntest_retirement_ci_requires_complete_execution_and_zero_anomalies (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_retirement_ci_requires_complete_execution_and_zero_anomalies) ... ok\ntest_worker_helper_ci_requires_cold_composition_and_zero_anomalies (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_worker_helper_ci_requires_cold_composition_and_zero_anomalies) ... ok\ntest_worker_request_ci_requires_complete_nonempty_execution_and_zero_anomalies (tests.test_hia_integrated_workflow.CoreWorkflowContractTests.test_worker_request_ci_requires_complete_nonempty_execution_and_zero_anomalies) ... ok\ntest_missing_descriptor_or_symbol_evidence_rejects (tests.test_hia_native_mapping_identity.LoadedMappingInputTests.test_missing_descriptor_or_symbol_evidence_rejects) ... ok\n\n----------------------------------------------------------------------\nRan 47 tests in 41.785s\n\nOK\n"
+    }
+  },
+  "original_review": {
+    "actualCold": false,
+    "all_input_equivalence_proved": false,
+    "base_commit": "c4e83a14e47217a27d8d0f112c484b30315d9f68",
+    "candidate_tree": "0d31788532f2489a26944c3976998731e61ede11",
+    "changed_files": [
+      {
+        "bytes": 52784,
+        "change": "modified",
+        "path": ".github/workflows/hia-core.yml",
+        "sha256": "505f39d94f5f79ce83d13a622fb5a146b7238030be5f6dba9b5d89a06e6ede2b"
+      },
+      {
+        "bytes": 8305,
+        "change": "modified",
+        "path": "MANIFEST.in",
+        "sha256": "66a58477c170518ea87a7787e8643afe78f9e253e82531bbe83ef6ec8433075a"
+      },
+      {
+        "bytes": 8755,
+        "change": "modified",
+        "path": "docs/HIA_NATIVE_HELPER_WORKER.md",
+        "sha256": "d7f868516b5d918c3ba5b5954d18ff17a4e293018486054a529a619683aa1fd8"
+      },
+      {
+        "bytes": 180293,
+        "change": "modified",
+        "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+        "sha256": "93bff825dd77137209119d02e936594d3ab8d69dcf3ddfbc78949227615a29af"
+      },
+      {
+        "bytes": 176641,
+        "change": "modified",
+        "path": "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json",
+        "sha256": "16b43f52134976c4da60d4847bc238c74a8166785d0d65b4ea61c00a96fde4f7"
+      },
+      {
+        "bytes": 49181,
+        "change": "added",
+        "path": "examples/hia_bootstrap/native_mapping.hepta",
+        "sha256": "0e12bd01eedb608144a8871c3ac7860cfb12b43ca73eb197bb900f303f60a56d"
+      },
+      {
+        "bytes": 24822,
+        "change": "modified",
+        "path": "hepta/hia_agent_contract.py",
+        "sha256": "1fbe9faa7f48dc6ae0f4a267df3d0a06b9182b4f983a13483306f2bf2a893650"
+      },
+      {
+        "bytes": 17850,
+        "change": "modified",
+        "path": "hepta/hia_native_helpers.py",
+        "sha256": "888b43039c8e855e1b74ab46d9fab1291978dda07ca63b79e107dc4ddede0485"
+      },
+      {
+        "bytes": 7779,
+        "change": "modified",
+        "path": "hepta/hia_worker_bundle.py",
+        "sha256": "03a1cd5f495304c57748343b10f20aa4f186f929e7582af7f89f24f2c0e9550e"
+      },
+      {
+        "bytes": 6300,
+        "change": "modified",
+        "path": "hepta/native_mapping_identity.py",
+        "sha256": "afc30eed4251825e119a2dd82e73f92cd21ecc3d967caae00327132e6b2250c6"
+      },
+      {
+        "bytes": 5672,
+        "change": "added",
+        "path": "hepta/native_mapping_native.py",
+        "sha256": "cea1d0fc78d5b21698c5e47055a961a5a845ff2b3f0835031356bd451acef7e2"
+      },
+      {
+        "bytes": 5583,
+        "change": "added",
+        "path": "tests/fixtures/native_mapping_identity_539c1c04.py.txt",
+        "sha256": "e85114ea20081dc97ccca299e80a954c3c2165de63d22b776948a1c4001ff010"
+      },
+      {
+        "bytes": 44132,
+        "change": "modified",
+        "path": "tests/test_hia_agent_installed_resources.py",
+        "sha256": "07b8516513d6d9aa9e3a292053e366986879988307b418489a7f7a887b0be595"
+      },
+      {
+        "bytes": 37435,
+        "change": "added",
+        "path": "tests/test_hia_native_mapping_native.py",
+        "sha256": "5574e8b3b067df5d5df9576d3ead7da5692dd71eaf451c86bc310075df48ac7a"
+      },
+      {
+        "bytes": 66049,
+        "change": "modified",
+        "path": "tests/test_hia_worker_native_helpers.py",
+        "sha256": "bdca2783da2ac5fd165ec536e3aca3a12e7a1ad30261b2120e6c7565bf420107"
+      },
+      {
+        "bytes": 4162,
+        "change": "added",
+        "path": "tools/build_hia_native_mapping.py",
+        "sha256": "80cf97bafdc7e307693997392d17426621a4dd1a3e629618d5cedab551ff3bfb"
+      },
+      {
+        "bytes": 8241,
+        "change": "added",
+        "path": "tools/generate_hia_native_mapping.py",
+        "sha256": "52a81b045a35ec5838f7f178ce88f0ab7b37022268f40a03436d46fdcf4ac655"
+      },
+      {
+        "bytes": 113625,
+        "change": "modified",
+        "path": "tools/hia_selfhost_contract.py",
+        "sha256": "faabba70749836f62af005ceb3fa351908910f67ffa6718df388368e874021a5"
+      }
+    ],
+    "date_utc": "2026-11-13",
+    "evidence_files": [
+      {
+        "bytes": 77953,
+        "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r6/candidate/source-before.json",
+        "sha256": "51e1fcc641b12579f00411d05ea092211449521748f39b58ad5a860f7cee053d"
+      },
+      {
+        "bytes": 7687,
+        "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r6/candidate/independent-reference.json",
+        "sha256": "a16e5ad938d55e9784df4f281c221c816fae91a8353777394f3abfed547caa3b"
+      },
+      {
+        "bytes": 13993,
+        "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r6/candidate/observations.json",
+        "sha256": "d3efc0b48ed11436bd450ff7034d500ad5a776595975a878150aca327b04f9d9"
+      },
+      {
+        "bytes": 3446,
+        "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r6/candidate/build/build.json",
+        "sha256": "ae01c783d19de7cecdc38b2c52d41b701f5be9dc5fab470d6b4ce3ec6898ca8c"
+      },
+      {
+        "bytes": 359,
+        "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r6/candidate/build/manifest.json",
+        "sha256": "d345fe3e21a9479c15505e1cf085ee836d6393ce31c6b4afce3b2548842a31b5"
+      },
+      {
+        "bytes": 673413,
+        "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r6/candidate/B1.image.bin",
+        "sha256": "bfd603dd2b40974d2083b567b4295fb3975938da8435dd636514fc197c485de0"
+      },
+      {
+        "bytes": 81362,
+        "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r6/candidate/build/native-mapping.image.bin",
+        "sha256": "6654f0f2374f1f00c3f21a9533119ebd7d353f8a54f7a0d2c439af3b0d6c2a88"
+      },
+      {
+        "bytes": 902,
+        "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r6/candidate/installed-mapping/installed.stdout.bin",
+        "sha256": "81aa4c40ed7bc2e26933aedbeadb136fe5d05089f9e4bcb5884dd669840f0586"
+      },
+      {
+        "bytes": 0,
+        "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r6/candidate/installed-mapping/installed.stderr.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "final_source_controls": {
+      "elapsed_seconds": 41.785,
+      "raw_log": {
+        "bytes": 10184,
+        "path": "/workspace/scratch/37204f9845e5/native-mapping-review/source-controls-r1.log",
+        "sha256": "6306c0c5df56bcb643c895706c9424ec59cf2892733f2218f7e28b9d0186ec92"
+      },
+      "result": "PASS",
+      "skips": 0,
+      "tests_run": 47
+    },
+    "finite_controls": {
+      "actual_compiler_receipt_mutations_refused_before_manifest": [
+        "result_u64",
+        "image_sha256",
+        "source_sha256",
+        "output_sha256"
+      ],
+      "actual_installed_wheel_result": 47,
+      "actual_operator_pinned_scope_result": 49,
+      "foreign_thread_and_changed_selection_refused": true,
+      "full_public_first_failure_and_exception_cause_cases": 12,
+      "independent_VM_and_native_complete_output_and_workspace_cases": 24,
+      "malformed_actual_native_ABI_fixtures": 3,
+      "maximum_maps_control_symbols": 1,
+      "maximum_symbol_control_symbols": 128,
+      "missing_maps_and_final_fstat_change": "controlled foreign observation failures, with real sealed descriptor and function address",
+      "real_kernel_fd_reuse_and_retained_loader_refused": true,
+      "warm_installed_source_change_and_removal_refused": true
+    },
+    "fixed_point": {
+      "raw_log": {
+        "bytes": 1248,
+        "path": "/workspace/scratch/37204f9845e5/native-mapping-review/generated-fixed-point.log",
+        "sha256": "43b66bc77d40fc23c2713f463e736bc06f0eca218449faf2c4bc000e2e453add"
+      },
+      "unchanged": true
+    },
+    "original_reference": {
+      "frozen_path": "tests/fixtures/native_mapping_identity_539c1c04.py.txt",
+      "git_blob": "539c1c045803e185e925f48d7e9f2b816ea1dccd",
+      "git_commit": "a733926a2786a3d4a37304bd2d18ebb2eac57ac9",
+      "sha256": "e85114ea20081dc97ccca299e80a954c3c2165de63d22b776948a1c4001ff010"
+    },
+    "patch": {
+      "bytes": 154454,
+      "path": "/workspace/scratch/37204f9845e5/native-mapping-review/native-mapping-c4-candidate.patch",
+      "sha256": "3795c201323a412ea7ddb0d4b078414da28c616b96cfc957a180f81218b3dd05"
+    },
+    "patch_check": "git apply --check --cached against c4 in an isolated temporary index; candidate tree computed without committing",
+    "pending_CI_only": {
+      "cold_deadlines_changed": false,
+      "declared_original_tests": 14,
+      "local_original_Clang_gate_executed": false,
+      "matching_source_cold_executed": false,
+      "original_caller_modules": [
+        "tests.test_hia_native_mapping_identity",
+        "tests.test_hia_multiversion_mapping",
+        "tests.test_hia_host_region"
+      ]
+    },
+    "policy_profile": {
+      "blocks": 202,
+      "functions": 9,
+      "instructions": 653,
+      "maximum_maps_bytes": 16777216,
+      "maximum_response_bytes": 1040,
+      "maximum_symbols": 128,
+      "source_bytes": 49181,
+      "workspace_bytes": 8192
+    },
+    "prior_c4_or_d994_cold_is_not_authority_for_this_tree": true,
+    "qualification_scope": "ISOLATED_CURRENT_SOURCE_BOOTSTRAP_COMPONENT",
+    "raw_logs_remain_outside_repository": true,
+    "raw_review_directory": "/workspace/scratch/37204f9845e5/native-mapping-review",
+    "retained_hosted_boundaries": [
+      "public Python objects and type admission",
+      "actual ctypes addresses",
+      "fstat and fcntl seals",
+      "bounded kernel maps capture and final readback",
+      "source-bound selection and anonymous executable loader",
+      "single failed-token int/decode exception construction",
+      "ordinary dynamic loader and generation/lease lifecycle"
+    ],
+    "rounds": [
+      {
+        "actualCold": false,
+        "changed_owner_inputs": {
+          "examples/hia_bootstrap/native_mapping.hepta": "b302500190c6ac47c45c61c6054c7767145e820b0cd2438977c6c1fc5d829619",
+          "hepta/native_mapping_identity.py": "2def8e739d651d1d2d91b993780358a03a6a7e1f36f31351578fd95ed7b0db84",
+          "hepta/native_mapping_native.py": "757e878ced4de9a193b0da36f530184413ef11d0eea3dc16011d1dfaf4f0dc75",
+          "tests/test_hia_native_mapping_native.py": "9698627465da271520f0488ca740042d8d1dd5e5129ef3070c14b7034fbf3416",
+          "tools/build_hia_native_mapping.py": "80cf97bafdc7e307693997392d17426621a4dd1a3e629618d5cedab551ff3bfb",
+          "tools/generate_hia_native_mapping.py": "a76ec9df93da911be7c127a8fe164a37c3240c8c878329e9f8dd9678036649ab"
+        },
+        "elapsed_seconds": 2.77,
+        "errors": 1,
+        "raw_log": {
+          "bytes": 4019,
+          "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r1.log",
+          "sha256": "0ad3e3a08e1c959be49b684b8648b61e30a5a57703ad9003a4f9ba40713c29ad"
+        },
+        "result": "FAIL",
+        "round": "R1",
+        "source_before": {
+          "bytes": 59984,
+          "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r1/candidate/source-before.json",
+          "sha256": "4a65952d42f8d5b7c05c4f4d23587543287ac4e2112ab37965b2cdb81202f955"
+        },
+        "source_change_and_scope": "Independent VM/original comparison detected expected-inode variable shadowing introduced while extracting the Python reference. Two inode subcases failed and native setUpClass refused before building a compiler.",
+        "source_files": 557,
+        "subtest_failures": 2,
+        "tests_run": 4
+      },
+      {
+        "actualCold": false,
+        "elapsed_seconds": null,
+        "errors": 1,
+        "raw_log": {
+          "bytes": 1267,
+          "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r2.log",
+          "sha256": "c3e97fd14757858c7103f343e8383dedad0d2cce4a7a8644124eda534b9bd412"
+        },
+        "result": "DISCOVERY_ERROR",
+        "round": "R2",
+        "source_before": null,
+        "source_change_and_scope": "The reference repair temporarily had an indentation error. Unittest could not import the module; no test body or native component ran, and no source-before snapshot was produced.",
+        "subtest_failures": 0,
+        "tests_run": 0
+      },
+      {
+        "actualCold": false,
+        "changed_owner_inputs": {
+          "examples/hia_bootstrap/native_mapping.hepta": "b302500190c6ac47c45c61c6054c7767145e820b0cd2438977c6c1fc5d829619",
+          "hepta/native_mapping_identity.py": "d507ac94da24fb65fc2faefab6ec5631651338df75a8a8c80f8edfd8340e4e99",
+          "hepta/native_mapping_native.py": "757e878ced4de9a193b0da36f530184413ef11d0eea3dc16011d1dfaf4f0dc75",
+          "tests/test_hia_native_mapping_native.py": "26cf80c18845951f7792e054b0629106fed26b56be25518bf9f278f0b09ee448",
+          "tools/build_hia_native_mapping.py": "80cf97bafdc7e307693997392d17426621a4dd1a3e629618d5cedab551ff3bfb",
+          "tools/generate_hia_native_mapping.py": "a76ec9df93da911be7c127a8fe164a37c3240c8c878329e9f8dd9678036649ab"
+        },
+        "elapsed_seconds": 9.532,
+        "errors": 0,
+        "raw_log": {
+          "bytes": 1857,
+          "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r3.log",
+          "sha256": "c147f70edab5d8ee979cb1c44304f3893d935e27d14cc8dada10e2a63612f2a1"
+        },
+        "result": "PASS",
+        "round": "R3",
+        "source_before": {
+          "bytes": 59984,
+          "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r3/candidate/source-before.json",
+          "sha256": "8ac271d97516e8c8832977fbc328393d2330dd4b28213a62149318e8c0444e31"
+        },
+        "source_change_and_scope": "Corrected expected_inode extraction and indentation. Actual current-source B0/B1, original/VM/native controls and real sealed loader executed.",
+        "source_files": 557,
+        "subtest_failures": 0,
+        "tests_run": 9
+      },
+      {
+        "actualCold": false,
+        "changed_owner_inputs": {
+          "examples/hia_bootstrap/native_mapping.hepta": "b302500190c6ac47c45c61c6054c7767145e820b0cd2438977c6c1fc5d829619",
+          "hepta/native_mapping_identity.py": "d507ac94da24fb65fc2faefab6ec5631651338df75a8a8c80f8edfd8340e4e99",
+          "hepta/native_mapping_native.py": "757e878ced4de9a193b0da36f530184413ef11d0eea3dc16011d1dfaf4f0dc75",
+          "tests/test_hia_native_mapping_native.py": "ad56ce94e143068ff5231d1bd6e33c516c0dc09e7632670ee7a1dcb9d0435602",
+          "tools/build_hia_native_mapping.py": "80cf97bafdc7e307693997392d17426621a4dd1a3e629618d5cedab551ff3bfb",
+          "tools/generate_hia_native_mapping.py": "a76ec9df93da911be7c127a8fe164a37c3240c8c878329e9f8dd9678036649ab"
+        },
+        "elapsed_seconds": 9.764,
+        "errors": 0,
+        "raw_log": {
+          "bytes": 2525,
+          "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r4.log",
+          "sha256": "bba9c8f4664b1628191d9d0a64e22036b4021c5db711efebeda0ffe33fbe9975"
+        },
+        "result": "PASS",
+        "round": "R4",
+        "source_before": {
+          "bytes": 59984,
+          "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r4/candidate/source-before.json",
+          "sha256": "591aedf1dad9d434a5be804edb3987ea022bb82561ff8e5faad9897beef2d8ad"
+        },
+        "source_change_and_scope": "Added real numeric-fd reuse, loader retention, missing kernel evidence, final readback drift and actual compiler receipt refusal controls.",
+        "source_files": 557,
+        "subtest_failures": 0,
+        "tests_run": 12
+      },
+      {
+        "actualCold": false,
+        "changed_owner_inputs": {
+          "examples/hia_bootstrap/native_mapping.hepta": "0e12bd01eedb608144a8871c3ac7860cfb12b43ca73eb197bb900f303f60a56d",
+          "hepta/native_mapping_identity.py": "afc30eed4251825e119a2dd82e73f92cd21ecc3d967caae00327132e6b2250c6",
+          "hepta/native_mapping_native.py": "cea1d0fc78d5b21698c5e47055a961a5a845ff2b3f0835031356bd451acef7e2",
+          "tests/test_hia_native_mapping_native.py": "687a0c6b6de07428f9742c51acbff8fb46e33a96260423b22441a45620b3b31f",
+          "tools/build_hia_native_mapping.py": "80cf97bafdc7e307693997392d17426621a4dd1a3e629618d5cedab551ff3bfb",
+          "tools/generate_hia_native_mapping.py": "52a81b045a35ec5838f7f178ce88f0ab7b37022268f40a03436d46fdcf4ac655"
+        },
+        "elapsed_seconds": 13.608,
+        "errors": 0,
+        "raw_log": {
+          "bytes": 2946,
+          "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r5.log",
+          "sha256": "3d28912ff51597dec079791b7ba4543334317682f1ca2600742297e4900fe6ce"
+        },
+        "result": "PASS",
+        "round": "R5",
+        "source_before": {
+          "bytes": 59984,
+          "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r5/candidate/source-before.json",
+          "sha256": "d942c7f55dd3c3856bcc17bcbce8899a2249d01c8da973f6efecf34c32a508a0"
+        },
+        "source_change_and_scope": "Changed HIA diagnostics to return the first failing token span and retained host int/decode exception causes. Changed default route to lazy import only when its selector is present; tested empty selection refusal.",
+        "source_files": 557,
+        "subtest_failures": 0,
+        "tests_run": 14
+      },
+      {
+        "actualCold": false,
+        "changed_owner_inputs": {
+          "examples/hia_bootstrap/native_mapping.hepta": "0e12bd01eedb608144a8871c3ac7860cfb12b43ca73eb197bb900f303f60a56d",
+          "hepta/native_mapping_identity.py": "afc30eed4251825e119a2dd82e73f92cd21ecc3d967caae00327132e6b2250c6",
+          "hepta/native_mapping_native.py": "cea1d0fc78d5b21698c5e47055a961a5a845ff2b3f0835031356bd451acef7e2",
+          "tests/test_hia_native_mapping_native.py": "5574e8b3b067df5d5df9576d3ead7da5692dd71eaf451c86bc310075df48ac7a",
+          "tools/build_hia_native_mapping.py": "80cf97bafdc7e307693997392d17426621a4dd1a3e629618d5cedab551ff3bfb",
+          "tools/generate_hia_native_mapping.py": "52a81b045a35ec5838f7f178ce88f0ab7b37022268f40a03436d46fdcf4ac655"
+        },
+        "elapsed_seconds": 20.916,
+        "errors": 0,
+        "raw_log": {
+          "bytes": 3382,
+          "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r6.log",
+          "sha256": "d7799cdfb250b61da96c2f7063dcc7d55006a7a7cb391c0d1afb39209f72852d"
+        },
+        "result": "PASS",
+        "round": "R6",
+        "source_before": {
+          "bytes": 77953,
+          "path": "/workspace/scratch/37204f9845e5/native-mapping-review/component-r6/candidate/source-before.json",
+          "sha256": "51e1fcc641b12579f00411d05ea092211449521748f39b58ad5a860f7cee053d"
+        },
+        "source_change_and_scope": "Added packaged source, installed source resolver, registered pinned-helper owner, source contract and CI wiring. Added actual sdist/wheel/isolated-installed execution and pinned process/thread/selection controls. HIA policy, public mapping adapter and builder bytes are the same as R5.",
+        "source_files": 709,
+        "subtest_failures": 0,
+        "tests_run": 16
+      }
+    ],
+    "schema": "hepta.hia.native-mapping-development-review.v1",
+    "source_and_compiler_readback_unchanged": true,
+    "status": "ACTUAL_NATIVE_COMPONENT_AND_SOURCE_CONTROLS_PASS_NOT_MATCHING_COLD",
+    "whole_stack_rewritten_in_hia": false
+  },
+  "original_review_bytes": 18575,
+  "original_review_sha256": "c426d3ccb63c44e176b8b7d86a45a2a808692854ac57eb923e5ac56599dcc77f",
+  "raw_machine_outputs_retained_in_development_directory": true,
+  "schema": "hepta.hia.native-mapping-integration-evidence.v1",
+  "scope": "DEVELOPMENT_COMPONENT_AND_SOURCE_CONTROLS_NOT_MATCHING_COLD",
+  "whole_native_delivery_qualified": false
+}

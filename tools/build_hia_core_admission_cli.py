@@ -17,6 +17,7 @@ if __package__ in {None, ''}:
 
 from tools.build_hia_core_admission import build as build_kernel
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.build_hia_source_build import _check_pack_output
 from tools.generate_hia_core_admission_cli import MAGIC
 from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
 from tools.qualify_hia_selfhost import compile_stage, invoke
@@ -49,12 +50,9 @@ def build(output, compiler, cold_report):
     assert sha256(application).hexdigest() == metadata['image_sha256']
     packer, compiled = compile_stage(output, 'core-admission-cli-packer', compiler, pins[PACKER])
     packer_raw = packer.read_bytes()
-    packed, arena = invoke(output, 'core-admission-cli-pack', packer,
-                           struct.pack('<QQ', MAGIC, len(application)) + application)
-    size = packed['core_u32']
-    if not 0 < size <= 1 << 20:
-        raise ValueError('complete Core native CLI packer refused image')
-    executable = arena[:size]
+    frame = struct.pack('<QQ', MAGIC, len(application)) + application
+    packed, arena = invoke(output, 'core-admission-cli-pack', packer, frame)
+    executable = _check_pack_output(packed, arena, artifact=packer_raw, source=frame)
     inspection = inspect_executable(executable)
     if (any(p.read_bytes() != raw for p, raw in pins.items()) or image.read_bytes() != application
             or packer.read_bytes() != packer_raw or manifest.read_bytes() != manifest_raw
