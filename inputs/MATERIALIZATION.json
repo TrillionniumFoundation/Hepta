@@ -944,6 +944,13 @@
       "path": "tools/qualify_hia_linux_stdio.py",
       "to": "7cedc462f1489f9d0910345b3ac4b59d6e8d9715",
       "to_packet": "exact-portable-fixture-source-pin-r7-r3"
+    },
+    {
+      "from": "7c4da0934d1a2ca43d892a2875e1b8ae1fef2d63",
+      "from_packet": "linux-stdio-cli-json-and-release-protocol-r7-00",
+      "path": ".github/workflows/hia-core.yml",
+      "to": "5299289feee6f2c8a1edbcd648e8a74ee8fcbcbb",
+      "to_packet": "source-portable-packaging-dependencies-r7-r4"
     }
   ],
   "asset_references": [
@@ -1813,6 +1820,14 @@
       "label": "exact-portable-fixture-source-pin-r7-r3",
       "layout": "array-after",
       "sha256": "33876877fb6e602e92a5475685c8e302dfac18faa4d7d0c3d99d49c006452823"
+    },
+    {
+      "blob": "ca078f6e54aa38e349039838cd13faa3fb13194e",
+      "bytes": 114633,
+      "files": 1,
+      "label": "source-portable-packaging-dependencies-r7-r4",
+      "layout": "array-after",
+      "sha256": "7097b27c5e496366a64a4d9e669b948a8ab9ca29fedf435c200348e04d82a4a7"
     }
   ],
   "physical_migration": [
@@ -2390,6 +2405,32 @@
       "@EVIDENCE@/checks/checker-before-generators.json"
     ]
   ],
+  "prior_formal_source_failure_r7_r3": {
+    "errors": 0,
+    "failures": 1,
+    "job": 131945306793,
+    "manifest": "0a27a5a3cf508cec7671d8210916174673d71fdd",
+    "original_source_seconds": 1800,
+    "packaging_child_reached": "sdist",
+    "passed": 1273,
+    "qualification_inherited": false,
+    "result": {
+      "bytes": 948644,
+      "git_blob": "5c7e0f2bbc2d91c92bfa9657a55e63077d8831ee",
+      "mode": "100644",
+      "sha256": "e6c5891ca7b2fc3fdec6aa330f75173db98690296bf80e502d9bda9ede137782"
+    },
+    "run": 43443042808,
+    "skipped": 0,
+    "sole_failure": {
+      "id": "tests.test_hia_linux_stdio_cold.LinuxStdioPortableSourceTests.test_actual_sdist_wheel_installed_lookup_and_missing_resource_refusal",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/hia-combined-source-v89-r7-r3/repository/tests/test_hia_linux_stdio_cold.py\", line 382, in test_actual_sdist_wheel_installed_lookup_and_missing_resource_refusal\n    run('sdist', ['setup.py', 'sdist', '--dist-dir', folder / 'sdist'])\n    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/hia-combined-source-v89-r7-r3/repository/tests/test_hia_linux_stdio_cold.py\", line 380, in run\n    self.assertEqual(result.returncode, 0, (name, result.stderr[-4000:].decode(errors='replace')))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 0 : ('sdist', 'Traceback (most recent call last):\\n  File \"/home/runner/work/_temp/hia-combined-source-v89-r7-r3/evidence/raw/checks/hia-linux-stdio-source/source/setup.py\", line 9, in <module>\\n    from setuptools import setup\\nModuleNotFoundError: No module named \\'setuptools\\'\\n')\n"
+    },
+    "source_tree": "2fe9e265beb6a9c55296530bea0623ee9b9c67ef",
+    "tests_run": 1274,
+    "wall_seconds": 1371.250084404,
+    "wheel_and_installed_checks_not_reached": true
+  },
   "prior_local_generation": {
     "capsule_manifest": "20bff490ba958baf9f798ed69c4f9c0b5076b530",
     "native_qualification": false,
@@ -2782,6 +2823,21 @@
     "path": "tools/qualify_hia_linux_stdio.py",
     "qualification_inherited": false,
     "source_tests_expected": 1274,
+    "whole_native": false
+  },
+  "r7_r4_exact_repair": {
+    "native_workflow_byte_identical": true,
+    "packet": {
+      "blob": "ca078f6e54aa38e349039838cd13faa3fb13194e",
+      "bytes": 114633,
+      "files": 1,
+      "label": "source-portable-packaging-dependencies-r7-r4",
+      "layout": "array-after",
+      "sha256": "7097b27c5e496366a64a4d9e669b948a8ab9ca29fedf435c200348e04d82a4a7"
+    },
+    "path": ".github/workflows/hia-core.yml",
+    "source_tests_expected": 1274,
+    "test_files_changed": 0,
     "whole_native": false
   },
   "regeneration_seeds": [
@@ -4044,6 +4100,53 @@
     ]
   ],
   "schema": "hepta.fixed-whole-source-materialization.v1",
+  "source_archive_capture_r13": {
+    "actual_counterexample": {
+      "content": {
+        "bytes": 220,
+        "git_blob": "47bb1dcde2bffc228ed38a65118b9bd531378def",
+        "mode": "100644",
+        "sha256": "dd1ca28879015a2b7674ca50e3f6384523df001851a14dacb451b98df6b926fc"
+      },
+      "mode": 493,
+      "path": "/workspace/scratch/dda74a4fae35/v89-union-r7-r2/registration-controls-r1/evidence/raw/hia-linux-stdio-source/installed/bin/hia"
+    },
+    "actual_file_and_directory_permission_bits_preserved": true,
+    "changed_function_only": "persist_evidence",
+    "driver": {
+      "bytes": 53668,
+      "git_blob": "c3d1d71fb12d88723bcc3392b9f7091da387e472",
+      "mode": "100644",
+      "sha256": "c373bee67242a9e9557dd17debe9f71f77ff75597f4cdd70f026533bc300b23a"
+    },
+    "links_and_special_files_refused": true,
+    "new_manifest_schema": "hepta.combined-source-build-evidence.v2",
+    "old_archive_mode": 420,
+    "prior_driver": {
+      "bytes": 52026,
+      "git_blob": "b02abdfd989cb0e20d6780739350233cdc69339e",
+      "mode": "100644",
+      "sha256": "105744bdaeed6cd876de7f28b625b6ea0f189a334349dcdaa80ad38ee4b29fa5"
+    },
+    "product_materialization_and_generation_bytes_unchanged": true,
+    "root_permission_bits_recorded": true,
+    "schema": "hia.evidence-permission-capture-r13.v1",
+    "source_gate_runner_and_budgets_unchanged": true,
+    "status": "AUTHORED_PENDING_ARCHIVE_CONTROLS",
+    "uid_gid_and_mtime_normalized_explicitly": true,
+    "whole_native": false
+  },
+  "source_archive_capture_r13_controls": {
+    "actual_product_execution": false,
+    "cases": 9,
+    "does_not_qualify_source_or_native": true,
+    "result": {
+      "bytes": 2870,
+      "git_blob": "0a8f41f36b98847f474e969518a3a7192f41c77b",
+      "mode": "100644",
+      "sha256": "52651edc062659963ea25a440b6deb72fea844ba46b81d763601d221668a0df2"
+    }
+  },
   "source_contract": {
     "declared_paths": 1279,
     "profile": "selfhost-core-linux-x86_64-v93-merged-native-development-pending"
@@ -4386,11 +4489,11 @@
       }
     ],
     "after_fragment": {
-      "blob": "8542a02e0d2a854acf892f28b103bebac9c5577b",
-      "bytes": 21670,
-      "git_blob": "8542a02e0d2a854acf892f28b103bebac9c5577b",
+      "blob": "eb9229044ca73e900a985fa60cecaa862c8f4597",
+      "bytes": 21822,
+      "git_blob": "eb9229044ca73e900a985fa60cecaa862c8f4597",
       "mode": "100644",
-      "sha256": "f2fd2c8eb340ed1ba6f42bcb5d4301684616026f896b7611e4b83065dcdc2ab5"
+      "sha256": "5d7c573a93de7b96383698d31151d8af5f3b8d9df403c12ad4c03c890869c146"
     },
     "authored_counts": {
       "actual_executed_tests": null,
@@ -4754,7 +4857,8 @@
       "R6 repairs ten exact registration assertions and two real external-provider rows. All 1224 original R5 IDs remain; no failure is removed or relabeled and no budget changes.",
       "R7 appends Linux public18/cold17/portable1 and CLI JSON Source12, plus a strict release producer/consumer protocol regression. Every original R6 Source method remains; all real counts require fresh discovery/execution.",
       "R7 R2 retains both real R1 local failures. Whole-tree checks explicitly verify the five Linux stdio fixture paths under the existing profile; unregistered extensions still fail. The portable fixture now verifies every resource role and all actual sdist/wheel/installed bytes. One new Source suffix method raises expected complete discovery to 1274; no old method is removed.",
-      "R7 R3 retains the real R2 46 PASS / 1 ERROR result and changes one exact frozen test-file SHA256 to match the reviewed complete-resource fixture. All five byte guards, original 69 ordered IDs, every function/class AST and all 1274 Source IDs remain unchanged."
+      "R7 R3 retains the real R2 46 PASS / 1 ERROR result and changes one exact frozen test-file SHA256 to match the reviewed complete-resource fixture. All five byte guards, original 69 ordered IDs, every function/class AST and all 1274 Source IDs remain unchanged.",
+      "R7 R4 adds a separate Source packaging dependency step using the exact existing Native pins setuptools==78.1.1 and wheel==0.46.3 after the actual formal R3 portable sdist failure. Original jsonschema step, 1274 test IDs, every test byte, 224 selectors, 116 generators, source budgets and the entire Native job are unchanged."
     ],
     "original_source_blocks": {
       "a733": {
@@ -4791,6 +4895,13 @@
       "git_blob": "ecc86cdcaf592d5b1dec6a11c13eaf4966aae63d",
       "mode": "100644",
       "sha256": "6c3050cd5b15f576e4c0b889b25c143de2bdaa46b67d70efb7bac9112ffb0641"
+    },
+    "prior_after_fragment_r7_r3": {
+      "blob": "8542a02e0d2a854acf892f28b103bebac9c5577b",
+      "bytes": 21670,
+      "git_blob": "8542a02e0d2a854acf892f28b103bebac9c5577b",
+      "mode": "100644",
+      "sha256": "f2fd2c8eb340ed1ba6f42bcb5d4301684616026f896b7611e4b83065dcdc2ab5"
     },
     "prior_immutable_packet": "576b200ea09f193487848eaa8442df0d532c4b91",
     "prior_required_support_actions_r5": [

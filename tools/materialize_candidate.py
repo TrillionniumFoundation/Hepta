@@ -724,20 +724,44 @@ def prepare_candidate_tree(capture, inputs, original_trees, tree_sha, source_pas
 
 def persist_evidence(capture, result):
     capture.json("RESULT.json", result)
+    def stable(info):
+        return (info.st_dev, info.st_ino, info.st_mode, info.st_size,
+                info.st_mtime_ns, info.st_ctime_ns)
+    root_info = capture.raw.lstat()
+    check(stat.S_ISDIR(root_info.st_mode), "evidence root must remain an ordinary directory")
+    paths = sorted(capture.raw.rglob("*"))
+    snapshots = {path: path.lstat() for path in paths}
+    check(all(stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode)
+              for info in snapshots.values()), "nonregular evidence cannot be silently followed or omitted")
     buffer = io.BytesIO()
-    members = []
+    members, directories = [], []
     with tarfile.open(fileobj=buffer, mode="w", format=tarfile.PAX_FORMAT) as archive:
-        for path in sorted(capture.raw.rglob("*")):
-            if not path.is_file():
+        for path in paths:
+            original = snapshots[path]
+            relative = path.relative_to(capture.raw).as_posix()
+            mode = stat.S_IMODE(original.st_mode)
+            info = tarfile.TarInfo(relative)
+            info.mode = mode
+            info.mtime = 0
+            if stat.S_ISDIR(original.st_mode):
+                info.type = tarfile.DIRTYPE
+                info.size = 0
+                archive.addfile(info)
+                directories.append({"path": relative, "mode": mode})
                 continue
             data = path.read_bytes()
-            relative = path.relative_to(capture.raw).as_posix()
-            info = tarfile.TarInfo(relative)
+            check(stable(path.lstat()) == stable(original) and len(data) == original.st_size,
+                  "evidence file changed during snapshot: " + relative)
             info.size = len(data)
-            info.mode = 0o644
-            info.mtime = 0
             archive.addfile(info, io.BytesIO(data))
-            members.append({"path":relative,"bytes":len(data),"sha256":sha(data),"blob":oid("blob",data)})
+            members.append({"path":relative,"mode":mode,"bytes":len(data),
+                            "sha256":sha(data),"blob":oid("blob",data)})
+    check(sorted(capture.raw.rglob("*")) == paths,
+          "evidence path set changed during snapshot")
+    check(stable(capture.raw.lstat()) == stable(root_info),
+          "evidence root changed during snapshot")
+    check(all(stable(path.lstat()) == stable(info) for path, info in snapshots.items()),
+          "evidence metadata changed during snapshot")
     compressed = gzip.compress(buffer.getvalue(), compresslevel=6, mtime=0)
     frozen_archive = capture.evidence / "FROZEN-SOURCE-EVIDENCE.tar.gz"
     with frozen_archive.open("xb") as stream:
@@ -752,9 +776,11 @@ def persist_evidence(capture, result):
     for at in range(0, len(compressed), 524288):
         raw = compressed[at:at+524288]
         chunks.append({"index":len(chunks),"offset":at,**capture.upload_blob(raw)})
-    manifest = {"schema":"hepta.combined-source-build-evidence.v1",
+    manifest = {"schema":"hepta.combined-source-build-evidence.v2",
                 "encoding":"ordered-gzip-tar-chunks","bytes":len(compressed),"sha256":sha(compressed),
-                "members":members,"chunks":chunks,"result":result}
+                "root_mode":stat.S_IMODE(root_info.st_mode),"directories":directories,
+                "members":members,"chunks":chunks,"result":result,
+                "snapshot_contract":"ordinary files and directories; exact bytes and permission bits; uid/gid/mtime normalized; links and special files refused"}
     pin = capture.upload_blob(canonical(manifest))
     (capture.evidence / "EVIDENCE-MANIFEST.json").write_bytes(canonical(manifest))
     (capture.evidence / "EVIDENCE-PIN.json").write_bytes(canonical(pin))
