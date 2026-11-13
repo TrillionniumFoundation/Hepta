@@ -1,0 +1,11 @@
+{
+  "fact": "The shell which hashed the 198 MB of UTF-8 wrappers was still running after the initial one-second exec yield. A dependent cat was attempted before PUBLISH-LIST.json existed, and JSON.parse rejected its cat error text. The actual shell was then waited to terminal exit 0 before any Git publication.",
+  "fix": "Await the existing yielded shell session; then inspect each exit code and complete JSON before initializing the publisher.",
+  "git_mutations_started_at_failure": 0,
+  "original_input_files_modified": false,
+  "prior_exec_session": 44129,
+  "product_execution": false,
+  "schema": "hepta.custody-preparation-observation.v1",
+  "status": "LOCAL_ORCHESTRATION_RACE_RECOVERED",
+  "step": "populate publication metadata in V8"
+}
