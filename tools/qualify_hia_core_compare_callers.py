@@ -106,8 +106,10 @@ class NumericCallObservation:
             return admitted
 
         def profile(frame, event, value):
+            if event != 'c_call':
+                return
             current = self.current.get()
-            if event == 'c_call' and current is not None and value is current['target']:
+            if current is not None and value is current['target']:
                 self.retained.append(list(current['key']))
                 raise AssertionError('eligible numeric effect entered its retained builtin operator')
 
