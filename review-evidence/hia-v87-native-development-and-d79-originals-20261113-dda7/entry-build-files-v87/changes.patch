@@ -1,0 +1,1356 @@
+--- a/MANIFEST.in
++++ b/MANIFEST.in
+@@ -202,3 +202,5 @@
+ 
+ # Retained a733 source-distribution oracle; not an installed Agent resource.
+ include tests/fixtures/hia_reference_compiler_v64.json.xz
++include examples/hia_bootstrap/release_launch_policy.hepta
++include examples/hia_bootstrap/release_launch_packer.hepta
+--- a/hepta/artifact_publication_native.py
++++ b/hepta/artifact_publication_native.py
+@@ -51,7 +51,7 @@
+     different checkout. The full build-source manifest remains bound through
+     the exact package-owned contract; it is not a claim those tools are installed.
+     """
+-    from .hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++    from .hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+     from .hia_json_preflight_native import _source_resource_path
+     contract_name='docs/HIA_SELFHOST_CORE_SUPPORT.json'
+     contract_path=_source_resource_path(contract_name);raw=contract_path.read_bytes()
+@@ -65,7 +65,7 @@
+     expected_python={n for n in files if n.startswith('hepta/') and n.endswith('.py')}
+     if actual_python!=expected_python:
+         _reject('E_PUBLISH_NATIVE_CUSTODY','installed production module inventory changed')
+-    assets=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++    assets=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+     # A declared Python resource has two installed roles. Check the ordinary
+     # module first, then its actual data copy; one matching path cannot stand
+     # in for both. Both hashes must equal the same already-bound source entry.
+--- a/hepta/hia_agent_contract.py
++++ b/hepta/hia_agent_contract.py
+@@ -115,6 +115,12 @@
+     'hepta/hia_program_normalization_notes.py',
+     'examples/hia_bootstrap/service_artifacts.hepta',
+     'examples/hia_bootstrap/service_evaluation.hepta',
++)
++
++
++# Explicit standalone entry build data, not loadable hepta runtime image bridges.
++# Neither these assets nor their installation authorizes execution or changes defaults.
++ENTRY_BUILD_FILES = (
+     'examples/hia_bootstrap/release_launch_policy.hepta',
+     'examples/hia_bootstrap/release_launch_packer.hepta',
+ )
+@@ -251,7 +257,7 @@
+     for filename in DISCOVERY_FILES:
+         path = _agent_resource_path("docs/" + filename)
+         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
+-    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES):
++    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES, *ENTRY_BUILD_FILES):
+         resource_sha256 = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
+         if native_source.startswith("hepta/") and native_source.endswith(".py"):
+             package_sha256 = entries.get(native_source)
+--- a/setup.py
++++ b/setup.py
+@@ -14,7 +14,7 @@
+ def agent_resources():
+     tree=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())
+     values={}
+-    for symbol in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES','BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES','EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES'):
++    for symbol in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES','BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES','EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES', 'ENTRY_BUILD_FILES'):
+         declarations=[node for node in tree.body if isinstance(node,ast.Assign)
+                       and any(isinstance(target,ast.Name) and target.id==symbol for target in node.targets)]
+         if len(declarations)!=1:raise ValueError('one explicit Agent resource list required: '+symbol)
+@@ -24,7 +24,7 @@
+         values[symbol]=names
+     if any(Path(n).name!=n for n in values['DISCOVERY_FILES']):
+         raise ValueError('invalid Agent discovery resource filenames')
+-    names=tuple('docs/'+n for n in values['DISCOVERY_FILES'])+values['NATIVE_SOURCE_FILES']+values['SOURCE_BUILD_FILES']+values['COMPILER_BUILD_FILES']+values['PUBLICATION_BUILD_FILES']+values['BACKEND_BUILD_FILES']+values['EMITTER_BUILD_FILES']+values['BYTE_WRAPPER_BUILD_FILES']+values['MACHINE_OBJECT_BUILD_FILES']+values['EXECUTION_OBSERVATION_BUILD_FILES']+values['CONTINUATION_BUILD_FILES']
++    names=tuple('docs/'+n for n in values['DISCOVERY_FILES'])+values['NATIVE_SOURCE_FILES']+values['SOURCE_BUILD_FILES']+values['COMPILER_BUILD_FILES']+values['PUBLICATION_BUILD_FILES']+values['BACKEND_BUILD_FILES']+values['EMITTER_BUILD_FILES']+values['BYTE_WRAPPER_BUILD_FILES']+values['MACHINE_OBJECT_BUILD_FILES']+values['EXECUTION_OBSERVATION_BUILD_FILES']+values['CONTINUATION_BUILD_FILES'] + values['ENTRY_BUILD_FILES']
+     if len(names)!=len(set(names)) or any(Path(n).is_absolute() or '..' in Path(n).parts for n in names):
+         raise ValueError('invalid or duplicate Agent resource paths')
+     return names
+--- a/tests/test_hia_agent_candidate_native.py
++++ b/tests/test_hia_agent_candidate_native.py
+@@ -141,11 +141,11 @@
+             self.assertEqual(response['result']['base_program'],args['change']['base_program'])
+ 
+     def test_actual_installed_wheel_agent_path_forbids_tools_and_refuses_selected_drift(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         root = Path(__file__).resolve().parents[1]
+         source = self.case/'wheel-source';source.mkdir()
+         shutil.copytree(root/'hepta',source/'hepta',ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = (tuple('docs/'+name for name in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/'+name for name in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources,'setup.py','pyproject.toml','MANIFEST.in'):
+             destination = source/name;destination.parent.mkdir(parents=True,exist_ok=True)
+             shutil.copyfile(root/name,destination)
+--- a/tests/test_hia_agent_installed_resources.py
++++ b/tests/test_hia_agent_installed_resources.py
+@@ -2,10 +2,10 @@
+ from pathlib import Path
+ from hashlib import sha256
+ import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
+-from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, installation_manifest, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, installation_manifest, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+ from hepta.hia_agent_store import wire
+ ROOT=Path(__file__).resolve().parents[1]
+-RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+ # Source-distribution test inputs are not installed Agent resources and must
+ # never expand the worker's production source identity or _data payload.
+ SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',
+--- a/tests/test_hia_agent_journal_native.py
++++ b/tests/test_hia_agent_journal_native.py
+@@ -736,11 +736,11 @@
+                     self.image.session().prepare(b'{"tool":"hia_describe","arguments":{}}')
+ 
+     def test_installed_wheel_ordinary_call_no_tools_and_source_catalog_binding(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         source = self.case / 'wheel-source'
+         source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name
+             destination.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_artifact_namespace_native.py
++++ b/tests/test_hia_artifact_namespace_native.py
+@@ -858,10 +858,10 @@
+ 
+     def test_actual_installed_wheel_namespace_request_atomicity_and_restart_without_authoring(self):
+         import shutil
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         source = self.case / 'source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, target)
+--- a/tests/test_hia_byte_wrapper_native.py
++++ b/tests/test_hia_byte_wrapper_native.py
+@@ -255,14 +255,14 @@
+             session.observe()
+ 
+     def test_actual_installed_wheel_uses_complete_bundle_without_authoring(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         from tests.test_hia_native_byte_abi import byte_program
+         case = self.folder / 'installed-control'
+         case.mkdir()
+         source = case / 'source'
+         source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name
+             target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_call_primitive_native.py
++++ b/tests/test_hia_call_primitive_native.py
+@@ -903,11 +903,11 @@
+         self.assertEqual((ran.returncode, ran.stdout, ran.stderr), (0, b'1 1 1\n', b''))
+ 
+     def test_installed_wheel_no_authoring_reference_or_stale_source_custody(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/call_primitive.hepta', NATIVE_SOURCE_FILES)
+         source = self.folder / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        names = tuple('docs/'+name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        names = tuple('docs/'+name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, destination)
+--- a/tests/test_hia_candidate_budget_native.py
++++ b/tests/test_hia_candidate_budget_native.py
+@@ -703,11 +703,11 @@
+                 connection.execute('SELECT 1')
+ 
+     def test_installed_sdist_wheel_ordinary_budget_without_authoring_or_reference(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         case = self.directory()
+         source = case / 'source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, target)
+--- a/tests/test_hia_candidate_evidence.py
++++ b/tests/test_hia_candidate_evidence.py
+@@ -385,7 +385,7 @@
+                       "COMPILER_BUILD_FILES", "PUBLICATION_BUILD_FILES",
+                       "BACKEND_BUILD_FILES", "EMITTER_BUILD_FILES",
+                       "BYTE_WRAPPER_BUILD_FILES", "MACHINE_OBJECT_BUILD_FILES",
+-                      "EXECUTION_OBSERVATION_BUILD_FILES", "CONTINUATION_BUILD_FILES"):
++                      "EXECUTION_OBSERVATION_BUILD_FILES", "CONTINUATION_BUILD_FILES", "ENTRY_BUILD_FILES"):
+             assets += tuple(getattr(contract, group, ()))
+         self.assertIn(self.name, assets)
+         self.assertEqual(len(assets), len(set(assets)))
+--- a/tests/test_hia_cli_native.py
++++ b/tests/test_hia_cli_native.py
+@@ -740,14 +740,14 @@
+ 
+ 
+     def test_actual_installed_wheel_without_retained_cli_or_checkout_resources(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         from tests.test_hia_agent_entry import fixture
+         case = self.folder / "installed-control"
+         case.mkdir(mode=0o700)
+         source, wheels, installed = case / "source", case / "wheels", case / "installed"
+         source.mkdir(mode=0o700)
+         resources = ((tuple("docs/" + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES
+-                     + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES)
++                     + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES)
+         required = {
+             "control": "examples/hia_bootstrap/cli_control.hepta",
+             "format": "examples/hia_bootstrap/cli_format.hepta",
+--- a/tests/test_hia_composite_constructor_integration.py
++++ b/tests/test_hia_composite_constructor_integration.py
+@@ -87,8 +87,8 @@
+             (self.evidence/'public-pipeline.json').write_text(json.dumps(rows,indent=2)+'\n')
+ 
+     def test_installed_wheel_without_retained_nominal_owners_and_tamper_refusal(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
+-        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
++        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in KERNELS:
+             self.assertIn('examples/hia_bootstrap/composite_constructor_' + name + '.hepta', resources)
+         with tempfile.TemporaryDirectory(prefix='hia-ctor-wheel-') as temporary:
+--- a/tests/test_hia_composite_functions_native.py
++++ b/tests/test_hia_composite_functions_native.py
+@@ -367,8 +367,8 @@
+                                  (expected.exception.code, str(expected.exception)))
+ 
+     def test_real_sdist_to_installed_wheel_and_each_source_or_image_custody_refusal(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
+-        resource_names = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
++        resource_names = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in KERNELS:
+             self.assertIn('examples/hia_bootstrap/composite_function_' + name + '.hepta', resource_names)
+         with tempfile.TemporaryDirectory(prefix='hia-function-wheel-') as directory:
+--- a/tests/test_hia_composite_outer_integration.py
++++ b/tests/test_hia_composite_outer_integration.py
+@@ -100,8 +100,8 @@
+             (self.evidence/'public-pipeline.json').write_text(json.dumps(rows,indent=2)+'\n')
+ 
+     def test_real_sdist_to_wheel_without_old_owners_and_all_new_resource_refusals(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
+-        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
++        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         new_resources = ['examples/hia_bootstrap/composite_' + owner + '_' + name + '.hepta'
+                          for owner in ('constructor', 'outer') for name in KERNELS]
+         for name in new_resources:
+--- a/tests/test_hia_composite_types_native.py
++++ b/tests/test_hia_composite_types_native.py
+@@ -683,8 +683,8 @@
+                 installed_composite_types(str(self.manifest))
+ 
+     def test_real_installed_wheel_ordinary_normalization_and_source_manifest_image_pins(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
+-        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
++        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/composite_types.hepta', resources)
+         source = self.folder / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+--- a/tests/test_hia_continuation_native.py
++++ b/tests/test_hia_continuation_native.py
+@@ -255,7 +255,7 @@
+         directory=Path(self.directory.name)/('installed-inprocess-wheel' if in_process else 'installed-wheel');directory.mkdir()
+         source=directory/'source';source.mkdir()
+         shutil.copytree(ROOT/'hepta',source/'hepta',ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
+-        declarations={node.targets[0].id:ast.literal_eval(node.value) for node in ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text()).body if isinstance(node,ast.Assign) and isinstance(node.targets[0],ast.Name) and node.targets[0].id in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES','BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES','EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES')}
++        declarations={node.targets[0].id:ast.literal_eval(node.value) for node in ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text()).body if isinstance(node,ast.Assign) and isinstance(node.targets[0],ast.Name) and node.targets[0].id in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES','BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES','EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES', 'ENTRY_BUILD_FILES')}
+         names=['setup.py','pyproject.toml','MANIFEST.in','README.md']
+         for symbol,values in declarations.items():names.extend('docs/'+n if symbol=='DISCOVERY_FILES' else n for n in values)
+         for name in names:
+--- a/tests/test_hia_core_emitter_control_native.py
++++ b/tests/test_hia_core_emitter_control_native.py
+@@ -582,14 +582,14 @@
+ 
+ 
+     def test_actual_installed_wheel_uses_complete_bundle_without_authoring(self):
+-        from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES)
++        from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+         from tests.test_hia_program_native import minimal_document
+         case = self.folder / 'installed-control'
+         case.mkdir()
+         source = case / 'source'
+         source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name
+             target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_core_emitter_native.py
++++ b/tests/test_hia_core_emitter_native.py
+@@ -321,14 +321,14 @@
+ 
+ 
+     def test_actual_installed_wheel_uses_complete_bundle_without_authoring(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         from tests.test_hia_program_native import minimal_document
+         case = self.folder / 'installed-control'
+         case.mkdir()
+         source = case / 'source'
+         source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name
+             target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_core_lowering_control_native.py
++++ b/tests/test_hia_core_lowering_control_native.py
+@@ -581,14 +581,14 @@
+ 
+ 
+     def test_actual_installed_wheel_uses_complete_bundle_without_authoring(self):
+-        from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES)
++        from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+         from tests.test_hia_program_native import minimal_document
+         case = self.folder / 'installed-control'
+         case.mkdir()
+         source = case / 'source'
+         source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name
+             target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_core_lowering_native.py
++++ b/tests/test_hia_core_lowering_native.py
+@@ -412,14 +412,14 @@
+                 installed_core_lowering(str(copied), vars(backend))
+ 
+     def test_actual_installed_wheel_uses_complete_bundle_without_authoring(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         from tests.test_hia_program_native import minimal_document
+         case = self.folder / 'installed-control'
+         case.mkdir()
+         source = case / 'source'
+         source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name
+             target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_core_patch_native.py
++++ b/tests/test_hia_core_patch_native.py
+@@ -363,9 +363,9 @@
+             self.admission_manifest.write_bytes(original)
+ 
+     def test_actual_installed_wheel_patches_without_checkout_tools_and_refuses_missing_source(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         root = Path(__file__).resolve().parents[1]
+-        resources = (tuple('docs/'+name for name in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/'+name for name in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/core_patch.hepta',resources)
+         source = self.folder/'wheel-source'
+         source.mkdir()
+--- a/tests/test_hia_enum_match_native.py
++++ b/tests/test_hia_enum_match_native.py
+@@ -524,11 +524,11 @@
+         self.assertTrue(all(result == results[0] for result in results))
+ 
+     def test_installed_wheel_route_without_reference_or_authoring_modules(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/enum_match.hepta', NATIVE_SOURCE_FILES)
+         source = self.folder / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, destination)
+--- a/tests/test_hia_enum_operations_native.py
++++ b/tests/test_hia_enum_operations_native.py
+@@ -608,11 +608,11 @@
+         self.assertTrue(all(result == results[0] for result in results))
+ 
+     def test_installed_wheel_has_custodied_source_and_no_authoring_or_reference_fallback(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/enum_operations.hepta', NATIVE_SOURCE_FILES)
+         source = self.folder / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, destination)
+--- a/tests/test_hia_execution_budget_native.py
++++ b/tests/test_hia_execution_budget_native.py
+@@ -859,12 +859,12 @@
+         self.assertEqual(result.unexpectedSuccesses, [], stream.getvalue())
+ 
+     def test_installed_wheel_same_journal_lifecycle_without_authoring_or_reference(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         case = self.folder / 'installed-wheel-control'; case.mkdir(mode=0o700)
+         source = case / 'source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+         resources = ((tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES
+-                     + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES)
++                     + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES)
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, target)
+--- a/tests/test_hia_execution_observation_native.py
++++ b/tests/test_hia_execution_observation_native.py
+@@ -86,7 +86,7 @@
+             +contract.COMPILER_BUILD_FILES+contract.PUBLICATION_BUILD_FILES
+             +contract.BACKEND_BUILD_FILES+contract.EMITTER_BUILD_FILES
+             +contract.BYTE_WRAPPER_BUILD_FILES+contract.MACHINE_OBJECT_BUILD_FILES
+-            +contract.EXECUTION_OBSERVATION_BUILD_FILES+contract.CONTINUATION_BUILD_FILES)
++            +contract.EXECUTION_OBSERVATION_BUILD_FILES+contract.CONTINUATION_BUILD_FILES + contract.ENTRY_BUILD_FILES)
+         with tempfile.TemporaryDirectory() as directory:
+             root=Path(directory)/'installed';root.mkdir()
+             shutil.copytree(ROOT/'hepta',root/'hepta',ignore=shutil.ignore_patterns('__pycache__'))
+@@ -266,13 +266,13 @@
+ 
+ 
+     def test_actual_installed_wheel_uses_complete_bundle_without_authoring(self):
+-            from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++            from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+             case = self.folder / 'installed-control'
+             case.mkdir()
+             source = case / 'source'
+             source.mkdir()
+             shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-            resources = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++            resources = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+             for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+                 target = source / name
+                 target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_heap_bound_integration.py
++++ b/tests/test_hia_heap_bound_integration.py
+@@ -120,13 +120,13 @@
+     @classmethod
+     def setUpClass(cls):
+         super().setUpClass()
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         from hepta.hia_native_helpers import SCHEMA, TARGET, ABI
+         cls.package_source=cls.folder/'package-source'
+         cls.package_source.mkdir()
+         shutil.copytree(ROOT/'hepta',cls.package_source/'hepta',
+                         ignore=shutil.ignore_patterns('__pycache__'))
+-        resources=tuple('docs/'+name for name in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources=tuple('docs/'+name for name in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         cls.resources={name:(ROOT/name).read_bytes() for name in resources}
+         for name in (*resources,'setup.py','pyproject.toml','MANIFEST.in'):
+             target=cls.package_source/name
+--- a/tests/test_hia_installed_fixture_resources.py
++++ b/tests/test_hia_installed_fixture_resources.py
+@@ -35,4 +35,95 @@
+         self.assertGreaterEqual(len(observed),25)
+ 
+ 
++    def test_standalone_entry_role_is_exact_disjoint_and_preflight_bounded(self):
++        from unittest.mock import patch
++        from tools import hia_candidate_preflight as preflight
++        source=(ROOT/'hepta/hia_agent_contract.py').read_text()
++        tree=ast.parse(source)
++        names=('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES',
++               'COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES','BACKEND_BUILD_FILES',
++               'EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES',
++               'EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES','ENTRY_BUILD_FILES')
++        values={}
++        for name in names:
++            nodes=[n for n in tree.body if isinstance(n,ast.Assign)
++                   and any(isinstance(t,ast.Name) and t.id==name for t in n.targets)]
++            self.assertEqual(len(nodes),1,name)
++            values[name]=ast.literal_eval(nodes[0].value)
++        entry=('examples/hia_bootstrap/release_launch_policy.hepta',
++               'examples/hia_bootstrap/release_launch_packer.hepta')
++        self.assertEqual(values['ENTRY_BUILD_FILES'],entry)
++        self.assertEqual(len(values['NATIVE_SOURCE_FILES']),88)
++        previous=tuple(path for name in names[1:-1] for path in values[name])
++        self.assertTrue(set(entry).isdisjoint(previous))
++        expected=previous+entry
++        self.assertEqual(len(expected),len(set(expected)))
++        original=preflight.literal_inventory;observed=[]
++        def inventory(text,symbol,**options):
++            observed.append(symbol)
++            return original(text,symbol,**options)
++        with patch.object(preflight,'literal_inventory',inventory):
++            self.assertEqual(preflight.native_source_files(source),expected)
++        self.assertEqual(observed,list(names[1:]))
++        for value in ((entry[0],entry[0]),('examples/hia_bootstrap/selfhost.hepta',),
++                      ('examples/hia_bootstrap/unreviewed.hepta',),('/tmp/launch.hepta',),
++                      ('tools/hia_release_launch_syscalls.S',),(True,)):
++            with self.subTest(entry=value),self.assertRaises(ValueError):
++                preflight.native_source_files('ENTRY_BUILD_FILES = '+repr(value)+'\n')
++        with self.assertRaises(ValueError):
++            preflight.native_source_files('ENTRY_BUILD_FILES = ()\nENTRY_BUILD_FILES = ()\n')
++        with self.assertRaises(ValueError):
++            preflight.native_source_files('NATIVE_SOURCE_FILES = '+repr(entry)+'\n'
++                                          +'ENTRY_BUILD_FILES = '+repr(entry)+'\n')
++        native=tuple('examples/hia_bootstrap/entry_boundary_'+str(i)+'.hepta'
++                     for i in range(254))
++        boundary='NATIVE_SOURCE_FILES = '+repr(native)+'\nENTRY_BUILD_FILES = '+repr(entry)+'\n'
++        self.assertEqual(len(preflight.native_source_files(boundary)),256)
++        with self.assertRaises(ValueError):
++            preflight.native_source_files(boundary.replace(repr(native),repr(native+(
++                'examples/hia_bootstrap/entry_boundary_overflow.hepta',)),1))
++
++    def test_entry_assets_are_fresh_identity_inputs_and_missing_fails_before_backend(self):
++        import tempfile
++        from hashlib import sha256
++        from unittest.mock import patch
++        from hepta import hia_agent_contract as contract
++        from hepta import hia_program_native as backend
++        from hepta import hia_native_helpers as helpers
++        tree=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())
++        role_names=[t.id for n in tree.body if isinstance(n,ast.Assign)
++                    for t in n.targets if isinstance(t,ast.Name)
++                    and (t.id.endswith('_BUILD_FILES') or t.id in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES'))]
++        self.assertEqual(len(role_names),12)
++        assets=tuple('docs/'+n for n in contract.DISCOVERY_FILES)
++        for name in role_names:
++            if name!='DISCOVERY_FILES':assets+=getattr(contract,name)
++        self.assertEqual(len(assets),189)
++        self.assertEqual(len(assets),len(set(assets)))
++        with tempfile.TemporaryDirectory(prefix='hia-entry-resource-source-') as folder:
++            root=Path(folder);data=root/'data'
++            for name in assets:
++                raw=('source fixture '+name+'\n').encode()
++                path=data/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
++                if name.startswith('hepta/') and name.endswith('.py'):
++                    target=root/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
++            entries={name:sha256((data/name).read_bytes()).hexdigest() for name in assets}
++            with patch.object(contract,'ROOT',root),\
++                 patch.object(contract,'_agent_resource_path',lambda name:data/name),\
++                 patch.object(backend,'_implementation_hash',return_value='mechanical backend sentinel') as observed,\
++                 patch.object(helpers,'native_helpers_identity',return_value={}):
++                initial=contract.installation_manifest()
++                self.assertEqual(initial['worker_sha256'],sha256(contract.wire(entries)).hexdigest())
++                for name in contract.ENTRY_BUILD_FILES:
++                    path=data/name;raw=path.read_bytes()
++                    path.write_bytes(raw+b'changed')
++                    changed=contract.installation_manifest()
++                    self.assertNotEqual(changed['worker_sha256'],initial['worker_sha256'])
++                    path.unlink();observed.reset_mock()
++                    with self.assertRaises(FileNotFoundError):contract.installation_manifest()
++                    observed.assert_not_called()
++                    path.write_bytes(raw)
++                    self.assertEqual(contract.installation_manifest(),initial)
++
++
+ if __name__=='__main__':unittest.main()
+--- a/tests/test_hia_json_wire_native.py
++++ b/tests/test_hia_json_wire_native.py
+@@ -575,9 +575,9 @@
+         resources = {}
+         for node in tree.body:
+             if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+-                if node.targets[0].id in ('DISCOVERY_FILES', 'NATIVE_SOURCE_FILES', 'SOURCE_BUILD_FILES', 'COMPILER_BUILD_FILES', 'PUBLICATION_BUILD_FILES', 'BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES','EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES'):
++                if node.targets[0].id in ('DISCOVERY_FILES', 'NATIVE_SOURCE_FILES', 'SOURCE_BUILD_FILES', 'COMPILER_BUILD_FILES', 'PUBLICATION_BUILD_FILES', 'BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES','EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES', 'ENTRY_BUILD_FILES'):
+                     resources[node.targets[0].id] = ast.literal_eval(node.value)
+-        names = [*('docs/' + n for n in resources['DISCOVERY_FILES']), *resources['NATIVE_SOURCE_FILES'], *resources['SOURCE_BUILD_FILES'], *resources['COMPILER_BUILD_FILES'], *resources['PUBLICATION_BUILD_FILES'], *resources['BACKEND_BUILD_FILES'], *resources['EMITTER_BUILD_FILES'], *resources['BYTE_WRAPPER_BUILD_FILES'], *resources['MACHINE_OBJECT_BUILD_FILES'], *resources['EXECUTION_OBSERVATION_BUILD_FILES'], *resources['CONTINUATION_BUILD_FILES']]
++        names = [*('docs/' + n for n in resources['DISCOVERY_FILES']), *resources['NATIVE_SOURCE_FILES'], *resources['SOURCE_BUILD_FILES'], *resources['COMPILER_BUILD_FILES'], *resources['PUBLICATION_BUILD_FILES'], *resources['BACKEND_BUILD_FILES'], *resources['EMITTER_BUILD_FILES'], *resources['BYTE_WRAPPER_BUILD_FILES'], *resources['MACHINE_OBJECT_BUILD_FILES'], *resources['EXECUTION_OBSERVATION_BUILD_FILES'], *resources['CONTINUATION_BUILD_FILES'], *resources['ENTRY_BUILD_FILES']]
+         self.assertIn('examples/hia_bootstrap/json_wire.hepta', names)
+         for name in names:
+             target = source / name
+--- a/tests/test_hia_machine_elf_native.py
++++ b/tests/test_hia_machine_elf_native.py
+@@ -531,7 +531,7 @@
+             DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES,
+             SOURCE_BUILD_FILES, COMPILER_BUILD_FILES,
+             BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES,
+-            MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES,
++            MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES,
+         )
+         from hepta.hia_program import verify_program
+         from hepta import hia_program_native as backend
+@@ -545,7 +545,7 @@
+         resources = tuple('docs/' + name for name in DISCOVERY_FILES) + \
+                     NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + \
+                     BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + \
+-                    MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++                    MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name
+             target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_machine_encoding_native.py
++++ b/tests/test_hia_machine_encoding_native.py
+@@ -302,7 +302,7 @@
+                     self.assertEqual(observe_foreign_alu(reference.Code, *row), wanted)
+ 
+     def test_actual_installed_wheel_without_authoring_or_source_fallback(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         from tests.test_hia_machine_plan import call_document
+         root = Path(__file__).resolve().parents[1]
+         case = self.folder / 'installed-control'
+@@ -310,7 +310,7 @@
+         source = case / 'source'
+         source.mkdir()
+         shutil.copytree(root / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name
+             target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_machine_instructions_native.py
++++ b/tests/test_hia_machine_instructions_native.py
+@@ -422,13 +422,13 @@
+                     installed_machine_instructions(str(self.manifest))
+ 
+     def test_actual_installed_wheel_uses_three_HIA_owners_without_authoring(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         case = self.folder / 'installed-control'
+         case.mkdir()
+         source = case / 'source'
+         source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name
+             target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_machine_object_native.py
++++ b/tests/test_hia_machine_object_native.py
+@@ -291,14 +291,14 @@
+                 session.observe()
+ 
+     def test_actual_installed_wheel_uses_complete_bundle_without_authoring(self):
+-            from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++            from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+             from tests.test_hia_native_byte_abi import byte_program
+             case = self.folder / 'installed-control'
+             case.mkdir()
+             source = case / 'source'
+             source.mkdir()
+             shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-            resources = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++            resources = (tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+             for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+                 target = source / name
+                 target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_machine_plan_control_native.py
++++ b/tests/test_hia_machine_plan_control_native.py
+@@ -334,7 +334,7 @@
+ 
+     def test_actual_wheel_native_calls_without_authoring_or_checkout_fallback(self):
+         from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES,
+-            PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES)
++            PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+         root = Path(__file__).resolve().parents[1]
+         case = self.folder / 'installed-control'
+         case.mkdir()
+@@ -342,7 +342,7 @@
+         source.mkdir()
+         shutil.copytree(root / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+         resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES
+-                     + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++                     + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         self.assertEqual(len(resources), len(set(resources)))
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name
+--- a/tests/test_hia_machine_plan_native.py
++++ b/tests/test_hia_machine_plan_native.py
+@@ -310,14 +310,14 @@
+                 self.assertNotEqual(_implementation_hash(), selected)
+ 
+     def test_actual_wheel_native_calls_without_authoring_or_checkout_fallback(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         root = Path(__file__).resolve().parents[1]
+         case = self.folder / 'installed-control'
+         case.mkdir()
+         source = case / 'source'
+         source.mkdir()
+         shutil.copytree(root / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name
+             target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_machine_state_native.py
++++ b/tests/test_hia_machine_state_native.py
+@@ -571,13 +571,13 @@
+                     installed_machine_state(str(self.manifest))
+ 
+     def test_actual_installed_wheel_uses_HIA_state_without_authoring_or_old_state(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         case = self.folder / 'installed-control'
+         case.mkdir()
+         source = case / 'source'
+         source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name
+             target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_macro_campaign.py
++++ b/tests/test_hia_macro_campaign.py
+@@ -157,7 +157,7 @@
+             assets = (tuple('docs/' + name for name in contract.DISCOVERY_FILES)
+                 + contract.NATIVE_SOURCE_FILES + contract.SOURCE_BUILD_FILES
+                 + contract.COMPILER_BUILD_FILES + contract.PUBLICATION_BUILD_FILES
+-                + contract.BACKEND_BUILD_FILES + contract.EMITTER_BUILD_FILES + contract.BYTE_WRAPPER_BUILD_FILES + contract.MACHINE_OBJECT_BUILD_FILES + contract.EXECUTION_OBSERVATION_BUILD_FILES + contract.CONTINUATION_BUILD_FILES)
++                + contract.BACKEND_BUILD_FILES + contract.EMITTER_BUILD_FILES + contract.BYTE_WRAPPER_BUILD_FILES + contract.MACHINE_OBJECT_BUILD_FILES + contract.EXECUTION_OBSERVATION_BUILD_FILES + contract.CONTINUATION_BUILD_FILES + contract.ENTRY_BUILD_FILES)
+             self.assertLessEqual(set(assets), set(observed))
+             for name in assets:
+                 self.assertEqual((evidence.root / 'objects' / observed[name]).read_bytes(),
+@@ -173,7 +173,7 @@
+             assets = (tuple('docs/' + name for name in contract.DISCOVERY_FILES)
+                 + contract.NATIVE_SOURCE_FILES + contract.SOURCE_BUILD_FILES
+                 + contract.COMPILER_BUILD_FILES + contract.PUBLICATION_BUILD_FILES
+-                + contract.BACKEND_BUILD_FILES + contract.EMITTER_BUILD_FILES + contract.BYTE_WRAPPER_BUILD_FILES + contract.MACHINE_OBJECT_BUILD_FILES + contract.EXECUTION_OBSERVATION_BUILD_FILES + contract.CONTINUATION_BUILD_FILES)
++                + contract.BACKEND_BUILD_FILES + contract.EMITTER_BUILD_FILES + contract.BYTE_WRAPPER_BUILD_FILES + contract.MACHINE_OBJECT_BUILD_FILES + contract.EXECUTION_OBSERVATION_BUILD_FILES + contract.CONTINUATION_BUILD_FILES + contract.ENTRY_BUILD_FILES)
+             for name in assets:
+                 destination = source / name
+                 destination.parent.mkdir(parents=True, exist_ok=True)
+@@ -186,7 +186,7 @@
+                 self.assertEqual(set(baseline), set(assets))
+                 groups = (contract.NATIVE_SOURCE_FILES, contract.SOURCE_BUILD_FILES,
+                           contract.COMPILER_BUILD_FILES, contract.PUBLICATION_BUILD_FILES,
+-                          contract.BACKEND_BUILD_FILES, contract.EMITTER_BUILD_FILES, contract.BYTE_WRAPPER_BUILD_FILES, contract.MACHINE_OBJECT_BUILD_FILES, contract.EXECUTION_OBSERVATION_BUILD_FILES, contract.CONTINUATION_BUILD_FILES)
++                          contract.BACKEND_BUILD_FILES, contract.EMITTER_BUILD_FILES, contract.BYTE_WRAPPER_BUILD_FILES, contract.MACHINE_OBJECT_BUILD_FILES, contract.EXECUTION_OBSERVATION_BUILD_FILES, contract.CONTINUATION_BUILD_FILES, contract.ENTRY_BUILD_FILES)
+                 for index, group in enumerate(groups):
+                     name = group[0]
+                     path = source / name
+@@ -213,7 +213,7 @@
+             assets = (tuple('docs/' + name for name in contract.DISCOVERY_FILES)
+                 + contract.NATIVE_SOURCE_FILES + contract.SOURCE_BUILD_FILES
+                 + contract.COMPILER_BUILD_FILES + contract.PUBLICATION_BUILD_FILES
+-                + contract.BACKEND_BUILD_FILES + contract.EMITTER_BUILD_FILES + contract.BYTE_WRAPPER_BUILD_FILES + contract.MACHINE_OBJECT_BUILD_FILES + contract.EXECUTION_OBSERVATION_BUILD_FILES + contract.CONTINUATION_BUILD_FILES)
++                + contract.BACKEND_BUILD_FILES + contract.EMITTER_BUILD_FILES + contract.BYTE_WRAPPER_BUILD_FILES + contract.MACHINE_OBJECT_BUILD_FILES + contract.EXECUTION_OBSERVATION_BUILD_FILES + contract.CONTINUATION_BUILD_FILES + contract.ENTRY_BUILD_FILES)
+             for name in assets:
+                 destination = source / name
+                 destination.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_native_build_native.py
++++ b/tests/test_hia_native_build_native.py
+@@ -634,14 +634,14 @@
+         from hepta.hia_agent_contract import (DISCOVERY_FILES,NATIVE_SOURCE_FILES,
+             PUBLICATION_BUILD_FILES,SOURCE_BUILD_FILES,COMPILER_BUILD_FILES,
+             BACKEND_BUILD_FILES,EMITTER_BUILD_FILES,BYTE_WRAPPER_BUILD_FILES,
+-            MACHINE_OBJECT_BUILD_FILES,EXECUTION_OBSERVATION_BUILD_FILES,CONTINUATION_BUILD_FILES)
++            MACHINE_OBJECT_BUILD_FILES,EXECUTION_OBSERVATION_BUILD_FILES,CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+         source,wheels,installed=(self.folder/name for name in ('source','wheels','installed'))
+         source.mkdir()
+         shutil.copytree(ROOT/'hepta',source/'hepta',ignore=shutil.ignore_patterns('__pycache__'))
+         resources=tuple('docs/'+name for name in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+\
+                   PUBLICATION_BUILD_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+\
+                   BACKEND_BUILD_FILES+EMITTER_BUILD_FILES+BYTE_WRAPPER_BUILD_FILES+\
+-                  MACHINE_OBJECT_BUILD_FILES+EXECUTION_OBSERVATION_BUILD_FILES+CONTINUATION_BUILD_FILES
++                  MACHINE_OBJECT_BUILD_FILES+EXECUTION_OBSERVATION_BUILD_FILES+CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*dict.fromkeys(resources),'setup.py','pyproject.toml','MANIFEST.in'):
+             target=source/name;target.parent.mkdir(parents=True,exist_ok=True)
+             shutil.copyfile(ROOT/name,target)
+--- a/tests/test_hia_native_byte_abi_native.py
++++ b/tests/test_hia_native_byte_abi_native.py
+@@ -806,12 +806,12 @@
+ class NativeByteABIInstalledTests(_Fixture, unittest.TestCase):
+     def test_real_wheel_without_authoring_and_both_warm_resource_refusals(self):
+         from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES,
+-            PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES)
++            PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+         source, wheels, installed = (self.folder / name for name in ('source', 'wheels', 'installed'))
+         source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+         resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + \
+-                    PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++                    PUBLICATION_BUILD_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*dict.fromkeys(resources), 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, target)
+--- a/tests/test_hia_nominal_admission_native.py
++++ b/tests/test_hia_nominal_admission_native.py
+@@ -503,11 +503,11 @@
+ 
+ 
+     def test_installed_wheel_without_authoring_or_host_admission(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/nominal_admission.hepta', NATIVE_SOURCE_FILES)
+         source = self.folder / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, destination)
+--- a/tests/test_hia_nominal_function_native.py
++++ b/tests/test_hia_nominal_function_native.py
+@@ -942,12 +942,12 @@
+         self.assertEqual((executed.returncode, executed.stdout, executed.stderr), (0, b'3 3 1\n', b''))
+ 
+     def test_installed_wheel_source_custody_without_authoring_or_reference(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/nominal_function.hepta', NATIVE_SOURCE_FILES)
+         source = self.folder / 'wheel-source'
+         source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name
+             destination.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_nominal_module_native.py
++++ b/tests/test_hia_nominal_module_native.py
+@@ -485,11 +485,11 @@
+ 
+ 
+     def test_installed_wheel_without_authoring_or_host_module(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/nominal_module.hepta', NATIVE_SOURCE_FILES)
+         source = self.folder / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, destination)
+--- a/tests/test_hia_nominal_terminators_native.py
++++ b/tests/test_hia_nominal_terminators_native.py
+@@ -410,11 +410,11 @@
+             self.assertEqual(bytes(source.data), data)
+ 
+     def test_installed_wheel_without_authoring_or_host_terminator(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/nominal_terminators.hepta', NATIVE_SOURCE_FILES)
+         source = self.folder / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, destination)
+--- a/tests/test_hia_program_execution_integration.py
++++ b/tests/test_hia_program_execution_integration.py
+@@ -115,8 +115,8 @@
+         cls.source = cls.folder / 'source'
+         cls.source.mkdir()
+         shutil.copytree(ROOT / 'hepta', cls.source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
+-        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
++        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = cls.source / name
+             target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_program_normalization_native.py
++++ b/tests/test_hia_program_normalization_native.py
+@@ -723,7 +723,7 @@
+                         ignore=shutil.ignore_patterns('__pycache__','*.pyc','_data'))
+         contract=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())
+         resources=[]
+-        for name in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES', 'BACKEND_BUILD_FILES', 'EMITTER_BUILD_FILES', 'BYTE_WRAPPER_BUILD_FILES', 'MACHINE_OBJECT_BUILD_FILES', 'EXECUTION_OBSERVATION_BUILD_FILES', 'CONTINUATION_BUILD_FILES'):
++        for name in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES', 'BACKEND_BUILD_FILES', 'EMITTER_BUILD_FILES', 'BYTE_WRAPPER_BUILD_FILES', 'MACHINE_OBJECT_BUILD_FILES', 'EXECUTION_OBSERVATION_BUILD_FILES', 'CONTINUATION_BUILD_FILES', 'ENTRY_BUILD_FILES'):
+             rows=[node for node in contract.body if isinstance(node,ast.Assign)
+                   and any(isinstance(t,ast.Name) and t.id==name for t in node.targets)]
+             self.assertEqual(len(rows),1,name)
+--- a/tests/test_hia_program_selfhost.py
++++ b/tests/test_hia_program_selfhost.py
+@@ -419,8 +419,8 @@
+         current = invoke(ROOT, self.root / "cli.o")
+         self.assertEqual(current.returncode, 0, (current.stdout, current.stderr))
+         self.assertEqual(json.loads(current.stdout)["profile"], native.PROFILE)
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
+-        resources = (tuple("docs/" + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
++        resources = (tuple("docs/" + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         package = self.root / "package"
+         package.mkdir()
+         shutil.copytree(ROOT / "hepta", package / "hepta", ignore=shutil.ignore_patterns("__pycache__"))
+--- a/tests/test_hia_proof_contract_native.py
++++ b/tests/test_hia_proof_contract_native.py
+@@ -695,14 +695,14 @@
+ 
+     def test_installed_wheel_public_sqlite_proof_without_authoring_or_reference(self):
+         from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES,
+-            SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES)
++            SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+         from tests.test_hia_program_native import minimal_document
+         self.assertIn('examples/hia_bootstrap/proof_contract.hepta', NATIVE_SOURCE_FILES)
+         case = self.folder / 'installed-wheel'; case.mkdir(mode=0o700)
+         source = case / 'source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+         resources = (tuple('docs/' + item for item in DISCOVERY_FILES) + NATIVE_SOURCE_FILES
+-                     + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES)
++                     + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES)
+         self.assertEqual(len(resources), len(set(resources)))
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_record_operations_native.py
++++ b/tests/test_hia_record_operations_native.py
+@@ -615,11 +615,11 @@
+         self.assertTrue(all(result == results[0] for result in results))
+ 
+     def test_installed_wheel_custody_without_authoring_or_reference_fallback(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/record_operations.hepta', NATIVE_SOURCE_FILES)
+         source = self.folder / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, destination)
+--- a/tests/test_hia_record_transitions_native.py
++++ b/tests/test_hia_record_transitions_native.py
+@@ -653,11 +653,11 @@
+             self.assertEqual(actual[0], code)
+ 
+     def test_installed_wheel_source_custody_without_authoring_or_reference(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/record_transitions.hepta', NATIVE_SOURCE_FILES)
+         source = self.folder / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, destination)
+--- a/tests/test_hia_request_journal_native.py
++++ b/tests/test_hia_request_journal_native.py
+@@ -925,11 +925,11 @@
+                     original.unlink(); retained.rename(original); store.close()
+ 
+     def test_installed_wheel_real_service_and_atomic_journal_without_authoring_or_reference(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         case = self.folder / 'installed-wheel-control'; case.mkdir(mode=0o700)
+         source = case / 'source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, target)
+--- a/tests/test_hia_retirement_state_native.py
++++ b/tests/test_hia_retirement_state_native.py
+@@ -612,13 +612,13 @@
+                     installed_retirement_state(str(self.manifest))
+ 
+     def test_installed_wheel_actual_retirement_without_authoring_or_reference(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         case = self.folder / 'installed-wheel-control'
+         case.mkdir(mode=0o700)
+         source = case / 'source'
+         source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name
+             target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_service_context_native.py
++++ b/tests/test_hia_service_context_native.py
+@@ -1328,14 +1328,14 @@
+ 
+     def test_installed_wheel_real_service_without_authoring_or_reference(self):
+         from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES,
+-            SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES)
++            SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+         name = 'examples/hia_bootstrap/service_context.hepta'
+         self.assertIn(name, NATIVE_SOURCE_FILES, 'parent integration must register the actual context asset')
+         case = self.folder / 'installed-wheel'; case.mkdir(mode=0o700)
+         source = case / 'source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+         resources = (tuple('docs/' + item for item in DISCOVERY_FILES) + NATIVE_SOURCE_FILES
+-                     + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES)
++                     + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES)
+         self.assertEqual(len(resources), len(set(resources)))
+         for item in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / item; target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_service_emission_native.py
++++ b/tests/test_hia_service_emission_native.py
+@@ -520,13 +520,13 @@
+ 
+     def test_installed_wheel_real_public_emission_without_authoring_or_reference(self):
+         from hepta.hia_agent_contract import (DISCOVERY_FILES,NATIVE_SOURCE_FILES,
+-            SOURCE_BUILD_FILES,COMPILER_BUILD_FILES,PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES)
++            SOURCE_BUILD_FILES,COMPILER_BUILD_FILES,PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+         from tests.test_hia_program_native import minimal_document
+         self.assertIn('examples/hia_bootstrap/service_emission.hepta',NATIVE_SOURCE_FILES)
+         case=self.folder/'installed-wheel';case.mkdir(mode=0o700);source=case/'source';source.mkdir()
+         shutil.copytree(ROOT/'hepta',source/'hepta',ignore=shutil.ignore_patterns('__pycache__'))
+         resources=(tuple('docs/'+item for item in DISCOVERY_FILES)+NATIVE_SOURCE_FILES
+-                   +SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES)
++                   +SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES)
+         self.assertEqual(len(resources),len(set(resources)))
+         for name in (*resources,'setup.py','pyproject.toml','MANIFEST.in'):
+             target=source/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,target)
+--- a/tests/test_hia_service_verification_native.py
++++ b/tests/test_hia_service_verification_native.py
+@@ -599,14 +599,14 @@
+ 
+     def test_installed_wheel_public_sqlite_proof_without_authoring_or_reference(self):
+         from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES,
+-            SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES)
++            SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+         from tests.test_hia_program_native import minimal_document
+         self.assertIn('examples/hia_bootstrap/service_verification.hepta', NATIVE_SOURCE_FILES)
+         case = self.folder / 'installed-wheel'; case.mkdir(mode=0o700)
+         source = case / 'source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+         resources = (tuple('docs/' + item for item in DISCOVERY_FILES) + NATIVE_SOURCE_FILES
+-                     + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES)
++                     + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES)
+         self.assertEqual(len(resources), len(set(resources)))
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
+--- a/tests/test_hia_slot_ledger_continuation_native.py
++++ b/tests/test_hia_slot_ledger_continuation_native.py
+@@ -1202,7 +1202,7 @@
+         from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES,
+             COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES,
+             BYTE_WRAPPER_BUILD_FILES, CONTINUATION_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES,
+-            MACHINE_OBJECT_BUILD_FILES, PUBLICATION_BUILD_FILES)
++            MACHINE_OBJECT_BUILD_FILES, PUBLICATION_BUILD_FILES, ENTRY_BUILD_FILES)
+         source = self.case / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+         resources = tuple(dict.fromkeys(
+@@ -1210,7 +1210,7 @@
+             SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + BACKEND_BUILD_FILES +
+             EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + CONTINUATION_BUILD_FILES +
+             EXECUTION_OBSERVATION_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES +
+-            PUBLICATION_BUILD_FILES))
++            PUBLICATION_BUILD_FILES + ENTRY_BUILD_FILES))
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, target)
+--- a/tests/test_hia_slot_ledger_native_integration.py
++++ b/tests/test_hia_slot_ledger_native_integration.py
+@@ -1267,7 +1267,7 @@
+         self.assertFalse((self.root / "unissued-state").exists())
+ 
+     def test_installed_sdist_wheel_uses_packaged_slot_owner_for_actual_service_and_refuses_source_drift(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         from hepta.hia_native_helpers import native_helpers_scope
+         bundle, digest = self.bundle()
+         with patch.dict(os.environ, self.clean_environment, clear=True), \
+@@ -1287,7 +1287,7 @@
+         source = self.root / "source"
+         source.mkdir()
+         shutil.copytree(ROOT / "hepta", source / "hepta", ignore=shutil.ignore_patterns("__pycache__"))
+-        resources = (tuple("docs/" + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple("docs/" + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         self.assertIn("examples/hia_bootstrap/slot_ledger.hepta", resources)
+         for name in (*resources, "setup.py", "pyproject.toml", "MANIFEST.in"):
+             target = source / name
+--- a/tests/test_hia_source_admission_native.py
++++ b/tests/test_hia_source_admission_native.py
+@@ -1015,7 +1015,7 @@
+                         ignore=shutil.ignore_patterns('__pycache__', '*.pyc', '_data'))
+         tree = ast.parse((ROOT / 'hepta/hia_agent_contract.py').read_text())
+         resources = []
+-        for symbol in ('DISCOVERY_FILES', 'NATIVE_SOURCE_FILES', 'SOURCE_BUILD_FILES', 'COMPILER_BUILD_FILES', 'PUBLICATION_BUILD_FILES', 'BACKEND_BUILD_FILES', 'EMITTER_BUILD_FILES', 'BYTE_WRAPPER_BUILD_FILES', 'MACHINE_OBJECT_BUILD_FILES', 'EXECUTION_OBSERVATION_BUILD_FILES', 'CONTINUATION_BUILD_FILES'):
++        for symbol in ('DISCOVERY_FILES', 'NATIVE_SOURCE_FILES', 'SOURCE_BUILD_FILES', 'COMPILER_BUILD_FILES', 'PUBLICATION_BUILD_FILES', 'BACKEND_BUILD_FILES', 'EMITTER_BUILD_FILES', 'BYTE_WRAPPER_BUILD_FILES', 'MACHINE_OBJECT_BUILD_FILES', 'EXECUTION_OBSERVATION_BUILD_FILES', 'CONTINUATION_BUILD_FILES', 'ENTRY_BUILD_FILES'):
+             rows = [node for node in tree.body if isinstance(node, ast.Assign)
+                     and any(isinstance(target, ast.Name) and target.id == symbol
+                             for target in node.targets)]
+--- a/tests/test_hia_source_release_integration.py
++++ b/tests/test_hia_source_release_integration.py
+@@ -21,13 +21,13 @@
+             DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES,
+             COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES,
+             EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES,
+-            EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES,
++            EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES,
+         )
+         names = (tuple("docs/" + name for name in DISCOVERY_FILES)
+                  + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES
+                  + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES
+                  + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES
+-                 + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES)
++                 + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES)
+         self.assertEqual(len(names), len(set(names)))
+         self.assertIn("examples/hia_bootstrap/selfhost.hepta", SOURCE_BUILD_FILES)
+         self.assertIn("examples/hia_bootstrap/source_build_policy.hepta", SOURCE_BUILD_FILES)
+--- a/tests/test_hia_static_budget_integration.py
++++ b/tests/test_hia_static_budget_integration.py
+@@ -189,7 +189,7 @@
+             raise unittest.SkipTest('an explicit cold report or retained development compiler is required')
+         from tools.build_hia_json_preflight import build, admit_cold_build, current_sources
+         from tools.qualify_hia_selfhost import compile_stage
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         from hepta.hia_native_helpers import SCHEMA, TARGET, ABI
+         cls.cold_bytes = None
+         if cold:
+@@ -235,7 +235,7 @@
+         cls.source = cls.folder / 'source'
+         cls.source.mkdir()
+         shutil.copytree(ROOT / 'hepta', cls.source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         cls.resources = {name: (ROOT / name).read_bytes() for name in resources}
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             target = cls.source / name
+--- a/tests/test_hia_task_helper_cache_native.py
++++ b/tests/test_hia_task_helper_cache_native.py
+@@ -707,11 +707,11 @@
+             helpers.TaskHelpersNativeTests.test_actual_native_task_state_machine_allocator_and_protocol_aborts(self)
+ 
+     def test_installed_wheel_without_checkout_and_changed_source_refusals(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/task_helper_cache.hepta', NATIVE_SOURCE_FILES)
+         source = self.folder / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, destination)
+--- a/tests/test_hia_task_helpers_native.py
++++ b/tests/test_hia_task_helpers_native.py
+@@ -440,11 +440,11 @@
+                 self.assertEqual(result.returncode, -6, (mutation, result.stdout, result.stderr))
+ 
+     def test_installed_wheel_complete_helpers_without_checkout_or_reference_owner(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         self.assertIn('examples/hia_bootstrap/task_helpers.hepta', NATIVE_SOURCE_FILES)
+         source = self.folder / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        names = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        names = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, destination)
+--- a/tests/test_hia_task_operations_native.py
++++ b/tests/test_hia_task_operations_native.py
+@@ -700,13 +700,13 @@
+             self.assertEqual(len(observed[0][1]), failed_call or 3)
+ 
+     def test_installed_wheel_source_custody_without_authoring_or_reference(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         from hepta.hia_task_helpers_native import SELECTOR as HELPER_SELECTOR
+         support = self.supporting(helpers, helpers.TaskHelpersNativeTests)
+         self.assertIn('examples/hia_bootstrap/task_operations.hepta', NATIVE_SOURCE_FILES)
+         source = self.folder / 'wheel-source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*names, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, destination)
+--- a/tests/test_hia_worker_report_native.py
++++ b/tests/test_hia_worker_report_native.py
+@@ -835,12 +835,12 @@
+         self.assertEqual([row[3:5] for row in rows if row[0] == key], [('running', None)])
+ 
+     def test_installed_wheel_ordinary_entry_and_both_source_resources(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         directory = self.folder / 'wheel-case'; directory.mkdir()
+         source = directory / 'source'; source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+         names = [*('docs/' + name for name in DISCOVERY_FILES), *NATIVE_SOURCE_FILES,
+-                 *PUBLICATION_BUILD_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, 'setup.py', 'pyproject.toml', 'MANIFEST.in', 'README.md', *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES]
++                 *PUBLICATION_BUILD_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, 'setup.py', 'pyproject.toml', 'MANIFEST.in', 'README.md', *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES, *ENTRY_BUILD_FILES]
+         for name in names:
+             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
+             shutil.copyfile(ROOT / name, target)
+--- a/tests/test_hia_worker_request_native.py
++++ b/tests/test_hia_worker_request_native.py
+@@ -213,11 +213,11 @@
+         self.assertFalse((self.case / 'state').exists())
+ 
+     def test_installed_wheel_resource_and_request_without_authoring_modules(self):
+-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
++        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+         source = self.case / 'wheel-source'
+         source.mkdir()
+         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+-        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
++        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+             destination = source / name
+             destination.parent.mkdir(parents=True, exist_ok=True)
+--- a/tools/hia_candidate_preflight.py
++++ b/tools/hia_candidate_preflight.py
+@@ -369,7 +369,16 @@
+                 or len(combined) > 256 or len(combined) != len(set(combined))):
+             raise ValueError("native/build inventory must contain unique bounded repository asset paths")
+         files = combined
+-    return files
++    entry = literal_inventory(source, "ENTRY_BUILD_FILES", required=False)
++    entry_paths = frozenset({
++        "examples/hia_bootstrap/release_launch_policy.hepta",
++        "examples/hia_bootstrap/release_launch_packer.hepta",
++    })
++    combined = files + entry
++    if (any(name not in entry_paths for name in entry)
++            or len(combined) > 256 or len(combined) != len(set(combined))):
++        raise ValueError("native/build inventory must contain unique bounded repository asset paths")
++    return combined
+ 
+ def worker_matches_commit(root, revision, entries):
+     """Do not let assume-unchanged/ignored source masquerade as an exact revision."""
+--- a/tools/hia_retained_agent_callers.py
++++ b/tools/hia_retained_agent_callers.py
+@@ -62,8 +62,7 @@
+                                                  'retained_source': 'tests/fixtures/hia_original_agent_callers_v1/test_hia_artifact_namespace_native.py.txt',
+                                                  'retained': {'bytes': 59174,
+                                                               'sha256': '1873ab3d845230813effa1b3db38f729f1bbdcaa713ac0669d3d3730797f17fa'},
+-                                                 'executed': {'bytes': 59492,
+-                                                              'sha256': '506f047003e9b9e5d0934c3befc3a7fb9383a66155457fbae683b6aaf7149dd9'},
++                                                 'executed': {'bytes': 59531, 'sha256': 'ee49fdc193f9bfb3875075228715e51f4d67e9871c9d2a78b4c8acab113ba32e'},
+                                                  'mode': 'EXACT_NAMESPACE_CANONICAL_AND_RESOURCE_FIXTURE',
+                                                  'hunks': ((b'                compiler = Path(development)'
+                                                             b"; mode = 'DEVELOPMENT_REUSED_COMPILER'\n     "
+@@ -138,38 +137,12 @@
+                                                             b'me; target.parent.mkdir(parents=True, exist_'
+                                                             b'ok=True)\n            shutil.copyfile(ROOT / '
+                                                             b'name, target)\n',
+-                                                            b'\n    def test_actual_installed_wheel_namespa'
+-                                                            b'ce_request_atomicity_and_restart_without_aut'
+-                                                            b'horing(self):\n        import shutil\n        '
+-                                                            b'from hepta.hia_agent_contract import DISCOVE'
+-                                                            b'RY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_'
+-                                                            b'FILES, COMPILER_BUILD_FILES, PUBLICATION_BUI'
+-                                                            b'LD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD'
+-                                                            b'_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OB'
+-                                                            b'JECT_BUILD_FILES, EXECUTION_OBSERVATION_BUIL'
+-                                                            b'D_FILES, CONTINUATION_BUILD_FILES\n        so'
+-                                                            b"urce = self.case / 'source'; source.mkdir()\n"
+-                                                            b"        shutil.copytree(ROOT / 'hepta', sour"
+-                                                            b"ce / 'hepta', ignore=shutil.ignore_patterns("
+-                                                            b"'__pycache__'))\n        resources = tuple('d"
+-                                                            b"ocs/' + name for name in DISCOVERY_FILES) + "
+-                                                            b'NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + C'
+-                                                            b'OMPILER_BUILD_FILES + PUBLICATION_BUILD_FILE'
+-                                                            b'S + BACKEND_BUILD_FILES + EMITTER_BUILD_FILE'
+-                                                            b'S + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJEC'
+-                                                            b'T_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_'
+-                                                            b'FILES + CONTINUATION_BUILD_FILES\n        for'
+-                                                            b" name in (*resources, 'setup.py', 'pyproject"
+-                                                            b".toml', 'MANIFEST.in'):\n            target ="
+-                                                            b' source / name; target.parent.mkdir(parents='
+-                                                            b'True, exist_ok=True)\n            shutil.copy'
+-                                                            b'file(ROOT / name, target)\n'))},
++                                                            b"\n    def test_actual_installed_wheel_namespace_request_atomicity_and_restart_without_authoring(self):\n        import shutil\n        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES\n        source = self.case / 'source'; source.mkdir()\n        shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))\n        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES\n        for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):\n            target = source / name; target.parent.mkdir(parents=True, exist_ok=True)\n            shutil.copyfile(ROOT / name, target)\n"))},
+  'tests/test_hia_slot_ledger_native.py': {'executed_path': 'tests/test_hia_slot_ledger_continuation_native.py',
+                                           'retained_source': 'tests/fixtures/hia_original_agent_callers_v1/test_hia_slot_ledger_native.py.txt',
+                                           'retained': {'bytes': 77450,
+                                                        'sha256': '59a8d0b712fe61f2a84b2ea11edea99c0e0a6201612452b3ee4683e9dea2485f'},
+-                                          'executed': {'bytes': 78255,
+-                                                       'sha256': 'db81405dbf0bafa0f98b9a389735f9b96fcd0542b06f3d17fdfe4c8015d4eb72'},
++                                          'executed': {'bytes': 78294, 'sha256': '11adc48cde3df2b31716dfeee07f76801cd531e21be06f6f3e5168e77338dfc8'},
+                                           'mode': 'EXACT_SLOT_CONTINUATION_MODULE_AND_RESOURCE_FIXTURE',
+                                           'hunks': ((b'import unittest\nfrom unittest.mock import patch\n'
+                                                      b'\nfrom hepta.hia_slot_ledger_native import (SOURCE, S'
+@@ -376,30 +349,7 @@
+                                                      b'target = source / name; target.parent.mkdir(parents='
+                                                      b'True, exist_ok=True)\n            shutil.copyfile(ROO'
+                                                      b'T / name, target)\n',
+-                                                     b'\n    def test_actual_installed_wheel_ledger_and_sour'
+-                                                     b'ce_custody_without_authoring(self):\n        import s'
+-                                                     b'hutil\n        from hepta.hia_agent_contract import ('
+-                                                     b'DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_F'
+-                                                     b'ILES,\n            COMPILER_BUILD_FILES, BACKEND_BUIL'
+-                                                     b'D_FILES, EMITTER_BUILD_FILES,\n            BYTE_WRAPP'
+-                                                     b'ER_BUILD_FILES, CONTINUATION_BUILD_FILES, EXECUTION_'
+-                                                     b'OBSERVATION_BUILD_FILES,\n            MACHINE_OBJECT_'
+-                                                     b'BUILD_FILES, PUBLICATION_BUILD_FILES)\n        source'
+-                                                     b" = self.case / 'wheel-source'; source.mkdir()\n      "
+-                                                     b"  shutil.copytree(ROOT / 'hepta', source / 'hepta', "
+-                                                     b"ignore=shutil.ignore_patterns('__pycache__'))\n      "
+-                                                     b'  resources = tuple(dict.fromkeys(\n            tuple'
+-                                                     b"('docs/' + name for name in DISCOVERY_FILES) + NATIV"
+-                                                     b'E_SOURCE_FILES +\n            SOURCE_BUILD_FILES + CO'
+-                                                     b'MPILER_BUILD_FILES + BACKEND_BUILD_FILES +\n         '
+-                                                     b'   EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + '
+-                                                     b'CONTINUATION_BUILD_FILES +\n            EXECUTION_OBS'
+-                                                     b'ERVATION_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES +\n'
+-                                                     b'            PUBLICATION_BUILD_FILES))\n        for na'
+-                                                     b"me in (*resources, 'setup.py', 'pyproject.toml', 'MA"
+-                                                     b"NIFEST.in'):\n            target = source / name; tar"
+-                                                     b'get.parent.mkdir(parents=True, exist_ok=True)\n      '
+-                                                     b'      shutil.copyfile(ROOT / name, target)\n'),
++                                                     b"\n    def test_actual_installed_wheel_ledger_and_source_custody_without_authoring(self):\n        import shutil\n        from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES,\n            COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES,\n            BYTE_WRAPPER_BUILD_FILES, CONTINUATION_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES,\n            MACHINE_OBJECT_BUILD_FILES, PUBLICATION_BUILD_FILES, ENTRY_BUILD_FILES)\n        source = self.case / 'wheel-source'; source.mkdir()\n        shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))\n        resources = tuple(dict.fromkeys(\n            tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES +\n            SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + BACKEND_BUILD_FILES +\n            EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + CONTINUATION_BUILD_FILES +\n            EXECUTION_OBSERVATION_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES +\n            PUBLICATION_BUILD_FILES + ENTRY_BUILD_FILES))\n        for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):\n            target = source / name; target.parent.mkdir(parents=True, exist_ok=True)\n            shutil.copyfile(ROOT / name, target)\n"),
+                                                     (b'sys.meta_path.insert(0,NoAuthoring())\nfrom hepta.hia'
+                                                      b'_agent_service import HIAAgentService\nfrom hepta.hia'
+                                                      b'_agent_store import AgentStore,AgentRejected,wire\nfr'
+--- a/tools/qualify_hia_core_emitter_control_callers.py
++++ b/tools/qualify_hia_core_emitter_control_callers.py
+@@ -152,13 +152,13 @@
+     from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES,
+         SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES,
+         BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES,
+-        MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES)
++        MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+     paths.update(ROOT / name for name in (
+         'setup.py', 'pyproject.toml', 'MANIFEST.in',
+         *(tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES +
+           SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES +
+           BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES +
+-          MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES)))
++          MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES)))
+     return {p.relative_to(ROOT).as_posix(): sha256(p.read_bytes()).hexdigest()
+             for p in sorted(paths)}
+ 
+--- a/tools/qualify_hia_core_lowering_control_callers.py
++++ b/tools/qualify_hia_core_lowering_control_callers.py
+@@ -157,13 +157,13 @@
+     from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES,
+         SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES,
+         BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES,
+-        MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES)
++        MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+     paths.update(ROOT / name for name in (
+         'setup.py', 'pyproject.toml', 'MANIFEST.in',
+         *(tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES +
+           SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES +
+           BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES +
+-          MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES)))
++          MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES)))
+     return {p.relative_to(ROOT).as_posix(): sha256(p.read_bytes()).hexdigest()
+             for p in sorted(paths)}
+ 
+--- a/tools/qualify_hia_macro_campaign.py
++++ b/tools/qualify_hia_macro_campaign.py
+@@ -243,13 +243,13 @@
+ def _worker_sources(evidence):
+     from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES,
+         SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES,
+-        BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES)
++        BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+     paths = [path for path in sorted((ROOT / "hepta").rglob("*.py"))
+              if path.relative_to(ROOT / "hepta").parts[0] != "_data"]
+     paths += [ROOT / "docs" / name for name in DISCOVERY_FILES]
+     paths += [ROOT / name for name in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES,
+                                       *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES,
+-                                      *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES)]
++                                      *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES, *ENTRY_BUILD_FILES)]
+     entries = {}
+     for path in paths:
+         name = str(path.relative_to(ROOT))
