@@ -1,0 +1,363 @@
+def cli_json_py312_call_fast(s: readbuf, o: mutbuf, w: mutbuf) -> u32:
+    if length(w) != 1024 or get(w, 0) != 3544416758616834888 or get(w, 512) != 3544410161547068232 or (get(w, 112) != 0):
+        return 4294967293
+    if length(s) < 64 or read(s, 0) != 3545251283647349576 or read(s, 8) != 31214:
+        return 4294967293
+    units = read(s, 16)
+    pc = get(w, 136)
+    if units == 0 or units > 288230376151711742 or length(s) != 64 + units * 64 or (pc >= units):
+        return 4294967293
+    at = 64 + pc * 64
+    if read(s, at) != 171 or read(s, at + 8) != get(w, 144) or read(s, at + 56) != 1 or (get(w, 120) == 0) or (get(w, 128) == 0):
+        return 4294967293
+    if get(w, 24) != 0:
+        if get(w, 32) != get(w, 16) or get(w, 40) != get(w, 64):
+            return 4294967293
+        put(w, 24, 0)
+    elif get(w, 8) != 0:
+        return 4294967293
+    if get(w, 8) == 0:
+        if get(w, 16) != 0 or get(w, 48) != 0 or get(w, 56) != 0 or (get(w, 240) != 0):
+            return 4294967293
+        return request(w, 100, 0, 0, 100)
+    while True:
+        phase = get(w, 8)
+        if phase == 6:
+            return child_done(w)
+        if phase < 110:
+            status = guards(w, phase)
+        elif phase < 130:
+            status = python_frame(w, phase)
+        elif phase < 150:
+            status = primitive(w, phase)
+        else:
+            status = cleanup(w, phase)
+        if status != 4 or get(w, 112) != 0:
+            return status
+    return 4294967293
+
+def guards(w: mutbuf, phase: u64) -> u64:
+    if get(w, 48) != 0 or get(w, 56) != 0:
+        return 4294967293
+    if phase == 100:
+        top = answer(w, 0)
+        base = answer(w, 1)
+        total = answer(w, 4)
+        if top > 2147483647 or base > top or top - base != get(w, 144) + 2 or (answer(w, 3) > top) or (top - answer(w, 3) != total) or (answer(w, 5) > total) or (answer(w, 6) > 1):
+            return 4294967293
+        put(w, 160, top)
+        put(w, 168, base)
+        put(w, 176, answer(w, 2))
+        put(w, 184, answer(w, 3))
+        put(w, 192, total)
+        put(w, 200, answer(w, 5))
+        put(w, 208, answer(w, 6))
+        return request(w, 101, 0, 0, 101)
+    if phase == 101:
+        mode = get(w, 248)
+        if mode == 28:
+            if answer(w, 0) != 0 or answer(w, 1) != 1:
+                return request(w, 112, 0, 0, 109)
+            return request(w, 102, 0, 0, 102)
+        if mode == 23 or mode == 24:
+            return py_guard(w, mode)
+        return foreign_guard(w, mode)
+    if phase == 102:
+        if answer(w, 6) != 1 or answer(w, 4) != get(w, 192) + 1 or answer(w, 0) != get(w, 160):
+            return 4294967293
+        put(w, 176, answer(w, 2))
+        put(w, 184, answer(w, 3))
+        put(w, 192, answer(w, 4))
+        put(w, 208, 1)
+        put(w, 248, 23)
+        return request(w, 101, 0, 0, 101)
+    if phase == 109:
+        if answer(w, 0) != get(w, 160):
+            return 4294967293
+        put(w, 112, 3)
+        return 3
+    return 4294967293
+
+def py_guard(w: mutbuf, mode: u64) -> u64:
+    if get(w, 152) != 0:
+        return 4294967293
+    if answer(w, 0) != 1 or answer(w, 1) != 1 or answer(w, 2) != answer(w, 3):
+        return request(w, 112, 0, 0, 109)
+    argcount = answer(w, 4)
+    total = get(w, 192)
+    defaults = answer(w, 7)
+    if argcount > 2147483647 or defaults > argcount or answer(w, 5) != total:
+        return 4294967293
+    if mode == 23:
+        if argcount != total:
+            return request(w, 112, 0, 0, 109)
+    elif total > argcount or total < argcount - defaults:
+        return request(w, 112, 0, 0, 109)
+    if answer(w, 6) != 1:
+        return request(w, 112, 0, 0, 109)
+    put(w, 520, argcount)
+    put(w, 528, defaults)
+    put(w, 536, argcount - defaults)
+    put(w, 216, 1)
+    return request(w, 103, argcount, 0, 110)
+
+def python_frame(w: mutbuf, phase: u64) -> u64:
+    if get(w, 216) != 1 or get(w, 48) != 0 or get(w, 56) != 0:
+        return 4294967293
+    if phase == 110:
+        if answer(w, 0) == 0 or answer(w, 1) != get(w, 520):
+            return 4294967293
+        put(w, 232, answer(w, 0))
+        put(w, 224, 0)
+        put(w, 8, 111)
+        return 4
+    if phase == 111:
+        index = get(w, 224)
+        if index < get(w, 192):
+            return request(w, 104, index, 0, 112)
+        if index < get(w, 520):
+            return request(w, 105, index, index - get(w, 536), 113)
+        if index != get(w, 520):
+            return 4294967293
+        return request(w, 106, get(w, 168), 0, 114)
+    if phase == 112 or phase == 113:
+        index = get(w, 224) + 1
+        if answer(w, 0) != index:
+            return 4294967293
+        put(w, 224, index)
+        put(w, 8, 111)
+        return 4
+    if phase == 114:
+        if answer(w, 0) != get(w, 168):
+            return 4294967293
+        return request(w, 9, get(w, 232), 0, 6)
+    return 4294967293
+
+def foreign_guard(w: mutbuf, mode: u64) -> u64:
+    if answer(w, 0) > 1 or answer(w, 2) > 1 or answer(w, 4) > 1 or (answer(w, 6) > 1):
+        return 4294967293
+    if answer(w, 3) != get(w, 192) or answer(w, 4) != get(w, 208):
+        return 4294967293
+    valid = answer(w, 0) == 1
+    if mode == 56 or mode == 47 or mode == 48:
+        if get(w, 152) != 0 or get(w, 144) != 1:
+            return 4294967293
+        valid = valid and get(w, 208) == 0
+    elif mode == 29:
+        valid = valid and answer(w, 6) == 1
+    elif mode == 40:
+        if get(w, 152) != 0:
+            return 4294967293
+        valid = valid and get(w, 192) == 1 and (answer(w, 1) == 8)
+    elif mode == 39 or mode == 34:
+        if mode == 39 and get(w, 152) != 0:
+            return 4294967293
+        flags = 128
+        if mode == 34:
+            flags = 130
+        valid = valid and answer(w, 1) == flags
+    elif mode == 42 or mode == 41:
+        if get(w, 152) != 0:
+            return 4294967293
+        count = 1
+        if mode == 41:
+            count = 2
+        valid = valid and get(w, 192) == count
+    elif mode == 43:
+        if get(w, 152) != 0 or get(w, 144) != 1:
+            return 4294967293
+        valid = valid and answer(w, 2) == 1
+    elif mode == 46 or mode == 45 or mode == 44 or (mode == 38):
+        if mode != 38 and get(w, 152) != 0:
+            return 4294967293
+        flags = 128
+        if mode == 46:
+            flags = 8
+            valid = valid and get(w, 192) == 2
+        elif mode == 45:
+            flags = 4
+            valid = valid and get(w, 192) == 1
+        elif mode == 38:
+            flags = 130
+        valid = valid and answer(w, 1) == flags and (answer(w, 2) == 1)
+    else:
+        return 4294967293
+    if valid == False:
+        return request(w, 112, 0, 0, 109)
+    put(w, 216, 2)
+    put(w, 544, 1)
+    put(w, 552, 1)
+    put(w, 568, 0)
+    if mode == 56 or mode == 42 or mode == 41 or (mode == 43):
+        put(w, 552, 0)
+    if mode == 42:
+        put(w, 544, 0)
+    if mode == 40 or mode == 46 or mode == 45:
+        return request(w, 108, 0, 0, 130)
+    return request(w, 107, mode, 0, 131)
+
+def primitive(w: mutbuf, phase: u64) -> u64:
+    if get(w, 216) != 2:
+        return 4294967293
+    if phase == 130:
+        if answer(w, 0) != 0:
+            if get(w, 48) == 0 or get(w, 56) != 0:
+                return 4294967293
+            return request(w, 114, get(w, 160), 0, 148)
+        if get(w, 48) != 0 or get(w, 56) != 0:
+            return 4294967293
+        put(w, 568, 1)
+        return request(w, 107, get(w, 248), 0, 131)
+    if phase == 131:
+        mode = get(w, 248)
+        if get(w, 568) != 0:
+            return request(w, 109, 0, 0, 132)
+        if mode == 42 or mode == 41:
+            if answer(w, 0) >> 63 != 0:
+                if get(w, 48) == 0 or get(w, 56) != 0:
+                    return 4294967293
+                return request(w, 114, get(w, 160), 0, 148)
+            if get(w, 48) != 0 or get(w, 56) != 0:
+                return 4294967293
+            put(w, 560, answer(w, 0))
+            if mode == 42:
+                return request(w, 116, get(w, 560), 0, 132)
+            return request(w, 117, get(w, 560), 0, 132)
+        if mode == 43:
+            if answer(w, 0) != 0:
+                if get(w, 48) == 0 or get(w, 56) != 0:
+                    return 4294967293
+                return request(w, 114, get(w, 160) - 1, 0, 148)
+            if get(w, 48) != 0 or get(w, 56) != 0:
+                return 4294967293
+            return request(w, 110, 0, 0, 145)
+        return begin_cleanup(w)
+    if phase == 132:
+        put(w, 568, 0)
+        return begin_cleanup(w)
+    if phase == 145:
+        return request(w, 111, 0, 0, 146)
+    if phase == 146:
+        return request(w, 106, get(w, 168), 0, 147)
+    if phase == 147:
+        if get(w, 48) != 0 or get(w, 56) != 0 or answer(w, 0) != get(w, 168):
+            return 4294967293
+        put(w, 576, get(w, 136) + 5)
+        put(w, 112, 4)
+        return 4
+    if phase == 148:
+        if get(w, 48) == 0 or get(w, 56) != 0:
+            return 4294967293
+        put(w, 112, 2)
+        return 1
+    return 4294967293
+
+def begin_cleanup(w: mutbuf) -> u64:
+    if (get(w, 56) == 0) == (get(w, 48) == 0):
+        return 4294967293
+    put(w, 224, 0)
+    if get(w, 544) == 0:
+        return request(w, 111, 0, 0, 150)
+    put(w, 8, 151)
+    return 4
+
+def cleanup(w: mutbuf, phase: u64) -> u64:
+    if phase == 150:
+        put(w, 8, 151)
+        return 4
+    if phase == 151:
+        index = get(w, 224)
+        if index < get(w, 192):
+            return request(w, 110, index, 0, 152)
+        if index != get(w, 192):
+            return 4294967293
+        if get(w, 544) != 0:
+            return request(w, 111, 0, 0, 153)
+        return request(w, 106, get(w, 168), 0, 154)
+    if phase == 152:
+        put(w, 224, get(w, 224) + 1)
+        put(w, 8, 151)
+        return 4
+    if phase == 153:
+        return request(w, 106, get(w, 168), 0, 154)
+    if phase == 154:
+        if answer(w, 0) != get(w, 168):
+            return 4294967293
+        return request(w, 113, 0, 0, 155)
+    if phase == 155:
+        if get(w, 56) == 0:
+            if get(w, 48) == 0:
+                return 4294967293
+            put(w, 112, 2)
+            return 1
+        if get(w, 48) != 0:
+            return 4294967293
+        put(w, 112, 1)
+        return 0
+    return 4294967293
+
+def child_done(w: mutbuf) -> u64:
+    if get(w, 216) != 1:
+        return 4294967293
+    if answer(w, 0) == 1:
+        if get(w, 48) == 0 or get(w, 56) != 0 or answer(w, 3) != 1:
+            return 4294967293
+        put(w, 112, 2)
+        return 1
+    if answer(w, 0) != 0 or get(w, 48) != 0 or get(w, 56) == 0 or (answer(w, 3) != 0):
+        return 4294967293
+    put(w, 112, 1)
+    return 0
+
+def answer(w: mutbuf, index: u64) -> u64:
+    return get(w, 256 + index * 8)
+
+def request(w: mutbuf, op: u64, a: u64, b: u64, phase: u64) -> u64:
+    seq = get(w, 16)
+    if seq == 18446744073709551615:
+        return 4294967293
+    put(w, 16, seq + 1)
+    put(w, 24, 1)
+    put(w, 64, op)
+    put(w, 72, a)
+    put(w, 80, b)
+    put(w, 88, 0)
+    put(w, 96, 0)
+    put(w, 104, 0)
+    put(w, 8, phase)
+    return 2
+
+def read(s: readbuf, at: u64) -> u64:
+    value = 0
+    value = value | byte(s, at + 0) << 0
+    value = value | byte(s, at + 1) << 8
+    value = value | byte(s, at + 2) << 16
+    value = value | byte(s, at + 3) << 24
+    value = value | byte(s, at + 4) << 32
+    value = value | byte(s, at + 5) << 40
+    value = value | byte(s, at + 6) << 48
+    value = value | byte(s, at + 7) << 56
+    return value
+
+def get(s: mutbuf, at: u64) -> u64:
+    value = 0
+    value = value | byte(s, at + 0) << 0
+    value = value | byte(s, at + 1) << 8
+    value = value | byte(s, at + 2) << 16
+    value = value | byte(s, at + 3) << 24
+    value = value | byte(s, at + 4) << 32
+    value = value | byte(s, at + 5) << 40
+    value = value | byte(s, at + 6) << 48
+    value = value | byte(s, at + 7) << 56
+    return value
+
+def put(w: mutbuf, at: u64, value: u64) -> u64:
+    store(w, at + 0, value >> 0)
+    store(w, at + 1, value >> 8)
+    store(w, at + 2, value >> 16)
+    store(w, at + 3, value >> 24)
+    store(w, at + 4, value >> 32)
+    store(w, at + 5, value >> 40)
+    store(w, at + 6, value >> 48)
+    store(w, at + 7, value >> 56)
+    return 0
