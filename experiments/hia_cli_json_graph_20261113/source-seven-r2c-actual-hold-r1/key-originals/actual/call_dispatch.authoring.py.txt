@@ -1,0 +1,277 @@
+def cli_json_py312_call_dispatch(s: readbuf, o: mutbuf, w: mutbuf) -> u32:
+    if length(w) != 512 or get(w, 0) != 3544407962523812680 or get(w, 112) != 0:
+        return 4294967293
+    if length(s) < 64 or read(s, 0) != 3545251283647349576 or read(s, 8) != 31214:
+        return 4294967293
+    units = read(s, 16)
+    pc = get(w, 400)
+    if units == 0 or units > 288230376151711742 or length(s) != 64 + units * 64 or (pc >= units):
+        return 4294967293
+    at = 64 + pc * 64
+    if get(w, 384) == 0 or get(w, 392) == 0 or read(s, at) != 171 or (read(s, at + 56) != 1):
+        return 4294967293
+    if get(w, 24) != 0:
+        if get(w, 32) != get(w, 16) or get(w, 40) != get(w, 64):
+            return 4294967293
+        put(w, 24, 0)
+    elif get(w, 8) != 0:
+        return 4294967293
+    if get(w, 8) == 0:
+        if get(w, 16) != 0 or get(w, 48) != 0 or get(w, 200) > 1:
+            return 4294967293
+        return request(w, 1, 0, 1)
+    while True:
+        phase = get(w, 8)
+        if phase == 1 or phase == 10:
+            status = observed(w, phase)
+        elif phase == 2 or phase == 11:
+            status = monitored(w, phase)
+        elif phase == 3:
+            status = specialize(w)
+        elif phase == 4 or phase == 5:
+            status = versioned(w, phase)
+        elif phase == 6:
+            status = request(w, 7, get(w, 176), 7)
+        elif phase == 7:
+            put(w, 200, 0)
+            put(w, 208, 0)
+            status = request(w, 1, 0, 1)
+        elif phase == 8:
+            put(w, 112, 1)
+            return 0
+        else:
+            return 4294967293
+        if status != 4:
+            return status
+    return 4294967293
+
+def observed(w: mutbuf, phase: u64) -> u64:
+    if get(w, 48) != 0 or answer(w, 0) > 255 or answer(w, 1) > 65535 or (answer(w, 2) > 2147483647) or (answer(w, 3) > 1) or (answer(w, 4) > 255):
+        return 4294967293
+    put(w, 120, answer(w, 0))
+    put(w, 128, answer(w, 1))
+    put(w, 136, answer(w, 2))
+    put(w, 144, answer(w, 3))
+    put(w, 152, answer(w, 4))
+    if phase == 10:
+        return request(w, 7, get(w, 128) + 16 & 65535, 11)
+    mode = get(w, 120)
+    if get(w, 200) != 0:
+        mode = 171
+    elif mode == 241:
+        return request(w, 2, 0, 2)
+    if mode != 171:
+        if fast_opcode(mode) == 0:
+            return 4294967293
+        put(w, 112, 3)
+        return 3
+    if get(w, 128) >> 4 != 0:
+        return request(w, 7, get(w, 128) - 16, 8)
+    return request(w, 3, 0, 3)
+
+def monitored(w: mutbuf, phase: u64) -> u64:
+    if phase == 2:
+        if get(w, 48) != 0:
+            if answer(w, 0) == 0:
+                return 4294967293
+            put(w, 112, 2)
+            return 1
+        if answer(w, 0) != 0:
+            return 4294967293
+        put(w, 208, 1)
+        return request(w, 1, 0, 10)
+    if get(w, 48) != 0:
+        return 4294967293
+    put(w, 200, 1)
+    return request(w, 1, 0, 1)
+
+def specialize(w: mutbuf) -> u64:
+    if get(w, 48) != 0:
+        return 4294967293
+    kind = answer(w, 0)
+    put(w, 160, kind)
+    if kind == 1:
+        return c_function(w)
+    if kind == 2:
+        return py_function(w)
+    if kind == 3:
+        return class_call(w)
+    if kind == 4:
+        return descriptor(w)
+    if kind != 0:
+        return 4294967293
+    return failed(w)
+
+def c_function(w: mutbuf) -> u64:
+    if answer(w, 1) > 1 or answer(w, 3) > 1 or answer(w, 4) > 1:
+        return 4294967293
+    if answer(w, 1) == 0:
+        return failed(w)
+    flags = answer(w, 2)
+    if flags == 8:
+        if get(w, 144) != 0 or get(w, 136) != 1:
+            return failed(w)
+        if answer(w, 3) != 0:
+            return selected(w, 42)
+        return selected(w, 40)
+    if flags == 128:
+        if get(w, 144) != 0:
+            return failed(w)
+        if get(w, 136) == 2 and answer(w, 4) != 0:
+            return selected(w, 41)
+        return selected(w, 39)
+    if flags == 130:
+        return selected(w, 34)
+    return failed(w)
+
+def py_function(w: mutbuf) -> u64:
+    flags = answer(w, 1)
+    argcount = answer(w, 3)
+    defcount = answer(w, 4)
+    bound = answer(w, 6)
+    nargs = answer(w, 7)
+    if answer(w, 5) > 1 or bound > 1 or argcount > 2147483647 or (defcount > 2147483647) or (nargs > 2147483647):
+        return 4294967293
+    if answer(w, 5) == 0 or get(w, 144) != 0 or flags & 12 != 0 or (answer(w, 2) != 0) or (flags & 1 == 0):
+        return failed(w)
+    if defcount > argcount or nargs > argcount or nargs < argcount - defcount:
+        return failed(w)
+    put(w, 184, argcount)
+    put(w, 224, nargs)
+    put(w, 192, bound)
+    return request(w, 4, 0, 4)
+
+def versioned(w: mutbuf, phase: u64) -> u64:
+    if get(w, 48) != 0:
+        return 4294967293
+    if phase == 4:
+        version = answer(w, 0)
+        if version > 4294967295:
+            return 4294967293
+        if version == 0:
+            return failed(w)
+        put(w, 216, version)
+        return request(w, 5, version, 5)
+    if get(w, 184) == get(w, 224):
+        if get(w, 192) != 0:
+            return selected(w, 28)
+        return selected(w, 23)
+    if get(w, 192) != 0:
+        return failed(w)
+    return selected(w, 24)
+
+def class_call(w: mutbuf) -> u64:
+    if answer(w, 1) > 1 or answer(w, 2) > 1 or answer(w, 3) > 3 or (answer(w, 4) > 1):
+        return 4294967293
+    if answer(w, 1) != 0 or answer(w, 2) == 0:
+        return failed(w)
+    if get(w, 136) == 1 and get(w, 144) == 0 and (get(w, 152) == 1):
+        identity = answer(w, 3)
+        if identity == 1:
+            return selected(w, 47)
+        if identity == 2:
+            return selected(w, 56)
+        if identity == 3:
+            return selected(w, 48)
+    if answer(w, 4) != 0:
+        return selected(w, 29)
+    return failed(w)
+
+def descriptor(w: mutbuf) -> u64:
+    if get(w, 144) != 0:
+        return failed(w)
+    flags = answer(w, 1)
+    if flags == 4:
+        if get(w, 136) != 1:
+            return failed(w)
+        return selected(w, 45)
+    if flags == 8:
+        if get(w, 136) != 2:
+            return failed(w)
+        if answer(w, 2) > 1 or answer(w, 3) > 1:
+            return 4294967293
+        if answer(w, 2) != 0 and get(w, 152) == 1 and (answer(w, 3) != 0):
+            return selected(w, 43)
+        return selected(w, 46)
+    if flags == 128:
+        return selected(w, 44)
+    if flags == 130:
+        return selected(w, 38)
+    return failed(w)
+
+def failed(w: mutbuf) -> u64:
+    backoff = (get(w, 128) & 15) + 1
+    if backoff > 12:
+        backoff = 12
+    put(w, 168, 171)
+    put(w, 176, (1 << backoff) - 1 << 4 | backoff)
+    return request(w, 6, 171, 6)
+
+def selected(w: mutbuf, mode: u64) -> u64:
+    if fast_opcode(mode) == 0:
+        return 4294967293
+    put(w, 168, mode)
+    put(w, 176, 832)
+    return request(w, 6, mode, 6)
+
+def fast_opcode(mode: u64) -> u64:
+    if mode == 23 or mode == 24 or mode == 28 or (mode == 29) or (mode == 34) or (mode == 38):
+        return 1
+    if mode >= 39 and mode <= 48:
+        return 1
+    if mode == 56:
+        return 1
+    return 0
+
+def answer(w: mutbuf, index: u64) -> u64:
+    return get(w, 256 + index * 8)
+
+def request(w: mutbuf, op: u64, arg: u64, phase: u64) -> u64:
+    seq = get(w, 16)
+    if seq == 18446744073709551615:
+        return 4294967293
+    put(w, 16, seq + 1)
+    put(w, 24, 1)
+    put(w, 64, op)
+    put(w, 72, arg)
+    put(w, 80, 0)
+    put(w, 88, 0)
+    put(w, 96, 0)
+    put(w, 104, 0)
+    put(w, 8, phase)
+    return 2
+
+def read(s: readbuf, at: u64) -> u64:
+    value = 0
+    value = value | byte(s, at + 0) << 0
+    value = value | byte(s, at + 1) << 8
+    value = value | byte(s, at + 2) << 16
+    value = value | byte(s, at + 3) << 24
+    value = value | byte(s, at + 4) << 32
+    value = value | byte(s, at + 5) << 40
+    value = value | byte(s, at + 6) << 48
+    value = value | byte(s, at + 7) << 56
+    return value
+
+def get(s: mutbuf, at: u64) -> u64:
+    value = 0
+    value = value | byte(s, at + 0) << 0
+    value = value | byte(s, at + 1) << 8
+    value = value | byte(s, at + 2) << 16
+    value = value | byte(s, at + 3) << 24
+    value = value | byte(s, at + 4) << 32
+    value = value | byte(s, at + 5) << 40
+    value = value | byte(s, at + 6) << 48
+    value = value | byte(s, at + 7) << 56
+    return value
+
+def put(w: mutbuf, at: u64, value: u64) -> u64:
+    store(w, at + 0, value >> 0)
+    store(w, at + 1, value >> 8)
+    store(w, at + 2, value >> 16)
+    store(w, at + 3, value >> 24)
+    store(w, at + 4, value >> 32)
+    store(w, at + 5, value >> 40)
+    store(w, at + 6, value >> 48)
+    store(w, at + 7, value >> 56)
+    return 0

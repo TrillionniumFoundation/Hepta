@@ -1,0 +1,125 @@
+{
+  "schema": "hia.cli-json.source-seven.actual-custody.r2c.v1",
+  "status": "CLOSED_REAL_SOURCE_FAILURE_SIX_OF_SEVEN",
+  "request_commit": "ab465ea5a355369701abad2ca8e60e9a37822b7f",
+  "request_tree": "54e47a7bbc239a6320382bb3379859a02a4fe32e",
+  "sole_parent": "ab465ea5a355369701abad2ca8e60e9a37822b7f",
+  "prefix": "experiments/hia_cli_json_graph_20261113/source-seven-r2c-actual-hold-r1",
+  "actual_root": "/home/qq/hia-rewrite-20261113-e26e-r1/cli-source-seven-r2c/actual",
+  "root_proof_directory": "/home/qq/hia-rewrite-20261113-e26e-r1/root-cli-source7-r2c-execution-r1",
+  "publication_root": "/home/qq/hia-rewrite-20261113-e26e-r1/cli-source-seven-r2c-actual-publication-r1",
+  "unique_root_execution": {
+    "job_id": "1a1d3602d2b-392-116",
+    "returncode": 1,
+    "worker_elapsed_ns": 1705125249,
+    "outer_elapsed_ns": 1849430908,
+    "seconds": 180,
+    "cleanup_grace_seconds": 3,
+    "events": 4,
+    "natural_exit": true,
+    "observed_echild": true,
+    "remaining_direct_children": [],
+    "cleanup_errors": [],
+    "timeout": false
+  },
+  "population": {
+    "expected": 7,
+    "loaded": 7,
+    "source_core_caps_pass": 6,
+    "failed": 1,
+    "expected_components": [
+      "body",
+      "unpack",
+      "call_dispatch",
+      "call",
+      "call_fast",
+      "call_prologue",
+      "send"
+    ],
+    "original_cap_columns": 9,
+    "original_cli_ids": 17,
+    "original_trace_ids": 46,
+    "original_cli_executions": 0,
+    "original_trace_executions": 0,
+    "native_executions": 0,
+    "compiler_line_gate_executed": false,
+    "forbidden_attempts": [],
+    "effect_guard_installed_before_project_import": true
+  },
+  "failure": {
+    "component": "call_fast",
+    "original_error": "ValueError: UnaryOp(op=Not(), operand=Name(id='valid', ctx=Load()))",
+    "error_path": "key-originals/actual/call_fast.error.txt",
+    "bytes": 828,
+    "sha256": "908e8379f7a479746ba7e4d54ccd0c09a1262527fe442cc1c06e0912cc2d05fc",
+    "missing_outputs_not_reconstructed": [
+      "call_fast.document.json",
+      "call_fast.hiaasm",
+      "call_fast.verified.json",
+      "call_fast.caps.json"
+    ]
+  },
+  "input_readback": {
+    "fixed_inputs": 245,
+    "owned": 231,
+    "system": 14,
+    "source_files": 198,
+    "source_bytes": 3123344,
+    "all_before_after_sha_and_nine_field_identity_equal": true
+  },
+  "independent_audit": {
+    "path": "audit/AUDIT.json",
+    "bytes": 356271,
+    "sha256": "0a11edcdab0d5665605136a6041c412ce5f3e47dac28036ea6349e61ae41aada",
+    "checks": 2280,
+    "status": "READONLY_AUDIT_PASS_ORIGINAL_SOURCE_HOLD",
+    "all_checks_pass": true
+  },
+  "root_full_readback": {
+    "path": "key-originals/root-execution/READBACK.json",
+    "bytes": 40611,
+    "sha256": "eb3ecb760ecc17adf48588c6fe20c38e63a45ad964d51ae21af78634cfd0ed11",
+    "unique_job": "1a1d36946e1-392-122",
+    "returncode": 0
+  },
+  "archive": {
+    "original_members": 61,
+    "original_raw_bytes": 7803377,
+    "actual_regular_files": 36,
+    "actual_regular_bytes": 6755580,
+    "compressed_filename": "ORIGINALS.tar.gz",
+    "compressed_bytes": 562631,
+    "compressed_sha256": "7bfdff3c7d0df5f3bc71fb342d4e498234bc7a2df80806e280908cf3f9a15651",
+    "representation": "Four complete base64 parts; decode each then concatenate in numeric order. The binary gzip is not a separate Git leaf.",
+    "parts": [
+      {
+        "path": "parts/part-000.base64.txt",
+        "bytes": 196609,
+        "sha256": "9bf1b61dbf584ebd21eee545483ff22472bc1d4e71c646d29a5c4a5e4eb13aa5"
+      },
+      {
+        "path": "parts/part-001.base64.txt",
+        "bytes": 196609,
+        "sha256": "f537ab0e0d909719396596b8fa1c2df3a4a9aacd56c50f389e621e4cf9a66cfb"
+      },
+      {
+        "path": "parts/part-002.base64.txt",
+        "bytes": 196609,
+        "sha256": "80ff7efb988477b464709391227a941539ab23541278c158712e34128394158a"
+      },
+      {
+        "path": "parts/part-003.base64.txt",
+        "bytes": 160353,
+        "sha256": "adf600241f8e47ca7471f94b2a623bbd4ea6865de5dee7e5c4ec651a76442aa7"
+      }
+    ],
+    "manifest": "ARCHIVE-MANIFEST.json",
+    "complete_decode_readback": "ARCHIVE-READBACK.json",
+    "all_61_member_bytes_modes_and_final_original_identities_verified": true,
+    "system_binaries_copied": false,
+    "all_198_sources_copied_into_this_archive": false,
+    "input_source_full_bytes_remain_bound_by_request_canonical": true
+  },
+  "interpretation": "Read-only custody and audit preserve the original nonzero source result. Six component source passes do not qualify the seventh, native execution, compiler line limits, the original 17 CLI cases, or the original 46 traces. No rerun, product execution, source rewrite, reconstructed original, branch, or trigger was performed to archive this result.",
+  "next_revision": "A separate R3 changes the single bool condition 'if not valid:' to 'if valid == False:'; its unexecuted request is published separately."
+}
