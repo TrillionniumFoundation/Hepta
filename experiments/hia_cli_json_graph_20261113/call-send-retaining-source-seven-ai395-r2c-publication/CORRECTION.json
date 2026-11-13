@@ -1,0 +1,53 @@
+{
+  "schema": "hia.cli-json.source-seven.r2c.fail-stop-correction.v1",
+  "status": "STATIC_CORRECTION_UNEXECUTED",
+  "prior": {
+    "commit": "5f5eeaa9a9bd30f503c19d8eb2f8fec170a14098",
+    "tree": "265b5b3e0dd45e16f48cc668db4a8b7e327a8d2c",
+    "source_qualification_executions": 0,
+    "classification": "PRESERVED_UNEXECUTED_STATIC_HOLD_COMPONENT_ERROR_STATUS"
+  },
+  "reported_finding": {
+    "reviewer": "cold_ci_closure",
+    "source": "Team message after full r2b worker read; formal peer receipt is separate and not invented here.",
+    "detail": "A BaseException delivered after setting a component PASS status but before leaving its try could be caught with row.error populated while the status remained PASS. The final predicate checked only status."
+  },
+  "fix": {
+    "worker": {
+      "path": "control/source_authoring_worker.py",
+      "bytes": 16340,
+      "sha256": "b5089e91b7a644e8d2e5f7fc9a744ff8b471c13ccca88139229e00f525b08434",
+      "git_blob": "0d655c3e4ca5cd1da24da59f2a2d5682fac63081",
+      "mode": 384
+    },
+    "previous_sha256": "04004bc113780cee7eb3cadb769f37670f5a8a4f1378a50d9018296e6b2c99ea",
+    "changes": [
+      "Component except first resets row.status to HOLD before any error/evidence formatting.",
+      "Final seven-component conjunction requires every row.error is None as well as the unchanged exact PASS status.",
+      "Two schema strings rename this independent unexecuted r2c request."
+    ],
+    "inverse_reconstructs_previous_whole_worker": true,
+    "guardian_whole_bytes_unchanged": {
+      "path": "control/guardian.py",
+      "bytes": 12515,
+      "sha256": "5080d13fff9eab7396f13aecb1417c640d7fd3f49aefadbcec5606b5aec3ce88",
+      "git_blob": "b14b52cfdb4e1cf4a081d8cb21784f3128ba2375",
+      "mode": 384
+    },
+    "new_test_population": false
+  },
+  "preserved": {
+    "source_files": 198,
+    "source_bytes": 3123344,
+    "components": 7,
+    "nine_caps": 9,
+    "seconds": 180,
+    "cleanup_seconds": 3,
+    "original_cli17_not_executed": true,
+    "original_trace46_not_executed": true,
+    "effect_guard_and_attempt_ledger_unchanged": true,
+    "closed_only_source_and_log_reads_unchanged": true,
+    "all234_previous_files_read_and_unchanged": true
+  },
+  "scope": "No candidate AST/source generation/Core VM/C compile/native qualification or effect-denial test was executed. Only metadata freeze and pure literal inverse validation ran."
+}
