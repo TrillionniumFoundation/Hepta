@@ -21,7 +21,7 @@ from tools.build_hia_agent_stdio import DISPATCH, PACKER, build
 
 EXPECTED_CAPABILITY = {
     'schema':'hepta.hia.agent-stdio.v1','implementation':'hia-native',
-    'operations':['capabilities','verify','compile','render-assembly','assemble'],'build_profile':0,
+    'operations':['capabilities','verify','compile','render-assembly','assemble','check-assembly'],'build_profile':0,
     'input':'primitive-v8-Core-JSON','input_bytes_max':8388608,
     'assembly_input':'hia-asm.v1','assembly_input_bytes_max':1048576,
     'compiler_bytes_max':1048576,'program_nodes_max':1048576,'json_depth_max':128,
@@ -78,13 +78,21 @@ def dispatcher_reference():
         for command,mode in [(b'verify',1),(b'compile',2),(b'render-assembly',3),(b'assemble',4),
                              (b'render-assembla',0xffffffff),(b'render-assembl',0xffffffff),
                              (b'render-assemblyx',0xffffffff),(b'verifyx',0xffffffff),
-                             (b'assemblex',0xffffffff),(b'',0xffffffff)]:
+                             (b'assemblex',0xffffffff),(b'check-assembly',5),
+                             (b'check-assembl',0xffffffff),(b'check-assemblx',0xffffffff),
+                             (b'check-assemblyx',0xffffffff),(b'',0xffffffff)]:
             result,raw=vm_window(DISPATCH,command,workspace=workspace)
             assert result==mode and raw==b'\xa5',(command,result,raw)
         struct.pack_into('<Q',workspace,0,1)
         result,raw=vm_window(DISPATCH,b'verify',workspace=workspace,capacity=len(EXPECTED_VERIFIED)+1,
                              count=len(EXPECTED_VERIFIED)+1)
         assert result==len(EXPECTED_VERIFIED) and raw==EXPECTED_VERIFIED+b'\xa5'
+        result,raw=vm_window(DISPATCH,b'check-assembly',workspace=workspace,capacity=len(EXPECTED_VERIFIED)+1,
+                             count=len(EXPECTED_VERIFIED)+1)
+        assert result==len(EXPECTED_VERIFIED) and raw==EXPECTED_VERIFIED+b'\xa5'
+        result,raw=vm_window(DISPATCH,b'check-assembly',workspace=workspace,
+                             capacity=len(EXPECTED_VERIFIED)-1,count=len(EXPECTED_VERIFIED)-1)
+        assert result==0xfffffffe and raw==b'\xa5'*(len(EXPECTED_VERIFIED)-1)
         for command in (b'compile',b'render-assembly',b'assemble'):
             result,raw=vm_window(DISPATCH,command,workspace=workspace)
             assert result==0xffffffff and raw==b'\xa5'
@@ -186,8 +194,8 @@ class AgentStdioNativeTests(unittest.TestCase):
         assert all(h==sha256(cls.compiler.read_bytes()).hexdigest() for h in outer['generation_sha256'])
         cls.executables={profile:build(cls.root/profile,cls.compiler,cls.cold,output_profile=profile)
                          for profile in ('flat','elf','exec')}
-        source=DISPATCH.parents[2]/'examples/hia_bootstrap/selfhost.hiaasm'
-        cls.assembly=(source.parent/'bytesum.hiaasm').read_bytes()
+        source=DISPATCH.parents[2]/'examples/hia_bootstrap/selfhost.hepta'
+        cls.assembly=(source.parent/'bytesum.hepta').read_bytes()
         cls.sample=assemble_program(cls.assembly).as_dict()
 
     def invoke(self,command,payload=b'',profile='flat',**kwargs):
@@ -200,7 +208,8 @@ class AgentStdioNativeTests(unittest.TestCase):
             self.assertEqual((p.returncode,p.stderr),(0,b''))
             self.assertEqual(json.loads(p.stdout),{**EXPECTED_CAPABILITY,'build_profile':index})
         for args in ([],['unknown'],['verifyx'],['render-assembla'],['render-assembl'],
-                     ['render-assemblyx'],['assemblex'],['capabilities','extra'],['x'*32],['']):
+                     ['render-assemblyx'],['assemblex'],['check-assembl'],['check-assemblx'],
+                     ['check-assemblyx'],['check-assembly','extra'],['capabilities','extra'],['x'*32],['']):
             p=self.invoke(args)
             self.assertEqual((p.returncode,p.stdout),(64,b''))
             self.assertEqual(json.loads(p.stderr)['category'],'usage')
@@ -302,6 +311,28 @@ class AgentStdioNativeTests(unittest.TestCase):
                 self.assertEqual(json.loads(result.stderr)['category'],'capacity')
             else:self.assertEqual((result.stdout,result.stderr),(expected.stdout,b''))
 
+    def test_check_assembly_has_full_native_semantic_admission_and_no_code_publication(self):
+        from unittest.mock import patch
+        copied=self.root/'installed-native-check-assembly'
+        shutil.copyfile(self.executables['flat'],copied);copied.chmod(0o700)
+        with patch('hepta.hia_program.verify_program',side_effect=AssertionError('host Core checker')), \
+             patch('hepta.hia_agent_assembly.assemble_program',side_effect=AssertionError('host assembly parser')):
+            accepted=subprocess.run([str(copied),'check-assembly'],input=self.assembly,capture_output=True,
+                env={'PATH':''},timeout=20)
+            self.assertEqual((accepted.returncode,accepted.stdout,accepted.stderr),(0,EXPECTED_VERIFIED,b''))
+        for count,status in ((LIMIT,0),(LIMIT+1,3)):
+            result=self.invoke(['check-assembly'],self.assembly+b' '*(count-len(self.assembly)))
+            self.assertEqual((result.returncode,result.stdout),
+                             (status,EXPECTED_VERIFIED if not status else b''))
+        object_source=self.assembly.replace(b'v8 selfhost\n',b'v8 selfhost_elf\n',1)
+        for profile,source in (('flat',self.assembly),('elf',object_source)):
+            result=self.invoke(['check-assembly'],source,profile=profile)
+            self.assertEqual((result.returncode,result.stdout,result.stderr),(0,EXPECTED_VERIFIED,b''))
+        for profile,source in (('flat',object_source),('elf',self.assembly),('exec',self.assembly)):
+            result=self.invoke(['check-assembly'],source,profile=profile)
+            self.assertEqual((result.returncode,result.stdout),(2,b''))
+            self.assertEqual(json.loads(result.stderr)['category'],'input_or_semantic')
+
     def test_assembly_syntax_effect_loan_and_owner_refusals(self):
         header=('hia-asm.v1 hepta.hia.program.v8 selfhost_elf\n'
                 'fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) '
@@ -318,9 +349,10 @@ class AgentStdioNativeTests(unittest.TestCase):
             with self.subTest(source=source[:100]):
                 with self.assertRaises(ValueError):assemble_program(source)
                 for profile in ('flat','elf','exec'):
-                    result=self.invoke(['assemble'],source,profile=profile)
-                    self.assertEqual((result.returncode,result.stdout),(2,b''))
-                    self.assertEqual(json.loads(result.stderr)['category'],'input_or_semantic')
+                    for action in ('assemble','check-assembly'):
+                        result=self.invoke([action],source,profile=profile)
+                        self.assertEqual((result.returncode,result.stdout),(2,b''))
+                        self.assertEqual(json.loads(result.stderr)['category'],'input_or_semantic')
         for action in ('verify','compile','render-assembly'):
             refused=self.invoke([action],self.assembly)
             self.assertEqual((refused.returncode,refused.stdout),(2,b''))
@@ -335,6 +367,8 @@ class AgentStdioNativeTests(unittest.TestCase):
         self.assertEqual((result.returncode,result.stderr),(0,b''))
         assembled=self.invoke(['assemble'],source,profile='exec')
         self.assertEqual((assembled.returncode,assembled.stdout,assembled.stderr),(0,result.stdout,b''))
+        checked=self.invoke(['check-assembly'],source,profile='exec')
+        self.assertEqual((checked.returncode,checked.stdout,checked.stderr),(0,EXPECTED_VERIFIED,b''))
         executable=self.root/'native-agent-generated-echo'
         executable.write_bytes(result.stdout);executable.chmod(0o700)
         for row in reference['echo']:
@@ -379,6 +413,8 @@ class AgentStdioNativeTests(unittest.TestCase):
         expected=self.invoke(['compile'],program.canonical_bytes,profile='elf')
         actual=self.invoke(['assemble'],source,profile='elf')
         self.assertEqual((actual.returncode,actual.stdout,actual.stderr),(0,expected.stdout,b''))
+        checked=self.invoke(['check-assembly'],source,profile='elf')
+        self.assertEqual((checked.returncode,checked.stdout,checked.stderr),(0,EXPECTED_VERIFIED,b''))
         self.assertEqual(actual.stdout[:4],b'\x7fELF')
         self.assertEqual(struct.unpack_from('<H',actual.stdout,16)[0],1)
         for profile in ('flat','exec'):
@@ -387,7 +423,7 @@ class AgentStdioNativeTests(unittest.TestCase):
 
     def test_original_modified_compiler_chains_are_genuine_and_separate(self):
         from tools.qualify_hia_selfhost import compile_stage,mutate_compiler
-        original=(DISPATCH.parent/'selfhost.hiaasm').read_bytes()
+        original=(DISPATCH.parent/'selfhost.hepta').read_bytes()
         for index,source in enumerate((original,mutate_compiler(original))):
             wire=json.dumps(assemble_program(source).as_dict(),separators=(',',':')).encode()
             p=self.invoke(['compile'],wire)
@@ -405,7 +441,7 @@ class AgentStdioNativeTests(unittest.TestCase):
 
     def test_raw_assembly_produces_original_and_modified_executable_selfhost_chains(self):
         from tools.qualify_hia_selfhost import mutate_compiler
-        original=(DISPATCH.parent/'selfhost.hiaasm').read_bytes()
+        original=(DISPATCH.parent/'selfhost.hepta').read_bytes()
         fixed_points=[]
         for index,raw in enumerate((original,mutate_compiler(original))):
             source=raw.replace(b'v8 selfhost\n',b'v8 selfhost_exec\n',1)
@@ -430,6 +466,7 @@ class AgentStdioNativeTests(unittest.TestCase):
         compiled=self.invoke(['compile'],wire)
         self.assertEqual((compiled.returncode,compiled.stderr),(0,b''))
         for action,payload,expected in (('verify',wire,EXPECTED_VERIFIED),
+                                        ('check-assembly',self.assembly,EXPECTED_VERIFIED),
                                         ('assemble',self.assembly,compiled.stdout)):
             for interrupted in (False,True):
                 trace=self.root/f'agent-io-{action}-{interrupted}.strace'
@@ -456,14 +493,14 @@ class AgentStdioNativeTests(unittest.TestCase):
                     os.dup2(descriptor,1);os.close(descriptor)
                 if mode=='mmap-failure':resource.setrlimit(resource.RLIMIT_AS,(2<<20,2<<20))
             # Do not relax the old compiler harness's exact no-argument guard.
-            for action,payload in (('verify',wire),('assemble',self.assembly)):
+            for action,payload in (('verify',wire),('check-assembly',self.assembly),('assemble',self.assembly)):
                 result=self.invoke([action],payload,preexec_fn=prepare)
                 self.assertEqual((result.returncode,result.stdout),(4,b''),(mode,action,result.stderr))
                 self.assertEqual(json.loads(result.stderr)['category'],'io_or_mapping')
 
     def test_real_partial_stdout_is_prefix_then_io_failure_not_publication(self):
         import fcntl
-        original=(DISPATCH.parent/'selfhost.hiaasm').read_bytes()
+        original=(DISPATCH.parent/'selfhost.hepta').read_bytes()
         wire=json.dumps(assemble_program(original).as_dict(),separators=(',',':')).encode()
         for action,payload in (('compile',wire),('assemble',original)):
             read_fd,write_fd=os.pipe()

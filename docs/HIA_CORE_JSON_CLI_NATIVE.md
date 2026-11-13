@@ -94,7 +94,7 @@ trace. Strace-injected first read/writeEINTRs are retried successfully; a real
 nonblocking pipe accepts a correct prefix then exits4on EAGAIN, never reporting
 partial publication as success. Static inventory is219package+420tool Python
 files,3partial/5opencomponent boundaries. Public receipts and lossless inventory
-delta are in `review-evidence/hia-whole-selfhost-20261109/`.
+delta are in [review-evidence/hia-whole-selfhost-20261109/](https://github.com/TrillionniumFoundation/Hepta/tree/06b1e9b284f612c47a2205e79c8685d8b366d9de/review-evidence/hia-whole-selfhost-20261109).
 
 The compiler machine bytes are unchanged from the streaming qualification; this
 does not promote that older commit's full-repository or language results into

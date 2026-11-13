@@ -11,16 +11,21 @@ import json
 from pathlib import Path
 import struct
 
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
+
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.generate_hia_core_patch_cli import MAGIC, BUNDLE_LIMIT
 from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
-ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / 'examples/hia_bootstrap/core_patch.hiaasm'
-ADMISSION = ROOT / 'examples/hia_bootstrap/core_admission.hiaasm'
-PACKER = ROOT / 'examples/hia_bootstrap/core_patch_cli_packer.hiaasm'
+SOURCE = ROOT / 'examples/hia_bootstrap/core_patch.hepta'
+ADMISSION = ROOT / 'examples/hia_bootstrap/core_admission.hepta'
+PACKER = ROOT / 'examples/hia_bootstrap/core_patch_cli_packer.hepta'
 SCHEMA = 'hepta.hia.core-patch-cli-build.v1'
 REQUIRED_CHECKS = {'export_manifest_matches_qualification', 'isolated_python_without_site',
     'nested_full_qualification_pass', 'nested_process_exit_zero', 'no_ancestor_git_identity',
@@ -50,7 +55,8 @@ def build(output, compiler, cold_report):
         raise ValueError('completed matching-source native cold qualification required for Core patch CLI')
     sources = current_sources()
     if (cold.get('source_manifest') != sources
-            or any(str(path.relative_to(ROOT)) not in sources for path in (SOURCE, ADMISSION, PACKER))):
+            or any(sources.get(path.relative_to(ROOT).as_posix()) != sha256(pins[path]).hexdigest()
+                   for path in (SOURCE, ADMISSION, PACKER))):
         raise ValueError('completed matching-source native cold qualification required for Core patch CLI')
     output.mkdir(mode=0o700)
     images = {}; receipts = {}

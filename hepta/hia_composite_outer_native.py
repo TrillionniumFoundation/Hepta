@@ -24,7 +24,7 @@ from .hia_program import HIAProgramRejected
 SCHEMA = 'hepta.hia.composite-outer-native.v1'
 SELECTOR = 'HEPTA_HIA_COMPOSITE_OUTER_MANIFEST'
 KERNELS = ('owner', 'render')
-SOURCES = {name:_source_resource_path('examples/hia_bootstrap/composite_outer_'+name+'.hiaasm') for name in KERNELS}
+SOURCES = {name:_source_resource_path('examples/hia_bootstrap/composite_outer_'+name+'.hepta') for name in KERNELS}
 WORKSPACE_BYTES, INPUT_BYTES, OUTPUT_BYTES = 80 << 20, 64 << 20, 64 << 10
 MAGIC = int.from_bytes(b'HIAOTK01','little')
 OUTER_MAGIC = int.from_bytes(b'HIAOTR01','little')

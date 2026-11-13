@@ -38,7 +38,7 @@ def qualify(directory, compiler):
     try:
         for case in [*cases(), *flow_cases(), *parameter_cases(), *flow_name_cases(), *parameter_name_cases()]:
             label, source = case["id"], case["source"].encode()
-            (directory / (label + ".hiaasm")).write_bytes(source)
+            (directory / (label + ".hepta")).write_bytes(source)
             ref = reference(case)
             obj, compilation = compile_stage(directory, label + "-object", compiler, source, output_extension=".o")
             inspection = inspect_owned_object(obj.read_bytes())
@@ -101,7 +101,7 @@ def qualify(directory, compiler):
             "tools/hia_selfhost_chain_cases.py", "tools/qualify_hia_selfhost_chain_elf.py",
             "tools/hia_selfhost_chain_flow_cases.py",
             "tools/hia_selfhost_parameter_cases.py",
-            "examples/hia_bootstrap/selfhost.hiaasm")}
+            "examples/hia_bootstrap/selfhost.hepta")}
         (directory / "qualification.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     return report
 

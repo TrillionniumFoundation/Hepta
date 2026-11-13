@@ -34,7 +34,7 @@ class Round4Routes(unittest.TestCase):
     def test_cli_import_render_check_actual_roundtrip_and_no_replace(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)
-            source,assembly,back=root/"core.json",root/"program.hiaasm",root/"back.json"
+            source,assembly,back=root/"core.json",root/"program.hepta",root/"back.json"
             source.write_text(json.dumps(self.program().as_dict()))
             for argv in (["render-assembly",str(source),"-o",str(assembly)],
                          ["check-assembly",str(assembly)],
@@ -53,7 +53,7 @@ class Round4Routes(unittest.TestCase):
 
     def test_bad_assembly_diagnostic_does_not_publish_core(self):
         with tempfile.TemporaryDirectory() as td:
-            source=Path(td)/"bad.hiaasm"
+            source=Path(td)/"bad.hepta"
             source.write_text("hia-asm.v1 unregistered_schema malicious\n")
             output=io.StringIO()
             with contextlib.redirect_stdout(output):

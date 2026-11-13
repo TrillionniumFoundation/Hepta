@@ -1,6 +1,6 @@
 # Explicit whole primitive Core admission candidate
 
-`core_admission.hiaasm` admits a complete raw primitive Core JSON document,
+`core_admission.hepta` admits a complete raw primitive Core JSON document,
 schemas v1–v8. It embeds declaration, SSA, CFG and public-export checks, then
 checks every function body: all 50 opcode contracts, exact scalar literals,
 callee signatures/effects, owner consumption, borrow permissions and parent
@@ -21,6 +21,8 @@ bodies were checked instead of claiming that host-cached bodies were reused.
 The strict `tools.build_hia_core_admission` requires the completed cold report
 to match the current complete source manifest and compiler generation hashes.
 An older compiler used in development is not exact-source qualification.
+
+The selector is unselected only when its environment variable is absent. An explicitly present empty value is rejected before image loading or entry into the hosted reference. Remove the variable to use the unselected reference path; an empty assignment does not disable selection.
 
 ## Remaining boundaries and claims
 

@@ -6,6 +6,30 @@ from tools.hia_selfhost_keywords import independent_reference, keyword_source
 from tools.hia_selfhost_limits import MAX_BLOCKS, MAX_INSTRUCTIONS
 
 
+def scanner_helpers(*entries):
+    """Extract the actual checked compiler functions and every direct callee."""
+    from hepta.hia_agent_assembly import render_assembly
+    doc, names = document()
+    functions = {fn['name']: fn for fn in doc['functions']}
+    needed = set()
+
+    def visit(name):
+        if name in needed:
+            return
+        needed.add(name)
+        for block in functions[name]['blocks']:
+            for op in block['ops']:
+                if op['op'] == 'call':
+                    visit(op['attrs']['function'])
+
+    for entry in entries:
+        visit(names[entry])
+    source = render_assembly({'schema': 'hepta.hia.program.v8',
+        'module': 'live_scanner_reference',
+        'functions': [fn for fn in doc['functions'] if fn['name'] in needed]})
+    return source, names
+
+
 class SelfhostKeywordTests(unittest.TestCase):
     def test_length_guard_retains_every_occupied_byte_and_rejects_zero_padding_aliases(self):
         # Independent table oracle across every packed-word boundary. This
@@ -72,26 +96,11 @@ class SelfhostKeywordTests(unittest.TestCase):
         self.assertEqual(keyword_function(), {**original, "name": "f1"})
 
     def test_live_scanner_numeric_identifiers_preserve_full_token_state_in_Core_VM(self):
-        from hepta.hia_agent_assembly import assemble_program, render_assembly
+        from hepta.hia_agent_assembly import assemble_program
         from hepta.hia_program import execute_program
         from tools.hia_selfhost_bulk import Body
         from tools.hia_selfhost_keywords import REFERENCE_WRAPPER
-        doc, names = document()
-        functions = {fn['name']: fn for fn in doc['functions']}
-        needed = set()
-        def visit(name):
-            if name in needed:
-                return
-            needed.add(name)
-            for block in functions[name]['blocks']:
-                for op in block['ops']:
-                    if op['op'] == 'call':
-                        visit(op['attrs']['function'])
-        visit(names['next_token'])
-        visit(names['get'])
-        helpers = render_assembly({'schema':'hepta.hia.program.v8',
-            'module':'live_scanner_reference',
-            'functions':[fn for fn in doc['functions'] if fn['name'] in needed]})
+        helpers, names = scanner_helpers('next_token', 'get')
         # Existing independently checked four-word materializer allocates the
         # EXACT input length, not a padded buffer that could mask EOF reads.
         wrapper = REFERENCE_WRAPPER.split('block b3(',1)[0]
@@ -134,6 +143,74 @@ class SelfhostKeywordTests(unittest.TestCase):
                     self.assertEqual(result['values'],expected)
                     self.assertEqual(result['resources']['live_owners'],0)
                     self.assertEqual(result['resources']['live_local_loans'],0)
+
+    def test_numeric_scanner_prefix_keeps_identifier_and_lexical_refusals(self):
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program_runtime import _Machine, _Owner, _View
+        source, names = scanner_helpers('next_token', 'identifier')
+        checked = assemble_program(source)
+        functions = {fn['name']: fn for fn in checked.as_dict()['functions']}
+
+        def observe(wire):
+            machine = _Machine(checked, 1_000_000, 16 << 20, None, 256)
+            # Exactly sized source memory makes a premature or past-EOF read
+            # observable. The workspace also holds the identifier's full hash.
+            roots = [_Owner(-1, bytearray(wire)), _Owner(-2, bytearray(480))]
+            arguments = [_View(roots[0], False), _View(roots[1], True)]
+            self.assertEqual(machine.invoke(functions[names['next_token']], arguments), [0])
+            return machine, roots, arguments
+
+        def state(root):
+            return [int.from_bytes(root.data[at:at + 8], 'little')
+                    for at in (0, 8, 16, 24, 32, 40, 104, 120)]
+
+        for prefix in 'vfb':
+            words = [(prefix + tail, 0) for tail in
+                     ('0', '9', '18446744073709551615', '0value', '9function', '0_checked')]
+            words += [(prefix + '0' + 'x' * 126, 0),
+                      (prefix + '0' + 'x' * 127, 67),
+                      (prefix + '0.value', 67), (prefix + '9-mode', 67)]
+            for word, error in words:
+                for quoted in (False, True):
+                    wire = (' ' + ('"' + word + '"' if quoted else word)).encode('ascii')
+                    with self.subTest(wire=wire):
+                        machine, roots, arguments = observe(wire)
+                        self.assertEqual(state(roots[1]), [len(wire), 261, 0, 1, int(quoted), 0, 0, 0])
+                        self.assertEqual(machine.invoke(functions[names['identifier']], arguments), [0])
+                        self.assertEqual(state(roots[1]),
+                            [len(wire), 261, 0, 1, int(quoted), error, int(bool(error)), 0])
+                        if not error:
+                            name_hash = 5381
+                            for byte in word.encode('ascii'):
+                                name_hash = ((name_hash * 33) ^ byte) & 0xffffffff
+                            self.assertEqual([int.from_bytes(roots[1].data[at:at + 8], 'little')
+                                for at in (456, 464, 472)], [1 + int(quoted), len(word), name_hash])
+                        self.assertFalse(machine.owners)
+                        self.assertFalse(machine.chains)
+                        self.assertEqual(machine.loans_started, machine.loans_ended)
+
+        # The shortcut must not consume a forbidden trailing byte, and a
+        # missing closing quote must still fail before token classification.
+        for wire in (b'v0!', b'f9\0', b'b0\t'):
+            with self.subTest(wire=wire):
+                machine, roots, arguments = observe(wire)
+                self.assertEqual(state(roots[1]), [2, 261, 0, 0, 0, 0, 0, 0])
+                self.assertEqual(machine.invoke(functions[names['next_token']], arguments), [0])
+                self.assertEqual(state(roots[1]), [2, 261, 0, 2, 0, 46, 2, 2])
+        for wire, position, begin in ((b'"v0', 3, 0), (b' "f9!', 4, 1), (b'"b0-mode!', 8, 0)):
+            with self.subTest(wire=wire):
+                _, roots, _ = observe(wire)
+                self.assertEqual(state(roots[1]), [position, 0, 0, begin, 1, 47, begin, 0])
+
+    def test_numeric_prefix_keyword_conflicts_fail_before_authoring(self):
+        from unittest.mock import patch
+        from tools import generate_hia_selfhost as generator
+        for prefix in 'vfb':
+            for digit in '0123456789':
+                word = prefix + digit + '_future'
+                with self.subTest(word=word), patch.dict(generator.W, {word: 999}):
+                    with self.assertRaisesRegex(ValueError, 'numeric identifier prefix conflicts'):
+                        generator.source_program()
 
     def test_outside_the_packed_grammar_fails_at_authoring_time(self):
         for word in ("", "x" * 33, "f\0n", "汉"):

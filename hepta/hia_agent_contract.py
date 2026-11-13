@@ -27,48 +27,165 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
-    'examples/hia_bootstrap/agent_identity.hiaasm',
-    'examples/hia_bootstrap/agent_slice.hiaasm',
-    'examples/hia_bootstrap/agent_data_json.hiaasm',
-    'examples/hia_bootstrap/agent_binary64.hiaasm',
-    'examples/hia_bootstrap/agent_snapshot_json.hiaasm',
-    'examples/hia_bootstrap/agent_snapshot.hiaasm',
-    'examples/hia_bootstrap/capability_renaming.hiaasm',
-    'examples/hia_bootstrap/core_json_frontend.hiaasm',
-    'examples/hia_bootstrap/core_module_graph.hiaasm',
-    'examples/hia_bootstrap/core_workspace_facts.hiaasm',
-    'examples/hia_bootstrap/core_workspace_json.hiaasm',
-    'examples/hia_bootstrap/core_workspace_materialize.hiaasm',
-    'examples/hia_bootstrap/function_shape.hiaasm',
-    'examples/hia_bootstrap/instruction_policy.hiaasm',
-    'examples/hia_bootstrap/json_canonical.hiaasm',
-    'examples/hia_bootstrap/json_decode.hiaasm',
-    'examples/hia_bootstrap/json_preflight.hiaasm',
-    'examples/hia_bootstrap/program_shape.hiaasm',
-    'examples/hia_bootstrap/sha256.hiaasm',
-    'examples/hia_bootstrap/sha256_stream.hiaasm',
-    'examples/hia_bootstrap/agent_binary64_format.hiaasm',
-    'examples/hia_bootstrap/core_admission.hiaasm',
-    'examples/hia_bootstrap/core_patch.hiaasm',
-    'examples/hia_bootstrap/composite_types.hiaasm',
-    'examples/hia_bootstrap/task_helpers.hiaasm',
-    'examples/hia_bootstrap/composite_function_admit.hiaasm',
-    'examples/hia_bootstrap/composite_function_records.hiaasm',
-    'examples/hia_bootstrap/composite_function_advanced.hiaasm',
-    'examples/hia_bootstrap/composite_function_terms.hiaasm',
-    'examples/hia_bootstrap/composite_function_render.hiaasm',
-    'examples/hia_bootstrap/composite_constructor_owner.hiaasm',
-    'examples/hia_bootstrap/composite_constructor_render.hiaasm',
-    'examples/hia_bootstrap/composite_outer_owner.hiaasm',
-    'examples/hia_bootstrap/composite_outer_render.hiaasm',
+    'examples/hia_bootstrap/machine_plan.hepta',
+    'examples/hia_bootstrap/machine_encoding.hepta',
+    'examples/hia_bootstrap/machine_state.hepta',
+    'examples/hia_bootstrap/machine_instructions.hepta',
+    'examples/hia_bootstrap/worker_report.hepta',
+    'examples/hia_bootstrap/json_wire.hepta',
+    'examples/hia_bootstrap/cli_control.hepta',
+    'examples/hia_bootstrap/cli_format.hepta',
+    'examples/hia_bootstrap/candidate_budget.hepta',
+    'examples/hia_bootstrap/slot_ledger.hepta',
+    'examples/hia_bootstrap/nominal_json.hepta',
+    'examples/hia_bootstrap/agent_journal.hepta',
+    'examples/hia_bootstrap/execution_budget.hepta',
+    'examples/hia_bootstrap/worker_request.hepta',
+    'examples/hia_bootstrap/agent_identity.hepta',
+    'examples/hia_bootstrap/agent_slice.hepta',
+    'examples/hia_bootstrap/agent_data_json.hepta',
+    'examples/hia_bootstrap/agent_binary64.hepta',
+    'examples/hia_bootstrap/agent_snapshot_json.hepta',
+    'examples/hia_bootstrap/agent_snapshot.hepta',
+    'examples/hia_bootstrap/capability_renaming.hepta',
+    'examples/hia_bootstrap/core_json_frontend.hepta',
+    'examples/hia_bootstrap/core_module_graph.hepta',
+    'examples/hia_bootstrap/core_workspace_facts.hepta',
+    'examples/hia_bootstrap/core_workspace_json.hepta',
+    'examples/hia_bootstrap/core_workspace_materialize.hepta',
+    'examples/hia_bootstrap/function_shape.hepta',
+    'examples/hia_bootstrap/instruction_policy.hepta',
+    'examples/hia_bootstrap/json_canonical.hepta',
+    'examples/hia_bootstrap/json_decode.hepta',
+    'examples/hia_bootstrap/json_preflight.hepta',
+    'examples/hia_bootstrap/program_shape.hepta',
+    'examples/hia_bootstrap/sha256.hepta',
+    'examples/hia_bootstrap/sha256_stream.hepta',
+    'examples/hia_bootstrap/agent_binary64_format.hepta',
+    'examples/hia_bootstrap/core_admission.hepta',
+    'examples/hia_bootstrap/core_patch.hepta',
+    'examples/hia_bootstrap/composite_types.hepta',
+    'examples/hia_bootstrap/task_helpers.hepta',
+    'examples/hia_bootstrap/composite_function_admit.hepta',
+    'examples/hia_bootstrap/composite_function_records.hepta',
+    'examples/hia_bootstrap/composite_function_advanced.hepta',
+    'examples/hia_bootstrap/composite_function_terms.hepta',
+    'examples/hia_bootstrap/composite_function_render.hepta',
+    'examples/hia_bootstrap/composite_constructor_owner.hepta',
+    'examples/hia_bootstrap/composite_constructor_render.hepta',
+    'examples/hia_bootstrap/composite_outer_owner.hepta',
+    'examples/hia_bootstrap/composite_outer_render.hepta',
+    'examples/hia_bootstrap/retirement_state.hepta',
 )
 
+
+# Standalone source-builder inputs are package data, not runtime image adapters.
+# The executable is explicitly bootstrapped and selected outside wheel setup.
+SOURCE_BUILD_FILES = (
+    'examples/hia_bootstrap/source_build_policy.hepta',
+    'examples/hia_bootstrap/selfhost.hepta',
+    'examples/hia_bootstrap/source_build_packer.hepta',
+)
+
+
+# Additional Core JSON compiler build data, not source-builder repack roles or
+# loadable native-image adapters. Shared compiler/frontend inputs stay above.
+COMPILER_BUILD_FILES = ('examples/hia_bootstrap/core_json_cli_packer.hepta',)
+
+# Complete multi-image backend source and typed ABI resources.
+BACKEND_BUILD_FILES = (
+    'docs/HIA_CORE_LOWERING_ABI.json',
+    'examples/hia_bootstrap/core_lowering_pool.hepta',
+    'examples/hia_bootstrap/core_lowering_000.hepta',
+    'examples/hia_bootstrap/core_lowering_001.hepta',
+    'examples/hia_bootstrap/core_lowering_002.hepta',
+    'examples/hia_bootstrap/core_lowering_003.hepta',
+    'examples/hia_bootstrap/core_lowering_004.hepta',
+    'examples/hia_bootstrap/core_lowering_005.hepta',
+    'examples/hia_bootstrap/core_lowering_006.hepta',
+    'examples/hia_bootstrap/core_lowering_007.hepta',
+    'examples/hia_bootstrap/core_lowering_008.hepta',
+    'examples/hia_bootstrap/core_lowering_009.hepta',
+    'examples/hia_bootstrap/core_lowering_010.hepta',
+    'examples/hia_bootstrap/core_lowering_011.hepta',
+    'examples/hia_bootstrap/core_lowering_012.hepta',
+    'examples/hia_bootstrap/core_lowering_013.hepta',
+    'examples/hia_bootstrap/core_lowering_014.hepta',
+    'examples/hia_bootstrap/core_lowering_015.hepta',
+    'examples/hia_bootstrap/core_lowering_016.hepta',
+    'examples/hia_bootstrap/core_lowering_017.hepta',
+    'examples/hia_bootstrap/core_lowering_018.hepta',
+    'examples/hia_bootstrap/core_lowering_019.hepta',
+    'examples/hia_bootstrap/core_lowering_020.hepta',
+    'examples/hia_bootstrap/core_lowering_021.hepta',
+    'examples/hia_bootstrap/core_lowering_022.hepta',
+    'examples/hia_bootstrap/core_lowering_023.hepta',
+    'examples/hia_bootstrap/core_lowering_024.hepta',
+    'examples/hia_bootstrap/core_lowering_025.hepta',
+    'examples/hia_bootstrap/core_lowering_026.hepta',
+    'examples/hia_bootstrap/core_lowering_027.hepta',
+    'examples/hia_bootstrap/core_lowering_028.hepta',
+    'examples/hia_bootstrap/core_lowering_029.hepta',
+    'examples/hia_bootstrap/core_lowering_030.hepta',
+)
+
+
+# Separately source-bound whole-program Emitter bundle.
+EMITTER_BUILD_FILES = (
+    'docs/HIA_CORE_EMITTER_ABI.json',
+    'examples/hia_bootstrap/core_emitter_pool.hepta',
+    'examples/hia_bootstrap/core_emitter_000.hepta',
+    'examples/hia_bootstrap/core_emitter_001.hepta',
+    'examples/hia_bootstrap/core_emitter_002.hepta',
+    'examples/hia_bootstrap/core_emitter_003.hepta',
+    'examples/hia_bootstrap/core_emitter_004.hepta',
+    'examples/hia_bootstrap/core_emitter_005.hepta',
+    'examples/hia_bootstrap/core_emitter_006.hepta',
+    'examples/hia_bootstrap/core_emitter_007.hepta',
+)
+
+# Borrowed-byte admission and wrapper-emission multi-image resources.
+BYTE_WRAPPER_BUILD_FILES = (
+    'docs/HIA_BYTE_WRAPPER_ABI.json',
+    'examples/hia_bootstrap/byte_wrapper_pool.hepta',
+    'examples/hia_bootstrap/byte_wrapper_000.hepta',
+    'examples/hia_bootstrap/byte_wrapper_001.hepta',
+    'examples/hia_bootstrap/byte_wrapper_002.hepta',
+    'examples/hia_bootstrap/byte_wrapper_003.hepta',
+    'examples/hia_bootstrap/byte_wrapper_004.hepta',
+    'examples/hia_bootstrap/byte_wrapper_005.hepta',
+    'examples/hia_bootstrap/byte_wrapper_006.hepta',
+    'examples/hia_bootstrap/byte_wrapper_007.hepta',
+)
+
+# Exact execution-result ledger policy resources; not a runtime replacement.
+CONTINUATION_BUILD_FILES = ('docs/HIA_NATIVE_CONTINUATION_ABI.json', 'examples/hia_bootstrap/continuation_policy.hepta', 'examples/hia_bootstrap/continuation_packer.hepta', 'examples/hia_bootstrap/continuation_inprocess_packer.hepta')
+
+EXECUTION_OBSERVATION_BUILD_FILES = ('docs/HIA_EXECUTION_OBSERVATION_ABI.json', 'examples/hia_bootstrap/execution_observation_pool.hepta', 'examples/hia_bootstrap/execution_observation_000.hepta', 'examples/hia_bootstrap/execution_observation_001.hepta', 'examples/hia_bootstrap/execution_observation_002.hepta', 'examples/hia_bootstrap/execution_observation_003.hepta', 'examples/hia_bootstrap/execution_observation_004.hepta', 'examples/hia_bootstrap/execution_observation_005.hepta', 'examples/hia_bootstrap/execution_observation_006.hepta')
+
+# Exact source-bound ELF object writer resources, separate from prior roles.
+MACHINE_OBJECT_BUILD_FILES = (
+    'docs/HIA_MACHINE_OBJECT_ABI.json',
+    'examples/hia_bootstrap/machine_object_pool.hepta',
+    'examples/hia_bootstrap/machine_object_000.hepta',
+    'examples/hia_bootstrap/machine_object_001.hepta',
+    'examples/hia_bootstrap/machine_object_002.hepta',
+    'examples/hia_bootstrap/machine_object_003.hepta',
+    'examples/hia_bootstrap/machine_object_004.hepta',
+    'examples/hia_bootstrap/machine_object_005.hepta',
+    'examples/hia_bootstrap/machine_object_006.hepta',
+    'examples/hia_bootstrap/machine_object_007.hepta',
+    'examples/hia_bootstrap/machine_object_008.hepta',
+    'examples/hia_bootstrap/machine_object_009.hepta',
+    'examples/hia_bootstrap/machine_object_010.hepta',
+    'examples/hia_bootstrap/machine_object_011.hepta',
+)
 
 # Build-input custody assets, not loadable native image adapters. The streaming
 # SHA source is already in NATIVE_SOURCE_FILES and is deliberately not repeated.
 PUBLICATION_BUILD_FILES = (
-    'examples/hia_bootstrap/artifact_publication_policy.hiaasm',
-    'examples/hia_bootstrap/artifact_publication_packer.hiaasm',
+    'examples/hia_bootstrap/artifact_publication_policy.hepta',
+    'examples/hia_bootstrap/artifact_publication_packer.hepta',
     'tools/hia_artifact_publication_syscalls.S',
     'tools/generate_hia_artifact_publication.py',
 )
@@ -93,12 +210,14 @@ def installation_manifest():
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
-    for native_source in (*NATIVE_SOURCE_FILES, *PUBLICATION_BUILD_FILES):
+    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES):
         entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
     from .hia_program_native import _implementation_hash
+    from .hia_native_helpers import native_helpers_identity
     return {"worker_sha256": sha256(wire(entries)).hexdigest(),
             "backend_sha256": _implementation_hash(),
-            "catalog_sha256": entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"]}
+            "catalog_sha256": entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"],
+            **native_helpers_identity()}
 
 
 _KEYWORDS = frozenset({"$schema", "type", "properties", "required", "additionalProperties",

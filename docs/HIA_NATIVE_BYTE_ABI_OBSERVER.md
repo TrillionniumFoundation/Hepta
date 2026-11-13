@@ -10,7 +10,7 @@ the actual native observer build.
 
 ## Actual build and trust boundary
 
-`examples/hia_bootstrap/native_observer_packer.hiaasm` is executable HIA. Before
+`examples/hia_bootstrap/native_observer_packer.hepta` is executable HIA. Before
 B0, independent Core VM executions of that exact packer observe disjoint output
 windows and compare **every** ELF byte against a separate header/adapter oracle.
 The bounded Core return-list limit is retained. After B3 has been generated,

@@ -117,7 +117,7 @@ initial-state construction for arbitrary functions, calls and returned-loan
 substitution still require their own refinement arguments.
 
 The fixed cohort retains both existing production inputs and the 12-instruction
-lifecycle fixture, then adds `capability_borrow_access.hia`:
+lifecycle fixture, then adds `capability_borrow_access.hepta`:
 
 | Input | Static instructions observed | Selected instructions | Actual borrow/access calls |
 | --- | ---: | ---: | ---: |

@@ -20,6 +20,34 @@ MAX_NODES = 1 << 20
 MAX_DEPTH = 128
 MAX_IMAGE_BYTES = 1 << 20
 SCHEMA = 'hepta.hia.json-preflight-native.v1'
+
+# Text rendering only: the HIA scanner chooses a reason at the original
+# refusal point and returns it in private state offset 32. The last reason
+# covers invalid byte-level UTF-8, which the Python str API cannot produce.
+SYNTAX_REASONS = {
+    1: 'expected JSON string',
+    2: 'unescaped control or isolated Unicode surrogate',
+    3: 'unterminated JSON escape',
+    4: 'invalid JSON escape',
+    5: 'invalid Unicode escape',
+    6: 'unpaired high Unicode surrogate',
+    7: 'unpaired low Unicode surrogate',
+    8: 'unterminated JSON string',
+    9: 'missing JSON value',
+    10: 'expected JSON integer or literal',
+    11: 'unexpected value completion',
+    12: 'extra JSON data',
+    13: 'incomplete JSON value',
+    14: 'expected array separator/end',
+    15: 'invalid array preflight state',
+    16: 'expected object field name',
+    17: 'expected object colon',
+    18: 'expected object separator/end',
+    19: 'invalid object preflight state',
+    20: 'invalid JSON syntax or Unicode',
+}
+
+
 def _source_resource_path(name):
     """Source-owned checkout or installed-package resource, never cwd/HOME.
 
@@ -31,7 +59,7 @@ def _source_resource_path(name):
     return resource_root / name
 
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/json_preflight.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/json_preflight.hepta')
 
 
 def scratch_sizes(size: int, maximum: int, depth: int) -> tuple[int, int]:
@@ -69,8 +97,8 @@ class NativeHiaJsonImage:
 class NativeJsonPreflight(NativeHiaJsonImage):
     """Syntax-only result protocol, separate from the JSON value-arena ABI."""
 
-    def status(self, wire: bytes, *, max_nodes: int, max_depth: int) -> int:
-        """Return the actual HIA status; reject unsupported host ABI inputs first."""
+    def diagnostic(self, wire: bytes, *, max_nodes: int, max_depth: int) -> tuple[int, int]:
+        """Return the actual HIA status and reason from private per-call state."""
         if (type(wire) is not bytes or len(wire) > MAX_BYTES
                 or type(max_nodes) is not int or not 1 <= max_nodes <= MAX_NODES
                 or type(max_depth) is not int or not 0 <= max_depth <= MAX_DEPTH):
@@ -83,10 +111,18 @@ class NativeJsonPreflight(NativeHiaJsonImage):
         result = self._entry(source, len(wire), keys, key_bytes, state, stack_bytes)
         if result not in (0, 1, 2, 3, 4):
             raise RuntimeError('invalid native HIA JSON preflight return')
-        return result
+        reason, = struct.unpack_from('<Q', state, 32)
+        if ((result == 1 and reason not in SYNTAX_REASONS)
+                or (result != 1 and reason != 0)):
+            raise RuntimeError('invalid native HIA JSON preflight diagnostic')
+        return result, reason
+
+    def status(self, wire: bytes, *, max_nodes: int, max_depth: int) -> int:
+        """Return the unchanged status ABI, checking the full native result."""
+        return self.diagnostic(wire, max_nodes=max_nodes, max_depth=max_depth)[0]
 
     def admit(self, wire: bytes, *, max_nodes: int, max_depth: int) -> None:
-        result = self.status(wire, max_nodes=max_nodes, max_depth=max_depth)
+        result, reason = self.diagnostic(wire, max_nodes=max_nodes, max_depth=max_depth)
         if result == 2:
             raise OverflowError('HIA JSON exceeds node/depth budget before decoding')
         if result == 4:
@@ -94,7 +130,7 @@ class NativeJsonPreflight(NativeHiaJsonImage):
         if result == 3:
             raise RuntimeError('native HIA JSON preflight rejected its declared scratch profile')
         if result:
-            raise ValueError('HIA JSON preflight: invalid JSON syntax or Unicode')
+            raise ValueError('HIA JSON preflight: ' + SYNTAX_REASONS[reason])
 
 
 def _unique_manifest_pairs(pairs):
@@ -122,7 +158,12 @@ def _load_manifest(path: str, raw: bytes, source_sha: str, schema: str, factory)
     image_path = Path(path).parent / value['image_path']
     with image_path.open('rb') as handle:
         image = handle.read(MAX_IMAGE_BYTES + 1)
-    return factory(image, value['image_sha256'])
+    selected = factory(image, value['image_sha256'])
+    # Bind the package source captured in this cache key to native image
+    # identity. Exact type inspection must not observe a foreign __class__.
+    if issubclass(type(selected), NativeHiaJsonImage):
+        selected.admitted_source_sha256 = source_sha
+    return selected
 
 
 def _installed_json_image(manifest_path: str, source: Path, schema: str, factory):
@@ -132,6 +173,10 @@ def _installed_json_image(manifest_path: str, source: Path, schema: str, factory
     hide drift of the source it claims to implement. Loaded code stays pinned;
     changing its disk file does not replace an already immutable mapping.
     """
+    from .hia_native_helpers import pinned_image
+    selected = pinned_image(manifest_path, source, schema, factory)
+    if selected is not None:
+        return selected
     path = Path(manifest_path).resolve(strict=True)
     with path.open('rb') as handle:
         raw = handle.read(16385)

@@ -59,22 +59,20 @@ class CoreWorkflowContractTests(unittest.TestCase):
                                         env=env, capture_output=True, timeout=20)
                 self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
 
-    def test_actual_native_ci_runner_rejects_failed_skipped_and_expected_failure_outcomes(self):
-        source = script('Native applications and actual Core memory controls')
-        code = source.split("<<'PYTEST'\n", 1)[1].rsplit('\nPYTEST', 1)[0]
-        for success, skips, expected_failures, expected in [(True, [], [], 0), (False, [], [], 1),
-                                                         (True, ['fixture skip'], [], 1),
-                                                         (True, [], ['fixture expected failure'], 1)]:
-            with self.subTest(success=success, skips=skips, expected_failures=expected_failures):
-                fixture = ('import sys,types\n'
-                           'result=types.SimpleNamespace(wasSuccessful=lambda: ' + repr(success) +
-                           ',skipped=' + repr(skips) + ',expectedFailures=' + repr(expected_failures) + ')\n'
-                           'sys.modules["unittest"]=types.SimpleNamespace('\
-                           'TextTestRunner=lambda **kwargs:types.SimpleNamespace(run=lambda suite:result),'\
-                           'defaultTestLoader=types.SimpleNamespace(loadTestsFromNames=lambda names:names))\n')
-                result = subprocess.run([sys.executable, '-I', '-S', '-B', '-c', fixture + code],
-                                        capture_output=True, timeout=10)
-                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+    def test_actual_native_ci_requires_complete_nonempty_execution_and_zero_anomalies(self):
+        self._assert_complete_native_ci(
+            'Native applications and actual Core memory controls', 'PYTEST')
+
+    def test_actual_source_ci_requires_complete_nonempty_execution_and_zero_anomalies(self):
+        self._assert_complete_native_ci('Core source and independent reference controls', 'PY')
+
+    def test_worker_request_ci_requires_complete_nonempty_execution_and_zero_anomalies(self):
+        self._assert_complete_native_ci(
+            'Native worker request admission and ordinary request continuity', 'PYREQUEST')
+
+    def test_release_install_ci_requires_complete_nonempty_execution_and_zero_anomalies(self):
+        self._assert_complete_native_ci(
+            'Native immutable release installation and recovery observations', 'PYINSTALL')
 
     def test_actual_native_ci_retains_original_applications_and_all_core_region_controls(self):
         source = script('Native applications and actual Core memory controls')
@@ -94,8 +92,57 @@ class CoreWorkflowContractTests(unittest.TestCase):
         required.add('tests.test_hia_agent_data_json_native')
         required.add('tests.test_hia_agent_binary64_native')
         required.add('tests.test_hia_agent_binary64_format_native')
+        required.add('tests.test_hia_program_selfhost.SelfhostBuildNativeTests')
         self.assertEqual(set(names), required)
         self.assertEqual(len(names), len(required))
+
+    def test_journal_ci_requires_complete_nonempty_execution_and_zero_anomalies(self):
+        self._assert_complete_native_ci(
+            'Native request journal decisions and actual SQL crash controls', 'PYJOURNAL')
+
+    def test_execution_budget_ci_requires_both_journals_and_zero_anomalies(self):
+        name = 'Native execution budgets and both request-journal lifecycles'
+        self._assert_complete_native_ci(name, 'PYBUDGET')
+        self.assertIn("loadTestsFromName('tests.test_hia_execution_budget_native')", script(name))
+        self.assertIn('          HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+                      step(name))
+        self.assertIn('          HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-execution-budget',
+                      step(name))
+
+    def test_retirement_ci_requires_complete_execution_and_zero_anomalies(self):
+        name = 'Native retained retirement and real resource release controls'
+        self._assert_complete_native_ci(name, 'PYRETIREMENT')
+        self.assertIn("loadTestsFromName('tests.test_hia_retirement_state_native')", script(name))
+        self.assertIn('          HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+                      step(name))
+        self.assertIn('          HEPTA_HIA_RETIREMENT_STATE_EVIDENCE: ${{ runner.temp }}/hia-retirement-state',
+                      step(name))
+
+    def _assert_complete_native_ci(self, name, marker):
+        source = script(name)
+        code = source.split("<<'" + marker + "'\n", 1)[1].rsplit('\n' + marker, 1)[0]
+        clean = dict(testsRun=2, errors=[], failures=[], skipped=[],
+                     expectedFailures=[], unexpectedSuccesses=[])
+        cases = [('complete', 2, clean, True, 0),
+                 ('empty', 0, dict(clean, testsRun=0), True, 1),
+                 ('incomplete', 2, dict(clean, testsRun=1), True, 1),
+                 ('unsuccessful', 2, clean, False, 1)]
+        cases.extend((field, 2, dict(clean, **{field: ['observed anomaly']}), True, 1)
+                     for field in ('errors', 'failures', 'skipped',
+                                   'expectedFailures', 'unexpectedSuccesses'))
+        for name, expected_count, fields, success, expected_status in cases:
+            with self.subTest(name=name):
+                fixture = ('import sys,types\n'
+                           'result=types.SimpleNamespace(**' + repr(fields) +
+                           ',wasSuccessful=lambda: ' + repr(success) + ')\n'
+                           'suite=types.SimpleNamespace(countTestCases=lambda: ' + repr(expected_count) + ')\n'
+                           'sys.modules["unittest"]=types.SimpleNamespace('
+                           'TextTestRunner=lambda **kwargs:types.SimpleNamespace(run=lambda suite:result),'
+                           'defaultTestLoader=types.SimpleNamespace(loadTestsFromName=lambda name:suite,'
+                           'loadTestsFromNames=lambda names:suite))\n')
+                child = subprocess.run([sys.executable, '-I', '-S', '-B', '-c', fixture + code],
+                                       capture_output=True, timeout=10)
+                self.assertEqual(child.returncode, expected_status, child.stdout + child.stderr)
 
     def test_complete_nominal_ci_retains_every_native_owner_and_rejects_incomplete_runs(self):
         name = 'Native complete nominal types helpers constructor functions and outer lowering'
@@ -119,7 +166,8 @@ class CoreWorkflowContractTests(unittest.TestCase):
         }
         required = functions | elaboration | {
             'tests.test_hia_composite_types_native', 'tests.test_hia_composite_origins_native',
-            'tests.test_hia_composite_signatures_native', 'tests.test_hia_task_helpers_native'}
+            'tests.test_hia_composite_signatures_native', 'tests.test_hia_task_helpers_native',
+            'tests.test_hia_composite_native_composition'}
         self.assertEqual(set(names), required)
         self.assertEqual(len(names), len(required))
         from tools.hia_selfhost_contract import validate_contract
@@ -145,18 +193,36 @@ class CoreWorkflowContractTests(unittest.TestCase):
             self.assertIn(repr(selected), source)
         for selected in functions | elaboration:
             self.assertNotIn(repr(selected), source)
-        for successful, skipped, expected_failures, status in (
-                (True, [], [], 0), (False, [], [], 1),
-                (True, ['fixture skip'], [], 1), (True, [], ['fixture expected failure'], 1)):
+        clean = dict(testsRun=2, errors=[], failures=[], skipped=[],
+                     expectedFailures=[], unexpectedSuccesses=[])
+        cases = [('complete', 2, clean, True, 0),
+                 ('empty', 0, dict(clean, testsRun=0), True, 1),
+                 ('incomplete', 2, dict(clean, testsRun=1), True, 1),
+                 ('unsuccessful', 2, clean, False, 1)]
+        cases.extend((field, 2, dict(clean, **{field: ['observed anomaly']}), True, 1)
+                     for field in ('errors', 'failures', 'skipped',
+                                   'expectedFailures', 'unexpectedSuccesses'))
+        for case, expected_count, fields, successful, status in cases:
             fixture = ('import sys,types\n'
-                'result=types.SimpleNamespace(wasSuccessful=lambda: ' + repr(successful) +
-                ',skipped=' + repr(skipped) + ',expectedFailures=' + repr(expected_failures) + ')\n'
+                'result=types.SimpleNamespace(**' + repr(fields) +
+                ',wasSuccessful=lambda: ' + repr(successful) + ')\n'
+                'suite=types.SimpleNamespace(countTestCases=lambda: ' + repr(expected_count) + ')\n'
                 'sys.modules["unittest"]=types.SimpleNamespace('
                 'TextTestRunner=lambda **kwargs:types.SimpleNamespace(run=lambda suite:result),'
-                'defaultTestLoader=types.SimpleNamespace(loadTestsFromNames=lambda names:names))\n')
+                'defaultTestLoader=types.SimpleNamespace(loadTestsFromNames=lambda names:suite))\n')
             run = subprocess.run([sys.executable, '-I', '-S', '-B', '-c', fixture + code],
                                  capture_output=True, timeout=10)
-            self.assertEqual(run.returncode, status, run.stdout + run.stderr)
+            self.assertEqual(run.returncode, status, (case, run.stdout, run.stderr))
+
+    def test_worker_helper_ci_requires_cold_composition_and_zero_anomalies(self):
+        name = 'Native worker pinned helper custody and journal composition'
+        self._assert_complete_native_ci(name, 'PYHELPERS')
+        self.assertIn("loadTestsFromName('tests.test_hia_worker_native_helpers')", script(name))
+        for component in ('WORKER_HELPERS', 'WORKER_REQUEST', 'AGENT_JOURNAL', 'EXECUTION_BUDGET'):
+            self.assertIn('          HEPTA_HIA_' + component + '_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+                          step(name))
+        self.assertIn('tests.test_hia_worker_native_helpers.WorkerHelperSourceTests',
+                      script('Core source and independent reference controls'))
 
     def test_actual_failure_archive_runs_after_cold_failure_without_continuing_test_steps(self):
         lines = step('Preserve actual cold failure and stage evidence')
@@ -168,10 +234,21 @@ class CoreWorkflowContractTests(unittest.TestCase):
         self.assertIn('--output "$RUNNER_TEMP/hia-cold.json"', source)
         for path in ['hia-cold.json', 'hia-cold.cold/', 'hia-language.json', 'hia-language.assertions.json',
                      'hia-language.evidence/', 'hia-nominal-fixture/',
-                     'hia-module-projects/']:
+                     'hia-module-projects/', 'hia-journal-callers.json']:
             self.assertIn('            ${{ runner.temp }}/' + path, lines)
         self.assertLess(source.index('tools/replay_hia_selfhost_cold.py'),
                         source.index('      - name: Preserve actual cold failure and stage evidence'))
+
+    def test_candidate_budget_ci_requires_complete_bundle_composition_and_zero_anomalies(self):
+        name = 'Native candidate budgets and pinned state owner composition'
+        self._assert_complete_native_ci(name, 'PYCANDIDATE')
+        self.assertIn("loadTestsFromName('tests.test_hia_candidate_budget_native')", script(name))
+        self.assertIn('          HEPTA_HIA_CANDIDATE_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+                      step(name))
+        self.assertIn('          HEPTA_HIA_CANDIDATE_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-candidate-budget',
+                      step(name))
+        self.assertIn('tests.test_hia_candidate_budget_native.CandidateBudgetSourceTests',
+                      script('Core source and independent reference controls'))
 
 
 if __name__ == '__main__':

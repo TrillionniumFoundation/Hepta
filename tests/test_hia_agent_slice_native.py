@@ -90,7 +90,7 @@ class AgentSliceNativeTests(unittest.TestCase):
         cls.temporary = tempfile.TemporaryDirectory(prefix='hia-agent-slice-')
         cls.folder = Path(cls.temporary.name)
         seed,_ = build_seed(cls.folder)
-        source = (ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        source = (ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first,_ = compile_stage(cls.folder,'B1',seed,source,image_format='seed-shared')
         second,_ = compile_stage(cls.folder,'B2',first,source)
         assert first.read_bytes() == second.read_bytes()
@@ -104,7 +104,7 @@ class AgentSliceNativeTests(unittest.TestCase):
         from tools.generate_hia_native_filter import MAGIC as FILTER_MAGIC
         from tools.qualify_hia_selfhost import invoke
         packer,_=compile_stage(cls.folder,'filter-packer',second,
-            (ROOT/'examples/hia_bootstrap/native_filter_packer.hiaasm').read_bytes())
+            (ROOT/'examples/hia_bootstrap/native_filter_packer.hepta').read_bytes())
         receipt,raw=invoke(cls.folder,'pack-filter',packer,
             struct.pack('<2Q',FILTER_MAGIC,image.stat().st_size)+image.read_bytes())
         assert 0<receipt['core_u32']<=len(raw)

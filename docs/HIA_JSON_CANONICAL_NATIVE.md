@@ -1,7 +1,7 @@
 # HIA canonical JSON wire candidate
 
 **Whole-stack rewrite remains OPEN.** The 22-function HIA library in
-`examples/hia_bootstrap/json_canonical.hiaasm` decodes bounded JSON wire into
+`examples/hia_bootstrap/json_canonical.hepta` decodes bounded JSON wire into
 its own arena, sorts object children with iterative linked-list merge sort,
 and writes canonical UTF-8 JSON. Native payload execution does not call a host
 JSON parser or encoder. The authoring generator, loader, allocator, foreign

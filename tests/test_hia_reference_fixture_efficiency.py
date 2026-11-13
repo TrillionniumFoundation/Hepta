@@ -57,6 +57,114 @@ class SourceControlEquivalenceTests(unittest.TestCase):
 
 
 class ReferenceFixturePreservationTests(unittest.TestCase):
+    def test_function_name_table_matches_generated_and_checked_in_source_order(self):
+        from tools import generate_hia_selfhost as generator
+        from tools.qualify_hia_selfhost import SOURCE
+        generated, expected = generator.document()
+        actual = generator.function_names()
+        self.assertEqual(actual, expected)
+        self.assertEqual(list(actual.values()), [fn['name'] for fn in generated['functions']])
+        checked_in = assembly.assemble_program(SOURCE.read_bytes()).as_dict()
+        self.assertEqual(list(actual.values()), [fn['name'] for fn in checked_in['functions']])
+        # Each invocation reads current authoring text; no compiler document,
+        # admission, previous result or function-number table is cached.
+        import ast
+        source = generator.source_program()
+        nodes = ast.parse(source).body
+        expected_order = [node.name for node in nodes]
+        with patch.object(generator, 'Builder', side_effect=AssertionError('unused CFG built')), \
+                patch.object(generator, 'compact_authoring_cfg',
+                             side_effect=AssertionError('unused CFG verified')):
+            first = generator.function_names()
+            second = generator.function_names()
+        self.assertEqual(list(first), expected_order)
+        first['caller_edit'] = 'f999'
+        self.assertEqual(second, actual)
+        # Reordering source definitions must change their numbers exactly as
+        # document() would, including the original compile-first restriction.
+        changed = [nodes[0], nodes[-1], *nodes[1:-1]]
+        with patch.object(generator, 'source_program', return_value='\n'.join(ast.unparse(n) for n in changed)):
+            self.assertEqual(generator.function_names(),
+                             {n.name: 'f' + str(i) for i, n in enumerate(changed)})
+        with patch.object(generator, 'source_program', return_value='\n'.join(ast.unparse(n) for n in nodes[1:])):
+            with self.assertRaises(AssertionError):
+                generator.function_names()
+
+    def test_complete_compiler_renames_keep_original_and_modified_bytes(self):
+        # Keep the c80eb2e identities attached to their actual historical inputs.
+        # Both input variants and the whole function map are frozen test data;
+        # live mutate_compiler() reads the current contract's symbol table.
+        import gzip
+        from pathlib import Path
+        from tools.generate_hia_selfhost import document
+        from tools.qualify_hia_selfhost import SOURCE, mutate_compiler
+
+        fixture_path = Path(__file__).resolve().parent / 'fixtures' / 'hia_compiler_rename_reference.json.gz'
+        compressed = fixture_path.read_bytes()
+        self.assertEqual(sha256(compressed).hexdigest(),
+                         '0bfb03e219dc31352ae92e22288139e66e1c00ab4a4861648b54712c8e213069')
+        fixture = json.loads(gzip.decompress(compressed))
+        self.assertEqual(fixture['schema'], 'hepta.hia.compiler-rename-reference.v1')
+        self.assertEqual(fixture['source_commit'], '6923b86d9a007aa15b9a5803b35c0f288590dfd2')
+        self.assertEqual(fixture['historical_algorithm_commit'], 'c80eb2ecc5d08421a3d124c879edb33cefff2267')
+        self.assertEqual(fixture['original_source_git_blob'], '8471227648daffef977be26ad6b55395677cdc12')
+        self.assertEqual(fixture['generator_git_blob'], '36f1932306a324ef3a2783b66ab48dece029597d')
+        historical_mapping = fixture['function_mapping']
+        self.assertEqual(len(historical_mapping), 125)
+        encoded_mapping = (json.dumps(historical_mapping, sort_keys=True, separators=(',', ':')) + '\n').encode()
+        self.assertEqual(sha256(encoded_mapping).hexdigest(),
+                         '62bae0752472b42925bb380df4731fd29da618253acdcc8dc5b63886a1d50531')
+        self.assertEqual([row['label'] for row in fixture['cases']], ['original', 'modified'])
+        historical = {row['label']: row for row in fixture['cases']}
+        # These four original golden identities and the original byte length
+        # are unchanged. The historical oracle still covers every compiler
+        # function, SSA use, formal return origin, block, entry and edge.
+        cases = (
+            ('original', 'b23924a2817e384a6597a7ed97a8ebe521f8402bc0f3d6ebc8593cb5b3750029',
+             'b9fab42fc7ab22ff19525cf0bc0b3dc7e92511ac12d51df038a608412902a7f1',
+             'bbd534f4799bc2fc76e787e21ba7a8cab79b4d3e38e2b41bbd22a1decb316063'),
+            ('modified', '07957626a208ee3e873540b24cdd0a40adcbcc55de47914692fcf5e31de58661',
+             '25dd7b4753da78c3ee0f04a8f98e87e04859f2d67d9255c562e17a7ef406cb96',
+             'b99ab525232bc54a6919ae057ae0da8745ab47f576e3d9435c6b98b4dfb59d6d'),
+        )
+        for label, input_hash, source_hash, core_hash in cases:
+            with self.subTest(scope='historical', source=source_hash):
+                actual = historical[label]['source_utf8'].encode('utf-8')
+                self.assertEqual(len(actual), 462153)
+                self.assertEqual(historical[label]['source_sha256'], input_hash)
+                self.assertEqual(sha256(actual).hexdigest(), input_hash)
+                rendered = names.renamed_compiler(actual, historical_mapping)
+                self.assertEqual(len(rendered), 769584)
+                self.assertEqual(sha256(rendered).hexdigest(), source_hash)
+                self.assertEqual(assembly.assemble_program(rendered).sha256, core_hash)
+
+        # Check the entire current compiler with the original public three-pass
+        # transformation. Each public pass retains its complete Core admission;
+        # the composed function is never used to generate its own expectation.
+        _, table = document()
+        current_mapping = {number: name for name, number in table.items()}
+        source = SOURCE.read_bytes()
+        for label, actual in (('original', source), ('modified', mutate_compiler(source))):
+            with self.subTest(scope='current', compiler=label):
+                reference = names.renamed_blocks(
+                    names.renamed_values(names.renamed_source(actual, current_mapping)))
+                rendered = names.renamed_compiler(actual, current_mapping)
+                self.assertEqual(rendered, reference)
+                self.assertEqual(assembly.assemble_program(rendered).sha256,
+                                 assembly.assemble_program(reference).sha256)
+
+    def test_composed_renames_cannot_admit_an_invalid_final_program(self):
+        source = (b'hia-asm.v1 hepta.hia.program.v8 fixture\n'
+                  b'fn first() -> (u32) effects() entry(start)\nblock start()\n'
+                  b'  result:u32 = call() {"function":"second"}\n  ret(result)\nend\n'
+                  b'fn second() -> (u32) effects() entry(start)\nblock start()\n'
+                  b'  result:u32 = const() {"value":7}\n  ret(result)\nend\n')
+        for mapping in ({'first': 'same', 'second': 'same'},
+                        {'first': 'valid', 'second': '__hia_reserved'},
+                        {'first': 'valid', 'second': 'invalid-name'}):
+            with self.subTest(mapping=mapping), self.assertRaises(assembly.HIAProgramRejected):
+                names.renamed_compiler(source, mapping)
+
     def test_complete_changed_fixture_outputs_match_prior_reference_bytes(self):
         # Captured from bfea47b before changing construction. The SHA covers
         # every source, input, output, case name, refusal expectation and order;
@@ -158,22 +266,53 @@ class AssemblyConstructionBoundaryTests(unittest.TestCase):
         with patch.object(assembly, '_render_assembly_document', side_effect=mutate_caller):
             self.assertEqual(assembly.render_assembly(document), SOURCE)
 
-    def test_fixture_transformations_do_not_issue_verified_authority(self):
+    def test_private_fixture_transformations_do_not_issue_verified_authority(self):
         from tests.test_hia_agent_assembly import SOURCE
         source = SOURCE.replace('exports(total)\n', '').encode()
         original = bytes(source)
         mapping = {'total': 'renamed'}
         spellings = ['left', 'right', 'wide_left', 'wide_right', 'answer']
         with patch.object(assembly, 'verify_program', side_effect=AssertionError('fixture admitted Core')):
-            function = names.renamed_source(source, mapping)
-            values = names.renamed_values(source, spellings)
-            blocks = names.renamed_blocks(source, ['start'])
-            reordered = names.reordered_blocks(source)
+            function = names._construct_renamed_source(source, mapping)
+            values = names._construct_renamed_values(source, spellings)
+            blocks = names._construct_renamed_blocks(source, ['start'])
+            reordered = names._construct_reordered_blocks(source)
         self.assertEqual((source, mapping, spellings),
             (original, {'total': 'renamed'}, ['left', 'right', 'wide_left', 'wide_right', 'answer']))
         for result in (function, values, blocks, reordered):
             self.assertIs(type(result), bytes)
             assembly.assemble_program(result)
+
+    def test_public_fixture_transformations_still_reject_invalid_input_Core(self):
+        from tests.test_hia_agent_assembly import SOURCE
+        source = SOURCE.replace('exports(total)\n', '').encode()
+        invalid = source.replace(b'ret(answer)', b'ret(missing)')
+        transforms = (
+            (names.renamed_source, names._construct_renamed_source, ({'total': 'renamed'},)),
+            (names.renamed_values, names._construct_renamed_values,
+             (['left', 'right', 'wide_left', 'wide_right', 'answer'],)),
+            (names.renamed_blocks, names._construct_renamed_blocks, (['start'],)),
+            (names.reordered_blocks, names._construct_reordered_blocks, ()),
+        )
+        for transform, construct, arguments in transforms:
+            with self.subTest(transform=transform.__name__):
+                self.assertEqual(transform(source, *arguments), construct(source, *arguments))
+                with self.assertRaises(assembly.HIAAssemblyRejected) as caught:
+                    transform(invalid, *arguments)
+                self.assertEqual((caught.exception.code, caught.exception.phase),
+                                 ('E_HIA_SSA', 'core_verification'))
+        with self.assertRaises(assembly.HIAAssemblyRejected):
+            names.renamed_compiler(invalid, {'total': 'renamed'})
+
+    def test_public_fixture_transformations_still_reject_invalid_final_Core(self):
+        from tests.test_hia_agent_assembly import SOURCE
+        source = SOURCE.replace('exports(total)\n', '').encode()
+        for transform, arguments in (
+                (names.renamed_source, ({'total': '__hia_reserved'},)),
+                (names.renamed_values, (['same', 'same'],)),
+                (names.renamed_blocks, (['invalid-name'],))):
+            with self.subTest(transform=transform.__name__), self.assertRaises(assembly.HIAProgramRejected):
+                transform(source, *arguments)
 
 
 if __name__ == '__main__':

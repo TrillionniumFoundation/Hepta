@@ -27,7 +27,7 @@ from .hia_task_helpers_native import SOURCE as HELPER_SOURCE, selected_task_help
 SCHEMA = 'hepta.hia.composite-functions-native.v1'
 SELECTOR = 'HEPTA_HIA_COMPOSITE_FUNCTIONS_MANIFEST'
 KERNELS = ('admit', 'records', 'advanced', 'terms', 'render')
-SOURCES = {name: _source_resource_path('examples/hia_bootstrap/composite_function_' + name + '.hiaasm')
+SOURCES = {name: _source_resource_path('examples/hia_bootstrap/composite_function_' + name + '.hepta')
            for name in KERNELS}
 WORKSPACE_BYTES = 192 << 20
 INPUT_BYTES = 64 << 20

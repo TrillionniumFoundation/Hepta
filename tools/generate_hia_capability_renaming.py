@@ -160,6 +160,6 @@ def document():
     return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'capability_renaming', 'functions': functions})
 
 if __name__ == '__main__':
-    path = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/capability_renaming.hiaasm'
+    path = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/capability_renaming.hepta'
     path.write_text(render_assembly(document()))
     print(path.name, path.stat().st_size)

@@ -138,7 +138,7 @@ def main(argv=None):
                 if target.parent.resolve() != target.parent:
                     raise ValueError('Assembly output parent must not traverse a symlink')
                 with tempfile.TemporaryDirectory(prefix='.hepta-assembly-', dir=target.parent) as temporary:
-                    stage = Path(temporary) / 'program.hiaasm'
+                    stage = Path(temporary) / 'program.hepta'
                     payload = text.encode('utf-8')
                     with stage.open('xb') as stream:
                         stream.write(payload)

@@ -142,6 +142,18 @@ def _bounded_json_string_size(value: str, maximum: int, ensure_ascii: bool) -> i
 
 
 def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True, float_renderer=None):
+    """Use an explicitly selected source-bound HIA wire owner when configured."""
+    selected = os.environ.get('HEPTA_HIA_JSON_WIRE_MANIFEST')
+    if selected:
+        from .hia_json_wire_native import installed_json_wire
+        return installed_json_wire(selected).encode_ordinary(
+            value, maximum, ensure_ascii=ensure_ascii, sort_keys=sort_keys,
+            float_renderer=float_renderer)
+    return _reference_bounded_json_wire(value, maximum, ensure_ascii=ensure_ascii,
+                                       sort_keys=sort_keys, float_renderer=float_renderer)
+
+
+def _reference_bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True, float_renderer=None):
     """Stream a bounded in-process JSON snapshot rather than materialize first.
 
     This is only an input-size gate. It never authenticates or verifies HIA.
@@ -449,7 +461,7 @@ def publish_program(document, destination):
         _reject("output parent must not traverse symlinks")
     payload = verified.canonical_bytes
     with tempfile.TemporaryDirectory(prefix=".hia-publish-", dir=destination.parent) as folder:
-        stage = Path(folder) / "program.hia"
+        stage = Path(folder) / "program.hepta"
         with stage.open("xb") as stream:
             stream.write(payload)
             stream.flush()

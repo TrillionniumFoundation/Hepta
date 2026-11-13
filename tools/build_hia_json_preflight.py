@@ -62,7 +62,14 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
     from tools.hia_selfhost_contract import PROFILE
-    candidates = {'core-admission': ('core_admission', 'core-admission'),
+    candidates = {'machine-plan': ('machine_plan', 'machine-plan'),
+                  'machine-encoding': ('machine_encoding', 'machine-encoding'),
+                  'candidate-budget': ('candidate_budget', 'candidate-budget'),
+                  'agent-journal': ('agent_journal', 'agent-journal'),
+                  'execution-budget': ('execution_budget', 'execution-budget'),
+                  'retirement-state': ('retirement_state', 'retirement-state'),
+                  'worker-request': ('worker_request', 'worker-request'),
+                  'core-admission': ('core_admission', 'core-admission'),
                   'composite-types': ('composite_types', 'composite-types'),
                   'task-helpers': ('task_helpers', 'task-helpers'),
                   'composite-function-admit': ('composite_function_admit', 'composite-function-admit'),
@@ -98,7 +105,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
     compiler_bytes = compiler.read_bytes()
     compiler_sha = sha256(compiler_bytes).hexdigest()
     sources = admit_cold_build(compiler_bytes, raw)
-    source_path = ROOT / ('examples/hia_bootstrap/' + source_name + '.hiaasm')
+    source_path = ROOT / ('examples/hia_bootstrap/' + source_name + '.hepta')
     if source_path.relative_to(ROOT).as_posix() not in sources:
         raise ValueError('cold qualification source identity does not match current source')
     source = source_path.read_bytes()
@@ -106,12 +113,15 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
         raise ValueError('native candidate source changed after contract admission')
     output.mkdir(mode=0o700)
     image, receipt = compile_stage(output, protocol, compiler, source)
+    image_bytes = image.read_bytes()
     if (source_path.read_bytes() != source or compiler.read_bytes() != compiler_bytes
-            or cold_report.read_bytes() != raw or current_sources() != sources):
+            or cold_report.read_bytes() != raw or current_sources() != sources
+            or image.read_bytes() != image_bytes):
         raise ValueError('native candidate build inputs changed')
-    manifest = {'schema': 'hepta.hia.' + protocol + '-native.v1',
+    protocol_version = '2' if candidate in ('agent-journal', 'machine-encoding') else '1'
+    manifest = {'schema': 'hepta.hia.' + protocol + '-native.v' + protocol_version,
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
-                'image_sha256': sha256(image.read_bytes()).hexdigest(), 'compiler_sha256': compiler_sha}
+                'image_sha256': sha256(image_bytes).hexdigest(), 'compiler_sha256': compiler_sha}
     path = output / 'manifest.json'
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
     (output / 'build.json').write_text(json.dumps({

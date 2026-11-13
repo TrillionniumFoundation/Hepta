@@ -1,6 +1,6 @@
 # Native Core workspace JSON linker
 
-`core_workspace_json.hiaasm` consumes `hepta.hia.core-workspace.v1` JSON and
+`core_workspace_json.hepta` consumes `hepta.hia.core-workspace.v1` JSON and
 emits linked primitive Core JSON. Syntax/Unicode/duplicate-key checking, exact
 workspace/module/import framing, fact encoding, the existing mandatory HIA
 module graph policy, capture-avoiding public ABI names, call substitution and

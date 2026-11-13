@@ -8,7 +8,8 @@ translates a successor or substitutes for a native generation.
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED, wait
+from dataclasses import dataclass
 from hashlib import sha256
 import json
 import os
@@ -18,6 +19,7 @@ import shutil
 import struct
 import subprocess
 import sys
+from threading import BoundedSemaphore
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,8 +28,8 @@ if __package__ in {None, ""}:
 from tools.hia_selfhost_contract import CONTRACT_PATH, file_digests, validate_contract
 from tools.hia_selfhost_cases import (backward_bytesum_source, backward_chain_source,
                                      call_graph_invalid_sources, recursion_refusals)
-SOURCE = ROOT / "examples/hia_bootstrap/selfhost.hiaasm"
-SAMPLE = ROOT / "examples/hia_bootstrap/bytesum.hiaasm"
+SOURCE = ROOT / "examples/hia_bootstrap/selfhost.hepta"
+SAMPLE = ROOT / "examples/hia_bootstrap/bytesum.hepta"
 CHILD = ROOT / "tools/hia_selfhost_child.py"
 CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
@@ -190,13 +192,28 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
 
 def compile_stage(directory, label, image, source, *, image_format="flat-x86-64", workspace_fill=0,
                   output_extension=".image.bin"):
+    compiler_bytes = Path(image).read_bytes()
     result, output = invoke(directory, label, image, source, image_format=image_format,
                             workspace_fill=workspace_fill)
-    if result.get("status") != "returned" or result.get("abi_status") != 0 or result["core_u32"] > len(output):
+    # These are publication conditions, including under Python -O.  In
+    # particular, bool/float zero is not a successful native integer status,
+    # and a missing/truthy custody observation is not an unchanged-source
+    # receipt.  Validate the captured invocation before creating an image.
+    if (type(result) is not dict or type(output) is not bytes
+            or result.get("status") != "returned"
+            or type(result.get("abi_status")) is not int or result["abi_status"] != 0
+            or type(result.get("core_u32")) is not int
+            or not 0 < result["core_u32"] <= min(CAPACITY, len(output))
+            or result.get("source_unchanged") is not True
+            or type(result.get("forbidden_compiler_modules_loaded")) is not list
+            or result["forbidden_compiler_modules_loaded"] != []
+            or result.get("input_sha256") != digest(source)
+            or type(result.get("input_bytes")) is not int or result["input_bytes"] != len(source)
+            or result.get("artifact_sha256") != digest(compiler_bytes)
+            or result.get("format") != image_format
+            or Path(image).read_bytes() != compiler_bytes):
         raise AssertionError({"compile_failed": label, "receipt": result})
-    assert result["source_unchanged"] and not result["forbidden_compiler_modules_loaded"]
     size = result["core_u32"]
-    assert 0 < size <= CAPACITY
     produced = output[:size]
     path = Path(directory) / (label + output_extension)
     path.write_bytes(produced)
@@ -455,7 +472,7 @@ def _phase_manifest_digest(manifest):
 def _phase_inputs(directory, family, compiler, label):
     paths = {"native_observer": directory / "native-observer.elf",
              "compiler": compiler, "source": SOURCE, "sample": SAMPLE,
-             "modified_source": directory / "modified-selfhost.hiaasm"}
+             "modified_source": directory / "modified-selfhost.hepta"}
     if family in PHASE_REFERENCE_FILES:
         paths["reference"] = directory / PHASE_REFERENCE_FILES[family]
     if family == "elf":
@@ -602,14 +619,57 @@ def qualification_phase(request_path):
             "fresh_host_oracle_process": True, "successor_process_reuse": False}
 
 
-def _run_qualification_phase(directory, family, label, compiler, manifest_digest):
+@dataclass(frozen=True)
+class _PendingPhaseArchive:
+    future: object
+
+
+class _PhaseArchivePool:
+    """One archiver, at most two unsealed completed phases, no native calls.
+
+    Holding an oracle slot while archiving a stopped child unnecessarily
+    serializes native work behind filesystem/compression work. The separate
+    bounded lane retains every byte and all seal/replay checks. Its queue can
+    add at most two phase directories to the two currently executing phases;
+    a phase is not completed in the index until its archive succeeds.
+    """
+    def __init__(self):
+        self._slots = BoundedSemaphore(2)
+        self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="hia-stage-archive")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exception):
+        self._pool.shutdown(wait=True)
+
+    def submit(self, function, *arguments):
+        self._slots.acquire()
+        try:
+            future = self._pool.submit(function, *arguments)
+        except BaseException:
+            self._slots.release()
+            raise
+        future.add_done_callback(lambda completed: self._slots.release())
+        return _PendingPhaseArchive(future)
+
+
+def _seal_qualification_phase(phase_directory, archive_token, receipt_path, report, receipt):
+    from tools.hia_evidence_archive import archive_completed_stage
+    receipt["raw_artifacts"] = archive_completed_stage(phase_directory, archive_token)
+    receipt["archive_completed_monotonic_ns"] = time.monotonic_ns()
+    receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+    return report, receipt
+
+
+def _run_qualification_phase(directory, family, label, compiler, manifest_digest, archives=None):
     stem = "phase-" + family + "-" + label
     phase_directory = directory / "phase-runs" / (family + "-" + label)
     phase_directory.mkdir(parents=True, exist_ok=False, mode=0o700)
     # Only this newly constructed stage may be losslessly packed after its
     # direct worker exits. Existing/frozen evidence is never swept or mutated.
     import secrets
-    from tools.hia_evidence_archive import OWNER, archive_completed_stage
+    from tools.hia_evidence_archive import OWNER
     archive_token = secrets.token_hex(32)
     (phase_directory / OWNER).write_text(archive_token)
     request = {"schema": "hepta.hia.selfhost-phase-request.v1", "family": family,
@@ -649,10 +709,10 @@ def _run_qualification_phase(directory, family, label, compiler, manifest_digest
             or report.get("fresh_host_oracle_process") is not True
             or report.get("successor_process_reuse") is not False):
         raise AssertionError("qualification phase receipt identity differs: " + stem)
-    archive = archive_completed_stage(phase_directory, archive_token)
-    receipt["raw_artifacts"] = archive
-    (directory / (stem + ".process.json")).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
-    return report, receipt
+    arguments = (phase_directory, archive_token, directory / (stem + ".process.json"), report, receipt)
+    if archives is not None:
+        return archives.submit(_seal_qualification_phase, *arguments)
+    return _seal_qualification_phase(*arguments)
 
 
 def _merge_qualification_phases(results, checks):
@@ -685,6 +745,7 @@ def _collect_qualification_phases(directory, scheduled):
                 "process_receipt": str(directory / ("phase-" + family + "-" + label + ".process.json"))}
                for family, label, _ in scheduled]
     order = {future: position for position, (_, _, future) in enumerate(scheduled)}
+    observed = set(order)
     results, failures, control_exceptions = {}, [], []
 
     def retain():
@@ -696,23 +757,33 @@ def _collect_qualification_phases(directory, scheduled):
         temporary.replace(index_path)
 
     retain()
-    for future in as_completed(order):
-        position = order[future]
-        entry = entries[position]
-        try:
-            result = future.result()
-        except BaseException as error:
-            # Worker exceptions are data until all futures have been observed.
-            # Control exceptions remain exceptions and are re-raised below.
-            entry.update(state="exception", exception_type=type(error).__module__ + "." + type(error).__qualname__,
-                         exception_message=str(error))
-            failures.append(entry.copy())
-            if not isinstance(error, Exception):
-                control_exceptions.append(error)
-        else:
-            results[position] = result
-            entry.update(state="completed", report_status=result[0].get("status"))
-        retain()
+    while order:
+        done, _ = wait(order, return_when=FIRST_COMPLETED)
+        for future in done:
+            position = order.pop(future)
+            entry = entries[position]
+            try:
+                result = future.result()
+                if type(result) is _PendingPhaseArchive:
+                    if result.future in observed:
+                        raise AssertionError("qualification archive future reused")
+                    observed.add(result.future)
+                    order[result.future] = position
+                    # The actual native work has ended, but raw evidence is
+                    # not sealed yet. Keep the same pending index entry.
+                    continue
+            except BaseException as error:
+                # Worker/seal exceptions are data until all known futures
+                # have been observed. Control exceptions remain exceptions.
+                entry.update(state="exception", exception_type=type(error).__module__ + "." + type(error).__qualname__,
+                             exception_message=str(error))
+                failures.append(entry.copy())
+                if not isinstance(error, Exception):
+                    control_exceptions.append(error)
+            else:
+                results[position] = result
+                entry.update(state="completed", report_status=result[0].get("status"))
+            retain()
     if control_exceptions:
         raise control_exceptions[0]
     if failures:
@@ -756,7 +827,7 @@ def qualify(output):
               "B1_B2_B3_byte_identical": len({x["produced_sha256"] for x in stages}) == 1,
               "no_host_compiler_modules_in_successors": all(not x["forbidden_compiler_modules_loaded"] for x in stages)}
     changed = mutate_compiler(source)
-    (directory / "modified-selfhost.hiaasm").write_bytes(changed)
+    (directory / "modified-selfhost.hepta").write_bytes(changed)
     modified_stages = []
     for label in ("M1", "M2", "M3"):
         previous, receipt = compile_stage(directory, label, previous, changed)
@@ -824,11 +895,12 @@ def qualify(output):
     # each family gets a new Python process so VM/reference instrumentation and
     # globals cannot leak between families. Every native invocation stays fresh.
     manifest_digest = _phase_manifest_digest(before)
-    with ThreadPoolExecutor(max_workers=QUALIFICATION_WORKERS) as pool:
-        scheduled = [(family, label, pool.submit(_run_qualification_phase, directory, family, label, compiler, manifest_digest))
-                     for family in QUALIFICATION_FAMILIES
-                     for label, compiler in (("original", original), ("modified", previous))]
-        phase_results = _collect_qualification_phases(directory, scheduled)
+    with _PhaseArchivePool() as archives:
+        with ThreadPoolExecutor(max_workers=QUALIFICATION_WORKERS) as pool:
+            scheduled = [(family, label, pool.submit(_run_qualification_phase, directory, family, label, compiler, manifest_digest, archives))
+                         for family in QUALIFICATION_FAMILIES
+                         for label, compiler in (("original", original), ("modified", previous))]
+            phase_results = _collect_qualification_phases(directory, scheduled)
     phases = _merge_qualification_phases(phase_results, checks)
 
     def phase_observations(family):
@@ -893,6 +965,10 @@ def qualify(output):
         "capacity_observations": [small, workspace], "elapsed_ns": time.monotonic_ns() - started,
         "qualification_scheduling": {
             "maximum_host_oracle_workers": QUALIFICATION_WORKERS,
+            "maximum_archive_workers": 1,
+            "maximum_pending_archives": 2,
+            "maximum_unsealed_phase_directories": QUALIFICATION_WORKERS + 2,
+            "phase_completed_only_after_verified_archive": True,
             "fresh_seed_and_generation_chain_sequential": True,
             "independent_references_completed_before_B0": all(r["completed_monotonic_ns"] <= seed_started_monotonic_ns for r in reference_receipts),
             "seed_started_monotonic_ns": seed_started_monotonic_ns,

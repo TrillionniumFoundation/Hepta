@@ -369,7 +369,7 @@ def run(directory, *, clang, cargo, upstream):
         objdump = shutil.which("objdump")
         require(objdump is not None, "native disassembler is required")
         for label, program in programs.items():
-            (directory / f"{label}.hia.json").write_bytes(wire(program) + b"\n")
+            (directory / f"{label}.core.hepta").write_bytes(wire(program) + b"\n")
             if label != "abstain":
                 proof = measure(ledger, "proof." + label, lambda p=program: validate_translation(
                     baseline, p, function="calculate", timeout_ms=PROTOCOL["proof_timeout_ms"]))

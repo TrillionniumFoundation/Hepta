@@ -101,8 +101,8 @@ SQLite authority state is excluded; no adopted generation was created.
 
 ```sh
 python -B tools/qualify_hia_agent_original_select_delta.py \
-  --original original-selfhost.hiaasm \
-  --candidate candidate-selfhost.hiaasm \
+  --original original-selfhost.hepta \
+  --candidate candidate-selfhost.hepta \
   --patch fresh-select.patch \
   --output fresh-strict-replay
 ```

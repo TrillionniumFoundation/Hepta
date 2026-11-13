@@ -496,8 +496,9 @@ class NativeLifecycleTests(AgentToolCase):
                 raise AssertionError('object emission launched an external process')
             fd = int(str(argv[0]).rsplit('/',1)[1])
             self.assertIn(fd, kwargs.get('pass_fds', ()))
-            required = fcntl.F_SEAL_WRITE|fcntl.F_SEAL_GROW|fcntl.F_SEAL_SHRINK|fcntl.F_SEAL_SEAL
-            self.assertEqual(fcntl.fcntl(fd,fcntl.F_GET_SEALS)&required,required)
+            required = (getattr(fcntl,'F_SEAL_WRITE',8)|getattr(fcntl,'F_SEAL_GROW',4)
+                        |getattr(fcntl,'F_SEAL_SHRINK',2)|getattr(fcntl,'F_SEAL_SEAL',1))
+            self.assertEqual(fcntl.fcntl(fd,getattr(fcntl,'F_GET_SEALS',1034))&required,required)
             from hepta.artifact_publication_native import _admitted_code
             expected = _admitted_code(selector)
             self.assertEqual(os.pread(fd,len(expected)+1,0),expected)

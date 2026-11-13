@@ -69,7 +69,7 @@ def hia_control_task(index):
             op("call",["small_a","small_b"],"value","u32",function="span"),
             op("int.cast",["value"],"wide","u64"),op("int.cast",["c"],"cw","u64"),
             op("int.add.wrap",["wide","cw"],"answer","u64")],["answer"])
-    task["original_hia"] = {"api.hia.json":api,"client.hia.json":client}
+    task["original_hia"] = {"api.core.hepta":api,"client.core.hepta":client}
     return task
 
 

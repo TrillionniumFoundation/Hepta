@@ -25,5 +25,5 @@ def checksum(module, n, calls, seed):
 def checksum_program(kind):
     if kind not in MODULES:
         raise ValueError("unknown Core fixture")
-    raw = (Path(__file__).parent / "fixtures/hia_artifact_session" / (kind + ".hia.json")).read_bytes()
+    raw = (Path(__file__).parent / "fixtures/hia_artifact_session" / (kind + ".core.hepta")).read_bytes()
     return verify_program(raw)

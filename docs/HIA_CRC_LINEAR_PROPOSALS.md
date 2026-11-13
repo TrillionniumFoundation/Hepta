@@ -96,7 +96,7 @@ machine-code refinement is claimed by this proposal lane.
 
 ## Separate frozen economic comparison
 
-`experiments/hia_crc_linear_20261030/PROTOCOL.json` and
+[experiments/hia_crc_linear_20261030/PROTOCOL.json](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/experiments/hia_crc_linear_20261030/PROTOCOL.json) and
 `retired harness qualify-hia-crc-linear-economics` retain the v3 input domain, seeds,
 two phases, two trials, three polynomial workloads, 16 requests of 256 bytes,
 and 300-second budget. The eight arms are fresh-child baseline, all six

@@ -60,7 +60,7 @@ class SevenStageCLIIntegrationTests(unittest.TestCase):
         self.assertIn('target triple = "riscv64-unknown-linux-gnu"', out)
 
     def test_compact_query_roundtrip_preserves_interface_and_publishes_no_replace(self):
-        source, query, response, target = (self.root / name for name in ("source.hia", "query.json", "response.json", "target.hia"))
+        source, query, response, target = (self.root / name for name in ("source.hepta", "query.json", "response.json", "target.hepta"))
         source.write_text(json.dumps(fixture()))
         response.write_text('{"op":"int.sub.wrap"}')
         code, out, err = self.run_cli("edit-query", source, "--function", "calculate", "--block", "entry",
@@ -83,7 +83,7 @@ class SevenStageCLIIntegrationTests(unittest.TestCase):
     def test_legacy_nominal_v2_needs_explicit_adapter_then_normalize_runs_v6(self):
         document = stored_loan_program()
         document["schema"] = "hepta.hia.program.v2"
-        legacy, target, report = (self.root / name for name in ("old.hia", "new.hia", "import.json"))
+        legacy, target, report = (self.root / name for name in ("old.hepta", "new.hepta", "import.json"))
         legacy.write_text(json.dumps(document))
         self.assertNotEqual(self.run_cli("verify", legacy)[0], 0)
         code, out, err = self.run_cli("import-composite-v2", legacy, "--output", target, "--report", report)

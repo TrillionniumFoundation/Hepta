@@ -15,7 +15,7 @@ from hepta.hia_program_runtime import (HIAProgramBudgetExceeded, HIAProgramTrap,
 from tests.test_hia_heap_bound import joined_max, local_buffers, unknown_size
 from tests.test_hia_program import b, branch, c, f, i, jump, m, ret
 
-LEGACY = Path(__file__).parent / "fixtures/hia_payload_bound/legacy_core.hia.json"
+LEGACY = Path(__file__).parent / "fixtures/hia_payload_bound/legacy_core.core.hepta"
 LEGACY_SHA256 = "1044e28ea68a18d6a0681cff9cd5f835e26e91c9a669dab01256b9592f64ca51"
 
 

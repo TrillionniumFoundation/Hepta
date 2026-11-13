@@ -11,7 +11,7 @@ import struct
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
 from .hia_agent_store import _agent_resource_path
-SOURCE = _agent_resource_path('examples/hia_bootstrap/agent_slice.hiaasm')
+SOURCE = _agent_resource_path('examples/hia_bootstrap/agent_slice.hepta')
 SCHEMA = 'hepta.hia.agent-slice-native.v1'
 MAGIC = int.from_bytes(b'HIASLC01', 'little')
 RESULT_MAGIC = int.from_bytes(b'HIASLR01', 'little')

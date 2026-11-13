@@ -21,7 +21,7 @@ from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_native_byte_runner import invoke_byte_program
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "examples" / "hia_bootstrap" / "components.hiaasm"
+SOURCE = ROOT / "examples" / "hia_bootstrap" / "components.hepta"
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
 NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"} and shutil.which("ld")
 

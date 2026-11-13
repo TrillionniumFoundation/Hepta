@@ -106,14 +106,14 @@ class CoreWorkspaceJsonNativeTests(unittest.TestCase):
             assert report['generation_sha256']==[sha256(cls.compiler.read_bytes()).hexdigest()]*3
         else:
             seed,_=build_seed(cls.folder)
-            first,_=compile_stage(cls.folder,'B1',seed,(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes(),image_format='seed-shared')
-            second,_=compile_stage(cls.folder,'B2',first,(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes())
+            first,_=compile_stage(cls.folder,'B1',seed,(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes(),image_format='seed-shared')
+            second,_=compile_stage(cls.folder,'B2',first,(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes())
             assert first.read_bytes()==second.read_bytes()
             cls.compiler=second
         image,cls.receipt=compile_stage(cls.folder,'core-workspace-json',cls.compiler,SOURCE.read_bytes())
         cls.image=image
         cls.native=NativeCoreWorkspaceJson(image.read_bytes(),sha256(image.read_bytes()).hexdigest())
-        image,_=compile_stage(cls.folder,'core-module-graph',cls.compiler,(ROOT/'examples/hia_bootstrap/core_module_graph.hiaasm').read_bytes())
+        image,_=compile_stage(cls.folder,'core-module-graph',cls.compiler,(ROOT/'examples/hia_bootstrap/core_module_graph.hepta').read_bytes())
         cls.graph=NativeCoreModuleGraph(image.read_bytes(),sha256(image.read_bytes()).hexdigest())
 
     @classmethod
@@ -250,7 +250,7 @@ class CoreWorkspaceJsonNativeTests(unittest.TestCase):
         from hepta.hia_core_json_frontend_native import NativeCoreJsonFrontend
         from hepta.object_symbols import inspect_object_symbols
         image,_=compile_stage(self.folder,'workspace-abi-frontend',self.compiler,
-            (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes())
+            (ROOT/'examples/hia_bootstrap/core_json_frontend.hepta').read_bytes())
         frontend=NativeCoreJsonFrontend(image.read_bytes(),sha256(image.read_bytes()).hexdigest())
         longest='public_'+('x'*121)
         names=['f6','work','f1','f0',longest,longest[:-1]+'y']
@@ -283,7 +283,7 @@ class CoreWorkspaceJsonNativeTests(unittest.TestCase):
                 if retained:
                     folder=Path(retained)/label;folder.mkdir(parents=True)
                     payloads={'workspace.json':wire(p),'linked-core.json':checked.canonical_bytes,
-                              'program.hiaasm':assembly,'program.o':obj.read_bytes(),'library.so':library.read_bytes()}
+                              'program.hepta':assembly,'program.o':obj.read_bytes(),'library.so':library.read_bytes()}
                     for name,data in payloads.items():(folder/name).write_bytes(data)
                     (folder/'execution.json').write_text(json.dumps({'actual_abi_calls':11,
                         'expected_public_symbols':names,'defined_symbols':sorted(inventory['defined']),

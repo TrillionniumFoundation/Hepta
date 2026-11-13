@@ -1,8 +1,8 @@
 # HIA static ELF linker (explicit Linux x86-64 profile)
 
-The checked-in `elf_static_linker.hiaasm` performs object parsing, exact-name
+The checked-in `elf_static_linker.hepta` performs object parsing, exact-name
 strong/weak symbol resolution, section layout, relocation validation/application
-and ET_EXEC emission. `native_filter_packer.hiaasm` emits its standalone syscall
+and ET_EXEC emission. `native_filter_packer.hepta` emits its standalone syscall
 CLI. Runtime requires neither Python, ld, libc nor a dynamic interpreter. The
 host build driver still owns files, completed-cold-compiler admission and receipts.
 This is not a default production linker switch or whole-toolchain retirement.

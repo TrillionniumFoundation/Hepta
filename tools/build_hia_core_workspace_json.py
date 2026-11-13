@@ -1,6 +1,12 @@
 """Build the explicit HIA workspace JSON linker from a completed cold compiler."""
 import argparse
 from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
+
 from tools.build_hia_json_preflight import build as build_candidate
 
 

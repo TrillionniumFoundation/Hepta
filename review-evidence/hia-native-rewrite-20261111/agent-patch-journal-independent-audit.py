@@ -42,7 +42,7 @@ def main():
     image=fixture/patch_metadata['image_path']
     captured={name:sha256((ROOT/name).read_bytes()).hexdigest() for name in (
         'hepta/hia_agent_service.py','hepta/hia_agent_candidate_native.py',
-        'examples/hia_bootstrap/core_patch.hiaasm','examples/hia_bootstrap/core_admission.hiaasm')}
+        'examples/hia_bootstrap/core_patch.hepta','examples/hia_bootstrap/core_admission.hepta')}
     state=args.output/'state';files=args.output/'files';files.mkdir()
     service=HIAAgentService(state,artifact_roots=(files,))
     client=ToolClient(service.call,validate=False)

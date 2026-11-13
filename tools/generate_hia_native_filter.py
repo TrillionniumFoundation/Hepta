@@ -99,6 +99,6 @@ def document(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magi
 
 
 def main():
-    p=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/native_filter_packer.hiaasm'
+    p=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/native_filter_packer.hepta'
     p.write_text(render_assembly(document()));print(p.name,p.stat().st_size)
 if __name__=='__main__':main()

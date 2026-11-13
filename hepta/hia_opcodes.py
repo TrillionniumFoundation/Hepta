@@ -48,6 +48,21 @@ class ExecutionObservationRejected(ValueError):
 def validate_execution_observation(status, ledger, *, steps, max_steps, max_heap_bytes,
                                    error_code=None, with_chains=False, allow_host_memory=False,
                                    live_external_roots=0):
+    from .hia_execution_observation_selection import selected_execution_observation
+    owner = selected_execution_observation(globals())
+    if owner is not None:
+        return owner.invoke('validate_execution_observation', (status, ledger,
+            (steps, max_steps, max_heap_bytes, error_code, with_chains,
+             allow_host_memory, live_external_roots)))
+    return _reference_validate_execution_observation(status, ledger, steps=steps,
+        max_steps=max_steps, max_heap_bytes=max_heap_bytes, error_code=error_code,
+        with_chains=with_chains, allow_host_memory=allow_host_memory,
+        live_external_roots=live_external_roots)
+
+
+def _reference_validate_execution_observation(status, ledger, *, steps, max_steps, max_heap_bytes,
+                                   error_code=None, with_chains=False, allow_host_memory=False,
+                                   live_external_roots=0):
     """Check finite wire/accounting invariants, without running or admitting Core.
 
     Return, program trap and evaluator stop remain distinct. In particular a

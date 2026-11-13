@@ -13,7 +13,7 @@ from .hia_json_preflight_native import NativeHiaJsonImage,_installed_json_image
 
 from .hia_json_preflight_native import _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/function_shape.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/function_shape.hepta')
 MAX_BYTES=8388608
 MAX_NODES=262144
 MAX_DEPTH=64

@@ -17,7 +17,7 @@ import subprocess
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKER = ROOT/'examples/hia_bootstrap/native_observer_packer.hiaasm'
+PACKER = ROOT/'examples/hia_bootstrap/native_observer_packer.hepta'
 LIMIT = 1 << 20
 WORKSPACE_FIELDS = (0,8,16,24,40,48,56,64,72,80,88,96,104,112,224,248,1024)
 

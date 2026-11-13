@@ -36,9 +36,8 @@ def wire(value):
     selected = os.environ.get('HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST')
     renderer = None
     if selected:
-        from .hia_agent_binary64_format_native import installed_agent_binary64_format
-        image = installed_agent_binary64_format(selected)
-        renderer = lambda number: image.render(number).decode('ascii')
+        from .hia_json_wire_native import SelectedBinary64Renderer
+        renderer = SelectedBinary64Renderer(selected)
     return bounded_json_wire(value, MAX_INPUT_BYTES, ensure_ascii=False,
                              sort_keys=True, float_renderer=renderer)
 
@@ -265,6 +264,8 @@ def _native_artifact_file(operation,root,*,data=b'',content_hash='-',_admission=
 
 class AgentStore:
     def __init__(self, root):
+        from .hia_execution_budget import admitted_execution_budget, execution_budget_store
+        budget_admission = admitted_execution_budget()
         supplied = Path(root).absolute()
         supplied.mkdir(mode=0o700, parents=True, exist_ok=True)
         if supplied.is_symlink():
@@ -287,6 +288,11 @@ class AgentStore:
                 reject("E_HIA_STORE", "journal must be an owned private ordinary file")
         self.db = sqlite3.connect(database, isolation_level=None, timeout=10, check_same_thread=False)
         os.chmod(database, 0o600)
+        self.database = database
+        database_info = database.lstat()
+        if not stat.S_ISREG(database_info.st_mode):
+            reject('E_HIA_STORE', 'journal must remain an ordinary file after opening')
+        self.database_identity = (database_info.st_dev, database_info.st_ino)
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("PRAGMA synchronous=FULL")
@@ -334,6 +340,27 @@ class AgentStore:
                 owner TEXT
             );
         """)
+        self.database_sidecars = None
+        try:
+            if budget_admission is not None:
+                # Bind the official WAL namespace before the budget adapter opens
+                # its dedicated connection to this same durable journal.
+                self.db.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
+                sidecars = {}
+                for suffix in ('-wal', '-shm'):
+                    sidecar = Path(str(database) + suffix).lstat()
+                    if (not stat.S_ISREG(sidecar.st_mode) or sidecar.st_uid != os.geteuid()
+                            or sidecar.st_mode & 0o022):
+                        reject('E_HIA_STORE', 'journal sidecar must be an owned private ordinary file')
+                    sidecars[suffix] = (sidecar.st_dev, sidecar.st_ino)
+                self.database_sidecars = sidecars
+            self.execution_budgets = execution_budget_store(self, budget_admission)
+        except BaseException as error:
+            try:
+                self.db.close()
+            except BaseException as failure:
+                error.add_note('AgentStore construction cleanup failed: ' + type(failure).__name__)
+            raise
 
     @contextmanager
     def transaction(self):
@@ -348,6 +375,7 @@ class AgentStore:
                 self.db.execute("COMMIT")
 
     def close(self):
+        self.execution_budgets.close()
         self.db.close()
 
     def put(self, data, kind, metadata=None):

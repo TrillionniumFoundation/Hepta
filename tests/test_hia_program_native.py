@@ -205,7 +205,7 @@ print("direct object, common Core API and CLI: no LLVM, no process")
         self.assertIn("direct-llvm", backends)
 
     def test_all_versioned_agent_core_examples_are_emitted_without_llvm(self):
-        paths = sorted((ROOT / "examples/hia_program").glob("*.hia"))
+        paths = sorted((ROOT / "examples/hia_program").glob("*.hepta"))
         self.assertGreaterEqual(len(paths), 10)
         for path in paths:
             with self.subTest(path=path.name):
@@ -438,7 +438,7 @@ f.argtypes=[getattr(ctypes,t) for t in types]; f.restype=None; f(*json.loads(sys
 
     def test_recursive_chain_and_composite_v7_have_real_dynamic_execution(self):
         for basename in ("core_v7","composite_v2"):
-            document=(ROOT/"examples/hia_recursive_chain"/(basename+".json")).read_bytes()
+            document=(ROOT/"examples/hia_recursive_chain"/(basename+".hepta")).read_bytes()
             program,library,_=self.build_fixture(document,basename)
             names={fn["name"]:fn for fn in program.as_dict()["functions"]}
             for name in ("chain_checksum","chain_cancel","chain_head_update","chain_stored_loan","chain_recover","chain_empty_payloads"):

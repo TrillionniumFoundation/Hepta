@@ -15,6 +15,18 @@ from pathlib import Path
 from hepta.hia_core_module_graph_native import installed_module_graph, link_workspace, MAX_BYTES
 from tools.compile_hia_core_json import compile_core
 
+
+def _seal_code_descriptor(descriptor):
+    """Require actual Linux kernel seals before executing captured code bytes."""
+    import fcntl
+    seals=(getattr(fcntl,'F_SEAL_WRITE',0x0008)|getattr(fcntl,'F_SEAL_GROW',0x0004)
+           |getattr(fcntl,'F_SEAL_SHRINK',0x0002)|getattr(fcntl,'F_SEAL_SEAL',0x0001))
+    fcntl.fcntl(descriptor,getattr(fcntl,'F_ADD_SEALS',1033),seals)
+    observed=fcntl.fcntl(descriptor,getattr(fcntl,'F_GET_SEALS',1034))
+    if type(observed) is not int or observed&seals!=seals:
+        raise OSError('native workspace executable lacks complete kernel seals')
+
+
 def compile_workspace(wire, graph_manifest, frontend_manifest, compiler, output, *, output_profile='elf', workspace_json_manifest=None, pipeline_manifest=None):
     if output_profile != 'elf':
         raise ValueError('workspace public scalar exports require explicit ELF output; no silent export stripping')
@@ -47,7 +59,7 @@ def compile_workspace(wire, graph_manifest, frontend_manifest, compiler, output,
 
 def compile_pipeline(wire,manifest_path,output):
     """Host byte/file custody only; payload checking is mandatory native HIA."""
-    import fcntl,os,platform,struct,subprocess
+    import os,platform,struct,subprocess
     from tools.build_hia_core_workspace_pipeline import ROOT,SCHEMA,SOURCES,current_sources,PROFILE,BUNDLE_LIMIT
     from hepta.hia_core_module_graph_native import CoreModuleRejected
     from hepta.hia_json_preflight_native import _unique_manifest_pairs
@@ -76,8 +88,7 @@ def compile_pipeline(wire,manifest_path,output):
     try:
         remaining=memoryview(code)
         while remaining:remaining=remaining[os.write(descriptor,remaining):]
-        fcntl.fcntl(descriptor,fcntl.F_ADD_SEALS,
-            fcntl.F_SEAL_WRITE|fcntl.F_SEAL_GROW|fcntl.F_SEAL_SHRINK|fcntl.F_SEAL_SEAL)
+        _seal_code_descriptor(descriptor)
         result=subprocess.run(['/proc/self/fd/'+str(descriptor)],input=wire,capture_output=True,
             pass_fds=(descriptor,),env={'PATH':''},timeout=20)
     finally:os.close(descriptor)

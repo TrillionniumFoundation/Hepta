@@ -229,7 +229,7 @@ def _run(clang, bridge, directory, report):
     report["translation_receipts"] = receipts
     report["native_builds"] = artifacts
     for label, program in programs.items():
-        (directory / f"{label}.hia.json").write_bytes(_wire(program) + b"\n")
+        (directory / f"{label}.core.hepta").write_bytes(_wire(program) + b"\n")
         if label != "abstain":
             start = time.perf_counter_ns()
             receipts[label] = validate_translation(baseline, program, function="calculate")

@@ -56,7 +56,7 @@ class ProtocolControls(unittest.TestCase):
         for language in ("hia","rust"):
             files=copy.deepcopy(self.task["correct_"+language])
             if language=="hia":
-                files["api.hia.json"]["params"][0]["type"]="u16"
+                files["api.core.hepta"]["params"][0]["type"]="u16"
             else:
                 files["api.rs"]=files["api.rs"].replace("a:u32","a:u16")
             with self.assertRaises(Exception):

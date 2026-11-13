@@ -14,7 +14,7 @@ from .hia_program_shape_native import ERROR_CODES as DECLARATION_ERRORS, ERROR_M
 
 from .hia_json_preflight_native import _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/core_admission.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/core_admission.hepta')
 SCHEMA = 'hepta.hia.core-admission-native.v1'
 SELECTOR = 'HEPTA_HIA_CORE_ADMISSION_MANIFEST'
 ERROR_CODES = {**DECLARATION_ERRORS, 0xfffffff0: 'E_HIA_OPCODE',
@@ -65,9 +65,11 @@ def selected_core_structure(data, raw):
     namespace handling. JSON decoding, object custody and normalization remain
     explicit host dependencies. A selected error never falls back to old policy.
     """
-    path = os.environ.get(SELECTOR)
-    if not path:
+    if SELECTOR not in os.environ:
         return None
+    path = os.environ[SELECTOR]
+    if not path:
+        raise ValueError('Core admission selector must not be empty')
     installed_core_admission(path).admit(raw)
     # Materialization follows admission, not a second declaration/body check.
     functions = {fn['name']: fn for fn in data['functions']}

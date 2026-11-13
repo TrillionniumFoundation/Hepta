@@ -24,7 +24,7 @@ class FactorialStudyTests(unittest.TestCase):
                         self.assertIn(filename, text)
                     self.assertIn("Only these two files are editable in BOTH", text)
                 good = {"files": copy.deepcopy(task["correct_" + language])}
-                good["files"]["utility.hia.json" if language == "hia" else "utility.rs"] = {}
+                good["files"]["utility.core.hepta" if language == "hia" else "utility.rs"] = {}
                 with self.assertRaisesRegex(ValueError, "E_FACTORIAL_FILES"):
                     evaluator.parse_files(task, language, canonical(good).decode())
 
@@ -39,7 +39,7 @@ class FactorialStudyTests(unittest.TestCase):
     def test_hia_owner_cannot_drop_with_a_live_mutable_loan(self):
         task = next(t for t in self.tasks if t["provider"] == "touch")
         files = copy.deepcopy(task["correct_hia"])
-        operations = files["api.hia.json"]["blocks"][0]["ops"]
+        operations = files["api.core.hepta"]["blocks"][0]["ops"]
         operations.insert(1, fixtures.op("owner.drop", ["buf"]))
         with self.assertRaises(Exception):
             evaluator.parse_files(task, "hia", canonical({"files": files}).decode())
@@ -47,7 +47,7 @@ class FactorialStudyTests(unittest.TestCase):
     def test_hia_query_cannot_add_recursion_or_additional_functions(self):
         task = self.tasks[0]
         files = copy.deepcopy(task["correct_hia"])
-        files["api.hia.json"]["blocks"][0]["ops"].insert(0, fixtures.call(task["provider"], ["a", "b"], [("recursive", "u32")]))
+        files["api.core.hepta"]["blocks"][0]["ops"].insert(0, fixtures.call(task["provider"], ["a", "b"], [("recursive", "u32")]))
         with self.assertRaises(Exception):
             evaluator.parse_files(task, "hia", canonical({"files": files}).decode())
 

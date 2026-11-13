@@ -303,7 +303,7 @@ def document():
 
 
 def main():
-    out=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/core_workspace_facts.hiaasm'
+    out=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/core_workspace_facts.hepta'
     out.write_text(render_assembly(document())); print(out.name,out.stat().st_size)
 
 

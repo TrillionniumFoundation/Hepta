@@ -1,5 +1,0 @@
-# Structured source cost evidence
-
-The source and scope of each attempt are recorded separately. S2 cProfile is a diagnostic clock, not an uninstrumented baseline. The withdrawn r1 passed its initial six controls but failed independent adversarial review. Its source, red counterexample and logs are retained. R2 passed eight differential controls plus two independent real-module controls and one complete original source-validation chain with identical eleven module hashes and manifest. R3 additionally checks exact Raw string domains and literal theorem counts; its ten controls are retained. The r2 review applies to its exact recorded module; the r3 additions have their separate tests. No Lean or complete timed qualification was run by these experiments. Complete qualification remains required.
-
-The archive includes all selected raw files without deletion of failed attempts. Local AST counterexamples explicitly record their distinct Python/runtime and are not substituted for desktop controls.

@@ -211,7 +211,7 @@ def document():
 
 
 def main():
-    path = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/json_decode.hiaasm'
+    path = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/json_decode.hepta'
     path.write_text(render_assembly(document()))
     print(path.name, path.stat().st_size)
 

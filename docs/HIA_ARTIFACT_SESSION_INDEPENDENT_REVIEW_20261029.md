@@ -8,7 +8,7 @@ seconds. The wrapper recorded 17.799 seconds and an unchanged source. These
 shared-host durations are not performance qualifications.
 
 The review receipt in
-`experiments/hia_next_safety/artifact_review_20261029/REVIEW.json` records the
+[experiments/hia_next_safety/artifact_review_20261029/REVIEW.json](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/experiments/hia_next_safety/artifact_review_20261029/REVIEW.json) records the
 exact tree, twelve source hashes, retained regression log and limits. The
 reviewer checked the recorded hashes against both the clean working tree and
 the reviewed commit's Git blobs, and checked the retained log digest and result.

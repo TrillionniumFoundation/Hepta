@@ -67,6 +67,14 @@ class HIAProgramNativeRejected(ValueError):
 
 
 def _reject(message, code="E_HIA_PROGRAM_NATIVE"):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        return owner.invoke('_reject', (message, code))
+    return _reference_reject(message, code)
+
+
+def _reference_reject(message, code="E_HIA_PROGRAM_NATIVE"):
     raise HIAProgramNativeRejected(code + ": " + message)
 
 
@@ -76,25 +84,75 @@ def _implementation_hash():
     for name in (
         "hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py",
         "hia_json_preflight.py", "hia_program_composite.py", "hia_program_native.py",
-        "hia_machine_x64.py", "hia_machine_elf.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
+        "hia_machine_x64.py", "hia_machine_encoding_native.py",
+        "hia_machine_state_native.py", "hia_machine_instructions_native.py", "hia_machine_plan_native.py",
+        "hia_core_lowering_native.py", "hia_core_lowering_selection.py",
+        "hia_core_emitter_native.py", "hia_core_emitter_selection.py",
+        "hia_host_import.py", "hia_byte_wrapper_native.py", "hia_byte_wrapper_selection.py",
+        "hia_machine_object_native.py", "hia_machine_object_selection.py",
+        "hia_json_wire_native.py", "hia_instruction_policy_native.py",
+        "hia_json_preflight_native.py", "hia_machine_elf.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
         "hia_heap_bound.py", "artifact_publication.py",
         "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
         "object_structure.py", "native_tool_identity.py",
     ):
         digest.update(name.encode() + b"\0" + (root / name).read_bytes() + b"\0")
+    from .hia_machine_x64 import native_implementation_identity
+    digest.update(b'native-machine-encoding\0' + native_implementation_identity() + b'\0')
+    from .hia_machine_plan import native_implementation_identity as plan_identity
+    digest.update(b'native-machine-plan\0' + plan_identity() + b'\0')
+    from .hia_json_preflight_native import _source_resource_path
+    digest.update(b'core-lowering-abi\0' + _source_resource_path('docs/HIA_CORE_LOWERING_ABI.json').read_bytes() + b'\0')
+    from .hia_core_lowering_selection import native_implementation_identity as lowering_identity
+    digest.update(b'native-core-lowering\0' + lowering_identity(globals()) + b'\0')
+    digest.update(b'core-emitter-abi\0' + _source_resource_path('docs/HIA_CORE_EMITTER_ABI.json').read_bytes() + b'\0')
+    from .hia_core_emitter_selection import native_implementation_identity as emitter_identity
+    digest.update(b'native-core-emitter\0' + emitter_identity(globals()) + b'\0')
+    from . import hia_native_byte_abi as byte_abi
+    from .hia_byte_wrapper_selection import native_implementation_identity as byte_identity
+    digest.update(b'byte-wrapper-abi\0' + _source_resource_path('docs/HIA_BYTE_WRAPPER_ABI.json').read_bytes() + b'\0')
+    digest.update(b'native-byte-wrapper\0' + byte_identity(vars(byte_abi)) + b'\0')
+    from . import hia_machine_elf as elf
+    from .hia_machine_object_selection import native_implementation_identity as object_identity
+    digest.update(b'machine-object-abi\0' + _source_resource_path('docs/HIA_MACHINE_OBJECT_ABI.json').read_bytes() + b'\0')
+    digest.update(b'native-machine-object\0' + object_identity(vars(elf)) + b'\0')
     return digest.hexdigest()
 
 
 def _words(typ):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        return owner.invoke('_words', (typ,))
+    return _reference_words(typ)
+
+
+def _reference_words(typ):
     return 2 if typ in BYTE_RESOURCES else 1
 
 
 def _bounds(typ):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        return owner.invoke('_bounds', (typ,))
+    return _reference_bounds(typ)
+
+
+def _reference_bounds(typ):
     bits = WIDTHS[typ]
     return (-(1 << (bits - 1)), (1 << (bits - 1)) - 1) if typ.startswith("i") else (0, (1 << bits) - 1)
 
 
 def _normalize(code, reg, typ):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        return owner.invoke('_normalize', (code, reg, typ))
+    return _reference_normalize(code, reg, typ)
+
+
+def _reference_normalize(code, reg, typ):
     """Canonical full-register representation, including dirty incoming highs."""
     if typ == "unit":
         code.mov_imm(reg, 0)
@@ -107,6 +165,14 @@ def _normalize(code, reg, typ):
 
 
 def _prologue(code, frame):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        return owner.invoke('_prologue', (code, frame))
+    return _reference_prologue(code, frame)
+
+
+def _reference_prologue(code, frame):
     code.push("rbp")
     code.mov_rr("rbp", "rsp")
     # Touch each 4-KiB interval so a large frame cannot jump a stack guard.
@@ -135,6 +201,14 @@ class HIAProgramMachine:
 
 
 class _Function:
+    def __new__(cls, parent, fn, index):
+        if cls is _Function:
+            from .hia_core_lowering_selection import selected_core_lowering
+            owner = selected_core_lowering(globals())
+            if owner is not None:
+                return object.__new__(owner.function_class(cls))
+        return object.__new__(cls)
+
     def __init__(self, parent, fn, index):
         self.parent, self.fn, self.index = parent, fn, index
         self.c = parent.c
@@ -556,6 +630,14 @@ class _Function:
 
 
 class _Emitter:
+    def __new__(cls, document, allowed_exports, block_order=None, foreign_buffer_exports=(), machine_plan=None):
+        if cls is _Emitter:
+            from .hia_core_emitter_selection import selected_core_emitter
+            owner = selected_core_emitter(globals())
+            if owner is not None:
+                return object.__new__(owner.emitter_class(cls))
+        return object.__new__(cls)
+
     def __init__(self, document, allowed_exports, block_order=None, foreign_buffer_exports=(), machine_plan=None):
         from .hia_machine_plan import code_options
         self.document, self.allowed_exports = document, allowed_exports
@@ -675,10 +757,25 @@ def validate_block_layout_plan(program, machine_plan):
 
 
 def emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_buffer_exports=()):
-    """Recheck immutable Core and emit deterministic native object bytes."""
-    from .hia_program import VerifiedProgram, verify_program
+    """Pin the selected HIA machine byte/state/instruction owners for one emit."""
     if target != TARGET:
         _reject("direct machine backend supports only x86_64 Linux", "E_HIA_PROGRAM_TARGET")
+    from .hia_machine_x64 import native_encoding_scope
+    from .hia_core_lowering_selection import native_core_lowering_scope
+    from .hia_core_emitter_selection import native_core_emitter_scope
+    from . import hia_native_byte_abi as byte_abi
+    from .hia_byte_wrapper_selection import native_byte_wrapper_scope
+    from . import hia_machine_elf as elf
+    from .hia_machine_object_selection import native_machine_object_scope
+    with native_encoding_scope(), native_core_lowering_scope(globals()), native_core_emitter_scope(globals()), native_byte_wrapper_scope(vars(byte_abi)), native_machine_object_scope(vars(elf)):
+        return _emit_program_machine_with_encoding(
+            program, target=target, machine_plan=machine_plan,
+            foreign_buffer_exports=foreign_buffer_exports)
+
+
+def _emit_program_machine_with_encoding(program, *, target=TARGET, machine_plan=None, foreign_buffer_exports=()):
+    """Recheck immutable Core and emit deterministic native object bytes."""
+    from .hia_program import VerifiedProgram, verify_program
     before = _implementation_hash()
     if not isinstance(program, VerifiedProgram):
         _reject("an immutable VerifiedProgram from verify_program is required")

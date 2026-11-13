@@ -463,6 +463,6 @@ def document(kernel):
 if __name__=='__main__':
     root=Path(__file__).resolve().parents[1]
     for kernel in ('owner','render'):
-        target=root/('examples/hia_bootstrap/composite_outer_'+kernel+'.hiaasm')
+        target=root/('examples/hia_bootstrap/composite_outer_'+kernel+'.hepta')
         target.write_text(render_assembly(document(kernel)))
         print(target.name,target.stat().st_size)

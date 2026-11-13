@@ -44,7 +44,7 @@ python -m unittest tests.test_hia_recursive_chain tests.test_hia_program -v
 ```
 
 The Rust tests include the actual 9-function, 45KB
-`examples/hia_recursive_chain/core_v7.json` HIA program, chain lifecycle
+`examples/hia_recursive_chain/core_v7.hepta` HIA program, chain lifecycle
 and head-borrow denials, a real branching chain-owner join, typed internal
 calls, old-version rejection and scalar-export safety. The Python test
 independently runs the existing canonical Python verifier on the exact

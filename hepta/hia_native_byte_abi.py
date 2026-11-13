@@ -14,7 +14,7 @@ ABI_OK, ABI_EXTENT, ABI_NULL, ABI_ADDRESS, ABI_ALIAS = range(5)
 LOANS = frozenset({"readbuf", "mutbuf"})
 
 
-def normalize_exports(exports, program):
+def _reference_normalize_exports(exports, program):
     """Validate an immutable opt-in manifest; never extend scalar contracts.
 
 Unlike the LLVM acyclic experiment, this profile admits existing verified Core
@@ -53,7 +53,7 @@ claim.  The public call cannot return a loan or transfer a foreign owner.
     return tuple(sorted(checked))
 
 
-def emit_wrapper(emitter, fn, extent):
+def _reference_emit_wrapper(emitter, fn, extent):
     """Emit guards before the Core call, then pack ABI status / Core u32 result.
 
 Every loan expands in place to (pointer, uint64 length).  All incoming words are
@@ -123,3 +123,21 @@ No error path enters Core or touches caller bytes.
     emitter.symbols.append({"name": fn["name"], "offset": begin,
                             "size": len(c.data) - begin, "global": True})
     emitter.exports.append(fn["name"])
+
+
+# The exact original policies above remain unselected owners and independent
+# oracles. An explicit admitted image never falls back after refusal.
+def normalize_exports(exports, program):
+    from .hia_byte_wrapper_selection import selected_byte_wrapper
+    owner = selected_byte_wrapper(globals())
+    if owner is not None:
+        return owner.invoke('normalize_exports', (exports, program))
+    return _reference_normalize_exports(exports, program)
+
+
+def emit_wrapper(emitter, fn, extent):
+    from .hia_byte_wrapper_selection import selected_byte_wrapper
+    owner = selected_byte_wrapper(globals())
+    if owner is not None:
+        return owner.invoke('emit_wrapper', (emitter, fn, extent))
+    return _reference_emit_wrapper(emitter, fn, extent)

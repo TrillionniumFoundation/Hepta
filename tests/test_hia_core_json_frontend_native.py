@@ -107,11 +107,11 @@ class CoreJsonFrontendHiaNativeTests(unittest.TestCase):
         code, output = vm_render(program)
         assert output == render_assembly(program).encode() and code == len(output)
         from tools.qualify_hia_selfhost import build_seed, compile_stage, mutate_compiler
-        cls.original = (ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        cls.original = (ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         cls.modified = mutate_compiler(cls.original)
         cls.compiler_documents = [assemble_program(s).as_dict() for s in (cls.original, cls.modified)]
         cls.compiler_wires = [wire(p, separators=(',', ':')) for p in cls.compiler_documents]
-        cls.sample = assemble_program((ROOT/'examples/hia_bootstrap/bytesum.hiaasm').read_bytes()).as_dict()
+        cls.sample = assemble_program((ROOT/'examples/hia_bootstrap/bytesum.hepta').read_bytes()).as_dict()
         cls.temporary = tempfile.TemporaryDirectory(prefix='hia-core-json-native-')
         cls.folder = Path(cls.temporary.name)
         seed, _ = build_seed(cls.folder)

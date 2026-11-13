@@ -1,6 +1,6 @@
 # Native Core capability edge renaming
 
-`capability_renaming.hiaasm` implements the complete graph-renaming policy used
+`capability_renaming.hepta` implements the complete graph-renaming policy used
 by the production Core CFG checker: injective target names, present sources,
 survival of every local owner/loan, root and parent closure, and exact transport
 of type, external status and original function-parameter identity. External

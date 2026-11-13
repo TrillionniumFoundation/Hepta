@@ -764,6 +764,6 @@ def document():
 
 
 if __name__ == '__main__':
-    target = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/task_helpers.hiaasm'
+    target = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/task_helpers.hepta'
     target.write_text(render_assembly(document()))
     print(target.name, target.stat().st_size)

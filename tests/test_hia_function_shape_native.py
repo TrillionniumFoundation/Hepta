@@ -81,7 +81,7 @@ class FunctionShapeNativeTests(unittest.TestCase):
             assert report['generation_sha256']==[sha256(compiler.read_bytes()).hexdigest()]*3
         else:
             seed,_=build_seed(cls.folder)
-            compiler_source=SOURCE.with_name('selfhost.hiaasm').read_bytes()
+            compiler_source=SOURCE.with_name('selfhost.hepta').read_bytes()
             first,_=compile_stage(cls.folder,'B1',seed,compiler_source,image_format='seed-shared')
             compiler,_=compile_stage(cls.folder,'B2',first,compiler_source)
             assert first.read_bytes()==compiler.read_bytes()

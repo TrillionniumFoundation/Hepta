@@ -66,7 +66,7 @@ def check(source, object_path, image_path, output, *, foreign_extent=None, timeo
         if type(pins) is not dict or set(pins) - {"source", "object", "image"}:
             raise SafeCoreRejected("expected identities must name source, object or image")
         for kind, supplied, name in (
-            ("source", source, "source.hia.json"),
+            ("source", source, "source.core.hepta"),
             ("object", object_path, "candidate.o"),
             ("image", image_path, "candidate.so"),
         ):
@@ -78,7 +78,7 @@ def check(source, object_path, image_path, output, *, foreign_extent=None, timeo
             if kind in pins and pins[kind] != digest:
                 raise SafeCoreRejected("supplied " + kind + " SHA-256 does not match its pinned identity")
         checked = verify_program(snapshots["source"])
-        (destination / "core.hia.json").write_bytes(checked.canonical_bytes)
+        (destination / "core.core.hepta").write_bytes(checked.canonical_bytes)
         functions = checked.as_dict()["functions"]
         manifest = () if foreign_extent is None else ((functions[0]["name"], foreign_extent),)
         validation = validate_safe_core_artifact(

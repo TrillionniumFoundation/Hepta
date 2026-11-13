@@ -19,7 +19,7 @@ runtime. This is trusted immutable executable code, not a submitted-code sandbox
 
 ## Byte ABI
 
-The source is `examples/hia_bootstrap/agent_identity.hiaasm`, authored by
+The source is `examples/hia_bootstrap/agent_identity.hepta`, authored by
 `tools/generate_hia_agent_identity.py`. Input is a 16-byte little-endian header
 (`HIAIDP01`, operation u64), followed by at most 64 ASCII bytes. Operation zero
 checks u64 decimal and returns its value; operation one checks digest grammar.

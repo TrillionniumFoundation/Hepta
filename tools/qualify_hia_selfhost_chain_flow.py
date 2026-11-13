@@ -39,7 +39,7 @@ SOURCE_FILES = (
     "tools/hia_selfhost_owned_elf.py", "tools/qualify_hia_selfhost.py",
     "tools/qualify_hia_selfhost_owned_elf.py", "tools/hia_selfhost_child.py",
     "hepta/hia_program_runtime.py", "hepta/hia_program_native.py",
-    "examples/hia_bootstrap/selfhost.hiaasm",
+    "examples/hia_bootstrap/selfhost.hepta",
 )
 
 
@@ -249,7 +249,7 @@ def qualify(directory, compiler):
             "object_sha256": digest(wrapper.read_bytes()), "compiled_after_B0": True}
         for case in allocator_cases():
             label, source = case["id"], case["source"].encode()
-            (directory / (label + ".hiaasm")).write_bytes(source)
+            (directory / (label + ".hepta")).write_bytes(source)
             checked, vm = reference(case)
             record = {"case": case, "reference": vm, "pass": False}
             report["cases"].append(record)

@@ -54,7 +54,7 @@ image from a previous source tree does not make that tree's cold report qualify
 the current sources.
 
 The manifest schema is `hepta.hia.composite-types-native.v1`. It binds
-`examples/hia_bootstrap/composite_types.hiaasm`, the executable image and the
+`examples/hia_bootstrap/composite_types.hepta`, the executable image and the
 compiler digest. Set the selector to the absolute manifest path for the desired
 process. Submitted program data cannot select an image.
 

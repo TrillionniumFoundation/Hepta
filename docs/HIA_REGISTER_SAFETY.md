@@ -30,7 +30,7 @@ These are generic inductive proofs. They do not enumerate the input space.
 The existing `run_append` theorem is checked in the same kernel input.
 
 The selected actual source is
-`formal/selected_u32_dead_literal.hia.json`. Its five operations add two `u32`
+`formal/selected_u32_dead_literal.core.hepta`. Its five operations add two `u32`
 arguments, add and subtract a bias, and create an unused literal. The candidate
 removes only that final instruction. The exporter emits both actual instruction
 lists and result-register indices, then Lean checks their well-formedness,

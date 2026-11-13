@@ -5,7 +5,7 @@ import struct
 from .hia_agent_store import _agent_resource_path
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
-SOURCE = _agent_resource_path('examples/hia_bootstrap/agent_binary64_format.hiaasm')
+SOURCE = _agent_resource_path('examples/hia_bootstrap/agent_binary64_format.hepta')
 SCHEMA = 'hepta.hia.agent-binary64-format-native.v1'
 SELECTOR = 'HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST'
 

@@ -147,7 +147,7 @@ class CorePatchNativeTests(unittest.TestCase):
             assert report['generation_sha256'] == [sha256(compiler.read_bytes()).hexdigest()] * 3
         else:
             seed, _ = build_seed(cls.folder)
-            source = SOURCE.with_name('selfhost.hiaasm').read_bytes()
+            source = SOURCE.with_name('selfhost.hepta').read_bytes()
             first, _ = compile_stage(cls.folder, 'B1', seed, source, image_format='seed-shared')
             compiler, _ = compile_stage(cls.folder, 'B2', first, source)
             assert first.read_bytes() == compiler.read_bytes()
@@ -363,10 +363,10 @@ class CorePatchNativeTests(unittest.TestCase):
             self.admission_manifest.write_bytes(original)
 
     def test_actual_installed_wheel_patches_without_checkout_tools_and_refuses_missing_source(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
         root = Path(__file__).resolve().parents[1]
-        resources = tuple('docs/'+name for name in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES
-        self.assertIn('examples/hia_bootstrap/core_patch.hiaasm',resources)
+        resources = (tuple('docs/'+name for name in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
+        self.assertIn('examples/hia_bootstrap/core_patch.hepta',resources)
         source = self.folder/'wheel-source'
         source.mkdir()
         shutil.copytree(root/'hepta',source/'hepta',ignore=shutil.ignore_patterns('__pycache__'))
@@ -421,7 +421,7 @@ else:
                 timeout=30,env={'PATH':'','LANG':'C','LC_ALL':'C',SELECTOR:str(self.manifest)})
         result = run('accept')
         self.assertEqual((result.returncode,result.stdout,result.stderr),(0,expected,b''))
-        resource = installed/'hepta/_data/examples/hia_bootstrap/core_patch.hiaasm'
+        resource = installed/'hepta/_data/examples/hia_bootstrap/core_patch.hepta'
         original = resource.read_bytes()
         try:
             resource.unlink()

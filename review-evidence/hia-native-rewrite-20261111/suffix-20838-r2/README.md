@@ -1,0 +1,9 @@
+# Original suffix qualification and narrow repair evidence
+
+The complete retained regression of commit 20838a0a3e35493f4d96c74c3fca7ef86e4c529a ended HOLD: all 4146 tests ran, with four errors, no failures and no skips. Three errors came from changing the byte-bound v1 maintenance protocol while v2 retained its original inheritance SHA. One came from passing unchanged historical admission-control file names directly to the new current-name parser.
+
+HOLD.json binds the original Git tree, complete source identity, before/after harness hashes, all 27 phase results, raw artifact hashes and the persistent full evidence archive. full-retained-regression.json and its process-owner record are byte copies of the original files. The final stderr log is a byte excerpt with its original offset recorded in HOLD.json. ARCHIVE.json records full member-by-member readback of 8373 retained entries; the complete archive remains separate from this small source-controlled receipt.
+
+The repair restores the original v1 protocol bytes and projects only its two registered logical paths when reading current sources. The historical admission JSON remains unchanged; a dedicated exact-pair reader maps its names before the unchanged Core parser. The four original failing cases and their surrounding four actual test modules pass 36 of 36 tests, with zero skips or expected failures. Source hashes before and after those tests are in repair-r2.json. repair-r1.json preserves the earlier harness typo: an additional requested test-module name did not exist, while all 36 real tests passed. Its loader error remains recorded.
+
+These repair tests do not qualify the entire repository or supersede the original HOLD. A complete successor qualification must bind its own frozen source tree and execute the retained gates again.

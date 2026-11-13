@@ -69,8 +69,8 @@ def qualify(output):
         for name, document, extent in cases:
             path = output / name
             path.mkdir()
-            _save(path / "source.hia.json", document)
-            attempt = build(path / "source.hia.json", path / "build", foreign_extent=extent, profile_version=2)
+            _save(path / "source.core.hepta", document)
+            attempt = build(path / "source.core.hepta", path / "build", foreign_extent=extent, profile_version=2)
             report["positive"].append({"case": name, "ok": attempt["ok"], "report": name + "/build/attempt.json"})
             if not attempt["ok"]:
                 raise ValueError("positive cast proof failed: " + name)
@@ -79,7 +79,7 @@ def qualify(output):
                     tuple((o["name"], o["result"]) for o in validation["obligations"]) != ARTIFACT_OBLIGATIONS):
                 raise ValueError("profile or obligation inventory differs: " + name)
             if name in ("u64-to-u16", "u16-to-u64", "prior-write-before-narrowing"):
-                independent = check(path / "build/source.hia.json", path / "build/candidate.o",
+                independent = check(path / "build/source.core.hepta", path / "build/candidate.o",
                     path / "build/program.so", path / "independent", foreign_extent=extent,
                     expected_sha256={"source": attempt["source_sha256"],
                         "object": validation["subject"]["object_sha256"],

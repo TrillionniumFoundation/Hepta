@@ -224,7 +224,7 @@ class RustByteOwnerVmParity(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertTrue(result.stderr.startswith(b"E_HIA_RUST_UNSUPPORTED:"), result.stderr)
             self.assertEqual(result.stdout, b"")
-        nominal = (ROOT / "examples/hia_program/generic_owned_enum.hia").read_bytes()
+        nominal = (ROOT / "examples/hia_program/generic_owned_enum.hepta").read_bytes()
         verify_program(nominal)
         # A raw nominal document remains outside the strict Rust schema;
         # canonical Python lowering is required before primitive execution.

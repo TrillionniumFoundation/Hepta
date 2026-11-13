@@ -9,6 +9,12 @@ import json
 from pathlib import Path
 import struct
 
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
+
 from tools.build_hia_core_admission import build as build_kernel
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.generate_hia_core_admission_cli import MAGIC
@@ -16,9 +22,8 @@ from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contrac
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
-ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / 'examples/hia_bootstrap/core_admission.hiaasm'
-PACKER = ROOT / 'examples/hia_bootstrap/core_admission_cli_packer.hiaasm'
+SOURCE = ROOT / 'examples/hia_bootstrap/core_admission.hepta'
+PACKER = ROOT / 'examples/hia_bootstrap/core_admission_cli_packer.hepta'
 
 
 def build(output, compiler, cold_report):
@@ -32,13 +37,18 @@ def build(output, compiler, cold_report):
             or str(SOURCE.relative_to(ROOT)) not in expected or str(PACKER.relative_to(ROOT)) not in expected):
         raise ValueError('completed matching-source cold qualification required for complete Core CLI')
     admitted_sources = admit_cold_build(pins[compiler], pins[cold_report])
+    if any(admitted_sources.get(p.relative_to(ROOT).as_posix()) != sha256(pins[p]).hexdigest()
+           for p in (SOURCE, PACKER)):
+        raise ValueError('complete Core CLI source differs from admitted cold source')
     output.mkdir(mode=0o700)
     manifest = build_kernel(output / 'kernel', compiler, cold_report)
-    metadata = json.loads(manifest.read_bytes())
+    manifest_raw = manifest.read_bytes()
+    metadata = json.loads(manifest_raw)
     image = manifest.parent / metadata['image_path']
     application = image.read_bytes()
     assert sha256(application).hexdigest() == metadata['image_sha256']
     packer, compiled = compile_stage(output, 'core-admission-cli-packer', compiler, pins[PACKER])
+    packer_raw = packer.read_bytes()
     packed, arena = invoke(output, 'core-admission-cli-pack', packer,
                            struct.pack('<QQ', MAGIC, len(application)) + application)
     size = packed['core_u32']
@@ -47,6 +57,7 @@ def build(output, compiler, cold_report):
     executable = arena[:size]
     inspection = inspect_executable(executable)
     if (any(p.read_bytes() != raw for p, raw in pins.items()) or image.read_bytes() != application
+            or packer.read_bytes() != packer_raw or manifest.read_bytes() != manifest_raw
             or current_sources() != admitted_sources):
         raise ValueError('complete Core CLI build inputs changed')
     target = output / 'hia-verify-core'

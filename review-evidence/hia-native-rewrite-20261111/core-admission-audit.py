@@ -23,7 +23,7 @@ OUT.mkdir(exist_ok=True)
 compiler = Path(sys.argv[1]).resolve()
 assert interpreted(wire(VALID)) == 0
 assert interpreted(wire(returned_aliases(('mutbuf','mutbuf')))) == 0xfffffff8
-original = subprocess.check_output(['git', 'show', 'c2d937e5eec734af5c1d5d0519afc7e3a91df58a:examples/hia_bootstrap/core_admission.hiaasm'])
+original = subprocess.check_output(['git', 'show', 'c2d937e5eec734af5c1d5d0519afc7e3a91df58a:examples/hia_bootstrap/core_admission.hepta'])
 old_image, _ = compile_stage(OUT, 'original-core-admission', compiler, original)
 image, receipt = compile_stage(OUT, 'core-admission', compiler, SOURCE.read_bytes())
 raw = image.read_bytes()

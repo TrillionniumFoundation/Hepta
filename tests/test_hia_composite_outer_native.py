@@ -103,9 +103,9 @@ class NativeOuterTests(unittest.TestCase):
                 return result
             proxy._entry=entry;images[name]=proxy
         cls.measured=NativeCompositeOuter(images,types_source_sha256=cls.bundle.dependencies[next(
-            path for path in cls.bundle.dependencies if path.name=='composite_types.hiaasm')],
+            path for path in cls.bundle.dependencies if path.name=='composite_types.hepta')],
             helpers_source_sha256=cls.bundle.dependencies[next(
-            path for path in cls.bundle.dependencies if path.name=='task_helpers.hiaasm')],
+            path for path in cls.bundle.dependencies if path.name=='task_helpers.hepta')],
             function_sources_sha256={name:cls.bundle.dependencies[path] for name,path in
                 __import__('hepta.hia_composite_functions_native',fromlist=['SOURCES']).SOURCES.items()})
 

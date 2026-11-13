@@ -10,7 +10,7 @@ from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
 from .hia_json_preflight_native import _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/agent_snapshot_json.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/agent_snapshot_json.hepta')
 SCHEMA = 'hepta.hia.agent-snapshot-json-native.v1'
 MAX_BYTES = 8 << 20
 MAX_NODES = 1 << 20

@@ -23,6 +23,13 @@ sys.path.insert(0,str(ROOT))
 sys.dont_write_bytecode = True
 HERE = ROOT/"benchmarks/hia_agent_repository_maintenance"
 
+# The registered v1 protocol and v2 inheritance hash retain their original
+# bytes. Only these two historical logical names project to current sources.
+SOURCE_PATH_PROJECTIONS = {
+    "examples/hia_program/offset_copy_v5.hia": "examples/hia_program/offset_copy_v5.hepta",
+    "examples/hia_program/overlap_move_v3.hia": "examples/hia_program/overlap_move_v3.hepta",
+}
+
 from hepta.hia_program import verify_program
 from hepta.hia_program_tools import apply_program_patch, decode_json, bounded_json_wire
 from hepta.hia_program_runtime import execute_program
@@ -46,11 +53,32 @@ def cfg():
     return value
 
 
+def registered_source(task):
+    logical = task["source_path"]
+    if logical not in SOURCE_PATH_PROJECTIONS:
+        raise ValueError("unregistered repository source path")
+    resolved = SOURCE_PATH_PROJECTIONS[logical]
+    raw = (ROOT/resolved).read_bytes()
+    identity = {
+        "source_path": logical,
+        "resolved_source_path": resolved,
+        "source_sha256": hashlib.sha256(raw).hexdigest(),
+        "source_git_blob": hashlib.sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest(),
+    }
+    if any(identity[key] != task[key] for key in ("source_sha256", "source_git_blob")):
+        raise ValueError("repository source differs from pinned Git blob")
+    return raw, identity
+
+
+def source_projections():
+    return {task["id"]: registered_source(task)[1] for task in cfg()["tasks"]}
+
+
 def bindings():
     files = [*ROOT.glob("hepta/*.py"),*HERE.glob("*"),Path(__file__),
              ROOT/"tools/provider_adapter/llama_cpp_engine.py",
              ROOT/"benchmarks/hia_native_ndu/metrics.c",ROOT/"benchmarks/hia_native_ndu/metrics.h"]
-    files += [ROOT/t["source_path"] for t in cfg()["tasks"]]
+    files += [ROOT/item["resolved_source_path"] for item in source_projections().values()]
     return {str(p.relative_to(ROOT)):file_identity(p)["sha256"] for p in sorted(set(files)) if p.is_file()}
 
 
@@ -78,10 +106,8 @@ def require_committed_bindings(frozen):
 
 
 def target(task):
-    path = ROOT/task["source_path"]
-    if file_identity(path)["sha256"] != task["source_sha256"]:
-        raise ValueError("repository source differs from pinned Git blob")
-    return verify_program(decode_json(path.read_bytes())).as_dict()
+    raw, _ = registered_source(task)
+    return verify_program(decode_json(raw)).as_dict()
 
 
 def operation(document,task):
@@ -273,6 +299,7 @@ def controls(args):
         rejected = evaluate(task,"hia_structured",stale,output/(task["id"]+"-stale-snapshot"),args.clang)
         rows.append({"task":task["id"],"kind":"stale-snapshot","passed":not rejected["accepted"]})
     record = {"schema":"hepta.hia.agent-repository-maintenance.controls.v1","source_commit":git_head(),
+              "source_projections":source_projections(),
               "bindings":frozen,"clang":file_identity(args.clang),"model_requests":0,
               "reference_controls_are_model_successes":False,"rows":rows,
               "passed":all(r["passed"] for r in rows) and bindings()==frozen,
@@ -312,6 +339,7 @@ def run(args):
         raise ValueError("registered LLAMA_ARG_REPACK=0 required")
     report = {"schema":"hepta.hia.agent-repository-maintenance.result.v1","status":"incomplete",
         "source_commit":git_head(),"bindings":frozen,"protocol":config,"controls":file_identity(args.controls),
+        "source_projections":source_projections(),
         "second_model":blocked_provider(args.provider_blocked),"cells":[],"human_answer_repairs":0,
         "real_historical_maintenance_measured":False,"multi_model_advantage_established":False,
         "general_agent_productivity_established":False}

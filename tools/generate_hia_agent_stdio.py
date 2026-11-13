@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def capabilities_bytes():
     return (json.dumps({
         'schema': 'hepta.hia.agent-stdio.v1', 'implementation': 'hia-native',
-        'operations': ['capabilities', 'verify', 'compile', 'render-assembly', 'assemble'], 'build_profile': 0,
+        'operations': ['capabilities', 'verify', 'compile', 'render-assembly', 'assemble', 'check-assembly'], 'build_profile': 0,
         'input': 'primitive-v8-Core-JSON', 'input_bytes_max': WIRE_LIMIT,
         'assembly_input': 'hia-asm.v1', 'assembly_input_bytes_max': LIMIT,
         'compiler_bytes_max': LIMIT, 'program_nodes_max': 1048576, 'json_depth_max': 128,
@@ -67,6 +67,11 @@ def dispatcher_source():
         if phase == 0:
             return 1
         return verified(o)
+    if matches(s, 14, 8314318707009022051) == 1:
+        if byte(s, 8) == 115 and byte(s, 9) == 101 and byte(s, 10) == 109 and byte(s, 11) == 98 and byte(s, 12) == 108 and byte(s, 13) == 121:
+            if phase == 0:
+                return 5
+            return verified(o)
     if phase != 0:
         return 4294967295
     if matches(s, 7, 28548189479661411) == 1:
@@ -88,6 +93,7 @@ def capabilities(o:mutbuf, profile:u64) -> u32:
     source = source.replace('28548189479661411', str(int.from_bytes(b'compile', 'little')))
     source = source.replace('7308332187135341409', str(int.from_bytes(b'assemble', 'little')))
     source = source.replace('7809644627822477667', str(int.from_bytes(b'capabili', 'little')))
+    source = source.replace('8314318707009022051', str(int.from_bytes(b'check-as', 'little')))
     source += f'    if length(o) < {len(cap)}:\n        return 4294967294\n'
     source += writes(cap)
     source += f'    store(o, {profile_at}, profile + 48)\n    return {len(cap)}\n'
@@ -155,7 +161,10 @@ def template():
     def dispatch(name, *, reply=False):
         emit('48 8b 7c 24 10')                 # argv[1], original process stack
         if reply:
-            emit('be'); word(6)                # exact already admitted "verify"
+            emit('be'); word(6)                # exact already admitted verification command
+            emit('41 83 bc 24'); word(MODE_OFFSET); emit('05')
+            emit('b8'); word(14)
+            emit('48 0f 44 f0')                 # check-assembly has fourteen bytes
         emit('49 8d 94 24'); word(OUTPUT_OFFSET)
         emit('b9'); word(OUTPUT_BYTES)
         emit('4d 8d 84 24'); word(ARENA_OFFSET)
@@ -181,13 +190,14 @@ def template():
     emit('83 f8 02'); branch('0f 84', 'mode')
     emit('83 f8 03'); branch('0f 84', 'mode')
     emit('83 f8 04'); branch('0f 84', 'mode')
+    emit('83 f8 05'); branch('0f 84', 'mode')
     emit('3d'); word(OUTPUT_BYTES); branch('0f 87', 'io')
     emit('85 c0'); branch('0f 84', 'io')
     branch('e9', 'reply_output')
     label('mode')
     emit('41 89 84 24'); word(MODE_OFFSET)      # outside input/compiler output
     emit('bb'); word(WIRE_LIMIT)               # JSON wire ceiling
-    emit('83 f8 04'); branch('0f 85', 'reading')
+    emit('83 f8 04'); branch('0f 82', 'reading')
     emit('bb'); word(LIMIT)                    # exact native assembly ceiling
     label('reading')
     emit('45 31 ed')
@@ -198,7 +208,7 @@ def template():
     emit('49 01 c5 49 39 dd'); branch('0f 87', 'space')
     branch('e9', 'read')
     label('received')
-    emit('41 83 bc 24'); word(MODE_OFFSET); emit('04'); branch('0f 84', 'assembly')
+    emit('41 83 bc 24'); word(MODE_OFFSET); emit('04'); branch('0f 83', 'assembly')
     label('frontend')
     emit('4c 89 e7 4c 89 ee 49 8d 94 24'); word(OUTPUT_OFFSET)
     emit('b9'); word(OUTPUT_BYTES)
@@ -230,7 +240,7 @@ def template():
     emit('83 f8 fe'); branch('0f 84', 'space')
     emit('85 c0'); branch('0f 84', 'invalid')
     emit('3d'); word(LIMIT); branch('0f 87', 'invalid')
-    emit('41 83 bc 24'); word(MODE_OFFSET); emit('04'); branch('0f 84', 'assembly_profile')
+    emit('41 83 bc 24'); word(MODE_OFFSET); emit('04'); branch('0f 83', 'assembly_profile')
     emit('41 83 bc 24'); word(MODE_OFFSET); emit('01'); branch('0f 84', 'verified')
     emit('41 83 bc 24'); word(MODE_OFFSET); emit('03'); branch('0f 84', 'assembly_output')
     emit('41 89 c6 4d 89 e7'); branch('e9', 'write')
@@ -249,6 +259,7 @@ def template():
     emit('49 c7 40 28'); hole('profile_dispatch_assembly')
     emit('e8'); hole('dispatch_assembly')
     emit('83 f8 01'); branch('0f 85', 'invalid')
+    emit('41 83 bc 24'); word(MODE_OFFSET); emit('05'); branch('0f 84', 'verified')
     emit('4d 89 e7'); branch('e9', 'write')
     label('verified'); dispatch('dispatch_verified', reply=True)
     emit('3d'); word(OUTPUT_BYTES); branch('0f 87', 'io')
@@ -346,7 +357,7 @@ def document(source, module):
 
 def main():
     for name,source in [('agent_stdio_dispatch',dispatcher_source()),('agent_stdio_packer',packer_source())]:
-        path=ROOT/'examples/hia_bootstrap'/f'{name}.hiaasm'
+        path=ROOT/'examples/hia_bootstrap'/f'{name}.hepta'
         path.write_text(render_assembly(document(source,name)))
         print(path.name,path.stat().st_size)
 

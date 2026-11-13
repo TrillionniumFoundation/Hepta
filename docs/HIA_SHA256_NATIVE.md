@@ -1,7 +1,7 @@
 # Bounded HIA SHA-256 library
 
 **Whole-stack rewriting remains OPEN.** Five functions in
-`examples/hia_bootstrap/sha256.hiaasm` implement SHA-256 message padding,
+`examples/hia_bootstrap/sha256.hepta` implement SHA-256 message padding,
 big-endian word decoding, the 64-word schedule, 64-round block compression and
 digest serialization as ordinary HIA operations. The native payload path does
 not call Python `hashlib`, OpenSSL, a foreign hash primitive or a C hash helper.

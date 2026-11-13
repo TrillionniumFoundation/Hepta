@@ -107,7 +107,7 @@ class CoreAdmissionNativeTests(unittest.TestCase):
             assert report['generation_sha256'] == [sha256(compiler.read_bytes()).hexdigest()] * 3
         else:
             seed, _ = build_seed(cls.folder)
-            source = SOURCE.with_name('selfhost.hiaasm').read_bytes()
+            source = SOURCE.with_name('selfhost.hepta').read_bytes()
             first, _ = compile_stage(cls.folder, 'B1', seed, source, image_format='seed-shared')
             compiler, _ = compile_stage(cls.folder, 'B2', first, source)
             assert first.read_bytes() == compiler.read_bytes()
@@ -284,7 +284,7 @@ class CoreAdmissionNativeTests(unittest.TestCase):
             build(output, self.compiler, wrong)
         self.assertFalse(output.exists())
         bridge.installed_core_admission(self.manifest)
-        changed = self.folder / 'changed-source.hiaasm'
+        changed = self.folder / 'changed-source.hepta'
         changed.write_bytes(SOURCE.read_bytes() + b'\n')
         with patch.object(bridge, 'SOURCE', changed):
             with self.assertRaisesRegex(ValueError, 'source identity'):

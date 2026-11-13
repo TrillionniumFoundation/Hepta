@@ -17,7 +17,7 @@ from .hia_instruction_policy_native import transport
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
 from .hia_program import HIAProgramRejected
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/task_helpers.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/task_helpers.hepta')
 SCHEMA = 'hepta.hia.task-helpers-native.v1'
 SELECTOR = 'HEPTA_HIA_TASK_HELPERS_MANIFEST'
 MAGIC = int.from_bytes(b'HIATHP01', 'little')

@@ -11,12 +11,23 @@ from pathlib import Path
 
 NATIVE_PUBLICATION_OPERATIONS = ('publish','verify','withdraw','store-put','store-get','store-hash')
 NATIVE_PUBLICATION_SOURCES = (
-    'examples/hia_bootstrap/artifact_publication_policy.hiaasm',
-    'examples/hia_bootstrap/artifact_publication_packer.hiaasm',
-    'examples/hia_bootstrap/sha256_stream.hiaasm',
+    'examples/hia_bootstrap/artifact_publication_policy.hepta',
+    'examples/hia_bootstrap/artifact_publication_packer.hepta',
+    'examples/hia_bootstrap/sha256_stream.hepta',
     'tools/hia_artifact_publication_syscalls.S',
     'tools/generate_hia_artifact_publication.py',
 )
+
+# Linux UAPI values also cover Python builds that omit the fcntl names.
+_EXECUTABLE_SEALS = (getattr(fcntl,'F_SEAL_WRITE',0x0008)
+    |getattr(fcntl,'F_SEAL_GROW',0x0004)|getattr(fcntl,'F_SEAL_SHRINK',0x0002)
+    |getattr(fcntl,'F_SEAL_SEAL',0x0001))
+
+
+def _require_sealed_executable(fd):
+    observed=fcntl.fcntl(fd,getattr(fcntl,'F_GET_SEALS',1034))
+    if type(observed) is not int or observed&_EXECUTABLE_SEALS!=_EXECUTABLE_SEALS:
+        _reject('E_PUBLISH_NATIVE_CUSTODY','selected executable lacks complete kernel seals')
 
 
 def _installed_source_custody(root):
@@ -26,7 +37,7 @@ def _installed_source_custody(root):
     different checkout. The full build-source manifest remains bound through
     the exact package-owned contract; it is not a claim those tools are installed.
     """
-    from .hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,PUBLICATION_BUILD_FILES
+    from .hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
     from .hia_json_preflight_native import _source_resource_path
     contract_name='docs/HIA_SELFHOST_CORE_SUPPORT.json'
     contract_path=_source_resource_path(contract_name);raw=contract_path.read_bytes()
@@ -40,7 +51,7 @@ def _installed_source_custody(root):
     expected_python={n for n in files if n.startswith('hepta/') and n.endswith('.py')}
     if actual_python!=expected_python:
         _reject('E_PUBLISH_NATIVE_CUSTODY','installed production module inventory changed')
-    assets=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES
+    assets=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
     for name in (*sorted(actual_python),*assets):
         if name==contract_name:continue  # The outer manifest binds this exact JSON.
         path=root/name if name in actual_python else _source_resource_path(name)
@@ -120,14 +131,21 @@ def _execute_native(manifest,operation,stage,destination,expected,_admission=Non
         code=_admission[1]
     fd=None
     try:
-        fd=os.memfd_create('hia-artifact-publication',os.MFD_CLOEXEC|os.MFD_ALLOW_SEALING)
-        view=memoryview(code)
-        while view:
-            written=os.write(fd,view)
-            if written<=0:_reject('E_PUBLISH_NATIVE_CUSTODY','could not seal selected executable')
-            view=view[written:]
-        fcntl.fcntl(fd,fcntl.F_ADD_SEALS,
-            fcntl.F_SEAL_WRITE|fcntl.F_SEAL_GROW|fcntl.F_SEAL_SHRINK|fcntl.F_SEAL_SEAL)
+        try:
+            fd=os.memfd_create('hia-artifact-publication',os.MFD_CLOEXEC|os.MFD_ALLOW_SEALING)
+            view=memoryview(code)
+            while view:
+                written=os.write(fd,view)
+                if written<=0:_reject('E_PUBLISH_NATIVE_CUSTODY','could not seal selected executable')
+                view=view[written:]
+            fcntl.fcntl(fd,getattr(fcntl,'F_ADD_SEALS',1033),_EXECUTABLE_SEALS)
+            _require_sealed_executable(fd)
+            # Read the actual sealed descriptor, not the mutable source path.
+            # Complete kernel seals freeze the bytes before this identity check.
+            if os.fstat(fd).st_size!=len(code) or os.pread(fd,len(code)+1,0)!=code:
+                _reject('E_PUBLISH_NATIVE_CUSTODY','sealed executable bytes or extent differ')
+        except (OSError,AttributeError) as exc:
+            raise PublicationRejected('E_PUBLISH_NATIVE_CUSTODY: sealed executable snapshot unavailable') from exc
         # No new wall-time or payload-size profile is imposed by this custody
         # bridge. Original synchronous filesystem operations are not replayed.
         result=subprocess.run(['/proc/self/fd/'+str(fd),operation,os.fspath(stage),os.fspath(destination)],

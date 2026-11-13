@@ -87,11 +87,11 @@ class NativeConstructorIntegrationTests(unittest.TestCase):
             (self.evidence/'public-pipeline.json').write_text(json.dumps(rows,indent=2)+'\n')
 
     def test_installed_wheel_without_retained_nominal_owners_and_tamper_refusal(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
-        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
+        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
         for name in KERNELS:
-            self.assertIn('examples/hia_bootstrap/composite_constructor_' + name + '.hiaasm', resources)
-        with tempfile.TemporaryDirectory(prefix='hia-ctor-wheel-', dir='/dev/shm') as temporary:
+            self.assertIn('examples/hia_bootstrap/composite_constructor_' + name + '.hepta', resources)
+        with tempfile.TemporaryDirectory(prefix='hia-ctor-wheel-') as temporary:
             folder = Path(temporary)
             source = folder/'source'; source.mkdir()
             shutil.copytree(ROOT/'hepta', source/'hepta', ignore=shutil.ignore_patterns('__pycache__'))
@@ -166,7 +166,7 @@ sys.stdout.buffer.write(checked.canonical_bytes)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             self.assertEqual(result.stdout,expected)
             for name in KERNELS:
-                paths = list(installed.rglob('composite_constructor_'+name+'.hiaasm'))
+                paths = list(installed.rglob('composite_constructor_'+name+'.hepta'))
                 self.assertEqual(len(paths),1)
                 sourcepath=paths[0]; original=sourcepath.read_bytes()
                 try:

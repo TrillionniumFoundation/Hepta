@@ -53,7 +53,7 @@ def protocol():
 def source_bindings():
     result = prior.source_bindings()
     for path in [*ROOT.glob("hepta/*.py"), Path(__file__), PROTOCOL,
-                 *PROTOCOL.parent.glob("*.py"), *PROTOCOL.parent.glob("*.hiaasm"),
+                 *PROTOCOL.parent.glob("*.py"), *PROTOCOL.parent.glob("*.hepta"),
                  PROTOCOL.parent / "UPSTREAM_TASKS.json", PROTOCOL.parent / "UPSTREAM_FIX.json",
                  ROOT / "tools/capture_hia_upstream_tasks.py", ROOT / "tools/qualify_hia_upstream_ports.py",
                  ROOT / "tests/test_hia_upstream_factorial.py",

@@ -67,7 +67,7 @@ All native authority remains `DENY_ALL` and `safety_certificate` remains false.
 ## Evidence and reproduction
 
 The complete final registration, corpus, checks, samples and result are in
-`experiments/hia_ndu_model_snapshot_20261103/final/`. Two earlier implementation
+[experiments/hia_ndu_model_snapshot_20261103/final/](https://github.com/TrillionniumFoundation/Hepta/tree/06b1e9b284f612c47a2205e79c8685d8b366d9de/experiments/hia_ndu_model_snapshot_20261103/final). Two earlier implementation
 observations are retained under `initial/` and `bounded-copy/`; their changed
 source files are preserved against their recorded hashes. The final run is
 selected because it contains both bounded copying and sorted-key compatibility,

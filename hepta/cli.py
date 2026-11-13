@@ -20,7 +20,12 @@ def agent_capabilities():
         "high_level_source_required": False,
         "inputs": ["standalone-hia-json", "explicit-hia-assembly"],
         "build": {"backend": "native", "kind": "object",
-                  "target": "x86_64-unknown-linux-gnu", "fallback": False},
+                  "target": "x86_64-unknown-linux-gnu", "fallback": False,
+                  "available_backends": ["native", "selfhost"],
+                  "selfhost": {"input": "bounded primitive Core v8 with scalar exports",
+                               "selection": "explicit compiler manifest and SHA256",
+                               "runtime": "Linux x86-64 sealed native executable",
+                               "hosted_cli_and_publication": True}},
         "edits": {"snapshot_bound": True, "entire_module_reverified": True,
                   "publication": "new_path_only"},
         "implementation": "python_host_bridge",
@@ -51,7 +56,7 @@ def publish_json_view(value, destination):
     return {"schema": "hepta.hia.json-view-output.v1", "ok": True,
             "output": str(target), "view_schema": value["schema"], "publication": receipt}
 
-def hia_main(argv=None):
+def _reference_hia_main(argv=None):
     parser = argparse.ArgumentParser(prog="hia", description="HIA Core Agent interface")
     parser.add_argument("--version", action="version", version="hia " + __version__)
     actions = parser.add_subparsers(dest="hia_action", required=True)
@@ -66,9 +71,11 @@ def hia_main(argv=None):
         if action in {"import-assembly", "render-assembly", "normalize", "build", "patch", "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply"}:
             command.add_argument("--output", "-o", required=action=="build")
         if action=="build":
-            command.add_argument("--backend", choices=["native"], default="native")
+            command.add_argument("--backend", choices=["native", "selfhost"], default="native")
             command.add_argument("--kind", choices=["object"], default="object")
             command.add_argument("--target", choices=["x86_64-unknown-linux-gnu"], default="x86_64-unknown-linux-gnu")
+            command.add_argument("--selfhost-manifest", help="Operator-selected native compiler manifest")
+            command.add_argument("--selfhost-manifest-sha256", help="Exact operator pin for that manifest")
         if action in {"patch", "impact"}: command.add_argument("--request", required=True)
         if action=="edit-query":
             command.add_argument("--function", required=True)
@@ -80,6 +87,12 @@ def hia_main(argv=None):
             command.add_argument("--query", required=True)
             command.add_argument("--response", required=True)
     args = parser.parse_args(argv)
+    if args.hia_action == "build":
+        selected = (args.selfhost_manifest, args.selfhost_manifest_sha256)
+        if args.backend == "selfhost" and not all(selected):
+            parser.error("--backend selfhost requires --selfhost-manifest and --selfhost-manifest-sha256")
+        if args.backend != "selfhost" and any(value is not None for value in selected):
+            parser.error("selfhost compiler options require --backend selfhost")
     try:
         if args.hia_action=="capabilities":
             output_json(agent_capabilities())
@@ -112,7 +125,7 @@ def hia_main(argv=None):
                 if target.parent.resolve() != target.parent:
                     raise ValueError('Assembly output parent must not traverse a symlink')
                 with tempfile.TemporaryDirectory(prefix='.hepta-assembly-', dir=target.parent) as temporary:
-                    stage = Path(temporary) / 'program.hiaasm'
+                    stage = Path(temporary) / 'program.hepta'
                     payload = text.encode('utf-8')
                     with stage.open('xb') as stream:
                         stream.write(payload)
@@ -164,8 +177,14 @@ def hia_main(argv=None):
             output_json(inspect_program(program))
             return 0
         if args.hia_action == 'build':
-            from .hia_program_native import build_program_machine
-            result = build_program_machine(program, args.output, kind='object', linker='cc')
+            if args.backend == 'selfhost':
+                from .hia_program_selfhost import build_program_selfhost
+                result = build_program_selfhost(program, args.output,
+                    manifest=args.selfhost_manifest, manifest_sha256=args.selfhost_manifest_sha256,
+                    kind=args.kind, target=args.target)
+            else:
+                from .hia_program_native import build_program_machine
+                result = build_program_machine(program, args.output, kind='object', linker='cc')
             output_json(result)
             return 0 if result.get('ok') is True else 1
         if args.hia_action == 'impact':
@@ -187,5 +206,12 @@ def hia_main(argv=None):
     except (OSError, ValueError, UnicodeError, subprocess.SubprocessError) as error:
         output_json({"ok":False,"status":"error","diagnostics":[{"code":"E_DRIVER","message":str(error),"phase":"driver"}]})
         return 2
+
+def hia_main(argv=None):
+    selected = os.environ.get("HEPTA_HIA_CLI_MANIFEST")
+    if selected is not None:
+        from .hia_cli_native import installed_cli
+        return installed_cli(selected).run(argv, sys.modules[__name__])
+    return _reference_hia_main(argv)
 
 main = hia_main

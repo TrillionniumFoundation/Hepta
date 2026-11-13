@@ -6,8 +6,9 @@ import json
 from pathlib import Path
 import re
 import sys
-import re
 ROOT=Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
 FORBIDDEN_MODULES=frozenset({
     'ast','lexer','parser','checker','backend','pipeline','protocol','protocol_v3',
     'core','modules','packages','workspace','cfg','hsir','ssa','semantic_ir',
@@ -17,10 +18,65 @@ FORBIDDEN_MODULES=frozenset({
     'hia_source_expressions_native','hia_source_parser_native','hia_type_parser_native',
 })
 
+# These trees contain current examples, test inputs and formal/benchmark
+# programs. Frozen experiment output and receipt trees retain their recorded
+# names; changing those names would not be a source migration.
+ACTIVE_SOURCE_ROOTS = frozenset({'examples', 'tests', 'formal', 'benchmarks'})
+CORE_SOURCE_SCHEMA = re.compile(r'hepta\.hia\.(?:program|composite)\.v[0-9]+\Z')
+
+
+def _is_active_json_source(path, relative):
+    if (not relative.parts or relative.parts[0] not in ACTIVE_SOURCE_ROOTS
+            or path.suffix.lower() != '.json' or not path.is_file() or path.is_symlink()):
+        return False
+    try:
+        document = json.loads(path.read_bytes())
+    except (OSError, ValueError, RecursionError):
+        return False
+    return (type(document) is dict and type(document.get('schema')) is str
+            and CORE_SOURCE_SCHEMA.fullmatch(document['schema']) is not None)
+
+def _checked_hia_sources(root, problems):
+    """Check physical source files; archived path strings are not live sources."""
+    sources = {}
+    for path in sorted(root.rglob('*')):
+        relative = path.relative_to(root)
+        if '.git' in relative.parts:
+            continue
+        lower = path.name.lower()
+        if lower.endswith(('.hia', '.hiaasm', '.hia.json')):
+            problems.append('legacy HIA source suffix: ' + str(relative) + ' (required .hepta)')
+            continue
+        if _is_active_json_source(path, relative):
+            problems.append('noncanonical HIA source suffix: ' + str(relative) + ' (required .hepta)')
+            continue
+        if not lower.endswith('.hepta'):
+            continue
+        if not path.name.endswith('.hepta'):
+            problems.append('noncanonical HIA source suffix: ' + str(relative) + ' (required .hepta)')
+            continue
+        if path.is_symlink() or not path.is_file():
+            problems.append('HIA source must be a regular non-symlink file: ' + str(relative))
+            continue
+        try:
+            raw = path.read_bytes()
+            # The extension selects checked HIA, not a restored high-level
+            # frontend. Both entry points verify the complete program.
+            if raw.lstrip().startswith((b'{', b'[')):
+                from hepta.hia_program import verify_program
+                verify_program(raw)
+            else:
+                from hepta.hia_agent_assembly import assemble_program
+                assemble_program(raw)
+        except (OSError, ValueError, RecursionError) as exc:
+            problems.append('invalid HIA source content: ' + str(relative) + ': ' + str(exc))
+            continue
+        sources[relative.as_posix()] = sha256(raw).hexdigest()
+    return sources
+
 def check(root=ROOT):
     root=Path(root); problems=[]
-    for p in root.rglob('*.hepta'):
-        if '.git' not in p.parts:problems.append('removed source extension: '+str(p.relative_to(root)))
+    hia_sources = _checked_hia_sources(root, problems)
     for name in FORBIDDEN_MODULES:
         if (root/'hepta'/f'{name}.py').exists():problems.append('removed module: '+name)
     files={}
@@ -60,7 +116,10 @@ def check(root=ROOT):
     for directory in ['docs','examples']:
         for p in (root/directory).rglob('*.md'):
             text=p.read_text()
-            if re.search(r'\bhepta\s+(?:hia|check|build|run|lower)\b',text):
+            # A source suffix is not an executable token, and adjacent
+            # commands on separate lines do not form one removed CLI call.
+            # A genuine ./hepta or /path/hepta invocation remains forbidden.
+            if re.search(r'(?<![\w.])hepta[ \t]+(?:hia|check|build|run|lower)\b',text):
                 problems.append('removed CLI instruction: '+str(p.relative_to(root)))
             for reference in re.findall(r'\b(?:tools|tests)/[\w/.-]+\.py\b',text):
                 if not (root/reference).is_file():
@@ -79,6 +138,8 @@ def check(root=ROOT):
     if scope.get('whole_native_delivery_qualified') is not False:problems.append('unqualified native closure claim')
     if problems:raise ValueError('\n'.join(problems))
     return {'schema':'hepta.hia.core-only-source-check.v1','status':'PASS',
+            'hia_source_suffix':'.hepta','hia_source_files':len(hia_sources),
+            'hia_source_manifest_sha256':sha256(json.dumps(hia_sources,sort_keys=True).encode()).hexdigest(),
             'python_source_files':len(files),'package_python_files':len(list((root/'hepta').glob('*.py'))),
             'source_manifest_sha256':sha256(json.dumps(files,sort_keys=True).encode()).hexdigest(),
             'high_level_source_language':'removed','whole_native_delivery_qualified':False}

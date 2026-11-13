@@ -1,7 +1,7 @@
 # HIA-native Agent stdio entry
 
 This explicitly built Linux x86-64 entry implements `capabilities`, `verify`,
-`compile`, `render-assembly` and `assemble` without Python, a host JSON parser,
+`compile`, `render-assembly`, `assemble` and `check-assembly` without Python, a host JSON parser,
 Rust, LLVM, libc, a dynamic
 loader or a second executable at runtime. It is the first native replacement
 component of the Agent-only product, **not** its complete editing/persistence,
@@ -16,8 +16,9 @@ python -B -m tools.build_hia_agent_stdio \
 /new/private/agent/hia-native capabilities
 /new/private/agent/hia-native verify < program.core.json
 /new/private/agent/hia-native compile < program.core.json > program.image.bin
-/new/private/agent/hia-native render-assembly < program.core.json > program.hiaasm
-/new/private/agent/hia-native assemble < program.hiaasm > program.image.bin
+/new/private/agent/hia-native render-assembly < program.core.json > program.hepta
+/new/private/agent/hia-native assemble < program.hepta > program.image.bin
+/new/private/agent/hia-native check-assembly < program.hepta
 ```
 
 The build/custody driver is still Python. Actual HIA code compiles the command
@@ -39,12 +40,17 @@ unsupported programs. The exact original build profile is preserved; this is
 not a general Core renderer or a profile upgrade. `assemble` passes the submitted
 HIA assembly bytes directly to that same native semantic/resource compiler,
 without the JSON representation frontend or a source-language conversion.
+`check-assembly` follows the same direct assembly admission and operator-selected
+output-profile check, then returns the verification JSON reply instead of any
+generated machine-code bytes. It neither bypasses resource checking nor executes
+the compiled program. The exact diagnostics of the ordinary hosted
+`hia check-assembly` action are outside this bounded native command contract.
 These are command-specific output contracts, not JSON-lines RPC.
 
 The output profile is chosen explicitly at build time: `flat`, `elf` (ET_REL
 objects) or `exec` (the existing syscall-only program entry). The capabilities
 record reports its numeric build profile, 0/1/2 respectively. Input module or
-export metadata cannot switch that operator-selected profile. For `assemble`,
+export metadata cannot switch that operator-selected profile. For `assemble` and `check-assembly`,
 an ordinary module selects flat output, `selfhost_elf` or explicit scalar
 exports select ELF, and `selfhost_exec` selects the executable profile. The
 caller must provide source matching the selected profile; the adapter never
@@ -59,8 +65,8 @@ no-argument JSON compiler filter is unchanged.
 Input JSON for `verify`, `compile` and `render-assembly` remains bounded to
 8 MiB, 1,048,576 nodes and depth 128; there is no
 new JSON envelope subtracting from those budgets. The unchanged compiler
-source/output/workspace ceilings are 1 MiB. `assemble` reads at most 1 MiB plus
-the one-byte oversize guard, rejects excess bytes, and copies the unchanged
+source/output/workspace ceilings are 1 MiB. `assemble` and `check-assembly` read at most 1 MiB plus
+the one-byte oversize guard, reject excess bytes, and copy the unchanged
 input into the existing disjoint compiler source region. Commands never infer
 or convert the input language. Capabilities separately report
 `assembly_input_bytes_max`. The separate anonymous RW mapping
@@ -69,7 +75,7 @@ The private command mode occupies bytes beyond the input's oversize-read guard,
 outside all frontend/compiler output and workspace regions.
 
 Exactly one argument is required. The adapter scans at most 32 command bytes;
-the HIA dispatcher accepts only the five exact declared words. Exit codes:
+the HIA dispatcher accepts only the six exact declared words. Exit codes:
 
 | Exit | Category |
 | --- | --- |

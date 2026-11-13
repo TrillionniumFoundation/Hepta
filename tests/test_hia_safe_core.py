@@ -28,7 +28,7 @@ AVAILABLE = (platform.system() == "Linux" and platform.machine().lower() in {"x8
 
 
 def guarded_update():
-    return json.loads((ROOT / "examples/hia_safe_core/guarded_update.hia.json").read_bytes())
+    return json.loads((ROOT / "examples/hia_safe_core/guarded_update.core.hepta").read_bytes())
 
 
 def read_byte():

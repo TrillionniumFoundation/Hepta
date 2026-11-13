@@ -65,7 +65,7 @@ class CoreWorkspaceMaterializerSourceTests(unittest.TestCase):
         from tools.generate_hia_core_workspace_cli import MAGIC,document
         from tools.qualify_hia_selfhost_cli import inspect_executable
         from tests.test_hia_core_workspace_facts_native import vm_run
-        source=ROOT/'examples/hia_bootstrap/core_workspace_cli_packer.hiaasm'
+        source=ROOT/'examples/hia_bootstrap/core_workspace_cli_packer.hepta'
         self.assertEqual(source.read_text(),render_assembly(document()))
         payload=b'\x31\xc0\xc3';frame=struct.pack('<4Q',MAGIC,3,3,1)+payload+payload
         size,packed=vm_run(source,frame,4096,1);self.assertEqual(size,len(packed))
@@ -84,7 +84,7 @@ class CoreWorkspaceMaterializerNativeTests(unittest.TestCase):
         from tools.qualify_hia_selfhost import build_seed,compile_stage
         from hepta.hia_json_preflight_native import NativeHiaJsonImage
         cls.temporary=tempfile.TemporaryDirectory(prefix='hia-workspace-materialize-');cls.folder=Path(cls.temporary.name)
-        seed,_=build_seed(cls.folder);source=(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        seed,_=build_seed(cls.folder);source=(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first,_=compile_stage(cls.folder,'B1',seed,source,image_format='seed-shared')
         compiler,_=compile_stage(cls.folder,'B2',first,source);assert first.read_bytes()==compiler.read_bytes()
         image,_=compile_stage(cls.folder,'workspace-materialize',compiler,SOURCE.read_bytes())
@@ -92,15 +92,15 @@ class CoreWorkspaceMaterializerNativeTests(unittest.TestCase):
         cls.compiler=NativeHiaJsonImage(compiler.read_bytes(),sha256(compiler.read_bytes()).hexdigest())
         from tools.generate_hia_core_workspace_cli import MAGIC,BUNDLE_LIMIT
         from tools.qualify_hia_selfhost_cli import inspect_executable
-        packer,_=compile_stage(cls.folder,'workspace-CLI-packer',compiler,(ROOT/'examples/hia_bootstrap/core_workspace_cli_packer.hiaasm').read_bytes())
+        packer,_=compile_stage(cls.folder,'workspace-CLI-packer',compiler,(ROOT/'examples/hia_bootstrap/core_workspace_cli_packer.hepta').read_bytes())
         packer_native=NativeHiaJsonImage(packer.read_bytes(),sha256(packer.read_bytes()).hexdigest())
         frame=struct.pack('<4Q',MAGIC,image.stat().st_size,compiler.stat().st_size,1)+image.read_bytes()+compiler.read_bytes()
         size,packed=cls.call(packer_native,frame,BUNDLE_LIMIT,1);assert 0<size<=BUNDLE_LIMIT
         inspect_executable(packed);cls.executable=cls.folder/'hia-workspace-elf'
         cls.executable.write_bytes(packed);cls.executable.chmod(0o700)
-        graph,_=compile_stage(cls.folder,'workspace-reference-graph',compiler,(ROOT/'examples/hia_bootstrap/core_module_graph.hiaasm').read_bytes())
+        graph,_=compile_stage(cls.folder,'workspace-reference-graph',compiler,(ROOT/'examples/hia_bootstrap/core_module_graph.hepta').read_bytes())
         cls.graph=NativeCoreModuleGraph(graph.read_bytes(),sha256(graph.read_bytes()).hexdigest())
-        linker,_=compile_stage(cls.folder,'workspace-ELF-linker',compiler,(ROOT/'examples/hia_bootstrap/elf_static_linker.hiaasm').read_bytes())
+        linker,_=compile_stage(cls.folder,'workspace-ELF-linker',compiler,(ROOT/'examples/hia_bootstrap/elf_static_linker.hepta').read_bytes())
         cls.linker=NativeHiaJsonImage(linker.read_bytes(),sha256(linker.read_bytes()).hexdigest())
         cls.manifest=cls.folder/'manifest.json'
         cls.manifest.write_text(json.dumps({'schema':SCHEMA,'source_sha256':sha256(SOURCE.read_bytes()).hexdigest(),

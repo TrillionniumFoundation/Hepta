@@ -23,10 +23,10 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
 
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
     sources = admit_cold_build(compiler_bytes, cold_bytes)
-    paths = {name: 'examples/hia_bootstrap/composite_function_' + name + '.hiaasm'
+    paths = {name: 'examples/hia_bootstrap/composite_function_' + name + '.hepta'
              for name in KERNELS}
-    paths.update(types='examples/hia_bootstrap/composite_types.hiaasm',
-                 helpers='examples/hia_bootstrap/task_helpers.hiaasm')
+    paths.update(types='examples/hia_bootstrap/composite_types.hepta',
+                 helpers='examples/hia_bootstrap/task_helpers.hepta')
     bound = {}
     for name, path in paths.items():
         data = (ROOT / path).read_bytes()
