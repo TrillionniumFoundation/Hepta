@@ -1,0 +1,37 @@
+name: Exact CPython 3.14 CLI parser graph observations
+on:
+  push:
+    branches:
+      - codex/hia-cli-parser-graph-314-probe-v94-r1-20261113-dda7
+permissions:
+  contents: read
+jobs:
+  observe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out only the immutable bounded diagnostic harness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: harness
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Select the exact interpreter from the original failed Source run
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.14.4'
+      - name: Observe the real original parser constructor and all reachable graph nodes
+        env:
+          PROBE_OUTPUT: ${{ runner.temp }}/hia-parser-314-graph-observations
+        run: python -I -B "$GITHUB_WORKSPACE/harness/tools/probe_graph.py"
+      - name: Preserve every original graph, exact stdlib source, error and result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-parser-314-graph-observations-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hia-parser-314-graph-observations
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 90
+          compression-level: 6
