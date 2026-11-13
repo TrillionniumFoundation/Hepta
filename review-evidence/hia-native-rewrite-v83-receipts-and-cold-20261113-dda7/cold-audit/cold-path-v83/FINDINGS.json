@@ -1,0 +1,119 @@
+{
+  "65ce_normal": {
+    "cold_status": "COLD_SELFHOST_REPLAY_PASS",
+    "cold_wall_seconds": 97.558018818,
+    "completed_phase_process_receipts": 38,
+    "first_phase_after_owner_start_seconds": 30.288086686,
+    "historic_cpu_time_observation_available": false,
+    "last_completed_phase_archive_after_owner_start_seconds": 96.886710457,
+    "original_input": {
+      "bytes": 186148201,
+      "cold": "hia-cold.json",
+      "job": 131490602265,
+      "path": "v80-65ce-core-terminal-r1/ORIGINAL-ARTIFACT.zip",
+      "prefix": "hia-cold.cold/",
+      "run": 43306363597,
+      "sha256": "e9abf10f08af8946ec07571a7feeae79ae1d60c85302f975eefcd82465ee21f3"
+    },
+    "reference_worker_body_sum_seconds": 36.924319097,
+    "two_worker_region_lower_bound_seconds": 18.4621595485
+  },
+  "65ce_retained_full": {
+    "cold_status": "FAIL",
+    "cold_wall_seconds": 180.207334888,
+    "completed_phase_process_receipts": 32,
+    "first_phase_after_owner_start_seconds": 69.5825686799999,
+    "historic_cpu_time_observation_available": false,
+    "last_completed_phase_archive_after_owner_start_seconds": 176.205852012,
+    "original_input": {
+      "bytes": 229986648,
+      "cold": "hia-v79-qualification/cold.json",
+      "job": 131499134717,
+      "path": "v80-full-terminal-r1/ORIGINAL-ARTIFACT.zip",
+      "prefix": "hia-v79-qualification/cold.cold/",
+      "run": 43308827101,
+      "sha256": "83ec0d272fd16a5db29768681d9441274d6abdbad17c5c690da178f9f951c194"
+    },
+    "reference_worker_body_sum_seconds": 67.487680736,
+    "two_worker_region_lower_bound_seconds": 33.743840368
+  },
+  "invariants": {
+    "current_source_cold": false,
+    "historical_ci_repeated": false,
+    "limits_changed": false,
+    "native_compilation_repeated": false,
+    "one_approved_diagnostic": {
+      "affinity_cpu": 0,
+      "cleanup_seconds": 3,
+      "outer_seconds": 180,
+      "owner_status": "OWNED_PROCESS_COMPLETED",
+      "python": "3.12.14",
+      "returncode": 0,
+      "workers": 8
+    },
+    "production_source_changed": false,
+    "whole_native": false
+  },
+  "r4_normal": {
+    "cold_status": "FAIL",
+    "cold_wall_seconds": 180.224381637,
+    "completed_phase_process_receipts": 34,
+    "first_phase_after_owner_start_seconds": 63.518423837,
+    "historic_cpu_time_observation_available": false,
+    "last_completed_phase_archive_after_owner_start_seconds": 164.442714575,
+    "original_input": {
+      "bytes": 56644980,
+      "cold": "hia-cold.json",
+      "job": 131573324833,
+      "path": "v82-service-artifacts-development-r4/ci-r1/normal-core-original-r1/archive/original-artifact.zip",
+      "prefix": "hia-cold.cold/",
+      "run": 43330392476,
+      "sha256": "5caf060da0c522d5813df23f678385eb48c201f9363cdd0a196740d33f712231"
+    },
+    "reference_worker_body_sum_seconds": 79.999295878,
+    "two_worker_region_lower_bound_seconds": 39.999647939
+  },
+  "same_host_diagnostic": {
+    "causal_scope": "Different complete source closure, equal worker/case bytes and exact payload. No individual function, host hardware, Python3.14, or whole cold cause established.",
+    "groups": {
+      "scalar-casts": {
+        "cpu_B_over_A": 1.2266452997356263,
+        "groups": {
+          "A": {
+            "body_mean_s": 7.230672178,
+            "cpu_mean_s": 7.3658995,
+            "wall_mean_s": 7.5039064675
+          },
+          "B": {
+            "body_mean_s": 8.9279060855,
+            "cpu_mean_s": 9.035346,
+            "wall_mean_s": 9.272111171
+          }
+        },
+        "payload_bytes": 2670450,
+        "payload_sha256": "46247c837dbf4925d0d0e5d3bda234079ee19766f82c1f5b25b4f8e7073d4a72",
+        "wall_B_over_A": 1.235637892230964
+      },
+      "signed": {
+        "cpu_B_over_A": 1.1954422418718353,
+        "groups": {
+          "A": {
+            "body_mean_s": 8.2711568795,
+            "cpu_mean_s": 8.3813355,
+            "wall_mean_s": 8.5003573315
+          },
+          "B": {
+            "body_mean_s": 9.970249331,
+            "cpu_mean_s": 10.0194025,
+            "wall_mean_s": 10.1919350495
+          }
+        },
+        "payload_bytes": 3138026,
+        "payload_sha256": "9173097ab604e5fb04fda2a14ea037d5d9e040aaa2b61b792c159a3bd2be3a74",
+        "wall_B_over_A": 1.1990007775004323
+      }
+    },
+    "sample_scope": "two measured trials per source per family, ABBA, same CPU; Python3.12.14 DEVELOPMENT",
+    "schema": "hia.cold-reference-same-host-comparison.v1"
+  }
+}

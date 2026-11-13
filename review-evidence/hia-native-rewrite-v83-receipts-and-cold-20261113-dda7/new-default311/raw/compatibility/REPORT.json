@@ -1,0 +1,35 @@
+{
+  "current_source_cold": false,
+  "default_example_schema": "hepta.hia.agent.examples.v1",
+  "default_import_native_ports": false,
+  "default_imported_native_ports": [],
+  "default_mapping_cache": {
+    "currsize": 0,
+    "hits": 0,
+    "maxsize": 3,
+    "misses": 0
+  },
+  "failed_admission_cached": false,
+  "mapping_cache_after": {
+    "currsize": 0,
+    "hits": 0,
+    "maxsize": 3,
+    "misses": 1
+  },
+  "python": "3.11.18 (main, Oct 26 2026, 02:48:34) [GCC 13.3.0]",
+  "scope": "ACTUAL_311_DEFAULT_AND_UNSUPPORTED_SELECTION_ONLY",
+  "selected_abi_supported": false,
+  "selected_native_refusal": {
+    "message": "native frame transport requires a reviewed CPython 3.12, 3.13 or 3.14 ABI",
+    "module": "hepta.hia_exception_delivery",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/harness/inputs/default311.py\", line 73, in check\n    native.installed_artifacts(path)\n  File \"/home/runner/work/_temp/artifacts-default311/source/hepta/hia_service_artifacts_native.py\", line 98, in installed_artifacts\n    selected = _mapped_artifacts(image_raw, value['image_sha256'])\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-default311/source/hepta/hia_service_artifacts_native.py\", line 65, in _mapped_artifacts\n    return NativeArtifactsImage(raw, expected)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-default311/source/hepta/hia_service_artifacts_native.py\", line 379, in __init__\n    super().__init__(image, expected_sha256)\n  File \"/home/runner/work/_temp/artifacts-default311/source/hepta/hia_machine_plan_control_native.py\", line 577, in __init__\n    self._initialize_control()\n  File \"/home/runner/work/Hepta/Hepta/harness/inputs/default311.py\", line 61, in initialize\n    return original_initialize(self)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-default311/source/hepta/hia_machine_plan_control_native.py\", line 580, in _initialize_control\n    self.runtime_profile = _runtime_profile()\n                           ^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/artifacts-default311/source/hepta/hia_machine_plan_control_native.py\", line 91, in _runtime_profile\n    raise ExceptionDeliveryUnavailable('native frame transport requires a reviewed CPython 3.12, 3.13 or 3.14 ABI')\nhepta.hia_exception_delivery.ExceptionDeliveryUnavailable: native frame transport requires a reviewed CPython 3.12, 3.13 or 3.14 ABI\n",
+    "type": "ExceptionDeliveryUnavailable"
+  },
+  "selection_observations": {
+    "actual_machine_entries": 0,
+    "business_effects": [],
+    "initializers": 1
+  },
+  "status": "PASS",
+  "whole_native": false
+}
