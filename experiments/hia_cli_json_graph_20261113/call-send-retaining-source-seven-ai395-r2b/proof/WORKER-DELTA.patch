@@ -1,0 +1,121 @@
+--- r2/source_authoring_worker.py
++++ r2b/source_authoring_worker.py
+@@ -8,18 +8,22 @@
+ from __future__ import annotations
+ 
+ import ast
++import ctypes
+ from hashlib import sha256
+ import importlib
+ import json
++import mmap
+ import os
+ from pathlib import Path
+ import stat
++import socket
++import subprocess
+ import sys
+ import time
+ import traceback
+ 
+ 
+-SCHEMA = 'hia.cli-json.call-send-source-seven.r2.v1'
++SCHEMA = 'hia.cli-json.call-send-source-seven.r2b.v1'
+ COMPONENTS = (('body', 'tools.generate_hia_cli_json_py312_body'), ('unpack', 'tools.generate_hia_cli_json_py312_unpack'), ('call_dispatch', 'tools.generate_hia_cli_json_py312_call_dispatch'), ('call', 'tools.generate_hia_cli_json_py312_call'), ('call_fast', 'tools.generate_hia_cli_json_py312_call_fast'), ('call_prologue', 'tools.generate_hia_cli_json_py312_call_prologue'), ('send', 'tools.generate_hia_cli_json_py312_send'))
+ 
+ LIMITS = {
+@@ -157,7 +161,7 @@
+     output = Path(sys.argv[2]).absolute()
+     configuration_record, configuration_raw = file_record(configuration)
+     config = json.loads(configuration_raw)
+-    if config['schema'] != 'hia.cli-json.call-send-source-seven.request.r2.v1':
++    if config['schema'] != 'hia.cli-json.call-send-source-seven.request.r2b.v1':
+         raise ValueError('source-only configuration schema differs')
+     if config['components'] != [list(row) for row in COMPONENTS] or config['limits'] != LIMITS:
+         raise ValueError('source-only fixed denominator or original caps differ')
+@@ -167,13 +171,36 @@
+     os.mkdir(output, 0o700)
+     report = {'schema': SCHEMA, 'status': 'HOLD', 'configuration': configuration_record,
+               'components': [], 'errors': [], 'source_before': None, 'source_after': None,
+-              'native_executed': False, 'product_callers_executed': False,
++              'native_executed': None, 'product_callers_executed': None,
++              'forbidden_attempts': [],
++              'effect_guard': {'installed_before_project_import': False,
++                               'scope_verified_without_attempts': False},
+               'original_cli_ids': config['original_cli_ids'],
+               'trace_plan_ids': config['trace_plan_ids'],
+               'counts_are_plan_only': True,
+               'started_ns': time.monotonic_ns()}
+     original_sys_path = list(sys.path)
+     before = None
++    # The stdlib modules above are loaded before this hook, including ctypes'
++    # normal Python-runtime handle. No repository module has been imported.
++    # Keep every attempted forbidden entry, even if authored code catches it.
++    forbidden_attempts = report['forbidden_attempts']
++    record_attempt = forbidden_attempts.append
++
++    def deny(label):
++        def forbidden(*_args, **_kwargs):
++            record_attempt(label)
++            raise RuntimeError('source-only effect refused: ' + label)
++        return forbidden
++
++    def audit(event, _args):
++        if event in {
++                'subprocess.Popen', 'os.system', 'os.fork', 'os.forkpty',
++                'os.posix_spawn', 'os.posix_spawnp', 'os.exec', 'pty.spawn',
++                'ctypes.dlopen', 'ctypes.dlsym', 'sqlite3.connect', 'mmap.__new__'
++        } or event.startswith('socket.'):
++            deny('audit:' + event)()
++
+     try:
+         runtime_before, _ = file_record(Path(sys.executable).resolve())
+         report['runtime_before'] = runtime_before
+@@ -188,7 +215,19 @@
+         for name in sorted(config['source_pins']):
+             if name.endswith('.py'):
+                 ast.parse((source / name).read_bytes(), filename=name)
++        # Adapted from the actual Source8 guard (239120db...), not an
++        # assertion inferred from constant report flags or an empty PATH.
++        sys.addaudithook(audit)
++        subprocess.Popen = deny('subprocess.Popen')
++        os.system = deny('os.system')
++        ctypes.CDLL = deny('ctypes.CDLL')
++        ctypes.PyDLL = deny('ctypes.PyDLL')
++        socket.create_connection = deny('socket.create_connection')
++        mmap.mmap = deny('mmap.mmap')
++        report['effect_guard']['installed_before_project_import'] = True
+         sys.path.insert(0, str(source))
++        from hepta import hia_json_preflight_native as image_module
++        image_module.NativeHiaJsonImage.__init__ = deny('NativeHiaJsonImage.__init__')
+         from hepta.hia_agent_assembly import assemble_program, render_assembly
+         for label, module_name in COMPONENTS:
+             row = {'name': label, 'module': module_name, 'status': 'HOLD',
+@@ -231,6 +270,9 @@
+         report['actual_repository_modules'] = actual_modules
+         if len(report['components']) != 7 or any(row['status'] != 'SOURCE_CORE_AND_CAPS_PASS_NOT_NATIVE' for row in report['components']):
+             raise ValueError('one or more source-only components refused')
++        if (report['effect_guard']['installed_before_project_import'] is not True
++                or forbidden_attempts):
++            raise ValueError('source-only effect boundary was not preserved')
+         report['status'] = 'SEVEN_SOURCE_COMPONENTS_PASS_PENDING_OUTER_GUARDIAN'
+     except BaseException as error:
+         report['status'] = 'HOLD'
+@@ -257,6 +299,17 @@
+         except BaseException as error:
+             report['status'] = 'HOLD'
+             report['errors'].append({'phase': 'final-inputs', 'type': type(error).__name__, 'message': str(error)})
++        guard_proven = (report['effect_guard']['installed_before_project_import'] is True
++                        and report['forbidden_attempts'] is forbidden_attempts
++                        and not forbidden_attempts)
++        report['effect_guard']['scope_verified_without_attempts'] = guard_proven
++        report['native_executed'] = False if guard_proven else None
++        report['product_callers_executed'] = False if guard_proven else None
++        if not guard_proven:
++            report['status'] = 'HOLD'
++            report['errors'].append({'phase': 'effect-boundary',
++                                    'type': 'SourceEffectGuardUnconfirmed',
++                                    'message': 'guard absent or forbidden attempts recorded'})
+         report['elapsed_ns'] = time.monotonic_ns() - report['started_ns']
+         create(output / 'REPORT.json', wire(report))
+         print(json.dumps({'schema': SCHEMA, 'status': report['status'], 'output': str(output)}, sort_keys=True), flush=True)

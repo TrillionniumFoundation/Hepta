@@ -1,0 +1,76 @@
+--- r2/guardian.py
++++ r2b/guardian.py
+@@ -135,6 +135,24 @@
+     # subreaping, catches BaseException, and always executes identity-bound
+     # adopted-child cleanup followed by kernel waitid ECHILD.
+     lifecycle = owner.supervise(request)
++    # A current-bound, fully closed owner is the sole authority for reading
++    # child bodies or source-after bytes. A failed qualification may still
++    # have proven cleanup; an unknown cleanup never permits these reads.
++    cleanup = lifecycle.get('cleanup') if type(lifecycle) is dict else None
++    body_reads_permitted = (
++        type(lifecycle) is dict and type(cleanup) is dict
++        and lifecycle.get('schema') == SCHEMA + '.lifecycle'
++        and lifecycle.get('supervisor_pid') == os.getpid()
++        and lifecycle.get('parent_pid') == request['parent_pid']
++        and lifecycle.get('qualification_seconds') == request['qualification_seconds']
++        and lifecycle.get('cleanup_seconds') == request['cleanup_seconds']
++        and lifecycle.get('subreaper_enabled') is True
++        and cleanup.get('complete') is True
++        and cleanup.get('observed_echild') is True
++        and cleanup.get('leader_reaped') is True
++        and cleanup.get('remaining_direct_children') == []
++        and cleanup.get('errors') == []
++        and cleanup.get('deadline_exceeded') is False)
+     result = {'schema': SCHEMA, 'status': 'HOLD', 'command': command, 'cwd': str(cwd),
+               'external_controller_seconds': seconds,
+               'cold_180_second_gate_modified': False,
+@@ -142,13 +160,22 @@
+               'lifecycle_entry': 'supervise; distinct external schema and deadline',
+               'lifecycle': lifecycle,
+               'source_identities_before': identities,
+-              'source_identities_after': {}, 'input_identity_preserved': False,
++              'source_identities_after': None, 'input_identity_preserved': False,
++              'post_owner_body_reads': {
++                  'permitted': body_reads_permitted,
++                  'source_after': 'UNREAD',
++                  'child_logs': 'UNREAD',
++                  'reason': ('BOUND_OWNER_CLOSED' if body_reads_permitted
++                             else 'UNREAD_UNCONFIRMED_OWNER')},
+               'qualification': None,
+               'hard_sigkill_or_host_loss_cleanup_claimed': False,
+               'hostile_process_namespaces_or_privileged_interference_covered': False,
+               'whole_native_delivery_qualified': False}
+     try:
++        require(body_reads_permitted,
++                'current-bound owner closure unconfirmed; child bodies and source-after remain UNREAD')
+         after = {path: digest(path) for path in identities}
++        result['post_owner_body_reads']['source_after'] = 'READ_COMPLETE'
+         result['source_identities_after'] = after
+         result['input_identity_preserved'] = after == identities
+         require(result['input_identity_preserved'], 'guardian inputs changed during execution')
+@@ -167,9 +194,21 @@
+                             else 'EXTERNAL_OWNED_PROCESS_COMPLETED')
+     except BaseException as error:
+         result['classification_error'] = type(error).__name__ + ': ' + str(error)[:512]
+-    # After supervise returns, cleanup has either proven ECHILD or explicitly
+-    # retained HOLD; publication can never upgrade a missing cleanup proof.
+-    result['logs'] = {str(path): digest(path) for path in (stdout, stderr)}
++    if body_reads_permitted:
++        try:
++            result['logs'] = {str(path): digest(path) for path in (stdout, stderr)}
++            result['post_owner_body_reads']['child_logs'] = 'READ_COMPLETE'
++        except BaseException as error:
++            result['status'] = 'HOLD'
++            result['logs'] = {'status': 'CLOSED_OWNER_LOG_READ_FAILED',
++                              'paths': [str(stdout), str(stderr)]}
++            result['post_owner_body_reads']['child_logs'] = 'READ_FAILED'
++            result['log_read_error'] = type(error).__name__ + ': ' + str(error)[:512]
++    else:
++        # Fixed path names are metadata only. Do not open, stat, enumerate,
++        # or hash either child output when descendant closure is unknown.
++        result['logs'] = {'status': 'UNREAD_UNCONFIRMED_OWNER',
++                          'paths': [str(stdout), str(stderr)]}
+     owner.create(receipt, owner.wire(result))
+     print(json.dumps({'stage': 'external_guardian_finished', 'status': result['status'],
+                       'lifecycle_status': lifecycle.get('status'),
