@@ -633,10 +633,29 @@ def source_gate(capture, inputs, harness_root):
     plan.write_bytes(canonical(inputs["source_registration"]))
     report = capture.raw / "checks" / "SOURCE-TESTS.json"
     report.parent.mkdir(parents=True, exist_ok=True)
-    _, result = python_command(capture, [str(harness_root / "tools" / "run_source_gate.py"),
-                         "--registration", str(plan), "--source", str(capture.repo),
-                         "--original-ids", str(harness_root / "inputs" / "ORIGINAL-SOURCE-IDS.json"),
-                         "--output", str(report)], "complete-source-tests", limit=1800, enforce=False, local_git_fixture=True)
+    environment_name = "HEPTA_HIA_CANDIDATE_BUILD_TEST_EVIDENCE"
+    expected_environment = {environment_name: "@EVIDENCE@/checks/hia-candidate-build-source"}
+    check(inputs.get("source_test_environment") == expected_environment,
+          "unreviewed Source evidence environment")
+    check(environment_name not in capture.env, "ambient Source evidence path is not permitted")
+    evidence = capture.raw / "checks" / "hia-candidate-build-source"
+    check(not evidence.resolve().is_relative_to(capture.repo.resolve()),
+          "Source VM evidence must be outside the source tree")
+    evidence.mkdir(parents=True, exist_ok=False)
+    capture.json("checks/SOURCE-EVIDENCE-ENVIRONMENT.json", {
+        "schema": "hia.fixed-source-vm-evidence-environment.v1",
+        "environment_name": environment_name, "path": str(evidence),
+        "outside_source_tree": True, "exclusive_fresh_directory": True,
+        "source_gate_changed": False, "original_ids_changed": False,
+        "group_seconds": 1800, "qualification": False})
+    capture.env[environment_name] = str(evidence)
+    try:
+        _, result = python_command(capture, [str(harness_root / "tools" / "run_source_gate.py"),
+                             "--registration", str(plan), "--source", str(capture.repo),
+                             "--original-ids", str(harness_root / "inputs" / "ORIGINAL-SOURCE-IDS.json"),
+                             "--output", str(report)], "complete-source-tests", limit=1800, enforce=False, local_git_fixture=True)
+    finally:
+        del capture.env[environment_name]
     if report.is_file():
         value = strict_json(report.read_bytes())
     else:

@@ -1,34 +1,13 @@
-# Fixed combined HIA source: third real runtime attempt
+# Fixed HIA combined Source R5
 
-This isolated harness composes fixed main f33d8da316de8fdf27b504371f1a5310997ff548 with fixed development a733926a2786a3d4a37304bd2d18ebb2eac57ac9. Both original merge bases, original source identities, original execution limits, and all original executed Source method IDs remain required.
+This isolated harness reconstructs the fixed main f33d8da316de8fdf27b504371f1a5310997ff548 and development a733926a2786a3d4a37304bd2d18ebb2eac57ac9 inputs, including their two original merge bases. It preserves the original complete Source runner and all 530 main and 973 development method identities.
 
-## Prior actual results
+R4 passed all 1172 Source methods on Python 3.14.4, then product d79eb096ddcce6c317b2c316a4773ce76a37bab9 passed those methods again. That product's native workflow stopped on the machine-plan custody metadata rejection control. Neither result qualifies this new source.
 
-The first runtime attempt, run 43379129114 / job 131732539209, failed at checker pre-generation after resolving 122 conflicts and parsing 1439 Python files. It executed no owner generators or Source bodies.
+R5 adds the reviewed release launcher and its strict matching-cold qualifier, the independent ENTRY resource family, the fixed 55-image candidate builder and its strict qualifier, Store lifecycle production routing with held-instance ownership, and the machine-plan test correction. Corrupt mapped identity still raises; the identity dependency control is separate. Runtime guards and original budgets remain intact.
 
-The second runtime attempt, run 43385529411 / job 131752971013 at harness 2564fbae61ed4d26039797fad66b3fa531bd3dd6, completed all 109 owner generators twice, checker/support/inventory generation, 55 development-only physical migrations, and exact source-tree readback. Its actual CPython 3.14.4 Source suite loaded, started, stopped and ran the same 1167 methods. There were 74 distinct unsuccessful methods, including 140 assertion-failure events and 48 error events with subtests. There were no loader errors, skips, expected failures, unexpected successes, missing IDs, or duplicate execution IDs. The full suite was therefore FAIL. After Source, the prior runner's attempt to create a Git tree received HTTP 403. No candidate commit or product ref was created.
+The plan contains 44 pinned source packets, 366 authored files, 112 explicit sequential overrides, 31 byte-retained resolutions, 185 regeneration seeds, and the original 55 development-only legacy suffix migrations. It regenerates all 113 owner generators twice, discovers the complete 220 Source selectors, and verifies the original test identity projections and anomaly-free execution. The new installed-resource group retains the original 256-item boundary. Store's three runtime mechanisms are explicitly registered and all derived checker, language, support and inventory metadata are regenerated.
 
-The second attempt's complete evidence manifest e9b80273d5b2edf16459246502af8222d65b9e65 and independently verified complete artifact are rooted at audit commit 13fca5014f678c8ab175e40e25103be0456d75d6. Earlier failures remain immutable.
+R11 changes only the Source supervisor's explicit VM evidence environment: one fresh directory outside the source tree. The original Source runner and frozen IDs are byte-identical to R4. The original 1800-second group and cleanup logic remain unchanged. All outputs, failures and terminal source bytes are preserved. Source blob publication remains conditional on an actual complete Source PASS; product tree, commit and branch publication remain separate connector operations.
 
-## Exact authored composition
-
-The input manifest now combines 37 immutable packets into 317 authored paths through 50 explicit overrides. It retains 36 exact original files and 185 regeneration seeds. No authored path collides with those retained or seed paths. Four new packets are mounted as real Git blobs in this harness:
-
-- 13 source-role and fixture fixes: complete resource role mappings, strict absent-selector fixtures, and the current checker provider edges.
-- 8 backend and HIA asset fixes: a complete normalization materializer preserving the exact original prefix; original-family SHA and ELF contracts; explicit backend/resource family bindings.
-- 44 retained-caller and fixture fixes: three exact frozen original caller records, strict fixed-delta admissions, complete resources, and five new helper tests.
-- One product workflow delta registering that new Source class. The Native job bytes are unchanged.
-
-The physical normalization materializer migration explicitly records its original 41578-byte prefix and its complete 58467-byte HIA program. It is not labelled byte-identical relocation. The admission checks the exact original and target hashes, prefix, ordinary target type, and actual 0644 mode before reading the target. All other physical migration declarations are unchanged.
-
-The Source contract has 1209 declared paths. Registration has 213 selectors, including one new class with five authored methods; actual method count must be obtained by loading. The original main 530 and development 973 method-ID projections remain mandatory. The strict Source result predicate and 1800-second suite limit are unchanged.
-
-## Actual workflow and authority
-
-CPython 3.14.4 merges the fixed heads, applies only declared source transitions, parses every Python unit, runs the checker and all 109 owner generators, retires the 55 declared legacy paths in the isolated development tree, refreshes support metadata, repeats all 109 generators, checks exact reproducibility, and records the final runtime source inventory. It then executes the complete Source suite and independently checks every frozen file's bytes and Git mode before and after.
-
-The credential-free Source subprocess permits https and file Git protocols so the original local partial-clone fixture can run. Authenticated repository fetches remain https-only. The harness rejects an authenticated subprocess requesting the local file protocol before process launch.
-
-Driver 03249a2c928055f5451a3ab8bbfbccf47eee8a91 verifies the final local Git tree and emits the exact tree delta. Only after Source PASS does it upload newly generated source blobs with full readback. It never creates a remote tree, commit, or ref. Authorized Git connector publication is a separate operation after actual Source success and independent review.
-
-Local CPython 3.12 repair controls, original failures, and original raw streams are kept separately; they do not confer CPython 3.14.4, native, cold, or whole-native qualification. This harness executes no original Native/cold job and changes no product default. The full native rewrite remains open.
+This branch is an integration harness, not a production cutover. No whole-native claim, matching-cold qualification, installed CLI replacement, live-worker migration, default change, or deletion of the former production implementation is implied.
