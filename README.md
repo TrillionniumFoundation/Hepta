@@ -1,36 +1,31 @@
-# Fixed combined source static checks R2
+# Fixed combined HIA source build
 
-This isolated read-only harness composes 22 immutable source packets into 251
-reviewed files, including 234 Python sources. Its only three overrides are
-explicitly pinned old-selfhost to latest-main source updates. Every packet and
-every resulting source is checked against its original Git blob identity.
+This isolated harness performs the actual two-base merge of fixed main f33d8da
+and development a733, then applies 28 exact source packets, including the final
+285 authored paths. Every overlap is explicitly pinned. Original retained
+families, temporary canonical-migration inputs and latest generated seeds remain
+distinct. Seeds confer no generated or native qualification.
 
-Python 3.11 and 3.14.4 independently parse and compile the combined Python source
-without executing product code. Pure AST comparisons retain the seven original
-regression modules, byte policy reference bodies, source identity provider
-protocols, original contract fields, source-build bounds and strict cold observer
-functions. The older selfhost R1 validator is rerun separately on its unchanged
-packet and exact original preimages; its result does not qualify the four newer
-selfhost sources. Those final sources receive their own syntax and explicitly
-listed structural checks.
+The driver compiles all resulting Python source, generates checker custody,
+runs all 109 owner generators, refreshes checker/language/support outputs, and
+repeats the deterministic generation pass against the exact frozen Git tree.
+The static native migration inventory is produced once after staging, because
+its real HEAD/index/worktree metadata is not a cross-commit fixed point.
 
-This is SOURCE STATIC ONLY: zero product tests, zero HIA generation, zero native
-execution, and zero cold or whole-native qualification. New backend R4 and the
-pending checker are excluded from this frozen revision. No product branch,
-default, budget or deletion decision changes. All failures and source bytes are
-retained as run artifacts, including the exact validator source.
+The complete 212-selector Source suite preserves exact result anomaly checks,
+observes every started/stopped test ID, and checks the frozen 530 and 973 original
+executed IDs from their full source logs. Main's Source test bytes are unchanged
+from the observed 016f through f33d; those IDs are explicitly historical inputs.
+The helper directory is removed from product discovery. Product test bodies and
+budgets are not changed by this harness.
 
-## Harness correction R2b
+A complete candidate Git tree may be uploaded with verified bytes and full tree
+readback. This harness creates no commit and changes no ref. Default activation,
+legacy host deletion, matching-source cold, complete native and whole-native
+qualification remain outside this Source build. Source test bodies may include
+independent VM or native witnesses; native execution counts are not fabricated.
 
-Run 43373857456 preserves the original failure: the checker assumed 53
-original support fields, while the fixed original source and exact retained-key
-list contain 52. This revision corrects only that checker count and report field.
-All 22 packets and all 251 resulting product source bytes remain unchanged.
-
-## Backend AST extension R2c
-
-The same 251 product sources now receive the backend author's independent pure
-AST preservation checks, including the eight retained NativeBuild bodies and
-original Core/Emitter/Plan/Code/MachineObject method inventories. Explicit
-untouched main test files are admitted by exact original blob pins for comparison.
-This extension does not include R4 changes or execute any product test body.
+All partial generated/new bytes are preserved on failure. Unchanged original
+files depend on their exact retained Git input commits, recorded in the snapshot.
+The complete evidence gzip is persisted before transport, and immutable upload
+intent/ACK/readback records are retained. No unknown mutation is blindly retried.
