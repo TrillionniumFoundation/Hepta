@@ -1,11 +1,29 @@
-# Exact original namespace method section diagnosis
+# Exact source admission component diagnostic
 
-This independent diagnostic fixes product source `abeef212e34023534d91f8f952280e2a8d0cbde6`, tree `f2bc61c11104136d3f56e3c4aefa00a4dada910b`, all 3,055 source files, and CPython 3.14.4. It executes the three original failing `NativeLifecycleTests` methods without editing their bodies, budgets, assertions or IDs. The complete original 35-method group is not rerun, and no result here grants that group's qualification.
+This independent Python 3.14.4 job observes the fixed abeef source tree. It runs
+no original business method, native image, compiler, or product test. A successful
+job means the observations and their integrity checks completed, not that an
+original budget or native qualification passed.
 
-Five selected native inputs are retained byte for byte from run 43459534648 / job 132002437588 / artifact 14056462556. The four-part UTF8 transport reconstructs a strictly checked zlib/base64 packet containing 16 original files, including exact source-bound manifests, executable mappings, build records and the original caller request. Modes, CRC provenance, SHA-256 and Git blob identities are preserved. No input manifest is rewritten and no fixture compiler or cold replay runs. The original methods still perform every business build, link and runner operation they reach; these are timed separately. Retained inputs grant no new matching-current-source cold claim.
+Two warm original scans precede a fixed original/instrumented/instrumented/original
+sequence. Instrumentation compiles copies of three exact source functions in a
+private globals dictionary. It does not replace the product's Path, I/O, SHA,
+guard, or exported functions. The real original guard still decides every read.
+Each complete map must preserve all 1,429 paths, 51,971,962 bytes and the frozen
+map digest. Per-file open, read, lexical completion and hash order is checked.
+Component timers and bookkeeping perturb the instrumented runs; inclusive values
+are not a disjoint accounting. The lexical remainder includes close, dispatch
+and instrumentation and is not presented as an exact close measurement.
 
-The original namespace, request, budget and Store lifecycle policy poisons remain. Store lifecycle's original per-native-return receipt observer also remains. Instrumentation measures public Store calls, every fresh source map, each publication effect, client stages and selected service boundaries. C entry calls are counted completely after constructors return; one in 64 is timed, including ctypes/FFI. Sampled times are not exact totals. Parent timer residuals include unlabelled work and instrumentation. Process CPU is this process only. Two diagnostic SELECT reads record already-created context timestamps after the original context function returns; their costs are explicit and remain inside the actual original budgets.
+A separate pure-computation observation owns immutable bytes and compares the
+actual hashlib SHA-256 provider with the available standard-library `_sha2`
+provider in fixed order. This is not a proposal to reorder production reads and
+hashes, skip fresh reads, cache results, change callbacks, or defer exceptions.
+CPU flags and actual loaded module/library identities are retained; flags alone
+do not prove which OpenSSL assembly routine executed.
 
-Each original method runs once in a fresh process, under a single shared 1,800-second outer group deadline and the original 3,000/1,000 ms and five-second test assertions. Original failures remain in complete child reports and logs. `OBSERVATIONS_COMPLETE` means only that observation and before/after integrity checks completed. It never means that any failed original assertion passed or that the entire original group was qualified.
-
-The two-function guard experiment is not applied. This diagnosis uses the exact original source and repeats every fresh read/hash at the original public effect boundaries. All selected source and retained input bytes are checked before and after. Original production/audit refs are untouched.
+Source snapshots are independently checked against the fixed Git head, tree,
+full bytes and modes before and after. The snapshots warm the filesystem cache.
+The original 3,000 ms, 1,000 ms and 5 second business limits are neither changed
+nor rerun here. The earlier phase diagnostic and all original failures remain
+separate immutable evidence.
