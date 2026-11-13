@@ -1,0 +1,219 @@
+--- r2/control/support.py
++++ r3/control/support.py
+@@ -1,6 +1,6 @@
+ """New ai395 finite-native readback. This is not a matching-cold or SQL gate."""
+ from pathlib import Path
+-import ast,hashlib,importlib.util,json,os,platform,stat,struct,sys,zlib
++import ast,ctypes,hashlib,importlib.util,json,mmap,os,platform,stat,struct,sys,zlib
+ import common,matrix
+ ROOT=Path(__file__).resolve().parent.parent
+ def read_json(path,maximum=64<<20):
+@@ -92,29 +92,104 @@
+                        'project import bytes changed')
+         rows.append({'module':name,'source':observed})
+     return rows
+-def loaded_file_maps(request,own):
++def loaded_file_maps(request,own,codec,entry,installed_entry,expected_image,evidence):
++    """Bind the current image object; a deleted pathname alone grants no admission."""
+     _,system=read_json(ROOT/request['system_map'])
+     allowed={r['path']:r for r in system['files']}
+     allowed.update({str(Path(p).resolve(strict=True)):r for p,r in own.items()})
+-    raw=Path('/proc/self/maps').read_text()
+-    rows=[];read_files={}
+-    for line in raw.splitlines():
+-        fields=line.split(None,5)
+-        common.require(len(fields)>=5,'malformed actual maps line')
+-        if len(fields)<6 or not fields[5].startswith('/'):
+-            rows.append({'line':line,'file':None});continue
+-        key=str(Path(fields[5]).resolve(strict=True))
++    image_pin,image=common.read(expected_image['path'],1<<20)
++    common.require(all(image_pin[k]==expected_image[k] for k in ('bytes','sha256','git_blob','identity')),
++                   'current compiled image changed before mapping observation')
++    mapped=codec._mapping
++    common.require(type(mapped)is mmap.mmap and not mapped.closed
++        and isinstance(entry,ctypes._CFuncPtr) and codec._entry is installed_entry,
++        'only the current image mmap, original entry and installed observer may be bound')
++    page=os.sysconf('SC_PAGESIZE')
++    common.require(type(page)is int and page>0 and page&(page-1)==0 and page==mmap.PAGESIZE,
++                   'actual page size')
++    size=len(mapped)
++    common.require(type(size)is int and 0<size==len(image)<=1<<20
++        and codec.image_sha256==image_pin['sha256'],'image mmap length and admitted hash')
++    address=ctypes.addressof(ctypes.c_char.from_buffer(mapped))
++    entry_address=ctypes.cast(entry,ctypes.c_void_p).value
++    common.require(type(address)is int and address>0 and address%page==0
++        and type(entry_address)is int and entry_address==address,'original entry equals current mmap start')
++    end=address+((size+page-1)//page)*page
++    descriptor={'schema':'hia.sqlite.varint.current-image-mapping.v1','mapping_object_id':id(mapped),
++        'entry_object_id':id(entry),'observer_object_id':id(installed_entry),'address':address,
++        'entry_address':entry_address,'logical_bytes':size,'page_size':page,'mapping_end':end,
++        'image':image_pin,'requires_exact_single_segment':True}
++    raw=Path('/proc/self/maps').read_bytes()
++    common.require(len(raw)<=1<<20,'bounded actual maps')
++    evidence=Path(evidence)
++    maps_pin=common.create(evidence.with_suffix('.maps.original'),raw,raw=True)
++    common.create(evidence.with_suffix('.binding-start.json'),descriptor)
++    parsed=[];previous_end=0
++    for line in raw.decode('ascii').splitlines():
++        f=line.split(None,5)
++        common.require(len(f) in (5,6),'malformed actual maps line')
++        span=f[0].split('-');dev=f[3].split(':')
++        common.require(len(span)==len(dev)==2,'actual maps span/device')
++        start,stop=(int(v,16) for v in span);offset=int(f[2],16);device=tuple(int(v,16) for v in dev);inode=int(f[4])
++        perms=f[1];name=f[5] if len(f)==6 else ''
++        common.require(0<=previous_end<=start<stop<=1<<64 and offset>=0 and inode>=0
++            and len(perms)==4 and perms[0] in 'r-' and perms[1] in 'w-'
++            and perms[2] in 'x-' and perms[3] in 'ps','whole sorted nonoverlapping map records')
++        previous_end=stop
++        parsed.append({'line':line,'start':start,'end':stop,'offset':offset,'device':device,
++                       'inode':inode,'permissions':perms,'name':name})
++    overlaps=[r for r in parsed if r['start']<end and r['end']>address]
++    common.require(len(overlaps)==1,'current HIA mapping must have one exact exclusive segment')
++    bound=overlaps[0]
++    common.require(bound['start']==address and bound['end']==end and bound['offset']==0
++        and bound['permissions']=='r-xs','current HIA exact page-rounded shared RX segment')
++    common.require((bound['name']=='/dev/zero (deleted)' and bound['inode']>0)
++        or (bound['name']=='' and bound['inode']==0 and bound['device']==(0,0)),
++        'only the address-bound current HIA anonymous backing representation')
++    for row in parsed:
++        if row is bound:continue
++        common.require(not(bound['inode']>0 and row['inode']==bound['inode'] and row['device']==bound['device']),
++                       'current HIA anonymous backing has an additional mapped alias')
++    from_object=mapped[:]
++    from_address=ctypes.string_at(address,size)
++    common.require(type(from_object)is bytes and from_object==from_address==image
++        and hashlib.sha256(from_object).hexdigest()==codec.image_sha256==image_pin['sha256'],
++        'complete logical image bytes from both mmap object and actual entry address')
++    common.require(codec._mapping is mapped and not mapped.closed and len(mapped)==size
++        and codec._entry is installed_entry and ctypes.cast(entry,ctypes.c_void_p).value==address,
++        'mapping and original entry identity changed during observation')
++    rows=[];read_files={};kernel=[]
++    for row in parsed:
++        if row is bound:
++            rows.append({'line':row['line'],'file':None,'role':'current-bound-HIA-image'});continue
++        name=row['name']
++        if not name.startswith('/'):
++            if 'x' in row['permissions']:
++                common.require(row['inode']==0 and row['device']==(0,0) and row['offset']==0
++                    and ((name=='[vdso]' and row['permissions']=='r-xp')
++                         or (name=='[vsyscall]' and row['permissions']=='--xp')),
++                    'unbound executable anonymous mapping refused')
++                kernel.append(row['line'])
++            rows.append({'line':row['line'],'file':None,'role':'kernel-executable' if 'x' in row['permissions'] else 'non-executable-anonymous'})
++            continue
++        common.require(not name.endswith(' (deleted)'),'unbound deleted mapping refused')
++        key=str(Path(name).resolve(strict=True))
+         common.require(key in allowed,'loaded file outside frozen runtime/oracle closure: '+key)
+         if key not in read_files:
+             p=common.read(key,1<<20)[0] if key in own else system_read(key)
+             common.require(all(p[k]==allowed[key][k] for k in ('bytes','sha256','git_blob','identity')),
+                            'actual mapped file changed')
+             read_files[key]=p
+-        p=read_files[key];dev=tuple(int(x,16) for x in fields[3].split(':'))
+-        common.require(dev==(os.major(p['identity'][0]),os.minor(p['identity'][0]))
+-            and int(fields[4])==p['identity'][1],'mapped device/inode differs')
+-        rows.append({'line':line,'file':key})
+-    return {'maps':rows,'files':read_files,'all_file_backed_mappings_joined':True}
++        p=read_files[key]
++        common.require(row['device']==(os.major(p['identity'][0]),os.minor(p['identity'][0]))
++            and row['inode']==p['identity'][1],'mapped device/inode differs')
++        rows.append({'line':row['line'],'file':key,'role':'frozen-file'})
++    descriptor['actual_segment']=bound
++    descriptor['complete_image_sha256']=hashlib.sha256(from_address).hexdigest()
++    descriptor['page_rounding_tail_not_hashed_as_image']=end-address-size
++    return {'maps':rows,'maps_original':maps_pin,'files':read_files,'image_binding':descriptor,
++            'kernel_executable_rows':kernel,'all_file_backed_mappings_joined':True,
++            'all_executable_mappings_classified':True}
+ def capacity(path,initial=False):
+     v=os.statvfs(path);r={'path':str(path),'free_bytes':v.f_bavail*v.f_frsize,
+         'free_inodes':v.f_favail,'device':Path(path).stat().st_dev}
+--- r2/control/native_cases.py
++++ r3/control/native_cases.py
+@@ -50,7 +50,7 @@
+         common.require(all(p[k]==spec['image'][k] for k in ('bytes','sha256','git_blob','identity')),'same-owner compiled HIA image')
+         self.codec=bridge.NativeSQLiteVarint(b,p['sha256']);self.original_entry=self.codec._entry
+         self.oracles=[COracle(v,Path(spec['oracles'][v]['path']),spec['oracles'][v]) for v in matrix.VERSIONS]
+-        self.codec._entry=self.entry
++        self.installed_entry=self.entry;self.codec._entry=self.installed_entry
+     def entry(self,source,size,out,capacity,control,control_size):
+         spec=next(self.sequence)
+         self.started+=1
+@@ -226,7 +226,8 @@
+         _,spec=support.read_json(output/'NATIVE-INPUTS.json')
+         CTX=Context(request,output,spec)
+         own_maps={v['path']:v for v in spec['oracles'].values()}
+-        report['mapped_files_before']=support.loaded_file_maps(request,own_maps)
++        report['mapped_files_before']=support.loaded_file_maps(request,own_maps,CTX.codec,CTX.original_entry,
++            CTX.installed_entry,spec['image'],output/'mapping-before')
+         resource.setrlimit(resource.RLIMIT_CORE,(0,0))
+         resource.setrlimit(resource.RLIMIT_CPU,(180,180))
+         resource.setrlimit(resource.RLIMIT_AS,(256<<20,256<<20))
+@@ -257,9 +258,12 @@
+         _,expected=support.read_json(ROOT/'EXPECTED-MATRIX.json')
+         report['full_trace_readback']=trace.inspect(ROOT,output/'trace',expected)
+         report['imports']=support.current_imports(request)
+-        report['mapped_files_after']=support.loaded_file_maps(request,own_maps)
++        report['mapped_files_after']=support.loaded_file_maps(request,own_maps,CTX.codec,CTX.original_entry,
++            CTX.installed_entry,spec['image'],output/'mapping-after')
+         common.require(report['mapped_files_before']['files']==report['mapped_files_after']['files'],
+                        'trusted mapped file set changed after poison')
++        common.require(report['mapped_files_before']['image_binding']==report['mapped_files_after']['image_binding'],
++                       'current HIA image object/entry/segment changed after finite calls')
+         report['inputs_after']=support.input_records(request)
+         report['source_after']=support.source_records(request)
+         common.require(report['inputs_after']==report['inputs_before'] and report['source_after']==report['source_before']
+--- r2/control/launch.py
++++ r3/control/launch.py
+@@ -1,4 +1,4 @@
+-"""New ai395 R2 launcher. Root alone authorizes its one original-owner invocation."""
++"""New ai395 R3 bound-mapping launcher. Root alone authorizes its one original-owner invocation."""
+ from pathlib import Path
+ import importlib.util,json,os,sys,time,traceback
+ sys.path.insert(0,str(Path(__file__).resolve().parent))
+@@ -11,10 +11,10 @@
+ def main():
+     request_path=Path(sys.argv[1]);expected_sha=sys.argv[2]
+     pin,raw=common.read(request_path)
+-    common.require(request_path==ROOT/'REQUEST.json' and pin['sha256']==expected_sha,'exact R2 native request SHA')
++    common.require(request_path==ROOT/'REQUEST.json' and pin['sha256']==expected_sha,'exact R3 native request SHA')
+     request=json.loads(raw);output=Path(request['output'])
+     common.require(request['schema']=='hia.sqlite.varint.native-finite-request.v2'
+-        and request['status']=='REAUTHORED_CONTROLS_AFTER_ENVIRONMENT_CHANGE_UNEXECUTED'
++        and request['status']=='BOUND_CURRENT_IMAGE_MAPPING_REVISION_UNEXECUTED'
+         and request['qualification_seconds']==180 and request['cleanup_seconds']==3
+         and request['expected_ids']==list(matrix.IDS) and request['expected_methods']==8
+         and request['native_returns']==76054 and request['source8_original_vectors']==1618
+@@ -23,7 +23,7 @@
+         and request['initial_free_bytes']==1<<30 and request['reserve_free_bytes']==512<<20
+         and request['free_inodes']==4096 and dict(os.environ)==request['environment'],
+         'frozen complete limits/environment')
+-    common.require(output==ROOT.parent/'varint-native-r2-actual' and not os.path.lexists(output),
++    common.require(output==ROOT.parent/'varint-native-r3-actual' and not os.path.lexists(output),
+                    'new exact disjoint actual root required')
+     initial_capacity=support.capacity(ROOT.parent,True)
+     runtime=support.runtime(request)
+--- r2/PREEXECUTION-PLAN.md
++++ r3/PREEXECUTION-PLAN.md
+@@ -53,3 +53,22 @@
+ Cloud R1 was never executed. Its pack/apply boundary g3:24 remains UNKNOWN and its 50 input bodies are unavailable after the environment replacement. No old unknown blob or mutation is replayed. This R2 reauthors controls for the actual 3.14.4 ai395 runtime and existing immutable product/Source8 originals.
+ 
+ System-capture drafts that rejected libc hard links or attempted ldd on a linker script are retained as preparation HOLDs. The final system closure permits only root-owned non-writable regular system files with exact actual link count/identity, while source and owned evidence still require single links. The first trace reader draft and its exact-type review remain preserved unexecuted.
++
++# New bound-mapping observer revision R3
++
++R2's original owner naturally exited 1 with ECHILD after one HIA and two C
++compiles. No finite method or native kernel call started. Complete originals
++are retained by commit 307708ebd56803dad5b52f3986988313a9765429.
++This new request preserves the HIA/bridge, two C algorithms, exact 8 method
++IDs, 1618 old vectors, full 76054 input order and all original budgets.
++Only the current NativeHiaJsonImage mapping is bound to its actual mmap
++object, original CFUNCTYPE address, exact shared RX page-rounded segment,
++and complete image bytes. Only that bound segment admits anonymous
++/dev/zero (deleted); other deleted mappings and unbound anonymous executable
++mappings remain rejected. The exact one-segment requirement is conservative:
++a split/merged segment yields HOLD, not an implicit waiver.
++Complete raw maps and initial binding are saved before map classification.
++Normal before/after observations require the same image/entry/segment.
++This is an explicit new experiment after a closed observer failure, not a
++replay or relabeling of the prior HOLD. Root alone may execute the new clean
++execve envelope. Source8/VM/SQL/persistence/full qualification are not run.
