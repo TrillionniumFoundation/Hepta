@@ -1,0 +1,2962 @@
+{
+  "schema": "hia.agent-store.production-persistence-boundary.v1",
+  "status": "STATIC_ONLY_NO_PRODUCT_EXECUTION",
+  "source": {
+    "commit": "8556199d761540f84c15856a6a9cf1a6f863ffc5",
+    "tree": "d60dbcda95d3c06797fae7a4d97c4640fe37f627",
+    "physical_root": "/home/qq/hia-rewrite-20261113-e26e-r1/pc-fixture-successor-r1/source",
+    "full_product_paths": 4127
+  },
+  "observation_scope": {
+    "primary_index_files": 42,
+    "primary_index_each_matches_exact_Git_blob": true,
+    "production_SQL_files": 6,
+    "direct_SQL_call_sites": 52,
+    "business_SQL_templates": 31,
+    "whole_method_and_SQL_AST_inputs": 23,
+    "no_Hepta_imports": true,
+    "no_tests": true,
+    "no_native": true,
+    "no_source_changes": true
+  },
+  "tables": [
+    {
+      "table": "artifacts",
+      "key": "id; unique uri; unique content_key",
+      "purpose": "issued immutable artifact identity and metadata",
+      "operations": [
+        "lookup by content_key",
+        "lookup by id",
+        "lookup by uri",
+        "INSERT OR IGNORE"
+      ],
+      "refs": [
+        [
+          "hepta/hia_agent_store.py",
+          302,
+          305
+        ],
+        [
+          "hepta/hia_agent_store.py",
+          366,
+          444
+        ],
+        [
+          "hepta/hia_agent_store.py",
+          456,
+          462
+        ]
+      ],
+      "notes": [
+        "file bytes become durable before DB-issued ref",
+        "same bytes under different kind or metadata can have different refs",
+        "get validates issued fields and file SHA before decoding metadata"
+      ]
+    },
+    {
+      "table": "profiles",
+      "key": "(id, sha256)",
+      "purpose": "installed profile binding to artifact ref",
+      "operations": [
+        "INSERT OR IGNORE",
+        "lookup artifact by id + sha256"
+      ],
+      "refs": [
+        [
+          "hepta/hia_agent_store.py",
+          306,
+          309
+        ],
+        [
+          "hepta/hia_agent_store.py",
+          470,
+          490
+        ]
+      ],
+      "notes": [
+        "profile value is an artifact",
+        "stale expected profile is rejected before DB lookup"
+      ]
+    },
+    {
+      "table": "contexts",
+      "key": "id",
+      "purpose": "frozen workload/profile/context, creation time, attempts",
+      "operations": [
+        "INSERT",
+        "lookup full row",
+        "lookup created_ns",
+        "conditional attempts increment with rowcount"
+      ],
+      "refs": [
+        [
+          "hepta/hia_agent_store.py",
+          310,
+          313
+        ],
+        [
+          "hepta/hia_agent_service.py",
+          330,
+          357
+        ],
+        [
+          "hepta/hia_agent_service.py",
+          454,
+          505
+        ]
+      ],
+      "notes": [
+        "attempt claim must remain atomic",
+        "created_ns is TEXT",
+        "context and execution_budgets inserts are currently separate autocommit statements"
+      ]
+    },
+    {
+      "table": "requests",
+      "key": "key",
+      "purpose": "request digest and running/completed/replay state",
+      "operations": [
+        "lookup key",
+        "INSERT running",
+        "UPDATE completed response"
+      ],
+      "refs": [
+        [
+          "hepta/hia_agent_store.py",
+          314,
+          317
+        ],
+        [
+          "hepta/hia_agent_service.py",
+          245,
+          321
+        ],
+        [
+          "hepta/hia_agent_journal_native.py",
+          317,
+          434
+        ]
+      ],
+      "notes": [
+        "reserve before semantic/effect processing",
+        "same-key changed digest conflicts",
+        "running means unknown and not retryable",
+        "adopt/rollback response and slot update share transaction"
+      ]
+    },
+    {
+      "table": "costs",
+      "key": "sequence INTEGER PRIMARY KEY AUTOINCREMENT",
+      "purpose": "ordered durable observed-cost ledger",
+      "operations": [
+        "INSERT",
+        "scan context-specific plus unscoped rows in sequence order, LIMIT 10001"
+      ],
+      "refs": [
+        [
+          "hepta/hia_agent_store.py",
+          318,
+          322
+        ],
+        [
+          "hepta/hia_agent_service.py",
+          311,
+          320
+        ],
+        [
+          "hepta/hia_agent_service.py",
+          1059,
+          1086
+        ]
+      ],
+      "notes": [
+        "first 10000 reported with explicit truncation",
+        "wall_ns stored TEXT including arbitrary precision clock fixtures",
+        "exact cached replay creates no new effect/cost"
+      ]
+    },
+    {
+      "table": "cursors",
+      "key": "id",
+      "purpose": "artifact-bound paging offset",
+      "operations": [
+        "lookup id",
+        "INSERT OR IGNORE"
+      ],
+      "refs": [
+        [
+          "hepta/hia_agent_store.py",
+          323,
+          326
+        ],
+        [
+          "hepta/hia_agent_service.py",
+          407,
+          452
+        ],
+        [
+          "hepta/hia_artifact_page_native.py",
+          181,
+          249
+        ]
+      ],
+      "notes": [
+        "artifact_id and sha256 must both match",
+        "offset storage class and SQL callback binding are observable"
+      ]
+    },
+    {
+      "table": "slots",
+      "key": "name",
+      "purpose": "current context, generation, epoch and ABI",
+      "operations": [
+        "lookup",
+        "INSERT initial slot",
+        "UPDATE generation/epoch/context"
+      ],
+      "refs": [
+        [
+          "hepta/hia_agent_store.py",
+          327,
+          330
+        ],
+        [
+          "hepta/hia_agent_service.py",
+          1271,
+          1377
+        ]
+      ],
+      "notes": [
+        "generation and epoch are canonical u64 text",
+        "CAS precondition evaluated inside caller transaction",
+        "epoch advances even on rollback"
+      ]
+    },
+    {
+      "table": "versions",
+      "key": "(slot, generation)",
+      "purpose": "retained artifact of every published version",
+      "operations": [
+        "lookup artifact by pair",
+        "scan generation list for slot",
+        "INSERT"
+      ],
+      "refs": [
+        [
+          "hepta/hia_agent_store.py",
+          331,
+          334
+        ],
+        [
+          "hepta/hia_agent_service.py",
+          1271,
+          1377
+        ]
+      ],
+      "notes": [
+        "baseline generation 0 retained",
+        "new generation is max retained generation + 1",
+        "rollback does not delete later versions"
+      ]
+    },
+    {
+      "table": "leases",
+      "key": "id",
+      "purpose": "active in-flight generation/artifact authority",
+      "operations": [
+        "INSERT active lease",
+        "lookup lease",
+        "count active by slot",
+        "UPDATE active=0"
+      ],
+      "refs": [
+        [
+          "hepta/hia_agent_store.py",
+          335,
+          338
+        ],
+        [
+          "hepta/hia_agent_service.py",
+          1379,
+          1443
+        ]
+      ],
+      "notes": [
+        "acquisition and release each in explicit transaction",
+        "invoke uses stored lease snapshot, not caller mutable values",
+        "old lease survives current-slot rollback"
+      ]
+    },
+    {
+      "table": "execution_budgets",
+      "key": "context_id",
+      "purpose": "cumulative native time plus live/uncertain owner",
+      "operations": [
+        "INSERT 0/null",
+        "lookup",
+        "UPDATE owner",
+        "conditional clear owner + charge used time"
+      ],
+      "refs": [
+        [
+          "hepta/hia_agent_store.py",
+          339,
+          342
+        ],
+        [
+          "hepta/hia_agent_service.py",
+          500,
+          502
+        ],
+        [
+          "hepta/hia_agent_service.py",
+          1163,
+          1223
+        ]
+      ],
+      "notes": [
+        "claim in explicit transaction before native execution",
+        "unknown owner remains fenced",
+        "release is guarded by context + exact owner"
+      ]
+    }
+  ],
+  "queries": [
+    {
+      "id": "query_01",
+      "sql": "INSERT INTO contexts VALUES (?,?,?,?,0)",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 500,
+          "scope": "HIAAgentService._hia_context"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_02",
+      "sql": "INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_journal_native.py",
+          "line": 427,
+          "scope": "call_with_native_journal"
+        },
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 315,
+          "scope": "HIAAgentService._reference_call"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_03",
+      "sql": "INSERT INTO execution_budgets VALUES (?,'0',NULL)",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 502,
+          "scope": "HIAAgentService._hia_context"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_04",
+      "sql": "INSERT INTO leases VALUES (?,?,?,?,1)",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1388,
+          "scope": "HIAAgentService.acquire_slot"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_05",
+      "sql": "INSERT INTO requests VALUES (?,?,?,?,?,?)",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_journal_native.py",
+          "line": 367,
+          "scope": "call_with_native_journal"
+        },
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 279,
+          "scope": "HIAAgentService._reference_call"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_06",
+      "sql": "INSERT INTO slots VALUES (?,?,?,?,?)",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1322,
+          "scope": "HIAAgentService._hia_adopt"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_07",
+      "sql": "INSERT INTO versions VALUES (?,?,?)",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1339,
+          "scope": "HIAAgentService._hia_adopt"
+        },
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1324,
+          "scope": "HIAAgentService._hia_adopt"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_08",
+      "sql": "INSERT OR IGNORE INTO artifacts VALUES (?,?,?,?,?,?)",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_store.py",
+          "line": 407,
+          "scope": "AgentStore._reference_put"
+        }
+      ],
+      "generator_sites": [
+        {
+          "path": "tools/generate_hia_agent_store_authority.py",
+          "line": 26
+        }
+      ],
+      "bound_SQL_callbacks": [
+        "hepta/hia_agent_store_authority_native.py:223-224,253-254,275"
+      ]
+    },
+    {
+      "id": "query_09",
+      "sql": "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 450,
+          "scope": "HIAAgentService._reference_hia_read"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": [
+        "hepta/hia_artifact_page_native.py:203,227,233"
+      ]
+    },
+    {
+      "id": "query_10",
+      "sql": "INSERT OR IGNORE INTO profiles VALUES (?,?,?)",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_store.py",
+          "line": 473,
+          "scope": "AgentStore._reference_profile"
+        }
+      ],
+      "generator_sites": [
+        {
+          "path": "tools/generate_hia_agent_store_authority.py",
+          "line": 27
+        }
+      ],
+      "bound_SQL_callbacks": [
+        "hepta/hia_agent_store_authority_native.py:223-224,253-254,275"
+      ]
+    },
+    {
+      "id": "query_11",
+      "sql": "SELECT * FROM artifacts WHERE content_key=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_store.py",
+          "line": 375,
+          "scope": "AgentStore._reference_put"
+        },
+        {
+          "path": "hepta/hia_agent_store.py",
+          "line": 409,
+          "scope": "AgentStore._reference_put"
+        }
+      ],
+      "generator_sites": [
+        {
+          "path": "tools/generate_hia_agent_store_authority.py",
+          "line": 24
+        }
+      ],
+      "bound_SQL_callbacks": [
+        "hepta/hia_agent_store_authority_native.py:223-224,253-254,275"
+      ]
+    },
+    {
+      "id": "query_12",
+      "sql": "SELECT * FROM artifacts WHERE id=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_store.py",
+          "line": 434,
+          "scope": "AgentStore._reference_get"
+        }
+      ],
+      "generator_sites": [
+        {
+          "path": "tools/generate_hia_agent_store_authority.py",
+          "line": 22
+        }
+      ],
+      "bound_SQL_callbacks": [
+        "hepta/hia_agent_store_authority_native.py:223-224,253-254,275"
+      ]
+    },
+    {
+      "id": "query_13",
+      "sql": "SELECT * FROM artifacts WHERE uri=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_store.py",
+          "line": 457,
+          "scope": "AgentStore._reference_resolve_uri"
+        }
+      ],
+      "generator_sites": [
+        {
+          "path": "tools/generate_hia_agent_store_authority.py",
+          "line": 23
+        }
+      ],
+      "bound_SQL_callbacks": [
+        "hepta/hia_agent_store_authority_native.py:223-224,253-254,275"
+      ]
+    },
+    {
+      "id": "query_14",
+      "sql": "SELECT * FROM contexts WHERE id=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 332,
+          "scope": "HIAAgentService._context"
+        },
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 344,
+          "scope": "HIAAgentService._budget"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_15",
+      "sql": "SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1060,
+          "scope": "HIAAgentService._cost_ledger"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_16",
+      "sql": "SELECT * FROM cursors WHERE id=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 412,
+          "scope": "HIAAgentService._reference_hia_read"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": [
+        "hepta/hia_artifact_page_native.py:203,227,233"
+      ]
+    },
+    {
+      "id": "query_17",
+      "sql": "SELECT * FROM execution_budgets WHERE context_id=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1166,
+          "scope": "HIAAgentService._hia_evaluate"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_18",
+      "sql": "SELECT * FROM leases WHERE id=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1394,
+          "scope": "HIAAgentService._lease"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_19",
+      "sql": "SELECT * FROM requests WHERE key=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_journal_native.py",
+          "line": 361,
+          "scope": "call_with_native_journal"
+        },
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 268,
+          "scope": "HIAAgentService._reference_call"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_20",
+      "sql": "SELECT * FROM slots WHERE name=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1272,
+          "scope": "HIAAgentService._slot_snapshot"
+        },
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1363,
+          "scope": "HIAAgentService._hia_rollback"
+        },
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1327,
+          "scope": "HIAAgentService._hia_adopt"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_21",
+      "sql": "SELECT COUNT(*) FROM leases WHERE slot=? AND active=1",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1279,
+          "scope": "HIAAgentService._slot_snapshot"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_22",
+      "sql": "SELECT artifact FROM profiles WHERE id=? AND sha256=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_store.py",
+          "line": 486,
+          "scope": "AgentStore._reference_check_profile"
+        }
+      ],
+      "generator_sites": [
+        {
+          "path": "tools/generate_hia_agent_store_authority.py",
+          "line": 25
+        }
+      ],
+      "bound_SQL_callbacks": [
+        "hepta/hia_agent_store_authority_native.py:223-224,253-254,275"
+      ]
+    },
+    {
+      "id": "query_23",
+      "sql": "SELECT artifact FROM versions WHERE slot=? AND generation=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1277,
+          "scope": "HIAAgentService._slot_snapshot"
+        },
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1357,
+          "scope": "HIAAgentService._hia_rollback"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_24",
+      "sql": "SELECT created_ns FROM contexts WHERE id=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 355,
+          "scope": "HIAAgentService._remaining_ms"
+        },
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1111,
+          "scope": "HIAAgentService._hia_evaluate"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_25",
+      "sql": "SELECT generation FROM versions WHERE slot=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1333,
+          "scope": "HIAAgentService._hia_adopt"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_26",
+      "sql": "UPDATE contexts SET attempts=attempts+1 WHERE id=? AND attempts<?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 349,
+          "scope": "HIAAgentService._budget"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_27",
+      "sql": "UPDATE execution_budgets SET owner=? WHERE context_id=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1172,
+          "scope": "HIAAgentService._hia_evaluate"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_28",
+      "sql": "UPDATE execution_budgets SET owner=NULL,used_native_ns=? WHERE context_id=? AND owner=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1222,
+          "scope": "HIAAgentService._hia_evaluate"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_29",
+      "sql": "UPDATE leases SET active=0 WHERE id=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1442,
+          "scope": "HIAAgentService.release_slot"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_30",
+      "sql": "UPDATE requests SET state='completed',response=? WHERE key=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_journal_native.py",
+          "line": 432,
+          "scope": "call_with_native_journal"
+        },
+        {
+          "path": "hepta/hia_agent_journal_native.py",
+          "line": 396,
+          "scope": "call_with_native_journal"
+        },
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 319,
+          "scope": "HIAAgentService._reference_call"
+        },
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 301,
+          "scope": "HIAAgentService._reference_call"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    },
+    {
+      "id": "query_31",
+      "sql": "UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?",
+      "production_sites": [
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1341,
+          "scope": "HIAAgentService._hia_adopt"
+        },
+        {
+          "path": "hepta/hia_agent_service.py",
+          "line": 1370,
+          "scope": "HIAAgentService._hia_rollback"
+        }
+      ],
+      "generator_sites": [],
+      "bound_SQL_callbacks": []
+    }
+  ],
+  "connection": {
+    "path": "hepta/hia_agent_store.py",
+    "lines": [
+      274,
+      355
+    ],
+    "filename": "state.sqlite3",
+    "isolation_level": null,
+    "timeout_seconds": 10,
+    "check_same_thread": false,
+    "row_factory": "sqlite3.Row",
+    "pragmas": [
+      "PRAGMA journal_mode=WAL",
+      "PRAGMA synchronous=FULL"
+    ],
+    "transaction": [
+      "BEGIN IMMEDIATE",
+      "ROLLBACK on BaseException",
+      "COMMIT on normal exit"
+    ],
+    "lock": "per-AgentStore threading.RLock"
+  },
+  "hosted_effects": {
+    "journal": "HIA decisions/ACK policy, hosted SQLite effects",
+    "store_authority": "HIA reference/profile/put policy, hosted SQLite and selected file leaf",
+    "artifact_page": "HIA page/cursor decisions, hosted SQLite",
+    "artifact_publication": "native immutable artifact byte layer only; DB references remain AgentStore"
+  },
+  "existing_module_inventories": {
+    "tests.test_hia_agent_artifact_store_native": [
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_actual_directory_fsync_failure_leaves_no_success_and_preserves_possible_content",
+        "end_line": 116,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_actual_directory_fsync_failure_leaves_no_success_and_preserves_possible_content",
+        "inherited": false,
+        "line": 112,
+        "method": "test_actual_directory_fsync_failure_leaves_no_success_and_preserves_possible_content",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_actual_empty_binary_and_multichunk_put_get_dedup_private_file",
+        "end_line": 77,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_actual_empty_binary_and_multichunk_put_get_dedup_private_file",
+        "inherited": false,
+        "line": 66,
+        "method": "test_actual_empty_binary_and_multichunk_put_get_dedup_private_file",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_actual_file_fsync_failure_no_content_or_success_receipt",
+        "end_line": 110,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_actual_file_fsync_failure_no_content_or_success_receipt",
+        "inherited": false,
+        "line": 106,
+        "method": "test_actual_file_fsync_failure_no_content_or_success_receipt",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_corrupt_existing_file_and_different_digest_refuse_without_replacing",
+        "end_line": 83,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_corrupt_existing_file_and_different_digest_refuse_without_replacing",
+        "inherited": false,
+        "line": 79,
+        "method": "test_corrupt_existing_file_and_different_digest_refuse_without_replacing",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_quota_is_original_64MiB_and_never_applied_to_generic_publisher",
+        "end_line": 128,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_quota_is_original_64MiB_and_never_applied_to_generic_publisher",
+        "inherited": false,
+        "line": 118,
+        "method": "test_quota_is_original_64MiB_and_never_applied_to_generic_publisher",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_real_file_and_directory_fsync_and_post_fsync_receipt_boundary",
+        "end_line": 104,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_real_file_and_directory_fsync_and_post_fsync_receipt_boundary",
+        "inherited": false,
+        "line": 97,
+        "method": "test_real_file_and_directory_fsync_and_post_fsync_receipt_boundary",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_real_post_link_competitor_inode_is_never_deleted",
+        "end_line": 158,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_real_post_link_competitor_inode_is_never_deleted",
+        "inherited": false,
+        "line": 155,
+        "method": "test_real_post_link_competitor_inode_is_never_deleted",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_real_post_link_corruption_withdraws_only_own_content_inode",
+        "end_line": 153,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_real_post_link_corruption_withdraws_only_own_content_inode",
+        "inherited": false,
+        "line": 149,
+        "method": "test_real_post_link_corruption_withdraws_only_own_content_inode",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_symlink_FIFO_root_permissions_and_path_traversal_refuse",
+        "end_line": 95,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_symlink_FIFO_root_permissions_and_path_traversal_refuse",
+        "inherited": false,
+        "line": 85,
+        "method": "test_symlink_FIFO_root_permissions_and_path_traversal_refuse",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_commands_root_and_only_exact_lower_hex_file_names",
+        "end_line": 22,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_commands_root_and_only_exact_lower_hex_file_names",
+        "inherited": false,
+        "line": 13,
+        "method": "test_commands_root_and_only_exact_lower_hex_file_names",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_owned_non_writable_directory_guard_and_full_store_quota",
+        "end_line": 30,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_owned_non_writable_directory_guard_and_full_store_quota",
+        "inherited": false,
+        "line": 24,
+        "method": "test_owned_non_writable_directory_guard_and_full_store_quota",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_temporary_name_UUID4_bits_and_content_SHA_are_formed_in_HIA",
+        "end_line": 42,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_temporary_name_UUID4_bits_and_content_SHA_are_formed_in_HIA",
+        "inherited": false,
+        "line": 32,
+        "method": "test_temporary_name_UUID4_bits_and_content_SHA_are_formed_in_HIA",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_actual_native_fsync_failures_cannot_issue_DB_refs_or_replay_effects",
+        "end_line": 306,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_actual_native_fsync_failures_cannot_issue_DB_refs_or_replay_effects",
+        "inherited": false,
+        "line": 284,
+        "method": "test_actual_native_fsync_failures_cannot_issue_DB_refs_or_replay_effects",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_missing_selected_code_never_falls_back_or_issues_reference",
+        "end_line": 242,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_missing_selected_code_never_falls_back_or_issues_reference",
+        "inherited": false,
+        "line": 235,
+        "method": "test_missing_selected_code_never_falls_back_or_issues_reference",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_one_put_uses_one_immutable_code_admission_but_next_call_revalidates",
+        "end_line": 266,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_one_put_uses_one_immutable_code_admission_but_next_call_revalidates",
+        "inherited": false,
+        "line": 244,
+        "method": "test_one_put_uses_one_immutable_code_admission_but_next_call_revalidates",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_real_store_bytes_metadata_dedup_restart_and_namespace_authority",
+        "end_line": 218,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_real_store_bytes_metadata_dedup_restart_and_namespace_authority",
+        "inherited": false,
+        "line": 191,
+        "method": "test_real_store_bytes_metadata_dedup_restart_and_namespace_authority",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_ref_and_kind_checks_precede_native_file_access_and_corruption_refuses",
+        "end_line": 233,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_ref_and_kind_checks_precede_native_file_access_and_corruption_refuses",
+        "inherited": false,
+        "line": 220,
+        "method": "test_ref_and_kind_checks_precede_native_file_access_and_corruption_refuses",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_selection_cannot_change_between_hash_and_file_publication",
+        "end_line": 282,
+        "id": "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_selection_cannot_change_between_hash_and_file_publication",
+        "inherited": false,
+        "line": 268,
+        "method": "test_selection_cannot_change_between_hash_and_file_publication",
+        "path": "tests/test_hia_agent_artifact_store_native.py"
+      }
+    ],
+    "tests.test_hia_agent_candidate_native": [
+      {
+        "defining_id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_actual_agent_all_four_edits_forbid_old_payload_owners",
+        "end_line": 141,
+        "id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_actual_agent_all_four_edits_forbid_old_payload_owners",
+        "inherited": false,
+        "line": 132,
+        "method": "test_actual_agent_all_four_edits_forbid_old_payload_owners",
+        "path": "tests/test_hia_agent_candidate_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_actual_installed_wheel_agent_path_forbids_tools_and_refuses_selected_drift",
+        "end_line": 233,
+        "id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_actual_installed_wheel_agent_path_forbids_tools_and_refuses_selected_drift",
+        "inherited": false,
+        "line": 143,
+        "method": "test_actual_installed_wheel_agent_path_forbids_tools_and_refuses_selected_drift",
+        "path": "tests/test_hia_agent_candidate_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_canonical_snapshot_identity_and_large_candidate_result_extent",
+        "end_line": 256,
+        "id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_canonical_snapshot_identity_and_large_candidate_result_extent",
+        "inherited": false,
+        "line": 235,
+        "method": "test_canonical_snapshot_identity_and_large_candidate_result_extent",
+        "path": "tests/test_hia_agent_candidate_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_exact_replay_precedes_bad_manifest_context_work_and_attempt_charge",
+        "end_line": 328,
+        "id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_exact_replay_precedes_bad_manifest_context_work_and_attempt_charge",
+        "inherited": false,
+        "line": 307,
+        "method": "test_exact_replay_precedes_bad_manifest_context_work_and_attempt_charge",
+        "path": "tests/test_hia_agent_candidate_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_identical_bytes_keep_context_metadata_and_namespace_authority",
+        "end_line": 344,
+        "id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_identical_bytes_keep_context_metadata_and_namespace_authority",
+        "inherited": false,
+        "line": 330,
+        "method": "test_identical_bytes_keep_context_metadata_and_namespace_authority",
+        "path": "tests/test_hia_agent_candidate_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_killed_candidate_stages_retain_unknown_and_terminal_reply_replays",
+        "end_line": 421,
+        "id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_killed_candidate_stages_retain_unknown_and_terminal_reply_replays",
+        "inherited": false,
+        "line": 363,
+        "method": "test_killed_candidate_stages_retain_unknown_and_terminal_reply_replays",
+        "path": "tests/test_hia_agent_candidate_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_mode2_configuration_and_untrusted_frame_extents_are_refused",
+        "end_line": 361,
+        "id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_mode2_configuration_and_untrusted_frame_extents_are_refused",
+        "inherited": false,
+        "line": 346,
+        "method": "test_mode2_configuration_and_untrusted_frame_extents_are_refused",
+        "path": "tests/test_hia_agent_candidate_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_native_result_migration_order_default_loans_and_64_changes",
+        "end_line": 277,
+        "id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_native_result_migration_order_default_loans_and_64_changes",
+        "inherited": false,
+        "line": 258,
+        "method": "test_native_result_migration_order_default_loans_and_64_changes",
+        "path": "tests/test_hia_agent_candidate_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_schema_semantic_and_composite_refusals_issue_no_candidate_refs",
+        "end_line": 305,
+        "id": "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_schema_semantic_and_composite_refusals_issue_no_candidate_refs",
+        "inherited": false,
+        "line": 279,
+        "method": "test_schema_semantic_and_composite_refusals_issue_no_candidate_refs",
+        "path": "tests/test_hia_agent_candidate_native.py"
+      }
+    ],
+    "tests.test_hia_agent_journal_native": [
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_HIA_UTF8_codec_reports_python_byte_spans_without_host_decoding",
+        "end_line": 501,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_HIA_UTF8_codec_reports_python_byte_spans_without_host_decoding",
+        "inherited": false,
+        "line": 482,
+        "method": "test_HIA_UTF8_codec_reports_python_byte_spans_without_host_decoding",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_ack_order_conflict_unknown_and_special_verification_replay",
+        "end_line": 229,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_ack_order_conflict_unknown_and_special_verification_replay",
+        "inherited": false,
+        "line": 188,
+        "method": "test_ack_order_conflict_unknown_and_special_verification_replay",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_cached_explicit_selectors_are_readmitted_after_argument_snapshot",
+        "end_line": 604,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_cached_explicit_selectors_are_readmitted_after_argument_snapshot",
+        "inherited": false,
+        "line": 503,
+        "method": "test_cached_explicit_selectors_are_readmitted_after_argument_snapshot",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_cached_foreign_values_and_lazy_numeric_selector_match_reference",
+        "end_line": 441,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_cached_foreign_values_and_lazy_numeric_selector_match_reference",
+        "inherited": false,
+        "line": 409,
+        "method": "test_cached_foreign_values_and_lazy_numeric_selector_match_reference",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_cached_syntax_UTF8_and_budget_errors_match_reference_exactly",
+        "end_line": 480,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_cached_syntax_UTF8_and_budget_errors_match_reference_exactly",
+        "inherited": false,
+        "line": 443,
+        "method": "test_cached_syntax_UTF8_and_budget_errors_match_reference_exactly",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_exact_reference_errors_rows_and_arbitrary_precision_clock_TEXT",
+        "end_line": 273,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_exact_reference_errors_rows_and_arbitrary_precision_clock_TEXT",
+        "inherited": false,
+        "line": 231,
+        "method": "test_exact_reference_errors_rows_and_arbitrary_precision_clock_TEXT",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_installed_wheel_ordinary_call_no_tools_and_source_catalog_binding",
+        "end_line": 798,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_installed_wheel_ordinary_call_no_tools_and_source_catalog_binding",
+        "inherited": false,
+        "line": 738,
+        "method": "test_installed_wheel_ordinary_call_no_tools_and_source_catalog_binding",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_malformed_cached_response_never_reexecutes_or_rewrites_request",
+        "end_line": 321,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_malformed_cached_response_never_reexecutes_or_rewrites_request",
+        "inherited": false,
+        "line": 307,
+        "method": "test_malformed_cached_response_never_reexecutes_or_rewrites_request",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_native_ABI_canaries_and_instruction_header_refuse_corruption",
+        "end_line": 736,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_native_ABI_canaries_and_instruction_header_refuse_corruption",
+        "inherited": false,
+        "line": 720,
+        "method": "test_native_ABI_canaries_and_instruction_header_refuse_corruption",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_native_protocol_failure_cannot_journal_a_rolled_back_success",
+        "end_line": 407,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_native_protocol_failure_cannot_journal_a_rolled_back_success",
+        "inherited": false,
+        "line": 373,
+        "method": "test_native_protocol_failure_cannot_journal_a_rolled_back_success",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_raw_numeric_expansion_refuses_before_channel_overwrite",
+        "end_line": 718,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_raw_numeric_expansion_refuses_before_channel_overwrite",
+        "inherited": false,
+        "line": 702,
+        "method": "test_raw_numeric_expansion_refuses_before_channel_overwrite",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_SQL_commit_fault_preserves_ack_before_commit_semantics",
+        "end_line": 371,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_SQL_commit_fault_preserves_ack_before_commit_semantics",
+        "inherited": false,
+        "line": 323,
+        "method": "test_real_SQL_commit_fault_preserves_ack_before_commit_semantics",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_SQLite_non_TEXT_observations_preserve_conflict_before_state",
+        "end_line": 628,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_SQLite_non_TEXT_observations_preserve_conflict_before_state",
+        "inherited": false,
+        "line": 606,
+        "method": "test_real_SQLite_non_TEXT_observations_preserve_conflict_before_state",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_artifact_restart_replay_alias_and_no_effect_cost_or_update",
+        "end_line": 305,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_artifact_restart_replay_alias_and_no_effect_cost_or_update",
+        "inherited": false,
+        "line": 275,
+        "method": "test_real_artifact_restart_replay_alias_and_no_effect_cost_or_update",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_process_kill_after_effect_preserves_running_intent",
+        "end_line": 671,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_process_kill_after_effect_preserves_running_intent",
+        "inherited": false,
+        "line": 630,
+        "method": "test_real_process_kill_after_effect_preserves_running_intent",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_request_identity_keys_unicode_binary64_and_unknown_tool_order",
+        "end_line": 186,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_request_identity_keys_unicode_binary64_and_unknown_tool_order",
+        "inherited": false,
+        "line": 147,
+        "method": "test_request_identity_keys_unicode_binary64_and_unknown_tool_order",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_selected_source_and_catalog_drift_fail_closed_before_SQL",
+        "end_line": 688,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_selected_source_and_catalog_drift_fail_closed_before_SQL",
+        "inherited": false,
+        "line": 673,
+        "method": "test_selected_source_and_catalog_drift_fail_closed_before_SQL",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_terminal_channels_do_not_add_a_combined_eight_MiB_gate",
+        "end_line": 700,
+        "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_terminal_channels_do_not_add_a_combined_eight_MiB_gate",
+        "inherited": false,
+        "line": 690,
+        "method": "test_terminal_channels_do_not_add_a_combined_eight_MiB_gate",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalSourceTests.test_caller_gate_rejects_incomplete_and_expected_failure_results",
+        "end_line": 68,
+        "id": "tests.test_hia_agent_journal_native.JournalSourceTests.test_caller_gate_rejects_incomplete_and_expected_failure_results",
+        "inherited": false,
+        "line": 49,
+        "method": "test_caller_gate_rejects_incomplete_and_expected_failure_results",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalSourceTests.test_independent_core_VM_request_identity",
+        "end_line": 107,
+        "id": "tests.test_hia_agent_journal_native.JournalSourceTests.test_independent_core_VM_request_identity",
+        "inherited": false,
+        "line": 80,
+        "method": "test_independent_core_VM_request_identity",
+        "path": "tests/test_hia_agent_journal_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_journal_native.JournalSourceTests.test_source_reproduces_and_original_owner_is_unchanged",
+        "end_line": 78,
+        "id": "tests.test_hia_agent_journal_native.JournalSourceTests.test_source_reproduces_and_original_owner_is_unchanged",
+        "inherited": false,
+        "line": 70,
+        "method": "test_source_reproduces_and_original_owner_is_unchanged",
+        "path": "tests/test_hia_agent_journal_native.py"
+      }
+    ],
+    "tests.test_hia_agent_native_campaign": [
+      {
+        "defining_id": "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_cli_requires_explicit_campaign_before_any_transport_or_evidence",
+        "end_line": 34,
+        "id": "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_cli_requires_explicit_campaign_before_any_transport_or_evidence",
+        "inherited": false,
+        "line": 27,
+        "method": "test_cli_requires_explicit_campaign_before_any_transport_or_evidence",
+        "path": "tests/test_hia_agent_native_campaign.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_committed_but_lost_reply_retains_original_intent_for_recovery",
+        "end_line": 168,
+        "id": "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_committed_but_lost_reply_retains_original_intent_for_recovery",
+        "inherited": false,
+        "line": 117,
+        "method": "test_committed_but_lost_reply_retains_original_intent_for_recovery",
+        "path": "tests/test_hia_agent_native_campaign.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_existing_output_is_preserved_and_refused_before_dispatch",
+        "end_line": 57,
+        "id": "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_existing_output_is_preserved_and_refused_before_dispatch",
+        "inherited": false,
+        "line": 47,
+        "method": "test_existing_output_is_preserved_and_refused_before_dispatch",
+        "path": "tests/test_hia_agent_native_campaign.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_invalid_campaign_cannot_start_a_transport_or_use_an_arbitrary_slot",
+        "end_line": 45,
+        "id": "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_invalid_campaign_cannot_start_a_transport_or_use_an_arbitrary_slot",
+        "inherited": false,
+        "line": 36,
+        "method": "test_invalid_campaign_cannot_start_a_transport_or_use_an_arbitrary_slot",
+        "path": "tests/test_hia_agent_native_campaign.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_two_campaigns_share_store_but_not_slot_and_reconnect_does_not_reexecute",
+        "end_line": 115,
+        "id": "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_two_campaigns_share_store_but_not_slot_and_reconnect_does_not_reexecute",
+        "inherited": false,
+        "line": 59,
+        "method": "test_two_campaigns_share_store_but_not_slot_and_reconnect_does_not_reexecute",
+        "path": "tests/test_hia_agent_native_campaign.py"
+      }
+    ],
+    "tests.test_hia_agent_native_lease_snapshot": [
+      {
+        "defining_id": "tests.test_hia_agent_native_lease_snapshot.LeaseSnapshotTests.test_caller_mutation_during_native_call_cannot_relabel_result_or_buffers",
+        "end_line": 49,
+        "id": "tests.test_hia_agent_native_lease_snapshot.LeaseSnapshotTests.test_caller_mutation_during_native_call_cannot_relabel_result_or_buffers",
+        "inherited": false,
+        "line": 14,
+        "method": "test_caller_mutation_during_native_call_cannot_relabel_result_or_buffers",
+        "path": "tests/test_hia_agent_native_lease_snapshot.py"
+      }
+    ],
+    "tests.test_hia_agent_native_machine_choices": [
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "end_line": 435,
+        "id": "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "inherited": true,
+        "line": 416,
+        "method": "test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "end_line": 470,
+        "id": "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "inherited": true,
+        "line": 459,
+        "method": "test_one_plan_receipt_cannot_authorize_different_layout",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "end_line": 457,
+        "id": "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "inherited": true,
+        "line": 437,
+        "method": "test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_separate_checks_and_assumptions_remain_in_verification_receipt",
+        "end_line": 31,
+        "id": "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_separate_checks_and_assumptions_remain_in_verification_receipt",
+        "inherited": false,
+        "line": 20,
+        "method": "test_separate_checks_and_assumptions_remain_in_verification_receipt",
+        "path": "tests/test_hia_agent_native_machine_choices.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "end_line": 435,
+        "id": "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "inherited": true,
+        "line": 416,
+        "method": "test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "end_line": 470,
+        "id": "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "inherited": true,
+        "line": 459,
+        "method": "test_one_plan_receipt_cannot_authorize_different_layout",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "end_line": 457,
+        "id": "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "inherited": true,
+        "line": 437,
+        "method": "test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_register_lifetimes_are_retained_without_claiming_identical_slots",
+        "end_line": 58,
+        "id": "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_register_lifetimes_are_retained_without_claiming_identical_slots",
+        "inherited": false,
+        "line": 46,
+        "method": "test_register_lifetimes_are_retained_without_claiming_identical_slots",
+        "path": "tests/test_hia_agent_native_machine_choices.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_unknown_value_register_assignment_is_refused_through_domain_tools",
+        "end_line": 67,
+        "id": "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_unknown_value_register_assignment_is_refused_through_domain_tools",
+        "inherited": false,
+        "line": 60,
+        "method": "test_unknown_value_register_assignment_is_refused_through_domain_tools",
+        "path": "tests/test_hia_agent_native_machine_choices.py"
+      }
+    ],
+    "tests.test_hia_agent_native_proof_contract": [
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_a_matching_workload_example_does_not_hide_a_counterexample",
+        "end_line": 143,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_a_matching_workload_example_does_not_hide_a_counterexample",
+        "inherited": false,
+        "line": 124,
+        "method": "test_a_matching_workload_example_does_not_hide_a_counterexample",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_actual_object_encoding_proof_exposes_same_implementation_limit",
+        "end_line": 296,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_actual_object_encoding_proof_exposes_same_implementation_limit",
+        "inherited": false,
+        "line": 280,
+        "method": "test_actual_object_encoding_proof_exposes_same_implementation_limit",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_admission_is_self_contained_even_when_detached_from_response",
+        "end_line": 99,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_admission_is_self_contained_even_when_detached_from_response",
+        "inherited": false,
+        "line": 89,
+        "method": "test_admission_is_self_contained_even_when_detached_from_response",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_legacy_result_cannot_bypass_the_current_output_contract",
+        "end_line": 369,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_legacy_result_cannot_bypass_the_current_output_contract",
+        "inherited": false,
+        "line": 361,
+        "method": "test_cached_legacy_result_cannot_bypass_the_current_output_contract",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_valid_shape_cannot_change_the_retained_checker_conclusion",
+        "end_line": 382,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_valid_shape_cannot_change_the_retained_checker_conclusion",
+        "inherited": false,
+        "line": 371,
+        "method": "test_cached_valid_shape_cannot_change_the_retained_checker_conclusion",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_canonical_lowering_unsupported_keeps_explicit_open_obligations",
+        "end_line": 182,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_canonical_lowering_unsupported_keeps_explicit_open_obligations",
+        "inherited": false,
+        "line": 173,
+        "method": "test_canonical_lowering_unsupported_keeps_explicit_open_obligations",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_reemitted_bytes_are_refuted_without_a_semantic_safety_claim",
+        "end_line": 312,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_reemitted_bytes_are_refuted_without_a_semantic_safety_claim",
+        "inherited": false,
+        "line": 298,
+        "method": "test_changed_reemitted_bytes_are_refuted_without_a_semantic_safety_claim",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_subject_profile_checker_assumptions_and_obligations_are_rejected",
+        "end_line": 220,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_subject_profile_checker_assumptions_and_obligations_are_rejected",
+        "inherited": false,
+        "line": 199,
+        "method": "test_changed_subject_profile_checker_assumptions_and_obligations_are_rejected",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_compositional_proof_names_the_actual_solver_and_excluded_vm_ticks",
+        "end_line": 171,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_compositional_proof_names_the_actual_solver_and_excluded_vm_ticks",
+        "inherited": false,
+        "line": 157,
+        "method": "test_compositional_proof_names_the_actual_solver_and_excluded_vm_ticks",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_conditional_machine_plan_preserves_scope_at_emission",
+        "end_line": 278,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_conditional_machine_plan_preserves_scope_at_emission",
+        "inherited": false,
+        "line": 257,
+        "method": "test_conditional_machine_plan_preserves_scope_at_emission",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_discovery_teaches_scope_before_verification",
+        "end_line": 87,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_discovery_teaches_scope_before_verification",
+        "inherited": false,
+        "line": 76,
+        "method": "test_discovery_teaches_scope_before_verification",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_exact_verification_replay_preserves_the_original_scoped_result",
+        "end_line": 359,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_exact_verification_replay_preserves_the_original_scoped_result",
+        "inherited": false,
+        "line": 353,
+        "method": "test_exact_verification_replay_preserves_the_original_scoped_result",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_finite_domain_is_complete_despite_single_case_workload",
+        "end_line": 122,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_finite_domain_is_complete_despite_single_case_workload",
+        "inherited": false,
+        "line": 111,
+        "method": "test_finite_domain_is_complete_despite_single_case_workload",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_incomplete_reference_enumeration_remains_unknown_with_full_scope",
+        "end_line": 154,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_incomplete_reference_enumeration_remains_unknown_with_full_scope",
+        "inherited": false,
+        "line": 145,
+        "method": "test_incomplete_reference_enumeration_remains_unknown_with_full_scope",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_missing_scope_fields_and_legacy_receipts_are_rejected_by_emission",
+        "end_line": 197,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_missing_scope_fields_and_legacy_receipts_are_rejected_by_emission",
+        "inherited": false,
+        "line": 184,
+        "method": "test_missing_scope_fields_and_legacy_receipts_are_rejected_by_emission",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_rebound_assumptions_or_evidence_cannot_be_substituted",
+        "end_line": 231,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_rebound_assumptions_or_evidence_cannot_be_substituted",
+        "inherited": false,
+        "line": 222,
+        "method": "test_rebound_assumptions_or_evidence_cannot_be_substituted",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_reflexivity_retains_both_exact_program_references",
+        "end_line": 109,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_reflexivity_retains_both_exact_program_references",
+        "inherited": false,
+        "line": 101,
+        "method": "test_reflexivity_retains_both_exact_program_references",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_required_acceptance_claims_reject_valid_status_with_missing_scope",
+        "end_line": 325,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_required_acceptance_claims_reject_valid_status_with_missing_scope",
+        "inherited": false,
+        "line": 314,
+        "method": "test_required_acceptance_claims_reject_valid_status_with_missing_scope",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_turn_unsupported_lowering_into_a_proof",
+        "end_line": 255,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_turn_unsupported_lowering_into_a_proof",
+        "inherited": false,
+        "line": 245,
+        "method": "test_restamping_metadata_cannot_turn_unsupported_lowering_into_a_proof",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_upgrade_incomplete_evidence",
+        "end_line": 243,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_upgrade_incomplete_evidence",
+        "inherited": false,
+        "line": 233,
+        "method": "test_restamping_metadata_cannot_upgrade_incomplete_evidence",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_unsupported_scope_cannot_satisfy_a_required_lowering_property",
+        "end_line": 341,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_unsupported_scope_cannot_satisfy_a_required_lowering_property",
+        "inherited": false,
+        "line": 327,
+        "method": "test_unsupported_scope_cannot_satisfy_a_required_lowering_property",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_verification_replay_rejects_changed_installed_checker_source",
+        "end_line": 393,
+        "id": "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_verification_replay_rejects_changed_installed_checker_source",
+        "inherited": false,
+        "line": 386,
+        "method": "test_verification_replay_rejects_changed_installed_checker_source",
+        "path": "tests/test_hia_agent_native_proof_contract.py"
+      }
+    ],
+    "tests.test_hia_agent_native_tools": [
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.AgentStoreDirectoryPermissionTests.test_preexisting_world_writable_artifact_directory_is_rejected",
+        "end_line": 732,
+        "id": "tests.test_hia_agent_native_tools.AgentStoreDirectoryPermissionTests.test_preexisting_world_writable_artifact_directory_is_rejected",
+        "inherited": false,
+        "line": 720,
+        "method": "test_preexisting_world_writable_artifact_directory_is_rejected",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+        "end_line": 94,
+        "id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+        "inherited": false,
+        "line": 75,
+        "method": "test_discovery_is_readable_and_source_bound",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+        "end_line": 167,
+        "id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+        "inherited": false,
+        "line": 154,
+        "method": "test_exact_request_replay_survives_restart_and_changed_body_rejects",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+        "end_line": 152,
+        "id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+        "inherited": false,
+        "line": 131,
+        "method": "test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+        "end_line": 114,
+        "id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+        "inherited": false,
+        "line": 107,
+        "method": "test_high_escape_pages_obey_serialized_response_bound",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+        "end_line": 129,
+        "id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+        "inherited": false,
+        "line": 116,
+        "method": "test_issued_reference_fields_and_actual_bytes_are_verified",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+        "end_line": 224,
+        "id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+        "inherited": false,
+        "line": 181,
+        "method": "test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+        "end_line": 179,
+        "id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+        "inherited": false,
+        "line": 169,
+        "method": "test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+        "end_line": 105,
+        "id": "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+        "inherited": false,
+        "line": 96,
+        "method": "test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_allocation_resource_trace_difference_is_not_value_equivalence",
+        "end_line": 326,
+        "id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_allocation_resource_trace_difference_is_not_value_equivalence",
+        "inherited": false,
+        "line": 310,
+        "method": "test_allocation_resource_trace_difference_is_not_value_equivalence",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain",
+        "end_line": 362,
+        "id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain",
+        "inherited": false,
+        "line": 328,
+        "method": "test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation",
+        "end_line": 370,
+        "id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation",
+        "inherited": false,
+        "line": 364,
+        "method": "test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_equivalence_search_uses_remaining_frozen_context_budget",
+        "end_line": 391,
+        "id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_equivalence_search_uses_remaining_frozen_context_budget",
+        "inherited": false,
+        "line": 372,
+        "method": "test_equivalence_search_uses_remaining_frozen_context_budget",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_invalid_candidate_is_repaired_with_an_explicit_new_request",
+        "end_line": 241,
+        "id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_invalid_candidate_is_repaired_with_an_explicit_new_request",
+        "inherited": false,
+        "line": 228,
+        "method": "test_invalid_candidate_is_repaired_with_an_explicit_new_request",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_matching_return_values_do_not_hide_different_first_trap",
+        "end_line": 308,
+        "id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_matching_return_values_do_not_hide_different_first_trap",
+        "inherited": false,
+        "line": 287,
+        "method": "test_matching_return_values_do_not_hide_different_first_trap",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_patch_binds_canonical_base_and_whole_candidate_is_rechecked",
+        "end_line": 262,
+        "id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_patch_binds_canonical_base_and_whole_candidate_is_rechecked",
+        "inherited": false,
+        "line": 243,
+        "method": "test_patch_binds_canonical_base_and_whole_candidate_is_rechecked",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_stale_context_and_foreign_validation_profile_are_rejected",
+        "end_line": 274,
+        "id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_stale_context_and_foreign_validation_profile_are_rejected",
+        "inherited": false,
+        "line": 264,
+        "method": "test_stale_context_and_foreign_validation_profile_are_rejected",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission",
+        "end_line": 285,
+        "id": "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission",
+        "inherited": false,
+        "line": 276,
+        "method": "test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "end_line": 435,
+        "id": "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "inherited": false,
+        "line": 416,
+        "method": "test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "end_line": 470,
+        "id": "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "inherited": false,
+        "line": 459,
+        "method": "test_one_plan_receipt_cannot_authorize_different_layout",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "end_line": 457,
+        "id": "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "inherited": false,
+        "line": 437,
+        "method": "test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_all_eleven_tools_and_full_u8_native_workload",
+        "end_line": 526,
+        "id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_all_eleven_tools_and_full_u8_native_workload",
+        "inherited": false,
+        "line": 513,
+        "method": "test_all_eleven_tools_and_full_u8_native_workload",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+        "end_line": 677,
+        "id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+        "inherited": false,
+        "line": 655,
+        "method": "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable",
+        "end_line": 705,
+        "id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable",
+        "inherited": false,
+        "line": 679,
+        "method": "test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "end_line": 579,
+        "id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "inherited": false,
+        "line": 566,
+        "method": "test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_published_version_lease_survives_rollback_and_release_is_checked",
+        "end_line": 564,
+        "id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_published_version_lease_survives_rollback_and_release_is_checked",
+        "inherited": false,
+        "line": 538,
+        "method": "test_published_version_lease_survives_rollback_and_release_is_checked",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted",
+        "end_line": 536,
+        "id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted",
+        "inherited": false,
+        "line": 528,
+        "method": "test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+        "end_line": 653,
+        "id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+        "inherited": false,
+        "line": 581,
+        "method": "test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_tool_object_emission_needs_no_llvm_import_or_external_process",
+        "end_line": 511,
+        "id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_tool_object_emission_needs_no_llvm_import_or_external_process",
+        "inherited": false,
+        "line": 474,
+        "method": "test_tool_object_emission_needs_no_llvm_import_or_external_process",
+        "path": "tests/test_hia_agent_native_tools.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_u64_generation_boundary_rejects_out_of_range_strings",
+        "end_line": 712,
+        "id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_u64_generation_boundary_rejects_out_of_range_strings",
+        "inherited": false,
+        "line": 707,
+        "method": "test_u64_generation_boundary_rejects_out_of_range_strings",
+        "path": "tests/test_hia_agent_native_tools.py"
+      }
+    ],
+    "tests.test_hia_agent_store_authority_native": [
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_actual_SQL_failure_boundaries_and_transaction_rollback_keep_original_rows",
+        "end_line": 319,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_actual_SQL_failure_boundaries_and_transaction_rollback_keep_original_rows",
+        "inherited": false,
+        "line": 297,
+        "method": "test_actual_SQL_failure_boundaries_and_transaction_rollback_keep_original_rows",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_bytes_verification_precedes_metadata_and_preserves_exact_decode_errors",
+        "end_line": 263,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_bytes_verification_precedes_metadata_and_preserves_exact_decode_errors",
+        "inherited": false,
+        "line": 253,
+        "method": "test_bytes_verification_precedes_metadata_and_preserves_exact_decode_errors",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_existing_native_publication_route_and_receipt_comparison_order",
+        "end_line": 342,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_existing_native_publication_route_and_receipt_comparison_order",
+        "inherited": false,
+        "line": 321,
+        "method": "test_existing_native_publication_route_and_receipt_comparison_order",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_foreign_callables_and_path_attributes_are_bound_before_argument_effects",
+        "end_line": 408,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_foreign_callables_and_path_attributes_are_bound_before_argument_effects",
+        "inherited": false,
+        "line": 363,
+        "method": "test_foreign_callables_and_path_attributes_are_bound_before_argument_effects",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_installed_wheel_ordinary_API_resources_and_identity_without_checkout",
+        "end_line": 530,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_installed_wheel_ordinary_API_resources_and_identity_without_checkout",
+        "inherited": false,
+        "line": 474,
+        "method": "test_installed_wheel_ordinary_API_resources_and_identity_without_checkout",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_original_64MiB_admission_boundary_and_no_length_hook_for_wrong_type",
+        "end_line": 361,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_original_64MiB_admission_boundary_and_no_length_hook_for_wrong_type",
+        "inherited": false,
+        "line": 344,
+        "method": "test_original_64MiB_admission_boundary_and_no_length_hook_for_wrong_type",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_profile_comparison_numeric_bool_subclass_and_foreign_truth_order",
+        "end_line": 251,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_profile_comparison_numeric_bool_subclass_and_foreign_truth_order",
+        "inherited": false,
+        "line": 230,
+        "method": "test_profile_comparison_numeric_bool_subclass_and_foreign_truth_order",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_protocol_refusal_canaries_terminal_and_effect_one_shot",
+        "end_line": 449,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_protocol_refusal_canaries_terminal_and_effect_one_shot",
+        "inherited": false,
+        "line": 410,
+        "method": "test_protocol_refusal_canaries_terminal_and_effect_one_shot",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_real_issuance_dedup_profile_uri_and_restart_preserve_all_state",
+        "end_line": 213,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_real_issuance_dedup_profile_uri_and_restart_preserve_all_state",
+        "inherited": false,
+        "line": 199,
+        "method": "test_real_issuance_dedup_profile_uri_and_restart_preserve_all_state",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_reference_schema_identity_kind_and_SQL_binding_error_order",
+        "end_line": 228,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_reference_schema_identity_kind_and_SQL_binding_error_order",
+        "inherited": false,
+        "line": 215,
+        "method": "test_reference_schema_identity_kind_and_SQL_binding_error_order",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_row_getitem_reobservations_and_subclass_dispatch_are_preserved",
+        "end_line": 295,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_row_getitem_reobservations_and_subclass_dispatch_are_preserved",
+        "inherited": false,
+        "line": 265,
+        "method": "test_row_getitem_reobservations_and_subclass_dispatch_are_preserved",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_selected_missing_and_drifted_source_or_image_never_enter_retained_owner",
+        "end_line": 472,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthorityNativeTests.test_selected_missing_and_drifted_source_or_image_never_enter_retained_owner",
+        "inherited": false,
+        "line": 451,
+        "method": "test_selected_missing_and_drifted_source_or_image_never_enter_retained_owner",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthoritySourceTests.test_bad_cold_cannot_create_candidate_or_invoke_compiler",
+        "end_line": 115,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthoritySourceTests.test_bad_cold_cannot_create_candidate_or_invoke_compiler",
+        "inherited": false,
+        "line": 106,
+        "method": "test_bad_cold_cannot_create_candidate_or_invoke_compiler",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthoritySourceTests.test_generated_source_and_independent_Core_projection_and_refusal",
+        "end_line": 104,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthoritySourceTests.test_generated_source_and_independent_Core_projection_and_refusal",
+        "inherited": false,
+        "line": 74,
+        "method": "test_generated_source_and_independent_Core_projection_and_refusal",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_agent_store_authority_native.StoreAuthoritySourceTests.test_six_retained_methods_are_complete_independent_oracles",
+        "end_line": 72,
+        "id": "tests.test_hia_agent_store_authority_native.StoreAuthoritySourceTests.test_six_retained_methods_are_complete_independent_oracles",
+        "inherited": false,
+        "line": 61,
+        "method": "test_six_retained_methods_are_complete_independent_oracles",
+        "path": "tests/test_hia_agent_store_authority_native.py"
+      }
+    ],
+    "tests.test_hia_artifact_read_native": [
+      {
+        "defining_id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_SQL_callable_binding_and_all_builtin_corrupt_offset_errors",
+        "end_line": 262,
+        "id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_SQL_callable_binding_and_all_builtin_corrupt_offset_errors",
+        "inherited": false,
+        "line": 252,
+        "method": "test_SQL_callable_binding_and_all_builtin_corrupt_offset_errors",
+        "path": "tests/test_hia_artifact_read_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_all_42_original_page_boundaries_execute_fresh",
+        "end_line": 215,
+        "id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_all_42_original_page_boundaries_execute_fresh",
+        "inherited": false,
+        "line": 207,
+        "method": "test_all_42_original_page_boundaries_execute_fresh",
+        "path": "tests/test_hia_artifact_read_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_installed_wheel_ordinary_entry_and_packaged_bundle",
+        "end_line": 419,
+        "id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_installed_wheel_ordinary_entry_and_packaged_bundle",
+        "inherited": false,
+        "line": 355,
+        "method": "test_installed_wheel_ordinary_entry_and_packaged_bundle",
+        "path": "tests/test_hia_artifact_read_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_protocol_canaries_and_effect_permissions_are_one_shot",
+        "end_line": 310,
+        "id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_protocol_canaries_and_effect_permissions_are_one_shot",
+        "inherited": false,
+        "line": 279,
+        "method": "test_protocol_canaries_and_effect_permissions_are_one_shot",
+        "path": "tests/test_hia_artifact_read_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_real_SQL_exceptions_and_transaction_boundaries_keep_exact_state",
+        "end_line": 277,
+        "id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_real_SQL_exceptions_and_transaction_boundaries_keep_exact_state",
+        "inherited": false,
+        "line": 264,
+        "method": "test_real_SQL_exceptions_and_transaction_boundaries_keep_exact_state",
+        "path": "tests/test_hia_artifact_read_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_real_store_ordinary_paging_and_reopen_preserve_bytes_and_cursors",
+        "end_line": 250,
+        "id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_real_store_ordinary_paging_and_reopen_preserve_bytes_and_cursors",
+        "inherited": false,
+        "line": 217,
+        "method": "test_real_store_ordinary_paging_and_reopen_preserve_bytes_and_cursors",
+        "path": "tests/test_hia_artifact_read_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_selected_missing_source_and_cold_image_key_never_fall_back",
+        "end_line": 353,
+        "id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_selected_missing_source_and_cold_image_key_never_fall_back",
+        "inherited": false,
+        "line": 334,
+        "method": "test_selected_missing_source_and_cold_image_key_never_fall_back",
+        "path": "tests/test_hia_artifact_read_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_wire_selection_order_errors_preserve_SQL_and_no_legacy_codecs",
+        "end_line": 332,
+        "id": "tests.test_hia_artifact_read_native.ArtifactReadNativeTests.test_wire_selection_order_errors_preserve_SQL_and_no_legacy_codecs",
+        "inherited": false,
+        "line": 312,
+        "method": "test_wire_selection_order_errors_preserve_SQL_and_no_legacy_codecs",
+        "path": "tests/test_hia_artifact_read_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_artifact_read_native.ArtifactReadSourceTests.test_complete_retained_business_method_is_unchanged",
+        "end_line": 119,
+        "id": "tests.test_hia_artifact_read_native.ArtifactReadSourceTests.test_complete_retained_business_method_is_unchanged",
+        "inherited": false,
+        "line": 109,
+        "method": "test_complete_retained_business_method_is_unchanged",
+        "path": "tests/test_hia_artifact_read_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_artifact_read_native.ArtifactReadSourceTests.test_generated_source_and_independent_Core_execution",
+        "end_line": 150,
+        "id": "tests.test_hia_artifact_read_native.ArtifactReadSourceTests.test_generated_source_and_independent_Core_execution",
+        "inherited": false,
+        "line": 121,
+        "method": "test_generated_source_and_independent_Core_execution",
+        "path": "tests/test_hia_artifact_read_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_artifact_read_native.ArtifactReadSourceTests.test_invalid_cold_refuses_before_output_or_compilation",
+        "end_line": 161,
+        "id": "tests.test_hia_artifact_read_native.ArtifactReadSourceTests.test_invalid_cold_refuses_before_output_or_compilation",
+        "inherited": false,
+        "line": 152,
+        "method": "test_invalid_cold_refuses_before_output_or_compilation",
+        "path": "tests/test_hia_artifact_read_native.py"
+      }
+    ],
+    "tests.test_hia_worker_report_native": [
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_active_exception_intervals_chains_and_same_object_reraise",
+        "end_line": 570,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_active_exception_intervals_chains_and_same_object_reraise",
+        "inherited": false,
+        "line": 482,
+        "method": "test_active_exception_intervals_chains_and_same_object_reraise",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_bundle_exact_bytes_source_rebinding_and_no_fallback",
+        "end_line": 874,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_bundle_exact_bytes_source_rebinding_and_no_fallback",
+        "inherited": false,
+        "line": 843,
+        "method": "test_bundle_exact_bytes_source_rebinding_and_no_fallback",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_continuation_sequence_packet_lengths_and_output_canary",
+        "end_line": 841,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_continuation_sequence_packet_lengths_and_output_canary",
+        "inherited": false,
+        "line": 824,
+        "method": "test_continuation_sequence_packet_lengths_and_output_canary",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_entire_manifest_equality_and_latest_identity_adoption",
+        "end_line": 333,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_entire_manifest_equality_and_latest_identity_adoption",
+        "inherited": false,
+        "line": 311,
+        "method": "test_entire_manifest_equality_and_latest_identity_adoption",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_error_callback_failure_and_output_encoding_remain_outside_catch",
+        "end_line": 480,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_error_callback_failure_and_output_encoding_remain_outside_catch",
+        "inherited": false,
+        "line": 453,
+        "method": "test_error_callback_failure_and_output_encoding_remain_outside_catch",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_error_callbacks_order_mutation_and_unicode_slice",
+        "end_line": 451,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_error_callbacks_order_mutation_and_unicode_slice",
+        "inherited": false,
+        "line": 419,
+        "method": "test_error_callbacks_order_mutation_and_unicode_slice",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_foreign_callback_ambient_chain_mutations_survive_next_activation",
+        "end_line": 624,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_foreign_callback_ambient_chain_mutations_survive_next_activation",
+        "inherited": false,
+        "line": 572,
+        "method": "test_foreign_callback_ambient_chain_mutations_survive_next_activation",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_foreign_leaf_effects_and_list_mutation_order",
+        "end_line": 379,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_foreign_leaf_effects_and_list_mutation_order",
+        "inherited": false,
+        "line": 355,
+        "method": "test_foreign_leaf_effects_and_list_mutation_order",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_formatter_selection_failure_precedes_report_graph_validation",
+        "end_line": 652,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_formatter_selection_failure_precedes_report_graph_validation",
+        "inherited": false,
+        "line": 646,
+        "method": "test_formatter_selection_failure_precedes_report_graph_validation",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_installed_wheel_ordinary_entry_and_both_source_resources",
+        "end_line": 822,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_installed_wheel_ordinary_entry_and_both_source_resources",
+        "inherited": false,
+        "line": 764,
+        "method": "test_installed_wheel_ordinary_entry_and_both_source_resources",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_manifest_numeric_unicode_and_container_random_differential",
+        "end_line": 353,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_manifest_numeric_unicode_and_container_random_differential",
+        "inherited": false,
+        "line": 335,
+        "method": "test_manifest_numeric_unicode_and_container_random_differential",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_modes_pins_and_malformed_request_correlation",
+        "end_line": 309,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_modes_pins_and_malformed_request_correlation",
+        "inherited": false,
+        "line": 288,
+        "method": "test_modes_pins_and_malformed_request_correlation",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_ordinary_sqlite_reopen_replay_conflict_and_unknown",
+        "end_line": 762,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_ordinary_sqlite_reopen_replay_conflict_and_unknown",
+        "inherited": false,
+        "line": 710,
+        "method": "test_ordinary_sqlite_reopen_replay_conflict_and_unknown",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_ordinary_success_and_service_close_exception_order",
+        "end_line": 286,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_ordinary_success_and_service_close_exception_order",
+        "inherited": false,
+        "line": 267,
+        "method": "test_ordinary_success_and_service_close_exception_order",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_parent_graph_byte_depth_and_node_budgets",
+        "end_line": 644,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_parent_graph_byte_depth_and_node_budgets",
+        "inherited": false,
+        "line": 626,
+        "method": "test_parent_graph_byte_depth_and_node_budgets",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_request_selector_is_observed_after_stdin_and_stays_independent",
+        "end_line": 685,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_request_selector_is_observed_after_stdin_and_stays_independent",
+        "inherited": false,
+        "line": 654,
+        "method": "test_request_selector_is_observed_after_stdin_and_stays_independent",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_stored_hash_foreign_key_capability_and_public_builtin_profile",
+        "end_line": 417,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_stored_hash_foreign_key_capability_and_public_builtin_profile",
+        "inherited": false,
+        "line": 381,
+        "method": "test_stored_hash_foreign_key_capability_and_public_builtin_profile",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_uncorrelated_empty_message_and_foreign_text_subclass_behavior",
+        "end_line": 708,
+        "id": "tests.test_hia_worker_report_native.WorkerReportNativeTests.test_uncorrelated_empty_message_and_foreign_text_subclass_behavior",
+        "inherited": false,
+        "line": 687,
+        "method": "test_uncorrelated_empty_message_and_foreign_text_subclass_behavior",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportSourceTests.test_generated_source_resource_and_no_unqualified_build_output",
+        "end_line": 164,
+        "id": "tests.test_hia_worker_report_native.WorkerReportSourceTests.test_generated_source_resource_and_no_unqualified_build_output",
+        "inherited": false,
+        "line": 151,
+        "method": "test_generated_source_resource_and_no_unqualified_build_output",
+        "path": "tests/test_hia_worker_report_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_report_native.WorkerReportSourceTests.test_independent_core_vm_policy_emits_native_virtual_report",
+        "end_line": 218,
+        "id": "tests.test_hia_worker_report_native.WorkerReportSourceTests.test_independent_core_vm_policy_emits_native_virtual_report",
+        "inherited": false,
+        "line": 166,
+        "method": "test_independent_core_vm_policy_emits_native_virtual_report",
+        "path": "tests/test_hia_worker_report_native.py"
+      }
+    ],
+    "tests.test_hia_worker_request_native": [
+      {
+        "defining_id": "tests.test_hia_worker_request_native.WorkerRequestNativeTests.test_errors_keep_original_report_correlation_and_never_create_store",
+        "end_line": 181,
+        "id": "tests.test_hia_worker_request_native.WorkerRequestNativeTests.test_errors_keep_original_report_correlation_and_never_create_store",
+        "inherited": false,
+        "line": 166,
+        "method": "test_errors_keep_original_report_correlation_and_never_create_store",
+        "path": "tests/test_hia_worker_request_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_native.WorkerRequestNativeTests.test_installed_wheel_resource_and_request_without_authoring_modules",
+        "end_line": 229,
+        "id": "tests.test_hia_worker_request_native.WorkerRequestNativeTests.test_installed_wheel_resource_and_request_without_authoring_modules",
+        "inherited": false,
+        "line": 188,
+        "method": "test_installed_wheel_resource_and_request_without_authoring_modules",
+        "path": "tests/test_hia_worker_request_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_native.WorkerRequestNativeTests.test_ordinary_worker_native_admission_retained_replay_conflict_and_unknown",
+        "end_line": 164,
+        "id": "tests.test_hia_worker_request_native.WorkerRequestNativeTests.test_ordinary_worker_native_admission_retained_replay_conflict_and_unknown",
+        "inherited": false,
+        "line": 136,
+        "method": "test_ordinary_worker_native_admission_retained_replay_conflict_and_unknown",
+        "path": "tests/test_hia_worker_request_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_native.WorkerRequestNativeTests.test_selected_missing_manifest_never_falls_back",
+        "end_line": 186,
+        "id": "tests.test_hia_worker_request_native.WorkerRequestNativeTests.test_selected_missing_manifest_never_falls_back",
+        "inherited": false,
+        "line": 183,
+        "method": "test_selected_missing_manifest_never_falls_back",
+        "path": "tests/test_hia_worker_request_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_native.WorkerRequestSourceTests.test_generated_source_and_independent_VM",
+        "end_line": 67,
+        "id": "tests.test_hia_worker_request_native.WorkerRequestSourceTests.test_generated_source_and_independent_VM",
+        "inherited": false,
+        "line": 54,
+        "method": "test_generated_source_and_independent_VM",
+        "path": "tests/test_hia_worker_request_native.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_native.WorkerRequestSourceTests.test_unqualified_build_creates_no_output",
+        "end_line": 77,
+        "id": "tests.test_hia_worker_request_native.WorkerRequestSourceTests.test_unqualified_build_creates_no_output",
+        "inherited": false,
+        "line": 69,
+        "method": "test_unqualified_build_creates_no_output",
+        "path": "tests/test_hia_worker_request_native.py"
+      }
+    ],
+    "tests.test_hia_worker_request_review": [
+      {
+        "defining_id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_concurrent_calls_keep_trusted_catalog_and_source_order_private",
+        "end_line": 302,
+        "id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_concurrent_calls_keep_trusted_catalog_and_source_order_private",
+        "inherited": false,
+        "line": 295,
+        "method": "test_concurrent_calls_keep_trusted_catalog_and_source_order_private",
+        "path": "tests/test_hia_worker_request_review.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_configured_integer_digit_limit_precedes_envelope_fields",
+        "end_line": 222,
+        "id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_configured_integer_digit_limit_precedes_envelope_fields",
+        "inherited": false,
+        "line": 211,
+        "method": "test_configured_integer_digit_limit_precedes_envelope_fields",
+        "path": "tests/test_hia_worker_request_review.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_direct_admission_has_no_foreign_payload_parser_encoder_or_digest_fallback",
+        "end_line": 293,
+        "id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_direct_admission_has_no_foreign_payload_parser_encoder_or_digest_fallback",
+        "inherited": false,
+        "line": 285,
+        "method": "test_direct_admission_has_no_foreign_payload_parser_encoder_or_digest_fallback",
+        "path": "tests/test_hia_worker_request_review.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_finite_binary64_bits_shortest_rendering_and_decimal_rounding",
+        "end_line": 175,
+        "id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_finite_binary64_bits_shortest_rendering_and_decimal_rounding",
+        "inherited": false,
+        "line": 155,
+        "method": "test_finite_binary64_bits_shortest_rendering_and_decimal_rounding",
+        "path": "tests/test_hia_worker_request_review.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_native_buffer_bounds_and_readonly_source_canaries",
+        "end_line": 266,
+        "id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_native_buffer_bounds_and_readonly_source_canaries",
+        "inherited": false,
+        "line": 224,
+        "method": "test_native_buffer_bounds_and_readonly_source_canaries",
+        "path": "tests/test_hia_worker_request_review.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_only_root_digest_is_omitted_and_noncanonical_raw_has_same_identity",
+        "end_line": 111,
+        "id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_only_root_digest_is_omitted_and_noncanonical_raw_has_same_identity",
+        "inherited": false,
+        "line": 97,
+        "method": "test_only_root_digest_is_omitted_and_noncanonical_raw_has_same_identity",
+        "path": "tests/test_hia_worker_request_review.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_parsed_rejections_preserve_original_correlation_presence_rule",
+        "end_line": 136,
+        "id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_parsed_rejections_preserve_original_correlation_presence_rule",
+        "inherited": false,
+        "line": 113,
+        "method": "test_parsed_rejections_preserve_original_correlation_presence_rule",
+        "path": "tests/test_hia_worker_request_review.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_plain_json_unicode_order_escapes_and_types_match_independent_wire",
+        "end_line": 185,
+        "id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_plain_json_unicode_order_escapes_and_types_match_independent_wire",
+        "inherited": false,
+        "line": 177,
+        "method": "test_plain_json_unicode_order_escapes_and_types_match_independent_wire",
+        "path": "tests/test_hia_worker_request_review.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_request_admission_uses_digest_body_budget_not_complete_envelope_budget",
+        "end_line": 283,
+        "id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_request_admission_uses_digest_body_budget_not_complete_envelope_budget",
+        "inherited": false,
+        "line": 268,
+        "method": "test_request_admission_uses_digest_body_budget_not_complete_envelope_budget",
+        "path": "tests/test_hia_worker_request_review.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_source_order_arena_is_restored_after_success_and_all_semantic_refusals",
+        "end_line": 95,
+        "id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_source_order_arena_is_restored_after_success_and_all_semantic_refusals",
+        "inherited": false,
+        "line": 78,
+        "method": "test_source_order_arena_is_restored_after_success_and_all_semantic_refusals",
+        "path": "tests/test_hia_worker_request_review.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_syntax_unicode_duplicate_nonfinite_and_depth_never_return_correlated_request",
+        "end_line": 209,
+        "id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_syntax_unicode_duplicate_nonfinite_and_depth_never_return_correlated_request",
+        "inherited": false,
+        "line": 187,
+        "method": "test_syntax_unicode_duplicate_nonfinite_and_depth_never_return_correlated_request",
+        "path": "tests/test_hia_worker_request_review.py"
+      },
+      {
+        "defining_id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_tool_limit_counts_unicode_scalars_and_arguments_policy_is_delegated",
+        "end_line": 153,
+        "id": "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_tool_limit_counts_unicode_scalars_and_arguments_policy_is_delegated",
+        "inherited": false,
+        "line": 138,
+        "method": "test_tool_limit_counts_unicode_scalars_and_arguments_policy_is_delegated",
+        "path": "tests/test_hia_worker_request_review.py"
+      }
+    ]
+  },
+  "existing_qualifier_static_defaults": [
+    {
+      "ids": [
+        "tests.test_hia_agent_native_tools.AgentStoreDirectoryPermissionTests.test_preexisting_world_writable_artifact_directory_is_rejected",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_allocation_resource_trace_difference_is_not_value_equivalence",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_equivalence_search_uses_remaining_frozen_context_budget",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_invalid_candidate_is_repaired_with_an_explicit_new_request",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_matching_return_values_do_not_hide_different_first_trap",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_patch_binds_canonical_base_and_whole_candidate_is_rechecked",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_stale_context_and_foreign_validation_profile_are_rejected",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission",
+        "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_all_eleven_tools_and_full_u8_native_workload",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_published_version_lease_survives_rollback_and_release_is_checked",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_tool_object_emission_needs_no_llvm_import_or_external_process",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_u64_generation_boundary_rejects_out_of_range_strings",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_a_matching_workload_example_does_not_hide_a_counterexample",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_actual_object_encoding_proof_exposes_same_implementation_limit",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_admission_is_self_contained_even_when_detached_from_response",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_legacy_result_cannot_bypass_the_current_output_contract",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_valid_shape_cannot_change_the_retained_checker_conclusion",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_canonical_lowering_unsupported_keeps_explicit_open_obligations",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_reemitted_bytes_are_refuted_without_a_semantic_safety_claim",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_subject_profile_checker_assumptions_and_obligations_are_rejected",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_compositional_proof_names_the_actual_solver_and_excluded_vm_ticks",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_conditional_machine_plan_preserves_scope_at_emission",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_discovery_teaches_scope_before_verification",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_exact_verification_replay_preserves_the_original_scoped_result",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_finite_domain_is_complete_despite_single_case_workload",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_incomplete_reference_enumeration_remains_unknown_with_full_scope",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_missing_scope_fields_and_legacy_receipts_are_rejected_by_emission",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_rebound_assumptions_or_evidence_cannot_be_substituted",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_reflexivity_retains_both_exact_program_references",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_required_acceptance_claims_reject_valid_status_with_missing_scope",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_turn_unsupported_lowering_into_a_proof",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_upgrade_incomplete_evidence",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_unsupported_scope_cannot_satisfy_a_required_lowering_property",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_verification_replay_rejects_changed_installed_checker_source",
+        "tests.test_hia_agent_native_lease_snapshot.LeaseSnapshotTests.test_caller_mutation_during_native_call_cannot_relabel_result_or_buffers",
+        "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_separate_checks_and_assumptions_remain_in_verification_receipt",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_register_lifetimes_are_retained_without_claiming_identical_slots",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_unknown_value_register_assignment_is_refused_through_domain_tools",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_cli_requires_explicit_campaign_before_any_transport_or_evidence",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_committed_but_lost_reply_retains_original_intent_for_recovery",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_existing_output_is_preserved_and_refused_before_dispatch",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_invalid_campaign_cannot_start_a_transport_or_use_an_arbitrary_slot",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_two_campaigns_share_store_but_not_slot_and_reconnect_does_not_reexecute",
+        "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_actual_agent_all_four_edits_forbid_old_payload_owners",
+        "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_actual_installed_wheel_agent_path_forbids_tools_and_refuses_selected_drift",
+        "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_canonical_snapshot_identity_and_large_candidate_result_extent",
+        "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_exact_replay_precedes_bad_manifest_context_work_and_attempt_charge",
+        "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_identical_bytes_keep_context_metadata_and_namespace_authority",
+        "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_killed_candidate_stages_retain_unknown_and_terminal_reply_replays",
+        "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_mode2_configuration_and_untrusted_frame_extents_are_refused",
+        "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_native_result_migration_order_default_loans_and_64_changes",
+        "tests.test_hia_agent_candidate_native.AgentCandidateNativeTests.test_schema_semantic_and_composite_refusals_issue_no_candidate_refs",
+        "tests.test_hia_worker_request_native.WorkerRequestNativeTests.test_errors_keep_original_report_correlation_and_never_create_store",
+        "tests.test_hia_worker_request_native.WorkerRequestNativeTests.test_installed_wheel_resource_and_request_without_authoring_modules",
+        "tests.test_hia_worker_request_native.WorkerRequestNativeTests.test_ordinary_worker_native_admission_retained_replay_conflict_and_unknown",
+        "tests.test_hia_worker_request_native.WorkerRequestNativeTests.test_selected_missing_manifest_never_falls_back",
+        "tests.test_hia_worker_request_native.WorkerRequestSourceTests.test_generated_source_and_independent_VM",
+        "tests.test_hia_worker_request_native.WorkerRequestSourceTests.test_unqualified_build_creates_no_output",
+        "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_concurrent_calls_keep_trusted_catalog_and_source_order_private",
+        "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_configured_integer_digit_limit_precedes_envelope_fields",
+        "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_direct_admission_has_no_foreign_payload_parser_encoder_or_digest_fallback",
+        "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_finite_binary64_bits_shortest_rendering_and_decimal_rounding",
+        "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_native_buffer_bounds_and_readonly_source_canaries",
+        "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_only_root_digest_is_omitted_and_noncanonical_raw_has_same_identity",
+        "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_parsed_rejections_preserve_original_correlation_presence_rule",
+        "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_plain_json_unicode_order_escapes_and_types_match_independent_wire",
+        "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_request_admission_uses_digest_body_budget_not_complete_envelope_budget",
+        "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_source_order_arena_is_restored_after_success_and_all_semantic_refusals",
+        "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_syntax_unicode_duplicate_nonfinite_and_depth_never_return_correlated_request",
+        "tests.test_hia_worker_request_review.WorkerRequestAdversarialTests.test_tool_limit_counts_unicode_scalars_and_arguments_policy_is_delegated"
+      ],
+      "line": 27,
+      "modules": [
+        "tests.test_hia_agent_native_tools",
+        "tests.test_hia_agent_native_proof_contract",
+        "tests.test_hia_agent_native_lease_snapshot",
+        "tests.test_hia_agent_native_machine_choices",
+        "tests.test_hia_agent_native_campaign",
+        "tests.test_hia_agent_candidate_native",
+        "tests.test_hia_worker_request_native",
+        "tests.test_hia_worker_request_review"
+      ],
+      "path": "tools/qualify_hia_agent_journal_callers.py",
+      "runtime_not_imported_or_executed": true,
+      "static_original_id_count": 94
+    },
+    {
+      "ids": [
+        "tests.test_hia_agent_native_tools.AgentStoreDirectoryPermissionTests.test_preexisting_world_writable_artifact_directory_is_rejected",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_allocation_resource_trace_difference_is_not_value_equivalence",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_equivalence_search_uses_remaining_frozen_context_budget",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_invalid_candidate_is_repaired_with_an_explicit_new_request",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_matching_return_values_do_not_hide_different_first_trap",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_patch_binds_canonical_base_and_whole_candidate_is_rechecked",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_stale_context_and_foreign_validation_profile_are_rejected",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission",
+        "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_all_eleven_tools_and_full_u8_native_workload",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_published_version_lease_survives_rollback_and_release_is_checked",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_tool_object_emission_needs_no_llvm_import_or_external_process",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_u64_generation_boundary_rejects_out_of_range_strings",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_a_matching_workload_example_does_not_hide_a_counterexample",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_actual_object_encoding_proof_exposes_same_implementation_limit",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_admission_is_self_contained_even_when_detached_from_response",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_legacy_result_cannot_bypass_the_current_output_contract",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_valid_shape_cannot_change_the_retained_checker_conclusion",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_canonical_lowering_unsupported_keeps_explicit_open_obligations",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_reemitted_bytes_are_refuted_without_a_semantic_safety_claim",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_subject_profile_checker_assumptions_and_obligations_are_rejected",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_compositional_proof_names_the_actual_solver_and_excluded_vm_ticks",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_conditional_machine_plan_preserves_scope_at_emission",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_discovery_teaches_scope_before_verification",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_exact_verification_replay_preserves_the_original_scoped_result",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_finite_domain_is_complete_despite_single_case_workload",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_incomplete_reference_enumeration_remains_unknown_with_full_scope",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_missing_scope_fields_and_legacy_receipts_are_rejected_by_emission",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_rebound_assumptions_or_evidence_cannot_be_substituted",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_reflexivity_retains_both_exact_program_references",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_required_acceptance_claims_reject_valid_status_with_missing_scope",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_turn_unsupported_lowering_into_a_proof",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_upgrade_incomplete_evidence",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_unsupported_scope_cannot_satisfy_a_required_lowering_property",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_verification_replay_rejects_changed_installed_checker_source",
+        "tests.test_hia_agent_native_lease_snapshot.LeaseSnapshotTests.test_caller_mutation_during_native_call_cannot_relabel_result_or_buffers",
+        "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_separate_checks_and_assumptions_remain_in_verification_receipt",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_register_lifetimes_are_retained_without_claiming_identical_slots",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_unknown_value_register_assignment_is_refused_through_domain_tools",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_cli_requires_explicit_campaign_before_any_transport_or_evidence",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_committed_but_lost_reply_retains_original_intent_for_recovery",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_existing_output_is_preserved_and_refused_before_dispatch",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_invalid_campaign_cannot_start_a_transport_or_use_an_arbitrary_slot",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_two_campaigns_share_store_but_not_slot_and_reconnect_does_not_reexecute"
+      ],
+      "line": 23,
+      "modules": [
+        "tests.test_hia_agent_native_tools",
+        "tests.test_hia_agent_native_proof_contract",
+        "tests.test_hia_agent_native_lease_snapshot",
+        "tests.test_hia_agent_native_machine_choices",
+        "tests.test_hia_agent_native_campaign"
+      ],
+      "path": "tools/qualify_hia_agent_store_authority_callers.py",
+      "runtime_not_imported_or_executed": true,
+      "static_original_id_count": 67
+    },
+    {
+      "ids": [
+        "tests.test_hia_agent_native_tools.AgentStoreDirectoryPermissionTests.test_preexisting_world_writable_artifact_directory_is_rejected",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+        "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_allocation_resource_trace_difference_is_not_value_equivalence",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_equivalence_search_uses_remaining_frozen_context_budget",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_invalid_candidate_is_repaired_with_an_explicit_new_request",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_matching_return_values_do_not_hide_different_first_trap",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_patch_binds_canonical_base_and_whole_candidate_is_rechecked",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_stale_context_and_foreign_validation_profile_are_rejected",
+        "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission",
+        "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_all_eleven_tools_and_full_u8_native_workload",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_published_version_lease_survives_rollback_and_release_is_checked",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_tool_object_emission_needs_no_llvm_import_or_external_process",
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_u64_generation_boundary_rejects_out_of_range_strings",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_a_matching_workload_example_does_not_hide_a_counterexample",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_actual_object_encoding_proof_exposes_same_implementation_limit",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_admission_is_self_contained_even_when_detached_from_response",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_legacy_result_cannot_bypass_the_current_output_contract",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_valid_shape_cannot_change_the_retained_checker_conclusion",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_canonical_lowering_unsupported_keeps_explicit_open_obligations",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_reemitted_bytes_are_refuted_without_a_semantic_safety_claim",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_subject_profile_checker_assumptions_and_obligations_are_rejected",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_compositional_proof_names_the_actual_solver_and_excluded_vm_ticks",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_conditional_machine_plan_preserves_scope_at_emission",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_discovery_teaches_scope_before_verification",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_exact_verification_replay_preserves_the_original_scoped_result",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_finite_domain_is_complete_despite_single_case_workload",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_incomplete_reference_enumeration_remains_unknown_with_full_scope",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_missing_scope_fields_and_legacy_receipts_are_rejected_by_emission",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_rebound_assumptions_or_evidence_cannot_be_substituted",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_reflexivity_retains_both_exact_program_references",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_required_acceptance_claims_reject_valid_status_with_missing_scope",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_turn_unsupported_lowering_into_a_proof",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_upgrade_incomplete_evidence",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_unsupported_scope_cannot_satisfy_a_required_lowering_property",
+        "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_verification_replay_rejects_changed_installed_checker_source",
+        "tests.test_hia_agent_native_lease_snapshot.LeaseSnapshotTests.test_caller_mutation_during_native_call_cannot_relabel_result_or_buffers",
+        "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_separate_checks_and_assumptions_remain_in_verification_receipt",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_register_lifetimes_are_retained_without_claiming_identical_slots",
+        "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_unknown_value_register_assignment_is_refused_through_domain_tools",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_cli_requires_explicit_campaign_before_any_transport_or_evidence",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_committed_but_lost_reply_retains_original_intent_for_recovery",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_existing_output_is_preserved_and_refused_before_dispatch",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_invalid_campaign_cannot_start_a_transport_or_use_an_arbitrary_slot",
+        "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_two_campaigns_share_store_but_not_slot_and_reconnect_does_not_reexecute"
+      ],
+      "line": 22,
+      "modules": [
+        "tests.test_hia_agent_native_tools",
+        "tests.test_hia_agent_native_proof_contract",
+        "tests.test_hia_agent_native_lease_snapshot",
+        "tests.test_hia_agent_native_machine_choices",
+        "tests.test_hia_agent_native_campaign"
+      ],
+      "path": "tools/qualify_hia_artifact_read_callers.py",
+      "runtime_not_imported_or_executed": true,
+      "static_original_id_count": 67
+    }
+  ],
+  "statement_scan_limitations": [
+    "52 counts direct connection/execute/executescript call AST sites only, not loop iterations or indirect execute callbacks.",
+    "127 broad string candidates in DB-BOUNDARY-AND-CALLERS include prefixes and non-SQL words; they are not a statement denominator.",
+    "13-module IDs are static resolved definitions/inheritance, not a new test execution or replacement gate population."
+  ],
+  "proposed_next_complete_interface": {
+    "name": "HIA fixed-schema AgentStore database backend",
+    "status": "PROPOSAL_NOT_IMPLEMENTED",
+    "entry": "AgentStore.db shared connection boundary",
+    "externally_preserved": [
+      "execute(sql,params)",
+      "executescript(initial schema)",
+      "fetchone/fetchall/cursor iteration",
+      "row string and ordinal lookup",
+      "rowcount",
+      "set_trace_callback for original selected controls",
+      "close",
+      "same explicit transaction semantics"
+    ],
+    "algorithm_owner": [
+      "schema/root-page catalog",
+      "table and index traversal",
+      "record binding/storage class comparison",
+      "table/index insertion and update",
+      "snapshot-aware WAL page overlay",
+      "writer locking, durable commit, rollback, restart/recovery, checkpoint lifecycle"
+    ],
+    "foreign_leaves": [
+      "bounded original file reads/writes",
+      "lock syscall and fsync results",
+      "clock/allocator and Python result-object bridge kept explicitly hosted"
+    ],
+    "not_sufficient": [
+      "wrapping sqlite3_prepare/step in a C leaf",
+      "separate requests-only store",
+      "read-only cell codec beside default sqlite3 connection",
+      "claiming all old caller tests supported by only31 normal SQL templates"
+    ]
+  },
+  "fixture_compatibility_not_optional": [
+    {
+      "path": "tests/test_hia_agent_journal_native.py",
+      "lines": [
+        323,
+        407
+      ],
+      "constraint": "original effect_probe CREATE/INSERT/SELECT plus real commit/rollback ambiguity and native ACK failures"
+    },
+    {
+      "path": "tests/test_hia_agent_journal_native.py",
+      "lines": [
+        231,
+        273
+      ],
+      "constraint": "arbitrary precision TEXT times; no narrowing to u64"
+    },
+    {
+      "path": "tests/test_hia_agent_journal_native.py",
+      "lines": [
+        606,
+        628
+      ],
+      "constraint": "BLOB/non-TEXT digest/state preserve conflict-before-unknown ordering"
+    },
+    {
+      "path": "tests/test_hia_agent_store_authority_native.py",
+      "lines": [
+        215,
+        319
+      ],
+      "constraint": "bad parameter binding, opaque URI, metadata corruption, repeated row getitem and transaction SQL faults"
+    },
+    {
+      "path": "tests/test_hia_agent_store_authority_native.py",
+      "lines": [
+        363,
+        408
+      ],
+      "constraint": "db.execute callable binds before argument effects"
+    },
+    {
+      "path": "tests/test_hia_artifact_read_native.py",
+      "lines": [
+        54,
+        105
+      ],
+      "constraint": "nullable narrow cursor schema used by standalone SQL fixtures, actual snapshots and reopen"
+    },
+    {
+      "path": "tools/qualify_hia_agent_store_authority_callers.py",
+      "lines": [
+        41,
+        84
+      ],
+      "constraint": "original separate uri_control SQL trace and before/after/reopen inspection"
+    }
+  ],
+  "byte_kernel_evidence": [
+    {
+      "component": "varint",
+      "commit": "091e83392c9076cf7cd2b7cb1f19b46ee45f64f5",
+      "tree": "67c7e67f2ed0bb614d4da42f1d970d0b613447c2",
+      "methods": 8,
+      "native_returns": 76054,
+      "trace_bytes": 207481528,
+      "scope": "historical development B3; get/put byte kernel; no SQL/storage ownership",
+      "source": "cold_ci_closure exact canonical handoff"
+    },
+    {
+      "component": "WAL",
+      "commit": "7ffcb9375481a29ccffb69b6fdc681be247d539d",
+      "tree": "dba71813ab75f6cf2c8c2d1484d9e45f37e7dd15",
+      "methods": 10,
+      "native_returns": 238,
+      "trace_bytes": 1321832,
+      "scope": "checksum/header/frame byte kernel; no WAL-index/locking/commit/recovery owner",
+      "source": "cold_ci_closure exact canonical handoff"
+    },
+    {
+      "component": "record",
+      "commit": "a0d3af18bf0cde0bd6e5e977cc0ce5bd53cb97b3",
+      "tree": "0755212f424f68a58ae29e19a83b119661a65bdd",
+      "methods": 12,
+      "native_returns": 159,
+      "trace_bytes": 24830697,
+      "scope": "record/field byte kernel; C comparison restricted to2774 fields per oracle, not invalid whole-record oracle",
+      "source": "cold_ci_closure exact canonical handoff"
+    },
+    {
+      "component": "B-tree selected cell",
+      "source_methods": 12,
+      "source_cases": 339,
+      "native_executed_as_of_peer_message": false,
+      "scope": "source PASS only; native request being frozen by native_install_owner",
+      "source": "cold_ci_closure current status"
+    }
+  ],
+  "remaining_recovery_requirements": [
+    "Existing db + committed WAL must reopen into one coherent snapshot, including live reader end marks; do not read main-file pages alone.",
+    "Exactly one write transaction across connections/processes; per-instance RLock is not a storage lock replacement.",
+    "Maintain artifact-file durable-before-DB-publication order and retain possible orphan bytes after failure.",
+    "Keep running request and native budget owner after uncertain outcome; never convert missing ACK into permission to replay.",
+    "Adopt/rollback mutation, retained versions and response commit remain atomic in one database transaction.",
+    "Record corruption, partial WAL tail, write/fsync failure and commit-ack loss must preserve original observable error/state; no silent SQLite fallback.",
+    "No new whole-database, whole-WAL or arbitrary-int text size cap may be inferred from individual native image/compile buffers."
+  ],
+  "current_qualification_not_claimed": [
+    "default native SQLite replacement",
+    "current matching-cold for experimental byte kernels",
+    "Core116",
+    "UNPACK18",
+    "installed conjunction",
+    "Full32"
+  ],
+  "references": [
+    {
+      "url": "https://sqlite.org/fileformat.html",
+      "use": "main database/WAL as persistent state; page/schema/overflow/index formats"
+    },
+    {
+      "url": "https://sqlite.org/autoinc.html",
+      "use": "costs AUTOINCREMENT requires durable sqlite_sequence semantics"
+    },
+    {
+      "url": "https://sqlite.org/lang_transaction.html",
+      "use": "implicit/explicit transaction and cross-connection write locking"
+    },
+    {
+      "url": "https://sqlite.org/wal.html",
+      "use": "commit records, reader end marks, overlay and checkpoint lifecycle"
+    }
+  ]
+}

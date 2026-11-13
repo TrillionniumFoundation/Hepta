@@ -1,0 +1,39 @@
+{
+  "schema": "hia.sqlite.wal-snapshot.source12-static-denominators.v1",
+  "status": "STATIC_COUNTING_NOT_EXECUTED",
+  "expected_methods": 12,
+  "expected_VM_returns": 608,
+  "counts": [
+    0,
+    76,
+    46,
+    141,
+    108,
+    136,
+    24,
+    43,
+    7,
+    13,
+    14,
+    0
+  ],
+  "derivations": [
+    "01: generation/roundtrip only; zero VM entries",
+    "02: two orders * (scan8 + two committed lookups7 each + missing lookup2 + two repeated committed lookups7 each) =76",
+    "03: two orders*(scan5 + three no-commit lookups2 each + repeated lookup2) + five short-WAL cases*(scan2+missing2) =46",
+    "04: eight extents<=32*4 + two incomplete-first-frame*5 + exact first commit8 + ten partial-second-frame*8 + complete second commit10 + short-I/O constructor1 =141",
+    "05: nine corrupt second-frame*(scan5+lookup4) + zero-page second-frame9 + three corrupt first-frame*(scan4+base lookup2) =108",
+    "06: sixteen page/order header-only5 + three bad-magic5 + six bad-size5 + corrupt-version-checksum5 + three unsupported-version2 =136",
+    "07: scan5 + appended-view lookup5 + changed-header2 + corrupt-first-frame3 + checksum-valid changed-prefix4 + original-prefix lookup5 =24",
+    "08: scan7 + two lookups6 each + two missing lookups2 each + repeated missing2 + repeated base lookup6 + empty scan2 + maximum-page base lookup2 + maximum-page WAL scan4/lookup4 =43",
+    "09: huge extent start/header/validframe/corruptframe/finish5 + max-extent header start/header2 =7",
+    "10: six raw protocol refusals + raw start/finish2 + three post-finish refusals + empty scan2 =13",
+    "11: caught-reentry start/header2 + external-error start1 + four custody/status start/header cases2 each + normal empty start/finish2 + bytes-subclass constructor1 =14",
+    "12: retained source/ABI/AST comparison only; zero VM entries"
+  ],
+  "limitations": [
+    "These are fixed source-control entry counts derived from the authored loops; no call has yet run.",
+    "Only 512-byte frame bodies enter the VM in this source request. Sizes through 65536 are header/packet representation controls.",
+    "Future finite native request must execute complete frames and lookups for every supported page size, retain full buffers, and keep this source result separate."
+  ]
+}

@@ -1,0 +1,277 @@
+--- record-source12/control/source12.py
++++ wal-snapshot-source12/control/source12.py
+@@ -68,20 +68,26 @@
+     return found
+ def vm_readback(q,out):
+     raw,pin=read(out/'tests/VM-RAW.json',16<<20);value=json.loads(raw)
++    require(value['schema']=='hia.sqlite.wal-snapshot.vm-raw.v1' and value['native_executed'] is False and value['compiler_executed'] is False,'VM scope differs')
+-    require(value['schema']=='hia.sqlite-record.source-vm-raw.v1' and value['native_executed'] is False and value['compiler_executed'] is False,'VM scope differs')
+     calls=value['calls'];counts={name:0 for name in q['expected_ids']};sequence=[]
++    require(len(calls)==q['expected_vm_returns']==608,'VM population differs')
+-    require(len(calls)==q['expected_vm_returns']==159,'VM population differs')
+     for row in calls:
+         require(row['case'] in counts and row['actual_returned'] is True and type(row['status']) is int,'VM call missing actual return')
++        require(row['source_before_hex']==row['source_after_hex'],'VM immutable input changed')
++        buffers={key:bytes.fromhex(row[key]) for key in
++                 ('source_before_hex','source_after_hex','output_before_hex','output_after_hex','state_before_hex','state_after_hex')}
++        require(all(body.hex()==row[key] for key,body in buffers.items()),'noncanonical full VM bytes')
++        require(len(buffers['source_before_hex'])<=65576 and
++                len(buffers['output_before_hex'])==len(buffers['output_after_hex'])==128 and
++                len(buffers['state_before_hex'])==len(buffers['state_after_hex'])==256,'VM span extent differs')
++        if row['status'] in (0xfffffffd,0xfffffff9,0xfffffff8):
++            require(buffers['output_before_hex']==buffers['output_after_hex'] and
++                    buffers['state_before_hex']==buffers['state_after_hex'],'refused VM changed its spans')
++        else:require(row['status']==128,'unexpected VM return')
+-        for before,after in [('source_before_hex','source_after_hex'),('control_before_hex','control_after_hex')]:
+-            require(row[before]==row[after] and bytes.fromhex(row[before]).hex()==row[before],'VM immutable span changed')
+-        a,b=bytes.fromhex(row['output_before_hex']),bytes.fromhex(row['output_after_hex'])
+-        require(len(a)==len(b),'VM output extent changed')
+-        if row['status'] in (0xfffffffd,0xfffffffe,0xfffffffc,0xfffffffb,0xfffffffa,0xfffffff9):require(a==b,'refused VM modified output')
+-        else:require(32<=row['status']<=80032 and (row['status']-32)%40==0,'unexpected VM return')
+         counts[row['case']]+=1;sequence.append(row['case'])
+     require(counts==q['expected_vm_by_id'] and sequence==[name for name in q['expected_ids'] for _ in range(counts[name])],'ordered VM population differs')
+     return {'pin':pin,'calls':len(calls),'by_id':counts,'whole_raw_buffers_read':True}
++
+ def worker(q,request_raw,request_sha):
+     import ctypes
+     import mmap
+@@ -89,7 +95,7 @@
+     import subprocess
+     import unittest
+     out=Path(q['output_root']);tests=out/'tests';tests.mkdir(mode=0o700)
++    report={'schema':'hia.sqlite-wal-snapshot.source12-report.v1','status':'HOLD','expected_ids':q['expected_ids'],
+-    report={'schema':'hia.sqlite-record.source12-report.v1','status':'HOLD','expected_ids':q['expected_ids'],
+             'loaded_ids':[],'actual_ids':[],'success_ids':[],'failures':[],'errors':[],'skips':[],
+             'expected_failures':[],'unexpected_successes':[],'loader_errors':[],'denied_effects':[],'exception':None,'secondary_errors':[],
+             'native_executed':False,'C_compiler_or_oracle_executed':False,'database_opened':False,'network_used':False}
+@@ -105,16 +111,15 @@
+     try:
+         sys.addaudithook(audit);subprocess.Popen=deny('Popen');os.system=deny('system')
+         ctypes.CDLL=deny('CDLL');ctypes.PyDLL=deny('PyDLL');mmap.mmap=deny('mmap');socket.create_connection=deny('socket')
++        os.environ['HEPTA_SQLITE_WAL_SNAPSHOT_SOURCE_EVIDENCE']=str(tests)
+-        os.environ['HEPTA_SQLITE_RECORD_SOURCE_EVIDENCE']=str(tests)
+         sys.path[:0]=[str(ROOT/'inputs'),q['source_root']]
+         hepta=importlib.import_module('hepta');hepta.__path__[:]=[str(ROOT/'inputs/hepta'),str(Path(q['source_root'])/'hepta')]
+         importlib.import_module('tools');importlib.import_module('tests')
+         native=importlib.import_module('hepta.hia_json_preflight_native');native.NativeHiaJsonImage.__init__=deny('native image construction')
++        spec=importlib.util.spec_from_file_location(q['test_module'],ROOT/'inputs/tests/test_hia_sqlite_wal_snapshot_source.py')
+-        spec=importlib.util.spec_from_file_location(q['test_module'],ROOT/'inputs/tests/test_hia_sqlite_record_source.py')
+         module=importlib.util.module_from_spec(spec);sys.modules[q['test_module']]=module;spec.loader.exec_module(module)
++        cls=module.SQLiteWalSnapshotSourceTests;names=[x.rsplit('.',1)[1] for x in q['expected_ids']]
+-        cls=module.SQLiteRecordSourceTests;names=[x.rsplit('.',1)[1] for x in q['expected_ids']]
+         require(tuple(names)==module.EXPECTED_NAMES and set(names)=={n for n in cls.__dict__ if n.startswith('test_')},'source method selection differs')
+-        require(list(module.EXPECTED_COUNTS)==list(q['expected_vm_by_id'].values()),'frozen per-method population differs')
+         suite=unittest.TestSuite(cls(n) for n in names);report['loaded_ids']=[x.id() for x in suite]
+         require(report['loaded_ids']==q['expected_ids'],'source loader population differs')
+         class Result(unittest.TextTestResult):
+@@ -138,7 +143,7 @@
+     passed=(report['exception'] is None and not report['secondary_errors'] and report.get('inputs_unchanged') is True
+             and report.get('tests_run')==12 and report['expected_ids']==report['loaded_ids']==report['actual_ids']==report['success_ids']
+             and all(report[k]==[] for k in ('failures','errors','skips','expected_failures','unexpected_successes','loader_errors','denied_effects')))
++    report['seconds']=time.monotonic()-started;report['status']='SOURCE12_WAL_SNAPSHOT_VM_PASS_ONLY' if passed else 'HOLD'
+-    report['seconds']=time.monotonic()-started;report['status']='SOURCE12_RECORD_VM_PASS_ONLY' if passed else 'HOLD'
+     create(tests/'REPORT.json',report);print(json.dumps({'status':report['status'],'tests':report.get('tests_run'),'seconds':report['seconds']}),flush=True)
+     return 0 if passed else 1
+ def parent(q,raw,request_sha):
+@@ -147,11 +152,11 @@
+     capacity=os.statvfs(out.parent)
+     require(capacity.f_bavail*capacity.f_frsize>=256<<20 and capacity.f_favail>=4096,'source storage reserve insufficient')
+     out.mkdir(mode=0o700);create(out/'REQUEST.original.json',raw);create(out/'INPUTS-BEFORE.json',before)
++    final={'schema':'hia.sqlite-wal-snapshot.source12-final.v1','status':'HOLD','closed':False,'natural':False,'errors':[],
+-    final={'schema':'hia.sqlite-record.source12-final.v1','status':'HOLD','closed':False,'natural':False,'errors':[],
+            'request_sha256':request_sha,'qualification_seconds':180,'cleanup_seconds':3,'native_or_SQL_executed':False}
+     command=[q['runtime']['executable'],'-I','-S','-B',str(Path(__file__).resolve()),'--request',str(ROOT/'REQUEST.json'),'--sha256',request_sha,'--worker']
+     try:
++        owner=load('wal_snapshot_original_process_owner',q['owner_path'])
+-        owner=load('record_original_process_owner',q['owner_path'])
+         wrapper=owner.run_owned(command,cwd=ROOT,env=q['environment'],stdout_path=out/'stdout.log',stderr_path=out/'stderr.log',receipt_path=out/'owner.json',qualification_seconds=180,cleanup_seconds=3)
+         create(out/'OWNER-WRAPPER.json',wrapper)
+         life_raw,_=read(out/'owner.json');bound_raw,_=read(out/'owner.json.request.json');life=json.loads(life_raw);bound=json.loads(bound_raw)
+@@ -175,8 +180,8 @@
+                  and kinds==['qualification_started','owned_child_observed','qualification_exit_observed','owned_child_reaped'])
+         final['natural']=natural
+         report=json.loads(read(out/'tests/REPORT.json')[0]);final['worker_status']=report['status']
++        require(natural and report['status']=='SOURCE12_WAL_SNAPSHOT_VM_PASS_ONLY','source worker did not pass naturally')
++        final['status']='SOURCE12_WAL_SNAPSHOT_VM_PASS_ONLY'
+-        require(natural and report['status']=='SOURCE12_RECORD_VM_PASS_ONLY','source worker did not pass naturally')
+-        final['status']='SOURCE12_RECORD_VM_PASS_ONLY'
+     except BaseException as exc:final['errors'].append({'type':type(exc).__name__,'traceback':traceback.format_exc()})
+     finally:
+         if final['closed']:
+@@ -194,12 +199,12 @@
+         if final['errors']:final['status']='HOLD'
+         create(out/'FINAL.json',final)
+     print(json.dumps({'status':final['status'],'closed':final['closed'],'natural':final['natural']}),flush=True)
++    return 0 if final['status']=='SOURCE12_WAL_SNAPSHOT_VM_PASS_ONLY' else 1
+-    return 0 if final['status']=='SOURCE12_RECORD_VM_PASS_ONLY' else 1
+ def main():
+     p=argparse.ArgumentParser();p.add_argument('--request',type=Path,required=True);p.add_argument('--sha256',required=True);p.add_argument('--worker',action='store_true');a=p.parse_args()
+     require(a.request==ROOT/'REQUEST.json','unexpected request path')
+     raw,_=read(a.request);require(hashlib.sha256(raw).hexdigest()==a.sha256,'request hash differs');q=json.loads(raw)
++    require(q['schema']=='hia.sqlite-wal-snapshot.source12-request.v1' and q['qualification_seconds']==180 and q['cleanup_seconds']==3,'frozen operation differs')
+-    require(q['schema']=='hia.sqlite-record.source12-request.v1' and q['qualification_seconds']==180 and q['cleanup_seconds']==3,'frozen operation differs')
+     require(len(q['expected_ids'])==12 and len(set(q['expected_ids']))==12,'source population differs')
+     require(str(Path(sys.executable).resolve())==q['runtime']['executable'] and sys.version==q['runtime']['version'] and dict(os.environ)==q['environment'],'runtime or clean environment differs')
+     return worker(q,raw,a.sha256) if a.worker else parent(q,raw,a.sha256)
+--- record-source12/control/clean_exec.py
++++ wal-snapshot-source12/control/clean_exec.py
+@@ -10,7 +10,7 @@
+ raw = (ROOT / 'REQUEST.json').read_bytes()
+ assert hashlib.sha256(raw).hexdigest() == sys.argv[1]
+ q = json.loads(raw)
++assert q['schema'] == 'hia.sqlite-wal-snapshot.source12-request.v1'
+-assert q['schema'] == 'hia.sqlite-record.source12-request.v1'
+ assert q['qualification_seconds'] == 180 and q['cleanup_seconds'] == 3
+ runtime = q['runtime']['executable']
+ assert runtime == '/usr/bin/python3.14'
+--- record-source12/freeze_source12.py
++++ wal-snapshot-source12/freeze_source12.py
+@@ -1,4 +1,4 @@
++"""Freeze WAL snapshot source controls; stdlib AST and byte reads only."""
+-"""Freeze new record source controls; no product import, generation or execution."""
+ from pathlib import Path
+ import ast
+ import hashlib
+@@ -10,8 +10,8 @@
+ ROOT = Path(__file__).resolve().parent
+ DONOR = Path('/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r3')
+ SOURCE_ROOT = DONOR / 'source-base'
++OUT = ROOT.parent / 'sqlite-wal-snapshot-source12-actual-r1'
++EXPECTED_COUNTS = (0, 76, 46, 141, 108, 136, 24, 43, 7, 13, 14, 0)
+-OUT = ROOT.parent / 'sqlite-record-source12-actual-r1'
+-EXPECTED_COUNTS = (0, 42, 18, 10, 7, 18, 29, 11, 17, 4, 3, 0)
+ 
+ 
+ def identity(s):
+@@ -41,7 +41,7 @@
+     return pin
+ 
+ 
++assert ROOT == Path('/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-wal-snapshot-source-r1')
+-assert ROOT == Path('/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-record-source-r1')
+ assert not os.path.lexists(OUT) and not (ROOT / 'REQUEST.json').exists()
+ assert not (ROOT / 'SOURCE-CATALOG.json').exists()
+ manifest_raw, manifest_pin = read(DONOR / 'SOURCE-BASE.json')
+@@ -80,17 +80,63 @@
+ owner = ROOT / 'control/process_owner_impl.py'
+ assert read(owner)[1]['sha256'] == '36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2'
+ 
++test_raw, test_pin = read(ROOT / 'inputs/tests/test_hia_sqlite_wal_snapshot_source.py')
+-test_raw, test_pin = read(ROOT / 'inputs/tests/test_hia_sqlite_record_source.py')
+ tree = ast.parse(test_raw)
+ assignments = {target.id: node.value for node in tree.body if isinstance(node, ast.Assign)
+                for target in node.targets if isinstance(target, ast.Name)}
+ names = ast.literal_eval(assignments['EXPECTED_NAMES'])
++counts = tuple(json.loads(read(ROOT / 'EXPECTED-VM-COUNTS.json')[0])['counts'])
++cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'SQLiteWalSnapshotSourceTests')
+-counts = ast.literal_eval(assignments['EXPECTED_COUNTS'])
+-cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'SQLiteRecordSourceTests')
+ assert names == tuple(n.name for n in cls.body if isinstance(n, ast.FunctionDef) and n.name.startswith('test_'))
++assert len(names) == len(set(names)) == 12 and counts == EXPECTED_COUNTS and sum(counts) == 608
++module = 'tests.hia_sqlite_wal_snapshot_source_r1'
++ids = [module + '.SQLiteWalSnapshotSourceTests.' + name for name in names]
++
++# Parse source text, not document(): this section performs no HIA generation,
++# Core verification, VM invocation or product-module import.
++author_raw, author_pin = read(ROOT / 'inputs/tools/generate_hia_sqlite_wal_snapshot.py')
++author_ast = ast.parse(author_raw)
++literal = next(node.value for node in author_ast.body if isinstance(node, ast.Assign)
++               and any(isinstance(t, ast.Name) and t.id == 'SOURCE' for t in node.targets))
++source_text = ast.literal_eval(literal)
++source_ast = ast.parse(source_text)
++functions = [n for n in source_ast.body if isinstance(n, ast.FunctionDef)]
++assert len(functions) == 13 and all(len(n.args.args) <= 16 for n in functions)
++assert not any(isinstance(n, (ast.Not, ast.Div, ast.FloorDiv)) for n in ast.walk(source_ast))
++old_raw, old_pin = read(ROOT / 'reference/retained-generate_hia_sqlite_wal.py')
++old_ast = ast.parse(old_raw)
++old_literal = next(node.value for node in old_ast.body if isinstance(node, ast.Assign)
++                   and any(isinstance(t, ast.Name) and t.id == 'SOURCE' for t in node.targets))
++old_text = ast.literal_eval(old_literal)
++def function_text(text, name):
++    node = next(n for n in ast.parse(text).body if isinstance(n, ast.FunctionDef) and n.name == name)
++    return '\n'.join(text.splitlines()[node.lineno-1:node.end_lineno])
++reused = {}
++for name in ('checksum_region', 'word', 'control_word'):
++    current = function_text(source_text, name)
++    assert current == function_text(old_text, name)
++    reused[name] = {'bytes': len(current.encode()), 'sha256': hashlib.sha256(current.encode()).hexdigest()}
++official = []
++for version, size, digest in (
++        ('3.46.0',174376,'d4a104b5f3cb807e026a9dbcdb77519358b06b66f76cb6b6ef70e3793379dd62'),
++        ('3.53.2',177651,'64d2a6695fbf5d661a9ccb82d160a5fb18698d7175e41828c5ed9428992c7752')):
++    full, pin = read(ROOT / 'reference' / ('sqlite-'+version) / 'wal.c.original')
++    assert len(full) == size and pin['sha256'] == digest
++    excerpts = {}
++    for name in ('walIndexRecover','walFindFrame'):
++        excerpt, epin = read(ROOT / 'reference' / ('sqlite-'+version) / (name+'.original.c'))
++        assert full.count(excerpt) == 1
++        excerpts[name] = epin
++    official.append({'version':version,'full':pin,'excerpts':excerpts})
++assert official[0]['excerpts']['walIndexRecover']['sha256'] == official[1]['excerpts']['walIndexRecover']['sha256']
++structure = {'schema':'hia.sqlite.wal-snapshot.static-structure.v1',
++             'status':'AST_AND_BYTE_READ_ONLY','source_functions':[n.name for n in functions],
++             'complete_reused_functions':reused,'official':official,
++             'expected_ids':ids,'expected_vm_by_id':dict(zip(ids,counts)),
++             'expected_vm_returns':sum(counts),'actual_HIA_functions_blocks_SSA_caps':'NOT_GENERATED',
++             'generated_or_imported_product':False,'executed_tests_VM_C_native':False,
++             'author':author_pin,'legacy_author':old_pin}
++create(ROOT/'STATIC-STRUCTURE.json',(json.dumps(structure,sort_keys=True,indent=2)+'\n').encode())
+-assert len(names) == len(set(names)) == 12 and counts == EXPECTED_COUNTS and sum(counts) == 159
+-module = 'tests.hia_sqlite_record_source_r1'
+-ids = [module + '.SQLiteRecordSourceTests.' + name for name in names]
+ 
+ fixed_files = []
+ for directory in ('inputs', 'control', 'reference'):
+@@ -104,7 +150,8 @@
+         if p.suffix == '.py':
+             ast.parse(body)
+         fixed_files.append(p)
++fixed_files += [ROOT / 'README.md', Path(__file__).resolve(), ROOT / 'SOURCE-ORIGIN.json',
++                ROOT / 'EXPECTED-VM-COUNTS.json', ROOT / 'STATIC-STRUCTURE.json']
+-fixed_files += [ROOT / 'README.md', Path(__file__).resolve(), ROOT / 'STAGED.json', ROOT / 'STAGED-SOURCE12.json']
+ assert len(fixed_files) == len(set(fixed_files))
+ environment = {'LANG': 'C', 'LC_ALL': 'C', 'PATH': '', 'PYTHONDONTWRITEBYTECODE': '1',
+                'PYTHONHASHSEED': '0', 'PYTHONUNBUFFERED': '1', 'TZ': 'UTC'}
+@@ -112,34 +159,34 @@
+ catalog_raw = (json.dumps(catalog, sort_keys=True, indent=2) + '\n').encode()
+ catalog_pin = create(ROOT / 'SOURCE-CATALOG.json', catalog_raw)
+ pins = [read(p)[1] for p in fixed_files] + [catalog_pin, runtime_pin]
++q = {'schema': 'hia.sqlite-wal-snapshot.source12-request.v1', 'status': 'FROZEN_UNEXECUTED',
+-q = {'schema': 'hia.sqlite-record.source12-request.v1', 'status': 'FROZEN_UNEXECUTED',
+      'qualification_seconds': 180, 'cleanup_seconds': 3, 'output_root': str(OUT),
+      'source_root': str(SOURCE_ROOT), 'source_catalog': str(ROOT / 'SOURCE-CATALOG.json'),
+      'source_commit': manifest['source_commit'], 'source_tree': manifest['source_tree'],
+      'source_file_count': 1686, 'source_total_bytes': 40890650,
+      'owner_path': str(owner), 'runtime': {'executable': str(runtime), 'version': sys.version},
+      'environment': environment, 'test_module': module, 'expected_ids': ids,
++     'expected_vm_by_id': dict(zip(ids, counts)), 'expected_vm_returns': 608,
+-     'expected_vm_by_id': dict(zip(ids, counts)), 'expected_vm_returns': 159,
+      'inputs': pins, 'actual_source12_runs': 0, 'native_C_SQL_or_network_allowed': False,
+      'original_caps': {'assembly_bytes': 1048576, 'assembly_lines': 16384, 'functions': 128,
+                        'total_blocks': 1536, 'blocks_per_function': 256, 'operations': 8192,
+                        'maximum_ssa': 2047, 'arguments': 16, 'returns': 3},
++     'new_source_VM_limits': {'fuel_per_call': 200000, 'allocation_bytes': 1048576, 'depth': 256},
+-     'new_source_VM_limits': {'fuel_per_call': 10000000, 'allocation_bytes': 1048576, 'depth': 256},
+      'output_limits': {'files': 64, 'bytes': 16777216}, 'minimum_free_bytes': 268435456,
+      'minimum_free_inodes': 4096, 'old_failures_or_UNKNOWN_reclassified': False,
++     'scope': 'New streaming WAL committed-snapshot/page-location source/VM only. No native, C, I/O, locks, checkpoint, SQL, AgentStore activation or installation qualification.'}
+-     'scope': 'New strict bounded record byte API source/VM only. No native, full SQL, database, default or installation qualification.'}
+ request_raw = (json.dumps(q, sort_keys=True, indent=2) + '\n').encode()
+ request_pin = create(ROOT / 'REQUEST.json', request_raw)
++launch = {'schema': 'hia.sqlite-wal-snapshot.source12-launch.v1',
+-launch = {'schema': 'hia.sqlite-record.source12-launch.v1',
+           'command': [str(runtime), '-I', '-S', '-B', str(ROOT / 'control/clean_exec.py'), request_pin['sha256']],
+           'cwd': str(ROOT), 'environment': environment, 'request': request_pin, 'additional_timeout': None,
+           'automatic_retry': False, 'status': 'UNEXECUTED'}
+ launch_pin = create(ROOT / 'LAUNCH.json', (json.dumps(launch, sort_keys=True, indent=2) + '\n').encode())
++freeze = {'schema': 'hia.sqlite-wal-snapshot.source12-static-freeze.v1', 'status': 'STATIC_ONLY_UNEXECUTED',
+-freeze = {'schema': 'hia.sqlite-record.source12-static-freeze.v1', 'status': 'STATIC_ONLY_UNEXECUTED',
+           'request': request_pin, 'launch': launch_pin, 'inputs': pins,
+           'source_catalog': catalog_pin, 'source_files': 1686, 'source_bytes': 40890650,
+           'AST_only': True, 'generator_VM_native_C_SQL_runs': 0, 'expected_methods': 12,
++          'expected_VM_returns': 608, 'counts': counts, 'source_donor_manifest': manifest_pin}
+-          'expected_VM_returns': 159, 'counts': counts, 'source_donor_manifest': manifest_pin}
+ freeze_pin = create(ROOT / 'STATIC-FREEZE.json', (json.dumps(freeze, sort_keys=True, indent=2) + '\n').encode())
+ print(json.dumps({'request': request_pin, 'launch': launch_pin, 'freeze': freeze_pin,
++                  'inputs': len(pins), 'expected_methods': 12, 'expected_VM_returns': 608}))
+-                  'inputs': len(pins), 'expected_methods': 12, 'expected_VM_returns': 159}))
