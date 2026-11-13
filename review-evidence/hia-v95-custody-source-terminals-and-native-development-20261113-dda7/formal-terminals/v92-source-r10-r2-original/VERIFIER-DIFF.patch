@@ -1,0 +1,74 @@
+--- v90-source-r7-r4-original/verify_source_r7_r4.py
++++ v92-source-r10-r2-original/verify_source_r10_r2.py
+@@ -1,4 +1,4 @@
+-"""Independently validate the actual R7 R4 Source artifact including R13 exact permission capture; expected pins are supplied only from the terminal run."""
++"""Independently validate the actual R10-R2 Source artifact including R14 exact permission capture; expected pins are supplied only from the terminal run."""
+ import gzip
+ import os
+ import stat
+@@ -11,7 +11,7 @@
+ 
+ BASE = pathlib.Path(__file__).resolve().parent
+ CONFIG = json.loads((BASE / 'EXPECTED.json').read_bytes())
+-LOCAL = BASE.parent / 'v89-union-r7-r3/local-source-r1'
++LOCAL = BASE.parent / 'v92-union-r10-r2/local-source-r1'
+ OUT = BASE / 'artifact'
+ RAW = OUT / 'raw'
+ TREE = CONFIG['candidate_tree']
+@@ -140,13 +140,13 @@
+ result = parse((RAW / 'RESULT.json').read_bytes())
+ assert result == manifest['result'] and result['status'] == 'SOURCE_PASS' and not result['failures']
+ assert result['python'].startswith('3.14.4 ')
+-assert result['generation'] == {'tree': TREE, 'generator_count': 116,
++assert result['generation'] == {'tree': TREE, 'generator_count': 121,
+     'real_generation_passes': 2, 'physical_paths_retired_in_development_tree': 55}
+-assert result['syntax'] == {'checked': 1484, 'failures': 0}
++assert result['syntax'] == {'checked': 1505, 'failures': 0}
+ assert not result['whole_native'] and not result['default_changed'] and not result['product_ref_changed']
+ assert result['native_qualification_jobs_executed'] == result['cold_qualifications'] == 0
+-assert blob((RAW / 'harness/INPUTS.json').read_bytes()) == '16d2aea275f41e59d07757e7066398d3b30bf336'
+-assert blob((RAW / 'harness/DRIVER.py').read_bytes()) == 'c3d1d71fb12d88723bcc3392b9f7091da387e472'
++assert blob((RAW / 'harness/INPUTS.json').read_bytes()) == '035d0681a26bb6398d1def298ee9f990b7b4d7ff'
++assert blob((RAW / 'harness/DRIVER.py').read_bytes()) == 'cfe319279641b124bcd724437857686f36d1aa07'
+ assert blob((RAW / 'harness/tools/run_source_gate.py').read_bytes()) == '40b230288e6db39817aeee26b616d5a613af4f2c'
+ ids_raw = (RAW / 'harness/inputs/ORIGINAL-SOURCE-IDS.json').read_bytes()
+ assert blob(ids_raw) == 'ca3fe97c2baaafc519d2fe3705062c1e8c13a577'
+@@ -154,10 +154,10 @@
+ plan = parse((RAW / 'harness/INPUTS.json').read_bytes())
+ source = parse((RAW / 'checks/SOURCE-TESTS.json').read_bytes())
+ assert source == result['source_tests'] and source['status'] == 'PASS' and source['complete'] is True
+-assert source['expected'] == source['tests_run'] == result['product_tests_executed'] == 1274
+-assert len(source['ordered_ids']) == len(set(source['ordered_ids'])) == 1274
++assert source['expected'] == source['tests_run'] == result['product_tests_executed'] == 1319
++assert len(source['ordered_ids']) == len(set(source['ordered_ids'])) == 1319
+ assert source['ordered_ids'] == source['actual_started_ids'] == source['actual_stopped_ids']
+-assert source['selectors'] == plan['source_registration']['selectors'] and len(source['selectors']) == 224
++assert source['selectors'] == plan['source_registration']['selectors'] and len(source['selectors']) == 228
+ for key in ('errors', 'failures', 'skipped', 'expected_failures', 'unexpected_successes',
+             'duplicate_ids', 'missing_main_ids', 'missing_a733_ids', 'missing_frozen_main_ids', 'missing_frozen_a733_ids'):
+     assert not source[key], key
+@@ -182,7 +182,7 @@
+ assert [(r['event'], r['id']) for r in events] == [(event, name) for name in source['ordered_ids'] for event in ('start', 'stop')]
+ inventory = parse((RAW / 'sources/candidate-final.json').read_bytes())
+ leaves = {r['path']: r for r in inventory['entries'] if r['type'] != 'tree'}
+-assert len(leaves) == inventory['files'] == 3055 and inventory['tree'] == TREE
++assert len(leaves) == inventory['files'] == 3083 and inventory['tree'] == TREE
+ assert all(r['type'] == 'blob' for r in leaves.values())
+ assert tree([(p, r['mode'], r['oid']) for p, r in leaves.items()]) == TREE
+ before = parse((RAW / 'checks/before-complete-source-tests-raw-worktree.json').read_bytes())
+@@ -227,12 +227,12 @@
+         changes.append({'path': name, 'local_blob': blob(local), 'ci_blob': row['blob'], 'local_bytes': len(local), 'ci_bytes': len(raw)})
+     put(BASE / 'candidate-ci314' / name, raw)
+     restored.append({'path': name, 'mode': pin['mode'], 'type': 'blob', 'sha': pin['oid']})
+-report = {'schema': 'hepta.source-r7-r4.independent-complete-pass-readback.v2', 'status': 'PASS',
+-    'run': 43451128811, 'job': 131973258033, 'harness_commit': 'd826ae55a999f0e3f2301c28c9c781eb30fcf374',
++report = {'schema': 'hepta.source-r10-r2.independent-complete-pass-readback.v2', 'status': 'PASS',
++    'run': 43463604848, 'job': 132016735554, 'harness_commit': '7bc59aabc80e36838e604cd0ec8a2dd83b65140e',
+     'zip_bytes': len(packed_zip), 'zip_sha256': digest(packed_zip), 'outer_members': outer_count, 'outer_all_crc': True,
+     'archive_bytes': len(compressed), 'archive_sha256': digest(compressed), 'archive_chunks': len(manifest['chunks']),
+     'inner_members': len(members), 'all_inner_bytes_modes_hashes_and_zip_copies_equal': True, 'all_evidence_directory_and_root_modes_restored': True, 'directory_count': len(directories), 'uid_gid_mtime_normalized_explicitly': True,
+-    'source_status': 'PASS', 'actual_source_failures': 0, 'actual_source_errors': 0, 'actual_source_skips': 0, 'actual_source_methods': 1274, 'source_wall_seconds': source['wall_seconds'],
++    'source_status': 'PASS', 'actual_source_failures': 0, 'actual_source_errors': 0, 'actual_source_skips': 0, 'actual_source_methods': 1319, 'source_wall_seconds': source['wall_seconds'],
+     'original_main_ids': 530, 'original_development_ids': 973, 'exact_events': len(events),
+     'source_before_after_equal': True, 'candidate_tree': TREE, 'candidate_files': len(restored),
+     'changed_paths_vs_fixed_main': len(delta), 'new_source_blobs_full_get': len(uploads),

@@ -1,0 +1,171 @@
+{
+  "component_packet": {
+    "bytes": 538153,
+    "git_blob": "0c113e1f12829d383652cb2dc33c57ba937a6e1a",
+    "mode": "100644",
+    "sha256": "a7f5faae13e90b723a7ec43d94518f2fd4942f4aa172602f1bc2cad8adb0853d"
+  },
+  "component_registration": {
+    "bytes": 5805,
+    "git_blob": "e75c5a9bcb2a731a535ecc6e1b754eaf10637459",
+    "mode": "100644",
+    "sha256": "133b6b428a8fc5ec9b686182f7334a6e2a239853a2ef28a3cac9a8a51e23b99b"
+  },
+  "preimages": {
+    "examples/hia_bootstrap/linux_file_entry_packer.hepta": {
+      "before": null,
+      "kind": "exact-new-file"
+    },
+    "examples/hia_bootstrap/native_file_read.hepta": {
+      "before": null,
+      "kind": "exact-new-file"
+    },
+    "examples/hia_bootstrap/selfhost_linux_file.hepta": {
+      "before": null,
+      "kind": "exact-new-file"
+    },
+    "hepta/hia_agent_assembly.py": {
+      "before": {
+        "bytes": 23081,
+        "git_blob": "48c401de2667c89409d0ad98fd440b9a05d91a6f",
+        "mode": "100644",
+        "sha256": "25b0146278d7569275fcb0ffab021e3722498ef36f6a114f7237430b4107a9ff"
+      },
+      "kind": "exact-full-preimage"
+    },
+    "hepta/hia_linux_file.py": {
+      "before": null,
+      "kind": "exact-new-file"
+    },
+    "hepta/hia_program.py": {
+      "before": {
+        "bytes": 49031,
+        "git_blob": "f84aae305b791cc108726a554e276611817fa2cf",
+        "mode": "100644",
+        "sha256": "2574df3b868f498b687da0901462eff0a19c8e083899fba331b63729f1818b01"
+      },
+      "kind": "exact-full-preimage"
+    },
+    "hepta/hia_program_runtime.py": {
+      "before": {
+        "bytes": 33486,
+        "git_blob": "cdfd68079ad7694230bdd95899f040d59d6eef0d",
+        "mode": "100644",
+        "sha256": "47c739076106514301d98814b121311fbf825cb3af91e5ce8dec2841db4408ad"
+      },
+      "kind": "exact-full-preimage"
+    },
+    "tests/test_hia_linux_file.py": {
+      "before": null,
+      "kind": "exact-new-file"
+    },
+    "tools/generate_hia_linux_file_entry.py": {
+      "before": null,
+      "kind": "exact-new-file"
+    },
+    "tools/generate_hia_native_file_read.py": {
+      "before": null,
+      "kind": "exact-new-file"
+    },
+    "tools/generate_hia_selfhost_linux_file.py": {
+      "before": null,
+      "kind": "exact-new-file"
+    }
+  },
+  "projections": {
+    "MANIFEST.in": {
+      "kind": "exact-append",
+      "text": "include examples/hia_bootstrap/selfhost_linux_file.hepta\ninclude examples/hia_bootstrap/linux_file_entry_packer.hepta\ninclude examples/hia_bootstrap/native_file_read.hepta\n"
+    },
+    "hepta/hia_agent_contract.py": {
+      "additions": [
+        "examples/hia_bootstrap/selfhost_linux_file.hepta",
+        "examples/hia_bootstrap/linux_file_entry_packer.hepta",
+        "examples/hia_bootstrap/native_file_read.hepta"
+      ],
+      "kind": "tuple-append",
+      "symbol": "ENTRY_BUILD_FILES"
+    },
+    "hepta/hia_checker_identity.py": {
+      "generated_block_unchanged_pending_real_regeneration": true,
+      "kind": "mechanism-tuple-append-and-exact-provider-entry",
+      "mechanism": "hia_linux_file.py",
+      "providers": [
+        "hia_program_runtime.py"
+      ]
+    },
+    "tests/test_hia_installed_fixture_resources.py": {
+      "NATIVE_count_unchanged": 92,
+      "entry_additions": [
+        "examples/hia_bootstrap/selfhost_linux_file.hepta",
+        "examples/hia_bootstrap/linux_file_entry_packer.hepta",
+        "examples/hia_bootstrap/native_file_read.hepta"
+      ],
+      "kind": "exact-entry-tuple-plus-total-count",
+      "resource_count_before_after": [
+        202,
+        205
+      ]
+    },
+    "tests/test_hia_linux_stdio_cold.py": {
+      "kind": "exact-source-resource-method-extension",
+      "new_entry_tuple": [
+        "examples/hia_bootstrap/selfhost_linux_file.hepta",
+        "examples/hia_bootstrap/linux_file_entry_packer.hepta",
+        "examples/hia_bootstrap/native_file_read.hepta"
+      ]
+    },
+    "tests/test_hia_proof_contract_native.py": {
+      "after": [
+        54,
+        53,
+        107
+      ],
+      "before": [
+        54,
+        52,
+        106
+      ],
+      "kind": "exact-role-count-tuple"
+    },
+    "tests/test_hia_source_suffix.py": {
+      "expected_mapping_added_line": "        expected_profiles['examples/hia_bootstrap/native_file_read.hepta'] = 'hepta.hia.linux-file.v1'\n",
+      "kind": "one-expectation-entry-plus-new-independent-method",
+      "new_method_text": "    def test_native_file_source_role_is_explicit_and_fully_verified(self):\n        from unittest.mock import patch\n        from hepta.hia_agent_assembly import assemble_program\n        from hepta.hia_program import verify_program\n        from hepta.hia_linux_file import PROFILE\n        from tools.check_hia_core_only import EXPLICIT_SOURCE_PROFILES\n        name = 'examples/hia_bootstrap/native_file_read.hepta'\n        self.assertEqual(EXPLICIT_SOURCE_PROFILES[name], PROFILE)\n        raw = (ROOT / name).read_bytes()\n        with self.assertRaises(ValueError):\n            assemble_program(raw)\n        structured = assemble_program(raw, profile=PROFILE).canonical_bytes\n        with self.assertRaises(ValueError):\n            verify_program(structured)\n        with source_tree() as root:\n            selected = root / name\n            selected.parent.mkdir(parents=True, exist_ok=True)\n            selected.write_bytes(raw)\n            with patch('hepta.hia_agent_assembly.assemble_program', wraps=assemble_program) as calls:\n                report = check(root)\n            self.assertEqual(report['status'], 'PASS')\n            self.assertEqual(report['hia_source_files'], 1)\n            self.assertEqual([call.args for call in calls.call_args_list], [(raw,)])\n            self.assertEqual([call.kwargs for call in calls.call_args_list], [{'profile': PROFILE}])\n            self.assertEqual(selected.read_bytes(), raw)\n            selected.write_bytes(structured)\n            with patch('hepta.hia_program.verify_program', wraps=verify_program) as calls:\n                report = check(root)\n            self.assertEqual(report['status'], 'PASS')\n            self.assertEqual(report['hia_source_files'], 1)\n            self.assertEqual([call.args for call in calls.call_args_list], [(structured,)])\n            self.assertEqual([call.kwargs for call in calls.call_args_list], [{'profile': PROFILE}])\n            self.assertEqual(selected.read_bytes(), structured)\n            unregistered = root / 'examples' / 'unregistered_file.hepta'\n            for content in (raw, structured):\n                unregistered.write_bytes(content)\n                with self.subTest(unregistered_format=content[:1]), self.assertRaisesRegex(\n                        ValueError, 'invalid HIA source content: examples/unregistered_file'):\n                    check(root)\n                self.assertEqual(unregistered.read_bytes(), content)\n                unregistered.unlink()\n            broken = json.loads(structured)\n            output = next(operation['out'][0]\n                          for function in broken['functions']\n                          for block in function['blocks']\n                          for operation in block['ops'] if operation['out'])\n            output['name'] = 'invalid value name'\n            selected.write_text(json.dumps(broken))\n            with self.assertRaisesRegex(ValueError, 'invalid HIA source content'):\n                check(root)\n            selected.unlink()\n            selected.symlink_to(ROOT / name)\n            with self.assertRaisesRegex(ValueError, 'regular non-symlink'):\n                check(root)\n            selected.unlink()\n            selected.write_bytes(raw)\n            self.assertEqual(check(root)['hia_source_files'], 1)\n            self.assertEqual(selected.read_bytes(), raw)\n",
+      "template_original_bytes_unchanged": true,
+      "template_original_method": "tests.test_hia_source_suffix.HiaSourceSuffixTests.test_native_cli_process_source_role_is_explicit_and_fully_verified"
+    },
+    "tools/check_hia_core_only.py": {
+      "after": "    'examples/hia_bootstrap/native_cli_process.hepta': 'hepta.hia.linux-cli-process.v1',\n    'examples/hia_bootstrap/native_file_read.hepta': 'hepta.hia.linux-file.v1',\n",
+      "before": "    'examples/hia_bootstrap/native_cli_process.hepta': 'hepta.hia.linux-cli-process.v1',\n",
+      "kind": "exact-replacement"
+    },
+    "tools/hia_candidate_preflight.py": {
+      "after": "        'examples/hia_bootstrap/native_cli_process.hepta',\n        'examples/hia_bootstrap/selfhost_linux_file.hepta',\n        'examples/hia_bootstrap/linux_file_entry_packer.hepta',\n        'examples/hia_bootstrap/native_file_read.hepta',\n    })\n    combined = files + entry",
+      "before": "        'examples/hia_bootstrap/native_cli_process.hepta',\n    })\n    combined = files + entry",
+      "kind": "exact-replacement"
+    },
+    "tools/hia_selfhost_contract.py": {
+      "additions": [
+        "examples/hia_bootstrap/linux_file_entry_packer.hepta",
+        "examples/hia_bootstrap/native_file_read.hepta",
+        "examples/hia_bootstrap/selfhost_linux_file.hepta",
+        "hepta/hia_linux_file.py",
+        "tests/test_hia_linux_file.py",
+        "tools/generate_hia_linux_file_entry.py",
+        "tools/generate_hia_native_file_read.py",
+        "tools/generate_hia_selfhost_linux_file.py"
+      ],
+      "kind": "tuple-append",
+      "symbol": "SOURCE_FILES"
+    },
+    "tools/qualify_hia_linux_stdio.py": {
+      "kind": "one-exact-source-pin",
+      "sha256_before_after": [
+        "9a4e4828e17d11719e46c15cd79cb47068f59f83ed4548fcedf2648a4cb4eb7c",
+        "bbc35f618533e69f5576cd3982ee7be711fc12063bf0ab0cd5575c9f711722dd"
+      ],
+      "source": "tests/test_hia_linux_stdio_cold.py"
+    }
+  }
+}

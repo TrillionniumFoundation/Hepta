@@ -1,0 +1,524 @@
+﻿2026-11-13T17:02:05.2354079Z Current runner version: '2.338.2'
+2026-11-13T17:02:05.2378957Z ##[group]Runner Image Provisioner
+2026-11-13T17:02:05.2379889Z Hosted Compute Agent
+2026-11-13T17:02:05.2380539Z Version: 20261103.629
+2026-11-13T17:02:05.2381181Z Commit: 15dbd9ccb5dbf34fae002b6ed1a2670f52df37bc
+2026-11-13T17:02:05.2382287Z Build Date: 2026-11-03T17:26:59Z
+2026-11-13T17:02:05.2383030Z Worker ID: {278ff887-d35c-495f-bdbf-21c8c4235ca1}
+2026-11-13T17:02:05.2383787Z Region: westcentralus
+2026-11-13T17:02:05.2384425Z Cloud: Azure
+2026-11-13T17:02:05.2384962Z ##[endgroup]
+2026-11-13T17:02:05.2386745Z ##[group]Operating System
+2026-11-13T17:02:05.2387398Z Ubuntu
+2026-11-13T17:02:05.2388192Z 24.04.5
+2026-11-13T17:02:05.2388824Z LTS
+2026-11-13T17:02:05.2389338Z ##[endgroup]
+2026-11-13T17:02:05.2389922Z ##[group]Runner Image
+2026-11-13T17:02:05.2390598Z Image: ubuntu-24.04
+2026-11-13T17:02:05.2391155Z Version: 20261111.370.1
+2026-11-13T17:02:05.2392587Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261111.370/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-13T17:02:05.2394141Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261111.370
+2026-11-13T17:02:05.2395179Z ##[endgroup]
+2026-11-13T17:02:05.2396293Z ##[group]GITHUB_TOKEN Permissions
+2026-11-13T17:02:05.2398708Z Contents: write
+2026-11-13T17:02:05.2399297Z Metadata: read
+2026-11-13T17:02:05.2399954Z ##[endgroup]
+2026-11-13T17:02:05.2402150Z Secret source: Actions
+2026-11-13T17:02:05.2403235Z Cache mode: write
+2026-11-13T17:02:05.2403937Z Prepare workflow directory
+2026-11-13T17:02:05.2798436Z Prepare all required actions
+2026-11-13T17:02:05.2846022Z Getting action download info
+2026-11-13T17:02:05.6105273Z Download action repository 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' (SHA:11bd71901bbe5b1630ceea73d27597364c9af683)
+2026-11-13T17:02:05.7563664Z Download action repository 'actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-13T17:02:05.8375022Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-13T17:02:06.0462719Z Complete job name: generate-and-check-source
+2026-11-13T17:02:06.1329884Z ##[group]Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+2026-11-13T17:02:06.1330966Z with:
+2026-11-13T17:02:06.1331437Z   ref: 2a91857219e0c676420f02251e1a772f0e0c7362
+2026-11-13T17:02:06.1332024Z   path: harness
+2026-11-13T17:02:06.1332450Z   fetch-depth: 1
+2026-11-13T17:02:06.1332907Z   persist-credentials: false
+2026-11-13T17:02:06.1333462Z   repository: TrillionniumFoundation/Hepta
+2026-11-13T17:02:06.1337116Z   token: ***
+2026-11-13T17:02:06.1337764Z   ssh-strict: true
+2026-11-13T17:02:06.1338216Z   ssh-user: git
+2026-11-13T17:02:06.1338629Z   clean: true
+2026-11-13T17:02:06.1339083Z   sparse-checkout-cone-mode: true
+2026-11-13T17:02:06.1339615Z   fetch-tags: false
+2026-11-13T17:02:06.1340060Z   show-progress: true
+2026-11-13T17:02:06.1340500Z   lfs: false
+2026-11-13T17:02:06.1340931Z   submodules: false
+2026-11-13T17:02:06.1341373Z   set-safe-directory: true
+2026-11-13T17:02:06.1342135Z ##[endgroup]
+2026-11-13T17:02:06.4014297Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-13T17:02:06.4016865Z ##[group]Getting Git version info
+2026-11-13T17:02:06.4017981Z Working directory is '/home/runner/work/Hepta/Hepta/harness'
+2026-11-13T17:02:06.4019291Z [command]/usr/bin/git version
+2026-11-13T17:02:06.4121917Z git version 2.56.1
+2026-11-13T17:02:06.4144227Z ##[endgroup]
+2026-11-13T17:02:06.4158992Z Temporarily overriding HOME='/home/runner/work/_temp/33b93841-ba74-42ff-a0e1-de0bce565985' before making global git config changes
+2026-11-13T17:02:06.4161824Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-13T17:02:06.4165533Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/harness
+2026-11-13T17:02:06.4219804Z ##[group]Initializing the repository
+2026-11-13T17:02:06.4224800Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/harness
+2026-11-13T17:02:06.4336571Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-13T17:02:06.4338415Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-13T17:02:06.4339418Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-13T17:02:06.4340175Z hint: call:
+2026-11-13T17:02:06.4340580Z hint:
+2026-11-13T17:02:06.4341114Z hint: 	git config --global init.defaultBranch <name>
+2026-11-13T17:02:06.4341737Z hint:
+2026-11-13T17:02:06.4342335Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-13T17:02:06.4343586Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-13T17:02:06.4345021Z hint:
+2026-11-13T17:02:06.4345827Z hint: 	git branch -m <name>
+2026-11-13T17:02:06.4346469Z hint:
+2026-11-13T17:02:06.4347098Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-13T17:02:06.4349019Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/harness/.git/
+2026-11-13T17:02:06.4357821Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-13T17:02:06.4409825Z ##[endgroup]
+2026-11-13T17:02:06.4410696Z ##[group]Disabling automatic garbage collection
+2026-11-13T17:02:06.4413949Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-13T17:02:06.4448928Z ##[endgroup]
+2026-11-13T17:02:06.4449852Z ##[group]Setting up auth
+2026-11-13T17:02:06.4456135Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-13T17:02:06.4494704Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-13T17:02:06.4980579Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-13T17:02:06.5029916Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-13T17:02:06.5278442Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-13T17:02:06.5332155Z ##[endgroup]
+2026-11-13T17:02:06.5333086Z ##[group]Fetching the repository
+2026-11-13T17:02:06.5349891Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 2a91857219e0c676420f02251e1a772f0e0c7362
+2026-11-13T17:02:08.1170796Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-13T17:02:08.1173232Z  * branch            2a91857219e0c676420f02251e1a772f0e0c7362 -> FETCH_HEAD
+2026-11-13T17:02:08.1179418Z ##[endgroup]
+2026-11-13T17:02:08.1181671Z ##[group]Determining the checkout info
+2026-11-13T17:02:08.1184065Z ##[endgroup]
+2026-11-13T17:02:08.1186378Z [command]/usr/bin/git sparse-checkout disable
+2026-11-13T17:02:08.1253281Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-13T17:02:08.1292075Z ##[group]Checking out the ref
+2026-11-13T17:02:08.1298401Z [command]/usr/bin/git checkout --progress --force 2a91857219e0c676420f02251e1a772f0e0c7362
+2026-11-13T17:02:08.2049520Z Note: switching to '2a91857219e0c676420f02251e1a772f0e0c7362'.
+2026-11-13T17:02:08.2050675Z 
+2026-11-13T17:02:08.2051483Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-13T17:02:08.2053447Z changes and commit them, and you can discard any commits you make in this
+2026-11-13T17:02:08.2055438Z state without impacting any branches by switching back to a branch.
+2026-11-13T17:02:08.2056591Z 
+2026-11-13T17:02:08.2057361Z If you want to create a new branch to retain commits you create, you may
+2026-11-13T17:02:08.2059459Z do so (now or later) by using -c with the switch command. Example:
+2026-11-13T17:02:08.2060367Z 
+2026-11-13T17:02:08.2060772Z   git switch -c <new-branch-name>
+2026-11-13T17:02:08.2062027Z 
+2026-11-13T17:02:08.2062759Z Or undo this operation with:
+2026-11-13T17:02:08.2064060Z 
+2026-11-13T17:02:08.2064861Z   git switch -
+2026-11-13T17:02:08.2065922Z 
+2026-11-13T17:02:08.2067470Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-13T17:02:08.2069974Z 
+2026-11-13T17:02:08.2071974Z HEAD is now at 2a91857 HIA: run complete Source R11 with retained original CLI and parser contracts
+2026-11-13T17:02:08.2079769Z ##[endgroup]
+2026-11-13T17:02:08.2129560Z [command]/usr/bin/git log -1 --format=%H
+2026-11-13T17:02:08.2172556Z 2a91857219e0c676420f02251e1a772f0e0c7362
+2026-11-13T17:02:08.2182612Z ##[group]Removing auth
+2026-11-13T17:02:08.2185872Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-13T17:02:08.2227204Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-13T17:02:08.2459433Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-13T17:02:08.2494020Z http.https://github.com/.extraheader
+2026-11-13T17:02:08.2503989Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-13T17:02:08.2547269Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-13T17:02:08.2773453Z ##[endgroup]
+2026-11-13T17:02:08.3228301Z ##[group]Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+2026-11-13T17:02:08.3230122Z with:
+2026-11-13T17:02:08.3231045Z   python-version: 3.14.4
+2026-11-13T17:02:08.3232136Z   check-latest: false
+2026-11-13T17:02:08.3241865Z   token: ***
+2026-11-13T17:02:08.3242834Z   update-environment: true
+2026-11-13T17:02:08.3243968Z   allow-prereleases: false
+2026-11-13T17:02:08.3245106Z   freethreaded: false
+2026-11-13T17:02:08.3246105Z ##[endgroup]
+2026-11-13T17:02:08.4779998Z ##[group]Installed versions
+2026-11-13T17:02:08.4790370Z Version 3.14.4 was not found in the local cache
+2026-11-13T17:02:08.4981765Z (node:2403) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-13T17:02:08.4984150Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-13T17:02:09.5968671Z Version 3.14.4 is available for downloading
+2026-11-13T17:02:09.5970865Z Download from "https://github.com/actions/python-versions/releases/download/3.14.4-25113653268/python-3.14.4-linux-24.04-x64.tar.gz"
+2026-11-13T17:02:10.5146046Z Extract downloaded archive
+2026-11-13T17:02:10.5348777Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/89bb1956-2e79-4dda-b8c3-91964b8973b5 -f /home/runner/work/_temp/ffb49a52-d0ca-4cf8-8fb3-ec321dc29bb9
+2026-11-13T17:02:12.7676338Z Execute installation script
+2026-11-13T17:02:12.7840341Z Check if Python hostedtoolcache folder exist...
+2026-11-13T17:02:12.7841071Z Create Python 3.14.4 folder
+2026-11-13T17:02:12.7860558Z Copy Python binaries to hostedtoolcache folder
+2026-11-13T17:02:13.2736227Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-13T17:02:13.2778885Z Upgrading pip...
+2026-11-13T17:02:15.8463965Z Looking in links: /tmp/tmphbv51e8u
+2026-11-13T17:02:15.8470677Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/site-packages (26.0.1)
+2026-11-13T17:02:17.0800437Z Collecting pip
+2026-11-13T17:02:17.1808777Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-13T17:02:17.2098024Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-13T17:02:17.3234891Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 30.5 MB/s  0:00:00
+2026-11-13T17:02:17.3236110Z 
+2026-11-13T17:02:17.3803102Z Installing collected packages: pip
+2026-11-13T17:02:17.3809302Z Attempting uninstall: pip
+2026-11-13T17:02:17.3829782Z Found existing installation: pip 26.0.1
+2026-11-13T17:02:17.4167179Z Uninstalling pip-26.0.1:
+2026-11-13T17:02:17.4223912Z Successfully uninstalled pip-26.0.1
+2026-11-13T17:02:18.6871612Z Successfully installed pip-26.3
+2026-11-13T17:02:18.7425702Z Create complete file
+2026-11-13T17:02:18.7467277Z Successfully set up CPython (3.14.4)
+2026-11-13T17:02:18.7468737Z ##[endgroup]
+2026-11-13T17:02:18.7768490Z ##[group]Run python -m pip install jsonschema==4.26.0
+2026-11-13T17:02:18.7769004Z [36;1mpython -m pip install jsonschema==4.26.0[0m
+2026-11-13T17:02:18.7794853Z shell: /usr/bin/bash -e {0}
+2026-11-13T17:02:18.7795141Z env:
+2026-11-13T17:02:18.7795426Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:18.7795898Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-13T17:02:18.7796334Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:18.7796718Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:18.7797118Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:18.7797499Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-13T17:02:18.7798135Z ##[endgroup]
+2026-11-13T17:02:19.2474494Z Collecting jsonschema==4.26.0
+2026-11-13T17:02:19.3423984Z   Downloading jsonschema-4.26.0-py3-none-any.whl.metadata (7.6 kB)
+2026-11-13T17:02:19.3805422Z Collecting attrs>=22.2.0 (from jsonschema==4.26.0)
+2026-11-13T17:02:19.4002755Z   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+2026-11-13T17:02:19.4325843Z Collecting jsonschema-specifications>=2023.03.6 (from jsonschema==4.26.0)
+2026-11-13T17:02:19.4525711Z   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+2026-11-13T17:02:19.4922544Z Collecting referencing>=0.28.4 (from jsonschema==4.26.0)
+2026-11-13T17:02:19.5118805Z   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+2026-11-13T17:02:19.8314225Z Collecting rpds-py>=0.25.0 (from jsonschema==4.26.0)
+2026-11-13T17:02:19.8516878Z   Downloading rpds_py-2026.9.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+2026-11-13T17:02:19.8780407Z Downloading jsonschema-4.26.0-py3-none-any.whl (90 kB)
+2026-11-13T17:02:19.9333367Z Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-11-13T17:02:19.9572182Z Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+2026-11-13T17:02:19.9786199Z Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+2026-11-13T17:02:20.0005653Z Downloading rpds_py-2026.9.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (371 kB)
+2026-11-13T17:02:20.0904996Z Installing collected packages: rpds-py, attrs, referencing, jsonschema-specifications, jsonschema
+2026-11-13T17:02:20.2819188Z 
+2026-11-13T17:02:20.2832167Z Successfully installed attrs-26.1.0 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 referencing-0.37.0 rpds-py-2026.9.1
+2026-11-13T17:02:20.3496082Z ##[group]Run python -m pip install setuptools==78.1.1 wheel==0.46.3
+2026-11-13T17:02:20.3496620Z [36;1mpython -m pip install setuptools==78.1.1 wheel==0.46.3[0m
+2026-11-13T17:02:20.3518499Z shell: /usr/bin/bash -e {0}
+2026-11-13T17:02:20.3518759Z env:
+2026-11-13T17:02:20.3519026Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:20.3519468Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-13T17:02:20.3519913Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:20.3520310Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:20.3520705Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:20.3521098Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-13T17:02:20.3521428Z ##[endgroup]
+2026-11-13T17:02:20.8863014Z Collecting setuptools==78.1.1
+2026-11-13T17:02:20.9804784Z   Downloading setuptools-78.1.1-py3-none-any.whl.metadata (6.5 kB)
+2026-11-13T17:02:21.0170381Z Collecting wheel==0.46.3
+2026-11-13T17:02:21.0371987Z   Downloading wheel-0.46.3-py3-none-any.whl.metadata (2.4 kB)
+2026-11-13T17:02:21.0737285Z Collecting packaging>=24.0 (from wheel==0.46.3)
+2026-11-13T17:02:21.1416792Z   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+2026-11-13T17:02:21.1995067Z Downloading setuptools-78.1.1-py3-none-any.whl (1.3 MB)
+2026-11-13T17:02:21.3894251Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 9.8 MB/s  0:00:00
+2026-11-13T17:02:21.4094975Z Downloading wheel-0.46.3-py3-none-any.whl (30 kB)
+2026-11-13T17:02:21.4323022Z Downloading packaging-26.3-py3-none-any.whl (129 kB)
+2026-11-13T17:02:21.4832690Z Installing collected packages: setuptools, packaging, wheel
+2026-11-13T17:02:22.5920042Z 
+2026-11-13T17:02:22.5936801Z Successfully installed packaging-26.3 setuptools-78.1.1 wheel-0.46.3
+2026-11-13T17:02:22.6715873Z ##[group]Run python -I -B - <<'PY'
+2026-11-13T17:02:22.6716222Z [36;1mpython -I -B - <<'PY'[0m
+2026-11-13T17:02:22.6716475Z [36;1mimport ast, os[0m
+2026-11-13T17:02:22.6716739Z [36;1mfrom pathlib import Path[0m
+2026-11-13T17:02:22.6717115Z [36;1mroot = Path(os.environ['GITHUB_WORKSPACE']) / 'harness' / 'tools'[0m
+2026-11-13T17:02:22.6717532Z [36;1mfor path in sorted(root.glob('*.py')):[0m
+2026-11-13T17:02:22.6718322Z [36;1m    compile(ast.parse(path.read_bytes(), filename=str(path)), str(path), 'exec', dont_inherit=True)[0m
+2026-11-13T17:02:22.6718847Z [36;1m    print('harness syntax PASS:', path.name)[0m
+2026-11-13T17:02:22.6719138Z [36;1mPY[0m
+2026-11-13T17:02:22.6739947Z shell: /usr/bin/bash -e {0}
+2026-11-13T17:02:22.6740197Z env:
+2026-11-13T17:02:22.6740462Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:22.6740907Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-13T17:02:22.6741374Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:22.6741751Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:22.6742133Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:22.6742514Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-13T17:02:22.6742833Z ##[endgroup]
+2026-11-13T17:02:22.7375196Z harness syntax PASS: materialize_candidate.py
+2026-11-13T17:02:22.7375819Z harness syntax PASS: run_source_gate.py
+2026-11-13T17:02:22.7466863Z ##[group]Run python -I -B "${GITHUB_WORKSPACE}/harness/tools/materialize_candidate.py" \
+2026-11-13T17:02:22.7467497Z [36;1mpython -I -B "${GITHUB_WORKSPACE}/harness/tools/materialize_candidate.py" \[0m
+2026-11-13T17:02:22.7468400Z [36;1m  --inputs "${GITHUB_WORKSPACE}/harness/inputs/MATERIALIZATION.json" \[0m
+2026-11-13T17:02:22.7468861Z [36;1m  --root "${RUNNER_TEMP}/hia-combined-source-v93-r11"[0m
+2026-11-13T17:02:22.7489801Z shell: /usr/bin/bash -e {0}
+2026-11-13T17:02:22.7490049Z env:
+2026-11-13T17:02:22.7490311Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:22.7490739Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-13T17:02:22.7491175Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:22.7491563Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:22.7491945Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:02:22.7492355Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-13T17:02:22.7494934Z   HIA_REHEARSAL_TOKEN: ***
+2026-11-13T17:02:22.7495272Z   EXPECTED_INPUTS_GIT_BLOB: c19cd878115b1e9d3d4b81024838b36575a6bf30
+2026-11-13T17:02:22.7495714Z   EXPECTED_DRIVER_GIT_BLOB: cfe319279641b124bcd724437857686f36d1aa07
+2026-11-13T17:02:22.7496058Z ##[endgroup]
+2026-11-13T17:03:02.9532097Z captured initialize: rc=0, timeout=False
+2026-11-13T17:03:02.9553958Z captured config-core-hooksPath: rc=0, timeout=False
+2026-11-13T17:03:02.9576721Z captured config-core-autocrlf: rc=0, timeout=False
+2026-11-13T17:03:02.9598370Z captured config-core-attributesFile: rc=0, timeout=False
+2026-11-13T17:03:02.9620456Z captured config-core-fileMode: rc=0, timeout=False
+2026-11-13T17:03:02.9642335Z captured config-core-fsmonitor: rc=0, timeout=False
+2026-11-13T17:03:02.9663225Z captured config-rerere-enabled: rc=0, timeout=False
+2026-11-13T17:03:02.9684445Z captured config-rerere-autoupdate: rc=0, timeout=False
+2026-11-13T17:03:02.9705141Z captured config-merge-autoStash: rc=0, timeout=False
+2026-11-13T17:03:02.9725741Z captured config-credential-helper: rc=0, timeout=False
+2026-11-13T17:03:02.9746487Z captured config-user-name: rc=0, timeout=False
+2026-11-13T17:03:02.9767778Z captured config-user-email: rc=0, timeout=False
+2026-11-13T17:03:02.9791552Z captured origin: rc=0, timeout=False
+2026-11-13T17:03:02.9812695Z captured promisor: rc=0, timeout=False
+2026-11-13T17:03:02.9834033Z captured filter: rc=0, timeout=False
+2026-11-13T17:03:04.0205746Z captured fetch-fixed-histories: rc=0, timeout=False
+2026-11-13T17:03:04.0229551Z captured original-commit-ours: rc=0, timeout=False
+2026-11-13T17:03:04.0253328Z captured ours-identity: rc=0, timeout=False
+2026-11-13T17:03:04.0302346Z captured ours-inventory: rc=0, timeout=False
+2026-11-13T17:03:04.1136617Z captured original-commit-theirs: rc=0, timeout=False
+2026-11-13T17:03:04.1161039Z captured theirs-identity: rc=0, timeout=False
+2026-11-13T17:03:04.1217797Z captured theirs-inventory: rc=0, timeout=False
+2026-11-13T17:03:04.1504509Z captured best-merge-bases: rc=0, timeout=False
+2026-11-13T17:03:04.1527259Z captured base-5831f52fada45e076f8f68f198a15c0585e6104f-identity: rc=0, timeout=False
+2026-11-13T17:03:04.1581455Z captured base-5831f52fada45e076f8f68f198a15c0585e6104f-inventory: rc=0, timeout=False
+2026-11-13T17:03:04.1822950Z captured base-93d66bcc3acb88212c9b153d7852ba22eeab24c8-identity: rc=0, timeout=False
+2026-11-13T17:03:04.1877286Z captured base-93d66bcc3acb88212c9b153d7852ba22eeab24c8-inventory: rc=0, timeout=False
+2026-11-13T17:03:04.2901210Z captured fixed-tree-blobs-before: rc=0, timeout=False
+2026-11-13T17:03:08.9225121Z captured prefetch-only-fixed-tree-blobs: rc=0, timeout=False
+2026-11-13T17:03:08.9359277Z captured fixed-tree-blobs-after: rc=0, timeout=False
+2026-11-13T17:03:09.3045847Z captured checkout-fixed-main: rc=0, timeout=False
+2026-11-13T17:03:09.5430928Z captured initial-status: rc=0, timeout=False
+2026-11-13T17:03:10.9876807Z captured actual-two-base-merge: rc=1, timeout=False
+2026-11-13T17:03:10.9905400Z captured actual-unmerged-index: rc=0, timeout=False
+2026-11-13T17:03:12.6428827Z captured stage-explicit-resolutions: rc=0, timeout=False
+2026-11-13T17:03:12.6457173Z captured resolved-index: rc=0, timeout=False
+2026-11-13T17:03:12.6489336Z captured syntax-tracked-paths: rc=0, timeout=False
+2026-11-13T17:03:26.6881672Z captured pre-generation-0: rc=0, timeout=False
+2026-11-13T17:03:26.9920570Z captured generate-0-core_workspace_pipeline: rc=0, timeout=False
+2026-11-13T17:03:28.2486783Z captured generate-1-core_workspace_facts: rc=0, timeout=False
+2026-11-13T17:03:28.5064255Z captured generate-2-core_workspace_facts_cli: rc=0, timeout=False
+2026-11-13T17:03:30.7638653Z captured generate-3-core_workspace_materialize: rc=0, timeout=False
+2026-11-13T17:03:31.0390718Z captured generate-4-core_workspace_cli: rc=0, timeout=False
+2026-11-13T17:03:31.3482216Z captured generate-5-capability_renaming: rc=0, timeout=False
+2026-11-13T17:03:31.8573640Z captured generate-6-core_module_graph: rc=0, timeout=False
+2026-11-13T17:03:33.6158731Z captured generate-7-core_workspace_json: rc=0, timeout=False
+2026-11-13T17:03:33.8702211Z captured generate-8-core_workspace_json_cli: rc=0, timeout=False
+2026-11-13T17:03:34.0967284Z captured generate-9-agent_identity: rc=0, timeout=False
+2026-11-13T17:03:34.6399214Z captured generate-10-agent_slice: rc=0, timeout=False
+2026-11-13T17:03:35.3377258Z captured generate-11-elf_linker: rc=0, timeout=False
+2026-11-13T17:03:35.5894516Z captured generate-12-native_filter: rc=0, timeout=False
+2026-11-13T17:03:35.8591512Z captured generate-13-core_json_cli: rc=0, timeout=False
+2026-11-13T17:03:36.3855626Z captured generate-14-agent_stdio: rc=0, timeout=False
+2026-11-13T17:03:36.6696861Z captured generate-15-agent_snapshot: rc=0, timeout=False
+2026-11-13T17:03:37.5061556Z captured generate-16-agent_snapshot_json: rc=0, timeout=False
+2026-11-13T17:03:37.7608600Z captured generate-17-agent_snapshot_json_cli: rc=0, timeout=False
+2026-11-13T17:03:38.1218459Z captured generate-18-sha256_stream: rc=0, timeout=False
+2026-11-13T17:03:38.4061032Z captured generate-19-native_observer: rc=0, timeout=False
+2026-11-13T17:03:38.7265291Z captured generate-20-sha256: rc=0, timeout=False
+2026-11-13T17:03:39.2403652Z captured generate-21-json_preflight: rc=0, timeout=False
+2026-11-13T17:03:39.9054812Z captured generate-22-json_decode: rc=0, timeout=False
+2026-11-13T17:03:40.7270812Z captured generate-23-json_canonical: rc=0, timeout=False
+2026-11-13T17:03:41.8602402Z captured generate-24-core_json_frontend: rc=0, timeout=False
+2026-11-13T17:03:44.7343501Z captured generate-25-selfhost: rc=0, timeout=False
+2026-11-13T17:03:45.1605195Z captured generate-26-agent_binary64: rc=0, timeout=False
+2026-11-13T17:03:45.8678945Z captured generate-27-agent_data_json: rc=0, timeout=False
+2026-11-13T17:03:46.6730683Z captured generate-28-instruction_policy: rc=0, timeout=False
+2026-11-13T17:03:47.9992505Z captured generate-29-program_shape: rc=0, timeout=False
+2026-11-13T17:03:49.2339923Z captured generate-30-function_shape: rc=0, timeout=False
+2026-11-13T17:03:50.7684565Z captured generate-31-artifact_publication: rc=0, timeout=False
+2026-11-13T17:03:51.0255264Z captured generate-32-core_admission_cli: rc=0, timeout=False
+2026-11-13T17:03:53.5498927Z captured generate-33-core_admission: rc=0, timeout=False
+2026-11-13T17:03:54.0172033Z captured generate-34-agent_binary64_format: rc=0, timeout=False
+2026-11-13T17:03:55.6698369Z captured generate-35-core_patch: rc=0, timeout=False
+2026-11-13T17:03:55.9890232Z captured generate-36-core_patch_cli: rc=0, timeout=False
+2026-11-13T17:03:56.3019215Z captured generate-37-core_patch_result_cli: rc=0, timeout=False
+2026-11-13T17:03:58.7477159Z captured generate-38-composite_types: rc=0, timeout=False
+2026-11-13T17:03:59.6606762Z captured generate-39-task_helpers: rc=0, timeout=False
+2026-11-13T17:04:05.6423060Z captured generate-40-composite_functions: rc=0, timeout=False
+2026-11-13T17:04:06.7066822Z captured generate-41-composite_constructor: rc=0, timeout=False
+2026-11-13T17:04:07.7802992Z captured generate-42-composite_outer: rc=0, timeout=False
+2026-11-13T17:04:09.7478541Z captured generate-43-worker_request: rc=0, timeout=False
+2026-11-13T17:04:10.7183870Z captured generate-44-release_install: rc=0, timeout=False
+2026-11-13T17:04:11.8092859Z captured generate-45-release_selection: rc=0, timeout=False
+2026-11-13T17:04:12.5826339Z captured generate-46-retirement_state: rc=0, timeout=False
+2026-11-13T17:04:15.1993695Z captured generate-47-agent_journal: rc=0, timeout=False
+2026-11-13T17:04:15.8058626Z captured generate-48-execution_budget: rc=0, timeout=False
+2026-11-13T17:04:16.1862994Z captured generate-49-candidate_budget: rc=0, timeout=False
+2026-11-13T17:04:16.9728080Z captured generate-50-source_build: rc=0, timeout=False
+2026-11-13T17:04:17.9051962Z captured generate-51-nominal_json: rc=0, timeout=False
+2026-11-13T17:04:18.7085323Z captured generate-52-slot_ledger: rc=0, timeout=False
+2026-11-13T17:04:20.4422687Z captured generate-53-cli_control: rc=0, timeout=False
+2026-11-13T17:04:22.4363582Z captured generate-54-cli_format: rc=0, timeout=False
+2026-11-13T17:04:24.6608766Z captured generate-55-json_wire: rc=0, timeout=False
+2026-11-13T17:04:26.0735641Z captured generate-56-worker_report: rc=0, timeout=False
+2026-11-13T17:04:26.4584532Z captured generate-57-machine_encoding: rc=0, timeout=False
+2026-11-13T17:04:27.6355260Z captured generate-58-machine_state: rc=0, timeout=False
+2026-11-13T17:04:29.0565028Z captured generate-59-machine_instructions: rc=0, timeout=False
+2026-11-13T17:04:30.3316385Z captured generate-60-machine_plan: rc=0, timeout=False
+2026-11-13T17:04:59.7702724Z captured generate-61-core_lowering: rc=0, timeout=False
+2026-11-13T17:05:07.2995749Z captured generate-62-core_emitter: rc=0, timeout=False
+2026-11-13T17:05:14.5207386Z captured generate-63-byte_wrapper: rc=0, timeout=False
+2026-11-13T17:05:25.6778360Z captured generate-64-machine_object: rc=0, timeout=False
+2026-11-13T17:05:31.2106472Z captured generate-65-execution_observation: rc=0, timeout=False
+2026-11-13T17:05:31.9726835Z captured generate-66-continuation: rc=0, timeout=False
+2026-11-13T17:05:33.2846388Z captured generate-67-enum_match: rc=0, timeout=False
+2026-11-13T17:05:34.3393037Z captured generate-68-enum_operations: rc=0, timeout=False
+2026-11-13T17:05:35.2873441Z captured generate-69-record_operations: rc=0, timeout=False
+2026-11-13T17:05:36.6330953Z captured generate-70-record_transitions: rc=0, timeout=False
+2026-11-13T17:05:37.8169639Z captured generate-71-task_operations: rc=0, timeout=False
+2026-11-13T17:05:38.8396762Z captured generate-72-call_primitive: rc=0, timeout=False
+2026-11-13T17:05:39.8022406Z captured generate-73-nominal_terminators: rc=0, timeout=False
+2026-11-13T17:05:40.5681129Z captured generate-74-nominal_module: rc=0, timeout=False
+2026-11-13T17:05:41.5184985Z captured generate-75-nominal_admission: rc=0, timeout=False
+2026-11-13T17:05:42.3010485Z captured generate-76-request_journal: rc=0, timeout=False
+2026-11-13T17:05:43.0448521Z captured generate-77-task_helper_cache: rc=0, timeout=False
+2026-11-13T17:05:44.4280097Z captured generate-78-artifact_namespace: rc=0, timeout=False
+2026-11-13T17:05:45.8865497Z captured generate-79-slot_ledger_continuation: rc=0, timeout=False
+2026-11-13T17:05:47.9681326Z captured generate-80-program_execution: rc=0, timeout=False
+2026-11-13T17:05:50.4930273Z captured generate-81-static_budget: rc=0, timeout=False
+2026-11-13T17:05:52.8070815Z captured generate-82-heap_bound: rc=0, timeout=False
+2026-11-13T17:05:57.3306141Z captured generate-83-heap_kernels: rc=0, timeout=False
+2026-11-13T17:05:58.6055156Z captured generate-84-core_json_bytes: rc=0, timeout=False
+2026-11-13T17:05:58.8365494Z captured generate-85-cpython_note_packer: rc=0, timeout=False
+2026-11-13T17:06:01.0518900Z captured generate-86-program_normalization: rc=0, timeout=False
+2026-11-13T17:06:01.6371244Z captured generate-87-linked_observer: rc=0, timeout=False
+2026-11-13T17:06:02.3417480Z captured generate-88-source_admission: rc=0, timeout=False
+2026-11-13T17:06:04.3301760Z captured generate-89-machine_elf: rc=0, timeout=False
+2026-11-13T17:06:06.0659083Z captured generate-90-machine_plan_control: rc=0, timeout=False
+2026-11-13T17:06:07.3263548Z captured generate-91-service_context: rc=0, timeout=False
+2026-11-13T17:06:10.7969717Z captured generate-92-core_lowering_control: rc=0, timeout=False
+2026-11-13T17:06:12.0013948Z captured generate-93-service_emission: rc=0, timeout=False
+2026-11-13T17:06:13.2050333Z captured generate-94-core_emitter_control: rc=0, timeout=False
+2026-11-13T17:06:14.4795615Z captured generate-95-native_byte_abi: rc=0, timeout=False
+2026-11-13T17:06:14.5472097Z captured generate-96-native_build_foreign: rc=0, timeout=False
+2026-11-13T17:06:17.0263800Z captured generate-97-native_build: rc=0, timeout=False
+2026-11-13T17:06:17.0908692Z captured generate-98-service_verification_foreign: rc=0, timeout=False
+2026-11-13T17:06:19.1185286Z captured generate-99-service_verification: rc=0, timeout=False
+2026-11-13T17:06:21.7380971Z captured generate-100-proof_contract: rc=0, timeout=False
+2026-11-13T17:06:24.1515514Z captured generate-101-service_requests: rc=0, timeout=False
+2026-11-13T17:06:24.4390463Z captured generate-102-service_requests_foreign: rc=0, timeout=False
+2026-11-13T17:06:25.2448397Z captured generate-103-core_verification: rc=0, timeout=False
+2026-11-13T17:06:27.0631747Z captured generate-104-assembly_front: rc=0, timeout=False
+2026-11-13T17:06:28.1238355Z captured generate-105-service_artifacts: rc=0, timeout=False
+2026-11-13T17:06:28.3682347Z captured generate-106-service_artifacts_foreign: rc=0, timeout=False
+2026-11-13T17:06:30.7754560Z captured generate-107-service_evaluation: rc=0, timeout=False
+2026-11-13T17:06:30.9426179Z captured generate-108-service_evaluation_foreign: rc=0, timeout=False
+2026-11-13T17:06:32.0298369Z captured generate-109-release_launch: rc=0, timeout=False
+2026-11-13T17:06:32.2785329Z captured generate-110-store_lifecycle_foreign: rc=0, timeout=False
+2026-11-13T17:06:33.4295903Z captured generate-111-store_lifecycle: rc=0, timeout=False
+2026-11-13T17:06:34.7231956Z captured generate-112-candidate_build: rc=0, timeout=False
+2026-11-13T17:06:37.8025800Z captured generate-113-selfhost_linux_stdio: rc=0, timeout=False
+2026-11-13T17:06:38.1047061Z captured generate-114-linux_stdio_entry: rc=0, timeout=False
+2026-11-13T17:06:39.6744671Z captured generate-115-cli_discovery_json: rc=0, timeout=False
+2026-11-13T17:06:42.5417333Z captured generate-116-selfhost_linux_process: rc=0, timeout=False
+2026-11-13T17:06:42.8926108Z captured generate-117-linux_process_entry: rc=0, timeout=False
+2026-11-13T17:06:45.9859346Z captured generate-118-selfhost_linux_cli_process: rc=0, timeout=False
+2026-11-13T17:06:46.3657796Z captured generate-119-linux_cli_entry: rc=0, timeout=False
+2026-11-13T17:06:47.0650968Z captured generate-120-native_cli_process: rc=0, timeout=False
+2026-11-13T17:06:47.6256283Z captured generate-121-cli_discovery_routing: rc=0, timeout=False
+2026-11-13T17:06:48.0222527Z captured generate-122-cli_parser_context: rc=1, timeout=False
+2026-11-13T17:06:48.0226578Z COMMAND_FAILURE {"label": "generate-122-cli_parser_context", "record": "commands/0161-generate-122-cli_parser_context.json", "returncode": 1, "stderr": {"blob": "6ad34acdfc4b75ef5402167c977e0dc91c05770a", "bytes": 3672, "file": "commands/0161-generate-122-cli_parser_context.stderr", "sha256": "9ddcde71f29aa6ccbf597200ceffa36ba5312b1bd03cb4d69e7966fd885416bd"}, "stdout": {"blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391", "bytes": 0, "file": "commands/0161-generate-122-cli_parser_context.stdout", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "timed_out": false}
+2026-11-13T17:06:48.0230910Z command-output generate-122-cli_parser_context stderr: Traceback (most recent call last):
+2026-11-13T17:06:48.0232159Z command-output generate-122-cli_parser_context stderr:   File "<frozen runpy>", line 198, in _run_module_as_main
+2026-11-13T17:06:48.0233095Z command-output generate-122-cli_parser_context stderr:   File "<frozen runpy>", line 88, in _run_code
+2026-11-13T17:06:48.0234398Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/generate_hia_cli_parser_context.py", line 337, in <module>
+2026-11-13T17:06:48.0235364Z command-output generate-122-cli_parser_context stderr:     if __name__=='__main__':main()
+2026-11-13T17:06:48.0235957Z command-output generate-122-cli_parser_context stderr:                             ~~~~^^
+2026-11-13T17:06:48.0236890Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/generate_hia_cli_parser_context.py", line 325, in main
+2026-11-13T17:06:48.0238297Z command-output generate-122-cli_parser_context stderr:     document,data,facts,symbols=authored();raw=render_assembly(document).encode()
+2026-11-13T17:06:48.0239074Z command-output generate-122-cli_parser_context stderr:                                 ~~~~~~~~^^
+2026-11-13T17:06:48.0240037Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/generate_hia_cli_parser_context.py", line 276, in authored
+2026-11-13T17:06:48.0241006Z command-output generate-122-cli_parser_context stderr:     facts,objects,shared=graph_facts()
+2026-11-13T17:06:48.0241628Z command-output generate-122-cli_parser_context stderr:                          ~~~~~~~~~~~^^
+2026-11-13T17:06:48.0242538Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 208, in graph_facts
+2026-11-13T17:06:48.0243418Z command-output generate-122-cli_parser_context stderr:     root = visit(parser)
+2026-11-13T17:06:48.0244464Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 202, in visit
+2026-11-13T17:06:48.0245427Z command-output generate-122-cli_parser_context stderr:     row = ['object', shared.by_id[id(t)], visit(vars(value))]
+2026-11-13T17:06:48.0246131Z command-output generate-122-cli_parser_context stderr:                                           ~~~~~^^^^^^^^^^^^^
+2026-11-13T17:06:48.0247059Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 185, in visit
+2026-11-13T17:06:48.0248310Z command-output generate-122-cli_parser_context stderr:     row = ['dict', [[visit(key), visit(item)] for key, item in value.items()]]
+2026-11-13T17:06:48.0249047Z command-output generate-122-cli_parser_context stderr:                                  ~~~~~^^^^^^
+2026-11-13T17:06:48.0249983Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 183, in visit
+2026-11-13T17:06:48.0250918Z command-output generate-122-cli_parser_context stderr:     row = ['list', [visit(item) for item in value]]
+2026-11-13T17:06:48.0251538Z command-output generate-122-cli_parser_context stderr:                     ~~~~~^^^^^^
+2026-11-13T17:06:48.0252411Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 202, in visit
+2026-11-13T17:06:48.0253371Z command-output generate-122-cli_parser_context stderr:     row = ['object', shared.by_id[id(t)], visit(vars(value))]
+2026-11-13T17:06:48.0254094Z command-output generate-122-cli_parser_context stderr:                                           ~~~~~^^^^^^^^^^^^^
+2026-11-13T17:06:48.0255038Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 185, in visit
+2026-11-13T17:06:48.0256042Z command-output generate-122-cli_parser_context stderr:     row = ['dict', [[visit(key), visit(item)] for key, item in value.items()]]
+2026-11-13T17:06:48.0256893Z command-output generate-122-cli_parser_context stderr:                                  ~~~~~^^^^^^
+2026-11-13T17:06:48.0258103Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 185, in visit
+2026-11-13T17:06:48.0259120Z command-output generate-122-cli_parser_context stderr:     row = ['dict', [[visit(key), visit(item)] for key, item in value.items()]]
+2026-11-13T17:06:48.0259836Z command-output generate-122-cli_parser_context stderr:                                  ~~~~~^^^^^^
+2026-11-13T17:06:48.0260729Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 202, in visit
+2026-11-13T17:06:48.0261677Z command-output generate-122-cli_parser_context stderr:     row = ['object', shared.by_id[id(t)], visit(vars(value))]
+2026-11-13T17:06:48.0262384Z command-output generate-122-cli_parser_context stderr:                                           ~~~~~^^^^^^^^^^^^^
+2026-11-13T17:06:48.0263299Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 185, in visit
+2026-11-13T17:06:48.0264281Z command-output generate-122-cli_parser_context stderr:     row = ['dict', [[visit(key), visit(item)] for key, item in value.items()]]
+2026-11-13T17:06:48.0264995Z command-output generate-122-cli_parser_context stderr:                                  ~~~~~^^^^^^
+2026-11-13T17:06:48.0265878Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 202, in visit
+2026-11-13T17:06:48.0266964Z command-output generate-122-cli_parser_context stderr:     row = ['object', shared.by_id[id(t)], visit(vars(value))]
+2026-11-13T17:06:48.0267915Z command-output generate-122-cli_parser_context stderr:                                           ~~~~~^^^^^^^^^^^^^
+2026-11-13T17:06:48.0268835Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 185, in visit
+2026-11-13T17:06:48.0269823Z command-output generate-122-cli_parser_context stderr:     row = ['dict', [[visit(key), visit(item)] for key, item in value.items()]]
+2026-11-13T17:06:48.0270534Z command-output generate-122-cli_parser_context stderr:                                  ~~~~~^^^^^^
+2026-11-13T17:06:48.0271425Z command-output generate-122-cli_parser_context stderr:   File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 204, in visit
+2026-11-13T17:06:48.0272510Z command-output generate-122-cli_parser_context stderr:     raise ValueError('unsupported authoring graph value: ' + t.__module__ + '.' + t.__qualname__)
+2026-11-13T17:06:48.0273423Z command-output generate-122-cli_parser_context stderr: ValueError: unsupported authoring graph value: _colorize.Argparse
+2026-11-13T17:08:56.8448973Z {"HIA_COMBINED_SOURCE_RESULT": {"cold_qualifications": 0, "composition": {"authored_files": 448, "conflicts_resolved": 122, "exact_retained": 31, "regeneration_seeds": 185}, "default_changed": false, "failures": [{"error": "unexpected command return code: generate-122-cli_parser_context", "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 932, in main\n    result[\"generation\"] = regenerate(capture,inputs)\n                           ~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 590, in regenerate\n    python_command(capture, [\"-m\", \"tools.generate_hia_\" + name],\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                   \"generate-\" + str(index) + \"-\" + name, limit=300)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 582, in python_command\n    return capture.run([sys.executable, \"-B\", *arguments], cwd=capture.repo, label=label,\n           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                       auth=False, limit=limit, enforce=enforce, local_git_fixture=local_git_fixture)\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 185, in run\n    check(process.returncode in allowed, \"unexpected command return code: \" + label)\n    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unexpected command return code: generate-122-cli_parser_context\n", "type": "RuntimeError"}], "finished_at": "2026-11-13T17:06:48.463017+00:00", "legacy_host_implementation_deleted": false, "native_execution_count": null, "native_qualification_jobs_executed": 0, "product_ref_changed": false, "product_tests_executed": 0, "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]", "schema": "hepta.combined-source-build-result.v1", "scope": "COMBINED_SOURCE_REGENERATION_AND_SOURCE_TESTS", "started_at": "2026-11-13T17:02:22.845152+00:00", "status": "FAIL", "syntax": {"checked": 1518, "failures": 0}, "terminal_source_snapshot": {"all_partial_generated_bytes_captured": true, "files": 3155, "fixed_original_git_dependencies_retained": true, "new_or_changed_byte_records": 441}, "whole_native": false}, "evidence": {"blob": "cf11f4c1b6d75aba0869b7a74e651d19b665b138", "bytes": 669181, "full_readback_equal": true, "sha256": "75c4fa672575eebf6a5dd1fd68b2772a272513489708985620c17c1f8959a2ee"}}
+2026-11-13T17:08:56.9999237Z ##[error]Process completed with exit code 1.
+2026-11-13T17:08:57.0102572Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-11-13T17:08:57.0103001Z with:
+2026-11-13T17:08:57.0103246Z   name: hia-combined-source-v93-r11-43468679071-1
+2026-11-13T17:08:57.0103650Z   path: /home/runner/work/_temp/hia-combined-source-v93-r11/evidence
+2026-11-13T17:08:57.0104015Z   if-no-files-found: error
+2026-11-13T17:08:57.0104256Z   include-hidden-files: true
+2026-11-13T17:08:57.0104487Z   retention-days: 90
+2026-11-13T17:08:57.0104696Z   compression-level: 6
+2026-11-13T17:08:57.0104909Z   overwrite: false
+2026-11-13T17:08:57.0105105Z env:
+2026-11-13T17:08:57.0105375Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:08:57.0105801Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-13T17:08:57.0106229Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:08:57.0106596Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:08:57.0106998Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-13T17:08:57.0107376Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-13T17:08:57.0107884Z ##[endgroup]
+2026-11-13T17:08:57.1891047Z (node:3841) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-13T17:08:57.1891895Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-13T17:08:57.7561559Z With the provided path, there will be 2243 files uploaded
+2026-11-13T17:08:57.7567952Z Artifact name is valid!
+2026-11-13T17:08:57.7568461Z Root directory input is valid!
+2026-11-13T17:08:58.1026606Z Beginning upload of artifact content to blob storage
+2026-11-13T17:08:58.4268143Z (node:3841) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-13T17:08:59.1007235Z Uploaded bytes 8388608
+2026-11-13T17:08:59.3419805Z Uploaded bytes 16777216
+2026-11-13T17:08:59.4152426Z Uploaded bytes 25165824
+2026-11-13T17:08:59.6563893Z Uploaded bytes 33554432
+2026-11-13T17:08:59.8489492Z Uploaded bytes 41943040
+2026-11-13T17:09:00.4873867Z Uploaded bytes 50331648
+2026-11-13T17:09:00.8665588Z Uploaded bytes 58720256
+2026-11-13T17:09:01.2053060Z Uploaded bytes 67108864
+2026-11-13T17:09:01.6470651Z Uploaded bytes 75497472
+2026-11-13T17:09:02.0348203Z Uploaded bytes 83886080
+2026-11-13T17:09:02.9006594Z Uploaded bytes 92274688
+2026-11-13T17:09:04.1755671Z Uploaded bytes 100663296
+2026-11-13T17:09:05.5432832Z Uploaded bytes 109051904
+2026-11-13T17:09:06.8574284Z Uploaded bytes 117390821
+2026-11-13T17:09:06.9173404Z Finished uploading artifact content to blob storage!
+2026-11-13T17:09:06.9176292Z SHA256 digest of uploaded artifact zip is 30915d21bbc58d5d0f2b94baa4d73f06ecead38e572463eb2b2f282fa6a4f743
+2026-11-13T17:09:06.9179043Z Finalizing artifact upload
+2026-11-13T17:09:07.4210394Z Artifact hia-combined-source-v93-r11-43468679071-1.zip successfully finalized. Artifact ID 14060271044
+2026-11-13T17:09:07.4211447Z Artifact hia-combined-source-v93-r11-43468679071-1 has been successfully uploaded! Final size is 117390821 bytes. Artifact ID is 14060271044
+2026-11-13T17:09:07.4219208Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/43468679071/artifacts/14060271044
+2026-11-13T17:09:07.4583179Z Post job cleanup.
+2026-11-13T17:09:07.5508707Z [command]/usr/bin/git version
+2026-11-13T17:09:07.5543925Z git version 2.56.1
+2026-11-13T17:09:07.5586598Z Temporarily overriding HOME='/home/runner/work/_temp/8e9a4ced-48fb-4ae4-b161-80f5eca7f122' before making global git config changes
+2026-11-13T17:09:07.5588184Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-13T17:09:07.5593753Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/harness
+2026-11-13T17:09:07.5641053Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-13T17:09:07.5711247Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-13T17:09:07.5988672Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-13T17:09:07.6035443Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-13T17:09:07.6535872Z Cleaning up orphan processes
+2026-11-13T17:09:07.7042302Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683, actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

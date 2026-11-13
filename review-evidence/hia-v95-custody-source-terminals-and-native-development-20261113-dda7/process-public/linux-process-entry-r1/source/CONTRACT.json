@@ -1,0 +1,97 @@
+{
+  "ELF": {
+    "BSS_bytes": 10493952,
+    "NX_stack": true,
+    "RX_text": 4194304,
+    "entry_offset": 232,
+    "image_offset": 1024,
+    "no_RWX": true,
+    "no_interpreter": true
+  },
+  "IO": "one fixed syscall; fd0 read/fd1 write/fd2 write; negative signed errno and short return unchanged; no implicit retry; HIA program owns loops",
+  "SIGPIPE": "entry never changes disposition; actual inherited default kills, inherited ignore returns -EPIPE",
+  "actual_empty_argv_observation": "this Linux6.18.57 execve with argc0 supplied entered argc1/one-empty-string; separate VM can represent exact empty reference vector",
+  "buffers": [
+    {
+      "extent": 0,
+      "role": "readbuf"
+    },
+    {
+      "address": 6295552,
+      "extent": 1048576,
+      "role": "output"
+    },
+    {
+      "address": 7344128,
+      "extent": 1048576,
+      "role": "workspace"
+    }
+  ],
+  "compiler_projection": {
+    "admitted_profile_states": [
+      0,
+      4
+    ],
+    "functions_blocks_instructions": [
+      96,
+      1350,
+      6690
+    ],
+    "original_B3_reproduced": true,
+    "proof": "evidence/COMPILER-GENERATION-r1.json includes exact admission preimage and complete reached/omitted call graph",
+    "rejected_before_functions": [
+      "selfhost_elf",
+      "selfhost_exec",
+      "exports"
+    ]
+  },
+  "copy_order": [
+    "validate real typed mutable destination loan",
+    "index<count before pointer read",
+    "read kernel NUL length",
+    "source_offset<=length",
+    "count<=length-source_offset",
+    "destination_offset<=extent",
+    "count<=extent-destination_offset",
+    "single exact copy"
+  ],
+  "entry": "Linux x86-64 static ET_EXEC, six physical buffer arguments, f0 returns u32 exit low byte",
+  "module": "selfhost_linux_process",
+  "not_authorized": [
+    "arbitrary fd/syscall/address",
+    "ordinary Core/Code extended inputs",
+    "snapshot-to-native conversion",
+    "default CLI dispatch or MCP integration",
+    "cold/whole qualification"
+  ],
+  "operations": [
+    "linux.argv.count",
+    "linux.env.count",
+    "linux.argv.length",
+    "linux.env.length",
+    "linux.argv.copy",
+    "linux.env.copy",
+    "linux.stdin.read",
+    "linux.stdout.write",
+    "linux.stderr.write"
+  ],
+  "profile": "hepta.hia.linux-process.v1",
+  "schema": "hia.linux-process-entry-contract.v1",
+  "sealing": "PR_SET_DUMPABLE0 then original startup pages readonly, guardpage inaccessible, capability readonly; every syscall failure exits126 before HIA",
+  "startup_VM": "LinuxStartupSnapshot exact immutable tuples/bytes, NUL-free; explicit reference data only; accepts empty vectors and does not impose aggregate1MiB cap",
+  "startup_capability_page": {
+    "address": 6291456,
+    "magic": "HIALPRC1",
+    "publication": "only startup CPU entry; read-only page; never a serialized capability",
+    "slots": {
+      "0": "magic published after kernel-storage mprotect",
+      "16": "argc",
+      "24": "argv pointer vector",
+      "32": "environment count",
+      "40": "environment pointer vector",
+      "48": "exclusive scanned startup extent end",
+      "8": "original kernel rsp"
+    }
+  },
+  "startup_storage": "original kernel ordered NUL-terminated argv/env vectors and bytes; no filtering, decoding, sorting or deduplication; original pages read-only"
+}

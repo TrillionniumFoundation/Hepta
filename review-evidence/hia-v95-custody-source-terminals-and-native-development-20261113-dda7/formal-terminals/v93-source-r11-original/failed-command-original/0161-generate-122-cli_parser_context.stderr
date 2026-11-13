@@ -1,0 +1,47 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/generate_hia_cli_parser_context.py", line 337, in <module>
+    if __name__=='__main__':main()
+                            ~~~~^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/generate_hia_cli_parser_context.py", line 325, in main
+    document,data,facts,symbols=authored();raw=render_assembly(document).encode()
+                                ~~~~~~~~^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/generate_hia_cli_parser_context.py", line 276, in authored
+    facts,objects,shared=graph_facts()
+                         ~~~~~~~~~~~^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 208, in graph_facts
+    root = visit(parser)
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 202, in visit
+    row = ['object', shared.by_id[id(t)], visit(vars(value))]
+                                          ~~~~~^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 185, in visit
+    row = ['dict', [[visit(key), visit(item)] for key, item in value.items()]]
+                                 ~~~~~^^^^^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 183, in visit
+    row = ['list', [visit(item) for item in value]]
+                    ~~~~~^^^^^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 202, in visit
+    row = ['object', shared.by_id[id(t)], visit(vars(value))]
+                                          ~~~~~^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 185, in visit
+    row = ['dict', [[visit(key), visit(item)] for key, item in value.items()]]
+                                 ~~~~~^^^^^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 185, in visit
+    row = ['dict', [[visit(key), visit(item)] for key, item in value.items()]]
+                                 ~~~~~^^^^^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 202, in visit
+    row = ['object', shared.by_id[id(t)], visit(vars(value))]
+                                          ~~~~~^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 185, in visit
+    row = ['dict', [[visit(key), visit(item)] for key, item in value.items()]]
+                                 ~~~~~^^^^^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 202, in visit
+    row = ['object', shared.by_id[id(t)], visit(vars(value))]
+                                          ~~~~~^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 185, in visit
+    row = ['dict', [[visit(key), visit(item)] for key, item in value.items()]]
+                                 ~~~~~^^^^^^
+  File "/home/runner/work/_temp/hia-combined-source-v93-r11/repository/tools/hia_cli_parser_graph.py", line 204, in visit
+    raise ValueError('unsupported authoring graph value: ' + t.__module__ + '.' + t.__qualname__)
+ValueError: unsupported authoring graph value: _colorize.Argparse
