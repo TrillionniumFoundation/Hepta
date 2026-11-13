@@ -1,0 +1,55 @@
+{
+  "schema": "hepta.hia.sqlite-wal-byte-abi.v1",
+  "status": "SOURCE_AUTHORED_UNEXECUTED",
+  "entry": "f0",
+  "source": "examples/hia_bootstrap/sqlite_wal.hiaasm",
+  "native_arguments": ["input_address", "input_bytes", "output_address", "output_bytes", "control_address", "control_bytes"],
+  "logical_span_count": 3,
+  "actual_abi_argument_count": 6,
+  "control": {
+    "bytes": 64,
+    "byte_order": "little",
+    "u64_fields_by_offset": {"0": "ASCII HIASWL01", "8": "operation: checksum=1, header=2, frame=3", "16": "checksum order: little=0, big=1", "24": "seed0 (u32)", "32": "seed1 (u32)", "40": "page size", "48": "salt0 (u32)", "56": "salt1 (u32)"},
+    "modified_by_kernel": false,
+    "unused_fields_must_be_zero": true
+  },
+  "checksum": {
+    "input_bytes": "8 through 65536, divisible by 8",
+    "output_bytes_exact": 8,
+    "output_words_u32_little_endian": ["checksum0", "checksum1"],
+    "empty_input": "protocol refusal; matches the nonempty walChecksumBytes precondition",
+    "arithmetic": "Each of the two rolling sums wraps modulo 2^32 after its update.",
+    "unused_control_fields": [40, 48, 56]
+  },
+  "header": {
+    "input_bytes_exact": 32,
+    "output_bytes_exact": 32,
+    "input_fields": "Eight big-endian u32 words, regardless of checksum order.",
+    "magic": ["0x377f0682", "0x377f0683"],
+    "page_size": "Power of two from 512 through 65536; the value 1 is not a WAL page size.",
+    "format_version": 3007000,
+    "checksum_region": "First 24 bytes; seed zero; order from low bit of magic.",
+    "admission_order": ["magic and page size", "checksum", "version"],
+    "output_words_u32_little_endian": ["checksum0", "checksum1", "page_size", "checkpoint_sequence", "salt0", "salt1", "checksum_order", "version"],
+    "unused_control_fields": [16, 24, 32, 40, 48, 56]
+  },
+  "frame": {
+    "input_bytes_exact": "24 + page_size",
+    "output_bytes_exact": 16,
+    "maximum_input_bytes": 65560,
+    "admission_order": ["transport and externally bound page size", "salts", "page number nonzero", "cumulative checksum"],
+    "checksum_regions_in_order": ["First 8 bytes of the frame header", "page_size bytes at offset 24"],
+    "checksum_excluded_region": "Header bytes 8 through 23, including salts and stored checksum.",
+    "output_words_u32_little_endian": ["checksum0", "checksum1", "page_number", "commit_database_page_count"],
+    "page_number_domain": "1 through 2^32-1 as in walDecodeFrame; wider pager/database limits are external.",
+    "commit_marker": "Nonzero commit_database_page_count is returned without granting commit, recovery or visibility authority."
+  },
+  "refusals": {"4294967293": "invalid transport or command", "4294967292": "invalid WAL magic/page size or zero frame page number", "4294967291": "checksum mismatch", "4294967290": "frame salt mismatch", "4294967289": "unsupported WAL format version"},
+  "all_refusals_leave_all_spans_unchanged": true,
+  "success_return": "Exact fixed output size in bytes: 8, 32 or 16.",
+  "foreign_allocation_preconditions": ["All declared spans are valid initialized allocations for the entire call.", "The output is exclusive and does not alias input or immutable control.", "The caller excludes concurrent mutation and binds frame seed, salts and page size to the same validated WAL chain."],
+  "scope_difference_from_internal_C": "Internal walDecodeFrame mutates Wal.hdr.aFrameCksum on checksum failure. This isolated byte API keeps command/output unchanged on every refusal; it is not a drop-in Wal structure replacement.",
+  "hosted_bridge_responsibilities": ["exact Python object validation", "private buffer allocation and copying", "source/image qualification and immutable executable mapping", "returned u32 object materialization"],
+  "database_io_lock_transactions_wal_scan_recovery_or_checkpoint_implemented": false,
+  "sqlite_engine_hook_or_default_agent_store_changed": false
+}
