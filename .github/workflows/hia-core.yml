@@ -695,32 +695,6 @@ jobs:
           HEPTA_HIA_NOMINAL_JSON_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_NOMINAL_JSON_EVIDENCE: ${{ runner.temp }}/hia-nominal-json
           HEPTA_HIA_NOMINAL_JSON_INGRESS_EVIDENCE: ${{ runner.temp }}/hia-nominal-json-ingress
-      - name: Preserve actual cold failure and stage evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: hia-core-native-${{ github.sha }}-${{ github.run_attempt }}
-          if-no-files-found: error
-          retention-days: 7
-          include-hidden-files: true
-          path: |
-            ${{ runner.temp }}/hia-cold.json
-            ${{ runner.temp }}/hia-cold.cold/
-            ${{ runner.temp }}/hia-language.json
-            ${{ runner.temp }}/hia-language.assertions.json
-            ${{ runner.temp }}/hia-language.evidence/
-            ${{ runner.temp }}/hia-nominal-fixture/
-            ${{ runner.temp }}/hia-module-projects/
-            ${{ runner.temp }}/hia-release-install/
-            ${{ runner.temp }}/hia-release-selection/
-            ${{ runner.temp }}/hia-retirement-state/
-            ${{ runner.temp }}/hia-source-build/
-            ${{ runner.temp }}/hia-execution-budget/
-            ${{ runner.temp }}/hia-candidate-budget/
-            ${{ runner.temp }}/hia-slot-ledger/
-            ${{ runner.temp }}/hia-nominal-json/
-            ${{ runner.temp }}/hia-nominal-json-ingress/
-            ${{ runner.temp }}/hia-journal-callers.json
 
       - name: Native JSON wire entry, exact graph budgets, key cache and installed resources
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_json_wire_native tests.test_hia_json_wire_entry tests.test_hia_json_wire_cache
@@ -735,3 +709,63 @@ jobs:
           --cold-report "$RUNNER_TEMP/hia-cold.json"
           --output "$RUNNER_TEMP/hia-json-wire-callers.json"
           --evidence-dir "$RUNNER_TEMP/hia-json-wire-callers"
+      - name: Preserve actual cold failure and stage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-native-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/byte-wrapper-callers
+            ${{ runner.temp }}/byte-wrapper-composed-callers
+            ${{ runner.temp }}/byte-wrapper-fixture
+            ${{ runner.temp }}/core-emitter-callers
+            ${{ runner.temp }}/core-emitter-fixture
+            ${{ runner.temp }}/core-emitter-function-callers
+            ${{ runner.temp }}/core-lowering-callers
+            ${{ runner.temp }}/core-lowering-fixture
+            ${{ runner.temp }}/execution-observation-callers
+            ${{ runner.temp }}/execution-observation-fixture
+            ${{ runner.temp }}/hia-candidate-budget
+            ${{ runner.temp }}/hia-cli-native
+            ${{ runner.temp }}/hia-cold.cold
+            ${{ runner.temp }}/hia-cold.json
+            ${{ runner.temp }}/hia-execution-budget
+            ${{ runner.temp }}/hia-journal-callers.json
+            ${{ runner.temp }}/hia-json-wire-callers
+            ${{ runner.temp }}/hia-json-wire-callers.json
+            ${{ runner.temp }}/hia-language.assertions.json
+            ${{ runner.temp }}/hia-language.evidence
+            ${{ runner.temp }}/hia-language.json
+            ${{ runner.temp }}/hia-llvm.asc
+            ${{ runner.temp }}/hia-module-projects
+            ${{ runner.temp }}/hia-nominal-fixture
+            ${{ runner.temp }}/hia-nominal-json
+            ${{ runner.temp }}/hia-nominal-json-ingress
+            ${{ runner.temp }}/hia-release-install
+            ${{ runner.temp }}/hia-release-selection
+            ${{ runner.temp }}/hia-retirement-state
+            ${{ runner.temp }}/hia-slot-ledger
+            ${{ runner.temp }}/hia-source-build
+            ${{ runner.temp }}/json-wire-cache-fixture
+            ${{ runner.temp }}/json-wire-entry-fixture
+            ${{ runner.temp }}/json-wire-fixture
+            ${{ runner.temp }}/machine-encoding-callers
+            ${{ runner.temp }}/machine-encoding-fixture
+            ${{ runner.temp }}/machine-instructions-callers
+            ${{ runner.temp }}/machine-instructions-fixture
+            ${{ runner.temp }}/machine-object-callers
+            ${{ runner.temp }}/machine-object-composed-callers
+            ${{ runner.temp }}/machine-object-fixture
+            ${{ runner.temp }}/machine-plan-callers
+            ${{ runner.temp }}/machine-plan-callers.json
+            ${{ runner.temp }}/machine-plan-fixture
+            ${{ runner.temp }}/machine-state-callers
+            ${{ runner.temp }}/machine-state-fixture
+            ${{ runner.temp }}/native-continuation-callers
+            ${{ runner.temp }}/native-inprocess-continuation-callers
+            ${{ runner.temp }}/native-no-child-continuation-callers
+            ${{ runner.temp }}/worker-report-fixture
+            ${{ runner.temp }}/worker-scheduling-fixture

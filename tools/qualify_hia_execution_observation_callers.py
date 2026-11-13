@@ -131,6 +131,9 @@ def main():
         whole_runtime_native=False,whole_native_delivery_qualified=False)
     (args.evidence/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({k:report[k] for k in ('status','scope','actual_tests','wall_seconds')}))
+    if not passed:
+        print(json.dumps({k: report[k] for k in ('errors', 'failures', 'skipped', 'expected_failures', 'unexpected_successes', 'source_and_bundle_unchanged', 'actual_mode_status_counts')}, indent=2))
+        print((args.evidence / 'tests.log').read_text())
     return 0 if passed else 1
 
 
