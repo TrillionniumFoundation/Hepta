@@ -13,6 +13,8 @@ from .hia_core_verification_native import NativeCoreVerification, SOURCE, SCHEMA
 
 _UNSCOPED = object()
 _OWNER = ContextVar('hia_core_verification_captured_owner', default=_UNSCOPED)
+_ORIGINAL_OWNER = _OWNER
+_ORIGINAL_UNSCOPED = _UNSCOPED
 
 def _fresh():
     path = os.environ.get(SELECTOR)
@@ -61,6 +63,15 @@ def borrow_core_verification_scope():
         yield
     finally:
         _OWNER.set(previous)
+
+_ORIGINAL_BORROW_SCOPE = borrow_core_verification_scope
+
+def _borrow_core_scope_is_noop(provider):
+    """Observe an existing standard scope without resolving its lazy lease."""
+    return (provider is _ORIGINAL_BORROW_SCOPE
+            and _OWNER is _ORIGINAL_OWNER
+            and _UNSCOPED is _ORIGINAL_UNSCOPED
+            and _OWNER.get() is not _UNSCOPED)
 
 @contextmanager
 def native_core_verification_scope():
