@@ -1,0 +1,106 @@
+{
+  "status": "BOUND_OWNER_CLOSED_NATURAL_ZERO_BEFORE_CHILD_READ",
+  "checks": {
+    "wrapper_receipt": true,
+    "wrapper_request": true,
+    "owner_request": true,
+    "supervisor": true,
+    "implementation": true,
+    "argv": true,
+    "cwd": true,
+    "environment": true,
+    "budgets": true,
+    "deadline": true,
+    "cleanup": true,
+    "natural": true
+  },
+  "seconds": 27.746904421,
+  "owner": {
+    "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+    "cleanup": {
+      "attempted": true,
+      "complete": true,
+      "deadline_exceeded": false,
+      "elapsed_ns": 11482419,
+      "errors": [],
+      "leader_reaped": true,
+      "observed_echild": true,
+      "remaining_direct_children": [],
+      "started_ns": 1581700121141210
+    },
+    "cleanup_seconds": 3,
+    "direct_and_adopted_children": [
+      {
+        "pgid": 2851411,
+        "pid": 2851412,
+        "ppid": 2851411,
+        "sid": 2851411,
+        "start_ticks": 158167237
+      }
+    ],
+    "event_overflow": false,
+    "events": [
+      {
+        "kind": "qualification_started",
+        "monotonic_ns": 1581672374232669,
+        "pid": 2851412
+      },
+      {
+        "kind": "owned_child_observed",
+        "monotonic_ns": 1581672374257898,
+        "pgid": 2851411,
+        "pid": 2851412,
+        "ppid": 2851411,
+        "sid": 2851411,
+        "start_ticks": 158167237
+      },
+      {
+        "kind": "qualification_exit_observed",
+        "monotonic_ns": 1581700121137090,
+        "pid": 2851412,
+        "si_code": 1,
+        "si_status": 0
+      },
+      {
+        "kind": "owned_child_reaped",
+        "monotonic_ns": 1581700128229965,
+        "pid": 2851412,
+        "returncode": 0,
+        "start_ticks": 158167237
+      }
+    ],
+    "exit_observed_before_deadline": true,
+    "historical_descendant_inventory_complete": false,
+    "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+    "interrupted_signals": [],
+    "parent_pid": 2851408,
+    "platform": "linux",
+    "qualification_pid": 2851412,
+    "qualification_seconds": 180,
+    "qualification_started": true,
+    "request_sha256": "a80caeb929c9353abc19e37fd1997cd5783f0650e1960a9110326640638e92d6",
+    "returncode": 0,
+    "schema": "hepta.hia.selfhost-process-owner.v1",
+    "status": "OWNED_PROCESS_COMPLETED",
+    "subreaper_enabled": true,
+    "supervisor_pid": 2851411,
+    "timed_out": false
+  },
+  "owner_pin": {
+    "bytes": 1491,
+    "sha256": "c140e0176ff2d0c83f060b313f5c43f7d71a4a43adf9ba3fb82ef516d856dd1c"
+  },
+  "request_pin": {
+    "bytes": 1111,
+    "sha256": "a80caeb929c9353abc19e37fd1997cd5783f0650e1960a9110326640638e92d6"
+  },
+  "wrapper_pin": {
+    "bytes": 2011,
+    "sha256": "78c22b7f369ee39027e75d178bb769ce66d7f7c7287b0df7fb9be904b4b4e12b"
+  },
+  "read_only_error_preserved": {
+    "r1": "Required owner_error===null but actual success receipt omits owner_error; original common.bind_closed uses .get(...)=None",
+    "r2": "Missing-or-null optional owner_error matches exact original common; all binding/closure predicates unchanged",
+    "prior_child_body_reads": 0
+  }
+}

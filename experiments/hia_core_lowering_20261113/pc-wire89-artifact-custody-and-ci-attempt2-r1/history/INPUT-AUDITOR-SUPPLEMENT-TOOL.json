@@ -1,0 +1,45 @@
+{
+  "intent": {
+    "host": "ai395",
+    "executable": "/usr/bin/python3.14",
+    "args": [
+      "-I",
+      "-S",
+      "-B",
+      "-c",
+      "import json,sys;from pathlib import Path\nroot=Path(\"/home/qq/hia-rewrite-20261113-e26e-r1/pc-wire89-failure-artifact-r1\");sys.path.insert(0,str(root/'control'));import source_common as c\nq=json.loads((root/'REQUEST.json').read_bytes());rows=[]\nfor expected in q['inputs']:\n raw,observed=c.read_regular(expected['path'],expected);rows.append(observed)\nc.save_json(root/'custody/INPUTS-AFTER-INDEPENDENT.json',{'status':'ALL_FIVE_FROZEN_INPUTS_EXACT','inputs':rows,'reader_r1_note':'The prior independent auditor evaluated equality without assert in its final five-input loop. Its full ZIP/39 selected/B3/compile assertions executed. This supplementary reader enforces the five exact nine-field input pins; original receiver launcher had already enforced them before and after. No product or GET repeated.'})\nprint(json.dumps({'status':'PASS','inputs':len(rows),'network_GETs':0,'product_runs':0}))\n"
+    ],
+    "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/pc-wire89-failure-artifact-r1",
+    "env": {
+      "PYTHONDONTWRITEBYTECODE": "1"
+    },
+    "timeout_seconds": 20,
+    "idempotency_key": "hia-wire89-artifact-five-input-exact-readback-r1-20261113-e26e"
+  },
+  "status": {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"at_unix_ms\": 1794556461091,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1d3e67b57-392-21e\",\n  \"launch_nonce\": \"75b483053f80f0bb70a0e496fa3c1540\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 70,\n      \"stored\": 70\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+        }
+      ],
+      "structuredContent": null,
+      "isError": false
+    }
+  },
+  "output": {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1d3e67b57-392-21e\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b22737461747573223a202250415353222c2022696e70757473223a20352c20226e6574776f726b5f47455473223a20302c202270726f647563745f72756e73223a20307d0a\",\n    \"eof\": true,\n    \"next_offset\": 70,\n    \"offset\": 0,\n    \"size\": 70,\n    \"text\": \"{\\\"status\\\": \\\"PASS\\\", \\\"inputs\\\": 5, \\\"network_GETs\\\": 0, \\\"product_runs\\\": 0}\\n\"\n  }\n}"
+        }
+      ],
+      "structuredContent": null,
+      "isError": false
+    }
+  }
+}
