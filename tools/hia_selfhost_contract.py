@@ -78,6 +78,8 @@ SOURCE_FILES = (
     'tests/test_hia_core_unpack_native.py',
     'tests/fixtures/hia_core_lowering_native_before_unpack.py.txt',
     'tests/fixtures/hia_core_unpack_core39.json',
+    'tests/hia_core_pc_expected.py',
+    'tests/fixtures/hia_core_pc_forwarding_v93.json',
     'hepta/hia_core_unpack_abi.json',
     'examples/hia_bootstrap/core_unpack.hiaasm',
     'docs/HIA_CORE_UNPACK_NATIVE.md',

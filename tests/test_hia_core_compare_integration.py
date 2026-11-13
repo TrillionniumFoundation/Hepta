@@ -24,6 +24,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+from tests.hia_core_pc_expected import current_core39_fixture
+
 from tools import hia_core_companion_arguments as arguments
 from tools import hia_core_compare_qualification as reader
 
@@ -71,7 +73,7 @@ class NumericComparisonIntegrationSourceTests(unittest.TestCase):
                          ('hepta.hia_core_compare_selection', 'control'))
         self.assertIn(selection.ABI_SOURCE, installed.NATIVE_METADATA_RESOURCE_FILES)
         self.assertEqual(selection.SOURCES['control'].read_bytes(), (ROOT / selection.HIA_SOURCE).read_bytes())
-        frozen = json.loads((ROOT / 'tests/fixtures/hia_core_compare_core39.json').read_bytes())['files']
+        frozen = current_core39_fixture(ROOT, 'comparison')['files']
         self.assertEqual({row['path'] for row in frozen}, set(installed.CORE_LOWERING_RESOURCE_FILES))
         self.assertEqual(len(frozen), 40)
         for pin in frozen:
@@ -127,9 +129,14 @@ for code in (11, 12):
     self.assertIsInstance(integer_branch.body[1], ast.If)
     del integer_branch.body[1]
 """).body[0]
+        pc_expected_load = ast.parse("fixture = current_core39_fixture(ROOT, 'comparison')").body[0]
+        historical_expected_load = ast.parse("fixture = json.loads((ROOT / 'tests/fixtures/hia_core_compare_core39.json').read_bytes())").body[0]
         for name in before:
             current_method = deepcopy(after[name])
             if name == 'ExactNumericComparisonSourceTests.test_complete_Core39_outer_protocol_and_original116_are_unchanged':
+                # Admit only this exact expected-loader substitution, then compare the full original AST.
+                self.assertEqual(ast.dump(current_method.body[0]), ast.dump(pc_expected_load))
+                current_method.body[0] = deepcopy(historical_expected_load)
                 extensions = [node for node in current_method.body if ast.dump(node) == ast.dump(integer_extension)]
                 self.assertEqual(len(extensions), 1)
                 current_method.body.remove(extensions[0])

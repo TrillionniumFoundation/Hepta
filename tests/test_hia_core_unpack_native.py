@@ -19,6 +19,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+from tests.hia_core_pc_expected import current_core39_fixture
+
 from hepta import hia_program_native as backend
 from hepta import hia_core_lowering_native as outer
 from hepta import hia_core_lowering_selection as core
@@ -49,8 +51,8 @@ def forbidden(*args, **kwargs):
 
 class UnpackCompositionSourceTests(unittest.TestCase):
     def test_original_39_units_and_Core_ABI_are_unchanged(self):
-        path = ROOT / 'tests/fixtures/hia_core_unpack_core39.json'
-        expected = json.loads(path.read_bytes())
+        # Keep the historical snapshot exact and select an explicit current revision.
+        expected = current_core39_fixture(ROOT, 'unpack')
         self.assertEqual(expected['base_commit'], 'd0e110e19f9433baaf202a0f605671c7205b4cff')
         self.assertEqual(len(expected['files']), 40)
         abi = core.checked_abi((ROOT / core.ABI_SOURCE).read_bytes())

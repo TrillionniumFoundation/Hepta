@@ -20,6 +20,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+from tests.hia_core_pc_expected import current_core39_fixture
+
 from tools import hia_core_companion_arguments as arguments
 from tools import hia_core_integer_qualification as reader
 
@@ -349,7 +351,7 @@ class IntegerNativeIntegrationSourceTests(unittest.TestCase):
         for name, pin in pins.items():
             body = (ROOT / name).read_bytes()
             self.assertEqual((len(body), sha256(body).hexdigest()), (pin['bytes'], pin['sha256']), name)
-        rows = json.loads((ROOT / 'tests/fixtures/hia_core_compare_core39.json').read_bytes())['files']
+        rows = current_core39_fixture(ROOT, 'comparison')['files']
         self.assertEqual(len(rows), 40)  # 39 unchanged HIA sources plus ABI.
         for row in rows:
             body = (ROOT / row['path']).read_bytes()

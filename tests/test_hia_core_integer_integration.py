@@ -23,6 +23,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+from tests.hia_core_pc_expected import current_core39_fixture
+
 from hepta import hia_core_integer_selection as selection
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -73,7 +75,7 @@ class IntegerIntegrationSourceTests(unittest.TestCase):
                          (ROOT / 'hepta/hia_core_lowering_native.py').read_bytes())
         self.assertEqual((FIXTURE / 'inputs/hepta/hia_core_integer_abi.json').read_bytes(),
                          (ROOT / selection.ABI_SOURCE).read_bytes())
-        rows = json.loads((ROOT / 'tests/fixtures/hia_core_compare_core39.json').read_bytes())['files']
+        rows = current_core39_fixture(ROOT, 'comparison')['files']
         self.assertEqual(len(rows), 40)
         for row in rows:
             body = (ROOT / row['path']).read_bytes()

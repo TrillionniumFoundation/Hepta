@@ -1,0 +1,594 @@
+{
+  "schema": "hepta.hia.core39.explicit-pc-forwarding-v93.v1",
+  "scope": "Frozen version expectations only; this file does not grant native, matching-cold, Core116, UNPACK18, installed or whole32 qualification.",
+  "versions": {
+    "legacy": "fixed pre-PC Core39 bytes preserved by the original UNPACK and numeric fixtures",
+    "pc_forwarding": "38 numbered HIA units emitted from the four-change PC-forwarding generator; pool and ABI unchanged"
+  },
+  "source_commits": {
+    "legacy_product": "0504beb11c0dae875d8590660c42488b7bc634fb",
+    "pc_product": "7b05c13f264dcd5069dcb043f1e791dee47bf23c",
+    "pc_product_tree": "f7c4c3dd0f3ba2e90679855ea125d903cc0e47ee"
+  },
+  "historical_fixtures": {
+    "unpack": {
+      "path": "tests/fixtures/hia_core_unpack_core39.json",
+      "bytes": 6881,
+      "sha256": "c55af07248d792e5566bba451607fbeba0f6e65aacddd3bf9e5927793ad2654c",
+      "git_blob_sha1": "b2c04ab27bd655a4505e16523ebf117689a070cf"
+    },
+    "comparison": {
+      "path": "tests/fixtures/hia_core_compare_core39.json",
+      "bytes": 10135,
+      "sha256": "cb97a2b004c8814e2d173b8ea230d205629ee5b9340dd4b1097e06fa24dc1e7a",
+      "git_blob_sha1": "f3cc133e9d1f83b23172fce1d2372fe4e6a4ef16"
+    }
+  },
+  "generator": {
+    "path": "tools/generate_hia_core_lowering.py",
+    "legacy": {
+      "size": 16918,
+      "sha256": "03912aead3b5fb1a9c539560f62a51a5e942c3b36f9675666d3278248259019f",
+      "git_blob_sha1": "ec7903aea42a0dd96c68f4f728dd2a0b5949c429",
+      "source_utf8": "\"\"\"Render complete Core Function control as bounded, separate HIA units.\n\nOnly this authoring tool imports the finite source compiler. Runtime uses the\nresulting HIA images and ABI metadata; it never executes the authoring policy.\n\"\"\"\nfrom __future__ import annotations\n\nimport ast\nimport json\nfrom pathlib import Path\n\nfrom hepta.hia_agent_assembly import render_assembly\nfrom tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions\nfrom tools.hia_core_lowering_ir import Ref, Raw, compile_policy\n\nROOT = Path(__file__).resolve().parents[1]\nPOLICY = ROOT / 'tools/hia_core_lowering_policy.py'\nABI = 0xfffffffd\nMAGIC = int.from_bytes(b'HIALOW02', 'little')\nPOOL_MAGIC = int.from_bytes(b'HIALIT01', 'little')\nCHUNK = 64\nGROUP = 8\nSLOTS = 1024\nINTERNAL = 4\nREQUEST = 1\nHANDOFF = 2\nFINISHED = 0\n\n\ndef helpers():\n    result = []\n    for name, typ in (('word', 'readbuf'), ('get', 'mutbuf')):\n        lines = ['def ' + name + '(b:' + typ + ', at:u64) -> u64:']\n        lines.append('    value = 0')\n        for i in range(8):\n            lines.append('    value = value | (byte(b, at + ' + str(i) + ') << ' + str(8 * i) + ')')\n        lines.append('    return value')\n        result.append('\\n'.join(lines))\n    lines = ['def put(b:mutbuf, at:u64, value:u64) -> u64:']\n    for i in range(8):\n        lines.append('    store(b, at + ' + str(i) + ', (value >> ' + str(8 * i) + ') & 255)')\n    lines.append('    return 0')\n    result.append('\\n'.join(lines))\n    return '\\n\\n'.join(result) + '\\n'\n\n\ndef value_text(value):\n    if isinstance(value, Raw):\n        return str(value.value)\n    if not isinstance(value, Ref):\n        raise TypeError('unknown finite operand')\n    if value.kind == 'constant':\n        return str(value.index + 1)\n    if value.kind == 'slot':\n        return 'get(w, ' + str(SLOTS + value.index * 8) + ')'\n    raise ValueError('unknown reference class')\n\n\ndef put_slot(destination, value):\n    if destination.kind != 'slot':\n        raise ValueError('invalid lowering destination')\n    return 'put(w, ' + str(SLOTS + destination.index * 8) + ', ' + value + ')'\n\n\ndef effect_lines(instruction):\n    arguments = instruction['arguments']\n    vector = instruction.get('vector', ())\n    destinations = instruction['destinations']\n    lines = [\n        'if get(w, 16) == 18446744073709551615:',\n        '    return ' + str(ABI),\n        'put(w, 16, get(w, 16) + 1)',\n        'put(w, 8, 1)',\n        'put(w, 24, ' + str(instruction['pc'] + 1) + ')',\n        'put(w, 48, ' + str(instruction['opcode']) + ')',\n        'put(w, 56, ' + str(len(destinations)) + ')',\n    ]\n    for i in range(4):\n        offset = SLOTS + destinations[i].index * 8 if i < len(destinations) else 0\n        lines.append('put(w, ' + str(64 + i * 8) + ', ' + str(offset) + ')')\n    header = (MAGIC, None, instruction['opcode'], len(arguments), len(vector),\n              len(destinations), instruction['pc'], 0)\n    for i, number in enumerate(header):\n        text = 'get(w, 16)' if number is None else str(number)\n        lines.append('put(o, ' + str(i * 8) + ', ' + text + ')')\n    for i in range(8):\n        text = value_text(arguments[i]) if i < len(arguments) else '0'\n        lines.append('put(o, ' + str(64 + i * 8) + ', ' + text + ')')\n    for i, value in enumerate(vector):\n        lines.append('put(o, ' + str(128 + i * 8) + ', ' + value_text(value) + ')')\n    lines.append('return 1')\n    return lines\n\n\ndef instruction_lines(instruction):\n    kind, pc = instruction['kind'], instruction['pc']\n    if kind == 'effect':\n        return effect_lines(instruction)\n    if kind == 'yield':\n        return [\n            'if get(w, 16) == 18446744073709551615:',\n            '    return ' + str(ABI),\n            'put(w, 16, get(w, 16) + 1)',\n            'put(o, 0, ' + str(MAGIC) + ')',\n            'put(o, 8, get(w, 16))',\n            'put(o, 16, 20)',\n            'put(o, 24, ' + value_text(instruction['value']) + ')',\n            'put(w, 24, ' + str(pc + 1) + ')',\n            'put(w, 96, ' + str((pc - 1) // CHUNK) + ')',\n            'put(w, 8, 4)',\n            'return 3',\n        ]\n    if kind == 'return':\n        return [\n            'put(o, 0, ' + str(MAGIC) + ')',\n            'put(o, 8, get(w, 16))',\n            'put(o, 16, 0)',\n            'put(o, 24, ' + value_text(instruction['value']) + ')',\n            'put(w, 8, 3)',\n            'return 0',\n        ]\n    if kind == 'move':\n        lines = [put_slot(instruction['destination'], value_text(instruction['value']))]\n        target = pc + 1\n    elif kind == 'jump':\n        lines, target = [], instruction['target']\n    elif kind == 'flag':\n        return ['if get(w, 40) != 0:',\n                '    put(w, 24, ' + str(instruction['yes']) + ')',\n                'else:',\n                '    put(w, 24, ' + str(instruction['no']) + ')',\n                'return 4']\n    elif kind == 'identity':\n        operator = '!=' if instruction['negate'] else '=='\n        return ['if ' + value_text(instruction['left']) + ' ' + operator + ' ' + value_text(instruction['right']) + ':',\n                '    ' + put_slot(instruction['destination'], value_text(instruction['true'])),\n                'else:',\n                '    ' + put_slot(instruction['destination'], value_text(instruction['false'])),\n                'put(w, 24, ' + str(pc + 1) + ')',\n                'return 4']\n    else:\n        raise ValueError('unrendered lowering instruction: ' + kind)\n    return lines + ['put(w, 24, ' + str(target) + ')', 'return 4']\n\n\ndef start_source(entries):\n    groups = [list(entries.items())[i:i + 4] for i in range(0, len(entries), 4)]\n    functions = []\n    dispatch = ['def start(s:readbuf, w:mutbuf) -> u64:']\n    for group_index, group in enumerate(groups):\n        dispatch += ['    if word(s, 24) <= ' + str(group[-1][1]['mode']) + ':',\n                     '        return start_' + str(group_index) + '(s, w)']\n        lines = ['def start_' + str(group_index) + '(s:readbuf, w:mutbuf) -> u64:']\n        for name, entry in group:\n            count = len(entry['parameters'])\n            lines += ['    if word(s, 24) == ' + str(entry['mode']) + ':',\n                      '        if word(s, 32) != ' + str(count) + ':',\n                      '            return ' + str(ABI)]\n            for i in range(6):\n                operator = '==' if i < count else '!='\n                lines += ['        if word(s, ' + str(40 + i * 8) + ') ' + operator + ' 0:',\n                          '            return ' + str(ABI)]\n            for i in range(count):\n                lines.append('        put(w, ' + str(SLOTS + i * 8) + ', word(s, ' + str(40 + i * 8) + '))')\n            lines += [\n                '        put(w, 0, ' + str(MAGIC) + ')',\n                '        put(w, 8, 0)',\n                '        put(w, 16, 0)',\n                '        put(w, 24, ' + str(entry['pc']) + ')',\n                '        put(w, 32, ' + str(entry['mode']) + ')',\n                '        put(w, 40, 0)',\n                '        put(w, 48, 0)',\n                '        put(w, 56, 0)',\n                '        put(w, 64, 0)',\n                '        put(w, 72, 0)',\n                '        put(w, 80, 0)',\n                '        put(w, 88, 0)',\n                '        put(w, 96, 0)',\n                '        return 0',\n            ]\n        lines.append('    return ' + str(ABI))\n        functions.append('\\n'.join(lines))\n    dispatch.append('    return ' + str(ABI))\n    return '\\n\\n'.join(['\\n'.join(dispatch), *functions]) + '\\n'\n\n\ndef main_source(unit, first, last, total, workspace, output):\n    # The sequence is advanced for each effect and each cross-unit handoff.\n    # The private continuation is the sole authority for resume destinations.\n    return f'''\ndef lower(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n    if length(s) != 128 or length(w) < {workspace} or length(o) < {output}:\n        return {ABI}\n    if word(s, 0) != {MAGIC}:\n        return {ABI}\n    i = 88\n    while i < 128:\n        if word(s, i) != 0:\n            return {ABI}\n        i = i + 8\n    command = word(s, 8)\n    if command == 0:\n        if {unit} != 0 or get(w, 0) != 0 or get(w, 8) != 0 or word(s, 16) != 0:\n            return {ABI}\n        if start(s, w) != 0:\n            return {ABI}\n    else:\n        if get(w, 0) != {MAGIC} or word(s, 16) != get(w, 16):\n            return {ABI}\n        if command == 1:\n            if get(w, 8) != 1 or word(s, 24) != get(w, 56):\n                return {ABI}\n            if word(s, 32) > 1 or word(s, 72) != 0 or word(s, 80) != 0:\n                return {ABI}\n            opcode = get(w, 48)\n            if opcode != 9 and opcode != 10 and word(s, 32) != 0:\n                return {ABI}\n            count = get(w, 56)\n            if count > 4:\n                return {ABI}\n            i = 0\n            while i < 4:\n                if i < count:\n                    if word(s, 40 + i * 8) == 0:\n                        return {ABI}\n                else:\n                    if word(s, 40 + i * 8) != 0:\n                        return {ABI}\n                i = i + 1\n            if opcode == 9 and word(s, 32) == 0 and word(s, 40) != 1:\n                return {ABI}\n            i = 0\n            while i < count:\n                put(w, get(w, 64 + i * 8), word(s, 40 + i * 8))\n                i = i + 1\n            put(w, 40, word(s, 32))\n            put(w, 8, 0)\n        else:\n            if command == 2:\n                if get(w, 8) != 2:\n                    return {ABI}\n            else:\n                if command != 3 or get(w, 8) != 4:\n                    return {ABI}\n            if get(w, 96) != {unit} or word(s, 24) != {unit}:\n                return {ABI}\n            if word(s, 32) != 0 or word(s, 40) != 0 or word(s, 48) != 0 or word(s, 56) != 0 or word(s, 64) != 0 or word(s, 72) != 0 or word(s, 80) != 0:\n                return {ABI}\n            put(w, 8, 0)\n    while True:\n        pc = get(w, 24)\n        if pc == 0 or pc > {total}:\n            return {ABI}\n        if pc < {first} or pc > {last}:\n            if get(w, 16) == 18446744073709551615:\n                return {ABI}\n            target = (pc - 1) >> 6\n            put(w, 16, get(w, 16) + 1)\n            put(w, 8, 2)\n            put(w, 96, target)\n            put(o, 0, {MAGIC})\n            put(o, 8, get(w, 16))\n            put(o, 16, 21)\n            put(o, 24, target)\n            return 2\n        result = dispatch(w, o)\n        if result != 4:\n            return result\n    return {ABI}\n'''\n\n\ndef unit_source(unit, selected, entries, total, workspace, output):\n    first, last = selected[0]['pc'], selected[-1]['pc']\n    chunks = [selected[i:i + GROUP] for i in range(0, len(selected), GROUP)]\n    main = main_source(unit, first, last, total, workspace, output)\n    leaves = []\n    for number, group in enumerate(chunks):\n        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf) -> u64:',\n                 '    pc = get(w, 24)']\n        for instruction in group:\n            lines.append('    if pc == ' + str(instruction['pc']) + ':')\n            lines += ['        ' + line for line in instruction_lines(instruction)]\n        lines.append('    return ' + str(ABI))\n        leaves.append('\\n'.join(lines))\n    lines = ['def dispatch(w:mutbuf, o:mutbuf) -> u64:',\n             '    pc = get(w, 24)']\n    for number, group in enumerate(chunks):\n        lines += ['    if pc <= ' + str(group[-1]['pc']) + ':',\n                  '        return group_' + str(number) + '(w, o)']\n    lines.append('    return ' + str(ABI))\n    # Initial mode admission exists in unit zero only; other units cannot start.\n    startup = start_source(entries) if unit == 0 else (\n        'def start(s:readbuf, w:mutbuf) -> u64:\\n    return ' + str(ABI) + '\\n')\n    return main + '\\n' + startup + '\\n' + '\\n\\n'.join(leaves + ['\\n'.join(lines)]) + '\\n' + helpers()\n\n\ndef pool_wire(values):\n    data = bytearray(POOL_MAGIC.to_bytes(8, 'little') + len(values).to_bytes(8, 'little'))\n    for value in values:\n        if value is None:\n            kind, word, tail = 0, 0, b''\n        elif type(value) is bool:\n            kind, word, tail = 1, int(value), b''\n        elif type(value) is int:\n            kind, word, tail = 2, value, b''\n        elif type(value) is str:\n            raw = value.encode('utf-8')\n            kind, word, tail = 3, len(raw), raw + b'\\0' * (-len(raw) % 8)\n        else:\n            raise ValueError('literal escaped the finite typed pool')\n        data += kind.to_bytes(8, 'little') + word.to_bytes(8, 'little') + tail\n    return bytes(data)\n\n\ndef pool_source(raw):\n    # Literal bytes are authored as HIA writes, not a hosted policy lookup table.\n    chunks = [raw[i:i + 192] for i in range(0, len(raw), 192)]\n    lines = [\n        'def literals(s:readbuf, o:mutbuf, w:mutbuf) -> u32:',\n        '    if length(s) != 0 or length(w) != 0 or length(o) < ' + str(len(raw)) + ':',\n        '        return ' + str(ABI),\n    ]\n    for index in range(len(chunks)):\n        lines.append('    write_' + str(index) + '(o)')\n    lines.append('    return ' + str(len(raw)))\n    functions = ['\\n'.join(lines)]\n    for index, chunk in enumerate(chunks):\n        lines = ['def write_' + str(index) + '(o:mutbuf) -> u64:']\n        for i in range(0, len(chunk), 8):\n            word = int.from_bytes(chunk[i:i + 8], 'little')\n            lines.append('    put(o, ' + str(index * 192 + i) + ', ' + str(word) + ')')\n        lines.append('    return 0')\n        functions.append('\\n'.join(lines))\n    # Only put is used by the literal owner.\n    functions.append(helpers().split('def put(', 1)[1])\n    functions[-1] = 'def put(' + functions[-1]\n    return '\\n\\n'.join(functions) + '\\n'\n\n\ndef document(source, module):\n    nodes = ast.parse(source).body\n    names = {node.name: 'f' + str(i) for i, node in enumerate(nodes)}\n    signatures = {node.name: ([a.annotation.id for a in node.args.args], node.returns.id) for node in nodes}\n    total = total_scalar_functions(nodes)\n    functions = []\n    for node in nodes:\n        builder = Builder(node, names, signatures, total)\n        builder.statements(node.body)\n        functions.append({'name': names[node.name],\n                          'params': [builder.param(value) for value in builder.params],\n                          'returns': [builder.returns],\n                          'effects': ['read', 'write', 'trap'],\n                          'entry': 'b0', 'blocks': builder.blocks})\n    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module, 'functions': functions})\n\n\ndef generated():\n    literals, functions, entries, instructions = compile_policy(POLICY.read_text())\n    if CHUNK != 64:\n        raise ValueError('the native unit route is fixed to 64 control instructions')\n    if not instructions:\n        raise ValueError('empty native lowering policy')\n    maximum_slots = max(function.slot_count for function in functions)\n    workspace = (SLOTS + maximum_slots * 8 + 63) & -64\n    maximum_vector = max((len(item.get('vector', ())) for item in instructions), default=0)\n    output = (128 + maximum_vector * 8 + 63) & -64\n    wire = pool_wire(literals.values)\n    sources = [('core_lowering_pool', pool_source(wire))]\n    units = []\n    for unit, at in enumerate(range(0, len(instructions), CHUNK)):\n        name = 'core_lowering_' + f'{unit:03d}'\n        units.append(name)\n        sources.append((name, unit_source(unit, instructions[at:at + CHUNK], entries,\n                                         len(instructions), workspace, output)))\n    abi = {\n        'schema': 'hepta.hia.core-lowering-abi.v2',\n        'protocol_magic': MAGIC,\n        'pool_magic': POOL_MAGIC,\n        'packet_bytes': 128,\n        'workspace_bytes': workspace,\n        'output_bytes': output,\n        'pool_bytes': len(wire),\n        'literal_count': len(literals.values),\n        'units': units,\n        'generator_modes': [name for name, entry in entries.items() if entry['generator']],\n        'modes': {name: {'number': entry['mode'], 'arity': len(entry['parameters'])}\n                  for name, entry in entries.items()},\n    }\n    return sources, abi\n\n\ndef write(output, metadata):\n    sources, abi = generated()\n    output.mkdir(parents=True, exist_ok=True)\n    for name, source in sources:\n        assembly = render_assembly(document(source, name))\n        (output / (name + '.hiaasm')).write_text(assembly)\n    metadata.write_text(json.dumps(abi, indent=2, sort_keys=True) + '\\n')\n    return [str(output / (name + '.hiaasm')) for name, _ in sources]\n\n\nif __name__ == '__main__':\n    import argparse\n    parser = argparse.ArgumentParser(description=__doc__)\n    parser.add_argument('--output', type=Path, default=ROOT / 'examples/hia_bootstrap')\n    parser.add_argument('--metadata', type=Path, default=ROOT / 'hepta/hia_core_lowering_abi.json')\n    arguments = parser.parse_args()\n    for path in write(arguments.output, arguments.metadata):\n        print(path)\n"
+    },
+    "pc_forwarding": {
+      "size": 16866,
+      "sha256": "5f6e1a73c1d0e52d19deaa816e1c4d64b107115f165afb6584783aec0f86b978",
+      "git_blob_sha1": "ead0915f2c55759aa11065e777cf6500ffb8398c"
+    },
+    "exact_forward_replacements": [
+      {
+        "before": "        result = dispatch(w, o)",
+        "after": "        result = dispatch(w, o, pc)"
+      },
+      {
+        "before": "        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf) -> u64:',\n                 '    pc = get(w, 24)']",
+        "after": "        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf, pc:u64) -> u64:']"
+      },
+      {
+        "before": "    lines = ['def dispatch(w:mutbuf, o:mutbuf) -> u64:',\n             '    pc = get(w, 24)']",
+        "after": "    lines = ['def dispatch(w:mutbuf, o:mutbuf, pc:u64) -> u64:']"
+      },
+      {
+        "before": "                  '        return group_' + str(number) + '(w, o)']",
+        "after": "                  '        return group_' + str(number) + '(w, o, pc)']"
+      }
+    ]
+  },
+  "emission_source": {
+    "actual_commit": "829a86bdab697218d234bfdcadd77d0194eb1914",
+    "prefix": "experiments/hia_core_lowering_20261113/pc-forwarding-source4-ai395-actual-r1/",
+    "report_sha256": "481f5ea04dc5894b4e47986a2e7977f3ebc46e696381e508b807622232f14dcf",
+    "independent_root_readback_sha256": "1889d0c3cd176e4fc62998e0f3eb0e3c964c7e96a975812fa0e1e320a44cf865",
+    "generated_units": 39,
+    "changed_units": 38,
+    "unchanged": [
+      "examples/hia_bootstrap/core_lowering_pool.hiaasm",
+      "hepta/hia_core_lowering_abi.json"
+    ],
+    "source4_only": true
+  },
+  "files": [
+    {
+      "path": "hepta/hia_core_lowering_abi.json",
+      "legacy": {
+        "size": 3856,
+        "sha256": "2f7a35ea6089c81e6af5b91ec2a065be9307b93155219571156fed7d822e45d9",
+        "git_blob_sha1": "0aae4d7584ef3b6c523b6c3765bfb188e8c89e6e"
+      },
+      "pc_forwarding": {
+        "size": 3856,
+        "sha256": "2f7a35ea6089c81e6af5b91ec2a065be9307b93155219571156fed7d822e45d9",
+        "git_blob_sha1": "0aae4d7584ef3b6c523b6c3765bfb188e8c89e6e"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_pool.hiaasm",
+      "legacy": {
+        "size": 130156,
+        "sha256": "4b72e35fd614173a3a65e9faf6e407f3d65c3d63cab49608a8a29f72f9854d90",
+        "git_blob_sha1": "48e1543d62462ba2fd466f95f7ac59c7a87e9cb3"
+      },
+      "pc_forwarding": {
+        "size": 130156,
+        "sha256": "4b72e35fd614173a3a65e9faf6e407f3d65c3d63cab49608a8a29f72f9854d90",
+        "git_blob_sha1": "48e1543d62462ba2fd466f95f7ac59c7a87e9cb3"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_000.hiaasm",
+      "legacy": {
+        "size": 316483,
+        "sha256": "61d4a5f4604ca4627725d771638c3d9d3bebf7d1a0f0a4f8afc35bb712f45fb6",
+        "git_blob_sha1": "bc3d2f3916aa3b892e6a3cfe96db1f92eb4015ba"
+      },
+      "pc_forwarding": {
+        "size": 316031,
+        "sha256": "f6a3de4131a502b5adaad4a33de9bc59c78414314a51caea4b4123ccb018982b",
+        "git_blob_sha1": "2ea2521a8c3d8a3aa780ee95bfcd93ff889029f6"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_001.hiaasm",
+      "legacy": {
+        "size": 178577,
+        "sha256": "f464b6d2177a64c357218996748d1f9648200196f4bd75094e923511e6a1f8ba",
+        "git_blob_sha1": "81995a3c7cbf9638af5be80d70a36781946bee4c"
+      },
+      "pc_forwarding": {
+        "size": 178136,
+        "sha256": "f6c3f4fcb27eed10fe1eba4620fc42e8f7783797c028ed7116b684ea49624c92",
+        "git_blob_sha1": "5d49ba1ed401f3c13895777ae9ae4c6c6d916f0e"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_002.hiaasm",
+      "legacy": {
+        "size": 158687,
+        "sha256": "0cfa09cfbbdc5eaa3175b504ae608f66502c641af6ac8e21e5cbb6fefdef864f",
+        "git_blob_sha1": "37299f1627cf2e5b844d67629f1477282b4a242f"
+      },
+      "pc_forwarding": {
+        "size": 158250,
+        "sha256": "7c6744eb3cd82104d91bc9e02593e659b1afaa4035f246420749e9d2ff248b62",
+        "git_blob_sha1": "749594b812b7d3ad4aa49691c9bcdf4afa9ddda0"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_003.hiaasm",
+      "legacy": {
+        "size": 140269,
+        "sha256": "f2ff0123177c341b733b23b9ad6fa6ae1205d915ec318e38f5c4294157c5ecd9",
+        "git_blob_sha1": "9d470799f42bdea7cbdf922ada4df89af9de8258"
+      },
+      "pc_forwarding": {
+        "size": 139836,
+        "sha256": "187633e0c0879bd2ee99dce98a59811bf86a9a46197b1a82441a1d7d4ad8660f",
+        "git_blob_sha1": "c84544793883afbd021d17e3b4e410573e93796d"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_004.hiaasm",
+      "legacy": {
+        "size": 170524,
+        "sha256": "07a751e037756230a338e47a98e8693f6ddd8014fa6c3588e94b7a5432deb504",
+        "git_blob_sha1": "5e06f1c3319d606d47f22a65076438e05c325dcb"
+      },
+      "pc_forwarding": {
+        "size": 170088,
+        "sha256": "0c3816ddda2e3937bde8abbf62ed285133b45ec0b9529a8110917d5d8d98eece",
+        "git_blob_sha1": "68052937a647d9bc2d9a5352b09b264221acebcb"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_005.hiaasm",
+      "legacy": {
+        "size": 186511,
+        "sha256": "6e3d9f6f31cc0c189b01616693e62244812811efa04c515c2cf0d2d135cf6a59",
+        "git_blob_sha1": "a7d73a846bcf76ed0792c743409bf3cf45886024"
+      },
+      "pc_forwarding": {
+        "size": 186076,
+        "sha256": "27e6400e3a69f8cc1617f651450b1d60b55f7c1308265651f41f586dd2dd9caa",
+        "git_blob_sha1": "70ba2898206a84b0c839ec51ecc8017a7c3f309b"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_006.hiaasm",
+      "legacy": {
+        "size": 186528,
+        "sha256": "ed83438d7b80de251a780ed6fb4f69c7f2418083f9375a4426500f0b75a0d549",
+        "git_blob_sha1": "55261c4e7c43fb4ba7ada97682e7781a5db8aa60"
+      },
+      "pc_forwarding": {
+        "size": 186084,
+        "sha256": "1f5a7357b2d768570890e6c98a4891ab322bd9f5c6533904b069d3ad5c764670",
+        "git_blob_sha1": "9e6f57d42815e666e32ec8913edac58a23650ffc"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_007.hiaasm",
+      "legacy": {
+        "size": 153024,
+        "sha256": "f4eba72672c9b57b55e8128582e9c53c7b74ee5c760526f19d13f465c7c02580",
+        "git_blob_sha1": "fea7757765c926ad2f158bddacbfea523863f5b5"
+      },
+      "pc_forwarding": {
+        "size": 152581,
+        "sha256": "b356c00ea7c304b589fbb16642c9ee8ca7e6d5e5643cdbcc873cec2d99cf0199",
+        "git_blob_sha1": "55f1af76b667e7b6a1cbaaf7c341c0e9f822762a"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_008.hiaasm",
+      "legacy": {
+        "size": 168486,
+        "sha256": "c7d45acb4708f5f7902c264eff53187e3390ed9b9b38815a15210c6316e3cf7d",
+        "git_blob_sha1": "f07b93f35a76ef3af515e6f8c5c3582cde099a26"
+      },
+      "pc_forwarding": {
+        "size": 168043,
+        "sha256": "a631af52a45a5932be4b1a19ed1e5c9713407a6d1f6f66b6e08be4415a98a190",
+        "git_blob_sha1": "e1db864f22fd9a3039a125d2b5a5a317b4d31e61"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_009.hiaasm",
+      "legacy": {
+        "size": 159676,
+        "sha256": "916f00e22de0ba97430d32b2e6ac213c16ea3696b32a27fe7e89d1fdfc5bb65b",
+        "git_blob_sha1": "c1ed922af57379588df04fa62e0cd9e99a62420d"
+      },
+      "pc_forwarding": {
+        "size": 159240,
+        "sha256": "94b97f2a01ddf06c0b25976755cedcad1159772683ad2db68828fda2e092e339",
+        "git_blob_sha1": "cb37a8abf40e23e536adaded3736a53f8503237d"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_010.hiaasm",
+      "legacy": {
+        "size": 173789,
+        "sha256": "7612a1840acd9205ff2f06b7f9f955da4ea65e9027201aa14b0dc340bdec2041",
+        "git_blob_sha1": "d5bc16c51b7d2b176fa0a403010c81b27254d56b"
+      },
+      "pc_forwarding": {
+        "size": 173350,
+        "sha256": "8709bda8653b28d1e5c0f0125ee4cabebe80d0f5593353707d5812c752105c92",
+        "git_blob_sha1": "449e0ef25a7b66c8bc91b2aba7ef19bf1acf179c"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_011.hiaasm",
+      "legacy": {
+        "size": 194602,
+        "sha256": "3189b4f33bc777a70b21fc71316c7974855bb86a305193a53c780c91caef2e53",
+        "git_blob_sha1": "166c469c57abe3d2a58c1ba74beb3f314f9a7d6a"
+      },
+      "pc_forwarding": {
+        "size": 194159,
+        "sha256": "e7fe85a167f497fd1bd36d33f4c29315a183ef70bad4317597888b54341a56c3",
+        "git_blob_sha1": "c1bfcaa29c8d63169ea663c7d474709b656568bf"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_012.hiaasm",
+      "legacy": {
+        "size": 182284,
+        "sha256": "d920097b00ed4de0978c5fc0ce084e8e2a8ea4898b739aede262daa2dae4c3c8",
+        "git_blob_sha1": "29e54a512e1eedd83f3bf22af8bcc6c2d3f41cf6"
+      },
+      "pc_forwarding": {
+        "size": 181836,
+        "sha256": "570918b5e461f307917fe2d6a0c608c5847017b5a395a4f4f3ca11b68c747f0b",
+        "git_blob_sha1": "4ea788a17b2c84b9e06b0ea716685faa7a196240"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_013.hiaasm",
+      "legacy": {
+        "size": 190437,
+        "sha256": "a46a5fa054ecdc7053f1a10590febe3b5b136d1815a587eeb9ee66b81c72d4f1",
+        "git_blob_sha1": "44937052d650f4ee0a6dd7f3ddaea6379d94ca7c"
+      },
+      "pc_forwarding": {
+        "size": 189990,
+        "sha256": "6c6c0388ba04d7c6cf765357c788e15dffd94507bfbb272d6cb49f74c8f25c5d",
+        "git_blob_sha1": "74f0931c6d417003de26fbc0f154544a3b2f63cd"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_014.hiaasm",
+      "legacy": {
+        "size": 183194,
+        "sha256": "918ee76534c757dc6e24ee233940b42fbb67f850de9f06898c736bcb66f2dd87",
+        "git_blob_sha1": "a6ad1dfc481efe29b4d7fdd804fb012469102f29"
+      },
+      "pc_forwarding": {
+        "size": 182763,
+        "sha256": "4083733a7bb7b08a178f1503f85bfc32edef38f720fcf89083947eb93b55675c",
+        "git_blob_sha1": "7c041f2a1c87458df38a68f6676b2982030eb820"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_015.hiaasm",
+      "legacy": {
+        "size": 185098,
+        "sha256": "158f5c317b472fe7180214f8385a18610bd73c45f09072d564a75ae964414e1c",
+        "git_blob_sha1": "51a699f877a314464a9754eab67ad74bbe7d1b0d"
+      },
+      "pc_forwarding": {
+        "size": 184659,
+        "sha256": "9c3d1586918c85c447b9cdec1ba3434ae21c36b130805773355926b1a6852044",
+        "git_blob_sha1": "7ebfcbbfa51aac9794b5ec027845d7b06f5e96c8"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_016.hiaasm",
+      "legacy": {
+        "size": 178959,
+        "sha256": "c5bc998ff15737d40135959d2bd0d1652203aac37ef8697d79d1701a7a0c8041",
+        "git_blob_sha1": "856c4e0489d0ac2cdb994ff91b2bcf5d5e035647"
+      },
+      "pc_forwarding": {
+        "size": 178518,
+        "sha256": "968030c04a1bdfaac95eca1a8cc0bd431d44110195089b393801a4b4b0a28606",
+        "git_blob_sha1": "0e81520763db0784e4301c0339f3a0b672078d96"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_017.hiaasm",
+      "legacy": {
+        "size": 192732,
+        "sha256": "737ee6b58551871402212534e9764a9eb7a5d1b9f352ed5469846d61aa0cb720",
+        "git_blob_sha1": "d471f8bf95f5a29dd9e6ee74b275c96ab1516462"
+      },
+      "pc_forwarding": {
+        "size": 192290,
+        "sha256": "8330d22dd5ae66fa1c29074bc5976a4b22f920eb6edbbc8887087150f398a548",
+        "git_blob_sha1": "e0ea1193152c3f2cf23ee9e86e2bff419050277e"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_018.hiaasm",
+      "legacy": {
+        "size": 200791,
+        "sha256": "89ff9d69aa7fc8321f88eb94e4613e3591fe8ecf17db986f80ecdc3cd008357b",
+        "git_blob_sha1": "b89c2c7be4924213ed4dbbd545a9c655b1ba6765"
+      },
+      "pc_forwarding": {
+        "size": 200349,
+        "sha256": "51e7c66881a4c4199ce7b6f0e29706b7e6579860df00c2fc2a7b8c151ee0dda4",
+        "git_blob_sha1": "f9712a6abd2db0db58ef0e93dad16677cafa4d76"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_019.hiaasm",
+      "legacy": {
+        "size": 181404,
+        "sha256": "6cb7547e5da10f357cad5015c6360c8b05307fd694cc21e3596095f72ec642db",
+        "git_blob_sha1": "51d75c7d93e8fef31b56be34c643187cdca201b7"
+      },
+      "pc_forwarding": {
+        "size": 180960,
+        "sha256": "a1e7b7f43673d5ec0f74ccfe0c5a67ed55409c91a1f44463106f0f8a47685b9b",
+        "git_blob_sha1": "6fa1706f055505e2a3e1908c9dca65fc1e5153a8"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_020.hiaasm",
+      "legacy": {
+        "size": 202059,
+        "sha256": "696c8be35727f32beb86f39cb0a5b86a440ef833e5ddcea95600d659094f8f47",
+        "git_blob_sha1": "da311aca07ff3a5969d67c1a97caaea10dc41945"
+      },
+      "pc_forwarding": {
+        "size": 201612,
+        "sha256": "67912f2b1ee06d3fa962fecd02910e4bcf3809300938ccfee72472d6000fb48c",
+        "git_blob_sha1": "3cda39c83b4f7bb1105ff76914417bba803618a0"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_021.hiaasm",
+      "legacy": {
+        "size": 183585,
+        "sha256": "7f66dd28073d2dde382e8db0af82652ff57cd56a9c2497c9b366cad6a86968a7",
+        "git_blob_sha1": "6b005eab7359edc07f98991a18f9c848fadd53ae"
+      },
+      "pc_forwarding": {
+        "size": 183145,
+        "sha256": "185cc2785a358149e0125b545059bfdbcbcc39c66d2d702a3efe51a3c2f62c1e",
+        "git_blob_sha1": "33badea2c47107715a027b62ebd863e459544ae5"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_022.hiaasm",
+      "legacy": {
+        "size": 193720,
+        "sha256": "e81343344b57178ced9b6bfcf5601d6582fe11505e2658618b9454fe9c050dde",
+        "git_blob_sha1": "8707dc400e189dddb46464af795c01347583e23b"
+      },
+      "pc_forwarding": {
+        "size": 193286,
+        "sha256": "c6cd2f7a557ce3ac089b58af791d64a56d627a1e87e543ebcb5bba70a130da3d",
+        "git_blob_sha1": "a7902389301aa1f959e85bc3aeea77866bd59826"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_023.hiaasm",
+      "legacy": {
+        "size": 171611,
+        "sha256": "e081ec2185939683172142fca62cb85dcd267230a1c60a76982d8b1d7bec2082",
+        "git_blob_sha1": "b93e4668d5e1a215ead629ca9be915b161881532"
+      },
+      "pc_forwarding": {
+        "size": 171153,
+        "sha256": "5b183422876ee70da73ac49c6765a8754a65ad6023725ad846f43e35ffc1ecac",
+        "git_blob_sha1": "3683ecaf41e1f39cf8f344721191afc9bd9ad6be"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_024.hiaasm",
+      "legacy": {
+        "size": 207033,
+        "sha256": "f7950654dfddc072fc59a3e98d81d3b69f9375542117b1d122db3fdaff9e6e93",
+        "git_blob_sha1": "1744d3239e62822226cff6eb444e757443d3d0f6"
+      },
+      "pc_forwarding": {
+        "size": 206579,
+        "sha256": "39050d8a94b49f343a9ff696838e12f7255174ba1fb27c6787b7698f97e90157",
+        "git_blob_sha1": "4b2d92f5acb4bc9743c14d62491586e101eff593"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_025.hiaasm",
+      "legacy": {
+        "size": 198135,
+        "sha256": "d707639bfc7021766778a77e780481a202669010289b7fa575ee86dc4cf65ab7",
+        "git_blob_sha1": "30afb7ebd422947d091632cea234dc05160c07d9"
+      },
+      "pc_forwarding": {
+        "size": 197693,
+        "sha256": "c1ba54650622b7e01d78c142098ccf2810a5b48aff3562e03c08d21d51cf02df",
+        "git_blob_sha1": "1fa7ad7049155095d22babc6fde9e6a1ef669d88"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_026.hiaasm",
+      "legacy": {
+        "size": 194962,
+        "sha256": "32e17c41623324b35044e17f0672d469df4a48db5f9a96fa34645feb71eedc8d",
+        "git_blob_sha1": "a8acc7c22e99cd7066d497a44575de9f1bcd7d2a"
+      },
+      "pc_forwarding": {
+        "size": 194517,
+        "sha256": "37cc5feee153c54ab9cba3a68979da22bb62b45c5bf2d883dd9558d3b067ea2f",
+        "git_blob_sha1": "f7de42b7c72bbd833e314149945e4440e0fd0a1e"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_027.hiaasm",
+      "legacy": {
+        "size": 180470,
+        "sha256": "48ca8b5d3aa9cfa471b51f04c3f7782a3cc12dcafe8949e6f4bbfaecf4932a96",
+        "git_blob_sha1": "fe55125c5b7510b2d2629e063a2ce2387c2156d1"
+      },
+      "pc_forwarding": {
+        "size": 180030,
+        "sha256": "c0fb8b5c2a409b21bfc10007ab308a8812be4a7efbe87a73fed77277ccd18cc1",
+        "git_blob_sha1": "75c134017bf7e2d0417cd98ae24c7f60f9244693"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_028.hiaasm",
+      "legacy": {
+        "size": 185229,
+        "sha256": "a7be67f4441a89a596cae136fd19d8a9f0cd99523c94fbf3a2c1b216d932bce9",
+        "git_blob_sha1": "72baf6f024cc2f1b28d3060b3edd884daad95a79"
+      },
+      "pc_forwarding": {
+        "size": 184789,
+        "sha256": "0c5430311c7aa4beca8377c052c0315c3725d2144f7d41bfefa56faa49ac87e7",
+        "git_blob_sha1": "b529b428f1c9505cb75b64a1daf67f214a3fe622"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_029.hiaasm",
+      "legacy": {
+        "size": 197917,
+        "sha256": "945c564d87034b655936b3194eca6d8bff1d7d1c7e1550f619038800fa1c691f",
+        "git_blob_sha1": "7961dfd93653554b8b7c9bd98008e8edc2d232a3"
+      },
+      "pc_forwarding": {
+        "size": 197473,
+        "sha256": "11c991b438fc32837e4547166acfc8d1a940d3478a7871032ecf592bf218e64d",
+        "git_blob_sha1": "0762dd2be73a0add0d02ce2b9a7464a842188093"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_030.hiaasm",
+      "legacy": {
+        "size": 173055,
+        "sha256": "63c4a74bd84d77b145a7aa663aef5772946a029e02bb8104fdc04ad741cb2326",
+        "git_blob_sha1": "ed538669281cc12190e76afff301c13f83176b8a"
+      },
+      "pc_forwarding": {
+        "size": 172620,
+        "sha256": "eeca00e9c218217038cf028afa673e183eb36ccb1501fff7d2be5a4f58455221",
+        "git_blob_sha1": "2cc8bf78f9787e8f872b16e091b88c149afd9104"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_031.hiaasm",
+      "legacy": {
+        "size": 158689,
+        "sha256": "b5b41ff061fe54301139ec3626c5bc1117ef18973d0553d744f59f071995e395",
+        "git_blob_sha1": "e908741855699bc96c822fd36ee376a896a746ca"
+      },
+      "pc_forwarding": {
+        "size": 158251,
+        "sha256": "aad44c364835a3f6d9dd1a849f8c62ffc6e48267566881cd781266693fa0e7c3",
+        "git_blob_sha1": "92ed14db3c77486a1bd2766ac77b53be48dbbe73"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_032.hiaasm",
+      "legacy": {
+        "size": 163902,
+        "sha256": "0ff0d9c474ededa8e800f14725526e8b64ea0b9e67ad6f8eced44599b483f0e2",
+        "git_blob_sha1": "9fd649749003f9feee33b9a2845980b51c5279e7"
+      },
+      "pc_forwarding": {
+        "size": 163455,
+        "sha256": "e171688f9edd115b81d3ec8a8692d417a856e2d135caba1cf52137b2799b8a95",
+        "git_blob_sha1": "9765ffe3a4619e47a06002091a44a5f5fb469801"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_033.hiaasm",
+      "legacy": {
+        "size": 184836,
+        "sha256": "8300f24c50b06b328ee0bcd336a001d3146492a956e9594691e4bfdcee3cfdb8",
+        "git_blob_sha1": "d22d4aa55acb49f9c8c424c6bd06e18a5eb1b26a"
+      },
+      "pc_forwarding": {
+        "size": 184398,
+        "sha256": "0c7087d611d68684b98ef2cd2a5a1f394ed045b40609876390b17fb80d0eaf13",
+        "git_blob_sha1": "73612f5f4c6ef0393a9564ae4a3f9b4f3c1af9bd"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_034.hiaasm",
+      "legacy": {
+        "size": 188724,
+        "sha256": "e22c182876c75db639f635e8e58a7e8c6c6f958e9aafe03b54eb60f2ccc72b0c",
+        "git_blob_sha1": "4a5f4faf8a0ea4d087c90af2f123e06f2f1991c1"
+      },
+      "pc_forwarding": {
+        "size": 188277,
+        "sha256": "917c0d71bbe701c886fcb0e5d127d3f45d6ad084b91301806eaff3205987c9f0",
+        "git_blob_sha1": "b935241bbabf10e5b9d1441e89ea9feeee21aa1c"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_035.hiaasm",
+      "legacy": {
+        "size": 159150,
+        "sha256": "a1f23f4e9137ab6a1ddd69e2708b506196df40a81f2ae0cc220f30fcfe1d5f30",
+        "git_blob_sha1": "b385509ee4d929037e5924388893984fc081872c"
+      },
+      "pc_forwarding": {
+        "size": 158716,
+        "sha256": "874681a2f052a94a2acca2a6907ecff5965bb9ed877c1c59de36fa9080642996",
+        "git_blob_sha1": "52fec0342e1bc50858968014a7cd5c8649ad2982"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_036.hiaasm",
+      "legacy": {
+        "size": 172845,
+        "sha256": "f1c2357324d2e0e932a151ae0ba043e7b408d14213075d1104c1ec35c10848d2",
+        "git_blob_sha1": "aba5e67c7c91c38ece1f6028bdbbc95f9e5fd76f"
+      },
+      "pc_forwarding": {
+        "size": 172410,
+        "sha256": "9dc13b3e2ea8e0e2601c6c76fcd65bae9d260ab03f4c4b30425f3563910c762a",
+        "git_blob_sha1": "e19b887790078568bf6e95a8127cd2b0a5394dd9"
+      }
+    },
+    {
+      "path": "examples/hia_bootstrap/core_lowering_037.hiaasm",
+      "legacy": {
+        "size": 157260,
+        "sha256": "ec421742c2b8a9f6feec182934ef5a6f4a6acbfc756de8a3aaef15e4a7203a11",
+        "git_blob_sha1": "071bb4fc3831616746db74c96066a0d66dff5579"
+      },
+      "pc_forwarding": {
+        "size": 156813,
+        "sha256": "2b28618688885cbc83906feb091b2b0c75209c0e0782aa313f05f77fa9f4f05d",
+        "git_blob_sha1": "8cd5301306cc854e0f49e0236e1fe89b9aef8239"
+      }
+    }
+  ]
+}

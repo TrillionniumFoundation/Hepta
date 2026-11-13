@@ -23,6 +23,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+from tests.hia_core_pc_expected import current_core39_fixture
+
 from hepta import hia_core_compare_native as bridge
 from hepta import hia_core_compare_selection as selection
 from hepta import hia_core_lowering_native as outer
@@ -163,7 +165,7 @@ class ExactNumericComparisonSourceTests(unittest.TestCase):
         self.assertEqual(session.magnitudes, [None, None])
 
     def test_complete_Core39_outer_protocol_and_original116_are_unchanged(self):
-        fixture = json.loads((ROOT / 'tests/fixtures/hia_core_compare_core39.json').read_bytes())
+        fixture = current_core39_fixture(ROOT, 'comparison')
         self.assertEqual(len(fixture['files']), 40)
         for row in fixture['files']:
             raw = (BASE / row['path']).read_bytes()
