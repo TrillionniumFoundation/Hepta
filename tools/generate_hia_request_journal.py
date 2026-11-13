@@ -505,8 +505,9 @@ def checksum(w:mutbuf) -> u64:
         if i != 18:
             value = ((value << 7) | (value >> 57)) ^ get(w, i)
         i = i + 1
+    extent = get(w, 11)
     i = 0
-    while i < get(w, 11):
+    while i < extent:
         value = ((value << 7) | (value >> 57)) ^ byte(w, 1024 + i)
         i = i + 1
     return value

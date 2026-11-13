@@ -5760,28 +5760,28 @@ block b2(v8:mutbuf,v9:u64,v10:u64)
   v22:u64 = int.add.wrap(v10,v21)
   jump b1(v8,v20,v22)
 block b3(v11:mutbuf,v12:u64)
-  v23:u64 = const() {"value":512}
-  jump b4(v11,v12,v23)
-block b4(v24:mutbuf,v25:u64,v26:u64)
-  v27:u64 = const() {"value":55}
-  v28:u64 = call(v24,v27) {"function":"f58"}
-  v29:bool = compare.lt(v26,v28)
-  branch v29 b5(v24,v25,v26) b6(v24,v25)
-block b5(v30:mutbuf,v31:u64,v32:u64)
-  v36:u64 = const() {"value":7}
-  v37:u64 = int.shl.checked(v31,v36)
-  v38:u64 = const() {"value":57}
-  v39:u64 = int.shr.checked(v31,v38)
-  v40:u64 = bit.or(v37,v39)
-  v41:usize = int.cast(v32) {"mode":"wrap"}
-  v42:u8 = buffer.load(v30,v41)
-  v43:u64 = int.cast(v42) {"mode":"wrap"}
-  v44:u64 = bit.xor(v40,v43)
-  v45:u64 = const() {"value":1}
-  v46:u64 = int.add.wrap(v32,v45)
-  jump b4(v30,v44,v46)
-block b6(v33:mutbuf,v34:u64)
-  ret(v34)
+  v23:u64 = const() {"value":55}
+  v24:u64 = call(v11,v23) {"function":"f58"}
+  v25:u64 = const() {"value":512}
+  jump b4(v11,v12,v25,v24)
+block b4(v26:mutbuf,v27:u64,v28:u64,v29:u64)
+  v30:bool = compare.lt(v28,v29)
+  branch v30 b5(v26,v27,v28,v29) b6(v26,v27)
+block b5(v31:mutbuf,v32:u64,v33:u64,v34:u64)
+  v39:u64 = const() {"value":7}
+  v40:u64 = int.shl.checked(v32,v39)
+  v41:u64 = const() {"value":57}
+  v42:u64 = int.shr.checked(v32,v41)
+  v43:u64 = bit.or(v40,v42)
+  v44:usize = int.cast(v33) {"mode":"wrap"}
+  v45:u8 = buffer.load(v31,v44)
+  v46:u64 = int.cast(v45) {"mode":"wrap"}
+  v47:u64 = bit.xor(v43,v46)
+  v48:u64 = const() {"value":1}
+  v49:u64 = int.add.wrap(v33,v48)
+  jump b4(v31,v47,v49,v34)
+block b6(v35:mutbuf,v36:u64)
+  ret(v36)
 end
 fn f55(v0:mutbuf,v1:mutbuf,v2:u64) -> (u32) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:mutbuf,v2:u64)
