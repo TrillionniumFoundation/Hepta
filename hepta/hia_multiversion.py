@@ -108,7 +108,7 @@ def _measurement_snapshot(value):
     return frozen
 
 
-def _assess_measurement(measurement, *, prepare_ns):
+def _reference_assess_measurement(measurement, *, prepare_ns):
     """Fixed conservative policy, not timing attestation or Core admission."""
     baseline = [row["baseline_ns"] for row in measurement["samples"]]
     candidate = [row["candidate_ns"] for row in measurement["samples"]]
@@ -157,6 +157,16 @@ def _assess_measurement(measurement, *, prepare_ns):
             "claims": {"measurements_independently_attested": False, "projection_is_workload_assumption": True,
                        "statistical_confidence_proved": False, "sample_trimming_or_adaptive_repeats": False,
                        "core_authority_granted": False, "general_performance_improvement_proved": False}}
+
+
+def _assess_measurement(measurement, *, prepare_ns):
+    # Default callers keep the existing import and filesystem behavior. An
+    # explicitly selected image owns this whole policy; refusal never falls
+    # back to the hosted reference.
+    if 'HEPTA_HIA_PUBLICATION_MEASUREMENT_MANIFEST' in os.environ:
+        from .hia_publication_measurement_native import selected_publication_measurement
+        return selected_publication_measurement(measurement, prepare_ns=prepare_ns)
+    return _reference_assess_measurement(measurement, prepare_ns=prepare_ns)
 
 
 class PublicationCancellation:

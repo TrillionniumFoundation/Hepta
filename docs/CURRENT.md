@@ -151,7 +151,7 @@ or qualification of any later source. Full discovery at `d994dd5` found 4,731
 unique IDs with no loader error or duplicate; discovery alone executes none
 of those test bodies.
 
-The next source change moves the loaded-symbol mapping decision in
+Published `be36b7cfbe40522ca1b6356e90170aa89aec2bad` moves the loaded-symbol mapping decision in
 `native_mapping_identity.verify_loaded_symbols` to the selected HIA program
 `native_mapping.hepta`. HIA parses the actual captured mapping bytes and owns
 interval ordering, numeric grammar, permissions, device/inode/file extent,
@@ -174,10 +174,44 @@ foreign-thread refusal. The original Python parser, independent Core VM and
 native image agree on 24 complete buffer controls; twelve public error cases
 preserve exception type, text and cause. The original workflow now additionally
 requires a matching-cold component and 14 original runtime/lease callers with
-the HIA mapping selector. Those new CI gates remain pending for this successor.
-The combined 966-input support contract and language inventory regenerate to a
-fixed point. Component results do not authorize deleting resident runtimes or
-their foreign-resource owners.
+the HIA mapping selector. Both original
+[push](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43472814502)
+and [PR](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43472828725)
+Native jobs subsequently passed the original cold, mapping component and
+original mapping caller steps. At the 2026-11-13 17:38 UTC observation, those
+jobs and their Source jobs were still running. The separate
+[full retained audit](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43473228901)
+uses harness `59c6e5912c86f6253b68b7a1579dbeef2fe8c111` and this exact product
+commit; its six NDU and fixed verification-tool preparations succeeded, and
+the unchanged original v4 `--full` workflow was running. No terminal result or
+qualification of this later successor is implied.
+
+The current successor additionally moves `_assess_measurement` into
+`publication_measurement.hepta`. HIA owns paired medians and deviations,
+ordered refusal reasons, exact cost projections and finite-range rejection,
+including multiplication intermediates above 64 bits. Its equivalence domain
+is the original frozen measurement envelope and exact-integer `prepare_ns`;
+the actual runtime supplies an elapsed integer clock observation. Preparation
+integers are transported without narrowing, including negative cancellation
+controls. Kernel effects, actual timing, locks/cancellation/CAS, Core proofs,
+compilation, loading and resource custody remain their existing owners.
+
+The [publication measurement evidence](../review-evidence/hia-native-cleanup-20261111/publication-measurement-integration.json)
+preserves the original development failures, including the compiler's correct
+17-edge-parameter refusal before the source was split within the original
+16-parameter limit. The final component passed 17/17 tests in 15.355 seconds,
+including 595 complete original/native result-or-error comparisons and actual
+installed and pinned-helper calls. The 44 related source/workflow/resource
+controls passed in 8.246 seconds. A separate final installed-package control
+passed in 11.118 seconds after regenerating the packaged support contract.
+The original Core-only source check and generation fixed point also passed.
+These are development component observations, not a new cold qualification.
+The workflow now requires the matching-cold component and all 11 original
+publication-profile callers, including observed policy entries both before
+preparation and under the actual commit lock. These new CI gates remain
+pending. The combined contract binds 978 inputs and registers 26 single-image
+helpers. Neither this result nor the earlier mapping result authorizes
+deleting resident runtimes or their foreign-resource owners.
 
 ## Current native implementation
 
@@ -190,6 +224,7 @@ their foreign-resource owners.
 | Core applications | Core/JSON/workspace/patch helpers, nominal type/task/function helpers, ELF linker and source-build applications | Complete ordinary product routing, foreign-object/packet custody and broader diagnostic/support domains |
 | Worker and scheduling | Selected request/report/wire images, pinned helper custody and five native in-process scheduling families | Hosted outer handler, object transport, installation/hash IO, process effects and complete service migration |
 | Loaded native mappings | Selected HIA parser and exact entry-to-sealed-file mapping policy, registered in the pinned helper scope | Python argument/function objects, kernel snapshot and descriptor/seal readback, dynamic loader and resident resource lifetime |
+| Publication measurement | Selected HIA paired-sample, noise, ordered-refusal and exact cost-projection policy in both original publication decisions | Envelope capture, actual clocks, lock/cancellation/CAS, proofs, build/load effects and resource custody |
 | State and policy | Native request/journal/identity/budget/slot/retirement decisions with original callers | SQLite transactions, durable IO, proof services, actual leases and foreign resource release |
 | Release lifecycle | Immutable installation, CAS selection/rollback/status and coherent selected-release verification | Running-worker restart/handoff, actual image readback, outstanding requests/references and confirmed retirement |
 
