@@ -1,0 +1,74 @@
+{
+  "baseline_all_3055_bytes_modes_unchanged": true,
+  "business_tests_rerun": 0,
+  "conclusion": "No memo source change is proposed for integration. No LOAD_FAST_AND_CLEAR or other bytecode rewriting was attempted. No performance benchmark is used to qualify the failing candidate.",
+  "guard_asts": [
+    {
+      "revision": "memo-r1",
+      "unchanged_guard_and_io_functions": [
+        "_source_capture_protocol",
+        "_source_protocol_current",
+        "_source_lexical_read",
+        "_source_relative_name"
+      ]
+    },
+    {
+      "revision": "memo-r2",
+      "unchanged_guard_and_io_functions": [
+        "_source_capture_protocol",
+        "_source_protocol_current",
+        "_source_lexical_read",
+        "_source_relative_name"
+      ]
+    },
+    {
+      "revision": "memo-r3",
+      "unchanged_guard_and_io_functions": [
+        "_source_capture_protocol",
+        "_source_protocol_current",
+        "_source_lexical_read",
+        "_source_relative_name"
+      ]
+    }
+  ],
+  "memoryerror_scope": "Foreign SHA and hex real MemoryError identity/context controls and injected private commit MemoryError passed in R2. No physical allocator-exhaustion experiment; _testcapi unavailable locally. No broad allocation-lifetime equivalence claim.",
+  "native_compilations": 0,
+  "original_budgets_modified": false,
+  "original_source_commit": "abeef212e34023534d91f8f952280e2a8d0cbde6",
+  "original_source_tree": "f2bc61c11104136d3f56e3c4aefa00a4dada910b",
+  "python_runtime": "3.12.14 local for memo controls; no actual314 memo run",
+  "qualification": false,
+  "r1": {
+    "counterexample": "mid-open foreign SHA sees input refcount 3 versus original 2",
+    "status": "FAIL"
+  },
+  "r2": {
+    "additional_controls": {
+      "errors": 0,
+      "failures": 1,
+      "loaded": 16,
+      "passed": 15,
+      "run": 16,
+      "skips": 0
+    },
+    "failure": "active sys.monitoring canonical SHA argument refcounts [4,4] versus original [3,3]",
+    "original_freshness": {
+      "errors": 0,
+      "loaded": 9,
+      "passed": 9,
+      "run": 9,
+      "skips": 0
+    },
+    "r1_refcount_counterexample": "PASS exact [2] versus [2]"
+  },
+  "r3": {
+    "carrier_moves_input": "canonical SHA argument refcount [3,3] matches",
+    "counterexample": "standard open audit callback enables monitoring after early check; extra dict.pop CALL is observable; same observer raises marker MemoryError only on new route before SHA, original returns map",
+    "first_observer_limit": "bound-method-only pop observer missed actual method-descriptor CALL and originally reported PASS; original output retained, correction and successor actual FAIL retained",
+    "source_gate_run": false,
+    "support_metadata": "inherited R2 bytes, not regenerated or claimed valid for R3"
+  },
+  "schema": "hepta.exact-byte-memo-bounded-investigation.v1",
+  "status": "NOT_ADOPTED_SEMANTIC_COUNTEREXAMPLES",
+  "whole_native": false
+}
