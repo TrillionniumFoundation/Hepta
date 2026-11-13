@@ -1,0 +1,813 @@
+{
+  "diff": "--- /workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r10.py\n+++ /workspace/scratch/dda74a4fae35/v87-union-r5/harness/tools/materialize_candidate_r11.py\n@@ -633,10 +633,29 @@\n     plan.write_bytes(canonical(inputs[\"source_registration\"]))\n     report = capture.raw / \"checks\" / \"SOURCE-TESTS.json\"\n     report.parent.mkdir(parents=True, exist_ok=True)\n-    _, result = python_command(capture, [str(harness_root / \"tools\" / \"run_source_gate.py\"),\n-                         \"--registration\", str(plan), \"--source\", str(capture.repo),\n-                         \"--original-ids\", str(harness_root / \"inputs\" / \"ORIGINAL-SOURCE-IDS.json\"),\n-                         \"--output\", str(report)], \"complete-source-tests\", limit=1800, enforce=False, local_git_fixture=True)\n+    environment_name = \"HEPTA_HIA_CANDIDATE_BUILD_TEST_EVIDENCE\"\n+    expected_environment = {environment_name: \"@EVIDENCE@/checks/hia-candidate-build-source\"}\n+    check(inputs.get(\"source_test_environment\") == expected_environment,\n+          \"unreviewed Source evidence environment\")\n+    check(environment_name not in capture.env, \"ambient Source evidence path is not permitted\")\n+    evidence = capture.raw / \"checks\" / \"hia-candidate-build-source\"\n+    check(not evidence.resolve().is_relative_to(capture.repo.resolve()),\n+          \"Source VM evidence must be outside the source tree\")\n+    evidence.mkdir(parents=True, exist_ok=False)\n+    capture.json(\"checks/SOURCE-EVIDENCE-ENVIRONMENT.json\", {\n+        \"schema\": \"hia.fixed-source-vm-evidence-environment.v1\",\n+        \"environment_name\": environment_name, \"path\": str(evidence),\n+        \"outside_source_tree\": True, \"exclusive_fresh_directory\": True,\n+        \"source_gate_changed\": False, \"original_ids_changed\": False,\n+        \"group_seconds\": 1800, \"qualification\": False})\n+    capture.env[environment_name] = str(evidence)\n+    try:\n+        _, result = python_command(capture, [str(harness_root / \"tools\" / \"run_source_gate.py\"),\n+                             \"--registration\", str(plan), \"--source\", str(capture.repo),\n+                             \"--original-ids\", str(harness_root / \"inputs\" / \"ORIGINAL-SOURCE-IDS.json\"),\n+                             \"--output\", str(report)], \"complete-source-tests\", limit=1800, enforce=False, local_git_fixture=True)\n+    finally:\n+        del capture.env[environment_name]\n     if report.is_file():\n         value = strict_json(report.read_bytes())\n     else:\n",
+  "driver": {
+    "all_bytes_outside_function_identical": true,
+    "boundary": "Exact one-key manifest, reject ambient value, resolve outside source, mkdir exist_ok=False, pass only during child, finally remove env. Evidence lives under capture.raw and existing full evidence upload.",
+    "only_changed_function": "source_gate",
+    "original_1800_second_group_and_existing_cleanup_code_unchanged": true,
+    "original_ids_bytes_identical": true,
+    "python_command_call_ast_identical": true,
+    "source_environment": {
+      "HEPTA_HIA_CANDIDATE_BUILD_TEST_EVIDENCE": "@EVIDENCE@/checks/hia-candidate-build-source"
+    },
+    "source_runner_bytes_identical": true
+  },
+  "inputs": [
+    {
+      "bytes": 49474,
+      "git_blob": "03249a2c928055f5451a3ab8bbfbccf47eee8a91",
+      "path": "/workspace/scratch/dda74a4fae35/recovered-v85/harness/tools/materialize_candidate_r10.py",
+      "sha256": "bb97b1b053d2fda780d8e6d6145a23ad22f49a24164531065be0b791e6f4aa47"
+    },
+    {
+      "bytes": 50632,
+      "git_blob": "c63dec1726b9c9ac3d67147abd479583ea0b644e",
+      "path": "/workspace/scratch/dda74a4fae35/v87-union-r5/harness/tools/materialize_candidate_r11.py",
+      "sha256": "374a830e8b4b888b355dd0c8bc35f66f6579977b1354b2a89b8670e4a54034c9"
+    },
+    {
+      "bytes": 187381,
+      "git_blob": "bf9664cd49486aaca25ce7bff15a59ae3b628fe3",
+      "path": "/workspace/scratch/dda74a4fae35/v87-union-r5/harness/inputs/MATERIALIZATION-R5.json",
+      "sha256": "fc0f7c1eccf2429551d9599b9fde1bc1ff7e1cc3537a3bec39e938c03f083c13"
+    },
+    {
+      "bytes": 107094,
+      "git_blob": "dca1a46a842c56d0511625209d26a1f11edc9b53",
+      "path": "/workspace/scratch/dda74a4fae35/recovered-v85/candidate-r4-ci314/.github/workflows/hia-core.yml",
+      "sha256": "802d37eeb07b8797fe92ec7ea1f173e1370e4baeefbc896f5ee0d2e92c72b84d"
+    },
+    {
+      "bytes": 110131,
+      "git_blob": "ee3b330ac40f4ced4fb5f871646e267415dd04e0",
+      "path": "/workspace/scratch/dda74a4fae35/v87-union-r5/local-source-r1/.github/workflows/hia-core.yml",
+      "sha256": "5673b61313dd1f3afc6cbea092a370efbd4a321f7752a887b57b1e88e9de5b9c"
+    },
+    {
+      "bytes": 2391,
+      "git_blob": "12e73a60048d8c7d55fa8e3510838f5ab1bc5c0e",
+      "path": "/workspace/scratch/dda74a4fae35/v87-union-r5/harness/.github/workflows/hia-combined-source.yml",
+      "sha256": "c10c75f07c0500e45703344ffbac734e47d3517a9577cb287e98355a3ae33281"
+    },
+    {
+      "bytes": 202142,
+      "git_blob": "ca3fe97c2baaafc519d2fe3705062c1e8c13a577",
+      "path": "/workspace/scratch/dda74a4fae35/v87-union-r5/harness/inputs/ORIGINAL-SOURCE-IDS.json",
+      "sha256": "bd0859367e452b5c9089913c7f27f2c33356b7639c9b92125da34d103e5ac4c4"
+    },
+    {
+      "bytes": 6837,
+      "git_blob": "40b230288e6db39817aeee26b616d5a613af4f2c",
+      "path": "/workspace/scratch/dda74a4fae35/v87-union-r5/harness/tools/run_source_gate.py",
+      "sha256": "269f59f75f44a3a34cd62606caafcc9354d3bf62cee760d630c196b0c6dcabe4"
+    }
+  ],
+  "limits": "This is static source review and data comparison, not execution of any Source/native/cold component and not confirmation of pending actual3.14 results.",
+  "nonblocking_metadata_note": "source_registration.required_support_actions still contains historical prose counts109/213; active generators/selectors are113/220 and exact list comparisons pass. No runtime decision reads these prose counts.",
+  "review_authoring_failure": "First V8 attempt had a JavaScript template interpolation SyntaxError before any tool or file mutation; rewritten with explicit expression strings. No product execution was attempted.",
+  "schema": "hia-r11-r10-r5-workflow-independent-source-review-v1",
+  "scope": "READ_ONLY_SOURCE_AND_DATA_COMPARISON_NO_PRODUCT_TEST_EXECUTION",
+  "status": "REVIEWED_NO_DETERMINATE_BLOCKER_IN_THIS_SCOPE",
+  "workflow": {
+    "added_upload_paths": [
+      "${{ runner.temp }}/hia-release-launch-matching-cold/",
+      "${{ runner.temp }}/hia-candidate-build/",
+      "${{ runner.temp }}/hia-store-lifecycle/",
+      "${{ runner.temp }}/hia-store-lifecycle-agent/",
+      "${{ runner.temp }}/hia-store-lifecycle-namespace/",
+      "${{ runner.temp }}/hia-store-lifecycle-ledger/"
+    ],
+    "all_original_gate_bodies_env_conditions_budgets_identical": true,
+    "generators": 113,
+    "harness_complete_evidence_upload_always": true,
+    "native_mapping": [
+      {
+        "all_original_fields_preserved": true,
+        "name": "actions/checkout@v4",
+        "original_index": 1,
+        "r5_index": 1
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "actions/setup-python@v5",
+        "original_index": 2,
+        "r5_index": 2
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Install qualified Clang 20 native execution prerequisites",
+        "original_index": 3,
+        "r5_index": 3
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0",
+        "original_index": 4,
+        "r5_index": 4
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Prepare original locked Rust caller dependencies",
+        "original_index": 5,
+        "r5_index": 5
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "python -B tools/replay_hia_selfhost_cold.py --output \"$RUNNER_TEMP/hia-cold.json\"",
+        "original_index": 6,
+        "r5_index": 6
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Original call graph and native convergence controls",
+        "original_index": 7,
+        "r5_index": 7
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "python -B tests/test_hia_selfhost_language_coverage.py --output \"$RUNNER_TEMP/hia-language.json\"",
+        "original_index": 8,
+        "r5_index": 8
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Prepare isolated continuation-family evidence",
+        "original_index": 9,
+        "r5_index": 9
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native linked loader and compiler receipt bindings",
+        "original_index": 10,
+        "r5_index": 16
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native applications and actual Core memory controls",
+        "original_index": 11,
+        "r5_index": 17
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native HIA multi-image scheduling and source-bound installed entry",
+        "original_index": 12,
+        "r5_index": 18
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Five-family native in-process worker scheduling custody",
+        "original_index": 13,
+        "r5_index": 19
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "All original runtime callers with HIA-owned internal scheduling",
+        "original_index": 14,
+        "r5_index": 20
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Original runtime callers through in-process HIA native scheduling",
+        "original_index": 15,
+        "r5_index": 21
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Original no-child compiler scripts through four in-process HIA schedulers",
+        "original_index": 16,
+        "r5_index": 22
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native execution ledger policy and installed real runtime callers",
+        "original_index": 17,
+        "r5_index": 23
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Actual original runtime callers with retained ledger policy forbidden",
+        "original_index": 18,
+        "r5_index": 24
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native ELF object writer and actual source-bound installed controls",
+        "original_index": 19,
+        "r5_index": 25
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Actual original machine and Core callers with complete HIA ELF object control",
+        "original_index": 20,
+        "r5_index": 26
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Actual original callers with native ELF byte wrapper Emitter and Function control together",
+        "original_index": 21,
+        "r5_index": 27
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native byte wrapper and actual source-bound installed controls",
+        "original_index": 22,
+        "r5_index": 28
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Actual original machine and Core callers with complete HIA borrowed-byte control",
+        "original_index": 23,
+        "r5_index": 29
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Actual original callers with native byte wrapper Emitter and Function control together",
+        "original_index": 24,
+        "r5_index": 30
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native Core emitter and actual source-bound installed controls",
+        "original_index": 25,
+        "r5_index": 31
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Actual original machine and Core callers with complete HIA Emitter control",
+        "original_index": 26,
+        "r5_index": 32
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Actual original callers with both native Emitter and Function control",
+        "original_index": 27,
+        "r5_index": 33
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native Core lowering and actual source-bound installed controls",
+        "original_index": 28,
+        "r5_index": 34
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Actual original machine and Core callers with complete HIA Function control",
+        "original_index": 29,
+        "r5_index": 35
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native machine plan and actual source-bound installed controls",
+        "original_index": 30,
+        "r5_index": 36
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Actual original callers with HIA machine plans",
+        "original_index": 31,
+        "r5_index": 37
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native machine encoding and actual source-bound installed controls",
+        "original_index": 32,
+        "r5_index": 38
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native machine state and actual source-bound installed controls",
+        "original_index": 33,
+        "r5_index": 39
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native machine instructions and actual source-bound installed controls",
+        "original_index": 34,
+        "r5_index": 40
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Actual original callers with HIA machine encoding",
+        "original_index": 35,
+        "r5_index": 41
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Actual original callers with HIA machine state",
+        "original_index": 36,
+        "r5_index": 42
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Actual original callers with HIA machine instructions",
+        "original_index": 37,
+        "r5_index": 43
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native worker policy and pinned multi-image custody",
+        "original_index": 38,
+        "r5_index": 44
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native fifteen-action CLI current selfhost routing and installed resources",
+        "original_index": 39,
+        "r5_index": 45
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native Core module graph and actual workspace projects",
+        "original_index": 40,
+        "r5_index": 46
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native Core workspace JSON materialization and actual ABI",
+        "original_index": 41,
+        "r5_index": 47
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native Core capability edge policy and actual CFG",
+        "original_index": 42,
+        "r5_index": 48
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native explicit workspace facts and semantic ELF materialization",
+        "original_index": 43,
+        "r5_index": 49
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native full Core function declarations SSA and CFG",
+        "original_index": 44,
+        "r5_index": 50
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native whole primitive Core declaration SSA CFG and export admission",
+        "original_index": 45,
+        "r5_index": 51
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native complete local instruction policy",
+        "original_index": 46,
+        "r5_index": 52
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native streaming SHA complete retained state controls",
+        "original_index": 47,
+        "r5_index": 53
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native exact-byte artifact publication and real kernel races",
+        "original_index": 48,
+        "r5_index": 54
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native whole primitive Core admission and body resource flow",
+        "original_index": 49,
+        "r5_index": 55
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Standalone native complete Core admission CLI",
+        "original_index": 50,
+        "r5_index": 56
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native snapshot-bound edits and complete Core patch CLI",
+        "original_index": 51,
+        "r5_index": 57
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native ordinary Agent candidate bytes diagnostics and real crash cuts",
+        "original_index": 52,
+        "r5_index": 58
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native full Core execution and installed worker bindings",
+        "original_index": 53,
+        "r5_index": 59
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native structural budgets arbitrary precision and installed composition",
+        "original_index": 54,
+        "r5_index": 60
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native public live heap payload bounds and installed composition",
+        "original_index": 55,
+        "r5_index": 61
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native complete nominal types helpers constructor functions and outer lowering",
+        "original_index": 56,
+        "r5_index": 62
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native complete nominal continuation families retained from a733",
+        "original_index": 57,
+        "r5_index": 63
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native durable execution budgets request journal and artifact namespace",
+        "original_index": 58,
+        "r5_index": 64
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native retained retirement state and actual resource custody",
+        "original_index": 59,
+        "r5_index": 65
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native worker request admission and ordinary request continuity",
+        "original_index": 60,
+        "r5_index": 66
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native worker pinned helper custody and journal composition",
+        "original_index": 61,
+        "r5_index": 67
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native request journal decisions and actual SQL crash controls",
+        "original_index": 62,
+        "r5_index": 68
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native execution budgets and both request-journal lifecycles",
+        "original_index": 63,
+        "r5_index": 69
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native candidate budgets and pinned state owner composition",
+        "original_index": 64,
+        "r5_index": 70
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native slot versions leases and original Agent transactions",
+        "original_index": 65,
+        "r5_index": 71
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Ordinary Agent callers with native journal and retained owner forbidden",
+        "original_index": 66,
+        "r5_index": 72
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native immutable release installation and recovery observations",
+        "original_index": 67,
+        "r5_index": 73
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native release selection CAS rollback and crash recovery",
+        "original_index": 68,
+        "r5_index": 74
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native retained retirement and real resource release controls",
+        "original_index": 69,
+        "r5_index": 75
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native assembly source build and self-repacking",
+        "original_index": 70,
+        "r5_index": 76
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native raw JSON nominal packets and actual constructor ingress",
+        "original_index": 71,
+        "r5_index": 77
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native source admission build and explicit public compiler",
+        "original_index": 72,
+        "r5_index": 78
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native complete CLI arguments formatting and continuations",
+        "original_index": 73,
+        "r5_index": 79
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native complete machine Code owners and exception custody",
+        "original_index": 74,
+        "r5_index": 80
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native machine instructions through complete original callers",
+        "original_index": 75,
+        "r5_index": 81
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native machine ELF writer and exact exception custody",
+        "original_index": 76,
+        "r5_index": 82
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native machine ELF through complete original callers",
+        "original_index": 77,
+        "r5_index": 83
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native machine plan policy and original object lifetimes",
+        "original_index": 78,
+        "r5_index": 84
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native machine plan through complete original callers",
+        "original_index": 79,
+        "r5_index": 85
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native service context policy integers and held proof identity",
+        "original_index": 80,
+        "r5_index": 86
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native service context through all original Agent callers",
+        "original_index": 81,
+        "r5_index": 87
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native complete Core lowering through all original machine and Core callers",
+        "original_index": 82,
+        "r5_index": 88
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native shared frame Call and short circuit ownership",
+        "original_index": 83,
+        "r5_index": 89
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native service emission continuation and exception custody",
+        "original_index": 84,
+        "r5_index": 90
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native service emission through all original Agent callers",
+        "original_index": 85,
+        "r5_index": 91
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native complete Core emitter through all original machine and Core callers",
+        "original_index": 86,
+        "r5_index": 92
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native borrowed byte ABI complete policy and whole emission custody",
+        "original_index": 87,
+        "r5_index": 93
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native borrowed byte ABI through all original byte and Agent buffer callers",
+        "original_index": 88,
+        "r5_index": 94
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native complete build coordinator and installation custody",
+        "original_index": 89,
+        "r5_index": 95
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native complete build coordinator through all original 114 callers",
+        "original_index": 90,
+        "r5_index": 96
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native service verification complete policy and default replay",
+        "original_index": 91,
+        "r5_index": 97
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native service verification through all original Agent callers",
+        "original_index": 92,
+        "r5_index": 98
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native proof contract complete public policy and held capability",
+        "original_index": 93,
+        "r5_index": 99
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native proof contract through all original 22 proof and 18 machine callers",
+        "original_index": 94,
+        "r5_index": 100
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native eight-body service requests complete component",
+        "original_index": 95,
+        "r5_index": 101
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native requests through all original 48 Agent callers",
+        "original_index": 96,
+        "r5_index": 102
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native requests through all original 35 namespace callers",
+        "original_index": 97,
+        "r5_index": 103
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native requests through all original 48 ledger callers",
+        "original_index": 98,
+        "r5_index": 104
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native six-body service artifacts complete component",
+        "original_index": 99,
+        "r5_index": 105
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native artifacts through all original 48 Agent callers",
+        "original_index": 100,
+        "r5_index": 106
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native artifacts through all original 35 namespace callers",
+        "original_index": 101,
+        "r5_index": 107
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native artifacts through all original 48 ledger callers",
+        "original_index": 102,
+        "r5_index": 108
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native nine-body service evaluation complete component",
+        "original_index": 103,
+        "r5_index": 109
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native evaluation through all original 48 Agent callers",
+        "original_index": 104,
+        "r5_index": 110
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native evaluation through all original 35 namespace callers",
+        "original_index": 105,
+        "r5_index": 111
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native evaluation through all original 48 ledger callers",
+        "original_index": 106,
+        "r5_index": 112
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Native JSON wire entry, exact graph budgets, key cache and installed resources",
+        "original_index": 107,
+        "r5_index": 113
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Original ordinary callers through HIA JSON wire",
+        "original_index": 108,
+        "r5_index": 114
+      },
+      {
+        "all_original_fields_preserved": false,
+        "name": "Preserve actual cold failure and stage evidence",
+        "original_index": 109,
+        "r5_index": 115
+      },
+      {
+        "all_original_fields_preserved": true,
+        "name": "Preserve final JSON wire caller evidence",
+        "original_index": 110,
+        "r5_index": 116
+      }
+    ],
+    "new_native_steps": 116,
+    "new_native_steps_detail": [
+      {
+        "index": 10,
+        "step": {
+          "name": "Native selected release launch with matching cold and original kernel controls",
+          "run": "python -B tools/qualify_hia_release_launch.py --cold-report \"$RUNNER_TEMP/hia-cold.json\" --evidence \"$RUNNER_TEMP/hia-release-launch-matching-cold\""
+        }
+      },
+      {
+        "index": 11,
+        "step": {
+          "name": "Native candidate build with matching cold and all original 55 images",
+          "run": "python -B -m tools.qualify_hia_candidate_build --cold-report \"$RUNNER_TEMP/hia-cold.json\" --evidence \"$RUNNER_TEMP/hia-candidate-build\""
+        }
+      },
+      {
+        "index": 12,
+        "step": {
+          "env": {
+            "HEPTA_HIA_STORE_LIFECYCLE_COLD_REPORT": "${{ runner.temp }}/hia-cold.json",
+            "HEPTA_HIA_STORE_LIFECYCLE_EVIDENCE": "${{ runner.temp }}/hia-store-lifecycle"
+          },
+          "name": "Native Store lifecycle with matching cold and all original controls",
+          "run": "python -B tools/run_hia_unittest_gate.py tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests"
+        }
+      },
+      {
+        "index": 13,
+        "step": {
+          "name": "Native Store lifecycle original agent callers",
+          "run": "python -B tools/qualify_hia_store_lifecycle.py --caller-group agent --cold-report \"$RUNNER_TEMP/hia-cold.json\" --evidence \"$RUNNER_TEMP/hia-store-lifecycle-agent\""
+        }
+      },
+      {
+        "index": 14,
+        "step": {
+          "name": "Native Store lifecycle original namespace callers",
+          "run": "python -B tools/qualify_hia_store_lifecycle.py --caller-group namespace --cold-report \"$RUNNER_TEMP/hia-cold.json\" --evidence \"$RUNNER_TEMP/hia-store-lifecycle-namespace\""
+        }
+      },
+      {
+        "index": 15,
+        "step": {
+          "name": "Native Store lifecycle original ledger callers",
+          "run": "python -B tools/qualify_hia_store_lifecycle.py --caller-group ledger --cold-report \"$RUNNER_TEMP/hia-cold.json\" --evidence \"$RUNNER_TEMP/hia-store-lifecycle-ledger\""
+        }
+      }
+    ],
+    "new_source_selectors": [
+      "tests.test_hia_release_launch.ReleaseLaunchSourceTests",
+      "tests.test_hia_release_launch_qualifier.ReleaseLaunchQualifierSourceTests",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests",
+      "tests.test_hia_candidate_build_qualifier.CandidateBuildQualifierSourceTests",
+      "tests.test_hia_store_lifecycle_native.StoreLifecycleSourceTests",
+      "tests.test_hia_store_lifecycle_builder.StoreLifecycleAdapterTests",
+      "tests.test_hia_store_lifecycle_qualifier.StoreLifecycleQualifierTests"
+    ],
+    "no_cold_or_development_authority_inherited": true,
+    "only_original_step_change": "Append six evidence directories to existing always upload",
+    "original213_preserved_in_order": true,
+    "original_native_order_preserved": true,
+    "original_native_steps": 110,
+    "source_gate_body_other_than7selectors_identical": true,
+    "source_selectors": 220,
+    "source_vm_upload_always": true,
+    "trigger_permissions_and_job_metadata_identical": true
+  }
+}
