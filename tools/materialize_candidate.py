@@ -147,7 +147,7 @@ class Capture:
                     cleanup.append({"signal": int(sig), "wait_expired": True})
             else:
                 self.json(prefix + ".unreaped.json", {"pid": process.pid, "cleanup": cleanup})
-                raise RuntimeError("bounded Git command cleanup incomplete")
+                raise RuntimeError("bounded command cleanup incomplete")
         record = {"argv": arguments, "cwd": str(cwd) if cwd else None,
                   "started_at": started, "finished_at": now(), "limit_seconds": limit,
                   "elapsed_ns": time.monotonic_ns() - clock,
@@ -159,9 +159,25 @@ class Capture:
         self.commands.append(record)
         self.json(prefix + ".json", record)
         print(f"captured {label}: rc={process.returncode}, timeout={timed_out}", flush=True)
+        if timed_out or process.returncode not in allowed:
+            print("COMMAND_FAILURE " + json.dumps({
+                "label": label, "returncode": process.returncode,
+                "timed_out": timed_out, "record": prefix + ".json",
+                "stdout": record["stdout"], "stderr": record["stderr"],
+            }, sort_keys=True), flush=True)
+            for stream_name, raw in (("stdout", stdout), ("stderr", stderr)):
+                if len(raw) <= 65536:
+                    visible = raw
+                else:
+                    visible = (raw[:32768]
+                               + b"\n[diagnostic middle omitted; complete bytes retained in evidence]\n"
+                               + raw[-32768:])
+                for line in visible.decode("utf-8", errors="backslashreplace").splitlines():
+                    print("command-output " + label + " " + stream_name + ": " + line,
+                          flush=True)
         if enforce:
-            check(not timed_out, "Git command exceeded its observation limit: " + label)
-            check(process.returncode in allowed, "unexpected Git return code: " + label)
+            check(not timed_out, "command exceeded its observation limit: " + label)
+            check(process.returncode in allowed, "unexpected command return code: " + label)
         return stdout, record
 
     def git(self, arguments, **kwargs):
@@ -689,6 +705,52 @@ def assert_current_tree(capture, tree_sha, label):
     capture.git(["diff", "--exit-code", tree_sha, "--"], label=label+"-worktree", auth=False)
     others, _ = capture.git(["ls-files", "--others", "--exclude-standard", "-z"], label=label+"-untracked", auth=False)
     check(others == b"", "unregistered source outputs appeared")
+    inventory, _ = capture.git(["ls-tree", "-r", "-z", "--full-tree", tree_sha],
+                               label=label+"-frozen-paths", auth=False)
+    observed = []
+    failures = []
+    checked_parents = set()
+    for item in inventory.split(b"\0"):
+        if not item:
+            continue
+        header, raw_path = item.split(b"\t", 1)
+        expected_mode, kind, expected_blob = header.decode("ascii").split()
+        relative = relative_path(raw_path.decode("utf-8"))
+        row = {"path": relative.as_posix(), "expected_mode": expected_mode,
+               "expected_blob": expected_blob}
+        try:
+            check(kind == "blob" and expected_mode in {"100644", "100755", "120000"},
+                  "unsupported frozen source entry")
+            path = capture.repo / relative
+            parent = path.parent
+            while parent not in checked_parents:
+                check(stat.S_ISDIR(parent.lstat().st_mode), "source parent is not a plain directory")
+                checked_parents.add(parent)
+                if parent == capture.repo:
+                    break
+                check(parent != parent.parent, "source path escaped repository")
+                parent = parent.parent
+            info = path.lstat()
+            if stat.S_ISLNK(info.st_mode):
+                raw = os.fsencode(os.readlink(path))
+                actual_mode = "120000"
+            else:
+                check(stat.S_ISREG(info.st_mode), "source is not a regular file")
+                raw = path.read_bytes()
+                actual_mode = "100755" if info.st_mode & 0o111 else "100644"
+            row.update(bytes=len(raw), actual_mode=actual_mode,
+                       actual_blob=oid("blob", raw), sha256=sha(raw))
+            check(actual_mode == expected_mode and row["actual_blob"] == expected_blob,
+                  "physical source bytes or mode differ from frozen tree")
+        except (OSError, RuntimeError) as error:
+            row["error"] = {"type": type(error).__name__, "message": str(error)}
+            failures.append(row["path"])
+        observed.append(row)
+    capture.json("checks/" + label + "-raw-worktree.json", {
+        "scope": "EACH_FROZEN_PATH_READ_INDEPENDENTLY_OF_GIT_STAT_CACHE",
+        "frozen_tree": tree_sha, "files": observed, "failures": failures,
+    })
+    check(not failures, "raw source readback differs from frozen tree: " + ", ".join(failures[:10]))
 
 def snapshot_failure_or_terminal_sources(capture):
     if not capture.repo.is_dir():
@@ -770,6 +832,7 @@ def main():
         result["composition"] = apply_sources(capture,inputs,cache,authored,origins,originals,conflicts)
         result["syntax"] = syntax_all(capture)
         result["generation"] = regenerate(capture,inputs)
+        assert_current_tree(capture, result["generation"]["tree"], "before-complete-source-tests")
         result["source_test_stage_started"] = True
         result["source_tests"], source_pass = source_gate(capture,inputs,harness_root)
         result["product_tests_executed"] = result["source_tests"].get("tests_run")

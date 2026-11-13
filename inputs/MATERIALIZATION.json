@@ -1,6 +1,6 @@
 {
   "schema": "hepta.fixed-whole-source-materialization.v1",
-  "status": "READY_FOR_REAL_EXECUTION_NOT_QUALIFIED",
+  "status": "AUTHORED_REPAIRS_PENDING_COMPLETE_REGENERATION_AND_SOURCE",
   "repository": "TrillionniumFoundation/Hepta",
   "ours": {
     "commit": "f33d8da316de8fdf27b504371f1a5310997ff548",
@@ -212,6 +212,41 @@
       "bytes": 151014,
       "layout": "array-identity",
       "files": 2
+    },
+    {
+      "label": "rust-input-artifact-custody",
+      "blob": "7724f77a0402a91d5a443211d5cd267c73641db8",
+      "bytes": 109507,
+      "layout": "array-byte",
+      "files": 1
+    },
+    {
+      "label": "checker-reviewed-z3-imports",
+      "blob": "c415b45b2bced0f9dfa5ed55b77946090dcf2798",
+      "bytes": 114975,
+      "layout": "array-after",
+      "files": 2
+    },
+    {
+      "label": "complete-installed-resource-union",
+      "blob": "8ae5c180f2872abfc001d90c417c33b66e8c8e31",
+      "bytes": 129824,
+      "layout": "array-after",
+      "files": 1
+    },
+    {
+      "label": "front-fixed-operation-builder",
+      "blob": "a28aac439d5be5db230b3c87d27f22a5fdb6f0a6",
+      "bytes": 25443,
+      "layout": "array-byte",
+      "files": 1
+    },
+    {
+      "label": "source-admission-fixed-operation-builder",
+      "blob": "707bd73e7caf8a788cc986b7fbd7f4f8f95c8ed3",
+      "bytes": 59941,
+      "layout": "array-after",
+      "files": 1
     }
   ],
   "allowed_overrides": [
@@ -284,9 +319,44 @@
       "to_packet": "latest-main-workflow-corrected",
       "from": "0e622b2e718887ca9634de52130cc41e44fdc9c0",
       "to": "6bc7dacbda100d2bfd4c438ec747eb411497da16"
+    },
+    {
+      "path": ".github/workflows/hia-core.yml",
+      "from_packet": "latest-main-workflow-corrected",
+      "to_packet": "rust-input-artifact-custody",
+      "from": "c760e59d57cfe84a4673b4f6e021ef61233944c3",
+      "to": "6b39027ed821a4108f4f982b17e68d7ce49d8355"
+    },
+    {
+      "path": "tools/generate_hia_checker_inventory.py",
+      "from_packet": "checker-r1",
+      "to_packet": "checker-reviewed-z3-imports",
+      "from": "c43ca35927e0d08ade8e001fb1c97cab120dac3e",
+      "to": "308a1141f37a1143eb8606ae5a783efc8a88b1cb"
+    },
+    {
+      "path": "tests/test_hia_checker_inventory.py",
+      "from_packet": "checker-r1",
+      "to_packet": "checker-reviewed-z3-imports",
+      "from": "7351ebdb3a72a462bfd82d1330314b72aa86a50f",
+      "to": "d18627dc5f7fbdda8cc102888a23a6728c3b8c94"
+    },
+    {
+      "path": "hepta/hia_agent_contract.py",
+      "from_packet": "remote-shared",
+      "to_packet": "complete-installed-resource-union",
+      "from": "498e3ef00122514c93cc55648198a315c10387d3",
+      "to": "ad34ba8b1846b529f6780aac0abb2d07159389f3"
+    },
+    {
+      "path": "tools/generate_hia_source_admission.py",
+      "from_packet": "canonical-6",
+      "to_packet": "source-admission-fixed-operation-builder",
+      "from": "8c68135b168c13b694bd60a4426f22181f572000",
+      "to": "60f60a1aadea509879145883661f6a7af6a1f9cd"
     }
   ],
-  "expected_authored_files": 285,
+  "expected_authored_files": 286,
   "exact_retained": [
     {
       "path": "docs/HIA_CORE_EMITTER_ABI.json",
@@ -3545,5 +3615,22 @@
   "unapplied_authoring_error": {
     "packet": "98c2add13d29ef5e8fe67afcc94fa531c8022486",
     "stale_integrated_test_preimage_corrected_in": "c43534f5d2f057326f88a4c2d5f4704e3620d5c8"
+  },
+  "prior_real_source_failure": {
+    "run": 43379129114,
+    "job": 131732539209,
+    "harness_commit": "97b869129993f450f17bc632ab6da21c9a504a75",
+    "manifest": "0803f01c321ec9ffec06a650e97a305630287c97",
+    "audit_commit": "49b181a58f3f9463ed34af1c2379b4050e811807",
+    "product_tests_executed": 0
+  },
+  "prior_local_generation": {
+    "runtime": "CPython 3.12.14",
+    "result": "FAIL",
+    "owners_passed": 88,
+    "next_owner_failed": "source_admission",
+    "capsule_manifest": "20bff490ba958baf9f798ed69c4f9c0b5076b530",
+    "source_tests_executed": 0,
+    "native_qualification": false
   }
 }
