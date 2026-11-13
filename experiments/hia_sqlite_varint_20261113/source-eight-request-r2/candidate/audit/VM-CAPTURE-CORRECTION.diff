@@ -1,0 +1,42 @@
+--- pre-final/source8
++++ final/source8
+@@ -87,16 +87,22 @@
+         owners = [_Owner(-1, bytearray(source)), _Owner(-2, bytearray(output)),
+                   _Owner(-3, bytearray(workspace))]
+         machine = _Machine(self.program, 20000, 1 << 20, None, 256)
+-        result = machine.invoke(self.program.as_dict()['functions'][0], [
+-            _View(owners[0], False), _View(owners[1], True), _View(owners[2], True)])[0]
+-        row = {'case': self.label, 'status': result,
++        row = {'case': self.label, 'actual_returned': False,
+                'source_before_hex': bytes(source).hex(),
+-               'source_after_hex': bytes(owners[0].data).hex(),
+                'output_before_hex': bytes(output).hex(),
+-               'output_after_hex': bytes(owners[1].data).hex(),
+-               'workspace_before_hex': bytes(workspace).hex(),
+-               'workspace_after_hex': bytes(owners[2].data).hex()}
++               'workspace_before_hex': bytes(workspace).hex()}
+         self.calls.append(row)
++        try:
++            result = machine.invoke(self.program.as_dict()['functions'][0], [
++                _View(owners[0], False), _View(owners[1], True), _View(owners[2], True)])[0]
++            row.update(status=result, actual_returned=True)
++        except BaseException as error:
++            row['exception_type'] = type(error).__module__ + '.' + type(error).__qualname__
++            raise
++        finally:
++            row.update(source_after_hex=bytes(owners[0].data).hex(),
++                       output_after_hex=bytes(owners[1].data).hex(),
++                       workspace_after_hex=bytes(owners[2].data).hex())
+         return result, bytes(owners[1].data), bytes(owners[2].data)
+ 
+     def _entry(self, source, size, output, output_size, workspace, workspace_size):
+@@ -130,6 +136,9 @@
+         # The request owner must supply this fresh, existing private directory.
+         with (output / 'sqlite_varint.hiaasm').open('x', encoding='utf-8') as stream:
+             stream.write(cls.assembly)
++        with (output / 'CORE.json').open('x', encoding='utf-8') as stream:
++            json.dump(cls.document, stream, sort_keys=True, indent=2)
++            stream.write('\n')
+         with (output / 'VM-RAW.json').open('x', encoding='utf-8') as stream:
+             json.dump({'schema': 'hia.sqlite-varint.source-vm-raw.v1',
+                        'native_executed': False, 'compiler_executed': False,

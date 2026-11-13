@@ -1,0 +1,341 @@
+{
+  "C_oracle_compilation_permitted": false,
+  "SQLite_database_open_permitted": false,
+  "candidate_root": "/home/agent/hia-sqlite-source8-r2-recovery-20261113-e26e/candidate",
+  "cleanup_seconds": 3,
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "-I",
+    "-S",
+    "-B",
+    "/home/agent/hia-sqlite-source8-r2-recovery-20261113-e26e/control/worker.py",
+    "/home/agent/hia-sqlite-source8-r2-recovery-20261113-e26e/REQUEST.json"
+  ],
+  "environment": {
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONUNBUFFERED": "1"
+  },
+  "expected_ids": [
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_01_whole_Core_roundtrip_and_original_caps",
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_02_complete_u64_encoding_length_boundaries",
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_03_nonminimal_decoding_and_all_ninth_byte_values",
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_04_every_truncation_refuses_without_output_write",
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_05_every_output_capacity_and_unchanged_tail",
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_06_bad_protocol_extents_magic_and_operation",
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_07_bridge_exact_types_offsets_and_foreign_failures",
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_08_original_oracles_and_existing_control_population_unchanged"
+  ],
+  "expected_methods": 8,
+  "expected_vm_by_id": {
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_01_whole_Core_roundtrip_and_original_caps": 0,
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_02_complete_u64_encoding_length_boundaries": 573,
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_03_nonminimal_decoding_and_all_ninth_byte_values": 816,
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_04_every_truncation_refuses_without_output_write": 36,
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_05_every_output_capacity_and_unchanged_tail": 180,
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_06_bad_protocol_extents_magic_and_operation": 12,
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_07_bridge_exact_types_offsets_and_foreign_failures": 1,
+    "tests.test_hia_sqlite_varint_source.SQLiteVarintSourceTests.test_08_original_oracles_and_existing_control_population_unchanged": 0
+  },
+  "expected_vm_returns": 1618,
+  "inputs": {
+    "CANDIDATE-RELOCATION-READBACK.json": {
+      "bytes": 4227,
+      "git_blob": "ece1b18b1719ac57631f7a9a7965aefeb4f2d9ba",
+      "sha256": "191e3adfa733f39a9789da2a04d359c23f2b2524ce17263bde72af884bcd95bd"
+    },
+    "LAUNCHER-FROM-RETAINED.diff": {
+      "bytes": 16812,
+      "git_blob": "301e4c4c8bf39f4aa868b03f7a1a208e3dc95071",
+      "sha256": "fb6ae4881238edab797a6f2f5906452c35798da37cf746b84a754624b2e0e649"
+    },
+    "REFERENCE-CONTROLS.json": {
+      "bytes": 1782,
+      "git_blob": "e620f835afad28e2996836afea5b156af8631b74",
+      "sha256": "1015011042e367c49db56337a4521920b7e6c4c2defdc3e7775a75a8576747a9"
+    },
+    "SOURCE-RELOCATION.json": {
+      "bytes": 1925,
+      "git_blob": "cf589fb848aebf1e5631e46f43b461f83a3e0f95",
+      "sha256": "ee0ff2152cb8122d4a6e50fa07d939a4423e35469cbe9289a4bf081bee95b777"
+    },
+    "candidate/BASE.json": {
+      "bytes": 4732,
+      "git_blob": "6a5c4390957e4e9424c7e1116013422ed6001cd0",
+      "sha256": "7a57da2b66a01489f2c0800096f8ac95e9701669d0ec4721a9aae8fec0e70ddb"
+    },
+    "candidate/FILES.json": {
+      "bytes": 8747,
+      "git_blob": "db835fc04bd2fd74f0b3a4f3d3bcab5ee76a45be",
+      "sha256": "9d9fe751c36ff5cd07be8e8836d626c56740e2c7db679adc7f9f8d39930aa17f"
+    },
+    "candidate/HANDOFF.json": {
+      "bytes": 3252,
+      "git_blob": "af6bacfd38cae4a1dd13e826986833a55d809d22",
+      "sha256": "daa768d6e92015a1da6363fd8f58344b0e5ae88ad29d27fc2b83e9afc18e122b"
+    },
+    "candidate/audit/AST-ONLY.json": {
+      "bytes": 1190,
+      "git_blob": "33dc17922c2bd1340301711c8266f92c4cc90638",
+      "sha256": "1778ba90a40324c7a75e4475e0962357bfa0d01d3014760f5bc2b808d61c90ab"
+    },
+    "candidate/audit/LINE-COUNT-CORRECTION.json": {
+      "bytes": 705,
+      "git_blob": "03d290e78492bb1bd42b12deb0cfea78c9ae8837",
+      "sha256": "5f725f05ae14589a5a234fde73df1cae002f6fb4e32f7b8c3da1983c8fcfe4d3"
+    },
+    "candidate/audit/READ-ONLY-HISTORY.json": {
+      "bytes": 675,
+      "git_blob": "dffaacd9a53136a1573632a94018cd7069530625",
+      "sha256": "7a7b9820200d74ba7872d789cf6aca22164b0177c40589cae1d451bef3fcc6d3"
+    },
+    "candidate/audit/STATIC-READBACK.json": {
+      "bytes": 7604,
+      "git_blob": "f13aaf6187e69bcdcf96210e417c544fd4a91636",
+      "sha256": "c3d1a0b50aa410cf95e17dbf1e2aff3c46f82a9be5c481245951d834d36e51ab"
+    },
+    "candidate/audit/UNFROZEN-WIP-RELOCATION.json": {
+      "bytes": 961,
+      "git_blob": "c94bb9481ca5129e58f3cd175e695094d769a937",
+      "sha256": "29b4bbd7c6259fb58b064fb8b965ef4992a937db4d53479da56205a95ffc6608"
+    },
+    "candidate/audit/VM-CAPTURE-CORRECTION.diff": {
+      "bytes": 2440,
+      "git_blob": "73421268aaeb0986d38d5d373eafad1d9ab26e17",
+      "sha256": "953e2afab4d91da9d332d955e978dc8fffb36bfced7ff34747dad6efd775c808"
+    },
+    "candidate/audit/static_readback.py": {
+      "bytes": 7190,
+      "git_blob": "70aae07ae7601e9a397e73874592996007889a08",
+      "sha256": "a27b41949e5b230285d601676f489d4a95b88c6e2ff42635b6c63adcc20b0db8"
+    },
+    "candidate/history/pre-final-VM-failure-capture/STATIC-READBACK.json.original": {
+      "bytes": 7604,
+      "git_blob": "8af53eebd69ce6f3d5f9c80704d5b775355b5bf1",
+      "sha256": "e144797caa906caad80a87f33a36ad012924faecf7cc85f45456ed81ceb8f016"
+    },
+    "candidate/history/pre-final-VM-failure-capture/test_hia_sqlite_varint_source.py.original": {
+      "bytes": 15322,
+      "git_blob": "d471467a6f4cb9697155947e5b7f7882487aafdd",
+      "sha256": "c56cdd03a75d85216ed8a94627060984d5e9950a8b38bc8df36e1cc769f2b0da"
+    },
+    "candidate/history/pre-final-line-count/AST-ONLY.original.json": {
+      "bytes": 972,
+      "git_blob": "4eac16248c17f05dba4c91aacda58864af58bfda",
+      "sha256": "0a99974f17d102248a979df1575a1d9b9739275429fb12c2bba864c5478f72b7"
+    },
+    "candidate/history/pre-final-line-count/test_hia_sqlite_varint_source.py.original": {
+      "bytes": 15323,
+      "git_blob": "65778eae6e60fdd7d95ed1f3a5949539903db1a5",
+      "sha256": "9d047ea4b23c551cf8ca5115ccfd0bd37950c9bbf4c625f318b7e7f556333743"
+    },
+    "candidate/inputs/docs/HIA_SQLITE_VARINT_DEVELOPMENT.md": {
+      "bytes": 7812,
+      "git_blob": "7353c55462c9ef481331a5366bf6b23a9a2b20d6",
+      "sha256": "330a7925894b8452a9f743dcabd44f413f915e7be18b5ce8344ebedf4b763490"
+    },
+    "candidate/inputs/hepta/hia_sqlite_varint_abi.json": {
+      "bytes": 2595,
+      "git_blob": "591db5ac0edc01777327448777fd6b4ffadb292c",
+      "sha256": "d310eca8903152d1fd1901414786bd8538455cf20396ed715bc53336846176ec"
+    },
+    "candidate/inputs/hepta/hia_sqlite_varint_native.py": {
+      "bytes": 6217,
+      "git_blob": "088536dc2cd6905a88f79a264c26da2971f1c587",
+      "sha256": "75aa0568427de7f2a3f620d17256957b19a092f421c718da22a17da807f42ead"
+    },
+    "candidate/inputs/tests/fixtures/sqlite_varint/3.46.0/adapter.c": {
+      "bytes": 466,
+      "git_blob": "eac00ae78e980b0da41f8acdae8bc769b3ed74b0",
+      "sha256": "e0870d6b07b646dcdc3e082444aec9299c8c8177343e48d318f8c17ce8055f2e"
+    },
+    "candidate/inputs/tests/fixtures/sqlite_varint/3.46.0/codec.inc": {
+      "bytes": 3897,
+      "git_blob": "77c34ef727be335e89a65962c0065eb4d402074f",
+      "sha256": "4049b2b6e744f29f19b26f1db95969c89388a2718e6c69e814db27965cc6995c"
+    },
+    "candidate/inputs/tests/fixtures/sqlite_varint/3.53.2/adapter.c": {
+      "bytes": 466,
+      "git_blob": "eac00ae78e980b0da41f8acdae8bc769b3ed74b0",
+      "sha256": "e0870d6b07b646dcdc3e082444aec9299c8c8177343e48d318f8c17ce8055f2e"
+    },
+    "candidate/inputs/tests/fixtures/sqlite_varint/3.53.2/codec.inc": {
+      "bytes": 3897,
+      "git_blob": "77c34ef727be335e89a65962c0065eb4d402074f",
+      "sha256": "4049b2b6e744f29f19b26f1db95969c89388a2718e6c69e814db27965cc6995c"
+    },
+    "candidate/inputs/tests/test_hia_sqlite_varint_source.py": {
+      "bytes": 15768,
+      "git_blob": "067cbeccbd73164fd6ce15572cdd267de4ca3fae",
+      "sha256": "4101654ceaa24f564fbbb7f78e466bd340cde5d21fded2e206ee521c8e451af4"
+    },
+    "candidate/inputs/tools/generate_hia_sqlite_varint.py": {
+      "bytes": 5162,
+      "git_blob": "2f092163f6e4e62bdcf9b12f33ebf8cce110a882",
+      "sha256": "f016e82c436098ec8269df394e9b16992b2c61407759e5df92e8592e89e23e9c"
+    },
+    "candidate/peer-reviews/NATIVE-ALGORITHM-STATIC.original.json": {
+      "bytes": 2565,
+      "git_blob": "9bd4dd72a859bd239f86d6cf86bf3e93d127efdc",
+      "sha256": "6f52d355baafc1065712e57386e0cda3496ca55ed539e0e1b2a7632ba2d414d7"
+    },
+    "candidate/plan/PREEXECUTION-PLAN.json": {
+      "bytes": 9622,
+      "git_blob": "e2df3218ab5c832d352eebd0b353236ebfba3e99",
+      "sha256": "01d12e9387347bf23cf2d52614ec2efee2cd0cd25e1d59105fce8d9175794a61"
+    },
+    "candidate/reference/RETAINED-CONTROLS.json": {
+      "bytes": 7450,
+      "git_blob": "83bbfbd42f018a4e7e186ef31a388b695c0240bf",
+      "sha256": "0ebeb9f2dc4a30eb63a0cc66a5ee6f61f194204f150129ff28ffe3b46d6f3b9c"
+    },
+    "candidate/reference/UPSTREAM.json": {
+      "bytes": 3356,
+      "git_blob": "28e3704364d5a28b89a690a7029c6e76477937db",
+      "sha256": "b350eb9bd044b858f9a6f5ef11240a1f5b6549ac30f360fa779636909a831db4"
+    },
+    "candidate/reference/V92-PHYSICAL-INPUTS.json": {
+      "bytes": 440570,
+      "git_blob": "ef8dc228f25bf57bb760584c1dd040da6507f62c",
+      "sha256": "78f6c030fcb0198ba0fb0f45fd902ed970f6bb173ad5747e219a00f954a2823b"
+    },
+    "candidate/reference/sqlite-3.46.0/BLOB-READBACK.json": {
+      "bytes": 413,
+      "git_blob": "708aecffd73de7558fe7bfaf727f6ab9ea683023",
+      "sha256": "844e06a40406a651214dd7cf5cbdd9da2332655dec370c0b10da9222574d5187"
+    },
+    "candidate/reference/sqlite-3.46.0/TAG.provider.original.json": {
+      "bytes": 363,
+      "git_blob": "8c6e0c668c6c46bedbe3107b1fe20e89a0f0de1a",
+      "sha256": "1bbef4f0d6677c2b4894ff4529c841bbf289d0becc6e7d417908e16fe541d80d"
+    },
+    "candidate/reference/sqlite-3.46.0/manifest.uuid.original": {
+      "bytes": 64,
+      "git_blob": "db75fc9bf9cb8a132800c59007bf1536b987d4e5",
+      "sha256": "89763bece45e9791d2aa1d0d998aa893488bd7a789ba5326472e7247f77e0f94"
+    },
+    "candidate/reference/sqlite-3.46.0/util.c.original": {
+      "bytes": 51716,
+      "git_blob": "3b10ba60ada646c6e5f4ceca358fa09a59263eb4",
+      "sha256": "93318efdd7140bbb7cba31f341b29eff558d9efd7f4543e001d043e73ca733eb"
+    },
+    "candidate/reference/sqlite-3.53.2/BLOB-READBACK.json": {
+      "bytes": 413,
+      "git_blob": "765604c1f5f8c5334b5424e001e149135345215f",
+      "sha256": "4ec1f46a0f0a589c1894b681666d9db81b9fc662eb7125ec708f534757c919e6"
+    },
+    "candidate/reference/sqlite-3.53.2/TAG.provider.original.json": {
+      "bytes": 363,
+      "git_blob": "5f0840080b20e73b1f97a951f1addfcd4b31c833",
+      "sha256": "9a056ea4973ce0b171d245c1f194bad1efafcb68f830484bcf8db77a779e409f"
+    },
+    "candidate/reference/sqlite-3.53.2/manifest.uuid.original": {
+      "bytes": 65,
+      "git_blob": "0c8e5f71b2ae96d69090ed23ce3e3d51dd66f78e",
+      "sha256": "31068fb31eaae0d91bbac599b976a75dc0e32ef7270da6843a89e9734ccc6ae5"
+    },
+    "candidate/reference/sqlite-3.53.2/util.c.original": {
+      "bytes": 63901,
+      "git_blob": "57b98ad4c94aa5825f697d196e1bfe3e9e6051d6",
+      "sha256": "f3ad5a891625459352c1b57c053d3b89dcc973206644126a857c0ff82b7ce37f"
+    },
+    "control/common.py": {
+      "bytes": 4165,
+      "git_blob": "3e5cef478a77fbeb043d3ab9117084dd239a6705",
+      "sha256": "4bbf3343b3b48bf30b553a49db4fa9696e50ac48dc86762832bfecbbacb5ff8b"
+    },
+    "control/launch.py": {
+      "bytes": 10155,
+      "git_blob": "3d57b2514bc2fa77dd207f99854c1290e6756cf7",
+      "sha256": "befa3d617fb13267099bf7dc0de43a72272a341975d1b76cb598ac1ba617c52f"
+    },
+    "control/process_owner_impl.py": {
+      "bytes": 17601,
+      "git_blob": "6f600ab75894859b9840c0311cc8891a67b6c53a",
+      "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+    },
+    "control/support.py": {
+      "bytes": 10834,
+      "git_blob": "a090279deeb86c351b48894d36b872ac3be453c5",
+      "sha256": "751a071bc9f151cd354e12880916d12a6ef3f250584c28206cf2d6bd95c663a1"
+    },
+    "control/worker.py": {
+      "bytes": 8926,
+      "git_blob": "8e19d3496dbf5cec7ea413445bb8c54ad3466cc2",
+      "sha256": "239120dbc00a2ee2459c34908413133d249511cc40b5abf2a80c5ce9616f1138"
+    },
+    "reference/rust195-source8-r2-launch.original.py": {
+      "bytes": 8911,
+      "git_blob": "931c775977cd179b37bcdb87d1c02d6ea9b576a4",
+      "sha256": "992d09682b1715d5382fd259d75230c6040aa37b9558ec72fa34d07ff396749f"
+    }
+  },
+  "maximum_output_bytes": 16777216,
+  "maximum_output_regular_files": 64,
+  "maximum_single_output_bytes": 16777216,
+  "minimum_free_bytes": 268435456,
+  "minimum_free_inodes": 4096,
+  "native_compilation_permitted": false,
+  "native_execution_permitted": false,
+  "network_permitted": false,
+  "new_source8_executions": 0,
+  "old_48_path_publication_replayed": false,
+  "old_mutation_boundary": "UNKNOWN_NOT_REPLAYED",
+  "old_source8_executions": 0,
+  "operation_root": "/home/agent/hia-sqlite-varint-source-eight-actual-r2-20261113-e26e",
+  "original_compiler_caps": {
+    "SSA_values_per_function": 2048,
+    "blocks_per_function": 256,
+    "blocks_total": 1536,
+    "functions": 128,
+    "operations_total": 8192,
+    "parameters_arguments": 16,
+    "return_values": 3,
+    "source_bytes": 1048576,
+    "source_lines": 16384
+  },
+  "product_limits_unchanged": {
+    "cold_phase_count": 38,
+    "cold_seconds": 180,
+    "cold_workers": 2,
+    "full_gate_population": 32,
+    "full_gate_seconds": 5400,
+    "outer_seconds": 10800
+  },
+  "qualification_seconds": 180,
+  "runtime": {
+    "bytes": 30894944,
+    "git_blob": "cdff710ca21bf61260e4c7d7f3818ecd65cba2e7",
+    "identity": [
+      27,
+      9223372036854862948,
+      33261,
+      65534,
+      65534,
+      1,
+      30894944,
+      1794418893000000000,
+      1794418893000000000
+    ],
+    "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7"
+  },
+  "runtime_version": [
+    3,
+    12,
+    14
+  ],
+  "schema": "hia.sqlite-varint.source-eight-request.v2",
+  "scope": "Eight original source/Core-VM methods only; no current native/cold/database/full32 qualification",
+  "source_commit": "0504beb11c0dae875d8590660c42488b7bc634fb",
+  "source_file_count": 1686,
+  "source_map": "candidate/reference/V92-PHYSICAL-INPUTS.json",
+  "source_root": "/home/agent/hia-sqlite-source8-r2-recovery-20261113-e26e/source-base",
+  "source_total_bytes": 40890650,
+  "source_tree": "596ab07e8813e4811a8dca51800cd51eb397aeb2",
+  "status": "REAUTHORED_CONTROLS_AFTER_ENVIRONMENT_CHANGE_UNEXECUTED",
+  "test_module": "tests.test_hia_sqlite_varint_source"
+}

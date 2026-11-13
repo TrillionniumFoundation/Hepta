@@ -1,0 +1,315 @@
+"""Eight additive source/Core-VM controls; no SQLite/native compiler is run.
+
+These controls are authored and frozen before execution. The standalone source
+request loads this exact file against the pinned v92 authoring/VM dependency
+closure, records every original ID and retains every raw VM buffer. Existing
+SQLite fixed-codec, Agent journal, store and durable-queue methods are untouched.
+"""
+from __future__ import annotations
+
+import ctypes
+from hashlib import sha256
+import json
+import os
+from pathlib import Path
+import struct
+import unittest
+from unittest.mock import patch
+
+from hepta import hia_sqlite_varint_native as bridge
+from hepta.hia_agent_assembly import assemble_program, render_assembly
+from hepta.hia_program import verify_program
+from hepta.hia_program_runtime import _Machine, _Owner, _View
+from tools import generate_hia_sqlite_varint as author
+
+EXPECTED_NAMES = (
+    'test_01_whole_Core_roundtrip_and_original_caps',
+    'test_02_complete_u64_encoding_length_boundaries',
+    'test_03_nonminimal_decoding_and_all_ninth_byte_values',
+    'test_04_every_truncation_refuses_without_output_write',
+    'test_05_every_output_capacity_and_unchanged_tail',
+    'test_06_bad_protocol_extents_magic_and_operation',
+    'test_07_bridge_exact_types_offsets_and_foreign_failures',
+    'test_08_original_oracles_and_existing_control_population_unchanged',
+)
+
+
+def reference_encode(value):
+    """Independent arithmetic oracle: quotient/remainder, no HIA helper call."""
+    if value >= 256 ** 7:
+        high, last = divmod(value, 256)
+        digits = []
+        for _ in range(8):
+            high, digit = divmod(high, 128)
+            digits.append(digit + 128)
+        return bytes(reversed(digits)) + bytes([last])
+    digits = []
+    while True:
+        value, digit = divmod(value, 128)
+        digits.append(digit)
+        if not value:
+            break
+    result = list(reversed(digits))
+    return bytes(digit + (128 if index + 1 < len(result) else 0)
+                 for index, digit in enumerate(result))
+
+
+def reference_decode(raw):
+    """Independent positional-sum oracle, accepting original nonminimal forms."""
+    for count in range(1, min(len(raw), 8) + 1):
+        if raw[count - 1] < 128:
+            return sum((raw[index] % 128) * 128 ** (count - 1 - index)
+                       for index in range(count)), count
+    if len(raw) < 9:
+        raise ValueError('truncated oracle input')
+    return (sum((raw[index] % 128) * 128 ** (7 - index) * 256
+                for index in range(8)) + raw[8], 9)
+
+
+def values():
+    fixed = {0, 1, 2, 0x7f, 0x80, 0xff, 0x100, 0xffff, 0x10000,
+             0xffffffff, 0x100000000, 0x7fffffffffffffff,
+             0x8000000000000000, 0x8000000000000001,
+             0xfffffffffffffffe, 0xffffffffffffffff}
+    for bit in range(1, 64):
+        fixed.update(((1 << bit) - 1, 1 << bit, (1 << bit) + 1))
+    return tuple(sorted(fixed))
+
+
+class VMImage:
+    """Only the public Core VM; this is not native execution evidence."""
+    def __init__(self, program):
+        self.program = program
+        self.calls = []
+        self.label = 'unlabelled'
+
+    def raw(self, source, output, workspace):
+        owners = [_Owner(-1, bytearray(source)), _Owner(-2, bytearray(output)),
+                  _Owner(-3, bytearray(workspace))]
+        machine = _Machine(self.program, 20000, 1 << 20, None, 256)
+        result = machine.invoke(self.program.as_dict()['functions'][0], [
+            _View(owners[0], False), _View(owners[1], True), _View(owners[2], True)])[0]
+        row = {'case': self.label, 'status': result,
+               'source_before_hex': bytes(source).hex(),
+               'source_after_hex': bytes(owners[0].data).hex(),
+               'output_before_hex': bytes(output).hex(),
+               'output_after_hex': bytes(owners[1].data).hex(),
+               'workspace_before_hex': bytes(workspace).hex(),
+               'workspace_after_hex': bytes(owners[2].data).hex()}
+        self.calls.append(row)
+        return result, bytes(owners[1].data), bytes(owners[2].data)
+
+    def _entry(self, source, size, output, output_size, workspace, workspace_size):
+        status, raw_output, raw_workspace = self.raw(
+            ctypes.string_at(source, size), ctypes.string_at(output, output_size),
+            ctypes.string_at(workspace, workspace_size))
+        ctypes.memmove(output, raw_output, output_size)
+        ctypes.memmove(workspace, raw_workspace, workspace_size)
+        return status
+
+
+class SQLiteVarintSourceTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.document = author.document()
+        cls.program = verify_program(cls.document)
+        cls.assembly = render_assembly(cls.document)
+        cls.vm = VMImage(cls.program)
+        cls.codec = object.__new__(bridge.NativeSQLiteVarint)
+        cls.codec._entry = cls.vm._entry
+
+    def setUp(self):
+        self.vm.label = self.id()
+
+    @classmethod
+    def tearDownClass(cls):
+        destination = os.environ.get('HEPTA_SQLITE_VARINT_SOURCE_EVIDENCE')
+        if destination is None:
+            return
+        output = Path(destination)
+        # The request owner must supply this fresh, existing private directory.
+        with (output / 'sqlite_varint.hiaasm').open('x', encoding='utf-8') as stream:
+            stream.write(cls.assembly)
+        with (output / 'VM-RAW.json').open('x', encoding='utf-8') as stream:
+            json.dump({'schema': 'hia.sqlite-varint.source-vm-raw.v1',
+                       'native_executed': False, 'compiler_executed': False,
+                       'calls': cls.vm.calls}, stream, sort_keys=True, indent=2)
+            stream.write('\n')
+
+    def command(self, operation):
+        return struct.pack('<QQ', bridge.MAGIC, operation)
+
+    def test_01_whole_Core_roundtrip_and_original_caps(self):
+        self.assertEqual(assemble_program(self.assembly).as_dict(), self.program.as_dict())
+        self.assertEqual(self.assembly, render_assembly(author.document()))
+        self.assertLessEqual(len(self.assembly.encode()), 1 << 20)
+        self.assertLessEqual(len(self.assembly.split("\n")), 16384)
+        functions = self.document['functions']
+        blocks = [block for function in functions for block in function['blocks']]
+        self.assertEqual(len(functions), 6)
+        self.assertLessEqual(len(functions), 128)
+        self.assertLessEqual(len(blocks), 1536)
+        self.assertLessEqual(sum(len(block['ops']) for block in blocks), 8192)
+        def walk(value):
+            if isinstance(value, dict):
+                for key, item in value.items():
+                    if key in ('args', 'params') and isinstance(item, list):
+                        self.assertLessEqual(len(item), 16)
+                    yield from walk(item)
+            elif isinstance(value, list):
+                for item in value:
+                    yield from walk(item)
+            elif isinstance(value, str) and value.startswith('v') and value[1:].isdigit():
+                yield int(value[1:])
+        self.assertLessEqual(max(walk(self.document)), 2047)
+        for function in functions:
+            self.assertLessEqual(len(function['blocks']), 256)
+            self.assertLessEqual(len(function['returns']), 3)
+            for block in function['blocks']:
+                for operation in block['ops']:
+                    self.assertLessEqual(len(operation.get('out', [])), 3)
+
+    def test_02_complete_u64_encoding_length_boundaries(self):
+        observed_lengths = set()
+        for value in values():
+            with self.subTest(value=value):
+                encoded = self.codec.encode(value)
+                self.assertEqual(encoded, reference_encode(value))
+                self.assertEqual(self.codec.decode_from(encoded), (value, len(encoded)))
+                self.assertEqual(self.codec.decode_from(encoded + b'\xff' * 10),
+                                 (value, len(encoded)))
+                observed_lengths.add(len(encoded))
+        self.assertEqual(observed_lengths, set(range(1, 10)))
+
+    def test_03_nonminimal_decoding_and_all_ninth_byte_values(self):
+        for count in range(2, 10):
+            for terminal in (0, 1, 127):
+                raw = b'\x80' * (count - 1) + bytes([terminal])
+                self.assertEqual(self.codec.decode_from(raw), reference_decode(raw))
+                self.assertEqual(self.codec.decode_from(b'prefix' + raw + b'tail', 6),
+                                 reference_decode(raw))
+        for last in range(256):
+            for prefix in (b'\x80' * 8, b'\xff' * 8,
+                           bytes((0x81, 0xfe, 0x83, 0xfc, 0x85, 0xfa, 0x87, 0xf8))):
+                raw = prefix + bytes([last])
+                self.assertEqual(self.codec.decode_from(raw), reference_decode(raw))
+
+    def test_04_every_truncation_refuses_without_output_write(self):
+        for size in range(9):
+            for part in (0x80, 0xff):
+                raw = bytes([part]) * size
+                before = b'\xa5' * 8
+                status, output, workspace = self.vm.raw(raw, before, self.command(1))
+                self.assertEqual(status, bridge.REFUSE_TRUNCATED)
+                self.assertEqual(output, before)
+                self.assertEqual(workspace, self.command(1))
+                with self.assertRaises(bridge.SQLiteVarintTruncated):
+                    self.codec.decode_from(raw)
+
+    def test_05_every_output_capacity_and_unchanged_tail(self):
+        for count in range(1, 10):
+            value = 0 if count == 1 else 1 << (7 * (count - 1))
+            expected = reference_encode(value)
+            self.assertEqual(len(expected), count)
+            for capacity in range(10):
+                before = b'\xa5' * capacity
+                status, output, workspace = self.vm.raw(struct.pack('<Q', value), before,
+                                                         self.command(2))
+                self.assertEqual(workspace, self.command(2))
+                target = bytearray(b'prefix' + b'\x5a' * 19 + b'suffix')
+                original = bytes(target)
+                if capacity < count:
+                    self.assertEqual((status, output), (bridge.REFUSE_CAPACITY, before))
+                    with self.assertRaises(bridge.SQLiteVarintCapacity):
+                        self.codec.encode_into(value, target, 6, capacity)
+                    self.assertEqual(bytes(target), original)
+                else:
+                    self.assertEqual(status, count)
+                    self.assertEqual(output, expected + before[count:])
+                    self.assertEqual(self.codec.encode_into(value, target, 6, capacity), count)
+                    self.assertEqual(bytes(target), original[:6] + expected + original[6 + count:])
+
+    def test_06_bad_protocol_extents_magic_and_operation(self):
+        cases = [
+            (b'\x00', b'\xa5' * 8, b''),
+            (b'\x00', b'\xa5' * 8, self.command(1)[:-1]),
+            (b'\x00', b'\xa5' * 8, self.command(1) + b'\x00'),
+            (b'\x00', b'\xa5' * 8, struct.pack('<QQ', bridge.MAGIC ^ 1, 1)),
+            (b'\x00', b'\xa5' * 8, self.command(0)),
+            (b'\x00', b'\xa5' * 8, self.command(3)),
+            (b'\x00' * 10, b'\xa5' * 8, self.command(1)),
+            (b'\x00', b'\xa5' * 7, self.command(1)),
+            (b'\x00', b'\xa5' * 9, self.command(1)),
+            (b'\x00' * 7, b'\xa5' * 9, self.command(2)),
+            (b'\x00' * 9, b'\xa5' * 9, self.command(2)),
+            (b'\x00' * 8, b'\xa5' * 10, self.command(2)),
+        ]
+        for source, before, command in cases:
+            status, after, workspace = self.vm.raw(source, before, command)
+            self.assertEqual((status, after, workspace),
+                             (bridge.REFUSE_PROTOCOL, before, command))
+
+    def test_07_bridge_exact_types_offsets_and_foreign_failures(self):
+        class Foreign:
+            def __index__(self):
+                raise AssertionError('foreign coercion must not run')
+        class IntegerSubclass(int):
+            pass
+        before = len(self.vm.calls)
+        for value in (True, False, -1, 1 << 64, Foreign(), IntegerSubclass(1)):
+            with self.assertRaises(ValueError):
+                self.codec.encode(value)
+        for offset in (True, False, Foreign()):
+            with self.assertRaises(TypeError):
+                self.codec.decode_from(b'\x01', offset)
+        for offset in (-1, 2):
+            with self.assertRaises(ValueError):
+                self.codec.decode_from(b'\x01', offset)
+        self.assertEqual(len(self.vm.calls), before)
+        target = bytearray(b'\x5a' * 16)
+        for failure in (MemoryError('native leaf'), KeyboardInterrupt('native leaf'),
+                        SystemExit('native leaf')):
+            with patch.object(self.codec, '_entry', side_effect=failure):
+                with self.assertRaises(type(failure)) as caught:
+                    self.codec.encode_into(128, target, 2)
+                self.assertIs(caught.exception, failure)
+                self.assertEqual(target, bytearray(b'\x5a' * 16))
+        original_entry = self.codec._entry
+        def mutate_source(source, size, output, output_size, workspace, workspace_size):
+            status = original_entry(source, size, output, output_size, workspace, workspace_size)
+            ctypes.memset(source, 0xff, 1)
+            return status
+        with patch.object(self.codec, '_entry', mutate_source):
+            with self.assertRaises(bridge.SQLiteVarintProtocolError):
+                self.codec.encode_into(128, target, 2)
+        self.assertEqual(target, bytearray(b'\x5a' * 16))
+
+    def test_08_original_oracles_and_existing_control_population_unchanged(self):
+        draft = Path(os.environ['HEPTA_SQLITE_VARINT_DRAFT'])
+        original = json.loads((draft / 'reference/UPSTREAM.json').read_bytes())
+        self.assertEqual([row['version'] for row in original['versions']], ['3.46.0', '3.53.2'])
+        for row in original['versions']:
+            full = (draft / 'reference' / ('sqlite-' + row['version']) / 'util.c.original').read_bytes()
+            selected = (draft / 'inputs' / row['selected_file']).read_bytes()
+            start, end = row['contiguous_byte_range']
+            self.assertEqual(full[start:end], selected)
+            self.assertEqual(sha256(full).hexdigest(), row['full_util_original']['sha256'])
+            self.assertEqual(sha256(selected).hexdigest(), row['selected']['sha256'])
+            self.assertEqual(row['public_function_denominator'], 2)
+            self.assertEqual(row['complete_dependency_functions'], 1)
+        retained = json.loads((draft / 'reference/RETAINED-CONTROLS.json').read_bytes())
+        source = Path(retained['source_root'])
+        import ast
+        for row in retained['files']:
+            raw = (source / row['path']).read_bytes()
+            self.assertEqual(sha256(raw).hexdigest(), row['sha256'])
+            module = ast.parse(raw)
+            ids = [cls.name + '.' + method.name for cls in module.body
+                   if isinstance(cls, ast.ClassDef) for method in cls.body
+                   if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+                   and method.name.startswith('test_')]
+            self.assertEqual(ids, row['test_ids_in_source_order'])
+
+
+if __name__ == '__main__':
+    unittest.main()
