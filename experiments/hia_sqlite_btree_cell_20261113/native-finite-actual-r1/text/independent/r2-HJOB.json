@@ -1,0 +1,72 @@
+{
+  "schema": "hia.sqlite.btree.cell.independent-read-r2-hjob.v1",
+  "intent": {
+    "schema": "hia.sqlite.btree.cell.native-independent-read-intent.v2",
+    "action": "Read the same closed actual after correcting reader-only extra mode gate; no qualification",
+    "script": {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/audit_btree_native_actual_r2.py",
+      "bytes": 31215,
+      "sha256": "01e7852689807903b885b2c5973a308ac129e6cf71aa437775c4a40e9b6ff607",
+      "git_blob_sha1": "c7b81ee0fbaca3ff8c516332dbd7b64a78f20730"
+    },
+    "args": {
+      "host": "ai395",
+      "executable": "/usr/bin/python3.14",
+      "args": [
+        "-I",
+        "-S",
+        "-B",
+        "/home/qq/hia-rewrite-20261113-e26e-r1/audit_btree_native_actual_r2.py"
+      ],
+      "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1",
+      "idempotency_key": "btree-native-actual-independent-read-r2-20261113-e26e",
+      "timeout_seconds": 120,
+      "nice": 10
+    },
+    "root_actual_job": "1a1d44f551e-392-34b"
+  },
+  "start_sdk": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-I\",\n      \"-S\",\n      \"-B\",\n      \"/home/qq/hia-rewrite-20261113-e26e-r1/audit_btree_native_actual_r2.py\"\n    ],\n    \"created_unix_ms\": 1794564344223,\n    \"cwd\": \"/home/qq/hia-rewrite-20261113-e26e-r1\",\n    \"env_keys\": [],\n    \"executable\": \"/usr/bin/python3.14\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1d45ec99f-392-395\",\n    \"idempotency_key\": \"btree-native-actual-independent-read-r2-20261113-e26e\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d45ec99f-392-395\",\n    \"request_digest\": \"ee4118eb3ffb7c1656ee961fb1d0765dbbef60ad2833746d8c3f4676153fefe8\",\n    \"request_fingerprint\": 17168030653182868502,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1d45ec99f-392-395\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1d45ec99f-392-395\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "terminal_sdk": {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"at_unix_ms\": 1794564347198,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1d45ec99f-392-395\",\n  \"launch_nonce\": \"6c8acc6ba7f7dfd5954cc3a5b6583b1d\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 567,\n      \"stored\": 567\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+        }
+      ],
+      "structuredContent": null,
+      "isError": false
+    }
+  },
+  "output_sdk": {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1d45ec99f-392-395\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b22737461747573223a2022494e444550454e44454e545f46554c4c5f42545245455f43454c4c5f4e41544956455f5457454c56455f3333395f414e445f54574f5f435f524541444241434b5f50415353222c20226572726f7273223a205b5d2c2022636865636b73223a2031323535332c20227265706f7274223a207b2270617468223a20222f686f6d652f71712f6869612d726577726974652d32303236313131332d653236652d72312f73716c6974652d62747265652d63656c6c2d6e61746976652d72312d696e646570656e64656e742d61756469742d72322f524541444241434b2e6a736f6e222c20226279746573223a203330353631362c2022736861323536223a202261303236323032613837653633613730333566393033333165313862396538633766613330396531343565613864373063336662383930633262353666336435222c20226769745f626c6f62223a202265396332616130313163656532616239613235383533323064613534643633393362323762336130222c20226964656e74697479223a205b36363330362c2038303132363831332c2033333135322c20313030302c20313030302c20312c203330353631362c20313739343536343334373134303938343635382c20313739343536343334373134303938343635385d7d2c202261637475616c5f66696c6573223a2038302c202261637475616c5f6279746573223a2036343830363336382c20226e61746976655f72656578656375746564223a2066616c73657d0a\",\n    \"eof\": true,\n    \"next_offset\": 567,\n    \"offset\": 0,\n    \"size\": 567,\n    \"text\": \"{\\\"status\\\": \\\"INDEPENDENT_FULL_BTREE_CELL_NATIVE_TWELVE_339_AND_TWO_C_READBACK_PASS\\\", \\\"errors\\\": [], \\\"checks\\\": 12553, \\\"report\\\": {\\\"path\\\": \\\"/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1-independent-audit-r2/READBACK.json\\\", \\\"bytes\\\": 305616, \\\"sha256\\\": \\\"a026202a87e63a7035f90331e18b9e8c7fa309e145ea8d70c3fb890c2b56f3d5\\\", \\\"git_blob\\\": \\\"e9c2aa011cee2ab9a2585320da54d6393b27b3a0\\\", \\\"identity\\\": [66306, 80126813, 33152, 1000, 1000, 1, 305616, 1794564347140984658, 1794564347140984658]}, \\\"actual_files\\\": 80, \\\"actual_bytes\\\": 64806368, \\\"native_reexecuted\\\": false}\\n\"\n  }\n}"
+        }
+      ],
+      "structuredContent": null,
+      "isError": false
+    }
+  },
+  "report": {
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1-independent-audit-r2/READBACK.json",
+    "bytes": 305616,
+    "sha256": "a026202a87e63a7035f90331e18b9e8c7fa309e145ea8d70c3fb890c2b56f3d5",
+    "saved_body_checks": 12552,
+    "additional_final_write_readback_check": 1
+  },
+  "no_native_reexecution": true
+}
