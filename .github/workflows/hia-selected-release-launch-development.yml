@@ -1,0 +1,43 @@
+name: HIA selected release launcher development
+on:
+  push:
+    branches: [codex/hia-selected-release-launch-development-v86-20261113-dda7]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  development:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Required fixed syscall observation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils strace
+      - name: Exact source and all 26 development controls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -B tools/run_development.py --work "$RUNNER_TEMP/hia-launch-work" --evidence "$GITHUB_WORKSPACE/evidence"
+      - name: Preserve complete original sources, images, tests, and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-selected-release-launch-development-${{ github.run_id }}
+          compression-level: 0
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            evidence/
+            inputs/
+            frozen-e295-overrides/
+            tools/
+            README.md
+            .github/workflows/hia-selected-release-launch-development.yml
