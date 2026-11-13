@@ -165,6 +165,15 @@ jobs:
           sudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace
           printf 'CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n' >> "$GITHUB_ENV"
       - run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Prepare original locked Rust caller dependencies
+        run: |
+          set -euo pipefail
+          cargo --version
+          rustc --version
+          sha256sum rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock > "$RUNNER_TEMP/hia-rust-caller-inputs.sha256"
+          cargo fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
+          sha256sum --check "$RUNNER_TEMP/hia-rust-caller-inputs.sha256"
+          git diff --exit-code -- rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock
       - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
       - name: Original call graph and native convergence controls
         run: python -B -m unittest tests.test_hia_selfhost_call_graph_efficiency.CallGraphNativeTests -v
