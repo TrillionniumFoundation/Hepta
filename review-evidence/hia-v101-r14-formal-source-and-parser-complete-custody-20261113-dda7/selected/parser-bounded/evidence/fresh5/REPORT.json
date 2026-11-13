@@ -1,0 +1,79 @@
+{
+  "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+  "records": [
+    {
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python",
+        "-B",
+        "-c",
+        "import argparse\nfrom hepta import cli\ndef reject(*args,**kwargs):raise AssertionError('retained ordinary CLI/parser entered')\ncli._reference_hia_main=reject\nargparse.ArgumentParser=reject\n\nimport importlib.abc, json, sys\nblocked = {\n    'hepta.backend', 'hepta.pipeline', 'hepta.protocol', 'hepta.lexer',\n    'hepta.parser', 'hepta.checker', 'hepta.modules', 'hepta.packages',\n    'hepta.c_backend', 'hepta.llvm_owned_backend', 'hepta.hia_program_source',\n    'hepta.hia_program_llvm', 'hepta.hia_rust_crosscheck',\n}\nclass NoFrozenFrontend(importlib.abc.MetaPathFinder):\n    def find_spec(self, fullname, path=None, target=None):\n        if fullname in blocked:\n            raise AssertionError('removed or foreign dependency: ' + fullname)\nsys.meta_path.insert(0, NoFrozenFrontend())\nfrom hepta.cli import hia_main\nargs = json.loads(sys.argv[1])\ntry:\n    result = hia_main(args)\nfinally:\n    assert not blocked.intersection(sys.modules), blocked.intersection(sys.modules)\nraise SystemExit(result)\n",
+        "[\"lower\", \"/absent\"]",
+        "agent"
+      ],
+      "returncode": 2,
+      "stderr_sha256": "d06fb23cfd68abc3ff9070ba41c2e51b23069e60704304ae82be90889032bcbc",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "wall_ns": 230191214
+    },
+    {
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python",
+        "-B",
+        "-c",
+        "import argparse\nfrom hepta import cli\ndef reject(*args,**kwargs):raise AssertionError('retained ordinary CLI/parser entered')\ncli._reference_hia_main=reject\nargparse.ArgumentParser=reject\n\nimport importlib.abc, json, sys\nblocked = {\n    'hepta.backend', 'hepta.pipeline', 'hepta.protocol', 'hepta.lexer',\n    'hepta.parser', 'hepta.checker', 'hepta.modules', 'hepta.packages',\n    'hepta.c_backend', 'hepta.llvm_owned_backend', 'hepta.hia_program_source',\n    'hepta.hia_program_llvm', 'hepta.hia_rust_crosscheck',\n}\nclass NoFrozenFrontend(importlib.abc.MetaPathFinder):\n    def find_spec(self, fullname, path=None, target=None):\n        if fullname in blocked:\n            raise AssertionError('removed or foreign dependency: ' + fullname)\nsys.meta_path.insert(0, NoFrozenFrontend())\nfrom hepta.cli import hia_main\nargs = json.loads(sys.argv[1])\ntry:\n    result = hia_main(args)\nfinally:\n    assert not blocked.intersection(sys.modules), blocked.intersection(sys.modules)\nraise SystemExit(result)\n",
+        "[\"run\", \"/absent\"]",
+        "agent"
+      ],
+      "returncode": 2,
+      "stderr_sha256": "1b09f3fa44bbd4ffbfc49418db3c8f9369160ab6546db686fbb25b29d9174d05",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "wall_ns": 228897083
+    },
+    {
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python",
+        "-B",
+        "-c",
+        "import argparse\nfrom hepta import cli\ndef reject(*args,**kwargs):raise AssertionError('retained ordinary CLI/parser entered')\ncli._reference_hia_main=reject\nargparse.ArgumentParser=reject\n\nimport importlib.abc, json, sys\nblocked = {\n    'hepta.backend', 'hepta.pipeline', 'hepta.protocol', 'hepta.lexer',\n    'hepta.parser', 'hepta.checker', 'hepta.modules', 'hepta.packages',\n    'hepta.c_backend', 'hepta.llvm_owned_backend', 'hepta.hia_program_source',\n    'hepta.hia_program_llvm', 'hepta.hia_rust_crosscheck',\n}\nclass NoFrozenFrontend(importlib.abc.MetaPathFinder):\n    def find_spec(self, fullname, path=None, target=None):\n        if fullname in blocked:\n            raise AssertionError('removed or foreign dependency: ' + fullname)\nsys.meta_path.insert(0, NoFrozenFrontend())\nfrom hepta.cli import hia_main\nargs = json.loads(sys.argv[1])\ntry:\n    result = hia_main(args)\nfinally:\n    assert not blocked.intersection(sys.modules), blocked.intersection(sys.modules)\nraise SystemExit(result)\n",
+        "[\"build\", \"/absent\", \"--backend\", \"llvm\", \"-o\", \"/absent-output\"]",
+        "agent"
+      ],
+      "returncode": 2,
+      "stderr_sha256": "48e644a00273335264b739d2de7fe227fb9deb6647d3726681ae34cce8b79c9c",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "wall_ns": 227556668
+    },
+    {
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python",
+        "-B",
+        "-c",
+        "import argparse\nfrom hepta import cli\ndef reject(*args,**kwargs):raise AssertionError('retained ordinary CLI/parser entered')\ncli._reference_hia_main=reject\nargparse.ArgumentParser=reject\n\nimport importlib.abc, json, sys\nblocked = {\n    'hepta.backend', 'hepta.pipeline', 'hepta.protocol', 'hepta.lexer',\n    'hepta.parser', 'hepta.checker', 'hepta.modules', 'hepta.packages',\n    'hepta.c_backend', 'hepta.llvm_owned_backend', 'hepta.hia_program_source',\n    'hepta.hia_program_llvm', 'hepta.hia_rust_crosscheck',\n}\nclass NoFrozenFrontend(importlib.abc.MetaPathFinder):\n    def find_spec(self, fullname, path=None, target=None):\n        if fullname in blocked:\n            raise AssertionError('removed or foreign dependency: ' + fullname)\nsys.meta_path.insert(0, NoFrozenFrontend())\nfrom hepta.cli import hia_main\nargs = json.loads(sys.argv[1])\ntry:\n    result = hia_main(args)\nfinally:\n    assert not blocked.intersection(sys.modules), blocked.intersection(sys.modules)\nraise SystemExit(result)\n",
+        "[\"build\", \"/absent\", \"--kind\", \"shared\", \"-o\", \"/absent-output\"]",
+        "agent"
+      ],
+      "returncode": 2,
+      "stderr_sha256": "2d88dd664db9c32cc1790aef399caac784ca0ae501d3ab3cc886477d34a5fa7f",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "wall_ns": 228398565
+    },
+    {
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python",
+        "-B",
+        "-c",
+        "import argparse\nfrom hepta import cli\ndef reject(*args,**kwargs):raise AssertionError('retained ordinary CLI/parser entered')\ncli._reference_hia_main=reject\nargparse.ArgumentParser=reject\n\nimport importlib.abc, json, sys\nblocked = {\n    'hepta.backend', 'hepta.pipeline', 'hepta.protocol', 'hepta.lexer',\n    'hepta.parser', 'hepta.checker', 'hepta.modules', 'hepta.packages',\n    'hepta.c_backend', 'hepta.llvm_owned_backend', 'hepta.hia_program_source',\n    'hepta.hia_program_llvm', 'hepta.hia_rust_crosscheck',\n}\nclass NoFrozenFrontend(importlib.abc.MetaPathFinder):\n    def find_spec(self, fullname, path=None, target=None):\n        if fullname in blocked:\n            raise AssertionError('removed or foreign dependency: ' + fullname)\nsys.meta_path.insert(0, NoFrozenFrontend())\nfrom hepta.cli import hia_main\nargs = json.loads(sys.argv[1])\ntry:\n    result = hia_main(args)\nfinally:\n    assert not blocked.intersection(sys.modules), blocked.intersection(sys.modules)\nraise SystemExit(result)\n",
+        "[\"verify\", \"/absent\", \"--rust-shadow-bin\", \"/absent\"]",
+        "agent"
+      ],
+      "returncode": 2,
+      "stderr_sha256": "de2223b5b02b299e3abdd38bda84eb56478a6aa0248c5f732a7e64d371a01739",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "wall_ns": 128128307
+    }
+  ],
+  "schema": "hia-cli-fresh-selected-original-command-observations.v1",
+  "scope": "FORMAL_ACTUAL314_BOUNDED_DEVELOPMENT_NOT_COLD",
+  "source_unchanged": true,
+  "status": "PASS"
+}
