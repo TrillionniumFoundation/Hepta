@@ -1,0 +1,10 @@
+{
+  "status": "READONLY_READER_HOLD",
+  "script_sha256": "9ed1a4ebc698162b27d1672941974f844415d8aa4d32b13e934ed7283da7b31f",
+  "exception": "KeyError: owner_error",
+  "location": "natural owner check before child output traversal",
+  "reason": "Original successful owner receipt omits optional owner_error rather than setting it to null; original reader incorrectly required the key.",
+  "correction": "Use life.get(owner_error) is None exactly as the original qualification owner consumers; any present non-null error still refuses.",
+  "request_reexecuted": false,
+  "product_execution_by_reader": false
+}
