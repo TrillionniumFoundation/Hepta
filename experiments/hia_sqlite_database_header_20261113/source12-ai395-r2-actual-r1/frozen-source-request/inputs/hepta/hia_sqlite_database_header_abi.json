@@ -1,0 +1,128 @@
+{
+  "schema": "hepta.hia.sqlite-database-header-abi.v1",
+  "entry": "sqlite_database_header",
+  "logical_spans": [
+    "100-byte immutable header",
+    "256-byte mutable output",
+    "128-byte immutable command"
+  ],
+  "physical_arguments": 6,
+  "command": {
+    "words": [
+      "HIADBH01",
+      "operation=1",
+      "current_page_size",
+      "current_usable_size",
+      "logical_pager_page_count",
+      "flags",
+      "wal_ready",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero"
+    ],
+    "flags": {
+      "0": "reset_database",
+      "1": "writable_schema",
+      "2": "no_wal",
+      "3": "initial_read_only",
+      "4": "initial_auto_vacuum",
+      "5": "initial_incremental_vacuum"
+    },
+    "page_size": "power of two 512..65536",
+    "usable_size": "page_size-255..page_size (minimum 257); a prior resize may leave <480 and must reach the original next-call ordered refusal",
+    "logical_pager_page_count": "0..4294967295 from the same externally stabilized pager snapshot, not blindly physical file length",
+    "wal_ready": "0 or 1; true only after real WAL opening and page-one refresh"
+  },
+  "output": {
+    "bytes": 256,
+    "word_endian": "little",
+    "words": [
+      "HIADBR01",
+      "action",
+      "SQLite semantic rc",
+      "read_only",
+      "page_size",
+      "usable_size",
+      "accepted_database_pages",
+      "auto_vacuum",
+      "incremental_vacuum",
+      "sync_mode",
+      "set_page_size_fixed",
+      "accepted_max_local",
+      "accepted_min_local",
+      "accepted_max_leaf",
+      "accepted_min_leaf",
+      "accepted_max_one_byte_payload",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero"
+    ]
+  },
+  "actions": {
+    "1": "accept header byte geometry; outer I/O/lock authority remains required",
+    "2": "open WAL successfully and reread page one before continuing",
+    "3": "apply requested page size successfully and reread page one before continuing",
+    "4": "format or page-count error: raw SQLite semantic code 26 NOTADB or 11 CORRUPT"
+  },
+  "return_status": {
+    "256": "complete semantic decision, including action=4 format error",
+    "4294967293": "protocol refusal, whole output unchanged"
+  },
+  "order": [
+    "Logical page count uses header nPage only when nonzero and change counters agree; reset_database produces the empty branch.",
+    "A nonempty view checks magic, marks future write format read-only, rejects read version>2.",
+    "WAL open/reread occurs before payload fractions or page-size admission; no_wal selects the original bypass.",
+    "Page-size reread occurs before declared-count overflow or usable-size<480 decisions.",
+    "Count overflow is CORRUPT before usable-size rejection unless writable_schema clamps it.",
+    "Only final acceptance publishes logical page count and payload limits."
+  ],
+  "compatibility_notes": [
+    "Read/write version zero is not tightened beyond the retained lockBtree comparisons.",
+    "Unknown write versions>2 produce read-only metadata; unknown read versions>2 reject.",
+    "Empty/reset views do not inspect header magic or change vacuum metadata.",
+    "Resize proposals may have usable_size<480; the reread then rejects at the original ordered check.",
+    "This operation does not validate schema format or text encoding beyond what lockBtree itself checks.",
+    "Current usable_size below480 remains admissible as transport state after a resize; only the ordered nonempty semantic check rejects it. Empty/reset branch preserves original geometry."
+  ],
+  "upstream": {
+    "versions": [
+      "3.46.0",
+      "3.53.2"
+    ],
+    "complete_lockBtree_identical": true,
+    "bytes_without_final_newline": 6334,
+    "sha256_without_final_newline": "050e7e148071ad26ff2b396e8d0693f3137808bc57d081f7f9d77da9dac8624c"
+  },
+  "not_implemented": [
+    "OS read/write locks or I/O",
+    "actual WAL opening and pager page-size mutation or their error paths",
+    "SQL schema/text metadata validation",
+    "database creation/checkpoint/commit/fsync",
+    "default AgentStore activation"
+  ],
+  "status": "AUTHORED_UNGENERATED_UNEXECUTED",
+  "arithmetic": {
+    "division": "Exact divide32 retained from the qualified SQLite selected-cell HIA core; no unsupported FloorDiv operation.",
+    "numerator_range": "(usable-12)*64 <= 4193536 < 2^32; usable is 257..65536 and divisor is 255.",
+    "HIA_function_count": 11
+  }
+}

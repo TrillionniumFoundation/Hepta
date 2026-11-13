@@ -1,0 +1,44 @@
+{
+  "schema": "hia.header-source12.publication-transport-readback.v1",
+  "status": "FULL_PAYLOAD_LOCAL_READBACK_PASS",
+  "files": 51,
+  "bytes": 2528817,
+  "whole_archive": {
+    "bytes": 1453759,
+    "sha256": "dfd2f036ad152ae5aed442f239dd11ebdbb79f8a50eb1a3ee4c64e17030ea3ad",
+    "parts": 9,
+    "all_source_parts_read": true
+  },
+  "source_and_actual_mutated": false,
+  "product_executions": 0,
+  "read_errors_preserved": [
+    {
+      "kind": "READ_ONLY_TRANSPORT_FAILURE",
+      "operation": "bounded h_binary_read batch",
+      "completed_publication_reads": 16,
+      "failed_batch_paths": [
+        "archive/part-0005.base64",
+        "archive/part-0006.base64",
+        "archive/part-0007.base64",
+        "archive/part-0008.base64",
+        "authoring/audit_database_header_source12_actual_r1.py",
+        "authoring/header-C-peer-r1-HJOB.json",
+        "authoring/header-C-peer-r1-INTENT.json",
+        "authoring/header-source12-audit-r1-HJOB.json"
+      ],
+      "observed_error": "remote helper on ai395-lan failed with 255; SSH banner deadline exceeded (USB4); WiFi source addresses unavailable; no eligible reachable endpoint; mm_receive_fd expected received 1 got 0; proxy dialer did not pass back a connection",
+      "raw_result_available_in_tool_transcript": true,
+      "product_or_mutation_attempt": false
+    },
+    [
+      {
+        "relative": "frozen-source-request/README.md",
+        "status": "rejected",
+        "error": "Error: {\"content\":[{\"type\":\"text\",\"text\":\"remote helper on ai395-lan failed with 255\\nstdout:\\n\\nstderr:\\nConnection closed by 10.77.0.2 port 22\"}],\"structuredContent\":{\"error_code\":\"INVALID_ARGUMENT\"},\"isError\":true}"
+      }
+    ]
+  ],
+  "read_errors_are_not_product_failures": true,
+  "repeated_read_only_failed_pages": true,
+  "no_unknown_mutations": true
+}

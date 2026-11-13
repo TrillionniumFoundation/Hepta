@@ -1,0 +1,136 @@
+{
+  "schema": "hia.sqlite-database-header.source-candidate.v1",
+  "status": "AUTHORED_UNGENERATED_UNEXECUTED",
+  "source_files": [
+    {
+      "path": "inputs/tools/generate_hia_sqlite_database_header.py",
+      "bytes": 7397,
+      "sha256": "e3044d47013a0d48b2c95fca4afea174c0080a217a980d52d6e1cbdd96081cd8",
+      "git_blob_sha1": "0dca3666933ca16dcea9b8f85ac008a6421c29a0"
+    },
+    {
+      "path": "inputs/hepta/hia_sqlite_database_header_native.py",
+      "bytes": 5670,
+      "sha256": "301e7deea894de43ff1f1dfb5356452a6ab1f715a88f887d96bb7b53e2276236",
+      "git_blob_sha1": "3402d3f9b2cebb10f538ead8776aabdef7efb13d"
+    },
+    {
+      "path": "inputs/hepta/hia_sqlite_database_header_abi.json",
+      "bytes": 4593,
+      "sha256": "08fae967731ac53949dfe01a17bd9a4be76229012c8f916e10c8eebe9ab61dcb",
+      "git_blob_sha1": "4f75194ca21eca516e9bed5611e51a5d81c4bae5"
+    },
+    {
+      "path": "inputs/tests/test_hia_sqlite_database_header_source.py",
+      "bytes": 26143,
+      "sha256": "0353d35640e9943b2e068afa45e168814899c7df3f2e5103847be25612c766ed",
+      "git_blob_sha1": "30c7f8493afa7a244947e660a1dc4b505b2bb0b2"
+    }
+  ],
+  "reference_files": [
+    {
+      "path": "reference/sqlite-3.46.0/btree.c.original",
+      "bytes": 400947,
+      "sha256": "3043b54506525cf526612a003b1923491b54945a41c552cf3054ff56d0e51af6",
+      "git_blob_sha1": "62b89897967cdba22595d9ae02a26d7bd00a8fa9"
+    },
+    {
+      "path": "reference/sqlite-3.46.0/lockBtree.original.inc",
+      "bytes": 6334,
+      "sha256": "050e7e148071ad26ff2b396e8d0693f3137808bc57d081f7f9d77da9dac8624c",
+      "git_blob_sha1": "4b511944f55a63429e3826a8285159d520b4eef8"
+    },
+    {
+      "path": "reference/sqlite-3.46.0/LICENSE.md.original",
+      "bytes": 263,
+      "sha256": "9c6479123f32a1ed50d9a0af203dfe8972e65035b0cdeef436b5f8d0924517fe",
+      "git_blob_sha1": "f68a6c175f0b72086c313a9dbd9f2ec8d87525dd"
+    },
+    {
+      "path": "reference/sqlite-3.53.2/btree.c.original",
+      "bytes": 404731,
+      "sha256": "8374f0b6867459af6d6f73ba6c22a8a6c2fdcaa967bbb913bff59e7612684086",
+      "git_blob_sha1": "2e53a86179059d46e61b1b5d2e204350ae8d375d"
+    },
+    {
+      "path": "reference/sqlite-3.53.2/lockBtree.original.inc",
+      "bytes": 6334,
+      "sha256": "050e7e148071ad26ff2b396e8d0693f3137808bc57d081f7f9d77da9dac8624c",
+      "git_blob_sha1": "4b511944f55a63429e3826a8285159d520b4eef8"
+    },
+    {
+      "path": "reference/sqlite-3.53.2/LICENSE.md.original",
+      "bytes": 3850,
+      "sha256": "ee6af51062b30d532991face5164136ae6f84e265ecf8abe89dc69dac45ca1e7",
+      "git_blob_sha1": "5f59bb8fefd54767e2eb08a17d0dc19007958d90"
+    },
+    {
+      "path": "reference/UPSTREAM.json",
+      "bytes": 2487,
+      "sha256": "f51e1e0c5a64d09a46e2e35e1cf489ba4d51e19de3e608dbde426b405bdca271",
+      "git_blob_sha1": "755c9aab7aa3b7cc46a1fd890282544ced60d0de"
+    }
+  ],
+  "expected_methods": [
+    "test_01_Core_roundtrip_and_all_original_caps",
+    "test_02_all_page_sizes_and_reserves",
+    "test_03_complete_read_write_version_byte_domains",
+    "test_04_page_count_change_counter_and_writable_schema",
+    "test_05_WAL_reread_precedes_later_header_checks",
+    "test_06_resize_reread_precedes_count_and_usable_checks",
+    "test_07_empty_and_reset_preserve_context_metadata",
+    "test_08_protocol_refusals_preserve_all_spans",
+    "test_09_bridge_full_span_custody_faults",
+    "test_10_invalid_public_types_never_enter",
+    "test_11_unused_header_words_and_vacuum_metadata",
+    "test_12_complete_official_sources_and_explicit_scope"
+  ],
+  "expected_VM_by_method": [
+    0,
+    16,
+    512,
+    16,
+    18,
+    32,
+    16,
+    36,
+    6,
+    0,
+    18,
+    0
+  ],
+  "expected_VM_calls": 670,
+  "semantic_decisions": 634,
+  "protocol_zero_write_refusals": 36,
+  "post_return_fault_controls": 6,
+  "expected_HIA_functions": 11,
+  "VM_limits": {
+    "fuel_per_call": 200000,
+    "allocation_bytes": 1048576,
+    "depth": 256
+  },
+  "original_caps": {
+    "assembly_bytes": 1048576,
+    "assembly_lines": 16384,
+    "functions": 128,
+    "total_blocks": 1536,
+    "blocks_per_function": 256,
+    "operations": 8192,
+    "maximum_ssa": 2047,
+    "arguments": 16,
+    "returns": 1
+  },
+  "source_execution_budget": {
+    "qualification_seconds": 180,
+    "cleanup_seconds": 3
+  },
+  "C_VM_native_or_generation_executed": 0,
+  "production_activated": false,
+  "upstream_profile": "WAL and autovacuum enabled; exact complete lockBtree two versions; no SQLite lock/pager I/O equivalence is inferred.",
+  "pre_freeze_history": [
+    "Root retained r1 author with unsupported //255; r2 uses exact HIA divide32.",
+    "Test excerpt hashing restored two original separator newlines; previous unexecuted draft retained.",
+    "Template 10000000 VM fuel was corrected to original header 200000 before any freeze or execution; previous test/control/README preserved.",
+    "Reference copy content-hash bookkeeping stopped before duplicate second path; four original writes ACK, remaining two then first-created. No unknown mutation or qualification occurred."
+  ]
+}

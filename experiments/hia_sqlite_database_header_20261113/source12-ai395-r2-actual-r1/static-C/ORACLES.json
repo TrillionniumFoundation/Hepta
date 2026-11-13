@@ -1,0 +1,622 @@
+{
+  "schema": "hia.sqlite-database-header.original-C-oracle-draft.v1",
+  "status": "AUTHORED_UNCOMPILED_UNEXECUTED",
+  "qualification_runs": 0,
+  "source_generation_runs": 0,
+  "scope": "Finite page-one byte admission. Entire lockBtree from SQLite 3.46.0 and 3.53.2 is kept verbatim, together with complete original structures, endian macros and sqlite3Get4byte. Runtime lock/pager/WAL services are supplied success-only fixture effects, explicitly not an SQLite engine or physical I/O equivalence.",
+  "original_source_profile": {
+    "WAL": true,
+    "autovacuum": true,
+    "assertions": true,
+    "little_endian": true,
+    "byte_bits": 8,
+    "int_bits": 32,
+    "page_bytes": [
+      512,
+      1024,
+      2048,
+      4096,
+      8192,
+      16384,
+      32768,
+      65536
+    ],
+    "current_usable_minimum": "page_size-255",
+    "logical_file_pages_max": 4294967295,
+    "default_synchronous": 2,
+    "default_wal_synchronous": 2,
+    "writable_schema": "already-resolved input capability; no emulated SQL connection authorization"
+  },
+  "api": {
+    "entry": "oracle_lock_btree",
+    "header_bytes": 100,
+    "command_words": 7,
+    "output_words": 32,
+    "event_words": 32,
+    "transport_refusal": 1,
+    "original_called": 0,
+    "output0": "raw original rc, including semantic failure",
+    "command": [
+      "current_page_bytes",
+      "current_usable_bytes",
+      "logical_file_pages",
+      "flags(reset,writable,no_wal,read_only,auto,incr)",
+      "wal_already_open",
+      "reserved_zero",
+      "reserved_zero"
+    ],
+    "raw_output": [
+      "rc",
+      "pPage1_nonnull",
+      "read_only",
+      "page_bytes",
+      "usable_bytes",
+      "nPage",
+      "autoVacuum",
+      "incrVacuum",
+      "pagesize_fixed",
+      "maxLocal",
+      "minLocal",
+      "maxLeaf",
+      "minLeaf",
+      "max1bytePayload",
+      "btsFlags",
+      "connection_flags",
+      "sync_argument_or_UINT64_MAX",
+      "shared_lock_calls",
+      "get_page_calls",
+      "pagecount_calls",
+      "open_wal_calls",
+      "release_page_calls",
+      "free_temp_calls",
+      "resize_calls",
+      "resize_reserve",
+      "resize_page",
+      "event_count",
+      "zero",
+      "zero",
+      "zero",
+      "zero",
+      "zero"
+    ],
+    "raw_events": {
+      "triple": [
+        "code",
+        "arg0",
+        "arg1"
+      ],
+      "codes": {
+        "1": "PagerSharedLock",
+        "2": "btreeGetPage(1,0)",
+        "3": "PagerPagecount(logical_file_pages)",
+        "4": "PagerOpenWal(already_open)",
+        "5": "setDefaultSyncFlag(argument)",
+        "6": "releasePageOne(pgno)",
+        "7": "freeTempSpace",
+        "8": "PagerSetPagesize(page,reserve)"
+      },
+      "unused_tail": "unchanged seed",
+      "ordering": "every event captured before provider mutation; independent caller must record full raw buffers and canaries before assertions or normalized projection"
+    },
+    "transport_validation": "Exact extents, non-null nonoverflowing disjoint spans, u64 alignment, bounded current geometry/flags/file_pages/boolean; refuses before any output/event write."
+  },
+  "compilation_profile": {
+    "proposed_flags": [
+      "-std=c11",
+      "-O2",
+      "-fPIC",
+      "-shared",
+      "-fno-lto",
+      "-fno-common",
+      "-fno-strict-aliasing",
+      "-fno-fast-math",
+      "-Wl,-Bsymbolic",
+      "-Wl,-z,defs"
+    ],
+    "forbidden": [
+      "NDEBUG",
+      "SQLITE_OMIT_WAL",
+      "SQLITE_OMIT_AUTOVACUUM"
+    ],
+    "execution_authorized_by_this_draft": false
+  },
+  "explicitly_unqualified": [
+    "pager and WAL I/O failure behavior",
+    "real file reads or writes",
+    "lock and shared-memory state",
+    "concurrency",
+    "checkpoint/durability/recovery authority",
+    "SQL metadata or transaction behavior",
+    "installation/default activation"
+  ],
+  "prewrite_history": [
+    "Initial pure-V8 source assembly found zero MX_CELL_SIZE matches because the selector assumed a space after a function-like macro name; stopped before creating any file or executing C. Corrected selector matches either whitespace or '(' and requires one full exact original line.",
+    "HeaderFixture.events changed from u64* to uint64_t* before any write to agree with the exported C ABI while keeping the original SQLite u64 typedef unchanged."
+  ],
+  "units": [
+    {
+      "version": "3.46.0",
+      "bytes": 22529,
+      "sha256": "2542fec7fbcf4b2459b74c648e8b9abc1ed34f5b48f9384ae4bde1aef4e86532",
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/root-database-header-oracle-sqlite-3.46.0-r1.c",
+      "sections": [
+        {
+          "label": "original primitives",
+          "retained_original_section": {
+            "label": "original primitives",
+            "retained_original_section": {
+              "label": "original primitives",
+              "start_utf8": 846,
+              "end_utf8": 2537,
+              "bytes": 1691,
+              "sha256": "48192ecbbf5eef1e79f3e1af18741582a45e15489848c004b1cda75e94bd55e7",
+              "role": "complete_original_excerpt_file",
+              "reference_relative": "sqlite-3.46.0/primitives.source.txt",
+              "reference_sha256": "48192ecbbf5eef1e79f3e1af18741582a45e15489848c004b1cda75e94bd55e7"
+            },
+            "bytes": 1691,
+            "sha256": "48192ecbbf5eef1e79f3e1af18741582a45e15489848c004b1cda75e94bd55e7",
+            "unit_start_utf8": 1740,
+            "unit_end_utf8": 3431
+          },
+          "retained_source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/root-btree-cursor-oracle-sqlite-3.46.0-r1.c",
+          "retained_source_sha256": "b37e6a8ed3d0243d91e75b64ff6e4d2d7e96b628ef9aced321de0493d9596fed",
+          "bytes": 1691,
+          "sha256": "48192ecbbf5eef1e79f3e1af18741582a45e15489848c004b1cda75e94bd55e7",
+          "unit_start_utf8": 883,
+          "unit_end_utf8": 2574
+        },
+        {
+          "label": "finite wrapper opaque context declarations",
+          "authored_fixture": true,
+          "bytes": 789,
+          "sha256": "44350e267bf5750cd484d25d0f596b901312ba7b06b2c279b60c7a3732cf4687",
+          "unit_start_utf8": 2624,
+          "unit_end_utf8": 3413
+        },
+        {
+          "label": "complete original structures",
+          "retained_original_section": {
+            "label": "complete original structures",
+            "retained_original_section": {
+              "label": "complete original structures",
+              "start_utf8": 3960,
+              "end_utf8": 8462,
+              "bytes": 4502,
+              "sha256": "d7c69058fed0a72c9ea260572ed385c4a5295acb14b9faabf4f0bedcc3d37052",
+              "role": "complete_original_excerpt_file",
+              "reference_relative": "sqlite-3.46.0/types.source.txt",
+              "reference_sha256": "d7c69058fed0a72c9ea260572ed385c4a5295acb14b9faabf4f0bedcc3d37052"
+            },
+            "bytes": 4502,
+            "sha256": "d7c69058fed0a72c9ea260572ed385c4a5295acb14b9faabf4f0bedcc3d37052",
+            "unit_start_utf8": 4854,
+            "unit_end_utf8": 9356
+          },
+          "retained_source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/root-btree-cursor-oracle-sqlite-3.46.0-r1.c",
+          "retained_source_sha256": "b37e6a8ed3d0243d91e75b64ff6e4d2d7e96b628ef9aced321de0493d9596fed",
+          "bytes": 4502,
+          "sha256": "d7c69058fed0a72c9ea260572ed385c4a5295acb14b9faabf4f0bedcc3d37052",
+          "unit_start_utf8": 3449,
+          "unit_end_utf8": 7951
+        },
+        {
+          "label": "original macro MX_CELL_SIZE",
+          "source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/candidate/reference/sqlite-3.46.0/btreeInt.h.original",
+          "source_sha256": "439471d72417c99df95c5bcd356ad344cd78edd4a52405dd20146902a730e983",
+          "source_start_utf8": 10398,
+          "source_end_utf8": 10450,
+          "bytes": 52,
+          "sha256": "ce5731704988071af1de4e851c478a1973022ad7e90316204d6b77c96cf62446",
+          "unit_start_utf8": 7986,
+          "unit_end_utf8": 8038
+        },
+        {
+          "label": "original macro BTS_READ_ONLY",
+          "source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/candidate/reference/sqlite-3.46.0/btreeInt.h.original",
+          "source_sha256": "439471d72417c99df95c5bcd356ad344cd78edd4a52405dd20146902a730e983",
+          "source_start_utf8": 21385,
+          "source_end_utf8": 21457,
+          "bytes": 72,
+          "sha256": "fc0ba6f051fe94d9987a44624cad815651c37eb75cdd1d3bcad03b705978d48f",
+          "unit_start_utf8": 8074,
+          "unit_end_utf8": 8146
+        },
+        {
+          "label": "original macro BTS_PAGESIZE_FIXED",
+          "source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/candidate/reference/sqlite-3.46.0/btreeInt.h.original",
+          "source_sha256": "439471d72417c99df95c5bcd356ad344cd78edd4a52405dd20146902a730e983",
+          "source_start_utf8": 21457,
+          "source_end_utf8": 21536,
+          "bytes": 79,
+          "sha256": "f6e298668870e116276d17c170507983fc513cd66a45441a4745ba018c9e09d4",
+          "unit_start_utf8": 8187,
+          "unit_end_utf8": 8266
+        },
+        {
+          "label": "original macro BTS_NO_WAL",
+          "source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/candidate/reference/sqlite-3.46.0/btreeInt.h.original",
+          "source_sha256": "439471d72417c99df95c5bcd356ad344cd78edd4a52405dd20146902a730e983",
+          "source_start_utf8": 21847,
+          "source_end_utf8": 21925,
+          "bytes": 78,
+          "sha256": "761a22dc9858121a2e98d09689cb252892f057a320abe42e0dce4e46554156d8",
+          "unit_start_utf8": 8299,
+          "unit_end_utf8": 8377
+        },
+        {
+          "label": "original SQLITE_ResetDatabase",
+          "source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/candidate/reference/sqlite-3.46.0/sqliteInt.h.original",
+          "source_sha256": "36e843ab47acf0567f0c77f2f3f12c79c1feb48451bb5ab0f3cab9e5f4d42dc8",
+          "source_line": 1856,
+          "observation": "Root whole official matching line read before assembly; peer must independently join.",
+          "bytes": 67,
+          "sha256": "799679b9bbfdd1b0c71f64f197b725d1cd6afbc9daa440bafad739b3ce805b82",
+          "unit_start_utf8": 8414,
+          "unit_end_utf8": 8481
+        },
+        {
+          "label": "reference helper symbol namespace",
+          "authored_fixture": true,
+          "bytes": 49,
+          "sha256": "b6972d9bf82898c9af88f994a26cce306712af0b294fc1ff5ff36d3246ceb383",
+          "unit_start_utf8": 8522,
+          "unit_end_utf8": 8571
+        },
+        {
+          "label": "complete original endian macros",
+          "retained_original_section": {
+            "label": "complete original endian macros",
+            "source_path": "sqlite-3.46.0/btreeInt.h.original",
+            "source_start_utf8": 33028,
+            "source_end_utf8": 33756,
+            "bytes": 728,
+            "sha256": "cae35225ce92dc1d18b8b437b90308922bc522d94cb69f991fd0c3ac8a92af4a",
+            "unit_start_utf8": 23862,
+            "unit_end_utf8": 24590
+          },
+          "retained_source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/root-btree-cursor-oracle-sqlite-3.46.0-r1.c",
+          "retained_source_sha256": "b37e6a8ed3d0243d91e75b64ff6e4d2d7e96b628ef9aced321de0493d9596fed",
+          "bytes": 728,
+          "sha256": "cae35225ce92dc1d18b8b437b90308922bc522d94cb69f991fd0c3ac8a92af4a",
+          "unit_start_utf8": 8610,
+          "unit_end_utf8": 9338
+        },
+        {
+          "label": "complete original sqlite3Get4byte",
+          "retained_original_section": {
+            "label": "complete original sqlite3Get4byte",
+            "source_path": "sqlite-3.46.0/util.c.original",
+            "source_start_utf8": 39472,
+            "source_end_utf8": 39893,
+            "bytes": 421,
+            "sha256": "da7e9b1e429765c0982d053d4ce874d519359d75cf72591831e69bcc91c1dfc7",
+            "unit_start_utf8": 24680,
+            "unit_end_utf8": 25101
+          },
+          "retained_source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/root-btree-cursor-oracle-sqlite-3.46.0-r1.c",
+          "retained_source_sha256": "b37e6a8ed3d0243d91e75b64ff6e4d2d7e96b628ef9aced321de0493d9596fed",
+          "bytes": 421,
+          "sha256": "da7e9b1e429765c0982d053d4ce874d519359d75cf72591831e69bcc91c1dfc7",
+          "unit_start_utf8": 9379,
+          "unit_end_utf8": 9800
+        },
+        {
+          "label": "successful fixture effect providers",
+          "authored_fixture": true,
+          "bytes": 2801,
+          "sha256": "de6e8c7ea5fd384622ee982cf46635ebfadf0187ffdb4fde5ba08806a2ab2644",
+          "unit_start_utf8": 9843,
+          "unit_end_utf8": 12644
+        },
+        {
+          "label": "complete original lockBtree",
+          "source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-database-header-source-r2/reference/sqlite-3.46.0/btree.c.original",
+          "source_sha256": "3043b54506525cf526612a003b1923491b54945a41c552cf3054ff56d0e51af6",
+          "source_start_utf8": 111646,
+          "source_end_utf8": 117980,
+          "source_start_line": 3267,
+          "source_end_line": 3444,
+          "bytes": 6334,
+          "sha256": "050e7e148071ad26ff2b396e8d0693f3137808bc57d081f7f9d77da9dac8624c",
+          "unit_start_utf8": 12679,
+          "unit_end_utf8": 19013
+        },
+        {
+          "label": "raw context and event observation API",
+          "authored_fixture": true,
+          "bytes": 3470,
+          "sha256": "bb6efc4b4c6acde34ca547b211cf8feec9e48a7c0c99134aa157e8791dfde2d9",
+          "unit_start_utf8": 19059,
+          "unit_end_utf8": 22529
+        }
+      ],
+      "official_sources": [
+        {
+          "relative_path": "sqlite-3.46.0/btree.c.original",
+          "bytes": 400947,
+          "sha256": "3043b54506525cf526612a003b1923491b54945a41c552cf3054ff56d0e51af6",
+          "git_blob_sha1": "62b89897967cdba22595d9ae02a26d7bd00a8fa9"
+        },
+        {
+          "relative_path": "sqlite-3.46.0/btreeInt.h.original",
+          "bytes": 33756,
+          "sha256": "439471d72417c99df95c5bcd356ad344cd78edd4a52405dd20146902a730e983",
+          "git_blob_sha1": "1213297253b851368e219d4147f322c00e486ab8"
+        },
+        {
+          "relative_path": "sqlite-3.46.0/btree.h.original",
+          "bytes": 16721,
+          "sha256": "83505b6b44176ac68bca251ef950ebe823473ff3cec9f461a03ae4af890a4a9a",
+          "git_blob_sha1": "9731b8f2dc561f551b21c29de42c647a5da70d33"
+        },
+        {
+          "relative_path": "sqlite-3.46.0/util.c.original",
+          "bytes": 51716,
+          "sha256": "93318efdd7140bbb7cba31f341b29eff558d9efd7f4543e001d043e73ca733eb",
+          "git_blob_sha1": "3b10ba60ada646c6e5f4ceca358fa09a59263eb4"
+        },
+        {
+          "relative_path": "sqlite-3.46.0/sqliteInt.h.original",
+          "bytes": 252135,
+          "sha256": "36e843ab47acf0567f0c77f2f3f12c79c1feb48451bb5ab0f3cab9e5f4d42dc8",
+          "git_blob_sha1": "d98a4f7f06b9fad744ec7b56528c3a978aa8905f"
+        },
+        {
+          "relative_path": "sqlite-3.46.0/sqlite.h.in.original",
+          "bytes": 526581,
+          "sha256": "f06c5401b1aa27c8aba0d1869c589316923c9fb9c425dced6e5dc0d4c648c1fb",
+          "git_blob_sha1": "549b52a1536e1035792a0b9d94097d9989fa90d3"
+        },
+        {
+          "relative_path": "sqlite-3.46.0/LICENSE.md.original",
+          "bytes": 263,
+          "sha256": "9c6479123f32a1ed50d9a0af203dfe8972e65035b0cdeef436b5f8d0924517fe",
+          "git_blob_sha1": "f68a6c175f0b72086c313a9dbd9f2ec8d87525dd"
+        }
+      ]
+    },
+    {
+      "version": "3.53.2",
+      "bytes": 22461,
+      "sha256": "ca6f97390ec84654db5807eb58f03c20ecfbc8734ec1faba6c1bcc2757fc6e5c",
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/root-database-header-oracle-sqlite-3.53.2-r1.c",
+      "sections": [
+        {
+          "label": "original primitives",
+          "retained_original_section": {
+            "label": "original primitives",
+            "retained_original_section": {
+              "label": "original primitives",
+              "start_utf8": 846,
+              "end_utf8": 2469,
+              "bytes": 1623,
+              "sha256": "99a2c9e133c0e6310b940c467193fbb330cbbf1b599627e099e37a316b570873",
+              "role": "complete_original_excerpt_file",
+              "reference_relative": "sqlite-3.53.2/primitives.source.txt",
+              "reference_sha256": "99a2c9e133c0e6310b940c467193fbb330cbbf1b599627e099e37a316b570873"
+            },
+            "bytes": 1623,
+            "sha256": "99a2c9e133c0e6310b940c467193fbb330cbbf1b599627e099e37a316b570873",
+            "unit_start_utf8": 1740,
+            "unit_end_utf8": 3363
+          },
+          "retained_source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/root-btree-cursor-oracle-sqlite-3.53.2-r1.c",
+          "retained_source_sha256": "a969413ff7e821a0490b4c840b7a6aa4533d70ba5bb79749913fe2a45c2e9a6d",
+          "bytes": 1623,
+          "sha256": "99a2c9e133c0e6310b940c467193fbb330cbbf1b599627e099e37a316b570873",
+          "unit_start_utf8": 883,
+          "unit_end_utf8": 2506
+        },
+        {
+          "label": "finite wrapper opaque context declarations",
+          "authored_fixture": true,
+          "bytes": 789,
+          "sha256": "44350e267bf5750cd484d25d0f596b901312ba7b06b2c279b60c7a3732cf4687",
+          "unit_start_utf8": 2556,
+          "unit_end_utf8": 3345
+        },
+        {
+          "label": "complete original structures",
+          "retained_original_section": {
+            "label": "complete original structures",
+            "retained_original_section": {
+              "label": "complete original structures",
+              "start_utf8": 4005,
+              "end_utf8": 8507,
+              "bytes": 4502,
+              "sha256": "d7c69058fed0a72c9ea260572ed385c4a5295acb14b9faabf4f0bedcc3d37052",
+              "role": "complete_original_excerpt_file",
+              "reference_relative": "sqlite-3.53.2/types.source.txt",
+              "reference_sha256": "d7c69058fed0a72c9ea260572ed385c4a5295acb14b9faabf4f0bedcc3d37052"
+            },
+            "bytes": 4502,
+            "sha256": "d7c69058fed0a72c9ea260572ed385c4a5295acb14b9faabf4f0bedcc3d37052",
+            "unit_start_utf8": 4899,
+            "unit_end_utf8": 9401
+          },
+          "retained_source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/root-btree-cursor-oracle-sqlite-3.53.2-r1.c",
+          "retained_source_sha256": "a969413ff7e821a0490b4c840b7a6aa4533d70ba5bb79749913fe2a45c2e9a6d",
+          "bytes": 4502,
+          "sha256": "d7c69058fed0a72c9ea260572ed385c4a5295acb14b9faabf4f0bedcc3d37052",
+          "unit_start_utf8": 3381,
+          "unit_end_utf8": 7883
+        },
+        {
+          "label": "original macro MX_CELL_SIZE",
+          "source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/candidate/reference/sqlite-3.53.2/btreeInt.h.original",
+          "source_sha256": "48e437da1cafb4dbc627d445a616830a646a79b861a327f448069092dec168d9",
+          "source_start_utf8": 10398,
+          "source_end_utf8": 10450,
+          "bytes": 52,
+          "sha256": "ce5731704988071af1de4e851c478a1973022ad7e90316204d6b77c96cf62446",
+          "unit_start_utf8": 7918,
+          "unit_end_utf8": 7970
+        },
+        {
+          "label": "original macro BTS_READ_ONLY",
+          "source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/candidate/reference/sqlite-3.53.2/btreeInt.h.original",
+          "source_sha256": "48e437da1cafb4dbc627d445a616830a646a79b861a327f448069092dec168d9",
+          "source_start_utf8": 21385,
+          "source_end_utf8": 21457,
+          "bytes": 72,
+          "sha256": "fc0ba6f051fe94d9987a44624cad815651c37eb75cdd1d3bcad03b705978d48f",
+          "unit_start_utf8": 8006,
+          "unit_end_utf8": 8078
+        },
+        {
+          "label": "original macro BTS_PAGESIZE_FIXED",
+          "source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/candidate/reference/sqlite-3.53.2/btreeInt.h.original",
+          "source_sha256": "48e437da1cafb4dbc627d445a616830a646a79b861a327f448069092dec168d9",
+          "source_start_utf8": 21457,
+          "source_end_utf8": 21536,
+          "bytes": 79,
+          "sha256": "f6e298668870e116276d17c170507983fc513cd66a45441a4745ba018c9e09d4",
+          "unit_start_utf8": 8119,
+          "unit_end_utf8": 8198
+        },
+        {
+          "label": "original macro BTS_NO_WAL",
+          "source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/candidate/reference/sqlite-3.53.2/btreeInt.h.original",
+          "source_sha256": "48e437da1cafb4dbc627d445a616830a646a79b861a327f448069092dec168d9",
+          "source_start_utf8": 21847,
+          "source_end_utf8": 21925,
+          "bytes": 78,
+          "sha256": "761a22dc9858121a2e98d09689cb252892f057a320abe42e0dce4e46554156d8",
+          "unit_start_utf8": 8231,
+          "unit_end_utf8": 8309
+        },
+        {
+          "label": "original SQLITE_ResetDatabase",
+          "source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-native-r1/candidate/reference/sqlite-3.53.2/sqliteInt.h.original",
+          "source_sha256": "f64ddb85e6cef2b9f80c584bba6e48bb6f7fba97f20c62326274ed9fd068732a",
+          "source_line": 1856,
+          "observation": "Root whole official matching line read before assembly; peer must independently join.",
+          "bytes": 67,
+          "sha256": "799679b9bbfdd1b0c71f64f197b725d1cd6afbc9daa440bafad739b3ce805b82",
+          "unit_start_utf8": 8346,
+          "unit_end_utf8": 8413
+        },
+        {
+          "label": "reference helper symbol namespace",
+          "authored_fixture": true,
+          "bytes": 49,
+          "sha256": "65696f0e2a903b9e0a31096bb24bfcedd545a612386432d74a730110ee19d4e1",
+          "unit_start_utf8": 8454,
+          "unit_end_utf8": 8503
+        },
+        {
+          "label": "complete original endian macros",
+          "retained_original_section": {
+            "label": "complete original endian macros",
+            "source_path": "sqlite-3.53.2/btreeInt.h.original",
+            "source_start_utf8": 33164,
+            "source_end_utf8": 33892,
+            "bytes": 728,
+            "sha256": "cae35225ce92dc1d18b8b437b90308922bc522d94cb69f991fd0c3ac8a92af4a",
+            "unit_start_utf8": 24065,
+            "unit_end_utf8": 24793
+          },
+          "retained_source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/root-btree-cursor-oracle-sqlite-3.53.2-r1.c",
+          "retained_source_sha256": "a969413ff7e821a0490b4c840b7a6aa4533d70ba5bb79749913fe2a45c2e9a6d",
+          "bytes": 728,
+          "sha256": "cae35225ce92dc1d18b8b437b90308922bc522d94cb69f991fd0c3ac8a92af4a",
+          "unit_start_utf8": 8542,
+          "unit_end_utf8": 9270
+        },
+        {
+          "label": "complete original sqlite3Get4byte",
+          "retained_original_section": {
+            "label": "complete original sqlite3Get4byte",
+            "source_path": "sqlite-3.53.2/util.c.original",
+            "source_start_utf8": 51875,
+            "source_end_utf8": 52296,
+            "bytes": 421,
+            "sha256": "da7e9b1e429765c0982d053d4ce874d519359d75cf72591831e69bcc91c1dfc7",
+            "unit_start_utf8": 24883,
+            "unit_end_utf8": 25304
+          },
+          "retained_source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/root-btree-cursor-oracle-sqlite-3.53.2-r1.c",
+          "retained_source_sha256": "a969413ff7e821a0490b4c840b7a6aa4533d70ba5bb79749913fe2a45c2e9a6d",
+          "bytes": 421,
+          "sha256": "da7e9b1e429765c0982d053d4ce874d519359d75cf72591831e69bcc91c1dfc7",
+          "unit_start_utf8": 9311,
+          "unit_end_utf8": 9732
+        },
+        {
+          "label": "successful fixture effect providers",
+          "authored_fixture": true,
+          "bytes": 2801,
+          "sha256": "de6e8c7ea5fd384622ee982cf46635ebfadf0187ffdb4fde5ba08806a2ab2644",
+          "unit_start_utf8": 9775,
+          "unit_end_utf8": 12576
+        },
+        {
+          "label": "complete original lockBtree",
+          "source_path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-database-header-source-r2/reference/sqlite-3.53.2/btree.c.original",
+          "source_sha256": "8374f0b6867459af6d6f73ba6c22a8a6c2fdcaa967bbb913bff59e7612684086",
+          "source_start_utf8": 112082,
+          "source_end_utf8": 118416,
+          "source_start_line": 3278,
+          "source_end_line": 3455,
+          "bytes": 6334,
+          "sha256": "050e7e148071ad26ff2b396e8d0693f3137808bc57d081f7f9d77da9dac8624c",
+          "unit_start_utf8": 12611,
+          "unit_end_utf8": 18945
+        },
+        {
+          "label": "raw context and event observation API",
+          "authored_fixture": true,
+          "bytes": 3470,
+          "sha256": "bb6efc4b4c6acde34ca547b211cf8feec9e48a7c0c99134aa157e8791dfde2d9",
+          "unit_start_utf8": 18991,
+          "unit_end_utf8": 22461
+        }
+      ],
+      "official_sources": [
+        {
+          "relative_path": "sqlite-3.53.2/btree.c.original",
+          "bytes": 404731,
+          "sha256": "8374f0b6867459af6d6f73ba6c22a8a6c2fdcaa967bbb913bff59e7612684086",
+          "git_blob_sha1": "2e53a86179059d46e61b1b5d2e204350ae8d375d"
+        },
+        {
+          "relative_path": "sqlite-3.53.2/btreeInt.h.original",
+          "bytes": 33892,
+          "sha256": "48e437da1cafb4dbc627d445a616830a646a79b861a327f448069092dec168d9",
+          "git_blob_sha1": "17e3a1add55bcd3fc93019d88472d77e43c64633"
+        },
+        {
+          "relative_path": "sqlite-3.53.2/btree.h.original",
+          "bytes": 16852,
+          "sha256": "5a4036262175248db0a18713e6d14f3d666e8e37c7fad6fbd9ab76959aee6448",
+          "git_blob_sha1": "96f4c4c607fdd1303bd4ce91cb58daa78267da61"
+        },
+        {
+          "relative_path": "sqlite-3.53.2/util.c.original",
+          "bytes": 63901,
+          "sha256": "f3ad5a891625459352c1b57c053d3b89dcc973206644126a857c0ff82b7ce37f",
+          "git_blob_sha1": "57b98ad4c94aa5825f697d196e1bfe3e9e6051d6"
+        },
+        {
+          "relative_path": "sqlite-3.53.2/sqliteInt.h.original",
+          "bytes": 257187,
+          "sha256": "f64ddb85e6cef2b9f80c584bba6e48bb6f7fba97f20c62326274ed9fd068732a",
+          "git_blob_sha1": "c6c221a433f3f45677dc3d4fa06413a4545e177f"
+        },
+        {
+          "relative_path": "sqlite-3.53.2/sqlite.h.in.original",
+          "bytes": 554473,
+          "sha256": "284f65ed5f4b69ffe838760c4b0cc752787573bd61bf5529415fc663ef1a3022",
+          "git_blob_sha1": "9323ce5eeae50703b00139ab0f91409c67149b71"
+        },
+        {
+          "relative_path": "sqlite-3.53.2/LICENSE.md.original",
+          "bytes": 3850,
+          "sha256": "ee6af51062b30d532991face5164136ae6f84e265ecf8abe89dc69dac45ca1e7",
+          "git_blob_sha1": "5f59bb8fefd54767e2eb08a17d0dc19007958d90"
+        }
+      ]
+    }
+  ]
+}
