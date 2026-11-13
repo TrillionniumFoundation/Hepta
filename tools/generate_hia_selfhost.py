@@ -7,6 +7,7 @@ B1 and subsequent generations consume that assembly as bytes themselves.
 from __future__ import annotations
 import ast
 import json
+import re
 from pathlib import Path
 import sys
 ROOT = Path(__file__).resolve().parents[1]
@@ -812,21 +813,32 @@ def check_calls(w:mutbuf) -> u64:
     f = 0
     target = 0
     ready = 0
+    pending = 0
     while step < n:
         f = 0
+        pending = 0
         while f < n:
-            ready = 1
-            target = 0
-            while target < 128:
-                if byte(w, CBASE + f * 128 + target) != 0:
-                    if target >= n:
-                        return fail(w, 55)
-                    if get(w, CSTATE + target * 8) == 0:
-                        ready = 0
-                target = target + 1
-            if ready == 1:
-                put(w, CSTATE + f * 8, 1)
+            # First scan every row, including already marked rows: malformed
+            # targets must never be hidden by caller-supplied readiness bytes.
+            # Thereafter this immutable graph cannot gain an invalid target,
+            # and readiness only changes from zero to one.
+            if step == 0 or get(w, CSTATE + f * 8) == 0:
+                ready = 1
+                target = 0
+                while target < 128:
+                    if byte(w, CBASE + f * 128 + target) != 0:
+                        if target >= n:
+                            return fail(w, 55)
+                        if get(w, CSTATE + target * 8) == 0:
+                            ready = 0
+                    target = target + 1
+                if ready == 1:
+                    put(w, CSTATE + f * 8, 1)
+            if get(w, CSTATE + f * 8) == 0:
+                pending = pending + 1
             f = f + 1
+        if pending == 0:
+            return 0
         step = step + 1
     f = 0
     while f < n:
@@ -1125,8 +1137,12 @@ def decimal(s:readbuf, w:mutbuf, pos:u64) -> u64:
     return value
 
 def is_word(c:u64) -> u64:
-    if (c >= 65 and c <= 90) or (c >= 97 and c <= 122) or (c >= 48 and c <= 57) or c == 46 or c == 45 or c == 95:
-        return 1
+    # Exact ASCII membership, with both shifts bounded before execution.
+    # This also preserves the old refusal for every non-ASCII u64 value.
+    if c < 64:
+        return (288054454291267584 >> c) & 1
+    if c < 128:
+        return (576460745995190270 >> (c - 64)) & 1
     return 0
 
 KEYWORD_FUNCTION
@@ -1826,6 +1842,19 @@ def source_program():
     for at in (0, 8, 24, 40, 56, 80, 88, 96, 104, 112, 120, 136, 224, 240, 248):
         text = text.replace(f'get(w, {at})', f'state_get32(w, {at})')
         text = text.replace(f'put(w, {at},', f'state_put32(w, {at},')
+    # Additional PRIVATE reads only; retain each original full-word write.
+    # 264/360/432 are boolean flags. No additional state_get32 offsets,
+    # public arguments or generic word helpers are narrowed.
+    for at in (264, 360, 432):
+        text = text.replace(f'get(w, {at})', f'byte(w, {at})')
+    # VBASE is fully cleared before use, then define writes only types 1..16
+    # and full-width block+1 <=1536. Capability live words are initialized by define and
+    # thereafter written only 0/1. Reads still occur at the same CFG point;
+    # all original name/type/owner/provenance checks and writes remain.
+    text = re.sub(rf'get\(w, {VBASE} \+ ([A-Za-z_][A-Za-z_0-9]*) \* 16\)',
+                  rf'byte(w, {VBASE} + \1 * 16)', text)
+    text = re.sub(rf'get\(w, {CAPBASE} \+ ([A-Za-z_][A-Za-z_0-9]*) \* 24 \+ 16\)',
+                  rf'byte(w, {CAPBASE} + \1 * 24 + 16)', text)
     return text
 
 
@@ -1834,6 +1863,7 @@ class Builder:
         self.node,self.names,self.signatures = node,names,signatures
         self.total_calls = frozenset(total_calls)
         self.block_constants = {}
+        self.block_scalar_values = {}
         self.serial=0; self.blocks=[]; self.env={}; self.block=None
         self.returns=node.returns.id
         params=[]
@@ -1847,8 +1877,25 @@ class Builder:
         v=(f'v{self.serial}',t); self.serial+=1; return v
     def param(self,v): return {'name':v[0],'type':v[1]}
     def op(self,op,args,t=None,**attrs):
+        # Immutable SSA operands make repeated, total scalar expressions in
+        # this same block identical. Do not cache reads, calls, allocation,
+        # resource operations, checked arithmetic/shifts or any other trap.
+        # No value is shared across blocks or across authoring invocations.
+        total = {'int.add.wrap', 'int.sub.wrap', 'int.mul.wrap', 'bit.and',
+                 'bit.or', 'bit.xor', 'bit.not', 'bool.and', 'bool.or',
+                 'bool.not', 'compare.eq', 'compare.ne', 'compare.lt',
+                 'compare.le', 'compare.gt', 'compare.ge', 'select'}
+        reusable = (t in TYPES and t not in {'readbuf','mutbuf','buffer','chain'}
+                    and (op in total or (op == 'int.cast' and attrs == {'mode':'wrap'})))
+        if reusable:
+            cache = self.block_scalar_values.setdefault(self.block['id'], {})
+            key = (op, t, tuple(args), tuple(sorted(attrs.items())))
+            if key in cache:
+                return cache[key]
         out=[] if t is None else [self.value(t)]
         self.block['ops'].append({'op':op,'args':[a[0] for a in args],'out':[self.param(x) for x in out],'attrs':attrs})
+        if reusable:
+            cache[key] = out[0]
         return out[0] if out else None
     def c(self,v,t='u64'):
         # Constants are total and immutable. Share only inside this exact SSA

@@ -46,8 +46,11 @@ def identifier(s:readbuf, w:mutbuf) -> u64:
     return 0
 
 def same_identifier(s:readbuf, w:mutbuf, base:u64) -> u64:
-    size = get(w, 464)
-    if size != get(w, base + 8):
+    # These private records are initialized with full words by identifier /
+    # name discovery: sizes <=128, offsets <=1MiB, hashes <=2**32-1.
+    # Generic get/put and the public byte ABI retain all 64 bits.
+    size = byte(w, 464)
+    if size != byte(w, base + 8):
         return 0
     begin = get(w, 456)
     other = get(w, base)
@@ -61,9 +64,14 @@ def same_identifier(s:readbuf, w:mutbuf, base:u64) -> u64:
 def lookup_identifier(s:readbuf, w:mutbuf, base:u64, stride:u64, count:u64) -> u64:
     i = 0
     record = 0
+    if count == 0:
+        return 0
+    # This lookup and same_identifier only read the state; the target hash
+    # cannot change between probes. Hashes still only filter exact bytes.
+    target_hash = get(w, 472)
     while i < count:
         record = base + i * stride
-        if get(w, record + 16) == get(w, 472):
+        if get(w, record + 16) == target_hash:
             if same_identifier(s, w, record) == 1:
                 return i
         i = i + 1
@@ -119,12 +127,12 @@ def read_value_name(s:readbuf, w:mutbuf, kind:u64) -> u64:
     index = 0
     while probes < 2048:
         base = 955152 + slot * 24
-        if get(w, base + 8) == 0:
+        if byte(w, base + 8) == 0:
             index = get(w, 480)
             if index >= 2048:
                 return fail(w, 37)
             put(w, base, get(w, 456))
-            put(w, base + 8, get(w, 464))
+            put(w, base + 8, byte(w, 464))
             put(w, base + 16, index)
             put(w, 480, index + 1)
             next_token(s, w)

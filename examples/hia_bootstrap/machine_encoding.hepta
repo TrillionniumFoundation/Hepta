@@ -683,19 +683,18 @@ block b3(v47:mutbuf,v48:mutbuf,v49:u64,v50:u64,v51:u64,v52:u64,v53:u64)
   v65:u64 = bit.and(v51,v60)
   v66:u64 = bit.or(v64,v65)
   v67:u64 = call(v47,v48,v66) {"function":"f8"}
-  v68:u64 = bit.and(v51,v60)
-  v69:u64 = const() {"value":4}
-  v70:bool = compare.eq(v68,v69)
-  branch v70 b4(v47,v48,v52) b6(v47,v48,v52)
-block b4(v71:mutbuf,v72:mutbuf,v76:u64)
-  v85:u64 = const() {"value":36}
-  v86:u64 = call(v71,v72,v85) {"function":"f8"}
-  jump b6(v71,v72,v76)
-block b6(v87:mutbuf,v88:mutbuf,v92:u64)
-  v94:u64 = const() {"value":4}
-  v95:u64 = call(v87,v88,v92,v94) {"function":"f9"}
-  v96:u64 = const() {"value":0}
-  ret(v96)
+  v68:u64 = const() {"value":4}
+  v69:bool = compare.eq(v65,v68)
+  branch v69 b4(v47,v48,v52) b6(v47,v48,v52)
+block b4(v70:mutbuf,v71:mutbuf,v75:u64)
+  v84:u64 = const() {"value":36}
+  v85:u64 = call(v70,v71,v84) {"function":"f8"}
+  jump b6(v70,v71,v75)
+block b6(v86:mutbuf,v87:mutbuf,v91:u64)
+  v93:u64 = const() {"value":4}
+  v94:u64 = call(v86,v87,v91,v93) {"function":"f9"}
+  v95:u64 = const() {"value":0}
+  ret(v95)
 end
 fn f8(v0:mutbuf,v1:mutbuf,v2:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:mutbuf,v2:u64)

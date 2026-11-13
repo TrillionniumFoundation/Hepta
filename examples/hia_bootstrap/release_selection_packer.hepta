@@ -1902,16 +1902,15 @@ block b16(v139:readbuf,v140:mutbuf,v141:mutbuf,v142:u64,v143:u64,v144:u64,v145:u
   v1955:u64 = int.sub.wrap(v1953,v1954)
   v1956:u64 = call(v140,v1952,v1955,v1947) {"function":"f3"}
   v1957:u64 = const() {"value":4001}
-  v1958:u64 = int.add.wrap(v1944,v142)
-  v1959:u64 = int.add.wrap(v1958,v143)
-  v1960:u64 = const() {"value":4005}
-  v1961:u64 = int.sub.wrap(v1959,v1960)
-  v1962:u64 = call(v140,v1957,v1961,v1947) {"function":"f3"}
-  v1963:u64 = int.add.wrap(v142,v143)
-  v1964:u64 = int.add.wrap(v1963,v144)
-  v1965:u64 = call(v139,v140,v159,v1944,v1964) {"function":"f5"}
-  v1966:u32 = int.cast(v145) {"mode":"wrap"}
-  ret(v1966)
+  v1958:u64 = int.add.wrap(v1953,v143)
+  v1959:u64 = const() {"value":4005}
+  v1960:u64 = int.sub.wrap(v1958,v1959)
+  v1961:u64 = call(v140,v1957,v1960,v1947) {"function":"f3"}
+  v1962:u64 = int.add.wrap(v142,v143)
+  v1963:u64 = int.add.wrap(v1962,v144)
+  v1964:u64 = call(v139,v140,v159,v1944,v1963) {"function":"f5"}
+  v1965:u32 = int.cast(v145) {"mode":"wrap"}
+  ret(v1965)
 end
 fn f1(v0:readbuf,v1:u64,v2:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:u64,v2:u64)

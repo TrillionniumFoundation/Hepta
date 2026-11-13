@@ -429,15 +429,14 @@ block b12(v108:readbuf,v109:mutbuf,v110:mutbuf,v111:u64,v112:u64,v113:u64,v114:u
   v462:u64 = int.sub.wrap(v460,v461)
   v463:u64 = call(v109,v459,v462,v453) {"function":"f5"}
   v464:u64 = const() {"value":708}
-  v465:u64 = int.add.wrap(v450,v111)
-  v466:u64 = int.add.wrap(v465,v112)
-  v467:u64 = int.sub.wrap(v466,v371)
-  v468:u64 = call(v109,v464,v467,v453) {"function":"f5"}
-  v469:u64 = int.add.wrap(v111,v112)
-  v470:u64 = int.add.wrap(v469,v113)
-  v471:u64 = call(v108,v109,v128,v450,v470) {"function":"f1"}
-  v472:u32 = int.cast(v114) {"mode":"wrap"}
-  ret(v472)
+  v465:u64 = int.add.wrap(v460,v112)
+  v466:u64 = int.sub.wrap(v465,v371)
+  v467:u64 = call(v109,v464,v466,v453) {"function":"f5"}
+  v468:u64 = int.add.wrap(v111,v112)
+  v469:u64 = int.add.wrap(v468,v113)
+  v470:u64 = call(v108,v109,v128,v450,v469) {"function":"f1"}
+  v471:u32 = int.cast(v114) {"mode":"wrap"}
+  ret(v471)
 end
 fn f1(v0:readbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64)

@@ -489,15 +489,14 @@ block b77(v1071:readbuf,v1072:mutbuf,v1073:mutbuf,v1077:u64,v1078:u64)
   v1087:usize = int.cast(v1078) {"mode":"wrap"}
   v1088:u8 = buffer.load(v1073,v1087)
   v1089:u64 = int.cast(v1088) {"mode":"wrap"}
-  v1090:usize = int.cast(v1078) {"mode":"wrap"}
-  v1091:u8 = int.cast(v1089) {"mode":"wrap"}
-  _ = buffer.store(v1072,v1090,v1091)
-  v1092:u64 = const() {"value":1}
-  v1093:u64 = int.add.wrap(v1078,v1092)
-  jump b76(v1071,v1072,v1073,v1077,v1093)
+  v1090:u8 = int.cast(v1089) {"mode":"wrap"}
+  _ = buffer.store(v1072,v1087,v1090)
+  v1091:u64 = const() {"value":1}
+  v1092:u64 = int.add.wrap(v1078,v1091)
+  jump b76(v1071,v1072,v1073,v1077,v1092)
 block b78(v1079:readbuf,v1080:mutbuf,v1081:mutbuf,v1085:u64)
-  v1094:u32 = int.cast(v1085) {"mode":"wrap"}
-  ret(v1094)
+  v1093:u32 = int.cast(v1085) {"mode":"wrap"}
+  ret(v1093)
 end
 fn f1(v0:readbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:u64)

@@ -179,29 +179,28 @@ block b36(v297:readbuf,v298:mutbuf,v299:mutbuf,v301:u64,v303:u64)
   v322:u64 = const() {"value":4}
   v323:u64 = int.shl.checked(v321,v322)
   v324:u64 = call(v299,v313) {"function":"f4"}
-  v325:u64 = int.mul.wrap(v303,v315)
-  v326:u64 = int.add.wrap(v324,v325)
-  v327:u64 = const() {"value":1}
-  v328:u64 = int.add.wrap(v326,v327)
-  v329:usize = int.cast(v328) {"mode":"wrap"}
-  v330:u8 = buffer.load(v297,v329)
-  v331:u64 = int.cast(v330) {"mode":"wrap"}
-  v332:u64 = call(v331) {"function":"f2"}
-  v333:u64 = bit.or(v323,v332)
-  jump b38(v297,v298,v299,v301,v303,v333)
-block b38(v334:readbuf,v335:mutbuf,v336:mutbuf,v338:u64,v340:u64,v341:u64)
-  v342:u64 = const() {"value":8}
-  v343:u64 = int.add.wrap(v340,v342)
-  v344:usize = int.cast(v343) {"mode":"wrap"}
-  v345:u8 = int.cast(v341) {"mode":"wrap"}
-  _ = buffer.store(v335,v344,v345)
-  v346:u64 = const() {"value":1}
-  v347:u64 = int.add.wrap(v340,v346)
-  jump b33(v334,v335,v336,v338,v347)
-block b39(v348:readbuf,v349:mutbuf,v350:mutbuf)
-  v354:u64 = const() {"value":0}
-  v355:u32 = int.cast(v354) {"mode":"wrap"}
-  ret(v355)
+  v325:u64 = int.add.wrap(v324,v316)
+  v326:u64 = const() {"value":1}
+  v327:u64 = int.add.wrap(v325,v326)
+  v328:usize = int.cast(v327) {"mode":"wrap"}
+  v329:u8 = buffer.load(v297,v328)
+  v330:u64 = int.cast(v329) {"mode":"wrap"}
+  v331:u64 = call(v330) {"function":"f2"}
+  v332:u64 = bit.or(v323,v331)
+  jump b38(v297,v298,v299,v301,v303,v332)
+block b38(v333:readbuf,v334:mutbuf,v335:mutbuf,v337:u64,v339:u64,v340:u64)
+  v341:u64 = const() {"value":8}
+  v342:u64 = int.add.wrap(v339,v341)
+  v343:usize = int.cast(v342) {"mode":"wrap"}
+  v344:u8 = int.cast(v340) {"mode":"wrap"}
+  _ = buffer.store(v334,v343,v344)
+  v345:u64 = const() {"value":1}
+  v346:u64 = int.add.wrap(v339,v345)
+  jump b33(v333,v334,v335,v337,v346)
+block b39(v347:readbuf,v348:mutbuf,v349:mutbuf)
+  v353:u64 = const() {"value":0}
+  v354:u32 = int.cast(v353) {"mode":"wrap"}
+  ret(v354)
 end
 fn f1(v0:readbuf,v1:mutbuf) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:mutbuf)

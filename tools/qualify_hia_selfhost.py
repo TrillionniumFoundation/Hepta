@@ -895,10 +895,15 @@ def qualify(output):
     # each family gets a new Python process so VM/reference instrumentation and
     # globals cannot leak between families. Every native invocation stays fresh.
     manifest_digest = _phase_manifest_digest(before)
+    # Original remote timeout 43347872271 left names/exports at the end.
+    # Start long independent work first so sealing can overlap later short
+    # work. This changes neither the inventory nor the two-worker budget.
+    priority = ("names", "exports", "chain", "signed", "scalar-casts", "cli", "owned", "capacity")
+    phase_order = (*priority, *(family for family in QUALIFICATION_FAMILIES if family not in priority))
     with _PhaseArchivePool() as archives:
         with ThreadPoolExecutor(max_workers=QUALIFICATION_WORKERS) as pool:
             scheduled = [(family, label, pool.submit(_run_qualification_phase, directory, family, label, compiler, manifest_digest, archives))
-                         for family in QUALIFICATION_FAMILIES
+                         for family in phase_order
                          for label, compiler in (("original", original), ("modified", previous))]
             phase_results = _collect_qualification_phases(directory, scheduled)
     phases = _merge_qualification_phases(phase_results, checks)
