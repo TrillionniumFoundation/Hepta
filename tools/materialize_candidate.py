@@ -114,10 +114,13 @@ class Capture:
     def json(self, relative, value):
         return self.put(relative, canonical(value))
 
-    def run(self, arguments, *, label, cwd=None, limit=180, allowed=(0,), stdin=None, auth=True, enforce=True):
+    def run(self, arguments, *, label, cwd=None, limit=180, allowed=(0,), stdin=None, auth=True, enforce=True, local_git_fixture=False):
         self.sequence += 1
         prefix = f"commands/{self.sequence:04d}-{label}"
         environment = dict(self.env)
+        if local_git_fixture:
+            check(not auth, "local Git fixture cannot carry repository credentials")
+            environment["GIT_ALLOW_PROTOCOL"] = "https:file"
         if auth:
             environment.update(GIT_CONFIG_COUNT="1",
                                GIT_CONFIG_KEY_0="http.https://github.com/.extraheader",
@@ -152,6 +155,8 @@ class Capture:
                   "started_at": started, "finished_at": now(), "limit_seconds": limit,
                   "elapsed_ns": time.monotonic_ns() - clock,
                   "returncode": process.returncode, "timed_out": timed_out,
+                  "git_protocols": environment["GIT_ALLOW_PROTOCOL"],
+                  "authenticated_git": auth,
                   "cleanup": cleanup, "stdout": self.put(prefix + ".stdout", stdout),
                   "stderr": self.put(prefix + ".stderr", stderr)}
         if stdin is not None:
@@ -465,6 +470,37 @@ def write_source(capture, path, raw, mode):
     target.write_bytes(raw)
     target.chmod(0o755 if mode == "100755" else 0o644)
 
+def check_materialization_extension(pin, original, target):
+    """Admit the single reviewed complete-program extension of a retained fragment."""
+    expected = {
+        "path": "tools/hia_program_normalization_materialize.hiaasm",
+        "target": "tools/hia_program_normalization_materialize.hepta",
+        "mode": "100644",
+        "action": "retained-prefix-complete-program",
+        "blob": "544235f7f1364b0956657888547465d527d62d9e",
+        "prefix_bytes": 41578,
+        "prefix_sha256": "eb56e6922b6b47524ef7005bb15d886221e34deaa46794b7805ab819c6473008",
+        "target_bytes": 58467,
+        "target_blob": "684d9cebab563fb2d7ca0e4aae8f0deac28397be",
+        "target_sha256": "ca2b5dd0560cc27cb4b5c684978d8a9a62402d79d5f91c2515eb9f3168898e24",
+    }
+    check(all(type(pin.get(key)) is type(value) and pin[key] == value
+              for key, value in expected.items()), "unreviewed retained-prefix extension")
+    check(len(original) == pin["prefix_bytes"] and oid("blob", original) == pin["blob"]
+          and sha(original) == pin["prefix_sha256"], "retained fragment bytes differ")
+    check(target.is_file() and not target.is_symlink(), "complete canonical program absent")
+    info = target.lstat()
+    check(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o644,
+          "complete canonical program mode differs")
+    actual = target.read_bytes()
+    check(len(actual) == pin["target_bytes"] and oid("blob", actual) == pin["target_blob"]
+          and sha(actual) == pin["target_sha256"], "complete canonical program bytes differ")
+    check(actual[:len(original)] == original, "original fragment prefix was changed")
+    return {"relation": "retained-prefix-complete-program",
+            "retained_prefix_bytes": len(original), "retained_prefix_blob": pin["blob"],
+            "complete_target_blob": pin["target_blob"], "semantic_equivalence_claim": False}
+
+
 def apply_sources(capture, inputs, cache, authored, origins, original_trees, conflicts):
     keep = {r["path"]: r for r in inputs["exact_retained"]}
     seeds = {r["path"]: r for r in inputs["regeneration_seeds"]}
@@ -498,6 +534,9 @@ def apply_sources(capture, inputs, cache, authored, origins, original_trees, con
                   "claimed byte-identical duplicate target differs")
         elif pin["action"] == "owner-regeneration-before-legacy-path-retirement":
             check(target.is_file() and not target.is_symlink(), "regenerated canonical target missing")
+        elif pin["action"] == "retained-prefix-complete-program":
+            relation = check_materialization_extension(pin, raw, target)
+            capture.json("physical-migration/retained-prefix-admission.json", relation)
         else:
             raise ValueError("unreviewed physical migration action")
     for pin in inputs["asset_references"]:
@@ -537,11 +576,11 @@ def syntax_all(capture):
     check(not failures and records, "combined whole-tree Python syntax failed")
     return {"checked": len(records), "failures": len(failures)}
 
-def python_command(capture, arguments, label, limit=300, enforce=True):
+def python_command(capture, arguments, label, limit=300, enforce=True, local_git_fixture=False):
     check(all(type(a) is str and "\0" not in a for a in arguments), "invalid explicit command")
     arguments = [a.replace("@EVIDENCE@", str(capture.raw)) for a in arguments]
     return capture.run([sys.executable, "-B", *arguments], cwd=capture.repo, label=label,
-                       auth=False, limit=limit, enforce=enforce)
+                       auth=False, limit=limit, enforce=enforce, local_git_fixture=local_git_fixture)
 
 def regenerate(capture, inputs):
     for index, command in enumerate(inputs["pre_generation_commands"]):
@@ -557,6 +596,10 @@ def regenerate(capture, inputs):
         check(oid("blob", old.read_bytes()) == pin["blob"], "legacy source changed during generation")
         check(target.is_file() and not target.is_symlink(), "canonical output not generated")
         target_data = target.read_bytes()
+        if pin["action"] == "retained-prefix-complete-program":
+            check(old.is_file() and not old.is_symlink(), "retained fragment became non-ordinary")
+            relation = check_materialization_extension(pin, old.read_bytes(), target)
+            capture.json("physical-migration/retained-prefix-retirement.json", relation)
         if pin["action"] == "relocate-exact-bytes" and not pin["target"].startswith("examples/hia_bootstrap/"):
             check(oid("blob", target_data) == pin["blob"], "non-generated physical relocation changed bytes")
         retired.append({"old_path": pin["path"], "old_blob": pin["blob"],
@@ -593,41 +636,20 @@ def source_gate(capture, inputs, harness_root):
     _, result = python_command(capture, [str(harness_root / "tools" / "run_source_gate.py"),
                          "--registration", str(plan), "--source", str(capture.repo),
                          "--original-ids", str(harness_root / "inputs" / "ORIGINAL-SOURCE-IDS.json"),
-                         "--output", str(report)], "complete-source-tests", limit=1800, enforce=False)
+                         "--output", str(report)], "complete-source-tests", limit=1800, enforce=False, local_git_fixture=True)
     if report.is_file():
         value = strict_json(report.read_bytes())
     else:
         value = {"status": "INCOMPLETE", "returncode": result["returncode"], "timed_out": result["timed_out"]}
     return value, result["returncode"] == 0 and not result["timed_out"] and value.get("status") == "PASS"
 
-def tree_api(capture, method, suffix, body=None):
-    check((method == "POST" and suffix == "") or
-          (method == "GET" and re.fullmatch("/[0-9a-f]{40}\\?recursive=1", suffix)),
-          "unapproved tree API operation")
-    payload = canonical(body) if body is not None else None
-    request = urllib.request.Request("https://api.github.com/repos/" + REPOSITORY + "/git/trees" + suffix,
-        data=payload, method=method,
-        headers={"Authorization": "Bearer " + capture.token, "Accept": "application/vnd.github+json",
-                 "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json"})
-    receipt = {"method": method, "tree_suffix": suffix, "started_at": now(),
-               "request_body_sha256": sha(payload) if payload is not None else None}
-    try:
-        with urllib.request.build_opener(NoRedirect()).open(request, timeout=60) as response:
-            raw = response.read()
-            receipt.update(status=response.status, response_bytes=len(raw), response_sha256=sha(raw))
-        capture.put("tree-api/" + ("create.json" if method == "POST" else "readback.json"), raw)
-        return strict_json(raw)
-    except urllib.error.HTTPError as error:
-        raw = error.read()
-        receipt.update(status=error.code, response_bytes=len(raw), response_sha256=sha(raw))
-        receipt["raw_response"] = capture.put("tree-api/http-error-" + str(len(capture.api_receipts)) + ".response", raw)
-        raise
-    finally:
-        receipt["finished_at"] = now()
-        capture.api_receipts.append(receipt)
-        (capture.evidence / "API-RECEIPTS.json").write_bytes(canonical(capture.api_receipts))
+def prepare_candidate_tree(capture, inputs, original_trees, tree_sha, source_pass):
+    """Record the exact local tree; publish source blobs only after Source passes.
 
-def upload_candidate_tree(capture, inputs, original_trees, tree_sha):
+    The runner capability cannot create Git trees. Tree/commit/ref publication
+    remains a separate Git connector operation over these independently checked
+    object identities. This function never attempts a tree API write.
+    """
     leaves = capture.tree(tree_sha, expected=tree_sha, label="candidate-final")
     ours = original_trees["ours"]
     known = {r["oid"] for tree in original_trees.values() for r in tree.values()}
@@ -642,23 +664,18 @@ def upload_candidate_tree(capture, inputs, original_trees, tree_sha):
             continue
         check(new["type"] == "blob", "candidate has an unsupported non-blob leaf")
         blob = new["oid"]
-        if blob not in known and blob not in uploaded:
+        if source_pass and blob not in known and blob not in uploaded:
             raw = subprocess.check_output(["git", "--no-lazy-fetch", "cat-file", "blob", blob],
                                           cwd=capture.repo, env=capture.env, timeout=30)
             check(oid("blob", raw) == blob, "candidate blob changed")
             uploaded[blob] = capture.upload_blob(raw)
         changes.append({"path": path.decode("utf-8"), "mode": new["mode"], "type": "blob", "sha": blob})
     capture.json("publication/UPLOADED-BLOBS.json", uploaded)
-    capture.json("publication/TREE-DELTA.json", changes)
-    response = tree_api(capture, "POST", "", {"base_tree": inputs["ours"]["tree"], "tree": changes})
-    check(response["sha"] == tree_sha, "server candidate tree differs from local exact tree")
-    fetched = tree_api(capture, "GET", "/" + tree_sha + "?recursive=1")
-    check(fetched.get("truncated") is False, "candidate tree readback truncated")
-    remote = {row["path"].encode("utf-8"): {"mode":row["mode"],"type":row["type"],"oid":row["sha"]}
-              for row in fetched["tree"] if row["type"] != "tree"}
-    check(remote == leaves, "full candidate tree leaves differ after readback")
+    delta = capture.json("publication/TREE-DELTA.json", changes)
     return {"tree": tree_sha, "files": len(leaves), "changed_paths": len(changes),
-            "new_blobs_full_readback": len(uploaded), "complete_tree_readback": True,
+            "source_gate_pass": source_pass, "new_blobs_full_readback": len(uploaded),
+            "local_tree_independently_verified": True, "tree_delta": delta,
+            "remote_tree_created": False, "complete_remote_tree_readback": False,
             "commit_created": False, "ref_changed": False}
 
 def persist_evidence(capture, result):
@@ -837,7 +854,7 @@ def main():
         result["source_tests"], source_pass = source_gate(capture,inputs,harness_root)
         result["product_tests_executed"] = result["source_tests"].get("tests_run")
         assert_current_tree(capture, result["generation"]["tree"], "after-complete-source-tests")
-        result["candidate"] = upload_candidate_tree(capture,inputs,originals,result["generation"]["tree"])
+        result["candidate"] = prepare_candidate_tree(capture,inputs,originals,result["generation"]["tree"],source_pass)
         result["status"] = "SOURCE_PASS" if source_pass else "SOURCE_FAIL"
     except BaseException as error:
         result["status"] = "FAIL"

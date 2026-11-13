@@ -1,26 +1,34 @@
-# Fixed combined HIA source: second real runtime attempt
+# Fixed combined HIA source: third real runtime attempt
 
-This isolated harness composes fixed main f33d8da316de8fdf27b504371f1a5310997ff548 with fixed development a733926a2786a3d4a37304bd2d18ebb2eac57ac9. Both real merge bases, original sources, original limits, original executed Source method IDs, and exact source identities remain enforced.
+This isolated harness composes fixed main f33d8da316de8fdf27b504371f1a5310997ff548 with fixed development a733926a2786a3d4a37304bd2d18ebb2eac57ac9. Both original merge bases, original source identities, original execution limits, and all original executed Source method IDs remain required.
 
-The first real attempt (run 43379129114 / job 131732539209, harness 97b869129993f450f17bc632ab6da21c9a504a75) resolved all 122 conflicts and parsed/compiled 1439 Python files, then failed at the first checker pre-generation. It executed no owner generators or Source test bodies. Its full result, original streams, all terminal changes, complete gzip chunks, and independent artifact readback are rooted in audit commit 49b181a58f3f9463ed34af1c2379b4050e811807.
+## Prior actual results
 
-## Current authored composition
+The first runtime attempt, run 43379129114 / job 131732539209, failed at checker pre-generation after resolving 122 conflicts and parsing 1439 Python files. It executed no owner generators or Source bodies.
 
-The input manifest composes 33 exact immutable source packets into 286 authored files using 15 explicit override transitions, plus 36 exact-retained files and 185 regeneration seeds. Relative to the first attempt, the six changed paths are:
+The second runtime attempt, run 43385529411 / job 131752971013 at harness 2564fbae61ed4d26039797fad66b3fa531bd3dd6, completed all 109 owner generators twice, checker/support/inventory generation, 55 development-only physical migrations, and exact source-tree readback. Its actual CPython 3.14.4 Source suite loaded, started, stopped and ran the same 1167 methods. There were 74 distinct unsuccessful methods, including 140 assertion-failure events and 48 error events with subtests. There were no loader errors, skips, expected failures, unexpected successes, missing IDs, or duplicate execution IDs. The full suite was therefore FAIL. After Source, the prior runner's attempt to create a Git tree received HTTP 403. No candidate commit or product ref was created.
 
-- checker inventory generator: exactly three fixed hosted Z3 import mechanisms are explicitly reviewed; unreviewed dynamic mechanisms still fail.
-- checker inventory tests: original 14 method bodies remain exact, with two added methods for reviewed positive cases and 21 shape/location rejection controls.
-- hia_agent_contract.py: restore the complete 39-resource development addition; all 11 groups total 187, retaining original main order and other functions.
-- tools/hia_front_generator.py: keep the original front emission rule so its two fixed HIA inputs remain byte-identical; shared main CSE remains active.
-- tools/generate_hia_source_admission.py: keep the original revision-three emission rule; its existing frozen SHA and rejection remain unchanged.
-- the combined product workflow: retain the original Rust input SHA file in the existing always-upload artifact paths.
+The second attempt's complete evidence manifest e9b80273d5b2edf16459246502af8222d65b9e65 and independently verified complete artifact are rooted at audit commit 13fca5014f678c8ab175e40e25103be0456d75d6. Earlier failures remain immutable.
 
-Python 3.12 local diagnostics are recorded separately. In the previous complete owner loop the checker and first 88 owner generators succeeded; source admission then failed at its frozen-source guard. The failure and all changed bytes were captured. The narrow owner fixes restore the original fixed HIA hashes without changing their expected values or shared main optimizations. These results do not confer original Python 3.14.4, Source, native, cold, or whole-native qualification.
+## Exact authored composition
 
-## Actual workflow
+The input manifest now combines 37 immutable packets into 317 authored paths through 50 explicit overrides. It retains 36 exact original files and 185 regeneration seeds. No authored path collides with those retained or seed paths. Four new packets are mounted as real Git blobs in this harness:
 
-Python 3.14.4 merges the fixed heads, resolves only declared source transitions, checks every Python syntax unit, generates the checker, runs all 109 owner generators, performs the 55 physical path migrations only after complete generation, regenerates checker/language/support metadata, repeats every owner generator, checks exact reproducibility, and records the runtime source inventory once. It then runs the complete 212-selector Source selection with real ordered start/stop IDs and all original 530-main/973-development executed method IDs preserved through explicit selector mappings.
+- 13 source-role and fixture fixes: complete resource role mappings, strict absent-selector fixtures, and the current checker provider edges.
+- 8 backend and HIA asset fixes: a complete normalization materializer preserving the exact original prefix; original-family SHA and ELF contracts; explicit backend/resource family bindings.
+- 44 retained-caller and fixture fixes: three exact frozen original caller records, strict fixed-delta admissions, complete resources, and five new helper tests.
+- One product workflow delta registering that new Source class. The Native job bytes are unchanged.
 
-The materializer checks the frozen Git tree, index, tracked/untracked status, and independently reads every frozen path's actual bytes and Git mode before/after Source and after reproduction. A concrete control proved it detects an equal-length mutation hidden from git diff by assume-unchanged and preserved mtime. Its exact published driver identity is 53aa71018420afd2db6a46e7afd2d66bbbe87274 (48319 bytes). Complete failure streams are retained, with bounded prefixed diagnostics also shown in logs.
+The physical normalization materializer migration explicitly records its original 41578-byte prefix and its complete 58467-byte HIA program. It is not labelled byte-identical relocation. The admission checks the exact original and target hashes, prefix, ordinary target type, and actual 0644 mode before reading the target. All other physical migration declarations are unchanged.
 
-All failures preserve terminal source bytes and original outcomes. Candidate publication is only a verified Git tree, with no product ref mutation. Whole-native remains false. This harness does not switch defaults, delete legacy production implementations, or transfer previous qualifications.
+The Source contract has 1209 declared paths. Registration has 213 selectors, including one new class with five authored methods; actual method count must be obtained by loading. The original main 530 and development 973 method-ID projections remain mandatory. The strict Source result predicate and 1800-second suite limit are unchanged.
+
+## Actual workflow and authority
+
+CPython 3.14.4 merges the fixed heads, applies only declared source transitions, parses every Python unit, runs the checker and all 109 owner generators, retires the 55 declared legacy paths in the isolated development tree, refreshes support metadata, repeats all 109 generators, checks exact reproducibility, and records the final runtime source inventory. It then executes the complete Source suite and independently checks every frozen file's bytes and Git mode before and after.
+
+The credential-free Source subprocess permits https and file Git protocols so the original local partial-clone fixture can run. Authenticated repository fetches remain https-only. The harness rejects an authenticated subprocess requesting the local file protocol before process launch.
+
+Driver 03249a2c928055f5451a3ab8bbfbccf47eee8a91 verifies the final local Git tree and emits the exact tree delta. Only after Source PASS does it upload newly generated source blobs with full readback. It never creates a remote tree, commit, or ref. Authorized Git connector publication is a separate operation after actual Source success and independent review.
+
+Local CPython 3.12 repair controls, original failures, and original raw streams are kept separately; they do not confer CPython 3.14.4, native, cold, or whole-native qualification. This harness executes no original Native/cold job and changes no product default. The full native rewrite remains open.
