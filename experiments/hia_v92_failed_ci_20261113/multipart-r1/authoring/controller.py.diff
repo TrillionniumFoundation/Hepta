@@ -1,0 +1,438 @@
+--- reviewed-original/controller.py
++++ new-v92/controller.py
+@@ -1,4 +1,4 @@
+-"""Deliver one to ten sealed contiguous parts of one historical ZIP; execute no product code."""
++"""Deliver three exact failed v92 CI ZIP ranges and fixed step42 originals; execute no product code."""
+ from __future__ import annotations
+ from hashlib import sha256
+ import argparse
+@@ -107,7 +107,7 @@
+     raw = read(control / 'policy.json', 1 << 20, args.policy_sha256)
+     policy = json.loads(raw)
+     fixed_policy(policy)
+-    require(policy.get('schema') == 'hia.actions.v88-full-original-parts-policy.v1'
++    require(policy.get('schema') == 'hia.actions.v92-ci-failed-original-parts-policy.v1'
+             and policy.get('repository') == REPO
+             and re.fullmatch(r'[0-9a-f]{40}', args.control_commit) is not None,
+             'fixed policy/commit differs')
+@@ -147,7 +147,7 @@
+     require(args.root.is_absolute() and args.root == root
+             and not any(x.is_symlink() for x in (temp, *temp.parents)),
+             'new runner root or ancestor differs')
+-    context = {'schema': 'hia.actions.v88-full-original-parts-context.v1',
++    context = {'schema': 'hia.actions.v92-ci-failed-original-parts-context.v1',
+         'repository': REPO, 'event': 'create', 'event_ref': event['ref'], 'event_ref_type': 'branch',
+         'event_sha256': sha256(event_raw).hexdigest(), 'run_attempt': 1,
+         'run_id': int(os.environ['GITHUB_RUN_ID']), 'run_number': int(os.environ['GITHUB_RUN_NUMBER']),
+@@ -196,7 +196,7 @@
+               'command': command, 'cwd': str(root), 'source_identities': identities}
+     config_raw = wire(config)
+     create(root / 'guard/request.json', config_raw)
+-    setup = {'schema': 'hia.actions.v88-full-original-parts-setup.v1',
++    setup = {'schema': 'hia.actions.v92-ci-failed-original-parts-setup.v1',
+         'status': 'PREPARED_NOT_EXECUTED', 'context': context,
+         'guardian_config_sha256': sha256(config_raw).hexdigest(),
+         'source_identities': identities, 'command': command,
+@@ -255,7 +255,7 @@
+     command = [context['python']['resolved'], '-I', '-S', '-B',
+                str(root / 'control/worker.py'), '--root', str(root),
+                '--policy-sha256', context['policy_sha256']]
+-    require(setup.get('schema') == 'hia.actions.v88-full-original-parts-setup.v1'
++    require(setup.get('schema') == 'hia.actions.v92-ci-failed-original-parts-setup.v1'
+             and setup.get('status') == 'PREPARED_NOT_EXECUTED'
+             and setup.get('context') == context and setup.get('command') == command
+             and setup.get('source_identities') == expected_setup_identities(context, policy, root)
+@@ -348,7 +348,7 @@
+     offset = 0
+     while offset < pin['bytes']:
+         ordinal = len(parts)
+-        count = min(312 << 20, pin['bytes'] - offset)
++        count = min(256 << 20, pin['bytes'] - offset)
+         parts.append({'ordinal': ordinal, 'offset': offset, 'bytes': count,
+                       'name': 'part-%02d.bin' % ordinal})
+         offset += count
+@@ -363,7 +363,7 @@
+ 
+ 
+ def fixed_policy(policy):
+-    require(policy.get('schema') == 'hia.actions.v88-full-original-parts-policy.v1'
++    require(policy.get('schema') == 'hia.actions.v92-ci-failed-original-parts-policy.v1'
+             and policy.get('status') == 'FROZEN_OFFICIAL_TRANSPORT_INPUTS_UNEXECUTED'
+             and policy.get('input_pins_frozen') is True,
+             'draft policy has no frozen official artifact identity; execution refused')
+@@ -382,7 +382,7 @@
+             and policy.get('limits') == {
+                 'controller_seconds': 900, 'cleanup_seconds': 3, 'transfer_seconds': 720,
+                 'maximum_original_bytes': 3 << 30, 'maximum_parts': 10,
+-                'part_bytes': 312 << 20, 'public_part_bytes': 320 << 20,
++                'part_bytes': 256 << 20, 'public_part_bytes': 320 << 20,
+                 'diagnostic_bytes_per_part': 2 << 20, 'document_bytes_per_part': 3 << 20,
+                 'private_metadata_reserve_bytes': 64 << 20,
+                 'minimum_free_bytes': 8 << 30, 'minimum_free_inodes': 100000},
+@@ -396,7 +396,7 @@
+             and type(source.get('profile')) is str and 0 < len(source['profile']) <= 256,
+             'source provenance identity differs')
+     require(set(policy.get('control_files', {})) == {
+-        'controller.py', 'worker.py', 'guardian.py', 'process_owner_impl.py', 'original_receiver.py'},
++        'controller.py', 'worker.py', 'guardian.py', 'process_owner_impl.py', 'original_receiver.py', 'diagnostics.py'},
+         'fixed five custody controls differ')
+     require(policy.get('proxy_policy') == 'USE_CONFIGURED_ENVIRONMENT_PROXIES'
+             and policy.get('slice_publication') == 'RELOCATE_SAME_FILESYSTEM_AFTER_CLOSED_ECHILD'
+@@ -417,7 +417,7 @@
+ def accept_worker(report, policy, setup, root):
+     pin = fixed_policy(policy)
+     parts = expected_parts(policy)
+-    require(report.get('schema') == 'hia.actions.v88-full-original-parts-worker.v1'
++    require(report.get('schema') == 'hia.actions.v92-ci-failed-original-parts-worker.v1'
+             and report.get('status') == 'SEALED_PARTS_PENDING_NATURAL_GUARDIAN'
+             and report.get('root') == str(root)
+             and report.get('policy_sha256') == setup['context']['policy_sha256']
+@@ -426,7 +426,8 @@
+             and report.get('project_code_executed') is False
+             and report.get('old_runs_replayed') is False
+             and report.get('original_product_statuses_reclassified') is False
+-            and report.get('original_ZIP_members_decompressed') is False
++            and report.get('original_ZIP_members_decompressed') is True
++            and type(report.get('elapsed_ns')) is int and 0 <= report['elapsed_ns'] <= 720 * 1000000000
+             and report.get('token_or_signed_URL_recorded') is False
+             and report.get('natural_guardian_acceptance_required') is True
+             and report.get('proxy_policy') == 'USE_CONFIGURED_ENVIRONMENT_PROXIES'
+@@ -621,6 +622,157 @@
+     return actual
+ 
+ 
++def retain_diagnostics(root, public, policy, worker_report=None):
++    """Only called after this operation's bound ECHILD; retain failures too."""
++    import importlib.util
++    source = root / 'control/diagnostics.py'
++    expected = policy['control_files']['diagnostics.py']
++    require(len(read(source, 1 << 20, expected['sha256'])) == expected['bytes'],
++            'diagnostic control identity differs')
++    spec = importlib.util.spec_from_file_location('v92_fixed_diagnostic_reader', source)
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    require(policy.get('diagnostics') == module.LIMITS, 'diagnostic policy differs')
++    folder = root / 'diagnostics'
++    destination = public / 'small/originals'
++    result = {'schema': 'hia.v92.closed-step42-original-capture.v1',
++              'status': 'HOLD', 'closed_echild_required': True,
++              'original_failure_reclassified': False, 'qualification_executed': False,
++              'files': [], 'errors': [], 'observed_partial_originals_preserved': True}
++    validated = False
++    expected_records = {}
++    def error(stage, exc):
++        result['errors'].append({'stage': stage, 'type': type(exc).__name__,
++                                'refusal': str(exc) if type(exc) in (Refusal, module.Refusal) else None})
++    try:
++        value, index_pin = document(folder / 'INDEX.json', 4 << 20)
++        full_index_pin = file_record(folder / 'INDEX.json', 4 << 20)
++        if worker_report is not None:
++            same_original_record(worker_report.get('diagnostics'), full_index_pin)
++        require(worker_report is not None and value.get('schema') == 'hia.v92-original-step42-diagnostics.v1'
++                and value.get('artifact') == policy['artifact']
++                and value.get('status') == 'AVAILABLE_STEP42_ORIGINALS_PRESERVED_NOT_QUALIFICATION'
++                and value.get('all_members_fully_read') is True
++                and value.get('complete_selection_of_available_originals') is True
++                and value.get('original_workflow_status') == 'failure'
++                and value.get('qualification_executed') is False
++                and value.get('product_code_imported') is False
++                and value.get('original_failure_reclassified') is False
++                and value.get('errors') == [] and value.get('limits') == module.LIMITS
++                and value.get('selection') == {'top_level': list(module.TOP_LEVEL),
++                    'prefix': module.PREFIX, 'suffixes': ['.json', '.jsonl', '.log']},
++                'complete original ZIP/diagnostic result binding differs')
++        inventory_raw = read(folder / 'FULL-INVENTORY.jsonl', 64 << 20)
++        directory_raw = read(folder / 'DIRECTORY.jsonl', 64 << 20)
++        require(inventory_raw.endswith(b'\n') and directory_raw.endswith(b'\n'),
++                'complete original metadata final newline missing')
++        inventory = [json.loads(line) for line in inventory_raw.splitlines()]
++        directory = [json.loads(line) for line in directory_raw.splitlines()]
++        require(type(value.get('members')) is int and 0 < len(inventory) == len(directory)
++                == value['members'] <= module.LIMITS['maximum_members'],
++                'complete original ZIP metadata denominator differs')
++        names = []
++        for index, (observed, declared) in enumerate(zip(inventory, directory)):
++            name = module.safe_name(observed['name'], observed['directory'])
++            require(type(observed.get('index')) is int and observed['index'] == index
++                    and type(declared.get('index')) is int and declared['index'] == index
++                    and observed.get('body_fully_read') is True
++                    and type(observed.get('bytes')) is int and observed['bytes'] >= 0
++                    and type(observed.get('crc32')) is int
++                    and type(observed.get('directory')) is bool
++                    and re.fullmatch('[0-9a-f]{64}', observed.get('sha256', ''))
++                    and all(observed[k] == declared[k] for k in ('name', 'bytes', 'crc32')),
++                    'original full body inventory row differs')
++            names.append(name)
++        require(len(names) == len(set(names))
++                and sum(row['bytes'] for row in inventory) == value.get('expanded_bytes')
++                and value['expanded_bytes'] <= module.LIMITS['maximum_expanded_bytes'],
++                'duplicate original inventory or expanded bytes differ')
++        selected = [row for row in inventory if not row['directory'] and module.selected_name(row['name'])]
++        require(type(value.get('selected')) is list and len(value['selected']) == len(selected)
++                <= module.LIMITS['maximum_selected_files']
++                and sum(row['bytes'] for row in selected) == value.get('selected_bytes')
++                <= module.LIMITS['maximum_selected_bytes'],
++                'complete fixed diagnostic original set differs')
++        for observed, chosen in zip(selected, value['selected']):
++            require(all(chosen.get(k) == v for k, v in observed.items())
++                    and chosen.get('retained_name') == 'member-%05d.bin' % observed['index']
++                    and chosen.get('truncated') is False
++                    and chosen['bytes'] <= module.LIMITS['maximum_selected_file_bytes'],
++                    'fixed diagnostic original mapping differs')
++            actual = file_record(folder / chosen['retained_name'], module.LIMITS['maximum_selected_file_bytes'])
++            same_original_record(chosen.get('actual'), actual)
++            require(actual['bytes'] == observed['bytes'] and actual['sha256'] == observed['sha256'],
++                    'actual diagnostic original bytes differ from complete ZIP inventory')
++            expected_records[chosen['retained_name']] = actual
++        for name, key in [('DIRECTORY.jsonl', 'directory'), ('FULL-INVENTORY.jsonl', 'inventory')]:
++            actual = file_record(folder / name, 64 << 20)
++            same_original_record(value.get(key), actual)
++            expected_records[name] = actual
++        expected_records['INDEX.json'] = full_index_pin
++        require(sum(record['bytes'] for name, record in expected_records.items() if not name.startswith('member-'))
++                <= module.LIMITS['maximum_metadata_bytes'], 'whole diagnostic metadata bound exceeded')
++        expected_missing = [name for name in module.EXPECTED if name not in names]
++        require(value.get('missing_expected') == expected_missing
++                and value.get('expected_originals_all_present') == (not expected_missing),
++                'original missing report inventory is inaccurate')
++        require(set(os.listdir(folder)) == set(expected_records),
++                'complete diagnostic namespace differs from original INDEX')
++        result.update(index_original=index_pin, complete_members=len(inventory),
++                      complete_expanded_bytes=value['expanded_bytes'], selected_count=len(selected),
++                      selected_bytes=value['selected_bytes'], missing_expected=expected_missing,
++                      original_reports_missing_does_not_imply_product_success=True)
++        validated = True
++    except BaseException as exc:
++        error('COMPLETE_DIAGNOSTIC_ACCEPTANCE', exc)
++    # Even if acceptance failed, preserve each actual bounded fixed namespace
++    # original independently; one damaged item cannot suppress the others.
++    if os.path.lexists(folder):
++        entry = folder.lstat()
++        if stat.S_ISDIR(entry.st_mode) and not stat.S_ISLNK(entry.st_mode) and entry.st_uid == os.geteuid():
++            names = sorted(os.listdir(folder))
++            reserved_data = reserved_metadata = 0
++            if len(names) > module.LIMITS['maximum_selected_files'] + 3:
++                error('DIAGNOSTIC_FILE_COUNT', Refusal('fixed diagnostic file count exceeded'))
++                names = []
++            for name in names:
++                try:
++                    is_data = re.fullmatch(r'member-[0-9]{5}\.bin', name) is not None
++                    require(is_data or name in ('INDEX.json', 'DIRECTORY.jsonl', 'FULL-INVENTORY.jsonl'),
++                            'unexpected fixed diagnostic file name')
++                    maximum = module.LIMITS['maximum_selected_file_bytes'] if is_data else module.LIMITS['maximum_metadata_bytes']
++                    record = file_record(folder / name, maximum)
++                    if is_data:
++                        reserved_data += record['bytes']
++                        require(reserved_data <= module.LIMITS['maximum_selected_bytes'],
++                                'actual partial diagnostic data budget exceeded')
++                    else:
++                        reserved_metadata += record['bytes']
++                        require(reserved_metadata <= module.LIMITS['maximum_metadata_bytes'],
++                                'actual partial diagnostic metadata budget exceeded')
++                    if validated:
++                        require(record == expected_records[name], 'accepted diagnostic original changed')
++                    actual = relocate_slice(folder / name, destination / name, record)
++                    result['files'].append({'name': name, 'original': record, 'retained': actual,
++                        'accepted_complete_original': validated, 'partial_not_promoted': not validated})
++                except BaseException as exc:
++                    error('PRESERVE_' + name, exc)
++        else:
++            error('DIAGNOSTIC_DIRECTORY', Refusal('diagnostic namespace is not an owned ordinary directory'))
++    else:
++        result['missing_directory'] = True
++    result['complete'] = validated and not result['errors'] and len(result['files']) == len(expected_records)
++    if result['complete']:
++        result['status'] = 'AVAILABLE_STEP42_ORIGINALS_VERIFIED_NOT_QUALIFICATION'
++    raw = wire(result)
++    require(len(raw) <= 4 << 20, 'diagnostic capture receipt exceeds bound')
++    create(public / 'small/SMALL-READBACK.json', raw)
++    require(read(public / 'small/SMALL-READBACK.json', 4 << 20) == raw,
++            'small diagnostic capture receipt full readback differs')
++    return result
++
++
++
+ def closed_storage_observation(root, public, policy):
+     """Bound this operation's actual files after ECHILD, before final documents.
+ 
+@@ -646,8 +798,21 @@
+         'supervisor.stdout.log', 'supervisor.stderr.log', 'recovery.json',
+         'recovery-terminal.json', 'api/artifact-%d.metadata.original.json' % pin['id'])
+     public_files = set()
++    small = public / 'small'
++    small_controls = {small / 'controls' / name.replace('/', '--') for name in diagnostic_names}
++    diagnostic_metadata = {'INDEX.json', 'DIRECTORY.jsonl', 'FULL-INVENTORY.jsonl'}
++    def diagnostic_category(child):
++        if child.parent in (root / 'diagnostics', small / 'originals'):
++            if re.fullmatch(r'member-[0-9]{5}\.bin', child.name):
++                return 'step42_original'
++            if child.name in diagnostic_metadata:
++                return 'step42_metadata'
++        if child in small_controls or child == small / 'SMALL-READBACK.json':
++            return 'small_controls'
++        return None
+     allowed_dirs = {root, public} | {root / name for name in
+-                                    ('control', 'guard', 'original', 'parts', 'api')}
++                                    ('control', 'guard', 'original', 'parts', 'api', 'diagnostics')}
++    allowed_dirs |= {small, small / 'originals', small / 'controls'}
+     for part in parts:
+         directory = public / ('part-%02d' % part['ordinal'])
+         allowed_dirs |= {directory, directory / 'controls'}
+@@ -669,7 +834,7 @@
+             rows.append({'path': str(path), 'kind': 'directory',
+                          'identity': list(identity(before)), 'allocated_bytes': before.st_blocks * 512})
+             names = os.listdir(fd)
+-            require(len(rows) + len(names) <= 512, 'actual storage entry count exceeds fixed bound')
++            require(len(rows) + len(names) <= 4096, 'actual storage entry count exceeds fixed bound')
+             for name in sorted(names):
+                 child = path / name
+                 observed = os.stat(name, dir_fd=fd, follow_symlinks=False)
+@@ -681,7 +846,7 @@
+                             'actual retained storage is not owned single-link regular data')
+                     category = ('payload' if child in data_paths else
+                                 'private_metadata' if child in private_files else
+-                                'public_diagnostic' if child in public_files else None)
++                                'public_diagnostic' if child in public_files else diagnostic_category(child))
+                     require(category is not None, 'unexpected file in the fixed custody namespace')
+                     inode = (observed.st_dev, observed.st_ino)
+                     require(inode not in unique, 'duplicate retained inode in closed storage')
+@@ -691,7 +856,7 @@
+                                  'allocated_bytes': observed.st_blocks * 512})
+                 require(identity(os.stat(name, dir_fd=fd, follow_symlinks=False)) == identity(observed),
+                         'actual storage child changed during observation')
+-                require(len(rows) <= 512, 'actual storage entry count exceeds fixed bound')
++                require(len(rows) <= 4096, 'actual storage entry count exceeds fixed bound')
+             require(identity(os.fstat(fd)) == identity(before)
+                     and identity(path.lstat()) == identity(before),
+                     'actual storage directory changed during observation')
+@@ -701,23 +866,27 @@
+     visit(public)
+     sizes = {key: sum(row['identity'][6] for row in rows
+                       if row.get('category') == key)
+-             for key in ('payload', 'private_metadata', 'public_diagnostic')}
++             for key in ('payload', 'private_metadata', 'public_diagnostic',
++                         'step42_original', 'step42_metadata', 'small_controls')}
+     require(sizes['payload'] <= 2 * pin['bytes']
+             and sizes['private_metadata'] <= 64 << 20
+-            and sizes['public_diagnostic'] <= len(parts) * MAX_DIAGNOSTIC_BYTES,
++            and sizes['public_diagnostic'] <= len(parts) * MAX_DIAGNOSTIC_BYTES
++            and sizes['step42_original'] <= 128 << 20
++            and sizes['step42_metadata'] <= 64 << 20
++            and sizes['small_controls'] <= 6 << 20,
+             'actual retained byte budget exceeds the fixed two-replica plan')
+     allocation = sum(row['allocated_bytes'] for row in rows)
+-    final_documents = len(parts) * (3 << 20)
++    final_documents = (len(parts) + 1) * (3 << 20)
+     upload_workspace = 320 << 20
+     filesystem_reserve = 512 << 20
+     require(allocation + final_documents + upload_workspace + filesystem_reserve <= 8 << 30,
+             'observed storage plus remaining bounded reserves exceeds admission capacity')
+     capacity = os.statvfs(root.parent)
+-    remaining_inode_reserve = 1024 + 2 * len(parts)
++    remaining_inode_reserve = 1024 + 2 * (len(parts) + 1)
+     require(capacity.f_bavail * capacity.f_frsize >= final_documents + upload_workspace + filesystem_reserve
+             and capacity.f_favail >= remaining_inode_reserve,
+             'remaining ordinary storage reserve is unavailable')
+-    return {'schema': 'hia.v88-original-transport.closed-storage.v1',
++    return {'schema': 'hia.v92-original-transport.closed-storage.v1',
+             'entry_count': len(rows), 'single_link_regular_files': len(unique),
+             'logical_bytes_by_category': sizes, 'allocated_bytes_observed': allocation,
+             'future_final_document_bytes_reserved': final_documents,
+@@ -752,7 +921,10 @@
+         directory = public / ('part-%02d' % item['ordinal'])
+         directory.mkdir(mode=0o700)
+         (directory / 'controls').mkdir(mode=0o700)
+-    result = {'schema': 'hia.actions.v88-full-original-parts-final.v1',
++    (public / 'small').mkdir(mode=0o700)
++    (public / 'small/originals').mkdir(mode=0o700)
++    (public / 'small/controls').mkdir(mode=0o700)
++    result = {'schema': 'hia.actions.v92-ci-failed-original-parts-final.v1',
+               'status': 'FULL_ZIP_CUSTODY_HOLD', 'context': context, 'artifact': pin,
+               'expected_parts': parts, 'parts': [], 'errors': [], 'missing_originals': [],
+               'typed_download_observations': [], 'typed_slice_observations': [], 'captured_controls': [],
+@@ -768,6 +940,8 @@
+     accepted = False
+     captures_complete = True
+     storage_observed = False
++    diagnostics_complete = False
++    report = None
+     copied = []
+     def error(stage, exc):
+         result['errors'].append({'stage': stage, 'type': type(exc).__name__,
+@@ -860,6 +1034,14 @@
+                     result['typed_slice_observations'].append(typed_observation(observed_path))
+                 except BaseException as exc:
+                     error('SLICE_TYPE_%d' % item['ordinal'], exc)
++        try:
++            diagnostic_capture = retain_diagnostics(root, public, policy, report)
++            result['diagnostic_capture'] = diagnostic_capture
++            diagnostics_complete = diagnostic_capture['complete']
++            result['original_ZIP_members_decompressed'] = diagnostics_complete
++            require(diagnostics_complete, 'fixed diagnostic originals are incomplete; preserve HOLD')
++        except BaseException as exc:
++            error('STEP42_DIAGNOSTIC_CAPTURE', exc)
+         fixed = ['context.json', 'setup.json', 'guard/request.json', 'guard/guardian.json',
+                  'guard/child.stdout.log', 'guard/child.stderr.log',
+                  'supervisor.stdout.log', 'supervisor.stderr.log',
+@@ -889,6 +1071,20 @@
+             except BaseException as exc:
+                 captures_complete = False
+                 error('CAPTURE_' + name, exc)
++        small_control_bytes = 0
++        result['small_controls'] = []
++        for name in fixed:
++            try:
++                source = root / name
++                actual = file_record(source, 8 << 20)
++                small_control_bytes += actual['bytes']
++                require(small_control_bytes <= MAX_DIAGNOSTIC_BYTES, 'whole small control bound exceeded')
++                copied_control = copy_original(source, public / 'small/controls' / name.replace('/', '--'), actual)
++                result['small_controls'].append({'name': name, 'original': actual, 'retained': copied_control})
++            except BaseException as exc:
++                captures_complete = False
++                error('SMALL_CONTROL_' + name, exc)
++        result['small_control_bytes'] = small_control_bytes
+         result['diagnostic_bytes_per_part'] = diagnostic_bytes
+         result['diagnostic_budget_reserved_bytes_per_part'] = diagnostic_reserved_bytes
+         try:
+@@ -902,7 +1098,7 @@
+         except BaseException as exc:
+             error('CLOSED_STORAGE_BUDGET', exc)
+ 
+-    complete = (closed and natural and accepted and captures_complete and storage_observed
++    complete = (closed and natural and accepted and captures_complete and storage_observed and diagnostics_complete
+                 and result.get('original_full_ZIP_retained_private') is True
+                 and result.get('source_inputs_preserved') is True
+                 and len(result['parts']) == len(parts) and not result['errors']
+@@ -913,7 +1109,7 @@
+     for item in parts:
+         directory = public / ('part-%02d' % item['ordinal'])
+         member = next((x for x in result['parts'] if x['ordinal'] == item['ordinal']), None)
+-        part_doc = {'schema': 'hia.v88-original-zip-part.v1', 'artifact': pin,
++        part_doc = {'schema': 'hia.v92-original-zip-part.v1', 'artifact': pin,
+                     'expected': item, 'observed': member, 'status': result['status'],
+                     'run_id': context['run_id'], 'run_attempt': 1,
+                     'workflow_commit': context['actual_workflow_commit'],
+@@ -943,6 +1139,22 @@
+                 'public fixed artifact exceeds file or byte cap')
+         sync_dir(directory / 'controls')
+         sync_dir(directory)
++    create(public / 'small/FINAL.json', final_raw)
++    require(read(public / 'small/FINAL.json', 2 << 20) == final_raw,
++            'identical small FINAL complete readback differs')
++    small_records = []
++    for path in sorted((public / 'small').rglob('*')):
++        entry = path.lstat()
++        require(not stat.S_ISLNK(entry.st_mode), 'small public symlink refused')
++        if stat.S_ISDIR(entry.st_mode):
++            require(entry.st_uid == os.geteuid(), 'small public directory ownership differs')
++        else:
++            small_records.append(file_record(path, 64 << 20))
++    require(len(small_records) <= 1040 and sum(x['bytes'] for x in small_records) <= 224 << 20,
++            'small complete public artifact exceeds its fixed bound')
++    for folder in ('originals', 'controls'):
++        sync_dir(public / 'small' / folder)
++    sync_dir(public / 'small')
+     sync_dir(public)
+     print(json.dumps({'status': result['status'], 'parts': len(parts),
+                       'complete_local_multipart_readback': complete,

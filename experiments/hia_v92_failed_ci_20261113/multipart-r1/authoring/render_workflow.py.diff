@@ -1,0 +1,54 @@
+--- reviewed-original/render_workflow.py
++++ new-v92/render_workflow.py
+@@ -11,11 +11,11 @@
+ import re
+ 
+ 
+-PREFIX = 'experiments/hia_v89_full32_failed_custody_20261112/multipart-r1'
++PREFIX = 'experiments/hia_v92_failed_ci_20261113/multipart-r1'
+ EXPECTED_LIMITS = {
+     'controller_seconds': 900, 'cleanup_seconds': 3, 'transfer_seconds': 720,
+     'maximum_original_bytes': 3 << 30, 'maximum_parts': 10,
+-    'part_bytes': 312 << 20, 'public_part_bytes': 320 << 20,
++    'part_bytes': 256 << 20, 'public_part_bytes': 320 << 20,
+     'diagnostic_bytes_per_part': 2 << 20, 'document_bytes_per_part': 3 << 20,
+     'private_metadata_reserve_bytes': 64 << 20,
+     'minimum_free_bytes': 8 << 30, 'minimum_free_inodes': 100000,
+@@ -24,8 +24,8 @@
+         if: always()
+         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+         with:
+-          name: hia-v89-full32-failed-original-part-ORDINAL_PLACEHOLDER-${{ github.run_id }}-1
+-          path: '${{ runner.temp }}/hia-v89-full32-failed-parts-public-r1/part-ORDINAL_PLACEHOLDER/'
++          name: hia-v92-failed-ci-original-part-ORDINAL_PLACEHOLDER-${{ github.run_id }}-1
++          path: '${{ runner.temp }}/hia-v92-failed-ci-parts-public-r1/part-ORDINAL_PLACEHOLDER/'
+           if-no-files-found: error
+           include-hidden-files: false
+           compression-level: 0
+@@ -44,7 +44,7 @@
+     require(policy.get('status') == 'FROZEN_OFFICIAL_TRANSPORT_INPUTS_UNEXECUTED'
+             and policy.get('input_pins_frozen') is True,
+             'actual official metadata is pending; no executable workflow can be rendered')
+-    require(policy.get('schema') == 'hia.actions.v88-full-original-parts-policy.v1'
++    require(policy.get('schema') == 'hia.actions.v92-ci-failed-original-parts-policy.v1'
+             and policy.get('repository') == 'TrillionniumFoundation/Hepta'
+             and policy.get('control_prefix') == PREFIX
+             and policy.get('limits') == EXPECTED_LIMITS,
+@@ -64,7 +64,7 @@
+     parts = []
+     offset = 0
+     while offset < pin['bytes']:
+-        count = min(312 << 20, pin['bytes'] - offset)
++        count = min(256 << 20, pin['bytes'] - offset)
+         parts.append({'ordinal': len(parts), 'offset': offset, 'bytes': count,
+                       'name': 'part-%02d.bin' % len(parts)})
+         offset += count
+@@ -73,7 +73,7 @@
+                     for k in ('ordinal', 'offset', 'bytes')),
+             'the complete deterministic partition must be frozen')
+     require(set(policy.get('control_files', {})) == {
+-        'controller.py', 'worker.py', 'guardian.py', 'original_receiver.py', 'process_owner_impl.py'},
++        'controller.py', 'worker.py', 'guardian.py', 'original_receiver.py', 'process_owner_impl.py', 'diagnostics.py'},
+         'five exact control files are required')
+     for name, expected in policy['control_files'].items():
+         raw = (directory / name).read_bytes()

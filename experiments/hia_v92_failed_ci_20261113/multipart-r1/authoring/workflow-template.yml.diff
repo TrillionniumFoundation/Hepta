@@ -1,0 +1,53 @@
+--- reviewed-original/workflow-template.yml
++++ new-v92/workflow-template.yml
+@@ -1,4 +1,4 @@
+-name: HIA v89 complete original ZIP in bounded artifacts
++name: HIA v92 failed CI original ranges and step42 diagnostics
+ 
+ on: [create]
+ 
+@@ -11,7 +11,7 @@
+       ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+           github.event_name == 'create' &&
+           github.event.ref_type == 'branch' &&
+-          github.event.ref == 'codex/hia-v89-full32-failed-original-parts-run-r1-20261112-e26e' &&
++          github.event.ref == 'codex/hia-v92-failed-ci-original-parts-r1-20261113-e26e' &&
+           github.run_attempt == '1' }}
+     runs-on: ubuntu-latest
+     timeout-minutes: 25
+@@ -43,7 +43,7 @@
+           HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+         run: |
+           unset LD_LIBRARY_PATH LD_PRELOAD
+-          python -I -S -B control/experiments/hia_v89_full32_failed_custody_20261112/multipart-r1/controller.py prepare --root "$RUNNER_TEMP/hia-v89-full32-failed-parts-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
++          python -I -S -B control/experiments/hia_v92_failed_ci_20261113/multipart-r1/controller.py prepare --root "$RUNNER_TEMP/hia-v92-failed-ci-parts-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+       - name: Read the one sealed original ZIP and create the fixed partition under the original 900-second guardian
+         id: owned_collection
+         timeout-minutes: 16
+@@ -53,7 +53,7 @@
+           HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+         run: |
+           unset LD_LIBRARY_PATH LD_PRELOAD
+-          python -I -S -B control/experiments/hia_v89_full32_failed_custody_20261112/multipart-r1/controller.py run --root "$RUNNER_TEMP/hia-v89-full32-failed-parts-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
++          python -I -S -B control/experiments/hia_v92_failed_ci_20261113/multipart-r1/controller.py run --root "$RUNNER_TEMP/hia-v92-failed-ci-parts-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+       - name: Independently retain every fixed part and controls after closed ECHILD
+         if: always()
+         timeout-minutes: 5
+@@ -62,5 +62,16 @@
+           HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+         run: |
+           unset LD_LIBRARY_PATH LD_PRELOAD
+-          python -I -S -B control/experiments/hia_v89_full32_failed_custody_20261112/multipart-r1/controller.py finalize --root "$RUNNER_TEMP/hia-v89-full32-failed-parts-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
++          python -I -S -B control/experiments/hia_v92_failed_ci_20261113/multipart-r1/controller.py finalize --root "$RUNNER_TEMP/hia-v92-failed-ci-parts-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
++      - name: Preserve available step42 original diagnostics and current closed owner first
++        if: always()
++        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
++        with:
++          name: hia-v92-failed-ci-step42-originals-${{ github.run_id }}-1
++          path: '${{ runner.temp }}/hia-v92-failed-ci-parts-public-r1/small/'
++          if-no-files-found: error
++          include-hidden-files: false
++          compression-level: 0
++          retention-days: 14
++          overwrite: false
+ UPLOAD_STEPS_PENDING_ACTUAL_COUNT

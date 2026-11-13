@@ -1,0 +1,96 @@
+--- reviewed-original/worker.py
++++ new-v92-final/worker.py
+@@ -1,4 +1,4 @@
+-"""Read and partition one frozen v88 historical artifact; never execute product payloads."""
++"""Read one exact failed v92 CI artifact, every ZIP body and fixed diagnostic originals; never execute payloads."""
+ from __future__ import annotations
+ 
+ from hashlib import sha256
+@@ -255,7 +255,7 @@
+     offset = 0
+     while offset < pin['bytes']:
+         ordinal = len(parts)
+-        count = min(312 << 20, pin['bytes'] - offset)
++        count = min(256 << 20, pin['bytes'] - offset)
+         parts.append({'ordinal': ordinal, 'offset': offset, 'bytes': count,
+                       'name': 'part-%02d.bin' % ordinal})
+         offset += count
+@@ -270,7 +270,7 @@
+ 
+ 
+ def fixed_policy(policy):
+-    require(policy.get('schema') == 'hia.actions.v88-full-original-parts-policy.v1'
++    require(policy.get('schema') == 'hia.actions.v92-ci-failed-original-parts-policy.v1'
+             and policy.get('status') == 'FROZEN_OFFICIAL_TRANSPORT_INPUTS_UNEXECUTED'
+             and policy.get('input_pins_frozen') is True,
+             'draft policy has no frozen official artifact identity; execution refused')
+@@ -289,7 +289,7 @@
+             and policy.get('limits') == {
+                 'controller_seconds': 900, 'cleanup_seconds': 3, 'transfer_seconds': 720,
+                 'maximum_original_bytes': 3 << 30, 'maximum_parts': 10,
+-                'part_bytes': 312 << 20, 'public_part_bytes': 320 << 20,
++                'part_bytes': 256 << 20, 'public_part_bytes': 320 << 20,
+                 'diagnostic_bytes_per_part': 2 << 20, 'document_bytes_per_part': 3 << 20,
+                 'private_metadata_reserve_bytes': 64 << 20,
+                 'minimum_free_bytes': 8 << 30, 'minimum_free_inodes': 100000},
+@@ -303,7 +303,7 @@
+             and type(source.get('profile')) is str and 0 < len(source['profile']) <= 256,
+             'source provenance identity differs')
+     require(set(policy.get('control_files', {})) == {
+-        'controller.py', 'worker.py', 'guardian.py', 'process_owner_impl.py', 'original_receiver.py'},
++        'controller.py', 'worker.py', 'guardian.py', 'process_owner_impl.py', 'original_receiver.py', 'diagnostics.py'},
+         'fixed five custody controls differ')
+     require(policy.get('proxy_policy') == 'USE_CONFIGURED_ENVIRONMENT_PROXIES'
+             and policy.get('slice_publication') == 'RELOCATE_SAME_FILESYSTEM_AFTER_CLOSED_ECHILD'
+@@ -365,7 +365,7 @@
+     control = root / 'control'
+     policy_raw = read(control / 'policy.json', 1 << 20, args.policy_sha256)
+     policy = json.loads(policy_raw)
+-    require(policy.get('schema') == 'hia.actions.v88-full-original-parts-policy.v1',
++    require(policy.get('schema') == 'hia.actions.v92-ci-failed-original-parts-policy.v1',
+             'multipart policy schema differs')
+     require(root == Path(os.environ['RUNNER_TEMP']).resolve() / policy['work_root_name'],
+             'private runner root differs')
+@@ -376,14 +376,14 @@
+     helper = load_helper(control, policy, root)
+     started = time.monotonic_ns()
+     deadline = started + 720 * 1000000000
+-    report = {'schema': 'hia.actions.v88-full-original-parts-worker.v1',
++    report = {'schema': 'hia.actions.v92-ci-failed-original-parts-worker.v1',
+               'status': 'FULL_ZIP_CUSTODY_HOLD', 'root': str(root),
+               'policy_sha256': args.policy_sha256,
+               'source': policy['source'], 'artifact': pin,
+               'API_attempts': [], 'GET_attempts': [],
+               'qualification_executed': False, 'project_code_executed': False,
+               'old_runs_replayed': False, 'original_product_statuses_reclassified': False,
+-              'original_ZIP_members_decompressed': False,
++              'original_ZIP_member_inspection_started': False,
+               'token_or_signed_URL_recorded': False,
+               'natural_guardian_acceptance_required': True,
+               'proxy_policy': 'USE_CONFIGURED_ENVIRONMENT_PROXIES',
+@@ -404,6 +404,17 @@
+         helper.checkpoint(report)
+         stage = 'MULTIPLE_CONTIGUOUS_PARTS'
+         report['partition'] = split_original(path, pin, policy, root, helper, deadline)
++        stage = 'FULL_ZIP_AND_FIXED_DIAGNOSTICS'
++        diagnostic_source = root / 'control/diagnostics.py'
++        diagnostic_pin = policy['control_files']['diagnostics.py']
++        diagnostic_raw = read(diagnostic_source, 1 << 20, diagnostic_pin['sha256'])
++        require(len(diagnostic_raw) == diagnostic_pin['bytes'], 'fixed diagnostic source size differs')
++        spec = importlib.util.spec_from_file_location('v92_full_zip_diagnostics', diagnostic_source)
++        diagnostics = importlib.util.module_from_spec(spec)
++        spec.loader.exec_module(diagnostics)
++        report['original_ZIP_member_inspection_started'] = True
++        report['diagnostics'] = diagnostics.inspect_zip(path, pin, root, deadline, helper, policy['diagnostics'])
++        helper.checkpoint(report)
+         stage = 'FULL_ORIGINAL_AFTER'
+         report['zip_after'] = helper.read_file_hash(path, pin['bytes'], pin['sha256'])
+         require(report['zip_before'] == report['zip_after'],
+@@ -413,6 +424,7 @@
+                       elapsed_ns=time.monotonic_ns() - started)
+         helper.create(root / 'recovery-terminal.json', wire(report))
+         helper.checkpoint(report)
++        deadline_check(deadline)
+         print(json.dumps({'status': report['status'], 'parts': len(parts),
+                           'bytes': pin['bytes'], 'qualification_executed': False}), flush=True)
+         return 0

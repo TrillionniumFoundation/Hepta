@@ -1,0 +1,149 @@
+def retain_diagnostics(root, public, policy, worker_report=None):
+    """Only called after this operation's bound ECHILD; retain failures too."""
+    import importlib.util
+    source = root / 'control/diagnostics.py'
+    expected = policy['control_files']['diagnostics.py']
+    require(len(read(source, 1 << 20, expected['sha256'])) == expected['bytes'],
+            'diagnostic control identity differs')
+    spec = importlib.util.spec_from_file_location('v92_fixed_diagnostic_reader', source)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    require(policy.get('diagnostics') == module.LIMITS, 'diagnostic policy differs')
+    folder = root / 'diagnostics'
+    destination = public / 'small/originals'
+    result = {'schema': 'hia.v92.closed-step42-original-capture.v1',
+              'status': 'HOLD', 'closed_echild_required': True,
+              'original_failure_reclassified': False, 'qualification_executed': False,
+              'files': [], 'errors': [], 'observed_partial_originals_preserved': True}
+    validated = False
+    expected_records = {}
+    def error(stage, exc):
+        result['errors'].append({'stage': stage, 'type': type(exc).__name__,
+                                'refusal': str(exc) if type(exc) in (Refusal, module.Refusal) else None})
+    try:
+        value, index_pin = document(folder / 'INDEX.json', 4 << 20)
+        full_index_pin = file_record(folder / 'INDEX.json', 4 << 20)
+        if worker_report is not None:
+            same_original_record(worker_report.get('diagnostics'), full_index_pin)
+        require(worker_report is not None and value.get('schema') == 'hia.v92-original-step42-diagnostics.v1'
+                and value.get('artifact') == policy['artifact']
+                and value.get('status') == 'AVAILABLE_STEP42_ORIGINALS_PRESERVED_NOT_QUALIFICATION'
+                and value.get('all_members_fully_read') is True
+                and value.get('complete_selection_of_available_originals') is True
+                and value.get('original_workflow_status') == 'failure'
+                and value.get('qualification_executed') is False
+                and value.get('product_code_imported') is False
+                and value.get('original_failure_reclassified') is False
+                and value.get('errors') == [] and value.get('limits') == module.LIMITS
+                and value.get('selection') == {'top_level': list(module.TOP_LEVEL),
+                    'prefix': module.PREFIX, 'suffixes': ['.json', '.jsonl', '.log']},
+                'complete original ZIP/diagnostic result binding differs')
+        inventory_raw = read(folder / 'FULL-INVENTORY.jsonl', 64 << 20)
+        directory_raw = read(folder / 'DIRECTORY.jsonl', 64 << 20)
+        require(inventory_raw.endswith(b'\n') and directory_raw.endswith(b'\n'),
+                'complete original metadata final newline missing')
+        inventory = [json.loads(line) for line in inventory_raw.splitlines()]
+        directory = [json.loads(line) for line in directory_raw.splitlines()]
+        require(type(value.get('members')) is int and 0 < len(inventory) == len(directory)
+                == value['members'] <= module.LIMITS['maximum_members'],
+                'complete original ZIP metadata denominator differs')
+        names = []
+        for index, (observed, declared) in enumerate(zip(inventory, directory)):
+            name = module.safe_name(observed['name'], observed['directory'])
+            require(type(observed.get('index')) is int and observed['index'] == index
+                    and type(declared.get('index')) is int and declared['index'] == index
+                    and observed.get('body_fully_read') is True
+                    and type(observed.get('bytes')) is int and observed['bytes'] >= 0
+                    and type(observed.get('crc32')) is int
+                    and type(observed.get('directory')) is bool
+                    and re.fullmatch('[0-9a-f]{64}', observed.get('sha256', ''))
+                    and all(observed[k] == declared[k] for k in ('name', 'bytes', 'crc32')),
+                    'original full body inventory row differs')
+            names.append(name)
+        require(len(names) == len(set(names))
+                and sum(row['bytes'] for row in inventory) == value.get('expanded_bytes')
+                and value['expanded_bytes'] <= module.LIMITS['maximum_expanded_bytes'],
+                'duplicate original inventory or expanded bytes differ')
+        selected = [row for row in inventory if not row['directory'] and module.selected_name(row['name'])]
+        require(type(value.get('selected')) is list and len(value['selected']) == len(selected)
+                <= module.LIMITS['maximum_selected_files']
+                and sum(row['bytes'] for row in selected) == value.get('selected_bytes')
+                <= module.LIMITS['maximum_selected_bytes'],
+                'complete fixed diagnostic original set differs')
+        for observed, chosen in zip(selected, value['selected']):
+            require(all(chosen.get(k) == v for k, v in observed.items())
+                    and chosen.get('retained_name') == 'member-%05d.bin' % observed['index']
+                    and chosen.get('truncated') is False
+                    and chosen['bytes'] <= module.LIMITS['maximum_selected_file_bytes'],
+                    'fixed diagnostic original mapping differs')
+            actual = file_record(folder / chosen['retained_name'], module.LIMITS['maximum_selected_file_bytes'])
+            same_original_record(chosen.get('actual'), actual)
+            require(actual['bytes'] == observed['bytes'] and actual['sha256'] == observed['sha256'],
+                    'actual diagnostic original bytes differ from complete ZIP inventory')
+            expected_records[chosen['retained_name']] = actual
+        for name, key in [('DIRECTORY.jsonl', 'directory'), ('FULL-INVENTORY.jsonl', 'inventory')]:
+            actual = file_record(folder / name, 64 << 20)
+            same_original_record(value.get(key), actual)
+            expected_records[name] = actual
+        expected_records['INDEX.json'] = full_index_pin
+        require(sum(record['bytes'] for name, record in expected_records.items() if not name.startswith('member-'))
+                <= module.LIMITS['maximum_metadata_bytes'], 'whole diagnostic metadata bound exceeded')
+        expected_missing = [name for name in module.EXPECTED if name not in names]
+        require(value.get('missing_expected') == expected_missing
+                and value.get('expected_originals_all_present') == (not expected_missing),
+                'original missing report inventory is inaccurate')
+        require(set(os.listdir(folder)) == set(expected_records),
+                'complete diagnostic namespace differs from original INDEX')
+        result.update(index_original=index_pin, complete_members=len(inventory),
+                      complete_expanded_bytes=value['expanded_bytes'], selected_count=len(selected),
+                      selected_bytes=value['selected_bytes'], missing_expected=expected_missing,
+                      original_reports_missing_does_not_imply_product_success=True)
+        validated = True
+    except BaseException as exc:
+        error('COMPLETE_DIAGNOSTIC_ACCEPTANCE', exc)
+    # Even if acceptance failed, preserve each actual bounded fixed namespace
+    # original independently; one damaged item cannot suppress the others.
+    if os.path.lexists(folder):
+        entry = folder.lstat()
+        if stat.S_ISDIR(entry.st_mode) and not stat.S_ISLNK(entry.st_mode) and entry.st_uid == os.geteuid():
+            names = sorted(os.listdir(folder))
+            reserved_data = reserved_metadata = 0
+            if len(names) > module.LIMITS['maximum_selected_files'] + 3:
+                error('DIAGNOSTIC_FILE_COUNT', Refusal('fixed diagnostic file count exceeded'))
+                names = []
+            for name in names:
+                try:
+                    is_data = re.fullmatch(r'member-[0-9]{5}\.bin', name) is not None
+                    require(is_data or name in ('INDEX.json', 'DIRECTORY.jsonl', 'FULL-INVENTORY.jsonl'),
+                            'unexpected fixed diagnostic file name')
+                    maximum = module.LIMITS['maximum_selected_file_bytes'] if is_data else module.LIMITS['maximum_metadata_bytes']
+                    record = file_record(folder / name, maximum)
+                    if is_data:
+                        reserved_data += record['bytes']
+                        require(reserved_data <= module.LIMITS['maximum_selected_bytes'],
+                                'actual partial diagnostic data budget exceeded')
+                    else:
+                        reserved_metadata += record['bytes']
+                        require(reserved_metadata <= module.LIMITS['maximum_metadata_bytes'],
+                                'actual partial diagnostic metadata budget exceeded')
+                    if validated:
+                        require(record == expected_records[name], 'accepted diagnostic original changed')
+                    actual = relocate_slice(folder / name, destination / name, record)
+                    result['files'].append({'name': name, 'original': record, 'retained': actual,
+                        'accepted_complete_original': validated, 'partial_not_promoted': not validated})
+                except BaseException as exc:
+                    error('PRESERVE_' + name, exc)
+        else:
+            error('DIAGNOSTIC_DIRECTORY', Refusal('diagnostic namespace is not an owned ordinary directory'))
+    else:
+        result['missing_directory'] = True
+    result['complete'] = validated and not result['errors'] and len(result['files']) == len(expected_records)
+    if result['complete']:
+        result['status'] = 'AVAILABLE_STEP42_ORIGINALS_VERIFIED_NOT_QUALIFICATION'
+    raw = wire(result)
+    require(len(raw) <= 4 << 20, 'diagnostic capture receipt exceeds bound')
+    create(public / 'small/SMALL-READBACK.json', raw)
+    require(read(public / 'small/SMALL-READBACK.json', 4 << 20) == raw,
+            'small diagnostic capture receipt full readback differs')
+    return result
+
