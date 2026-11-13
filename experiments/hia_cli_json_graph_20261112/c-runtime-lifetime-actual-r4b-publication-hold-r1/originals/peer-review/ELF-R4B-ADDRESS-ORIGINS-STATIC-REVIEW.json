@@ -1,0 +1,92 @@
+{
+  "blocking_findings": [],
+  "extra_primary_crosscheck": "Independently fetched bminor/glibc glibc-2.39 versions of these four files through read-only GitHub; same mapping-origin formulas. This does not identify the running libc version.",
+  "findings": [
+    {
+      "evidence": "glibc elf/dl-addr.c:31 assigns dli_fbase from l_map_start. include/link.h:254-256 explicitly separates this from l_addr.",
+      "id": "dladdr_mapping_start",
+      "result": "PASS"
+    },
+    {
+      "evidence": "glibc elf/rtld.c:1129-1131 derives l_addr from actual PHDR pointer and file virtual address; lines1158-1162 set l_map_start to lowest page-rounded load virtual address plus l_addr. ET_EXEC st_value is therefore not offset from nonzero dli_fbase.",
+      "id": "executable_coordinates",
+      "result": "PASS"
+    },
+    {
+      "evidence": "glibc elf/dl-map-segments.h:100-106 records l_addr as mapped start minus first segment mapstart; lines130-132 state the inverse relation. ET_DYN does not imply lowest virtual load page is zero.",
+      "id": "dynamic_coordinates",
+      "result": "PASS"
+    },
+    {
+      "evidence": "_mapping_relation computes bias=actual evaluator anchor-record value, requires bias=0 for ET_EXEC, page alignment, image_base=bias+lowest_load_page, and same first actual file map. _live_symbols uses bias+record value rather than dli_fbase+record value.",
+      "id": "r4b_two_origins",
+      "result": "PASS"
+    },
+    {
+      "evidence": "_runtime_profile reads the current positive power-of-two SC_PAGE_SIZE and uses it for the lowest load page, distinct from segment p_align.",
+      "id": "page_granularity",
+      "result": "PASS"
+    },
+    {
+      "evidence": "Unique executable file-backed symbols and actual map spans remain prerequisite before string_at; live symbols check both address endpoints via dladdr and full code bytes; final vectorcall exported pointer and runtime bytes/maps are rechecked. The full map/RELRO algorithm was not re-audited by this reviewer.",
+      "id": "anchors_and_file_spans",
+      "result": "PASS_IN_READ_SCOPE"
+    },
+    {
+      "evidence": "The r2 static ELF report says ET_EXEC type2, six PT_LOAD records and evaluator st_value25240320. This reviewer read that report but did not independently rehash the executable or reproduce a live map, and does not claim the report is a new runtime result.",
+      "id": "reported_frozen_profile",
+      "result": "OBSERVATION_OF_EXISTING_REPORT_ONLY"
+    }
+  ],
+  "not_claimed": [
+    "full runtime mapping qualification",
+    "all private-symbol ABI equivalence",
+    "new DSO load",
+    "runtime/lifetime tests",
+    "C evaluator semantic equivalence",
+    "current running libc version identity"
+  ],
+  "pins": [
+    {
+      "bytes": 21495,
+      "git_blob_sha1": "211c0d52e1888698143360cb9272cbb6bc3bd879",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-c-runtime-lifetime-plan-r4b/source/hepta/hia_cli_json_runtime312.py",
+      "sha256": "5eeaa2720dcd347ff3e3cc62a828d2eb5a582aa61f3bfb8813524b4c3ee925d1"
+    },
+    {
+      "bytes": 4423,
+      "git_blob_sha1": "a4d379d2c6e7acf911af7a8acb6c96423951c078",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-c-runtime-lifetime-plan-r4b/reference/glibc-2.41/elf/dl-addr.c",
+      "sha256": "cd180e2eeefe0263aba714487b8a9ae3d1a1a874634d9f7f04542fbacadecc4d"
+    },
+    {
+      "bytes": 13963,
+      "git_blob_sha1": "518bfd1670a98027ef871c3f1a8dc2006e452632",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-c-runtime-lifetime-plan-r4b/reference/glibc-2.41/include/link.h",
+      "sha256": "0f26df7954b8af2767add8b34b2accb6a7fcd9e3d9a3a729175b4834bd0bece2"
+    },
+    {
+      "bytes": 86992,
+      "git_blob_sha1": "00bec1531638ea133f5a9c1445c81d18f5cdc8f1",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-c-runtime-lifetime-plan-r4b/reference/glibc-2.41/elf/rtld.c",
+      "sha256": "dcc52dea8284139c8a55ac21bddd678d08ae9dc3b1de2d5dfc6342664174192e"
+    },
+    {
+      "bytes": 7933,
+      "git_blob_sha1": "203b6c7b0bdb282f935be43c756d906bc33b90c6",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-c-runtime-lifetime-plan-r4b/reference/glibc-2.41/elf/dl-map-segments.h",
+      "sha256": "741abb90d17c7c5ff437b3c52e12269bfe9c1ecd496d178e12c6ba8e1d7b771c"
+    },
+    {
+      "bytes": 13604,
+      "git_blob_sha1": "526ee62f3746d69bd13f9f8efa96916d0aa280ab",
+      "path": "/workspace/scratch/e26ed3e2edcf/native-cli-c-runtime-lifetime-plan-r4b/reference/independent-runtime-ELF/STATIC-ELF-REPORT.r2.json",
+      "sha256": "aef67e8e68a3c7e482704d9a8b1452a1c113b3abc00703405d024f99700abc53"
+    }
+  ],
+  "reviewer": "/root/hia_remote_audit",
+  "schema": "hepta.independent.static-review.v1",
+  "scope": "Official loader semantics, exact ET_EXEC versus ET_DYN address origins, and their r4b source binding only. No compiler, dlopen, mapped-code admission, runtime/lifetime case, or product invocation.",
+  "status": "STATIC_CLEAR_LIMITED_TO_ELF_ADDRESS_ORIGINS",
+  "unchanged_history": "Original r3 profile HOLD and old dli_fbase-as-bias source remain preserved. This review does not retroactively qualify them."
+}
