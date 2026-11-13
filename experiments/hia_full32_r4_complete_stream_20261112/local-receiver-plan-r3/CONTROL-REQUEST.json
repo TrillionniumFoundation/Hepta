@@ -1,0 +1,117 @@
+{
+  "Root_review_and_separate_source_control_authorization_required": true,
+  "cleanup_seconds": 3,
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "-I",
+    "-S",
+    "-B",
+    "/workspace/scratch/e26ed3e2edcf/full32-stream-private-proxy-plan-r3-20261113-e26e/controls/run_controls.py"
+  ],
+  "environment": {
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONUNBUFFERED": "1"
+  },
+  "expected_ids": [
+    "StreamFormatControls.test_01_stored_complete_zip",
+    "StreamFormatControls.test_02_signed_data_descriptors",
+    "StreamFormatControls.test_03_zip64_local_headers",
+    "StreamFormatControls.test_04_every_boundary_chunk",
+    "StreamFormatControls.test_05_truncated_original_stops",
+    "StreamFormatControls.test_06_descriptor_corruption_rejected",
+    "StreamFormatControls.test_07_central_metadata_corruption_rejected",
+    "StreamFormatControls.test_08_missing_end_record_rejected",
+    "StreamFormatControls.test_09_bytes_after_end_rejected",
+    "StreamFormatControls.test_10_duplicate_directory_names_rejected",
+    "StreamFormatControls.test_11_overlap_or_gap_rejected",
+    "StreamFormatControls.test_12_single_gzip_full_read",
+    "StreamFormatControls.test_13_gzip_crc_corruption_rejected",
+    "StreamFormatControls.test_14_second_gzip_stream_rejected",
+    "StreamFormatControls.test_15_raw_range_hash_is_not_inherited",
+    "StreamFormatControls.test_16_inner_all_bodies_and_embedded_catalog",
+    "StreamFormatControls.test_17_inner_body_mismatch_rejected",
+    "StreamFormatControls.test_18_buffered_nonzero_tar_tail_rejected",
+    "StreamFormatControls.test_19_special_original_is_metadata_only",
+    "StreamFormatControls.test_20_original_callback_exception_stops",
+    "LocalBoundaryControls.test_21_unwritten_reservation_still_requires_free_space",
+    "LocalBoundaryControls.test_22_provider_host_and_auth_boundary",
+    "LocalBoundaryControls.test_23_configured_proxy_kept_or_rejected_before_serialization",
+    "LocalBoundaryControls.test_24_only_exact_verified_temporary_can_be_disposed"
+  ],
+  "expected_methods": 24,
+  "inputs": {
+    "control/freeze_private_proxy.py": {
+      "bytes": 1986,
+      "sha256": "7b3e08445a43aef68ae510c30f0c9bb9f7b596778544d644d26a3558c912750d"
+    },
+    "control/guardian.py": {
+      "bytes": 10257,
+      "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023"
+    },
+    "control/launch.py": {
+      "bytes": 16748,
+      "sha256": "1b915a247e8e5814a475844048ee5bfca9e24ed9aa335fac24e94c1986aea638"
+    },
+    "control/local_io.py": {
+      "bytes": 22664,
+      "sha256": "49718a86587c0649e78cf03b114afcc8bc209955d28ff79dc310b55162ee1ed6"
+    },
+    "control/process_owner_impl.py": {
+      "bytes": 17601,
+      "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+    },
+    "control/stream_format.py": {
+      "bytes": 23432,
+      "sha256": "e5b2571ceae90505538134bfbfe47f38f5e914c7257dd1d1ca7874c00c118d95"
+    },
+    "control/worker.py": {
+      "bytes": 22701,
+      "sha256": "a1f348e9a1af4b7944581abdd4068f020f1cdc0b41ad6a9978a319e68a9d607e"
+    },
+    "controls/check_stream_consumer.py": {
+      "bytes": 22740,
+      "sha256": "77b45b8987a914fab7c0c4f068e56908f38155421a705ab8f7b96218578a74a7"
+    },
+    "controls/run_controls.py": {
+      "bytes": 5486,
+      "sha256": "14d5a02ace38307889d2ba73c0c2823ec95094d61e1f21a827532a84a3ac7767"
+    },
+    "reference/http-client-3.12.14.original.py": {
+      "bytes": 59574,
+      "sha256": "c2c0694155837d72fc710a4138e5d1e53ae1a652b117a2e23a5b1b0db527a0f9"
+    },
+    "reference/urllib-request-3.12.14.original.py": {
+      "bytes": 103724,
+      "sha256": "6ffc7d993de64319a40fad631966bd1fd643d355a5c154c1a8b1821f49e5c470"
+    }
+  },
+  "output": "/tmp/hia-full32-r4-stream-source-controls-r3-20261113-e26e",
+  "owner_implementation": "/workspace/scratch/e26ed3e2edcf/full32-stream-private-proxy-plan-r3-20261113-e26e/control/process_owner_impl.py",
+  "owner_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+  "qualification_seconds": 180,
+  "real_receiver_execution_permitted_by_this_request": false,
+  "runtime": {
+    "bytes": 30894944,
+    "git_blob": "cdff710ca21bf61260e4c7d7f3818ecd65cba2e7",
+    "identity": [
+      27,
+      9223372036854862948,
+      33261,
+      65534,
+      65534,
+      1,
+      30894944,
+      1794418893000000000,
+      1794418893000000000
+    ],
+    "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7"
+  },
+  "schema": "hia.full32.stream-reader-control-request.v1",
+  "scope": "Same exact24 synthetic source/IO methods. Only method23 extends private proxy seal/permissions, authentication, lowercase/CGI/NO_PROXY/CA preservation, dormant ALL_PROXY, and no fallback controls; all values are synthetic, no network/owner/supplier/product called by tests.",
+  "status": "STATIC_NOT_EXECUTED"
+}
