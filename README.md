@@ -26,3 +26,11 @@ Run 43373857456 preserves the original failure: the checker assumed 53
 original support fields, while the fixed original source and exact retained-key
 list contain 52. This revision corrects only that checker count and report field.
 All 22 packets and all 251 resulting product source bytes remain unchanged.
+
+## Backend AST extension R2c
+
+The same 251 product sources now receive the backend author's independent pure
+AST preservation checks, including the eight retained NativeBuild bodies and
+original Core/Emitter/Plan/Code/MachineObject method inventories. Explicit
+untouched main test files are admitted by exact original blob pins for comparison.
+This extension does not include R4 changes or execute any product test body.

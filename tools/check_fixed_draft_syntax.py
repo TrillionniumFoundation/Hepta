@@ -227,6 +227,26 @@ def main():
             result["failures"].append({"stage": "root-structural-AST", **ast_report})
         json_new(evidence / "ROOT-AST-CUSTODY.json", ast_report)
         result["root_structural_AST"] = ast_report
+        backend_validator_path = Path(__file__).with_name("validate_backend_merge.py")
+        backend_raw = backend_validator_path.read_bytes()
+        backend_pin = inputs["backend_validator"]
+        if git_blob(backend_raw) != backend_pin["blob"] or len(backend_raw) != backend_pin["bytes"]:
+            raise ValueError("backend validator source differs")
+        write_new(evidence / "BACKEND-VALIDATOR.py", backend_raw)
+        backend_sources = dict(final)
+        for path in inputs["backend_retained_original_paths"]:
+            if path in backend_sources:
+                raise ValueError("retained backend input unexpectedly overlaid")
+            backend_sources[path] = originals["main"][path]
+        try:
+            backend_report = runpy.run_path(str(backend_validator_path))["validate"](backend_sources, originals)
+        except BaseException as error:
+            backend_report = {"status": "FAIL", "error_type": type(error).__name__,
+                              "error": str(error), "traceback": traceback.format_exc()}
+            result["failures"].append({"stage": "backend-structural-AST", **backend_report})
+        backend_report["explicit_untouched_main_source_paths"] = inputs["backend_retained_original_paths"]
+        json_new(evidence / "BACKEND-AST-CUSTODY.json", backend_report)
+        result["backend_structural_AST"] = backend_report
         if selfhost is None:
             raise ValueError("missing fixed selfhost packet")
         packet, packet_path = selfhost
