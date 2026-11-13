@@ -84,6 +84,16 @@ def _bounded_manifest(path):
     return raw
 
 
+@dataclass(frozen=True, eq=False)
+class _BundleCustody:
+    """Exact admitted inputs; image bytes are from the retained RX mappings."""
+    bundle_path: str
+    bundle_raw: bytes
+    abi_path: str
+    abi_raw: bytes
+    units: tuple
+
+
 @dataclass(frozen=True)
 class _Loaded:
     abi: dict
@@ -92,10 +102,11 @@ class _Loaded:
     abi_sha256: str
     source_hashes: tuple
     bundle_sha256: str
+    custody: _BundleCustody | None = None
 
 
 @lru_cache(maxsize=3)
-def _load_bundle(path, raw, abi_raw, unit_inputs):
+def _load_bundle(path, raw, abi_raw, unit_inputs, abi_path):
     abi = checked_abi(abi_raw)
     bundle = _json(raw)
     names = ('byte_wrapper_pool', *abi['units'])
@@ -113,16 +124,20 @@ def _load_bundle(path, raw, abi_raw, unit_inputs):
         raise ValueError('native byte-wrapper ABI source identity mismatch')
     if tuple(row[0] for row in unit_inputs) != names:
         raise ValueError('native byte-wrapper complete image order differs')
-    images, source_hashes = [], []
-    for name, unit_path, unit_raw, source_sha in unit_inputs:
+    images, source_hashes, units = [], [], []
+    for name, unit_path, unit_raw, source_sha, source_path, source_raw in unit_inputs:
         unit = _json(unit_raw)
         if type(unit) is not dict or unit.get('compiler_sha256') != bundle['compiler_sha256']:
             raise ValueError('native byte-wrapper compiler identity differs across units')
         image = _load_manifest(unit_path, unit_raw, source_sha, UNIT_SCHEMA, NativeHiaJsonImage)
         images.append(image)
         source_hashes.append((name, source_sha))
+        units.append((name, source_path, source_raw, unit_path, unit_raw,
+                      str(Path(unit_path).parent / unit['image_path']),
+                      image._mapping[:]))
     return _Loaded(abi, tuple(names), tuple(images), abi_sha,
-                   tuple(source_hashes), sha256(raw).hexdigest())
+                   tuple(source_hashes), sha256(raw).hexdigest(),
+                   _BundleCustody(path, raw, abi_path, abi_raw, tuple(units)))
 
 
 def installed_byte_wrapper(manifest_path, namespace):
@@ -141,7 +156,8 @@ def installed_byte_wrapper(manifest_path, namespace):
         raise TypeError('native byte-wrapper requires an actual module namespace')
     path = Path(manifest_path).resolve(strict=True)
     raw = _bounded_manifest(path)
-    abi_raw = _source_resource_path(ABI_SOURCE).read_bytes()
+    abi_path = _source_resource_path(ABI_SOURCE)
+    abi_raw = abi_path.read_bytes()
     abi = checked_abi(abi_raw)
     # Do not follow manifest-controlled paths before admitting its fixed shape.
     bundle = _json(raw)
@@ -163,9 +179,11 @@ def installed_byte_wrapper(manifest_path, namespace):
         unit_path = (path.parent / paths[name]).resolve(strict=True)
         unit_raw = _bounded_manifest(unit_path)
         relative = 'examples/hia_bootstrap/' + name + '.hepta'
+        source_path = _source_resource_path(relative)
+        source_raw = source_path.read_bytes()
         inputs.append((name, str(unit_path), unit_raw,
-                       sha256(_source_resource_path(relative).read_bytes()).hexdigest()))
-    loaded = _load_bundle(str(path), raw, abi_raw, tuple(inputs))
+                       sha256(source_raw).hexdigest(), str(source_path), source_raw))
+    loaded = _load_bundle(str(path), raw, abi_raw, tuple(inputs), str(abi_path))
     for previous_loaded, previous_namespace, owner in _OWNER_CACHE:
         if previous_loaded is loaded and previous_namespace is namespace:
             return owner
@@ -175,6 +193,14 @@ def installed_byte_wrapper(manifest_path, namespace):
     if len(_OWNER_CACHE) > 3:
         del _OWNER_CACHE[0]
     return owner
+
+
+def byte_wrapper_selection_requested():
+    """Observe captured presence without reading manifests or mapping images."""
+    owner = _OWNER.get()
+    if owner is not _UNSELECTED:
+        return owner is not None
+    return bool(os.environ.get(SELECTOR))
 
 
 def selected_byte_wrapper(namespace):
@@ -220,3 +246,8 @@ def native_implementation_identity(namespace):
     continuation=getattr(owner,'_native_continuation_identity',b'')
     if continuation:values.append(continuation.hex())
     return ('\0'.join(values)).encode('ascii')
+
+def captured_selected_owner():
+    """Observe this exact bundle scope, including its explicit absence."""
+    owner = _OWNER.get()
+    return (False, None) if owner is _UNSELECTED else (True, owner)

@@ -241,10 +241,23 @@ def _source_inventory(evidence):
 
 
 def _worker_sources(evidence):
-    from hepta.hia_agent_contract import DISCOVERY_FILES
-    paths = sorted((ROOT / "hepta").rglob("*.py"))
+    from hepta.hia_agent_contract import (DISCOVERY_FILES, NATIVE_SOURCE_FILES,
+        SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES,
+        BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES)
+    paths = [path for path in sorted((ROOT / "hepta").rglob("*.py"))
+             if path.relative_to(ROOT / "hepta").parts[0] != "_data"]
     paths += [ROOT / "docs" / name for name in DISCOVERY_FILES]
-    return {str(path.relative_to(ROOT)): evidence.put(_read_regular(path), binary=True) for path in paths}
+    paths += [ROOT / name for name in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES,
+                                      *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES,
+                                      *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES, *ENTRY_BUILD_FILES)]
+    entries = {}
+    for path in paths:
+        name = str(path.relative_to(ROOT))
+        identity = evidence.put(_read_regular(path), binary=True)
+        _require(name not in entries or entries[name] == identity,
+                 "worker module and source resource differ")
+        entries[name] = identity
+    return entries
 
 
 def _task_documents():

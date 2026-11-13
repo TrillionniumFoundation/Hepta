@@ -1,0 +1,194 @@
+{
+  "base_commit": "4b19af89a766593f7d5f1cc2db256e81aba7afcb",
+  "methods": {
+    "_check_native_refinement_evidence": {
+      "ast_sha256": "bf140f75f466503b40109dee93feb90c8cd2eb612b071f7ac88d0b005a78d624",
+      "decorators": [],
+      "end_line": 1126,
+      "line": 1099,
+      "source": "def _check_native_refinement_evidence(self, evidence, subject, context, program, *, _connection=None):\n        if subject.get(\"kind\") != \"native_artifact\":\n            reject(\"E_HIA_PROOF_SCOPE\", \"independent machine evidence requires its exact native subject\", \"verification\")\n        built, final_bytes, object_bytes, retained = self._build_inputs(\n            subject[\"build_receipt\"], context, subject[\"native_artifact\"], **_connection_arguments(_connection))\n        expected = self._native_refinement_binding(subject, built, retained, object_bytes, final_bytes)\n        if program.sha256 != retained.sha256 or evidence.get(\"artifact_binding\") != expected:\n            reject(\"E_HIA_PROOF_SCOPE\", \"machine evidence differs from retained Core/object/final build bytes\", \"verification\")\n        validation = evidence.get(\"validation\")\n        if type(validation) is dict:\n            from .hia_safe_core_elf import bind_final_artifact\n            binding = bind_final_artifact(object_bytes, final_bytes, retained.as_dict()[\"functions\"][0][\"name\"])\n            if validation.get(\"image_binding\") != binding[\"binding\"]:\n                reject(\"E_HIA_PROOF_SCOPE\", \"machine proof's ELF binding differs from the actual retained bytes\", \"verification\")\n        queries = evidence.get(\"queries\")\n        if type(queries) is not list:\n            reject(\"E_HIA_PROOF_SCOPE\", \"machine proof lacks retained query identities\", \"verification\")\n        reports = [] if validation is None else validation.get(\"obligations\", [])\n        if validation is not None and len(queries) != len(reports):\n            reject(\"E_HIA_PROOF_SCOPE\", \"machine proof query inventory differs\", \"verification\")\n        for index, query in enumerate(queries):\n            if type(query) is not dict or set(query) != {\"name\", \"sha256\", \"artifact\"}:\n                reject(\"E_HIA_PROOF_SCOPE\", \"machine proof query reference is invalid\", \"verification\")\n            data, _ = self.store.get(query[\"artifact\"], kind=\"machine-validation-query\", **_connection_arguments(_connection))\n            if (sha256(data).hexdigest() != query[\"sha256\"]\n                    or validation is not None and (query[\"sha256\"] != reports[index].get(\"query_sha256\")\n                        or query[\"name\"] != reports[index].get(\"query_file\"))):\n                reject(\"E_HIA_PROOF_SCOPE\", \"machine proof query bytes differ\", \"verification\")",
+      "source_segment_sha256": "d32394f04907a918541ffe4cf7361f9495a38ba6c723c8526a3f44fed456c2e0"
+    },
+    "_hia_verify": {
+      "ast_sha256": "f3655fe660c36fc25246f6dad61bffc4c148f2ea55f73095ba7350fd2355eb15",
+      "decorators": [],
+      "end_line": 865,
+      "line": 781,
+      "source": "def _hia_verify(self, args):\n        from .hia_checker_identity import checker_native_selection\n        held_owners = self._held_checker_owners()\n        native_selection = checker_native_selection(held_owners=held_owners)\n        context = self._context(args[\"context\"])\n        self._profile(args[\"validation_profile\"], \"validation\")\n        program = self._program(args[\"candidate\"])\n        original = None if args[\"base_program\"] is None else self._program(args[\"base_program\"])\n        plan = self._subject(args, program)\n        binding = {\"context\": args[\"context\"], \"candidate\": args[\"candidate\"],\n            \"candidate_core_sha256\": program.sha256, \"base_program\": args[\"base_program\"],\n            \"base_core_sha256\": None if original is None else original.sha256,\n            \"subject\": args[\"subject\"]}\n        scoped_subject = proof_subject(binding, context[\"target_profile\"])\n        checks = []\n        for claim in args[\"claims\"]:\n            if claim == \"core_admission\":\n                status, domain, evidence = \"proved\", \"Exact canonical Core accepted by the installed whole-program checker; no behavioral or native claim\", {\n                    \"checker\": \"hepta.hia_program.verify_program\", \"core_sha256\": program.sha256,\n                    \"input_sha256\": program.input_sha256, \"canonical_bytes\": str(len(program.canonical_bytes))}\n            elif claim == \"behavior_equivalence\":\n                if original is None:\n                    reject(\"E_HIA_SUBJECT\", \"behavior equivalence requires a base program\", \"verification\")\n                status, domain, evidence = self._behavior_equivalence(original, program, self._remaining_ms(context))\n            elif claim == \"lowering_refinement\":\n                if args[\"subject\"][\"kind\"] == \"native_artifact\":\n                    status, domain, evidence = self._independent_native_refinement(args, program, context)\n                elif plan is None:\n                    status, domain, evidence = \"unsupported\", \"Whole Core-to-x86 refinement of canonical lowering is not proved by this profile\", {\n                        \"reason\": \"native qualification and deterministic reemission are not a universal semantic refinement proof\"}\n                else:\n                    from .hia_program_native import emit_program_machine\n                    exports = tuple(map(tuple, context.get(\"foreign_buffer_exports\", [])))\n                    image = emit_program_machine(program, machine_plan=plan, foreign_buffer_exports=exports)\n                    canonical = emit_program_machine(program, foreign_buffer_exports=exports)\n                    from .hia_machine_plan import preservation_checks\n                    choice_checks = preservation_checks(plan, program)\n                    status, domain = \"proved\", \"Checked explicit machine choices preserve canonical CFG, scalar value lifetimes and path effects, conditional on canonical lowering/encoder correctness\"\n                    evidence = {\"method\": \"checked_explicit_machine_choices\", \"choice_checks\": choice_checks, \"core_sha256\": program.sha256,\n                        \"plan\": plan, \"canonical_object_sha256\": canonical.sha256,\n                        \"planned_object_sha256\": image.sha256,\n                        \"same_slots\": not any(plan.get(\"value_registers\", {}).values()),\n                        \"same_frame_sizes\": dict(canonical.function_frames) == dict(image.function_frames),\n                        \"canonical_frame_bytes\": dict(canonical.function_frames),\n                        \"planned_frame_bytes\": dict(image.function_frames),\n                        \"implicit_optimizer_used\": False}\n            elif claim == \"encoding_check\":\n                subject = args[\"subject\"]\n                built = self._build_receipt(subject[\"build_receipt\"], args[\"context\"], subject[\"native_artifact\"])\n                actual, _ = self.store.get(subject[\"native_artifact\"], kind=\"native\")\n                exports = tuple(map(tuple, context.get(\"foreign_buffer_exports\", [])))\n                reemitted, rebuilt = self._compile(program, built[\"output_kind\"], built[\"machine_plan\"], self._remaining_ms(context),\n                    **({\"foreign_buffer_exports\": exports} if exports else {}))\n                bytes_equal = actual == reemitted\n                object_equal = rebuilt[\"object_sha256\"] == built[\"native_build\"][\"object_sha256\"]\n                matches = bytes_equal and object_equal\n                status = \"proved\" if matches else \"refuted\"\n                domain = \"Exact actual artifact equals reverified Core/plan reemission and linkage by the same installed implementation, with checked closed symbol/ABI inventory; no independent semantic refinement claim\"\n                evidence = {\"method\": \"complete_native_rederivation\", \"actual_sha256\": sha256(actual).hexdigest(),\n                    \"rederived_sha256\": sha256(reemitted).hexdigest(), \"bytes_equal\": bytes_equal,\n                    \"object_identity_equal\": object_equal,\n                    \"native_build\": rebuilt, \"no_llvm_or_external_assembler\": True}\n            else:\n                reject(\"E_HIA_CLAIM\", \"unimplemented verification claim\", \"verification\")\n            evidence[\"native_checker_selection\"] = native_selection\n            scoped = proof_result(claim=claim, status=status, domain=domain, subject=scoped_subject,\n                profile=args[\"validation_profile\"], installation=self.identities, evidence=evidence,\n                held_native_owners=held_owners)\n            if evidence.get(\"method\") == SAFE_CORE_METHOD and status == \"proved\" and self._remaining_ms(context) <= 0:\n                status = \"unknown\"\n                evidence.update(outcome=status, deadline_met=False,\n                                reason=\"the frozen context deadline expired before proof publication\")\n                scoped = proof_result(claim=claim, status=status, domain=domain, subject=scoped_subject,\n                    profile=args[\"validation_profile\"], installation=self.identities, evidence=evidence,\n                    held_native_owners=held_owners)\n            checks.append({**scoped,\n                \"assumptions_artifact\": self.store.json(assumptions_document(scoped), \"verification-assumptions\"),\n                \"evidence_artifact\": self.store.json({**evidence, \"proof_binding\": scoped}, \"verification-evidence\")})\n        receipt = self.store.json({\"schema\": \"hepta.hia.agent.verification.v1\", \"context\": args[\"context\"],\n            \"candidate\": args[\"candidate\"], \"candidate_core_sha256\": program.sha256,\n            \"base_program\": args[\"base_program\"], \"base_core_sha256\": None if original is None else original.sha256,\n            \"validation_profile\": args[\"validation_profile\"], \"subject\": args[\"subject\"],\n            \"checks\": checks, \"installation\": self.identities}, \"verification-receipt\")\n        return {\"candidate\": args[\"candidate\"], \"subject\": args[\"subject\"],\n                \"verification_receipt\": receipt, \"checks\": checks, \"adopted\": False}",
+      "source_segment_sha256": "7af67dd5be641bb4535a1b2742cccdc5ecbc455f255167665c70149e8b9c8830"
+    },
+    "_native_refinement_binding": {
+      "ast_sha256": "636a951b7ace98330ea6d770c15fb784027e9089ca3ecf833b42c0dbfd35a7ee",
+      "decorators": [
+        "staticmethod"
+      ],
+      "end_line": 1037,
+      "line": 1031,
+      "source": "def _native_refinement_binding(subject, built, program, object_bytes, final_bytes):\n        return {\"candidate_core_sha256\": program.sha256, \"input_sha256\": program.input_sha256,\n            \"native_artifact\": subject[\"native_artifact\"], \"build_receipt\": subject[\"build_receipt\"],\n            \"object_artifact\": built[\"object_artifact\"], \"object_sha256\": sha256(object_bytes).hexdigest(),\n            \"final_image_sha256\": sha256(final_bytes).hexdigest(), \"output_kind\": built[\"output_kind\"],\n            \"entry_symbols\": [fn[\"name\"] for fn in program.as_dict()[\"functions\"]],\n            \"foreign_buffer_exports\": built[\"native_build\"].get(\"foreign_buffer_exports\")}",
+      "source_segment_sha256": "ec96ca9c37e77a2dd1407dea95be077fdff185283558e90f8375a98426e38bc6"
+    },
+    "_replay_verification": {
+      "ast_sha256": "6facda77c6f29bea774561ff4fd815da0855870a2cc66971180ea1e3aee24520",
+      "decorators": [],
+      "end_line": 919,
+      "line": 904,
+      "source": "def _replay_verification(self, response, arguments, *, _connection=None):\n        \"\"\"Observe an original result only if its complete scope remains valid.\"\"\"\n        try:\n            validate(response, self.tools[\"hia_verify\"][\"outputSchema\"], \"replayed verification\")\n        except AgentRejected as exc:\n            reject(\"E_HIA_PROOF_SCOPE\", \"cached proof lacks current scope; rerun verification with a fresh request key: \" + str(exc), \"verification\")\n        if installation_manifest() != self.identities:\n            reject(\"E_HIA_IMPLEMENTATION_STALE\", \"installed implementation changed during verification replay\")\n        result = response[\"result\"]\n        retained = self._verification(result[\"verification_receipt\"], arguments[\"context\"], arguments[\"candidate\"], **_connection_arguments(_connection))\n        if (result[\"candidate\"] != retained[\"candidate\"] or result[\"subject\"] != retained[\"subject\"]\n                or result[\"checks\"] != retained[\"checks\"] or retained[\"subject\"] != arguments[\"subject\"]\n                or retained[\"base_program\"] != arguments[\"base_program\"]\n                or retained[\"validation_profile\"] != arguments[\"validation_profile\"]\n                or [check[\"claim\"] for check in retained[\"checks\"]] != arguments[\"claims\"]):\n            reject(\"E_HIA_PROOF_SCOPE\", \"cached proof differs from the original subject or retained conclusion; rerun verification with a fresh request key\", \"verification\")",
+      "source_segment_sha256": "6546710e2f252c1075e89da7d7de5ecd15bb216c1cb6d708b018697c0d911457"
+    },
+    "_required_claims": {
+      "ast_sha256": "19344da5b9c8387828b0655846ba1d342e575036998138632c8b7005ff362213",
+      "decorators": [],
+      "end_line": 1155,
+      "line": 1128,
+      "source": "def _required_claims(self, context, candidate_artifact, refs, baseline_core_sha=None, *, _connection=None):\n        _data, native, _program = self._native(candidate_artifact, context[\"ref\"], **_connection_arguments(_connection))\n        objective, _ = self.store.get_json(context[\"objective\"], **_connection_arguments(_connection))\n        receipts = [self._verification(ref, context[\"ref\"], native[\"candidate\"], **_connection_arguments(_connection)) for ref in refs]\n        for claim in objective[\"required_claims\"]:\n            qualified = False\n            for receipt in receipts:\n                if not any(c[\"claim\"] == claim and c[\"status\"] == \"proved\" for c in receipt[\"checks\"]):\n                    continue\n                subject = receipt[\"subject\"]\n                if claim == \"encoding_check\":\n                    if subject[\"kind\"] != \"native_artifact\" or subject[\"native_artifact\"] != candidate_artifact:\n                        continue\n                    self._build_receipt(subject[\"build_receipt\"], context[\"ref\"], candidate_artifact, **_connection_arguments(_connection))\n                elif claim == \"behavior_equivalence\":\n                    if receipt[\"base_core_sha256\"] != baseline_core_sha:\n                        continue\n                elif claim == \"lowering_refinement\":\n                    if subject[\"kind\"] == \"native_artifact\":\n                        if subject[\"native_artifact\"] != candidate_artifact:\n                            continue\n                        self._build_receipt(subject[\"build_receipt\"], context[\"ref\"], candidate_artifact, **_connection_arguments(_connection))\n                    elif native[\"machine_plan\"] is None or subject[\"kind\"] != \"agent_machine_plan\" or subject[\"plan\"] != native[\"codegen\"][\"plan\"]:\n                        continue\n                qualified = True\n            if not qualified:\n                reject(\"E_HIA_CLAIM_REQUIRED\", \"missing exact proved acceptance claim: \" + claim, \"verification\")\n        return objective",
+      "source_segment_sha256": "d6ae91ce59153193f55c1bfeb123c1e06d654bbdbeea093b162b26450a9a6dee"
+    },
+    "_subject": {
+      "ast_sha256": "63d6edae43b8c8b62eb48094a9af0c2096f0487c32b8292634c97d640ebb21b5",
+      "decorators": [],
+      "end_line": 775,
+      "line": 758,
+      "source": "def _subject(self, args, program, *, _connection=None):\n        subject = args[\"subject\"]\n        if subject[\"kind\"] != \"core\":\n            self._profile(subject[\"backend_profile\"], \"backend\", **_connection_arguments(_connection))\n        if subject[\"kind\"] == \"canonical_lowering\":\n            self._profile(subject[\"lowering_profile\"], \"lowering\", **_connection_arguments(_connection))\n        if subject[\"kind\"] == \"agent_machine_plan\":\n            from .hia_program_native import validate_block_layout_plan\n            self._profile(subject[\"plan_profile\"], \"plan\", **_connection_arguments(_connection))\n            plan, _ = self.store.get_json(subject[\"plan\"], **_connection_arguments(_connection))\n            validate(plan, PLAN_SCHEMA, \"machine_plan\")\n            return validate_block_layout_plan(program, plan)\n        if subject[\"kind\"] == \"native_artifact\":\n            receipt = self._build_receipt(subject[\"build_receipt\"], args[\"context\"],\n                                          subject[\"native_artifact\"], **_connection_arguments(_connection))\n            if receipt[\"candidate\"] != args[\"candidate\"]:\n                reject(\"E_HIA_SUBJECT\", \"native build receipt belongs to a different candidate\", \"verification\")\n        return None",
+      "source_segment_sha256": "1dd3d7c0dd1698b54574f52bd7f36ec528e66b04b3a75070bf94751954439db6"
+    },
+    "_verification": {
+      "ast_sha256": "82ecdfc618f8e197935a3a357ca34cc79136d2187f8d8379398e58d09da4a701",
+      "decorators": [],
+      "end_line": 902,
+      "line": 867,
+      "source": "def _verification(self, ref, context, candidate=None, *, _connection=None):\n        record, _ = self.store.get_json(ref, kind=\"verification-receipt\", **_connection_arguments(_connection))\n        if (record[\"context\"] != context or record[\"installation\"] != self.identities\n                or candidate is not None and record[\"candidate\"] != candidate):\n            reject(\"E_HIA_RECEIPT_BINDING\", \"verification receipt belongs to a different context, candidate or implementation\", \"verification\")\n        self._profile(record[\"validation_profile\"], \"validation\", **_connection_arguments(_connection))\n        program = self._program(record[\"candidate\"], **_connection_arguments(_connection))\n        if program.sha256 != record[\"candidate_core_sha256\"]:\n            reject(\"E_HIA_RECEIPT_BINDING\", \"verification Core identity changed\", \"verification\")\n        original = None if record[\"base_program\"] is None else self._program(record[\"base_program\"], **_connection_arguments(_connection))\n        if record[\"base_core_sha256\"] != (None if original is None else original.sha256):\n            reject(\"E_HIA_RECEIPT_BINDING\", \"verification base Core identity changed\", \"verification\")\n        self._subject(record, program, **_connection_arguments(_connection))\n        context_record = self._context(context, **_connection_arguments(_connection))\n        subject = proof_subject(record, context_record[\"target_profile\"])\n        checks_schema = self.tools[\"hia_verify\"][\"outputSchema\"][\"properties\"][\"result\"][\"properties\"][\"checks\"]\n        try:\n            validate(record[\"checks\"], checks_schema, \"verification.checks\")\n        except AgentRejected as exc:\n            reject(\"E_HIA_PROOF_SCOPE\", \"missing or invalid proof scope; rerun verification with a fresh request key: \" + str(exc), \"verification\")\n        if len({check[\"claim\"] for check in record[\"checks\"]}) != len(record[\"checks\"]):\n            reject(\"E_HIA_PROOF_SCOPE\", \"verification repeats a proof property\", \"verification\")\n        for check in record[\"checks\"]:\n            evidence, _ = self.store.get_json(check[\"evidence_artifact\"], kind=\"verification-evidence\", **_connection_arguments(_connection))\n            assumptions, _ = self.store.get_json(check[\"assumptions_artifact\"], kind=\"verification-assumptions\", **_connection_arguments(_connection))\n            if evidence.get(\"method\") == SAFE_CORE_METHOD:\n                self._check_native_refinement_evidence(evidence, record[\"subject\"], context, program, **_connection_arguments(_connection))\n            expected = proof_result(claim=check[\"claim\"], status=check[\"status\"], domain=check[\"domain\"],\n                subject=subject, profile=record[\"validation_profile\"], installation=self.identities, evidence=evidence,\n                held_native_owners=self._held_checker_owners())\n            actual = {key: value for key, value in check.items()\n                      if key not in {\"assumptions_artifact\", \"evidence_artifact\"}}\n            if (actual != expected or evidence.get(\"proof_binding\") != expected\n                    or assumptions != assumptions_document(expected)):\n                reject(\"E_HIA_PROOF_SCOPE\", \"proof scope or retained checker conclusion differs; rerun verification with a fresh request key\", \"verification\")\n        return record",
+      "source_segment_sha256": "a2d0ff2d25c2be0566bb48b7e08d2d1147db9915ede5c6e10226806e13dd57c8"
+    }
+  },
+  "production_tool_callers": [
+    {
+      "ast_sha256": "c751cae5c37805e46798a0167777a6a38f1390f177ea900375f1e5ee499fc266",
+      "calls": [
+        "self._check_native_refinement_evidence",
+        "self._native_refinement_binding",
+        "self._replay_verification",
+        "self._required_claims",
+        "self._subject",
+        "self._verification"
+      ],
+      "line": 82,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService"
+    },
+    {
+      "ast_sha256": "f37e0cca73760a9a80d1fa8d3be179462332a5f8cf849759b209f52ad7399850",
+      "calls": [
+        "self._replay_verification"
+      ],
+      "line": 250,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService._call_native_journal"
+    },
+    {
+      "ast_sha256": "33c6f58eef3c8f05db3219d58256cfc06885c1de52c93f62a07f356ed7c8d4f6",
+      "calls": [
+        "self._replay_verification"
+      ],
+      "line": 314,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService._call_reference"
+    },
+    {
+      "ast_sha256": "f3655fe660c36fc25246f6dad61bffc4c148f2ea55f73095ba7350fd2355eb15",
+      "calls": [
+        "self._subject"
+      ],
+      "line": 781,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService._hia_verify"
+    },
+    {
+      "ast_sha256": "82ecdfc618f8e197935a3a357ca34cc79136d2187f8d8379398e58d09da4a701",
+      "calls": [
+        "self._check_native_refinement_evidence",
+        "self._subject"
+      ],
+      "line": 867,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService._verification"
+    },
+    {
+      "ast_sha256": "6facda77c6f29bea774561ff4fd815da0855870a2cc66971180ea1e3aee24520",
+      "calls": [
+        "self._verification"
+      ],
+      "line": 904,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService._replay_verification"
+    },
+    {
+      "ast_sha256": "54f30067f52eb26edba7ba8bf63d39435a9b7e97543326b961ca27e12c964e4d",
+      "calls": [
+        "self._verification"
+      ],
+      "line": 949,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService._hia_emit"
+    },
+    {
+      "ast_sha256": "b2597e05be1ef7602c53a6737cf4d14a028ed895af2f9308b57aa2d8890ef27f",
+      "calls": [
+        "self._native_refinement_binding"
+      ],
+      "line": 1039,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService._independent_native_refinement"
+    },
+    {
+      "ast_sha256": "bf140f75f466503b40109dee93feb90c8cd2eb612b071f7ac88d0b005a78d624",
+      "calls": [
+        "self._native_refinement_binding"
+      ],
+      "line": 1099,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService._check_native_refinement_evidence"
+    },
+    {
+      "ast_sha256": "19344da5b9c8387828b0655846ba1d342e575036998138632c8b7005ff362213",
+      "calls": [
+        "self._verification"
+      ],
+      "line": 1128,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService._required_claims"
+    },
+    {
+      "ast_sha256": "5f973467725a0c55923e4abab2fb38fbf658c2c7502f15b029e1832b60bdef72",
+      "calls": [
+        "self._required_claims"
+      ],
+      "line": 1186,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService._hia_evaluate"
+    },
+    {
+      "ast_sha256": "d5a3576280a7963a04593f386e14182a48d379975a5e5ebd79998060592cf446",
+      "calls": [
+        "self._required_claims"
+      ],
+      "line": 1410,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService._hia_adopt_reference"
+    },
+    {
+      "ast_sha256": "2946d3b29ef6dcc87a892b4fc00276c2da985e3e174463f78ac1b25bd69caa7c",
+      "calls": [
+        "self._required_claims"
+      ],
+      "line": 1463,
+      "path": "hepta/hia_agent_service.py",
+      "qualified_name": "HIAAgentService._hia_adopt_native"
+    }
+  ],
+  "scope": "Original method source and AST; callers include enclosing class/nested aggregation as marked by the inventory. No method was executed.",
+  "source_file": {
+    "bytes": 115200,
+    "git_blob_sha": "778eacb4fdcf030198558a949ee76ad0bc9647ab",
+    "sha256": "3bc1a2e761378ecf58176cd454727f4c351b5c4c2cb30e06f7a883c781d8a0e3"
+  }
+}

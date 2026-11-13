@@ -531,13 +531,26 @@ class _Machine:
 
 def execute_program(program, function, arguments, *, max_steps=1_000_000,
                     max_heap_bytes=16 * 1024 * 1024, allocation_fail_at=None,
-                    max_call_depth=256, bounded_resource_limits=None):
+                    max_call_depth=256, bounded_resource_limits=None,
+                    profile=None, linux_stdio_provider=None):
     """Verify immutable bytes, then execute a scalar public entry point.
 
     Owners and views can be created, moved and called internally. Python callers
     cannot fabricate them: public interpreter inputs/outputs are scalar values.
     Resource-returning functions remain available as internal core functions.
     """
+    if profile is not None:
+        from .hia_linux_stdio import require_profile, execute_linux_stdio
+        require_profile(profile)
+        if bounded_resource_limits is not None:
+            raise HIAProgramRejected("ordinary Core budget receipts do not admit Linux I/O",
+                                     "E_HIA_LINUX_STDIO_PROFILE")
+        return execute_linux_stdio(program, function, arguments, provider=linux_stdio_provider,
+            max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+            allocation_fail_at=allocation_fail_at, max_call_depth=max_call_depth)
+    if linux_stdio_provider is not None:
+        raise HIAProgramRejected("physical-effect provider requires an explicit profile",
+                                 "E_HIA_LINUX_STDIO_PROFILE")
     checked = verify_program(program)
     if (type(function) is not str or type(arguments) not in (list, tuple)
             or type(max_steps) is not int or not 1 <= max_steps <= 10_000_000
@@ -567,6 +580,20 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
         max_steps = min(max_steps, budget["limits"]["max_vm_ticks"])
         max_heap_bytes = min(max_heap_bytes, budget["limits"]["max_live_heap_bytes"])
         max_call_depth = min(max_call_depth, budget["limits"]["max_call_depth"])
+    from .hia_program_execution_native import selected_program_execution
+    native = selected_program_execution()
+    if native is not None:
+        try:
+            observed = native.execute(checked, function, arguments, max_steps=max_steps,
+                max_heap_bytes=max_heap_bytes, allocation_fail_at=allocation_fail_at,
+                max_call_depth=max_call_depth)
+        except (HIAProgramTrap, HIAProgramBudgetExceeded) as exc:
+            if budget is not None:
+                exc.report['bounded_resources'] = budget
+            raise
+        if budget is not None:
+            observed['bounded_resources'] = budget
+        return observed
     machine = _Machine(checked, max_steps, max_heap_bytes, allocation_fail_at, max_call_depth)
 
     def report(status, values=None, error=None):

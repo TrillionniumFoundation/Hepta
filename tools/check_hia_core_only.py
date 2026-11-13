@@ -24,6 +24,16 @@ FORBIDDEN_MODULES=frozenset({
 ACTIVE_SOURCE_ROOTS = frozenset({'examples', 'tests', 'formal', 'benchmarks'})
 CORE_SOURCE_SCHEMA = re.compile(r'hepta\.hia\.(?:program|composite)\.v[0-9]+\Z')
 
+# Explicit source roles select an existing checked HIA profile. No header,
+# effect, filename pattern or environment value infers profile authority.
+EXPLICIT_SOURCE_PROFILES = {
+    'tests/fixtures/hia_linux_stdio_bounded-copy.hepta': 'hepta.hia.linux-stdio.v1',
+    'tests/fixtures/hia_linux_stdio_out-of-bounds.hepta': 'hepta.hia.linux-stdio.v1',
+    'tests/fixtures/hia_linux_stdio_read-ebadf-exact.hepta': 'hepta.hia.linux-stdio.v1',
+    'tests/fixtures/hia_linux_stdio_write-ebadf-exact.hepta': 'hepta.hia.linux-stdio.v1',
+    'tests/fixtures/hia_linux_stdio_zero-transfer.hepta': 'hepta.hia.linux-stdio.v1',
+}
+
 
 def _is_active_json_source(path, relative):
     if (not relative.parts or relative.parts[0] not in ACTIVE_SOURCE_ROOTS
@@ -60,14 +70,21 @@ def _checked_hia_sources(root, problems):
             continue
         try:
             raw = path.read_bytes()
+            profile = EXPLICIT_SOURCE_PROFILES.get(relative.as_posix())
             # The extension selects checked HIA, not a restored high-level
             # frontend. Both entry points verify the complete program.
             if raw.lstrip().startswith((b'{', b'[')):
                 from hepta.hia_program import verify_program
-                verify_program(raw)
+                if profile is None:
+                    verify_program(raw)
+                else:
+                    verify_program(raw, profile=profile)
             else:
                 from hepta.hia_agent_assembly import assemble_program
-                assemble_program(raw)
+                if profile is None:
+                    assemble_program(raw)
+                else:
+                    assemble_program(raw, profile=profile)
         except (OSError, ValueError, RecursionError) as exc:
             problems.append('invalid HIA source content: ' + str(relative) + ': ' + str(exc))
             continue

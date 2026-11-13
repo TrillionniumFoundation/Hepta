@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import weakref
 from unittest.mock import patch
 
 from hepta import hia_program_composite as composite
@@ -146,6 +147,33 @@ def observation(reference):
 
 
 class CompositeTypesAdapterTests(unittest.TestCase):
+    def test_partial_arena_allocation_releases_the_first_buffer_and_keeps_error(self):
+        allocate = ctypes.create_string_buffer
+        allocated = []
+        failure = MemoryError('second native type arena allocation refused')
+        calls = 0
+        def allocation(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise failure
+            result = allocate(*args, **kwargs)
+            allocated.append(weakref.ref(result))
+            return result
+        session = object.__new__(NativeCompositeTypeSession)
+        with patch('hepta.hia_composite_types_native.ctypes.create_string_buffer', allocation):
+            try:
+                NativeCompositeTypeSession.__init__(session, synthetic_image([]), [])
+            except MemoryError as error:
+                self.assertIs(error, failure)
+            else:
+                self.fail('allocation failure was swallowed')
+        self.assertEqual(calls, 2)
+        self.assertTrue(session._closed)
+        self.assertIsNone(session._output)
+        self.assertIsNone(session._state)
+        self.assertEqual([ref() for ref in allocated], [None])
+
     def test_development_fixture_cannot_override_requested_cold_qualification(self):
         with patch.dict(os.environ, {DEVELOPMENT_MANIFEST: '/unread-development-manifest',
                                      COLD_REPORT: '/unread-cold-report'}), patch(
@@ -274,6 +302,72 @@ class CompositeTypesNativeTests(unittest.TestCase):
             (cls.folder / 'development-compile.json').write_bytes(wire(receipt))
             cls.fixture_scope = 'BOOTSTRAP_DEVELOPMENT_ONLY'
         cls.native = installed_composite_types(str(cls.manifest))
+
+    def test_public_elaboration_closes_owned_arenas_on_success_and_all_refusal_stages(self):
+        original = NativeCompositeTypeSession.__init__
+        sessions = []
+        retained_errors = []
+        def observe(session, *args, **kwargs):
+            sessions.append(session)
+            return original(session, *args, **kwargs)
+        good = fixtures.enum_owner_program()
+        lower = copy.deepcopy(good)
+        lower['functions'][0]['blocks'] = []
+        types = copy.deepcopy(good)
+        types['types'] = None
+        owner = copy.deepcopy(good)
+        owner['functions'] = []
+        for document in (good, lower, types, owner):
+            with self.subTest(stage=('success' if document is good else
+                                    'types' if document is types else
+                                    'owner' if document is owner else 'lower')):
+                with patch('hepta.hia_composite_types_native.selected_composite_types', return_value=None):
+                    try:
+                        expected = composite.elaborate_program(document)
+                    except HIAProgramRejected as error:
+                        expected = (error.code, str(error))
+                before = len(sessions)
+                with patch.dict(os.environ, {SELECTOR: str(self.manifest)}), patch.object(
+                        NativeCompositeTypeSession, '__init__', observe):
+                    try:
+                        actual = composite.elaborate_program(document)
+                    except HIAProgramRejected as error:
+                        retained_errors.append(error)
+                        actual = (error.code, str(error))
+                self.assertEqual(actual, expected)
+                self.assertEqual(len(sessions), before + 1)
+                session = sessions[-1]
+                self.assertTrue(session._closed)
+                self.assertIsNone(session._output)
+                self.assertIsNone(session._state)
+        self.assertEqual(len(retained_errors), 3)
+        self.assertTrue(all(error.__traceback__ is not None for error in retained_errors))
+        # Private callers still own a usable session after construction/lower.
+        with patch.dict(os.environ, {SELECTOR: str(self.manifest)}):
+            private = composite._Elaborator(good)
+        try:
+            self.assertFalse(private.native_types._closed)
+            self.assertEqual(private.types.resolve('u8').flat, ('u8',))
+        finally:
+            private.native_types.close()
+
+    def test_actual_native_init_interruption_releases_arenas_and_preserves_exception(self):
+        original = self.native._entry
+        failure = KeyboardInterrupt('after actual native type initialization')
+        def interrupted(*args):
+            original(*args)
+            raise failure
+        session = object.__new__(NativeCompositeTypeSession)
+        with patch.object(self.native, '_entry', interrupted):
+            try:
+                NativeCompositeTypeSession.__init__(session, self.native, [])
+            except KeyboardInterrupt as error:
+                self.assertIs(error, failure)
+            else:
+                self.fail('native callback interruption was swallowed')
+        self.assertTrue(session._closed)
+        self.assertIsNone(session._output)
+        self.assertIsNone(session._state)
 
     @contextmanager
     def paired(self, definitions, **flags):
@@ -589,8 +683,8 @@ class CompositeTypesNativeTests(unittest.TestCase):
                 installed_composite_types(str(self.manifest))
 
     def test_real_installed_wheel_ordinary_normalization_and_source_manifest_image_pins(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
-        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
         self.assertIn('examples/hia_bootstrap/composite_types.hepta', resources)
         source = self.folder / 'wheel-source'; source.mkdir()
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))

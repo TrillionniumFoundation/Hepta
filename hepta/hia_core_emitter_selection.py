@@ -86,6 +86,16 @@ def _bounded_manifest(path):
     return raw
 
 
+@dataclass(frozen=True, eq=False)
+class _BundleCustody:
+    """Exact admitted inputs; image bytes are from the retained RX mappings."""
+    bundle_path: str
+    bundle_raw: bytes
+    abi_path: str
+    abi_raw: bytes
+    units: tuple
+
+
 @dataclass(frozen=True)
 class _Loaded:
     abi: dict
@@ -94,10 +104,11 @@ class _Loaded:
     abi_sha256: str
     source_hashes: tuple
     bundle_sha256: str
+    custody: _BundleCustody | None = None
 
 
 @lru_cache(maxsize=3)
-def _load_bundle(path, raw, abi_raw, unit_inputs):
+def _load_bundle(path, raw, abi_raw, unit_inputs, abi_path):
     abi = checked_abi(abi_raw)
     bundle = _json(raw)
     names = ('core_emitter_pool', *abi['units'])
@@ -115,16 +126,23 @@ def _load_bundle(path, raw, abi_raw, unit_inputs):
         raise ValueError('native Core emitter ABI source identity mismatch')
     if tuple(row[0] for row in unit_inputs) != names:
         raise ValueError('native Core emitter complete image order differs')
-    images, source_hashes = [], []
-    for name, unit_path, unit_raw, source_sha in unit_inputs:
+    images, source_hashes, units = [], [], []
+    for name, unit_path, unit_raw, source_sha, source_path, source_raw in unit_inputs:
         unit = _json(unit_raw)
         if type(unit) is not dict or unit.get('compiler_sha256') != bundle['compiler_sha256']:
             raise ValueError('native Core emitter compiler identity differs across units')
         image = _load_manifest(unit_path, unit_raw, source_sha, UNIT_SCHEMA, NativeHiaJsonImage)
         images.append(image)
         source_hashes.append((name, source_sha))
+        # The source bytes above are from the original admission read. Cached
+        # images retain their original mapping; a later disk rewrite cannot
+        # retroactively become the bytes of that admitted executable.
+        units.append((name, source_path, source_raw, unit_path, unit_raw,
+                      str(Path(unit_path).parent / unit['image_path']),
+                      image._mapping[:]))
     return _Loaded(abi, tuple(names), tuple(images), abi_sha,
-                   tuple(source_hashes), sha256(raw).hexdigest())
+                   tuple(source_hashes), sha256(raw).hexdigest(),
+                   _BundleCustody(path, raw, abi_path, abi_raw, tuple(units)))
 
 
 def installed_core_emitter(manifest_path, namespace):
@@ -143,7 +161,8 @@ def installed_core_emitter(manifest_path, namespace):
         raise TypeError('native Core emitter requires an actual module namespace')
     path = Path(manifest_path).resolve(strict=True)
     raw = _bounded_manifest(path)
-    abi_raw = _source_resource_path(ABI_SOURCE).read_bytes()
+    abi_path = _source_resource_path(ABI_SOURCE)
+    abi_raw = abi_path.read_bytes()
     abi = checked_abi(abi_raw)
     # Do not follow manifest-controlled paths before admitting its fixed shape.
     bundle = _json(raw)
@@ -165,9 +184,11 @@ def installed_core_emitter(manifest_path, namespace):
         unit_path = (path.parent / paths[name]).resolve(strict=True)
         unit_raw = _bounded_manifest(unit_path)
         relative = 'examples/hia_bootstrap/' + name + '.hepta'
+        source_path = _source_resource_path(relative)
+        source_raw = source_path.read_bytes()
         inputs.append((name, str(unit_path), unit_raw,
-                       sha256(_source_resource_path(relative).read_bytes()).hexdigest()))
-    loaded = _load_bundle(str(path), raw, abi_raw, tuple(inputs))
+                       sha256(source_raw).hexdigest(), str(source_path), source_raw))
+    loaded = _load_bundle(str(path), raw, abi_raw, tuple(inputs), str(abi_path))
     for previous_loaded, previous_namespace, owner in _OWNER_CACHE:
         if previous_loaded is loaded and previous_namespace is namespace:
             return owner
@@ -179,7 +200,7 @@ def installed_core_emitter(manifest_path, namespace):
     return owner
 
 
-def selected_core_emitter(namespace):
+def _selected_bundle(namespace):
     owner = _OWNER.get()
     if owner is not _UNSELECTED:
         return owner
@@ -187,15 +208,15 @@ def selected_core_emitter(namespace):
     return installed_core_emitter(path, namespace) if path else None
 
 
-def active_core_emitter():
+def _active_bundle():
     """Helpers outside an admitted ordinary emit retain their original entry."""
     owner = _OWNER.get()
     return None if owner is _UNSELECTED else owner
 
 
 @contextmanager
-def native_core_emitter_scope(namespace):
-    owner = selected_core_emitter(namespace)
+def _native_bundle_scope(namespace):
+    owner = _selected_bundle(namespace)
     token = _OWNER.set(owner)
     try:
         yield
@@ -203,8 +224,8 @@ def native_core_emitter_scope(namespace):
         _OWNER.reset(token)
 
 
-def native_implementation_identity(namespace):
-    owner = selected_core_emitter(namespace)
+def _bundle_implementation_identity(namespace):
+    owner = _selected_bundle(namespace)
     if owner is None:
         return b''
     loaded = owner._admitted_bundle
@@ -222,3 +243,35 @@ def native_implementation_identity(namespace):
     continuation=getattr(owner,'_native_continuation_identity',b'')
     if continuation:values.append(continuation.hex())
     return ('\0'.join(values)).encode('ascii')
+
+def captured_selected_owner():
+    """Return only this bundle scope's actual owner, including captured absence."""
+    owner = _OWNER.get()
+    return (False, None) if owner is _UNSELECTED else (True, owner)
+
+
+def selected_core_emitter(namespace):
+    from .hia_backend_family_selection import emitter_family
+    return emitter_family.selected(namespace)
+
+
+def active_core_emitter():
+    from .hia_backend_family_selection import emitter_family
+    return emitter_family.active()[1]
+
+
+def active_core_emitter_family():
+    from .hia_backend_family_selection import emitter_family
+    return emitter_family.active()[0]
+
+
+@contextmanager
+def native_core_emitter_scope(namespace):
+    from .hia_backend_family_selection import emitter_family
+    with emitter_family.scope(namespace):
+        yield
+
+
+def native_implementation_identity(namespace):
+    from .hia_backend_family_selection import emitter_family
+    return emitter_family.identity(namespace)

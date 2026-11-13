@@ -520,7 +520,7 @@ def _function_shape(fn, *, recursive_chain=False, parameter_loan_returns=False):
                                      parameter_loan_returns=parameter_loan_returns)
 
 
-def _reference_function_shape(fn, *, recursive_chain=False, parameter_loan_returns=False):
+def _reference_function_shape(fn, *, recursive_chain=False, parameter_loan_returns=False, profile=None):
     fields = {"name", "params", "returns", "effects", "entry", "blocks"}
     if parameter_loan_returns and type(fn) is dict and "return_loans" in fn:
         fields.add("return_loans")
@@ -547,8 +547,12 @@ def _reference_function_shape(fn, *, recursive_chain=False, parameter_loan_retur
             elif (type(origin) is not str or parameters.get(origin) not in {"readbuf", "mutbuf"}
                   or typ == "mutbuf" and parameters[origin] != "mutbuf"):
                 _reject("borrowed result must name an input loan with sufficient permission", "E_HIA_LOAN")
+    allowed_effects = EFFECTS
+    if profile is not None:
+        from .hia_linux_stdio import profile_effects
+        allowed_effects = profile_effects(profile)
     effects = fn["effects"]
-    if (type(effects) is not list or any(type(e) is not str or e not in EFFECTS for e in effects)
+    if (type(effects) is not list or any(type(e) is not str or e not in allowed_effects for e in effects)
             or len(effects) != len(set(effects))):
         _reject("unknown/duplicate function effect", "E_HIA_EFFECT")
     _ident(fn["entry"], "entry")
@@ -622,9 +626,10 @@ class _FunctionInterface:
 
 
 class _BlockCheck:
-    def __init__(self, fn, block, capabilities, functions, *, schema):
+    def __init__(self, fn, block, capabilities, functions, *, schema, profile=None):
         self.fn, self.block, self.functions = fn, block, functions
         self.schema = schema
+        self.profile = profile
         self.env = {p["name"]: p["type"] for p in block["params"]}
         self.caps = dict(capabilities)
         self.required = set()
@@ -681,17 +686,24 @@ class _BlockCheck:
         actual = [self.value(a) for a in args]
         names, types = [o["name"] for o in out], [o["type"] for o in out]
         try:
-            from .hia_instruction_policy_native import selected_instruction_policy
-            native_effects = selected_instruction_policy(op, self.schema, actual, types, attrs)
-            if native_effects is None:
-                spec = opcode_spec(op, self.schema)
+            spec = None
+            if self.profile is not None:
+                from .hia_linux_stdio import profile_opcode
+                spec = profile_opcode(self.profile, op, self.schema)
+            if spec is not None:
                 self.required.update(check_instruction(spec, actual, types, attrs))
             else:
-                # Read already-admitted resource guard/transition metadata;
-                # no old opcode/version/signature/attribute/effect decision.
-                from .hia_opcodes import OPCODES
-                spec = OPCODES[op]
-                self.required.update(native_effects)
+                from .hia_instruction_policy_native import selected_instruction_policy
+                native_effects = selected_instruction_policy(op, self.schema, actual, types, attrs)
+                if native_effects is None:
+                    spec = opcode_spec(op, self.schema)
+                    self.required.update(check_instruction(spec, actual, types, attrs))
+                else:
+                    # Read already-admitted resource guard/transition metadata;
+                    # no old opcode/version/signature/attribute/effect decision.
+                    from .hia_opcodes import OPCODES
+                    spec = OPCODES[op]
+                    self.required.update(native_effects)
         except OpcodeRejected as exc:
             _reject(str(exc), exc.code)
 
@@ -840,7 +852,7 @@ def _primitive_structure(data):
     return _reference_primitive_structure(data)
 
 
-def _reference_primitive_structure(data):
+def _reference_primitive_structure(data, *, profile=None):
     """Check every declaration, shape, SSA identity, CFG edge and export.
 
     Incremental admission never caches this pass. It establishes every
@@ -857,8 +869,14 @@ def _reference_primitive_structure(data):
         _reject("invalid function inventory", "E_HIA_FORMAT")
     functions, block_maps = {}, {}
     for fn in data["functions"]:
-        blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"),
-                                 parameter_loan_returns=supports_feature(data["schema"], "parameter_loan_returns"))
+        if profile is None:
+            blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"),
+                                     parameter_loan_returns=supports_feature(data["schema"], "parameter_loan_returns"))
+        else:
+            blocks = _reference_function_shape(fn,
+                recursive_chain=supports_feature(data["schema"], "recursive_chain"),
+                parameter_loan_returns=supports_feature(data["schema"], "parameter_loan_returns"),
+                profile=profile)
         if fn["name"] in functions:
             _reject("duplicate function", "E_HIA_NAME")
         functions[fn["name"]], block_maps[fn["name"]] = fn, blocks
@@ -886,7 +904,7 @@ def _function_interfaces(functions):
             for name, fn in functions.items()}
 
 
-def _verify_function(schema, fn, blocks, interfaces):
+def _verify_function(schema, fn, blocks, interfaces, *, profile=None):
     """Verify a closed body using its bytes and immutable callee interfaces.
 
     V8 formal identities and returned-loan declarations are dependencies.
@@ -907,7 +925,10 @@ def _verify_function(schema, fn, blocks, interfaces):
             continue
         processed.add(ident)
         block = blocks[ident]
-        check = _BlockCheck(fn, block, incoming[ident], interfaces, schema=schema)
+        if profile is None:
+            check = _BlockCheck(fn, block, incoming[ident], interfaces, schema=schema)
+        else:
+            check = _BlockCheck(fn, block, incoming[ident], interfaces, schema=schema, profile=profile)
         for ins in block["ops"]:
             check.instruction(ins)
         check.finish()
@@ -968,3 +989,42 @@ def execute_program(program, function, arguments, **kwargs):
 
 # Public language-level spelling: verification of a program, not source replay.
 verify_core = verify_program
+
+# Explicit HIA selection; original function bodies remain the default.
+from .hia_core_verification_selection import native_core_verification_scope as _native_core_verification_scope
+
+_core_verification_reference_reject = _reject
+
+def _reject(message, code='E_HIA_PROGRAM'):
+    with _native_core_verification_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _core_verification_reference_reject, 'message': message, 'code': code}
+            del message, code, owner
+            return carrier.pop('callee')(carrier.pop('message'), carrier.pop('code'))
+        frame = owner.prepare('_reject', (message, code))
+        del message, code
+        return owner.finish(frame)
+
+_core_verification_referenceverify_program = verify_program
+
+def verify_program(program, *, profile=None):
+    if profile is not None:
+        from .hia_linux_stdio import require_profile, verify_linux_stdio_program
+        require_profile(profile)
+        return verify_linux_stdio_program(program)
+    with _native_core_verification_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _core_verification_referenceverify_program, 'program': program}
+            del program, owner
+            return carrier.pop('callee')(carrier.pop('program'))
+        frame = owner.prepare('verify_program', (program,))
+        del program
+        return owner.finish(frame)
+
+verify_core = verify_program
+
+# Definition anchors never follow late global replacement or deletion.
+_NATIVE_CORE_VERIFICATION_ENTRIES = {
+    '_reject': _reject,
+    'verify_program': verify_program,
+}

@@ -7,10 +7,8 @@ preservation claim is conditional on the canonical lowering and encoder.
 from __future__ import annotations
 
 from contextvars import ContextVar
-import os
 
 _NATIVE_OWNER = ContextVar('hia_machine_plan_native_owner', default=None)
-_NATIVE_SELECTOR = 'HEPTA_HIA_MACHINE_PLAN_MANIFEST'
 
 LAYOUT_V1 = "hepta.hia.agent.block-layout.v1"
 MACHINE_V2 = "hepta.hia.agent.machine-plan.v2"
@@ -191,49 +189,7 @@ def _reference_validate_plan(checked, plan):
     return plan  # This exact detached snapshot was checked and is emitted.
 
 
-def _selected_owner():
-    owner = _NATIVE_OWNER.get()
-    if owner is not None:
-        return owner
-    path = os.environ.get(_NATIVE_SELECTOR)
-    if not path:
-        return None
-    from .hia_machine_plan_native import installed_machine_plan
-    return installed_machine_plan(path)
-
-
-def register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):
-    """Check closed-block scalar lifetimes with the explicitly selected owner."""
-    owner = _selected_owner()
-    if owner is None:
-        return _reference_register_assignment_witness(
-            checked, assignments, allow_leaf_registers=allow_leaf_registers)
-    return owner.witness(checked, assignments, allow_leaf_registers=allow_leaf_registers)
-
-
-def validate_plan(checked, plan):
-    """Capture the plan and one native owner before the public witness hook."""
-    owner = _selected_owner()
-    if owner is None:
-        return _reference_validate_plan(checked, plan)
-    token = _NATIVE_OWNER.set(owner)
-    try:
-        return owner.validate(checked, plan, register_assignment_witness)
-    finally:
-        _NATIVE_OWNER.reset(token)
-
-
-def native_implementation_identity():
-    """Bind selected code and source in the emitting backend's custody hash."""
-    owner = _selected_owner()
-    if owner is None:
-        return b''
-    from hashlib import sha256
-    from .hia_machine_plan_native import SOURCE
-    return (sha256(SOURCE.read_bytes()).hexdigest() + ':' + owner.image_sha256).encode('ascii')
-
-
-def code_options(plan):
+def _reference_code_options(plan):
     if plan is None or plan["schema"] == LAYOUT_V1:
         return {}
     return {"scratch_registers": dict(plan["scratch_registers"]),
@@ -241,7 +197,7 @@ def code_options(plan):
             "alu_immediate": plan["instruction_selection"]["alu_immediate"]}
 
 
-def preservation_checks(plan, checked=None):
+def _reference_preservation_checks(plan, checked=None):
     """Separate claims, with no promotion to whole-backend refinement."""
     checks = [{"choice": "block_layout", "checked": True,
                "rule": "exact block permutations; every terminator transfers explicitly"}]
@@ -270,3 +226,97 @@ def preservation_checks(plan, checked=None):
                 "rule": "r8/r9 only; exact leaf opcode inventory; no returning call; no implicit r8/r9 scratch; scalar values; inclusive lifetimes; staged entry/edge copies",
                 "trap_rule": "all trap paths call abort then UD2 and have no returning continuation"})
     return checks
+
+
+# Operator-only family selection. No caller-owned plan field selects code.
+def _native_owner():
+    from .hia_machine_plan_native import selected_machine_plan
+    captured = _NATIVE_OWNER.get()
+    if captured is not None:
+        return captured
+    return selected_machine_plan()
+
+
+def _selected_owner():
+    # Preserve the original v1 private lookup name without a second selector.
+    return _native_owner()
+
+
+def validate_plan(checked, plan):
+    from .hia_backend_family_selection import plan_family
+    with plan_family.scope(None):
+        family, selected = plan_family.active()
+        previous = _NATIVE_OWNER.get()
+        try:
+            _NATIVE_OWNER.set(selected)
+            arguments = [checked, plan]
+            checked = plan = None
+            if family == 'plan-v1':
+                return selected.validate(arguments.pop(0), arguments.pop(0),
+                                         register_assignment_witness)
+            if family == 'control':
+                return selected.validate(arguments.pop(0), arguments.pop(0))
+            return _reference_validate_plan(arguments.pop(0), arguments.pop(0))
+        finally:
+            _NATIVE_OWNER.set(previous)
+
+
+def register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):
+    from .hia_backend_family_selection import plan_family
+    with plan_family.scope(None):
+        family, selected = plan_family.active()
+        previous = _NATIVE_OWNER.get()
+        try:
+            _NATIVE_OWNER.set(selected)
+            arguments = [checked, assignments, allow_leaf_registers]
+            checked = assignments = allow_leaf_registers = None
+            if family is not None:
+                return selected.witness(arguments.pop(0), arguments.pop(0),
+                                        allow_leaf_registers=arguments.pop(0))
+            return _reference_register_assignment_witness(
+                arguments.pop(0), arguments.pop(0),
+                allow_leaf_registers=arguments.pop(0))
+        finally:
+            _NATIVE_OWNER.set(previous)
+
+
+def code_options(plan):
+    from .hia_backend_family_selection import plan_family
+    with plan_family.scope(None):
+        family, selected = plan_family.active()
+        previous = _NATIVE_OWNER.get()
+        try:
+            _NATIVE_OWNER.set(selected)
+            arguments = [plan]
+            plan = None
+            if family == 'control':
+                return selected.code_options(arguments.pop(0))
+            # The v1 family owns validate/witness only. Its original options
+            # path remains the reference policy, including while v1 is held.
+            return _reference_code_options(arguments.pop(0))
+        finally:
+            _NATIVE_OWNER.set(previous)
+
+
+def preservation_checks(plan, checked=None):
+    from .hia_backend_family_selection import plan_family
+    with plan_family.scope(None):
+        family, selected = plan_family.active()
+        previous = _NATIVE_OWNER.get()
+        try:
+            _NATIVE_OWNER.set(selected)
+            arguments = [plan, checked]
+            plan = checked = None
+            if family == 'control':
+                return selected.preservation_checks(arguments.pop(0), arguments.pop(0))
+            return _reference_preservation_checks(arguments.pop(0), arguments.pop(0))
+        finally:
+            _NATIVE_OWNER.set(previous)
+
+
+_NATIVE_PUBLIC_WITNESS = register_assignment_witness
+
+
+def native_implementation_identity():
+    from .hia_backend_family_selection import plan_family
+    return plan_family.identity(None)

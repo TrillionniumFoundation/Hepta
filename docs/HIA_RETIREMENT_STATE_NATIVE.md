@@ -168,3 +168,12 @@ installed-release garbage collection.
 The present owner is in-process and non-durable. It neither releases another
 process's handles nor establishes installed-release garbage collection, a
 complete native Agent journal, service activation, or whole-stack retirement.
+
+## Merged-source acceptance boundary
+
+This document retains the main component protocol and its original reference
+and native controls. Integrating it with the continuation owners does not
+transfer a prior run's qualification to the new source. The merged source,
+generated HIA, installed resources and complete original controls must bind to
+the same current-source cold report. Development or source-only observations
+do not authorize default activation or removal of a retained owner.

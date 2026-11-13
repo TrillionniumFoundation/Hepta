@@ -14,6 +14,36 @@ MAX_TOTAL = (1 << 61) - 1
 MAGIC = 0x3153484132353648
 
 
+# A stream may cover the full Agent 64 MiB quota. Keep the original one-shot
+# authoring constants and algebra unchanged; only this stream uses these
+# straight-line, checked u8 accesses. The order, full u64 width and layout are
+# identical to the retained byte loops. No native-width memory primitive or
+# foreign hash is introduced.
+STREAM_WORD_HELPERS = r'''
+def get(w:mutbuf, index:u64) -> u64:
+    value = byte(w, index)
+    value = value | (byte(w, index + 1) << 8)
+    value = value | (byte(w, index + 2) << 16)
+    value = value | (byte(w, index + 3) << 24)
+    value = value | (byte(w, index + 4) << 32)
+    value = value | (byte(w, index + 5) << 40)
+    value = value | (byte(w, index + 6) << 48)
+    value = value | (byte(w, index + 7) << 56)
+    return value
+
+def put(w:mutbuf, index:u64, value:u64) -> u64:
+    store(w, index, value & 255)
+    store(w, index + 1, (value >> 8) & 255)
+    store(w, index + 2, (value >> 16) & 255)
+    store(w, index + 3, (value >> 24) & 255)
+    store(w, index + 4, (value >> 32) & 255)
+    store(w, index + 5, (value >> 40) & 255)
+    store(w, index + 6, (value >> 48) & 255)
+    store(w, index + 7, (value >> 56) & 255)
+    return 0
+'''
+
+
 def source_program():
     source = '''def stream(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 1 or length(s) > 8388609 or length(o) < 32 or length(w) < 1184:
@@ -101,7 +131,8 @@ def compress(w:mutbuf) -> u64:
     for i, name in enumerate('abcdefgh'):
         source += f'    put(w, {1024 + i * 8}, (get(w, {1024 + i * 8}) + {name}) & 4294967295)\n'
     source += '    return 0\n'
-    return source + HELPERS[HELPERS.index('\ndef rotate'):]
+    return (source + HELPERS[HELPERS.index('\ndef rotate'):HELPERS.index('\ndef get')]
+            + STREAM_WORD_HELPERS)
 
 
 def document():
@@ -117,6 +148,40 @@ def document():
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
     return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'sha256_stream', 'functions': functions})
+
+
+class _RetainedLoopBuilder(Builder):
+    """Keep the published byte-loop oracle's original SSA emission order.
+
+    The current stream and shared compiler keep block-local scalar CSE.  Only
+    the retained comparison input uses the original Builder.op rule from
+    a733926a, generate_hia_selfhost.py blob e0d1b9c7.
+    """
+    def op(self, op, args, t=None, **attrs):
+        out = [] if t is None else [self.value(t)]
+        self.block['ops'].append({
+            'op': op, 'args': [a[0] for a in args],
+            'out': [self.param(x) for x in out], 'attrs': attrs,
+        })
+        return out[0] if out else None
+
+
+def retained_loop_document(source, module='sha256_stream'):
+    """Reproduce the separately hash-pinned, complete original loop program."""
+    nodes = ast.parse(source).body
+    names = {node.name: 'f' + str(i) for i, node in enumerate(nodes)}
+    signatures = {node.name: ([a.annotation.id for a in node.args.args], node.returns.id)
+                  for node in nodes}
+    total = total_scalar_functions(nodes)
+    functions = []
+    for node in nodes:
+        builder = _RetainedLoopBuilder(node, names, signatures, total)
+        builder.statements(node.body)
+        functions.append({'name': names[node.name], 'params': [builder.param(v) for v in builder.params],
+                          'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
+                          'entry': 'b0', 'blocks': builder.blocks})
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module,
+                                  'functions': functions})
 
 
 def main():

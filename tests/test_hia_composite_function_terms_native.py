@@ -35,8 +35,8 @@ BUNDLE = 'HEPTA_HIA_COMPOSITE_FUNCTIONS_DEVELOPMENT_MANIFEST'
 TYPES = 'HEPTA_HIA_COMPOSITE_TYPES_DEVELOPMENT_MANIFEST'
 HELPERS = 'HEPTA_HIA_TASK_HELPERS_DEVELOPMENT_MANIFEST'
 EVIDENCE = 'HEPTA_HIA_FUNCTION_TERMS_EVIDENCE'
-ORACLE = getattr(composite._Elaborator, '_reference_function', composite._Elaborator.function)
-HOST_METHODS = ('function', '_reference_function', 'flat_parameters', 'parameters',
+ORACLE = composite._Elaborator._reference_main_function
+HOST_METHODS = ('function', '_reference_function', '_reference_main_function', '_reference_helper_cache', 'flat_parameters', 'parameters',
                 '_reference_parameters', 'fresh', 'reserve_values', 'zeros',
                 'drop_padding', 'constant', 'helper', 'check_task')
 

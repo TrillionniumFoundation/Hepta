@@ -365,6 +365,7 @@ class NativeCoreLowering:
         if abi.get('protocol_magic') != MAGIC or abi.get('pool_magic') != POOL_MAGIC or abi.get('packet_bytes') != 128:
             raise ValueError('native lowering protocol identity differs')
         self.images = tuple(images)
+        self._pool_image = pool
         if not self.images or len(self.images) != len(abi['units']):
             raise ValueError('native lowering image inventory differs')
         self.workspace_bytes, self.output_bytes = abi['workspace_bytes'], abi['output_bytes']
@@ -373,6 +374,10 @@ class NativeCoreLowering:
             raise ValueError('native lowering private extents differ')
         self.modes = abi['modes']
         self.namespace = namespace
+        self._core_public_entries = None
+        if self.ABI_SCHEMA == 'hepta.hia.core-lowering-abi.v1':
+            from . import hia_program_native
+            self._core_public_entries = vars(hia_program_native)['_NATIVE_CORE_PUBLIC_ENTRIES']
         output = ctypes.create_string_buffer(abi['pool_bytes'])
         empty = ctypes.create_string_buffer(1)
         count = pool._entry(empty, 0, output, len(output), empty, 0)
@@ -399,16 +404,16 @@ class NativeCoreLowering:
                          '_normalize': normalize, '_prologue': prologue}
 
     def global_value(self, name):
-        # Private helper replacement is not a runtime fallback. Remaining module
-        # globals are observed at the HIA-selected original lookup point.
-        if name in self._helpers:
-            return self._helpers[name]
+        # Only the original definition-time public helper can select its HIA
+        # body. Replacements and deletion remain actual namespace observations.
         if name in self.namespace:
+            if (name in self._helpers and self._core_public_entries is not None
+                    and self.namespace[name] is self._core_public_entries[name]):
+                return self._helpers[name]
             return self.namespace[name]
-        try:
-            return getattr(builtins, name)
-        except AttributeError:
-            raise NameError("name '" + name + "' is not defined") from None
+        if name in vars(builtins):
+            return vars(builtins)[name]
+        raise NameError("name '" + name + "' is not defined", name=name)
 
     def invoke(self, name, arguments):
         check_native_scheduling_scope(self, host_scheduler=True)

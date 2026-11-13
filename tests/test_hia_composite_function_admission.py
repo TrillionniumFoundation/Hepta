@@ -33,7 +33,7 @@ class PassTwoReached(Exception):
 
 
 def reference_pass_one(owner):
-    method = composite._Elaborator._reference_function
+    method = composite._Elaborator._reference_main_function
     source, first = inspect.getsourcelines(method)
     boundary = first + next(n for n, line in enumerate(source) if line == '        result = []\n')
     def trace(frame, event, arg):

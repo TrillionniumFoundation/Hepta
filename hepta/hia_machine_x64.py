@@ -79,15 +79,23 @@ def native_encoding_scope():
     owner = _selected_owner()
     state = _selected_state_owner(owner)
     instructions = _selected_instruction_owner(owner, state)
-    token = _NATIVE_OWNER.set(owner)
-    state_token = _NATIVE_STATE_OWNER.set(state)
-    instruction_token = _NATIVE_INSTRUCTION_OWNER.set(instructions)
+    previous = (_NATIVE_OWNER.get(), _NATIVE_STATE_OWNER.get(),
+                _NATIVE_INSTRUCTION_OWNER.get())
     try:
+        # Preserve the actual previous values even if set() completed but an
+        # interruption loses its returned token before Python can store it.
+        _NATIVE_OWNER.set(owner)
+        _NATIVE_STATE_OWNER.set(state)
+        _NATIVE_INSTRUCTION_OWNER.set(instructions)
         yield
     finally:
-        _NATIVE_INSTRUCTION_OWNER.reset(instruction_token)
-        _NATIVE_STATE_OWNER.reset(state_token)
-        _NATIVE_OWNER.reset(token)
+        try:
+            _NATIVE_INSTRUCTION_OWNER.set(previous[2])
+        finally:
+            try:
+                _NATIVE_STATE_OWNER.set(previous[1])
+            finally:
+                _NATIVE_OWNER.set(previous[0])
 
 
 def native_implementation_identity():
@@ -100,7 +108,8 @@ def native_implementation_identity():
     from .hia_machine_encoding_native import SOURCE
     def admitted_identity(image, source):
         source_sha = sha256(source.read_bytes()).hexdigest()
-        if source_sha != image.admitted_source_sha256:
+        admitted = image.admitted_source_sha256
+        if type(admitted) is not str or source_sha != admitted:
             raise ValueError('native HIA machine source identity mismatch')
         return source_sha + ':' + image.image_sha256
     identity = admitted_identity(owner, SOURCE)

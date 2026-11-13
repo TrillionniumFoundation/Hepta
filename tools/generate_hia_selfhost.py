@@ -778,6 +778,8 @@ def check_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             # Clear only this block's definitions before replay so neither
             # variable() nor loan_live() can observe a future instruction's
             # stale capability. define() keeps its ordinary strict check.
+            # Every usable SSA index was interned densely below name_count.
+            # Entries above it have no definition in this function.
             i = 0
             while i < interned_count:
                 if get(w, VBASE + i * 16 + 8) == bid + 1:

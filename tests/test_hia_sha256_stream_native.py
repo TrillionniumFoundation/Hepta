@@ -57,12 +57,89 @@ def vm_stream(chunks):
     return bytes(actual['values'][len(results):])
 
 
+# The reference is the exact ac3 byte-loop assembly, not a newly chosen digest
+# implementation. It is rebuilt only by the Native tests. Source controls use
+# the ordinary Core VM and require neither a seed nor a native compiler.
+RETAINED_STREAM_ASSEMBLY_SHA256 = '7fdc436867514b3d1dd741e3c3d86c0b95cc19d5b69907d5df9febf29639cb68'
+
+
+def retained_loop_source():
+    from tools.generate_hia_sha256_stream import source_program, STREAM_WORD_HELPERS
+    from tools.generate_hia_sha256 import HELPERS
+    source = source_program()
+    assert source.count(STREAM_WORD_HELPERS) == 1
+    return source.replace(STREAM_WORD_HELPERS, HELPERS[HELPERS.index('\ndef get'):])
+
+
+def retained_loop_assembly():
+    from hepta.hia_agent_assembly import render_assembly
+    from tools.generate_hia_sha256_stream import retained_loop_document as word_document
+    wire = render_assembly(word_document(retained_loop_source(), 'sha256_stream')).encode()
+    assert sha256(wire).hexdigest() == RETAINED_STREAM_ASSEMBLY_SHA256
+    return wire
+
+
+def vm_word_access(helpers, offset, value):
+    from tools.hia_selfhost_bulk import Body
+    from hepta.hia_agent_assembly import assemble_program, render_assembly
+    from hepta.hia_program import execute_program
+    from tools.generate_hia_artifact_publication import document as word_document
+    program = ('def probe(w:mutbuf, index:u64, value:u64) -> u64:\n'
+               '    put(w, index, value)\n'
+               '    return get(w, index)\n' + helpers)
+    fragment = render_assembly(word_document(program, 'word_access')).split('\n', 1)[1]
+    body = Body(0)
+    owner = body.value('buffer', 'buffer.new', [body.const('usize', 24)])
+    view = body.value('mutbuf', 'borrow.mut', [owner])
+    for index in range(24):
+        body.effect('buffer.store', [view, body.const('usize', index), body.const('u8', 0xa5)])
+    result = body.value('u64', 'call',
+                        [view, body.const('u64', offset), body.const('u64', value)],
+                        {'function': 'f0'})
+    observed = [body.value('u8', 'buffer.load', [view, body.const('usize', index)])
+                for index in range(24)]
+    body.effect('loan.end', [view])
+    body.effect('owner.drop', [owner])
+    source = ('hia-asm.v1 hepta.hia.program.v8 word_reference\n'
+              'fn observe() -> (' + ','.join(['u64'] + ['u8'] * 24)
+              + ') effects(alloc,read,write,trap) entry(b0)\nblock b0()\n'
+              + body.text() + '  ret(' + ','.join([result, *observed])
+              + ')\nend\n' + fragment)
+    observation = execute_program(assemble_program(source), 'observe', [], max_steps=100000)
+    assert observation['status'] == 'returned', observation
+    return observation['values'][0], bytes(observation['values'][1:])
+
+
+
 class Sha256StreamSourceTests(unittest.TestCase):
     def test_generated_source_and_independent_VM_chunk_transitions(self):
         from hepta.hia_agent_assembly import render_assembly
         self.assertEqual(SOURCE.read_text(), render_assembly(document()))
         for chunks in ([], [b'a', b'', b'bc'], [b'a' * 55, b'b'], [b'a' * 63, b'b', b'c']):
             self.assertEqual(vm_stream(chunks), sha256(b''.join(chunks)).digest())
+
+
+    def test_stream_only_word_access_retains_full_width_order_and_neighbour_bytes(self):
+        import ast
+        from tools.generate_hia_sha256 import HELPERS
+        from tools.generate_hia_sha256_stream import STREAM_WORD_HELPERS
+        original = HELPERS[HELPERS.index('\ndef get'):]
+        self.assertTrue(any(isinstance(node, ast.While) for node in ast.walk(ast.parse(original))))
+        self.assertFalse(any(isinstance(node, ast.While)
+                             for node in ast.walk(ast.parse(STREAM_WORD_HELPERS))))
+        # This hash is the previously published complete stream source. Its
+        # compression/padding/entry guards remain exactly the reference here.
+        self.assertEqual(sha256(retained_loop_assembly()).hexdigest(),
+                         RETAINED_STREAM_ASSEMBLY_SHA256)
+        for offset, value in ((0, 0), (1, 1), (3, 0x0102030405060708),
+                              (8, 0xffffffffffffffff), (15, 0x8000000000000001),
+                              (16, 0xff00ff00ff00ff00)):
+            with self.subTest(offset=offset, value=value):
+                expected = bytearray(b'\xa5' * 24)
+                expected[offset:offset + 8] = value.to_bytes(8, 'little')
+                wanted = (value, bytes(expected))
+                self.assertEqual(vm_word_access(original, offset, value), wanted)
+                self.assertEqual(vm_word_access(STREAM_WORD_HELPERS, offset, value), wanted)
 
 
 class Sha256StreamNativeTests(unittest.TestCase):
@@ -78,6 +155,8 @@ class Sha256StreamNativeTests(unittest.TestCase):
         first, _ = compile_stage(folder, 'B1', seed, source, image_format='seed-shared')
         second, _ = compile_stage(folder, 'B2', first, source)
         assert first.read_bytes() == second.read_bytes()
+        cls.folder, cls.compiler = folder, second
+        cls._loop_image = None
         image, cls.receipt = compile_stage(folder, 'sha256-stream', second, SOURCE.read_bytes())
         cls.image = NativeSha256Stream(image.read_bytes(), sha256(image.read_bytes()).hexdigest())
         cls.manifest = folder / 'manifest.json'
@@ -137,6 +216,98 @@ class Sha256StreamNativeTests(unittest.TestCase):
         wires = [bytes([i]) * (i * 29) for i in range(64)]
         with ThreadPoolExecutor(max_workers=8) as pool:
             self.assertEqual(list(pool.map(self.image.digest, wires)), [sha256(w).digest() for w in wires])
+
+
+    def _retained_loop_image(self):
+        cls = type(self)
+        if cls._loop_image is None:
+            from tools.qualify_hia_selfhost import compile_stage
+            wire = retained_loop_assembly()
+            image, receipt = compile_stage(cls.folder, 'sha256-stream-ac3-byte-loops',
+                                           cls.compiler, wire)
+            raw = image.read_bytes()
+            cls._loop_image = NativeSha256Stream(raw, sha256(raw).hexdigest())
+            cls._loop_receipt = receipt
+        return cls._loop_image
+
+    def _complete_raw_observation(self, image, wire, state_bytes, *,
+                                  output_size=32, state_size=STATE_BYTES,
+                                  source_size=None):
+        source = ctypes.create_string_buffer(wire + b'\x3c' * 8, len(wire) + 8)
+        state = ctypes.create_string_buffer(state_bytes + b'\x5a' * 8, STATE_BYTES + 8)
+        output = ctypes.create_string_buffer(b'\xa5' * 40, 40)
+        source_before = source.raw
+        code = image._entry(source, len(wire) if source_size is None else source_size,
+                            output, output_size, state, state_size)
+        self.assertEqual(source.raw, source_before)
+        self.assertEqual(state.raw[STATE_BYTES:], b'\x5a' * 8)
+        self.assertEqual(output.raw[32:], b'\xa5' * 8)
+        return code, output.raw, state.raw
+
+    def test_every_native_transition_matches_retained_complete_state_and_output(self):
+        original = self._retained_loop_image()
+        for fill in (0, 0xa5, 0xff):
+            states = [bytes([fill]) * STATE_BYTES] * 2
+            payload = b''
+            wires = [b'\x00', b'\x01', b'\x01a', b'\x01' + b'b' * 54,
+                     b'\x01\xff', b'\x01' + bytes(range(64)), b'\x01xyz',
+                     b'\x01' + bytes(range(256)), b'\x02', b'\x02']
+            for position, wire in enumerate(wires):
+                with self.subTest(fill=fill, position=position):
+                    observations = [
+                        self._complete_raw_observation(image, wire, states[index])
+                        for index, image in enumerate((original, self.image))]
+                    self.assertEqual(observations[0], observations[1])
+                    states = [observed[2][:STATE_BYTES] for observed in observations]
+                    if wire[:1] == b'\x01':
+                        payload += wire[1:]
+                        self.assertEqual(observations[0][0], 0)
+                        self.assertEqual(observations[0][1], b'\xa5' * 40)
+                    elif position == len(wires) - 2:
+                        self.assertEqual(observations[0][0], 32)
+                        self.assertEqual(observations[0][1][:32], sha256(payload).digest())
+                    elif position == len(wires) - 1:
+                        self.assertEqual(observations[0][0], 0xfffffffd)
+        for length in (55, 56, 63, 64, 65, 119, 120, 127, 128, 129):
+            payload = bytes((index * 137 + 29) & 255 for index in range(length))
+            states = [bytes(STATE_BYTES)] * 2
+            for wire in (b'\x00', b'\x01' + payload, b'\x02'):
+                observations = [
+                    self._complete_raw_observation(image, wire, states[index])
+                    for index, image in enumerate((original, self.image))]
+                self.assertEqual(observations[0], observations[1], (length, wire[:1]))
+                states = [observed[2][:STATE_BYTES] for observed in observations]
+            self.assertEqual(observations[0][1][:32], sha256(payload).digest())
+
+    def test_retained_u64_state_words_and_refusal_have_identical_side_effects(self):
+        original = self._retained_loop_image()
+        initial = original.new(b'abc')._state.raw
+        cases = [
+            (b'\x01d', (), {}),
+            (b'\x02', ((0, 0x8000000000000001), (1024, 0xffffffffffffffff)), {}),
+            (b'\x01d', ((1088, (1 << 40) + 3),), {}),
+            (b'\x02', ((1088, (1 << 40) + 3),), {}),
+            (b'\x01d', ((1176, 0),), {}),
+            (b'\x01d', ((1104, 2),), {}),
+            (b'\x02', ((1096, 64),), {}),
+            (b'\x02', ((1088, MAX_TOTAL + 1),), {}),
+            (b'\x01x', ((1088, MAX_TOTAL), (1096, 63)), {}),
+            (b'\x02', (), {'output_size': 31}),
+            (b'\x00', (), {'state_size': STATE_BYTES - 1}),
+            (b'\x01a', (), {'source_size': MAX_CHUNK + 2}),
+        ]
+        for wire, mutations, options in cases:
+            with self.subTest(wire=wire, mutations=mutations, options=options):
+                state = bytearray(initial)
+                for offset, value in mutations:
+                    struct.pack_into('<Q', state, offset, value)
+                observations = [
+                    self._complete_raw_observation(image, wire, bytes(state), **options)
+                    for image in (original, self.image)]
+                self.assertEqual(observations[0], observations[1])
+                if observations[0][0] == 0xfffffffd:
+                    self.assertEqual(observations[0][1], b'\xa5' * 40)
+                    self.assertEqual(observations[0][2], bytes(state) + b'\x5a' * 8)
 
     def raw(self, wire, state, *, source_size=None, output_size=32, state_size=STATE_BYTES):
         source = ctypes.create_string_buffer(wire, max(1, len(wire)))

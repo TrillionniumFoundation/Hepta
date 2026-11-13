@@ -199,5 +199,80 @@ class HiaSourceSuffixTests(unittest.TestCase):
                 check(root)
 
 
+    def test_linux_stdio_source_roles_are_explicit_and_fully_verified(self):
+        from unittest.mock import patch
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program import verify_program
+        from hepta.hia_linux_stdio import PROFILE
+        from tools.check_hia_core_only import EXPLICIT_SOURCE_PROFILES
+        names = (
+            'tests/fixtures/hia_linux_stdio_bounded-copy.hepta',
+            'tests/fixtures/hia_linux_stdio_out-of-bounds.hepta',
+            'tests/fixtures/hia_linux_stdio_read-ebadf-exact.hepta',
+            'tests/fixtures/hia_linux_stdio_write-ebadf-exact.hepta',
+            'tests/fixtures/hia_linux_stdio_zero-transfer.hepta',
+        )
+        self.assertEqual(EXPLICIT_SOURCE_PROFILES, {name: PROFILE for name in names})
+        source = {name: (ROOT / name).read_bytes() for name in names}
+        structured = {}
+        for name, raw in source.items():
+            with self.subTest(default_assembly=name), self.assertRaises(ValueError):
+                assemble_program(raw)
+            structured[name] = assemble_program(raw, profile=PROFILE).canonical_bytes
+            with self.subTest(default_json=name), self.assertRaises(ValueError):
+                verify_program(structured[name])
+        with source_tree() as root:
+            for name, raw in source.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(raw)
+            with patch('hepta.hia_agent_assembly.assemble_program', wraps=assemble_program) as calls:
+                report = check(root)
+            self.assertEqual(report['status'], 'PASS')
+            self.assertEqual(report['hia_source_files'], 5)
+            self.assertEqual([call.args for call in calls.call_args_list],
+                             [(source[name],) for name in sorted(names)])
+            self.assertEqual([call.kwargs for call in calls.call_args_list],
+                             [{'profile': PROFILE}] * 5)
+            for name, raw in structured.items():
+                (root / name).write_bytes(raw)
+            with patch('hepta.hia_program.verify_program', wraps=verify_program) as calls:
+                report = check(root)
+            self.assertEqual(report['status'], 'PASS')
+            self.assertEqual(report['hia_source_files'], 5)
+            self.assertEqual([call.args for call in calls.call_args_list],
+                             [(structured[name],) for name in sorted(names)])
+            self.assertEqual([call.kwargs for call in calls.call_args_list],
+                             [{'profile': PROFILE}] * 5)
+            unregistered = root / 'examples' / 'unregistered_stdio.hepta'
+            for raw in (source[names[0]], structured[names[0]]):
+                unregistered.write_bytes(raw)
+                with self.subTest(unregistered_format=raw[:1]), self.assertRaisesRegex(
+                        ValueError, 'invalid HIA source content: examples/unregistered_stdio'):
+                    check(root)
+                self.assertEqual(unregistered.read_bytes(), raw)
+                unregistered.unlink()
+            selected = root / names[0]
+            self.assertIn(b'linux_io', source[names[0]])
+            selected.write_bytes(source[names[0]].replace(b'linux_io', b'unregistered_io'))
+            with self.assertRaisesRegex(ValueError, 'E_HIA_EFFECT'):
+                check(root)
+            broken = json.loads(structured[names[0]])
+            broken['functions'][0]['blocks'][0]['ops'][0]['out'][0]['name'] = 'invalid value name'
+            selected.write_text(json.dumps(broken))
+            with self.assertRaisesRegex(ValueError, 'invalid HIA source content'):
+                check(root)
+            selected.unlink()
+            selected.symlink_to(ROOT / names[0])
+            with self.assertRaisesRegex(ValueError, 'regular non-symlink'):
+                check(root)
+            selected.unlink()
+            for name, raw in source.items():
+                (root / name).write_bytes(raw)
+            self.assertEqual(check(root)['hia_source_files'], 5)
+            for name, raw in source.items():
+                self.assertEqual((root / name).read_bytes(), raw)
+
+
 if __name__ == '__main__':
     unittest.main()

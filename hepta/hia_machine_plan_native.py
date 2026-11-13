@@ -9,6 +9,13 @@ from __future__ import annotations
 
 import ctypes
 import struct
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
+from hashlib import sha256
+import json
+import os
+from pathlib import Path
 
 from hepta.hia_instruction_policy_native import transport
 from hepta.hia_json_preflight_native import (
@@ -273,3 +280,71 @@ class NativeMachinePlan(NativeHiaJsonImage):
 def installed_machine_plan(manifest_path):
     """Select immutable local code while checking its package-owned source."""
     return _installed_json_image(manifest_path, SOURCE, SCHEMA, NativeMachinePlan)
+
+_UNSELECTED = object()
+_OWNER = ContextVar('hia_machine_plan_v1_admitted_selection', default=_UNSELECTED)
+
+
+@dataclass(frozen=True, eq=False)
+class _Admission:
+    owner: NativeMachinePlan
+    checker_owner: object
+
+
+def _bounded_manifest(path):
+    with path.open('rb') as stream:
+        raw = stream.read(16385)
+    if len(raw) > 16384:
+        raise ValueError('native machine-plan manifest exceeds its fixed extent')
+    return raw
+
+
+def _admit_family(manifest_path, namespace=None):
+    # The v1 warm mapping remains the admitted executable. Capture manifest
+    # and source bytes independently for this operation, never on a shared image.
+    path = Path(manifest_path).resolve(strict=True)
+    raw = _bounded_manifest(path)
+    source = SOURCE.read_bytes()
+    owner = installed_machine_plan(str(path))
+    if (owner.admitted_source_sha256 != sha256(source).hexdigest()
+            or _bounded_manifest(path) != raw or SOURCE.read_bytes() != source):
+        raise ValueError('native machine-plan admission inputs changed')
+    from .hia_checker_identity import hold_native_owner
+    return _Admission(owner, hold_native_owner(SELECTOR, owner, raw, source))
+
+
+def captured_selected_owner():
+    admitted = _OWNER.get()
+    if admitted is _UNSELECTED:
+        return False, None
+    return True, None if admitted is None else admitted.owner
+
+
+def captured_checker_owner():
+    admitted = _OWNER.get()
+    if admitted is _UNSELECTED:
+        return False, None
+    return True, None if admitted is None else admitted.checker_owner
+
+
+def _bundle_implementation_identity(namespace=None):
+    admitted = _OWNER.get()
+    if admitted is _UNSELECTED:
+        path = os.environ.get(SELECTOR)
+        admitted = _admit_family(path) if path else None
+    if admitted is None:
+        return b''
+    return (sha256(SOURCE.read_bytes()).hexdigest() + ':' +
+            admitted.owner.image_sha256).encode('ascii')
+
+
+def selected_machine_plan():
+    from .hia_backend_family_selection import plan_family
+    return plan_family.selected(None)
+
+
+@contextmanager
+def native_machine_plan_scope():
+    from .hia_backend_family_selection import plan_family
+    with plan_family.scope(None):
+        yield

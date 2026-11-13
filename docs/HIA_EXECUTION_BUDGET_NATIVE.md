@@ -195,3 +195,23 @@ owners. Source admission, tool dispatch, worker/process control and broader
 installation release lifecycle remain separately scoped. No historical
 completion journal, live migration, release garbage collection, service
 activation or whole-stack HIA closure is claimed here.
+
+## Isolated main/a733 integration draft
+
+The published execution-budget adapter remains byte-for-byte the main version.
+Its explicit empty-selector refusal and its optional `sidecars` constructor
+argument remain part of the admission boundary; the CandidateBudget adapter uses
+that argument to bind the original WAL namespace.
+
+The Service integration draft preserves the main CandidateBudget admission before
+catalog and store effects. Its ordinary budget route still calls the dynamic
+`_consume_attempt` entry exactly once after the original total-wall check. The
+retained a733 budget oracle is kept independently. In the explicitly selected
+Context HIA graph, new phases 213 and 214 choose either the admitted CandidateBudget
+consume operation or the original SQL-update path. They do not execute both.
+A failed wall check must precede either consume effect.
+
+This is an authored integration contract. The new graph must be regenerated and
+tested with complete VM/native state, exhaustion, callback failures and lost ACKs.
+Prior results for either isolated owner do not qualify this combined path; the
+original timeout and attempt limits remain unchanged.
