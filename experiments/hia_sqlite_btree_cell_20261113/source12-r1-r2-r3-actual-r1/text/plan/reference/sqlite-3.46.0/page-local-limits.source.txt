@@ -1,0 +1,68 @@
+#define PTF_INTKEY    0x01
+#define PTF_ZERODATA  0x02
+#define PTF_LEAFDATA  0x04
+#define PTF_LEAF      0x08
+
+static int decodeFlags(MemPage *pPage, int flagByte){
+  BtShared *pBt;     /* A copy of pPage->pBt */
+
+  assert( pPage->hdrOffset==(pPage->pgno==1 ? 100 : 0) );
+  assert( sqlite3_mutex_held(pPage->pBt->mutex) );
+  pBt = pPage->pBt;
+  pPage->max1bytePayload = pBt->max1bytePayload;
+  if( flagByte>=(PTF_ZERODATA | PTF_LEAF) ){
+    pPage->childPtrSize = 0;
+    pPage->leaf = 1;
+    if( flagByte==(PTF_LEAFDATA | PTF_INTKEY | PTF_LEAF) ){
+      pPage->intKeyLeaf = 1;
+      pPage->xCellSize = cellSizePtrTableLeaf;
+      pPage->xParseCell = btreeParseCellPtr;
+      pPage->intKey = 1;
+      pPage->maxLocal = pBt->maxLeaf;
+      pPage->minLocal = pBt->minLeaf;
+    }else if( flagByte==(PTF_ZERODATA | PTF_LEAF) ){
+      pPage->intKey = 0;
+      pPage->intKeyLeaf = 0;
+      pPage->xCellSize = cellSizePtrIdxLeaf;
+      pPage->xParseCell = btreeParseCellPtrIndex;
+      pPage->maxLocal = pBt->maxLocal;
+      pPage->minLocal = pBt->minLocal;
+    }else{
+      pPage->intKey = 0;
+      pPage->intKeyLeaf = 0;
+      pPage->xCellSize = cellSizePtrIdxLeaf;
+      pPage->xParseCell = btreeParseCellPtrIndex;
+      return SQLITE_CORRUPT_PAGE(pPage);
+    }
+  }else{
+    pPage->childPtrSize = 4;
+    pPage->leaf = 0;
+    if( flagByte==(PTF_ZERODATA) ){
+      pPage->intKey = 0;
+      pPage->intKeyLeaf = 0;
+      pPage->xCellSize = cellSizePtr;
+      pPage->xParseCell = btreeParseCellPtrIndex;
+      pPage->maxLocal = pBt->maxLocal;
+      pPage->minLocal = pBt->minLocal;
+    }else if( flagByte==(PTF_LEAFDATA | PTF_INTKEY) ){
+      pPage->intKeyLeaf = 0;
+      pPage->xCellSize = cellSizePtrNoPayload;
+      pPage->xParseCell = btreeParseCellPtrNoPayload;
+      pPage->intKey = 1;
+      pPage->maxLocal = pBt->maxLeaf;
+      pPage->minLocal = pBt->minLeaf;
+    }else{
+      pPage->intKey = 0;
+      pPage->intKeyLeaf = 0;
+      pPage->xCellSize = cellSizePtr;
+      pPage->xParseCell = btreeParseCellPtrIndex;
+      return SQLITE_CORRUPT_PAGE(pPage);
+    }
+  }
+  return SQLITE_OK;
+}
+
+  pBt->maxLocal = (u16)((pBt->usableSize-12)*64/255 - 23);
+  pBt->minLocal = (u16)((pBt->usableSize-12)*32/255 - 23);
+  pBt->maxLeaf = (u16)(pBt->usableSize - 35);
+  pBt->minLeaf = (u16)((pBt->usableSize-12)*32/255 - 23);

@@ -1,0 +1,63 @@
+{
+  "schema": "hia.root.btree-cell.r2-static-freeze-intent.v1",
+  "operation": "Freeze explicit corrected launcher request; no product generation or VM execution",
+  "original_request_sha256": "79cef7743537967dc89a325bb365636acfd914c6b8b91daa7f16dedce8fe1294",
+  "prior_actual_job": "1a1d3f606e3-392-25b",
+  "prior_status": "KNOWN_TERMINAL_BEFORE_EXECVE_OWNER_GENERATION_OR_VM",
+  "controls": [
+    {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/root-btree-source12-r1-PREOWNER-FAILURE.json",
+      "bytes": 4639,
+      "sha256": "2be0d2ef371c9e3bdac0a375ac34ca477a7dc5d91e646953e567c5db01ce362d"
+    },
+    {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-source-r1/control/source12_r2.py",
+      "bytes": 16635,
+      "sha256": "09c081ec8d09dfbc8ac0a7e341c2c8464b7e07e69a6ee4026116477c5c534178"
+    },
+    {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-source-r1/control/clean_exec_r2.py",
+      "bytes": 791,
+      "sha256": "f3b66407debe3f1f21ae35cc47c5dcab5db8351ae3e235663b2c88bd722c996a"
+    },
+    {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-source-r1/freeze_source12_r2.py",
+      "bytes": 3597,
+      "sha256": "6d773c9786f12843e0ff51ee1cbf7088c2d18e684fffce9b0e79fce59c1d896e"
+    },
+    {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/root-btree-clean-exec-r2-before-target-fix.py",
+      "bytes": 788,
+      "sha256": "dfa11e85a689bcc33f029c9f343a64c9573f1a4aa3e49e39780e4e2217b01379"
+    }
+  ],
+  "implementation_tests_original_43_input_files_unchanged": true,
+  "actual_methods": 12,
+  "actual_VM_returns": 339,
+  "qualification_seconds": 180,
+  "cleanup_seconds": 3,
+  "shell_start": {
+    "host": "ai395",
+    "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-source-r1",
+    "command": "/usr/bin/python3.14 -I -S -B '/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-source-r1/freeze_source12_r2.py'",
+    "timeout_seconds": 60,
+    "idempotency_key": "root-btree-source12-r2-static-freeze-once"
+  },
+  "automatic_retry": false,
+  "prior_intent_path_write": {
+    "status": "REJECTED_PREPUBLICATION_PATH_TRAVERSAL",
+    "actual_tool_result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "remote path traversal is not allowed"
+        }
+      ],
+      "structuredContent": {
+        "error_code": "INVALID_ARGUMENT"
+      },
+      "isError": true
+    },
+    "operation_started": false
+  }
+}

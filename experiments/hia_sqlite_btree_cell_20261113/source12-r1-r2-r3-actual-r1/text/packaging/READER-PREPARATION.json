@@ -1,0 +1,64 @@
+{
+  "schema": "hia.btree.reader-preparation-history.v1",
+  "qualification_repeated": false,
+  "r2_setup_read_errors": [
+    {
+      "stage": "six-file frozen request read",
+      "reason": "INVALID_ARGUMENT; omitted shorthand freeze_r2.py and then used actual freeze_source12_r2.py from bound request",
+      "mutation": false,
+      "qualification": false
+    },
+    {
+      "stage": "full CORE file read",
+      "reason": "generic read helper required an expected Git blob although inventory supplies only SHA256; read completed but helper rejected undefined Git comparison",
+      "mutation": false,
+      "qualification": false
+    }
+  ],
+  "one_listing_transport_failure": {
+    "status": "fulfilled",
+    "value": {
+      "content": [
+        {
+          "type": "text",
+          "text": "remote helper on ai395-lan failed with 255\nstdout:\n\nstderr:\n{\"attempts\": [{\"address\": \"10.77.0.2\", \"check_ssh_banner\": true, \"elapsed_ms\": 861.805, \"errno\": null, \"error\": \"SSH banner deadline exceeded\", \"interface\": \"bridge0\", \"interface_bound\": true, \"interface_policy\": \"required\", \"port\": 22, \"source\": \"10.77.0.3\", \"status\": \"failed\", \"timeout\": 0.85, \"transport\": \"usb4\"}, {\"address\": \"192.168.0.11\", \"check_ssh_banner\": true, \"elapsed_ms\": 0.499, \"errno\": 49, \"error\": \"[Errno 49] Can't assign requested address\", \"interface\": \"en0\", \"interface_bound\": true, \"interface_policy\": \"required\", \"port\": 22, \"source\": \"192.168.0.8\", \"status\": \"failed\", \"timeout\": 1.2, \"transport\": \"wifi\"}, {\"address\": \"192.168.0.5\", \"check_ssh_banner\": true, \"elapsed_ms\": 0.216, \"errno\": 49, \"error\": \"[Errno 49] Can't assign requested address\", \"interface\": \"en0\", \"interface_bound\": true, \"interface_policy\": \"required\", \"port\": 22, \"source\": \"192.168.0.8\", \"status\": \"failed\", \"timeout\": 1.2, \"transport\": \"wifi\"}], \"elapsed_ms\": 862.575, \"error\": \"no eligible reachable endpoint\", \"peer\": \"ai395\", \"selected\": null}\nmm_receive_fd: recvmsg: expected received 1 got 0\r\nproxy dialer did not pass back a connection"
+        }
+      ],
+      "structuredContent": {
+        "error_code": "INVALID_ARGUMENT"
+      },
+      "isError": true
+    }
+  },
+  "old_unexecuted_readers": [
+    "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-source12-actual-audit-r1/audit_actual.py",
+    "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-btree-cell-source12-actual-audit-r2/audit_actual.py"
+  ],
+  "actual_readers": [
+    {
+      "job": "1a1d40a5e4b-392-280",
+      "status": "ORIGINAL_HOLD_READBACK_COMPLETE",
+      "script": "4fce2f241369b2612e1976de2612d960d6847f8a9ef6c2500b8f156d5d77ecc8"
+    },
+    {
+      "job": "1a1d40c469e-392-286",
+      "status": "R3_VM_ONLY_READBACK_COMPLETE",
+      "script": "6fb66893d4665cff98255d65da1b7ba12a57b84be7ac3f8d2726f240bd3f996f"
+    }
+  ],
+  "observed_r3_static_delta": {
+    "old_sha256": "9a16841bf21ddc4e17785669f784d07b5807c78c233f7e089318347abd2c6bd8",
+    "new_sha256": "9edaa0a5225b1f39ae0c0e2a72aaceef1a20925bd3d0be170cffd202a1611245",
+    "three_exact_changes_equal_full_new": true,
+    "arith": {
+      "minimum_usable": 480,
+      "minimum_divisor": 476,
+      "maximum_usable": 65536,
+      "maximum_payload": 2147483647,
+      "maximum_numerator": 2147549178,
+      "unsigned32_max": 4294967295
+    },
+    "no_generation": true,
+    "cap_result_not_inferred": true
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "schema": "hia.sqlite.btree.cell.reference-differences.v1",
+  "status": "STATIC_REFERENCE_COMPARISON_ONLY",
+  "versions": [
+    {
+      "version": "3.46.0",
+      "commit": "bebe2d8be8acfd02592c4972f4ba32c3b4e4a33f",
+      "bytes": 400947,
+      "sha256": "3043b54506525cf526612a003b1923491b54945a41c552cf3054ff56d0e51af6",
+      "git_blob_sha1": "62b89897967cdba22595d9ae02a26d7bd00a8fa9"
+    },
+    {
+      "version": "3.53.2",
+      "commit": "ccc132c5be20ab5c755c97a08d06b1b592fef330",
+      "bytes": 404731,
+      "sha256": "8374f0b6867459af6d6f73ba6c22a8a6c2fdcaa967bbb913bff59e7612684086",
+      "git_blob_sha1": "2e53a86179059d46e61b1b5d2e204350ae8d375d"
+    }
+  ],
+  "changed": [
+    {
+      "name": "btreeParseCellPtr",
+      "older": {
+        "bytes": 2516,
+        "sha256": "a710d7332afb4d871c13dc100be065ab2a9d1a4070c777eef825c97d2b0e2f6c"
+      },
+      "newer": {
+        "bytes": 2599,
+        "sha256": "fdd47287e00da23afada0b62c9438735f2dafe7a5645f81ab3d93cf778261670"
+      },
+      "edits": [
+        {
+          "new_literal": "  u64 nPayload;",
+          "old_literal": "  u32 nPayload;",
+          "occurrences": 1
+        },
+        {
+          "new_literal": "    nPayload &= 0xffffffff;\n",
+          "old_literal": "",
+          "occurrences": 1
+        },
+        {
+          "new_literal": "  pInfo->nPayload = (u32)nPayload;",
+          "old_literal": "  pInfo->nPayload = nPayload;",
+          "occurrences": 1
+        },
+        {
+          "new_literal": "  assert( pPage->maxLocal <= BT_MAX_LOCAL );\n",
+          "old_literal": "",
+          "occurrences": 1
+        },
+        {
+          "new_literal": "    pInfo->nSize = (u16)nPayload + (u16)(pIter - pCell);",
+          "old_literal": "    pInfo->nSize = nPayload + (u16)(pIter - pCell);",
+          "occurrences": 1
+        }
+      ],
+      "exact_inverse_equal": true
+    },
+    {
+      "name": "btreeParseCellPtrIndex",
+      "older": {
+        "bytes": 1256,
+        "sha256": "3dcf6bc58ec39f9bea6d8bacb72ff07ac8de77e3bea4a2da1dfe09a4bf30b034"
+      },
+      "newer": {
+        "bytes": 1331,
+        "sha256": "a6d95d86e69eb109d952eafcc99d4e26ed515eb1cf00d14a2dfaabea65a4fdbf"
+      },
+      "edits": [
+        {
+          "new_literal": "  assert( nPayload>=0 );\n",
+          "old_literal": "",
+          "occurrences": 1
+        },
+        {
+          "new_literal": "  assert( pPage->maxLocal <= BT_MAX_LOCAL );\n",
+          "old_literal": "",
+          "occurrences": 1
+        },
+        {
+          "new_literal": "    pInfo->nSize = (u16)nPayload + (u16)(pIter - pCell);",
+          "old_literal": "    pInfo->nSize = nPayload + (u16)(pIter - pCell);",
+          "occurrences": 1
+        }
+      ],
+      "exact_inverse_equal": true
+    }
+  ],
+  "identical_functions": [
+    {
+      "name": "btreeParseCellAdjustSizeForOverflow",
+      "bytes": 1275,
+      "sha256": "4a2eb5110d64b4b5b0a99eadff376f83347535f14ae8d3fa02f6c42e62ea4a3a"
+    },
+    {
+      "name": "btreeParseCellPtrNoPayload",
+      "bytes": 525,
+      "sha256": "f0ff2e3b5c107bdbf64f8683ddd52aeb60e42e8bdc6053f37322134655bce5c4"
+    },
+    {
+      "name": "sqlite3GetVarint",
+      "bytes": 2702,
+      "sha256": "8576f95b6a51d4ab7a4f8aa6761897450e376e490b038c122b2b7e7f548df36e"
+    },
+    {
+      "name": "sqlite3GetVarint32",
+      "bytes": 643,
+      "sha256": "162e5485a4974fe9b0578232b5f1c246c28a908864ebd27b184f0a1a25a2411c"
+    }
+  ],
+  "identical_structures": [
+    {
+      "name": "MemPage",
+      "bytes": 2017,
+      "sha256": "c76d7411336f7583909570f158b7c60af5919abefee510f1b3f3e1d1b3c6499c"
+    },
+    {
+      "name": "BtShared",
+      "bytes": 2152,
+      "sha256": "991dc87b02cbde25effd62be3d2dcafc94954c0c939ce052470da6d6831b8d32"
+    },
+    {
+      "name": "CellInfo",
+      "bytes": 331,
+      "sha256": "96eb54a81493c8c4c42cacf1dd33ae3bf95c80230c27dcbe8c5659428a674e53"
+    }
+  ],
+  "admitted_domain_statement": "No numeric divergence was identified by static reading for complete valid selected cells with decoded payload at most 2147483647 encoded in 1..5 bytes and rowid encoded in 1..9 bytes. This is not a dynamic equivalence result and does not extend to other noncanonical payload encodings.",
+  "compile_executed": false,
+  "C_executed": false,
+  "HIA_executed": false,
+  "historical_preparation_note": {
+    "stage": "V8_mechanical_reference_assembly",
+    "error": "marker local_payload_limits",
+    "filesystem_writes": 0,
+    "git_mutations": 0
+  }
+}
