@@ -250,7 +250,14 @@ def request(o:mutbuf, w:mutbuf, opcode:u64, destination:u64, a:u64, b:u64, c:u64
     put(w, 88, opcode)
     at = 0
     while at < 256:
-        put(o, at, 0)
+        store(o, at + 0, 0)
+        store(o, at + 1, 0)
+        store(o, at + 2, 0)
+        store(o, at + 3, 0)
+        store(o, at + 4, 0)
+        store(o, at + 5, 0)
+        store(o, at + 6, 0)
+        store(o, at + 7, 0)
         at = at + 8
     put(o, 0, UNPACK_MAGIC)
     put(o, 8, seq)
@@ -273,7 +280,14 @@ def complete(o:mutbuf, w:mutbuf, status:u64) -> u64:
     put(w, 8, 99)
     at = 0
     while at < 256:
-        put(o, at, 0)
+        store(o, at + 0, 0)
+        store(o, at + 1, 0)
+        store(o, at + 2, 0)
+        store(o, at + 3, 0)
+        store(o, at + 4, 0)
+        store(o, at + 5, 0)
+        store(o, at + 6, 0)
+        store(o, at + 7, 0)
         at = at + 8
     put(o, 0, UNPACK_MAGIC)
     put(o, 8, get(w, 16))
