@@ -109,6 +109,7 @@ jobs:
               'tests.test_hia_agent_journal_native.JournalSourceTests',
               'tests.test_hia_json_wire_native.WireSourceTests',
               'tests.test_hia_json_wire_key_summary.WireKeySummarySourceTests',
+              'tests.test_hia_json_wire_leaf_cache.WireLeafCacheSourceTests',
               'tests.test_hia_worker_report_native.WorkerReportSourceTests',
               'tests.test_hia_machine_plan_native.MachinePlanSourceTests',
               'tests.test_hia_machine_encoding_native.MachineEncodingSourceTests',
@@ -435,6 +436,11 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" \
             --output "$RUNNER_TEMP/hia-json-wire-callers.json" \
             --evidence-dir "$RUNNER_TEMP/hia-json-wire-callers-evidence"
+      - name: Protocol 05 complete eight native controls under a separate process owner
+        run: |
+          python -B tools/qualify_hia_json_wire_leaf_cache.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-json-wire-leaf-cache-evidence"
       - name: Native Store reference URI and profile authority with retained cold fixtures
         run: |
           python -B tools/qualify_hia_store_page_ci.py component \
@@ -556,6 +562,7 @@ jobs:
             ${{ runner.temp }}/hia-json-wire-cache-fixture/
             ${{ runner.temp }}/hia-json-wire-entry-fixture/
             ${{ runner.temp }}/hia-json-wire-key-summary-evidence/
+            ${{ runner.temp }}/hia-json-wire-leaf-cache-evidence/
             ${{ runner.temp }}/hia-worker-report-fixture/
             ${{ runner.temp }}/hia-machine-plan-fixture/
             ${{ runner.temp }}/hia-cli-fixture/

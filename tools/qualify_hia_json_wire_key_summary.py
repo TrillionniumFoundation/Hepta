@@ -251,7 +251,7 @@ def validate_child(value, context, runtime, binding):
     rows = value.get('actual_wire_step_returns')
     require(type(rows) is list and rows, 'wire6 has no actual normal step returns')
     seen, tests, protocols, statuses = set(), set(), set(), set()
-    accepted_magic = tuple(int.from_bytes(word, 'little') for word in (b'HIAWIR02', b'HIAWIR03', b'HIAWIR04'))
+    accepted_magic = tuple(int.from_bytes(word, 'little') for word in (b'HIAWIR02', b'HIAWIR03', b'HIAWIR04', b'HIAWIR05'))
     for row in rows:
         require(type(row) is dict and set(row) == {'test', 'image_sha256', 'session_protocol_magic', 'status', 'count'}
                 and row['test'] in IDS and row['image_sha256'] == binding['wire']['manifest']['image_sha256']

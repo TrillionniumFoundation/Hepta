@@ -459,5 +459,5 @@ class WireKeySummaryNativeTests(unittest.TestCase):
         self.assertIsNot(seen[0].workspace, seen[1].workspace)
         for session in seen:
             self.assertTrue(session.key_summary_cache)
-            self.assertEqual(session._protocol_magic, native.KEY_SUMMARY_MAGIC)
+            self.assertEqual(session._protocol_magic, native.LEAF_MAGIC)
             self.assertGreater(struct.unpack_from('<Q', session.workspace, 696)[0], 0)

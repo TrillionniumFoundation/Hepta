@@ -16,11 +16,12 @@ SOURCE_PATH = 'examples/hia_bootstrap/json_wire.hiaasm'
 MAGIC = int.from_bytes(b'HIAWIR02', 'little')
 CACHED_MAGIC = int.from_bytes(b'HIAWIR03', 'little')
 KEY_SUMMARY_MAGIC = int.from_bytes(b'HIAWIR04', 'little')
+LEAF_MAGIC = int.from_bytes(b'HIAWIR05', 'little')
 # Header slots are part of the versioned continuation protocol. Arrays follow
 # the fixed header; the last 8192 bytes are the independently authored printer.
 FIELDS = {
     'MAGIC': MAGIC, 'CACHED_MAGIC': CACHED_MAGIC,
-    'KEY_SUMMARY_MAGIC': KEY_SUMMARY_MAGIC, 'AWAIT': 8, 'SEQ': 16, 'PHASE': 24,
+    'KEY_SUMMARY_MAGIC': KEY_SUMMARY_MAGIC, 'LEAF_MAGIC': LEAF_MAGIC, 'AWAIT': 8, 'SEQ': 16, 'PHASE': 24,
     'MAX': 32, 'BUDGET': 40, 'ASCII': 48, 'SORT': 56, 'RENDERER': 64,
     'ROOT': 72, 'NODES': 80, 'QUEUED': 88, 'SP': 96, 'ACTIVE': 104,
     'OUT': 112, 'H': 120, 'DEPTH': 128, 'KIND': 136, 'SIZE': 144,
@@ -43,6 +44,10 @@ FIELDS = {
     'CACHE_STORES': 672, 'CACHE_BYTES': 163840,
     'KEY_SUMMARY_READY': 680, 'KEY_SUMMARY_SIZE': 688,
     'KEY_SUMMARY_HITS': 696, 'KEY_SUMMARY_MISSES': 704,
+    'LEAF_BASE': 712, 'LEAF_READY': 720, 'LEAF_HITS': 728,
+    'LEAF_MISSES': 736, 'LEAF_STORES': 744, 'POINT_READY': 752,
+    'POINT_HITS': 760, 'POINT_MISSES': 768, 'TEXT_STORE_SLOT': 776,
+    'LEAF_BYTES': 311296,
     'ACTIVE_BASE': 1024, 'FRAME_BASE': 4096,
 }
 
@@ -56,7 +61,7 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if read64(s, 0) == MAGIC:
             if length(s) != 104:
                 return 199
-        elif read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC:
+        elif read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC or read64(s, 0) == LEAF_MAGIC:
             if length(s) != 112 or read64(s, 104) != 1:
                 return 199
         else:
@@ -80,7 +85,7 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 118
         if read64(s, 96) == 2:
             return 119
-        if (read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC) and read64(s, 96) != 0:
+        if (read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC or read64(s, 0) == LEAF_MAGIC) and read64(s, 96) != 0:
             return 199
         budget = choose(maximum < 262144, maximum, 262144)
         slots = 2
@@ -93,14 +98,19 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         temp_b = temp_a + maximum + 64
         limbs = temp_b + maximum + 64
         required = limbs + ((maximum * 4 + 31) >> 5) * 4 + 64 + 8192
-        if read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC:
+        if read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC or read64(s, 0) == LEAF_MAGIC:
             required = required + CACHE_BYTES
+        if read64(s, 0) == LEAF_MAGIC:
+            required = required + LEAF_BYTES
         if length(w) != required or length(o) < maximum:
             return 199
         put(w, 0, read64(s, 0))
         put(w, CACHE_BASE, 0)
-        if read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC:
+        if read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC or read64(s, 0) == LEAF_MAGIC:
             put(w, CACHE_BASE, required - 8192 - CACHE_BYTES)
+        if read64(s, 0) == LEAF_MAGIC:
+            put(w, CACHE_BASE, required - 8192 - CACHE_BYTES - LEAF_BYTES)
+            put(w, LEAF_BASE, required - 8192 - LEAF_BYTES)
         put(w, MAX, maximum)
         put(w, BUDGET, budget)
         put(w, ASCII, ascii_flag)
@@ -118,7 +128,7 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         push(w, read64(s, 24), 0, 0)
         put(w, PHASE, 1)
     else:
-        if (get(w, 0) != MAGIC and get(w, 0) != CACHED_MAGIC and get(w, 0) != KEY_SUMMARY_MAGIC) or get(w, AWAIT) == 0 or length(s) < 56:
+        if (get(w, 0) != MAGIC and get(w, 0) != CACHED_MAGIC and get(w, 0) != KEY_SUMMARY_MAGIC and get(w, 0) != LEAF_MAGIC) or get(w, AWAIT) == 0 or length(s) < 56:
             return 199
         opcode = get(w, AWAIT)
         if read64(s, 0) != get(w, 0) or read64(s, 8) != get(w, SEQ) or read64(s, 16) != opcode:
@@ -141,7 +151,10 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if phase < 20:
             result = preflight(s, w, phase)
         elif phase < 40:
-            result = normalize(s, o, w, phase)
+            if get(w, 0) == LEAF_MAGIC and (phase == 30 or phase == 31):
+                result = leaf_normalize(s, o, w, phase)
+            else:
+                result = normalize(s, o, w, phase)
         elif phase >= 100 and phase < 150:
             result = encode(s, o, w, phase)
         if result != 0:
@@ -172,10 +185,10 @@ def ask(w:mutbuf, opcode:u64, handle:u64, index:u64, count:u64, part:u64, phase:
     return 1
 
 def key_summary(w:mutbuf, handle:u64, next:u64) -> u64:
-    # Only protocol 04 may omit a SUMMARY, and only for the exact string
+    # Protocols 04/05 may omit a key SUMMARY, and only for the exact string
     # whose immutable-key preflight already completed in this workspace.
     # Legacy 02/03 retain even their unused header bytes and request order.
-    if get(w, 0) == KEY_SUMMARY_MAGIC:
+    if get(w, 0) == KEY_SUMMARY_MAGIC or get(w, 0) == LEAF_MAGIC:
         put(w, KEY_SUMMARY_READY, 0)
         base = get(w, CACHE_BASE)
         if base != 0 and handle != 0:
@@ -194,7 +207,7 @@ def key_summary(w:mutbuf, handle:u64, next:u64) -> u64:
     return ask(w, 1, handle, 0, 0, 0, next)
 
 def key_fact(s:readbuf, w:mutbuf, offset:u64) -> u64:
-    if get(w, 0) == KEY_SUMMARY_MAGIC and get(w, KEY_SUMMARY_READY) != 0:
+    if (get(w, 0) == KEY_SUMMARY_MAGIC or get(w, 0) == LEAF_MAGIC) and get(w, KEY_SUMMARY_READY) != 0:
         if offset == 24:
             return 4
         if offset == 32:
@@ -203,7 +216,7 @@ def key_fact(s:readbuf, w:mutbuf, offset:u64) -> u64:
     return read64(s, offset)
 
 def key_norm_begin(s:readbuf, w:mutbuf, handle:u64, role:u64, target:u64, next:u64) -> u64:
-    if get(w, 0) != KEY_SUMMARY_MAGIC or get(w, KEY_SUMMARY_READY) == 0:
+    if (get(w, 0) != KEY_SUMMARY_MAGIC and get(w, 0) != LEAF_MAGIC) or get(w, KEY_SUMMARY_READY) == 0:
         return norm_begin(s, w, handle, role, target, next)
     put(w, N_H, handle)
     put(w, N_KIND, 4)
@@ -216,6 +229,101 @@ def key_norm_begin(s:readbuf, w:mutbuf, handle:u64, role:u64, target:u64, next:u
     put(w, N_COUNT, 0)
     put(w, N_TEXT, 0)
     put(w, PHASE, 20)
+    return 0
+
+def leaf_summary(w:mutbuf, handle:u64, next:u64) -> u64:
+    # The only published leaf facts came from a completed original preflight.
+    # Containers keep every SUMMARY so dict cursors and mutation stay visible.
+    if get(w, 0) == LEAF_MAGIC:
+        put(w, LEAF_READY, 0)
+        base = get(w, LEAF_BASE)
+        if base != 0 and handle != 0:
+            slot = base + (handle & 1023) * 304
+            if get(w, slot) == handle and get(w, slot + 8) <= 4:
+                put(w, LEAF_READY, slot)
+                put(w, LEAF_HITS, get(w, LEAF_HITS) + 1)
+                put(w, PHASE, next)
+                return 0
+        put(w, LEAF_MISSES, get(w, LEAF_MISSES) + 1)
+    return ask(w, 1, handle, 0, 0, 0, next)
+
+def leaf_fact(s:readbuf, w:mutbuf, offset:u64) -> u64:
+    if get(w, 0) == LEAF_MAGIC and get(w, LEAF_READY) != 0:
+        return get(w, get(w, LEAF_READY) + offset - 16)
+    return read64(s, offset)
+
+def leaf_norm_begin(s:readbuf, w:mutbuf, handle:u64, role:u64, target:u64, next:u64) -> u64:
+    if get(w, 0) != LEAF_MAGIC or get(w, LEAF_READY) == 0:
+        return norm_begin(s, w, handle, role, target, next)
+    put(w, N_H, handle)
+    put(w, N_KIND, leaf_fact(s, w, 24))
+    put(w, N_SIZE, leaf_fact(s, w, 32))
+    put(w, N_A, leaf_fact(s, w, 40))
+    put(w, N_B, leaf_fact(s, w, 48))
+    put(w, N_ROLE, role)
+    put(w, N_TARGET, target)
+    put(w, N_RETURN, next)
+    put(w, N_COUNT, 0)
+    put(w, N_TEXT, 0)
+    put(w, PHASE, 20)
+    return 0
+
+def leaf_save_scalar(w:mutbuf, handle:u64, kind:u64, size:u64, a:u64, b:u64) -> u64:
+    if get(w, 0) != LEAF_MAGIC or kind > 3 or handle == 0:
+        return 0
+    base = get(w, LEAF_BASE)
+    if base == 0:
+        return 0
+    slot = base + (handle & 1023) * 304
+    if get(w, slot) != 0:
+        return 0
+    put(w, slot + 8, kind)
+    put(w, slot + 16, size)
+    put(w, slot + 24, a)
+    put(w, slot + 32, b)
+    put(w, slot + 40, 0)
+    put(w, slot, handle)
+    put(w, LEAF_STORES, get(w, LEAF_STORES) + 1)
+    return 0
+
+def leaf_text_begin(w:mutbuf) -> u64:
+    # Reset the private text continuation even for keys; key paths retain
+    # protocol04's independent UTF-8 cache and never consume a value's points.
+    put(w, POINT_READY, 0)
+    put(w, TEXT_STORE_SLOT, 0)
+    mode = get(w, T_MODE)
+    if mode != 0 and mode != 3:
+        return 0
+    base = get(w, LEAF_BASE)
+    handle = get(w, T_H)
+    if base == 0 or handle == 0:
+        return 0
+    slot = base + (handle & 1023) * 304
+    if get(w, slot) == handle and get(w, slot + 8) == 4 and get(w, slot + 16) == get(w, T_SIZE):
+        if get(w, T_SIZE) <= 64 and get(w, slot + 40) == 1:
+            put(w, POINT_READY, slot)
+            put(w, POINT_HITS, get(w, POINT_HITS) + 1)
+            return 0
+    elif get(w, slot) == 0 and mode == 0:
+        put(w, TEXT_STORE_SLOT, slot)
+    put(w, POINT_MISSES, get(w, POINT_MISSES) + 1)
+    return 0
+
+def leaf_text_commit(w:mutbuf) -> u64:
+    # Publish only after all original point/width/surrogate checks completed.
+    # Candidate point bytes alone are never a hit. Occupied slots stay a miss.
+    if get(w, T_MODE) != 0:
+        return 0
+    slot = get(w, TEXT_STORE_SLOT)
+    if slot == 0 or get(w, slot) != 0:
+        return 0
+    put(w, slot + 8, 4)
+    put(w, slot + 16, get(w, T_SIZE))
+    put(w, slot + 24, 0)
+    put(w, slot + 32, 0)
+    put(w, slot + 40, choose(get(w, T_SIZE) <= 64, 1, 0))
+    put(w, slot, get(w, T_H))
+    put(w, LEAF_STORES, get(w, LEAF_STORES) + 1)
     return 0
 
 def push(w:mutbuf, handle:u64, depth:u64, leaving:u64) -> u64:
@@ -255,14 +363,14 @@ def preflight(s:readbuf, w:mutbuf, phase:u64) -> u64:
             return 102
         put(w, H, handle)
         put(w, DEPTH, depth)
-        return ask(w, 1, handle, 0, 0, 0, 2)
+        return leaf_summary(w, handle, 2)
     if phase == 2:
-        kind = read64(s, 24)
-        size = read64(s, 32)
+        kind = leaf_fact(s, w, 24)
+        size = leaf_fact(s, w, 32)
         put(w, KIND, kind)
         put(w, SIZE, size)
-        put(w, A, read64(s, 40))
-        put(w, B, read64(s, 48))
+        put(w, A, leaf_fact(s, w, 40))
+        put(w, B, leaf_fact(s, w, 48))
         if kind >= 5 and kind <= 7:
             if size > get(w, BUDGET) - get(w, NODES) - get(w, QUEUED):
                 return 103
@@ -298,6 +406,7 @@ def preflight(s:readbuf, w:mutbuf, phase:u64) -> u64:
                 return 105
         elif kind > 3:
             return 106
+        leaf_save_scalar(w, get(w, H), kind, size, get(w, A), get(w, B))
         put(w, PHASE, 1)
         return 0
     if phase == 3 or phase == 10:
@@ -404,6 +513,8 @@ def text_begin(w:mutbuf, handle:u64, size:u64, mode:u64, target:u64, next:u64) -
     put(w, T_TARGET, target)
     put(w, T_RETURN, next)
     put(w, PHASE, 30)
+    if get(w, 0) == LEAF_MAGIC:
+        leaf_text_begin(w)
     if get(w, CACHE_BASE) != 0 and (mode == 1 or mode == 2) and size <= 32:
         return key_cache_restore(w)
     return 0
@@ -568,6 +679,60 @@ def normalize(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
                     return result
             elif mode != 0:
                 text_utf8(w, point)
+            index = index + 1
+        put(w, T_POS, get(w, T_POS) + index)
+        put(w, PHASE, 30)
+        return 0
+    return 199
+
+def leaf_normalize(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
+    # Protocol05 alone removes an immutable value's repeated POINTS request.
+    # It still runs the original per-point admission and escaping in order.
+    if phase == 30:
+        remaining = get(w, T_SIZE) - get(w, T_POS)
+        if remaining == 0:
+            if get(w, CACHE_BASE) != 0 and get(w, T_MODE) == 1 and get(w, T_SIZE) <= 32:
+                saved = key_cache_save(w)
+                if saved != 0:
+                    return saved
+            leaf_text_commit(w)
+            put(w, N_COUNT, get(w, T_COUNT))
+            put(w, PHASE, get(w, T_RETURN))
+            return 0
+        if get(w, POINT_READY) != 0:
+            put(w, PHASE, 31)
+            return 0
+        return ask(w, 3, get(w, T_H), get(w, T_POS), choose(remaining < 1024, remaining, 1024), 0, 31)
+    if phase == 31:
+        index = 0
+        mode = get(w, T_MODE)
+        point_slot = get(w, POINT_READY)
+        save_slot = get(w, TEXT_STORE_SLOT)
+        if point_slot == 0:
+            reply_count = read64(s, 24)
+        else:
+            reply_count = get(w, T_SIZE) - get(w, T_POS)
+        while index < reply_count:
+            if point_slot == 0:
+                point = read32(s, 56 + index * 4)
+            else:
+                point = get32(w, point_slot + 48 + (get(w, T_POS) + index) * 4)
+            if point > 1114111 or (mode == 4 and point > 127):
+                return 199
+            if mode == 0 or mode == 1:
+                if point >= 55296 and point <= 57343:
+                    return 115
+                put(w, T_WIDTH, get(w, T_WIDTH) + width(point, get(w, ASCII)))
+                if get(w, T_WIDTH) > get(w, MAX):
+                    return 108
+            if mode == 3:
+                result = escaped(o, w, point)
+                if result != 0:
+                    return result
+            elif mode != 0:
+                text_utf8(w, point)
+            if save_slot != 0 and get(w, T_SIZE) <= 64:
+                put32(w, save_slot + 48 + (get(w, T_POS) + index) * 4, point)
             index = index + 1
         put(w, T_POS, get(w, T_POS) + index)
         put(w, PHASE, 30)
@@ -818,17 +983,17 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         put(w, OUT, 0)
         put(w, PREFIX, 0)
         put(w, H, get(w, ROOT))
-        return ask(w, 1, get(w, H), 0, 0, 0, 101)
+        return leaf_summary(w, get(w, H), 101)
     if phase == 101:
-        kind = read64(s, 24)
-        size = read64(s, 32)
+        kind = leaf_fact(s, w, 24)
+        size = leaf_fact(s, w, 32)
         if kind < 5:
             if kind == 4:
                 if get(w, PREFIX) != 0:
                     emit(o, w, get(w, PREFIX))
                 emit(o, w, 34)
                 return text_begin(w, get(w, H), size, 3, 0, 109)
-            return norm_begin(s, w, get(w, H), 2, get(w, TEMP_A), 108)
+            return leaf_norm_begin(s, w, get(w, H), 2, get(w, TEMP_A), 108)
         if kind > 7:
             return 112
         if get(w, PREFIX) != 0:
@@ -879,7 +1044,7 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         if read64(s, 24) == 0:
             return 199
         put(w, H, read64(s, 24))
-        return ask(w, 1, get(w, H), 0, 0, 0, 101)
+        return leaf_summary(w, get(w, H), 101)
     if phase == 108:
         if get(w, N_COUNT) > get(w, MAX):
             return 116
@@ -1007,7 +1172,7 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         put(w, PREFIX, 0)
         put(w, H, get(w, frame + 56))
         put(w, frame + 24, get(w, frame + 24) + 1)
-        return ask(w, 1, get(w, H), 0, 0, 0, 101)
+        return leaf_summary(w, get(w, H), 101)
     return 199
 
 def frame_at(w:mutbuf) -> u64:
@@ -1265,9 +1430,12 @@ def source_program():
         continuation receive/dispatch and observed string processing. Whole
         program expansion exceeds the unchanged assembly line budget, and
         expanding the one-time initialization as well exceeds the unchanged
-        native compiler's per-function value-slot budget.
+        native compiler's per-function value-slot budget. Protocol05 also
+        keeps leaf_normalize's word helper calls and limits json_wire to its
+        AWAIT/PHASE reads; cache semantics and observation order are unchanged.
         """
         def visit_FunctionDef(self, node):
+            self.fixed_word_function = node.name
             if node.name in {'text_begin', 'text_byte', 'emit', 'commit_fragment', 'escaped'}:
                 return self.generic_visit(node)
             if node.name == 'normalize':
@@ -1308,6 +1476,14 @@ def source_program():
 
         def visit_Call(self, node):
             node = self.generic_visit(node)
+            if (self.fixed_word_function == 'json_wire'
+                    and not (isinstance(node.func, ast.Name) and node.func.id == 'get'
+                        and len(node.args) == 2 and not node.keywords
+                        and isinstance(node.args[0], ast.Name) and node.args[0].id == 'w'
+                        and isinstance(node.args[1], ast.Constant)
+                        and type(node.args[1].value) is int
+                        and node.args[1].value in (FIELDS['AWAIT'], FIELDS['PHASE']))):
+                return node
             widths = {'get': 8, 'read64': 8, 'get32': 4, 'read32': 4}
             if (not isinstance(node.func, ast.Name) or node.func.id not in widths
                     or len(node.args) != 2 or node.keywords

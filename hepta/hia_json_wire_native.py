@@ -22,7 +22,9 @@ SELECTOR = 'HEPTA_HIA_JSON_WIRE_MANIFEST'
 MAGIC = int.from_bytes(b'HIAWIR02', 'little')
 CACHED_MAGIC = int.from_bytes(b'HIAWIR03', 'little')
 KEY_SUMMARY_MAGIC = int.from_bytes(b'HIAWIR04', 'little')
+LEAF_MAGIC = int.from_bytes(b'HIAWIR05', 'little')
 KEY_CACHE_BYTES = 1024 * 160
+LEAF_CACHE_BYTES = 1024 * 304
 MAXIMUM = 8 << 20
 NONE, BOOL, INT, FLOAT, STRING, LIST, TUPLE, DICT, OPAQUE = range(9)
 SUMMARY, CHILD, POINTS, LIMBS, DIGIT_LIMIT, FORMAT_FLOAT = range(1, 7)
@@ -37,7 +39,10 @@ ORDINARY_PROFILE = {
     'arbitrary_renderer_callbacks': 'explicit_native_profile_refusal',
     'unselected_owner': 'retained_reference',
     'entire_python_call_domain_replaced': False,
-    'immutable_key_cache': 'HIAWIR04_key_facts_and_text_only_for_fresh_stable_builtin_observer_without_renderer',
+    'immutable_key_cache': 'HIAWIR04_and_HIAWIR05_key_facts_and_text_only_for_fresh_stable_builtin_observer_without_renderer',
+    'immutable_leaf_cache': 'HIAWIR05_completed_preflight_facts_and_at_most_64_codepoints_per_exact_immutable_leaf',
+    'leaf_cache_owner': 'HIA_only_after_original_admission_in_one_fresh_zeroed_session',
+    'mutable_container_observations': 'all_original_SUMMARY_and_CHILD_requests_retained',
     'legacy_key_cache_protocol': 'HIAWIR03_keeps_every_SUMMARY_observation',
     'key_fact_cache_lifetime': 'one_fresh_zeroed_session_after_original_exact_string_key_preflight',
 }
@@ -188,7 +193,8 @@ def _immutable_key_capability(observer, renderer):
     """Observe a narrow, stable builtin transport capability; do not walk data.
 
     The ordinary entry creates this observer immediately before the session.
-    Exact builtin strings cannot change after HIA admits their codepoints.
+    Exact builtin scalar facts and string codepoints cannot change after HIA
+    completes their original preflight in the same session.
     Custom/virtual observers, replaced methods or instance fields, and every
     explicit renderer stay on the original uncached observation protocol.
     The capability assumes no asynchronous mutation of the interpreter's
@@ -216,7 +222,7 @@ def _immutable_key_capability(observer, renderer):
     return True
 
 
-def buffer_sizes(maximum, *, key_cache=False):
+def buffer_sizes(maximum, *, key_cache=False, leaf_cache=False):
     """Physical allocation mirrors the published ABI; HIA admits the budget."""
     physical = maximum if type(maximum) is int and 0 <= maximum <= MAXIMUM else 0
     budget = min(physical, 262144)
@@ -227,6 +233,8 @@ def buffer_sizes(maximum, *, key_cache=False):
             + (physical + 64) * 2 + ((physical * 4 + 31) // 32) * 4 + 64 + 8192)
     if key_cache is True:
         size += KEY_CACHE_BYTES
+    if leaf_cache is True:
+        size += LEAF_CACHE_BYTES
     return physical, size
 
 
@@ -270,14 +278,17 @@ class WireSession:
     """Opaque HIA continuation plus protocol transport, independently testable."""
     def __init__(self, image, observer, root, maximum, *, ensure_ascii, sort_keys,
                  float_renderer=None, _renderer_profile=None, _builtin_keys=False,
-                 _builtin_key_summaries=False):
+                 _builtin_key_summaries=False, _builtin_leaves=False):
         self.image, self.observer = image, observer
         self.float_renderer = float_renderer
         self.key_cache = _builtin_keys is True and _immutable_key_capability(observer, float_renderer)
         self.key_summary_cache = self.key_cache and _builtin_key_summaries is True
-        self._protocol_magic = (KEY_SUMMARY_MAGIC if self.key_summary_cache else
+        self.leaf_cache = self.key_summary_cache and _builtin_leaves is True
+        self._protocol_magic = (LEAF_MAGIC if self.leaf_cache else
+                                KEY_SUMMARY_MAGIC if self.key_summary_cache else
                                 CACHED_MAGIC if self.key_cache else MAGIC)
-        output_size, workspace_size = buffer_sizes(maximum, key_cache=self.key_cache)
+        output_size, workspace_size = buffer_sizes(maximum, key_cache=self.key_cache,
+                                                   leaf_cache=self.leaf_cache)
         self.output_size = output_size
         self.output = _private_zeroed_buffer(max(1, output_size))
         self.workspace = _private_zeroed_buffer(workspace_size)
@@ -392,7 +403,8 @@ class NativeJsonWire(NativeHiaJsonImage):
         return WireSession(self, observer, observer.register(value), maximum,
                            ensure_ascii=ensure_ascii, sort_keys=sort_keys,
                            float_renderer=float_renderer, _renderer_profile=profile,
-                           _builtin_keys=True, _builtin_key_summaries=True).run()
+                           _builtin_keys=True, _builtin_key_summaries=True,
+                           _builtin_leaves=True).run()
 
 
 def installed_json_wire(path):
