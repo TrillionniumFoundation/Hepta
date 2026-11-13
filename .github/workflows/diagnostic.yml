@@ -1,11 +1,11 @@
-name: Fixed HIA source guard comparison
+name: Fixed original namespace three-method sections
 on:
   push:
-    branches: [codex/hia-source-admission-guard-v94-r2-20261113-dda7]
+    branches: [codex/hia-namespace-sections-v94-r1-20261113-dda7]
 permissions:
   contents: read
 jobs:
-  guard-controls-and-scan:
+  original-three-method-sections:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -17,21 +17,21 @@ jobs:
         with:
           repository: TrillionniumFoundation/Hepta
           ref: abeef212e34023534d91f8f952280e2a8d0cbde6
-          path: work/source-original
+          path: source
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14.4'
       - name: Install original discovery dependencies
         run: python -m pip install jsonschema==4.26.0 setuptools==78.1.1 wheel==0.46.3
-      - name: Verify narrow successor, original source controls, and warm ABBA
+      - name: Observe original method sections with retained exact inputs
         env:
           PYTHONDONTWRITEBYTECODE: '1'
-        run: python -B harness/tools/prepare_guard.py --source work/source-original --harness harness --evidence evidence
+        run: python -B harness/tools/run_phase.py --source source --harness harness --evidence evidence
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: source-guard-diagnostic-${{ github.sha }}
+          name: namespace-sections-${{ github.sha }}
           path: |
             evidence
             harness/README.md

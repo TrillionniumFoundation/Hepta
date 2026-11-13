@@ -1,26 +1,11 @@
-# Narrow source guard successor: actual runtime observations
+# Exact original namespace method section diagnosis
 
-This helper fixes the original product input to `abeef212e34023534d91f8f952280e2a8d0cbde6`
-and runs on CPython 3.14.4. A separate copy changes exactly two definitions in
-`tools/hia_selfhost_contract.py`, then regenerates only its source support contract.
-Both original and prepared source are checked byte for byte after all observations.
+This independent diagnostic fixes product source `abeef212e34023534d91f8f952280e2a8d0cbde6`, tree `f2bc61c11104136d3f56e3c4aefa00a4dada910b`, all 3,055 source files, and CPython 3.14.4. It executes the three original failing `NativeLifecycleTests` methods without editing their bodies, budgets, assertions or IDs. The complete original 35-method group is not rerun, and no result here grants that group's qualification.
 
-The candidate preserves the complete 1,429-file fresh scan, read/close/hash order,
-and every per-file provider check. A captured real type dictionary with exclusively
-exact string keys may use a C key-view disjointness check for originally absent
-names. Any such name appearing, a changed sentinel, or an initially foreign key
-retains the original per-member identity checks. No file/digest/inventory cache is
-introduced. All other product definitions and all original tests remain unchanged.
+Five selected native inputs are retained byte for byte from run 43459534648 / job 132002437588 / artifact 14056462556. The four-part UTF8 transport reconstructs a strictly checked zlib/base64 packet containing 16 original files, including exact source-bound manifests, executable mappings, build records and the original caller request. Modes, CRC provenance, SHA-256 and Git blob identities are preserved. No input manifest is rewritten and no fixture compiler or cold replay runs. The original methods still perform every business build, link and runner operation they reach; these are timed separately. Retained inputs grant no new matching-current-source cold claim.
 
-The observations are 91 mutation/descriptor checks, 2 actual foreign type-dictionary
-key controls, all 9 original source freshness methods, and a warmed fixed-CPU ABBA
-comparison of the complete original fresh map. Limits remain 1,800 seconds per
-control process. No original business deadline test or native compiler runs here.
+The original namespace, request, budget and Store lifecycle policy poisons remain. Store lifecycle's original per-native-return receipt observer also remains. Instrumentation measures public Store calls, every fresh source map, each publication effect, client stages and selected service boundaries. C entry calls are counted completely after constructors return; one in 64 is timed, including ctypes/FFI. Sampled times are not exact totals. Parent timer residuals include unlabelled work and instrumentation. Process CPU is this process only. Two diagnostic SELECT reads record already-created context timestamps after the original context function returns; their costs are explicit and remain inside the actual original budgets.
 
-Local R2 comparisons were unstable and did not establish a performance improvement.
-The original two preparation deadline failures and the original 5.721897753-second
-timeout remain failures. This helper can only establish its stated source/control
-observations, never Native, cold, whole-program, or 3s/5s deadline qualification.
+Each original method runs once in a fresh process, under a single shared 1,800-second outer group deadline and the original 3,000/1,000 ms and five-second test assertions. Original failures remain in complete child reports and logs. `OBSERVATIONS_COMPLETE` means only that observation and before/after integrity checks completed. It never means that any failed original assertion passed or that the entire original group was qualified.
 
-All prior local fixture failures and source revisions remain immutable outside this
-helper. The workflow writes only evidence artifacts and has no Git mutation token.
+The two-function guard experiment is not applied. This diagnosis uses the exact original source and repeats every fresh read/hash at the original public effect boundaries. All selected source and retained input bytes are checked before and after. Original production/audit refs are untouched.
