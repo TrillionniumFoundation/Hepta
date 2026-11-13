@@ -1,0 +1,198 @@
+{
+  "schema": "hia.v92.step42.actual-readback-continuity.v1",
+  "original_run": 43324913647,
+  "original_job": 131554853309,
+  "original_step": 42,
+  "pure": "0504beb11c0dae875d8590660c42488b7bc634fb",
+  "ci_head": "d96a5ae4783a123013351a511be9fc1a6d8f1c2c",
+  "recovery_run": 43361965629,
+  "recovery_head": "9551b09496e7b8b0fba10ffb3ea05788bf5f3a92",
+  "artifact": {
+    "id": 14008945415,
+    "size": 20289577,
+    "sha256": "8f31e6eb31f06ec8e11d03b013b4cbfdc891e1dd77b90f6773dd78fd0fbb3474"
+  },
+  "readback": {
+    "status": "ALL460_ORIGINALS_AND3_METADATA_FULL_READBACK_NOT_QUALIFICATION",
+    "checks": 26175,
+    "failed_checks": 0,
+    "file": "/home/agent/hia-v92-small-14008945415-independent-audit-r1-20261113-e26e/READBACK.json",
+    "bytes": 1881274,
+    "sha256": "2ced18fed14b9a105712d6d1acbda4989853566f7c4b032cb91a6362f3a8658f",
+    "raw_available_in_v8": false
+  },
+  "original_owner": {
+    "schema": "hepta.hia.selfhost-process-owner.v1",
+    "status": "QUALIFICATION_TIMEOUT",
+    "timed_out": true,
+    "returncode": -9,
+    "qualification_seconds": 180,
+    "cleanup_seconds": 3,
+    "exit_observed_before_deadline": false,
+    "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+    "request_sha256": "a3b73026c4701edff9b1d7e1d9ecb3465b794af9d75a4a42c4da86c3003c61b3",
+    "receipt_bytes": 1426,
+    "receipt_sha256": "a267d0f649e4d4849e2fcfa8e411849e9554d4617e9e6b10682361bcf7e4e09f",
+    "cleanup": {
+      "complete": true,
+      "observed_echild": true,
+      "remaining_direct_children": [],
+      "errors": [],
+      "leader_reaped": true,
+      "elapsed_ns": 31792287
+    },
+    "events": [
+      {
+        "kind": "qualification_started",
+        "elapsed_seconds": 0.058774588,
+        "pid": 23058
+      },
+      {
+        "kind": "owned_child_observed",
+        "elapsed_seconds": 0.058817696,
+        "pid": 23058,
+        "start_ticks": 283586
+      },
+      {
+        "kind": "owned_child_sigkill",
+        "elapsed_seconds": 180.003305831,
+        "pid": 23058,
+        "start_ticks": 283586
+      },
+      {
+        "kind": "owned_child_reaped",
+        "elapsed_seconds": 180.02923504,
+        "pid": 23058,
+        "start_ticks": 283586,
+        "returncode": -9
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "component",
+      "loaded": 15,
+      "test_start": 15,
+      "test_stop": 15,
+      "log_ok": 15,
+      "log_seconds": 49.807,
+      "group_begin_seconds": 14.078197879,
+      "group_end_seconds": 63.885395391,
+      "native_returns_begin": 0,
+      "native_returns_end": 14114,
+      "log_bytes": 3167,
+      "log_sha256": "cef04ef48cd90a77d7ae5fbfd91e5eb5b1194806d35f3ccc81900c9ca218741a"
+    },
+    {
+      "name": "original-machine",
+      "loaded": 51,
+      "test_start": 51,
+      "test_stop": 51,
+      "log_ok": 51,
+      "log_seconds": 82.509,
+      "group_begin_seconds": 63.99880733,
+      "group_end_seconds": 146.507374075,
+      "native_returns_begin": 14114,
+      "native_returns_end": 200453,
+      "log_bytes": 10207,
+      "log_sha256": "0df59a600f2ceccb223fdc63dbe65eeae2f60d83739db0e01d279001ac784b54"
+    },
+    {
+      "name": "original-core",
+      "loaded": 50,
+      "test_start": 0,
+      "test_stop": 0,
+      "log_bytes": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "group_begin_seconds": 146.530065476,
+      "native_returns_at_last_event": 200453
+    }
+  ],
+  "progress": {
+    "bytes": 57036,
+    "sha256": "b0f92dcfbdca4e00bfdbe7c12111563cfc19088a303fb9103fe0ff129a40312a",
+    "valid_events": 213,
+    "last_event": {
+      "sequence": 212,
+      "event": "fixture_begin",
+      "group": "original-core",
+      "subject": "tests.test_hia_program_native.DirectExecutionTests",
+      "detail": {
+        "kind": "class_setup"
+      },
+      "monotonic_ns": 2982336449998,
+      "native_returns": 200453
+    },
+    "operation_end": false,
+    "receipt_missing": true
+  },
+  "established_boundary": "Original 180-second owner SIGKILL during original-core first DirectExecutionTests class_setup; no original-core test_start. Exact inner subcall not timed/stack-recorded.",
+  "no_claims": [
+    "No retry or product execution",
+    "No complete116 qualification",
+    "No step43 independent18 completion",
+    "No oldR4 lifecycle recovery"
+  ],
+  "environment": {
+    "after_readback": "unavailable",
+    "actual_files_last_read": true,
+    "raw_bundle_currently_not_reachable": true,
+    "last_local_tool": "new diagnosis directory mkdir only; tool ACK absent; orchestration wait terminated; no replay"
+  },
+  "raw_preservation_boundary": "This is a new V8-authored continuity record transcribed from completed tool outputs, not a replacement for exact READBACK.json or any raw artifact body. Original local raw files were fully read before environment loss but are not currently reachable here; exact GitHub small artifact remains the recovery authority.",
+  "last_local_tool": "Attempt to create one fresh diagnosis directory returned no tool ACK; orchestration cell g2:32 terminated while environment unavailable. No receiver/GET/product command was involved; do not replay blindly.",
+  "longest_completed_methods": [
+    {
+      "test": "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_current_32_sources_keep_original_Core_caps_and_literal_VM",
+      "seconds": 27.95715934,
+      "native_returns": 0
+    },
+    {
+      "test": "tests.test_hia_machine_leaf_registers.LeafRegisterExecutionTests.test_every_leaf_scalar_opcode_keeps_live_r8_r9_against_vm",
+      "seconds": 17.293471641,
+      "native_returns": 38868
+    },
+    {
+      "test": "tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_failed_campaign_arm_retains_all_attempts_and_costs",
+      "seconds": 9.505480143,
+      "native_returns": 18208
+    },
+    {
+      "test": "tests.test_hia_machine_leaf_registers.LeafRegisterExecutionTests.test_dirty_register_inputs_stack_arguments_page_probe_and_callee_saves",
+      "seconds": 7.424102263,
+      "native_returns": 30818
+    },
+    {
+      "test": "tests.test_hia_machine_registers.ScalarRegisterExecutionTests.test_independent_sysv_witness_preserves_all_callee_saved_registers_and_stack_arguments",
+      "seconds": 7.337162753,
+      "native_returns": 30972
+    }
+  ],
+  "installed_observed_report": {
+    "status": "INSTALLED_CORE_LOWERING_PASS",
+    "bytes": 23957,
+    "sha256": "ae25b7950854903ee3857582d00970441318ac02b70a286681d38644de2b36a2",
+    "units": 39,
+    "actual_native_steps": 1091,
+    "python_files": 176,
+    "resource_files": 111,
+    "qualification_owner_failed": true,
+    "not_complete116_or_whole_installation_qualification": true
+  },
+  "missing_originals": [
+    "hia-core-unpack-evidence/callers/integer-report.json",
+    "hia-core-unpack-evidence/callers/numeric/numeric-report.json",
+    "hia-core-unpack-evidence/callers/numeric/callers/report.json",
+    "hia-core-unpack-evidence/callers/numeric/callers/progress.receipt.json",
+    "hia-core-unpack-evidence/callers/numeric/callers/core-callers/report.json"
+  ],
+  "priority_local_paths": {
+    "base": "/home/agent/hia-v92-small-14008945415-independent-audit-r1-20261113-e26e",
+    "owner": "originals/hia-core-unpack-evidence/callers-owner/process-owner.json",
+    "owner_request": "originals/hia-core-unpack-evidence/callers-owner/process-owner.json.request.json",
+    "progress": "originals/hia-core-unpack-evidence/callers/numeric/callers/progress.jsonl",
+    "component_log": "originals/hia-core-unpack-evidence/callers/numeric/callers/core-callers/component.unittest.log",
+    "machine_log": "originals/hia-core-unpack-evidence/callers/numeric/callers/core-callers/original-machine.unittest.log",
+    "core_log": "originals/hia-core-unpack-evidence/callers/numeric/callers/core-callers/original-core.unittest.log"
+  }
+}

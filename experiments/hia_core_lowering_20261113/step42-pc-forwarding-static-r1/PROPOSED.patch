@@ -1,0 +1,16 @@
+--- a/tools/generate_hia_core_lowering.py
++++ b/tools/generate_hia_core_lowering.py
+@@ -266,1 +266,1 @@
+-        result = dispatch(w, o)
++        result = dispatch(w, o, pc)
+@@ -279,2 +279,1 @@
+-        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf) -> u64:',
+-                 '    pc = get(w, 24)']
++        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf, pc:u64) -> u64:']
+@@ -286,2 +285,1 @@
+-    lines = ['def dispatch(w:mutbuf, o:mutbuf) -> u64:',
+-             '    pc = get(w, 24)']
++    lines = ['def dispatch(w:mutbuf, o:mutbuf, pc:u64) -> u64:']
+@@ -290,1 +288,1 @@
+-                  '        return group_' + str(number) + '(w, o)']
++                  '        return group_' + str(number) + '(w, o, pc)']

@@ -1,0 +1,50 @@
+{
+  "schema": "hia.core-lowering.pc-forwarding-static-delta.v1",
+  "status": "STATIC_UNGENERATED_UNEXECUTED",
+  "base_pure": "0504beb11c0dae875d8590660c42488b7bc634fb",
+  "path": "tools/generate_hia_core_lowering.py",
+  "original": {
+    "bytes": 16918,
+    "sha256": "03912aead3b5fb1a9c539560f62a51a5e942c3b36f9675666d3278248259019f",
+    "git_blob_sha1": "ec7903aea42a0dd96c68f4f728dd2a0b5949c429"
+  },
+  "candidate": {
+    "bytes": 16866,
+    "sha256": "5f6e1a73c1d0e52d19deaa816e1c4d64b107115f165afb6584783aec0f86b978",
+    "git_blob_sha1": "ead0915f2c55759aa11065e777cf6500ffb8398c"
+  },
+  "changes": [
+    {
+      "name": "main passes its already checked pc",
+      "old": "        result = dispatch(w, o)\n",
+      "replacement": "        result = dispatch(w, o, pc)\n",
+      "original_line": 266
+    },
+    {
+      "name": "group receives pc instead of rereading private state",
+      "old": "        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf) -> u64:',\n                 '    pc = get(w, 24)']\n",
+      "replacement": "        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf, pc:u64) -> u64:']\n",
+      "original_line": 279
+    },
+    {
+      "name": "dispatch receives pc instead of rereading private state",
+      "old": "    lines = ['def dispatch(w:mutbuf, o:mutbuf) -> u64:',\n             '    pc = get(w, 24)']\n",
+      "replacement": "    lines = ['def dispatch(w:mutbuf, o:mutbuf, pc:u64) -> u64:']\n",
+      "original_line": 286
+    },
+    {
+      "name": "dispatch forwards its pc argument into selected group",
+      "old": "                  '        return group_' + str(number) + '(w, o)']\n",
+      "replacement": "                  '        return group_' + str(number) + '(w, o, pc)']\n",
+      "original_line": 290
+    }
+  ],
+  "reverse_projection_equal_original": true,
+  "only_four_literal_substitutions": true,
+  "parser_ran": false,
+  "generator_ran": false,
+  "Core_VM_ran": false,
+  "native_ran": false,
+  "performance_measured": false,
+  "independent_complete116_passed": false
+}

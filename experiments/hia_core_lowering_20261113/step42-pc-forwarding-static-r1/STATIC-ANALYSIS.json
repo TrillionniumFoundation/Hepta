@@ -1,0 +1,155 @@
+{
+  "schema": "hia.core-lowering.pc-forwarding-source-review.v1",
+  "status": "STATIC_ONLY_UNGENERATED_UNEXECUTED",
+  "actual_failure": "Original 180-second owner SIGKILL during original-core first DirectExecutionTests class_setup; no original-core test_start. Exact inner subcall not timed/stack-recorded.",
+  "why_this_is_a_real_duplicate_read": {
+    "main_source": "main lower() reads pc=get(w,24), checks 1<=pc<=total and the current unit interval, and only then calls dispatch.",
+    "dispatch": "The old dispatch reads exactly the same private word without any intervening write or foreign effect.",
+    "group": "The selected old group reads it a third time; intervening dispatch contains only comparisons and a HIA call.",
+    "change": "Pass that checked u64 by value through the two internal HIA function boundaries.",
+    "removed_work": "Exactly two calls to get(w,24) per dispatched policy instruction. The unchanged get helper performs eight byte reads, so sixteen private buffer byte reads and their associated scalar work are removed. This is not a measured time saving.",
+    "no_scope_reuse": "Each main while iteration still freshly reads pc, including after an instruction moves/jumps/branches. No prior operation/frame/session's pc is reused."
+  },
+  "unchanged_by_literal_projection": [
+    "Entire compile_policy(POLICY.read_text()) call, POLICY source, literal pool and control instruction list",
+    "CHUNK=64, GROUP=8, units and literal-pool construction, total 39 source assets for the same policy",
+    "All entry modes, arities, 128-byte packet, state/output extents, ABI schema and all fields",
+    "All command/magic/sequence/count/result/reserved/bounds/refusal checks in lower()",
+    "All instruction_lines/effect_lines and external observation ordering",
+    "All source/manifest/image/compiler identity admission",
+    "All reference validation, independent emit/re-emit and original 116 methods",
+    "All 180/3, compile20/10/1MiB and finite-case populations"
+  ],
+  "outstanding": [
+    "Python parser and HIA generator were not executed for this proposal",
+    "New HIA assembly, current-compiler images, source caps and round trips are not yet produced",
+    "Old/new full request/output/workspace trace equivalence has not been executed",
+    "No elapsed-time improvement has been measured",
+    "Original 116 within180 seconds remains unclosed",
+    "Original step43 independent18 remains unexecuted in the failed CI",
+    "19 CPython object/runtime owner families remain open"
+  ],
+  "third_group_static_workload": {
+    "source": "tests/test_hia_program_native.py:259-310",
+    "base_fixture_function_formula": "13 explicit functions + 8 integer types * (10 binary operations + 1 cast) = 101",
+    "scalar_extension_formula": "10 integer types * (3 checked binary + 6 comparisons + 1 negate + 4 casts) + 4 additional functions = 144",
+    "total_functions": 245,
+    "eligible_scalar_exports": 242,
+    "excluded_functions": [
+      "transfer",
+      "read_one",
+      "pair"
+    ],
+    "batches": [
+      128,
+      114
+    ],
+    "each_batch": "build_program_machine emits the whole document; compile_program_machine independently re-emits before publishing/linking",
+    "full_function_render_invocations": 980,
+    "oracle_preparation": "The unchanged fixture then constructs a separately verified reachable-call-closure VM oracle for each eligible scalar export.",
+    "actual_subphase_evidence": "No stack sample or per-build subphase record was captured during the last class_setup. None of its individual internal subcalls can be named as proven stalled.",
+    "actual_deadline_remaining_at_class_setup_seconds": 33.469844526,
+    "do_not_eliminate": "Repeated full re-emission and original fixture batches are independent qualification obligations, not a permissible shortcut for this fix."
+  },
+  "source_full_bodies_fetched_and_git_checked": [
+    {
+      "path": "tools/generate_hia_core_lowering.py",
+      "bytes": 16918,
+      "sha256": "03912aead3b5fb1a9c539560f62a51a5e942c3b36f9675666d3278248259019f",
+      "git_blob_sha1": "ec7903aea42a0dd96c68f4f728dd2a0b5949c429"
+    },
+    {
+      "path": "hepta/hia_core_lowering_native.py",
+      "bytes": 26539,
+      "sha256": "133e5769ee3ae2fabffa3182d3c6ff685fc41346ec5bb9fd058f7984c4bc2544",
+      "git_blob_sha1": "7d704c6d43f3e4a08050507bb3683d6a81b786c1"
+    },
+    {
+      "path": "tests/test_hia_program_native.py",
+      "bytes": 29245,
+      "sha256": "a958a2bb4c94302f73332ee133a9583b84f14eece861f51211558099446359b7",
+      "git_blob_sha1": "d75f323072e39bbcc8181b575a5df43a17f8f714"
+    },
+    {
+      "path": "tools/qualify_hia_core_integer_callers.py",
+      "bytes": 18532,
+      "sha256": "51d7a0713cde1f71b8fc25baaeaccff3b5518beafa161e59fd0ca9b9ff09fdee",
+      "git_blob_sha1": "1055c206de9f95a928791290a4d8575518359292"
+    }
+  ],
+  "v89_to_v92_selected_source_identity_comparison": [
+    {
+      "path": "tools/generate_hia_core_lowering.py",
+      "v89": "ec7903aea42a0dd96c68f4f728dd2a0b5949c429",
+      "v92": "ec7903aea42a0dd96c68f4f728dd2a0b5949c429",
+      "same": true,
+      "bytes_v89": 16918,
+      "bytes_v92": 16918
+    },
+    {
+      "path": "tests/test_hia_program_native.py",
+      "v89": "d75f323072e39bbcc8181b575a5df43a17f8f714",
+      "v92": "d75f323072e39bbcc8181b575a5df43a17f8f714",
+      "same": true,
+      "bytes_v89": 29245,
+      "bytes_v92": 29245
+    },
+    {
+      "path": "tools/qualify_hia_program.py",
+      "v89": "611d5fe9def55b80f8d5ce1f3e340e034e89a9a5",
+      "v92": "611d5fe9def55b80f8d5ce1f3e340e034e89a9a5",
+      "same": true,
+      "bytes_v89": 24324,
+      "bytes_v92": 24324
+    },
+    {
+      "path": "hepta/hia_program_native.py",
+      "v89": "80129cdf12b32c9b58504559a117a1401e750272",
+      "v92": "7275a5f484c5052140bc3a9d2ffe50b22e6ad75e",
+      "same": false,
+      "bytes_v89": 52633,
+      "bytes_v92": 52704
+    },
+    {
+      "path": "hepta/hia_core_lowering_native.py",
+      "v89": "e90e70ceeae279a9a94f5a84f4597ae4c6e93d02",
+      "v92": "7d704c6d43f3e4a08050507bb3683d6a81b786c1",
+      "same": false,
+      "bytes_v89": 24547,
+      "bytes_v92": 26539
+    },
+    {
+      "path": "hepta/hia_core_lowering_selection.py",
+      "v89": "cd1d426dedebf5d8ec2df42da6eac00c78b2d85c",
+      "v92": "94a03c1e6992277506307c963e9b950a6c6f70b7",
+      "same": false,
+      "bytes_v89": 10697,
+      "bytes_v92": 11531
+    },
+    {
+      "path": "hepta/hia_core_unpack_native.py",
+      "v89": "ad5df03f66fdb6085d6eedf79b98adceae8d40a2",
+      "v92": "ad5df03f66fdb6085d6eedf79b98adceae8d40a2",
+      "same": true,
+      "bytes_v89": 16343,
+      "bytes_v92": 16343
+    },
+    {
+      "path": "tools/qualify_hia_core_lowering_callers.py",
+      "v89": "bd5098a6b212f895b5db6d7fac9564420732f760",
+      "v92": "bd5098a6b212f895b5db6d7fac9564420732f760",
+      "same": true,
+      "bytes_v89": 39684,
+      "bytes_v92": 39684
+    },
+    {
+      "path": "tools/qualify_hia_core_unpack_callers.py",
+      "v89": "4182df2f04bd202e58d4bb8ff60a06f8b2570e3f",
+      "v92": "4182df2f04bd202e58d4bb8ff60a06f8b2570e3f",
+      "same": true,
+      "bytes_v89": 14991,
+      "bytes_v92": 14991
+    }
+  ],
+  "causal_limit": "The v89 fixture/generator/UNPACK and original caller wrapper bytes equal v92 for the listed paths. Numeric/integer companions and admission differ. Source equality is not a measurement that assigns the timeout to one component."
+}
