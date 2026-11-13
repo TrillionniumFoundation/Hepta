@@ -1,0 +1,61 @@
+{
+  "schema": "hepta.hia.sqlite-varint-abi.v1",
+  "status": "SOURCE_AUTHORED_UNEXECUTED",
+  "entry": "f0",
+  "source": "examples/hia_bootstrap/sqlite_varint.hiaasm",
+  "native_arguments": [
+    "input_address", "input_bytes",
+    "output_address", "output_capacity",
+    "control_address", "control_bytes"
+  ],
+  "logical_span_count": 3,
+  "actual_abi_argument_count": 6,
+  "control": {
+    "bytes": 16,
+    "byte_order": "little",
+    "magic_ascii_at_0": "HIASVR01",
+    "u64_operation_at_8": {"decode": 1, "encode": 2},
+    "modified_by_kernel": false
+  },
+  "decode": {
+    "input_bytes_minimum": 0,
+    "input_bytes_maximum": 9,
+    "output_capacity_exact": 8,
+    "output": "Little-endian u64 bit pattern; SQLite signed-rowid interpretation is external.",
+    "return": "Exact consumed byte count from 1 through 9.",
+    "nonminimal_complete_encoding": "accepted",
+    "ninth_byte": "all eight bits are data",
+    "bytes_after_first_terminal": "not consumed or interpreted",
+    "truncation": "refused before every output write"
+  },
+  "encode": {
+    "input_bytes_exact": 8,
+    "input": "Little-endian u64 bit pattern, including all bits set.",
+    "output_capacity_minimum": 0,
+    "output_capacity_maximum": 9,
+    "return": "Exact written byte count from 1 through 9.",
+    "encoding": "Original SQLite shortest encoding, with nine bytes when value is at least 2^56.",
+    "write_order": "1 through 8 byte cases write forward. The 9 byte case writes byte 8, then bytes 7 through 0.",
+    "tail": "Bytes from returned count to declared capacity remain untouched.",
+    "capacity_refusal": "before every output write"
+  },
+  "refusals": {
+    "4294967292": "encode output capacity insufficient",
+    "4294967293": "operation, command magic or span extent invalid",
+    "4294967294": "decode input truncated before a terminal byte"
+  },
+  "all_refusals_leave_input_output_and_control_unchanged": true,
+  "foreign_allocation_preconditions": [
+    "All declared spans refer to valid initialized allocations for this call.",
+    "The mutable output is exclusive and does not alias input or control.",
+    "The caller excludes concurrent mutation for the complete call."
+  ],
+  "persistent_or_global_state": false,
+  "hosted_operations_in_bridge": [
+    "Python object validation, allocation, byte copying and u64 object materialization",
+    "The existing immutable executable mapping and source/image qualification boundary"
+  ],
+  "sqlite_engine_hook_installed": false,
+  "agent_store_default_changed": false,
+  "io_sql_pager_wal_transaction_lock_and_durability_ownership_closed": false
+}

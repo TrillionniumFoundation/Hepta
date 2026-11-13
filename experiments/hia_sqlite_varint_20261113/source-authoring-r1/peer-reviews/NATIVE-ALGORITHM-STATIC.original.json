@@ -1,0 +1,42 @@
+{
+  "files": [
+    {
+      "bytes": 5162,
+      "git_blob": "2f092163f6e4e62bdcf9b12f33ebf8cce110a882",
+      "path": "/home/agent/hia-sqlite-varint-native-r1-20261113-e26e/inputs/tools/generate_hia_sqlite_varint.py",
+      "sha256": "f016e82c436098ec8269df394e9b16992b2c61407759e5df92e8592e89e23e9c"
+    },
+    {
+      "bytes": 3897,
+      "git_blob": "77c34ef727be335e89a65962c0065eb4d402074f",
+      "path": "/home/agent/hia-sqlite-varint-native-r1-20261113-e26e/inputs/tests/fixtures/sqlite_varint/3.46.0/codec.inc",
+      "sha256": "4049b2b6e744f29f19b26f1db95969c89388a2718e6c69e814db27965cc6995c"
+    },
+    {
+      "bytes": 51716,
+      "git_blob": "3b10ba60ada646c6e5f4ceca358fa09a59263eb4",
+      "path": "/home/agent/hia-sqlite-varint-native-r1-20261113-e26e/reference/sqlite-3.46.0/util.c.original",
+      "sha256": "93318efdd7140bbb7cba31f341b29eff558d9efd7f4543e001d043e73ca733eb"
+    }
+  ],
+  "findings": [
+    "The original high-eight-bit mask is nonzero exactly at unsigned value >= 2**56; the HIA nine-byte branch has the same threshold.",
+    "After eight continuation bytes the accumulator contains at most 56 bits. The ninth byte contributes all eight bits without masking bit 7; the result fits exactly in u64.",
+    "No minimal-length restriction is imposed on decoding: every complete one-to-nine-byte encoding allowed by the original terminator rule yields its accumulated value and consumed length.",
+    "Truncated decode exits before write_word. Every encode capacity refusal precedes any output store. The nine-byte write order is 8 then 7 down to 0, matching the original branch. Other writes cover 0 through count-1 and leave the permitted output tail untouched."
+  ],
+  "limitations": [
+    "This is source reading only, not Python parse, HIA authoring, VM/native execution or a compiler-cap qualification.",
+    "Bridge span admission, alias behavior, installation, SQL integration and full public interface qualification were not reviewed.",
+    "The planned eight source methods, 191 values, 1618 returns and original 59 methods were not executed by this reviewer."
+  ],
+  "mutation_or_execution": false,
+  "reviewer": "native_install_owner",
+  "schema": "hia.sqlite-varint.peer-static-review.v1",
+  "scope": [
+    "SOURCE encode_varint/decode_varint and direct byte/word helpers",
+    "SQLite 3.46.0 original putVarint64/sqlite3PutVarint/sqlite3GetVarint excerpt",
+    "56-to-64-bit ninth byte, non-minimal encodings, capacity/truncation before any output store, output tail"
+  ],
+  "status": "STATIC_CLEAR_LIMITED_ALGORITHMS"
+}
