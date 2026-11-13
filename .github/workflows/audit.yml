@@ -1,0 +1,151 @@
+name: HIA complete retained qualification audit
+
+on:
+  push:
+    branches:
+      - 'audit/hia-full-retained-*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hia-full-retained-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    # Includes six native builds, fixed verification tools, the original full
+    # v4 stages, and upload. Every original inner budget remains unchanged.
+    timeout-minutes: 360
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      RUSTUP_TOOLCHAIN: '1.95.0'
+      CLANG: /usr/bin/clang-20
+      HEPTA_CLANG: /usr/bin/clang-20
+      HEPTA_TEST_CLANG: /usr/bin/clang-20
+    steps:
+      - name: Create external audit directories
+        shell: bash
+        run: |
+          set -euo pipefail
+          audit_root="$RUNNER_TEMP/hia-full-retained-audit"
+          mkdir "$audit_root"
+          mkdir "$audit_root/setup" "$audit_root/evidence"
+          printf 'HIA_AUDIT_ROOT=%s\n' "$audit_root" >> "$GITHUB_ENV"
+
+      - name: Checkout this exact minimal harness
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: harness
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Resolve the sole explicit product target
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B harness/run-gate.py resolve --target harness/target.json --github-output "$GITHUB_OUTPUT" \
+            > "$HIA_AUDIT_ROOT/setup/target.stdout" 2> "$HIA_AUDIT_ROOT/setup/target.stderr"
+
+      - name: Checkout the exact product commit
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.target.outputs.repository }}
+          ref: ${{ steps.target.outputs.commit }}
+          path: source
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Admit the complete raw product HEAD tree before preparation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B harness/run-gate.py preflight --target harness/target.json --source source \
+            --output "$HIA_AUDIT_ROOT/evidence/source-before.json" \
+            > "$HIA_AUDIT_ROOT/setup/preflight.stdout" 2> "$HIA_AUDIT_ROOT/setup/preflight.stderr"
+
+      - name: Install the original Clang 20 native prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+            fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+            test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+            sudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc
+            printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list
+            sudo apt-get update
+            sudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev llvm-20 lld-20 strace qemu-user
+            printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+          } > "$HIA_AUDIT_ROOT/setup/clang.stdout" 2> "$HIA_AUDIT_ROOT/setup/clang.stderr"
+
+      - name: Install the original pinned Python prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0 zstandard==0.25.0 PyYAML==6.0.2 \
+            > "$HIA_AUDIT_ROOT/setup/pip.stdout" 2> "$HIA_AUDIT_ROOT/setup/pip.stderr"
+
+      - name: Prepare the original locked Rust caller dependencies
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          {
+            rustup toolchain install 1.95.0 --profile minimal
+            cargo --version
+            rustc --version
+            sha256sum rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock > "$HIA_AUDIT_ROOT/setup/rust-caller-inputs.sha256"
+            cargo fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
+            sha256sum --check "$HIA_AUDIT_ROOT/setup/rust-caller-inputs.sha256"
+            git diff --exit-code -- rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock
+          } > "$HIA_AUDIT_ROOT/setup/rust-caller.stdout" 2> "$HIA_AUDIT_ROOT/setup/rust-caller.stderr"
+
+      - name: Build six original NDU profiles and fixed verification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          HIA_GATE_PYTHON=python bash harness/prepare-dependencies.sh \
+            "$GITHUB_WORKSPACE/source" "$HIA_AUDIT_ROOT/dependencies" "$GITHUB_WORKSPACE/harness/target.json" \
+            > "$HIA_AUDIT_ROOT/setup/prepare.stdout" 2> "$HIA_AUDIT_ROOT/setup/prepare.stderr"
+
+      - name: Run the unchanged original v4 full retained qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B harness/run-gate.py run --target harness/target.json --source source \
+            --environment "$HIA_AUDIT_ROOT/dependencies/environment.json" \
+            --output "$HIA_AUDIT_ROOT/full-run" \
+            > "$HIA_AUDIT_ROOT/setup/gate-wrapper.stdout" 2> "$HIA_AUDIT_ROOT/setup/gate-wrapper.stderr"
+
+      - name: Retain original success or failure evidence with an explicit allowlist
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          audit_root="$RUNNER_TEMP/hia-full-retained-audit"
+          if test -f "$GITHUB_WORKSPACE/harness/run-gate.py"; then
+            python -B "$GITHUB_WORKSPACE/harness/run-gate.py" collect \
+              --harness "$GITHUB_WORKSPACE/harness" --audit-root "$audit_root" \
+              --output "$audit_root/artifact"
+          else
+            mkdir -p "$audit_root/artifact"
+            printf '%s\n' 'Harness checkout was unavailable; inspect original GitHub job logs. No qualification result exists.' > "$audit_root/artifact/checkout-unavailable.txt"
+          fi
+
+      - name: Upload complete audit evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-full-retained-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hia-full-retained-audit/artifact
+          if-no-files-found: error
+          retention-days: 30
+          include-hidden-files: true
