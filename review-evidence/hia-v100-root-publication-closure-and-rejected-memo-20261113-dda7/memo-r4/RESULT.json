@@ -1,0 +1,30 @@
+{
+  "actual_python": "3.14.4",
+  "after": {
+    "bytes": 206818,
+    "git_blob": "a88a77ec67c4016b84aa26eaa96739a53c4d430e",
+    "sha256": "0291d3e91ce676188ea2b8aa71757c3848d6c23edfa4176cd8bcb29f7d0c6d43"
+  },
+  "all_other_source_bytes_and_modes_unchanged": true,
+  "before": {
+    "bytes": 206647,
+    "git_blob": "4e0793163d2782bbebb71cbc8e81c1c067901710",
+    "sha256": "b2cedce858d9376fa893db26fa58e1f23377664d3c6d0c2b47279a6211452e18"
+  },
+  "existing_dynamic_carrier_pop_probe": "PASS",
+  "existing_midopen_reference_probe": "PASS",
+  "full_source_files": 3055,
+  "new_dynamic_helper_entry_counterexample": "FAIL: actual open hook installs CALL monitoring; original returns, prototype raises the exact injected MemoryError at its added helper entry",
+  "new_product_native_or_compiler_executions": 0,
+  "old_native_budget_failures_fixed": false,
+  "original_budget_changes": false,
+  "prior_rejected_memo_recipe": "25fd98dc1dec0404f7c25361b203f8f9113db074",
+  "product_adopted": false,
+  "reason": "Removing carrier.pop fixes the previously isolated event, but the added post-read helper CALL still changes observed behavior and failure identity. No broader equivalence or performance qualification is granted.",
+  "schema": "hia.source-digest-memo-r4.decision.v1",
+  "sole_changed_source_path": "tools/hia_selfhost_contract.py",
+  "status": "NOT_ADOPTED",
+  "unchanged_original_freshness9": "8 PASS / 1 ERROR: the copied support contract was not regenerated for the prototype; original error retained",
+  "unchanged_prototype_controls16": "15 PASS / 1 FAIL: older white-box trace assertion expects helper entry, while R3/R4 uses the earlier original fallback",
+  "whole_native": false
+}
