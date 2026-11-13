@@ -1,0 +1,3999 @@
+{
+  "all_large_raw_Git_persisted": false,
+  "author_failures_and_interruption": [
+    {
+      "qualification": false,
+      "record": {
+        "bytes": 1261,
+        "git_blob": "696a529a8c12aca57885ff153a26d8e10e6f0451",
+        "local_path": "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/generation-r1/INTERRUPTED.json",
+        "mode": "100644",
+        "sha256": "b61e7b0fb94b8cc621da6a6d5d3fa3d6609826de57382981f8016efd346835b5"
+      },
+      "scope": "generation-r1",
+      "status": "UNKNOWN_INTERRUPTED"
+    },
+    {
+      "cause": "new AST fixture accidentally treated fail(w,64) as a state-address access; full original fixture and logs preserved",
+      "scope": "source-controls-r1",
+      "status": "9PASS1FAIL"
+    },
+    {
+      "cause": "expected bare directory literal while retained helper contains directory/built",
+      "scope": "call-permission-author-r1",
+      "status": "AUTHOR_COPY_ASSERTION_FAILED_BEFORE_PRODUCT"
+    },
+    {
+      "cause": "original author Builder refuses UnaryOp(Not); equivalent comparisons/or subsequently generated successfully",
+      "record": {
+        "bytes": 381,
+        "git_blob": "bfd1c1ebd2945272fa1ac94493f267163a2655f8",
+        "local_path": "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/generation-r3/REPAIR-NOTE.json",
+        "mode": "100644",
+        "sha256": "fe641af18acb06f63a011de4e31a7af7d489b9b6bfd971002b68a025209833bb"
+      },
+      "scope": "generation-r3",
+      "status": "FAIL_BEFORE_NATIVE"
+    }
+  ],
+  "contract": {
+    "CPython314": false,
+    "Source": {
+      "count": 10,
+      "status": "PASS"
+    },
+    "VM_steps": 10000000,
+    "actual_semantic_resident": {
+      "blocks": 1407,
+      "functions": 108,
+      "instructions": 7035,
+      "projection": {
+        "blocks": 1536,
+        "call_view_permission_rule": {
+          "alias_check": "actual root identity; every aliased formal must be readbuf",
+          "no_machine_compiler_change": true,
+          "only_coercion": "actual mutbuf to declared readbuf",
+          "reference": "hepta.hia_program._BlockCheck.instruction call transition",
+          "retained": [
+            "owner uniqueness and owner_free",
+            "live-view and suspended-parent checks",
+            "exact arity and results",
+            "declared effects",
+            "returned-loan origins",
+            "unchanged duplicate-resource rejection on CFG edges and non-call operations"
+          ]
+        },
+        "changed_functions": [
+          "compile",
+          "parse_function",
+          "parse_params",
+          "parse_block",
+          "args",
+          "edge",
+          "instruction",
+          "define",
+          "check_graph",
+          "check_calls",
+          "function_start",
+          "frame",
+          "loan_call",
+          "loan_incoming",
+          "require_effects",
+          "read_result_types",
+          "return_results",
+          "call_results",
+          "read_return_loans",
+          "read_function_name",
+          "read_exports",
+          "validate_exports"
+        ],
+        "compiler_author_inventory_unchanged": {
+          "blocks": 1536,
+          "functions": 128,
+          "instructions": 8192
+        },
+        "exports_presence_and_zero_item_metadata_retained": true,
+        "function_count_header64": "full u32 state; original byte shortcut explicitly removed",
+        "functions": 256,
+        "instructions": 8192,
+        "machine_output_written": false,
+        "no_synthetic_function_or_renaming": true,
+        "original_expanded_sha256": "1a4181ab54be30ee0c0544d987168e11d7c9dcbbbd85d96b9f08d5a0ccafc712",
+        "original_functions": 125,
+        "original_source_sha256": "e41a46f3878aecd716f35cbc4044964dd065405711f46a26cfd121e5c20985d9",
+        "output_bytes": 1048576,
+        "phase_two_guards": [
+          {
+            "body": "write4(o, at, state_get32(w, 56) - at - 4)",
+            "calls": [
+              "state_get32",
+              "write4"
+            ],
+            "condition": "byte(w, 48) == 2",
+            "function": "parse_block"
+          },
+          {
+            "body": "put(w, 570368 + n * 24, state_get32(w, 56))\nput(w, 570368 + n * 24 + 8, kind)\nput(w, 570368 + n * 24 + 16, target)",
+            "calls": [
+              "put",
+              "state_get32"
+            ],
+            "condition": "byte(w, 48) == 2",
+            "function": "relocation"
+          },
+          {
+            "body": "store(o, pos, x)",
+            "calls": [
+              "store"
+            ],
+            "condition": "phase == 2",
+            "function": "emit"
+          },
+          {
+            "body": "put(o, 40, headers)",
+            "calls": [
+              "put"
+            ],
+            "condition": "byte(w, 48) == 2",
+            "function": "elf_finish"
+          },
+          {
+            "body": "i = 0\nwhile i < remaining:\n    store(o, pos + i, x & 255)\n    x = x >> 8\n    i = i + 1",
+            "calls": [
+              "store"
+            ],
+            "condition": "phase == 2",
+            "function": "emit_bytes"
+          },
+          {
+            "body": "write4(o, done, state_get32(w, 56) - done - 4)",
+            "calls": [
+              "state_get32",
+              "write4"
+            ],
+            "condition": "byte(w, 48) == 2",
+            "function": "bulk_buffer"
+          },
+          {
+            "body": "write4(o, at, state_get32(w, 56) - at - 4)",
+            "calls": [
+              "state_get32",
+              "write4"
+            ],
+            "condition": "byte(w, 48) == 2",
+            "function": "owned_patch"
+          },
+          {
+            "body": "put(o, 40, headers)\nwrite4(o, 60, 262151)",
+            "calls": [
+              "put",
+              "write4"
+            ],
+            "condition": "byte(w, 48) == 2",
+            "function": "owned_elf_finish"
+          },
+          {
+            "body": "write4(o, at, destination - at - 4)",
+            "calls": [
+              "write4"
+            ],
+            "condition": "byte(w, 48) == 2",
+            "function": "cli_to"
+          },
+          {
+            "body": "at = get(w, 440)\nwrite4(o, at, get(w, 448) - at - 4)\nput(o, 96, state_get32(w, 56))\nput(o, 104, state_get32(w, 56))",
+            "calls": [
+              "get",
+              "put",
+              "state_get32",
+              "write4"
+            ],
+            "condition": "byte(w, 48) == 2",
+            "function": "cli_finish"
+          },
+          {
+            "body": "put(o, 40, headers)\nwrite4(o, 60, 262151)",
+            "calls": [
+              "put",
+              "write4"
+            ],
+            "condition": "byte(w, 48) == 2",
+            "function": "exports_finish"
+          }
+        ],
+        "projected_expanded_sha256": "fff28420e62b771a51518ed5e78d99275f8adb8a8deee90076c5854b085dba87",
+        "remaining_narrow_domain": [
+          "native identifier/scanner rules",
+          "16 formal/edge arguments",
+          "3 function/call results",
+          "bounded native call graph",
+          "counted-code-size budget",
+          "v8 normalized validation view; v6/v7 independently gated by the frontend",
+          "no public Python diagnostic or independent canonical-parser implementation"
+        ],
+        "retained_functions": 108,
+        "retained_symbolic_unchanged_functions": [
+          "parse_params",
+          "parse_block",
+          "edge",
+          "operation",
+          "define",
+          "variable",
+          "read_type",
+          "check_graph",
+          "function_start",
+          "frame",
+          "copy_argument",
+          "load_var",
+          "store_var",
+          "normalize",
+          "mem",
+          "relocation",
+          "emit8",
+          "emit4",
+          "emit",
+          "write4",
+          "expect",
+          "adjacent",
+          "separated",
+          "next_token",
+          "decimal",
+          "is_word",
+          "keyword",
+          "match",
+          "fail",
+          "put",
+          "get",
+          "state_put32",
+          "state_get32",
+          "account_nodes",
+          "emit_bytes",
+          "checked_integer",
+          "select_scalar",
+          "bulk_range_guard",
+          "bulk_buffer",
+          "operation_dispatch",
+          "loan_live",
+          "loan_access",
+          "loan_ancestor",
+          "loan_operation",
+          "loan_produce",
+          "loan_borrow",
+          "loan_finish",
+          "loan_incoming",
+          "loan_argument",
+          "loan_transfer",
+          "owner_free",
+          "owner_produce",
+          "owner_consume",
+          "owner_call_consume",
+          "resource_type",
+          "owner_type",
+          "owned_read_outputs",
+          "owned_define_outputs",
+          "owned_branch",
+          "owned_patch",
+          "owned_immediate",
+          "owned_import",
+          "owned_allocate_libc",
+          "owned_drop_libc",
+          "owned_move_buffer",
+          "owned_instruction",
+          "chain_drop_call",
+          "chain_store_transfer",
+          "chain_instruction",
+          "chain_bytes_push",
+          "chain_bytes_pop",
+          "chain_bytes_head",
+          "chain_bytes_is_empty",
+          "cast_integer",
+          "parse_effects",
+          "require_effects",
+          "instruction_effects",
+          "read_result_types",
+          "return_results",
+          "call_results",
+          "integer_type",
+          "signed_type",
+          "scalar_type",
+          "integer_width",
+          "scalar_literal",
+          "signed_integer",
+          "explicit_trap",
+          "read_return_loans",
+          "returned_loan",
+          "returned_consume",
+          "call_loan",
+          "identifier",
+          "same_identifier",
+          "lookup_identifier",
+          "reserved_function",
+          "read_value_name",
+          "instruction_ahead",
+          "read_block_name",
+          "discover_blocks"
+        ],
+        "retained_unchanged_functions": [
+          "operation",
+          "variable",
+          "read_type",
+          "copy_argument",
+          "load_var",
+          "store_var",
+          "normalize",
+          "mem",
+          "relocation",
+          "emit8",
+          "emit4",
+          "emit",
+          "write4",
+          "expect",
+          "adjacent",
+          "separated",
+          "next_token",
+          "decimal",
+          "is_word",
+          "keyword",
+          "match",
+          "fail",
+          "put",
+          "get",
+          "state_put32",
+          "state_get32",
+          "account_nodes",
+          "emit_bytes",
+          "checked_integer",
+          "select_scalar",
+          "bulk_range_guard",
+          "bulk_buffer",
+          "operation_dispatch",
+          "loan_live",
+          "loan_access",
+          "loan_ancestor",
+          "loan_operation",
+          "loan_produce",
+          "loan_borrow",
+          "loan_finish",
+          "loan_argument",
+          "loan_transfer",
+          "owner_free",
+          "owner_produce",
+          "owner_consume",
+          "owner_call_consume",
+          "resource_type",
+          "owner_type",
+          "owned_read_outputs",
+          "owned_define_outputs",
+          "owned_branch",
+          "owned_patch",
+          "owned_immediate",
+          "owned_import",
+          "owned_allocate_libc",
+          "owned_drop_libc",
+          "owned_move_buffer",
+          "owned_instruction",
+          "chain_drop_call",
+          "chain_store_transfer",
+          "chain_instruction",
+          "chain_bytes_push",
+          "chain_bytes_pop",
+          "chain_bytes_head",
+          "chain_bytes_is_empty",
+          "cast_integer",
+          "parse_effects",
+          "instruction_effects",
+          "integer_type",
+          "signed_type",
+          "scalar_type",
+          "integer_width",
+          "scalar_literal",
+          "signed_integer",
+          "explicit_trap",
+          "returned_loan",
+          "returned_consume",
+          "call_loan",
+          "identifier",
+          "same_identifier",
+          "lookup_identifier",
+          "reserved_function",
+          "read_value_name",
+          "instruction_ahead",
+          "read_block_name",
+          "discover_blocks"
+        ],
+        "reused_phase_two_table": {
+          "accesses_guarded_by_phase2": true,
+          "begin": 570368,
+          "end": 858368,
+          "only_reachable_user": [
+            "relocation"
+          ]
+        },
+        "schema": "hia.file-render-semantic-projection.v2",
+        "semantic_passes": [
+          "phase0-signatures",
+          "phase0-all-functions-and-resource-CFG",
+          "phase1-edge-call-effect-result-checks"
+        ],
+        "source_bytes": 1048576,
+        "success_result": 0,
+        "symbolic_semantic_changed_functions": [
+          "compile",
+          "parse_function",
+          "args",
+          "instruction",
+          "check_calls",
+          "loan_call",
+          "read_function_name",
+          "read_exports",
+          "validate_exports"
+        ],
+        "unreachable_functions": [
+          "wrapper",
+          "fix_all",
+          "elf_begin",
+          "elf_finish",
+          "align8",
+          "elf_section",
+          "owned_elf_relocations",
+          "owned_elf_finish",
+          "chain_drop_helper",
+          "chain_bytes_drop",
+          "cli_begin",
+          "cli_to",
+          "cli_finish",
+          "guard_failure",
+          "export_wrapper",
+          "exports_finish",
+          "export_loader_hook"
+        ],
+        "workspace_bytes": 1048576,
+        "workspace_layout": [
+          {
+            "begin": 0,
+            "end": 4096,
+            "name": "state"
+          },
+          {
+            "begin": 45056,
+            "end": 536576,
+            "name": "blocks"
+          },
+          {
+            "begin": 536576,
+            "end": 569344,
+            "name": "SSA"
+          },
+          {
+            "begin": 569344,
+            "end": 570368,
+            "name": "arguments"
+          },
+          {
+            "begin": 570368,
+            "end": 652288,
+            "name": "functions256"
+          },
+          {
+            "begin": 652288,
+            "end": 717824,
+            "name": "calls256"
+          },
+          {
+            "begin": 717824,
+            "end": 719872,
+            "name": "call_state256"
+          },
+          {
+            "begin": 875776,
+            "end": 924928,
+            "name": "capabilities"
+          },
+          {
+            "begin": 924928,
+            "end": 926464,
+            "name": "block_marks"
+          },
+          {
+            "begin": 926464,
+            "end": 926480,
+            "name": "cap_tmp"
+          },
+          {
+            "begin": 926480,
+            "end": 928528,
+            "name": "graph_queue"
+          },
+          {
+            "begin": 928528,
+            "end": 930576,
+            "name": "origins"
+          },
+          {
+            "begin": 930576,
+            "end": 955152,
+            "name": "block_origins"
+          },
+          {
+            "begin": 955152,
+            "end": 1004304,
+            "name": "SSA_names"
+          },
+          {
+            "begin": 1004304,
+            "end": 1010448,
+            "name": "block_names"
+          },
+          {
+            "begin": 1010448,
+            "end": 1022736,
+            "name": "exports256"
+          }
+        ]
+      }
+    },
+    "cleanup_seconds": 3,
+    "command": [
+      "executable",
+      "render-assembly",
+      "path"
+    ],
+    "compile_seconds": 20,
+    "compiler_author_budget": {
+      "blocks": 1536,
+      "functions": 128,
+      "instructions": 8192
+    },
+    "default_replaced": false,
+    "file_buffer_bytes": 8388609,
+    "file_read_limit": 8388608,
+    "full_old_render_assembly_replaced": false,
+    "image_and_each_compile_buffer_bytes": 1048576,
+    "independent_semantic_input_functions": 256,
+    "kernel": {
+      "count": 130,
+      "first122_order_bytes_and_expected_retained": true,
+      "prior_v2_92_order_bytes_retained": true,
+      "prior_v2_three_scope_exclusions_now_admitted": [
+        "v7-recursive-original-excluded",
+        "v7-scalar-original-excluded",
+        "original-functions-129"
+      ],
+      "status": "PASS"
+    },
+    "matching_current_cold": false,
+    "ordinary_B3_unchanged": true,
+    "original_VM7": {
+      "failures": 1,
+      "passes": 6,
+      "status": "FAIL",
+      "unchanged_assertion_failure": "expected internal phase1, observed0"
+    },
+    "outer_seconds": 180,
+    "phase0_only_or_dummy_executed": false,
+    "portable_wheel_qualified": false,
+    "prior_tree": "cee29d828985f1c43b39eb11d68d931b0f7001f7",
+    "private_schema_adapter": "Only rendered header byte30 temporarily maps6/7 to8; original byte restored before success/refusal. No dummy function or removed exports metadata.",
+    "profile": "hepta.hia.linux-file-render.v3",
+    "remaining_domain": {
+      "bytes_and_arenas": {
+        "candidate_actual_arena_guard": "64 + JSON_node_count * 56 + input_byte_count <= 1048576",
+        "candidate_file_buffer_bytes": 8388609,
+        "candidate_file_read_bytes": 8388608,
+        "candidate_rendered_assembly_bytes": 1048576,
+        "candidate_requested_JSON_depth": 64,
+        "candidate_requested_JSON_nodes": 262144,
+        "consequence": "The 8MiB physical file-read limit is not full 8MiB rendering support; the decoded arena imposes the stricter explicit combined bound.",
+        "original_JSON_depth": 64,
+        "original_JSON_nodes": 262144,
+        "original_input_bytes": 8388608,
+        "original_rendered_assembly_bytes": 1048576
+      },
+      "call_failure_phase_change": {
+        "internal_word48": "The original unreachable-call-argument-type control now rejects in second phase0 when formal permissions are known, rather than phase1.",
+        "kernel_phase": "HRENDR1 external stage3 is distinct from internal word48 and unchanged in all122 replayed cases.",
+        "new_v3_four": "Separate exact phase0/phase1 controls, complete3buffer native/VM comparisons.",
+        "original7": "Actual6PASS1FAIL with every old assertion retained; no inherited PASS."
+      },
+      "exports_and_entry": {
+        "narrower_domain": "256 export items; native scanner and counted-code-size limits remain. Modules selfhost_exec and selfhost_elf are still explicitly refused.",
+        "preserved": "Absent, empty and nonempty exports remain distinct. Scalar unit parameters and zero-to-three scalar results are admitted by the new checker; no runnable machine-entry ABI or synthetic function is required.",
+        "retained_refusals": "Exports still resolve actual unique functions and scalar parameter/result types; original seven reserved function names are refused."
+      },
+      "input_inventories": {
+        "candidate_SSA_values_per_function": 2048,
+        "candidate_blocks_per_function": 256,
+        "candidate_exports": 256,
+        "candidate_formal_and_edge_arguments": 16,
+        "candidate_function_and_call_results": 3,
+        "candidate_instruction_budget": 8192,
+        "candidate_semantic_input_functions": 256,
+        "candidate_total_blocks": 1536,
+        "compiler_author_budget_is_separate": "The compiler used to build this resident remains limited to 128 author functions / 1536 blocks / 8192 operations. Changing an independently reviewed resident input table does not increase that compiler budget.",
+        "original_Core_JSON_functions": 1024,
+        "original_render_blocks": 4096,
+        "original_render_list_items": 256,
+        "original_render_operations": 16384,
+        "original_render_roundtrip_functions": 256
+      },
+      "next_implementation": {
+        "action": "Continue this same render-assembly contract; not another file action.",
+        "independent_canonical_roundtrip": "A separate agent is building pure HIA reparse/canonical components. They are not in this ELF, and their standalone images do not fit by concatenation.",
+        "remaining": [
+          "full original decoded-arena/list/CFG/instruction domain",
+          "runtime reparse and canonical equality",
+          "old diagnostics and --output publication",
+          "old file/stream/Python provider behavior"
+        ],
+        "status": "NOT_QUALIFIED"
+      },
+      "observed_source_paths": [
+        "hepta/cli.py",
+        "hepta/hia_program.py",
+        "hepta/hia_agent_assembly.py",
+        "tools/generate_hia_json_decode.py",
+        "tools/generate_hia_file_render_frontend.py",
+        "tools/generate_hia_file_render_checker.py",
+        "tools/generate_hia_native_file_render.py"
+      ],
+      "opcode_types_effects": {
+        "complete_observed_catalog": {
+          "bit.and": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "bit.and",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "bit_and",
+            "since": 1,
+            "traps": []
+          },
+          "bit.not": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "bit.not",
+            "operands": [
+              "integer"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "bit_not",
+            "since": 1,
+            "traps": []
+          },
+          "bit.or": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "bit.or",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "bit_or",
+            "since": 1,
+            "traps": []
+          },
+          "bit.xor": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "bit.xor",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "bit_xor",
+            "since": 1,
+            "traps": []
+          },
+          "bool.and": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "bool.and",
+            "operands": [
+              "bool",
+              "bool"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "bool"
+            ],
+            "semantic_rule": "bool_and",
+            "since": 1,
+            "traps": []
+          },
+          "bool.not": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "bool.not",
+            "operands": [
+              "bool"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "bool"
+            ],
+            "semantic_rule": "bool_not",
+            "since": 1,
+            "traps": []
+          },
+          "bool.or": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "bool.or",
+            "operands": [
+              "bool",
+              "bool"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "bool"
+            ],
+            "semantic_rule": "bool_or",
+            "since": 1,
+            "traps": []
+          },
+          "borrow.mut": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "borrow.mut",
+            "operands": [
+              "mutable_source"
+            ],
+            "resource_transition": "borrow",
+            "results": [
+              "mutbuf"
+            ],
+            "semantic_rule": "exclusive_loan",
+            "since": 1,
+            "traps": []
+          },
+          "borrow.read": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "borrow.read",
+            "operands": [
+              "bytes"
+            ],
+            "resource_transition": "borrow",
+            "results": [
+              "readbuf"
+            ],
+            "semantic_rule": "shared_loan",
+            "since": 1,
+            "traps": []
+          },
+          "buffer.copy": {
+            "attributes": [],
+            "effects": [
+              "read",
+              "write",
+              "trap"
+            ],
+            "guards": [
+              "write:0",
+              "read:1",
+              "distinct:0:1"
+            ],
+            "name": "buffer.copy",
+            "operands": [
+              "mutbuf",
+              "readbuf",
+              "usize"
+            ],
+            "resource_transition": "none",
+            "results": [],
+            "semantic_rule": "checked_disjoint_copy",
+            "since": 2,
+            "traps": [
+              "bounds"
+            ]
+          },
+          "buffer.copy_range": {
+            "attributes": [],
+            "effects": [
+              "read",
+              "write",
+              "trap"
+            ],
+            "guards": [
+              "write:0",
+              "read:1",
+              "distinct:0:1"
+            ],
+            "name": "buffer.copy_range",
+            "operands": [
+              "mutbuf",
+              "readbuf",
+              "usize",
+              "usize",
+              "usize"
+            ],
+            "resource_transition": "none",
+            "results": [],
+            "semantic_rule": "checked_disjoint_offset_copy",
+            "since": 5,
+            "traps": [
+              "bounds"
+            ]
+          },
+          "buffer.fill": {
+            "attributes": [],
+            "effects": [
+              "write"
+            ],
+            "guards": [
+              "write:0"
+            ],
+            "name": "buffer.fill",
+            "operands": [
+              "mutbuf",
+              "u8"
+            ],
+            "resource_transition": "none",
+            "results": [],
+            "semantic_rule": "fill_entire_view",
+            "since": 2,
+            "traps": []
+          },
+          "buffer.fill_range": {
+            "attributes": [],
+            "effects": [
+              "write",
+              "trap"
+            ],
+            "guards": [
+              "write:0"
+            ],
+            "name": "buffer.fill_range",
+            "operands": [
+              "mutbuf",
+              "usize",
+              "usize",
+              "u8"
+            ],
+            "resource_transition": "none",
+            "results": [],
+            "semantic_rule": "check_complete_range_before_fill",
+            "since": 6,
+            "traps": [
+              "bounds"
+            ]
+          },
+          "buffer.len": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "buffer.len",
+            "operands": [
+              "bytes"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "usize"
+            ],
+            "semantic_rule": "byte_extent",
+            "since": 1,
+            "traps": []
+          },
+          "buffer.load": {
+            "attributes": [],
+            "effects": [
+              "read",
+              "trap"
+            ],
+            "guards": [
+              "read:0"
+            ],
+            "name": "buffer.load",
+            "operands": [
+              "view",
+              "usize"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "u8"
+            ],
+            "semantic_rule": "checked_byte_load",
+            "since": 1,
+            "traps": [
+              "bounds"
+            ]
+          },
+          "buffer.move_within": {
+            "attributes": [],
+            "effects": [
+              "read",
+              "write",
+              "trap"
+            ],
+            "guards": [
+              "write:0"
+            ],
+            "name": "buffer.move_within",
+            "operands": [
+              "mutbuf",
+              "usize",
+              "usize",
+              "usize"
+            ],
+            "resource_transition": "none",
+            "results": [],
+            "semantic_rule": "checked_overlap_memmove",
+            "since": 3,
+            "traps": [
+              "bounds"
+            ]
+          },
+          "buffer.new": {
+            "attributes": [],
+            "effects": [
+              "alloc",
+              "trap"
+            ],
+            "guards": [],
+            "name": "buffer.new",
+            "operands": [
+              "usize"
+            ],
+            "resource_transition": "allocate",
+            "results": [
+              "buffer"
+            ],
+            "semantic_rule": "zeroed_byte_allocation",
+            "since": 1,
+            "traps": [
+              "allocation"
+            ]
+          },
+          "buffer.store": {
+            "attributes": [],
+            "effects": [
+              "write",
+              "trap"
+            ],
+            "guards": [
+              "write:0"
+            ],
+            "name": "buffer.store",
+            "operands": [
+              "mutbuf",
+              "usize",
+              "u8"
+            ],
+            "resource_transition": "none",
+            "results": [],
+            "semantic_rule": "checked_byte_store",
+            "since": 1,
+            "traps": [
+              "bounds"
+            ]
+          },
+          "buffer.swap": {
+            "attributes": [],
+            "effects": [
+              "read",
+              "write",
+              "trap"
+            ],
+            "guards": [
+              "write:0"
+            ],
+            "name": "buffer.swap",
+            "operands": [
+              "mutbuf",
+              "usize",
+              "usize"
+            ],
+            "resource_transition": "none",
+            "results": [],
+            "semantic_rule": "check_both_indices_before_swap",
+            "since": 4,
+            "traps": [
+              "bounds"
+            ]
+          },
+          "buffer.try_new": {
+            "attributes": [],
+            "effects": [
+              "alloc"
+            ],
+            "guards": [],
+            "name": "buffer.try_new",
+            "operands": [
+              "usize"
+            ],
+            "resource_transition": "allocate",
+            "results": [
+              "buffer",
+              "bool"
+            ],
+            "semantic_rule": "zeroed_byte_allocation_or_empty_owner_false",
+            "since": 1,
+            "traps": []
+          },
+          "call": {
+            "attributes": [
+              "function"
+            ],
+            "effects": [],
+            "guards": [
+              "callee_interface"
+            ],
+            "name": "call",
+            "operands": null,
+            "resource_transition": "call",
+            "results": null,
+            "semantic_rule": "checked_callee_and_parameter_loan_contract",
+            "since": 1,
+            "traps": []
+          },
+          "chain.empty": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "chain.empty",
+            "operands": [],
+            "resource_transition": "empty_chain",
+            "results": [
+              "chain"
+            ],
+            "semantic_rule": "empty_chain",
+            "since": 7,
+            "traps": []
+          },
+          "chain.head_mut": {
+            "attributes": [],
+            "effects": [
+              "read",
+              "trap"
+            ],
+            "guards": [],
+            "name": "chain.head_mut",
+            "operands": [
+              "chain"
+            ],
+            "resource_transition": "chain_borrow",
+            "results": [
+              "mutbuf"
+            ],
+            "semantic_rule": "exclusive_head_loan",
+            "since": 7,
+            "traps": [
+              "bounds"
+            ]
+          },
+          "chain.head_read": {
+            "attributes": [],
+            "effects": [
+              "read",
+              "trap"
+            ],
+            "guards": [],
+            "name": "chain.head_read",
+            "operands": [
+              "chain"
+            ],
+            "resource_transition": "chain_borrow",
+            "results": [
+              "readbuf"
+            ],
+            "semantic_rule": "shared_head_loan",
+            "since": 7,
+            "traps": [
+              "bounds"
+            ]
+          },
+          "chain.is_empty": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "chain.is_empty",
+            "operands": [
+              "chain"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "bool"
+            ],
+            "semantic_rule": "chain_empty_test",
+            "since": 7,
+            "traps": []
+          },
+          "chain.pop": {
+            "attributes": [],
+            "effects": [
+              "alloc"
+            ],
+            "guards": [
+              "free:0"
+            ],
+            "name": "chain.pop",
+            "operands": [
+              "chain"
+            ],
+            "resource_transition": "chain_transfer",
+            "results": [
+              "chain",
+              "buffer",
+              "bool"
+            ],
+            "semantic_rule": "pop_or_empty_payload_false",
+            "since": 7,
+            "traps": []
+          },
+          "chain.try_push": {
+            "attributes": [],
+            "effects": [
+              "alloc"
+            ],
+            "guards": [
+              "free:0",
+              "free:1"
+            ],
+            "name": "chain.try_push",
+            "operands": [
+              "chain",
+              "buffer"
+            ],
+            "resource_transition": "chain_transfer",
+            "results": [
+              "chain",
+              "buffer",
+              "bool"
+            ],
+            "semantic_rule": "push_or_return_owned_inputs",
+            "since": 7,
+            "traps": []
+          },
+          "compare.eq": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "compare.eq",
+            "operands": [
+              "equality",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "bool"
+            ],
+            "semantic_rule": "compare_eq",
+            "since": 1,
+            "traps": []
+          },
+          "compare.ge": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "compare.ge",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "bool"
+            ],
+            "semantic_rule": "compare_ge",
+            "since": 1,
+            "traps": []
+          },
+          "compare.gt": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "compare.gt",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "bool"
+            ],
+            "semantic_rule": "compare_gt",
+            "since": 1,
+            "traps": []
+          },
+          "compare.le": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "compare.le",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "bool"
+            ],
+            "semantic_rule": "compare_le",
+            "since": 1,
+            "traps": []
+          },
+          "compare.lt": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "compare.lt",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "bool"
+            ],
+            "semantic_rule": "compare_lt",
+            "since": 1,
+            "traps": []
+          },
+          "compare.ne": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "compare.ne",
+            "operands": [
+              "equality",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "bool"
+            ],
+            "semantic_rule": "compare_ne",
+            "since": 1,
+            "traps": []
+          },
+          "const": {
+            "attributes": [
+              "value"
+            ],
+            "effects": [],
+            "guards": [],
+            "name": "const",
+            "operands": [],
+            "resource_transition": "none",
+            "results": [
+              "declared:scalar"
+            ],
+            "semantic_rule": "exact_scalar_literal",
+            "since": 1,
+            "traps": []
+          },
+          "int.add.checked": {
+            "attributes": [],
+            "effects": [
+              "trap"
+            ],
+            "guards": [],
+            "name": "int.add.checked",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "integer_add_checked",
+            "since": 1,
+            "traps": [
+              "overflow"
+            ]
+          },
+          "int.add.wrap": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "int.add.wrap",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "integer_add_wrap",
+            "since": 1,
+            "traps": []
+          },
+          "int.cast": {
+            "attributes": [
+              "mode"
+            ],
+            "effects": [],
+            "guards": [],
+            "name": "int.cast",
+            "operands": [
+              "integer"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "declared:integer"
+            ],
+            "semantic_rule": "integer_cast_mode",
+            "since": 1,
+            "traps": [
+              "overflow_when_checked"
+            ]
+          },
+          "int.div.checked": {
+            "attributes": [],
+            "effects": [
+              "trap"
+            ],
+            "guards": [],
+            "name": "int.div.checked",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "integer_div_checked",
+            "since": 1,
+            "traps": [
+              "division_by_zero",
+              "overflow"
+            ]
+          },
+          "int.mul.checked": {
+            "attributes": [],
+            "effects": [
+              "trap"
+            ],
+            "guards": [],
+            "name": "int.mul.checked",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "integer_mul_checked",
+            "since": 1,
+            "traps": [
+              "overflow"
+            ]
+          },
+          "int.mul.wrap": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "int.mul.wrap",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "integer_mul_wrap",
+            "since": 1,
+            "traps": []
+          },
+          "int.neg.checked": {
+            "attributes": [],
+            "effects": [
+              "trap"
+            ],
+            "guards": [],
+            "name": "int.neg.checked",
+            "operands": [
+              "integer"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "integer_neg_checked",
+            "since": 1,
+            "traps": [
+              "overflow"
+            ]
+          },
+          "int.rem.checked": {
+            "attributes": [],
+            "effects": [
+              "trap"
+            ],
+            "guards": [],
+            "name": "int.rem.checked",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "integer_rem_checked",
+            "since": 1,
+            "traps": [
+              "division_by_zero",
+              "overflow"
+            ]
+          },
+          "int.shl.checked": {
+            "attributes": [],
+            "effects": [
+              "trap"
+            ],
+            "guards": [],
+            "name": "int.shl.checked",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "integer_shl_checked",
+            "since": 1,
+            "traps": [
+              "overflow"
+            ]
+          },
+          "int.shr.checked": {
+            "attributes": [],
+            "effects": [
+              "trap"
+            ],
+            "guards": [],
+            "name": "int.shr.checked",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "integer_shr_checked",
+            "since": 1,
+            "traps": [
+              "overflow"
+            ]
+          },
+          "int.sub.checked": {
+            "attributes": [],
+            "effects": [
+              "trap"
+            ],
+            "guards": [],
+            "name": "int.sub.checked",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "integer_sub_checked",
+            "since": 1,
+            "traps": [
+              "overflow"
+            ]
+          },
+          "int.sub.wrap": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "int.sub.wrap",
+            "operands": [
+              "integer",
+              "=0"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "integer_sub_wrap",
+            "since": 1,
+            "traps": []
+          },
+          "loan.end": {
+            "attributes": [],
+            "effects": [],
+            "guards": [
+              "end_local_loan:0"
+            ],
+            "name": "loan.end",
+            "operands": [
+              "view"
+            ],
+            "resource_transition": "end_loan",
+            "results": [],
+            "semantic_rule": "end_local_childless_loan",
+            "since": 1,
+            "traps": []
+          },
+          "owner.drop": {
+            "attributes": [],
+            "effects": [
+              "alloc"
+            ],
+            "guards": [
+              "free:0"
+            ],
+            "name": "owner.drop",
+            "operands": [
+              "owner"
+            ],
+            "resource_transition": "drop_owner",
+            "results": [],
+            "semantic_rule": "release_unborrowed_owner",
+            "since": 1,
+            "traps": []
+          },
+          "owner.move": {
+            "attributes": [],
+            "effects": [],
+            "guards": [
+              "free:0"
+            ],
+            "name": "owner.move",
+            "operands": [
+              "owner"
+            ],
+            "resource_transition": "move_owner",
+            "results": [
+              "=0"
+            ],
+            "semantic_rule": "move_unborrowed_owner",
+            "since": 1,
+            "traps": []
+          },
+          "select": {
+            "attributes": [],
+            "effects": [],
+            "guards": [],
+            "name": "select",
+            "operands": [
+              "bool",
+              "scalar",
+              "=1"
+            ],
+            "resource_transition": "none",
+            "results": [
+              "=1"
+            ],
+            "semantic_rule": "scalar_select",
+            "since": 1,
+            "traps": []
+          }
+        },
+        "effects": [
+          "alloc",
+          "read",
+          "trap",
+          "write"
+        ],
+        "features_by_version": {
+          "hepta.hia.program.v6": [
+            "bulk_memory",
+            "byte_swap",
+            "inplace_memory",
+            "offset_copy",
+            "range_fill"
+          ],
+          "hepta.hia.program.v7": [
+            "bulk_memory",
+            "byte_swap",
+            "inplace_memory",
+            "offset_copy",
+            "range_fill",
+            "recursive_chain"
+          ],
+          "hepta.hia.program.v8": [
+            "bulk_memory",
+            "byte_swap",
+            "inplace_memory",
+            "offset_copy",
+            "parameter_loan_returns",
+            "range_fill",
+            "recursive_chain"
+          ]
+        },
+        "qualification_boundary": "Catalog inventory and retained checker bodies do not establish exhaustive parity for every opcode/type/attribute/CFG combination. The exact executed 92 inputs and seven VM groups are the evidence domain.",
+        "types": [
+          "bool",
+          "buffer",
+          "chain",
+          "i16",
+          "i32",
+          "i64",
+          "i8",
+          "isize",
+          "mutbuf",
+          "readbuf",
+          "u16",
+          "u32",
+          "u64",
+          "u8",
+          "unit",
+          "usize"
+        ],
+        "v6_rejected_operations": [
+          "chain.empty",
+          "chain.head_mut",
+          "chain.head_read",
+          "chain.is_empty",
+          "chain.pop",
+          "chain.try_push"
+        ]
+      },
+      "returned_loans_and_chain": {
+        "call_permissions": {
+          "alias_check": "actual root identity; every aliased formal must be readbuf",
+          "no_machine_compiler_change": true,
+          "only_coercion": "actual mutbuf to declared readbuf",
+          "reference": "hepta.hia_program._BlockCheck.instruction call transition",
+          "retained": [
+            "owner uniqueness and owner_free",
+            "live-view and suspended-parent checks",
+            "exact arity and results",
+            "declared effects",
+            "returned-loan origins",
+            "unchanged duplicate-resource rejection on CFG edges and non-call operations"
+          ]
+        },
+        "v6": "Still rejects all chain declarations/operations and return_loans/borrowed returns.",
+        "v7": "Chain types and operations admitted; any return_loans field and borrowed result types rejected.",
+        "v8": "All four exact original resource fixtures pass, including cross-target calls and parent-bound returned loans."
+      },
+      "root_original_only_controls": {
+        "capsule": "7601b877c3adf9a5fe1fa4609738bb7c92eb0f9e",
+        "local_directory": "/workspace/scratch/dda74a4fae35/v96-render-domain-audit-r1",
+        "readback": "6edbbc9692764684f17ade50cba5682763fb023d",
+        "scope": "Original Root16 bytes are now additionally executed by the new ELF. Current original subprocess input/stdout/stderr are byte-identical to all16 frozen Root originals; this does not make Root original runs Native evidence."
+      },
+      "schema": "hia.file-render-public-domain-comparison.v3",
+      "validation_and_output": {
+        "candidate": "File close -> version-aware HIA representation -> two phase0 passes and full phase1 semantics -> restore original schema -> stdout. No runtime independent reparse/canonical equality implementation.",
+        "candidate_diagnostics": "HRENDR1 binary fd2 records and explicit statuses64..68/120/121. No old diagnostic or partial-stream/CPython exception parity claim.",
+        "old": "verify_program -> render -> assemble_program -> exact canonical_bytes equality before print or publication.",
+        "old_diagnostics": "Argparse usage/errors use stderr; driver errors use stdout E_DRIVER JSON and return2, with original message and error precedence.",
+        "physical_file_policy": "Native descriptor ownership/close and raw syscall loop are separately declared; do not equate them to arbitrary PathLike, FileIO/BufferedReader, fdopen directory-leak and close-error Python semantics.",
+        "publication": "No --output path, temporary file, fsync, symlink-parent or publish_verified replacement is implemented."
+      },
+      "versions": {
+        "candidate": [
+          "v6",
+          "v7",
+          "v8"
+        ],
+        "old_render": [
+          "v6",
+          "v7",
+          "v8"
+        ],
+        "qualification": "All16 exact Root fixtures now independently run; this is not every type/opcode/attribute combination."
+      }
+    },
+    "runtime": "Direct Linuxx86-64 ELF; HIA file policy/frontend/semantic checker/packer; no Python or ctypes at runtime.",
+    "schema": "hia.native-file-render-contract.v3",
+    "schemas": [
+      "hepta.hia.program.v6",
+      "hepta.hia.program.v7",
+      "hepta.hia.program.v8"
+    ],
+    "source_generation_and_supervision_use_Python": true,
+    "source_tree": "0a59f35ad40399f44287ece9011d6323c4535ce3",
+    "status": "SCOPED_V3_DEVELOPMENT_PASS_WITH_ORIGINAL_PHASE_ASSERTION_FAIL",
+    "table_authority": "Only this independent resident reuses the phase2 relocation region for256 functions/callgraph/state. All reachable relocation accesses are proved dominated by phase2, which this entry never executes.",
+    "v3_permission_VM4": {
+      "all3buffers_native_equal": true,
+      "status": "PASS"
+    },
+    "whole": false
+  },
+  "custody": "This minimum package includes complete sources, reports, all small originals, all source before/after maps and the first122 source checkpoint. Complete large native/VM buffers/images remain preserved locally and listed by SHA/mode, not claimed all Git persisted.",
+  "delta_paths": [
+    "examples/hia_bootstrap/file_render_checker.hepta",
+    "examples/hia_bootstrap/file_render_frontend.hepta",
+    "examples/hia_bootstrap/native_file_render.hepta",
+    "hepta/hia_agent_assembly.py",
+    "hepta/hia_linux_file_render.py",
+    "hepta/hia_program.py",
+    "hepta/hia_program_runtime.py",
+    "tests/test_hia_linux_file_render.py",
+    "tools/generate_hia_file_render_checker.py",
+    "tools/generate_hia_file_render_frontend.py",
+    "tools/generate_hia_native_file_render.py"
+  ],
+  "final130": {
+    "count": 130,
+    "first122_complete_expected_projection": true,
+    "original92_bytes_order": true,
+    "root16": {
+      "count": 16,
+      "native_executions": 0,
+      "rows": [
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v6-functions-128",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v6-functions-129",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v6-functions-256",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v6-functions-257",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v7-functions-128",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v7-functions-129",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v7-functions-256",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v7-functions-257",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v8-functions-128",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v8-functions-129",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v8-functions-256",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v8-functions-257",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v7-chain",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v8-returned-loans",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v8-cross-target-loans",
+          "pass": true
+        },
+        {
+          "checks": {
+            "input.json": true,
+            "same_original_stderr": true,
+            "same_original_stdout": true
+          },
+          "name": "v8-parameter-loan-return",
+          "pass": true
+        }
+      ],
+      "schema": "hia.file-render-root16-exact-oracle-readback.v1",
+      "status": "PASS"
+    },
+    "status": "PASS",
+    "v2_migrated_scope_cases": [
+      "v7-recursive-original-excluded",
+      "v7-scalar-original-excluded",
+      "original-functions-129"
+    ]
+  },
+  "first122": {
+    "count": 122,
+    "failure": [
+      "root-v8-cross-target-loans"
+    ],
+    "passes": 121,
+    "source_checkpoint": {
+      "bytes": 1264972,
+      "git_blob": "684609a918d1d7e2649e3599aad8b8d1f75e83eb",
+      "local_path": "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/kernel-matrix-r1/SOURCE-CHECKPOINT.zlib.json",
+      "mode": "100644",
+      "sha256": "8eaa8d87865b011bcc4b0f9a8fb8982a211a4d398104bce385b8a8ebe4b332f5"
+    },
+    "status": "FAIL"
+  },
+  "generation_final": {
+    "product_native_execution": false,
+    "rows": [
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "-m",
+          "tools.generate_hia_file_render_checker",
+          "--report",
+          "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/generation-r4/PROJECTION.json"
+        ],
+        "elapsed": 5.201199176000955,
+        "returncode": 0
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "-m",
+          "tools.generate_hia_file_render_frontend"
+        ],
+        "elapsed": 1.1017860089996248,
+        "returncode": 0
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "-m",
+          "tools.generate_hia_native_file_render"
+        ],
+        "elapsed": 0.49279091600328684,
+        "returncode": 0
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "-m",
+          "tools.generate_hia_file_render_checker",
+          "--check"
+        ],
+        "elapsed": 5.516064436997112,
+        "returncode": 0
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "-m",
+          "tools.generate_hia_file_render_frontend",
+          "--check"
+        ],
+        "elapsed": 1.6450470599957043,
+        "returncode": 0
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "-m",
+          "tools.generate_hia_native_file_render",
+          "--check"
+        ],
+        "elapsed": 0.5400458220028668,
+        "returncode": 0
+      }
+    ],
+    "status": "PASS"
+  },
+  "new_v3_four": {
+    "VM_step_limit": 10000000,
+    "count": 4,
+    "external_diagnostic_stage_and_internal_semantic_phase_are_distinct": true,
+    "matching_cold": false,
+    "original7_actual_status": "FAIL",
+    "original7_qualification_inherited": false,
+    "original7_report_sha256": "0e6f3b685e3d67efbdadf45e0750c1dea94a3b2f997271e46409edf3983063dc",
+    "rows": [
+      {
+        "VM_steps": 220177,
+        "checks": {
+          "canaries": true,
+          "child_returned": true,
+          "entire_output_preserved": true,
+          "no_IO": true,
+          "no_product_imports": true,
+          "no_timeout": true,
+          "same_complete_output": true,
+          "same_complete_workspace": true,
+          "same_return": true,
+          "source_unchanged": true
+        },
+        "expected_internal_phase": 0,
+        "exports_presence_and_count": [
+          0,
+          0
+        ],
+        "name": "checker-unreachable-call-argument-type",
+        "pass": true,
+        "phase_word": 0,
+        "values": [
+          4294967295
+        ]
+      },
+      {
+        "VM_steps": 390406,
+        "checks": {
+          "canaries": true,
+          "child_returned": true,
+          "entire_output_preserved": true,
+          "no_IO": true,
+          "no_product_imports": true,
+          "no_timeout": true,
+          "same_complete_output": true,
+          "same_complete_workspace": true,
+          "same_return": true,
+          "source_unchanged": true
+        },
+        "expected_internal_phase": 1,
+        "exports_presence_and_count": [
+          0,
+          0
+        ],
+        "name": "checker-unreachable-call-result-arity",
+        "pass": true,
+        "phase_word": 1,
+        "values": [
+          4294967295
+        ]
+      },
+      {
+        "VM_steps": 410047,
+        "checks": {
+          "canaries": true,
+          "child_returned": true,
+          "entire_output_preserved": true,
+          "no_IO": true,
+          "no_product_imports": true,
+          "no_timeout": true,
+          "same_complete_output": true,
+          "same_complete_workspace": true,
+          "same_return": true,
+          "source_unchanged": true
+        },
+        "expected_internal_phase": 1,
+        "exports_presence_and_count": [
+          0,
+          0
+        ],
+        "name": "checker-call-same-mutbuf-two-read-formals",
+        "pass": true,
+        "phase_word": 1,
+        "values": [
+          0
+        ]
+      },
+      {
+        "VM_steps": 184193,
+        "checks": {
+          "canaries": true,
+          "child_returned": true,
+          "entire_output_preserved": true,
+          "no_IO": true,
+          "no_product_imports": true,
+          "no_timeout": true,
+          "same_complete_output": true,
+          "same_complete_workspace": true,
+          "same_return": true,
+          "source_unchanged": true
+        },
+        "expected_internal_phase": 0,
+        "exports_presence_and_count": [
+          0,
+          0
+        ],
+        "name": "checker-call-same-mutbuf-read-mut-formals",
+        "pass": true,
+        "phase_word": 0,
+        "values": [
+          4294967295
+        ]
+      }
+    ],
+    "schema": "hia.file-render-v3.call-permission-vm.v1",
+    "source_unchanged": true,
+    "status": "PASS",
+    "whole": false
+  },
+  "original7": {
+    "VM_step_limit": 10000000,
+    "count": 7,
+    "matching_cold": false,
+    "pipeline_native_comparison": "actual streams/return; full pipeline buffers retained from independent VM",
+    "resident_native_comparison": "all source/output/workspace bytes and actual return/canaries",
+    "retained_provider_template_sha256": "673da1ef75b213bb8b72c09e82d663906548447db3c332ed990233fc98713dd1",
+    "rows": [
+      {
+        "VM_steps": 291087,
+        "checks": {
+          "canaries": true,
+          "child_returned": true,
+          "entire_output_preserved": true,
+          "no_IO": true,
+          "no_product_imports": true,
+          "no_timeout": true,
+          "same_complete_output": true,
+          "same_complete_workspace": true,
+          "same_return": true,
+          "source_unchanged": true
+        },
+        "exports_presence_and_count": [
+          1,
+          0
+        ],
+        "name": "checker-v6-sums-empty",
+        "pass": true,
+        "phase_word": 1,
+        "values": [
+          0
+        ]
+      },
+      {
+        "VM_steps": 220177,
+        "checks": {
+          "canaries": true,
+          "child_returned": true,
+          "entire_output_preserved": true,
+          "no_IO": true,
+          "no_product_imports": true,
+          "no_timeout": true,
+          "same_complete_output": true,
+          "same_complete_workspace": true,
+          "same_return": true,
+          "source_unchanged": true
+        },
+        "exports_presence_and_count": [
+          0,
+          0
+        ],
+        "name": "checker-unreachable-call-argument-type",
+        "pass": false,
+        "phase_word": 0,
+        "values": [
+          4294967295
+        ]
+      },
+      {
+        "VM_steps": 11115,
+        "checks": {
+          "canaries": true,
+          "child_returned": true,
+          "no_IO": true,
+          "no_product_imports": true,
+          "no_timeout": true,
+          "same_actual_builder_full_output": true,
+          "same_complete_output": true,
+          "same_complete_workspace": true,
+          "same_return": true,
+          "source_unchanged": true
+        },
+        "exports_presence_and_count": [
+          0,
+          0
+        ],
+        "name": "packer",
+        "pass": true,
+        "phase_word": 0,
+        "values": [
+          921600
+        ]
+      },
+      {
+        "VM_steps": 1382363,
+        "calls": [
+          {
+            "count": 29,
+            "extent": 1048576,
+            "fd": null,
+            "offset": 256,
+            "operation": "linux.file.open",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 3
+          },
+          {
+            "count": 0,
+            "extent": 0,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.fdflags",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 1
+          },
+          {
+            "count": 0,
+            "extent": 0,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.statusflags",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 165888
+          },
+          {
+            "count": 144,
+            "extent": 1048576,
+            "fd": 3,
+            "offset": 262144,
+            "operation": "linux.file.stat",
+            "payload_bytes": 144,
+            "payload_sha256": "475bf252b251103a6c4c05ee609d8c32dd7c1b0be55f2ce46c5f5cfde3766f09",
+            "result": 0
+          },
+          {
+            "count": 144,
+            "extent": 1048576,
+            "fd": 3,
+            "offset": 262144,
+            "operation": "linux.file.stat",
+            "payload_bytes": 144,
+            "payload_sha256": "475bf252b251103a6c4c05ee609d8c32dd7c1b0be55f2ce46c5f5cfde3766f09",
+            "result": 0
+          },
+          {
+            "count": 8388609,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.read",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": -4
+          },
+          {
+            "count": 8388609,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "48b2d530c9699fd985ed52ce755e6caf9d705df41c4bb328b8cb70465a8ef73c",
+            "result": 31
+          },
+          {
+            "count": 8388578,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 31,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "ca62d7469a05e81322516cd323b26b9f21cbb3d6433186190bb572b9c9bb29f9",
+            "result": 31
+          },
+          {
+            "count": 8388547,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 62,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "13361e68b429a4ca12f185b9ee79e19351e312e0d24cfd61da22b0bb7856ae34",
+            "result": 31
+          },
+          {
+            "count": 8388516,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 93,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "84f5e14162685a804c46d6e0e86a02123ba684e38230ad4671955db944f39f73",
+            "result": 31
+          },
+          {
+            "count": 8388485,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 124,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "fc1b9ff8f5a3895dde6c20a31a0060b5ebfcce6539dcdf0a685b83bac8c347bc",
+            "result": 31
+          },
+          {
+            "count": 8388454,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 155,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "b0b9597a379e8fef93fa4bf25e0f53abc283abc1f51d7c22be67200266534aed",
+            "result": 31
+          },
+          {
+            "count": 8388423,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 186,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "441689d8f4d00e3e1708e5f8a02ca22e886acaede4b2625e72efca17f4d1c536",
+            "result": 31
+          },
+          {
+            "count": 8388392,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 217,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "ec3b972a34e03ccb9ed00d8f33dd886111554c90ad3681c1e973ddfeda70f78c",
+            "result": 31
+          },
+          {
+            "count": 8388361,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 248,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "a62a95d966129d33169990482cafa028710741fc0100b9d24008526401665018",
+            "result": 31
+          },
+          {
+            "count": 8388330,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 279,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "e0cd9c28e7326039743e1a0dbe6f5e996dee6b1e41e32f33346b29d3dd7d6882",
+            "result": 31
+          },
+          {
+            "count": 8388299,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 310,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "ffd919906d46bdeb2f4b5a09dfa51a740e530488b2517ae94f635e46c148afe4",
+            "result": 31
+          },
+          {
+            "count": 8388268,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 341,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "8faad4b4d8ccb686930d2daabd8aa7f50b08bcbc25e5f5f5b1b9a374e407ebb6",
+            "result": 31
+          },
+          {
+            "count": 8388237,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 372,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "8e7857a119e7f6cd99287356f3010f3dfd359888b98662191f99ed8d3f2cbba3",
+            "result": 31
+          },
+          {
+            "count": 8388206,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 403,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "469a7f160f233d370c2db9153ada0bde29ac7d577864772103f950410ea6cf9c",
+            "result": 31
+          },
+          {
+            "count": 8388175,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 434,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "056fd8abbd77da8029e7de43ab4b6e6483068d73e311e43939b9201781a0b87d",
+            "result": 31
+          },
+          {
+            "count": 8388144,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 465,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "a69f84b28efbdac827b0d54463ca65103781b4b951e6c9176de59f1b33a76f08",
+            "result": 31
+          },
+          {
+            "count": 8388113,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 496,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "b28c287e0f42d6ec1790c4d7b629197c96be82ac85d646b6444dde8b6d3d00cf",
+            "result": 31
+          },
+          {
+            "count": 8388082,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 527,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "12d0897761eccf61d89697ec42ddae75a780c1463cad7914f8775dac8044a95e",
+            "result": 31
+          },
+          {
+            "count": 8388051,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 558,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "785bdf2a535ffcd64555b7690ba417110b9428cc2875a75c2afafaaa22e3b149",
+            "result": 31
+          },
+          {
+            "count": 8388020,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 589,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "13b977d41dc37e12aa99358aba572a4f915ac826567e776211d90e085765ab92",
+            "result": 31
+          },
+          {
+            "count": 8387989,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 620,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "40258018ea6f28a246484eced9d03c4298938f072848f39075f6b77a5c1c6511",
+            "result": 31
+          },
+          {
+            "count": 8387958,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 651,
+            "operation": "linux.file.read",
+            "payload_bytes": 31,
+            "payload_sha256": "0b3252525583944f52f3be5a9ff448a1224ffb5fd7b5426508f444f93beaf6d0",
+            "result": 31
+          },
+          {
+            "count": 8387927,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 682,
+            "operation": "linux.file.read",
+            "payload_bytes": 10,
+            "payload_sha256": "d737b4e79a8ed7d5b54169af1af6fbb42b6e22244b0fea6a052d3a5179d7bbb2",
+            "result": 10
+          },
+          {
+            "count": 8387917,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 692,
+            "operation": "linux.file.read",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 0
+          },
+          {
+            "count": 0,
+            "extent": 0,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.close",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 0
+          },
+          {
+            "count": 261,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 0,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 254,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 7,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 247,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 14,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 240,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 21,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 233,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 28,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 226,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 35,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 219,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 42,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 212,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 49,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 205,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 56,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 198,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 63,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 191,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 70,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 184,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 77,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 177,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 84,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 170,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 91,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 163,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 98,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 156,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 105,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 149,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 112,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 142,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 119,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 135,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 126,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 128,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 133,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 121,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 140,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 114,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 147,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 107,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 154,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 100,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 161,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 93,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 168,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 86,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 175,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 79,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 182,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 72,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 189,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 65,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 196,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 58,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 203,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 51,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 210,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 44,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 217,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 37,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 224,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 30,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 231,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 23,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 238,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 16,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 245,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 9,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 252,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 7
+          },
+          {
+            "count": 2,
+            "extent": 1048576,
+            "fd": 1,
+            "offset": 259,
+            "operation": "linux.stdout.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 2
+          }
+        ],
+        "checks": {
+          "one_close": true,
+          "returned": true,
+          "same_actual_kernel_streams": true
+        },
+        "name": "v6-empty-short-IO",
+        "pass": true,
+        "stderr_hex": "",
+        "stdout_sha256": "fd96fcc04e67a51a503d505610677504bfdc78bc61361b7361c6f2f4d4b558fe",
+        "values": [
+          0
+        ]
+      },
+      {
+        "VM_steps": 1548432,
+        "calls": [
+          {
+            "count": 29,
+            "extent": 1048576,
+            "fd": null,
+            "offset": 256,
+            "operation": "linux.file.open",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 3
+          },
+          {
+            "count": 0,
+            "extent": 0,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.fdflags",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 1
+          },
+          {
+            "count": 0,
+            "extent": 0,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.statusflags",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 165888
+          },
+          {
+            "count": 144,
+            "extent": 1048576,
+            "fd": 3,
+            "offset": 262144,
+            "operation": "linux.file.stat",
+            "payload_bytes": 144,
+            "payload_sha256": "3f2098d4ac6301a577cbe7de612678469720f5a0b2f0e9724cf2eed82c5f95a9",
+            "result": 0
+          },
+          {
+            "count": 144,
+            "extent": 1048576,
+            "fd": 3,
+            "offset": 262144,
+            "operation": "linux.file.stat",
+            "payload_bytes": 144,
+            "payload_sha256": "3f2098d4ac6301a577cbe7de612678469720f5a0b2f0e9724cf2eed82c5f95a9",
+            "result": 0
+          },
+          {
+            "count": 8388609,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.read",
+            "payload_bytes": 886,
+            "payload_sha256": "c7b229b0864849a0af8fb7a5de63935a8995e48738a6c3fb1e9ec390a1fe7fe4",
+            "result": 886
+          },
+          {
+            "count": 8387723,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 886,
+            "operation": "linux.file.read",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 0
+          },
+          {
+            "count": 0,
+            "extent": 0,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.close",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 0
+          },
+          {
+            "count": 32,
+            "extent": 1048576,
+            "fd": 2,
+            "offset": 0,
+            "operation": "linux.stderr.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 32
+          }
+        ],
+        "checks": {
+          "one_close": true,
+          "returned": true,
+          "same_actual_kernel_streams": true
+        },
+        "name": "unreachable-late-call",
+        "pass": true,
+        "stderr_hex": "4852454e44523100440000000000000003000000000000001900000000000000",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "values": [
+          68
+        ]
+      },
+      {
+        "VM_steps": 2207,
+        "calls": [
+          {
+            "count": 29,
+            "extent": 1048576,
+            "fd": null,
+            "offset": 256,
+            "operation": "linux.file.open",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": -13
+          },
+          {
+            "count": 32,
+            "extent": 1048576,
+            "fd": 2,
+            "offset": 0,
+            "operation": "linux.stderr.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 32
+          }
+        ],
+        "checks": {
+          "no_close_without_open": true,
+          "returned": true
+        },
+        "name": "open-refused",
+        "pass": true,
+        "stderr_hex": "4852454e44523100420000000000000001000000000000000d00000000000000",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "values": [
+          66
+        ]
+      },
+      {
+        "VM_steps": 3038,
+        "calls": [
+          {
+            "count": 29,
+            "extent": 1048576,
+            "fd": null,
+            "offset": 256,
+            "operation": "linux.file.open",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 3
+          },
+          {
+            "count": 0,
+            "extent": 0,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.fdflags",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 1
+          },
+          {
+            "count": 0,
+            "extent": 0,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.statusflags",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 165888
+          },
+          {
+            "count": 144,
+            "extent": 1048576,
+            "fd": 3,
+            "offset": 262144,
+            "operation": "linux.file.stat",
+            "payload_bytes": 144,
+            "payload_sha256": "5f5e0aa603791a6dad8378b843cd90ba22a4234c66c90fc3269d01725028d9a2",
+            "result": 0
+          },
+          {
+            "count": 144,
+            "extent": 1048576,
+            "fd": 3,
+            "offset": 262144,
+            "operation": "linux.file.stat",
+            "payload_bytes": 144,
+            "payload_sha256": "5f5e0aa603791a6dad8378b843cd90ba22a4234c66c90fc3269d01725028d9a2",
+            "result": 0
+          },
+          {
+            "count": 8388609,
+            "extent": 8388609,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.read",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": -5
+          },
+          {
+            "count": 0,
+            "extent": 0,
+            "fd": 3,
+            "offset": 0,
+            "operation": "linux.file.close",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": -4
+          },
+          {
+            "count": 32,
+            "extent": 1048576,
+            "fd": 2,
+            "offset": 0,
+            "operation": "linux.stderr.write",
+            "payload_bytes": 0,
+            "payload_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": 32
+          }
+        ],
+        "checks": {
+          "close_error_priority": true,
+          "one_close": true,
+          "returned": true
+        },
+        "name": "read-close-errors",
+        "pass": true,
+        "stderr_hex": "4852454e44523100420000000000000001000000000000000400000000000000",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "values": [
+          66
+        ]
+      }
+    ],
+    "schema": "hia.file-render-semantic-vm.v3",
+    "source_unchanged": true,
+    "status": "FAIL",
+    "whole": false
+  },
+  "phases": {
+    "kernel-matrix-r1": {
+      "differing_paths_from_final": [
+        "examples/hia_bootstrap/file_render_checker.hepta",
+        "hepta/hia_linux_file_render.py",
+        "tests/test_hia_linux_file_render.py",
+        "tools/generate_hia_file_render_checker.py"
+      ],
+      "outer": {
+        "matching_cold": false,
+        "status": "FAIL",
+        "terminal": {
+          "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+          "cleanup": {
+            "attempted": true,
+            "complete": true,
+            "deadline_exceeded": false,
+            "elapsed_ns": 8411273,
+            "errors": [],
+            "leader_reaped": true,
+            "observed_echild": true,
+            "remaining_direct_children": [],
+            "started_ns": 53654249847721
+          },
+          "cleanup_seconds": 3,
+          "direct_and_adopted_children": [
+            {
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5357098
+            }
+          ],
+          "event_overflow": false,
+          "events": [
+            {
+              "kind": "qualification_started",
+              "monotonic_ns": 53570984492168,
+              "pid": 4
+            },
+            {
+              "kind": "owned_child_observed",
+              "monotonic_ns": 53570984572529,
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5357098
+            },
+            {
+              "kind": "qualification_exit_observed",
+              "monotonic_ns": 53654249788047,
+              "pid": 4,
+              "si_code": 1,
+              "si_status": 1
+            },
+            {
+              "kind": "owned_child_reaped",
+              "monotonic_ns": 53654254954348,
+              "pid": 4,
+              "returncode": 1,
+              "start_ticks": 5357098
+            }
+          ],
+          "exit_observed_before_deadline": true,
+          "historical_descendant_inventory_complete": false,
+          "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+          "interrupted_signals": [],
+          "parent_pid": 2,
+          "platform": "linux",
+          "qualification_pid": 4,
+          "qualification_seconds": 180,
+          "qualification_started": true,
+          "receipt_sha256": "31e47411b240d6a7b3176e1ea66ce8c29dc985a9fff83530d31c47876e90d477",
+          "request_sha256": "87d3532737d09efe9b937a9d6aec2a4cd380e8bb5449720e6ba73e46101c4e80",
+          "returncode": 1,
+          "schema": "hepta.hia.selfhost-process-owner.v1",
+          "status": "QUALIFICATION_FAILED",
+          "subreaper_enabled": true,
+          "supervisor_pid": 3,
+          "supervisor_returncode": 1,
+          "timed_out": false
+        },
+        "whole": false
+      },
+      "report": {
+        "bytes": 217690,
+        "git_blob": "7a02401f86807acc6c8489fd5cf316d96a275e5f",
+        "local_path": "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/kernel-matrix-r1/REPORT.json",
+        "mode": "100644",
+        "sha256": "cbbdc0fd6be7d989ff13714de3a220307dc1f57d9b28d21aae4f2f75abccf08b"
+      },
+      "source_files": 3121,
+      "source_tree": "b79bb605774fcd707088259c2d9956b12ad14d11",
+      "source_unchanged": true,
+      "status": "FAIL"
+    },
+    "kernel-matrix-r2": {
+      "differing_paths_from_final": [],
+      "outer": {
+        "matching_cold": false,
+        "status": "PASS",
+        "terminal": {
+          "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+          "cleanup": {
+            "attempted": true,
+            "complete": true,
+            "deadline_exceeded": false,
+            "elapsed_ns": 2689776,
+            "errors": [],
+            "leader_reaped": true,
+            "observed_echild": true,
+            "remaining_direct_children": [],
+            "started_ns": 54214321503734
+          },
+          "cleanup_seconds": 3,
+          "direct_and_adopted_children": [
+            {
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5416503
+            }
+          ],
+          "event_overflow": false,
+          "events": [
+            {
+              "kind": "qualification_started",
+              "monotonic_ns": 54165034628467,
+              "pid": 4
+            },
+            {
+              "kind": "owned_child_observed",
+              "monotonic_ns": 54165034684313,
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5416503
+            },
+            {
+              "kind": "qualification_exit_observed",
+              "monotonic_ns": 54214321432332,
+              "pid": 4,
+              "si_code": 1,
+              "si_status": 0
+            },
+            {
+              "kind": "owned_child_reaped",
+              "monotonic_ns": 54214323891973,
+              "pid": 4,
+              "returncode": 0,
+              "start_ticks": 5416503
+            }
+          ],
+          "exit_observed_before_deadline": true,
+          "historical_descendant_inventory_complete": false,
+          "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+          "interrupted_signals": [],
+          "parent_pid": 2,
+          "platform": "linux",
+          "qualification_pid": 4,
+          "qualification_seconds": 180,
+          "qualification_started": true,
+          "receipt_sha256": "b33c1caa37aed2f7a9d5c0db4949cb768a288993520b3132bf558b99f6d9c3c8",
+          "request_sha256": "6cca0652b7e9380c8ce08b808643928fc76e78577119e9c97b70fb4513f59f01",
+          "returncode": 0,
+          "schema": "hepta.hia.selfhost-process-owner.v1",
+          "status": "OWNED_PROCESS_COMPLETED",
+          "subreaper_enabled": true,
+          "supervisor_pid": 3,
+          "supervisor_returncode": 0,
+          "timed_out": false
+        },
+        "whole": false
+      },
+      "report": {
+        "bytes": 224654,
+        "git_blob": "d15fff5a67bf3c5457edd604c9f3e5b500c44a6b",
+        "local_path": "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/kernel-matrix-r2/REPORT.json",
+        "mode": "100644",
+        "sha256": "b3b55c57257eb63ace3a3d8d7a6fd711d0dee9157a8b13e67cbfd58e753b2fdf"
+      },
+      "source_files": 3121,
+      "source_tree": "0a59f35ad40399f44287ece9011d6323c4535ce3",
+      "source_unchanged": true,
+      "status": "PASS"
+    },
+    "public-builder-r1": {
+      "differing_paths_from_final": [
+        "examples/hia_bootstrap/file_render_checker.hepta",
+        "hepta/hia_linux_file_render.py",
+        "tests/test_hia_linux_file_render.py",
+        "tools/generate_hia_file_render_checker.py"
+      ],
+      "outer": {
+        "matching_cold": false,
+        "status": "PASS",
+        "terminal": {
+          "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+          "cleanup": {
+            "attempted": true,
+            "complete": true,
+            "deadline_exceeded": false,
+            "elapsed_ns": 891930,
+            "errors": [],
+            "leader_reaped": true,
+            "observed_echild": true,
+            "remaining_direct_children": [],
+            "started_ns": 53075307807472
+          },
+          "cleanup_seconds": 3,
+          "direct_and_adopted_children": [
+            {
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5306772
+            }
+          ],
+          "event_overflow": false,
+          "events": [
+            {
+              "kind": "qualification_started",
+              "monotonic_ns": 53067722154798,
+              "pid": 4
+            },
+            {
+              "kind": "owned_child_observed",
+              "monotonic_ns": 53067722225054,
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5306772
+            },
+            {
+              "kind": "qualification_exit_observed",
+              "monotonic_ns": 53075307802547,
+              "pid": 4,
+              "si_code": 1,
+              "si_status": 0
+            },
+            {
+              "kind": "owned_child_reaped",
+              "monotonic_ns": 53075308552617,
+              "pid": 4,
+              "returncode": 0,
+              "start_ticks": 5306772
+            }
+          ],
+          "exit_observed_before_deadline": true,
+          "historical_descendant_inventory_complete": false,
+          "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+          "interrupted_signals": [],
+          "parent_pid": 2,
+          "platform": "linux",
+          "qualification_pid": 4,
+          "qualification_seconds": 180,
+          "qualification_started": true,
+          "receipt_sha256": "8dbf9d1f8039697de56e626e8296209e9c086b611801ad7c86888c558d097cff",
+          "request_sha256": "c079caec423e9c3c8e7f1edff046fe0a385538884e6a1c66d8fa279db697bad9",
+          "returncode": 0,
+          "schema": "hepta.hia.selfhost-process-owner.v1",
+          "status": "OWNED_PROCESS_COMPLETED",
+          "subreaper_enabled": true,
+          "supervisor_pid": 3,
+          "supervisor_returncode": 0,
+          "timed_out": false
+        },
+        "whole": false
+      },
+      "report": {
+        "bytes": 24792,
+        "git_blob": "ff8121d83d63ec8d200676d70fd48a679659c8e2",
+        "local_path": "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/public-builder-r1/REPORT.json",
+        "mode": "100644",
+        "sha256": "0a2c42370b07a18179e111580c0300009f266687803422dd3e09c360a59cc9b5"
+      },
+      "source_files": 3121,
+      "source_tree": "b79bb605774fcd707088259c2d9956b12ad14d11",
+      "source_unchanged": true,
+      "status": "PASS"
+    },
+    "public-builder-r2": {
+      "differing_paths_from_final": [],
+      "outer": {
+        "matching_cold": false,
+        "status": "PASS",
+        "terminal": {
+          "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+          "cleanup": {
+            "attempted": true,
+            "complete": true,
+            "deadline_exceeded": false,
+            "elapsed_ns": 608896,
+            "errors": [],
+            "leader_reaped": true,
+            "observed_echild": true,
+            "remaining_direct_children": [],
+            "started_ns": 54098657448079
+          },
+          "cleanup_seconds": 3,
+          "direct_and_adopted_children": [
+            {
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5408889
+            }
+          ],
+          "event_overflow": false,
+          "events": [
+            {
+              "kind": "qualification_started",
+              "monotonic_ns": 54088894595206,
+              "pid": 4
+            },
+            {
+              "kind": "owned_child_observed",
+              "monotonic_ns": 54088894677851,
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5408889
+            },
+            {
+              "kind": "qualification_exit_observed",
+              "monotonic_ns": 54098657443761,
+              "pid": 4,
+              "si_code": 1,
+              "si_status": 0
+            },
+            {
+              "kind": "owned_child_reaped",
+              "monotonic_ns": 54098657911724,
+              "pid": 4,
+              "returncode": 0,
+              "start_ticks": 5408889
+            }
+          ],
+          "exit_observed_before_deadline": true,
+          "historical_descendant_inventory_complete": false,
+          "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+          "interrupted_signals": [],
+          "parent_pid": 2,
+          "platform": "linux",
+          "qualification_pid": 4,
+          "qualification_seconds": 180,
+          "qualification_started": true,
+          "receipt_sha256": "ed4f9e2b10defd0750f3d019a71b628cdd83930a6a3a929e426ffdd4c22f7f08",
+          "request_sha256": "4970626b81ccbc2138c179327164ca798709dedd8c88231f80abd6ece3e82821",
+          "returncode": 0,
+          "schema": "hepta.hia.selfhost-process-owner.v1",
+          "status": "OWNED_PROCESS_COMPLETED",
+          "subreaper_enabled": true,
+          "supervisor_pid": 3,
+          "supervisor_returncode": 0,
+          "timed_out": false
+        },
+        "whole": false
+      },
+      "report": {
+        "bytes": 25401,
+        "git_blob": "2af49637397ab672553560e50c6ee50eeb16b7c4",
+        "local_path": "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/public-builder-r2/REPORT.json",
+        "mode": "100644",
+        "sha256": "c28542ec7701e750298f87f989c3fa3e436b10914e25b015f3c4033bedb78f27"
+      },
+      "source_files": 3121,
+      "source_tree": "0a59f35ad40399f44287ece9011d6323c4535ce3",
+      "source_unchanged": true,
+      "status": "PASS"
+    },
+    "semantic-vm-r1": {
+      "differing_paths_from_final": [],
+      "outer": {
+        "matching_cold": false,
+        "status": "FAIL",
+        "terminal": {
+          "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+          "cleanup": {
+            "attempted": true,
+            "complete": true,
+            "deadline_exceeded": false,
+            "elapsed_ns": 3205476,
+            "errors": [],
+            "leader_reaped": true,
+            "observed_echild": true,
+            "remaining_direct_children": [],
+            "started_ns": 54309106348804
+          },
+          "cleanup_seconds": 3,
+          "direct_and_adopted_children": [
+            {
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5428502
+            }
+          ],
+          "event_overflow": false,
+          "events": [
+            {
+              "kind": "qualification_started",
+              "monotonic_ns": 54285026350042,
+              "pid": 4
+            },
+            {
+              "kind": "owned_child_observed",
+              "monotonic_ns": 54285026422535,
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5428502
+            },
+            {
+              "kind": "qualification_exit_observed",
+              "monotonic_ns": 54309106290291,
+              "pid": 4,
+              "si_code": 1,
+              "si_status": 1
+            },
+            {
+              "kind": "owned_child_reaped",
+              "monotonic_ns": 54309109272779,
+              "pid": 4,
+              "returncode": 1,
+              "start_ticks": 5428502
+            }
+          ],
+          "exit_observed_before_deadline": true,
+          "historical_descendant_inventory_complete": false,
+          "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+          "interrupted_signals": [],
+          "parent_pid": 2,
+          "platform": "linux",
+          "qualification_pid": 4,
+          "qualification_seconds": 180,
+          "qualification_started": true,
+          "receipt_sha256": "239d5c3ea59541130578fdc58effcc38d6046509abf8a17b1b80035d45685021",
+          "request_sha256": "f92bc666ac6b61488ec01bec4b2c46d3e9a7f602c0a492345b2cc2f21410d398",
+          "returncode": 1,
+          "schema": "hepta.hia.selfhost-process-owner.v1",
+          "status": "QUALIFICATION_FAILED",
+          "subreaper_enabled": true,
+          "supervisor_pid": 3,
+          "supervisor_returncode": 1,
+          "timed_out": false
+        },
+        "whole": false
+      },
+      "report": {
+        "bytes": 31339,
+        "git_blob": "7dbdbf4e4f017a7162f1250ce424ba7efb299165",
+        "local_path": "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/semantic-vm-r1/REPORT.json",
+        "mode": "100644",
+        "sha256": "0e6f3b685e3d67efbdadf45e0750c1dea94a3b2f997271e46409edf3983063dc"
+      },
+      "source_files": 3121,
+      "source_tree": "0a59f35ad40399f44287ece9011d6323c4535ce3",
+      "source_unchanged": true,
+      "status": "FAIL"
+    },
+    "source-controls-r1": {
+      "differing_paths_from_final": [
+        "examples/hia_bootstrap/file_render_checker.hepta",
+        "hepta/hia_linux_file_render.py",
+        "tests/test_hia_linux_file_render.py",
+        "tools/generate_hia_file_render_checker.py"
+      ],
+      "outer": {
+        "matching_cold": false,
+        "status": "FAIL",
+        "terminal": {
+          "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+          "cleanup": {
+            "attempted": true,
+            "complete": true,
+            "deadline_exceeded": false,
+            "elapsed_ns": 2111030,
+            "errors": [],
+            "leader_reaped": true,
+            "observed_echild": true,
+            "remaining_direct_children": [],
+            "started_ns": 53002919186335
+          },
+          "cleanup_seconds": 3,
+          "direct_and_adopted_children": [
+            {
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5299406
+            }
+          ],
+          "event_overflow": false,
+          "events": [
+            {
+              "kind": "qualification_started",
+              "monotonic_ns": 52994070086221,
+              "pid": 4
+            },
+            {
+              "kind": "owned_child_observed",
+              "monotonic_ns": 52994070148629,
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5299406
+            },
+            {
+              "kind": "qualification_exit_observed",
+              "monotonic_ns": 53002919181037,
+              "pid": 4,
+              "si_code": 1,
+              "si_status": 1
+            },
+            {
+              "kind": "owned_child_reaped",
+              "monotonic_ns": 53002921086849,
+              "pid": 4,
+              "returncode": 1,
+              "start_ticks": 5299406
+            }
+          ],
+          "exit_observed_before_deadline": true,
+          "historical_descendant_inventory_complete": false,
+          "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+          "interrupted_signals": [],
+          "parent_pid": 2,
+          "platform": "linux",
+          "qualification_pid": 4,
+          "qualification_seconds": 180,
+          "qualification_started": true,
+          "receipt_sha256": "11d43105238fe7d25ca70d56a4f3be2ac086bbe335b830d0e0412f7847e070c8",
+          "request_sha256": "680fed7475046fd44f0a30d0a21adc7ef50955314b019e84acb0589542d813e8",
+          "returncode": 1,
+          "schema": "hepta.hia.selfhost-process-owner.v1",
+          "status": "QUALIFICATION_FAILED",
+          "subreaper_enabled": true,
+          "supervisor_pid": 3,
+          "supervisor_returncode": 1,
+          "timed_out": false
+        },
+        "whole": false
+      },
+      "report": {
+        "bytes": 5112,
+        "git_blob": "077bc930df51a387f304c43d8dd7cd6a51133700",
+        "local_path": "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/source-controls-r1/REPORT.json",
+        "mode": "100644",
+        "sha256": "b01ae2e6af6a1e66fe321d98166644e1de8597e7acc017add64fe2f7697467ae"
+      },
+      "source_files": 3121,
+      "source_tree": "897113ba330c755e2390df722f0fc523d5c73180",
+      "source_unchanged": true,
+      "status": "FAIL"
+    },
+    "source-controls-r2": {
+      "differing_paths_from_final": [
+        "examples/hia_bootstrap/file_render_checker.hepta",
+        "hepta/hia_linux_file_render.py",
+        "tests/test_hia_linux_file_render.py",
+        "tools/generate_hia_file_render_checker.py"
+      ],
+      "outer": {
+        "matching_cold": false,
+        "status": "PASS",
+        "terminal": {
+          "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+          "cleanup": {
+            "attempted": true,
+            "complete": true,
+            "deadline_exceeded": false,
+            "elapsed_ns": 1660313,
+            "errors": [],
+            "leader_reaped": true,
+            "observed_echild": true,
+            "remaining_direct_children": [],
+            "started_ns": 53301472285649
+          },
+          "cleanup_seconds": 3,
+          "direct_and_adopted_children": [
+            {
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5329267
+            }
+          ],
+          "event_overflow": false,
+          "events": [
+            {
+              "kind": "qualification_started",
+              "monotonic_ns": 53292675065530,
+              "pid": 4
+            },
+            {
+              "kind": "owned_child_observed",
+              "monotonic_ns": 53292675118235,
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5329267
+            },
+            {
+              "kind": "qualification_exit_observed",
+              "monotonic_ns": 53301472225589,
+              "pid": 4,
+              "si_code": 1,
+              "si_status": 0
+            },
+            {
+              "kind": "owned_child_reaped",
+              "monotonic_ns": 53301473737337,
+              "pid": 4,
+              "returncode": 0,
+              "start_ticks": 5329267
+            }
+          ],
+          "exit_observed_before_deadline": true,
+          "historical_descendant_inventory_complete": false,
+          "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+          "interrupted_signals": [],
+          "parent_pid": 2,
+          "platform": "linux",
+          "qualification_pid": 4,
+          "qualification_seconds": 180,
+          "qualification_started": true,
+          "receipt_sha256": "67b29b8bd8dc4d24cce97fdcadeec5f2075adc9edb707537392c8fe62278410b",
+          "request_sha256": "8675e5beed02d92c79e4a1d9d24a8b440fd2e9293e9a350dffddc2cd89180871",
+          "returncode": 0,
+          "schema": "hepta.hia.selfhost-process-owner.v1",
+          "status": "OWNED_PROCESS_COMPLETED",
+          "subreaper_enabled": true,
+          "supervisor_pid": 3,
+          "supervisor_returncode": 0,
+          "timed_out": false
+        },
+        "whole": false
+      },
+      "report": {
+        "bytes": 4538,
+        "git_blob": "2be4748d7108e28d06132d2e6fdf1ea52a09a2e4",
+        "local_path": "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/source-controls-r2/REPORT.json",
+        "mode": "100644",
+        "sha256": "150b36280070e01ae49de0cf1cb7d31f063734e4fc7f6f1f1a16d6c27eb85720"
+      },
+      "source_files": 3121,
+      "source_tree": "b79bb605774fcd707088259c2d9956b12ad14d11",
+      "source_unchanged": true,
+      "status": "PASS"
+    },
+    "source-controls-r3": {
+      "differing_paths_from_final": [],
+      "outer": {
+        "matching_cold": false,
+        "status": "PASS",
+        "terminal": {
+          "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+          "cleanup": {
+            "attempted": true,
+            "complete": true,
+            "deadline_exceeded": false,
+            "elapsed_ns": 668334,
+            "errors": [],
+            "leader_reaped": true,
+            "observed_echild": true,
+            "remaining_direct_children": [],
+            "started_ns": 54127264234910
+          },
+          "cleanup_seconds": 3,
+          "direct_and_adopted_children": [
+            {
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5411433
+            }
+          ],
+          "event_overflow": false,
+          "events": [
+            {
+              "kind": "qualification_started",
+              "monotonic_ns": 54114340344539,
+              "pid": 4
+            },
+            {
+              "kind": "owned_child_observed",
+              "monotonic_ns": 54114340396819,
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5411433
+            },
+            {
+              "kind": "qualification_exit_observed",
+              "monotonic_ns": 54127264229781,
+              "pid": 4,
+              "si_code": 1,
+              "si_status": 0
+            },
+            {
+              "kind": "owned_child_reaped",
+              "monotonic_ns": 54127264705302,
+              "pid": 4,
+              "returncode": 0,
+              "start_ticks": 5411433
+            }
+          ],
+          "exit_observed_before_deadline": true,
+          "historical_descendant_inventory_complete": false,
+          "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+          "interrupted_signals": [],
+          "parent_pid": 2,
+          "platform": "linux",
+          "qualification_pid": 4,
+          "qualification_seconds": 180,
+          "qualification_started": true,
+          "receipt_sha256": "90ad3c8cd506c57548e0bae6d5916ab38a89832e06e54e2e9cc0dbbffb281ed4",
+          "request_sha256": "ffa14c5f41d1b497b3e4d27df2a09048608b9bee4c8128b63d3cf2463f29560c",
+          "returncode": 0,
+          "schema": "hepta.hia.selfhost-process-owner.v1",
+          "status": "OWNED_PROCESS_COMPLETED",
+          "subreaper_enabled": true,
+          "supervisor_pid": 3,
+          "supervisor_returncode": 0,
+          "timed_out": false
+        },
+        "whole": false
+      },
+      "report": {
+        "bytes": 4538,
+        "git_blob": "2be4748d7108e28d06132d2e6fdf1ea52a09a2e4",
+        "local_path": "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/source-controls-r3/REPORT.json",
+        "mode": "100644",
+        "sha256": "150b36280070e01ae49de0cf1cb7d31f063734e4fc7f6f1f1a16d6c27eb85720"
+      },
+      "source_files": 3121,
+      "source_tree": "0a59f35ad40399f44287ece9011d6323c4535ce3",
+      "source_unchanged": true,
+      "status": "PASS"
+    },
+    "v3-permission-vm-r1": {
+      "differing_paths_from_final": [],
+      "outer": {
+        "matching_cold": false,
+        "status": "PASS",
+        "terminal": {
+          "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+          "cleanup": {
+            "attempted": true,
+            "complete": true,
+            "deadline_exceeded": false,
+            "elapsed_ns": 978286,
+            "errors": [],
+            "leader_reaped": true,
+            "observed_echild": true,
+            "remaining_direct_children": [],
+            "started_ns": 54377316166378
+          },
+          "cleanup_seconds": 3,
+          "direct_and_adopted_children": [
+            {
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5436481
+            }
+          ],
+          "event_overflow": false,
+          "events": [
+            {
+              "kind": "qualification_started",
+              "monotonic_ns": 54364818569549,
+              "pid": 4
+            },
+            {
+              "kind": "owned_child_observed",
+              "monotonic_ns": 54364818648564,
+              "pgid": 3,
+              "pid": 4,
+              "ppid": 3,
+              "sid": 3,
+              "start_ticks": 5436481
+            },
+            {
+              "kind": "qualification_exit_observed",
+              "monotonic_ns": 54377316162158,
+              "pid": 4,
+              "si_code": 1,
+              "si_status": 0
+            },
+            {
+              "kind": "owned_child_reaped",
+              "monotonic_ns": 54377316696741,
+              "pid": 4,
+              "returncode": 0,
+              "start_ticks": 5436481
+            }
+          ],
+          "exit_observed_before_deadline": true,
+          "historical_descendant_inventory_complete": false,
+          "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+          "interrupted_signals": [],
+          "parent_pid": 2,
+          "platform": "linux",
+          "qualification_pid": 4,
+          "qualification_seconds": 180,
+          "qualification_started": true,
+          "receipt_sha256": "b8271ea4708ecbde53852863c91fcb7597b3445754ceec0aa9ea10009673d0fc",
+          "request_sha256": "88d5b311f98ab70cc3d11991fddf4cc48b12a3465fa999294cdaaeeee900586a",
+          "returncode": 0,
+          "schema": "hepta.hia.selfhost-process-owner.v1",
+          "status": "OWNED_PROCESS_COMPLETED",
+          "subreaper_enabled": true,
+          "supervisor_pid": 3,
+          "supervisor_returncode": 0,
+          "timed_out": false
+        },
+        "whole": false
+      },
+      "report": {
+        "bytes": 3028,
+        "git_blob": "d5d3f4b642bf2691c90388ed3efe3fb7b34c95e9",
+        "local_path": "/workspace/scratch/dda74a4fae35/v96-native-file-render-r1/evidence/v3-permission-vm-r1/REPORT.json",
+        "mode": "100644",
+        "sha256": "ddce601daa7de7506a3abb1e0511a02c9fd82cb02921302758bec9a03466bb08"
+      },
+      "source_files": 3121,
+      "source_tree": "0a59f35ad40399f44287ece9011d6323c4535ce3",
+      "source_unchanged": true,
+      "status": "PASS"
+    }
+  },
+  "schema": "hia.file-render-v3.actual-results.v1",
+  "source_files": 3121,
+  "source_tree": "0a59f35ad40399f44287ece9011d6323c4535ce3",
+  "status": "SCOPED_V3_DEVELOPMENT_PASS_WITH_ORIGINAL_PHASE_ASSERTION_FAIL"
+}
