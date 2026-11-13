@@ -28,6 +28,7 @@ from hepta.hia_agent_identity_native import (
 ROOT = Path(__file__).resolve().parents[1]
 DEVELOPMENT = 'HEPTA_HIA_WORKER_HELPERS_DEVELOPMENT_MANIFEST'
 COLD = 'HEPTA_HIA_WORKER_HELPERS_COLD_REPORT'
+COLD_REPORT = 'HEPTA_HIA_AGENT_IDENTITY_COLD_REPORT'
 
 
 def encoded(value):
@@ -93,7 +94,7 @@ class WorkerHelperSourceTests(unittest.TestCase):
         import importlib
         from hepta.hia_agent_contract import NATIVE_SOURCE_FILES
         from hepta.hia_json_preflight_native import NativeHiaJsonImage
-        self.assertEqual(len(HELPERS), 24)
+        self.assertEqual(len(HELPERS), 51)
         for selector, (name, factory_name) in HELPERS.items():
             with self.subTest(selector=selector):
                 module = importlib.import_module('hepta.' + name)
@@ -207,10 +208,20 @@ class WorkerHelperSourceTests(unittest.TestCase):
             self.assertEqual(native_helpers_identity(), {})
 
 
+class NativeWorkerHelperFixtureTests(unittest.TestCase):
+    def test_development_helper_cannot_override_requested_cold_before_fixture_work(self):
+        with patch.dict(os.environ, {DEVELOPMENT: '/unread-helper-manifest', COLD_REPORT: '/unread-cold'}), \
+                patch('tempfile.TemporaryDirectory', side_effect=AssertionError('fixture work before admission')):
+            with self.assertRaisesRegex(ValueError, 'development helper cannot override'):
+                NativeWorkerHelperTests.setUpClass()
+
+
 class NativeWorkerHelperTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         development, cold = os.environ.get(DEVELOPMENT), os.environ.get(COLD)
+        if development and os.environ.get(COLD_REPORT):
+            raise ValueError('development helper cannot override the requested identity cold report')
         if development and cold:
             raise AssertionError('development image cannot override a requested cold report')
         cls.native_fixture = None

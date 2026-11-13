@@ -110,3 +110,26 @@ Native rewrite: [current implementation and remaining owners](docs/CURRENT.md).
 Runtime integration: [compatibility and upgrade requirements](docs/CURRENT.md#remaining-product-acceptance).
 
 The selected [HIA JSON wire](docs/HIA_JSON_WIRE_NATIVE.md) owns bounded graph and encoding decisions, with explicit foreign-object transport and unclosed option domains. See [current status](docs/CURRENT.md) for source-bound qualification and remaining whole-product owners.
+
+## Retained merge candidate boundaries
+
+The integration retains both the main multi-image backend families and the
+separately selected continuation CONTROL families. A manifest for one family
+does not select or qualify the other. The original
+[individual nominal owners](docs/HIA_NOMINAL_FUNCTION_NATIVE.md), including the
+[native enum-match owner](docs/HIA_ENUM_MATCH_NATIVE.md), remain alongside the
+complete nominal bundle. Their original caller and component gates are retained.
+
+The continuation source also retains explicitly selected public-front,
+service-context, emission, verification, proof, request, artifact and evaluation
+owners. Those policies still depend on named foreign-object, JSON, filesystem,
+SQLite, loader and process-custody providers. The retained slot continuation and
+the main slot/lease owner use distinct selectors and evidence. Neither source
+registration nor a successful result for either parent qualifies the combined
+source, changes a default or authorizes deleting a former production owner.
+
+Earlier source-bound observations remain in the
+[retained rewrite history](docs/HIA_NATIVE_REWRITE_STATUS_20261111.md).
+Its dated entries describe their own revisions, including failures and pending
+work. The integration must regenerate the source and language inventories and
+run its own complete current-source qualification under the original limits.

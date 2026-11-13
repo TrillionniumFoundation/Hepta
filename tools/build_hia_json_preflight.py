@@ -62,42 +62,75 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
     from tools.hia_selfhost_contract import PROFILE
-    candidates = {'machine-plan': ('machine_plan', 'machine-plan'),
-                  'machine-encoding': ('machine_encoding', 'machine-encoding'),
-                  'candidate-budget': ('candidate_budget', 'candidate-budget'),
-                  'agent-journal': ('agent_journal', 'agent-journal'),
-                  'execution-budget': ('execution_budget', 'execution-budget'),
-                  'retirement-state': ('retirement_state', 'retirement-state'),
-                  'worker-request': ('worker_request', 'worker-request'),
-                  'core-admission': ('core_admission', 'core-admission'),
-                  'composite-types': ('composite_types', 'composite-types'),
-                  'task-helpers': ('task_helpers', 'task-helpers'),
-                  'composite-function-admit': ('composite_function_admit', 'composite-function-admit'),
-                  'composite-function-records': ('composite_function_records', 'composite-function-records'),
-                  'composite-function-advanced': ('composite_function_advanced', 'composite-function-advanced'),
-                  'composite-function-terms': ('composite_function_terms', 'composite-function-terms'),
-                  'composite-function-render': ('composite_function_render', 'composite-function-render'),
-                  'composite-constructor-owner': ('composite_constructor_owner', 'composite-constructor-owner'),
-                  'composite-constructor-render': ('composite_constructor_render', 'composite-constructor-render'),
-                  'composite-outer-owner': ('composite_outer_owner', 'composite-outer-owner'),
-                  'composite-outer-render': ('composite_outer_render', 'composite-outer-render'),
-                  'instruction-policy': ('instruction_policy','instruction-policy'),
-                  'core-workspace-materialize': ('core_workspace_materialize','core-workspace-materialize'),
-                  'core-workspace-facts': ('core_workspace_facts','core-workspace-facts'),
-                  'program-shape': ('program_shape', 'program-shape'),
-                  'function-shape': ('function_shape', 'function-shape'),
-                  'capability-renaming': ('capability_renaming', 'capability-renaming'),
-                  'agent-slice': ('agent_slice', 'agent-slice'),
-                  'core-workspace-json': ('core_workspace_json', 'core-workspace-json'),
-                  'core-module-graph': ('core_module_graph', 'core-module-graph'),
-                  'preflight': ('json_preflight', 'json-preflight'),
-                  'decode': ('json_decode', 'json-decode'),
-                  'canonical': ('json_canonical', 'json-canonical'),
-                  'core-frontend': ('core_json_frontend', 'core-json-frontend'),
-                  'elf-linker': ('elf_static_linker', 'elf-linker'),
-                  'native-filter': ('native_filter_packer', 'native-filter'),
-                  'agent-snapshot': ('agent_snapshot', 'agent-snapshot'),
-                  'agent-snapshot-json': ('agent_snapshot_json', 'agent-snapshot-json')}
+    # Complete continuation protocols retain their dedicated builders.
+    # Development control families are explicitly named to avoid changing the
+    # original main witness/bundle protocol selected under its existing name.
+    if candidate == 'core-lowering-control':
+        from tools.build_hia_core_lowering_control import build as build_core_lowering
+        return build_core_lowering(output, compiler, cold_report)
+    if candidate == 'slot-ledger-continuation':
+        from tools.build_hia_slot_ledger_continuation import build as build_slot_ledger
+        return build_slot_ledger(output, compiler, cold_report)
+    if candidate == 'service-emission':
+        from tools.build_hia_service_emission import build as build_service_emission
+        return build_service_emission(output, compiler, cold_report)
+    candidates = {
+        'machine-plan': ('machine_plan', 'machine-plan'),
+        'machine-plan-control': ('machine_plan_control', 'machine-plan-control'),
+        'machine-encoding': ('machine_encoding', 'machine-encoding'),
+        'candidate-budget': ('candidate_budget', 'candidate-budget'),
+        'agent-journal': ('agent_journal', 'agent-journal'),
+        'execution-budget': ('execution_budget', 'execution-budget'),
+        'retirement-state': ('retirement_state', 'retirement-state'),
+        'worker-request': ('worker_request', 'worker-request'),
+        'core-admission': ('core_admission', 'core-admission'),
+        'composite-types': ('composite_types', 'composite-types'),
+        'task-helpers': ('task_helpers', 'task-helpers'),
+        'composite-function-admit': ('composite_function_admit', 'composite-function-admit'),
+        'composite-function-records': ('composite_function_records', 'composite-function-records'),
+        'composite-function-advanced': ('composite_function_advanced', 'composite-function-advanced'),
+        'composite-function-terms': ('composite_function_terms', 'composite-function-terms'),
+        'composite-function-render': ('composite_function_render', 'composite-function-render'),
+        'composite-constructor-owner': ('composite_constructor_owner', 'composite-constructor-owner'),
+        'composite-constructor-render': ('composite_constructor_render', 'composite-constructor-render'),
+        'composite-outer-owner': ('composite_outer_owner', 'composite-outer-owner'),
+        'composite-outer-render': ('composite_outer_render', 'composite-outer-render'),
+        'instruction-policy': ('instruction_policy', 'instruction-policy'),
+        'core-workspace-materialize': ('core_workspace_materialize', 'core-workspace-materialize'),
+        'core-workspace-facts': ('core_workspace_facts', 'core-workspace-facts'),
+        'program-shape': ('program_shape', 'program-shape'),
+        'function-shape': ('function_shape', 'function-shape'),
+        'capability-renaming': ('capability_renaming', 'capability-renaming'),
+        'agent-slice': ('agent_slice', 'agent-slice'),
+        'core-workspace-json': ('core_workspace_json', 'core-workspace-json'),
+        'core-module-graph': ('core_module_graph', 'core-module-graph'),
+        'preflight': ('json_preflight', 'json-preflight'),
+        'decode': ('json_decode', 'json-decode'),
+        'canonical': ('json_canonical', 'json-canonical'),
+        'core-frontend': ('core_json_frontend', 'core-json-frontend'),
+        'elf-linker': ('elf_static_linker', 'elf-linker'),
+        'native-filter': ('native_filter_packer', 'native-filter'),
+        'agent-snapshot': ('agent_snapshot', 'agent-snapshot'),
+        'agent-snapshot-json': ('agent_snapshot_json', 'agent-snapshot-json'),
+        'program-execution': ('program_execution', 'program-execution'),
+        'static-budget': ('static_budget', 'static-budget'),
+        'heap-bound': ('heap_bound', 'heap-bound'),
+        'heap-live-engine': ('heap_live_engine', 'heap-live-engine'),
+        'heap-payload': ('heap_payload', 'heap-payload'),
+        'enum-match': ('enum_match', 'enum-match'),
+        'enum-operations': ('enum_operations', 'enum-operations'),
+        'record-operations': ('record_operations', 'record-operations'),
+        'record-transitions': ('record_transitions', 'record-transitions'),
+        'nominal-terminators': ('nominal_terminators', 'nominal-terminators'),
+        'nominal-function': ('nominal_function', 'nominal-function'),
+        'call-primitive': ('call_primitive', 'call-primitive'),
+        'task-operations': ('task_operations', 'task-operations'),
+        'nominal-module': ('nominal_module', 'nominal-module'),
+        'nominal-admission': ('nominal_admission', 'nominal-admission'),
+        'task-helper-cache': ('task_helper_cache', 'task-helper-cache'),
+        'artifact-namespace': ('artifact_namespace', 'artifact-namespace'),
+        'request-journal': ('request_journal', 'request-journal'),
+    }
     if candidate not in candidates:
         raise ValueError('unknown HIA JSON candidate')
     source_name, protocol = candidates[candidate]

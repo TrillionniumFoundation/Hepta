@@ -16,6 +16,7 @@ from __future__ import annotations
 import ctypes
 from hashlib import sha256
 import json
+from itertools import count
 import os
 from pathlib import Path, PurePosixPath
 import struct
@@ -39,10 +40,25 @@ ARGV_MAGIC = int.from_bytes(b"HCLIARG4", "little")
 RESULT_MAGIC = int.from_bytes(b"HCLIRES4", "little")
 STEP_MAGIC = int.from_bytes(b"HCLISTP4", "little")
 COMMAND_MAGIC = int.from_bytes(b"HCLICMD4", "little")
+CLAIM_MAGIC = int.from_bytes(b"HCLICLM5", "little")
 ERROR_MAGIC = int.from_bytes(b"HCLIERR4", "little")
 OBSERVE_MAGIC = int.from_bytes(b"HCLIOBS4", "little")
 HIGH = 1 << 63
 DOMAIN_ERRORS = (OSError, ValueError, UnicodeError, subprocess.SubprocessError)
+_RELEASED = object()
+# An interrupted continuation retains its actual foreign owners and native
+# claim bytes. There is no implicit release, retry or quarantine-forget API.
+_ACTIVE_SESSIONS = {}
+_SESSION_NONCES = count(1)
+
+
+def _session_nonce():
+    # next() on this private integer counter is one fixed interpreter primitive.
+    # A lost return consumes an identifier; neither close nor GC can reuse it.
+    nonce = next(_SESSION_NONCES)
+    if nonce >= 1 << 64:
+        raise RuntimeError("native CLI instance nonce namespace exhausted")
+    return nonce
 
 
 def _utf32(value):
@@ -196,7 +212,7 @@ class NativeCli:
         if self._needs_color_terminal(raw):
             facts["color_terminal"] = _color_terminal()
         facts["columns"] = _terminal_columns()
-        return CliSession(self, _frame(arguments, version, environment, **facts), cli)
+        return CliSession(self, _frame(arguments, version, environment, **facts), cli, arguments)
 
     def format_result(self, session):
         workspace = ctypes.create_string_buffer(131072 + session.argc * 24)
@@ -238,15 +254,25 @@ class NativeCli:
 
 class CliSession:
     """A single native continuation; every foreign-effect permission is spent once."""
-    def __init__(self, owner, raw, cli):
-        self.owner, self.raw, self.cli = owner, raw, cli
+    def __init__(self, owner, raw, cli, arguments=None):
+        self.owner, self.cli = owner, cli
+        self.nonce = _session_nonce()
+        bound = bytearray(raw)
+        struct.pack_into("<Q", bound, 80, self.nonce)
+        self.raw = raw = bytes(bound)
+        # These are exact original ordinary-string argv observations. A full
+        # native span returns the original object; partial spans use str slicing.
+        self.arguments = None if arguments is None else tuple(arguments)
         self.argc = struct.unpack_from("<Q", raw, 16)[0]
         self.workspace = ctypes.create_string_buffer(65536 + self.argc * 80 + len(raw))
         self.output = ctypes.create_string_buffer(128)
         self.finished = False
         self.pending = False
         self.domain_failure = False
-        self.handles = [None]
+        self.in_effect = False
+        self.cleanup_started = False
+        self.terminal_handles = None
+        self.handles = [_RELEASED]
         self.common = {}
         try:
             source = ctypes.create_string_buffer(raw, max(1, len(raw)))
@@ -265,9 +291,47 @@ class CliSession:
             self.pending = False
             raise
 
-    @staticmethod
-    def _packet(sequence, operation, failed, a, b, c):
-        return struct.pack("<12Q", STEP_MAGIC, 4, sequence, operation, failed, a, b, c, 0, 0, 0, 0)
+    def _packet(self, sequence, operation, failed, a, b, c):
+        return struct.pack("<12Q", STEP_MAGIC, 4, sequence, operation, failed,
+                           a, b, c, 0, 0, 0, self.nonce)
+
+    def take(self, handle):
+        """Move exactly one HIA-designated owner onto the foreign call stack."""
+        if (type(handle) is not int or not 0 < handle < len(self.handles)
+                or self.handles[handle] is _RELEASED):
+            raise RuntimeError("native CLI owner was already consumed or is invalid")
+        # The tuple's first element holds the value during the slot clear.
+        # This helper never stores it on the session or in a second pool.
+        result, self.handles[handle] = self.handles[handle], _RELEASED
+        return result
+
+    def argument(self, handle, position):
+        if self.consume_mask & (1 << position):
+            return self.take(handle)
+        return self.value(handle)
+
+    def _fence(self):
+        self.finished = True
+        self.pending = False
+        self.domain_failure = False
+
+    def _release_terminal(self):
+        if self.cleanup_started or self.terminal_handles is None:
+            raise RuntimeError("native CLI terminal release is unavailable or consumed")
+        # The native terminal transition consumed this release plan. Mark the
+        # bridge before the first DECREF; reentry/lost ACK cannot repeat it.
+        self.cleanup_started = True
+        for handle in self.terminal_handles:
+            self.take(handle)
+        self.common.clear()
+        self.namespace = None
+        self.arguments = None
+        # Namespace strings have no public object coercion in this explicit
+        # profile. All remaining foreign values must have native custody.
+        if any(value is not _RELEASED for value in self.handles[2:]):
+            raise RuntimeError("native CLI terminal plan left a foreign owner")
+        self.handles[1] = _RELEASED
+        del _ACTIVE_SESSIONS[self.nonce]
 
     def register(self, value):
         handle = len(self.handles)
@@ -287,6 +351,13 @@ class CliSession:
     def _input_text(self, begin, size):
         if begin % 4 or begin > len(self.raw) or size > (len(self.raw) - begin) // 4:
             raise RuntimeError("native CLI input-string extent outside its frame")
+        if self.arguments is not None:
+            for index, argument in enumerate(self.arguments):
+                at, extent = struct.unpack_from("<2Q", self.raw, 192 + index * 16)
+                if at <= begin and begin + size * 4 <= at + extent * 4:
+                    start = (begin - at) // 4
+                    return argument if start == 0 and size == extent else argument[start:start + size]
+            raise RuntimeError("native CLI input span has no original argv owner")
         return _text(self.raw[begin:begin + size * 4])
 
     def _namespace(self):
@@ -314,7 +385,7 @@ class CliSession:
         return SimpleNamespace(**values)
 
     def value(self, handle):
-        if 0 < handle < len(self.handles):
+        if 0 < handle < len(self.handles) and self.handles[handle] is not _RELEASED:
             return self.handles[handle]
         if HIGH <= handle < HIGH + 14:
             kind, a, size = struct.unpack_from("<3Q", self.workspace, 4096 + (handle - HIGH) * 32)
@@ -331,27 +402,39 @@ class CliSession:
         return getattr(self.value(namespace), name)
 
     def step(self, packet=None):
-        if self.finished or self.pending or self.domain_failure:
+        if self.finished or self.pending or self.domain_failure or self.in_effect:
             self.finished = True
             self.pending = False
             raise RuntimeError("native CLI continuation is closed or awaiting its effect")
         try:
+            _ACTIVE_SESSIONS[self.nonce] = self
             raw = self.packet if packet is None else packet
             source = ctypes.create_string_buffer(raw, max(1, len(raw)))
             code = self.owner.control._entry(source, len(raw), self.output, len(self.output),
                                              self.workspace, len(self.workspace))
             command = struct.unpack_from("<16Q", self.output)
-            if command[0] != COMMAND_MAGIC or any(command[8:]):
+            if command[0] != COMMAND_MAGIC or any(command[10:]):
                 raise RuntimeError("invalid native CLI command envelope")
             if code == 1:
                 operation, sequence, catching, a, b, c, d = command[1:8]
-                if not 1 <= operation <= 42 or sequence == 0 or catching not in (0, 1):
+                if (not 1 <= operation <= 44 or sequence == 0 or catching not in (0, 1)
+                        or command[8] > 15 or command[9] != 0):
                     raise RuntimeError("invalid native CLI effect instruction")
                 self.command = (operation, sequence, catching, a, b, c, d)
+                self.consume_mask = command[8]
                 self.pending = True
             elif code == 2:
                 if command[1] or command[3] or command[4] not in (0, 1, 2) or any(command[5:8]):
                     raise RuntimeError("invalid native CLI terminal instruction")
+                count, location = command[8:10]
+                if count > 9 or location != 2816:
+                    raise RuntimeError("invalid native CLI terminal owner plan")
+                handles = struct.unpack_from("<" + "Q" * count, self.workspace, location)
+                if (len(set(handles)) != len(handles)
+                        or any(not 1 < handle < len(self.handles)
+                               or self.handles[handle] is _RELEASED for handle in handles)):
+                    raise RuntimeError("invalid native CLI terminal owner")
+                self.terminal_handles = handles
                 self.finished = True
                 self.exit_code = command[4]
             else:
@@ -362,8 +445,12 @@ class CliSession:
             self.pending = False
             raise
 
+    def _read_stack(self, pending, raw):
+        """Return a still-live CALL argument and its subsequent read observation."""
+        return self.register(pending), self.register(raw), 0
+
     def _effect(self, operation, a, b, c, d):
-        value, register, field = self.value, self.register, self.field
+        value, register, field, argument = self.value, self.register, self.field, self.argument
         zero = (0, 0, 0)
         if operation == 1:
             result = self.cli.agent_capabilities()
@@ -373,7 +460,7 @@ class CliSession:
         elif operation == 3:
             result = self.common["read_bounded"](field(a, b), limit=c)
         elif operation == 4:
-            result = self.common["verify_program"](value(a))
+            result = self.common["verify_program"](argument(a, 0))
         elif operation == 5:
             result = self.common["assemble_program"](value(a))
         elif operation == 6:
@@ -389,32 +476,25 @@ class CliSession:
         elif operation == 11:
             from .hia_program_native import build_program_machine
             result = build_program_machine(value(a), field(b, c), kind="object", linker="cc")
-        elif operation == 42:
-            from .hia_program_selfhost import build_program_selfhost
-            arguments = value(b)
-            result = build_program_selfhost(value(a), arguments.output,
-                manifest=arguments.selfhost_manifest,
-                manifest_sha256=arguments.selfhost_manifest_sha256,
-                kind=arguments.kind, target=arguments.target)
         elif operation == 12:
-            result = self.common["decode_json"](value(a))
+            result = self.common["decode_json"](argument(a, 0))
         elif operation == 13:
-            revised, receipt = self.common["apply_program_patch"](value(a), value(b))
+            revised, receipt = self.common["apply_program_patch"](value(a), argument(b, 1))
             return register(revised), register(receipt), 0
         elif operation == 14:
-            revised, receipt, impact = self.common["analyze_patch_impact"](value(a), value(b))
+            revised, receipt, impact = self.common["analyze_patch_impact"](value(a), argument(b, 1))
             return register(revised), register(receipt), register(impact)
         elif operation == 15:
             result = self.common["prepare_edit"](
                 value(a), function=field(b, 8), block=field(b, 9),
-                output=field(b, 10), fields=value(c))
+                output=field(b, 10), fields=argument(c, 2))
         elif operation == 16:
-            revised, receipt = self.common["apply_edit"](value(a), value(b), value(c))
+            revised, receipt = self.common["apply_edit"](value(a), argument(b, 1), argument(c, 2))
             return register(revised), register(receipt), 0
         elif operation == 17:
-            result = self.common["prepare_batch"](value(a), value(b))
+            result = self.common["prepare_batch"](value(a), argument(b, 1))
         elif operation == 18:
-            revised, receipt = self.common["apply_batch"](value(a), value(b), value(c))
+            revised, receipt = self.common["apply_batch"](value(a), argument(b, 1), argument(c, 2))
             return register(revised), register(receipt), 0
         elif operation == 19:
             result = self.common["publish_program"](value(a), field(b, c))
@@ -423,22 +503,22 @@ class CliSession:
         elif operation == 21:
             result = _publish_assembly(value(a), value(b), field(c, d))
         elif operation == 22:
-            self.cli.output_json(value(a))
+            self.cli.output_json(argument(a, 0))
             return zero
         elif operation == 23:
             print(value(a), end="")
             return zero
         elif operation == 24:
-            result = {**value(a)}
+            result = {**argument(a, 0)}
         elif operation == 25:
-            value(a)[value(b)] = value(c)
+            value(a)[value(b)] = argument(c, 2)
             return zero
         elif operation == 26:
             result = {}
         elif operation == 27:
             result = []
         elif operation == 28:
-            value(a).append(value(b))
+            value(a).append(argument(b, 1))
             return zero
         elif operation == 29:
             result = field(a, b)[c:c + d]
@@ -451,7 +531,7 @@ class CliSession:
         elif operation == 33:
             result = self.owner.driver_error(value(a))
         elif operation == 34:
-            print(value(a))
+            print(argument(a, 0))
             return zero
         elif operation == 35:
             from .hia_program import verify_program
@@ -487,19 +567,48 @@ class CliSession:
             from .hia_patch_impact import analyze_patch_impact
             self.common["analyze_patch_impact"] = analyze_patch_impact
             return zero
+        elif operation == 42:
+            from .hia_program_selfhost import build_program_selfhost
+            result = build_program_selfhost(value(a), field(b, c),
+                manifest=field(b, 17), manifest_sha256=field(b, 18),
+                kind=field(b, 5), target=field(b, 6))
+        elif operation == 43:
+            argument(a, 0)
+            argument(b, 1)
+            return zero
+        elif operation == 44:
+            # pending is evaluated onto the real CALL stack before the read.
+            # A read exception releases it during stack unwind, before entering
+            # the CLI except handler, exactly like the original nested call.
+            return self._read_stack(argument(a, 0),
+                self.common["read_bounded"](field(b, c), limit=d))
         else:
             raise RuntimeError("unknown native CLI effect")
         return register(result), 0, 0
 
+    def _claim_effect(self):
+        operation, sequence, catching, a, b, c, d = self.command
+        raw = struct.pack("<12Q", CLAIM_MAGIC, 4, sequence, operation,
+                          self.nonce, 0, 0, 0, 0, 0, 0, 0)
+        source = ctypes.create_string_buffer(raw, len(raw))
+        code = self.owner.control._entry(source, len(raw), self.output, len(self.output),
+                                         self.workspace, len(self.workspace))
+        expected = (COMMAND_MAGIC, operation, sequence, catching, a, b, c, d,
+                    self.consume_mask, 0, 0, 0, 0, 0, 0, 0)
+        if code != 3 or struct.unpack_from("<16Q", self.output) != expected:
+            raise RuntimeError("native CLI effect claim refused or lost")
+
     def observe(self):
-        if self.finished or not self.pending:
+        if self.finished or not self.pending or self.in_effect:
             self.finished = True
             self.pending = False
             raise RuntimeError("native CLI effect permission already consumed or closed")
         operation, sequence, catching, a, b, c, d = self.command
-        self.pending = False  # Before any foreign effect or callback.
+        self.pending = False
         self.domain_failure = False
+        self.in_effect = True
         try:
+            self._claim_effect()
             try:
                 result = self._effect(operation, a, b, c, d)
             except DOMAIN_ERRORS:
@@ -508,9 +617,13 @@ class CliSession:
                 else:
                     self.finished = True
                 raise
+            if self.finished:
+                raise RuntimeError("native CLI effect reentered a fenced continuation")
             self.packet = self._packet(sequence, operation, 0, *result)
+            self.in_effect = False
             return self.packet
         except BaseException:
+            self.in_effect = False
             if not self.domain_failure:
                 self.finished = True
                 self.pending = False
@@ -534,11 +647,12 @@ class CliSession:
 
     def run(self):
         try:
-            return self._drive()
+            result = self._drive()
+            # _drive's real except has unwound before local owners are released.
+            self._release_terminal()
+            return result
         except BaseException:
-            self.finished = True
-            self.pending = False
-            self.domain_failure = False
+            self._fence()
             raise
 
 
@@ -593,6 +707,68 @@ def installed_cli(manifest_path):
                                source_hashes["format"], FORMAT_SCHEMA, NativeHiaJsonImage)
     if (path.read_bytes() != raw
             or any(child.read_bytes() != child_raw for child, child_raw in children.values())
+            or any(sha256(source.read_bytes()).hexdigest() != source_hashes[name]
+                   for name, source in SOURCES.items())):
+        raise ValueError("native CLI selection changed while loading")
+    return NativeCli(control, formatter)
+
+
+def installed_cli_strict(manifest_path):
+    """Bind both sources and exact child manifests; selected failures never fall back.
+
+    Warm cache entries retain immutable mappings. Both image files, source
+    resources and manifests are freshly read and rebound on each selection;
+    changing a selected disk input never silently substitutes cached bytes.
+    """
+    path = Path(manifest_path).resolve(strict=True)
+    with path.open("rb") as stream:
+        raw = stream.read(8193)
+    if len(raw) > 8192:
+        raise ValueError("native CLI bundle exceeds manifest extent")
+    bundle = json.JSONDecoder(object_pairs_hook=_unique_manifest_pairs).decode(raw.decode("utf-8"))
+    keys = {"schema", "control_manifest", "control_manifest_sha256",
+            "format_manifest", "format_manifest_sha256"}
+    if type(bundle) is not dict or set(bundle) != keys or bundle["schema"] != SCHEMA:
+        raise ValueError("invalid native CLI bundle")
+    children = {}
+    images = {}
+    compilers = []
+    for name in ("control", "format"):
+        relative, expected = bundle[name + "_manifest"], bundle[name + "_manifest_sha256"]
+        if (not _relative_path(relative) or type(expected) is not str or len(expected) != 64
+                or any(char not in "0123456789abcdef" for char in expected)):
+            raise ValueError("invalid native CLI child identity")
+        child = (path.parent / relative).resolve(strict=True)
+        if not child.is_relative_to(path.parent):
+            raise ValueError("native CLI child leaves its bundle")
+        with child.open("rb") as stream:
+            child_raw = stream.read(16385)
+        if len(child_raw) > 16384 or sha256(child_raw).hexdigest() != expected:
+            raise ValueError("native CLI child manifest identity mismatch")
+        metadata = json.JSONDecoder(object_pairs_hook=_unique_manifest_pairs).decode(child_raw.decode("utf-8"))
+        if type(metadata) is not dict or not _relative_path(metadata.get("image_path")):
+            raise ValueError("invalid native CLI child image path")
+        image_path = (child.parent / metadata["image_path"]).resolve(strict=True)
+        if not image_path.is_relative_to(child.parent):
+            raise ValueError("native CLI child image leaves its component")
+        with image_path.open("rb") as stream:
+            image_raw = stream.read((1 << 20) + 1)
+        if (not 0 < len(image_raw) <= 1 << 20
+                or sha256(image_raw).hexdigest() != metadata.get("image_sha256")):
+            raise ValueError("native CLI child image identity mismatch")
+        images[name] = (image_path, image_raw)
+        compilers.append(metadata.get("compiler_sha256"))
+        children[name] = (child, child_raw)
+    if compilers[0] != compilers[1]:
+        raise ValueError("native CLI companion compilers differ")
+    source_hashes = {name: sha256(source.read_bytes()).hexdigest() for name, source in SOURCES.items()}
+    control = _load_manifest(str(children["control"][0]), children["control"][1],
+                             source_hashes["control"], CONTROL_SCHEMA, NativeHiaJsonImage)
+    formatter = _load_manifest(str(children["format"][0]), children["format"][1],
+                               source_hashes["format"], FORMAT_SCHEMA, NativeHiaJsonImage)
+    if (path.read_bytes() != raw
+            or any(child.read_bytes() != child_raw for child, child_raw in children.values())
+            or any(image.read_bytes() != raw_image for image, raw_image in images.values())
             or any(sha256(source.read_bytes()).hexdigest() != source_hashes[name]
                    for name, source in SOURCES.items())):
         raise ValueError("native CLI selection changed while loading")

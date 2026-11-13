@@ -13,6 +13,8 @@ from pathlib import Path
 import platform
 import time
 
+from .hia_checker_identity import checker_source_identity, checker_native_selection
+
 SCHEMA = "hepta.hia.scalar-proof-scope.v1"
 FIELDS = ("subject", "property", "profile", "assumptions", "checker", "unproved_obligations")
 PROVED_MEANING = (
@@ -68,14 +70,15 @@ def _source_identity(name):
     names = set(_DEPENDENCIES) | {_MODULES[name] + ".py"}
     if name == "validate_scalar_call_totality":
         names.add("hia_scalar_call_validation.py")
-    return {n: sha256(Path(__file__).with_name(n).read_bytes()).hexdigest() for n in sorted(names)}
+    return checker_source_identity(names)
 
 
 def begin_scalar_proof(name):
     """Observe named checker inputs before checking; an absent identity fails closed."""
-    scope = {"name": name, "source_identity": None}
+    scope = {"name": name, "source_identity": None, "native_selection": None}
     try:
         scope["source_identity"] = _source_identity(name)
+        scope["native_selection"] = checker_native_selection()
     except (OSError, ValueError) as error:
         scope["identity_error"] = type(error).__name__
     return scope
@@ -106,7 +109,9 @@ def finish_scalar_proof(result, scope, *, started_ns=None, deadline_ms=None):
     solver = _solver_identity(result)
     if result["status"] in {"proved", "disproved"}:
         try:
-            if identity is None or identity != _source_identity(name):
+            if (identity is None or identity != _source_identity(name)
+                    or scope["native_selection"] is None
+                    or scope["native_selection"] != checker_native_selection()):
                 _unestablished(result, "scope_checker_identity_changed_or_unavailable")
             elif solver is None:
                 _unestablished(result, "scope_solver_identity_unavailable")
@@ -163,6 +168,7 @@ def finish_scalar_proof(result, scope, *, started_ns=None, deadline_ms=None):
                  "kind": "trusted_executable_smt_checker",
                  "method": "SMT unsatisfiability; concrete canonical-interpreter replay for counterexamples",
                  "source_identity": deepcopy(identity),
+                 "native_selection": deepcopy(scope["native_selection"]),
                  "source_identity_sha256": sha256(json.dumps(identity, sort_keys=True,
                      separators=(",", ":")).encode()).hexdigest() if identity is not None else None,
                  "source_identity_error": scope.get("identity_error"),

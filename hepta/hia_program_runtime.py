@@ -567,6 +567,20 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
         max_steps = min(max_steps, budget["limits"]["max_vm_ticks"])
         max_heap_bytes = min(max_heap_bytes, budget["limits"]["max_live_heap_bytes"])
         max_call_depth = min(max_call_depth, budget["limits"]["max_call_depth"])
+    from .hia_program_execution_native import selected_program_execution
+    native = selected_program_execution()
+    if native is not None:
+        try:
+            observed = native.execute(checked, function, arguments, max_steps=max_steps,
+                max_heap_bytes=max_heap_bytes, allocation_fail_at=allocation_fail_at,
+                max_call_depth=max_call_depth)
+        except (HIAProgramTrap, HIAProgramBudgetExceeded) as exc:
+            if budget is not None:
+                exc.report['bounded_resources'] = budget
+            raise
+        if budget is not None:
+            observed['bounded_resources'] = budget
+        return observed
     machine = _Machine(checked, max_steps, max_heap_bytes, allocation_fail_at, max_call_depth)
 
     def report(status, values=None, error=None):

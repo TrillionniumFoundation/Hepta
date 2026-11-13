@@ -7,6 +7,7 @@ from unittest.mock import patch
 from hepta.hia_agent_identity_native import SOURCE,SCHEMA,MAGIC,RESULT_MAGIC,NativeAgentIdentity,installed_agent_identity,SELECTOR
 from hepta.hia_agent_store import AgentRejected,uint64,canonical_digest
 ROOT=Path(__file__).resolve().parents[1]
+COLD_REPORT = 'HEPTA_HIA_AGENT_IDENTITY_COLD_REPORT'
 def packet(kind,value):return struct.pack('<2Q',MAGIC,kind)+value
 def expected(valid,value=0):return struct.pack('<3Q',RESULT_MAGIC,valid,value)
 def vm(wire,workspace):
@@ -34,6 +35,13 @@ def witnesses():
     return values
 
 class AgentIdentitySourceTests(unittest.TestCase):
+    def test_requested_cold_report_is_admitted_before_fixture_or_seed_work(self):
+        with patch.dict(os.environ, {COLD_REPORT: '/missing-agent-identity-cold-report'}), \
+                patch(__name__ + '.witnesses', side_effect=AssertionError('witness work before cold admission')), \
+                patch('tools.qualify_hia_selfhost.build_seed', side_effect=AssertionError('cold fixture entered seed')):
+            with self.assertRaises(OSError):
+                AgentIdentityNativeTests.setUpClass()
+
     def test_exact_source_and_complete_VM_bytes_before_any_native(self):
         from tools.generate_hia_agent_identity import document
         from hepta.hia_agent_assembly import render_assembly
@@ -67,19 +75,37 @@ class AgentIdentitySourceTests(unittest.TestCase):
 class AgentIdentityNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cold = os.environ.get(COLD_REPORT)
+        if cold:
+            from tools.build_hia_json_preflight import admit_cold_build
+            cold_path = Path(cold)
+            cold_bytes = cold_path.read_bytes()
+            report = json.loads(cold_bytes)
+            nested = json.loads(Path(report['nested_report']).read_bytes())
+            cold_compiler = Path(nested['generations'][-1]['produced_image'])
+            admit_cold_build(cold_compiler.read_bytes(), cold_bytes)
         cls.witnesses=witnesses()
         from tools.qualify_hia_selfhost import build_seed,compile_stage
         cls.temp=tempfile.TemporaryDirectory(prefix='hia-agent-identity-');cls.folder=Path(cls.temp.name)
-        seed,_=build_seed(cls.folder);compiler=(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
-        first,_=compile_stage(cls.folder,'B1',seed,compiler,image_format='seed-shared')
-        second,_=compile_stage(cls.folder,'B2',first,compiler)
-        assert first.read_bytes()==second.read_bytes()
-        image,cls.receipt=compile_stage(cls.folder,'agent-identity',second,SOURCE.read_bytes())
-        cls.native=NativeAgentIdentity(image.read_bytes(),sha256(image.read_bytes()).hexdigest())
-        cls.manifest=cls.folder/'manifest.json';cls.manifest.write_text(json.dumps({
-            'schema':SCHEMA,'source_sha256':sha256(SOURCE.read_bytes()).hexdigest(),
-            'image_path':image.name,'image_sha256':sha256(image.read_bytes()).hexdigest(),
-            'compiler_sha256':sha256(second.read_bytes()).hexdigest()}))
+        cls.addClassCleanup(cls.temp.cleanup)
+        if cold:
+            from tools.build_hia_agent_identity import build
+            cls.manifest = build(cls.folder / 'qualified', cold_compiler, cold_path)
+            cls.native = installed_agent_identity(str(cls.manifest))
+            cls.receipt = json.loads((cls.manifest.parent / 'build.json').read_bytes())['native_compile_receipt']
+            cls.fixture_scope = 'MATCHING_SOURCE_COLD_BUILD'
+        else:
+            seed,_=build_seed(cls.folder);compiler=(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
+            first,_=compile_stage(cls.folder,'B1',seed,compiler,image_format='seed-shared')
+            second,_=compile_stage(cls.folder,'B2',first,compiler)
+            assert first.read_bytes()==second.read_bytes()
+            image,cls.receipt=compile_stage(cls.folder,'agent-identity',second,SOURCE.read_bytes())
+            cls.native=NativeAgentIdentity(image.read_bytes(),sha256(image.read_bytes()).hexdigest())
+            cls.manifest=cls.folder/'manifest.json';cls.manifest.write_text(json.dumps({
+                'schema':SCHEMA,'source_sha256':sha256(SOURCE.read_bytes()).hexdigest(),
+                'image_path':image.name,'image_sha256':sha256(image.read_bytes()).hexdigest(),
+                'compiler_sha256':sha256(second.read_bytes()).hexdigest()}))
+            cls.fixture_scope = 'BOOTSTRAP_DEVELOPMENT_ONLY'
     @classmethod
     def tearDownClass(cls):cls.temp.cleanup()
 
@@ -151,7 +177,7 @@ class AgentIdentityNativeTests(unittest.TestCase):
         from hepta.hia_native_helpers import SCHEMA as BUNDLE_SCHEMA, TARGET, ABI
         bundle=self.folder/'worker-helpers.json'
         bundle.write_text(json.dumps({'schema':BUNDLE_SCHEMA,'target':TARGET,'abi':ABI,
-            'helpers':[{'selector':SELECTOR,'manifest_path':self.manifest.name,
+            'helpers':[{'selector':SELECTOR,'manifest_path':self.manifest.relative_to(bundle.parent).as_posix(),
                         'manifest_sha256':sha256(self.manifest.read_bytes()).hexdigest()}]}),
             encoding='utf-8')
         bundle_sha256=sha256(bundle.read_bytes()).hexdigest()
@@ -168,6 +194,7 @@ class AgentIdentityNativeTests(unittest.TestCase):
             output=BytesIO();error=StringIO()
             with patch.object(worker.sys,'stdin',SimpleNamespace(buffer=BytesIO(store.wire(request)))),patch.object(worker.sys,'stdout',SimpleNamespace(buffer=output)),patch.object(worker.sys,'stderr',error):
                 code=worker.main(['--state-root',str(state),'--request-json-stdin',*helper_flags])
+            self.assertEqual(code,0,error.getvalue())
             return code,json.loads(output.getvalue()),state
         with patch.dict(os.environ,clean_env,clear=True),patch.object(store,'_reference_digest',side_effect=AssertionError('host digest fallback')),patch.object(store,'_reference_uint64',side_effect=AssertionError('host integer fallback')):
             code,report,state=run('real-worker-valid','hia_describe')

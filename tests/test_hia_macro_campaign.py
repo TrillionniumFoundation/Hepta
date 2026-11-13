@@ -146,6 +146,100 @@ class NativeObservationTests(unittest.TestCase):
         self.assertFalse(_native_result_correct(use, task, "a"*64))
 
 
+class WorkerSourceInventoryTests(unittest.TestCase):
+    def test_actual_worker_inventory_matches_current_installation_identity(self):
+        from tools import qualify_hia_macro_campaign as campaign
+        from hepta import hia_agent_contract as contract
+        with tempfile.TemporaryDirectory() as directory:
+            evidence = Evidence(Path(directory) / 'worker-sources')
+            observed = campaign._worker_sources(evidence)
+            self.assertEqual(digest(observed), contract.installation_manifest()['worker_sha256'])
+            assets = (tuple('docs/' + name for name in contract.DISCOVERY_FILES)
+                + contract.NATIVE_SOURCE_FILES + contract.SOURCE_BUILD_FILES
+                + contract.COMPILER_BUILD_FILES + contract.PUBLICATION_BUILD_FILES
+                + contract.BACKEND_BUILD_FILES + contract.EMITTER_BUILD_FILES + contract.BYTE_WRAPPER_BUILD_FILES + contract.MACHINE_OBJECT_BUILD_FILES + contract.EXECUTION_OBSERVATION_BUILD_FILES + contract.CONTINUATION_BUILD_FILES + contract.ENTRY_BUILD_FILES)
+            self.assertLessEqual(set(assets), set(observed))
+            for name in assets:
+                self.assertEqual((evidence.root / 'objects' / observed[name]).read_bytes(),
+                                 (campaign.ROOT / name).read_bytes())
+
+    def test_each_asset_group_is_fresh_and_missing_resource_refuses(self):
+        from tools import qualify_hia_macro_campaign as campaign
+        from hepta import hia_agent_contract as contract
+        from hashlib import sha256
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            source = directory / 'source'
+            assets = (tuple('docs/' + name for name in contract.DISCOVERY_FILES)
+                + contract.NATIVE_SOURCE_FILES + contract.SOURCE_BUILD_FILES
+                + contract.COMPILER_BUILD_FILES + contract.PUBLICATION_BUILD_FILES
+                + contract.BACKEND_BUILD_FILES + contract.EMITTER_BUILD_FILES + contract.BYTE_WRAPPER_BUILD_FILES + contract.MACHINE_OBJECT_BUILD_FILES + contract.EXECUTION_OBSERVATION_BUILD_FILES + contract.CONTINUATION_BUILD_FILES + contract.ENTRY_BUILD_FILES)
+            for name in assets:
+                destination = source / name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(campaign.ROOT / name, destination)
+            shadow = source / 'hepta/_data/ignored_module.py'
+            shadow.parent.mkdir(parents=True)
+            shadow.write_bytes(b'SOURCE_RESOURCE_IS_NOT_AN_IMPORTED_MODULE = True\n')
+            with patch.object(campaign, 'ROOT', source):
+                baseline = campaign._worker_sources(Evidence(directory / 'baseline'))
+                self.assertEqual(set(baseline), set(assets))
+                groups = (contract.NATIVE_SOURCE_FILES, contract.SOURCE_BUILD_FILES,
+                          contract.COMPILER_BUILD_FILES, contract.PUBLICATION_BUILD_FILES,
+                          contract.BACKEND_BUILD_FILES, contract.EMITTER_BUILD_FILES, contract.BYTE_WRAPPER_BUILD_FILES, contract.MACHINE_OBJECT_BUILD_FILES, contract.EXECUTION_OBSERVATION_BUILD_FILES, contract.CONTINUATION_BUILD_FILES, contract.ENTRY_BUILD_FILES)
+                for index, group in enumerate(groups):
+                    name = group[0]
+                    path = source / name
+                    original = path.read_bytes()
+                    path.write_bytes(original + b'\n')
+                    changed = campaign._worker_sources(Evidence(directory / ('changed-' + str(index))))
+                    self.assertNotEqual(changed[name], baseline[name])
+                    self.assertEqual(changed[name], sha256(original + b'\n').hexdigest())
+                    path.unlink()
+                    try:
+                        with self.assertRaises(FileNotFoundError):
+                            campaign._worker_sources(Evidence(directory / ('missing-' + str(index))))
+                    finally:
+                        path.write_bytes(original)
+
+
+    def test_dual_module_resource_observations_cannot_silently_overwrite(self):
+        from tools import qualify_hia_macro_campaign as campaign
+        from hepta import hia_agent_contract as contract
+        from hashlib import sha256
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            source = directory / 'source'
+            assets = (tuple('docs/' + name for name in contract.DISCOVERY_FILES)
+                + contract.NATIVE_SOURCE_FILES + contract.SOURCE_BUILD_FILES
+                + contract.COMPILER_BUILD_FILES + contract.PUBLICATION_BUILD_FILES
+                + contract.BACKEND_BUILD_FILES + contract.EMITTER_BUILD_FILES + contract.BYTE_WRAPPER_BUILD_FILES + contract.MACHINE_OBJECT_BUILD_FILES + contract.EXECUTION_OBSERVATION_BUILD_FILES + contract.CONTINUATION_BUILD_FILES + contract.ENTRY_BUILD_FILES)
+            for name in assets:
+                destination = source / name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(campaign.ROOT / name, destination)
+            target = source / 'hepta/hia_program_normalization_notes.py'
+            original = target.read_bytes()
+            read = campaign._read_regular
+            observations = []
+            def drift_after_first_read(path, *args, **kwargs):
+                raw = read(path, *args, **kwargs)
+                if path == target:
+                    observations.append(sha256(raw).hexdigest())
+                    if len(observations) == 1:
+                        target.write_bytes(raw + b'\n')
+                return raw
+            try:
+                with patch.object(campaign, 'ROOT', source), patch.object(
+                        campaign, '_read_regular', side_effect=drift_after_first_read):
+                    with self.assertRaisesRegex(CampaignRejected, 'worker module and source resource differ'):
+                        campaign._worker_sources(Evidence(directory / 'evidence'))
+            finally:
+                target.write_bytes(original)
+            self.assertEqual(len(observations), 2)
+            self.assertNotEqual(observations[0], observations[1])
+
+
 class CampaignIntegrityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

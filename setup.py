@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parent
 def agent_resources():
     tree=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())
     values={}
-    for symbol in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES','BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES','EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES'):
+    for symbol in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES','BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES','EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES', 'ENTRY_BUILD_FILES'):
         declarations=[node for node in tree.body if isinstance(node,ast.Assign)
                       and any(isinstance(target,ast.Name) and target.id==symbol for target in node.targets)]
         if len(declarations)!=1:raise ValueError('one explicit Agent resource list required: '+symbol)
@@ -24,7 +24,7 @@ def agent_resources():
         values[symbol]=names
     if any(Path(n).name!=n for n in values['DISCOVERY_FILES']):
         raise ValueError('invalid Agent discovery resource filenames')
-    names=tuple('docs/'+n for n in values['DISCOVERY_FILES'])+values['NATIVE_SOURCE_FILES']+values['SOURCE_BUILD_FILES']+values['COMPILER_BUILD_FILES']+values['PUBLICATION_BUILD_FILES']+values['BACKEND_BUILD_FILES']+values['EMITTER_BUILD_FILES']+values['BYTE_WRAPPER_BUILD_FILES']+values['MACHINE_OBJECT_BUILD_FILES']+values['EXECUTION_OBSERVATION_BUILD_FILES']+values['CONTINUATION_BUILD_FILES']
+    names=tuple('docs/'+n for n in values['DISCOVERY_FILES'])+values['NATIVE_SOURCE_FILES']+values['SOURCE_BUILD_FILES']+values['COMPILER_BUILD_FILES']+values['PUBLICATION_BUILD_FILES']+values['BACKEND_BUILD_FILES']+values['EMITTER_BUILD_FILES']+values['BYTE_WRAPPER_BUILD_FILES']+values['MACHINE_OBJECT_BUILD_FILES']+values['EXECUTION_OBSERVATION_BUILD_FILES']+values['CONTINUATION_BUILD_FILES'] + values['ENTRY_BUILD_FILES']
     if len(names)!=len(set(names)) or any(Path(n).is_absolute() or '..' in Path(n).parts for n in names):
         raise ValueError('invalid or duplicate Agent resource paths')
     return names

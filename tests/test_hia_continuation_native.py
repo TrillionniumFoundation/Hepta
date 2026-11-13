@@ -255,7 +255,7 @@ class ContinuationNativeTests(unittest.TestCase):
         directory=Path(self.directory.name)/('installed-inprocess-wheel' if in_process else 'installed-wheel');directory.mkdir()
         source=directory/'source';source.mkdir()
         shutil.copytree(ROOT/'hepta',source/'hepta',ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
-        declarations={node.targets[0].id:ast.literal_eval(node.value) for node in ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text()).body if isinstance(node,ast.Assign) and isinstance(node.targets[0],ast.Name) and node.targets[0].id in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES','BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES','EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES')}
+        declarations={node.targets[0].id:ast.literal_eval(node.value) for node in ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text()).body if isinstance(node,ast.Assign) and isinstance(node.targets[0],ast.Name) and node.targets[0].id in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES','BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES','EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES', 'ENTRY_BUILD_FILES')}
         names=['setup.py','pyproject.toml','MANIFEST.in','README.md']
         for symbol,values in declarations.items():names.extend('docs/'+n if symbol=='DISCOVERY_FILES' else n for n in values)
         for name in names:

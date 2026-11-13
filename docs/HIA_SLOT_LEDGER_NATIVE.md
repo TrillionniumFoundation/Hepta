@@ -161,3 +161,35 @@ worker or establish whole-product deployment.
 All previous test identities and resource bounds remain in force. Whole-product
 native replacement and removal of the remaining hosted owners require their
 own ordinary-caller, installation and recovery closure.
+
+## Independent continuation family in the integration draft
+
+The published `HEPTA_HIA_SLOT_LEDGER_MANIFEST` continues to select this statement
+owner from `hia_slot_ledger_native` and `slot_ledger.hepta`. Its selector,
+resource identity, admission timing and original tests are preserved.
+
+The a733 continuation protocol is a distinct owner despite its historical schema
+label. The integration gives it the explicit
+`HEPTA_HIA_SLOT_LEDGER_CONTINUATION_MANIFEST` selector,
+`hia_slot_ledger_continuation_native` module and
+`slot_ledger_continuation.hepta` resource. Its generator and cold builder likewise
+use the continuation basename. No manifest is inspected early to guess a family,
+and a failed admission does not retry through the other owner.
+
+The continuation family retains the original namespace and journal capabilities,
+single-use operation receipts, commit attestation, unknown-state fencing, and
+private connection rules. The statement family never borrows a continuation
+connection. A Service cannot select both slot families; a statement ledger
+together with the continuation request journal is refused before a business
+operation. The ordinary main AgentJournal and a733 RequestJournal are separate
+request routes and cannot both submit the same call.
+
+The original continuation test methods are retained in
+`test_hia_slot_ledger_continuation_native` with explicit module, selector and
+fixture-environment migration. Main slot tests retain their old names. Installation
+fixtures copy all eleven resource groups and preserve the original assertions.
+The integration adds no budget increase or default native selection.
+
+The source draft has not been executed. Both original family suites, the combined
+Service routing and cleanup cases, and the genuinely regenerated Context
+CandidateBudget branch must pass before this merge can receive qualification.

@@ -968,3 +968,38 @@ def execute_program(program, function, arguments, **kwargs):
 
 # Public language-level spelling: verification of a program, not source replay.
 verify_core = verify_program
+
+# Explicit HIA selection; original function bodies remain the default.
+from .hia_core_verification_selection import native_core_verification_scope as _native_core_verification_scope
+
+_core_verification_reference_reject = _reject
+
+def _reject(message, code='E_HIA_PROGRAM'):
+    with _native_core_verification_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _core_verification_reference_reject, 'message': message, 'code': code}
+            del message, code, owner
+            return carrier.pop('callee')(carrier.pop('message'), carrier.pop('code'))
+        frame = owner.prepare('_reject', (message, code))
+        del message, code
+        return owner.finish(frame)
+
+_core_verification_referenceverify_program = verify_program
+
+def verify_program(program) -> VerifiedProgram:
+    with _native_core_verification_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _core_verification_referenceverify_program, 'program': program}
+            del program, owner
+            return carrier.pop('callee')(carrier.pop('program'))
+        frame = owner.prepare('verify_program', (program,))
+        del program
+        return owner.finish(frame)
+
+verify_core = verify_program
+
+# Definition anchors never follow late global replacement or deletion.
+_NATIVE_CORE_VERIFICATION_ENTRIES = {
+    '_reject': _reject,
+    'verify_program': verify_program,
+}

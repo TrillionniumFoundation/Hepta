@@ -505,3 +505,31 @@ reuse a current-source development image. It cannot be combined with
 `HEPTA_HIA_COMPOSITE_TYPES_COLD_REPORT`. The latter uses the complete current
 source-bound builder. Development execution is not relabeled as cold
 qualification, release promotion or default-runtime activation.
+
+
+## Public-call arena lifetime
+
+The public `elaborate_program` call now closes its internally owned native type
+session after success, lowering refusal, or an elaborator constructor refusal
+that occurs after the session was installed. Native session construction also
+releases either allocated arena if allocation or the initial HIA command raises
+`BaseException`. Original exceptions, cached descriptors, and diagnostic counters
+are preserved. Direct private `_Elaborator` callers continue to own their session
+lifetime; these callers can still inspect the completed partial state.
+
+A four-process observation of published `ac0089d83f5ec1989f6c573b7e12f52ba4989599`
+found that the successful public call already released both arenas before an
+explicit collection. Three refusal stages retained the 64 MiB output and
+128 MiB state through original exception tracebacks. Releasing only those
+traceback references freed them immediately. This establishes avoidable resource
+retention by a retained exception, not a reference cycle or the cause of earlier
+exit-137 runs. The original observation archive SHA-256 is
+`bbb0007fd45bb9266f0648a25758857ec90fede733eb66fbda2c26d732d62b64`.
+
+Three targeted controls passed with the retained actual HIA type image: partial
+allocation failure preserves the original exception and releases the first
+arena; public success and the three observed refusal stages release owned arenas
+while private ownership remains usable; an interruption after actual native
+initialization preserves its exception and releases both arenas. These are
+new development controls; current-source cold qualification remains a separate
+gate.

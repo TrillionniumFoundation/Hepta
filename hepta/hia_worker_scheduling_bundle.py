@@ -76,17 +76,31 @@ class NativeWorkerSchedulingBinding:
         self.selections = dict(self.legacy.selections)
         self.images = dict(self.legacy.images)
         self.bundles = dict(getattr(self.legacy, 'bundles', {}))
-        from .hia_native_continuation_selection import _FAMILIES, _RUNTIME, INPROCESS_SCHEMA
+        from .hia_native_continuation_selection import (_FAMILIES, _RUNTIME, INPROCESS_SCHEMA,
+            _ContinuationCustody)
         from .hia_native_continuation_inprocess import InProcessContinuation
         from .hia_json_preflight_native import NativeHiaJsonImage
         from .hia_agent_contract import CONTINUATION_BUILD_FILES
-        for kind, outer, value, selection, abi, abi_raw, policy, units, aggregate in captures:
+        for (kind, outer, value, selection, abi, abi_snapshot, policy, units, aggregate,
+             unit_custody, resource_inputs, runtime_inputs) in captures:
+            abi_raw = abi_snapshot.raw
             namespace = vars(import_module('.' + FAMILIES[kind][1], __package__))
             images = tuple(NativeHiaJsonImage(image.raw, image_hash)
                            for _name, _source_hash, image, image_hash in units)
-            loaded = selection._Loaded(abi, tuple(row[0] for row in units), images,
+            for image, row in zip(images, units):
+                image._bind_manifest_source(row[1])
+            loaded_arguments = (abi, tuple(row[0] for row in units), images,
                 sha256(abi_raw).hexdigest(), tuple((row[0], row[1]) for row in units),
                 sha256(policy.raw).hexdigest())
+            if kind in ('execution-observation', 'core-lowering', 'core-emitter',
+                        'byte-wrapper', 'machine-object'):
+                custody = selection._BundleCustody(
+                    str(policy.path), policy.raw, str(abi_snapshot.path), abi_raw,
+                    tuple((*row[:6], image._mapping[:])
+                          for row, image in zip(unit_custody, images)))
+                loaded = selection._Loaded(*loaded_arguments, custody=custody)
+            else:
+                loaded = selection._Loaded(*loaded_arguments)
             factory = _FAMILIES[kind][1]
             # Only the exact statically selected owner may initialize its pool
             # and in-process peer while the scope is still being constructed.
@@ -100,6 +114,10 @@ class NativeWorkerSchedulingBinding:
                 owner._admitted_bundle = loaded
                 owner._continuation = InProcessContinuation(aggregate.raw, value['image_sha256'],
                     pool_bytes=abi['pool_bytes'], owner=owner)
+                owner._continuation_custody = _ContinuationCustody(
+                    str(outer.path), outer.raw, str(policy.path), policy.raw,
+                    resource_inputs, runtime_inputs, str(aggregate.path),
+                    owner._continuation._mapping[:])
             finally:
                 authority._SCHEDULER_BUILD = previous
             owner._worker_scheduling_binding = self
@@ -132,10 +150,10 @@ class NativeWorkerSchedulingBinding:
                 or any(not authority._digest(record[k])
                        for k in ('source_sha256', 'image_sha256', 'compiler_sha256'))):
             raise ValueError('native scheduling child image contract differs')
-        self.capture(source, authority.MAX_SOURCE_BYTES, record['source_sha256'])
+        source_snapshot = self.capture(source, authority.MAX_SOURCE_BYTES, record['source_sha256'])
         image = self.capture(authority._path(record['image_path'], manifest.path.parent),
                              authority.MAX_IMAGE_BYTES, record['image_sha256'])
-        return image, record
+        return image, record, source_snapshot
 
     def capture_base(self, base):
         """Pure pre-admission of every legacy input; legacy guards still run."""
@@ -209,12 +227,16 @@ class NativeWorkerSchedulingBinding:
             raise ValueError('invalid native scheduling in-process owner')
         resources = {n: _source_resource_path(n) for n in CONTINUATION_BUILD_FILES}
         runtime = {'hepta/' + n: Path(__file__).parent / n for n in _RUNTIME}
-        for field, paths in [('resource_sha256', resources), ('runtime_sha256', runtime)]:
+        resource_inputs, runtime_inputs = [], []
+        for field, paths, observations in (
+                ('resource_sha256', resources, resource_inputs),
+                ('runtime_sha256', runtime, runtime_inputs)):
             pins = value[field]
             if type(pins) is not dict or set(pins) != set(paths):
                 raise ValueError('native scheduling owner source inventory differs')
             for name, source in paths.items():
-                self.capture(source, authority.MAX_SOURCE_BYTES, pins[name])
+                captured_source = self.capture(source, authority.MAX_SOURCE_BYTES, pins[name])
+                observations.append((name, str(captured_source.path), captured_source.raw))
         abi_snapshot = self.capture(_source_resource_path(selection.ABI_SOURCE), authority.MAX_SOURCE_BYTES)
         abi = selection.checked_abi(abi_snapshot.raw)
         names = tuple(Path(n).stem for n in selection.source_names(abi))
@@ -227,16 +249,19 @@ class NativeWorkerSchedulingBinding:
                 or base['compiler_sha256'] != value['compiler_sha256']
                 or base['unit_manifests'] != {n: n + '/manifest.json' for n in names}):
             raise ValueError('native scheduling complete policy or ABI differs')
-        units = []
+        units, unit_custody = [], []
         for name in names:
             manifest = self.capture(policy.path.parent / base['unit_manifests'][name], authority.MAX_MANIFEST_BYTES)
-            image, row = self.capture_image(manifest,
+            image, row, source_snapshot = self.capture_image(manifest,
                 _source_resource_path('examples/hia_bootstrap/' + name + '.hepta'), selection.UNIT_SCHEMA)
             if row['compiler_sha256'] != value['compiler_sha256']:
                 raise ValueError('native scheduling compiler differs across units')
             units.append((name, row['source_sha256'], image, row['image_sha256']))
+            unit_custody.append((name, str(source_snapshot.path), source_snapshot.raw,
+                                 str(manifest.path), manifest.raw, str(image.path), image.raw))
         aggregate = self.capture(path.parent / value['image_path'], MAX_EXECUTABLE, value['image_sha256'])
-        return kind, outer, value, selection, abi, abi_snapshot.raw, policy, units, aggregate
+        return (kind, outer, value, selection, abi, abi_snapshot, policy, units, aggregate,
+                tuple(unit_custody), tuple(resource_inputs), tuple(runtime_inputs))
 
     def check_owner(self):
         if self.owner != (authority.os.getpid(), authority.threading.get_ident()):

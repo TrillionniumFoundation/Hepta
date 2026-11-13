@@ -183,8 +183,10 @@ class CliNativeTests(unittest.TestCase):
         cls.temporary = None
         evidence = os.environ.get(FIXTURE_EVIDENCE)
         if evidence:
-            cls.folder = Path(evidence).absolute()
-            cls.folder.mkdir(mode=0o700, parents=True)
+            base = Path(evidence).absolute()
+            base.mkdir(mode=0o700, parents=True, exist_ok=True)
+            cls.folder = base / cls.__name__
+            cls.folder.mkdir(mode=0o700)
         else:
             cls.temporary = tempfile.TemporaryDirectory(prefix="hia-cli-native-tests-")
             cls.folder = Path(cls.temporary.name)
@@ -738,14 +740,14 @@ raise SystemExit(0 if passed else 1)
 
 
     def test_actual_installed_wheel_without_retained_cli_or_checkout_resources(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
         from tests.test_hia_agent_entry import fixture
         case = self.folder / "installed-control"
         case.mkdir(mode=0o700)
         source, wheels, installed = case / "source", case / "wheels", case / "installed"
         source.mkdir(mode=0o700)
         resources = ((tuple("docs/" + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES
-                     + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES)
+                     + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES)
         required = {
             "control": "examples/hia_bootstrap/cli_control.hepta",
             "format": "examples/hia_bootstrap/cli_format.hepta",

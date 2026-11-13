@@ -3,9 +3,11 @@ from __future__ import annotations
 
 from hashlib import sha256
 import json
+import ctypes
 import os
 from pathlib import Path
 import re
+import resource
 import selectors
 import shutil
 import signal
@@ -39,6 +41,66 @@ block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
   ret(v3)
 end
 '''
+
+
+def _restrict_runtime_syscalls(image_bytes):
+    """Additional child-only restriction, not a replacement ptrace result.
+
+    Only syscall instructions within the captured fixed-address native ELF
+    are constrained here. Host pre-exec setup remains outside this additional
+    test filter. Native file opens, process creation, further exec and W+X
+    mappings kill the child. This is a scoped observation, not a sandbox claim.
+    The original globally scoped failing observation remains separate.
+    """
+    class Filter(ctypes.Structure):
+        _fields_ = [('code', ctypes.c_ushort), ('jt', ctypes.c_ubyte),
+                    ('jf', ctypes.c_ubyte), ('k', ctypes.c_uint)]
+    class Program(ctypes.Structure):
+        _fields_ = [('length', ctypes.c_ushort), ('filters', ctypes.POINTER(Filter))]
+    labels, instructions = {}, []
+    def label(name):
+        labels[name] = len(instructions)
+    def add(code, k, jt=0, jf=0):
+        instructions.append((code, k, jt, jf))
+    add(0x20, 4)  # seccomp_data.arch
+    add(0x15, 0xc000003e, 0, 'kill')
+    add(0x20, 12)  # seccomp_data.instruction_pointer high word
+    add(0x15, 0, 0, 'allow')
+    add(0x20, 8)  # low word, fixed ET_EXEC address range
+    add(0x35, 0x400000, 0, 'allow')
+    add(0x35, 0x400000 + image_bytes, 'allow', 0)
+    add(0x20, 0)  # seccomp_data.nr, only after exact image-range admission
+    for number in (2, 85, 257, 437, 56, 57, 58, 435, 59, 322):
+        add(0x15, number, 'kill', 0)
+    add(0x15, 9, 'protection', 0)
+    add(0x15, 10, 'protection', 0)
+    add(0x05, 'allow')
+    label('protection')
+    add(0x20, 32)  # args[2], mmap/mprotect protection
+    add(0x54, 6)
+    add(0x15, 6, 'kill', 'allow')
+    label('kill')
+    add(0x06, 0x80000000)
+    label('allow')
+    add(0x06, 0x7fff0000)
+    values = []
+    for index, (code, k, jt, jf) in enumerate(instructions):
+        def offset(value):
+            result = labels[value] - index - 1 if isinstance(value, str) else value
+            assert 0 <= result <= 255
+            return result
+        values.append(Filter(code, offset(jt), offset(jf),
+                             labels[k] - index - 1 if isinstance(k, str) else k))
+    filters = (Filter * len(values))(*values)
+    program = Program(len(values), filters)
+    libc = ctypes.CDLL(None, use_errno=True)
+    def install():
+        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+        if libc.prctl(38, 1, 0, 0, 0) != 0:
+            raise OSError(ctypes.get_errno(), 'PR_SET_NO_NEW_PRIVS')
+        if libc.prctl(22, 2, ctypes.byref(program), 0, 0) != 0:
+            raise OSError(ctypes.get_errno(), 'PR_SET_SECCOMP')
+    return install
 
 
 def bundle(files):
@@ -242,6 +304,17 @@ class SourceBuilderNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         from tools.qualify_hia_selfhost import build_seed, compile_stage, invoke
+        cold = os.environ.get('HEPTA_HIA_SOURCE_BUILD_COLD_REPORT')
+        development = os.environ.get('HEPTA_HIA_SOURCE_BUILD_DEVELOPMENT_MANIFEST')
+        if cold and development:
+            raise ValueError('select one cold report or explicit development manifest')
+        if cold:
+            from tools.build_hia_json_preflight import admit_cold_build
+            cold_bytes = Path(cold).read_bytes()
+            outer = json.loads(cold_bytes)
+            nested = json.loads(Path(outer['nested_report']).read_bytes())
+            cls.compiler = Path(nested['generations'][-1]['produced_image'])
+            admit_cold_build(cls.compiler.read_bytes(), cold_bytes)
         cls.temporary = None
         out = os.environ.get('HEPTA_HIA_SOURCE_BUILD_OBSERVATIONS')
         if out:
@@ -252,10 +325,9 @@ class SourceBuilderNativeTests(unittest.TestCase):
             cls.folder = Path(cls.temporary.name)
         cls.observations = []
         cls.serial = 0
-        cls.sources = [(name, 0o400, (ROOT / 'examples/hia_bootstrap' / name).read_bytes()) for name in ROLE_NAMES]
+        cls.sources = [(name, 0o400, path.read_bytes()) for name, path in zip(ROLE_NAMES,
+            (POLICY, ROOT / 'examples/hia_bootstrap/selfhost.hepta', PACKER))]
         cls.input_bundle = bundle(cls.sources)
-        cold = os.environ.get('HEPTA_HIA_SOURCE_BUILD_COLD_REPORT')
-        development = os.environ.get('HEPTA_HIA_SOURCE_BUILD_DEVELOPMENT_MANIFEST')
         cls.generations = []
         if cold:
             from tools.build_hia_source_build import build
@@ -477,7 +549,7 @@ class SourceBuilderNativeTests(unittest.TestCase):
         from tools.qualify_hia_selfhost import mutate_compiler
         # The existing qualified mutation changes emitted wrapper stack space
         # from 64 to 80 bytes, retaining its alignment and language profile.
-        modified = [(name, mode, mutate_compiler(source) if name == 'selfhost.hepta' else source)
+        modified = [(name, mode, mutate_compiler(source) if name == ROLE_NAMES[1] else source)
                     for name, mode, source in self.sources]
         assemble_program(modified[1][2])
         wire = bundle(modified)
@@ -485,7 +557,7 @@ class SourceBuilderNativeTests(unittest.TestCase):
         app = self.app
         for generation in (1, 2, 3):
             kit = self.run_app(wire, app=app)
-            compilers.append(unpack(kit)[b'selfhost.hepta.bin'])
+            compilers.append(unpack(kit)[(ROLE_NAMES[1]+'.bin').encode('ascii')])
             executable = self.run_app(kit, 'pack', app=app)
             executables.append(executable)
             app = self.case / ('M' + str(generation))
@@ -553,6 +625,21 @@ class SourceBuilderNativeTests(unittest.TestCase):
         many = [(f'f{i}.hepta', 0o400, SMALL) for i in range(128)]
         self.assertEqual(len(unpack(self.run_app(bundle(many)))), 256)
         self.run_app(bundle(many + [('overflow.hepta', 0o400, SMALL)]), code=16)
+
+    def test_both_actual_suffixes_compile_and_closed_roles_accept_aliases(self):
+        inputs = [('a.hepta', 0o400, SMALL), ('b.hiaasm', 0o400, SMALL)]
+        parsed = unpack(self.run_app(bundle(inputs)))
+        for name, _, raw in inputs:
+            self.assertEqual(parsed[name.encode()], raw)
+        self.assertEqual(parsed[b'a.hepta.bin'], parsed[b'b.hiaasm.bin'])
+        kit = unpack(self.run_app(self.input_bundle))
+        aliases = [(name.decode().replace('.hepta', '.hiaasm'), 0o400, raw)
+                   for name, raw in kit.items()]
+        self.assertEqual(self.run_app(bundle(aliases), 'pack'), self.original_app)
+        duplicate = [(ROLE_NAMES[0] + '.bin', 0o400, self.policy_image),
+                     (ROLE_NAMES[0].replace('.hepta', '.hiaasm') + '.bin', 0o400, self.policy_image),
+                     (ROLE_NAMES[2] + '.bin', 0o400, self.packer_image)]
+        self.run_app(bundle(duplicate), 'pack', code=16)
 
     def test_large_pack_and_real_final_output_capacity_refusal(self):
         opaque = bytes([0x5a]) * IMAGE_LIMIT
@@ -661,6 +748,72 @@ class SourceBuilderNativeTests(unittest.TestCase):
         self.assertNotRegex(trace, r'\b(?:execveat|clone|clone3|fork|vfork|open|openat|openat2|creat)\(')
         self.assertNotIn('PROT_WRITE|PROT_EXEC', trace)
         self.assertIn(str(LAYOUT['MAPSIZE']), trace)
+
+    def test_additional_restrictive_kernel_filter_preserves_runtime_result(self):
+        from tests.test_hia_program_selfhost import _test_executable
+        wire = bundle([('a.hepta', 0o400, SMALL), ('b.hiaasm', 0o400, SMALL)])
+        expected = self.run_app(wire)
+        restrict = _restrict_runtime_syscalls(len(self.original_app))
+        result = subprocess.run([str(self.app), 'build'], input=wire, capture_output=True,
+            env={'PATH': ''}, cwd=self.case, timeout=120, preexec_fn=restrict)
+        self.assertEqual((result.returncode, result.stdout, result.stderr), (0, expected, b''))
+        # These actual children prove the installed filter rejects the banned
+        # kernel entry. They are fixed transport controls, not HIA compilers.
+        for name, number in (('open', 2), ('execve', 59)):
+            code = b'\xb8'+struct.pack('<I', number)+bytes.fromhex('31ff31f631d20f05b83c00000031ff0f05')
+            probe = self.case / ('filter-probe-'+name)
+            probe.write_bytes(_test_executable(code));probe.chmod(0o500)
+            refused = subprocess.run([str(probe)], capture_output=True, env={'PATH': ''},
+                cwd=self.case, timeout=10, preexec_fn=restrict)
+            self.assertEqual((refused.returncode, refused.stdout, refused.stderr), (-signal.SIGSYS, b'', b''))
+        self.observations.append({'case': self.id(), 'mechanism':'additional source-image-scoped child-only seccomp restriction',
+            'runtime_result_equal':True, 'banned_open_and_native_exec_killed':True,
+            'original_ptrace_observation_reclassified':False})
+
+    def test_additional_untraced_closed_pipe_retains_prefix_and_io_status(self):
+        opaque = bytes([0x5a]) * IMAGE_LIMIT
+        wire = bundle([(name + '.bin', 0o400, opaque) for name in ROLE_NAMES])
+        expected = expected_elf((opaque,)*3)
+        source = self.case/'closed-pipe-input.bin'
+        source.write_bytes(wire)
+        with source.open('rb') as stream:
+            process = subprocess.Popen([str(self.app), 'pack'], stdin=stream,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, env={'PATH':''}, cwd=self.case,
+                start_new_session=True)
+            prefix = bytearray()
+            deadline = time.monotonic()+30
+            try:
+                descriptor = process.stdout.fileno()
+                capacity = __import__('fcntl').fcntl(descriptor, 1032)  # F_GETPIPE_SZ
+                self.assertGreater(len(expected), capacity+4096)
+                os.set_blocking(descriptor, False)
+                with selectors.DefaultSelector() as selector:
+                    selector.register(descriptor, selectors.EVENT_READ)
+                    while len(prefix)<4096:
+                        left = deadline-time.monotonic()
+                        if left<=0 or not selector.select(left):
+                            raise TimeoutError('closed-pipe control exceeded original 30-second deadline')
+                        try:
+                            chunk = os.read(descriptor, 4096-len(prefix))
+                        except BlockingIOError:
+                            continue
+                        if not chunk:
+                            break
+                        prefix += chunk
+                self.assertEqual(prefix, expected[:4096])
+                process.stdout.close();process.stdout=None
+                _, error = process.communicate(timeout=max(0.001, deadline-time.monotonic()))
+                self.assertEqual((process.returncode, error), (15, b''))
+            finally:
+                if process.poll() is None:
+                    try:os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:pass
+                    process.wait(timeout=10)
+                if process.stdout is not None:process.stdout.close()
+                process.stderr.close()
+        self.observations.append({'case':self.id(),'mechanism':'actual pipe reader closes after complete 4096-byte prefix',
+            'prefix_sha256':sha256(prefix).hexdigest(),'pipe_capacity':capacity,'returncode':15,
+            'original_traced_EPIPE_observation_reclassified':False})
 
 
 if __name__ == '__main__':

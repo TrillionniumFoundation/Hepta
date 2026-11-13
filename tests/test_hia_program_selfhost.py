@@ -130,6 +130,19 @@ class SelfhostBuildSourceTests(unittest.TestCase):
 class SelfhostBuildNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cold = os.environ.get("HEPTA_HIA_SOURCE_BUILD_COLD_REPORT")
+        provided = os.environ.get("HEPTA_HIA_SELFHOST_BUILD_DEVELOPMENT_COMPILER")
+        if cold and provided or not cold and not provided:
+            raise ValueError("select exactly one matching HEPTA_HIA_SOURCE_BUILD_COLD_REPORT "
+                             "or explicit HEPTA_HIA_SELFHOST_BUILD_DEVELOPMENT_COMPILER")
+        cls.cold_report = Path(cold) if cold else None
+        if cold:
+            from tools.build_hia_json_preflight import admit_cold_build
+            cold_bytes = cls.cold_report.read_bytes()
+            outer = json.loads(cold_bytes)
+            inner = json.loads(Path(outer["nested_report"]).read_bytes())
+            cls.compiler = Path(inner["generations"][-1]["produced_image"])
+            admit_cold_build(cls.compiler.read_bytes(), cold_bytes)
         from hepta.hia_program import execute_program, verify_program
         cls.program = fixture()
         cls.expected = {}
@@ -140,20 +153,16 @@ class SelfhostBuildNativeTests(unittest.TestCase):
                 if result["status"] != "returned":
                     raise AssertionError(result)
                 cls.expected[function, argument] = result["values"][0]
-        cls.temporary = tempfile.TemporaryDirectory(prefix="hia-selfhost-build-tests-")
-        cls.addClassCleanup(cls.temporary.cleanup)
-        cls.folder = Path(cls.temporary.name)
+        evidence = os.environ.get("HEPTA_HIA_SELFHOST_BUILD_EVIDENCE")
+        if evidence:
+            cls.folder = Path(evidence)
+            cls.folder.mkdir(mode=0o700)
+        else:
+            cls.temporary = tempfile.TemporaryDirectory(prefix="hia-selfhost-build-tests-")
+            cls.addClassCleanup(cls.temporary.cleanup)
+            cls.folder = Path(cls.temporary.name)
         from tools.qualify_hia_selfhost import compile_stage, invoke
-        cold = os.environ.get("HEPTA_HIA_SOURCE_BUILD_COLD_REPORT")
-        provided = os.environ.get("HEPTA_HIA_SELFHOST_BUILD_DEVELOPMENT_COMPILER")
-        if cold and provided or not cold and not provided:
-            raise ValueError("select exactly one matching HEPTA_HIA_SOURCE_BUILD_COLD_REPORT "
-                             "or explicit HEPTA_HIA_SELFHOST_BUILD_DEVELOPMENT_COMPILER")
-        cls.cold_report = Path(cold) if cold else None
         if cold:
-            outer = json.loads(cls.cold_report.read_bytes())
-            inner = json.loads(Path(outer["nested_report"]).read_bytes())
-            cls.compiler = Path(inner["generations"][-1]["produced_image"])
             from tools.build_hia_core_json_cli import build
             cls.executable = build(cls.folder / "qualified", cls.compiler,
                                    cls.cold_report, output_profile="elf")
@@ -410,8 +419,8 @@ raise SystemExit(hia_main(json.loads(sys.argv[2])))
         current = invoke(ROOT, self.root / "cli.o")
         self.assertEqual(current.returncode, 0, (current.stdout, current.stderr))
         self.assertEqual(json.loads(current.stdout)["profile"], native.PROFILE)
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
-        resources = (tuple("docs/" + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
+        resources = (tuple("docs/" + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
         package = self.root / "package"
         package.mkdir()
         shutil.copytree(ROOT / "hepta", package / "hepta", ignore=shutil.ignore_patterns("__pycache__"))
@@ -430,7 +439,7 @@ raise SystemExit(hia_main(json.loads(sys.argv[2])))
         result = subprocess.run([sys.executable, "-m", "pip", "install", "--no-index", "--no-deps",
             "--target", str(installed), str(wheel)], capture_output=True, text=True, timeout=60)
         self.assertEqual(result.returncode, 0, (result.stdout, result.stderr))
-        for name in native.SOURCE_FILES:
+        for name in (*native.SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES):
             self.assertEqual((installed / "hepta/_data" / name).read_bytes(), (ROOT / name).read_bytes())
         observed = invoke(installed, self.root / "installed.o")
         self.assertEqual(observed.returncode, 0, (observed.stdout, observed.stderr))

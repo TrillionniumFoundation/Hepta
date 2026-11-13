@@ -150,8 +150,8 @@ class NativeCompositeTypeSession:
             self._command({'op': 'init', 'definitions': definitions,
                 'recursive_chain': recursive_chain, 'partial_records': partial_records}, result=False)
         except BaseException:
-            # An initializer which raises never transfers its session to the
-            # elaborator. A retained traceback must not retain its buffers.
+            # A retained constructor traceback must not own abandoned arenas.
+            # Keep the original refusal, descriptors and observation counters.
             self.close()
             raise
 

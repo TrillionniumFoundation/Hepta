@@ -147,6 +147,8 @@ def _implementation_hash():
                  "object_structure.py", "native_tool_identity.py"):
         content = (root / name).read_bytes()
         digest.update(name.encode() + b"\0" + content + b"\0")
+    from .hia_checker_identity import checker_digest
+    digest.update(checker_digest().encode())
     return digest.hexdigest()
 
 

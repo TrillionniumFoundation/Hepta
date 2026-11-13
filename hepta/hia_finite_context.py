@@ -240,8 +240,8 @@ def _implementation():
     names = ("hia_finite_context.py", "hia_guarded_batch.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py", "hia_program_llvm.py",
              "hia_program_runtime.py", "hia_translation_validation.py", "hia_scalar_lowering_check.py",
              "hia_native_differential.py", "hia_adaptive.py", "clang_capture.py", "elf_shared_abi.py")
-    return sha256(_wire({name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-                         for name in names})).hexdigest()
+    from .hia_checker_identity import checker_digest
+    return checker_digest(names)
 
 
 def checked_profile(document):

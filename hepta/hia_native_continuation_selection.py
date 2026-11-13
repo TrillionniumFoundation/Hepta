@@ -1,5 +1,6 @@
 """Explicit source-bound native scheduling; no new ambient selector is needed."""
 from hashlib import sha256
+from dataclasses import dataclass
 from pathlib import Path
 import json
 
@@ -16,6 +17,18 @@ SCHEMA='hepta.hia.native-continuation.v1'
 INPROCESS_SCHEMA='hepta.hia.native-continuation-inprocess.v1'
 _RUNTIME=('hia_native_continuation.py','hia_native_continuation_selection.py','hia_native_continuation_inprocess.py','hia_native_helpers.py','hia_core_lowering_native.py')
 _OWNER_CACHE=[]
+
+
+@dataclass(frozen=True, eq=False)
+class _ContinuationCustody:
+    manifest_path: str
+    manifest_raw: bytes
+    policy_path: str
+    policy_raw: bytes
+    resource_inputs: tuple
+    runtime_inputs: tuple
+    image_path: str
+    image_raw: bytes
 
 
 class _Continuation:
@@ -63,8 +76,20 @@ def installed_native_continuation(manifest_path,namespace,*,kind='execution-obse
     def digest(v):return type(v) is str and len(v)==64 and all(c in '0123456789abcdef' for c in v)
     if any(not digest(value[k]) for k in ('policy_bundle_sha256','compiler_sha256','image_sha256')):
         raise ValueError('native continuation bundle identity differs')
-    resources={name:sha256(_source_resource_path(name).read_bytes()).hexdigest() for name in CONTINUATION_BUILD_FILES}
-    runtime={'hepta/'+name:sha256((Path(__file__).parent/name).read_bytes()).hexdigest() for name in _RUNTIME}
+    resources = {}
+    resource_inputs = []
+    for name in CONTINUATION_BUILD_FILES:
+        resource_path = _source_resource_path(name)
+        resource_raw = resource_path.read_bytes()
+        resources[name] = sha256(resource_raw).hexdigest()
+        resource_inputs.append((name, str(resource_path), resource_raw))
+    runtime = {}
+    runtime_inputs = []
+    for name in _RUNTIME:
+        runtime_path = Path(__file__).parent / name
+        runtime_raw = runtime_path.read_bytes()
+        runtime['hepta/' + name] = sha256(runtime_raw).hexdigest()
+        runtime_inputs.append(('hepta/' + name, str(runtime_path), runtime_raw))
     if value['resource_sha256']!=resources or value['runtime_sha256']!=runtime:
         raise ValueError('native continuation resource or runtime source identity mismatch')
     basepath=path.parent/'policy/manifest.json';base_raw=_read(basepath,16384).raw
@@ -87,6 +112,9 @@ def installed_native_continuation(manifest_path,namespace,*,kind='execution-obse
         from .hia_native_continuation_inprocess import InProcessContinuation
         owner._continuation=InProcessContinuation(image_raw,value['image_sha256'],pool_bytes=loaded.abi['pool_bytes'])
     else:owner._continuation=NativeContinuation(image,value['image_sha256'],pool_bytes=loaded.abi['pool_bytes'])
+    owner._continuation_custody = _ContinuationCustody(
+        str(path), raw, str(basepath), base_raw,
+        tuple(resource_inputs), tuple(runtime_inputs), str(image), image_raw)
     owner._native_continuation_identity=('\0'.join((value['schema'],sha256(raw).hexdigest(),value['image_sha256'],*resources.values(),*runtime.values()))).encode('ascii')
     _OWNER_CACHE.append((str(path),raw,loaded,namespace,owner))
     matching=[i for i,entry in enumerate(_OWNER_CACHE) if type(entry[-1]) is factory]
