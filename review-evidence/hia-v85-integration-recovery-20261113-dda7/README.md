@@ -1,0 +1,13 @@
+# HIA native integration checkpoint
+
+This is an evidence-only checkpoint. The complete native replacement remains unfinished; no product default, PR head, or legacy production owner is changed by this publication.
+
+The original main cold run failed 6/11 checks at the original 180-second deadline. The original a733 cold run passed 11/11 and 5,052 internal checks; its owned child completed in 179.842562192 seconds. Its later original native job still failed with two outer failures containing six nested failures. The complete original custody recipe preserves both results, including the custodian's own first transport failure. Custody success does not change a failed product result.
+
+Actual Git merge-base --all returned TWO best bases, 5831f52f and 93d66bcc. Earlier comparisons against 93d66 remain explicit reference-ancestor comparisons, not a unique merge base or a count of actual conflicts. The first rehearsal refused the incorrect assumption before merging. The second hit an exact missing-promisor-object transport error. The third, after bounded fixed-tree blob prefetch, completed the unchanged Git merge with 122 conflict paths and 291 unmerged index stages. The exact AUTO_MERGE tree is 9bf5677a4cbb45ec192f09e90df49d4ad39330c9. Automatic textual merging is not semantic qualification.
+
+The local environment briefly recovered. All 84 original historical Core archive wrappers were fully read back from Git, the 43,711,416-byte archive was actually reconstructed, and its exact capsule was rooted at c3f1df5e. A new strict plan then removed only 96 recoverable derived copies (181,813,692 logical bytes); the protected original, product source, and unique outer archives remain. Main was fully materialized and independently verified at 2,579 files / 72,234,761 bytes / tree578a72d9. The environment became unavailable again while the separate unresolved-merge working directory was being prepared. No successful execution receipt for that materialization was observed; it must be reconciled before any retry.
+
+A real compiled-HIA snapshot witness reproduced the conflicting registration. Preserving main's typed snapshot owner restores its public buffer path with the retained reference poisoned. The narrow new test method has bounded development before/after observations; its full original setup, entire class, and matching-source cold qualification have not been run for an integrated candidate.
+
+The implementation continues through source-bound, explicitly distinguishable native ABI families, canonical .hepta paths, all existing resource groups, complete original controls, and actual new qualification. Historical evidence is not rewritten to look like current acceptance.

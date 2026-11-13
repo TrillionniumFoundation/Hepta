@@ -1,0 +1,42 @@
+name: Fixed textual merge rehearsal
+
+on:
+  push:
+    branches:
+      - codex/hia-textual-merge-rehearsal-v84-r2-20261113-dda7
+
+permissions:
+  contents: write
+
+jobs:
+  observe-fixed-merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the isolated four-file harness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: harness
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Record the fixed textual merge and exact main archive
+        shell: bash
+        env:
+          HIA_REHEARSAL_TOKEN: ${{ github.token }}
+          EXPECTED_INPUTS_SHA256: bc8fdf8bd47a77956baf7b6a09eefbd15b7a5fc941d4f47c29a2c1777e995e57
+          EXPECTED_DRIVER_SHA256: 10adaeb9211b8ea7eb8c700262fdeb4a18b90cd532465ed91b81f281183efc2d
+        run: |
+          python3 -I -B "${GITHUB_WORKSPACE}/harness/tools/rehearse_fixed_merge.py" \
+            --inputs "${GITHUB_WORKSPACE}/harness/inputs/FIXED-INPUTS.json" \
+            --root "${RUNNER_TEMP}/hia-textual-merge-rehearsal-v84"
+      - name: Preserve all original observations and partial failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-textual-merge-rehearsal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hia-textual-merge-rehearsal-v84/evidence
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 90
+          compression-level: 6

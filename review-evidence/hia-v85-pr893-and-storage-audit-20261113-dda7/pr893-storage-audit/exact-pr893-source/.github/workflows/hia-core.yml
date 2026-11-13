@@ -1,0 +1,740 @@
+name: HIA Core-only
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Regenerate actual HIA sources
+        run: |
+          set -eu
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger agent_read agent_query agent_native_metadata agent_json_wire cli_inspect core_bytes sqlite_store; do
+            if [ "$component" = agent_query ]; then
+              python -B -m tools.generate_hia_agent_query \
+                --output "$RUNNER_TEMP/hia-agent-query-source.hepta" \
+                --inventory "$RUNNER_TEMP/hia-agent-query-source-inventory.json"
+            elif [ "$component" = agent_native_metadata ]; then
+              python -B -m tools.generate_hia_agent_native_metadata \
+                --output "$RUNNER_TEMP/hia-agent-native-metadata-source.hepta" \
+                --inventory "$RUNNER_TEMP/hia-agent-native-metadata-source-inventory.json"
+            else
+              python -B -m "tools.generate_hia_$component"
+            fi
+          done
+          git diff --exit-code
+      - name: Verify query and metadata source reproduction
+        run: |
+          set -eu
+          python -B - "$RUNNER_TEMP" <<'PYQUERY'
+          import sys
+          from pathlib import Path
+          directory = Path(sys.argv[1])
+          from hashlib import sha256
+          from pathlib import Path
+          import json
+          directory = directory.resolve()
+          source_root = Path.cwd().resolve()
+          if directory == source_root or directory.is_relative_to(source_root):
+              raise SystemExit('query reproduction outputs must be outside the source tree')
+          paths = {
+              'tracked_source': source_root / 'examples/hia_bootstrap/agent_query.hepta',
+              'generated_source': directory / 'hia-agent-query-source.hepta',
+              'generator': source_root / 'tools/generate_hia_agent_query.py',
+              'inventory': directory / 'hia-agent-query-source-inventory.json',
+          }
+          captured = {name: path.read_bytes() for name, path in paths.items()}
+          if captured['tracked_source'] != captured['generated_source']:
+              raise SystemExit('generated query source differs from the complete tracked bytes')
+          inventory = json.loads(captured['inventory'])
+          if (type(inventory.get('assembly_bytes')) is not int
+                  or inventory['assembly_bytes'] != len(captured['generated_source'])
+                  or inventory.get('static_generated_profile_within_existing_limits') is not True
+                  or inventory.get('native_compile_executed') is not False
+                  or inventory.get('native_image_bytes') is not None
+                  or inventory.get('native_relocations') is not None
+                  or inventory.get('status') != 'GENERATED_STRUCTURE_ONLY_NOT_NATIVE_OR_COLD_QUALIFIED'):
+              raise SystemExit('query generator inventory does not describe this static source reproduction')
+          proof = {
+              'schema': 'hepta.hia.agent-query-source-reproduction.v1',
+              'status': 'SOURCE_REPRODUCTION_PASS_NOT_NATIVE_QUALIFIED',
+              'files': {name: {'path': str(paths[name]), 'bytes': len(raw),
+                               'sha256': sha256(raw).hexdigest()}
+                        for name, raw in captured.items()},
+              'generated_profile': {key: value for key, value in inventory.items()
+                                    if key != 'per_function'},
+          }
+          if any(path.read_bytes() != captured[name] for name, path in paths.items()):
+              raise SystemExit('query source reproduction inputs or outputs changed')
+          proof_path = directory / 'hia-agent-query-source-reproduction.json'
+          with proof_path.open('x', encoding='utf-8') as stream:
+              stream.write(json.dumps(proof, indent=2, sort_keys=True) + '\n')
+          proof_raw = proof_path.read_bytes()
+          query_reproduction = {'path': str(proof_path), 'bytes': len(proof_raw),
+                                'sha256': sha256(proof_raw).hexdigest()}
+          print(json.dumps({'query_reproduction': query_reproduction,
+                            'status': proof['status']}, sort_keys=True))
+          PYQUERY
+          python -B - "$RUNNER_TEMP" <<'PYMETADATA'
+          import sys
+          from pathlib import Path
+          directory = Path(sys.argv[1])
+          from hashlib import sha256
+          from pathlib import Path
+          import json
+          directory = directory.resolve()
+          source_root = Path.cwd().resolve()
+          if directory == source_root or directory.is_relative_to(source_root):
+              raise SystemExit('metadata reproduction outputs must be outside the source tree')
+          paths = {
+              'tracked_source': source_root / 'examples/hia_bootstrap/agent_native_metadata.hepta',
+              'generated_source': directory / 'hia-agent-native-metadata-source.hepta',
+              'generator': source_root / 'tools/generate_hia_agent_native_metadata.py',
+              'inventory': directory / 'hia-agent-native-metadata-source-inventory.json',
+          }
+          captured = {name: path.read_bytes() for name, path in paths.items()}
+          if captured['tracked_source'] != captured['generated_source']:
+              raise SystemExit('generated metadata source differs from the complete tracked bytes')
+          inventory = json.loads(captured['inventory'])
+          if (type(inventory.get('assembly_bytes')) is not int
+                  or inventory['assembly_bytes'] != len(captured['generated_source'])
+                  or inventory.get('static_generated_profile_within_existing_limits') is not True
+                  or inventory.get('native_compile_executed') is not False
+                  or inventory.get('native_image_bytes') is not None
+                  or inventory.get('native_relocations') is not None
+                  or inventory.get('status') != 'GENERATED_STRUCTURE_ONLY_NOT_NATIVE_OR_COLD_QUALIFIED'):
+              raise SystemExit('metadata generator inventory does not describe this static source reproduction')
+          proof = {
+              'schema': 'hepta.hia.agent-native-metadata-source-reproduction.v1',
+              'status': 'SOURCE_REPRODUCTION_PASS_NOT_NATIVE_QUALIFIED',
+              'files': {name: {'path': str(paths[name]), 'bytes': len(raw),
+                               'sha256': sha256(raw).hexdigest()}
+                        for name, raw in captured.items()},
+              'generated_profile': {key: value for key, value in inventory.items()
+                                    if key != 'per_function'},
+          }
+          if any(path.read_bytes() != captured[name] for name, path in paths.items()):
+              raise SystemExit('metadata source reproduction inputs or outputs changed')
+          proof_path = directory / 'hia-agent-native-metadata-source-reproduction.json'
+          with proof_path.open('x', encoding='utf-8') as stream:
+              stream.write(json.dumps(proof, indent=2, sort_keys=True) + '\n')
+          proof_raw = proof_path.read_bytes()
+          metadata_reproduction = {'path': str(proof_path), 'bytes': len(proof_raw),
+                                'sha256': sha256(proof_raw).hexdigest()}
+          print(json.dumps({'metadata_reproduction': metadata_reproduction,
+                            'status': proof['status']}, sort_keys=True))
+          PYMETADATA
+      - run: python -B tools/check_hia_core_only.py
+      - run: python -B tools/generate_hia_selfhost_contract.py --check
+      - run: python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory
+      - run: git diff --exit-code
+      - name: Core source and independent reference controls
+        run: |
+          python -B - <<'PY'
+          import unittest
+          names = (
+              'tests.test_hia_core_only',
+              'tests.test_hia_complete_output_observation',
+              'tests.test_hia_agent_identity_source_binding',
+              'tests.test_hia_source_suffix',
+              'tests.test_hia_original_select_fragments.SourceSuffixConsumerTests',
+              'tests.test_hia_evidence_archive',
+              'tests.test_hia_retained_evidence',
+              'tests.test_hia_core_workspace_facts_native.CoreWorkspaceFactsSourceTests',
+              'tests.test_hia_core_workspace_materialize_native.CoreWorkspaceMaterializerSourceTests',
+              'tests.test_hia_core_string_accounting',
+              'tests.test_hia_structure_traversal',
+              'tests.test_hia_capability_renaming_native.CapabilityRenamingSourceTests',
+              'tests.test_hia_core_module_graph_native.CoreModuleGraphSourceTests',
+              'tests.test_hia_source_head_identity',
+              'tests.test_hia_integrated_workflow',
+              'tests.test_hia_core_workspace_json_native.CoreWorkspaceJsonSourceTests',
+              'tests.test_hia_core_workspace_json_cli.CoreWorkspaceJsonCliSourceTests',
+              'tests.test_hia_core_workspace_pipeline.CoreWorkspacePipelineSourceTests',
+              'tests.test_hia_agent_identity_native.AgentIdentitySourceTests',
+              'tests.test_hia_agent_slice_native.AgentSliceSourceTests',
+              'tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests',
+              'tests.test_hia_agent_stdio.AgentStdioSourceTests',
+              'tests.test_hia_agent_snapshot_native.AgentSnapshotSourceTests',
+              'tests.test_hia_agent_snapshot_json_native.AgentSnapshotJsonSourceTests',
+              'tests.test_hia_agent_entry',
+              'tests.test_hia_elf_linker.ElfLinkerSourceTests',
+              'tests.test_hia_core_json_cli.CoreJsonCliSourceTests',
+              'tests.test_hia_program_selfhost.SelfhostBuildSourceTests',
+              'tests.test_hia_selfhost_word_io.WordIOSourceTests',
+              'tests.test_hia_selfhost_emitter_words.EmitterSourceTests',
+              'tests.test_hia_sha256_stream_native.Sha256StreamSourceTests',
+              'tests.test_hia_sha256_native.Sha256HiaSourceTests',
+              'tests.test_hia_json_preflight',
+              'tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests',
+              'tests.test_hia_json_decode_native.JsonDecodeHiaSourceTests',
+              'tests.test_hia_json_canonical_native.JsonCanonicalHiaSourceTests',
+              'tests.test_hia_selfhost_exports.ExportSourceTests',
+              'tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaSourceTests',
+              'tests.test_hia_selfhost.SelfhostSourceTests',
+              'tests.test_hia_selfhost_contract.SelfhostContractTests',
+              'tests.test_hia_selfhost_cli',
+              'tests.test_hia_selfhost_names',
+              'tests.test_hia_reference_fixture_efficiency',
+              'tests.test_hia_selfhost_returned_loans',
+              'tests.test_hia_selfhost_multi_results.SelfhostMultiResultSourceTests',
+              'tests.test_hia_selfhost_keywords.SelfhostKeywordTests',
+              'tests.test_hia_selfhost_signed.SelfhostSignedTests',
+              'tests.test_hia_selfhost_traps.SelfhostExplicitTrapTests',
+              'tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests',
+              'tests.test_hia_agent_data_json_native.AgentDataJsonSourceTests',
+              'tests.test_hia_agent_binary64_native.AgentBinary64SourceTests',
+              'tests.test_hia_instruction_policy_native.InstructionPolicySourceTests',
+              'tests.test_hia_program_shape_native.ProgramShapeSourceTests',
+              'tests.test_hia_function_shape_native.FunctionShapeSourceTests',
+              'tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests',
+              'tests.test_hia_artifact_publication_route.PublicationRouteSourceTests',
+              'tests.test_hia_core_admission_native.CoreAdmissionSourceTests',
+              'tests.test_hia_core_admission_cli.CoreAdmissionCliSourceTests',
+              'tests.test_hia_core_patch_native.CorePatchSourceTests',
+              'tests.test_hia_core_patch_cli.CorePatchCliSourceTests',
+              'tests.test_hia_core_patch_result_cli.CorePatchResultCliSourceTests',
+              'tests.test_hia_core_patch_result_cli.CorePatchResultCliAdapterTests',
+              'tests.test_hia_composite_types_native.CompositeTypesSourceTests',
+              'tests.test_hia_composite_types_native.CompositeTypesAdapterTests',
+              'tests.test_hia_composite_origins_native.CompositeOriginsAdapterTests',
+              'tests.test_hia_composite_signatures_native.CompositeSignaturesAdapterTests',
+              'tests.test_hia_task_helpers_native.TaskHelpersSourceTests',
+              'tests.test_hia_task_helpers_native.TaskHelpersAdapterTests',
+              'tests.test_hia_composite_native_composition.SourceTests',
+              'tests.test_hia_composite_functions_native.FunctionSourceTests',
+              'tests.test_hia_composite_function_tokens.TokenCodecTests',
+              'tests.test_hia_composite_function_protocol_audit.FunctionTokenProtocolAuditTests',
+              'tests.test_hia_composite_constructor_source.ConstructorSourceTests',
+              'tests.test_hia_composite_constructor_native.ConstructorFrameTests',
+              'tests.test_hia_composite_outer_source.OuterSourceTests',
+              'tests.test_hia_composite_outer_native.OuterFrameTests',
+              'tests.test_hia_native_builder_source_binding',
+              'tests.test_hia_standalone_builder_source_binding',
+              'tests.test_hia_compile_stage_custody',
+              'tests.test_hia_unittest_gate',
+              'tests.test_hia_sha256_builder_source_binding',
+              'tests.test_hia_source_build_entrypoint',
+              'tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests',
+              'tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests',
+              'tests.test_hia_worker_request_native.WorkerRequestSourceTests',
+              'tests.test_hia_worker_native_helpers.WorkerHelperSourceTests',
+              'tests.test_hia_release_install.ReleaseInstallerSourceTests',
+              'tests.test_hia_release_selection.ReleaseSelectionSourceTests',
+              'tests.test_hia_release_selection_review.ReleaseSelectionReviewPolicyTests',
+              'tests.test_hia_retirement_state_native.RetirementStateSourceTests',
+              'tests.test_hia_source_build.SourceBuilderSourceTests',
+              'tests.test_hia_nominal_json_native.NominalJSONSourceTests',
+              'tests.test_hia_agent_journal_native.JournalSourceTests',
+              'tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests',
+              'tests.test_hia_candidate_budget_native.CandidateBudgetSourceTests',
+              'tests.test_hia_slot_ledger_native.SlotLedgerSourceTests',
+              'tests.test_hia_agent_read_native.AgentReadSourceTests',
+              'tests.test_hia_agent_query_native.AgentQuerySourceTests',
+              'tests.test_hia_agent_native_metadata.AgentMetadataSourceTests',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PY
+      - name: Bootstrap ASCII oracle escaped-string regression
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_bootstrap_components.BootstrapSourceTests.test_ascii_reference_lexer_handles_long_escaped_strings
+      - name: Integrated native component source controls
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_agent_json_wire.AgentJsonWireSourceTests tests.test_hia_cli_inspect_native.CliInspectSourceTests tests.test_hia_core_bytes_native.CoreBytesSourceTests tests.test_hia_sqlite_store.SqliteStoreSourceTests
+      - name: Preserve actual query source reproduction
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-query-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-agent-query-source.hepta
+            ${{ runner.temp }}/hia-agent-query-source-inventory.json
+            ${{ runner.temp }}/hia-agent-query-source-reproduction.json
+      - name: Preserve actual metadata source reproduction
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-metadata-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-agent-native-metadata-source.hepta
+            ${{ runner.temp }}/hia-agent-native-metadata-source-inventory.json
+            ${{ runner.temp }}/hia-agent-native-metadata-source-reproduction.json
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install qualified Clang 20 native execution prerequisites
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace libsqlite3-0
+          printf 'CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n' >> "$GITHUB_ENV"
+      - run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
+      - name: Native applications and actual Core memory controls
+        run: |
+          python -B - <<'PYTEST'
+          import unittest
+          names = (
+              'tests.test_hia_agent_stdio',
+              'tests.test_hia_agent_snapshot_native',
+              'tests.test_hia_agent_snapshot_json_native',
+              'tests.test_hia_core_json_cli',
+              'tests.test_hia_program_selfhost.SelfhostBuildNativeTests',
+              'tests.test_hia_elf_linker',
+              'tests.test_hia_agent_identity_native',
+              'tests.test_hia_agent_slice_native',
+              'tests.test_hia_agent_installed_resources',
+              'tests.test_hia_native_child_limits',
+              'tests.test_hia_native_seccomp',
+              'tests.test_hia_native_side_effects',
+              'tests.test_hia_native_cleanup',
+              'tests.test_hia_native_mapping_identity',
+              'tests.test_hia_native_startup_isolation',
+              'tests.test_hia_json_preflight_native',
+              'tests.test_hia_selfhost_emitter_words',
+              'tests.test_hia_host_region',
+              'tests.test_hia_host_region_admission_transaction',
+              'tests.test_hia_host_region_borrow_admission',
+              'tests.test_hia_host_region_borrow_rollback_receipt',
+              'tests.test_hia_host_region_completed_pin_retirement',
+              'tests.test_hia_host_region_finalization_receipt',
+              'tests.test_hia_host_region_job_identity',
+              'tests.test_hia_host_region_lease_authority',
+              'tests.test_hia_host_region_lease_identity_collision',
+              'tests.test_hia_host_region_lease_mprotect_receipt',
+              'tests.test_hia_host_region_lease_token_revocation',
+              'tests.test_hia_host_region_owner_registry_identity',
+              'tests.test_hia_host_region_owner_retirement',
+              'tests.test_hia_host_region_prestart_admission',
+              'tests.test_hia_host_region_prestart_pin_release_receipt',
+              'tests.test_hia_host_region_prestart_retirement_receipt',
+              'tests.test_hia_host_region_public_release_receipt',
+              'tests.test_hia_host_region_quarantine_receipt',
+              'tests.test_hia_host_region_race',
+              'tests.test_hia_host_region_recovery_mprotect_receipt',
+              'tests.test_hia_host_region_recovery_receipt',
+              'tests.test_hia_host_region_recovery_snapshot',
+              'tests.test_hia_host_region_recovery_zero_fault',
+              'tests.test_hia_host_region_write_receipt',
+              'tests.test_hia_agent_data_json_native',
+              'tests.test_hia_agent_binary64_native',
+              'tests.test_hia_agent_binary64_format_native',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYTEST
+        env:
+          HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SOURCE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SELFHOST_BUILD_EVIDENCE: ${{ runner.temp }}/hia-selfhost-build
+          HEPTA_HIA_NOMINAL_JSON_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native Core module graph and actual workspace projects
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_module_graph_native
+        env:
+          HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_MODULE_GRAPH_OBSERVATIONS: ${{ runner.temp }}/hia-module-projects
+      - name: Native Core workspace JSON materialization and actual ABI
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_workspace_json_native tests.test_hia_core_workspace_json_cli tests.test_hia_core_workspace_pipeline
+        env:
+          HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native Core capability edge policy and actual CFG
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_capability_renaming_native
+        env:
+          HEPTA_HIA_CAPABILITY_RENAMING_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native explicit workspace facts and semantic ELF materialization
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_workspace_facts_native tests.test_hia_core_workspace_materialize_native
+        env:
+          HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native full Core function declarations SSA and CFG
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_function_shape_native
+        env:
+          HEPTA_HIA_FUNCTION_SHAPE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native whole primitive Core declaration SSA CFG and export admission
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_program_shape_native
+        env:
+          HEPTA_HIA_PROGRAM_SHAPE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native complete local instruction policy
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_instruction_policy_native
+        env:
+          HEPTA_HIA_INSTRUCTION_POLICY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native exact-byte artifact publication and real kernel races
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_artifact_publication_native tests.test_hia_artifact_publication_route tests.test_hia_agent_artifact_store_native
+        env:
+          HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native whole primitive Core admission and body resource flow
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_admission_native tests.test_hia_core_admission_diagnostics tests.test_hia_core_body_diagnostics tests.test_hia_core_declaration_diagnostics
+        env:
+          HEPTA_HIA_CORE_ADMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_DIAGNOSTICS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_DIAGNOSTICS_EVIDENCE: ${{ runner.temp }}/hia-core-diagnostics
+      - name: Native exact Core bytes and selected ordinary verification
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_bytes_native tests.test_hia_core_bytes_integration tests.test_hia_core_bytes_ordinary
+        env:
+          HEPTA_HIA_CORE_BYTES_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_BYTES_EVIDENCE: ${{ runner.temp }}/hia-core-bytes
+      - name: Native ordinary CLI inspect reports
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_cli_inspect_native
+        env:
+          HEPTA_HIA_CLI_INSPECT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CLI_INSPECT_EVIDENCE: ${{ runner.temp }}/hia-cli-inspect
+      - name: Native JSON wire component and matching production images
+        run: |
+          set -eu
+          unset HEPTA_HIA_AGENT_JSON_WIRE_DEVELOPMENT_COMPILER HEPTA_HIA_AGENT_JSON_WIRE_DEVELOPMENT_COMPILER_SHA256
+          python -B tools/build_hia_agent_json_wire.py --output "$RUNNER_TEMP/hia-agent-json-wire-production" --compiler "$RUNNER_TEMP/hia-cold.cold/qualification.evidence/B3.image.bin" --cold-report "$RUNNER_TEMP/hia-cold.json"
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_agent_json_wire
+          python -B - "$RUNNER_TEMP/hia-agent-json-wire-production" "$RUNNER_TEMP/hia-agent-json-wire" "$RUNNER_TEMP/hia-cold.cold/qualification.evidence/B3.image.bin" <<'PYWIRE'
+          from hashlib import sha256
+          import json
+          from pathlib import Path
+          import sys
+          production, fixture, compiler = map(Path, sys.argv[1:4])
+          manifest_path = production / 'manifest.json'
+          manifest_raw = manifest_path.read_bytes()
+          manifest = json.loads(manifest_raw)
+          paths = {'production_manifest': manifest_path, 'current_compiler': compiler,
+                   'fixture_B2': fixture / 'B2.image.bin',
+                   'production_image': production / manifest['image_path'],
+                   'fixture_image': fixture / 'agent-json-wire.image.bin'}
+          captured = {name: path.read_bytes() for name, path in paths.items()}
+          if (captured['current_compiler'] != captured['fixture_B2']
+                  or captured['production_image'] != captured['fixture_image']
+                  or sha256(captured['production_image']).hexdigest() != manifest['image_sha256']
+                  or sha256(captured['current_compiler']).hexdigest() != manifest['compiler_sha256']):
+              raise SystemExit('writer fixture images differ from current cold production build')
+          if any(path.read_bytes() != captured[name] for name, path in paths.items()):
+              raise SystemExit('writer production comparison inputs changed')
+          proof = {'schema': 'hepta.hia.agent-json-wire-production-comparison.v1',
+                   'status': 'CURRENT_COLD_AND_FIXTURE_IMAGES_BYTE_EQUAL',
+                   'files': {name: {'path': str(paths[name]), 'bytes': len(raw),
+                                   'sha256': sha256(raw).hexdigest()}
+                             for name, raw in captured.items()},
+                   'original_development_receipts_rewritten': False,
+                   'ordinary_Agent_wire_selected': False}
+          with (fixture / 'production-equivalence.json').open('x', encoding='utf-8') as stream:
+              stream.write(json.dumps(proof, indent=2, sort_keys=True) + '\n')
+          print(json.dumps({'status': proof['status']}, sort_keys=True))
+          PYWIRE
+        env:
+          HEPTA_HIA_AGENT_JSON_WIRE_EVIDENCE: ${{ runner.temp }}/hia-agent-json-wire
+      - name: Native SQLite platform production build and complete controls
+        run: |
+          set -eu
+          unset HIA_SQLITE_PLATFORM_TEST_DEVELOPMENT
+          python -B tools/build_hia_sqlite_store.py --output "$RUNNER_TEMP/hia-sqlite-platform-production" --compiler "$RUNNER_TEMP/hia-cold.cold/qualification.evidence/B3.image.bin" --cold-report "$RUNNER_TEMP/hia-cold.json" --sqlite-library /usr/lib/x86_64-linux-gnu/libsqlite3.so.0
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_sqlite_store tests.test_hia_sqlite_store_integration
+        env:
+          HIA_SQLITE_PLATFORM_TEST_BUILD: ${{ runner.temp }}/hia-sqlite-platform-production/build.json
+          HIA_SQLITE_PLATFORM_EVIDENCE: ${{ runner.temp }}/hia-sqlite-platform
+      - name: Standalone native complete Core admission CLI
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_admission_cli
+        env:
+          HEPTA_HIA_CORE_ADMISSION_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native snapshot-bound edits and complete Core patch CLI
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_patch_native tests.test_hia_core_patch_cli
+        env:
+          HEPTA_HIA_CORE_PATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_PATCH_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native ordinary Agent candidate bytes diagnostics and real crash cuts
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_agent_candidate_native tests.test_hia_core_patch_result_cli
+        env:
+          HEPTA_HIA_CORE_PATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_PATCH_RESULT_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native complete nominal types helpers constructor functions and outer lowering
+        run: |
+          python -B - <<'PYTYPES'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_composite_types_native',
+              'tests.test_hia_composite_origins_native',
+              'tests.test_hia_composite_signatures_native',
+              'tests.test_hia_task_helpers_native',
+              'tests.test_hia_composite_native_composition',
+              'tests.test_hia_composite_function_tokens',
+              'tests.test_hia_composite_function_admission',
+              'tests.test_hia_composite_function_protocol_audit',
+              'tests.test_hia_composite_function_terms_native',
+              'tests.test_hia_composite_functions_native',
+              'tests.test_hia_composite_public_lifecycle',
+              'tests.test_hia_composite_constructor_native',
+              'tests.test_hia_composite_constructor_integration',
+              'tests.test_hia_composite_outer_native',
+              'tests.test_hia_composite_outer_integration',
+              'tests.test_hia_composite_nominal_lifecycle'))
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYTYPES
+        env:
+          HEPTA_HIA_COMPOSITE_TYPES_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_TASK_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_FUNCTIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_CONSTRUCTOR_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_OUTER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-nominal-fixture
+      - name: Native worker request admission and ordinary request continuity
+        run: |
+          python -B - <<'PYREQUEST'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_worker_request_native',
+              'tests.test_hia_worker_request_review',
+          ))
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYREQUEST
+        env:
+          HEPTA_HIA_WORKER_REQUEST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native worker pinned helper custody and journal composition
+        run: |
+          python -B - <<'PYHELPERS'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_worker_native_helpers')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYHELPERS
+        env:
+          HEPTA_HIA_WORKER_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_REQUEST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native request journal decisions and actual SQL crash controls
+        run: |
+          python -B - <<'PYJOURNAL'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_agent_journal_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYJOURNAL
+        env:
+          HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native execution budgets and both request-journal lifecycles
+        run: |
+          python -B - <<'PYBUDGET'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_execution_budget_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYBUDGET
+        env:
+          HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-execution-budget
+      - name: Native candidate budgets and pinned state owner composition
+        run: |
+          python -B - <<'PYCANDIDATE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_candidate_budget_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYCANDIDATE
+        env:
+          HEPTA_HIA_CANDIDATE_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CANDIDATE_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-candidate-budget
+      - name: Native slot versions leases and original Agent transactions
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_slot_ledger_native tests.test_hia_slot_ledger_native_integration
+        env:
+          HEPTA_HIA_SLOT_LEDGER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CANDIDATE_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SLOT_LEDGER_EVIDENCE: ${{ runner.temp }}/hia-slot-ledger
+      - name: Native artifact pages and installed ordinary read callers
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_agent_read_native tests.test_hia_agent_read_native_integration
+        env:
+          HEPTA_HIA_AGENT_READ_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_READ_EVIDENCE: ${{ runner.temp }}/hia-agent-read
+      - name: Native complete edit queries and installed ordinary callers
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_agent_query_native tests.test_hia_agent_query_native_integration
+        env:
+          HEPTA_HIA_AGENT_QUERY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_QUERY_EVIDENCE: ${{ runner.temp }}/hia-agent-query
+      - name: Native Agent metadata, immutable tuple policy and selected signatures
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_agent_native_metadata tests.test_hia_agent_native_metadata_integration
+        env:
+          HEPTA_HIA_AGENT_NATIVE_METADATA_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_NATIVE_METADATA_EVIDENCE: ${{ runner.temp }}/hia-agent-native-metadata
+      - name: Ordinary Agent callers with native journal and retained owner forbidden
+        run: |
+          python -B tools/qualify_hia_agent_journal_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-journal-callers.json" \
+            --module tests.test_hia_agent_native_tools \
+            --module tests.test_hia_agent_native_proof_contract \
+            --module tests.test_hia_agent_native_lease_snapshot \
+            --module tests.test_hia_agent_native_machine_choices \
+            --module tests.test_hia_agent_native_campaign \
+            --module tests.test_hia_agent_candidate_native \
+            --module tests.test_hia_worker_request_native \
+            --module tests.test_hia_worker_request_review
+        env:
+          HEPTA_HIA_CORE_PATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_PATCH_RESULT_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_REQUEST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native immutable release installation and recovery observations
+        run: |
+          python -B - <<'PYINSTALL'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_release_install')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYINSTALL
+        env:
+          HEPTA_HIA_RELEASE_INSTALL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RELEASE_INSTALL_OBSERVATIONS: ${{ runner.temp }}/hia-release-install
+      - name: Native release selection CAS rollback and crash recovery
+        run: |
+          python -B - <<'PYSELECTION'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_release_selection',
+              'tests.test_hia_release_selection_review',
+          ))
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYSELECTION
+        env:
+          HEPTA_HIA_RELEASE_SELECTION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RELEASE_SELECTION_OBSERVATIONS: ${{ runner.temp }}/hia-release-selection
+      - name: Native retained retirement and real resource release controls
+        run: |
+          python -B - <<'PYRETIREMENT'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_retirement_state_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYRETIREMENT
+        env:
+          HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RETIREMENT_STATE_EVIDENCE: ${{ runner.temp }}/hia-retirement-state
+      - name: Native assembly source build and self-repacking
+        run: |
+          python -B - <<'PYSOURCEBUILD'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_source_build')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYSOURCEBUILD
+        env:
+          HEPTA_HIA_SOURCE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SOURCE_BUILD_OBSERVATIONS: ${{ runner.temp }}/hia-source-build
+      - name: Native raw JSON nominal packets and actual constructor ingress
+        run: |
+          python -B - <<'PYNOMINALJSON'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_nominal_json_native',
+              'tests.test_hia_nominal_json_constructor_ingress'))
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYNOMINALJSON
+        env:
+          HEPTA_HIA_NOMINAL_JSON_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_JSON_EVIDENCE: ${{ runner.temp }}/hia-nominal-json
+          HEPTA_HIA_NOMINAL_JSON_INGRESS_EVIDENCE: ${{ runner.temp }}/hia-nominal-json-ingress
+      - name: Preserve actual cold failure and stage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-native-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-cold.json
+            ${{ runner.temp }}/hia-cold.cold/
+            ${{ runner.temp }}/hia-language.json
+            ${{ runner.temp }}/hia-language.assertions.json
+            ${{ runner.temp }}/hia-language.evidence/
+            ${{ runner.temp }}/hia-nominal-fixture/
+            ${{ runner.temp }}/hia-module-projects/
+            ${{ runner.temp }}/hia-release-install/
+            ${{ runner.temp }}/hia-release-selection/
+            ${{ runner.temp }}/hia-retirement-state/
+            ${{ runner.temp }}/hia-source-build/
+            ${{ runner.temp }}/hia-selfhost-build/
+            ${{ runner.temp }}/hia-core-diagnostics/
+            ${{ runner.temp }}/hia-core-bytes/
+            ${{ runner.temp }}/hia-cli-inspect/
+            ${{ runner.temp }}/hia-agent-json-wire-production/
+            ${{ runner.temp }}/hia-agent-json-wire/
+            ${{ runner.temp }}/hia-sqlite-platform-production/
+            ${{ runner.temp }}/hia-sqlite-platform/
+            ${{ runner.temp }}/hia-execution-budget/
+            ${{ runner.temp }}/hia-candidate-budget/
+            ${{ runner.temp }}/hia-slot-ledger/
+            ${{ runner.temp }}/hia-agent-read/
+            ${{ runner.temp }}/hia-agent-query/
+            ${{ runner.temp }}/hia-agent-native-metadata/
+            ${{ runner.temp }}/hia-nominal-json/
+            ${{ runner.temp }}/hia-nominal-json-ingress/
+            ${{ runner.temp }}/hia-journal-callers.json
