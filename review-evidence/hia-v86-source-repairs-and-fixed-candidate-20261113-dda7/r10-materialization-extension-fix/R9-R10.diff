@@ -1,0 +1,12 @@
+--- materialize_candidate_r9.py
++++ materialize_candidate_r10.py
+@@ -489,6 +489,9 @@
+     check(len(original) == pin["prefix_bytes"] and oid("blob", original) == pin["blob"]
+           and sha(original) == pin["prefix_sha256"], "retained fragment bytes differ")
+     check(target.is_file() and not target.is_symlink(), "complete canonical program absent")
++    info = target.lstat()
++    check(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o644,
++          "complete canonical program mode differs")
+     actual = target.read_bytes()
+     check(len(actual) == pin["target_bytes"] and oid("blob", actual) == pin["target_blob"]
+           and sha(actual) == pin["target_sha256"], "complete canonical program bytes differ")

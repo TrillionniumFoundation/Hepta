@@ -1,0 +1,108 @@
+{
+  "added_functions": [
+    "prepare_candidate_tree"
+  ],
+  "changed_functions": [
+    "Capture.run",
+    "python_command",
+    "source_gate",
+    "main"
+  ],
+  "checked_boundaries": {
+    "all_anomaly_lists_refuse": true,
+    "complete_ordered_start_and_stop_required": true,
+    "credential_env_removed_and_authenticated_fetch_remains_https": true,
+    "local_file_protocol_only_explicit_Source_subprocess": true,
+    "local_file_protocol_rejects_auth_true": true,
+    "no_tree_commit_ref_API_write": true,
+    "original_frozen_ids_a733": 973,
+    "original_frozen_ids_main": 530,
+    "raw_worktree_checks_before_and_after_source_unchanged": true,
+    "source_exit_must_be_zero_and_report_PASS_and_no_timeout": true,
+    "source_false_is_SOURCE_FAIL_and_process_exit_one": true,
+    "source_false_skips_candidate_blob_upload": true,
+    "source_timeout_cleanup_seconds_per_signal": 3,
+    "source_timeout_seconds": 1800
+  },
+  "current_materialization_input": {
+    "blob": "9d4da8b2ad6755f0252712743c132737703cfaf7",
+    "bytes": 149551,
+    "sha256": "fd5439670cd39c740fe0daec5424578efad797400c895209d7dcbb3b43f612c4"
+  },
+  "finding": {
+    "after_source_blob": "684d9cebab563fb2d7ca0e4aae8f0deac28397be",
+    "after_source_bytes": 58467,
+    "current_row": {
+      "action": "relocate-exact-bytes",
+      "blob": "544235f7f1364b0956657888547465d527d62d9e",
+      "mode": "100644",
+      "path": "tools/hia_program_normalization_materialize.hiaasm",
+      "semantic_equivalence_claim": false,
+      "target": "tools/hia_program_normalization_materialize.hepta",
+      "target_preimage": null
+    },
+    "exact_refusals": [
+      "apply_sources relocate-exact-bytes: canonical target already differs",
+      "regenerate non-generated relocation: target blob must equal old blob"
+    ],
+    "kind": "new source delta requires an explicit physical-migration revision",
+    "preserved_prefix_bytes": 41578,
+    "preserved_prefix_sha256": "eb56e6922b6b47524ef7005bb15d886221e34deaa46794b7805ab819c6473008",
+    "proposal": "Introduce an explicitly pinned retained-fragment-closure action; at apply and retirement require exact old blob/length, exact new full blob, and new bytes starting with the entire old bytes. Do not label it byte-identical relocation or weaken ordinary Core admission."
+  },
+  "r7": {
+    "blob": "53aa71018420afd2db6a46e7afd2d66bbbe87274",
+    "bytes": 48319,
+    "sha256": "24735484c36cc79c94b1e22a9540331702b8b16b7d9802a36399fc56433edfc2"
+  },
+  "r8": {
+    "blob": "9434c7e7cc4cfc31cc57fd40557e4cb3b1b027fd",
+    "bytes": 47009,
+    "sha256": "9f350fdc898122dc2d9a3dcedd84f833500dde8f3ea8e5375a2a2cee20911a0a"
+  },
+  "removed_functions": [
+    "tree_api",
+    "upload_candidate_tree"
+  ],
+  "schema": "hepta.source-runner-r8-bounded-readonly-review.v1",
+  "scope": "read-only source/AST; no runner execution or Git mutation",
+  "selectors": 212,
+  "source_gate": {
+    "blob": "40b230288e6db39817aeee26b616d5a613af4f2c",
+    "bytes": 6837,
+    "sha256": "269f59f75f44a3a34cd62606caafcc9354d3bf62cee760d630c196b0c6dcabe4"
+  },
+  "status": "SPECIFIC_INTEGRATION_BLOCKER_IDENTIFIED",
+  "unchanged_function_asts": [
+    "check",
+    "sha",
+    "file_sha",
+    "oid",
+    "encoded_path",
+    "canonical",
+    "now",
+    "NoRedirect.redirect_request",
+    "Capture.__init__",
+    "Capture.put",
+    "Capture.json",
+    "Capture.git",
+    "Capture.object",
+    "Capture.tree",
+    "Capture.api",
+    "Capture.upload_blob",
+    "materialize_fixed_tree_blobs",
+    "strict_json",
+    "relative_path",
+    "fetch_blob",
+    "packet_rows",
+    "compose",
+    "initialize",
+    "write_source",
+    "apply_sources",
+    "syntax_all",
+    "regenerate",
+    "persist_evidence",
+    "assert_current_tree",
+    "snapshot_failure_or_terminal_sources"
+  ]
+}
