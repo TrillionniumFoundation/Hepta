@@ -1,0 +1,86 @@
+{
+  "schema": "hia.sqlite.varint.environment-envelope-correction.v1",
+  "status": "STATIC_READY_UNEXECUTED",
+  "old_request_status": "SOURCE8 already passed; R2 native owner, HIA compile, C compile and finite native remain zero.",
+  "observed_failure": {
+    "job": "1a1d36ef0ec-392-135",
+    "state": "failed",
+    "exit_code": 1,
+    "stderr_bytes": 1159,
+    "stderr_sha256": "139b5d710452075a3a5d85a1af4e5b320e2529248ceb63774a89535503779212",
+    "stdout_bytes": 0,
+    "timeout": false,
+    "automatic_retry": false
+  },
+  "code_boundary": {
+    "source": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r2/control/launch.py",
+    "sha256": "7acf022cc54e5b8ea7d70ced38beaa416d1412b6075ca088f93e9604e83f165e",
+    "guard": "dict(os.environ)==request['environment']",
+    "guard_precedes": [
+      "exact output nonexistence test",
+      "capacity and input reads",
+      "mkdir actual output",
+      "load_owner",
+      "run_owned",
+      "all compile and native child calls"
+    ]
+  },
+  "cause": "The h shell environment overlay is not an environment replacement. Root observed inherited shell entries. The original precise environment predicate is retained.",
+  "output_absence": {
+    "reader_job": "1a1d37107dd-392-138",
+    "exit_code": 0,
+    "stdout_original": "history/OUTPUT-ABSENCE.original.json",
+    "result": "lexists false"
+  },
+  "change": "One new external clean_exec.py reads and hashes the original LAUNCH.json, changes to its fixed cwd, and calls os.execve with the original argv and exact environment. No original request/control/inputs/budgets/output paths change.",
+  "new_launch": {
+    "schema": "hia.sqlite.varint.clean-invocation-envelope.v1",
+    "status": "UNEXECUTED_ROOT_UNIQUE_INVOCATION_REQUIRED",
+    "original_commit": "230e6a5ae80ad1725922fd99e49d1ba3069dd2d8",
+    "original_tree": "2ac3e8584a94ab3acefe70f04f2cc254038e8600",
+    "request": {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r2/REQUEST.json",
+      "bytes": 54493,
+      "sha256": "240668cfa71442794b24b435282e90e14cddaa6df0f60aaf048395b498f7e9e3"
+    },
+    "original_launch": {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r2/LAUNCH.json",
+      "bytes": 1350,
+      "sha256": "4d20ba4f51bc6655b6f733ead62442eb3c64e9e4e599d369fb6c9d2a71299d51"
+    },
+    "clean_exec": {
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r2-clean-launch-r1/clean_exec.py",
+      "bytes": 1486,
+      "sha256": "587c7c116fbf658eda630121c356925f42d68cb55273be9d42d2d30344aae387",
+      "git_blob": "24a529289225cf052b38f38723c9ffd535686c9d"
+    },
+    "argv": [
+      "/usr/bin/python3.14",
+      "-I",
+      "-S",
+      "-B",
+      "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r2-clean-launch-r1/clean_exec.py"
+    ],
+    "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r2",
+    "environment_before_execve": "Inherited shell environment is not treated as the final qualification environment; clean_exec replaces it with the exact SHA-bound original LAUNCH.environment.",
+    "environment_after_execve": {
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/usr/bin:/bin",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "TMPDIR": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r2-actual/tmp",
+      "TZ": "UTC"
+    },
+    "qualification_seconds": 180,
+    "cleanup_seconds": 3,
+    "owner_compile_native_invocations_before_this_envelope": 0,
+    "actual_output": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r2-actual",
+    "failed_shell_job": "1a1d36ef0ec-392-135",
+    "old_attempt_replayed": false,
+    "frozen_inputs_unchanged": 94,
+    "original_control_directory_unchanged": 10
+  },
+  "controls": "Only static syntax and raw readback are allowed during authoring; this envelope and qualification have not been executed.",
+  "unknown_boundaries": "Old cloud R1, old g3:24, old original48 publication and reader R4 remain unchanged and are not replayed."
+}
