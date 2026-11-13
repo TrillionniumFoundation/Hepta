@@ -1,0 +1,15 @@
+{
+  "complete_archive_members_expected": 45,
+  "corrected_actual_reader_command": "python3 -I -S -B audit_actual_r2.py --collect --check-live-inputs --output AUDIT-r2.json",
+  "live_input_option": "--check-live-inputs additionally requires original fixed paths and reads the complete pinned interpreter and eleven control files; no executable is invoked.",
+  "original_reader_command": "python3 -I -S -B audit_actual.py --collect --check-live-inputs --output AUDIT.json",
+  "original_reader_result": "HOLD only because the expected original output also has an empty tmp directory; report and source are preserved.",
+  "original_runtime_binary_archived": false,
+  "original_runtime_full_read_performed": true,
+  "portable_evidence_replay_command": "python3 -I -S -B audit_actual_r2.py --root RESTORED_ROOT --output NEW_AUDIT_OUTPUT.json",
+  "restoration": "Concatenate decoded ordered archive parts, verify complete gzip seal, then inspect every original tar member against ARCHIVE-MANIFEST.json before restoring regular files to a fresh directory. Never execute embedded Root invoker or any original control as part of readback.",
+  "schema": "hia.source24-r3.actual-replay.v1",
+  "scope": "Read already completed evidence only; never execute frozen controls or owner.",
+  "source_control_parent": "c448d90f6bc7ec8db4dab3d11d85c20a89b55aa9",
+  "source_control_parent_tree": "8983e55a8e2d58f39756bc5b825a004be40cbaf2"
+}
