@@ -1,0 +1,243 @@
+--- r2/POLICY.json
++++ r3/POLICY.json
+@@ -158,7 +158,7 @@
+     "owner_seconds": 900
+   },
+   "mandatory_source_controls": {
+-    "actual_root": "/tmp/hia-v92-three-view-source20-r2-20261113-e26e",
++    "actual_root": "/tmp/hia-v92-three-view-source20-r3-20261113-e26e",
+     "expected_ids": [
+       "StoredContainerControls.test_01_cross_boundary_seek_exact_whole_original",
+       "StoredContainerControls.test_02_all_fourteen_bodies_and_signed_descriptors",
+@@ -254,14 +254,14 @@
+       "offset": 536870912,
+       "ordinal": 2,
+       "sha256": "f0ef391b9bab1fa1cbfd968309f9b9626841659ccae7b52b1741a5812b8c5e11",
+-      "volume": "tmp"
++      "volume": "workspace"
+     }
+   ],
+   "prior_small_canonical": "b32b3e5ff65e8161cd705c3e90724559c7aa04a8",
+   "private_inputs": "Only mode0600 owned single-link exact external refs/proxy bytes; opaque SHA/runtime identity accepted on fixed launch argv. Original values never public.",
+   "product_execution_permitted": false,
+   "provider_references_path": "/tmp/hia-v92-three-view-provider-refs-r1-20261113-e26e.private.json",
+-  "proxy_configuration_path": "/tmp/hia-v92-three-view-original-proxy-r1-20261113-e26e.private.json",
++  "proxy_configuration_path": "/tmp/hia-v92-three-view-original-proxy-r3-20261113-e26e.private.json",
+   "receiver": {
+     "attempt": 1,
+     "control_commit": "89aa086c8e345ecae66cb32a2dd9ff39fe1f35de",
+@@ -310,7 +310,7 @@
+   "volumes": {
+     "tmp": {
+       "limits": {
+-        "container": 388732524,
++        "container": 268838037,
+         "inodes": 4096,
+         "metadata": 8388608,
+         "parent": 8388608,
+@@ -323,7 +323,7 @@
+     },
+     "workspace": {
+       "limits": {
+-        "container": 268838053,
++        "container": 388732540,
+         "inodes": 4096,
+         "metadata": 67108864,
+         "parent": 16777216,
+--- r2/CONTROL-REQUEST.json
++++ r3/CONTROL-REQUEST.json
+@@ -5,7 +5,7 @@
+     "-I",
+     "-S",
+     "-B",
+-    "/home/agent/hia-v92-three-view-plan-r2-20261113-e26e/controls/run_controls.py"
++    "/home/agent/hia-v92-three-view-plan-r3-20261113-e26e/controls/run_controls.py"
+   ],
+   "environment": {
+     "LANG": "C.UTF-8",
+@@ -39,8 +39,8 @@
+   ],
+   "inputs": {
+     "POLICY.json": {
+-      "bytes": 13084,
+-      "sha256": "053ef7a72f8502378061b21606ebb8f30195f7cfffe3d8354cce7be7fa5bcf10"
++      "bytes": 13090,
++      "sha256": "9740c6b3808bd5561978e6e547f118042e69de01bbe6ff5b5a538045fb4e0ee7"
+     },
+     "control/common.py": {
+       "bytes": 11402,
+@@ -183,8 +183,8 @@
+   "minimum_free_bytes": 134217728,
+   "minimum_free_inodes": 4096,
+   "network_used": false,
+-  "operation_root": "/tmp/hia-v92-three-view-source20-r2-20261113-e26e",
+-  "output": "/tmp/hia-v92-three-view-source20-r2-20261113-e26e/tests",
++  "operation_root": "/tmp/hia-v92-three-view-source20-r3-20261113-e26e",
++  "output": "/tmp/hia-v92-three-view-source20-r3-20261113-e26e/tests",
+   "private_inputs_captured": false,
+   "product_execution": false,
+   "qualification_seconds": 20,
+@@ -207,6 +207,6 @@
+     "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7"
+   },
+   "schema": "hia.v92-three-view-source20-request.v1",
+-  "scope": "The same20 synthetic tiny-file boundary controls under a new physical storage binding. All20 must execute under the original20/3 owner in the separate r2 output; r1 actualPASS is retained, not adopted. No receiver, network, private capture or product execution. FROZEN_UNEXECUTED.",
++  "scope": "The same20 synthetic tiny-file controls under a new R3 metadata binding, including the new proxy input path and part02 home-volume allocation. All20 must execute under the original20/3 owner in separate r3 output. R1/R2 actual source PASS and R2 environment preflight HOLD remain historical, not adopted. No receiver, network, private capture or product execution. FROZEN_UNEXECUTED.",
+   "status": "FROZEN_UNEXECUTED"
+ }
+--- r2/CONTROL-LAUNCH.json
++++ r3/CONTROL-LAUNCH.json
+@@ -5,9 +5,9 @@
+     "-I",
+     "-S",
+     "-B",
+-    "/home/agent/hia-v92-three-view-plan-r2-20261113-e26e/controls/launch_controls.py"
++    "/home/agent/hia-v92-three-view-plan-r3-20261113-e26e/controls/launch_controls.py"
+   ],
+-  "cwd": "/home/agent/hia-v92-three-view-plan-r2-20261113-e26e",
++  "cwd": "/home/agent/hia-v92-three-view-plan-r3-20261113-e26e",
+   "environment": {
+     "LANG": "C.UTF-8",
+     "LC_ALL": "C.UTF-8",
+@@ -19,9 +19,9 @@
+   "executions_authorized_by_this_file": 0,
+   "owner_seconds": 20,
+   "request": {
+-    "bytes": 8655,
+-    "git_blob_sha1": "acf9aa910ec98832d7428a1fc844de608c8febee",
+-    "sha256": "252e4aba13964c45d1515334b825a16a214200d61ed5e6685f28d35072d353e6"
++    "bytes": 8758,
++    "git_blob_sha1": "551a554e175f012f757cdd730b0e5c83f9474f9e",
++    "sha256": "94b414f4c848fa164ce4948f06e33965ab4cf7010f605bed9fa627e63c82de49"
+   },
+   "schema": "hia.exact-one-source20-launch.v1"
+ }
+--- r2/REQUEST.json
++++ r3/REQUEST.json
+@@ -210,13 +210,13 @@
+       "offset": 536870912,
+       "ordinal": 2,
+       "sha256": "f0ef391b9bab1fa1cbfd968309f9b9626841659ccae7b52b1741a5812b8c5e11",
+-      "volume": "tmp"
++      "volume": "workspace"
+     }
+   ],
+   "policy": {
+-    "bytes": 13084,
+-    "git_blob_sha1": "62f3ce93c6f54a356f98ee80222025c08523f87a",
+-    "sha256": "053ef7a72f8502378061b21606ebb8f30195f7cfffe3d8354cce7be7fa5bcf10"
++    "bytes": 13090,
++    "git_blob_sha1": "ca5e17ee6580e18d9455de9eb0f0de04ced64264",
++    "sha256": "9740c6b3808bd5561978e6e547f118042e69de01bbe6ff5b5a538045fb4e0ee7"
+   },
+   "private_input_capture_required_before_invocation": true,
+   "private_input_shapes": {
+@@ -241,15 +241,15 @@
+       "receiver_run_id": 43338002642,
+       "schema": "hia.v92.three-official-provider-references.v1"
+     },
+-    "proxy": "Reuse the exact existing Root r1 private proxy file, opaque receipt 3426B/99844e0230469a6e614f6e1e3d35be0b0b0bab87109044053785266d9770eaaf, because operation_root and private paths remain unchanged. No recapture. The unchanged launcher must still seal it, bind its whole identity, and compare it with the actual inherited configuration."
++    "proxy": "After R3 source20 is accepted, Root creates one new mode0600 private proxy input at /tmp/hia-v92-three-view-original-proxy-r3-20261113-e26e.private.json from the actual inherited environment, preserving the old r1 capture. Capture and unique receiver invocation are performed continuously within the same inheriting Root process. The unchanged full fresh equality remains mandatory. The existing three provider references at /tmp/hia-v92-three-view-provider-refs-r1-20261113-e26e.private.json (1562 bytes/SHA256 89ac4f110cc6e3d5c4dc2471f3ecd801200b479bba06f0ba6c5fffd548cf8606) must be reused; no provider reference is acquired again. Opaque private seals only; no secret body or URL enters public evidence."
+   },
+   "receiver_execution_permitted_only_by_separate_root_authorization": true,
+   "root_cause_original_native42": "UNKNOWN until actual step42 originals read",
+   "schema": "hia.v92.three-container-view-readonly-request.v1",
+   "source20_request": {
+-    "bytes": 8655,
+-    "git_blob_sha1": "acf9aa910ec98832d7428a1fc844de608c8febee",
+-    "sha256": "252e4aba13964c45d1515334b825a16a214200d61ed5e6685f28d35072d353e6"
++    "bytes": 8758,
++    "git_blob_sha1": "551a554e175f012f757cdd730b0e5c83f9474f9e",
++    "sha256": "94b414f4c848fa164ce4948f06e33965ab4cf7010f605bed9fa627e63c82de49"
+   },
+   "source_only_validation_pending": true,
+   "status": "FROZEN_UNEXECUTED",
+@@ -257,7 +257,7 @@
+   "volumes": {
+     "tmp": {
+       "limits": {
+-        "container": 388732524,
++        "container": 268838037,
+         "inodes": 4096,
+         "metadata": 8388608,
+         "parent": 8388608,
+@@ -270,7 +270,7 @@
+     },
+     "workspace": {
+       "limits": {
+-        "container": 268838053,
++        "container": 388732540,
+         "inodes": 4096,
+         "metadata": 67108864,
+         "parent": 16777216,
+--- r2/LAUNCH.json
++++ r3/LAUNCH.json
+@@ -4,18 +4,18 @@
+     "-I",
+     "-S",
+     "-B",
+-    "/home/agent/hia-v92-three-view-plan-r2-20261113-e26e/control/launch.py"
++    "/home/agent/hia-v92-three-view-plan-r3-20261113-e26e/control/launch.py"
+   ],
+   "cleanup_seconds": 3,
+-  "cwd": "/home/agent/hia-v92-three-view-plan-r2-20261113-e26e",
++  "cwd": "/home/agent/hia-v92-three-view-plan-r3-20261113-e26e",
+   "environment": "inherit current original proxy/CA only for launcher preflight; frozen launch constructs public worker env without proxy URLs",
+   "executions_authorized_by_this_file": 0,
+   "global_complete_seconds": 720,
+   "owner_seconds": 900,
+   "request": {
+-    "bytes": 9982,
+-    "git_blob_sha1": "beae212469a36085562d61882c7ddeb3d68a82d6",
+-    "sha256": "7df38ef507dadfd7900c569f18e78ed95641cfb2663c50884001ba0f155cbdc2"
++    "bytes": 10359,
++    "git_blob_sha1": "df5f2e8f773f7f95deaeee3f4011d8a72b67830b",
++    "sha256": "c18f8115b0ffc8fd19402ff0b1eabde7a49e0e3407357de1bb775027c720d955"
+   },
+   "required_final_argv": [
+     "--provider-references-sha256",
+--- r2/CAPACITY-PROOF.json
++++ r3/CAPACITY-PROOF.json
+@@ -5,32 +5,32 @@
+   "temporary_overflow_or_same_device_fallback_permitted": false,
+   "volumes": {
+     "tmp": {
+-      "container_bytes": 388732524,
++      "container_bytes": 268838037,
+       "device": 39,
+       "fresh_check_required_at_launch_and_each_read_write": true,
+       "metadata_maximum": 8388608,
+       "minimum_free_inodes": 4096,
+-      "minimum_start_free_bytes": 1076598380,
+-      "observed_authoring_free_bytes": 1087447040,
+-      "observed_authoring_free_inodes": 1251391,
++      "minimum_start_free_bytes": 956703893,
++      "observed_authoring_free_bytes": 1070391296,
++      "observed_authoring_free_inodes": 1250660,
+       "parent": "/tmp",
+       "parent_metadata_maximum": 8388608,
+-      "persistent_total_maximum": 539727468,
++      "persistent_total_maximum": 419832981,
+       "reserve": 536870912,
+       "selected_maximum": 134217728
+     },
+     "workspace": {
+-      "container_bytes": 268838053,
++      "container_bytes": 388732540,
+       "device": 41,
+       "fresh_check_required_at_launch_and_each_read_write": true,
+       "metadata_maximum": 67108864,
+       "minimum_free_inodes": 4096,
+-      "minimum_start_free_bytes": 889595045,
+-      "observed_authoring_free_bytes": 5089193984,
+-      "observed_authoring_free_inodes": 1274818,
++      "minimum_start_free_bytes": 1009489532,
++      "observed_authoring_free_bytes": 5079121920,
++      "observed_authoring_free_inodes": 1274484,
+       "parent": "/home/agent",
+       "parent_metadata_maximum": 16777216,
+-      "persistent_total_maximum": 352724133,
++      "persistent_total_maximum": 472618620,
+       "reserve": 536870912,
+       "selected_maximum": 0
+     }
