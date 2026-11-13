@@ -1,0 +1,115 @@
+{
+  "schema": "hia.cli-source-seven-r2b-two-delta-independent-static-review.v1",
+  "status": "STATIC_CLEAR_LIMITED_TWO_CONTROL_CORRECTIONS",
+  "reviewer": "hia_remote_audit",
+  "read_scope": "Complete actual new worker/guardian, supplied unified patches and control delta metadata, actual original Source8 guard; exact comparison against the already-read r2 whole bodies and original369 owner. No r2b full request/canonical population re-review or execution.",
+  "frozen_root": "/home/qq/hia-rewrite-20261113-e26e-r1/cli-source-seven-r2b",
+  "prior_review": {
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/pc-dispatch-r1/peer-cli-source-seven-r2-static-review.json",
+    "bytes": 32311,
+    "sha256": "69cfc75aea6bbcc6ecccd597e1915750c81938ca426d717c97e5e16f4cbb7b9c",
+    "git_blob_sha1": "cc54ce2001f85ea227f2b2f3c63bb49cc9633a37",
+    "status": "STATIC_HOLD preserved, not rewritten"
+  },
+  "files": [
+    {
+      "path": "control/source_authoring_worker.py",
+      "bytes": 16240,
+      "sha256": "04004bc113780cee7eb3cadb769f37670f5a8a4f1378a50d9018296e6b2c99ea",
+      "git_blob_sha1": "7e1c20e070adae287091b620d039855137c1af11"
+    },
+    {
+      "path": "control/guardian.py",
+      "bytes": 12515,
+      "sha256": "5080d13fff9eab7396f13aecb1417c640d7fd3f49aefadbcec5606b5aec3ce88",
+      "git_blob_sha1": "b14b52cfdb4e1cf4a081d8cb21784f3128ba2375"
+    },
+    {
+      "path": "proof/WORKER-DELTA.patch",
+      "bytes": 6409,
+      "sha256": "32bdf58c3f0fff86d59b79af9940a653ad9a3ecd87ce460560a2f53aeb583d6b",
+      "git_blob_sha1": "28aa5d3fc75cf224022cc7f72761753a73def8bd"
+    },
+    {
+      "path": "proof/GUARDIAN-DELTA.patch",
+      "bytes": 4522,
+      "sha256": "c4e586cc16102b9401fdaab5713d6e2e9edda5f75704659a72943651f33621e8",
+      "git_blob_sha1": "f70be79bdf84ba94e60080e8bc66bd466cae717c"
+    },
+    {
+      "path": "proof/CONTROL-DELTA.json",
+      "bytes": 2549,
+      "sha256": "8048b432cba37f984529ff5eabc58a3a67d90df74031ea610d54dfe38aac76d8",
+      "git_blob_sha1": "7720e86a12ad0355283d93784774299bd5c8df8e"
+    },
+    {
+      "path": "reference/source8-worker.original.py",
+      "bytes": 8926,
+      "sha256": "239120dbc00a2ee2459c34908413133d249511cc40b5abf2a80c5ce9616f1138",
+      "git_blob_sha1": "8e19d3496dbf5cec7ea413445bb8c54ad3466cc2"
+    }
+  ],
+  "mechanical": [
+    {
+      "file": "control/source_authoring_worker.py",
+      "before": {
+        "bytes": 13466,
+        "sha256": "c96e626903390310dd42c987285fcbd135de69023811878a9331f28eb46341c6",
+        "git_blob_sha1": "82df8e361168c78cc13e18ee39ce2adb67de20ab"
+      },
+      "after": {
+        "bytes": 16240,
+        "sha256": "04004bc113780cee7eb3cadb769f37670f5a8a4f1378a50d9018296e6b2c99ea",
+        "git_blob_sha1": "7e1c20e070adae287091b620d039855137c1af11"
+      },
+      "patch": {
+        "bytes": 6409,
+        "sha256": "32bdf58c3f0fff86d59b79af9940a653ad9a3ecd87ce460560a2f53aeb583d6b",
+        "git_blob_sha1": "28aa5d3fc75cf224022cc7f72761753a73def8bd"
+      },
+      "exact_forward_patch": true
+    },
+    {
+      "file": "control/guardian.py",
+      "before": {
+        "bytes": 10257,
+        "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023",
+        "git_blob_sha1": "1a7b8588871d1a0eb485dacc2dac2f1fe373b8a7"
+      },
+      "after": {
+        "bytes": 12515,
+        "sha256": "5080d13fff9eab7396f13aecb1417c640d7fd3f49aefadbcec5606b5aec3ce88",
+        "git_blob_sha1": "b14b52cfdb4e1cf4a081d8cb21784f3128ba2375"
+      },
+      "patch": {
+        "bytes": 4522,
+        "sha256": "c4e586cc16102b9401fdaab5713d6e2e9edda5f75704659a72943651f33621e8",
+        "git_blob_sha1": "f70be79bdf84ba94e60080e8bc66bd466cae717c"
+      },
+      "exact_forward_patch": true
+    }
+  ],
+  "resolved_findings": [
+    {
+      "id": "F1",
+      "finding": "Zero-effect declarations were not enforced.",
+      "review": "Standard-library ctypes/mmap/socket/subprocess are loaded first; then the audit hook and native/compiler/process/network/mmap denials precede every project import, including the preflight image module. NativeHiaJsonImage.__init__ is poisoned before any author import. All caught attempts append to the retained original list; successful source result requires installed guard and an empty ledger, and final scope flags are false only when that conjunction and list identity hold. Otherwise flags remain null and final status HOLD.",
+      "qualification": "This is the actual Source8 pattern adapted to seven source authors, not a claim that standard CPython itself stops using native machine code or an arbitrary malicious-process sandbox. No effect denial was executed by this static review."
+    },
+    {
+      "id": "F2",
+      "finding": "Unconfirmed cleanup still opened child log bodies.",
+      "review": "The guardian now binds the direct supervise result's current PID,parent PID,distinct lifecycle schema and original budgets, then requires subreaper/complete/ECHILD/leader reaped/remaining[]/errors[]/cleanup deadlinefalse before reading any source-after or childlog body. The original369 implementation returns those fields from the actual direct invocation. Closed nonzero owners retain complete readable logs while classification remains HOLD. Unknown closure yields explicit UNREAD with only fixed path metadata and parent receipt; read failure on a closed owner remains HOLD.",
+      "qualification": "No body-read permission derives merely from status or from a false success declaration. This does not assert a new actual cleanup result."
+    }
+  ],
+  "preservation": {
+    "seven_component_tuple_and_nine_limits_literal_unchanged": true,
+    "measurement_generation_Core_body_and_roundtrip_unchanged": true,
+    "retained_17_and46_not_executed": true,
+    "original_180_and3_unchanged": true,
+    "r2_originals_not_modified_by_reviewer": true,
+    "source_or_CoreVM_or_native_runs_by_reviewer": 0
+  },
+  "remaining_authority": "Root must verify final r2b request/config/full pins and invoke at most its separately authorized new source request. This receipt does not authorize execution or upgrade r2."
+}

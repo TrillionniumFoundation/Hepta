@@ -1,0 +1,47 @@
+{
+  "builder_whole_bytes_unchanged": true,
+  "changed_source": [
+    {
+      "after": "    if valid == False:\n",
+      "after_pin": {
+        "bytes": 14924,
+        "git_blob": "a112bde4fcd119033a74a5f345916cc3e2351990",
+        "sha256": "b299f48c1277a7adc7e736a19a2297f1bc8536dfbd381cf6e928df6f28c34c69"
+      },
+      "before": "    if not valid:\n",
+      "before_pin": {
+        "bytes": 14919,
+        "git_blob": "55f271211c748672522095e71a3e387b3a1e658c",
+        "sha256": "e2f312acf117bb9c366d86b24dbd99fb93ab25cf42481b81ddbeee3b6c4d9601"
+      },
+      "path": "tools/generate_hia_cli_json_py312_call_fast.py"
+    }
+  ],
+  "new_unary_operators": [],
+  "old_unary_operators": [
+    {
+      "ast": "UnaryOp(op=Not(), operand=Name(id='valid', ctx=Load()))",
+      "component": "call_fast",
+      "line_in_SOURCE": 189
+    }
+  ],
+  "original7_components9_caps17_CLI46_trace_ids_unchanged": true,
+  "original_request": {
+    "audit_sha256": "0a11edcdab0d5665605136a6041c412ce5f3e47dac28036ea6349e61ae41aada",
+    "components_expected": 7,
+    "components_passed": 6,
+    "executions": 1,
+    "guardian_sha256": "45d3891c6335afa33cb351e88ae9e58348928dbfefcc6701ce3d42f6e62e97ce",
+    "originals_unmodified": true,
+    "report_sha256": "f27ca7abc1c88d9158ea8ccce2c7c3042c0c858f6edc6961f9688c7d2c364329",
+    "request_sha256": "16d1060daeb210aa2dc3ac07e7e4f0175e53909b5feb1ec86bdf349fffe95309",
+    "status": "HOLD"
+  },
+  "other197_sources_whole_bytes_unchanged": true,
+  "reason": "Original Builder lacks ast.Not; exact bool local valid is now compared with False using its existing bool Constant and compare.eq support.",
+  "schema": "hia.cli-json.source-seven.r3.source-correction.v1",
+  "source_files": 198,
+  "source_generation_Core_caps_native_not_executed_by_freeze": true,
+  "status": "STATIC_SOURCE_CORRECTION_UNEXECUTED",
+  "valid_domain": "Only boolean comparison and and results; no foreign truth hook, operand evaluation or effect ordering is changed."
+}

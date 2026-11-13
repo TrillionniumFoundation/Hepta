@@ -1,0 +1,20 @@
+--- r2c/source_authoring_worker.py
++++ r3/source_authoring_worker.py
+@@ -23,7 +23,7 @@
+ import traceback
+ 
+ 
+-SCHEMA = 'hia.cli-json.call-send-source-seven.r2c.v1'
++SCHEMA = 'hia.cli-json.call-send-source-seven.r3.v1'
+ COMPONENTS = (('body', 'tools.generate_hia_cli_json_py312_body'), ('unpack', 'tools.generate_hia_cli_json_py312_unpack'), ('call_dispatch', 'tools.generate_hia_cli_json_py312_call_dispatch'), ('call', 'tools.generate_hia_cli_json_py312_call'), ('call_fast', 'tools.generate_hia_cli_json_py312_call_fast'), ('call_prologue', 'tools.generate_hia_cli_json_py312_call_prologue'), ('send', 'tools.generate_hia_cli_json_py312_send'))
+ 
+ LIMITS = {
+@@ -161,7 +161,7 @@
+     output = Path(sys.argv[2]).absolute()
+     configuration_record, configuration_raw = file_record(configuration)
+     config = json.loads(configuration_raw)
+-    if config['schema'] != 'hia.cli-json.call-send-source-seven.request.r2c.v1':
++    if config['schema'] != 'hia.cli-json.call-send-source-seven.request.r3.v1':
+         raise ValueError('source-only configuration schema differs')
+     if config['components'] != [list(row) for row in COMPONENTS] or config['limits'] != LIMITS:
+         raise ValueError('source-only fixed denominator or original caps differ')
