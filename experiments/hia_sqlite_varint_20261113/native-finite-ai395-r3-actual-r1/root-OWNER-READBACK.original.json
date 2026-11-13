@@ -1,0 +1,156 @@
+{
+  "schema": "hia.root.varint-r3-owner-and-result-readback.v1",
+  "status": "FINITE_NATIVE_VARINT_AND_TWO_ORACLES_PASS_ONLY",
+  "h_job": "1a1d3982738-392-17a",
+  "request_sha256": "0f749e45d07d9d6e65c4e54a237d63a1c9b5277c8de8a72f8aac1f35ffa58ee8",
+  "canonical_request": "20ed766585f446d311ba3beb0812095e3ae798a2",
+  "owner": {
+    "status": "OWNED_PROCESS_COMPLETED",
+    "returncode": 0,
+    "closed": true,
+    "natural": true,
+    "qualification_seconds": 180,
+    "cleanup_seconds": 3,
+    "events": [
+      {
+        "kind": "qualification_started",
+        "monotonic_ns": 1577096149204829,
+        "pid": 2626998
+      },
+      {
+        "kind": "owned_child_observed",
+        "monotonic_ns": 1577096149236738,
+        "pgid": 2626997,
+        "pid": 2626998,
+        "ppid": 2626997,
+        "sid": 2626997,
+        "start_ticks": 157709614
+      },
+      {
+        "kind": "qualification_exit_observed",
+        "monotonic_ns": 1577106597025272,
+        "pid": 2626998,
+        "si_code": 1,
+        "si_status": 0
+      },
+      {
+        "kind": "owned_child_reaped",
+        "monotonic_ns": 1577106604388621,
+        "pid": 2626998,
+        "returncode": 0,
+        "start_ticks": 157709614
+      }
+    ],
+    "cleanup": {
+      "attempted": true,
+      "complete": true,
+      "deadline_exceeded": false,
+      "elapsed_ns": 11484233,
+      "errors": [],
+      "leader_reaped": true,
+      "observed_echild": true,
+      "remaining_direct_children": [],
+      "started_ns": 1577106597029772
+    },
+    "original_files": [
+      {
+        "path": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r3-actual/lifecycle.json",
+        "bytes": 1491,
+        "sha256": "363380122d0547140ee14d104f8b81ff7e568e10f5a4138dc690ddb424ca8654"
+      },
+      {
+        "path": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r3-actual/lifecycle.json.request.json",
+        "bytes": 1060,
+        "sha256": "942118187eff27f2e9e080c3a6f4be1be38580bfc98ea899d41be65754e9bc4a"
+      },
+      {
+        "path": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r3-actual/OWNER-RETURN.json",
+        "bytes": 2011,
+        "sha256": "6dffedddd69830767fe9c1af1e086c553d47bad4bf6b531e7b936206ee5a4d11"
+      }
+    ],
+    "original_command": [
+      "/usr/bin/python3.14",
+      "-I",
+      "-S",
+      "-B",
+      "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r3/control/worker.py",
+      "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r3/REQUEST.json",
+      "0f749e45d07d9d6e65c4e54a237d63a1c9b5277c8de8a72f8aac1f35ffa58ee8"
+    ],
+    "original_environment": {
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PATH": "/usr/bin:/bin",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "TMPDIR": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r3-actual/tmp",
+      "TZ": "UTC"
+    }
+  },
+  "result": {
+    "FINAL": {
+      "bytes": 100631,
+      "sha256": "a77c2b6f06ff8e44858a2a5868cfac9f243c1ece55d75742b70703376bc5ce75"
+    },
+    "WORKER": {
+      "bytes": 101799,
+      "sha256": "46cc94335b1781687d0f1e4a5f2da843f35b1fca89f24af67b32d44c3d377f0c"
+    },
+    "native_report": {
+      "bytes": 2008529,
+      "git_blob": "6ef85f5039d15f490d657e845326f6b97db5efc6",
+      "identity": [
+        66306,
+        79709146,
+        33152,
+        1000,
+        1000,
+        1,
+        2008529,
+        1794551341699795200,
+        1794551341699795200
+      ],
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/varint-native-r3-actual/native/REPORT.json",
+      "sha256": "b283122887db83d698bbecd9cadd4c6bff9370af1c6cdd416a007c94ddb987a4"
+    },
+    "outer_elapsed_ns": 13835247729,
+    "worker_elapsed_ns": 10392139437,
+    "trace_bytes": 207481528,
+    "trace_records": 152108,
+    "native_returns": 76054,
+    "method_counts": {
+      "tests.hia_sqlite_varint_native_finite_r2.SQLiteVarintNativeTests.test_01_original_1618_complete_VM_buffers": 1618,
+      "tests.hia_sqlite_varint_native_finite_r2.SQLiteVarintNativeTests.test_02_all_65536_initialized_two_byte_prefixes": 65536,
+      "tests.hia_sqlite_varint_native_finite_r2.SQLiteVarintNativeTests.test_03_fixed_4096_full_u64_roundtrips": 8192,
+      "tests.hia_sqlite_varint_native_finite_r2.SQLiteVarintNativeTests.test_04_public_bridge_boundaries_and_nonminimal": 597,
+      "tests.hia_sqlite_varint_native_finite_r2.SQLiteVarintNativeTests.test_05_public_truncation_and_capacity": 108,
+      "tests.hia_sqlite_varint_native_finite_r2.SQLiteVarintNativeTests.test_06_foreign_types_exception_identity_and_canaries": 3,
+      "tests.hia_sqlite_varint_native_finite_r2.SQLiteVarintNativeTests.test_07_two_original_C_oracles_and_sources": 0,
+      "tests.hia_sqlite_varint_native_finite_r2.SQLiteVarintNativeTests.test_08_original_caps_and_source_population": 0
+    },
+    "oracle_counts": {
+      "3.46.0": {
+        "get": 71045,
+        "not_called": 66,
+        "put": 4943
+      },
+      "3.53.2": {
+        "get": 71045,
+        "not_called": 66,
+        "put": 4943
+      }
+    },
+    "image_bytes": 14508,
+    "image_sha256": "b5dfd6aeceb5d2ae5db59e2db831a776f432f36dea8be7a1596cc1b4c295e3b5"
+  },
+  "scope": {
+    "matching_cold_qualification": false,
+    "SQL_engine_or_durability_qualification": false,
+    "source8_reexecuted": false,
+    "existing_persistence_methods_preserved_not_executed": 59,
+    "prior_R2_FAIL_unchanged": true,
+    "root_full_native_report_and_trace_readback": "Delegated once to cold_ci_closure after exact owner closure; not yet claimed by this record."
+  },
+  "identity_note": "Original raw JSON files retain exact integer identities. Parsed JS projections in this operator record and its intent are not the authority for nanosecond file-identity fields; original Python checks and raw files are authoritative."
+}

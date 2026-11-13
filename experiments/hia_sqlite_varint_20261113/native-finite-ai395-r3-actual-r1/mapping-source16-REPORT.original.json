@@ -1,0 +1,314 @@
+{
+  "actual_ids": [
+    "named_current_image",
+    "unnamed_current_image",
+    "wrong_entry_address",
+    "wrong_object_length",
+    "writable_bound_segment",
+    "oversized_span",
+    "gapped_segment",
+    "nonzero_offset",
+    "wrong_deleted_backing",
+    "unbound_deleted_file",
+    "unbound_exec_anon",
+    "backing_alias",
+    "image_object_bytes_mismatch",
+    "entry_address_bytes_mismatch",
+    "entry_changed_after_read",
+    "wrapper_changed_after_read"
+  ],
+  "denied_effects": [],
+  "elapsed_ns": 4405603,
+  "exception": null,
+  "expected_ids": [
+    "named_current_image",
+    "unnamed_current_image",
+    "wrong_entry_address",
+    "wrong_object_length",
+    "writable_bound_segment",
+    "oversized_span",
+    "gapped_segment",
+    "nonzero_offset",
+    "wrong_deleted_backing",
+    "unbound_deleted_file",
+    "unbound_exec_anon",
+    "backing_alias",
+    "image_object_bytes_mismatch",
+    "entry_address_bytes_mismatch",
+    "entry_changed_after_read",
+    "wrapper_changed_after_read"
+  ],
+  "loaded_ids": [
+    "named_current_image",
+    "unnamed_current_image",
+    "wrong_entry_address",
+    "wrong_object_length",
+    "writable_bound_segment",
+    "oversized_span",
+    "gapped_segment",
+    "nonzero_offset",
+    "wrong_deleted_backing",
+    "unbound_deleted_file",
+    "unbound_exec_anon",
+    "backing_alias",
+    "image_object_bytes_mismatch",
+    "entry_address_bytes_mismatch",
+    "entry_changed_after_read",
+    "wrapper_changed_after_read"
+  ],
+  "native_calls": 0,
+  "real_maps_or_native_images_created": 0,
+  "rows": [
+    {
+      "accepted_binding": {
+        "actual_segment": {
+          "device": [
+            0,
+            1
+          ],
+          "end": 69632,
+          "inode": 123,
+          "line": "10000-11000 r-xs 00000000 00:01 123 /dev/zero (deleted)",
+          "name": "/dev/zero (deleted)",
+          "offset": 0,
+          "permissions": "r-xs",
+          "start": 65536
+        },
+        "address": 65536,
+        "complete_image_sha256": "3e5718fea51a8f3f5baca61c77afab473c1810f8b9db330273b4011ce92c787e",
+        "entry_address": 65536,
+        "entry_object_id": 124572191386528,
+        "image": {
+          "bytes": 17,
+          "git_blob": "810547ec522ec0db3230799a6e84d8e04d91d59b",
+          "identity": [
+            1,
+            2,
+            33152,
+            1000,
+            1000,
+            1,
+            17,
+            3,
+            3
+          ],
+          "path": "/fixed/current-image.bin",
+          "sha256": "3e5718fea51a8f3f5baca61c77afab473c1810f8b9db330273b4011ce92c787e"
+        },
+        "logical_bytes": 17,
+        "mapping_end": 69632,
+        "mapping_object_id": 124572191386864,
+        "observer_object_id": 124572189165872,
+        "page_rounding_tail_not_hashed_as_image": 4079,
+        "page_size": 4096,
+        "requires_exact_single_segment": true,
+        "schema": "hia.sqlite.varint.current-image-mapping.v1"
+      },
+      "error": null,
+      "expected_refusal": null,
+      "id": "named_current_image",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 1
+    },
+    {
+      "accepted_binding": {
+        "actual_segment": {
+          "device": [
+            0,
+            0
+          ],
+          "end": 69632,
+          "inode": 0,
+          "line": "10000-11000 r-xs 00000000 00:00 0",
+          "name": "",
+          "offset": 0,
+          "permissions": "r-xs",
+          "start": 65536
+        },
+        "address": 65536,
+        "complete_image_sha256": "3e5718fea51a8f3f5baca61c77afab473c1810f8b9db330273b4011ce92c787e",
+        "entry_address": 65536,
+        "entry_object_id": 124572191387536,
+        "image": {
+          "bytes": 17,
+          "git_blob": "810547ec522ec0db3230799a6e84d8e04d91d59b",
+          "identity": [
+            1,
+            2,
+            33152,
+            1000,
+            1000,
+            1,
+            17,
+            3,
+            3
+          ],
+          "path": "/fixed/current-image.bin",
+          "sha256": "3e5718fea51a8f3f5baca61c77afab473c1810f8b9db330273b4011ce92c787e"
+        },
+        "logical_bytes": 17,
+        "mapping_end": 69632,
+        "mapping_object_id": 124572191386528,
+        "observer_object_id": 124572189165888,
+        "page_rounding_tail_not_hashed_as_image": 4079,
+        "page_size": 4096,
+        "requires_exact_single_segment": true,
+        "schema": "hia.sqlite.varint.current-image-mapping.v1"
+      },
+      "error": null,
+      "expected_refusal": null,
+      "id": "unnamed_current_image",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 1
+    },
+    {
+      "error": null,
+      "expected_refusal": "original entry equals",
+      "id": "wrong_entry_address",
+      "observed_refusal": "original entry equals current mmap start",
+      "raw_maps_retained_before_classification": false,
+      "status": "PASS",
+      "whole_image_address_reads": 0
+    },
+    {
+      "error": null,
+      "expected_refusal": "image mmap length",
+      "id": "wrong_object_length",
+      "observed_refusal": "image mmap length and admitted hash",
+      "raw_maps_retained_before_classification": false,
+      "status": "PASS",
+      "whole_image_address_reads": 0
+    },
+    {
+      "error": null,
+      "expected_refusal": "shared RX segment",
+      "id": "writable_bound_segment",
+      "observed_refusal": "current HIA exact page-rounded shared RX segment",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 0
+    },
+    {
+      "error": null,
+      "expected_refusal": "page-rounded",
+      "id": "oversized_span",
+      "observed_refusal": "current HIA exact page-rounded shared RX segment",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 0
+    },
+    {
+      "error": null,
+      "expected_refusal": "one exact exclusive segment",
+      "id": "gapped_segment",
+      "observed_refusal": "current HIA mapping must have one exact exclusive segment",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 0
+    },
+    {
+      "error": null,
+      "expected_refusal": "shared RX segment",
+      "id": "nonzero_offset",
+      "observed_refusal": "current HIA exact page-rounded shared RX segment",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 0
+    },
+    {
+      "error": null,
+      "expected_refusal": "anonymous backing representation",
+      "id": "wrong_deleted_backing",
+      "observed_refusal": "only the address-bound current HIA anonymous backing representation",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 0
+    },
+    {
+      "error": null,
+      "expected_refusal": "unbound deleted mapping",
+      "id": "unbound_deleted_file",
+      "observed_refusal": "unbound deleted mapping refused",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 1
+    },
+    {
+      "error": null,
+      "expected_refusal": "unbound executable",
+      "id": "unbound_exec_anon",
+      "observed_refusal": "unbound executable anonymous mapping refused",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 1
+    },
+    {
+      "error": null,
+      "expected_refusal": "additional mapped alias",
+      "id": "backing_alias",
+      "observed_refusal": "current HIA anonymous backing has an additional mapped alias",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 0
+    },
+    {
+      "error": null,
+      "expected_refusal": "complete logical image bytes",
+      "id": "image_object_bytes_mismatch",
+      "observed_refusal": "complete logical image bytes from both mmap object and actual entry address",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 1
+    },
+    {
+      "error": null,
+      "expected_refusal": "complete logical image bytes",
+      "id": "entry_address_bytes_mismatch",
+      "observed_refusal": "complete logical image bytes from both mmap object and actual entry address",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 1
+    },
+    {
+      "error": null,
+      "expected_refusal": "identity changed",
+      "id": "entry_changed_after_read",
+      "observed_refusal": "mapping and original entry identity changed during observation",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 1
+    },
+    {
+      "error": null,
+      "expected_refusal": "identity changed",
+      "id": "wrapper_changed_after_read",
+      "observed_refusal": "mapping and original entry identity changed during observation",
+      "raw_maps_retained_before_classification": true,
+      "status": "PASS",
+      "whole_image_address_reads": 1
+    }
+  ],
+  "schema": "hia.sqlite.varint.bound-map-pure-controls.v1",
+  "source8_reexecuted": false,
+  "status": "PURE_MAPPING_CONTROLS_16_PASS_ONLY",
+  "success_ids": [
+    "named_current_image",
+    "unnamed_current_image",
+    "wrong_entry_address",
+    "wrong_object_length",
+    "writable_bound_segment",
+    "oversized_span",
+    "gapped_segment",
+    "nonzero_offset",
+    "wrong_deleted_backing",
+    "unbound_deleted_file",
+    "unbound_exec_anon",
+    "backing_alias",
+    "image_object_bytes_mismatch",
+    "entry_address_bytes_mismatch",
+    "entry_changed_after_read",
+    "wrapper_changed_after_read"
+  ]
+}
