@@ -1,0 +1,43 @@
+{
+  "schema": "hia.wal-snapshot.publication-transport-readback.v1",
+  "files": 37,
+  "bytes": 7336133,
+  "archive_bytes": 4594896,
+  "archive_sha256": "5cc94066902849e2e98b29d7b0ae8b32e355def163ab8f0b6dbc79651209d556",
+  "archive_git_blob": "79a1ef27dfa01a89ec656c6e308860a8855b731f",
+  "all_whole_text_body_pins": true,
+  "full_base64_restore": true,
+  "read_errors_preserved": [
+    {
+      "relative": "archive/part-0009.base64",
+      "offset": 262144,
+      "result": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "remote helper on ai395-lan failed with 255\nstdout:\n\nstderr:\n{\"attempts\": [{\"address\": \"10.77.0.2\", \"check_ssh_banner\": true, \"elapsed_ms\": 859.06, \"errno\": null, \"error\": \"SSH banner deadline exceeded\", \"interface\": \"bridge0\", \"interface_bound\": true, \"interface_policy\": \"required\", \"port\": 22, \"source\": \"10.77.0.3\", \"status\": \"failed\", \"timeout\": 0.85, \"transport\": \"usb4\"}, {\"address\": \"192.168.0.11\", \"check_ssh_banner\": true, \"elapsed_ms\": 0.433, \"errno\": 49, \"error\": \"[Errno 49] Can't assign requested address\", \"interface\": \"en0\", \"interface_bound\": true, \"interface_policy\": \"required\", \"port\": 22, \"source\": \"192.168.0.8\", \"status\": \"failed\", \"timeout\": 1.2, \"transport\": \"wifi\"}, {\"address\": \"192.168.0.5\", \"check_ssh_banner\": true, \"elapsed_ms\": 0.162, \"errno\": 49, \"error\": \"[Errno 49] Can't assign requested address\", \"interface\": \"en0\", \"interface_bound\": true, \"interface_policy\": \"required\", \"port\": 22, \"source\": \"192.168.0.8\", \"status\": \"failed\", \"timeout\": 1.2, \"transport\": \"wifi\"}], \"elapsed_ms\": 859.708, \"error\": \"no eligible reachable endpoint\", \"peer\": \"ai395\", \"selected\": null}\nmm_receive_fd: recvmsg: expected received 1 got 0\r\nproxy dialer did not pass back a connection"
+            }
+          ],
+          "structuredContent": {
+            "error_code": "INVALID_ARGUMENT"
+          },
+          "isError": true
+        }
+      }
+    }
+  ],
+  "prior_batch_stop": {
+    "kind": "READ_ONLY_LOCAL_BODY_RETRIEVAL_BATCH_STOPPED_NO_MUTATION",
+    "completed": 0,
+    "errors": [],
+    "continuation": "Resume only unread source bodies; no product or archive rerun."
+  },
+  "V8_binary_helper_error_preserved": {
+    "error": "TypeError: c.codePointAt is not a function",
+    "cause": "gitblob helper accepts UTF-8 strings, not Uint8Array. The full binary archive uses SHA1(blob-size header + exact bytes) in this corrected read-only check.",
+    "product_or_archiver_reexecuted": false
+  },
+  "remote_Git_readback_not_yet_done": true
+}
