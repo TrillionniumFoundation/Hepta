@@ -1,0 +1,76 @@
+name: HIA Wire U32 Core116 failed CI diagnostics-only recovery r1
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  retain_original:
+    name: Retain Core116 step43 originals and exact Wire reports
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-wire-u32-core116-diagnostics-r1-20261113-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the exact reviewed custody control without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: da7d6adadb01987d0b7faf1dae4e67f21dace128
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Set up the fixed custody interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Verify frozen controls and create new private custody roots
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_json_wire_u32_decimal_20261113/core116-ci-diagnostics-r1/controller.py prepare --root "$RUNNER_TEMP/hia-wire-u32-core116-diagnostics-r1" --policy-sha256 e1458532d91718ee418f3542b988585cb1545c8bf96c33b01bc3f89729086f58 --control-commit da7d6adadb01987d0b7faf1dae4e67f21dace128
+      - name: Read one sealed original ZIP and all fixed diagnostics under the original 900-second guardian
+        id: owned_collection
+        timeout-minutes: 16
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_json_wire_u32_decimal_20261113/core116-ci-diagnostics-r1/controller.py run --root "$RUNNER_TEMP/hia-wire-u32-core116-diagnostics-r1" --policy-sha256 e1458532d91718ee418f3542b988585cb1545c8bf96c33b01bc3f89729086f58 --control-commit da7d6adadb01987d0b7faf1dae4e67f21dace128
+      - name: Independently retain every fixed diagnostic and controls after closed ECHILD
+        if: always()
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_json_wire_u32_decimal_20261113/core116-ci-diagnostics-r1/controller.py finalize --root "$RUNNER_TEMP/hia-wire-u32-core116-diagnostics-r1" --policy-sha256 e1458532d91718ee418f3542b988585cb1545c8bf96c33b01bc3f89729086f58 --control-commit da7d6adadb01987d0b7faf1dae4e67f21dace128
+      - name: Preserve Core116 and Wire original diagnostics and closed owner
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-wire-u32-core116-diagnostics-r1-${{ github.run_id }}-1
+          path: '${{ runner.temp }}/hia-wire-u32-core116-diagnostics-public-r1/small/'
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          retention-days: 14
+          overwrite: false
