@@ -636,10 +636,12 @@ def source_gate(capture, inputs, harness_root):
     candidate_name = "HEPTA_HIA_CANDIDATE_BUILD_TEST_EVIDENCE"
     portable_name = "HEPTA_HIA_LINUX_STDIO_SOURCE_EVIDENCE"
     process_name = "HEPTA_HIA_LINUX_PROCESS_SOURCE_EVIDENCE"
+    representation_name = "HEPTA_HIA_REPRESENTATION_SOURCE_EVIDENCE"
     expected_environment = {
         candidate_name: "@EVIDENCE@/checks/hia-candidate-build-source",
         portable_name: "@EVIDENCE@/checks/hia-linux-stdio-source",
         process_name: "@EVIDENCE@/checks/hia-linux-process-source",
+        representation_name: "@EVIDENCE@/checks/hia-candidate-build-source/representation",
     }
     check(inputs.get("source_test_environment") == expected_environment,
           "unreviewed Source evidence environment")
@@ -648,7 +650,8 @@ def source_gate(capture, inputs, harness_root):
     evidence = capture.raw / "checks" / "hia-candidate-build-source"
     portable_evidence = capture.raw / "checks" / "hia-linux-stdio-source"
     process_evidence = capture.raw / "checks" / "hia-linux-process-source"
-    locations = {candidate_name: evidence, portable_name: portable_evidence, process_name: process_evidence}
+    locations = {candidate_name: evidence, portable_name: portable_evidence, process_name: process_evidence,
+                 representation_name: evidence / "representation"}
     for location in locations.values():
         check(not location.resolve().is_relative_to(capture.repo.resolve()),
               "Source evidence must be outside the source tree")
@@ -664,6 +667,7 @@ def source_gate(capture, inputs, harness_root):
         "candidate_directory_created_by": "materializer",
         "portable_directory_created_by": "original Source fixture",
         "process_directory_created_by": "original process Source fixture",
+        "representation_directory_created_by": "new representation Source fixture",
         "source_runner_changed": False, "original_ids_changed": False,
         "group_seconds": 1800, "qualification": False})
     for name, location in locations.items():
