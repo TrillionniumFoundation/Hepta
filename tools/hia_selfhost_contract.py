@@ -15,6 +15,13 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
 SOURCE_FILES = (
+    'examples/hia_bootstrap/native_mapping.hepta',
+    'tools/generate_hia_native_mapping.py',
+    'tools/build_hia_native_mapping.py',
+    'tests/test_hia_native_mapping_native.py',
+    'tests/fixtures/native_mapping_identity_539c1c04.py.txt',
+    'tests/test_hia_multiversion_mapping.py',
+    'tests/test_hia_multiversion.py',
     'tests/test_hia_bulk_memory.py',
     'tests/test_hia_execution_contract.py',
     'tests/test_hia_optimization_contract.py',
@@ -809,6 +816,39 @@ def file_digests(root=ROOT):
 
 def support_contract(root=ROOT):
     return {
+        'native_loaded_mapping': {
+            'source': 'examples/hia_bootstrap/native_mapping.hepta',
+            'adapter': 'hepta/native_mapping_native.py',
+            'public_entry': 'hepta.native_mapping_identity.verify_loaded_symbols',
+            'selector': 'HEPTA_HIA_NATIVE_MAPPING_MANIFEST',
+            'worker_selection': 'registered single-image helper in the original operator-pinned bundle and process/thread scope',
+            'independent_original': 'tests/fixtures/native_mapping_identity_539c1c04.py.txt',
+            'original_git_blob': '539c1c045803e185e925f48d7e9f2b816ea1dccd',
+            'original_sha256': 'e85114ea20081dc97ccca299e80a954c3c2165de63d22b776948a1c4001ff010',
+            'native_owners': ['streaming kernel mapping fields and numeric grammar',
+                              'arbitrary-size interval ordering without truncation',
+                              'entry permission, device, inode and file-extent decisions',
+                              'unique mapping requirement and first-refusal order'],
+            'maximum_maps_bytes': 16777216,
+            'maximum_symbols': 128,
+            'workspace_bytes': 8192,
+            'maximum_response_bytes': 1040,
+            'integer_policy': 'sign, hexadecimal prefix, underscores and arbitrary-size tokens; decimal digit limit captured from the Python interpreter',
+            'diagnostic_boundary': 'HIA identifies the first failing token; Python int or ASCII decode constructs only that token exception cause, without replaying the mapping policy',
+            'retained_hosted_boundaries': ['Python argument and ctypes function-object admission',
+                                          'actual fstat, fcntl seals and entry addresses',
+                                          'single bounded /proc/self/maps capture',
+                                          'final descriptor and seal readback',
+                                          'explicit source-bound image selection and anonymous RW-to-RX loader',
+                                          'public Python result and exception objects'],
+            'helper_loader_uses_this_mapping_admission': False,
+            'fallback_after_selection': False,
+            'default_changed': False,
+            'compiler_profile_limits_changed': False,
+            'all_input_equivalence_proved': False,
+            'whole_stack_rewritten_in_hia': False,
+            'whole_native_delivery_qualified': False,
+        },
         'linked_qualification_observer': {
             'policy_source': 'examples/hia_bootstrap/linked_observer_policy.hepta',
             'packer_source': 'examples/hia_bootstrap/linked_observer_packer.hepta',
@@ -964,7 +1004,8 @@ def support_contract(root=ROOT):
         'native_worker_helper_bundle': {
             'implementation': 'hepta/hia_native_helpers.py',
             'schema': 'hepta.hia.native-helpers.v1',
-            'supported_single_image_selectors': 24,
+            'supported_single_image_selectors': 25,
+            'native_mapping_schema': 'hepta.hia.native-mapping-native.v1',
             'current_journal_schema': 'hepta.hia.agent-journal-native.v2',
             'execution_budget_schema': 'hepta.hia.execution-budget-native.v1',
             'candidate_budget_schema': 'hepta.hia.candidate-budget-native.v1',

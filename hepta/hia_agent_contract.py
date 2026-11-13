@@ -76,6 +76,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/composite_outer_owner.hepta',
     'examples/hia_bootstrap/composite_outer_render.hepta',
     'examples/hia_bootstrap/retirement_state.hepta',
+    'examples/hia_bootstrap/native_mapping.hepta',
 )
 
 

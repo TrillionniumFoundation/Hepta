@@ -74,6 +74,8 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
             if name in BUNDLED_SOURCE_BINDINGS:
                 module,key=BUNDLED_SOURCE_BINDINGS[name]
                 source=import_module(module).SOURCES[key]
+            elif name=='native_mapping':
+                source=import_module('hepta.native_mapping_native').SOURCE
             else:
                 source=import_module('hepta.hia_'+name+'_native').SOURCE
             self.assertEqual(source,ROOT/resource)
@@ -364,6 +366,8 @@ elif sys.argv[2]=='source-bindings':
         if name in BUNDLED_SOURCE_BINDINGS:
             module,key=BUNDLED_SOURCE_BINDINGS[name]
             source=import_module(module).SOURCES[key]
+        elif name=='native_mapping':
+            source=import_module('hepta.native_mapping_native').SOURCE
         else:
             source=import_module('hepta.hia_'+name+'_native').SOURCE
         assert Path(sys.argv[1]) in source.parents,source

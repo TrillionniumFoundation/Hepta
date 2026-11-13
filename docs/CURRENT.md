@@ -69,8 +69,17 @@ not relabel these executions as tests of its entire later tree.
 ## Current repair candidate
 
 [PR #895](https://github.com/TrillionniumFoundation/Hepta/pull/895) applies the
-packer, source-gate, recursive-chain and Store-initialization repairs described
-below. Its published `f44c09fcc2c1cec25867c886ff477e83df774561` source passed all
+packer, source-gate, recursive-chain, Store-initialization and linked-observer
+repairs described below. Published `d994dd582a410b8f04acfac7ae862e1a2e516867`
+passed both original Source jobs. Its
+[push Source job](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43468694767/job/132034569634)
+ran all 579 tests in 655.480 seconds with no failure, error or skip. The
+[separate PR Source job](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43468710527/job/132034624166)
+also succeeded. At the 2026-11-13 17:17 UTC observation, both Native jobs had
+passed their original cold and language stages and were still running; this
+is not a terminal Native result or qualification of this later working tree.
+
+The earlier `f44c09fcc2c1cec25867c886ff477e83df774561` source passed all
 573 Source tests in 895.122 seconds in the original
 [push Source job 132014867892](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43463079021/job/132014867892).
 The separate [PR Source job](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43463098159/job/132014933545)
@@ -124,6 +133,52 @@ run. The successor regenerates the language inventory and its source-contract
 digest using the existing generators. It changes no implementation, selector,
 assertion or budget and does not relabel the failed workflow as a pass.
 
+The separate
+[complete retained increment audit](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43468065422)
+completed against exact observer commit `c4e83a1`, tree
+`ec83846584bb0c369f8eea2d27f462fb865b7160`: 127 original selectors,
+1,098/1,098 tests, zero failures, errors, skips, expected failures or unexpected
+successes. Planned, started and finished ordered test IDs agree, with SHA-256
+`b2835e9bbcf6fc64aefb5597bc510a345bb5b7ecb7291acececbe836a65b228d`.
+The actual gate took 226.232229037 seconds; its unchanged 5,400-second owner
+completed in 227.880117498 seconds with complete cleanup of its started POSIX
+process group. All four real NDU prerequisites were built and admitted, and
+all 2,588 raw source files remained unchanged. The original artifact
+`14060400210` has verified ZIP SHA-256
+`f6f32b8ccf07a64817096ea9f039147f7df3ec8aa5e8ec07bd7becea8127fe55`.
+This is the entire retained increment gate, not the full discovered test suite
+or qualification of any later source. Full discovery at `d994dd5` found 4,731
+unique IDs with no loader error or duplicate; discovery alone executes none
+of those test bodies.
+
+The next source change moves the loaded-symbol mapping decision in
+`native_mapping_identity.verify_loaded_symbols` to the selected HIA program
+`native_mapping.hepta`. HIA parses the actual captured mapping bytes and owns
+interval ordering, numeric grammar, permissions, device/inode/file extent,
+unique-match admission and first-refusal order. It keeps the original 16 MiB
+mapping snapshot and 128-symbol domain, including large integers and the
+interpreter's actual decimal digit limit. Python still captures kernel facts,
+admits function objects, performs final descriptor/seal readback and constructs
+result/exception objects. Native selection is explicit and has no fallback;
+the default path does not import the native adapter.
+
+The [mapping integration evidence](../review-evidence/hia-native-cleanup-20261111/native-mapping-integration.json)
+retains the original development failures and the final component observations.
+All 16 component tests passed in 20.916 seconds, and the final 47 source,
+packaging, helper and workflow controls passed in 41.785 seconds without skips.
+The component uses a fresh local B0/B1 build and is explicitly **not** a
+matching-current-source cold result. Real controls include retained-loader FD
+reuse, actual sealed DSO execution, a built and isolated installed wheel,
+warm installed-source drift/removal refusal, pinned helper ownership and
+foreign-thread refusal. The original Python parser, independent Core VM and
+native image agree on 24 complete buffer controls; twelve public error cases
+preserve exception type, text and cause. The original workflow now additionally
+requires a matching-cold component and 14 original runtime/lease callers with
+the HIA mapping selector. Those new CI gates remain pending for this successor.
+The combined 966-input support contract and language inventory regenerate to a
+fixed point. Component results do not authorize deleting resident runtimes or
+their foreign-resource owners.
+
 ## Current native implementation
 
 | Area | Implemented selected path | Remaining boundary |
@@ -134,6 +189,7 @@ assertion or budget and does not relabel the failed workflow as a pass.
 | Native stdio | Six commands: capabilities, verify, compile, render-assembly, assemble and check-assembly | Separate bounded protocol, not the complete fifteen-action CLI or eleven-tool service |
 | Core applications | Core/JSON/workspace/patch helpers, nominal type/task/function helpers, ELF linker and source-build applications | Complete ordinary product routing, foreign-object/packet custody and broader diagnostic/support domains |
 | Worker and scheduling | Selected request/report/wire images, pinned helper custody and five native in-process scheduling families | Hosted outer handler, object transport, installation/hash IO, process effects and complete service migration |
+| Loaded native mappings | Selected HIA parser and exact entry-to-sealed-file mapping policy, registered in the pinned helper scope | Python argument/function objects, kernel snapshot and descriptor/seal readback, dynamic loader and resident resource lifetime |
 | State and policy | Native request/journal/identity/budget/slot/retirement decisions with original callers | SQLite transactions, durable IO, proof services, actual leases and foreign resource release |
 | Release lifecycle | Immutable installation, CAS selection/rollback/status and coherent selected-release verification | Running-worker restart/handoff, actual image readback, outstanding requests/references and confirmed retirement |
 
@@ -191,7 +247,7 @@ commits; a PR head alone does not identify every referenced experiment.
 | Development line | Source-bound continuation |
 | --- | --- |
 | [PR #888](https://github.com/TrillionniumFoundation/Hepta/pull/888) | CLI/machine/wire and SQLite byte-algorithm work. Its recorded component successes do not qualify the complete SQL transaction/pager/locking service or close its failed original caller budgets. |
-| [PR #889](https://github.com/TrillionniumFoundation/Hepta/pull/889) | Union of current main and the separate native-owner development line, including launcher, process/stdio, Store and CLI owners. [R6 candidate cec2f44b](https://github.com/TrillionniumFoundation/Hepta/commit/cec2f44bd4bc0d12298a0282c1eb8ce1d7a7b95f) retains main and development as ordered parents; its [Core run 43430503183](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43430503183) failed in native launcher preparation. |
+| [PR #889](https://github.com/TrillionniumFoundation/Hepta/pull/889) | Union of current main and the separate native-owner development line, including launcher, process/stdio, Store and CLI owners. Published [R7/R4 candidate abeef212](https://github.com/TrillionniumFoundation/Hepta/commit/abeef212e34023534d91f8f952280e2a8d0cbde6) retains main and development as ordered parents. Its [Core run 43459534648](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43459534648) passed Source but failed the original native namespace caller budgets. Later source candidates are separate identities. |
 | [PR #893](https://github.com/TrillionniumFoundation/Hepta/pull/893) | Divergent native component/SQLite integration at `831110b8659a48bf9636997212ca67d5360530f9`. Its [push run 43305434289](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43305434289) passed source/native; its separate [PR run 43305453525](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43305453525) failed at cold and skipped subsequent native stages. Both results remain. |
 
 The #889 [R7/R4 Source run 43451128811](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43451128811)
@@ -210,6 +266,16 @@ archive, although a separate upload step included it. That run published no
 candidate commit/ref and executed no native or cold qualification. These
 active branches and their original artifacts must be reconciled before
 combining changes or retiring duplicate implementations.
+
+The later #889
+[R10/R2 Source run 43463604848](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43463604848)
+completed 1,319 tests successfully on Python 3.14.4. Its original result names
+the 3,083-file generated tree `1d52f28fa841599b9f1be028098a99e6a7a522b8`,
+zero cold qualifications and zero native qualification jobs. The following
+[R11 run 43468679071](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43468679071)
+failed in generator `cli_parser_context` on the actual `_colorize.Argparse`
+object before any product test executed. Source success in R10 does not
+qualify R11, the separate native failures or this repair branch.
 
 ## Repository ownership and cleanup
 
@@ -230,6 +296,28 @@ inventory above. The prior
 and [integration checkpoint retirements](../review-evidence/hia-native-cleanup-20261111/retired-integration-checkpoints.json)
 record exact removed paths, hashes, Git objects and consumer checks. They do
 not establish retirement of the remaining production stack.
+
+This cleanup removes 17 files and 912,834 bytes: twelve superseded stateful
+source copies from attempts 01 through 04, one optimizer rebind source copy,
+the unused `audit_hsir_wire.py` and `performance_observation.py` tools, and
+two duplicate historical source maps. The retirement index records every
+path's mode, byte count, SHA-256 and Git blob at fixed revision
+`c4e83a14e47217a27d8d0f112c484b30315d9f68`. Recover original bytes with
+`git --no-replace-objects show <revision>:<path>` outside the current checkout,
+restore the recorded mode and verify the hash; historical commands require
+the complete original revision.
+
+The interrupted run's retired `source-before.json` equals the complete parsed
+`source_state` retained in `integration-controls/thin-source-transfer.json`;
+the fixed Git blob preserves its exact original JSON serialization. The
+release-selection run's retired `source-after.json` is byte-identical to its
+retained `source-before.json`. Historical member paths resolve through these
+recorded Git recovery entries. All original results, error logs and member
+inventories remain byte-identical, alongside the four final
+`attempt05/bound-source/` files and all stateful measurements, failed and
+superseded results, including the negative full-cost conclusion. References
+to historical raw archives do not establish current custody of those absent
+archives; the retired files' original bytes remain recoverable from Git.
 
 The current cleanup also closes concrete admission gaps. The shared unittest
 runner, complete-increment gate and execution-observation caller gate require

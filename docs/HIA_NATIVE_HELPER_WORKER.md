@@ -38,11 +38,11 @@ existing identities. Native selection is not enabled by default.
 The example digest is a placeholder. Actual admission requires lowercase
 64-character hexadecimal digests. Paths may be absolute or relative to the
 containing pinned manifest; parent traversal and control characters refuse.
-The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-four
+The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-five
 current single-image contracts include the original nineteen helper adapters
 and the current **agent-journal-native.v2**, **execution-budget-native.v1**,
 **candidate-budget-native.v1**, **retirement-state-native.v1** and
-**slot-ledger-native.v1** owners.
+**slot-ledger-native.v1** and **native-mapping-native.v1** owners.
 A source test imports each
 actual factory and checks its `.hepta` source against the packaged resources.
 Unknown selectors, duplicate entries, extra fields and old journal schemas
@@ -50,6 +50,13 @@ refuse. Multi-image owners require their own explicit custody integration.
 Retirement also maps its fixed 45-byte open syscall primitive from the installed
 Python source closure; that primitive transports the selected HIA policy's
 effect and is not another selectable policy image.
+
+`HEPTA_HIA_NATIVE_MAPPING_MANIFEST` selects the HIA mapping parser and admission
+decisions used by `verify_loaded_symbols`. The actual descriptor, seals, ctypes
+entry addresses, bounded kernel maps snapshot and final descriptor readback
+remain hosted. This helper uses the existing anonymous executable loader,
+which does not invoke the mapping admission it supplies. The default path
+retains the original Python mapping policy; a selected helper never falls back.
 
 The bundle binds every child manifest; each child binds its schema, packaged
 source, image and compiler digest. Only owned, bounded, ordinary files with
