@@ -1,0 +1,91 @@
+name: Original HIA artifact byte custody
+
+on:
+  push:
+    branches:
+      - 'audit/hia-artifact-custody-*'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: hia-artifact-custody-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  custody:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Create external custody log directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          custody_root="$RUNNER_TEMP/hia-original-artifact-custody"
+          mkdir "$custody_root"
+          mkdir "$custody_root/logs"
+          printf 'HIA_CUSTODY_ROOT=%s\n' "$custody_root" >> "$GITHUB_ENV"
+
+      - name: Checkout this exact minimal custody harness
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: harness
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Read the fixed original ZIP and verify three byte parts
+        id: transfer
+        shell: bash
+        env:
+          HIA_CUSTODY_TOKEN: ${{ github.token }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          python3 -B harness/custody.py --target harness/target.json \
+            --output "$HIA_CUSTODY_ROOT/transfer" \
+            > "$HIA_CUSTODY_ROOT/logs/transfer.stdout" \
+            2> "$HIA_CUSTODY_ROOT/logs/transfer.stderr"
+
+      - name: Upload verified original bytes part 1
+        if: ${{ always() && steps.transfer.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-14067140133-part-1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hia-original-artifact-custody/transfer/part-1
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload verified original bytes part 2
+        if: ${{ always() && steps.transfer.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-14067140133-part-2-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hia-original-artifact-custody/transfer/part-2
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload verified original bytes part 3
+        if: ${{ always() && steps.transfer.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-14067140133-part-3-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hia-original-artifact-custody/transfer/part-3
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preserve original metadata and any custody failure
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-14067140133-custody-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-original-artifact-custody/logs
+            ${{ runner.temp }}/hia-original-artifact-custody/transfer/metadata
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30

@@ -1,112 +1,107 @@
-# HIA Core
+# Original HIA artifact byte custody
 
-Typed abstract assembly and structured Core for AI agents. HIA checks explicit
-control flow, types, capabilities, ownership and borrowed resources before
-machine-code generation. There is no high-level source language or migration
-frontend in this tree.
+This minimal standalone workflow transports the fixed original GitHub artifact
+named by `target.json`. The target is the failed a771 push Native run's original
+613,667,424-byte ZIP, artifact `14067140133`, with SHA-256
+`c0d4367a63a0056fb4b4484df5b3bb16e7cb3668dc103bdf78d38d8573cde0f6`.
+It does not checkout product source, rerun the original workflow or tests,
+change a budget, or change the original failure classification.
 
-All retained HIA source files use the lowercase `.hepta` suffix. Assembly keeps
-the `hia-asm.v1` header; structured Core keeps its explicit primitive or composite
-schema. Paired JSON projections use `.core.hepta` to avoid filename collisions.
-The `hia` command and `hepta.hia.*` protocol schemas retain their names.
-See [source naming and migration](docs/HIA_SOURCE_SUFFIX.md).
+No `github_download_workflow_artifact` call was made for this artifact.
+Its independently read GitHub metadata is already larger than the connector's
+known 536,870,912-byte transport limit. The earlier d994 artifact produced an
+actual `InvalidInputException`; that different request and response remain
+preserved as the basis for choosing this transfer route. The five-file layout
+retains the name `original-download-refusal.json`, but this file explicitly
+records `current_connector_download.attempted=false`, `result=null`, the new
+artifact metadata and the prior d994 refusal's complete raw UTF-8 bytes, SHA-256
+and immutable Git link. It does not claim that a new refusal occurred.
+Its complete bytes are pinned in `target.json`. The new workflow changes only
+how the existing original bytes are transferred.
 
-The [current implementation and acceptance status](docs/CURRENT.md) is the
-single current-state index. Historical observations retain their exact commit
-identities and do not qualify a later candidate.
+## Publish the minimal tree
 
-The current worker-policy candidate composes native request/report/wire images
-under an explicit administrator bundle pin; its hosted custody and durable
-service/runtime dependencies are not yet retired. See
-[worker policy and custody](docs/HIA_WORKER_REPORT_NATIVE.md).
+Publish exactly five files as a new Git tree without a product base tree:
 
-## Agent entry
+- `.github/workflows/custody.yml`
+- `custody.py`
+- `target.json`
+- `original-download-refusal.json`
+- `README.md`
 
-```sh
-python -m pip install .
-hia capabilities
-hia check-assembly examples/hia_bootstrap/bytesum.hepta
-hia verify examples/hia_program/counter.hepta
+A new `audit/hia-artifact-custody-<unique-suffix>` branch push starts this
+workflow. The checkout explicitly uses `github.sha`; no product workflow is
+present. The job uses only `contents: read` and `actions: read`. The 30-minute
+job ceiling is a transport bound and does not alter the original product's
+60-second, cold or full-suite gates. Keep the original custody attempt and any
+failure instead of relabelling or overwriting them.
+
+## Transfer and identity checks
+
+The script fetches the original artifact and run metadata from the fixed
+repository's GitHub API. It checks the artifact ID/name, exact size and digest,
+run ID, source SHA, original run attempt and completed failure classification.
+The raw API response bodies are retained without JSON normalization.
+
+The first archive request carries the step-scoped read token to
+`api.github.com` and **does not follow redirects**. It requires the documented
+HTTP 302. The returned signed storage URL is used only in memory for a second
+GET made with a new opener and no Authorization, proxy-authorization or Cookie
+header. Redirect following and inherited proxy credentials are disabled for
+both openers. No signed URL or token is written to a log, manifest or artifact;
+network exceptions are recorded by fixed phase/type/status without printing
+URL-bearing exception text.
+
+The original ZIP is streamed once, with an exact size bound, and its entire
+SHA-256 must match GitHub's original digest. It is then read again and split
+into three contiguous byte ranges:
+
+| Part | Offset | Bytes | End offset, exclusive |
+| --- | ---: | ---: | ---: |
+| 1 | 0 | 239,000,000 | 239,000,000 |
+| 2 | 239,000,000 | 239,000,000 | 478,000,000 |
+| 3 | 478,000,000 | 135,667,424 | 613,667,424 |
+
+The 239 MB part size leaves room below 240 MB for the small metadata and the
+outer artifact ZIP. Every part is independently read back and hashed. Reading
+all parts in order must reproduce the original whole-ZIP byte count and SHA.
+The original ZIP is neither unpacked, rewritten nor recompressed.
+
+Each part is independently uploaded by `actions/upload-artifact@v4` with
+`compression-level: 0`, alongside its original metadata, exact offsets, length,
+SHA-256, pinned target and the explicitly distinguished prior-refusal route evidence. Three separate
+artifacts keep each connector transfer below its size limit. Part uploads
+require successful complete identity/readback verification; the later uploads
+still run if an earlier part-upload action fails. The always-run metadata
+upload preserves the executed five-file harness, raw API metadata, split
+manifest, transfer logs and any controlled custody failure. It does not upload
+the whole large ZIP, caches, source trees, tokens or signed URLs.
+
+A successful custody result means only that the original bytes were retained
+and split correctly. It grants no product qualification and changes no test
+result. The original a771 Native failure remains a failure.
+
+## Download and restore the exact original ZIP
+
+Download each part artifact separately. Extract them to distinct directories
+such as `part-1`, `part-2` and `part-3`, so their identically named metadata files
+cannot overwrite one another. Keep the metadata artifact and original refusal.
+Then use the same script locally, without a token or network request:
+
+```bash
+python3 -B custody.py --target target.json \
+  --parts part-1 part-2 part-3 --output HIA_a771_push_native_original.zip
 ```
 
-The `hia` entry is currently a Python-hosted bridge. An explicitly selected
-[two-image HIA CLI owner](docs/HIA_NATIVE_CLI_CONTROL_RECOVERY_20261111.md)
-now controls all fifteen actions, argument/help/error presentation, sequencing
-and current selfhost-build selection. Semantic action bodies, file policy and
-successful JSON presentation remain named foreign owners; this is not a
-standalone wholly native CLI.
-The independently built
-HIA-native stdio application supports `capabilities`, `verify`, `compile`,
-`render-assembly` and direct HIA-source `assemble` on
-Linux x86-64 without Python at runtime; see [native stdio](docs/HIA_AGENT_STDIO_NATIVE.md).
-The ordinary `hia build --backend selfhost` route can explicitly select an
-operator-pinned HIA compiler for bounded primitive Core v8 ELF objects. Its
-native frontend and code generator execute without the Python emitter or an
-external linker; the CLI, admission and publication bridge remain hosted.
-See [native compiler selection and its supported profile](docs/HIA_PROGRAM_SELFHOST_BUILD.md).
-The separate [native patch application](docs/HIA_CORE_PATCH_CLI.md) performs
-snapshot-bound edits with native whole-Core checks of both base and candidate.
-The [native patch-result application](docs/HIA_CORE_PATCH_RESULT_CLI.md) also
-constructs the complete diagnostic bytes. Its explicit ordinary Agent route
-consumes and stores opaque payload bytes, preserving the existing request journal.
-An explicitly selected [native nominal type session](docs/HIA_COMPOSITE_TYPES_NATIVE.md)
-owns declaration checks, generic binding, finite layouts and partial-record
-obligations for all four composite versions, source-level returned-loan origins,
-parameter admission and task-protocol checks. A separately selected
-[native task-helper generator](docs/HIA_TASK_HELPERS_NATIVE.md) constructs the
-complete start, poll, cancel, join and close Core functions. The selected
-[complete function bundle](docs/HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md) owns
-nominal SSA/CFG, record/enum/partial/task operations, terminators and generated
-entry-name loan binding in HIA. The [complete selected nominal route](docs/HIA_COMPOSITE_NATIVE_INTEGRATION.md)
-also moves constructor admission, ordered signatures, complete function/helper
-aggregation, late limits, exports and primitive schema selection into HIA.
-Its five explicit owners use eleven images; the surrounding bridge retains
-foreign-object and packet custody. The default route and durable Agent remain
-hosted. Native normalization preserves the existing primitive Core recheck.
-An explicitly selected [native worker request kernel](docs/HIA_WORKER_REQUEST_NATIVE.md)
-owns ordinary JSON, finite binary64 canonical bytes, request digests and envelope
-admission while preserving the existing service's durable request identity.
-An explicit [native journal owner](docs/HIA_AGENT_JOURNAL_NATIVE.md) supplies
-reservation, replay, conflict and unknown decisions and canonical response/cost
-instructions; SQLite durability and tool effects retain their existing owners.
-The [pinned helper bundle](docs/HIA_NATIVE_HELPER_WORKER.md) selects existing
-kernels and that journal through ordinary worker callers. Selected
-[execution budgets](docs/HIA_EXECUTION_BUDGET_NATIVE.md) preserve the original
-SQLite accounting and unknown-outcome fencing. Selected
-[candidate attempt budgets](docs/HIA_CANDIDATE_BUDGET_NATIVE.md) preserve the
-original context counter, request replay and committed charges. Selected
-[slot and lease state](docs/HIA_SLOT_LEDGER_NATIVE.md) also owns adoption's
-evaluation-completion, outcome and net-benefit decisions, while the existing
-store retains SQLite effects, receipt binding and request replay. Selected
-[retirement state](docs/HIA_RETIREMENT_STATE_NATIVE.md) owns release decisions
-while the original process retains actual foreign resources and system calls.
-The separate [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md)
-checks and publishes a bounded immutable release from an operator-pinned bundle.
-It does not select the active worker or replace the service journal.
-The [native release selector](docs/HIA_RELEASE_SELECTION_NATIVE.md) verifies
-installed release bytes and provides explicit status, compare-and-swap
-activation and previous-release rollback. Its durable selection is independent
-of the ordinary worker; default service migration remains open.
-Full native Agent editing/persistence, modules/build, runtime and installation
-acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
-the Agent entry. Standalone Core research backends remain explicitly scoped.
+The script checks the common original target, distinct ordered indexes,
+contiguous offsets, individual part bytes/digests, then the entire reassembled
+ZIP size/digest. It publishes the final output pathname only after that match.
+No archive member is executed or changed. The resulting ZIP must again be
+613,667,424 bytes with the exact original SHA-256 printed above; its member
+contents and any inner tar permissions are original bytes.
 
-## Source and native qualification
-
-```sh
-python -B tools/check_hia_core_only.py
-python -B tools/generate_hia_selfhost_contract.py --check
-python -B tools/replay_hia_selfhost_cold.py --output /var/tmp/NEW-hia-cold.json
-python -B tests/test_hia_selfhost_language_coverage.py --output /var/tmp/NEW-hia-language.json
-```
-
-Cold qualification preserves original and modified-source native fixed points,
-independent reference controls and resource refusal witnesses. Source contracts
-are identities, not correctness or release approvals. Old high-level-specific
-CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
-
-Repository cleanup: [current audit](docs/CURRENT.md#repository-ownership-and-cleanup).
-Native rewrite: [current implementation and remaining owners](docs/CURRENT.md).
-Runtime integration: [compatibility and upgrade requirements](docs/CURRENT.md#remaining-product-acceptance).
-
-The selected [HIA JSON wire](docs/HIA_JSON_WIRE_NATIVE.md) owns bounded graph and encoding decisions, with explicit foreign-object transport and unclosed option domains. See [current status](docs/CURRENT.md) for source-bound qualification and remaining whole-product owners.
+A later oversized artifact requires its own explicitly frozen target metadata,
+actual transport refusal or an explicit known-limit nonattempt record, updated
+workflow artifact labels and independent
+custody run. The current target and original attempt are never moved to another
+product source or artifact.
