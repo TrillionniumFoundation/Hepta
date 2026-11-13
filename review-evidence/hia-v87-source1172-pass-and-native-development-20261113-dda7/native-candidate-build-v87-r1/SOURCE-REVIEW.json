@@ -1,0 +1,25 @@
+{
+  "files": {
+    "tools/generate_hia_candidate_build.py": {
+      "bytes": 17710,
+      "git_blob": "09fd3e25aea55a3ce2a4bc1b2e1fcdd65d9c0663",
+      "mode": "100644",
+      "sha256": "49d83350f414de875aeea4767ea9b125240d949303bb61e883cbf19061166002"
+    },
+    "tools/hia_candidate_build_syscalls.S": {
+      "bytes": 3857,
+      "git_blob": "9269e30e15fa3034a6309eabeabe4b625940edcc",
+      "mode": "100644",
+      "sha256": "5b35988051a1984b10dc97326bd5f15f56a6a5f25b511f0022df7c2f10756266"
+    }
+  },
+  "limits": [
+    "No execution by reviewer",
+    "Not a proof for arbitrary workspace mutation",
+    "Not a complete layout proof"
+  ],
+  "observed_conclusion": "Stages 3 through 10 and finish require the exact name, a 32-byte source digest matching the fixed catalog, original source-policy prepare result 1, compile, commit result 0, terminal result 3 with state 7 and count 1, and two further 32-byte SHA results before action 7. The syscall transport writes stdout only for action 7. Input is readonly first; compiler and SHA have independent workspaces. Extra stage-11 ACK rejects.",
+  "reviewer": "/root/native_composite_lowering",
+  "schema": "hepta.hia.candidate-build.independent-source-review.v1",
+  "scope": "SOURCE_REVIEW_ONLY_NOT_EXECUTION_OR_QUALIFICATION"
+}

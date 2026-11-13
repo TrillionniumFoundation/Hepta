@@ -1,0 +1,124 @@
+{
+  "MANIFEST_in_additions": [
+    "include examples/hia_bootstrap/candidate_build_policy.hepta",
+    "include examples/hia_bootstrap/candidate_build_packer.hepta"
+  ],
+  "SOURCE_FILES_append_exactly": [
+    "tools/hia_candidate_build_catalog.json",
+    "tools/generate_hia_candidate_build.py",
+    "tools/hia_candidate_build_syscalls.S",
+    "tools/build_hia_candidate_build.py",
+    "examples/hia_bootstrap/candidate_build_policy.hepta",
+    "examples/hia_bootstrap/candidate_build_packer.hepta",
+    "tests/test_hia_candidate_build.py"
+  ],
+  "actual_development_base_tree": "605f1aee77964e2d42690aff5f88be654e635394",
+  "agent_resource_append_exactly": [
+    "examples/hia_bootstrap/candidate_build_policy.hepta",
+    "examples/hia_bootstrap/candidate_build_packer.hepta"
+  ],
+  "agent_resource_group": "NATIVE_SOURCE_FILES",
+  "artifact_always_include": [
+    "<fresh runner-temp>/candidate-build-source/",
+    "<fresh runner-temp>/candidate-build/"
+  ],
+  "existing_resource_groups": 11,
+  "generator": {
+    "command": [
+      "python",
+      "-B",
+      "tools/generate_hia_candidate_build.py"
+    ],
+    "new_unique_generator_count": 1,
+    "ordering": "After all existing 55 catalog source generators and source_build/sha256; before language/support. Preserve the frozen catalog source SHA and original generic-builder SHA guards. Do not repin on drift.",
+    "outputs": [
+      "examples/hia_bootstrap/candidate_build_policy.hepta",
+      "examples/hia_bootstrap/candidate_build_packer.hepta"
+    ],
+    "path": "tools/generate_hia_candidate_build.py"
+  },
+  "native_r1": {
+    "actual_original_ids": [
+      "tests.test_hia_candidate_build.CandidateBuildNativeTests.test_all_55_real_canonical_images_and_exact_original_manifests",
+      "tests.test_hia_candidate_build.CandidateBuildNativeTests.test_complete_preflight_rejections_publish_no_bytes",
+      "tests.test_hia_candidate_build.CandidateBuildNativeTests.test_existing_installed_preflight_loader_accepts_actual_native_manifest",
+      "tests.test_hia_candidate_build.CandidateBuildNativeTests.test_runtime_has_no_file_open_exec_child_or_writable_executable_mapping"
+    ],
+    "bootstrap_argv": [
+      "python",
+      "-B",
+      "tools/build_hia_candidate_build.py",
+      "--compiler",
+      "<actual fixed development compiler>",
+      "--development",
+      "--output",
+      "<fresh runner-temp>/candidate-build/bootstrap"
+    ],
+    "capacity": 1048576,
+    "compile_seconds": 20,
+    "count": 4,
+    "development_result_cannot_be_promoted_to_matching_cold": true,
+    "each_native_child_seconds": 20,
+    "environment": {
+      "HEPTA_HIA_CANDIDATE_BUILD_DEVELOPMENT_EVIDENCE": "<fresh runner-temp>/candidate-build/bootstrap",
+      "HEPTA_HIA_CANDIDATE_BUILD_TEST_EVIDENCE": "<fresh runner-temp>/candidate-build/observations"
+    },
+    "expected_observations": {
+      "canonical_image_and_manifest_pairs": 55,
+      "standalone_processes": 75
+    },
+    "scope": "DEVELOPMENT_ONLY: this fixture explicitly rejects a cold-labelled bootstrap report.",
+    "selector": "tests.test_hia_candidate_build.CandidateBuildNativeTests",
+    "strict_runner": "Run original ordered IDs once with the original 180+3 owned-process supervisor, exact integer loaded/start/stop/run and zero anomalies. The complete local 9-method driver also ran the Source5 above."
+  },
+  "new_CI_started_here": false,
+  "new_resource_group_created": false,
+  "owner_packet_blob": "7c9f8789f539b756e429529e55c8a1efec3dbf8d",
+  "parent_published_next_base": {
+    "authority": "parent full Git/source verification; not newly executed here",
+    "commit": "d79eb096ddcce6c317b2c316a4773ce76a37bab9",
+    "tree": "279c5459c9cc7746d5e347d90285eebfe21986d2"
+  },
+  "production_build_r1": {
+    "argv": [
+      "python",
+      "-B",
+      "tools/build_hia_candidate_build.py",
+      "--compiler",
+      "<actual matching cold B3>",
+      "--cold-report",
+      "<actual current-source cold report>",
+      "--output",
+      "<fresh runner-temp>/candidate-build/cold-bootstrap"
+    ],
+    "bindings": "Original admit_cold_build + all 13 SOURCE_NAMES required in the full admitted source map, 4 actual compile receipts, actual pack input/output and image receipts, captured inputs/source/current_sources final readback.",
+    "followup": "Independent R2 will add a matching-cold fixture/qualifier and scope negatives, preserving all original Native business method bodies and original observation counts.",
+    "implemented": true,
+    "matching_cold_positive_executed": false,
+    "native_test_fixture_supports_this_scope": false
+  },
+  "registration_applied_here": false,
+  "schema": "hepta.hia.candidate-build.registration-spec.v1",
+  "scope": "FROZEN_R1_REGISTRATION_PLAN_NOT_APPLIED_NOT_MATCHING_COLD_QUALIFICATION",
+  "setup_py_logic_change_required": false,
+  "source": {
+    "actual_original_ids": [
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_complete_generated_hia_and_original_limits",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_exact_original_catalog_all_55_and_three_dedicated_exclusions",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_vm_actual_hia_catalog_selection_and_permanent_rejection",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_vm_packer_all_output_bytes_and_short_output_no_write",
+      "tests.test_hia_candidate_build.CandidateBuildSourceTests.test_vm_sha_mismatch_refuses_before_compiler_request"
+    ],
+    "count": 5,
+    "environment": {
+      "HEPTA_HIA_CANDIDATE_BUILD_TEST_EVIDENCE": "<fresh runner-temp>/candidate-build-source"
+    },
+    "native_compilation_required": false,
+    "required_tools": [
+      "the existing GNU as/objcopy/nm tools used by template generation"
+    ],
+    "runner": "Use the unchanged strict Source runner; retain full VM observations from the explicit evidence directory.",
+    "selector": "tests.test_hia_candidate_build.CandidateBuildSourceTests"
+  },
+  "wheel_claim": "These two canonical HIA resources use the existing explicit 11-group package hook. No installed Python bootstrap or full source-distribution authoring claim is made."
+}
