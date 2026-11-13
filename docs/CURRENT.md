@@ -110,6 +110,20 @@ Neither component success nor this source change is labelled a cold pass.
 The original CI now runs the linked-observer controls against its own admitted
 current-source cold compiler and archives their evidence.
 
+Published observer commit `c4e83a14e47217a27d8d0f112c484b30315d9f68` subsequently
+passed cold in both its [push run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43467604528)
+and [PR run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43467621844).
+The PR's original 31 linked-observer tests also passed in 8.035 seconds. Both
+workflows then refused the stale language coverage inventory: its stored
+semantic-support digest had not been regenerated after adding the observer
+contract. Source stopped at the unchanged generated-diff assertion; Native
+stopped at the unchanged language-inventory assertion and skipped later steps.
+The original Native artifact `14059213307`, ZIP SHA-256
+`4dbc927aad2b19fce0d1562f4eac22584eb346b0302e6fa76ca8b496850687e7`, retains that
+run. The successor regenerates the language inventory and its source-contract
+digest using the existing generators. It changes no implementation, selector,
+assertion or budget and does not relabel the failed workflow as a pass.
+
 ## Current native implementation
 
 | Area | Implemented selected path | Remaining boundary |
