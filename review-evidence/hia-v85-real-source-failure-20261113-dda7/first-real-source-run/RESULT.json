@@ -1,0 +1,47 @@
+{
+  "HIA_COMBINED_SOURCE_RESULT": {
+    "cold_qualifications": 0,
+    "composition": {
+      "authored_files": 285,
+      "conflicts_resolved": 122,
+      "exact_retained": 36,
+      "regeneration_seeds": 185
+    },
+    "default_changed": false,
+    "failures": [
+      {
+        "error": "unexpected Git return code: pre-generation-0",
+        "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 772, in main\n    result[\"generation\"] = regenerate(capture,inputs)\n                           ~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 532, in regenerate\n    python_command(capture, command, \"pre-generation-\" + str(index), limit=300)\n    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 527, in python_command\n    return capture.run([sys.executable, \"-B\", *arguments], cwd=capture.repo, label=label,\n           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                       auth=False, limit=limit, enforce=enforce)\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 164, in run\n    check(process.returncode in allowed, \"unexpected Git return code: \" + label)\n    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/materialize_candidate.py\", line 38, in check\n    raise RuntimeError(message)\nRuntimeError: unexpected Git return code: pre-generation-0\n",
+        "type": "RuntimeError"
+      }
+    ],
+    "finished_at": "2026-11-13T06:30:53.962647+00:00",
+    "legacy_host_implementation_deleted": false,
+    "native_execution_count": null,
+    "native_qualification_jobs_executed": 0,
+    "product_ref_changed": false,
+    "product_tests_executed": 0,
+    "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+    "schema": "hepta.combined-source-build-result.v1",
+    "scope": "COMBINED_SOURCE_REGENERATION_AND_SOURCE_TESTS",
+    "started_at": "2026-11-13T06:30:26.085002+00:00",
+    "status": "FAIL",
+    "syntax": {
+      "checked": 1439,
+      "failures": 0
+    },
+    "terminal_source_snapshot": {
+      "all_partial_generated_bytes_captured": true,
+      "files": 3039,
+      "fixed_original_git_dependencies_retained": true,
+      "new_or_changed_byte_records": 235
+    },
+    "whole_native": false
+  },
+  "evidence": {
+    "blob": "0803f01c321ec9ffec06a650e97a305630287c97",
+    "bytes": 327646,
+    "full_readback_equal": true,
+    "sha256": "aa96b34a550ad31b6d63596bb8e4e245fb41f51f421f8a2b64e5e7b650ec9824"
+  }
+}
