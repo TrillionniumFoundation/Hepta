@@ -1,0 +1,4380 @@
+{
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "args": [
+                "v2"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "v3",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v3"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v4",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 16
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v5",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v4",
+                "v5"
+              ],
+              "attrs": {},
+              "op": "compare.ne",
+              "out": [
+                {
+                  "name": "v6",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v0",
+              "type": "readbuf"
+            },
+            {
+              "name": "v1",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v2",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "cond": "v6",
+            "else": {
+              "args": [
+                "v0",
+                "v1",
+                "v2"
+              ],
+              "target": "b2"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v0",
+                "v1",
+                "v2"
+              ],
+              "target": "b1"
+            }
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 4294967293
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v13",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v13"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v14",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v7",
+              "type": "readbuf"
+            },
+            {
+              "name": "v8",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v9",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v14"
+            ]
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v15",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v12",
+                "v15"
+              ],
+              "attrs": {
+                "function": "f4"
+              },
+              "op": "call",
+              "out": [
+                {
+                  "name": "v16",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 3544423437458032968
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v17",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v16",
+                "v17"
+              ],
+              "attrs": {},
+              "op": "compare.ne",
+              "out": [
+                {
+                  "name": "v18",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v10",
+              "type": "readbuf"
+            },
+            {
+              "name": "v11",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v12",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "cond": "v18",
+            "else": {
+              "args": [
+                "v10",
+                "v11",
+                "v12"
+              ],
+              "target": "b4"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v10",
+                "v11",
+                "v12"
+              ],
+              "target": "b3"
+            }
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 4294967293
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v25",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v25"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v26",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v19",
+              "type": "readbuf"
+            },
+            {
+              "name": "v20",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v21",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v26"
+            ]
+          }
+        },
+        {
+          "id": "b4",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 8
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v27",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v24",
+                "v27"
+              ],
+              "attrs": {
+                "function": "f4"
+              },
+              "op": "call",
+              "out": [
+                {
+                  "name": "v28",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v29",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v28",
+                "v29"
+              ],
+              "attrs": {},
+              "op": "compare.eq",
+              "out": [
+                {
+                  "name": "v30",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v22",
+              "type": "readbuf"
+            },
+            {
+              "name": "v23",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v24",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "cond": "v30",
+            "else": {
+              "args": [
+                "v22",
+                "v23",
+                "v24",
+                "v28"
+              ],
+              "target": "b6"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v22",
+                "v23",
+                "v24"
+              ],
+              "target": "b5"
+            }
+          }
+        },
+        {
+          "id": "b5",
+          "ops": [
+            {
+              "args": [
+                "v31"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "v39",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v39"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v40",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 9
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v41",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v40",
+                "v41"
+              ],
+              "attrs": {},
+              "op": "compare.gt",
+              "out": [
+                {
+                  "name": "v42",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v31",
+              "type": "readbuf"
+            },
+            {
+              "name": "v32",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v33",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "cond": "v42",
+            "else": {
+              "args": [
+                "v31",
+                "v32",
+                "v33"
+              ],
+              "target": "b7"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v31",
+                "v32",
+                "v33",
+                "v42"
+              ],
+              "target": "b8"
+            }
+          }
+        },
+        {
+          "id": "b6",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 2
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v68",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v38",
+                "v68"
+              ],
+              "attrs": {},
+              "op": "compare.eq",
+              "out": [
+                {
+                  "name": "v69",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v35",
+              "type": "readbuf"
+            },
+            {
+              "name": "v36",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v37",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v38",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v69",
+            "else": {
+              "args": [
+                "v35",
+                "v36",
+                "v37"
+              ],
+              "target": "b12"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v35",
+                "v36",
+                "v37"
+              ],
+              "target": "b11"
+            }
+          }
+        },
+        {
+          "id": "b7",
+          "ops": [
+            {
+              "args": [
+                "v44"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "v53",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v53"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v54",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 8
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v55",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v54",
+                "v55"
+              ],
+              "attrs": {},
+              "op": "compare.ne",
+              "out": [
+                {
+                  "name": "v56",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v43",
+              "type": "readbuf"
+            },
+            {
+              "name": "v44",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v45",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "args": [
+              "v43",
+              "v44",
+              "v45",
+              "v56"
+            ],
+            "op": "jump",
+            "target": "b8"
+          }
+        },
+        {
+          "id": "b8",
+          "ops": [],
+          "params": [
+            {
+              "name": "v48",
+              "type": "readbuf"
+            },
+            {
+              "name": "v49",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v50",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v52",
+              "type": "bool"
+            }
+          ],
+          "term": {
+            "cond": "v52",
+            "else": {
+              "args": [
+                "v48",
+                "v49",
+                "v50"
+              ],
+              "target": "b10"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v48",
+                "v49",
+                "v50"
+              ],
+              "target": "b9"
+            }
+          }
+        },
+        {
+          "id": "b9",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 4294967293
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v65",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v65"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v66",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v57",
+              "type": "readbuf"
+            },
+            {
+              "name": "v58",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v59",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v66"
+            ]
+          }
+        },
+        {
+          "id": "b10",
+          "ops": [
+            {
+              "args": [
+                "v61",
+                "v62"
+              ],
+              "attrs": {
+                "function": "f1"
+              },
+              "op": "call",
+              "out": [
+                {
+                  "name": "v67",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v61",
+              "type": "readbuf"
+            },
+            {
+              "name": "v62",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v63",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v67"
+            ]
+          }
+        },
+        {
+          "id": "b11",
+          "ops": [
+            {
+              "args": [
+                "v70"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "v78",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v78"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v79",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 8
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v80",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v79",
+                "v80"
+              ],
+              "attrs": {},
+              "op": "compare.ne",
+              "out": [
+                {
+                  "name": "v81",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v70",
+              "type": "readbuf"
+            },
+            {
+              "name": "v71",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v72",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "cond": "v81",
+            "else": {
+              "args": [
+                "v70",
+                "v71",
+                "v72"
+              ],
+              "target": "b13"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v70",
+                "v71",
+                "v72",
+                "v81"
+              ],
+              "target": "b14"
+            }
+          }
+        },
+        {
+          "id": "b12",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 4294967293
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v107",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v107"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v108",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v74",
+              "type": "readbuf"
+            },
+            {
+              "name": "v75",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v76",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v108"
+            ]
+          }
+        },
+        {
+          "id": "b13",
+          "ops": [
+            {
+              "args": [
+                "v83"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "v92",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v92"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v93",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 9
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v94",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v93",
+                "v94"
+              ],
+              "attrs": {},
+              "op": "compare.gt",
+              "out": [
+                {
+                  "name": "v95",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v82",
+              "type": "readbuf"
+            },
+            {
+              "name": "v83",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v84",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "args": [
+              "v82",
+              "v83",
+              "v84",
+              "v95"
+            ],
+            "op": "jump",
+            "target": "b14"
+          }
+        },
+        {
+          "id": "b14",
+          "ops": [],
+          "params": [
+            {
+              "name": "v87",
+              "type": "readbuf"
+            },
+            {
+              "name": "v88",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v89",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v91",
+              "type": "bool"
+            }
+          ],
+          "term": {
+            "cond": "v91",
+            "else": {
+              "args": [
+                "v87",
+                "v88",
+                "v89"
+              ],
+              "target": "b16"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v87",
+                "v88",
+                "v89"
+              ],
+              "target": "b15"
+            }
+          }
+        },
+        {
+          "id": "b15",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 4294967293
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v104",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v104"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v105",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v96",
+              "type": "readbuf"
+            },
+            {
+              "name": "v97",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v98",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v105"
+            ]
+          }
+        },
+        {
+          "id": "b16",
+          "ops": [
+            {
+              "args": [
+                "v100",
+                "v101"
+              ],
+              "attrs": {
+                "function": "f2"
+              },
+              "op": "call",
+              "out": [
+                {
+                  "name": "v106",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v100",
+              "type": "readbuf"
+            },
+            {
+              "name": "v101",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v102",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v106"
+            ]
+          }
+        }
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "b0",
+      "name": "f0",
+      "params": [
+        {
+          "name": "v0",
+          "type": "readbuf"
+        },
+        {
+          "name": "v1",
+          "type": "mutbuf"
+        },
+        {
+          "name": "v2",
+          "type": "mutbuf"
+        }
+      ],
+      "returns": [
+        "u32"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v2",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v0",
+              "type": "readbuf"
+            },
+            {
+              "name": "v1",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "args": [
+              "v0",
+              "v1",
+              "v2",
+              "v2"
+            ],
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 8
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v7",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v6",
+                "v7"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "v8",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v3",
+              "type": "readbuf"
+            },
+            {
+              "name": "v4",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v5",
+              "type": "u64"
+            },
+            {
+              "name": "v6",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v8",
+            "else": {
+              "args": [
+                "v3",
+                "v4",
+                "v5"
+              ],
+              "target": "b3"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v3",
+                "v4",
+                "v5",
+                "v6"
+              ],
+              "target": "b2"
+            }
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "args": [
+                "v9"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "v17",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v17"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v18",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v12",
+                "v18"
+              ],
+              "attrs": {},
+              "op": "compare.ge",
+              "out": [
+                {
+                  "name": "v19",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v9",
+              "type": "readbuf"
+            },
+            {
+              "name": "v10",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v11",
+              "type": "u64"
+            },
+            {
+              "name": "v12",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v19",
+            "else": {
+              "args": [
+                "v9",
+                "v10",
+                "v11",
+                "v12"
+              ],
+              "target": "b5"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v9",
+                "v10"
+              ],
+              "target": "b4"
+            }
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "args": [
+                "v13"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "v54",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v54"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v55",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 9
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v56",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v55",
+                "v56"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "v57",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v13",
+              "type": "readbuf"
+            },
+            {
+              "name": "v14",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v15",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v57",
+            "else": {
+              "args": [
+                "v13",
+                "v14",
+                "v15"
+              ],
+              "target": "b9"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v13",
+                "v14"
+              ],
+              "target": "b8"
+            }
+          }
+        },
+        {
+          "id": "b4",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 4294967294
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v28",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v28"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v29",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v20",
+              "type": "readbuf"
+            },
+            {
+              "name": "v21",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v29"
+            ]
+          }
+        },
+        {
+          "id": "b5",
+          "ops": [
+            {
+              "args": [
+                "v27"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v30",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v24",
+                "v30"
+              ],
+              "attrs": {},
+              "op": "buffer.load",
+              "out": [
+                {
+                  "name": "v31",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v31"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v32",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 7
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v33",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v26",
+                "v33"
+              ],
+              "attrs": {},
+              "op": "int.shl.checked",
+              "out": [
+                {
+                  "name": "v34",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 127
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v35",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v32",
+                "v35"
+              ],
+              "attrs": {},
+              "op": "bit.and",
+              "out": [
+                {
+                  "name": "v36",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v34",
+                "v36"
+              ],
+              "attrs": {},
+              "op": "bit.or",
+              "out": [
+                {
+                  "name": "v37",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v38",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v27",
+                "v38"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "v39",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 128
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v40",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v32",
+                "v40"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "v41",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v24",
+              "type": "readbuf"
+            },
+            {
+              "name": "v25",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v26",
+              "type": "u64"
+            },
+            {
+              "name": "v27",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v41",
+            "else": {
+              "args": [
+                "v24",
+                "v25",
+                "v37",
+                "v39"
+              ],
+              "target": "b1"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v24",
+                "v25",
+                "v37",
+                "v39"
+              ],
+              "target": "b6"
+            }
+          }
+        },
+        {
+          "id": "b6",
+          "ops": [
+            {
+              "args": [
+                "v43",
+                "v44"
+              ],
+              "attrs": {
+                "function": "f5"
+              },
+              "op": "call",
+              "out": [
+                {
+                  "name": "v52",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v45"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v53",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v42",
+              "type": "readbuf"
+            },
+            {
+              "name": "v43",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v44",
+              "type": "u64"
+            },
+            {
+              "name": "v45",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v53"
+            ]
+          }
+        },
+        {
+          "id": "b8",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 4294967294
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v66",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v66"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v67",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v58",
+              "type": "readbuf"
+            },
+            {
+              "name": "v59",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v67"
+            ]
+          }
+        },
+        {
+          "id": "b9",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 8
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v68",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v64",
+                "v68"
+              ],
+              "attrs": {},
+              "op": "int.shl.checked",
+              "out": [
+                {
+                  "name": "v69",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v68"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v70",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v62",
+                "v70"
+              ],
+              "attrs": {},
+              "op": "buffer.load",
+              "out": [
+                {
+                  "name": "v71",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v71"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v72",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v69",
+                "v72"
+              ],
+              "attrs": {},
+              "op": "bit.or",
+              "out": [
+                {
+                  "name": "v73",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v63",
+                "v73"
+              ],
+              "attrs": {
+                "function": "f5"
+              },
+              "op": "call",
+              "out": [
+                {
+                  "name": "v74",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 9
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v75",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v75"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v76",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v62",
+              "type": "readbuf"
+            },
+            {
+              "name": "v63",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v64",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v76"
+            ]
+          }
+        }
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "b0",
+      "name": "f1",
+      "params": [
+        {
+          "name": "v0",
+          "type": "readbuf"
+        },
+        {
+          "name": "v1",
+          "type": "mutbuf"
+        }
+      ],
+      "returns": [
+        "u32"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "args": [
+                "v0"
+              ],
+              "attrs": {
+                "function": "f3"
+              },
+              "op": "call",
+              "out": [
+                {
+                  "name": "v2",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 72057594037927936
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v3",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v2",
+                "v3"
+              ],
+              "attrs": {},
+              "op": "compare.ge",
+              "out": [
+                {
+                  "name": "v4",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v0",
+              "type": "readbuf"
+            },
+            {
+              "name": "v1",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "cond": "v4",
+            "else": {
+              "args": [
+                "v0",
+                "v1",
+                "v2"
+              ],
+              "target": "b2"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v0",
+                "v1",
+                "v2"
+              ],
+              "target": "b1"
+            }
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "args": [
+                "v6"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "v11",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v11"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v12",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 9
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v13",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v12",
+                "v13"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "v14",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v5",
+              "type": "readbuf"
+            },
+            {
+              "name": "v6",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v7",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v14",
+            "else": {
+              "args": [
+                "v5",
+                "v6",
+                "v7"
+              ],
+              "target": "b4"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v5",
+                "v6"
+              ],
+              "target": "b3"
+            }
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v55",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v8",
+              "type": "readbuf"
+            },
+            {
+              "name": "v9",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v10",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "args": [
+              "v8",
+              "v9",
+              "v10",
+              "v55",
+              "v10"
+            ],
+            "op": "jump",
+            "target": "b8"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 4294967292
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v21",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v21"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v22",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v15",
+              "type": "readbuf"
+            },
+            {
+              "name": "v16",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v22"
+            ]
+          }
+        },
+        {
+          "id": "b4",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 8
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v23",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 255
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v24",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v20",
+                "v24"
+              ],
+              "attrs": {},
+              "op": "bit.and",
+              "out": [
+                {
+                  "name": "v25",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v23"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v26",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v25"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v27",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v19",
+                "v26",
+                "v27"
+              ],
+              "attrs": {},
+              "op": "buffer.store",
+              "out": []
+            },
+            {
+              "args": [
+                "v20",
+                "v23"
+              ],
+              "attrs": {},
+              "op": "int.shr.checked",
+              "out": [
+                {
+                  "name": "v28",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v18",
+              "type": "readbuf"
+            },
+            {
+              "name": "v19",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v20",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "args": [
+              "v18",
+              "v19",
+              "v28",
+              "v23"
+            ],
+            "op": "jump",
+            "target": "b5"
+          }
+        },
+        {
+          "id": "b5",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v33",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v32",
+                "v33"
+              ],
+              "attrs": {},
+              "op": "compare.gt",
+              "out": [
+                {
+                  "name": "v34",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v29",
+              "type": "readbuf"
+            },
+            {
+              "name": "v30",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v31",
+              "type": "u64"
+            },
+            {
+              "name": "v32",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v34",
+            "else": {
+              "args": [
+                "v29",
+                "v30"
+              ],
+              "target": "b7"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v29",
+                "v30",
+                "v31",
+                "v32"
+              ],
+              "target": "b6"
+            }
+          }
+        },
+        {
+          "id": "b6",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v43",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v38",
+                "v43"
+              ],
+              "attrs": {},
+              "op": "int.sub.wrap",
+              "out": [
+                {
+                  "name": "v44",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 127
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v45",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v37",
+                "v45"
+              ],
+              "attrs": {},
+              "op": "bit.and",
+              "out": [
+                {
+                  "name": "v46",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 128
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v47",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v46",
+                "v47"
+              ],
+              "attrs": {},
+              "op": "bit.or",
+              "out": [
+                {
+                  "name": "v48",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v44"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v49",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v48"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v50",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v36",
+                "v49",
+                "v50"
+              ],
+              "attrs": {},
+              "op": "buffer.store",
+              "out": []
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 7
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v51",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v37",
+                "v51"
+              ],
+              "attrs": {},
+              "op": "int.shr.checked",
+              "out": [
+                {
+                  "name": "v52",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v35",
+              "type": "readbuf"
+            },
+            {
+              "name": "v36",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v37",
+              "type": "u64"
+            },
+            {
+              "name": "v38",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "args": [
+              "v35",
+              "v36",
+              "v52",
+              "v44"
+            ],
+            "op": "jump",
+            "target": "b5"
+          }
+        },
+        {
+          "id": "b7",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 9
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v53",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v53"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v54",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v39",
+              "type": "readbuf"
+            },
+            {
+              "name": "v40",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v54"
+            ]
+          }
+        },
+        {
+          "id": "b8",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 127
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v61",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v60",
+                "v61"
+              ],
+              "attrs": {},
+              "op": "compare.gt",
+              "out": [
+                {
+                  "name": "v62",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v56",
+              "type": "readbuf"
+            },
+            {
+              "name": "v57",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v58",
+              "type": "u64"
+            },
+            {
+              "name": "v59",
+              "type": "u64"
+            },
+            {
+              "name": "v60",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v62",
+            "else": {
+              "args": [
+                "v56",
+                "v57",
+                "v58",
+                "v59"
+              ],
+              "target": "b10"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v56",
+                "v57",
+                "v58",
+                "v59",
+                "v60"
+              ],
+              "target": "b9"
+            }
+          }
+        },
+        {
+          "id": "b9",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 7
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v73",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v67",
+                "v73"
+              ],
+              "attrs": {},
+              "op": "int.shr.checked",
+              "out": [
+                {
+                  "name": "v74",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v75",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v66",
+                "v75"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "v76",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v63",
+              "type": "readbuf"
+            },
+            {
+              "name": "v64",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v65",
+              "type": "u64"
+            },
+            {
+              "name": "v66",
+              "type": "u64"
+            },
+            {
+              "name": "v67",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "args": [
+              "v63",
+              "v64",
+              "v65",
+              "v76",
+              "v74"
+            ],
+            "op": "jump",
+            "target": "b8"
+          }
+        },
+        {
+          "id": "b10",
+          "ops": [
+            {
+              "args": [
+                "v69"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "v77",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v77"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v78",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v78",
+                "v71"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "v79",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v68",
+              "type": "readbuf"
+            },
+            {
+              "name": "v69",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v70",
+              "type": "u64"
+            },
+            {
+              "name": "v71",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v79",
+            "else": {
+              "args": [
+                "v68",
+                "v69",
+                "v70",
+                "v71"
+              ],
+              "target": "b12"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v68",
+                "v69"
+              ],
+              "target": "b11"
+            }
+          }
+        },
+        {
+          "id": "b11",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 4294967292
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v90",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v90"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v91",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v80",
+              "type": "readbuf"
+            },
+            {
+              "name": "v81",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v91"
+            ]
+          }
+        },
+        {
+          "id": "b12",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v92",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v85",
+              "type": "readbuf"
+            },
+            {
+              "name": "v86",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v87",
+              "type": "u64"
+            },
+            {
+              "name": "v88",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "args": [
+              "v85",
+              "v86",
+              "v87",
+              "v88",
+              "v92"
+            ],
+            "op": "jump",
+            "target": "b13"
+          }
+        },
+        {
+          "id": "b13",
+          "ops": [
+            {
+              "args": [
+                "v98",
+                "v96"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "v99",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v93",
+              "type": "readbuf"
+            },
+            {
+              "name": "v94",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v95",
+              "type": "u64"
+            },
+            {
+              "name": "v96",
+              "type": "u64"
+            },
+            {
+              "name": "v98",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v99",
+            "else": {
+              "args": [
+                "v93",
+                "v94",
+                "v96"
+              ],
+              "target": "b15"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v93",
+                "v94",
+                "v95",
+                "v96",
+                "v98"
+              ],
+              "target": "b14"
+            }
+          }
+        },
+        {
+          "id": "b14",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v112",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v103",
+                "v112"
+              ],
+              "attrs": {},
+              "op": "int.sub.wrap",
+              "out": [
+                {
+                  "name": "v113",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v113",
+                "v105"
+              ],
+              "attrs": {},
+              "op": "int.sub.wrap",
+              "out": [
+                {
+                  "name": "v114",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 7
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v115",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v114",
+                "v115"
+              ],
+              "attrs": {},
+              "op": "int.mul.wrap",
+              "out": [
+                {
+                  "name": "v116",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v102",
+                "v116"
+              ],
+              "attrs": {},
+              "op": "int.shr.checked",
+              "out": [
+                {
+                  "name": "v117",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 127
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v118",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v117",
+                "v118"
+              ],
+              "attrs": {},
+              "op": "bit.and",
+              "out": [
+                {
+                  "name": "v119",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v105",
+                "v112"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "v120",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v120",
+                "v103"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "v121",
+                  "type": "bool"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 128
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v122",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v119",
+                "v122"
+              ],
+              "attrs": {},
+              "op": "bit.or",
+              "out": [
+                {
+                  "name": "v123",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v121",
+                "v123",
+                "v119"
+              ],
+              "attrs": {},
+              "op": "select",
+              "out": [
+                {
+                  "name": "v124",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v105"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v125",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v124"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v126",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v101",
+                "v125",
+                "v126"
+              ],
+              "attrs": {},
+              "op": "buffer.store",
+              "out": []
+            },
+            {
+              "args": [
+                "v105",
+                "v112"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "v127",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v100",
+              "type": "readbuf"
+            },
+            {
+              "name": "v101",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v102",
+              "type": "u64"
+            },
+            {
+              "name": "v103",
+              "type": "u64"
+            },
+            {
+              "name": "v105",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "args": [
+              "v100",
+              "v101",
+              "v102",
+              "v103",
+              "v127"
+            ],
+            "op": "jump",
+            "target": "b13"
+          }
+        },
+        {
+          "id": "b15",
+          "ops": [
+            {
+              "args": [
+                "v109"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v128",
+                  "type": "u32"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v106",
+              "type": "readbuf"
+            },
+            {
+              "name": "v107",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v109",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v128"
+            ]
+          }
+        }
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "b0",
+      "name": "f2",
+      "params": [
+        {
+          "name": "v0",
+          "type": "readbuf"
+        },
+        {
+          "name": "v1",
+          "type": "mutbuf"
+        }
+      ],
+      "returns": [
+        "u32"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v1",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v0",
+              "type": "readbuf"
+            }
+          ],
+          "term": {
+            "args": [
+              "v0",
+              "v1",
+              "v1"
+            ],
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 8
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v5",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v4",
+                "v5"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "v6",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v2",
+              "type": "readbuf"
+            },
+            {
+              "name": "v3",
+              "type": "u64"
+            },
+            {
+              "name": "v4",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v6",
+            "else": {
+              "args": [
+                "v2",
+                "v3"
+              ],
+              "target": "b3"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v2",
+                "v3",
+                "v4"
+              ],
+              "target": "b2"
+            }
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "args": [
+                "v9"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v13",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v7",
+                "v13"
+              ],
+              "attrs": {},
+              "op": "buffer.load",
+              "out": [
+                {
+                  "name": "v14",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v14"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v15",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 8
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v16",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v9",
+                "v16"
+              ],
+              "attrs": {},
+              "op": "int.mul.wrap",
+              "out": [
+                {
+                  "name": "v17",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v15",
+                "v17"
+              ],
+              "attrs": {},
+              "op": "int.shl.checked",
+              "out": [
+                {
+                  "name": "v18",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v8",
+                "v18"
+              ],
+              "attrs": {},
+              "op": "bit.or",
+              "out": [
+                {
+                  "name": "v19",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v20",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v9",
+                "v20"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "v21",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v7",
+              "type": "readbuf"
+            },
+            {
+              "name": "v8",
+              "type": "u64"
+            },
+            {
+              "name": "v9",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "args": [
+              "v7",
+              "v19",
+              "v21"
+            ],
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [],
+          "params": [
+            {
+              "name": "v10",
+              "type": "readbuf"
+            },
+            {
+              "name": "v11",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v11"
+            ]
+          }
+        }
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "b0",
+      "name": "f3",
+      "params": [
+        {
+          "name": "v0",
+          "type": "readbuf"
+        }
+      ],
+      "returns": [
+        "u64"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v2",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v0",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v1",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "args": [
+              "v0",
+              "v1",
+              "v2",
+              "v2"
+            ],
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 8
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v7",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v6",
+                "v7"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "v8",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v3",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v4",
+              "type": "u64"
+            },
+            {
+              "name": "v5",
+              "type": "u64"
+            },
+            {
+              "name": "v6",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v8",
+            "else": {
+              "args": [
+                "v3",
+                "v5"
+              ],
+              "target": "b3"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v3",
+                "v4",
+                "v5",
+                "v6"
+              ],
+              "target": "b2"
+            }
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "args": [
+                "v10",
+                "v12"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "v17",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v17"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v18",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v9",
+                "v18"
+              ],
+              "attrs": {},
+              "op": "buffer.load",
+              "out": [
+                {
+                  "name": "v19",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v19"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v20",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 8
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v21",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v12",
+                "v21"
+              ],
+              "attrs": {},
+              "op": "int.mul.wrap",
+              "out": [
+                {
+                  "name": "v22",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v20",
+                "v22"
+              ],
+              "attrs": {},
+              "op": "int.shl.checked",
+              "out": [
+                {
+                  "name": "v23",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v11",
+                "v23"
+              ],
+              "attrs": {},
+              "op": "bit.or",
+              "out": [
+                {
+                  "name": "v24",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v25",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v12",
+                "v25"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "v26",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v9",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v10",
+              "type": "u64"
+            },
+            {
+              "name": "v11",
+              "type": "u64"
+            },
+            {
+              "name": "v12",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "args": [
+              "v9",
+              "v10",
+              "v24",
+              "v26"
+            ],
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [],
+          "params": [
+            {
+              "name": "v13",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v15",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v15"
+            ]
+          }
+        }
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "b0",
+      "name": "f4",
+      "params": [
+        {
+          "name": "v0",
+          "type": "mutbuf"
+        },
+        {
+          "name": "v1",
+          "type": "u64"
+        }
+      ],
+      "returns": [
+        "u64"
+      ]
+    },
+    {
+      "blocks": [
+        {
+          "id": "b0",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v2",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v0",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v1",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "args": [
+              "v0",
+              "v1",
+              "v2"
+            ],
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 8
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v6",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v5",
+                "v6"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "v7",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v3",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v4",
+              "type": "u64"
+            },
+            {
+              "name": "v5",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "v7",
+            "else": {
+              "args": [
+                "v3"
+              ],
+              "target": "b3"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "v3",
+                "v4",
+                "v5"
+              ],
+              "target": "b2"
+            }
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 8
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v14",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v10",
+                "v14"
+              ],
+              "attrs": {},
+              "op": "int.mul.wrap",
+              "out": [
+                {
+                  "name": "v15",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v9",
+                "v15"
+              ],
+              "attrs": {},
+              "op": "int.shr.checked",
+              "out": [
+                {
+                  "name": "v16",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 255
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v17",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v16",
+                "v17"
+              ],
+              "attrs": {},
+              "op": "bit.and",
+              "out": [
+                {
+                  "name": "v18",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v10"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v19",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v18"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v20",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v8",
+                "v19",
+                "v20"
+              ],
+              "attrs": {},
+              "op": "buffer.store",
+              "out": []
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v21",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v10",
+                "v21"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "v22",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v8",
+              "type": "mutbuf"
+            },
+            {
+              "name": "v9",
+              "type": "u64"
+            },
+            {
+              "name": "v10",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "args": [
+              "v8",
+              "v9",
+              "v22"
+            ],
+            "op": "jump",
+            "target": "b1"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v23",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "v11",
+              "type": "mutbuf"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v23"
+            ]
+          }
+        }
+      ],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "b0",
+      "name": "f5",
+      "params": [
+        {
+          "name": "v0",
+          "type": "mutbuf"
+        },
+        {
+          "name": "v1",
+          "type": "u64"
+        }
+      ],
+      "returns": [
+        "u64"
+      ]
+    }
+  ],
+  "module": "sqlite_varint",
+  "schema": "hepta.hia.program.v8"
+}
