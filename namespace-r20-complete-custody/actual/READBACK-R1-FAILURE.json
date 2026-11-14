@@ -1,0 +1,15 @@
+{
+  "scope": "offline custody verifier only; zero product executions",
+  "argv": [
+    "python",
+    "-B",
+    "v131-namespace-r20-phase-r1/summarize_actual.py"
+  ],
+  "exit_code": 1,
+  "combined_tool_output": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v131-namespace-r20-phase-r1/summarize_actual.py\", line 251, in <module>\n    main()\n  File \"/workspace/scratch/dda74a4fae35/v131-namespace-r20-phase-r1/summarize_actual.py\", line 91, in main\n    assert outer['original_method_ast'] == {method.name: ast.dump(method, include_attributes=False)}\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n",
+  "cause_to_verify": "local default Python 3.12 ast.dump differs from actual CI 3.14; rerun only the same offline verifier under exact 3.14, keeping the assertion unchanged",
+  "verifier": {
+    "bytes": 16605,
+    "sha256": "0e2203dfc9e118dca32edf47e6952bf5ce231476d9ed3f433b2d7a8a8126595a"
+  }
+}

@@ -1,0 +1,29 @@
+--- prepare_harness.py
++++ prepare_harness_r2.py
+@@ -19,7 +19,7 @@
+ 
+ ROOT = Path('/workspace/scratch/dda74a4fae35')
+ SCOPE = Path(__file__).resolve().parent
+-OUT = SCOPE / 'prepared-r1'
++OUT = SCOPE / 'prepared-r2'
+ OLD = ROOT / 'v94-native-namespace-budget-r1/ci-phase-r1'
+ OLD_HARNESS = OLD / 'harness'
+ PRODUCT = ROOT / 'v120-union-r20/source'
+@@ -281,7 +281,7 @@
+         name = 'retained-%02d.json.part' % number
+         write(harness / 'inputs' / name, raw)
+         parts.append({'path': name, 'offset': offset, **identity(raw)})
+-    assert len(parts) == 4
++    assert len(parts) == 5
+     write(harness / 'inputs/RETAINED-PARTS.json', encoded({
+         'schema': 'hepta.ordered-exact-text-parts.v1', 'complete': identity(transport), 'parts': parts}))
+     write(harness / 'inputs/SOURCE-MANIFEST.json', manifest_raw)
+@@ -389,7 +389,7 @@
+ 
+ ## Exact retained inputs and source admission
+ 
+-The four-part transport reconstructs sixteen exact members of Native artifact
++The five-part transport reconstructs sixteen exact members of Native artifact
+ 14101031842 from run 43560753071 / job 132343657673. Each actual member's ZIP CRC,
+ mode, complete bytes, SHA-256 and Git identity were checked while preparing this
+ packet. Nine inputs are byte/mode-identical to the old diagnostic; seven source-

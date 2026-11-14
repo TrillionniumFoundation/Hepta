@@ -1,0 +1,56 @@
+--- before/tests/test_hia_inspect_program_machine_entry.py
++++ after/tests/test_hia_inspect_program_machine_entry.py
+@@ -33,7 +33,6 @@
+ def _frame(case, callback, image=None):
+     """Build only a transport witness; this is not an admitted native owner."""
+     frame = object.__new__(InspectProgramFrame)
+-    frame._machine_busy = False
+     frame.closed = False
+     frame._runtime_profile = 314
+     frame.state = ctypes.create_string_buffer(2048)
+@@ -69,21 +68,43 @@
+ 
+ 
+ class InspectProgramMachineEntrySourceTests(unittest.TestCase):
+-    def test_lease_is_initialized_before_inherited_constructor_and_keeps_its_error(self):
++    def test_inherited_constructor_uses_class_idle_without_a_forwarding_frame(self):
++        self.assertNotIn('__init__', InspectProgramFrame.__dict__)
++        self.assertIs(InspectProgramFrame.__init__, FrontFrame.__init__)
++        self.assertIs(InspectProgramFrame.__dict__['_machine_busy'], False)
+         witness = object()
+         image, argument, capture = object(), object(), object()
+         observed = []
+         def parent(frame, actual_image, mode, arguments, captures=(), *, witness=None):
+             observed.append((frame._machine_busy, actual_image, mode, arguments, captures, witness))
+         with patch.object(FrontFrame, '__init__', parent):
++            self.assertIs(InspectProgramFrame.__init__, parent)
+             frame = InspectProgramFrame(image, 2, (argument,), (capture,), witness=witness)
+         self.assertEqual(observed, [(False, image, 2, (argument,), (capture,), witness)])
++        self.assertNotIn('_machine_busy', frame.__dict__)
+         self.assertIs(frame._machine_busy, False)
+         error = LostTransportReturn('constructor')
+-        with patch.object(FrontFrame, '__init__', side_effect=error):
++        def rejected_function(mode):
++            raise error
++        image = SimpleNamespace(runtime_profile=314, function=rejected_function)
++        real_close, partial = FrontFrame.close, []
++        def observe_close(frame, *, release=True):
++            partial.append((frame, frame._machine_busy, '_machine_busy' in frame.__dict__, release))
++            return real_close(frame, release=release)
++        with patch.object(FrontFrame, 'close', observe_close):
+             with self.assertRaises(LostTransportReturn) as caught:
+                 InspectProgramFrame(image, 1, ())
+         self.assertIs(caught.exception, error)
++        self.assertEqual(len(partial), 1)
++        failed, idle, instance_value, release = partial[0]
++        self.addCleanup(_dispose, failed)
++        self.assertIs(idle, False)
++        self.assertFalse(instance_value or release)
++        self.assertTrue(failed.closed)
++        self.assertIsNone(failed.state)
++        self.assertIsNone(failed.output)
++        self.assertNotIn('_machine_busy', failed.__dict__)
++        self.assertIs(InspectProgramFrame.__dict__['_machine_busy'], False)
+ 
+     def test_all_same_frame_entry_routes_refuse_before_header_counter_or_ownership_changes(self):
+         calls = []

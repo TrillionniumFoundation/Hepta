@@ -1,0 +1,968 @@
+{
+  "full_reverse_bytes_equal": true,
+  "hunks": [
+    {
+      "new_lines": [
+        "\"\"\"Explicit stages on the actual, privately generated inspect source.\n"
+      ],
+      "new_start": 0,
+      "new_stop": 1,
+      "old_lines": [
+        "\"\"\"One explicit Source10 group on the exact generated inspect source view.\n"
+      ],
+      "old_start": 0,
+      "old_stop": 1,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "The first reviewed plan enables only Source10 and the separate synthetic\n",
+        "Source8 group. The same runner has the retained build/Native17/VM12 path, but\n",
+        "that path requires a later plan pinned to the actual successful Source18\n",
+        "result and all its retained evidence. No generation or source preparation is\n",
+        "performed here, and no historical result is promoted to the new source.\n"
+      ],
+      "new_start": 2,
+      "new_stop": 7,
+      "old_lines": [
+        "This is not the complete R1 executor. No preparation copy, generation command,\n",
+        "compiler image invocation, old3/CLI43, Native17, VM12 or cold group is launched.\n",
+        "The frozen Source methods may recompute their generated representation in\n",
+        "memory as part of their existing original assertions.\n"
+      ],
+      "old_start": 2,
+      "old_stop": 6,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "from types import SimpleNamespace\n"
+      ],
+      "new_start": 17,
+      "new_stop": 18,
+      "old_lines": [],
+      "old_start": 16,
+      "old_stop": 16,
+      "tag": "insert"
+    },
+    {
+      "new_lines": [
+        "SCOPE = HERE.parent\n",
+        "GEN = SCOPE / 'generation-attempt-r1'\n",
+        "GEN_STAGE = SCOPE / 'generation-stage-r1'\n",
+        "SOURCE = SCOPE / 'materialization-attempt-r1/source'\n",
+        "BASE = Path('/workspace/scratch/dda74a4fae35/v119-inspect-generation-only-r1/attempt-r1/source')\n"
+      ],
+      "new_start": 20,
+      "new_stop": 25,
+      "old_lines": [
+        "GEN = Path('/workspace/scratch/dda74a4fae35/v119-inspect-generation-only-r1')\n"
+      ],
+      "old_start": 18,
+      "old_stop": 19,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "OLD_SOURCE = Path('/workspace/scratch/dda74a4fae35/v119-inspect-source10-r1')\n",
+        "SCHEMA = 'hepta.hia.inspect-private-shared-stages.v1'\n",
+        "SOURCE_TREE = '741fa64dadb37f98ab9b195f1ee7b67fe683fc70'\n",
+        "SOURCE_GROUPS = ('source10', 'source8-physical-lease')\n",
+        "SECONDS, CLEANUP, MIB, MINIMUM_FREE = 180, 3, 1048576, 1073741824\n"
+      ],
+      "new_start": 26,
+      "new_stop": 31,
+      "old_lines": [
+        "SOURCE = GEN / 'attempt-r1/source'\n",
+        "BASE = Path('/workspace/scratch/dda74a4fae35/v120-union-r20/source')\n",
+        "SCHEMA = 'hepta.hia.inspect-source10-only.v1'\n",
+        "SECONDS, CLEANUP = 180, 3\n",
+        "MIB = 1048576\n"
+      ],
+      "old_start": 20,
+      "old_stop": 25,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "def capture_bytes(path, maximum):\n",
+        "    \"\"\"Small pre-bootstrap reader; all complete artifact pins remain required.\"\"\"\n",
+        "    path = Path(path)\n",
+        "    require(path.is_absolute() and '..' not in path.parts, 'absolute fixed path required')\n",
+        "    fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK)\n",
+        "    try:\n",
+        "        before = os.fstat(fd)\n",
+        "        def same(value):\n",
+        "            return (value.st_dev, value.st_ino, value.st_nlink, value.st_mode,\n",
+        "                    value.st_size, value.st_mtime_ns, value.st_ctime_ns)\n",
+        "        require(stat.S_ISREG(before.st_mode) and 0 <= before.st_size <= maximum\n",
+        "                and same(before) == same(path.lstat()), 'bounded held ordinary input required')\n",
+        "        chunks, left = [], before.st_size + 1\n",
+        "        while left:\n",
+        "            value = os.read(fd, min(left, MIB))\n",
+        "            if not value:\n",
+        "                break\n",
+        "            chunks.append(value)\n",
+        "            left -= len(value)\n",
+        "        raw = b''.join(chunks)\n",
+        "        require(len(raw) == before.st_size\n",
+        "                and same(before) == same(os.fstat(fd)) == same(path.lstat()),\n",
+        "                'input changed during full capture')\n",
+        "        return raw, stat.S_IMODE(before.st_mode)\n",
+        "    finally:\n",
+        "        os.close(fd)\n",
+        "\n",
+        "\n"
+      ],
+      "new_start": 44,
+      "new_stop": 72,
+      "old_lines": [],
+      "old_start": 38,
+      "old_stop": 38,
+      "tag": "insert"
+    },
+    {
+      "new_lines": [
+        "    path = Path(plan_path).absolute()\n",
+        "    require(path.parent == HERE and path.name in ('SOURCE-PLAN.json', 'NATIVE-PLAN.json'),\n",
+        "            'only the explicit reviewed stage plans are admitted')\n",
+        "    raw, mode = capture_bytes(path, MIB)\n",
+        "    require(mode == 0o644 and type(plan_sha256) is str\n",
+        "            and hashlib.sha256(raw).hexdigest() == plan_sha256, 'reviewed full plan differs')\n"
+      ],
+      "new_start": 73,
+      "new_stop": 79,
+      "old_lines": [
+        "    raw = Path(plan_path).read_bytes()\n",
+        "    require(hashlib.sha256(raw).hexdigest() == plan_sha256, 'reviewed Source10 plan differs')\n"
+      ],
+      "old_start": 39,
+      "old_stop": 41,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "            and plan['source'] == {'path': str(SOURCE), 'files': 3188, 'tree': SOURCE_TREE}\n",
+        "            and plan['base'] == {'path': str(BASE), 'files': 3187,\n",
+        "                                 'tree': '7df49dd24bbba4ba3210168e639d6ea35a76a475'}\n",
+        "            and plan['limits'] == {'qualification_seconds': SECONDS, 'cleanup_seconds': CLEANUP,\n",
+        "                                   'minimum_free_bytes': MINIMUM_FREE}\n",
+        "            and plan['source_group_order'] == list(SOURCE_GROUPS)\n",
+        "            and plan['active_phase'] in ('source-controls', 'native-vm'),\n",
+        "            'fixed stage contract differs')\n",
+        "    runner, mode = capture_bytes(Path(__file__).absolute(), MIB)\n",
+        "    require(mode == 0o644 and pin(runner) == plan['runner'], 'reviewed complete runner differs')\n",
+        "    descriptor = plan['generation_runner']\n",
+        "    require(descriptor['path'] == str(GEN_STAGE / 'run_generation.py')\n",
+        "            and descriptor['posix_mode'] == 0o644, 'frozen generation guard location differs')\n",
+        "    code, mode = capture_bytes(Path(descriptor['path']), MIB)\n",
+        "    require(pin(code) == descriptor['pin'] and mode == descriptor['posix_mode'],\n",
+        "            'frozen generation guard bytes/mode differ')\n",
+        "    namespace = {'__name__': 'inspect_private_generation_authority', '__file__': descriptor['path']}\n",
+        "    # Execute only the already-reviewed stdlib guard definitions from the exact\n",
+        "    # captured bytes. Its main guard is false; no generator/product is invoked.\n",
+        "    exec(compile(code, descriptor['path'], 'exec'), namespace)\n",
+        "    guard = SimpleNamespace(**namespace)\n",
+        "    guard.load_plan(GEN_STAGE / 'PLAN.json', plan['generation_plan_sha256'])\n"
+      ],
+      "new_start": 81,
+      "new_stop": 103,
+      "old_lines": [
+        "            and plan['source']['path'] == str(SOURCE)\n",
+        "            and plan['source']['tree'] == '7df49dd24bbba4ba3210168e639d6ea35a76a475'\n",
+        "            and plan['source']['files'] == 3187\n",
+        "            and plan['limits'] == {'qualification_seconds': SECONDS, 'cleanup_seconds': CLEANUP}\n",
+        "            and pin(Path(__file__).read_bytes()) == plan['runner'], 'fixed Source10 runner/contract differs')\n",
+        "    require(pin((HERE / 'SOURCE10-CONTRACT.md').read_bytes()) == plan['contract'],\n",
+        "            'reviewed Source10 contract bytes differ')\n",
+        "    generation_runner = GEN / 'run_generation_only.py'\n",
+        "    require(pin(generation_runner.read_bytes()) == plan['generation_runner'], 'frozen generation guard differs')\n",
+        "    sys.path.insert(0, str(GEN))\n",
+        "    import run_generation_only as guard\n",
+        "    require(Path(guard.__file__).absolute() == generation_runner, 'wrong generation guard import')\n",
+        "    guard.load_plan(GEN / 'GENERATION-ONLY-PLAN.json', plan['generation_plan_sha256'])\n"
+      ],
+      "old_start": 43,
+      "old_stop": 56,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "    captures = {name: guard.decode(guard.fixed_file(row)) for name, row in plan['inputs'].items()}\n",
+        "    require(set(captures) == {'generation_result', 'generation_runtime', 'generation_outer',\n",
+        "                             'source_map', 'source_final', 'base_final', 'installation',\n",
+        "                             'design', 'old_source10_plan', 'kit_spec'},\n",
+        "            'complete immutable predecessor inventory differs')\n",
+        "    guard.fixed_file(plan['old_source10_runner'])\n",
+        "    guard.fixed_file(plan['contract'])\n",
+        "    for row in plan['generation_evidence']:\n",
+        "        guard.fixed_file(row)\n",
+        "    result = captures['generation_result']\n",
+        "    require(result['status'] == 'GENERATION_ONLY_PASS'\n",
+        "            and result['source'] == str(SOURCE) and result['source_files'] == 3188\n",
+        "            and result['source_final_tree'] == SOURCE_TREE\n",
+        "            and result['owner_launch_attempts'] == 3 and result['generation_invocations'] == 2\n",
+        "            and result['check_invocations'] == 1 and result['generated_metadata_current'] is True\n",
+        "            and result['product_tests'] == result['native_compilations'] == result['vm_frames'] == 0\n",
+        "            and result['original_base_bytes_modes_seven_stat_fields_unchanged'] is True\n",
+        "            and result['nongenerated_private_bytes_modes_seven_stat_fields_unchanged'] is True\n",
+        "            and captures['generation_outer']['returncode'] == 0,\n",
+        "            'actual generation did not complete under the frozen original boundary')\n",
+        "    require(result['final_source_capture'] == {k: plan['inputs']['source_final'][k] for k in ('path', 'pin')}\n",
+        "            and result['final_base_capture'] == {k: plan['inputs']['base_final'][k] for k in ('path', 'pin')}\n"
+      ],
+      "new_start": 104,
+      "new_stop": 126,
+      "old_lines": [
+        "    captures = {}\n",
+        "    for name, row in plan['inputs'].items():\n",
+        "        value, actual = guard.read_exact(Path(row['path']), maximum=max(row['pin']['bytes'], MIB),\n",
+        "                                        expected=row['pin'])\n",
+        "        require(actual['mode'] == row['posix_mode'], 'captured artifact POSIX mode differs')\n",
+        "        captures[name] = json.loads(value)\n",
+        "    require(captures['generation_result']['status'] == 'GENERATION_ONLY_PASS'\n",
+        "            and captures['generation_result']['owner_launch_attempts'] == 3\n",
+        "            and captures['generation_result']['generation_invocations'] == 2\n",
+        "            and captures['generation_result']['check_invocations'] == 1\n",
+        "            and captures['installation']['source_tree'] == plan['source']['tree']\n"
+      ],
+      "old_start": 57,
+      "old_stop": 68,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "            and not captures['source_final']['errors'] and not captures['base_final']['errors']\n",
+        "            and support.tree_digest(captures['source_map']) == SOURCE_TREE\n",
+        "            and len(captures['source_map']) == 3188 and len(captures['base_final']['files']) == 3187,\n",
+        "            'actual post-generation source identity differs')\n",
+        "    installation = captures['installation']\n",
+        "    require(installation['source_tree'] == SOURCE_TREE and installation['source_files'] == 3188\n",
+        "            and installation['complete_map'] == {k: plan['inputs']['source_map'][k] for k in ('path', 'pin')},\n",
+        "            'actual installed output map differs')\n",
+        "    require([row['label'] for row in result['stages']] == ['generation-1', 'generation-2', 'generation-check'],\n",
+        "            'actual predecessor stage order differs')\n",
+        "    for row in result['stages']:\n",
+        "        directory = Path(row['directory'])\n",
+        "        require(directory.parent == GEN and row['status'] == 'PASS' and row['source_guard_pass'] is True,\n",
+        "                'predecessor stage status or directory differs')\n",
+        "        support.complete_receipt(row['owner_returned'], directory / 'OWNER.json')\n",
+        "        actual = guard.decode(capture_bytes(directory / 'OWNER-RETURNED.json', MIB)[0])\n",
+        "        require(actual == row['owner_returned'], 'generation actual returned owner differs')\n",
+        "        child_raw, _ = capture_bytes(directory / 'CHILD-RESULT.json', MIB)\n",
+        "        require(pin(child_raw) == row['child_result_pin'], 'generation complete child result differs')\n",
+        "    original = captures['kit_spec']\n",
+        "    require(plan['groups']['source10']['ids'] == original['groups']['source10']\n",
+        "            == captures['old_source10_plan']['ids']\n",
+        "            and plan['groups']['source10']['subtest_method_projection']\n",
+        "                == captures['old_source10_plan']['subtest_method_projection'],\n",
+        "            'original Source10 IDs or complete subtest projection differ')\n",
+        "    design = {row['name']: row for row in captures['design']['stages']}\n",
+        "    require(plan['groups']['source8-physical-lease']['ids'] == design['source8-physical-lease']['ids']\n",
+        "            and len(plan['groups']['source8-physical-lease']['ids']) == 8\n",
+        "            and plan['native_group_order'] == original['native_group_order']\n",
+        "            and plan['vm_group_order'] == original['vm_group_order'],\n",
+        "            'original independent group projections differ')\n",
+        "    for name in plan['native_group_order'] + plan['vm_group_order']:\n",
+        "        require(plan['groups'][name]['ids'] == original['groups'][name], 'fixed Native/VM IDs differ')\n",
+        "    for name, row in plan['test_source_pins'].items():\n",
+        "        require(captures['source_map'][name] == row, 'source test full-file pin differs')\n",
+        "    require(plan['compiler'] == original['compiler'] and plan['product_limits'] == original['limits'],\n",
+        "            'original compiler and execution budgets differ')\n"
+      ],
+      "new_start": 127,
+      "new_stop": 164,
+      "old_lines": [
+        "            and support.tree_digest(captures['source_map']) == plan['source']['tree'],\n",
+        "            'actual generated source provenance differs')\n",
+        "    original = json.loads((KIT / 'EXECUTION-SPEC.json').read_bytes())\n",
+        "    require(plan['ids'] == original['groups']['source10'] and len(plan['ids']) == 10,\n",
+        "            'exact frozen Source10 methods required')\n"
+      ],
+      "old_start": 69,
+      "old_stop": 74,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "    current_base = guard.capture(BASE, captures['base_final']['files'])\n"
+      ],
+      "new_start": 168,
+      "new_stop": 169,
+      "old_lines": [
+        "    base_map = json.loads((KIT / 'inputs/R20-SOURCE-MANIFEST.json').read_bytes())\n",
+        "    current_base = guard.capture(BASE, base_map)\n"
+      ],
+      "old_start": 78,
+      "old_stop": 80,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "              'source': guard.cas(output, current_source), 'all_bytes_and_seven_stat_fields': True}\n"
+      ],
+      "new_start": 171,
+      "new_stop": 172,
+      "old_lines": [
+        "              'source': guard.cas(output, current_source)}\n"
+      ],
+      "old_start": 82,
+      "old_stop": 83,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "    guard.assert_capture(current_base, captures['base_final']['files'], stable=captures['base_final']['stat'])\n"
+      ],
+      "new_start": 173,
+      "new_stop": 174,
+      "old_lines": [
+        "    guard.assert_capture(current_base, base_map, stable=captures['base_final']['stat'])\n"
+      ],
+      "old_start": 84,
+      "old_stop": 85,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "    guard.independent(current_base, current_source)\n",
+        "    support.compiler_bytes()  # Full frozen B3 identity only; never invokes it.\n"
+      ],
+      "new_start": 175,
+      "new_stop": 177,
+      "old_lines": [
+        "    support.compiler_bytes()  # Identity check only; no compiler invocation.\n"
+      ],
+      "old_start": 86,
+      "old_stop": 87,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "def protected_source_fence(protected_inodes, plan):\n",
+        "    \"\"\"Cooperative Source write fence; it is not a hostile-code sandbox.\"\"\"\n",
+        "    roots = (BASE, SOURCE, KIT, GEN, GEN_STAGE, HERE, OLD_SOURCE)\n",
+        "    exact = tuple(Path(row['path']) for row in plan['inputs'].values())\n",
+        "    exact += (Path(plan['compiler']['path']),)\n"
+      ],
+      "new_start": 180,
+      "new_stop": 185,
+      "old_lines": [
+        "def protected_source_fence(protected_inodes):\n",
+        "    \"\"\"Cooperative filesystem write protection, not a hostile-code sandbox.\n",
+        "\n",
+        "    Temporary Source fixtures and evidence writes remain possible. Any write\n",
+        "    to a frozen source path, its currently held inode alias, or prior evidence\n",
+        "    is refused. The complete before/after byte and stat guards remain required.\n",
+        "    \"\"\"\n",
+        "    roots = (BASE, SOURCE, KIT, GEN)\n",
+        "    exact = (Path(__file__).absolute(), HERE / 'SOURCE10-PLAN.json',\n",
+        "             HERE / 'SOURCE10-PLAN-R2.json', HERE / 'SOURCE10-CONTRACT.md')\n"
+      ],
+      "old_start": 90,
+      "old_stop": 100,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [],
+      "new_start": 197,
+      "new_stop": 197,
+      "old_lines": [
+        "            # rmtree's descriptor-relative removal must be resolved against\n",
+        "            # the actual held directory, never against the source cwd.\n"
+      ],
+      "old_start": 112,
+      "old_stop": 114,
+      "tag": "delete"
+    },
+    {
+      "new_lines": [
+        "            raise AssertionError('Source controls cannot start another product process')\n"
+      ],
+      "new_start": 238,
+      "new_stop": 239,
+      "old_lines": [
+        "            raise AssertionError('Source10 child cannot start another product process')\n"
+      ],
+      "old_start": 155,
+      "old_stop": 156,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "def admit_subtests(value, group):\n",
+        "    rows = value['actual_subtests']\n",
+        "    require([row['method_id'] for row in rows] == group['subtest_method_projection']\n",
+        "            and [row['ordinal'] for row in rows] == list(range(1, len(rows) + 1))\n",
+        "            and all(row['success'] is True and row['exception_type'] is None for row in rows),\n",
+        "            'complete successful subtest observations differ')\n",
+        "    if 'subtest_parameters' in group:\n",
+        "        require([row['parameters'] for row in rows] == group['subtest_parameters'],\n",
+        "                'all seven entry routes and two retirement branches must be observed')\n",
+        "\n",
+        "\n",
+        "def run_source_methods(group, output, support):\n"
+      ],
+      "new_start": 254,
+      "new_stop": 266,
+      "old_lines": [
+        "def run_source_methods(plan, output, support):\n"
+      ],
+      "old_start": 171,
+      "old_stop": 172,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [],
+      "new_start": 276,
+      "new_stop": 276,
+      "old_lines": [
+        "    # The unchanged R1 exact runner defines its Result subclass at invocation.\n",
+        "    # This adds only successful/failed subtest observations; its count/ID/event\n",
+        "    # and all error/skip/failure admissions are retained in the original code.\n"
+      ],
+      "old_start": 182,
+      "old_stop": 185,
+      "tag": "delete"
+    },
+    {
+      "new_lines": [
+        "        result = support.run_exact_tests(group['ids'], output / 'TESTS.json')\n",
+        "        admit_subtests({'actual_subtests': rows}, group)\n"
+      ],
+      "new_start": 278,
+      "new_stop": 280,
+      "old_lines": [
+        "        result = support.run_exact_tests(plan['ids'], output / 'TESTS.json')\n",
+        "        require([row['method_id'] for row in rows] == plan['subtest_method_projection']\n",
+        "                and all(row['success'] for row in rows), 'complete successful subtest projection differs')\n"
+      ],
+      "old_start": 187,
+      "old_stop": 190,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "            'actual_subtests':rows,'declared_method_projection':group['subtest_method_projection'],\n"
+      ],
+      "new_start": 284,
+      "new_stop": 285,
+      "old_lines": [
+        "            'actual_subtests':rows,'declared_method_projection':plan['subtest_method_projection'],\n"
+      ],
+      "old_start": 194,
+      "old_stop": 195,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "def admit_tests(tests, group):\n",
+        "    ids = group['ids']\n",
+        "    require(tests['status'] == 'PASS'\n",
+        "            and tests['declared_ids'] == tests['loaded_ids'] == tests['started_ids'] == tests['stopped_ids'] == ids\n",
+        "            and type(tests['tests_run']) is int and tests['tests_run'] == len(ids)\n",
+        "            and tests['events'] == [event for name in ids for event in (['start', name], ['stop', name])]\n",
+        "            and not any(tests[key] for key in ('loader_errors', 'failures', 'errors', 'skipped',\n",
+        "                                             'expected_failures', 'unexpected_successes')),\n",
+        "            'complete fixed executed ID/event observation differs')\n",
+        "\n",
+        "\n"
+      ],
+      "new_start": 288,
+      "new_stop": 299,
+      "old_lines": [],
+      "old_start": 198,
+      "old_stop": 198,
+      "tag": "insert"
+    },
+    {
+      "new_lines": [
+        "    raw, _ = capture_bytes(Path(request_path).absolute(), MIB)\n",
+        "    require(hashlib.sha256(raw).hexdigest() == request_sha256, 'Source child request differs')\n"
+      ],
+      "new_start": 300,
+      "new_stop": 302,
+      "old_lines": [
+        "    raw = Path(request_path).read_bytes()\n",
+        "    require(hashlib.sha256(raw).hexdigest() == request_sha256, 'Source10 child request differs')\n"
+      ],
+      "old_start": 199,
+      "old_stop": 201,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "    require(set(request) == {'schema', 'plan', 'plan_sha256', 'group', 'ids', 'runtime_context', 'output'}\n",
+        "            and request['schema'] == SCHEMA+'.request' and plan['active_phase'] == 'source-controls'\n",
+        "            and request['group'] in SOURCE_GROUPS\n",
+        "            and request['ids'] == plan['groups'][request['group']]['ids']\n",
+        "            and request['runtime_context'] == captures['generation_runtime'],\n",
+        "            'only an exact declared Source group is admitted')\n"
+      ],
+      "new_start": 304,
+      "new_stop": 310,
+      "old_lines": [
+        "    require(request['schema'] == SCHEMA+'.request' and request['ids'] == plan['ids'],\n",
+        "            'only the frozen Source10 child request is admitted')\n"
+      ],
+      "old_start": 203,
+      "old_stop": 205,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "            'fresh Source child evidence directory required')\n",
+        "    output.mkdir(mode=0o700); (output/'maps').mkdir(mode=0o700)\n"
+      ],
+      "new_start": 312,
+      "new_stop": 314,
+      "old_lines": [
+        "            'fresh Source10 child evidence directory required')\n",
+        "    output.mkdir(mode=0o700)\n",
+        "    (output/'maps').mkdir(mode=0o700)\n"
+      ],
+      "old_start": 207,
+      "old_stop": 210,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "              'group':request['group'], 'scope':'SOURCE_CONTROLS_ONLY',\n",
+        "              'matching_current_cold':False, 'Native_compilation':0,'VM_group_execution':0,\n",
+        "              'old3_or_CLI43_executed':False, 'synthetic_Source8_is_not_Native17':True}\n"
+      ],
+      "new_start": 315,
+      "new_stop": 318,
+      "old_lines": [
+        "              'scope':'SOURCE10_ONLY','matching_current_cold':False,\n",
+        "              'Native_compilation':0,'VM_group_execution':0,'old3_or_CLI43_executed':False}\n"
+      ],
+      "old_start": 211,
+      "old_stop": 213,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "        require(sys.flags.ignore_environment == 1, 'Source child keeps its original -I mode')\n"
+      ],
+      "new_start": 321,
+      "new_stop": 322,
+      "old_lines": [],
+      "old_start": 216,
+      "old_stop": 216,
+      "tag": "insert"
+    },
+    {
+      "new_lines": [
+        "        protected_source_fence(protected, plan)\n",
+        "        result['tests'] = run_source_methods(plan['groups'][request['group']],output,support)\n",
+        "        admit_tests(result['tests'], plan['groups'][request['group']])\n"
+      ],
+      "new_start": 326,
+      "new_stop": 329,
+      "old_lines": [
+        "        protected_source_fence(protected)\n",
+        "        result['tests'] = run_source_methods(plan,output,support)\n"
+      ],
+      "old_start": 220,
+      "old_stop": 222,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "def evidence_rows(directory, guard):\n",
+        "    rows = []\n",
+        "    for path in sorted(Path(directory).rglob('*')):\n",
+        "        require(not path.is_symlink(), 'stage evidence symlink refused')\n",
+        "        if path.is_dir():\n",
+        "            continue\n",
+        "        raw, observed = guard.read_exact(path, maximum=max(MIB, path.lstat().st_size))\n",
+        "        rows.append({'path':str(path),'pin':pin(raw),'posix_mode':observed['mode']})\n",
+        "    return rows\n",
+        "\n",
+        "\n",
+        "def admit_source_predecessor(plan, guard, support, captures):\n",
+        "    descriptor = plan['source_predecessor']\n",
+        "    require(type(descriptor) is dict, 'actual complete Source18 predecessor is required')\n",
+        "    result = guard.decode(guard.fixed_file(descriptor))\n",
+        "    require(result['schema'] == SCHEMA+'.result' and result['status'] == 'SOURCE_CONTROLS_PASS'\n",
+        "            and result['phase'] == 'source-controls' and result['source_tree'] == SOURCE_TREE\n",
+        "            and result['source_files'] == 3188 and result['owner_launch_attempts'] == 2\n",
+        "            and result['complete_source_guard_pass'] is True\n",
+        "            and result['generation_result_pin'] == plan['inputs']['generation_result']['pin']\n",
+        "            and [row['label'] for row in result['stages']] == list(SOURCE_GROUPS),\n",
+        "            'actual Source18 predecessor is not complete for this source')\n",
+        "    for row in result['evidence']:\n",
+        "        guard.fixed_file(row)\n",
+        "    for row in result['stages']:\n",
+        "        require(row['status'] == 'PASS', 'a predecessor Source group failed')\n",
+        "        directory = Path(row['directory'])\n",
+        "        support.complete_receipt(row['owner_returned'], directory/'OWNER.json')\n",
+        "        actual = guard.decode(capture_bytes(directory/'child/TESTS.json', 8*MIB)[0])\n",
+        "        admit_tests(actual, plan['groups'][row['label']])\n",
+        "        admit_subtests(guard.decode(capture_bytes(directory/'child/SUBTESTS.json', MIB)[0]),\n",
+        "                       plan['groups'][row['label']])\n",
+        "    require(result['runtime'] == captures['generation_runtime'], 'Source predecessor runtime differs')\n",
+        "    return result\n",
+        "\n",
+        "\n",
+        "def execute(plan_path, plan_sha256, attempt, phase):\n"
+      ],
+      "new_start": 343,
+      "new_stop": 380,
+      "old_lines": [
+        "def execute(plan_path, plan_sha256, attempt):\n"
+      ],
+      "old_start": 236,
+      "old_stop": 237,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "    plan, guard, support, captures = bootstrap(plan_path, plan_sha256)\n",
+        "    require(phase == plan['active_phase'], 'this reviewed plan does not authorize the selected phase')\n",
+        "    attempt = Path(attempt).absolute()\n",
+        "    require(str(attempt) == plan['attempt'] and attempt.parent == SCOPE and not attempt.exists(),\n",
+        "            'fresh exact reviewed stage attempt required')\n",
+        "    require(guard.storage(SCOPE)['available_bytes'] >= MINIMUM_FREE, 'original 1GiB entry floor required')\n",
+        "    require((phase == 'source-controls' and plan['source_predecessor'] is None)\n",
+        "            or (phase == 'native-vm' and type(plan['source_predecessor']) is dict),\n",
+        "            'a later actual predecessor must be explicitly reviewed before Native/VM')\n",
+        "    attempt.mkdir(mode=0o700); _ATTEMPT = attempt\n"
+      ],
+      "new_start": 381,
+      "new_stop": 391,
+      "old_lines": [
+        "    plan,guard,support,captures = bootstrap(plan_path,plan_sha256)\n",
+        "    attempt=Path(attempt).absolute()\n",
+        "    require(attempt.parent == HERE and not attempt.exists(), 'new exact Source10 attempt required')\n",
+        "    require(guard.storage(HERE)['available_bytes'] >= 64*MIB, 'Source10 needs64MiB free for complete evidence')\n",
+        "    attempt.mkdir(mode=0o700); _ATTEMPT=attempt\n"
+      ],
+      "old_start": 238,
+      "old_stop": 243,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "    support.publish(attempt/'PLAN-USED.json', plan)\n",
+        "    report = {'schema':SCHEMA+'.result','status':'FAIL','phase':phase,\n",
+        "              'plan_pin':pin(Path(plan_path).read_bytes()), 'started_ns':time.monotonic_ns(),\n",
+        "              'stages':[], 'owner_launch_attempts':0, 'source_tree':SOURCE_TREE,'source_files':3188,\n",
+        "              'scope':'SOURCE_CONTROLS_ONLY' if phase=='source-controls' else 'DEVELOPMENT_NATIVE_VM_ONLY',\n",
+        "              'source_phase_has_no_compiler_Native_or_VM_invocation':phase=='source-controls',\n",
+        "              'generation_result_pin':plan['inputs']['generation_result']['pin'],\n",
+        "              'matching_current_cold':False,'whole_cli_native':False,'CLI_op10_connected':False,\n",
+        "              'original3_or_CLI43_executed':False, 'historical_results_not_inherited':True}\n",
+        "    sys.path.insert(0,str(SOURCE))\n",
+        "    from tools.hia_selfhost_process_owner import run_owned\n",
+        "    from tools.hia_linux_file_roundtrip_cold import (\n",
+        "        capture_runtime_context,guard_runtime_context,runtime_child_environment)\n",
+        "    runtime = None\n"
+      ],
+      "new_start": 392,
+      "new_stop": 406,
+      "old_lines": [
+        "    support.publish(attempt/'PLAN-USED.json',plan)\n",
+        "    report={'schema':SCHEMA+'.result','status':'FAIL','plan_pin':pin(Path(plan_path).read_bytes()),\n",
+        "            'started_ns':time.monotonic_ns(),'owner_launch_attempts':0,\n",
+        "            'scope':'SOURCE10_ONLY','matching_current_cold':False,'Native_compilation':0,\n",
+        "            'VM_group_execution':0,'old3_or_CLI43_executed':False,'whole_cli_native':False}\n",
+        "    returned=None\n"
+      ],
+      "old_start": 244,
+      "old_stop": 250,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "        runtime = capture_runtime_context()\n",
+        "        require(runtime == captures['generation_runtime'], 'actual fixed runtime changed since generation')\n",
+        "        report['runtime'] = runtime\n",
+        "        support.publish(attempt/'RUNTIME.json', runtime)\n",
+        "        environment = runtime_child_environment({'PATH':'/usr/local/bin:/usr/bin:/bin',\n"
+      ],
+      "new_start": 408,
+      "new_stop": 413,
+      "old_lines": [
+        "        sys.path.insert(0,str(SOURCE))\n",
+        "        from tools.hia_selfhost_process_owner import run_owned\n",
+        "        from tools.hia_linux_file_roundtrip_cold import (\n",
+        "            capture_runtime_context,guard_runtime_context,runtime_child_environment)\n",
+        "        runtime=capture_runtime_context()\n",
+        "        require(runtime==captures['generation_runtime'], 'actual fixed3.14 runtime changed since generation')\n",
+        "        support.publish(attempt/'RUNTIME.json',runtime)\n",
+        "        environment=runtime_child_environment({'PATH':'/usr/local/bin:/usr/bin:/bin',\n"
+      ],
+      "old_start": 252,
+      "old_stop": 260,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "            'TMPDIR':str(attempt/'tmp')}, runtime)\n",
+        "        if phase == 'native-vm':\n",
+        "            report['actual_source_predecessor'] = admit_source_predecessor(plan,guard,support,captures)\n",
+        "        inspect_manifest = None\n",
+        "        native_directories = []\n",
+        "        catalog = None\n",
+        "        order = list(SOURCE_GROUPS) if phase == 'source-controls' else (\n",
+        "            ['build-inspect'] + plan['native_group_order'] + plan['vm_group_order'])\n",
+        "        for index, label in enumerate(order):\n",
+        "            guard.storage_gate(attempt, label, MINIMUM_FREE)\n",
+        "            bootstrap(plan_path,plan_sha256)\n",
+        "            guard_runtime_context(runtime)\n",
+        "            full_guard(attempt, label+'-before',plan,guard,support,captures)\n",
+        "            directory = attempt / ('%02d-%s' % (index+1,label)); directory.mkdir(mode=0o700)\n",
+        "            source_group = label in SOURCE_GROUPS\n",
+        "            if source_group:\n",
+        "                request = {'schema':SCHEMA+'.request','plan':str(Path(plan_path).absolute()),\n",
+        "                    'plan_sha256':plan_sha256,'group':label,'ids':plan['groups'][label]['ids'],\n",
+        "                    'runtime_context':runtime,'output':str(directory/'child')}\n",
+        "                child_script = Path(__file__).absolute()\n",
+        "            else:\n",
+        "                kind = 'build-inspect' if label == 'build-inspect' else 'tests'\n",
+        "                request = {'schema':'hepta.hia.inspect-development-child-request.v1',\n",
+        "                    'kind':kind,'group':label,'ids':[] if kind=='build-inspect' else plan['groups'][label]['ids'],\n",
+        "                    'source':str(SOURCE),'source_map':plan['inputs']['source_map']['path'],\n",
+        "                    'source_map_pin':plan['inputs']['source_map']['pin'],\n",
+        "                    'kit_index_pin':pin((KIT/'KIT-PINS.json').read_bytes()),\n",
+        "                    'runtime_context':runtime,'output':str(directory/'RESULT.json')}\n",
+        "                child_script = KIT/'run_inspect_development.py'\n",
+        "                if kind == 'build-inspect':\n",
+        "                    request['build_output'] = str(attempt/'inspect-build')\n",
+        "                elif label in plan['native_group_order']:\n",
+        "                    require(inspect_manifest is not None, 'actual inspect build required')\n",
+        "                    request.update(inspect_manifest=inspect_manifest,controls_output=str(directory/'controls'))\n",
+        "                else:\n",
+        "                    if catalog is None:\n",
+        "                        require(len(native_directories) == len(plan['native_group_order']),\n",
+        "                                'all original Native groups must finish before making VM catalog')\n",
+        "                        from inspect_exec_vm import make_catalog\n",
+        "                        catalog = attempt/'NATIVE-VM-CATALOG.json'\n",
+        "                        manifest = guard.decode(capture_bytes(Path(inspect_manifest),MIB)[0])\n",
+        "                        make_catalog(native_directories,catalog,manifest['image_sha256'])\n",
+        "                    request.update(frame_catalog=str(catalog),frame_catalog_pin=pin(catalog.read_bytes()),\n",
+        "                                   controls_output=str(directory/'controls'))\n",
+        "            request_path = directory/'REQUEST.json'; support.publish(request_path,request)\n",
+        "            command = [sys.executable,'-I','-B',str(child_script),'--child',str(request_path),\n",
+        "                       '--request-sha256',pin(support.encoded(request))['sha256']]\n",
+        "            support.publish(directory/'COMMAND.json',{'argv':command,'cwd':str(SOURCE),\n",
+        "                'environment':environment,'supervisor_environment':environment,\n",
+        "                'qualification_seconds':SECONDS,'cleanup_seconds':CLEANUP})\n",
+        "            row = {'label':label,'directory':str(directory),'status':'FAIL','started_ns':time.monotonic_ns()}\n",
+        "            report['stages'].append(row)\n",
+        "            returned = None\n",
+        "            try:\n",
+        "                report['owner_launch_attempts'] += 1\n",
+        "                returned = run_owned(command,cwd=SOURCE,env=environment,supervisor_env=environment,\n",
+        "                    stdout_path=directory/'stdout.raw',stderr_path=directory/'stderr.raw',\n",
+        "                    receipt_path=directory/'OWNER.json',qualification_seconds=SECONDS,cleanup_seconds=CLEANUP)\n",
+        "                support.publish(directory/'OWNER-RETURNED.json',returned)\n",
+        "                support.complete_receipt(returned,directory/'OWNER.json')\n",
+        "                child_path = directory/'child/RESULT.json' if source_group else directory/'RESULT.json'\n",
+        "                child_raw, _ = capture_bytes(child_path,8*MIB)\n",
+        "                actual = guard.decode(child_raw)\n",
+        "                require(actual['status']=='PASS' and actual['request_pin']==pin(support.encoded(request)),\n",
+        "                        'actual group failed or is not bound to the full current request')\n",
+        "                if source_group:\n",
+        "                    require(actual['all_original_and_generated_source_bytes_modes_stats_unchanged'] is True,\n",
+        "                            'Source child did not keep its complete source')\n",
+        "                    tests = guard.decode(capture_bytes(directory/'child/TESTS.json',8*MIB)[0])\n",
+        "                    require(tests == actual['tests'], 'Source result and raw tests differ')\n",
+        "                    admit_tests(tests,plan['groups'][label])\n",
+        "                    subtests = guard.decode(capture_bytes(directory/'child/SUBTESTS.json',MIB)[0])\n",
+        "                    admit_subtests(subtests,plan['groups'][label])\n",
+        "                    row.update(tests=tests,subtests=subtests)\n",
+        "                elif label == 'build-inspect':\n",
+        "                    require(actual['source_unchanged'] is True and actual['compiler_unchanged'] is True,\n",
+        "                            'original build child source/compiler drift')\n",
+        "                    build = actual['build']\n",
+        "                    require(build['status']=='BUILT_AND_READ_BACK' and build['matching_current_cold'] is False\n",
+        "                            and build['compile_seconds']==20 and build['capacity']==MIB\n",
+        "                            and build['complete_source_map_pin']==plan['inputs']['source_map']['pin'],\n",
+        "                            'actual original build contract differs')\n",
+        "                    import run_inspect_development as original\n",
+        "                    require(Path(original.__file__).absolute()==KIT/'run_inspect_development.py',\n",
+        "                            'frozen build helper came from another directory')\n",
+        "                    original._check_rows(build['observation_bindings'])\n",
+        "                    require(original._bound(Path(build['manifest']))==build['manifest_binding'],\n",
+        "                            'actual complete inspect manifest binding differs')\n",
+        "                    inspect_manifest=build['manifest'];row['build']=build\n",
+        "                else:\n",
+        "                    require(actual['source_unchanged'] is True and actual['compiler_unchanged'] is True,\n",
+        "                            'original Native/VM child source/compiler drift')\n",
+        "                    tests=guard.decode(capture_bytes(directory/'TESTS.json',8*MIB)[0])\n",
+        "                    require(tests==actual['tests'],'original test result differs from raw')\n",
+        "                    admit_tests(tests,plan['groups'][label]);row['tests']=tests\n",
+        "                    if label in plan['native_group_order']:\n",
+        "                        native_directories.append(str(directory/'controls'))\n",
+        "                guard_runtime_context(runtime)\n",
+        "                row.update(status='PASS',child_result_pin=pin(child_raw))\n",
+        "            except BaseException:\n",
+        "                row['traceback']=traceback.format_exc()\n",
+        "                report['halted_after_first_failed_group']=True\n",
+        "                raise\n",
+        "            finally:\n",
+        "                row['owner_returned']=returned;row['finished_ns']=time.monotonic_ns()\n",
+        "                try:\n",
+        "                    full_guard(attempt,label+'-after',plan,guard,support,captures)\n",
+        "                    row['source_guard_pass']=True\n",
+        "                except BaseException:\n",
+        "                    row['source_guard_error']=traceback.format_exc();row['status']='FAIL'\n",
+        "                    report['halted_after_first_failed_group']=True\n",
+        "                support.publish(directory/'STAGE.json',row)\n",
+        "            require(row['status']=='PASS','stage source guard failed; no following owner is allowed')\n",
+        "        bootstrap(plan_path,plan_sha256);guard_runtime_context(runtime)\n",
+        "        report['status']='SOURCE_CONTROLS_PASS' if phase=='source-controls' else 'DEVELOPMENT_NATIVE_VM_PASS'\n"
+      ],
+      "new_start": 414,
+      "new_stop": 529,
+      "old_lines": [
+        "            'TMPDIR':str(attempt/'tmp')},runtime)\n",
+        "        request={'schema':SCHEMA+'.request','plan':str(Path(plan_path).absolute()),\n",
+        "                 'plan_sha256':plan_sha256,'ids':plan['ids'],'runtime_context':runtime,\n",
+        "                 'output':str(attempt/'child')}\n",
+        "        request_path=attempt/'REQUEST.json';support.publish(request_path,request)\n",
+        "        command=[sys.executable,'-I','-B',str(Path(__file__).absolute()),'--child',str(request_path),\n",
+        "                 '--request-sha256',pin(support.encoded(request))['sha256']]\n",
+        "        support.publish(attempt/'COMMAND.json',{'argv':command,'cwd':str(SOURCE),'environment':environment,\n",
+        "            'supervisor_environment':environment,'qualification_seconds':SECONDS,'cleanup_seconds':CLEANUP})\n",
+        "        report['owner_launch_attempts']=1\n",
+        "        returned=run_owned(command,cwd=SOURCE,env=environment,supervisor_env=environment,\n",
+        "            stdout_path=attempt/'stdout.raw',stderr_path=attempt/'stderr.raw',receipt_path=attempt/'OWNER.json',\n",
+        "            qualification_seconds=SECONDS,cleanup_seconds=CLEANUP)\n",
+        "        support.publish(attempt/'OWNER-RETURNED.json',returned)\n",
+        "        support.complete_receipt(returned,attempt/'OWNER.json')\n",
+        "        child_raw=(attempt/'child/RESULT.json').read_bytes(); actual=json.loads(child_raw)\n",
+        "        require(actual['status']=='PASS' and actual['request_pin']==pin(support.encoded(request))\n",
+        "                and actual['all_original_and_generated_source_bytes_modes_stats_unchanged'] is True,\n",
+        "                'actual Source10 child failed or changed its source')\n",
+        "        tests=json.loads((attempt/'child/TESTS.json').read_bytes())\n",
+        "        require(tests==actual['tests'] and tests['status']=='PASS'\n",
+        "                and tests['declared_ids']==tests['loaded_ids']==tests['started_ids']==tests['stopped_ids']==plan['ids']\n",
+        "                and type(tests['tests_run']) is int and tests['tests_run']==10\n",
+        "                and tests['events']==[event for name in plan['ids'] for event in (['start',name],['stop',name])]\n",
+        "                and not any(tests[key] for key in ('loader_errors','failures','errors','skipped','expected_failures','unexpected_successes')),\n",
+        "                'complete original exact test observation differs')\n",
+        "        subtests=json.loads((attempt/'child/SUBTESTS.json').read_bytes())\n",
+        "        require([row['method_id'] for row in subtests['actual_subtests']]==plan['subtest_method_projection']\n",
+        "                and all(row['success'] for row in subtests['actual_subtests']), 'actual subtest projection differs')\n",
+        "        guard_runtime_context(runtime)\n",
+        "        bootstrap(plan_path,plan_sha256)\n",
+        "        report.update(status='SOURCE10_ONLY_PASS',tests=tests,subtests=subtests,\n",
+        "                      source_tree=plan['source']['tree'],source_files=3187)\n"
+      ],
+      "old_start": 261,
+      "old_stop": 294,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "        report['finished_ns']=time.monotonic_ns()\n",
+        "        try:\n",
+        "            report['evidence']=evidence_rows(attempt,guard)\n",
+        "        except BaseException:\n",
+        "            report['evidence_capture_error']=traceback.format_exc();report['status']='FAIL'\n"
+      ],
+      "new_start": 537,
+      "new_stop": 542,
+      "old_lines": [
+        "        report['owner_returned']=returned;report['finished_ns']=time.monotonic_ns()\n"
+      ],
+      "old_start": 302,
+      "old_stop": 303,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "    return 0 if report['status'] in ('SOURCE_CONTROLS_PASS','DEVELOPMENT_NATIVE_VM_PASS') else 1\n"
+      ],
+      "new_start": 543,
+      "new_stop": 544,
+      "old_lines": [
+        "    return 0 if report['status']=='SOURCE10_ONLY_PASS' else 1\n"
+      ],
+      "old_start": 304,
+      "old_stop": 305,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "    parser.add_argument('--execute-stage',choices=('source-controls','native-vm'))\n"
+      ],
+      "new_start": 548,
+      "new_stop": 549,
+      "old_lines": [
+        "    parser.add_argument('--execute-source10-only',action='store_true')\n"
+      ],
+      "old_start": 309,
+      "old_stop": 310,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "        require(args.execute_stage is None and args.plan is None and args.plan_sha256 is None\n",
+        "                and args.attempt is None and args.request_sha256,'mixed Source child/parent invocation')\n"
+      ],
+      "new_start": 554,
+      "new_stop": 556,
+      "old_lines": [
+        "        require(not args.execute_source10_only and args.plan is None and args.plan_sha256 is None\n",
+        "                and args.attempt is None and args.request_sha256,'mixed Source10 child/parent invocation')\n"
+      ],
+      "old_start": 315,
+      "old_stop": 317,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "    require(args.execute_stage is not None and args.plan is not None and args.plan_sha256\n",
+        "            and args.attempt is not None and args.request_sha256 is None,\n",
+        "            'explicit reviewed stage invocation required')\n"
+      ],
+      "new_start": 557,
+      "new_stop": 560,
+      "old_lines": [
+        "    require(args.execute_source10_only and args.plan is not None and args.plan_sha256\n",
+        "            and args.attempt is not None and args.request_sha256 is None,'explicit reviewed Source10-only invocation required')\n"
+      ],
+      "old_start": 318,
+      "old_stop": 320,
+      "tag": "replace"
+    },
+    {
+      "new_lines": [
+        "        return execute(args.plan,args.plan_sha256,args.attempt,args.execute_stage)\n"
+      ],
+      "new_start": 561,
+      "new_stop": 562,
+      "old_lines": [
+        "        return execute(args.plan,args.plan_sha256,args.attempt)\n"
+      ],
+      "old_start": 321,
+      "old_stop": 322,
+      "tag": "replace"
+    }
+  ],
+  "new": {
+    "path": "/workspace/scratch/dda74a4fae35/v132-inspect-machine-entry-r1/successor-r2/execution-stage-r1/run_inspect_stages.py",
+    "pin": {
+      "bytes": 34212,
+      "git_blob": "c613c90a61bd566691cf627f1c46e8ed838dbcd3",
+      "mode": "100644",
+      "sha256": "e916f8539994a3ebdc6697059b32d5b7c5be967699cef11065f59b315f99f58b"
+    },
+    "posix_mode": 420
+  },
+  "old": {
+    "path": "/workspace/scratch/dda74a4fae35/v119-inspect-source10-r1/run_source10_only_r2.py",
+    "pin": {
+      "bytes": 18561,
+      "git_blob": "0a82c0aefbf48f6d1baa8db463d33d5b31012a85",
+      "mode": "100644",
+      "sha256": "5447bce7ea69f5c9338ac74f39b8f07d675ef99792530e606a83147a69eeb648"
+    },
+    "posix_mode": 420
+  }
+}
