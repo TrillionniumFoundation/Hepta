@@ -245,6 +245,8 @@ SOURCE_FILES = (
     'tests/test_hia_json_wire_key_summary.py',
     'tests/test_hia_json_wire_leaf_cache.py',
     'tests/test_hia_json_wire_u32_decimal.py',
+    'tests/hia_json_wire_author_expected.py',
+    'tests/fixtures/hia_json_wire_leaf_width_reads_inverse.json',
     'tests/fixtures/hia_json_wire_leaf05_pre_u32_decimal.hiaasm',
     'tools/qualify_hia_json_wire_key_summary.py',
     'tools/qualify_hia_json_wire_leaf_cache.py',

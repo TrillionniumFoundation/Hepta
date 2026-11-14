@@ -165,7 +165,11 @@ class WireU32DecimalSourceTests(unittest.TestCase):
     def test_01_exact_author_inverse_and_original_nine_caps(self):
         from hepta.hia_agent_assembly import render_assembly, assemble_program
         from tools.generate_hia_json_wire import document, FIELDS
-        author = (ROOT / 'tools/generate_hia_json_wire.py').read_text()
+        from tests.hia_json_wire_author_expected import project_u32_history_author
+        author = project_u32_history_author(
+            (ROOT / 'tools/generate_hia_json_wire.py').read_bytes(),
+            (ROOT / 'tests/fixtures/hia_json_wire_leaf_width_reads_inverse.json').read_bytes(),
+        ).decode('utf-8')
         self.assertEqual(author.count(NEW_BLOCK), 1)
         self.assertEqual(sha256(author.replace(NEW_BLOCK, OLD_BLOCK, 1).encode()).hexdigest(),
                          OLD_AUTHOR_SHA256)

@@ -1,0 +1,106 @@
+{
+  "schema": "hia.json-wire.leaf-width-three-read-author-inverse.v1",
+  "status": "STATIC_ONLY_NOT_GENERATED_OR_EXECUTED",
+  "base": {
+    "commit": "39b4dfa7fa429a33e704de5b9329f1955fdcadcf",
+    "tree": "317dab148c140aecf0178d8ea7d519818e90f4c0",
+    "path": "tools/generate_hia_json_wire.py",
+    "bytes": 59739,
+    "sha256": "c725ae51febbb6be762da8d6b900ffb76fff927e37bd2a6d79b529a1a6e653d7",
+    "git_blob": "9837f3d05e2e0bb28371af1c82ae7f5bd89c6e9d"
+  },
+  "candidate": {
+    "revision": "leaf_width_three_fixed_reads_r1",
+    "bytes": 60287,
+    "sha256": "0ea9c2de5cab6ab4c5a3752d50bb694ddb74053ccdf32b601f19736c3d24d31b",
+    "git_blob": "64fdbda287fd22a3a8fcb72f8a99d04c3a4e9b0a"
+  },
+  "function": {
+    "begin": "def leaf_normalize(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:\n",
+    "end": "\ndef integer_decimal(w:mutbuf) -> u64:\n",
+    "old_body": {
+      "bytes": 2198,
+      "sha256": "63f3cc489c2368ec4b026de0d7c19bff7c24aaf5b4344530b8dcbc92da14f3d8",
+      "git_blob": "52db117a68ecbd4adc35836f4e459f61ff9ee1e6"
+    },
+    "candidate_body": {
+      "bytes": 2746,
+      "sha256": "db9bfe7566cee4a0181cc1718c446cdd501e824543a87319640b9f825792ccba",
+      "git_blob": "0efa488499642f3d53840d693c0d1c5aca983198"
+    }
+  },
+  "hunks": [
+    {
+      "index": 0,
+      "old": "                put(w, T_WIDTH, get(w, T_WIDTH) + width(point, get(w, ASCII)))",
+      "new": "                put(w, T_WIDTH, ((((((((0 | (byte(w, 464) << 0)) | (byte(w, 465) << 8)) | (byte(w, 466) << 16)) | (byte(w, 467) << 24)) | (byte(w, 468) << 32)) | (byte(w, 469) << 40)) | (byte(w, 470) << 48)) | (byte(w, 471) << 56)) + width(point, get(w, ASCII)))",
+      "expected_occurrences_in_function": 1
+    },
+    {
+      "index": 1,
+      "old": "                if get(w, T_WIDTH) > get(w, MAX):",
+      "new": "                if ((((((((0 | (byte(w, 464) << 0)) | (byte(w, 465) << 8)) | (byte(w, 466) << 16)) | (byte(w, 467) << 24)) | (byte(w, 468) << 32)) | (byte(w, 469) << 40)) | (byte(w, 470) << 48)) | (byte(w, 471) << 56)) > ((((((((0 | (byte(w, 32) << 0)) | (byte(w, 33) << 8)) | (byte(w, 34) << 16)) | (byte(w, 35) << 24)) | (byte(w, 36) << 32)) | (byte(w, 37) << 40)) | (byte(w, 38) << 48)) | (byte(w, 39) << 56)):",
+      "expected_occurrences_in_function": 1
+    }
+  ],
+  "fixed_reads": [
+    {
+      "source_line": 725,
+      "offset": 464,
+      "bytes": 8,
+      "field": "T_WIDTH",
+      "role": "value-before-width-call"
+    },
+    {
+      "source_line": 726,
+      "offset": 464,
+      "bytes": 8,
+      "field": "T_WIDTH",
+      "role": "post-put comparison-left"
+    },
+    {
+      "source_line": 726,
+      "offset": 32,
+      "bytes": 8,
+      "field": "MAX",
+      "role": "post-put comparison-right"
+    }
+  ],
+  "history_preserved": {
+    "test_path": "tests/test_hia_json_wire_u32_decimal.py",
+    "test_bytes": 23156,
+    "test_sha256": "b558534a2b0020b6afe6b0256a6ea7306bc5e921a8cdcfae0eaf2605d8b159a2",
+    "OLD_AUTHOR_SHA256": "04117743984d1c4d15de6f9a9ff0077f5e28fa6209701f2e85eab7c4a0f30b2a",
+    "OLD_ASSEMBLY_path": "tests/fixtures/hia_json_wire_leaf05_pre_u32_decimal.hiaasm",
+    "OLD_ASSEMBLY_bytes": 363463,
+    "OLD_ASSEMBLY_SHA256": "c2a90ab12eaad558356d3ceca0051a2d87266deaf38039b6d0c1e61831d86792",
+    "OLD_IMAGE_SHA256": "191d82ef912253aa86bca538798269a696fa88b6aa8c27c8e06e6ded5e8bcb8d",
+    "original_assertions_changed": false,
+    "original_test_full_bytes_preserved_as_reference": true,
+    "original_method_ids_preserved": true,
+    "allowed_test_delta": "Only test_01 author-reading assignment plus one explicit local import; full exact AST/text inverse required. All assertions and the other three Source/four Native method bodies remain unchanged."
+  },
+  "inverse_contract": {
+    "allowed_whole_authors": "Only exact base or exact candidate length/SHA256; all partial, mixed, unknown or extra edits refuse before projection.",
+    "candidate_operation": "Locate one exact leaf_normalize function, bind full function SHA, reverse two unique exact line hunks, bind full base function and full base source SHA/size.",
+    "projected_bytes_usage": "Historical one-limb inverse assertion only; never replace actual candidate generation/compilation/source identity.",
+    "fixture_does_not_automatically_wire_existing_test": true
+  },
+  "static_semantics": {
+    "reads_in_original_expression_positions": true,
+    "eight_low_to_high_individual_bounds_traps": true,
+    "left_nested_OR_and_checked_shifts_0_to_56": true,
+    "no_state_cache_or_read_hoist": true,
+    "no_store_or_foreign_request_changes": true,
+    "no_function_or_block_splitting": true,
+    "no_old_protocol_rewrite": true
+  },
+  "execution": {
+    "generation": 0,
+    "VM": 0,
+    "tests": 0,
+    "compiler": 0,
+    "native": 0,
+    "product_git": 0
+  }
+}

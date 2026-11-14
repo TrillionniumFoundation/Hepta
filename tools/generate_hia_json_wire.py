@@ -722,8 +722,8 @@ def leaf_normalize(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
             if mode == 0 or mode == 1:
                 if point >= 55296 and point <= 57343:
                     return 115
-                put(w, T_WIDTH, get(w, T_WIDTH) + width(point, get(w, ASCII)))
-                if get(w, T_WIDTH) > get(w, MAX):
+                put(w, T_WIDTH, ((((((((0 | (byte(w, 464) << 0)) | (byte(w, 465) << 8)) | (byte(w, 466) << 16)) | (byte(w, 467) << 24)) | (byte(w, 468) << 32)) | (byte(w, 469) << 40)) | (byte(w, 470) << 48)) | (byte(w, 471) << 56)) + width(point, get(w, ASCII)))
+                if ((((((((0 | (byte(w, 464) << 0)) | (byte(w, 465) << 8)) | (byte(w, 466) << 16)) | (byte(w, 467) << 24)) | (byte(w, 468) << 32)) | (byte(w, 469) << 40)) | (byte(w, 470) << 48)) | (byte(w, 471) << 56)) > ((((((((0 | (byte(w, 32) << 0)) | (byte(w, 33) << 8)) | (byte(w, 34) << 16)) | (byte(w, 35) << 24)) | (byte(w, 36) << 32)) | (byte(w, 37) << 40)) | (byte(w, 38) << 48)) | (byte(w, 39) << 56)):
                     return 108
             if mode == 3:
                 result = escaped(o, w, point)
