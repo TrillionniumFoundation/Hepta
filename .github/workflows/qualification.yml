@@ -1,0 +1,117 @@
+name: Frozen u32 R2 full 5052 qualification with actual hosted bindings
+on:
+  push:
+    branches: [codex/hia-u32-full-hosted-v134-r2-20261114-dda7]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  frozen-r2-full-qualification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d
+          path: original-r20
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Install the original hosted native execution prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/evidence/toolchain-setup"
+          exec > >(tee "$GITHUB_WORKSPACE/evidence/toolchain-setup/stdout.log") 2> >(tee "$GITHUB_WORKSPACE/evidence/toolchain-setup/stderr.log" >&2)
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace
+          printf 'CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n' >> "$GITHUB_ENV"
+          cp "$RUNNER_TEMP/hia-llvm.asc" "$GITHUB_WORKSPACE/evidence/toolchain-setup/hia-llvm.asc"
+      - name: Install the original fixed Python dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/evidence/python-setup"
+          exec > >(tee "$GITHUB_WORKSPACE/evidence/python-setup/stdout.log") 2> >(tee "$GITHUB_WORKSPACE/evidence/python-setup/stderr.log" >&2)
+          python3.14 -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+          python3.14 -m pip freeze --all
+      - name: Materialize only the exact frozen 3180-file R2 input
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: >-
+          python3.14 -I -S -B harness/tools/materialize_hosted.py prepare
+          --baseline "$GITHUB_WORKSPACE/original-r20"
+          --scope "$RUNNER_TEMP/u32-frozen-r2"
+          --evidence "$GITHUB_WORKSPACE/evidence"
+      - name: Receive both exact original R20 ZIPs and verify all outer bytes and member CRC
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: >-
+          python3.14 -I -S -B harness/tools/download_originals.py
+          --archives "$RUNNER_TEMP/u32-original-artifacts"
+          --evidence "$GITHUB_WORKSPACE/evidence"
+      - name: Capture actual runtime and tools then bind only the 155 allowed JSON pointers
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: >-
+          python3.14 -I -S -B harness/tools/materialize_hosted.py bind
+          --scope "$RUNNER_TEMP/u32-frozen-r2"
+          --archives "$RUNNER_TEMP/u32-original-artifacts"
+          --evidence "$GITHUB_WORKSPACE/evidence"
+      - name: Run the unchanged complete 5052 gate once under its original 180 plus 3 owner
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: >-
+          python3.14 -I -S -B harness/tools/materialize_hosted.py launch
+          --scope "$RUNNER_TEMP/u32-frozen-r2"
+          --evidence "$GITHUB_WORKSPACE/evidence"
+      - name: Retain every actual source and execution node with its original POSIX metadata
+        id: collect
+        if: always()
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: >-
+          python3.14 -I -S -B harness/tools/materialize_hosted.py collect
+          --scope "$RUNNER_TEMP/u32-frozen-r2"
+          --archives "$RUNNER_TEMP/u32-original-artifacts"
+          --evidence "$GITHUB_WORKSPACE/evidence"
+          --collection "$GITHUB_WORKSPACE/retained"
+      - name: Upload complete logical originals without changing the gate outcome
+        uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.collect.outcome == 'success' }}
+        with:
+          name: u32-frozen-r2-full-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            retained
+            evidence/collect
+          include-hidden-files: true
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 90
+      - name: Preserve raw partial evidence if collection itself failed
+        uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.collect.outcome != 'success' }}
+        with:
+          name: u32-frozen-r2-collection-failed-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            retained
+            evidence
+            harness
+            ${{ runner.temp }}/u32-frozen-r2
+            ${{ runner.temp }}/u32-original-artifacts
+          include-hidden-files: true
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 90

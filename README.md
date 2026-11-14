@@ -1,135 +1,31 @@
-# HIA Core
+# Frozen u32 R2 full qualification: hosted preparation
 
-Typed abstract assembly and structured Core for AI agents. HIA checks explicit
-control flow, types, capabilities, ownership and borrowed resources before
-machine-code generation. There is no high-level source language or migration
-frontend in this tree.
+This harness is authored, not executed or published. It reproduces the fixed 3,180-file R2 source tree `4c62be4ed66ff107fa6f88c6131313a354868bd9`, not the latest union. The local complete-gate attempt ended in the original 180-second `QUALIFICATION_TIMEOUT`; that result and every partial observation remain unchanged.
 
-All retained HIA source files use the lowercase `.hepta` suffix. Assembly keeps
-the `hia-asm.v1` header; structured Core keeps its explicit primitive or composite
-schema. Paired JSON projections use `.core.hepta` to avoid filename collisions.
-The `hia` command and `hepta.hia.*` protocol schemas retain their names.
-See [source naming and migration](docs/HIA_SOURCE_SUFFIX.md).
+The original ten execution Python files are transported without byte changes. Four copied JSON inputs have exactly 155 enumerated binding sites. Every hosted value must come from an actual source/runtime/tool/archive capture, and inversing the replacements must restore all four original JSON byte strings. Historical generation/C0 entry points are never called.
 
-The [current implementation and acceptance status](docs/CURRENT.md) is the
-single current-state index. Historical observations retain their exact commit
-identities and do not qualify a later candidate.
+## Stages
 
-The current worker-policy candidate composes native request/report/wire images
-under an explicit administrator bundle pin; its hosted custody and durable
-service/runtime dependencies are not yet retired. See
-[worker policy and custody](docs/HIA_WORKER_REPORT_NATIVE.md).
+`tools/materialize_hosted.py prepare` verifies the published base commit and its complete actual 3,177-file content/modes, materializes the exact target using the 20 after-images and two explicit absences, and verifies all 3,180 actual target files and their tree. A fresh connector GET independently proved that base commit `26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d` has tree `84df4b42f1e20fd7d0c7229e658cf3b458984ffb`, exactly matching the artifact manifest. The artifact manifest is not assumed to be the Git tree without that proof.
 
-## Agent entry
+`tools/download_originals.py` receives the two exact R20 Actions artifacts. API authorization is restricted to fixed GitHub endpoints, is never forwarded to the storage provider, and is not written into evidence. The provider response cannot redirect. The downloader hashes the received bytes, then independently reads the stored complete ZIP bytes, then verifies every member CRC and records full member metadata. Failed or partial downloads are retained. The old REPORT and TRANSFER records are unchanged; new download evidence has separate paths.
 
-```sh
-python -m pip install .
-hia capabilities
-hia check-assembly examples/hia_bootstrap/bytesum.hepta
-hia verify examples/hia_program/counter.hepta
-```
+`materialize_hosted.py bind` captures the actual Linux x86_64 CPython 3.14.4 executable, its one loaded libpython, and the five actual tools selected by the original clean PATH. It verifies a clean-environment version/context child before using the runtime. It binds generation, storage and projection JSON first, reads their final identities, and binds the full plan last. All unlisted changes fail the inverse. It does not run references, a compiler, a test, or a product helper.
 
-The `hia` entry is currently a Python-hosted bridge. An explicitly selected
-[two-image HIA CLI owner](docs/HIA_NATIVE_CLI_CONTROL_RECOVERY_20261111.md)
-now controls all fifteen actions, argument/help/error presentation, sequencing
-and current selfhost-build selection. Semantic action bodies, file policy and
-successful JSON presentation remain named foreign owners; this is not a
-standalone wholly native CLI.
-The independently built
-HIA-native stdio application supports `capabilities`, `verify`, `compile`,
-`render-assembly` and direct HIA-source `assemble` on
-Linux x86-64 without Python at runtime; see [native stdio](docs/HIA_AGENT_STDIO_NATIVE.md).
-The ordinary `hia build --backend selfhost` route can explicitly select an
-operator-pinned HIA compiler for bounded primitive Core v8 ELF objects. Its
-native frontend and code generator execute without the Python emitter or an
-external linker; the CLI, admission and publication bridge remain hosted.
-See [native compiler selection and its supported profile](docs/HIA_PROGRAM_SELFHOST_BUILD.md).
-The separate [native patch application](docs/HIA_CORE_PATCH_CLI.md) performs
-snapshot-bound edits with native whole-Core checks of both base and candidate.
-The [native patch-result application](docs/HIA_CORE_PATCH_RESULT_CLI.md) also
-constructs the complete diagnostic bytes. Its explicit ordinary Agent route
-consumes and stores opaque payload bytes, preserving the existing request journal.
-An explicitly selected [native nominal type session](docs/HIA_COMPOSITE_TYPES_NATIVE.md)
-owns declaration checks, generic binding, finite layouts and partial-record
-obligations for all four composite versions, source-level returned-loan origins,
-parameter admission and task-protocol checks. A separately selected
-[native task-helper generator](docs/HIA_TASK_HELPERS_NATIVE.md) constructs the
-complete start, poll, cancel, join and close Core functions. The selected
-[complete function bundle](docs/HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md) owns
-nominal SSA/CFG, record/enum/partial/task operations, terminators and generated
-entry-name loan binding in HIA. The [complete selected nominal route](docs/HIA_COMPOSITE_NATIVE_INTEGRATION.md)
-also moves constructor admission, ordered signatures, complete function/helper
-aggregation, late limits, exports and primitive schema selection into HIA.
-Its five explicit owners use eleven images; the surrounding bridge retains
-foreign-object and packet custody. The default route and durable Agent remain
-hosted. Native normalization preserves the existing primitive Core recheck.
-An explicitly selected [native worker request kernel](docs/HIA_WORKER_REQUEST_NATIVE.md)
-owns ordinary JSON, finite binary64 canonical bytes, request digests and envelope
-admission while preserving the existing service's durable request identity.
-An explicit [native journal owner](docs/HIA_AGENT_JOURNAL_NATIVE.md) supplies
-reservation, replay, conflict and unknown decisions and canonical response/cost
-instructions; SQLite durability and tool effects retain their existing owners.
-The [pinned helper bundle](docs/HIA_NATIVE_HELPER_WORKER.md) selects existing
-kernels and that journal through ordinary worker callers. Selected
-[execution budgets](docs/HIA_EXECUTION_BUDGET_NATIVE.md) preserve the original
-SQLite accounting and unknown-outcome fencing. Selected
-[candidate attempt budgets](docs/HIA_CANDIDATE_BUDGET_NATIVE.md) preserve the
-original context counter, request replay and committed charges. Selected
-[slot and lease state](docs/HIA_SLOT_LEDGER_NATIVE.md) also owns adoption's
-evaluation-completion, outcome and net-benefit decisions, while the existing
-store retains SQLite effects, receipt binding and request replay. Selected
-[retirement state](docs/HIA_RETIREMENT_STATE_NATIVE.md) owns release decisions
-while the original process retains actual foreign resources and system calls.
-The separate [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md)
-checks and publishes a bounded immutable release from an operator-pinned bundle.
-It does not select the active worker or replace the service journal.
-The [native release selector](docs/HIA_RELEASE_SELECTION_NATIVE.md) verifies
-installed release bytes and provides explicit status, compare-and-swap
-activation and previous-release rollback. Its durable selection is independent
-of the ordinary worker; default service migration remains open.
-Full native Agent editing/persistence, modules/build, runtime and installation
-acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
-the Agent entry. Standalone Core research backends remain explicitly scoped.
+`materialize_hosted.py launch` invokes the unchanged full R2 runner once with the exact generated `env -i` argv. All 17 fresh independent references and two observer references, real B0, B1/B2/B3 and M1/M2/M3, 38 phases and 5,052 checks stay in the original one 180+3 owner. All original native 20-second wall/10-second CPU/1 MiB limits, reference fuel, archive bounds, worker counts, and the 3 GiB instantaneous free-space floor remain unchanged. The 33 retained-body checks remain inside the owner. No previous compiler or reference result is supplied as input.
 
-## Source and native qualification
+The launch step returns the actual original gate failure code. Artifact upload cannot convert a failure into success. A process return of zero also requires the original outer result to report its exact PASS status. The workflow has no `continue-on-error` or success wrapper around the gate.
 
-```sh
-python -B tools/check_hia_core_only.py
-python -B tools/generate_hia_selfhost_contract.py --check
-python -B tools/replay_hia_selfhost_cold.py --output /var/tmp/NEW-hia-cold.json
-python -B tests/test_hia_selfhost_language_coverage.py --output /var/tmp/NEW-hia-language.json
-```
+## Complete actual originals and modes
 
-Cold qualification preserves original and modified-source native fixed points,
-independent reference controls and resource refusal witnesses. Source contracts
-are identities, not correctness or release approvals. Old high-level-specific
-CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
+`materialize_hosted.py collect` runs after termination under `if: always()`. It records actual source, harness and execution files, directories, symlink targets, and nonregular-node metadata. It does not follow symlinks. On the same filesystem it hardlinks each captured regular file into a safe ordinary-file export; on a different filesystem it streams a copy. It records full byte/SHA/Git identities and POSIX modes, including the explicit post-gate ctime/nlink effect of hardlinking. Original product receipts are never rewritten. Logical reconstruction uses `NODE-MANIFEST.json`, not permission normalization performed by the Actions artifact wrapper. An append-only node stream survives a collection failure.
 
-Repository cleanup: [current audit](docs/CURRENT.md#repository-ownership-and-cleanup).
-Native rewrite: [current implementation and remaining owners](docs/CURRENT.md).
-Runtime integration: [compatibility and upgrade requirements](docs/CURRENT.md#remaining-product-acceptance).
+The two already complete original R20 ZIP wrappers are not duplicated in the new artifact: their exact original Actions IDs, full byte identities, independent stored-byte readback, every-member CRC results, and actual stat records are retained. Their original Actions artifacts remain the wrapper source. Incomplete downloads are exported as actual partial files. Checkout metadata is excluded; the entire fixed harness input set is included. Collection cannot manufacture absent terminal frames or finish skipped qualification work.
 
-The selected [HIA JSON wire](docs/HIA_JSON_WIRE_NATIVE.md) owns bounded graph and encoding decisions, with explicit foreign-object transport and unclosed option domains. See [current status](docs/CURRENT.md) for source-bound qualification and remaining whole-product owners.
+If collection itself fails, a separate always-upload step preserves the raw available scope, partial collection and original download files. Such an artifact is explicitly incomplete and the job stays failed. If the runner is stopped before a terminal receipt is observed, missing cleanup stays unobserved.
 
-## Retained merge candidate boundaries
+## Boundaries
 
-The integration retains both the main multi-image backend families and the
-separately selected continuation CONTROL families. A manifest for one family
-does not select or qualify the other. The original
-[individual nominal owners](docs/HIA_NOMINAL_FUNCTION_NATIVE.md), including the
-[native enum-match owner](docs/HIA_ENUM_MATCH_NATIVE.md), remain alongside the
-complete nominal bundle. Their original caller and component gates are retained.
+Surface is the only authorized publisher. This directory does not authorize a push or execution. It selects a dedicated branch and rejects workflow attempts other than attempt 1. A future attempt requires Root's explicit review and authorization. Workflow setup and artifact collection are outside the product owner; neither moves any existing qualification work outside its original deadline. The 40-minute job limit is only containment.
 
-The continuation source also retains explicitly selected public-front,
-service-context, emission, verification, proof, request, artifact and evaluation
-owners. Those policies still depend on named foreign-object, JSON, filesystem,
-SQLite, loader and process-custody providers. The retained slot continuation and
-the main slot/lease owner use distinct selectors and evidence. Neither source
-registration nor a successful result for either parent qualifies the combined
-source, changes a default or authorizes deleting a former production owner.
-
-Earlier source-bound observations remain in the
-[retained rewrite history](docs/HIA_NATIVE_REWRITE_STATUS_20261111.md).
-Its dated entries describe their own revisions, including failures and pending
-work. The integration must regenerate the source and language inventories and
-run its own complete current-source qualification under the original limits.
+The full gate can still time out on hosted CI. Its result will not grant latest-source cold authority, ordinary-encoding or entry-layout qualification, R8 or aggregate qualification, or whole-system/default-worker authority. Integration into the newest joint source and all matching gates remain future work.
