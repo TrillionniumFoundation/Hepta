@@ -19,7 +19,7 @@ class NativeDeliveryUnknown(RuntimeError):
 
 _ACTIVE = ContextVar('hia_native_delivery_foreign_call', default=None)
 _CUSTODY = {}
-_CUSTODY_LOCK = threading.Lock()
+_CUSTODY_LOCK = threading.RLock()
 _CUSTODY_PID = os.getpid()
 _RESOURCE_ACTIVE = ContextVar('hia_native_delivery_resource_scope', default=None)
 _RESOURCE_LIFETIMES = {}
@@ -231,7 +231,7 @@ def _after_fork_child():
     # Retain inherited records and their actual resources. Their original PID
     # never changes, so neither inherited contexts nor tokens become active
     # child-process ancestry. Only the representation lock is replaced.
-    _CUSTODY_LOCK = threading.Lock()
+    _CUSTODY_LOCK = threading.RLock()
     _CUSTODY_PID = os.getpid()
 
 

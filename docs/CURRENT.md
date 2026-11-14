@@ -92,6 +92,31 @@ and rejects all 30 mixed combinations. The other 86 source pins, 20 shared pins
 and 21 original definitions retain their checks. This is source provenance,
 not runtime qualification.
 
+## Custody lock and workflow repair
+
+The shared custody lock is now reentrant at initialization and after fork.
+A separate forced-GC diagnostic reproduced the old weak-reference callback
+attempting to acquire the same lock while its thread already held it. Changing
+exactly those two lock constructions allowed cleanup to complete, while the
+new independent checks retain cross-thread exclusion and child-process reset.
+This mechanism experiment does not establish the cause of the interrupted
+61-method run, whose stack was not observed. The exact five-file successor
+provenance now binds the revised shared file; the original inventory and all
+other original pins remain unchanged.
+
+The raw-diagnostic upload still contains the same 535 ordered owned paths in
+one artifact. A 6,081-character preparation step expands repeated patterns
+using the unchanged raw runner temporary path and writes one multiline output.
+Four actual output controls preserve spaces, trailing separators, Unicode,
+quotes and existing output bytes. All original CI commands, conditions,
+artifacts and budgets remain; the new three-test lock module is added to Source.
+
+The new fsync diagnostic reran the unchanged negative helper and read its
+traceback only after the original assertion failed. Its own captured child
+stderr confirms a local ptrace permission refusal. That observation does not
+replace the earlier R9 attempt's unavailable stderr or turn its failure into
+a pass. The actual syscall-injection gate still requires its original CI run.
+
 ## Source-bound qualification
 
 The qualification unit is one exact source tree and its admitted inputs.
@@ -104,12 +129,15 @@ were read on 2026-11-14 UTC; no parent success qualifies this successor.
 | Published parent 5bf69586b890706290c5fbfe93065ec0d3af40b1, tree 9008d431cf28b51edd8a5de589081090e3a19916 | Both complete Source suites passed all 684 methods, in 949.132 and 877.339 seconds. Generation and cleanliness passed. This parent lacks the new transaction/artifact changes. |
 | Parent [push Native](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43623240537) | Terminal success, including printed strict summaries for build 112, emission 112 and wire 91. The full raw job log was retrieved. Its 1,330,554,873-byte artifact exceeds the transfer limit; redirected inner reports remain unread. |
 | Same-tree [PR Native](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43623383081) | Original emission 112 failed at step 34, with 125.751839 seconds and 216 frames in the strict summary. Later steps were skipped. The whole artifact was retrieved but omitted the emission report directories. Internal cause remains unknown; the passing push does not erase this failure. |
-| Exact-parent [full harness](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43623372620) | Harness 4c929543ade24b7ac9d740956bbb7294b84bab10 targets exactly 5bf6958. Original v4 step 12 finished successfully; supplemental step 13 failed. At the 20:05 UTC readback the lossless evidence copy was still being created. Its inner reports have not yet been independently read, so no full qualification is claimed. |
+| Exact-parent [full harness](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43623372620) | The complete lossless archive has now been independently read: all 42,180 members and 40,175 original files match bytes, modes and nanosecond timestamps. All 35 original stages passed, including Source 684 and full retained 5,050 with no anomaly. The original verbose-log reader reproduces every planned/started/stopped ID. Full discovery took 4,298.019502398 seconds within its original 5,400-second limit. Supplemental step 13 still failed before starting any command because its emission build reader required an obsolete scope; the whole workflow remains failed. This is parent 5bf evidence, not qualification of this successor. |
 | Metadata parent 04492c20356b459d003152fc8b71b4c7d90e4244 | Both Native jobs succeeded. Its [full run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43621466530) was independently read from the complete lossless archive: all 5,050 planned methods started and stopped in order, with exactly one failure, the same release-freeze inventory assertion as Source 684; no other errors or skips. Supplemental validation stopped before running its commands because its emission build reader still required the old single-frame scope. The actual build declared integrated D0-D3 while test custody still declared its original narrower scope. These two sources must be checked separately. Both failures remain recorded. |
 | Transaction R2 development component | Source 3 and Native 8 passed. Two fresh interpreters each froze all 521 originals before selected execution under the same explicit history: 1,042 full comparisons matched. Installed normal/replay, lost COMMIT and unknown replay passed. These are DEV inputs, with a recorded unused HEPTA_CLANG path error, not current-cold or dual-Clang configuration qualification. |
 | Artifact R6 development component | Source 3 passed; complete Native 8 finished with 6 PASS, 1 FAIL and 1 ERROR. Actual fsync injection met local ptrace refusal, and installed execution hit its unchanged 60-second limit. Neither was waived. Original bridge 96 and terminal 44 fixtures remain unchanged; five independent cases cover the withdrawal receipt-count repair. |
 | Artifact R7 installed observer repair | Removing an extra observer scan preserved all production checks. The targeted run still timed out at 60 seconds after six actual workers. Remaining scenarios were not counted; prior passing methods were not combined into a fictitious full success. |
-| This combined successor | Combined Source/Native, Store 130, transaction ordinary 112, transaction separate 61, artifact 132, matching-current-cold and complete retained qualification remain required. Provenance and CI wiring are not execution results. |
+| Published combination 91bbd077ce5f7ff7b5236b1b14b7989b6e90a8a6, tree 4bd3aa1dd78c89c70136f527188d23a04c8dab27 | Local complete Source 9 and transaction Native 8 passed; original transaction callers passed 112/112/112 in 138.923437730 seconds. Full artifact Native 8 remains HOLD with seven passes and one fsync-negative failure. Its installed method passed both standalone and within the complete run, under the unchanged 60-second limits. These are explicit DEV results for that exact earlier tree. |
+| Original transaction 61 on that combination | INDETERMINATE after executor/session interruption. A start record exists but no terminal execution/report, observed timeout or complete module count. The session became inaccessible; an unobservable process namespace is not evidence of termination. The original cumulative 1,800-second allowance is unchanged. |
+| [91bb push workflow](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43640050050) | Failed before creating any job. Independent analysis found that the new diagnostic path expansion exceeded Actions expression limits. The exact server annotation is unavailable. This successor replaces that expression with one prepared output while preserving all 535 ordered paths; actual server admission still requires a new run. |
+| This custody/workflow repair | Three newly added lock checks passed with the exact two-line RLock module in fresh Python 3.12 and 3.13 processes. New complete Source/Native, Store 130, transaction 112/61, artifact 132, matching-current-cold and full retained results must bind this successor independently. Earlier component results are not reused as its qualification. |
 
 The transaction histories are finite checks, not all-history equivalence.
 The original R1 mixed-history failure remains preserved. A separate original-
