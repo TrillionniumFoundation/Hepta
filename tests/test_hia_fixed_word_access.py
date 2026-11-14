@@ -37,6 +37,19 @@ class FixedWordAccessTests(unittest.TestCase):
         self.assertEqual(helper_comparisons('execution-budget'), 270)
         self.assertEqual(helper_comparisons('agent-journal'), 288)
 
+    def test_cost_ledger_uses_the_same_independently_checked_word_helpers(self):
+        from tools.generate_hia_cost_ledger import source_program as ledger_source
+        from tools.generate_hia_execution_budget import source_program as budget_source
+        self.assertEqual(sha256(FIXTURE.read_bytes()).hexdigest(),
+                         '6d8cedbd84295b8011b7a2453be68057797a45d3a20d57b1bbc2427c1cc1557a')
+        ledger = {node.name: node for node in ast.parse(ledger_source()).body}
+        budget = {node.name: node for node in ast.parse(budget_source()).body}
+        for name in ('read_word', 'get', 'set'):
+            self.assertEqual(ast.dump(ledger[name]), ast.dump(budget[name]))
+        # The unchanged independent loop-based fixture observes complete
+        # return values and buffers, including wrap and partial-write traps.
+        self.assertEqual(helper_comparisons('execution-budget'), 270)
+
     def test_optimized_controller_refuses_before_output_or_compilation(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / 'must-not-exist'

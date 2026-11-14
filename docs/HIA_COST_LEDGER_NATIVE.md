@@ -79,3 +79,31 @@ product deadlines remain unchanged. Evaluation samples its own elapsed time
 before ledger generation, while the outer request cost includes generation;
 there is no original context-deadline recheck around the ledger call. The
 selected path preserves that existing measurement and deadline behavior.
+
+The later fixed-word revision expands exactly the eight ordered byte accesses
+in `read_word`, `get` and `set`. Its loop-based predecessors are the same three
+functions in the existing immutable word-access fixture; the expanded forms
+match the already checked execution-budget helpers. All 270 independent VM
+comparisons retain full-u64 values, wrapped indices, bounds traps and partial
+writes. The ledger policy, checksum, foreign effects and protocol are unchanged.
+The resulting program has 15 functions, 202 blocks and 865 operations, with at
+most 11 block parameters, inside the existing compiler profile.
+
+Two development comparisons reversed execution order: baseline then expanded,
+and expanded then baseline. For the original 10,001/10,000 queried-row cases,
+the preceding HIA image took 1,488.498/1,450.637 ms and 1,546.620/1,615.036 ms;
+the expanded image took 1,045.974/1,018.503 ms and 1,114.238/1,135.022 ms.
+Both rounds preserved complete ledger results and source/compiler custody.
+The 12 component methods also passed in 20.138 seconds. These are development
+observations of lower native overhead, with no new performance threshold; the
+native path remains substantially slower than the original Python method.
+
+The transport boundary distinguishes an unconfirmed image return from a
+confirmed foreign exception. A failed continuation or arithmetic receipt fences
+the frame and cannot emit a synthetic foreign-error acknowledgement. Native
+exceptions in the ordinary request wrapper's rejection family become
+`CostLedgerUnknown`; existing non-rejected `RuntimeError` objects and
+process-control signals retain their identities. SQLite, JSON, identity
+encoding and the original integer conversion keep their confirmed exception
+behavior. In public evaluation, earlier measurements or budget completion do
+not authorize caching an unknown ledger continuation as an ordinary rejection.

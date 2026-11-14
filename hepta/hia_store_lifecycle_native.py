@@ -14,6 +14,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import sqlite3
 import stat
 import struct
 import threading
@@ -35,6 +36,10 @@ SCHEMA_SQL = '\n            CREATE TABLE IF NOT EXISTS artifacts (\n            
 
 class StoreLifecycleUnknown(RuntimeError):
     """A claim or observation is unconfirmed; the frame cannot be replayed."""
+
+
+_REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError,
+                       RecursionError, sqlite3.Error)
 
 
 def _after_fork_child():
@@ -186,9 +191,12 @@ class LifecycleFrame:
             receipt = LifecycleReceipt(*words[2:8])
             self.receipt = receipt
             return receipt
-        except BaseException:
+        except BaseException as error:
             self.fenced = True
             self.unconfirmed = True
+            if isinstance(error, Exception) and (
+                    not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
+                raise StoreLifecycleUnknown('lifecycle transport is unconfirmed') from error
             raise
 
     def drive(self):

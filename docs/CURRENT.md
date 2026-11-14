@@ -19,9 +19,9 @@ The canonical suffix entered main at
 
 | Scope | Audited main `f33d8da` | Earlier `ad352ee` | Published parent `b569c21` | This implementation |
 | --- | ---: | ---: | ---: | ---: |
-| HIA source files ending in `.hepta` | 178 | 188 | 190 | 192 |
+| HIA source files ending in `.hepta` | 178 | 188 | 190 | 193 |
 | Physical legacy `.hia`, `.HIA`, `.hiaasm` or `.hia.json` paths, including case variants | 0 | 0 | 0 | 0 |
-| Production Python modules directly under `hepta/` | 186 | 195 | 198 | 204 |
+| Production Python modules directly under `hepta/` | 186 | 195 | 198 | 206 |
 
 These counts describe files, not percentages of behavior. The additional
 Python modules are explicit adapters for new native owners; their existence is
@@ -50,13 +50,16 @@ tree `9c56113194795c738d3e7804eb1a89f8a1803cbd`, added full cost, patch impact
 and CLI discovery JSON. Published successor
 [`b569c210a807af29a3ad816679f2b9437c5c6875`](https://github.com/TrillionniumFoundation/Hepta/commit/b569c210a807af29a3ad816679f2b9437c5c6875),
 tree `84b67370cd899f969a7130605f99bb056904af04`, added static resources and Store
-lifecycle. This revision adds service context, cost-ledger policy, complete
-primitive Core diagnostics and the default-owner candidate installation described
-below. The seven HIA semantic owners introduced by this
-continuation are listed first:
+lifecycle. Published `19065d2` added service context, cost-ledger policy, complete
+primitive Core diagnostics and the default-owner candidate installation. Its
+`9a9a9c9` successor corrected one frozen-fixture citation without changing the
+original source gate. This revision adds the complete evaluation control owner
+and reduces fixed-word ledger overhead. The eight HIA semantic owners introduced
+by this continuation are listed first:
 
 | Area | HIA-owned behavior | Retained host boundary |
 | --- | --- | --- |
+| [Evaluation](HIA_EVALUATION_NATIVE.md) | Complete original evaluation branches, case/arm iteration, correctness and completeness flags, six-outcome precedence, budget/effect order and exact integer deadlines | Original reference VM and native runner, Store/SQLite/clock providers, object protocols, integer-to-binary64 division and threshold comparison |
 | [Cost ledger](HIA_COST_LEDGER_NATIVE.md) | Original query/decode/policy ordering, 10,001-row truncation, context/unscoped selection, exact signed sums and output construction order | SQLite query/fetch, JSON decoding, row/object allocation and the original integer/string conversions |
 | [Service context](HIA_SERVICE_CONTEXT_NATIVE.md) | Context freeze/lookup, workload and budget loops, complete effect ordering, exact signed deadline arithmetic and remaining-time floor | Schema/profile/buffer providers, object/time protocols, artifact/SQLite effects and the original candidate-consumption provider |
 | [Static resources](HIA_STATIC_BUDGET_NATIVE.md) | Stable graph order, exact allocator/tick arithmetic, synchronous call depth, v7/v8 resource profile and ordered numerical policy decisions | Sole Core verification, primitive/policy shape validation, fact projection, independent heap analysis and final report hashing |
@@ -72,6 +75,33 @@ continuation are listed first:
 | [Bounded byte memory](HIA_BOUNDED_MEMORY_NATIVE.md) | Original fill/move admission and refusals, actual in-place fill and overlapping move | Exact Python object facts, buffer export lifetime, allocator and GIL custody |
 | [SHA stream](HIA_SHA256_STREAM_NATIVE.md) | Original full-width state transitions with fixed eight-byte word accesses expanded | Original bounded adapter and foreign object lifetime |
 | [Execution budget](HIA_EXECUTION_BUDGET_NATIVE.md) and [journal](HIA_AGENT_JOURNAL_NATIVE.md) | Original budget transitions and complete per-request catalog hashing, with fixed word accesses expanded | Actual clock observations, SQLite transactions, durable journal and request dispatch |
+
+Evaluation retains the exact 172-line `19065d2` original and its value-observation
+helper as independent fixtures. HIA orders both reference batches, case
+classification, baseline/candidate native batches, claim completion and the
+measurements/ledger/evaluation-receipt publications. It preserves one captured
+context deadline and all original 512 cases. Incomplete reference work still
+claims/completes the native budget and initializes both empty arm reports, as in
+the original. Arbitrary-integer true division and binary64 threshold comparison
+remain explicit host operations, preserving rounding, signed zero and overflow.
+
+The isolated development revision passed 28/28 owner and shared controls in
+78.073 seconds. All 111 frozen complete effect traces matched; six independently
+selected VM scenarios matched all native state/output buffers across 1,092
+entries. The complete seven-module ordinary-caller gate passed 81/81 in
+149.129 seconds, with 48 frames, 167,382 control entries, 9,799 integer entries
+and zero retained-evaluation calls. All source and image inputs were unchanged.
+The frozen 12-module inventory retains 183 original methods; the five explicit
+administrator-scope modules keep their original separate gates. Its only
+permitted original-source adjustment is the exact helper-registry count literal.
+
+The actual installed worker observed one frame, 237 control entries, 29 integer
+entries and two real native results on the first request; exact replay observed
+zero entries. Process exit after a real run and a lost native acknowledgement
+both retained the original durable budget owner and prevented rerun. Ordinary
+transport exceptions remain unknown instead of being cached as normal input
+rejections; confirmed foreign exceptions retain their original handling. These
+are development component/caller results, not current-cold or product cutover.
 
 Static resources preserve all 1,024 functions, 4,096 blocks per function and
 262,144 structural nodes. Event magnitudes use exact variable-width arithmetic;
@@ -133,6 +163,15 @@ measured performance regression, not a speedup or a relaxed acceptance budget.
 The original evaluation time is sampled before ledger generation; the outer
 request cost includes it. The original code does not recheck its context
 deadline around ledger generation, and this migration preserves that behavior.
+The fixed-word follow-up expands only the eight ordered byte operations in
+three helpers. It preserves 270 independent VM comparisons of full-u64/wrapped
+indices, bounds and partial writes. Two reversed-order development comparisons
+reduced the original queried-row cases from 1.45–1.62 seconds to 1.02–1.14 seconds;
+this remains substantially slower than Python. All 12 owner controls passed,
+and the complete original 81-caller gate passed in 145.734 seconds with unchanged
+source/bundle custody, 23 frames, 402 additions and 804 comparisons. The original
+cost-ledger test module is byte-identical; the additional helper control resides
+in the existing fixed-word module.
 
 Full cost preserves the original 8..128 trials and exact ratios whose signed
 ppm magnitude exceeds 64 bits. Its complete 38-caller gate poisons the original
@@ -244,9 +283,11 @@ Groups overlap and are never added into a unique-test total.
 | Main `f33d8da`, [CodeQL 43375258558](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43375258558) | C/C++, Actions, Python and Rust jobs succeeded. |
 | Parent `0daf86d`, [push 43541067109](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43541067109) and [PR 43541235838](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43541235838) | Both SUCCESS. All 81 Native API steps completed without a skipped step, including cold 11/11 and language 1,242/1,242. |
 | Parent `0daf86d`, [full retained 43541249953](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43541249953) | SUCCESS. All 4,843 planned/started/finished IDs match; zero failures, errors, skips, expected failures or unexpected successes. The original regression took 4,012.647 seconds within 5,400 seconds; source bytes were unchanged before and after. |
-| Published parent `ad352ee`, [push 43563651594](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43563651594) and [PR 43563684162](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43563684162) | Both FAILURE, confirmed at 2026-11-14 07:38:48 UTC. Both Source jobs passed 645/645, but Native failed the final ordinary JSON-wire caller gate. The PR ran all 91 caller methods in 385.760 seconds with one failure: native-timeout termination took 6.659 seconds against the original five-second limit. Its merge checkout `5af2ef6b31b3ccd998fdedb8d23d4869bbe4bd66` has the exact published tree. The separate [full retained 43563838838](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43563838838) was still running. The later b569 push success does not erase this failure or establish its root cause. |
-| Published parent `b569c21`, [push 43566589915](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43566589915) and [PR 43566764873](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43566764873) | Both SUCCESS; the PR reached its terminal result at 2026-11-14 07:49:17 UTC. Both Source jobs passed 651/651, and each Native job completed all 91 API steps successfully with none skipped, including cold 11/11 and language 1,242/1,242. The final PR JSON-wire gate passed all 91 methods in 286.594 seconds. The two Source runs took 646.747 and 748.449 seconds. PR merge `c55b748d358d2dd64be61384f53633b19de83896` has the exact product tree. Separate [full retained 43566751297](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43566751297), using harness `367ba22d6fdefba2cb8d820b6438fd71fac4c7da`, was still running at 07:50:53 UTC. |
-| Implementation `19065d2`, [push 43572500569](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43572500569) and [PR 43572597045](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43572597045) | Both Source jobs failed the original Core-only boundary gate: the documented frozen `.py.txt` fixture path was read as a nonexistent `.py` script. This documentation-only successor uses the existing fixture citation convention and leaves that gate unchanged. Its original Core-only and source-contract controls passed 18/18 in 38.227 seconds. Native jobs and [full retained 43572595959](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43572595959) were still running at 07:50:53 UTC; no terminal result is claimed. The original PR merge `608d067555b2167565ae59e92538e3cc37c21158` has product tree `fb860885c7b3eb833b8bba2aac91d3bb4c4c529c`. That full run uses actual harness `94f544ab9383e4fe6c0ea955027892720dbfc4d1`. |
+| Published parent `ad352ee`, [push 43563651594](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43563651594) and [PR 43563684162](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43563684162) | Both FAILURE, confirmed at 2026-11-14 07:38:48 UTC. Both Source jobs passed 645/645, but Native failed the final ordinary JSON-wire caller gate. The PR ran all 91 caller methods in 385.760 seconds with one failure: native-timeout termination took 6.659 seconds against the original five-second limit. Its merge checkout `5af2ef6b31b3ccd998fdedb8d23d4869bbe4bd66` has the exact published tree. The independently completed full run is recorded separately below. Later successful runs do not erase these failures. A local reproduction isolated substantial JSON-wire overhead before the timed native runner; its native batch exhausted its one-millisecond budget without starting a child. |
+| Published parent `ad352ee`, [full retained 43563838838](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43563838838) | SUCCESS, completed 2026-11-14 08:06:30 UTC. All 4,893 planned/started/finished IDs match, zero anomalies, 4,134.669 seconds within the original 5,400-second full-discovery budget. All eight same-cold supplemental gates passed. The original v4 invocation took 7,361.745 seconds across its separate stages; no whole-run 5,400-second limit is implied. Exact harness `e5812b8a4f0c9dae0a8a30b83cf30e75d9901ea1`, product tree `9c56113194795c738d3e7804eb1a89f8a1803cbd`. |
+| Published parent `b569c21`, [push 43566589915](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43566589915) and [PR 43566764873](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43566764873) | Both SUCCESS; the PR reached its terminal result at 2026-11-14 07:49:17 UTC. Both Source jobs passed 651/651, and each Native job completed all 91 API steps successfully with none skipped, including cold 11/11 and language 1,242/1,242. The final PR JSON-wire gate passed all 91 methods in 286.594 seconds. The two Source runs took 646.747 and 748.449 seconds. PR merge `c55b748d358d2dd64be61384f53633b19de83896` has the exact product tree. Separate [full retained 43566751297](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43566751297), using harness `367ba22d6fdefba2cb8d820b6438fd71fac4c7da`, was still running at 08:36 UTC. |
+| Implementation `19065d2`, [push 43572500569](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43572500569) and [PR 43572597045](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43572597045) | Both Source jobs failed the original Core-only boundary gate: the documented frozen `.py.txt` fixture path was read as a nonexistent `.py` script. The `9a9a9c9` documentation-only successor uses the existing fixture citation convention and leaves that gate unchanged. Its original Core-only and source-contract controls passed 18/18 in 38.227 seconds. Native jobs and [full retained 43572595959](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43572595959) were still running at 08:36 UTC; no terminal result is claimed. The original PR merge `608d067555b2167565ae59e92538e3cc37c21158` has product tree `fb860885c7b3eb833b8bba2aac91d3bb4c4c529c`. That full run uses actual harness `94f544ab9383e4fe6c0ea955027892720dbfc4d1`. |
+| Published `9a9a9c9`, [push 43573129902](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43573129902) and [PR 43573135447](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43573135447) | Both Source jobs SUCCESS; push passed 662 methods in 530.310 seconds. At 08:36 UTC Native jobs were still running at the machine-encoding/instruction caller gates, with every preceding step passed, including cold, service context, ledger and default installation. The PR merge `9144bea50898caa313d94755d54cd96d5e7f2d9b` has exact product tree `d597c1f9f0017e6a716359deaee51dd631af18ff`. [Full retained 43573178591](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43573178591), using actual harness `965b40bca7d01bb33d7497a24a4ad77d8d133d7a`, was still running; overall acceptance is not claimed. |
 | `a7710b5`, [push 43475067137](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43475067137) | FAILURE. Source: 585 tests passed. Native failed the accepted 64 MiB `store-put` at its original 60-second subprocess limit; subsequent product steps were skipped. |
 | `a7710b5`, [PR 43475077671](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43475077671) | SUCCESS. Source: 585 tests; every declared Native step completed. Actual checkout was merge `05d0cb2130982c4ffd408521650e20298e4c4ac0`, independently verified to have the same `b5618be` tree, with parents main `f33d8da` and `a7710b5`. |
 | `fbc34a716e31e72dd492fa926025b04808df339a`, [push 43537843469](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43537843469) and [PR 43538070022](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43538070022) | Both failed. Each Source run executed 619 methods with one failure: the bounded-memory installation fixture lacked ten explicit resource-role declarations. Each Native run passed cold and stages 8-16, including 41 scalar and 99 combined generation callers, then executed all 17 bounded-memory tests with two failures at 148,869 bytes against the original 65,536-byte ceiling. Later native steps were skipped. The PR checkout was `5e443ab300c98cc7702d0992b5423d40d9b54f60`, with the same `590189851a4b37965ed9c6b0abbb43f8d8c3115d` tree. This revision fixes the real loader allocation and explicitly copies all resource roles; those earlier runs remain failures. |
@@ -264,6 +305,16 @@ qualifies the parent, not the new source in this revision. The local harness
 commit `439dd75ad3e9bab61fec6300c64fc83673b4f38e` has the same
 `f0011fc625c546f30fa141d8643d02202ccad2fa` tree but was not published; it is
 not the identity of the executed GitHub run.
+
+The successful `ad352ee` full run's original artifact `14105890566` was
+downloaded and independently read in full. Its 408,770,809-byte ZIP has SHA-256
+`c8d7f93e7a20157cf098ecdfb4d2af3e5a3bc40dc77e86821c096c6ba62640d1`.
+All 24,132 indexed files and 1,477 recorded original directories matched their
+sizes, hashes, modes and nanosecond timestamps; all 25,613 tar members were
+accounted for, including the identical embedded manifest and structural
+directories. The verified file content totals 1,937,564,921 bytes. The archive
+preserves original failures as well as successes; it does not qualify later
+source changes or erase that source's two separate Core workflow failures.
 
 The earlier failed `be36b7c` full run used product tree `e32d473fc5ce396b513a6b85e04340fb25d81d12`
 and separate harness `59c6e5912c86f6253b68b7a1579dbeef2fe8c111`.
@@ -283,7 +334,7 @@ complete original-caller gates. The retained
 keeps original source/harness custody, all 35 stages and complete discovery.
 New component callers are additional gates, not replacements for that suite.
 The workflow now includes full cost, its default installation candidate, patch
-impact, static resources, Store lifecycle, service context, cost ledger and both CLI
+impact, static resources, Store lifecycle, service context, cost ledger, complete evaluation and both CLI
 discovery qualifiers.
 Its Native artifact upload now explicitly retains the full-cost, patch-impact,
 CLI-discovery and default-installation evidence directories; the earlier Core

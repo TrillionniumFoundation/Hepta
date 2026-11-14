@@ -16,6 +16,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import sqlite3
 import struct
 import threading
 
@@ -39,6 +40,12 @@ _CUSTODY_PID = os.getpid()
 
 class ServiceContextUnknown(RuntimeError):
     """An actual effect or acknowledgement is unconfirmed; never replay it."""
+
+
+# Keep existing RuntimeError identities unless the public request layer would
+# catch that exception too (RecursionError and multiple-inheritance cases).
+_REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError,
+                       RecursionError, sqlite3.Error)
 
 
 def _after_fork_child():
@@ -73,21 +80,26 @@ class NativeServiceContextImage(NativeHiaJsonImage):
         workspace = ctypes.create_string_buffer(extent + 16)
         ctypes.memmove(ctypes.addressof(output) + capacity, b'\xa5' * 16, 16)
         ctypes.memmove(ctypes.addressof(workspace) + extent, b'\xda' * 16, 16)
-        code = self._entry(source, len(raw), output, capacity, workspace, extent)
-        if (type(code) is not int or code != 32 or source.raw != raw + b'\xc9' * 16
-                or output.raw[capacity:] != b'\xa5' * 16 or workspace.raw[extent:] != b'\xda' * 16):
-            raise ServiceContextUnknown('context arithmetic has no exact guarded result')
-        magic, kind, size, echoed = struct.unpack_from('<4Q', output)
-        if (magic != MATH_RESULT_MAGIC or echoed != operation or size > width
-                or output.raw[32 + size:capacity] != bytes(capacity - 32 - size)):
-            raise ServiceContextUnknown('context arithmetic receipt differs')
-        if kind == 1 and size == 0:
-            return _INTEROP
-        if kind == 2 and size == 1 and output.raw[32] in (0, 1):
-            return bool(output.raw[32])
-        if kind == 0 and size > 0:
-            return int.from_bytes(output.raw[32:32 + size], 'little', signed=True)
-        raise ServiceContextUnknown('context arithmetic representation differs')
+        try:
+            code = self._entry(source, len(raw), output, capacity, workspace, extent)
+            if (type(code) is not int or code != 32 or source.raw != raw + b'\xc9' * 16
+                    or output.raw[capacity:] != b'\xa5' * 16 or workspace.raw[extent:] != b'\xda' * 16):
+                raise ServiceContextUnknown('context arithmetic has no exact guarded result')
+            magic, kind, size, echoed = struct.unpack_from('<4Q', output)
+            if (magic != MATH_RESULT_MAGIC or echoed != operation or size > width
+                    or output.raw[32 + size:capacity] != bytes(capacity - 32 - size)):
+                raise ServiceContextUnknown('context arithmetic receipt differs')
+            if kind == 1 and size == 0:
+                return _INTEROP
+            if kind == 2 and size == 1 and output.raw[32] in (0, 1):
+                return bool(output.raw[32])
+            if kind == 0 and size > 0:
+                return int.from_bytes(output.raw[32:32 + size], 'little', signed=True)
+            raise ServiceContextUnknown('context arithmetic representation differs')
+        except Exception as error:
+            if isinstance(error, RuntimeError) and not isinstance(error, _REQUEST_REJECTIONS):
+                raise
+            raise ServiceContextUnknown('context arithmetic transport is unconfirmed') from error
 
 
 def _pairs(items):
@@ -200,8 +212,11 @@ class ContextFrame:
                 raise ServiceContextUnknown('context native claim or observation refused')
             self.receipt = ContextReceipt(*words[2:8])
             return self.receipt
-        except BaseException:
+        except BaseException as error:
             self.fenced = self.unconfirmed = True
+            if isinstance(error, Exception) and (
+                    not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
+                raise ServiceContextUnknown('context transport is unconfirmed') from error
             raise
 
     def finish(self):
@@ -257,8 +272,11 @@ class ContextFrame:
         self.data['math_left'], self.data['math_right'] = left, right
         try:
             value = self.image.arithmetic(operation, left, right)
-        except BaseException:
+        except BaseException as error:
             self.native_failed = True
+            if isinstance(error, Exception) and (
+                    not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
+                raise ServiceContextUnknown('context arithmetic transport is unconfirmed') from error
             raise
         if value is not _INTEROP:
             self.data.pop('math_left')

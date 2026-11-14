@@ -95,3 +95,11 @@ component evidence under `HEPTA_HIA_STORE_LIFECYCLE_EVIDENCE`. Without either
 compiler selector, ordinary full discovery builds a development compiler.
 Development output does not establish matching-source cold qualification or
 whole-stack native delivery.
+
+Unconfirmed native continuation errors use `StoreLifecycleUnknown` when their
+ordinary exception class would otherwise be mistaken for a request rejection.
+Existing non-rejected `RuntimeError` identities and process-control signals
+remain intact, as do confirmed foreign exceptions. Store construction occurs
+before worker request entry, while Store close occurs afterward; their original
+worker error classifications remain distinct. Unknown lifecycle observations
+retain the actual Store and connection until process exit.

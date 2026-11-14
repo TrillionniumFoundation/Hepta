@@ -87,3 +87,11 @@ policy bodies. No original source, skip denominator or deadline is changed.
 Both build and test entry points accept matching-current-source cold evidence
 or explicitly labelled development construction. Development evidence does not
 qualify a different cold source tree or whole native installation.
+
+Native transport exceptions that the ordinary request wrapper could mistake
+for an input rejection are reported as `ServiceContextUnknown`. This includes
+`RecursionError` and multiple-inheritance intersections with that wrapper's
+catch family. Other existing `RuntimeError` objects and process-control
+signals retain their identities. A confirmed foreign exception still follows
+the original error acknowledgement; an unconfirmed native return retains the
+actual context/service owner and durable request intent.

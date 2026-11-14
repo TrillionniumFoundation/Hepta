@@ -28,6 +28,7 @@ MAX_SOURCE_BYTES = 8 << 20
 # Only single-image contracts with the existing six-argument byte ABI.
 # Multi-image and external executable contracts need a separate custody closure.
 HELPERS = {
+    "HEPTA_HIA_EVALUATION_MANIFEST": ("hia_evaluation_native", "NativeEvaluation"),
     "HEPTA_HIA_COST_LEDGER_MANIFEST": ("hia_cost_ledger_native", "NativeCostLedger"),
     "HEPTA_HIA_STATIC_BUDGET_MANIFEST": ("hia_static_budget_native", "NativeStaticBudget"),
     "HEPTA_HIA_FULL_COST_MANIFEST": ("hia_full_cost_native", "NativeFullCost"),

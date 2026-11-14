@@ -1148,6 +1148,13 @@ class HIAAgentService:
             "scope": "observed request prefix; unscoped calls cannot be uniquely attributed and adoption/future/model cost may be unknown"}
 
     def _hia_evaluate(self, args):
+        selected = os.environ.get('HEPTA_HIA_EVALUATION_MANIFEST')
+        if selected is not None:
+            from .hia_evaluation_native import installed_evaluation, EvaluationFrame
+            return EvaluationFrame(installed_evaluation(selected), self, args).finish()
+        return self._hia_evaluate_reference(args)
+
+    def _hia_evaluate_reference(self, args):
         from .hia_agent_runner import run_native_batch, run_reference_batch
         from .hia_agent_buffers import validate_cases
         started = time.monotonic_ns()

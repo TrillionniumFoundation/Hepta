@@ -13,6 +13,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import sqlite3
 import stat
 import struct
 import threading
@@ -30,6 +31,10 @@ QUERY = 'SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY s
 
 class CostLedgerUnknown(RuntimeError):
     """The current read-only frame has an unconfirmed native observation."""
+
+
+_REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError,
+                       RecursionError, sqlite3.Error)
 
 
 def integer_bytes(value):
@@ -67,19 +72,24 @@ class NativeCostLedger(NativeHiaJsonImage):
         initial = b'\xa5' * capacity
         output = ctypes.create_string_buffer(initial, capacity)
         unused = ctypes.create_string_buffer(1)
-        code = self._entry(source, len(raw), output, capacity, unused, 0)
-        if code != 16 or source.raw != raw or unused.raw != b'\0':
-            raise CostLedgerUnknown('cost-ledger binary return or immutable input differs')
-        magic, value = struct.unpack_from('<2Q', output.raw)
-        if magic != RESULT_MAGIC:
-            raise CostLedgerUnknown('cost-ledger binary output identity differs')
-        if mode == 10:
-            if not 1 <= value <= capacity - 16:
-                raise CostLedgerUnknown('cost-ledger sum extent differs')
-            return output.raw[16:16+value]
-        if value not in (0, 1):
-            raise CostLedgerUnknown('cost-ledger equality result differs')
-        return value
+        try:
+            code = self._entry(source, len(raw), output, capacity, unused, 0)
+            if code != 16 or source.raw != raw or unused.raw != b'\0':
+                raise CostLedgerUnknown('cost-ledger binary return or immutable input differs')
+            magic, value = struct.unpack_from('<2Q', output.raw)
+            if magic != RESULT_MAGIC:
+                raise CostLedgerUnknown('cost-ledger binary output identity differs')
+            if mode == 10:
+                if not 1 <= value <= capacity - 16:
+                    raise CostLedgerUnknown('cost-ledger sum extent differs')
+                return output.raw[16:16+value]
+            if value not in (0, 1):
+                raise CostLedgerUnknown('cost-ledger equality result differs')
+            return value
+        except Exception as error:
+            if isinstance(error, RuntimeError) and not isinstance(error, _REQUEST_REJECTIONS):
+                raise
+            raise CostLedgerUnknown('cost-ledger binary transport is unconfirmed') from error
 
     def add(self, left, right):
         return self.binary(10, left, right)
@@ -155,6 +165,7 @@ class CostLedgerFrame:
         self.creator, self.thread = os.getpid(), threading.get_ident()
         self.buffer = ctypes.create_string_buffer(STATE_BYTES)
         self.receipt, self.fenced, self.finished = None, False, False
+        self.native_failed = False
         self.call(0)
 
     def call(self, event, observation=0):
@@ -178,8 +189,11 @@ class CostLedgerFrame:
             self.receipt = words[2:8]
             self.retained_rows = state[12]
             return self.receipt
-        except BaseException:
-            self.fenced = True
+        except BaseException as error:
+            self.fenced = self.native_failed = True
+            if isinstance(error, Exception) and (
+                    not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
+                raise CostLedgerUnknown('cost-ledger transport is unconfirmed') from error
             raise
 
     def finish(self):
@@ -191,6 +205,10 @@ class CostLedgerFrame:
             try:
                 observed = self.effect(self.receipt[0])
             except BaseException:
+                if self.native_failed:
+                    # An uncertain image operation is not a confirmed foreign
+                    # exception and must never receive a synthetic event 3.
+                    raise
                 self.call(3)
                 if self.receipt[2] != 5:
                     raise CostLedgerUnknown('cost-ledger exception was not propagated')
@@ -201,6 +219,16 @@ class CostLedgerFrame:
                 self.finished = True
                 return self.result
         raise CostLedgerUnknown('cost-ledger frame already completed')
+
+    def _native_arithmetic(self, operation, *arguments):
+        try:
+            return operation(*arguments)
+        except BaseException as error:
+            self.fenced = self.native_failed = True
+            if isinstance(error, Exception) and (
+                    not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
+                raise CostLedgerUnknown('cost-ledger arithmetic transport is unconfirmed') from error
+            raise
 
     def effect(self, port):
         """One fixed foreign operation; HIA supplies loop index and sum bank."""
@@ -234,13 +262,19 @@ class CostLedgerFrame:
         elif port == 10:
             self.totals = [b'\0', b'\0']
         elif port == 11:
-            return self.image.equal(self.rows[index]['context_id'], self.context['ref']['id'])
+            left, right = self.rows[index]['context_id'], self.context['ref']['id']
+            # Row access and identity encoding are confirmed foreign work.
+            # Only the following image operation can become unconfirmed.
+            left, right = identity_bytes(left), identity_bytes(right)
+            return self._native_arithmetic(self.image.binary, 11, left, right)
         elif port == 12:
             self.number = int(self.rows[index]['wall_ns'])
         elif port == 13:
-            self.totals[bank] = self.image.add(self.totals[bank], integer_bytes(self.number))
+            self.totals[bank] = self._native_arithmetic(self.image.add, self.totals[bank], integer_bytes(self.number))
         elif port == 14:
-            return self.image.equal(self.rows[index]['context_id'], None)
+            left, right = self.rows[index]['context_id'], None
+            left, right = identity_bytes(left), identity_bytes(right)
+            return self._native_arithmetic(self.image.binary, 11, left, right)
         elif port == 15:
             self.result = {'schema': 'hepta.hia.agent.cost-ledger.v1', 'context': self.context['ref'],
                 'entries': self.entries, 'entries_truncated': bool(self.receipt[5]),
