@@ -60,34 +60,16 @@ def verify_loaded_symbols(fd, symbols):
             contents = handle.read(_MAX_MAPS_BYTES + 1)
         if len(contents) > _MAX_MAPS_BYTES:
             reject("process mapping inventory exceeds its bound")
-        matches = {name: [] for name in symbols}
-        for line in contents.splitlines():
-            fields = line.split(None, 5)
-            if len(fields) < 5:
-                reject("incomplete kernel mapping record")
-            bounds = fields[0].split(b"-")
-            device = fields[3].split(b":")
-            if len(bounds) != 2 or len(device) != 2:
-                reject("unrecognized kernel mapping record")
-            lower, upper = (int(value, 16) for value in bounds)
-            offset = int(fields[2], 16)
-            major, minor = (int(value, 16) for value in device)
-            inode = int(fields[4], 10)
-            permissions = fields[1].decode("ascii")
-            if not 0 <= lower < upper or offset < 0 or major < 0 or minor < 0 or inode < 0:
-                reject("invalid kernel mapping interval or identity")
-            for name, address in addresses.items():
-                if lower <= address < upper:
-                    if permissions != "r-xp":
-                        reject("native entry is not in a private nonwritable executable mapping")
-                    if (major, minor) != expected_device or inode != initial.st_ino:
-                        reject("native entry maps a different file object; retained loader mapping refused")
-                    file_offset = offset + address - lower
-                    if not 0 <= file_offset < initial.st_size:
-                        reject("native entry lies outside the sealed file bytes")
-                    matches[name].append({"file_offset": file_offset, "permissions": permissions})
-        if any(len(rows) != 1 for rows in matches.values()):
-            reject("native entry has no unique identity-matched executable mapping")
+        if "HEPTA_HIA_NATIVE_MAPPING_MANIFEST" in os.environ:
+            from .native_mapping_native import selected_native_mapping
+            owner = selected_native_mapping()
+            if owner is None:
+                raise ValueError("native mapping selector changed during admission")
+            matches = owner.matches(contents, addresses, expected_device,
+                                    initial.st_ino, initial.st_size)
+        else:
+            matches = _reference_mapping_matches(contents, addresses, expected_device,
+                                                  initial.st_ino, initial.st_size)
         final = os.fstat(fd)
         if ((final.st_dev, final.st_ino, final.st_size) != (initial.st_dev, initial.st_ino, initial.st_size)
                 or fcntl.fcntl(fd, get_seals) & required != required):
@@ -102,3 +84,38 @@ def verify_loaded_symbols(fd, symbols):
         raise
     except (OSError, ValueError, TypeError, AttributeError, ImportError, OverflowError) as error:
         raise NativeMappingRejected("E_NATIVE_MAPPING: unable to establish actual loaded file identity") from error
+
+
+def _reference_mapping_matches(contents, addresses, expected_device, expected_inode, file_bytes):
+    def reject(reason):
+        raise NativeMappingRejected("E_NATIVE_MAPPING: " + reason)
+
+    matches = {name: [] for name in addresses}
+    for line in contents.splitlines():
+        fields = line.split(None, 5)
+        if len(fields) < 5:
+            reject("incomplete kernel mapping record")
+        bounds = fields[0].split(b"-")
+        device = fields[3].split(b":")
+        if len(bounds) != 2 or len(device) != 2:
+            reject("unrecognized kernel mapping record")
+        lower, upper = (int(value, 16) for value in bounds)
+        offset = int(fields[2], 16)
+        major, minor = (int(value, 16) for value in device)
+        inode = int(fields[4], 10)
+        permissions = fields[1].decode("ascii")
+        if not 0 <= lower < upper or offset < 0 or major < 0 or minor < 0 or inode < 0:
+            reject("invalid kernel mapping interval or identity")
+        for name, address in addresses.items():
+            if lower <= address < upper:
+                if permissions != "r-xp":
+                    reject("native entry is not in a private nonwritable executable mapping")
+                if (major, minor) != expected_device or inode != expected_inode:
+                    reject("native entry maps a different file object; retained loader mapping refused")
+                file_offset = offset + address - lower
+                if not 0 <= file_offset < file_bytes:
+                    reject("native entry lies outside the sealed file bytes")
+                matches[name].append({"file_offset": file_offset, "permissions": permissions})
+    if any(len(rows) != 1 for rows in matches.values()):
+        reject("native entry has no unique identity-matched executable mapping")
+    return matches

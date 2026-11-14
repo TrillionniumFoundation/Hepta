@@ -25,11 +25,50 @@ def run_suite(suite, *, stream=None):
     return complete and clean and result.wasSuccessful()
 
 
+def load_declared_suite(selectors):
+    """Require every named group to contribute distinct executable tests.
+
+    unittest silently accepts a module/class whose last test was removed.
+    An aggregate nonzero count cannot prove that all declared groups ran.
+    Fail discovery before entering even the valid groups in a partial plan.
+    """
+    suite = unittest.TestSuite()
+    planned = []
+    for selector in selectors:
+        loader = unittest.TestLoader()
+        selected = loader.loadTestsFromName(selector)
+        if loader.errors:
+            raise ValueError("test discovery failed for " + selector
+                             + "\n" + "\n".join(loader.errors))
+        if selected.countTestCases() == 0:
+            raise ValueError("empty test selector: " + selector)
+        pending = [selected]
+        while pending:
+            test = pending.pop()
+            if isinstance(test, unittest.TestSuite):
+                pending.extend(reversed(list(test)))
+            elif isinstance(test, unittest.TestCase):
+                identity = test.id()
+                if type(identity) is not str or not identity:
+                    raise ValueError("noncanonical test identity: " + selector)
+                planned.append(identity)
+            else:
+                raise ValueError("non-TestCase discovered: " + selector)
+        suite.addTest(selected)
+    if not planned or len(planned) != len(set(planned)):
+        raise ValueError("empty or overlapping test plan")
+    return suite, tuple(planned)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("tests", nargs="+", help="existing unittest module, class or method names")
     args = parser.parse_args()
-    suite = unittest.defaultTestLoader.loadTestsFromNames(args.tests)
+    try:
+        suite, _ = load_declared_suite(args.tests)
+    except ValueError as error:
+        print(str(error), file=sys.stderr)
+        raise SystemExit(1) from None
     raise SystemExit(0 if run_suite(suite) else 1)
 
 

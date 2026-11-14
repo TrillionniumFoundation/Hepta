@@ -34,6 +34,8 @@ def preflight_hia_json(text: str, *, max_nodes: int, max_depth: int) -> None:
             or type(max_depth) is not int or max_depth < 0):
         raise ValueError("invalid HIA JSON preflight input/budgets")
     manifest = os.environ.get('HEPTA_HIA_JSON_PREFLIGHT_MANIFEST')
+    if manifest == '':
+        raise ValueError('JSON preflight selector must not be empty')
     if manifest and max_nodes <= 1048576 and max_depth <= 128:
         try:
             wire = text.encode('utf-8')

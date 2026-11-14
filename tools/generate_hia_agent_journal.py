@@ -8,6 +8,7 @@ hosted. See HIA_AGENT_JOURNAL_RECOVERY_WIP_20261111.md for recovery provenance.
 from __future__ import annotations
 
 import ast
+import copy
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -688,6 +689,51 @@ def diagnostic_program():
     return renamed(ast.unparse(tree), 'diagnostic_')
 
 
+def journal_hash_program():
+    """Expand only this journal's fixed eight-byte SHA word accesses.
+
+    The original SHA body, full-width scratch words and access order remain
+    intact. Every request still hashes the complete observed catalog. Keep
+    this local so other composed owners retain their existing source images.
+    """
+    tree = ast.parse(hash_program())
+    helpers = {'hash_get', 'hash_put'}
+    found = set()
+    initial = ast.dump(ast.parse('i = 0').body[0])
+    condition = ast.dump(ast.parse('i < 8', mode='eval').body)
+    increment = ast.dump(ast.parse('i = i + 1').body[0])
+    for node in tree.body:
+        if node.name not in helpers:
+            continue
+        found.add(node.name)
+        loops = [(index, statement) for index, statement in enumerate(node.body)
+                 if isinstance(statement, ast.While)]
+        if len(loops) != 1:
+            raise ValueError('journal SHA word helper no longer has one fixed loop')
+        index, loop = loops[0]
+        if (index == 0 or ast.dump(node.body[index - 1]) != initial
+                or ast.dump(loop.test) != condition or loop.orelse
+                or not loop.body or ast.dump(loop.body[-1]) != increment
+                or any(isinstance(child, (ast.Break, ast.Continue, ast.While, ast.For))
+                       for statement in loop.body for child in ast.walk(statement))):
+            raise ValueError('journal SHA word loop changed its eight-byte contract')
+        expanded = []
+        for offset in range(8):
+            class FixedIndex(ast.NodeTransformer):
+                def visit_Name(self, name):
+                    if name.id != 'i':
+                        return name
+                    if not isinstance(name.ctx, ast.Load):
+                        raise ValueError('journal SHA word loop writes its fixed index')
+                    return ast.copy_location(ast.Constant(offset), name)
+            expanded.extend(FixedIndex().visit(copy.deepcopy(statement))
+                            for statement in loop.body[:-1])
+        node.body = node.body[:index - 1] + expanded + node.body[index + 1:]
+    if found != helpers:
+        raise ValueError('journal SHA word helpers changed their names')
+    return ast.unparse(ast.fix_missing_locations(tree))
+
+
 def source_program():
     restore = WORKER_ENTRY[WORKER_ENTRY.index('\ndef restore_order('):WORKER_ENTRY.index('\ndef request_fields(')]
     return '\n'.join((
@@ -699,7 +745,7 @@ def source_program():
         literal('cost_prefix', b'{"error":'), literal('null_literal', b'null'),
         literal('cost_suffix', b',"replayed":false}'),
         restore, canonical_program(), journal_data_source(), diagnostic_program(),
-        decimal_program(), format_program(), hash_program(),
+        decimal_program(), format_program(), journal_hash_program(),
     ))
 
 

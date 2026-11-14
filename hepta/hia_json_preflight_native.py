@@ -15,6 +15,8 @@ from pathlib import Path
 import platform
 import struct
 
+from . import hia_native_helpers
+
 MAX_BYTES = 8 << 20
 MAX_NODES = 1 << 20
 MAX_DEPTH = 128
@@ -156,9 +158,14 @@ def _load_manifest(path: str, raw: bytes, source_sha: str, schema: str, factory)
     if source_sha != value['source_sha256']:
         raise ValueError('native HIA JSON source identity mismatch')
     image_path = Path(path).parent / value['image_path']
-    with image_path.open('rb') as handle:
-        image = handle.read(MAX_IMAGE_BYTES + 1)
-    selected = factory(image, value['image_sha256'])
+    image = bytearray()
+    with image_path.open('rb', buffering=8192) as handle:
+        while len(image) <= MAX_IMAGE_BYTES:
+            chunk = handle.read(min(8192, MAX_IMAGE_BYTES + 1 - len(image)))
+            if not chunk:
+                break
+            image.extend(chunk)
+    selected = factory(bytes(image), value['image_sha256'])
     # Bind the package source captured in this cache key to native image
     # identity. Exact type inspection must not observe a foreign __class__.
     if issubclass(type(selected), NativeHiaJsonImage):
@@ -173,12 +180,11 @@ def _installed_json_image(manifest_path: str, source: Path, schema: str, factory
     hide drift of the source it claims to implement. Loaded code stays pinned;
     changing its disk file does not replace an already immutable mapping.
     """
-    from .hia_native_helpers import pinned_image
-    selected = pinned_image(manifest_path, source, schema, factory)
+    selected = hia_native_helpers.pinned_image(manifest_path, source, schema, factory)
     if selected is not None:
         return selected
     path = Path(manifest_path).resolve(strict=True)
-    with path.open('rb') as handle:
+    with path.open('rb', buffering=8192) as handle:
         raw = handle.read(16385)
     if len(raw) > 16384:
         raise ValueError('native HIA JSON manifest exceeds size limit')

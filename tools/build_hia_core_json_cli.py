@@ -21,6 +21,7 @@ if __package__ in {None, ''}:
 from tools.generate_hia_core_json_cli import MAGIC, LIMIT
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_frontend)
+from tools.build_hia_source_build import _check_pack_output
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -50,16 +51,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
     if len(frame) > LIMIT:
         raise ValueError('qualified images exceed unchanged packer source capacity')
     result, packed = invoke(output, 'native-pack', packer, frame)
-    if (result.get('status') != 'returned'
-            or type(result.get('abi_status')) is not int or result['abi_status'] != 0
-            or type(result.get('core_u32')) is not int
-            or not 0 < result['core_u32'] <= LIMIT
-            or result['core_u32'] != len(packed[:result['core_u32']])
-            or result.get('image_sha256') != sha256(packer_raw).hexdigest()
-            or result.get('source_sha256') != sha256(frame).hexdigest()
-            or result.get('source_unchanged') is not True):
-        raise ValueError('native HIA packer rejected image frame')
-    executable_bytes = packed[:result['core_u32']]
+    executable_bytes = _check_pack_output(result, packed, artifact=packer_raw, source=frame, capacity=LIMIT)
     inspection = inspect_executable(executable_bytes)
     if (compiler.read_bytes() != compiler_raw or cold_report.read_bytes() != cold_raw
             or SOURCE.read_bytes() != packer_source or frontend.read_bytes() != frontend_raw

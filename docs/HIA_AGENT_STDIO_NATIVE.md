@@ -14,9 +14,9 @@ python -B -m tools.build_hia_agent_stdio \
   --compiler /qualified/B3.image.bin --cold-report /completed-cold.json \
   --output /new/private/agent --output-profile flat
 /new/private/agent/hia-native capabilities
-/new/private/agent/hia-native verify < program.core.json
-/new/private/agent/hia-native compile < program.core.json > program.image.bin
-/new/private/agent/hia-native render-assembly < program.core.json > program.hepta
+/new/private/agent/hia-native verify < program.core.hepta
+/new/private/agent/hia-native compile < program.core.hepta > program.image.bin
+/new/private/agent/hia-native render-assembly < program.core.hepta > program.hepta
 /new/private/agent/hia-native assemble < program.hepta > program.image.bin
 /new/private/agent/hia-native check-assembly < program.hepta
 ```

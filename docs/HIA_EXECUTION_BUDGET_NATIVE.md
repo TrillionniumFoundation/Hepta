@@ -36,8 +36,8 @@ ordinary journal and all 14 under the selected v2 journal. The two real-child
 lost-outcome/restart paths and the installed-wheel control also passed. This run
 used an explicitly retained predecessor compiler; the precise source/image
 hashes, test results and product audit are retained in
-`review-evidence/hia-native-rewrite-20261111/execution-budget/` and
-`execution-budget-product-alignment.json` in its parent directory. It is
+[original execution-budget evidence](https://github.com/TrillionniumFoundation/Hepta/tree/a7710b5727cca43875357f92c6b83308046deb6e/review-evidence/hia-native-rewrite-20261111/execution-budget/)
+and [original product alignment](https://github.com/TrillionniumFoundation/Hepta/blob/a7710b5727cca43875357f92c6b83308046deb6e/review-evidence/hia-native-rewrite-20261111/execution-budget-product-alignment.json). It is
 development evidence and does not qualify the changed source tree for release.
 
 ## Original journal and ordering

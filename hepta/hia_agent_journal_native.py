@@ -215,6 +215,11 @@ class JournalSession:
             raise AgentRejected('E_HIA_JSON', 'JSON data must be UTF-8 bytes or text')
         selected = os.environ.get('HEPTA_HIA_AGENT_BINARY64_MANIFEST')
         selected_data = os.environ.get('HEPTA_HIA_AGENT_DATA_JSON_MANIFEST')
+        selected_preflight = None
+        if not selected_data:
+            selected_preflight = os.environ.get('HEPTA_HIA_JSON_PREFLIGHT_MANIFEST')
+            if selected_preflight == '':
+                raise ValueError('JSON preflight selector must not be empty')
         payload = raw if type(raw) is bytes else raw.encode('utf-8')
         if type(raw) is bytes and not selected_data:
             # Python's previous byte codec precedes its JSON byte budget. HIA
@@ -226,7 +231,6 @@ class JournalSession:
             from .hia_agent_data_json_native import installed_agent_data_json
             installed_agent_data_json(selected_data)
         else:
-            selected_preflight = os.environ.get('HEPTA_HIA_JSON_PREFLIGHT_MANIFEST')
             if selected_preflight:
                 from .hia_json_preflight_native import installed_preflight
                 installed_preflight(selected_preflight)

@@ -144,6 +144,8 @@ def _bounded_json_string_size(value: str, maximum: int, ensure_ascii: bool) -> i
 def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True, float_renderer=None):
     """Use an explicitly selected source-bound HIA wire owner when configured."""
     selected = os.environ.get('HEPTA_HIA_JSON_WIRE_MANIFEST')
+    if selected == '':
+        raise ValueError('JSON wire selector must not be empty')
     if selected:
         from .hia_json_wire_native import installed_json_wire
         return installed_json_wire(selected).encode_ordinary(

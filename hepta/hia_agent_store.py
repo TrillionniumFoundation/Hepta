@@ -153,6 +153,8 @@ def _reference_digest(value):
 
 def _native_agent_identity():
     selected = os.environ.get("HEPTA_HIA_AGENT_IDENTITY_MANIFEST")
+    if selected == '':
+        raise ValueError('Agent identity selector must not be empty')
     if not selected:
         return None
     from .hia_agent_identity_native import installed_agent_identity
@@ -287,17 +289,18 @@ class AgentStore:
             if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o022:
                 reject("E_HIA_STORE", "journal must be an owned private ordinary file")
         self.db = sqlite3.connect(database, isolation_level=None, timeout=10, check_same_thread=False)
-        os.chmod(database, 0o600)
-        self.database = database
-        database_info = database.lstat()
-        if not stat.S_ISREG(database_info.st_mode):
-            reject('E_HIA_STORE', 'journal must remain an ordinary file after opening')
-        self.database_identity = (database_info.st_dev, database_info.st_ino)
-        self.db.row_factory = sqlite3.Row
-        self.db.execute("PRAGMA journal_mode=WAL")
-        self.db.execute("PRAGMA synchronous=FULL")
-        self.lock = threading.RLock()
-        self.db.executescript("""
+        try:
+            os.chmod(database, 0o600)
+            self.database = database
+            database_info = database.lstat()
+            if not stat.S_ISREG(database_info.st_mode):
+                reject('E_HIA_STORE', 'journal must remain an ordinary file after opening')
+            self.database_identity = (database_info.st_dev, database_info.st_ino)
+            self.db.row_factory = sqlite3.Row
+            self.db.execute("PRAGMA journal_mode=WAL")
+            self.db.execute("PRAGMA synchronous=FULL")
+            self.lock = threading.RLock()
+            self.db.executescript("""
             CREATE TABLE IF NOT EXISTS artifacts (
                 id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, uri TEXT UNIQUE NOT NULL,
                 kind TEXT NOT NULL, metadata TEXT NOT NULL, content_key TEXT UNIQUE NOT NULL
@@ -339,9 +342,8 @@ class AgentStore:
                 context_id TEXT PRIMARY KEY, used_native_ns TEXT NOT NULL,
                 owner TEXT
             );
-        """)
-        self.database_sidecars = None
-        try:
+            """)
+            self.database_sidecars = None
             if budget_admission is not None:
                 # Bind the official WAL namespace before the budget adapter opens
                 # its dedicated connection to this same durable journal.

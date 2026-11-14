@@ -30,6 +30,8 @@ def rename_capabilities(capabilities, remap):
     """Run the explicitly selected native edge policy, with no selected fallback."""
     import os
     path = os.environ.get('HEPTA_HIA_CAPABILITY_RENAMING_MANIFEST')
+    if path == '':
+        raise ValueError('capability renaming selector must not be empty')
     if path:
         from .hia_capability_renaming_native import installed_capability_renaming
         return installed_capability_renaming(path).rename(capabilities, remap)

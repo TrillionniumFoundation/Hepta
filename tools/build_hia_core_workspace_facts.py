@@ -10,6 +10,7 @@ if __package__ in {None, ''}:
 
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_kernel)
+from tools.build_hia_source_build import _check_pack_output
 from tools.generate_hia_core_workspace_facts_cli import MAGIC
 from tools.qualify_hia_selfhost import compile_stage,invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -39,11 +40,10 @@ def build(output,compiler,cold_report):
         raise ValueError('workspace JSON kernel image changed')
     packer,compiled=compile_stage(output,'workspace-json-packer',compiler,inputs[PACKER])
     packer_raw=packer.read_bytes()
-    packed,arena=invoke(output,'workspace-json-pack',packer,struct.pack('<QQ',MAGIC,len(application))+application)
-    size=packed['core_u32']
-    if not 0<size<=1<<20:
-        raise ValueError('workspace JSON native packer refused image')
-    executable=arena[:size];inspection=inspect_executable(executable)
+    frame=struct.pack('<QQ',MAGIC,len(application))+application
+    packed,arena=invoke(output,'workspace-json-pack',packer,frame)
+    executable=_check_pack_output(packed,arena,artifact=packer_raw,source=frame)
+    inspection=inspect_executable(executable)
     if (any(p.read_bytes()!=b for p,b in inputs.items()) or image.read_bytes()!=application
             or packer.read_bytes()!=packer_raw or manifest.read_bytes()!=manifest_raw
             or current_sources()!=admitted_sources):
