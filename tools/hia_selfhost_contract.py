@@ -19,7 +19,6 @@ SOURCE_FILES = (
     'tests/hia_store_native_delivery_cases.py',
     'tests/fixtures/store_native_delivery_original_c019.json',
     'docs/HIA_STORE_NATIVE_DELIVERY.md',
-    'hepta/hia_native_delivery.py',
     'tests/test_hia_native_delivery.py',
     'tests/hia_native_delivery_cases.py',
     'tests/fixtures/native_delivery_original_9c46166.json',
