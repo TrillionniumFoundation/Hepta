@@ -1,0 +1,49 @@
+{
+  "files": {
+    "finalize-git-readback-r3.stderr.log": {
+      "bytes": 0,
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    "finalize-git-readback-r3.stdout.log": {
+      "bytes": 304,
+      "git_blob": "33ed836949df8ba953c6fe157b27f408da4758ae",
+      "mode": "100644",
+      "sha256": "f12f519e54c50194ea2410f57510b53acce7a7d347ac44af1f2cd6ecc6540814",
+      "text": "{\"status\": \"ALL22_BLOBS_ACK_FULL_GET_AND59_ORIGINALS_RESTORED\", \"restored_files\": 59, \"restored_directories\": 13, \"logical_bytes\": 5061146, \"readback\": {\"bytes\": 19368, \"sha256\": \"513414b7e8c0b002c3fc526dd3ff7e3dec88f65db3d72bcb529302754df7657a\", \"git_blob\": \"e4812f3852df8630458c738a3945e909bb27c37e\"}}\n"
+    },
+    "finalize_git_readback_r3.py": {
+      "bytes": 4584,
+      "git_blob": "c03c8e6fbd41f31640e59c5650cbdf1410ef6c63",
+      "mode": "100644",
+      "sha256": "fb7244baf69ed39915ece7f93dc953af0e69b9905b0f481722473a0bf71ca682",
+      "text": "\"\"\"Restore Source22 evidence only from the actual saved full Git GET replies.\"\"\"\nfrom pathlib import Path\nimport hashlib\nimport json\nimport os\nimport stat\nimport subprocess\nimport sys\n\nHERE = Path(__file__).resolve().parent\nROOT = HERE / 'handoff-safe-capture-r3'\n\n\ndef pin(raw):\n    return {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest(),\n            'git_blob': hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\\0' + raw).hexdigest()}\n\n\ndef wire(value):\n    return (json.dumps(value, indent=2, sort_keys=True) + '\\n').encode()\n\n\ndef main():\n    leaves = json.loads((ROOT / 'PUBLISH-PLAN.json').read_bytes())['entries']\n    assert len(leaves) == 22\n    mounted = ROOT / 'git-restored-leaves'; mounted.mkdir()\n    receipts = []\n    for row in leaves:\n        name = row['name']\n        receipt_path = ROOT / 'publication' / (name + '-receipt.json')\n        receipt = json.loads(receipt_path.read_bytes())\n        assert receipt['status'] == 'ACK_FULL_GET_MATCH'\n        assert all(receipt[key] == row[key] for key in ('bytes', 'sha256', 'git_blob'))\n        post_path = ROOT / 'publication' / (name + '-blob.response.json')\n        post = json.loads(post_path.read_bytes())\n        assert post.get('isError') is not True\n        body = post['structuredContent']\n        if 'content' in body and isinstance(body['content'], str):\n            body = json.loads(body['content'])\n        assert body['sha'] == row['git_blob']\n        get_path = ROOT / 'publication' / (name + '-readback.response.json')\n        reply = json.loads(get_path.read_bytes())\n        assert reply.get('isError') is not True\n        data = reply['structuredContent']['content'].encode('utf-8')\n        assert pin(data) == {key: row[key] for key in pin(data)}\n        assert data == (ROOT / name).read_bytes()\n        with (mounted / name).open('xb') as stream:\n            stream.write(data)\n        receipts.append({'name': name, **pin(data), 'ack_response': pin(post_path.read_bytes()),\n                         'full_get_response': pin(get_path.read_bytes()), 'receipt': pin(receipt_path.read_bytes())})\n    output = ROOT / 'git-restored-originals'\n    command = [sys.executable, '-B', str(mounted / 'restore.py'), str(mounted), str(output)]\n    with (ROOT / 'RESTORE-REQUEST.json').open('xb') as stream:\n        stream.write(wire({'command': command, 'purpose': 'Git-response full-byte/mode evidence recovery only'}))\n    with (ROOT / 'RESTORE.stdout.log').open('xb') as out, (ROOT / 'RESTORE.stderr.log').open('xb') as err:\n        result = subprocess.run(command, stdout=out, stderr=err, check=False)\n    assert result.returncode == 0\n    index = json.loads((mounted / 'RAW-INDEX.json').read_bytes())\n    actual, dirs = {}, {}\n    for path in sorted(output.rglob('*')):\n        name = path.relative_to(output).as_posix(); observed = path.lstat()\n        if stat.S_ISDIR(observed.st_mode):\n            dirs[name] = stat.S_IMODE(observed.st_mode)\n            continue\n        assert stat.S_ISREG(observed.st_mode)\n        data = path.read_bytes()\n        actual[name] = {**pin(data), 'mode': f'{observed.st_mode:06o}'}\n        original = HERE / name\n        assert data == original.read_bytes()\n        assert stat.S_IMODE(observed.st_mode) == stat.S_IMODE(original.lstat().st_mode)\n    assert actual == index['files'] and dirs == index['directories']\n    report = {'schema': 'hepta.hia.roundtrip-safe-capture-git-readback.v1',\n        'status': 'ALL22_BLOBS_ACK_FULL_GET_AND59_ORIGINALS_RESTORED',\n        'leaves': receipts, 'archive': index['archive'], 'restored_files': len(actual),\n        'restored_directories': len(dirs), 'restored_logical_bytes': index['logical_bytes'],\n        'restored_all_bytes_modes_SHA256_Git_equal_actual_originals': True,\n        'restore_stdout': pin((ROOT / 'RESTORE.stdout.log').read_bytes()),\n        'restore_stderr': pin((ROOT / 'RESTORE.stderr.log').read_bytes()),\n        'source_tree': 'e4630402ab3b5a83daef59ae74f4fd0a9cecd5ec', 'Source_tests': 22,\n        'native_VM_portable_positivecold_executed': False, 'whole_native': False,\n        'Git_product_source_base_self_contained': False,\n        'transport_errors': [], 'inflight_after_readback': 0}\n    with (ROOT / 'GIT-READBACK.json').open('xb') as stream:\n        stream.write(wire(report))\n    print(json.dumps({'status': report['status'], 'restored_files': len(actual),\n                      'restored_directories': len(dirs), 'logical_bytes': index['logical_bytes'],\n                      'readback': pin((ROOT / 'GIT-READBACK.json').read_bytes())}))\n\n\nif __name__ == '__main__':\n    main()\n"
+    },
+    "handoff-safe-capture-r3/RESTORE-REQUEST.json": {
+      "bytes": 524,
+      "git_blob": "1eff7c3d519f9f253d07a68a9b15d1eadc827663",
+      "mode": "100644",
+      "sha256": "a2e64ebdd726a3d93c3b20ae66b0f104a43b2d5cd654634ccc221a62d478052f",
+      "text": "{\n  \"command\": [\n    \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3\",\n    \"-B\",\n    \"/workspace/scratch/dda74a4fae35/v114-roundtrip-portable-r1/handoff-safe-capture-r3/git-restored-leaves/restore.py\",\n    \"/workspace/scratch/dda74a4fae35/v114-roundtrip-portable-r1/handoff-safe-capture-r3/git-restored-leaves\",\n    \"/workspace/scratch/dda74a4fae35/v114-roundtrip-portable-r1/handoff-safe-capture-r3/git-restored-originals\"\n  ],\n  \"purpose\": \"Git-response full-byte/mode evidence recovery only\"\n}\n"
+    },
+    "handoff-safe-capture-r3/RESTORE.stderr.log": {
+      "bytes": 0,
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": "100644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    "handoff-safe-capture-r3/RESTORE.stdout.log": {
+      "bytes": 132,
+      "git_blob": "389b2a6fceea1840af99d41509de089bca61a15f",
+      "mode": "100644",
+      "sha256": "8ea41437f49d845f4b6bf6132faf44b9775224ee943ceee73396368797aa66c5",
+      "text": "{\"status\": \"FULL_EVIDENCE_RESTORED\", \"files\": 59, \"directories\": 13, \"logical_bytes\": 5061146, \"source_base_self_contained\": false}\n"
+    }
+  },
+  "product_execution": false,
+  "schema": "hepta.hia.roundtrip-git-restoration-controls.v1",
+  "status": "ACTUAL_FULL_RESTORE_PASS"
+}

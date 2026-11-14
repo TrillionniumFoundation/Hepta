@@ -1,0 +1,458 @@
+{
+  "observations": [
+    {
+      "label": "r2-parent-counterexample-r1",
+      "outer": {
+        "owner": {
+          "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+          "cleanup": {
+            "attempted": true,
+            "complete": true,
+            "deadline_exceeded": false,
+            "elapsed_ns": 852186,
+            "errors": [],
+            "leader_reaped": true,
+            "observed_echild": true,
+            "remaining_direct_children": [],
+            "started_ns": 74465296411984
+          },
+          "cleanup_seconds": 3,
+          "direct_and_adopted_children": [
+            {
+              "pgid": 5,
+              "pid": 6,
+              "ppid": 5,
+              "sid": 5,
+              "start_ticks": 7446355
+            }
+          ],
+          "event_overflow": false,
+          "events": [
+            {
+              "kind": "qualification_started",
+              "monotonic_ns": 74463552239428,
+              "pid": 6
+            },
+            {
+              "kind": "owned_child_observed",
+              "monotonic_ns": 74463552522509,
+              "pgid": 5,
+              "pid": 6,
+              "ppid": 5,
+              "sid": 5,
+              "start_ticks": 7446355
+            },
+            {
+              "kind": "qualification_exit_observed",
+              "monotonic_ns": 74465296405615,
+              "pid": 6,
+              "si_code": 1,
+              "si_status": 0
+            },
+            {
+              "kind": "owned_child_reaped",
+              "monotonic_ns": 74465297032789,
+              "pid": 6,
+              "returncode": 0,
+              "start_ticks": 7446355
+            }
+          ],
+          "exit_observed_before_deadline": true,
+          "historical_descendant_inventory_complete": false,
+          "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+          "interrupted_signals": [],
+          "parent_pid": 2,
+          "platform": "linux",
+          "qualification_pid": 6,
+          "qualification_seconds": 180,
+          "qualification_started": true,
+          "receipt_sha256": "5d4a6a201c4407fef76afe302f1ef1e581745a0c2d82bc95c3bae513454830fd",
+          "request_sha256": "3c5585e4626146b85b97115851e1568184f4706ea5c142042b9c0e14eddbe5c9",
+          "returncode": 0,
+          "schema": "hepta.hia.selfhost-process-owner.v1",
+          "status": "OWNED_PROCESS_COMPLETED",
+          "subreaper_enabled": true,
+          "supervisor_pid": 5,
+          "supervisor_returncode": 0,
+          "timed_out": false
+        },
+        "source_files": 3162,
+        "source_unchanged": true
+      },
+      "report": {
+        "errors": [],
+        "failures": [
+          [
+            "new_parent_control_against_frozen_r2.OptionalProfileRaceSourceTests.test_optional_parent_symlink_refuses_before_creating_outside_directories",
+            "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v112-profile-resources-r3/source/tests/test_hia_optional_profile_races.py\", line 254, in test_optional_parent_symlink_refuses_before_creating_outside_directories\n    self.assertEqual(observed, [])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['hia_bootstrap'] != []\n\nFirst list contains 1 additional elements.\nFirst extra element 0:\n'hia_bootstrap'\n\n- ['hia_bootstrap']\n+ []\n"
+          ]
+        ],
+        "fixture_sha256": "6c717732a86795305f4b9491ae86416b95aa07d354550d7879b3ed8c8716c5e0",
+        "old_default_210_behavior": "Actual default copies complete before injection; no sandbox claim for the old default branch.",
+        "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+        "scope": "NEW_COUNTEREXAMPLE_AGAINST_FROZEN_R2_NOT_A_RECLASSIFICATION_OF_OLD28",
+        "status": "ORIGINAL_R2_PARENT_DIRECTORY_SIDE_EFFECT_OBSERVED",
+        "tests_run": 1
+      },
+      "report_pin": {
+        "bytes": 1141,
+        "git_blob": "28680fe9321c39e7bee5352c8eecc319ccdf9055",
+        "path": "/workspace/scratch/dda74a4fae35/v112-profile-resources-r3/evidence/r2-parent-counterexample-r1/REPORT.json",
+        "sha256": "ec45f3bb65167c2b6c3af1d1bff14b6d2bed852655784b5876ed623591dd169c"
+      }
+    },
+    {
+      "label": "parent-r1",
+      "outer": {
+        "owner": {
+          "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+          "cleanup": {
+            "attempted": true,
+            "complete": true,
+            "deadline_exceeded": false,
+            "elapsed_ns": 1113348,
+            "errors": [],
+            "leader_reaped": true,
+            "observed_echild": true,
+            "remaining_direct_children": [],
+            "started_ns": 74514036326163
+          },
+          "cleanup_seconds": 3,
+          "direct_and_adopted_children": [
+            {
+              "pgid": 5,
+              "pid": 6,
+              "ppid": 5,
+              "sid": 5,
+              "start_ticks": 7451251
+            }
+          ],
+          "event_overflow": false,
+          "events": [
+            {
+              "kind": "qualification_started",
+              "monotonic_ns": 74512515866156,
+              "pid": 6
+            },
+            {
+              "kind": "owned_child_observed",
+              "monotonic_ns": 74512515964401,
+              "pgid": 5,
+              "pid": 6,
+              "ppid": 5,
+              "sid": 5,
+              "start_ticks": 7451251
+            },
+            {
+              "kind": "qualification_exit_observed",
+              "monotonic_ns": 74514036319688,
+              "pid": 6,
+              "si_code": 1,
+              "si_status": 0
+            },
+            {
+              "kind": "owned_child_reaped",
+              "monotonic_ns": 74514037175950,
+              "pid": 6,
+              "returncode": 0,
+              "start_ticks": 7451251
+            }
+          ],
+          "exit_observed_before_deadline": true,
+          "historical_descendant_inventory_complete": false,
+          "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+          "interrupted_signals": [],
+          "parent_pid": 2,
+          "platform": "linux",
+          "qualification_pid": 6,
+          "qualification_seconds": 180,
+          "qualification_started": true,
+          "receipt_sha256": "690abf5f16010e00d9e6afebffed176f50f75b07707afa1f37b93621168cfbb8",
+          "request_sha256": "9781d1ee5a1ffa93de1fd316e0544619caf7fc0cb4fb224e8d4c2ae6a08ffca2",
+          "returncode": 0,
+          "schema": "hepta.hia.selfhost-process-owner.v1",
+          "status": "OWNED_PROCESS_COMPLETED",
+          "subreaper_enabled": true,
+          "supervisor_pid": 5,
+          "supervisor_returncode": 0,
+          "timed_out": false
+        },
+        "product_source_files": 3162,
+        "source_unchanged": true,
+        "stage": "parent",
+        "status": "PASS"
+      },
+      "report": {
+        "cold_authority": false,
+        "errors": [],
+        "executable": "/workspace/scratch/dda74a4fae35/v96-union-r13/local-runtime-r1/venv/bin/python3.14",
+        "expected_failures": [],
+        "expected_ids": [
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_optional_parent_symlink_refuses_before_creating_outside_directories"
+        ],
+        "failures": [],
+        "loaded": 1,
+        "loaded_ids": [
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_optional_parent_symlink_refuses_before_creating_outside_directories"
+        ],
+        "original43_byte_streams_changed": false,
+        "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+        "schema": "hepta.optional-profile-development-observations.v1",
+        "scope": "DEVELOPMENT_ONLY_NOT_MATCHING_CURRENT_SOURCE_COLD",
+        "skipped": [],
+        "stage": "parent",
+        "started_ids": [
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_optional_parent_symlink_refuses_before_creating_outside_directories"
+        ],
+        "status": "PASS",
+        "stopped_ids": [
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_optional_parent_symlink_refuses_before_creating_outside_directories"
+        ],
+        "tests_run": 1,
+        "unexpected_successes": [],
+        "wall_ns": 1052500077,
+        "whole_cli_native": false,
+        "whole_verify_native": false
+      },
+      "report_pin": {
+        "bytes": 1327,
+        "git_blob": "944e10ad2d1df5471a05cd577ac178cac71dbdc8",
+        "path": "/workspace/scratch/dda74a4fae35/v112-profile-resources-r3/evidence/parent-r1/REPORT.json",
+        "sha256": "711a32bcc6e78f7b10e487a110051175d35d3bea4b30d356fe10bec0ac3717a3"
+      }
+    },
+    {
+      "label": "source-r1",
+      "outer": {
+        "owner": {
+          "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+          "cleanup": {
+            "attempted": true,
+            "complete": true,
+            "deadline_exceeded": false,
+            "elapsed_ns": 1276078,
+            "errors": [],
+            "leader_reaped": true,
+            "observed_echild": true,
+            "remaining_direct_children": [],
+            "started_ns": 74557429181918
+          },
+          "cleanup_seconds": 3,
+          "direct_and_adopted_children": [
+            {
+              "pgid": 5,
+              "pid": 6,
+              "ppid": 5,
+              "sid": 5,
+              "start_ticks": 7452791
+            }
+          ],
+          "event_overflow": false,
+          "events": [
+            {
+              "kind": "qualification_started",
+              "monotonic_ns": 74527916259689,
+              "pid": 6
+            },
+            {
+              "kind": "owned_child_observed",
+              "monotonic_ns": 74527916318504,
+              "pgid": 5,
+              "pid": 6,
+              "ppid": 5,
+              "sid": 5,
+              "start_ticks": 7452791
+            },
+            {
+              "kind": "qualification_exit_observed",
+              "monotonic_ns": 74557429175381,
+              "pid": 6,
+              "si_code": 1,
+              "si_status": 0
+            },
+            {
+              "kind": "owned_child_reaped",
+              "monotonic_ns": 74557430195222,
+              "pid": 6,
+              "returncode": 0,
+              "start_ticks": 7452791
+            }
+          ],
+          "exit_observed_before_deadline": true,
+          "historical_descendant_inventory_complete": false,
+          "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+          "interrupted_signals": [],
+          "parent_pid": 2,
+          "platform": "linux",
+          "qualification_pid": 6,
+          "qualification_seconds": 180,
+          "qualification_started": true,
+          "receipt_sha256": "1ff3f53e3b5c05d361a1e7084d73684c97a4a0054d77d32f89490a07f54aa797",
+          "request_sha256": "42e610e71a8c5d2d8ab1a2581412da51fbc5710a0f59599f899ddf179661fc6b",
+          "returncode": 0,
+          "schema": "hepta.hia.selfhost-process-owner.v1",
+          "status": "OWNED_PROCESS_COMPLETED",
+          "subreaper_enabled": true,
+          "supervisor_pid": 5,
+          "supervisor_returncode": 0,
+          "timed_out": false
+        },
+        "product_source_files": 3162,
+        "source_unchanged": true,
+        "stage": "source",
+        "status": "PASS"
+      },
+      "report": {
+        "cold_authority": false,
+        "errors": [],
+        "executable": "/workspace/scratch/dda74a4fae35/v96-union-r13/local-runtime-r1/venv/bin/python3.14",
+        "expected_failures": [],
+        "expected_ids": [
+          "tests.test_hia_candidate_evidence.NativeInventoryBoundary.test_actual_current_worker_manifest_matches_native_asset_inventory",
+          "tests.test_hia_installed_fixture_resources.InstalledFixtureRoleInventoryTests.test_entry_assets_are_fresh_identity_inputs_and_missing_fails_before_backend",
+          "tests.test_hia_installed_fixture_resources.InstalledFixtureRoleInventoryTests.test_standalone_entry_role_is_exact_disjoint_and_preflight_bounded",
+          "tests.test_hia_linux_stdio_cold.LinuxStdioColdSourceTests.test_entry_resources_keep_all_four_predecessors_and_are_not_runtime_bridges",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_actual_child_stdout_is_bound_and_missing_or_extra_fields_reject",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_development_fixture_never_grants_current_cold_authority",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_every_owner_file_is_in_explicit_source_closure",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_invalid_flat_bundle_refuses_before_any_real_mapping",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_original43_exact_bytes_ids_and_all140_case_names_remain",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_report_generator_reproduces_exact_hia_and_mechanical_ports",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_report_image_stays_within_all_original_compiler_limits",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_report_is_one_real_native_resource_and_has_no_entry_group_alias",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_seven_complete_original_method_bodies_and_definition_are_retained",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_strict_result_admission_rejects_missing_exceptional_or_boolean_counts",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_unqualified_cold_rejects_before_output_and_compiler",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_bundle_resource_changes_and_root_symlinks_never_use_package_sources",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_bundle_source_origin_and_fixed_host_compatibility_are_independently_checked",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_default_twelve_roles_and_210_resources_are_independent_of_optional_profiles",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_every_optional_asset_is_fresh_and_missing_drift_and_symlinks_refuse",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_explicit_missing_origin_does_not_fall_back_and_paths_are_closed",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_installed_target_must_match_the_captured_pin_even_if_source_changes_to_match_it",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_packager_is_static_and_requires_an_exact_explicit_profile_selection",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_profile_registry_and_report_hosts_remain_in_current_source_closure",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_real_sdist_default_and_selected_wheels_install_exact_resource_origins",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_all_twelve_host_files_reject_fifo_replacement_before_open",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_installed_report_loader_rejects_fifo_on_second_source_open",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_optional_packager_uses_captured_source_and_does_not_follow_output_symlink",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_profile_capture_rejects_parent_directory_rebinding",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_optional_parent_symlink_refuses_before_creating_outside_directories"
+        ],
+        "failures": [],
+        "loaded": 29,
+        "loaded_ids": [
+          "tests.test_hia_candidate_evidence.NativeInventoryBoundary.test_actual_current_worker_manifest_matches_native_asset_inventory",
+          "tests.test_hia_installed_fixture_resources.InstalledFixtureRoleInventoryTests.test_entry_assets_are_fresh_identity_inputs_and_missing_fails_before_backend",
+          "tests.test_hia_installed_fixture_resources.InstalledFixtureRoleInventoryTests.test_standalone_entry_role_is_exact_disjoint_and_preflight_bounded",
+          "tests.test_hia_linux_stdio_cold.LinuxStdioColdSourceTests.test_entry_resources_keep_all_four_predecessors_and_are_not_runtime_bridges",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_actual_child_stdout_is_bound_and_missing_or_extra_fields_reject",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_development_fixture_never_grants_current_cold_authority",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_every_owner_file_is_in_explicit_source_closure",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_invalid_flat_bundle_refuses_before_any_real_mapping",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_original43_exact_bytes_ids_and_all140_case_names_remain",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_report_generator_reproduces_exact_hia_and_mechanical_ports",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_report_image_stays_within_all_original_compiler_limits",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_report_is_one_real_native_resource_and_has_no_entry_group_alias",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_seven_complete_original_method_bodies_and_definition_are_retained",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_strict_result_admission_rejects_missing_exceptional_or_boolean_counts",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_unqualified_cold_rejects_before_output_and_compiler",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_bundle_resource_changes_and_root_symlinks_never_use_package_sources",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_bundle_source_origin_and_fixed_host_compatibility_are_independently_checked",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_default_twelve_roles_and_210_resources_are_independent_of_optional_profiles",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_every_optional_asset_is_fresh_and_missing_drift_and_symlinks_refuse",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_explicit_missing_origin_does_not_fall_back_and_paths_are_closed",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_installed_target_must_match_the_captured_pin_even_if_source_changes_to_match_it",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_packager_is_static_and_requires_an_exact_explicit_profile_selection",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_profile_registry_and_report_hosts_remain_in_current_source_closure",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_real_sdist_default_and_selected_wheels_install_exact_resource_origins",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_all_twelve_host_files_reject_fifo_replacement_before_open",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_installed_report_loader_rejects_fifo_on_second_source_open",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_optional_packager_uses_captured_source_and_does_not_follow_output_symlink",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_profile_capture_rejects_parent_directory_rebinding",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_optional_parent_symlink_refuses_before_creating_outside_directories"
+        ],
+        "original43_byte_streams_changed": false,
+        "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+        "schema": "hepta.optional-profile-development-observations.v1",
+        "scope": "DEVELOPMENT_ONLY_NOT_MATCHING_CURRENT_SOURCE_COLD",
+        "skipped": [],
+        "stage": "source",
+        "started_ids": [
+          "tests.test_hia_candidate_evidence.NativeInventoryBoundary.test_actual_current_worker_manifest_matches_native_asset_inventory",
+          "tests.test_hia_installed_fixture_resources.InstalledFixtureRoleInventoryTests.test_entry_assets_are_fresh_identity_inputs_and_missing_fails_before_backend",
+          "tests.test_hia_installed_fixture_resources.InstalledFixtureRoleInventoryTests.test_standalone_entry_role_is_exact_disjoint_and_preflight_bounded",
+          "tests.test_hia_linux_stdio_cold.LinuxStdioColdSourceTests.test_entry_resources_keep_all_four_predecessors_and_are_not_runtime_bridges",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_actual_child_stdout_is_bound_and_missing_or_extra_fields_reject",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_development_fixture_never_grants_current_cold_authority",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_every_owner_file_is_in_explicit_source_closure",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_invalid_flat_bundle_refuses_before_any_real_mapping",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_original43_exact_bytes_ids_and_all140_case_names_remain",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_report_generator_reproduces_exact_hia_and_mechanical_ports",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_report_image_stays_within_all_original_compiler_limits",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_report_is_one_real_native_resource_and_has_no_entry_group_alias",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_seven_complete_original_method_bodies_and_definition_are_retained",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_strict_result_admission_rejects_missing_exceptional_or_boolean_counts",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_unqualified_cold_rejects_before_output_and_compiler",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_bundle_resource_changes_and_root_symlinks_never_use_package_sources",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_bundle_source_origin_and_fixed_host_compatibility_are_independently_checked",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_default_twelve_roles_and_210_resources_are_independent_of_optional_profiles",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_every_optional_asset_is_fresh_and_missing_drift_and_symlinks_refuse",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_explicit_missing_origin_does_not_fall_back_and_paths_are_closed",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_installed_target_must_match_the_captured_pin_even_if_source_changes_to_match_it",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_packager_is_static_and_requires_an_exact_explicit_profile_selection",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_profile_registry_and_report_hosts_remain_in_current_source_closure",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_real_sdist_default_and_selected_wheels_install_exact_resource_origins",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_all_twelve_host_files_reject_fifo_replacement_before_open",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_installed_report_loader_rejects_fifo_on_second_source_open",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_optional_packager_uses_captured_source_and_does_not_follow_output_symlink",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_profile_capture_rejects_parent_directory_rebinding",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_optional_parent_symlink_refuses_before_creating_outside_directories"
+        ],
+        "status": "PASS",
+        "stopped_ids": [
+          "tests.test_hia_candidate_evidence.NativeInventoryBoundary.test_actual_current_worker_manifest_matches_native_asset_inventory",
+          "tests.test_hia_installed_fixture_resources.InstalledFixtureRoleInventoryTests.test_entry_assets_are_fresh_identity_inputs_and_missing_fails_before_backend",
+          "tests.test_hia_installed_fixture_resources.InstalledFixtureRoleInventoryTests.test_standalone_entry_role_is_exact_disjoint_and_preflight_bounded",
+          "tests.test_hia_linux_stdio_cold.LinuxStdioColdSourceTests.test_entry_resources_keep_all_four_predecessors_and_are_not_runtime_bridges",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_actual_child_stdout_is_bound_and_missing_or_extra_fields_reject",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_development_fixture_never_grants_current_cold_authority",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_every_owner_file_is_in_explicit_source_closure",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_invalid_flat_bundle_refuses_before_any_real_mapping",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_original43_exact_bytes_ids_and_all140_case_names_remain",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_report_generator_reproduces_exact_hia_and_mechanical_ports",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_report_image_stays_within_all_original_compiler_limits",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_report_is_one_real_native_resource_and_has_no_entry_group_alias",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_seven_complete_original_method_bodies_and_definition_are_retained",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_strict_result_admission_rejects_missing_exceptional_or_boolean_counts",
+          "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests.test_unqualified_cold_rejects_before_output_and_compiler",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_bundle_resource_changes_and_root_symlinks_never_use_package_sources",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_bundle_source_origin_and_fixed_host_compatibility_are_independently_checked",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_default_twelve_roles_and_210_resources_are_independent_of_optional_profiles",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_every_optional_asset_is_fresh_and_missing_drift_and_symlinks_refuse",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_explicit_missing_origin_does_not_fall_back_and_paths_are_closed",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_installed_target_must_match_the_captured_pin_even_if_source_changes_to_match_it",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_packager_is_static_and_requires_an_exact_explicit_profile_selection",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_profile_registry_and_report_hosts_remain_in_current_source_closure",
+          "tests.test_hia_optional_profiles.OptionalProfileSourceTests.test_real_sdist_default_and_selected_wheels_install_exact_resource_origins",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_all_twelve_host_files_reject_fifo_replacement_before_open",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_installed_report_loader_rejects_fifo_on_second_source_open",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_optional_packager_uses_captured_source_and_does_not_follow_output_symlink",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_profile_capture_rejects_parent_directory_rebinding",
+          "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests.test_optional_parent_symlink_refuses_before_creating_outside_directories"
+        ],
+        "tests_run": 29,
+        "unexpected_successes": [],
+        "wall_ns": 28979823450,
+        "whole_cli_native": false,
+        "whole_verify_native": false
+      },
+      "report_pin": {
+        "bytes": 17298,
+        "git_blob": "b581fe4d2fe1e7dd068dff8ba86517256df547de",
+        "path": "/workspace/scratch/dda74a4fae35/v112-profile-resources-r3/evidence/source-r1/REPORT.json",
+        "sha256": "9232533e26b992623bb77f5156f6840981873404e214e5792a9767879124102e"
+      }
+    }
+  ],
+  "old_r2_results_unchanged": true
+}

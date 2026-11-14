@@ -1,0 +1,350 @@
+{
+  "agreed_successor_api": {
+    "captures": "dict of registered full relative path to exact bytes captured by held-dirfd nofollow/nonblock bounded read",
+    "identity": "same shape as fresh_profile_identity",
+    "provider": "Surface-owned hepta.hia_optional_profiles",
+    "signature": "fresh_profile_capture(profile, *, resource_root=None) -> (identity, captures)",
+    "state_at_review": "AUTHORING_ONLY_NOT_YET_FROZEN_OR_TESTED"
+  },
+  "current_qualification": {
+    "Native": false,
+    "Source16_R1_composition": "PASS",
+    "VM": false,
+    "portable": false,
+    "positive_cold": false,
+    "whole_native": false
+  },
+  "executed_source_tree": "e991840b8cf00676e754585d3e6b383b8c3da410",
+  "finding": "New profile consumers perform ordinary path reads or copies after profile fresh admission. A pathname replaced by FIFO/symlink or different content before the reopen is not protected by the earlier check; the final guard cannot prevent a blocking read that occurs first. No acceptance exploit or FIFO race was executed in this review.",
+  "full_native_base_readback_scope": "Build artifacts and ordinary cold-chain reads outside the five optional assets retain their existing protocol; this report does not claim those paths were redesigned or race-qualified.",
+  "minimum_successor": [
+    "Use the exact current source ROOT as resource_root for cold source captures; preserve the exact five-name literal domain and required current-cold source identity.",
+    "Have profile_identity derive identity from the same safe capture; do not re-open assets only to compare them with their own path.",
+    "Pass the captured compiler/controller/representation/semantic/packer bytes to build and parent readback. Do not recover them through a second ordinary Path read.",
+    "Use the same captured asset bytes for actual VM case execution, matching native build inputs, permanent parent evidence checks, installed resource inspection and optional source copying.",
+    "The portable sdist contains all eight explicit optional assets; capture that optional union through its respective explicit profiles, leaving the original worker210 role and old resource assertions unchanged.",
+    "Preserve every original terminal full fresh guard and all authority checks. This is same-admission byte consumption, not persistent source-content memoization or removal of public admission.",
+    "Create a separate R3 source successor only among the thirteen new files; retain the original sixteen IDs/assertions and append real controls that make post-capture ordinary path reads fail."
+  ],
+  "mode": "READ_ONLY_NO_RACE_EXPLOIT_NO_PRODUCT_EXECUTION",
+  "not_in_this_change": [
+    "ordinary B3/old cold-chain implementation",
+    "HIA source or image bytes",
+    "original130/7/2 input/order/assertion/oracle",
+    "original20s/1MiB/10M/180+3 budgets",
+    "default worker210 resources"
+  ],
+  "schema": "hepta.hia.roundtrip-safe-capture-static-review.v1",
+  "scope": [
+    {
+      "bytes": 10287,
+      "functions": [
+        {
+          "ending_line": 133,
+          "line": 119,
+          "name": "profile_identity",
+          "relevant_path_operations": [
+            {
+              "expression": "path.read_bytes()",
+              "line": 130
+            },
+            {
+              "expression": "(ROOT / name).read_bytes()",
+              "line": 130
+            }
+          ]
+        }
+      ],
+      "git_blob": "774c31671bfad404ffee538c9b8d6bd387fa7afa",
+      "path": "tools/hia_linux_file_roundtrip_cold.py",
+      "sha256": "db7cf7a811761a75f33947d215956bb6c41272f9a6d263b3ec5f997813cac668"
+    },
+    {
+      "bytes": 18133,
+      "functions": [
+        {
+          "ending_line": 123,
+          "line": 94,
+          "name": "build_toolchain",
+          "relevant_path_operations": [
+            {
+              "expression": "(ROOT / COMPILER_SOURCE).read_bytes()",
+              "line": 96
+            },
+            {
+              "expression": "(ROOT / ORDINARY_SOURCE).read_bytes()",
+              "line": 97
+            }
+          ]
+        },
+        {
+          "ending_line": 151,
+          "line": 126,
+          "name": "admit_toolchain",
+          "relevant_path_operations": [
+            {
+              "expression": "path.read_bytes()",
+              "line": 127
+            },
+            {
+              "expression": "(ROOT / COMPILER_SOURCE).read_bytes()",
+              "line": 131
+            },
+            {
+              "expression": "(ROOT / ORDINARY_SOURCE).read_bytes()",
+              "line": 131
+            },
+            {
+              "expression": "path.read_bytes()",
+              "line": 150
+            }
+          ]
+        },
+        {
+          "ending_line": 160,
+          "line": 154,
+          "name": "_payload_sources",
+          "relevant_path_operations": [
+            {
+              "expression": "(ROOT / CONTROLLER_SOURCE).read_bytes()",
+              "line": 155
+            },
+            {
+              "expression": "(ROOT / name).read_bytes()",
+              "line": 158
+            }
+          ]
+        },
+        {
+          "ending_line": 192,
+          "line": 163,
+          "name": "build_program",
+          "relevant_path_operations": [
+            {
+              "expression": "(ROOT / PACKER_SOURCE).read_bytes()",
+              "line": 175
+            }
+          ]
+        },
+        {
+          "ending_line": 218,
+          "line": 195,
+          "name": "admit_program",
+          "relevant_path_operations": [
+            {
+              "expression": "path.read_bytes()",
+              "line": 196
+            },
+            {
+              "expression": "(ROOT / PACKER_SOURCE).read_bytes()",
+              "line": 207
+            },
+            {
+              "expression": "path.read_bytes()",
+              "line": 217
+            }
+          ]
+        },
+        {
+          "ending_line": 310,
+          "line": 278,
+          "name": "build_portable_bundle",
+          "relevant_path_operations": [
+            {
+              "expression": "(ROOT / name).read_bytes()",
+              "line": 293
+            }
+          ]
+        }
+      ],
+      "git_blob": "6018a08e7151a4e520a9c28cf75e6033095243a0",
+      "path": "tools/build_hia_linux_file_roundtrip_cold.py",
+      "sha256": "ccf8cfe2f3f95ae069c6be6799b18bcb02eb60615194a70e84546923437ac30c"
+    },
+    {
+      "bytes": 19226,
+      "functions": [
+        {
+          "ending_line": 218,
+          "line": 161,
+          "name": "pipeline",
+          "relevant_path_operations": [
+            {
+              "expression": "(ROOT / 'examples/hia_bootstrap/native_file_roundtrip.hepta').read_bytes()",
+              "line": 164
+            },
+            {
+              "expression": "(ROOT / name).read_bytes()",
+              "line": 165
+            },
+            {
+              "expression": "path.read_bytes()",
+              "line": 171
+            }
+          ]
+        },
+        {
+          "ending_line": 278,
+          "line": 221,
+          "name": "tail_faults",
+          "relevant_path_operations": [
+            {
+              "expression": "(ROOT / name).read_bytes()",
+              "line": 228
+            },
+            {
+              "expression": "path.read_bytes()",
+              "line": 238
+            }
+          ]
+        }
+      ],
+      "git_blob": "5e49eb96705c000022ca11a18255176359f15271",
+      "path": "tools/hia_linux_file_roundtrip_readback.py",
+      "sha256": "ad4a485595a41387274954b5777f5415765210d89e6f687c2e453c96fd75646b"
+    },
+    {
+      "bytes": 23110,
+      "functions": [
+        {
+          "ending_line": 74,
+          "line": 45,
+          "name": "retain_authority_inputs",
+          "relevant_path_operations": [
+            {
+              "expression": "(ROOT / relative).read_bytes()",
+              "line": 58
+            }
+          ]
+        }
+      ],
+      "git_blob": "97d856671fb87c2f1aa6d626b08b3a63d66d16b2",
+      "path": "tools/qualify_hia_linux_file_roundtrip.py",
+      "sha256": "0a840e4192c9cc6ac06e084589e3caae877546db35143e507449f943e5969a21"
+    },
+    {
+      "bytes": 21178,
+      "functions": [
+        {
+          "ending_line": 197,
+          "line": 113,
+          "name": "pipeline_case",
+          "relevant_path_operations": [
+            {
+              "expression": "(SOURCE / 'examples/hia_bootstrap/native_file_roundtrip.hepta').read_bytes()",
+              "line": 122
+            },
+            {
+              "expression": "(SOURCE / name).read_bytes()",
+              "line": 123
+            }
+          ]
+        },
+        {
+          "ending_line": 279,
+          "line": 200,
+          "name": "tail_fault_case",
+          "relevant_path_operations": [
+            {
+              "expression": "(SOURCE / name).read_bytes()",
+              "line": 214
+            }
+          ]
+        }
+      ],
+      "git_blob": "cb8f2589054dc3f5417d72d1e88fd3169edcb062",
+      "path": "tests/hia_linux_file_roundtrip_cases.py",
+      "sha256": "1a861c10d445777586bfb8d648cc48d6c5454d893419d0fe2536a7db063f1953"
+    },
+    {
+      "bytes": 22450,
+      "functions": [
+        {
+          "ending_line": 197,
+          "line": 56,
+          "name": "run",
+          "relevant_path_operations": [
+            {
+              "expression": "(ROOT / name).read_bytes()",
+              "line": 103
+            },
+            {
+              "expression": "shutil.copyfile(ROOT / name, target)",
+              "line": 109
+            },
+            {
+              "expression": "path.read_bytes()",
+              "line": 156
+            },
+            {
+              "expression": "(ROOT / name).read_bytes()",
+              "line": 185
+            },
+            {
+              "expression": "path.read_bytes()",
+              "line": 152
+            },
+            {
+              "expression": "(ROOT / name).read_bytes()",
+              "line": 118
+            }
+          ]
+        },
+        {
+          "ending_line": 326,
+          "line": 200,
+          "name": "verify",
+          "relevant_path_operations": [
+            {
+              "expression": "(ROOT / name).read_bytes()",
+              "line": 224
+            },
+            {
+              "expression": "(folder / 'RESOURCE-READBACK.json').read_bytes()",
+              "line": 306
+            },
+            {
+              "expression": "(ROOT / name).read_bytes()",
+              "line": 245
+            },
+            {
+              "expression": "(folder / 'bundle/SOURCE-BUILD.json').read_bytes()",
+              "line": 249
+            },
+            {
+              "expression": "path.read_bytes()",
+              "line": 315
+            },
+            {
+              "expression": "(ROOT / name).read_bytes()",
+              "line": 232
+            }
+          ]
+        }
+      ],
+      "git_blob": "5bb569b8931ecd3de82ae9b1421bab773af3cd55",
+      "path": "tests/hia_linux_file_roundtrip_portable.py",
+      "sha256": "ae632f889f5dd08449018a14a2d071aaeb4afd081de848f1f49d382dba79b84f"
+    },
+    {
+      "bytes": 2596,
+      "functions": [
+        {
+          "ending_line": 49,
+          "line": 14,
+          "name": "main",
+          "relevant_path_operations": [
+            {
+              "expression": "path.read_bytes()",
+              "line": 32
+            }
+          ]
+        }
+      ],
+      "git_blob": "0a577ecfb6d2d43eef514532ef6126e061e0e770",
+      "path": "tests/hia_linux_file_roundtrip_installed.py",
+      "sha256": "6b4afecebade4cc0e91fb398533563543add86656f73b41d8e3ae7858a06987a"
+    }
+  ],
+  "status": "STATIC_BLOCKER_CONFIRMED_SUCCESSOR_REQUIRED"
+}
