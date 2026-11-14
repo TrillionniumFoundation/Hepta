@@ -69,6 +69,15 @@ refusal order. Native calls hold the GIL, and buffer exports are released in
 36-caller gate poisons reference bodies and keeps the complete six modules.
 The complete VM, allocator and object transport remain hosted.
 
+The shared loader explicitly uses an 8 KiB file buffer and reads images in
+8 KiB chunks through the original 1 MiB-plus-one refusal boundary. This fixes
+Python 3.14's 128 KiB default-buffer allocation and the old full-limit allocation
+on a small image cache miss. Dependencies initialize with the public module,
+so a first operation does not lazily import its transport. The original 64 KiB
+scratch gate now also exercises fresh public calls, maximum-sized valid
+manifests and actual LRU eviction. Source/image hashes, pinned scope, complete
+read behavior and the three-entry cache are retained.
+
 The SHA and budget/journal changes preserve full-u64 values, state layout,
 byte order, partial-write behavior, original hashes, limits and errors. Pinned
 independent originals and full-buffer differential controls remain test inputs;
@@ -109,6 +118,7 @@ Groups overlap and are never added into a unique-test total.
 | Main `f33d8da`, [CodeQL 43375258558](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43375258558) | C/C++, Actions, Python and Rust jobs succeeded. |
 | `a7710b5`, [push 43475067137](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43475067137) | FAILURE. Source: 585 tests passed. Native failed the accepted 64 MiB `store-put` at its original 60-second subprocess limit; subsequent product steps were skipped. |
 | `a7710b5`, [PR 43475077671](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43475077671) | SUCCESS. Source: 585 tests; every declared Native step completed. Actual checkout was merge `05d0cb2130982c4ffd408521650e20298e4c4ac0`, independently verified to have the same `b5618be` tree, with parents main `f33d8da` and `a7710b5`. |
+| `fbc34a716e31e72dd492fa926025b04808df339a`, [push 43537843469](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43537843469) and [PR 43538070022](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43538070022) | Both failed. Each Source run executed 619 methods with one failure: the bounded-memory installation fixture lacked ten explicit resource-role declarations. Each Native run passed cold and stages 8-16, including 41 scalar and 99 combined generation callers, then executed all 17 bounded-memory tests with two failures at 148,869 bytes against the original 65,536-byte ceiling. Later native steps were skipped. The PR checkout was `5e443ab300c98cc7702d0992b5423d40d9b54f60`, with the same `590189851a4b37965ed9c6b0abbb43f8d8c3115d` tree. This revision fixes the real loader allocation and explicitly copies all resource roles; those earlier runs remain failures. |
 | Product `be36b7cfbe40522ca1b6356e90170aa89aec2bad`, [full retained 43473228901](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43473228901) | FAILURE. All 4,747/4,747 original IDs executed in 5,367.218 seconds, within 5,400 seconds: one failure, one error, zero skips. The 64 MiB operation exceeded 60 seconds; the nested reference-loop test reached its existing three-second context deadline before evaluation. |
 
 The full run used product tree `e32d473fc5ce396b513a6b85e04340fb25d81d12`

@@ -39,6 +39,19 @@ reference behavior. An explicitly empty selector, missing manifest or changed
 packaged HIA source refuses before a retained owner can run. The installed
 resource uses the same source identity as the source-tree component.
 
+The shared loader uses an explicit 8 KiB file buffer. This preserves the
+operation's original 64 KiB scratch ceiling on Python 3.14, whose default file
+buffer is 128 KiB. Image reads proceed in 8 KiB chunks through EOF or the
+unchanged 1 MiB-plus-one refusal boundary; a small image does not first allocate
+the entire image limit. Native transport dependencies initialize with the public
+module, rather than during the first memory operation. Neither change bypasses
+the pinned scope, complete source hash, manifest identity or immutable image cache.
+
+The scratch controls include genuinely fresh public calls and real cache misses,
+including three-entry LRU eviction and a maximum 16 KiB valid manifest. They
+measure this bounded-memory image and its original operations. They do not claim
+that constructing every other permitted 1 MiB image uses only 64 KiB.
+
 ## Construction and verification
 
 `tools/generate_hia_bounded_memory.py` reproduces the single `.hepta` source.

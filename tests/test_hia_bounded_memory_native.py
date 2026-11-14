@@ -418,6 +418,117 @@ class BoundedMemoryNativeTests(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 installed_bounded_memory(str(self.manifest))
 
+    def test_first_public_calls_and_cache_eviction_keep_bounded_scratch(self):
+        # Import only the public module in each fresh process. In particular,
+        # no installed image or helper module is manually preloaded by this
+        # observer before the first operation's original 64 KiB scratch gate.
+        child = r'''
+import json, os, sys, tracemalloc
+from hepta import hia_bounded_memory as memory
+case, manifest = sys.argv[1:]
+os.environ['HEPTA_HIA_BOUNDED_MEMORY_MANIFEST'] = manifest
+target = bytearray(b'\x17' * (2 << 20) + b'\x42' * (2 << 20))
+negative = -(1 << 8_000_000) + 1
+def forbidden(*args):
+    raise AssertionError('retained memory owner entered')
+memory._reference_fill_bytes = memory._reference_move_bytes = forbidden
+error = None
+tracemalloc.start()
+try:
+    if case == 'fill':
+        memory.fill_bytes(target, 0, len(target), 165)
+    elif case == 'move':
+        memory.move_bytes(target, 2 << 20, 0, 2 << 20)
+    else:
+        memory.fill_bytes(target, 0, 0, negative)
+except ValueError as caught:
+    error = str(caught)
+_, peak = tracemalloc.get_traced_memory()
+tracemalloc.stop()
+expected = (b'\xa5' * len(target) if case == 'fill' else
+            b'\x17' * len(target) if case == 'move' else
+            b'\x17' * (2 << 20) + b'\x42' * (2 << 20))
+print(json.dumps({'peak': peak, 'error': error, 'bytes_equal': target == expected}))
+'''
+        from hepta.hia_json_preflight_native import _load_manifest
+        raw = self.manifest.read_bytes()
+        maximum = self.manifest.with_name('maximum-manifest.json')
+        maximum.write_bytes(raw + b' ' * (16384 - len(raw)))
+        aliases = [self.manifest.with_name(f'eviction-{i}.json') for i in range(3)]
+        for path in aliases:
+            path.write_bytes(raw)
+        try:
+            for manifest in (self.manifest, maximum):
+                for case in ('fill', 'move', 'negative'):
+                    with self.subTest(manifest=manifest.name, first_call=case):
+                        result = subprocess.run([sys.executable, '-B', '-c', child, case, str(manifest)],
+                            cwd=ROOT, capture_output=True, text=True, timeout=30)
+                        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                        observed = json.loads(result.stdout)
+                        self.assertTrue(observed['bytes_equal'])
+                        self.assertEqual(observed['error'],
+                            'E_HIA_VM_VALUE: expected u8' if case == 'negative' else None)
+                        self.assertLess(observed['peak'], 64 << 10)
+            # A first process is not the only miss: three other valid local
+            # manifests evict this image from the unchanged three-entry LRU.
+            with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+                  patch.object(memory, '_reference_fill_bytes', side_effect=AssertionError('fallback'))):
+                for eviction in (False, True):
+                    target = bytearray(4 << 20)
+                    _load_manifest.cache_clear()
+                    if eviction:
+                        installed_bounded_memory(str(self.manifest))
+                        for path in aliases:
+                            installed_bounded_memory(str(path))
+                    misses = _load_manifest.cache_info().misses
+                    tracemalloc.start()
+                    try:
+                        memory.fill_bytes(target, 0, len(target), 165)
+                        _, peak = tracemalloc.get_traced_memory()
+                    finally:
+                        tracemalloc.stop()
+                    self.assertEqual(_load_manifest.cache_info().misses, misses + 1)
+                    self.assertEqual(target, b'\xa5' * len(target))
+                    self.assertLess(peak, 64 << 10)
+        finally:
+            for path in (maximum, *aliases):
+                path.unlink()
+            _load_manifest.cache_clear()
+
+    def test_manifest_and_image_limits_preserve_complete_bytes(self):
+        from hepta.hia_json_preflight_native import MAX_IMAGE_BYTES
+        folder = self.folder / 'loader-limits'
+        folder.mkdir()
+        value = json.loads(self.manifest.read_bytes())
+        original_image = (self.manifest.parent / value['image_path']).read_bytes()
+        image = folder / value['image_path']
+        manifest = folder / 'manifest.json'
+        image.write_bytes(original_image)
+        raw = json.dumps(value, sort_keys=True).encode()
+        manifest.write_bytes(raw + b' ' * (16384 - len(raw)))
+        selected = installed_bounded_memory(str(manifest))
+        self.assertEqual(selected._mapping[:], original_image)
+        self.assertIs(installed_bounded_memory(str(manifest)), selected)
+        manifest.write_bytes(manifest.read_bytes() + b' ')
+        with self.assertRaisesRegex(ValueError, 'manifest exceeds size limit'):
+            installed_bounded_memory(str(manifest))
+
+        # Extra bytes after the compiled image are safe padding. Exercise the
+        # shared loader's entire original image domain without executing them.
+        maximum = original_image + b'\0' * (MAX_IMAGE_BYTES - len(original_image))
+        value['image_sha256'] = sha256(maximum).hexdigest()
+        image.write_bytes(maximum)
+        manifest.write_text(json.dumps(value, sort_keys=True))
+        selected = installed_bounded_memory(str(manifest))
+        self.assertEqual(selected._mapping[:], maximum)
+        # Keep the valid prefix digest: a reader that silently truncates at
+        # MAX_IMAGE_BYTES would wrongly admit this over-limit image.
+        image.write_bytes(maximum + b'\0')
+        overflow = folder / 'overflow.json'
+        overflow.write_bytes(manifest.read_bytes())
+        with self.assertRaisesRegex(ValueError, 'executable identity mismatch'):
+            installed_bounded_memory(str(overflow))
+
     def test_strict_builder_refuses_wrong_current_cold_before_output(self):
         from tools.build_hia_bounded_memory import build
         invalid = self.folder / 'wrong-cold.json'
@@ -428,13 +539,23 @@ class BoundedMemoryNativeTests(unittest.TestCase):
         self.assertFalse(destination.exists())
 
     def test_actual_isolated_sdist_wheel_uses_native_memory_with_no_reference(self):
-        from tests.test_hia_agent_installed_resources import RESOURCES, SDIST_SUPPORT_FILES
+        from hepta.hia_agent_contract import (
+            DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES,
+            PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES,
+            BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES,
+            EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES)
+        from tests.test_hia_agent_installed_resources import SDIST_SUPPORT_FILES
+        resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES
+            + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES
+            + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES
+            + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES
+            + CONTINUATION_BUILD_FILES)
         folder = self.folder / 'installed-memory'
         folder.mkdir()
         source = folder / 'source'
         source.mkdir()
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
-        for name in (*RESOURCES, *SDIST_SUPPORT_FILES, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+        for name in (*resources, *SDIST_SUPPORT_FILES, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
             target = source / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)

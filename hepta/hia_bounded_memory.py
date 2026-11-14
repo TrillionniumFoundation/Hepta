@@ -8,6 +8,8 @@ remain hosted and this does not establish a global process-memory budget.
 """
 from __future__ import annotations
 
+from . import hia_bounded_memory_native
+
 _CHUNK = 4096
 
 
@@ -66,8 +68,7 @@ def _reference_move_bytes(buffer: bytearray, destination: int, source: int, coun
 
 def fill_bytes(buffer: bytearray, offset: int, count: int, value: int) -> None:
     """Use the selected HIA owner, or the unchanged independent reference."""
-    from .hia_bounded_memory_native import selected_bounded_memory
-    native = selected_bounded_memory()
+    native = hia_bounded_memory_native.selected_bounded_memory()
     if native is None:
         return _reference_fill_bytes(buffer, offset, count, value)
     return native.fill_bytes(buffer, offset, count, value)
@@ -75,8 +76,7 @@ def fill_bytes(buffer: bytearray, offset: int, count: int, value: int) -> None:
 
 def move_bytes(buffer: bytearray, destination: int, source: int, count: int) -> None:
     """Use the selected HIA owner, with no selected fallback."""
-    from .hia_bounded_memory_native import selected_bounded_memory
-    native = selected_bounded_memory()
+    native = hia_bounded_memory_native.selected_bounded_memory()
     if native is None:
         return _reference_move_bytes(buffer, destination, source, count)
     return native.move_bytes(buffer, destination, source, count)
