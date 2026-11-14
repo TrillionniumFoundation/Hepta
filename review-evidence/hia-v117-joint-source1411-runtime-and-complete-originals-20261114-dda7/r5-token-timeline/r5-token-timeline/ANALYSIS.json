@@ -1,0 +1,136 @@
+{
+  "EOF_calls_not_cached": 2,
+  "VM_rerun": false,
+  "candidate_authored": false,
+  "candidate_compiled": false,
+  "cursor_transitions": {
+    "forward_jump": 876,
+    "rewind": 110,
+    "same_as_last_end": 10329
+  },
+  "dense_models": [
+    {
+      "binary_search_comparisons": 6235,
+      "by_phase": {
+        "phase0-signature0": {
+          "seek-hit": 500,
+          "sequential-hit": 5025,
+          "zero_new_cost_original_steps_replaced": 2314398
+        },
+        "phase0-signature1": {
+          "append-from-real-miss": 5245,
+          "noncontiguous-key-fallback": 544,
+          "original-error-or-EOF-no-record": 2
+        }
+      },
+      "capacity": 5957,
+      "claims_budget_closure": false,
+      "counts": {
+        "append-from-real-miss": 5245,
+        "noncontiguous-key-fallback": 544,
+        "original-error-or-EOF-no-record": 2,
+        "seek-hit": 500,
+        "sequential-hit": 5025
+      },
+      "first_key": 0,
+      "hit_calls": 5525,
+      "last_end": 19089,
+      "last_key": 19088,
+      "late_enable": false,
+      "model": "33B-contiguous-implicit-key-no-speculation",
+      "records": 5245,
+      "storage_bytes": 173089,
+      "unmeasured_costs": [
+        "entry/retirement guards",
+        "sequential key lookup",
+        "binary seek comparisons",
+        "33-byte snapshot copy",
+        "previous cursor and cleared high bytes",
+        "append and overflow handling",
+        "metadata lifetime and normal-return cleanup",
+        "every miss/fallback guard"
+      ],
+      "zero_new_cost_original_steps_replaced": 2314398
+    },
+    {
+      "binary_search_comparisons": 374,
+      "by_phase": {
+        "phase0-signature0": {
+          "append-from-real-miss": 4970,
+          "noncontiguous-key-fallback": 520,
+          "seek-hit": 35,
+          "zero_new_cost_original_steps_replaced": 16170
+        },
+        "phase0-signature1": {
+          "disabled-first-signature-pass": 5791
+        }
+      },
+      "capacity": 5957,
+      "claims_budget_closure": false,
+      "counts": {
+        "append-from-real-miss": 4970,
+        "disabled-first-signature-pass": 5791,
+        "noncontiguous-key-fallback": 520,
+        "seek-hit": 35
+      },
+      "first_key": 0,
+      "hit_calls": 35,
+      "last_end": 18116,
+      "last_key": 18114,
+      "late_enable": true,
+      "model": "33B-contiguous-implicit-key-no-speculation",
+      "records": 4970,
+      "storage_bytes": 164014,
+      "unmeasured_costs": [
+        "entry/retirement guards",
+        "sequential key lookup",
+        "binary seek comparisons",
+        "33-byte snapshot copy",
+        "previous cursor and cleared high bytes",
+        "append and overflow handling",
+        "metadata lifetime and normal-return cleanup",
+        "every miss/fallback guard"
+      ],
+      "zero_new_cost_original_steps_replaced": 16170
+    }
+  ],
+  "explicit_key_oracle_ceiling_not_33B_implementation": {
+    "hits": 6069,
+    "original_steps_replaced": 2591987,
+    "records": 5245
+  },
+  "high_SSA_domain_proved": false,
+  "high_SSA_retirement_observed": false,
+  "next_token_count_by_phase": {
+    "phase0-signature0": 5525,
+    "phase0-signature1": 5791
+  },
+  "next_token_inclusive_steps_by_phase": {
+    "phase0-signature0": 2314398,
+    "phase0-signature1": 2420785
+  },
+  "normal_state_deterministic_for_each_actual_cursor": true,
+  "not_proved": [
+    "10M completion after any cache",
+    "additional runtime/machine image cost <=4096",
+    "bad/multi-error input ordering or partial-error state",
+    "all high-SSA producer/consumer domination and retirement",
+    "all dirty workspace/early-return state preservation",
+    "overflow behavior over the complete admitted 1MiB source domain"
+  ],
+  "numerical_calls": 92,
+  "observed_VM_prefix": 10000001,
+  "observed_complete_identifier_calls": 2066,
+  "observed_complete_next_token_calls": 11316,
+  "observed_max_read_value_name_slot": 25,
+  "observed_unique_input_cursors": 5246,
+  "quoted_calls": 221,
+  "schema": "hia.R5.timeline-offline-dense-feasibility.v1",
+  "status": "OFFLINE_ANALYSIS_COMPLETE_ORIGINAL_PRODUCT_FAIL_UNCHANGED",
+  "timeline": {
+    "bytes": 18328884,
+    "events": 30388,
+    "sha256": "fc960e8103adea78e2ae1abb8575c8318f425e6be9ca7964866f3c55644aeba8"
+  },
+  "unobserved_suffix": "The R5 prefix ends in phase0/signature0/function35 of38; no phase1 event was reached."
+}

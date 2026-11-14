@@ -1,0 +1,74 @@
+{
+  "VM_reruns": 0,
+  "candidate_authored_by_reviewer": false,
+  "capsule": {
+    "bytes": 377551,
+    "git_blob": "72c627032ccada44e146abc30beabea774680c13",
+    "sha256": "ae6af477d98d5bd2980d7b457aa1a2fdc3f72df79e601bfda8833c359f662146"
+  },
+  "complete_local_decode_and_file_readback": true,
+  "decoded": {
+    "bytes": 3706085,
+    "git_blob": "a37faf7587272d0d241f762a5599749ef6d94024",
+    "sha256": "6afd703c65c0df46ecb0a142b45d958d764b4e3877b2bae638b7ee8709ce8a06"
+  },
+  "key_findings": {
+    "early_enable": "First original full values clear, token entry72/cursor512; earlier48calls disabled.",
+    "full32_shortcircuit": {
+      "R5_extreme_allzero_prefix_upper": 135936,
+      "R5_original_helper_calls": 33984,
+      "R6_Builder_eager_byte_cast_model_delta": 40774,
+      "R6_field_calls": 37841,
+      "R6_field_input": {
+        "bytes": 6087,
+        "git_blob": "579e1591c4ef941be5d155bc3002c98b585cdff6",
+        "sha256": "ac4a40fd3753a0b042c555a97452c34373ff203c363c3cd159e3217a33814702"
+      },
+      "R6_high16_nonzero": 5818,
+      "R6_high16_zero": 32023,
+      "R6_mixed_groups": 0,
+      "R6_observed_prefix_delta_if_fixed_IR_model": 104820,
+      "constraints": [
+        "All four byte loads remain in the original order; no cursor/source/hash field silently narrows.",
+        "Source cursors and limits admit values beyond65535; sample maxima do not grant u16 authority.",
+        "No public wide-load opcode or new fuel rule is introduced.",
+        "This bound is insufficient evidence of complete10M execution and does not justify a candidate."
+      ],
+      "machine_byte_delta": null,
+      "optimistic_added_static_ops": 3,
+      "optimistic_fixed_IR_steps": {
+        "high16nonzero": 33,
+        "high16zero": 25
+      },
+      "optimistic_total_blocks": 3,
+      "original_steps": 29
+    },
+    "high_SSA": "Parsed index returns dominate real slots plus guarded loops/tables; artificial32768 sentinel separately rejected. Permanent whole-call retirement is necessary.",
+    "metadata": "[1036,1040) originally zero after assembly_limits; only parse_block line193 writer needs narrowing to its identical low4 update.",
+    "observed_prefix": "5477hits/6210seekcomparisons/5197records; zero-new-cost ceiling2277341steps; unobserved suffix and actual overhead remain unknown.",
+    "returns": "Four pre-init returns preserve original dirty metadata/tail. All five post-init normal returns must restore metadata high4; tail cleanup depends on pending/active/retired.",
+    "snapshot": "Admitted f0 header initialization and all later writers keep33..39 zero. Private helpers with arbitrary dirty state are outside this reasoning."
+  },
+  "logical_bytes": 3335665,
+  "logical_files": 10,
+  "new_compiles": 0,
+  "not_proved": [
+    "R8 candidate implementation correctness",
+    "high-SSA actual controls",
+    "dirty/bad/multi-error normal-return fullFOW equality",
+    "fuel/trap partial-state equality",
+    "complete10M budget",
+    "machine image growth within4096",
+    "whole/cold qualification"
+  ],
+  "original_timeline_recipe": "407452b62c5627ad8552b1d550239224db88c07e",
+  "product_executions": 0,
+  "schema": "hia.readonly-review-summary.v1",
+  "scope": "R5-source-proof-for-independent-R8-authoring",
+  "source": {
+    "bytes": 71586,
+    "git_blob": "17011519f1cf21d8cb8cd794807bc9378c04587f",
+    "path": "/workspace/scratch/dda74a4fae35/v98-native-file-render-r4/successor-r7/evidence/token-replay-source-controls-r1/BEFORE.py",
+    "sha256": "18f6af40015e3a5034972eccce125c430fb4eaf0e091b9f7e588bc6d1d128ffc"
+  }
+}
