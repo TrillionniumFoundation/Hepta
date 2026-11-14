@@ -1,0 +1,139 @@
+{
+  "schema": "hia.core-balanced-dispatch.derive8-actual-intent.v1",
+  "status": "INTENT_ONLY_NOT_EXECUTED",
+  "timestamp": "2026-11-14 09:53:52 UTC",
+  "command": {
+    "host": "ai395",
+    "executable": "/usr/bin/python3.14",
+    "args": [
+      "-I",
+      "-S",
+      "-B",
+      "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-derive8-r1/control/derive_launch.py",
+      "--request",
+      "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-derive8-r1/control/REQUEST.json",
+      "--sha256",
+      "34960a4694993cef33c51f4235abb6e22cb0861fd2415aff5b692fa8d98ac1f9"
+    ],
+    "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-derive8-r1/source",
+    "env": {
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "PATH": "",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONNOUSERSITE": "1",
+      "TMPDIR": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-derive8-r1/derive8-actual-r1/scratch"
+    },
+    "idempotency_key": "root-core-balanced-dispatch-derive8-r1-actual-once",
+    "timeout_seconds": 300,
+    "memory_max_bytes": 536870912,
+    "cpu_quota_percent": 100
+  },
+  "request": {
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-derive8-r1/control/REQUEST.json",
+    "bytes": 20504,
+    "sha256": "34960a4694993cef33c51f4235abb6e22cb0861fd2415aff5b692fa8d98ac1f9",
+    "git": "e45da4eac8576f00a25ae7a78877eefbb97cf61a"
+  },
+  "launch": {
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-derive8-r1/LAUNCH.json",
+    "bytes": 1332,
+    "sha256": "cd318cf5fc8aec0505a31d15d5fb45a61cb9320ae8aca4ebc3c3ee3d7270968e",
+    "git": "4c41e4697d80b6719bfb6682a640c3f9ce931f93"
+  },
+  "metadata_HJOB": {
+    "git": "d1178de917a5d119192a6d64a3b8001e829f13f5",
+    "bytes": 10291,
+    "sha256": "ae38b8a9d325f8fa23ed94e8c422297e984dc979edbf852734f192fb056bebbe",
+    "one_POST": true,
+    "complete_GET": true
+  },
+  "commands": [
+    {
+      "args": [],
+      "ordinal": 0,
+      "path": "tools/generate_hia_selfhost_contract.py",
+      "phase": "derive"
+    },
+    {
+      "args": [
+        "--generate-inventory"
+      ],
+      "ordinal": 1,
+      "path": "tests/test_hia_selfhost_language_coverage.py",
+      "phase": "derive"
+    },
+    {
+      "args": [],
+      "ordinal": 2,
+      "path": "tools/generate_hia_selfhost_contract.py",
+      "phase": "derive"
+    },
+    {
+      "args": [
+        "--check"
+      ],
+      "ordinal": 3,
+      "path": "tools/generate_hia_selfhost_contract.py",
+      "phase": "derive"
+    },
+    {
+      "args": [],
+      "ordinal": 0,
+      "path": "tools/generate_hia_selfhost_contract.py",
+      "phase": "idempotence"
+    },
+    {
+      "args": [
+        "--generate-inventory"
+      ],
+      "ordinal": 1,
+      "path": "tests/test_hia_selfhost_language_coverage.py",
+      "phase": "idempotence"
+    },
+    {
+      "args": [],
+      "ordinal": 2,
+      "path": "tools/generate_hia_selfhost_contract.py",
+      "phase": "idempotence"
+    },
+    {
+      "args": [
+        "--check"
+      ],
+      "ordinal": 3,
+      "path": "tools/generate_hia_selfhost_contract.py",
+      "phase": "idempotence"
+    }
+  ],
+  "original_owner": {
+    "bytes": 17601,
+    "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+    "qualification_seconds": 180,
+    "cleanup_seconds": 3
+  },
+  "outer_timeout_seconds": 300,
+  "outer_timeout_purpose": "parent scans before/after; original inner owner remains180+3 for all8 commands together",
+  "allowed_source_write_paths": [
+    "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+    "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
+  ],
+  "expected_next_declared_sources": 899,
+  "expected_next_source_map_with_contract": 900,
+  "coverage_document_may_remain_identical": true,
+  "whole_source_idempotence_required": true,
+  "all_other_source_bytes_and_nine_identities_unchanged": true,
+  "Core_author_write_calls": 0,
+  "Source4_methods": 0,
+  "fixture_methods": 0,
+  "VM_native": 0,
+  "whole_native": false,
+  "legacy_deleted": false,
+  "previous_unknowns_preserved": true,
+  "all_agents": "COMPLETED_PAUSED_0_IO",
+  "root_max_host_IO": 1,
+  "team_max_IO": 4,
+  "CLI_port_block_preserved": true,
+  "FOR_ITER_written": false
+}

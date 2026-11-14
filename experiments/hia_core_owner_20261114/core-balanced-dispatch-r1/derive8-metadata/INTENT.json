@@ -1,0 +1,177 @@
+{
+  "schema": "hia.core-balanced-dispatch.derive8-metadata-intent.v1",
+  "status": "INTENT_ONLY_NOT_EXECUTED",
+  "timestamp": "2026-11-14 09:50:41 UTC",
+  "command": {
+    "host": "ai395",
+    "executable": "/usr/bin/python3.14",
+    "args": [
+      "-I",
+      "-S",
+      "-B",
+      "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-derive8-r1-stage.py",
+      "--config",
+      "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-derive8-r1-CONFIG.json",
+      "--sha256",
+      "ed0b23f5b3c058a29848b10d2f4e1d242b3a4239fbc0bf2dddd5c78a45be8ecc"
+    ],
+    "cwd": "/home/qq/hia-rewrite-20261113-e26e-r1",
+    "env": {
+      "PATH": "",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONNOUSERSITE": "1",
+      "TMPDIR": "/home/qq/hia-rewrite-20261113-e26e-r1"
+    },
+    "idempotency_key": "root-core-balanced-dispatch-derive8-r1-metadata-once",
+    "timeout_seconds": 180,
+    "memory_max_bytes": 536870912,
+    "cpu_quota_percent": 100
+  },
+  "CONFIG": {
+    "git": "1dc13831c079da4cbd6fedf3b1a39cd02dffdce9",
+    "bytes": 7829,
+    "sha256": "ed0b23f5b3c058a29848b10d2f4e1d242b3a4239fbc0bf2dddd5c78a45be8ecc",
+    "one_POST": true,
+    "complete_GET": true
+  },
+  "stage": {
+    "git": "7f100f4a8f77a7cbd5a4eb591beeeb37c9a79e4f",
+    "bytes": 18289,
+    "sha256": "53fe0880727e5aa44acea4448ee7ff90b87ccd8f2ee02b565ec34327e4930427",
+    "one_POST": true,
+    "complete_GET": true
+  },
+  "Root_exact_stage_transport_delta": {
+    "base": {
+      "bytes": 17643,
+      "sha256": "14e915d2e5b6f0dda41c7ad1ad624a99ca23fca04fe006a4502d4d4952134966",
+      "git": "3cdd1cf280ed3d24b3df9b4afac8522010e4e719"
+    },
+    "after": {
+      "bytes": 18289,
+      "sha256": "53fe0880727e5aa44acea4448ee7ff90b87ccd8f2ee02b565ec34327e4930427",
+      "git": "7f100f4a8f77a7cbd5a4eb591beeeb37c9a79e4f"
+    },
+    "changes": [
+      {
+        "before": "import argparse, hashlib, importlib.util, os, stat, sys\n",
+        "after": "import argparse, gzip, hashlib, importlib.util, os, stat, sys\n"
+      },
+      {
+        "before": "        \"initial_tree\": q[\"candidate_tree\"], \"files\": materialized})\n    owner = C.read_regular(root / \"tools/hia_selfhost_process_owner.py\")[1]\n",
+        "after": "        \"initial_tree\": q[\"candidate_tree\"], \"files\": materialized})\n    # Passive transport of the same full materialization; no source extraction or execution.\n    materialization_raw = C.read_regular(materialization[\"path\"], materialization)[0]\n    materialization_packed = gzip.compress(materialization_raw, compresslevel=6, mtime=0)\n    C.require(len(materialization_packed) <= 16 << 20, \"metadata transport bound\")\n    materialization_gzip = C.save(N / \"MATERIALIZATION.json.gz\", materialization_packed)\n    C.read_regular(materialization[\"path\"], materialization)\n    owner = C.read_regular(root / \"tools/hia_selfhost_process_owner.py\")[1]\n"
+      },
+      {
+        "before": "        \"initial_tree\": q[\"candidate_tree\"], \"request\": req, \"launch\": launch,\n        \"donor_whole_bytes_and_nine_identities_stable\": True,\n",
+        "after": "        \"initial_tree\": q[\"candidate_tree\"], \"request\": req, \"launch\": launch,\n        \"materialization\": materialization, \"materialization_gzip\": materialization_gzip,\n        \"materialization_transport_only\": True,\n        \"donor_whole_bytes_and_nine_identities_stable\": True,\n"
+      }
+    ],
+    "exact_inverse": true,
+    "scope": "passive gzip of existing MATERIALIZATION.json; original source/control/request/owner/commands unchanged"
+  },
+  "original_stage_peer_review": {
+    "agent": "hia_remote_audit",
+    "stage_git": "3cdd1cf280ed3d24b3df9b4afac8522010e4e719",
+    "complete_GET": true,
+    "determinate_block_found": false,
+    "full_path_tree_counts_overlay_pins_bound": true,
+    "original_controls_unmodified": true,
+    "original8_commands_owner180_3_emptyPATH_limits_unchanged": true,
+    "static_only": true,
+    "host_IO": 0,
+    "executions": 0,
+    "paused": true,
+    "inflight": 0
+  },
+  "fixture_peer_review": {
+    "agent": "hia_remote_audit",
+    "status": "LIMITED_STATIC_BINDING_CHECK_CLEARED",
+    "final_fixture_git": "c5c68af52cc6cca39677c1aacbcc65726133e495",
+    "helper_git": "8c5a47d497f7d74d0ce1b44c09dd3c384a2bca69",
+    "contract_git": "4aa7b47e31418066492abc80a7764d2dbfa40a4c",
+    "all40_pins_equal_catalog_report": true,
+    "all40_predecessor_pins_unchanged": true,
+    "exact38_changed_pool_ABI_unchanged": true,
+    "helper_one_literal_exact_inverse": true,
+    "contract_one_SOURCE_FILES_line": true,
+    "fixture_metadata_does_not_claim_Source4_fixture6_VM_native_cold_116": true,
+    "checks": 151,
+    "host_IO": 0,
+    "executions": 0,
+    "mutations": 0,
+    "paused": true
+  },
+  "source_plan": {
+    "source_origin": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-r1/source",
+    "generated_origin_tree": "9ea63eabcd01c80396d4b48c89923f47dcc389c7",
+    "generated_origin_files": 4134,
+    "generated_origin_bytes": 412660165,
+    "new_files": 4135,
+    "new_bytes": 412691868,
+    "new_tree": "e3ff4d436520c3ed52fde6874e3d133def6b57f1",
+    "overlays": [
+      {
+        "path": "tests/hia_core_pc_expected.py",
+        "bytes": 17850,
+        "sha256": "3baaed3f3fca210f625e27491108473407e357252abcd30961a056839f473ad3",
+        "git": "8c5a47d497f7d74d0ce1b44c09dd3c384a2bca69"
+      },
+      {
+        "path": "tools/hia_selfhost_contract.py",
+        "bytes": 138885,
+        "sha256": "5fb1ea912e0655e6fc3e585e5c1aacdb0b64fba00fc9c26627562780c52b8a5d",
+        "git": "4aa7b47e31418066492abc80a7764d2dbfa40a4c"
+      },
+      {
+        "path": "tests/fixtures/hia_core_balanced_dispatch_v1.json",
+        "bytes": 27441,
+        "sha256": "575c3a408a6130a54eff4667ef699a361977fa358b616960f4c94d6b98df5772",
+        "git": "c5c68af52cc6cca39677c1aacbcc65726133e495"
+      }
+    ],
+    "derived_documents_pending": true
+  },
+  "source_generation_HJOB": {
+    "git": "884f5e2e2909630b56d77bc60b58b3f9614a3a24",
+    "bytes": 13815,
+    "sha256": "50beaa136310d66c83627f98c284963ee13cd1e9d4d8fd98ae2394c989491fbe",
+    "one_POST": true,
+    "complete_GET": true
+  },
+  "control_supply": {
+    "git": "66744edaf62fa4beb6feb23299743e7a42bcb1a1",
+    "bytes": 3947,
+    "sha256": "ee12f0b7eb34148bbc0eda467843833519066cebb8be93a29f6c52d715abb36e",
+    "one_POST": true,
+    "complete_GET": true
+  },
+  "static_inputs_known_and_native_full_SHA_bound": true,
+  "scope": "metadata copy/freeze only; no product imports, Core author.write, document generation, source tests, VM or native entry",
+  "source_count": 4135,
+  "bytes": 412691868,
+  "tree": "e3ff4d436520c3ed52fde6874e3d133def6b57f1",
+  "new_root": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-derive8-r1",
+  "original4_runtime_texts_reused": true,
+  "metadata_transport_only": true,
+  "qualification_seconds_future": 180,
+  "cleanup_seconds_future": 3,
+  "paused_agents": {
+    "cold_ci_closure": "COMPLETED_PAUSED_0",
+    "native_install_owner": "COMPLETED_PAUSED_0",
+    "hia_remote_audit": "COMPLETED_PAUSED_0"
+  },
+  "root_max_host_IO": 1,
+  "team_max_IO": 4,
+  "old_unknown_mutations_preserved": true,
+  "original_generation_count_remains": 1,
+  "derive8_count": 0,
+  "Source4_methods": 0,
+  "fixture_methods": 0,
+  "whole_native": false,
+  "legacy_deleted": false,
+  "CLI_port_review_block_preserved": true,
+  "FOR_ITER_written": false
+}
