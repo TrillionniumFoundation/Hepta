@@ -1,0 +1,207 @@
+{
+  "schema": "hia.core-lowering-balanced-dispatch-static-review.v1",
+  "status": "STATIC_ROUTING_EQUIVALENT_PRODUCT_UNEXECUTED",
+  "head": "4597913bd67d1b1d84a378bf82327c96f344bc81",
+  "path": "tools/generate_hia_core_lowering.py",
+  "original": {
+    "bytes": 17047,
+    "sha256": "d7f60d40971873a68e743fe3b3c99625219cb3d7203ea1c79a3bc5017452f3be",
+    "git_blob": "ff1d479f8251542740ab9f03069c24894959736e"
+  },
+  "candidate": {
+    "bytes": 17538,
+    "sha256": "f89aa27693deb0b9a4db7325de9b346c2abdf947e5fed6e0c6e738b7c91cf7fa",
+    "git_blob": "cb894b1bf7cf7e0a5e36bd26e37bc24ec6b83308"
+  },
+  "one_literal": {
+    "before": "def unit_source(unit, selected, entries, total, workspace, output):\n    first, last = selected[0]['pc'], selected[-1]['pc']\n    chunks = [selected[i:i + GROUP] for i in range(0, len(selected), GROUP)]\n    main = main_source(unit, first, last, total, workspace, output)\n    leaves = []\n    for number, group in enumerate(chunks):\n        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf, pc:u64) -> u64:']\n        for instruction in group:\n            lines.append('    if pc == ' + str(instruction['pc']) + ':')\n            lines += ['        ' + line for line in instruction_lines(instruction)]\n        lines.append('    return ' + str(ABI))\n        leaves.append('\\n'.join(lines))\n    lines = ['def dispatch(w:mutbuf, o:mutbuf, pc:u64) -> u64:']\n    for number, group in enumerate(chunks):\n        lines += ['    if pc <= ' + str(group[-1]['pc']) + ':',\n                  '        return group_' + str(number) + '(w, o, pc)']\n    lines.append('    return ' + str(ABI))\n    # Initial mode admission exists in unit zero only; other units cannot start.\n    startup = start_source(entries) if unit == 0 else (\n        'def start(s:readbuf, w:mutbuf) -> u64:\\n    return ' + str(ABI) + '\\n')\n    return main + '\\n' + startup + '\\n' + '\\n\\n'.join(leaves + ['\\n'.join(lines)]) + '\\n' + helpers()\n",
+    "after": "def unit_source(unit, selected, entries, total, workspace, output):\n    first, last = selected[0]['pc'], selected[-1]['pc']\n    chunks = [selected[i:i + GROUP] for i in range(0, len(selected), GROUP)]\n    main = main_source(unit, first, last, total, workspace, output)\n\n    def balanced(nodes, indent):\n        if len(nodes) == 1:\n            return [indent + line for line in nodes[0][1]]\n        middle = len(nodes) // 2\n        return [\n            indent + 'if pc <= ' + str(nodes[middle - 1][0]) + ':',\n            *balanced(nodes[:middle], indent + '    '),\n            indent + 'else:',\n            *balanced(nodes[middle:], indent + '    '),\n        ]\n\n    leaves = []\n    for number, group in enumerate(chunks):\n        nodes = [\n            (instruction['pc'], [\n                'if pc == ' + str(instruction['pc']) + ':',\n                *['    ' + line for line in instruction_lines(instruction)],\n            ])\n            for instruction in group\n        ]\n        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf, pc:u64) -> u64:']\n        lines += balanced(nodes, '    ')\n        lines.append('    return ' + str(ABI))\n        leaves.append('\\n'.join(lines))\n    nodes = [\n        (group[-1]['pc'], ['return group_' + str(number) + '(w, o, pc)'])\n        for number, group in enumerate(chunks)\n    ]\n    lines = ['def dispatch(w:mutbuf, o:mutbuf, pc:u64) -> u64:']\n    lines += balanced(nodes, '    ')\n    lines.append('    return ' + str(ABI))\n    # Initial mode admission exists in unit zero only; other units cannot start.\n    startup = start_source(entries) if unit == 0 else (\n        'def start(s:readbuf, w:mutbuf) -> u64:\\n    return ' + str(ABI) + '\\n')\n    return main + '\\n' + startup + '\\n' + '\\n\\n'.join(leaves + ['\\n'.join(lines)]) + '\\n' + helpers()\n",
+    "before_pin": {
+      "bytes": 1301,
+      "sha256": "39d2bcce94799d8b7e0dafe6c0c182cac2553b8c0c49dc6662baeaa57372e634",
+      "git_blob": "95ac19afacb9123e746c9e547dad2ce37d8f2f76"
+    },
+    "after_pin": {
+      "bytes": 1792,
+      "sha256": "3ceaee351461e92dab69889d8868cf1be07ee34f8a6ad21544abd88471612728",
+      "git_blob": "78700346110ba9c7a70fa65d2448816cad139a42"
+    }
+  },
+  "patch": {
+    "bytes": 3260,
+    "sha256": "95a2f3bffb24f7ea7041a1543dad79e0f9e22e351d8411735ff935898cbb91d2",
+    "git_blob": "d4959a63da4e62cb31acb1e301ceac5b8cb3bb33",
+    "body": "--- a/tools/generate_hia_core_lowering.py\n+++ b/tools/generate_hia_core_lowering.py\n@@ -273,21 +273,40 @@\n-def unit_source(unit, selected, entries, total, workspace, output):\n-    first, last = selected[0]['pc'], selected[-1]['pc']\n-    chunks = [selected[i:i + GROUP] for i in range(0, len(selected), GROUP)]\n-    main = main_source(unit, first, last, total, workspace, output)\n-    leaves = []\n-    for number, group in enumerate(chunks):\n-        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf, pc:u64) -> u64:']\n-        for instruction in group:\n-            lines.append('    if pc == ' + str(instruction['pc']) + ':')\n-            lines += ['        ' + line for line in instruction_lines(instruction)]\n-        lines.append('    return ' + str(ABI))\n-        leaves.append('\\n'.join(lines))\n-    lines = ['def dispatch(w:mutbuf, o:mutbuf, pc:u64) -> u64:']\n-    for number, group in enumerate(chunks):\n-        lines += ['    if pc <= ' + str(group[-1]['pc']) + ':',\n-                  '        return group_' + str(number) + '(w, o, pc)']\n-    lines.append('    return ' + str(ABI))\n-    # Initial mode admission exists in unit zero only; other units cannot start.\n-    startup = start_source(entries) if unit == 0 else (\n-        'def start(s:readbuf, w:mutbuf) -> u64:\\n    return ' + str(ABI) + '\\n')\n-    return main + '\\n' + startup + '\\n' + '\\n\\n'.join(leaves + ['\\n'.join(lines)]) + '\\n' + helpers()\n+def unit_source(unit, selected, entries, total, workspace, output):\n+    first, last = selected[0]['pc'], selected[-1]['pc']\n+    chunks = [selected[i:i + GROUP] for i in range(0, len(selected), GROUP)]\n+    main = main_source(unit, first, last, total, workspace, output)\n+\n+    def balanced(nodes, indent):\n+        if len(nodes) == 1:\n+            return [indent + line for line in nodes[0][1]]\n+        middle = len(nodes) // 2\n+        return [\n+            indent + 'if pc <= ' + str(nodes[middle - 1][0]) + ':',\n+            *balanced(nodes[:middle], indent + '    '),\n+            indent + 'else:',\n+            *balanced(nodes[middle:], indent + '    '),\n+        ]\n+\n+    leaves = []\n+    for number, group in enumerate(chunks):\n+        nodes = [\n+            (instruction['pc'], [\n+                'if pc == ' + str(instruction['pc']) + ':',\n+                *['    ' + line for line in instruction_lines(instruction)],\n+            ])\n+            for instruction in group\n+        ]\n+        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf, pc:u64) -> u64:']\n+        lines += balanced(nodes, '    ')\n+        lines.append('    return ' + str(ABI))\n+        leaves.append('\\n'.join(lines))\n+    nodes = [\n+        (group[-1]['pc'], ['return group_' + str(number) + '(w, o, pc)'])\n+        for number, group in enumerate(chunks)\n+    ]\n+    lines = ['def dispatch(w:mutbuf, o:mutbuf, pc:u64) -> u64:']\n+    lines += balanced(nodes, '    ')\n+    lines.append('    return ' + str(ABI))\n+    # Initial mode admission exists in unit zero only; other units cannot start.\n+    startup = start_source(entries) if unit == 0 else (\n+        'def start(s:readbuf, w:mutbuf) -> u64:\\n    return ' + str(ABI) + '\\n')\n+    return main + '\\n' + startup + '\\n' + '\\n\\n'.join(leaves + ['\\n'.join(lines)]) + '\\n' + helpers()\n"
+  },
+  "protectedBlocks": [
+    {
+      "header": "def helpers():",
+      "unchanged": true,
+      "pin": {
+        "bytes": 695,
+        "sha256": "c85b7699c7051b7f8232c4e8f4b953cf5f22077a343e77d314a7670127b05ea9",
+        "git_blob": "8726b57bcd9b0784f5652f82cd4afc8dc7982aba"
+      }
+    },
+    {
+      "header": "def value_text(value):",
+      "unchanged": true,
+      "pin": {
+        "bytes": 379,
+        "sha256": "4a8c175a251d92dd10adae001e8fc3538141b75fa453a5f7363260e160006ae2",
+        "git_blob": "4a78a307cd3c734a45d5c369c57a9db369c3072e"
+      }
+    },
+    {
+      "header": "def effect_lines(instruction):",
+      "unchanged": true,
+      "pin": {
+        "bytes": 1316,
+        "sha256": "dffd0a18f825454beac03aeb728a3bc20be9d860d47ab7c90af37bfb299600fd",
+        "git_blob": "3d229f7888a53e4e12b5507afd32ba0511921159"
+      }
+    },
+    {
+      "header": "def instruction_lines(instruction):",
+      "unchanged": true,
+      "pin": {
+        "bytes": 2074,
+        "sha256": "c0491e24dda091ded61bc18e6e08a77bf7356cd258dc03fbe61db1cdbfb9a7b0",
+        "git_blob": "0475441a3e4008a53e4c00e9b75260f35dd3197d"
+      }
+    },
+    {
+      "header": "def start_source(entries):",
+      "unchanged": true,
+      "pin": {
+        "bytes": 2009,
+        "sha256": "cb29ebe96e5ce8867c110ad8cd8310f57913758c99e8171a35a5c4b2b61a5eb0",
+        "git_blob": "84eff4c7ecde80de7d0ce7424bf58884e80816b8"
+      }
+    },
+    {
+      "header": "def main_source(unit, first, last, total, workspace, output):",
+      "unchanged": true,
+      "pin": {
+        "bytes": 3144,
+        "sha256": "d0b552ba5164f8775f1875f4375659a554d7ba140c66c834a1e8b1f87d626138",
+        "git_blob": "25652cd8485c477df1593a080bda6a25a2f9f0ff"
+      }
+    },
+    {
+      "header": "def pool_wire(values):",
+      "unchanged": true,
+      "pin": {
+        "bytes": 701,
+        "sha256": "e1b3e4861a7e5881248238dbfdba2f90bccd2a0f58728adf1aab3c2e9d3d54eb",
+        "git_blob": "8f8721edd12cab82dcc4610f43a17f75b1a94ea9"
+      }
+    },
+    {
+      "header": "def pool_source(raw):",
+      "unchanged": true,
+      "pin": {
+        "bytes": 1122,
+        "sha256": "7ea5e9dde32b52e55080f432264fda45f720ae6aa5add18a34af9c07b5337ace",
+        "git_blob": "e395fca696c0436566403c0998181332522aebba"
+      }
+    },
+    {
+      "header": "def document(source, module):",
+      "unchanged": true,
+      "pin": {
+        "bytes": 863,
+        "sha256": "0fc7bf680dde8f9b07d6097c964ae3375690f83f6ce5d2e09774d5c171fad4cf",
+        "git_blob": "3e7febf4d33632ac70bc77bdd61412d4c9df1cb5"
+      }
+    },
+    {
+      "header": "def generated():",
+      "unchanged": true,
+      "pin": {
+        "bytes": 1574,
+        "sha256": "ff515c091c014a13ace9d49fcb4aed421a86cf764b27b9d03d7c2caee608d70f",
+        "git_blob": "8705c5db55e4c335bce1216dbab5b61761f14ea8"
+      }
+    },
+    {
+      "header": "def write(output, metadata):",
+      "unchanged": true,
+      "pin": {
+        "bytes": 812,
+        "sha256": "ac3a1bd44f37febc1839f4a361ad9ffacd9618ef4c028aa70c95fcb270f98c6a",
+        "git_blob": "54bdd64da2dbd8f07a1df2919554c9f0ce20d007"
+      }
+    }
+  ],
+  "scope": {
+    "original_caps_unchanged": true,
+    "actual_generated_caps": "PENDING_ROOT_GENERATION_AND_ORIGINAL_NINE_CAPS",
+    "HIA_functions_not_authored": "The nested balanced helper runs only in the existing authoring tool; it emits <= branches in existing group and dispatch functions. No new runtime helper or foreign primitive.",
+    "instruction_body": "Existing instruction_lines(instruction) stays byte-identical and is called exactly once in original ascending-PC order; only surrounding route indentation/control changes.",
+    "invalid_PC": "Unchanged main rejects0/>2428 and HANDOFFs off-unit validPC. Group equality leaves preserve rejection without instruction execution. Private dispatch>last may enter the last pure group before its equality rejects; main never reaches this path; final status/buffers/effects remain equal.",
+    "qualification_population": "15+51+50 / caller39+component39 / 180+3 / original9caps, unchanged",
+    "unexecuted": [
+      "Python generator",
+      "Python AST parse",
+      "VM",
+      "HIA/B3 compilation",
+      "native product",
+      "tests",
+      "host metadata",
+      "Git mutation",
+      "CI"
+    ]
+  },
+  "certificate": {
+    "bytes": 235853,
+    "sha256": "ae295635a754c156f54161240883db3eb4e79c067d28ac4ef3b884988778c01e",
+    "git_blob": "2ab3203e7222d01efbcf175abdf480ba5adb2474",
+    "counts": {
+      "dispatch": 92378,
+      "group": 739024,
+      "main_decision": 92378,
+      "errors": []
+    },
+    "comparison_counts": {
+      "old_max": 16,
+      "new_max": 7,
+      "old_min": 2,
+      "new_min": 6,
+      "old_sum_uniformPC": 21830,
+      "new_sum_uniformPC": 16992,
+      "old_fewer_cases": 570,
+      "equal_cases": 228,
+      "new_fewer_cases": 1630,
+      "meaning": "Pure numeric comparisons in dispatch and group only. No observed PC frequencies; sums are hypothetical one-visit-per-PC, not runtime timing. Early PCs can be slower."
+    },
+    "total_pc": 2428,
+    "units": 38,
+    "literal_pool": 1,
+    "groups": 304
+  },
+  "actual_build_timing": {
+    "caller": {
+      "git_blob": "2c2f6dd71cadcfc90dde8a8fa31bd8d7776296fb",
+      "bytes": 208406,
+      "sha256": "f7c72bf95d3870fd846c9dad1e5e112e054e0db7b1b42d57515ef5e7a2069ca5",
+      "native_elapsed_ns": 10671796877,
+      "wall_elapsed_ns": 12288808803
+    },
+    "component": {
+      "git_blob": "b66c8dd015306630fe6e9b429138d6a45dc622fb",
+      "bytes": 209264,
+      "sha256": "0ec9b33279eed5c566983e87b5848ed0826ef5dfd9279a8ec7e21477f7b9e49d",
+      "native_elapsed_ns": 10672419844,
+      "wall_elapsed_ns": 12294941997
+    },
+    "no_double_count": "Component47.991s already contains its39 compiled units. Neither child sums is a complete build elapsed.",
+    "no_sufficiency_claim": true
+  },
+  "limitations": [
+    "Static route enumeration is not generated Core/cap or native equivalence evidence.",
+    "Early PCs increase from2 comparisons to7 (full groups); not uniformly fewer comparisons.",
+    "No PC frequency trace is available for this timed-out run, and original final report is absent.",
+    "This patch does not remove independent re-emission, source re-admission, compiler repetitions, tests or trace evidence."
+  ]
+}

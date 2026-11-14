@@ -1,0 +1,561 @@
+{
+  "schema": "hia.static.whole-native-minimum-closure-matrix.v1",
+  "status": "OPEN_NO_WHOLE_NATIVE_COMPLETION",
+  "reviewer": "hia_remote_audit",
+  "fixed_product": {
+    "head": "4597913bd67d1b1d84a378bf82327c96f344bc81",
+    "tree": "bbf636708811f3a8297b3a9dba86720df08fdb79",
+    "pure": "6c66d203fd3f039a8aa1f76fb49947a0222ad11f"
+  },
+  "PR888_snapshot": {
+    "state": "open",
+    "draft": true,
+    "head": "acffa9262f31d073f8f0a6f0201eae201039f619",
+    "base": "5831f52fada45e076f8f68f198a15c0585e6104f",
+    "updated_at": "2026-11-14T06:35:24Z",
+    "body_pin": {
+      "bytes": 19946,
+      "sha256": "9dff169c4ff177fb78f2335dbffefde8cc7b001bf854706dc74adc64ff21ddc4",
+      "git_blob": "ceea5a3fef149732ddffe38758bd96b8f3bf2359"
+    },
+    "body_pin_precomputed_only": true
+  },
+  "central_conclusion": "仍需同时闭合现有完整资格、默认生产栈替代与完整交付/退役。源语法为HIA、函数返回原生、有限测试通过、整个产品运行时无旧宿主依赖、可删除旧整套是不同层次；任何一层不能自动提升其他层。",
+  "source_catalog": [
+    {
+      "path": "pyproject.toml",
+      "bytes": 426,
+      "sha256": "97b48ef4d10f96bab48f1149d8f4093e4080c4bfb9cb361a9e4951bbbf54eb0e",
+      "git_blob": "ca913dcef0c60ef1b3d27447e25f732e4dcd517f",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "complete body"
+    },
+    {
+      "path": "tools/hia_release.py",
+      "bytes": 1201,
+      "sha256": "35cd9f96beecb055f50bd5c0fb482f3cfac6f69c9116cc96abf0117329fec7eb",
+      "git_blob": "714e190f761958b3915388729c10cda925ed6ace",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "relevant dependency and public-entry sections"
+    },
+    {
+      "path": "docs/HIA_AGENT_INSTALLED_RESOURCES.md",
+      "bytes": 2449,
+      "sha256": "8041f6b3e5962118a7ed6f4a581da079546ed9cf7e05055fbc765c14ffec63c1",
+      "git_blob": "2f5c6e45d3d497c5928d6a2d45b21997fce0838d",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "complete body"
+    },
+    {
+      "path": "docs/HIA_RELEASE_INSTALL_NATIVE.md",
+      "bytes": 8423,
+      "sha256": "f71812ac85187988920cf6b673220b734fa7e815b774c77055ef27fb684e69d5",
+      "git_blob": "3ba443e77067415d8d09d86145b5022cb72c61dc",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "complete body"
+    },
+    {
+      "path": "docs/HIA_NATIVE_INSTALLED_SOURCE_BINDINGS.md",
+      "bytes": 3687,
+      "sha256": "8c815960b05e019674d65e577d5edbe1dc82a4c580f076504f43145d53be67d7",
+      "git_blob": "362f2ab0a6b9e0478f87371c26f546e66cdf5e9b",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "complete body"
+    },
+    {
+      "path": "hepta/hia_agent_store.py",
+      "bytes": 21838,
+      "sha256": "822a493b7c6096934af384099eaadd5c4467c6d89193dc3f695887aca256e579",
+      "git_blob": "935fd9b5c327f91407f9e910afa23edd0f01f04f",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "complete body"
+    },
+    {
+      "path": "docs/HIA_AGENT_PROOF_RESULTS.md",
+      "bytes": 11979,
+      "sha256": "94b994d8cec3abe8fda89852ca2c9ad6b67d519f48f86f328303a3e0eb480601",
+      "git_blob": "8ea6b7640aa3cd68a15870190d61575c19d7954d",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "complete body"
+    },
+    {
+      "path": "hepta/hia_translation_validation.py",
+      "bytes": 25421,
+      "sha256": "1b3bc18ad72609cf8f89ae9efe657e1e5f532d438120f8c5535e7cbb85619eeb",
+      "git_blob": "2dfae4cfe055404ac8b7febe94210635c01f4265",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "relevant dependency and public-entry sections"
+    },
+    {
+      "path": "hepta/hia_program_runtime.py",
+      "bytes": 29957,
+      "sha256": "ce39be78627f253447f1d4e4b3272ba6689c594c31b22e3be204b1fcfea2ca56",
+      "git_blob": "dd24880949eef55aa7516ddafe9e023c09ec48d6",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "relevant dependency and public-entry sections"
+    },
+    {
+      "path": "hepta/hia_native_retirement.py",
+      "bytes": 11159,
+      "sha256": "d88df71d8cded9a1bce2179773cdbf95620d5dc7994661e4ad801bd3e634275f",
+      "git_blob": "ed7a032c54bd3d7c00422cf0d29b4968081ba671",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "complete body"
+    },
+    {
+      "path": "docs/HIA_CORE_ONLY_RUNTIME_FIXTURES.md",
+      "bytes": 9430,
+      "sha256": "087087934978f85015e600a1682d075619bca15adb1e3f8e148cbc1747a93865",
+      "git_blob": "004af2963a79a95b58b19983d624e8b462f044d9",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "complete body"
+    },
+    {
+      "path": "docs/HIA_COMPILER_OWNER_QUALIFICATION_GATES.json",
+      "bytes": 7798,
+      "sha256": "e1cd0e4d9a1cf2c96da0213f8d7b22b2b55bbaf7c79c84eeeefb566a29bca501",
+      "git_blob": "02e03d5dd3068dbb27a8f33b62190a81b3d3f207",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "complete body"
+    },
+    {
+      "path": "docs/HIA_CORE_UNPACK_QUALIFICATION_GATES.json",
+      "bytes": 8892,
+      "sha256": "147ae2bf3e580d0b80488c9352e0cadea15b3dfaf7b969e37c27cce896004e70",
+      "git_blob": "54c5b5c198b50d4559e2a3abc2ba1e5170ba476a",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "complete body"
+    },
+    {
+      "path": "rust/hia-ndu-raw-model/Cargo.toml",
+      "bytes": 413,
+      "sha256": "c6f871aa7add7b3f2e9dcc25255088a25866b9b4bbd4f8b42ab6c08e8b4e453f",
+      "git_blob": "ca77b483cc3ffb4541d81c6350cb15d360d81e3f",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "complete body"
+    },
+    {
+      "path": "tools/build_hia_raw_model_bridge.py",
+      "bytes": 1053,
+      "sha256": "fa7426a273e8a5b71005965a879da48800929b28b497532ec6074f718a31b895",
+      "git_blob": "375986cbdf834be09d480a6ac3e73c8c17dd0012",
+      "acquisition": "fixed-head full Git UTF8 GET and SHA256/Git recomputation",
+      "model_read_scope": "complete body"
+    },
+    {
+      "path": "tools/replay_hia_selfhost_cold.py",
+      "bytes": 7322,
+      "sha256": "732e93ce69fc997e9d9cb11aed89d015045f0a2f06c1962ea1134cc9359da38b",
+      "git_blob": "0d53ccbd2e56240280938ab829fe9c9798f02075",
+      "acquisition": "Previously fully read exact fixed-head Git original reused from closed current CI audit",
+      "model_read_scope": "complete body in prior audit; relevant remaining-gate sections rechecked here"
+    },
+    {
+      "path": "tools/hia_compiler_owner_gates.py",
+      "bytes": 73161,
+      "sha256": "6e50da5851ced7572f83965e7baea5fadcfae54115a666dabd660256e0ba616f",
+      "git_blob": "cf18f55a720f3b05daa275bbaaf200eda5ce5acd",
+      "acquisition": "Previously fully read exact fixed-head Git original reused from closed current CI audit",
+      "model_read_scope": "complete body in prior audit; relevant remaining-gate sections rechecked here"
+    },
+    {
+      "path": "tools/qualify_hia_core_unpack_ci.py",
+      "bytes": 15249,
+      "sha256": "c394a94217a861aa54671d085130a55a3b429ed241a16abb81417e39f0c4f2ae",
+      "git_blob": "21500680520760d65d39c0d59033cf528aba09e8",
+      "acquisition": "Previously fully read exact fixed-head Git original reused from closed current CI audit",
+      "model_read_scope": "complete body in prior audit; relevant remaining-gate sections rechecked here"
+    }
+  ],
+  "reused_source_contract": {
+    "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+    "bytes": 200178,
+    "sha256": "275abf67ce3279da48f5ea4113035d1ee0fc39b87eb91ac09d87c0513c1c9824",
+    "git_blob": "636c003a767c4cc49795a5c236f560a16246663f"
+  },
+  "reused_CI": {
+    "run": 43560277563,
+    "attempt": 1,
+    "review": {
+      "bytes": 102120,
+      "sha256": "ae8c2cfff15ec7c59e9919be42f9e87565a7250d2c4cec36470a0721eab9a771",
+      "git_blob": "3862eb8ba185901e8cc25bc065100941ee8a24aa"
+    },
+    "workflow": {
+      "bytes": 38442,
+      "sha256": "29f1aed9ec855ca37cd09a1ac7411961d52417d4e0222fcf352bbb8478efa219",
+      "git_blob": "895912c45cc52c668a423fe2d70e8bfc379d22ec"
+    },
+    "Source553": "PASS_ORIGINAL_IDS",
+    "Wire89": "PASS_ORIGINAL_FIVE_SECONDS",
+    "step40": "HOLD_FAILURE_CAUSE_UNREAD",
+    "steps41_44": "SKIPPED",
+    "artifact_not_downloaded": true
+  },
+  "reused_production_audit": {
+    "base": "8556199d761540f84c15856a6a9cf1a6f863ffc5",
+    "report": {
+      "bytes": 21562,
+      "sha256": "955c52c36001caf39981c862991166b3dea834ff468087bccfd97cf60e9a9cfd",
+      "git_blob": "34a382c5ca37b5d73b7d866b0436d42ce31e3cdf"
+    },
+    "map": {
+      "bytes": 159341,
+      "sha256": "d84e60b2336d3be464adc63d1554e8352a618aaf0a489c78895552e6548a0272",
+      "git_blob": "78593bb7c385e99723eb94ad1fcf16568b04957c"
+    },
+    "index": {
+      "bytes": 208347,
+      "sha256": "edbcf426ad8b59718313a87126c9be33d3256a1a18d1cf3d59ccc5a6a16dfc9d",
+      "git_blob": "591468847d701382f7e1fc2cfada66a3cab96f9b"
+    },
+    "six_production_sources_exact_current_contract_join": [
+      {
+        "bytes": 10815,
+        "git_blob": "4798df70558cab78280cc7583484e9f61b66f35e",
+        "path": "hepta/artifact_publication_native.py",
+        "sha256": "c75c2677e644f4635680fa6d0418cd0c050c078287db0512e68bde7fe8b808c7",
+        "current_contract_sha256": "c75c2677e644f4635680fa6d0418cd0c050c078287db0512e68bde7fe8b808c7",
+        "same_as_current_contract": true
+      },
+      {
+        "bytes": 22923,
+        "git_blob": "8ce760d5d6155aa69164b265b79253a76b5a937c",
+        "path": "hepta/hia_agent_journal_native.py",
+        "sha256": "1cbd3c43ad5439f6fcfa1455d0c10725d38f7ae2807e403d9d3f47cdba874d21",
+        "current_contract_sha256": "1cbd3c43ad5439f6fcfa1455d0c10725d38f7ae2807e403d9d3f47cdba874d21",
+        "same_as_current_contract": true
+      },
+      {
+        "bytes": 101065,
+        "git_blob": "e8eb3f28e77d9e4c7d3b3f3ea018d8cec76b9271",
+        "path": "hepta/hia_agent_service.py",
+        "sha256": "1d8180c6a3d009350edeec5b055b9f35dbfcc84ae38d8dcd0a8cf110ad4c59c4",
+        "current_contract_sha256": "1d8180c6a3d009350edeec5b055b9f35dbfcc84ae38d8dcd0a8cf110ad4c59c4",
+        "same_as_current_contract": true
+      },
+      {
+        "bytes": 21838,
+        "git_blob": "935fd9b5c327f91407f9e910afa23edd0f01f04f",
+        "path": "hepta/hia_agent_store.py",
+        "sha256": "822a493b7c6096934af384099eaadd5c4467c6d89193dc3f695887aca256e579",
+        "current_contract_sha256": "822a493b7c6096934af384099eaadd5c4467c6d89193dc3f695887aca256e579",
+        "same_as_current_contract": true
+      },
+      {
+        "bytes": 13331,
+        "git_blob": "3424f046d10f18f176d9624bb1c0ed4253135bc7",
+        "path": "hepta/hia_agent_store_authority_native.py",
+        "sha256": "d8a565fb52df4c3f14bec06679eebeacf99b3868e6c16e5d05f8ce9c6c1d923a",
+        "current_contract_sha256": "d8a565fb52df4c3f14bec06679eebeacf99b3868e6c16e5d05f8ce9c6c1d923a",
+        "same_as_current_contract": true
+      },
+      {
+        "bytes": 14759,
+        "git_blob": "e396e79632e50e4f214c87a58ac2c9ade90e45cc",
+        "path": "hepta/hia_artifact_page_native.py",
+        "sha256": "fae7a042f41488d7e02530d8d81fd695efe21b8a9671d2e448a4820f8da6c814",
+        "current_contract_sha256": "fae7a042f41488d7e02530d8d81fd695efe21b8a9671d2e448a4820f8da6c814",
+        "same_as_current_contract": true
+      }
+    ],
+    "current_AgentStore_independently_fullGET_verified": true,
+    "counts": {
+      "tables": 10,
+      "production_business_SQL_templates": 31,
+      "direct_SQL_AST_sites": 52
+    },
+    "counts_not_new_test_denominators": true,
+    "canonical_commit": "b9323639cf68a8c45fb6f692f5cca7ed476d4c12",
+    "canonical_prefix": "experiments/hia_sqlite_wal_snapshot_20261113/source12-request-r1/production-interface/"
+  },
+  "finite_Pager_scope": {
+    "source": "Existing Root fully closed actual evidence, PR R27 and native_install_owner message; no new execution or re-decompression.",
+    "FINAL": "7007670297b27d68b7e9f7ea4371e393376eacae",
+    "build_review": "6736c0b0dc80f59f2b60c0cd4947e90bec36ad4a",
+    "interop_review": "1b68036e9ba11d870558f39194e71a8a39c4c4bb",
+    "cases": 4,
+    "C_commands": 98,
+    "native_commands": 40,
+    "processes": 24,
+    "release_returns": 24,
+    "historical_B3": true,
+    "assembly_bootstrap": true,
+    "default_AgentStore_replaced": false
+  },
+  "Full32_exact_gate_keys": [
+    "source_bound_prerequisites_admitted",
+    "prerequisites_preserved",
+    "json_preflight_complete_module",
+    "agent_journal_source_and_native",
+    "composite_types_helpers_and_complete_nominal_lowering",
+    "journal_selected_ordinary_callers",
+    "json_wire_complete_module",
+    "ordinary_json_wire_entry_complete_module",
+    "worker_report_complete_module",
+    "machine_plan_complete_module",
+    "linked_observer_complete_module",
+    "machine_plan_selected_ordinary_callers",
+    "json_wire_selected_ordinary_callers",
+    "json_wire_cache_complete_module",
+    "cli_complete_module_and_retained_cold_bundle",
+    "machine_encoding_complete_component_and_original_callers",
+    "original_selected_caller_denominators_preserved",
+    "agent_store_authority_complete_module",
+    "agent_store_authority_selected_ordinary_callers",
+    "artifact_read_complete_module",
+    "artifact_read_selected_ordinary_callers",
+    "machine_state_complete_component",
+    "machine_state_selected_original_callers",
+    "machine_instructions_complete_component",
+    "machine_instructions_selected_original_callers",
+    "core_lowering_complete_component",
+    "core_lowering_selected_original_machine_callers",
+    "core_lowering_selected_original_core_callers",
+    "machine_elf_complete_module",
+    "machine_elf_selected_original_callers",
+    "core_unpack_complete_composition",
+    "core_unpack_selected_complete_callers"
+  ],
+  "matrix": [
+    {
+      "id": "M1",
+      "area": "当前完整标准资格与真实失败",
+      "current": "固定 producttree bbf 的 Source553/105组与 Wire89 已通过；native步骤1–39成功，第40步Core owned-callers HOLD，41–44跳过。",
+      "minimum_remaining": [
+        "取得当前run的24项精确原诊断；先绑定owner/request/wrapper、原180+3与cleanup/ECHILD，再读child原报告和进度，明确HOLD真实原因。",
+        "依据真实原因修复后，完成最终同一产品头的原标准source/native。保持原15+51+50、后续ELF20+51、matching-UNPACK Core116、UNPACK18、Wire89五秒及九caps。",
+        "对实际current-cold/构建/installed/原始报告做完整身份合取，不能用step绿灯或旧finite PASS替代未读child物证。"
+      ],
+      "closure_evidence": "同头run/source/native原JSON、全部必要owner与原报告、所有原population完成且required gates真；本次第40步未取得原件前timeout因果仍UNKNOWN。",
+      "sources": [
+        ".github/workflows/hia-core.yml",
+        "tools/hia_compiler_owner_gates.py",
+        "tools/qualify_hia_core_unpack_ci.py"
+      ],
+      "scope_limit": "这闭合当前资格路径，单独不证明整个默认运行栈已经去掉宿主依赖。"
+    },
+    {
+      "id": "M2",
+      "area": "编译器与当前编译器来源",
+      "current": "contract声明bounded selfhost profile，B0→B1→B2→B3及修改源见证是规定；seed/successor/owned对象仍分别依赖CPython loader、GNU ld、libc或薄SysV/OS适配。whole_HIA_language_self_hosted=false。",
+      "minimum_remaining": [
+        "使拟交付完整产品实际用到的语法、Core、对象/链接接口均有HIA实现及当前来源匹配的编译结果；保原独立重发射，不能省去第二套Core39构建。",
+        "取得最终源码cold fixed point B1==B2==B3及修改源M1!=M2、M2==M3、M3!=B3；全部HIA/image/ABI/桥/安装资源绑定同一实际B3。",
+        "若交付目标包含不依赖旧语言构建，完成当前hosted authoring/build/assembler/linker路径的替代或明确且受审的bootstrap边界；不能把历史B3供给称current匹配。"
+      ],
+      "closure_evidence": "当前源码完整cold/重发射/构建物身份、生产功能覆盖与可重复交付。无需另造通用全语言或编译器形式化证明门，但必须保留原profile限制。",
+      "sources": [
+        "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+        "tools/replay_hia_selfhost_cold.py",
+        "docs/HIA_CORE_UNPACK_QUALIFICATION_GATES.json",
+        "tools/hia_release.py"
+      ],
+      "scope_limit": "有限HIA程序能编译/产生ELF不等于整个产品构建链无Python、Rust或GNU工具。"
+    },
+    {
+      "id": "M3",
+      "area": "默认CLI/Agent入口",
+      "current": "pyproject规定Python>=3.11、setuptools>=68、hia=hepta.cli:hia_main；原CLI contract明确default_CLI_changed=false、all_action_business_bodies_replaced=false、standalone_cli_executable_implemented=false。",
+      "minimum_remaining": [
+        "为当前普通hia命令和Agent worker提供完整默认原生入口及原动作业务路径，保持安装、对象和错误行为；显式manifest的局部选择不能代替默认接入。",
+        "在干净安装中由默认入口完成普通调用，旧Python owner不可被隐式加载或fallback。",
+        "此前CLI CPython运行时移植的自动系统审查中止仍登记为未解阻断；本轮不继续该实现、不重试或绕过。"
+      ],
+      "closure_evidence": "最终安装的默认命令与普通调用者完整成功，明确可执行文件、库和依赖清单；阻断未解除前不能宣布整个CLI替换完成。",
+      "sources": [
+        "pyproject.toml",
+        "tools/hia_release.py",
+        "docs/HIA_SELFHOST_CORE_SUPPORT.json"
+      ],
+      "scope_limit": "已完成的native argv/format/phase控制仍保留其原有限范围。"
+    },
+    {
+      "id": "M4",
+      "area": "实际对象/运行时/生命周期",
+      "current": "Core39、UNPACK、Wire、worker/journal等HIA控制仍通过Python对象、builtin/foreign call、generator、exception、ctypes/mmap、CPython C API或host custody桥操作；contract显式whole_native_delivery_qualified=false。",
+      "minimum_remaining": [
+        "对完整生产链实际使用的对象、容器、迭代、调用、异常和资源生命周期提供对应的HIA运行时边界，保持原foreign请求顺序与错误/cleanup行为。",
+        "保留并实际闭合原lease/generation/epoch、并发、未知owner不重放、映射和进程退出等调用者约束。",
+        "将独立VM/oracle、构建工具、生产执行依赖分清；原Python参考解释器的存在本身不等同生产fallback已发生，但当前多个桥明确仍是生产hosted owner。"
+      ],
+      "closure_evidence": "普通入口确实调用新owner，完整原调用者与错误/生命周期结果在最终同一来源下成立；不能仅以native entry次数或HIA语法作完成依据。",
+      "sources": [
+        "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+        "hepta/hia_program_runtime.py",
+        "hepta/hia_native_retirement.py",
+        "docs/HIA_CORE_ONLY_RUNTIME_FIXTURES.md"
+      ],
+      "scope_limit": "NativeRetirement当前只管理一个runtime-owned artifact的释放，不是旧整套安装/服务退役。"
+    },
+    {
+      "id": "M5",
+      "area": "SQLite只读生产垂直接线",
+      "current": "Header/WAL snapshot/seek/FIRST-NEXT/Payload/retained-cell已有有限原件；Pager R3通过4个固定已初始化WAL/SHM互操作场景，依赖历史B3和assembly OS bootstrap，尚未进入默认AgentStore。",
+      "minimum_remaining": [
+        "将同一真实Pager读事务/锁生命周期贯穿schema/rootpage、table rowid游标、retained当前leaf/cell、payload/overflow和record解码；不得重读leaf来替代已持有游标快照。",
+        "最小可落地生产读面是cost ledger：当前context或NULL过滤、ORDER BY sequence、LIMIT10001、原10000截断规则、任意精度wall_ns TEXT与details JSON。",
+        "保持8MiB JSON/wire与64MiB artifact各自原域；解决现有record有限1MiB接口与真实大记录/overflow streaming接线，不把小buffer变为新整库/整行限制。",
+        "补齐真实生产错误/恢复准入域，包括busy/EINTR/short-read/late-error、snapshot代际失效和close/reentry等；沿原owner原限额验收。"
+      ],
+      "closure_evidence": "普通AgentStore/HIAAgentService实际通过新reader读取原数据库/WAL数据，原顺序/类型/异常和快照一致；独立页内核或四Pager场景不替代此证据。",
+      "sources": [
+        "hepta/hia_agent_store.py",
+        "hepta/hia_agent_service.py",
+        "production-interface/REPORT.md",
+        "production-interface/PRODUCTION-PERSISTENCE-MAP.json"
+      ],
+      "scope_limit": "仅此读面完成仍不构成数据库写事务或全SQL替代。"
+    },
+    {
+      "id": "M6",
+      "area": "共享数据库/写事务/恢复",
+      "current": "当前AgentStore仍直接sqlite3.connect(... isolation_level=None,timeout=10,check_same_thread=False)，sqlite3.Row、WAL、synchronous=FULL；十张表和BEGIN IMMEDIATE/ROLLBACK/COMMIT由旧SQLite承担。六个生产源与已审855源SHA全部相同。",
+      "minimum_remaining": [
+        "在同一个AgentStore.db连接/事务边界承接原31业务SQL模板、初始化/事务语句及原测试额外SQL；实现execute/fetchone/fetchall/iteration/rowcount/close/reopen/必要trace观察。",
+        "实现schema/索引、B-tree写入和分裂、overflow/free-list、唯一约束、INSERT OR IGNORE、AUTOINCREMENT/sqlite_sequence、排序/storage class及参数/错误语义。",
+        "实现跨连接/进程锁、commit/rollback、WAL可见性、fsync和崩溃重开恢复；保持已提交但回执丢失与未提交状态差别。",
+        "requests完成响应须与adopt/rollback的slots/versions同事务；保留running/UNKNOWN、budget owner fence、lease持久身份，以及artifact字节先持久后颁发DB ref。",
+        "通过原journal94、authority67、artifact-read67等完整既有调用者及真实commit故障/kill/reopen/installed控制，不把31模板当完整SQL测试分母。"
+      ],
+      "closure_evidence": "真实默认服务不再调用旧SQLite引擎，跨表原子性、恢复、并发和原数据兼容/迁移已实际闭合；如果桥仍调用SQLite C执行SQL，原引擎依赖仍在。",
+      "sources": [
+        "hepta/hia_agent_store.py",
+        "hepta/hia_agent_service.py",
+        "hepta/hia_agent_journal_native.py",
+        "hepta/hia_agent_store_authority_native.py",
+        "hepta/hia_artifact_page_native.py",
+        "hepta/artifact_publication_native.py",
+        "production-interface/RAW-SOURCE-INDEX.json"
+      ],
+      "scope_limit": "当前varint/WAL/record/页/游标/Pager有限PASS不证明整个SQL/持久化完成。"
+    },
+    {
+      "id": "M7",
+      "area": "solver/证明/优化",
+      "current": "pyproject的verification和optimization extras固定z3-solver==4.15.4.0；validate_translation实际import z3、建Solver并check，SAT反例由Python参考解释器复放；proof records保留严格scope。",
+      "minimum_remaining": [
+        "若目标移除全部非HIA生产实现，替代实际proof/optimization checker与solver调用依赖，保持原公开验证功能；不能通过删optional功能或统一返回unknown宣称等价完成。",
+        "保留subject/property/profile/assumptions/checker/unproved_obligations、真实solver/输入身份、sat/unsat/unknown预算与完整原证明消费规则。",
+        "保持有限枚举、same-implementation encoding check、独立有限机器refinement及一般unsupported结论的区别；不将通过workload升级为全输入证明。"
+      ],
+      "closure_evidence": "原证明与优化API/调用者保持语义和结果范围，在最终交付中无未声明旧Python/Z3执行依赖；如仍保留Z3，只能明确列为剩余可信依赖。",
+      "sources": [
+        "pyproject.toml",
+        "hepta/hia_translation_validation.py",
+        "docs/HIA_AGENT_PROOF_RESULTS.md"
+      ],
+      "scope_limit": "Z3为显式verification/optimization功能依赖，不是声称每个默认hia命令都会加载Z3。"
+    },
+    {
+      "id": "M8",
+      "area": "Rust/构建与外部叶",
+      "current": "当前contract声明raw-model Rust源；raw-model Cargo依赖NDU/types、serde/serde_json，构建入口是Python调用cargo；标准nativeCI也显式安装GCC/Clang/binutils及Python包作为构建/独立fixtures。",
+      "minimum_remaining": [
+        "逐项区分保留生产功能的Rust/NDU实现、bootstrap工具、独立C oracle/fixture与最终运行时可信叶；先完成保留功能的HIA替代再删除其旧owner。",
+        "为完整目标提供可审的构建/运行依赖闭包，保留真实OS/kernel/hardware边界；原生机器码来自Rust/C并不等同由HIA完成整个实现。",
+        "最终干净构建与安装须证明不存在对已删除旧代码的隐式调用；测试用独立oracle应继续保存其原证据和作用。"
+      ],
+      "closure_evidence": "实际构建和运行依赖清单与最终source/ELF/安装物一致，保留原功能/调用者而非仅删除源文件。",
+      "sources": [
+        "rust/hia-ndu-raw-model/Cargo.toml",
+        "tools/build_hia_raw_model_bridge.py",
+        ".github/workflows/hia-core.yml",
+        "docs/HIA_CORE_ONLY_RUNTIME_FIXTURES.md",
+        "docs/HIA_SELFHOST_CORE_SUPPORT.json"
+      ],
+      "scope_limit": "此审计未逐个重读48个Rust文件，也不把文件数量当完成比例。"
+    },
+    {
+      "id": "M9",
+      "area": "完整安装、激活、升级和恢复",
+      "current": "hia-release可原生安装/verify显式有限包，runtime无Python/libc/child；但它不编译、不选择默认hia、不实现worker、不迁移journal/升级激活服务/删除旧owner。当前wheel/installed tests仍依赖Python/setuptools。",
+      "minimum_remaining": [
+        "用最终当前源码和当前B3形成完整生产包，声明所有运行依赖，安装默认CLI/worker/数据库及proof功能而非只复制installer自身或fixture。",
+        "完成默认入口切换、服务停止/启动、数据/请求journal/lease/budget迁移和回滚/恢复；不可覆盖丢失回执或UNKNOWN状态。",
+        "保留installer不可变发布、完整readback、实际fsync、原fault/kill控制；完成干净机器/无checkout资源回退的普通调用。"
+      ],
+      "closure_evidence": "全产品干净安装、默认启动、实际业务、升级和恢复成功；source-resource custody或复制安装器的empty-PATH测试不等于全部产品原生交付。",
+      "sources": [
+        "docs/HIA_RELEASE_INSTALL_NATIVE.md",
+        "docs/HIA_AGENT_INSTALLED_RESOURCES.md",
+        "docs/HIA_NATIVE_INSTALLED_SOURCE_BINDINGS.md",
+        "tools/hia_release.py"
+      ],
+      "scope_limit": "包64MiB/256entries等现有安装器profile保持，不能把有限installer自动提升为任意全包资格。"
+    },
+    {
+      "id": "M10",
+      "area": "Full32完整合取",
+      "current": "当前要求原30门加2个UNPACK门=32；旧Full32 capsule是不同头/树的未执行静稿，当前标准native第40步失败，尚不满足新Full32调度先决条件。",
+      "minimum_remaining": [
+        "先取得最终同头标准source/native完整成功及原官方三JSON/Root审核，重新绑定准确当前head/tree/源码、cold和供应/运行原件。",
+        "保留原32门逐项、所有原ID/denominator、retained suite5400、outer10800、cold180+3/38phases/2workers及编译20wall/10CPU/1MiB。",
+        "两个新增门要求同current cold/B3、两套独立Core39、numeric/integer/UNPACK各manifest/image/ABI/桥与编译原件；完整116一个owner、18另一owner、真实installed wheel与原资源拒绝控制。"
+      ],
+      "closure_evidence": "最终32门所有原完整报告和owner合取成功，failed/skipped/pending不升级；旧树胶囊和局部finite/Source结果不继承。",
+      "sources": [
+        "docs/HIA_COMPILER_OWNER_QUALIFICATION_GATES.json",
+        "docs/HIA_CORE_UNPACK_QUALIFICATION_GATES.json",
+        "tools/qualify_hia_core_unpack_ci.py"
+      ],
+      "scope_limit": "Full32是现有完整资格门；它保留hosted CPython profile，单独通过仍不等同全产品去宿主和默认激活。"
+    },
+    {
+      "id": "M11",
+      "area": "单一交付身份与旧整套删除",
+      "current": "PR888仍Draft，head acffa926…不是本轮已审product head459…；SQLite/Pager新源和证据也在独立提交中。当前release flags未激活，零旧实现删除。",
+      "minimum_remaining": [
+        "将实际产品源码形成一个明确、可交付的最终身份；证据归档与产品默认接线各自准确归属，原件可追踪。",
+        "冻结精确删除清单和保留依赖/ABI/数据迁移规则，证明无活跃旧lease/owner和无未解析UNKNOWN可被重放。",
+        "在生产替代、完整资格、干净安装/恢复闭合后删除旧owner；删除后再核默认入口、导入/链接/运行时依赖与完整原调用者，不以删测试/改分母获得清洁结果。"
+      ],
+      "closure_evidence": "实际最终删除diff、完整原证据保留、无残余生产引用、最终安装/回滚/恢复与原验收一致；已有NativeRetirement单artifact释放不能替代整套服务退役。",
+      "sources": [
+        "PR888 R27",
+        "tools/hia_release.py",
+        "hepta/hia_native_retirement.py",
+        "docs/HIA_RELEASE_INSTALL_NATIVE.md"
+      ],
+      "scope_limit": "本报告只说明必要门槛，不执行合并/删除/切换，也不新增审批或改变已有授权。"
+    }
+  ],
+  "minimum_dependency_order": [
+    "取得并解释当前Core40原始owner/child证据；在既有门内完成针对性修复与同一最终产品头完整标准资格。",
+    "并行推进现有生产缺口：默认运行时与入口、真实SQLite读/写事务、proof/solver、Rust/build依赖；CLI已中止移植保持停止。",
+    "同一最终源码/编译器/构建/安装资源下完成原Full32与全产品安装、默认激活、迁移/恢复；分别保留每个声明的范围。",
+    "明确最终产品与删除路径，完成旧owner生命周期收束后执行清理，保留全部原测试人口及历史失败/UNKNOWN证据并验证清理后的真实依赖。"
+  ],
+  "not_claimed": [
+    "完成百分比",
+    "全HIA重写已经完成",
+    "完整Core116或UNPACK18本轮通过",
+    "Core40超时根因",
+    "完整SQL/AgentStore已替换",
+    "Full32当前可调度或通过",
+    "所有CPython/SQLite/Z3/Rust构建或运行依赖已移除",
+    "新形式化全语言证明或扩大测试分母"
+  ],
+  "activity": {
+    "new_host_executions": 0,
+    "new_product_or_test_runs": 0,
+    "artifact_downloads": 0,
+    "artifact_decompressions": 0,
+    "file_writes": 0,
+    "Git_mutations": 0,
+    "CI_ref_PR_mutations": 0,
+    "CLI_blocked_implementation_resumed": false,
+    "readonly_IO_max_inflight": 1,
+    "result_storage": "V8 only",
+    "inflight": 0
+  },
+  "revision": {
+    "version": 2,
+    "previous_V8_only_report": {
+      "bytes": 30089,
+      "sha256": "17e98a307dd5a9c6a856203752f12f3288f72de535fc5f27818aaa2df8d1debf",
+      "git_blob": "f4a2c8d4bc1d2185ecd516f5112eb2c0f62883d0"
+    },
+    "difference": "Only append three already-read exact source pins and the exact historical production-interface archive location; findings and matrix unchanged."
+  }
+}

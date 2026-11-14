@@ -1,0 +1,1387 @@
+{
+  "schema": "hia.core-lowering-balanced-dispatch.independent-static-review.v1",
+  "status": "STATIC_REVIEW_ONLY_FIXTURE_MIGRATION_REQUIRED",
+  "reviewer": "/root/cold_ci_closure",
+  "repository": "TrillionniumFoundation/Hepta",
+  "fixed_source": {
+    "commit": "4597913bd67d1b1d84a378bf82327c96f344bc81",
+    "tree": "bbf636708811f3a8297b3a9dba86720df08fdb79"
+  },
+  "conclusion": {
+    "dispatcher_codegen_blocker_found": false,
+    "known_integration_blocker": "The candidate generator alone is rejected by current_core39_fixture: _fixed_word_reads requires actual == fixed_raw and raises ValueError('unknown Core39 generator revision').",
+    "capacity": "Conservative bounds under the exact current Builder are below the unchanged nine source gates. Actual candidate generation/caps/verifier/compiler are unexecuted.",
+    "performance": "Unproven. The routing comparison reductions do not establish a faster complete qualification."
+  },
+  "whole_source_pins": {
+    "columns": [
+      "path_or_role",
+      "utf8_bytes",
+      "sha256",
+      "git_blob_sha1"
+    ],
+    "rows": [
+      [
+        "tools/generate_hia_core_lowering.py baseline",
+        17047,
+        "d7f60d40971873a68e743fe3b3c99625219cb3d7203ea1c79a3bc5017452f3be",
+        "ff1d479f8251542740ab9f03069c24894959736e"
+      ],
+      [
+        "tools/generate_hia_core_lowering.py candidate",
+        17538,
+        "f89aa27693deb0b9a4db7325de9b346c2abdf947e5fed6e0c6e738b7c91cf7fa",
+        "cb894b1bf7cf7e0a5e36bd26e37bc24ec6b83308"
+      ],
+      [
+        "candidate unified patch",
+        3260,
+        "95a2f3bffb24f7ea7041a1543dad79e0f9e22e351d8411735ff935898cbb91d2",
+        "d4959a63da4e62cb31acb1e301ceac5b8cb3bb33"
+      ],
+      [
+        "primary static review",
+        14045,
+        "a231924340523525c4d478167588e905ab8b82e8fbad64589f7fc46172e2bc78",
+        "94b1eaa57b22a894d776b966f3890b77854e23c1"
+      ],
+      [
+        "routing certificate",
+        235853,
+        "ae295635a754c156f54161240883db3eb4e79c067d28ac4ef3b884988778c01e",
+        "2ab3203e7222d01efbcf175abdf480ba5adb2474"
+      ],
+      [
+        "tools/generate_hia_selfhost.py",
+        82193,
+        "9337d6704e47c4257b8b3723c0676809e1ba31914d6cfa6b13e07f2789b03ec2",
+        "19876107428018182d8dd0bf99eee65167489ded"
+      ],
+      [
+        "tools/hia_core_lowering_ir.py",
+        24460,
+        "8c70ac7cf57bfb7ee2c89796bbde3b928a4ae543a7c68da7a94b4dea40659ca7",
+        "2c7214119763ca26d0ce56d81a349ffee7285982"
+      ],
+      [
+        "tests/fixtures/hia_core_fixed_word_reads_v94.json",
+        36826,
+        "cb8def3b93a6ed6c285fe40dcc3f2cc5ed79af1b6f8bc182e74b5880a86ce6c9",
+        "53a8ac8f103a83275ec7af7d167b221b160e935b"
+      ],
+      [
+        "tests/test_hia_core_lowering_native.py",
+        70301,
+        "10bea295225262ab2cf4cc132aa4eac41db0d707793aeebda1892d74bd8ccb01",
+        "c9f3ee7f809b115a2d5d1a4f3104f75868936b81"
+      ],
+      [
+        "tests/hia_core_pc_expected.py",
+        13645,
+        "3b24c6cc6a0b0d943dc640822b89619908590b73c543eabd61aab17df3930670",
+        "10c422dc5d79840c76d9ebe2b883ae2633a48e22"
+      ],
+      [
+        "tests/test_hia_core_integer_integration.py",
+        22558,
+        "821e071dfc70abc4201a9b377062a16e752d01c394671299f8b0795f1ace6259",
+        "ed0b7411307f60c1ba006035879187d83f18896f"
+      ],
+      [
+        "tests/test_hia_core_compare_integration.py",
+        27855,
+        "d3313caf24c23ce4fbdac5e49eaf4b3f5b0f88dbe282ed1311d24096fe084b27",
+        "047ab11e33f0edb7272182543105887611099f08"
+      ],
+      [
+        "tests/test_hia_core_integer_source.py",
+        28475,
+        "c51bfec195aac9010bbadfa3579237f48698b6025308a62ca411654a7f578111",
+        "07660935406a4351de4a6f1f39585ebff4b905a7"
+      ]
+    ],
+    "verification": "Complete Git UTF-8 bodies; independent SHA256 and Git blob recomputation. No Python import or product execution."
+  },
+  "original_assembly_readback": {
+    "columns": [
+      "path",
+      "utf8_bytes",
+      "sha256",
+      "git_blob_sha1"
+    ],
+    "rows": [
+      [
+        "examples/hia_bootstrap/core_lowering_000.hiaasm",
+        317992,
+        "483c64d9dfc650db932e4e1d7659193694a9ace47cd8a6179cf9ad6cd63e215e",
+        "2b6147183d3fbe0c355b22e7dada8f2ae15688e1"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_001.hiaasm",
+        180097,
+        "97e17037b82dda09c3ea063a07cdc51012b69c7484a9c34bf820e9cb8fede08f",
+        "7dcb46fdbd7f34b5302ef4cbfed4640a00422e00"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_002.hiaasm",
+        160211,
+        "4e75de3689f9723eccbe4c416d8b2539b5f2456151a4462866ad2ca3bfacfe34",
+        "e5670ed460683a57544bbacbf29cfe53f2c00a76"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_003.hiaasm",
+        141797,
+        "4d4b761f0071cee57eb575d77b02186c10518165fd170cd24655a06ec824b41e",
+        "1ff66c344872a6c0c39cd9559aa570af31f22273"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_004.hiaasm",
+        172049,
+        "1046222b3ae0dbf94711529e643063a88cd7e15d7873eba5ecb45616d8557bfa",
+        "d7fcce0be3baf180a88f6aac038f74e2318ec9df"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_005.hiaasm",
+        188037,
+        "c22d50ce22ce1c4e0e7ff8b3de936e0ace093c900d3b9a55c57bdd1b1ee915f7",
+        "1401a8347db251d81a977c32a394955fc74f501b"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_006.hiaasm",
+        188045,
+        "1065d1c48553081d6f0e5ac4a3162cb45d8ea5865387813610165847e0577963",
+        "56628048f9d2bbba9d76317638c1f74a41cd2cd1"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_007.hiaasm",
+        154542,
+        "ba46273b2a6b87eae45781adaacdb1cb31deb4a796e7fe2a75aa55dbf0563f08",
+        "e463317c052797ccaed407c6f914bfe121df9554"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_008.hiaasm",
+        170004,
+        "8bc1e7ae834b73aca1ddc8cc0fd5e6de5e5a2fa1f9e349d2798d79b19c52116a",
+        "e93801b31063cfd90e84f1b00405f43e5f75aeb1"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_009.hiaasm",
+        161201,
+        "add1b09d42e2459b0321af2f97e2a5065d7adbfe5a8b31e05dbc23c29f3a4a55",
+        "41aedd2d5b7595d18ccb47eed7a781b9cc68214e"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_010.hiaasm",
+        175311,
+        "be1bf97909bb5d11a579949c474f2a1b58f9158e10d18bcddbec63a244cf897b",
+        "fb8b39f167b75915763491e1b98b62f95c69352a"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_011.hiaasm",
+        196120,
+        "a5f6b18e5c94b6d2adf266371d2d049a82af3c57adedd570a7db96665bb8df33",
+        "97684b32926b0ef237f1664dd5ae5fc467588471"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_012.hiaasm",
+        183797,
+        "72eb92bf5bdbccf53f386242928090bbf36e9ea724d4b745277ac4a460670e03",
+        "a7ac561e11e11fc13dc019648d8026c83b0ebc32"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_013.hiaasm",
+        191951,
+        "bc0d4dc7fcb2ea22f7db61be46e61eb36545794dbbb4052f0137ef2f52b8440f",
+        "c2a1f5c99b8897aeb33df0eadf82d52bb28ca548"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_014.hiaasm",
+        184724,
+        "a781146eb2e091500ffac44b111972417c4bd071764080c9251059c5c8cb6d02",
+        "25640dc0e5d8106645dae2988451bf45a6773c47"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_015.hiaasm",
+        186620,
+        "e49ebcebe8785323932c1105bc9ee5776e72c18bb7f619850680f1cf929d92ab",
+        "6bbd9b6dcb9792a1ac32cbeb610e3c45f813c7f2"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_016.hiaasm",
+        180479,
+        "9c8d5be77ee150b19720f6f6fdad11c355213ffeeae7143b6e5cb56520127c16",
+        "3c3fbf998134795a14b546e2380165816a755cf3"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_017.hiaasm",
+        194251,
+        "e983bc44f069d6102429d782ef6baff9c8dd8acfe7db7448a8aa5d51501fce1c",
+        "a351325e7153539b0973a69aa2c9bd93c70d34ce"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_018.hiaasm",
+        202310,
+        "737ba2f2213d81ddc62fa0499b2d9b50933e26f4b82f01ad32be6537a065c3a5",
+        "eb8a3fdfbeab913474acd65d52e2ff675538aca8"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_019.hiaasm",
+        182921,
+        "f9617905eb2e2300e51127afbfdd15e5b7f83a18e3dbbb7cca514ec9c24831fe",
+        "17020128aceaf81f6914325dfe7ddc9e58fe3f69"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_020.hiaasm",
+        203573,
+        "dd40e0aad3866e32c9660f6b9d803863a82df7956b13b9e3d9d8e470440c15bb",
+        "86347c37d55c655287f6fc5069fb85aa1a22a4f7"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_021.hiaasm",
+        185106,
+        "1940c393e6907a22d3a6b2351287efafbb88cdd26bb119e22415a222538f11a8",
+        "a7c47933f4fb82dc734e568063670e00f7c56054"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_022.hiaasm",
+        195247,
+        "e608ec151800cda8a4de5cbb52ed83f351364e5a1c621c6bdf0136c19ab738f7",
+        "52d8fa7851e03fe4e968865599131704880e1fa2"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_023.hiaasm",
+        173114,
+        "61011da0ce1b58e3c551613be66540a4788c9eb554d48825788fd1893ad849f0",
+        "ff9fdd01baed6e4d612cb84bc361bb02f25d2669"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_024.hiaasm",
+        208540,
+        "aa5fa4dd025923c0d88ec84047918c74437b1b29fc5f5050acc29e30e36c4c38",
+        "d5f1fe53ebad1cb7baf66ad6e7d456f004bacbe1"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_025.hiaasm",
+        199654,
+        "fea4e5b194511ec476acfbf958171bf5933d89eceace4c52ec2bc16fadce7a11",
+        "0b4a06f322161ef8a4f441264cea28a2ef01b3d5"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_026.hiaasm",
+        196478,
+        "08af2aeffc069cfa395fd5755445bdcf7a000273ef96ea2434ae65b88188a7ca",
+        "dce4ff099c5fb06dcac434b7e5ea6a3b9f00cfa4"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_027.hiaasm",
+        181991,
+        "3c8ea0a6588fcf786e1c8e8263e260bc24fae423392d67a5f2712737ddd652c7",
+        "8535b1996107c19db458cf5faaed00aa74c3008c"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_028.hiaasm",
+        186750,
+        "797649a7b468279918469ff0d0f44f4b8ad797ffb6f1923629ef40126d113808",
+        "9aed05f3479971cb5bba54bc1d10ae8c1fc48e3b"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_029.hiaasm",
+        199434,
+        "b7a3403c31068aa07e19d40f93ea5fde6f7123fafd29ff939eacf45737d6e9dc",
+        "80d81797bc228cb85ac9e2637bec8872ef7aa865"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_030.hiaasm",
+        174581,
+        "aa5abfe44014800a23914481498a25d90ab78507dacdf610561b8e4f89b938aa",
+        "8eee9aa423df305db9068d14c81b075462e6e813"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_031.hiaasm",
+        160212,
+        "f02ebff39992809ee50c6c4809b882efe571cce9a49cfd6fc7a9474a82da7316",
+        "63e5fbad97d5ce4932d15fb5856cf28e3c19033a"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_032.hiaasm",
+        165416,
+        "9ee8d54f1d3a2b72821b2ba34b00d4656afb3548b3f413084af7a2bc0dc53213",
+        "925b50e96f065fd4f52a956180e0f49a49e39a67"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_033.hiaasm",
+        186359,
+        "eb8647b654cf4268d1709b56656d783bf61cee2d9a33947d2781773f7db721d3",
+        "41847704b2ec526d767aac3470cc0cb9bd032dc5"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_034.hiaasm",
+        190238,
+        "e9be8a6932e3802d5f4bc9eed1280d96a6e8a6e61ff13e2b8f422da27dea631d",
+        "a7ef0a661b00cbaa98b47ea62270650add80c5a7"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_035.hiaasm",
+        160677,
+        "536ed822fd97e94c1f92b966c5b5c78b198f948d443543708ba0f8b7b60810e8",
+        "d23f29d5867df1db90bfa1001a05cee9195bbc07"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_036.hiaasm",
+        174371,
+        "dca97f5f3c41a870812cb1b27e8f5d1e39bc0bb56de07211987abf867323ed75",
+        "ffcb49469caf599496888a5f5e3f7f291160bc66"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_037.hiaasm",
+        158774,
+        "ef45ce791cbe5b0190abf34969c56aa1c85d396d1a94c5084f921036b557f878",
+        "50b38b1c1111d2d5ce72322bafaea800a8c5de77"
+      ],
+      [
+        "examples/hia_bootstrap/core_lowering_pool.hiaasm",
+        130156,
+        "4b72e35fd614173a3a65e9faf6e407f3d65c3d63cab49608a8a29f72f9854d90",
+        "48e1543d62462ba2fd466f95f7ac59c7a87e9cb3"
+      ]
+    ],
+    "numbered_units": 38,
+    "pool": 1,
+    "total_files": 39,
+    "numbered_utf8_bytes": 7012974,
+    "total_utf8_bytes": 7143130,
+    "pin_reference": "The38 numbered entries match the exact fixed_word_reads rows of v94. The pool also matches the fixed head source contract.",
+    "scope": "All39 complete pre-existing baseline assembly bodies were read. They are not candidate generated outputs.",
+    "text_census": "Count fn/block records and indented op/terminator lines. Count unique definition names across function params, block params and operation outputs. Check duplicate terminators and operations after terminators. No assembler or HIA verifier was invoked.",
+    "numbered_statistics_columns": [
+      "unit",
+      "bytes",
+      "lines",
+      "functions",
+      "blocks",
+      "ops_plus_terminators",
+      "max_function_blocks",
+      "max_function_unique_ssa",
+      "max_operation_args"
+    ],
+    "numbered_statistics": [
+      [
+        0,
+        317992,
+        8105,
+        23,
+        965,
+        7093,
+        101,
+        698,
+        3
+      ],
+      [
+        1,
+        180097,
+        4385,
+        14,
+        363,
+        3993,
+        101,
+        699,
+        3
+      ],
+      [
+        2,
+        160211,
+        3930,
+        14,
+        356,
+        3545,
+        101,
+        699,
+        3
+      ],
+      [
+        3,
+        141797,
+        3515,
+        14,
+        352,
+        3134,
+        101,
+        699,
+        3
+      ],
+      [
+        4,
+        172049,
+        4201,
+        14,
+        366,
+        3806,
+        101,
+        699,
+        3
+      ],
+      [
+        5,
+        188037,
+        4563,
+        14,
+        369,
+        4165,
+        101,
+        699,
+        3
+      ],
+      [
+        6,
+        188045,
+        4563,
+        14,
+        369,
+        4165,
+        101,
+        699,
+        3
+      ],
+      [
+        7,
+        154542,
+        3804,
+        14,
+        356,
+        3419,
+        101,
+        699,
+        3
+      ],
+      [
+        8,
+        170004,
+        4153,
+        14,
+        361,
+        3763,
+        101,
+        699,
+        3
+      ],
+      [
+        9,
+        161201,
+        3953,
+        14,
+        353,
+        3571,
+        101,
+        699,
+        3
+      ],
+      [
+        10,
+        175311,
+        4283,
+        14,
+        374,
+        3880,
+        101,
+        699,
+        3
+      ],
+      [
+        11,
+        196120,
+        4755,
+        14,
+        380,
+        4346,
+        101,
+        699,
+        3
+      ],
+      [
+        12,
+        183797,
+        4473,
+        14,
+        373,
+        4071,
+        101,
+        699,
+        3
+      ],
+      [
+        13,
+        191951,
+        4662,
+        14,
+        374,
+        4259,
+        101,
+        699,
+        3
+      ],
+      [
+        14,
+        184724,
+        4498,
+        14,
+        376,
+        4093,
+        101,
+        699,
+        3
+      ],
+      [
+        15,
+        186620,
+        4530,
+        14,
+        369,
+        4132,
+        101,
+        699,
+        3
+      ],
+      [
+        16,
+        180479,
+        4394,
+        14,
+        372,
+        3993,
+        101,
+        699,
+        3
+      ],
+      [
+        17,
+        194251,
+        4709,
+        14,
+        378,
+        4302,
+        101,
+        699,
+        3
+      ],
+      [
+        18,
+        202310,
+        4899,
+        14,
+        384,
+        4486,
+        101,
+        699,
+        3
+      ],
+      [
+        19,
+        182921,
+        4446,
+        14,
+        368,
+        4049,
+        101,
+        699,
+        3
+      ],
+      [
+        20,
+        203573,
+        4920,
+        14,
+        383,
+        4508,
+        101,
+        699,
+        3
+      ],
+      [
+        21,
+        185106,
+        4499,
+        14,
+        370,
+        4100,
+        101,
+        699,
+        3
+      ],
+      [
+        22,
+        195247,
+        4733,
+        14,
+        378,
+        4326,
+        101,
+        699,
+        3
+      ],
+      [
+        23,
+        173114,
+        4225,
+        14,
+        360,
+        3836,
+        101,
+        699,
+        3
+      ],
+      [
+        24,
+        208540,
+        5030,
+        14,
+        378,
+        4623,
+        101,
+        698,
+        3
+      ],
+      [
+        25,
+        199654,
+        4827,
+        14,
+        373,
+        4425,
+        101,
+        699,
+        3
+      ],
+      [
+        26,
+        196478,
+        4754,
+        14,
+        374,
+        4351,
+        101,
+        699,
+        3
+      ],
+      [
+        27,
+        181991,
+        4423,
+        14,
+        371,
+        4023,
+        101,
+        699,
+        3
+      ],
+      [
+        28,
+        186750,
+        4536,
+        14,
+        372,
+        4135,
+        101,
+        699,
+        3
+      ],
+      [
+        29,
+        199434,
+        4822,
+        14,
+        374,
+        4419,
+        101,
+        699,
+        3
+      ],
+      [
+        30,
+        174581,
+        4256,
+        14,
+        366,
+        3861,
+        101,
+        699,
+        3
+      ],
+      [
+        31,
+        160212,
+        3922,
+        14,
+        351,
+        3542,
+        101,
+        699,
+        3
+      ],
+      [
+        32,
+        165416,
+        4051,
+        14,
+        369,
+        3653,
+        101,
+        699,
+        3
+      ],
+      [
+        33,
+        186359,
+        4522,
+        14,
+        369,
+        4124,
+        101,
+        699,
+        3
+      ],
+      [
+        34,
+        190238,
+        4614,
+        14,
+        377,
+        4208,
+        101,
+        699,
+        3
+      ],
+      [
+        35,
+        160677,
+        3944,
+        14,
+        365,
+        3550,
+        101,
+        699,
+        3
+      ],
+      [
+        36,
+        174371,
+        4247,
+        14,
+        368,
+        3850,
+        101,
+        699,
+        3
+      ],
+      [
+        37,
+        158774,
+        3888,
+        14,
+        347,
+        3512,
+        101,
+        699,
+        3
+      ]
+    ],
+    "text_structure_errors": []
+  },
+  "exact_change": {
+    "function": "unit_source",
+    "whole_file_forward_inverse_equal": true,
+    "all_bytes_outside_this_replacement_equal": true,
+    "before_pin": {
+      "bytes": 1301,
+      "sha256": "39d2bcce94799d8b7e0dafe6c0c182cac2553b8c0c49dc6662baeaa57372e634",
+      "git_blob": "95ac19afacb9123e746c9e547dad2ce37d8f2f76"
+    },
+    "after_pin": {
+      "bytes": 1792,
+      "sha256": "3ceaee351461e92dab69889d8868cf1be07ee34f8a6ad21544abd88471612728",
+      "git_blob": "78700346110ba9c7a70fa65d2448816cad139a42"
+    },
+    "CHUNK": 64,
+    "GROUP": 8,
+    "PCs": 2428,
+    "numbered_units": 38,
+    "pool": 1,
+    "groups": 304,
+    "runtime_function_names_and_order_unchanged": true,
+    "balanced_helper": "Authoring-only nested function; adds no runtime HIA function.",
+    "instruction_bodies": "instruction_lines and effect_lines remain whole-byte identical. Each is invoked in the same ascending-PC iteration, once per instruction. Existing main/start/helpers/document/generated/write/ABI construction are unchanged.",
+    "preserved_scope": "Original15+51+50 methods, both independent39-unit sets,180+3 and original9caps; Source553/105groups and Wire89 not modified or requalified."
+  },
+  "cfg_and_indent": {
+    "builder_git_blob": "19876107428018182d8dd0bf99eee65167489ded",
+    "terminated_statement_rule_1919_1928": "    def statements(self, statements):\n        for index, s in enumerate(statements):\n            if 'term' in self.block: break\n            if isinstance(s,ast.Assign):\n                assert len(s.targets)==1 and isinstance(s.targets[0],ast.Name)\n                self.env[s.targets[0].id]=self.expr(s.value)\n            elif isinstance(s,ast.Expr): self.expr(s.value)\n            elif isinstance(s,ast.Return):\n                val=self.cast(self.expr(s.value),self.returns)\n                self.block['term']={'op':'ret','values':[val[0]]}",
+    "branch_join_rule_1981_2000": "                cond=self.expr(s.test); base=dict(self.env); keys=list(base)\n                yes,ye=self.fresh(base); no,ne=self.fresh(base)\n                self.block['term']={'op':'branch','cond':cond[0],'then':{'target':yes['id'],'args':[v[0] for v in base.values()]},'else':{'target':no['id'],'args':[v[0] for v in base.values()]}}\n                self.block,self.env=yes,ye; self.statements(s.body); yb,yend=self.block,dict(self.env)\n                self.block,self.env=no,ne; self.statements(s.orelse); nb,nend=self.block,dict(self.env)\n                live=[(b,e) for b,e in [(yb,yend),(nb,nend)] if 'term' not in b]\n                if not live:\n                    self.block,self.env=yb,yend; continue\n                if len(live) == 1:\n                    # Only one branch reaches the following statement. Its\n                    # actual environment already is the join; a fresh block\n                    # would add only an unconditional parallel identity move.\n                    self.block,self.env=live[0]; continue\n                # Variables introduced on only one path cannot escape that path.\n                common=[k for k in live[0][1] if all(k in e for b,e in live)]\n                merged={k:live[0][1][k] for k in common}\n                done,de=self.fresh(merged)\n                for b,e in live:\n                    self.block,self.env=b,e; self.jump(done,e,common)\n                self.block,self.env=done,de",
+    "dispatch_tail": "All dispatch leaves return group_N. At every internal node both arms terminate; Builder's no-live case keeps a terminated block, then line1921 breaks before the textual final return ABI. Thus no extra terminator or unterminated fallback block is emitted.",
+    "group_tail": "Each equality leaf retains its not-equal live path. Internal joins merge those paths into the final return ABI; that fallback is needed and remains reachable.",
+    "no_eager_calls": "total_scalar_functions excludes mutbuf/readbuf parameter functions (2014-2054). group_N/dispatch are not eligible for the eager-return select optimization (1973-1979).",
+    "compact_boundary": "compact_authoring_cfg invokes verify_program before and after transformation (2069,2135). These source checks were read, not executed.",
+    "indentation": "Balanced if/else use the same routing indent. Leaf equality is at the leaf indent. Every instruction_lines line receives exactly one additional4-space prefix, preserving flag/identity inner if/else and effect/yield guards, returns and operand/effect order. No internal else can attach to the less-indented routing if."
+  },
+  "routing_recomputation": {
+    "method": "Independent V8 numeric decisions only; no generator, Python AST, HIA interpreter or native function.",
+    "IR_basis": "compile_policy434-460 assigns every non-mark pc=len(instructions)+1. Unchanged generated() slices by64, unit_source groups by8.",
+    "domain": {
+      "from": 0,
+      "through": 2429,
+      "additional_u64": "18446744073709551615",
+      "larger_interval": "All thresholds/equalities are within1..2428. Every u64>=2429 has the same greater-than-all route; public main rejects it before dispatch."
+    },
+    "checks": {
+      "dispatch": 92378,
+      "group": 739024,
+      "main_decision": 92378
+    },
+    "errors": [],
+    "partition_and_per_pc_comparison_rows_equal_to_certificate": true,
+    "comparison_counts": {
+      "old_max": 16,
+      "new_max": 7,
+      "old_min": 2,
+      "new_min": 6,
+      "old_sum_uniformPC": 21830,
+      "new_sum_uniformPC": 16992,
+      "old_fewer_cases": 570,
+      "equal_cases": 228,
+      "new_fewer_cases": 1630
+    },
+    "timing_boundary": "The sum assumes exactly one visit perPC.570PCs have more comparisons,228 equal,1630 fewer. No actual PC-frequency, timing or sufficiency claim."
+  },
+  "public_private_and_fault_boundary": {
+    "public_main": "Unchanged lower first rejects pc0 or pc>total. Globally valid but off-unit PC uses unchanged HANDOFF. Only in-unit PC reaches dispatch and exactly one matching body.",
+    "private_above_last": "Old dispatch(pc>last) returns ABI without a group call. New dispatch enters the last group, whose equality rejects. That added path has only scalar comparisons and performs no instruction body, buffer load/store or foreign effect. Same return/buffer state; different private call and instruction counts.",
+    "resource_boundary": "No equality of private call-stack/resource/machine-step observations is claimed. Public main excludes the above-last private path. No runtime trap test was run.",
+    "write_boundary": "The routing change adds no reject-path writes. Earlier unchanged public resume handling may already have updated state before PC admission; whole-entry zero writes for all invalid PCs are not claimed.",
+    "body_order": "For the selected PC the exact same body executes once in the same order. Actual native/VM equivalence is still unverified."
+  },
+  "nine_caps": {
+    "original_gate": "tests/test_hia_core_lowering_native.py146-175; historical test_current_32_sources_keep_original_Core_caps_and_literal_VM explicitly requires39sources.",
+    "baseline_numbered_maxima": {
+      "bytes": 317992,
+      "lines": 8105,
+      "functions": 23,
+      "total_blocks": 965,
+      "ops_plus_terminators": 7093,
+      "blocks_per_function": 101,
+      "unique_ssa_per_function": 699,
+      "formal_params": 3,
+      "operation_args": 3
+    },
+    "unchanged_pool": {
+      "bytes": 130156,
+      "lines": 3289,
+      "functions": 48,
+      "total_blocks": 54,
+      "ops_plus_terminators": 3138,
+      "blocks_per_function": 7,
+      "unique_ssa_per_function": 85,
+      "operation_args": 3
+    },
+    "per_added_internal_group_predicate": {
+      "ordinary_ops_max": 2,
+      "blocks_max": 3,
+      "terminators_max": 3,
+      "unique_ssa_max": 11,
+      "assembly_lines_max": 8
+    },
+    "derivation": [
+      "A group ofg<=8 adds g-1 internal predicates. A predicate contributes at most const+compare,2 branch destinations and1 join:3blocks,5ops+terminators,9 block parameters plus2 op results.",
+      "The route environment contains onlyw,o,pc. Instruction bodies introduce no authoring local variables into that environment. Existing body operations/effects and cache-local constant contexts remain.",
+      "At most56 additional internal group predicates per full unit: conservatively+168blocks,+280ops+terminators,+448lines. No savings from dispatch8->7 or compact forwarding-block removal are credited.",
+      "Changed group unique definitions <=596+11*7=673; unchanged function maximum699 remains larger. Changed group blocks <=36+3*7=57; unchanged function maximum101 remains larger.",
+      "Changed original raw value-name suffix maximum618 plus77 is695; raw block-name suffix35 plus21 is56. These support spelling bounds only. The real2048 gate counts distinct SSA definitions, not suffix values.",
+      "For source bytes, allow the whole existing changed-function text to double for identifier widening, plus128bytes for each added assembly line. New lines are only bounded const/compare/branch/jump/block records. The per-unit maximum bound is514276bytes."
+    ],
+    "per_unit_columns": [
+      "unit",
+      "extra_group_predicates",
+      "total_blocks_bound",
+      "ops_plus_terminators_bound",
+      "lines_bound",
+      "bytes_bound",
+      "changed_group_unique_ssa_bound",
+      "changed_group_blocks_bound"
+    ],
+    "per_unit_bounds": [
+      [
+        0,
+        56,
+        1133,
+        7373,
+        8553,
+        514276,
+        577,
+        53
+      ],
+      [
+        1,
+        56,
+        531,
+        4273,
+        4833,
+        388104,
+        642,
+        54
+      ],
+      [
+        2,
+        56,
+        524,
+        3825,
+        4378,
+        348331,
+        539,
+        53
+      ],
+      [
+        3,
+        56,
+        520,
+        3414,
+        3963,
+        311503,
+        531,
+        54
+      ],
+      [
+        4,
+        56,
+        534,
+        4086,
+        4649,
+        372007,
+        636,
+        54
+      ],
+      [
+        5,
+        56,
+        537,
+        4445,
+        5011,
+        403983,
+        635,
+        55
+      ],
+      [
+        6,
+        56,
+        537,
+        4445,
+        5011,
+        403999,
+        636,
+        54
+      ],
+      [
+        7,
+        56,
+        524,
+        3699,
+        4252,
+        336993,
+        638,
+        54
+      ],
+      [
+        8,
+        56,
+        529,
+        4043,
+        4601,
+        367917,
+        585,
+        55
+      ],
+      [
+        9,
+        56,
+        521,
+        3851,
+        4401,
+        350311,
+        644,
+        55
+      ],
+      [
+        10,
+        56,
+        542,
+        4160,
+        4731,
+        378528,
+        589,
+        57
+      ],
+      [
+        11,
+        56,
+        548,
+        4626,
+        5203,
+        420146,
+        638,
+        55
+      ],
+      [
+        12,
+        56,
+        541,
+        4351,
+        4921,
+        395500,
+        638,
+        55
+      ],
+      [
+        13,
+        56,
+        542,
+        4539,
+        5110,
+        411808,
+        622,
+        55
+      ],
+      [
+        14,
+        56,
+        544,
+        4373,
+        4946,
+        397354,
+        640,
+        55
+      ],
+      [
+        15,
+        56,
+        537,
+        4412,
+        4978,
+        401145,
+        641,
+        54
+      ],
+      [
+        16,
+        56,
+        540,
+        4273,
+        4842,
+        388862,
+        637,
+        55
+      ],
+      [
+        17,
+        56,
+        546,
+        4582,
+        5157,
+        416406,
+        636,
+        55
+      ],
+      [
+        18,
+        56,
+        552,
+        4766,
+        5347,
+        432524,
+        641,
+        55
+      ],
+      [
+        19,
+        56,
+        536,
+        4329,
+        4894,
+        393746,
+        631,
+        54
+      ],
+      [
+        20,
+        56,
+        551,
+        4788,
+        5368,
+        435050,
+        640,
+        55
+      ],
+      [
+        21,
+        56,
+        538,
+        4380,
+        4947,
+        398116,
+        638,
+        55
+      ],
+      [
+        22,
+        56,
+        546,
+        4606,
+        5181,
+        418398,
+        645,
+        56
+      ],
+      [
+        23,
+        56,
+        528,
+        4116,
+        4673,
+        374132,
+        637,
+        56
+      ],
+      [
+        24,
+        56,
+        546,
+        4903,
+        5478,
+        445018,
+        642,
+        54
+      ],
+      [
+        25,
+        56,
+        541,
+        4705,
+        5275,
+        427212,
+        646,
+        54
+      ],
+      [
+        26,
+        56,
+        542,
+        4631,
+        5202,
+        420860,
+        642,
+        54
+      ],
+      [
+        27,
+        56,
+        539,
+        4303,
+        4871,
+        391886,
+        631,
+        54
+      ],
+      [
+        28,
+        56,
+        540,
+        4415,
+        4984,
+        401404,
+        641,
+        54
+      ],
+      [
+        29,
+        56,
+        542,
+        4699,
+        5270,
+        426772,
+        673,
+        54
+      ],
+      [
+        30,
+        56,
+        534,
+        4141,
+        4704,
+        377066,
+        644,
+        56
+      ],
+      [
+        31,
+        56,
+        519,
+        3822,
+        4370,
+        348328,
+        537,
+        51
+      ],
+      [
+        32,
+        56,
+        537,
+        3933,
+        4499,
+        358736,
+        587,
+        55
+      ],
+      [
+        33,
+        56,
+        537,
+        4404,
+        4970,
+        400622,
+        641,
+        55
+      ],
+      [
+        34,
+        56,
+        545,
+        4488,
+        5062,
+        408380,
+        660,
+        55
+      ],
+      [
+        35,
+        56,
+        533,
+        3830,
+        4392,
+        349258,
+        540,
+        54
+      ],
+      [
+        36,
+        56,
+        536,
+        4130,
+        4695,
+        376646,
+        580,
+        54
+      ],
+      [
+        37,
+        52,
+        503,
+        3772,
+        4304,
+        341356,
+        573,
+        56
+      ]
+    ],
+    "gate_columns": [
+      "gate",
+      "candidate_static_upper_bound",
+      "unchanged_limit"
+    ],
+    "gates": [
+      [
+        "source_bytes",
+        514276,
+        1048576
+      ],
+      [
+        "source_lines",
+        8553,
+        16384
+      ],
+      [
+        "functions_including_pool",
+        48,
+        128
+      ],
+      [
+        "total_blocks",
+        1133,
+        1536
+      ],
+      [
+        "ops_plus_terminators",
+        7373,
+        8192
+      ],
+      [
+        "blocks_per_function",
+        101,
+        256
+      ],
+      [
+        "formal_parameters",
+        3,
+        16
+      ],
+      [
+        "operation_arguments",
+        3,
+        16
+      ],
+      [
+        "unique_ssa_per_function",
+        699,
+        2048
+      ]
+    ],
+    "status": "CONSERVATIVE_STATIC_BOUNDS_NOT_ACTUAL_CANDIDATE_CAP_PASS"
+  },
+  "fixture_blocker": {
+    "path": "tests/hia_core_pc_expected.py",
+    "git_blob": "10c422dc5d79840c76d9ebe2b883ae2633a48e22",
+    "exact_predicate_119_126": "    _require_pin(fixed_raw, generator[\"fixed_word_reads\"])\n    for replacement in reversed(replacements):\n        before, after = replacement[\"before\"], replacement[\"after\"]\n        if text.count(after) != 1:\n            raise ValueError(\"ambiguous inverse fixed-word-read Core derivation\")\n        text = text.replace(after, before, 1)\n    if text.encode(\"utf-8\") != pc_raw or actual != fixed_raw:\n        raise ValueError(\"unknown Core39 generator revision\")",
+    "revision_selection_266_272": "    actual = (root / generator[\"path\"]).read_bytes()\n    if actual == legacy_raw:\n        revision = \"legacy\"\n    elif actual == pc_raw:\n        revision = \"pc_forwarding\"\n    else:\n        revision = _fixed_word_reads(root, pc_raw, actual, by_path, numbered)",
+    "effect": "The candidate differs from all accepted whole Core authors and reaches the existing unknown-Core39-generator-revision error. The later UNPACK-only zero-store exception does not authorize a changed Core author.",
+    "minimal_successor": "Preserve all accepted old versions and both historical fixtures. Add this complete author revision with the unique full unit_source forward/inverse. Fix40 new expected items from Root's real generation only:38numbered+pool+ABI; verify pool/ABI byte preservation. Retain original consumer methods and population. Run original derive to update exact source identity; do not hand-edit a digest or add a generic AST waiver.",
+    "sixth_exact_AST_control": "NumericComparisonIntegrationSourceTests.test_portable_fixture_keeps_all_eleven_original_method_bodies preserves11 original method ASTs, allowing only exact expected-loader reversal and the existing integer extension. No generalized exemption is proposed."
+  },
+  "unexecuted_unverified": {
+    "python_AST_parse": false,
+    "generator": false,
+    "candidate_generated_bodies": false,
+    "assembler": false,
+    "Core_verifier": false,
+    "B3_compiler": false,
+    "HIA_VM": false,
+    "native_product": false,
+    "tests": false,
+    "benchmark": false,
+    "profiler": false,
+    "host_metadata": false,
+    "host_IO": false,
+    "artifact_download": false,
+    "old_or_new_qualification_replay": false,
+    "fixture_migration": false,
+    "derived_support_update": false,
+    "actual_candidate_caps": false,
+    "actual_candidate_source_or_image_pins": false,
+    "actual_speedup": false,
+    "Core116_PASS": false,
+    "UNPACK18_PASS": false,
+    "Full32_PASS": false,
+    "installed_default_activation": false,
+    "legacy_removal": false,
+    "performed": "Sequential read-only Git full-body retrieval, cryptographic readback, V8 text census and scalar arithmetic. This evidence publication is metadata only."
+  },
+  "publication": {
+    "authorization": "Root authorizes exactly this one immutable evidence Git blob once plus wholeGET. No tree/commit/ref/CI/host/product.",
+    "no_self_hash_in_body": true,
+    "receipt_boundary": "The attempt, rawACK and fullGET are preserved separately in session state and handed off with this body's independently computed pins; the frozen body is not edited after publication.",
+    "state_after_handoff": "PAUSED_0_INFLIGHT"
+  }
+}
