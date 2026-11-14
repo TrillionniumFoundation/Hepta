@@ -1,0 +1,76 @@
+name: HIA current native CI43589704057 exact943 diagnostics-only r1
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  retain_original:
+    name: Retain 943 exact current native diagnostic originals
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-native-ci43589704057-diagnostics-only-r1-20261114-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the exact reviewed custody control without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: CONTROL_COMMIT_PLACEHOLDER
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Set up the fixed custody interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Verify frozen controls and create new private custody roots
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_core_owner_20261114/ci43589704057-diagnostics-only-r1/controller.py prepare --root "$RUNNER_TEMP/hia-native-ci43589704057-diagnostics-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+      - name: Read one sealed original ZIP and all fixed diagnostics under the original 900-second guardian
+        id: owned_collection
+        timeout-minutes: 16
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_core_owner_20261114/ci43589704057-diagnostics-only-r1/controller.py run --root "$RUNNER_TEMP/hia-native-ci43589704057-diagnostics-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+      - name: Independently retain every fixed diagnostic and controls after closed ECHILD
+        if: always()
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_core_owner_20261114/ci43589704057-diagnostics-only-r1/controller.py finalize --root "$RUNNER_TEMP/hia-native-ci43589704057-diagnostics-r1" --policy-sha256 POLICY_SHA256_PLACEHOLDER --control-commit CONTROL_COMMIT_PLACEHOLDER
+      - name: Preserve exact current native originals and the closed collector owner first
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-native-ci43589704057-diagnostics-r1-${{ github.run_id }}-1
+          path: '${{ runner.temp }}/hia-native-ci43589704057-diagnostics-public-r1/small/'
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          retention-days: 14
+          overwrite: false
