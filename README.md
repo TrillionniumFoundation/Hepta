@@ -12,6 +12,17 @@ compilation and the native observations already made by full discovery. The
 new full-cost, patch-impact, static-budget, Store-lifecycle and CLI-discovery
 owners use that same cold result. The original CLI-discovery qualifier also
 enforces its separate group deadlines and installed-resource checks.
+The service-context owner uses the same cold result for its four current
+context/deadline routes and complete 50 original callers. Its component class
+runs once in full discovery; supplemental validation reads its actual compiler,
+wheel, installed worker and administrator-bundle evidence before the caller gate.
+The cost-ledger owner uses the same cold for its first-full component and a
+separate gate over seven complete ordinary caller modules, totaling 81 methods.
+Its four explicit administrator-scope integration modules keep their original
+gates and bundles; this ordinary caller gate does not inject the ledger into them.
+The default-release native class constructs and installs its candidate wheel
+within full discovery. The supplement only reads back that real artifact and
+its already executed original callers; it adds no command or test rerun.
 
 ## Freeze and publish
 
@@ -113,7 +124,7 @@ leave full discovery evidence and prevent an attempted passing run.
 
 The pre-discovery environment mirrors v4's existing static selector removals
 and its original cold-report bindings, read from the admitted v4 source.
-Twenty-six newer cold selectors, including `NATIVE_MAPPING`, additionally point
+Twenty-nine newer cold selectors, including `NATIVE_MAPPING`, additionally point
 to **this same run's future `qualification/cold.json`**. The real unchanged v4
 still performs its own original assignments. All native consumers retain their
 existing matching-source cold admission. The two `WRONG_COLD_REPORT` negative
@@ -122,7 +133,8 @@ control variables are never populated.
 The additions include `BOUNDED_MEMORY`, `SCALAR_PROFILE`,
 `GENERATION_RETENTION`, `PUBLICATION_MEASUREMENT`, the actual
 `SHA256_STREAM_DIFFERENTIAL` selector, and the new `FULL_COST`, `PATCH_IMPACT`,
-`STATIC_BUDGET`, `STORE_LIFECYCLE` and `CLI_DISCOVERY_JSON` selectors. Full discovery
+`STATIC_BUDGET`, `STORE_LIFECYCLE`, `CLI_DISCOVERY_JSON`, `DEFAULT_RELEASE`,
+`SERVICE_CONTEXT` and `COST_LEDGER` selectors. Full discovery
 retains the original mapping, scalar, measurement, generation and stream
 differential component evidence under `qualification/full-discovery-components/`.
 Before execution the
@@ -141,9 +153,22 @@ original strict fixture builder after the unchanged v4 has produced its cold
 report. The original JSON class and selected CLI class each own a separate
 fixture directory. The latter also builds and admits the original CLI control
 and format images against that same compiler. No pre-existing cold fixture,
-development manifest or inherited CLI companion is used. All six new native
-classes must first execute in complete discovery and must have complete
+development manifest or inherited CLI companion is used. These native
+classes, plus the twelve-method `DefaultReleaseNativeTests` class, must first
+execute in complete discovery and must have complete
 ordered successful method observations before supplemental acceptance.
+`DefaultReleaseSourceTests` must remain in the first source tuple that the
+unchanged v4 extracts. The default-release development compiler variable is
+discarded before applying this run's cold-report and evidence bindings.
+`ServiceContextSourceTests` also remains in that first source tuple;
+`ServiceContextNativeTests` first executes in complete discovery under its own
+`HEPTA_HIA_SERVICE_CONTEXT_EVIDENCE` directory. Inherited service-context runtime
+manifests and development compilers are discarded before those bindings.
+`CostLedgerSourceTests` remains in that same first source tuple. All three source
+methods and nine native methods must appear successfully in complete discovery;
+the native class first executes there, with its actual evidence retained under
+`HEPTA_HIA_COST_LEDGER_EVIDENCE`. Inherited ledger runtime manifests and development
+compilers are discarded before applying the same-run cold and evidence bindings.
 
 ## Original full execution and bounds
 
@@ -234,6 +259,84 @@ selected image and retain their original controls. Full discovery separately
 retains the complete Store native class, including installed-resource and pinned
 worker-bundle observations, before this caller gate can qualify.
 
+The service-context supplemental gate runs the complete frozen four-module,
+50-method inventory with all four retained context/deadline bodies forbidden.
+It preserves the original three-second contexts and `_consume_attempt` route.
+The harness independently compares the caller inventory to complete discovery,
+checks every original caller source and captured source/build pin, and reads
+the actual verbose log for all 50 ordered successful methods. Every creation,
+lookup, budget and remaining-time mode must have positive native frames and
+consistent claim/acknowledgement counts; all required integer operations must
+have actual positive native entry counts. Reference calls and anomalies refuse.
+
+Before that additional caller command, the first-full service-context artifact
+readback verifies its same-cold build, original compiler request/receipt, full
+output buffer, image and class custody. Its actual wheel and installed RECORD
+must preserve the cold-bound production source; the copied administrator
+manifest, image and bundle must match the component that exercised all four
+public routes and the real installed JSON worker. All captured bytes participate
+in final readback. This does not rerun the component class or claim native
+SQLite, an activated default release or whole-native delivery.
+Ordinary pip installation also creates derived bytecode caches. Their original
+empty-hash RECORD rows are accepted only after their interpreter header, source
+binding and complete code objects match a fresh compile of the actual wheel
+source under the same interpreter and optimization mode. No code object is
+executed during this readback; the raw RECORD and cache hashes remain captured.
+The same existing component method also composes context, Store lifecycle,
+execution budget and candidate budget under one pinned administrator bundle.
+Its four actual image counters must be positive, every old policy route must
+remain forbidden and the context budget must remain exactly 3000 ms. The
+supplement reads every companion build and its original compiler transport
+against this same cold result, checks the exact four-child bundle and retains
+all raw composition evidence without re-executing it.
+
+The cost-ledger supplemental gate runs all 81 frozen ordinary methods in their
+declared seven-module order with the retained ledger method forbidden. The
+harness checks the exact frozen inventory and original caller bytes, all source
+and build pins, actual verbose method completions, positive native frames,
+consistent claim/acknowledgement counts, and real signed-addition and equality
+entries. Reference calls, skipped methods and other anomalies refuse. The four
+separate administrator-scope modules must retain their declared method inventory
+in complete discovery; their existing owner gates remain separate. The 81-method
+gate makes no whole-project dynamic-caller claim. The Python poison applies to
+the test process; subprocesses inherit the selected image, not Python patches.
+
+Before this twelfth command, the first-full cost-ledger artifact readback checks
+its same-cold compiler request/receipt, full output, image and complete before/after
+source custody. The already installed wheel, every installed file and its RECORD
+must match the cold-bound source and actual wheel. The single-helper administrator
+bundle must pin the component manifest. Worker and catalog identities are derived
+from the real wheel bytes and compared to the retained first/replay reports.
+The actual installed fixture observes `NativeCostLedger.add` in the `hia_evaluate`
+worker process: the first request must show positive additions, and replay must
+show zero additions with identical correlated reports. It poisons the retained
+ledger body in that worker process; it does not claim all descendant execution is
+native. The fixture retains the ledger artifact reference, but not the ledger
+artifact body or request bytes, so readback does not claim to revalidate those
+contents. This readback does not rerun the component, worker or 81 caller methods.
+
+The default-release class already executes all 38 original full-cost callers
+from a second real installation, with no native selector environment and with
+the retained Python arithmetic bodies forbidden. The supplement reads its
+existing report, child report and original verbose log. It requires the same
+ordered 38 identities from complete pre-discovery, zero anomalies and positive
+native arm/decision counts. It neither invokes that qualifier again nor adds
+these nested observations to the full-discovery method count.
+
+Default-release readback admits both the packaged full-cost component and the
+valid administrator patch component against this exact cold result. It checks
+their original compiler requests, receipts, complete output buffers and images
+using the product's existing transport checks. It then reads the actual ordinary
+base wheel and platform candidate wheel, verifies every member and RECORD row,
+and checks the exact derived pin, fixed bundle digest, provenance, packaged
+cold report and image. All other production source and resource bytes must
+remain identical to the cold-bound source/base wheel. Both actual installations
+must still match their original inventories, wheel bytes, installed RECORD and
+wheel-origin metadata. All captured inputs participate in the final readback.
+The candidate remains `MATCHING_SOURCE_COLD_COMPONENT`; this observation does
+not activate a release, change the portable source default, remove the old
+reference bodies or establish whole-native delivery.
+
 Two further commands run the unchanged four-group CLI-discovery qualifier and
 the complete ordinary CLI-discovery caller qualifier. Complete discovery alone
 does not establish their original per-group deadlines. The four original groups
@@ -246,7 +349,9 @@ JSON fixture, source identities and original process-owner results are checked
 again against this run's exact cold report. These are additional observations,
 not extra credit in the full-discovery denominator.
 
-All ten supplemental commands use the unmodified product workflow supervisor
+The ten existing supplemental command definitions and service-context command
+eleven remain unchanged. The cost-ledger caller command follows as number twelve,
+all using the unmodified product workflow supervisor
 with its ordinary 1800-second budget. The original inner limits, including the
 CLI compilation and installed subprocess limits of twenty seconds, remain in
 force. Reports require complete planned/started/stopped IDs, nonzero exact

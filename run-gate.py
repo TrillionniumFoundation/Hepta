@@ -9,10 +9,14 @@ from __future__ import annotations
 
 import argparse
 import ast
+import base64
+import csv
 from decimal import Decimal
 import hashlib
 import importlib.util
+import io
 import json
+import marshal
 import os
 from pathlib import Path
 import platform
@@ -25,6 +29,7 @@ import types
 import tarfile
 import time
 import unittest
+import zipfile
 
 TARGET_SCHEMA = "hepta.hia.full-retained-audit-target.v1"
 PRODUCT_REPOSITORY = "TrillionniumFoundation/Hepta"
@@ -134,7 +139,15 @@ EXTRA_COLD_COMPONENTS = (
     "BOUNDED_MEMORY", "SCALAR_PROFILE", "GENERATION_RETENTION",
     "PUBLICATION_MEASUREMENT", "SHA256_STREAM_DIFFERENTIAL",
     "FULL_COST", "PATCH_IMPACT", "CLI_DISCOVERY_JSON", "STATIC_BUDGET", "STORE_LIFECYCLE",
+    "DEFAULT_RELEASE", "SERVICE_CONTEXT", "COST_LEDGER",
 )
+
+DEFAULT_RELEASE_SOURCE_CLASS = "tests.test_hia_default_native_release.DefaultReleaseSourceTests"
+DEFAULT_RELEASE_NATIVE_CLASS = "tests.test_hia_default_native_release.DefaultReleaseNativeTests"
+SERVICE_CONTEXT_SOURCE_CLASS = "tests.test_hia_service_context_native.ServiceContextSourceTests"
+SERVICE_CONTEXT_NATIVE_CLASS = "tests.test_hia_service_context_native.ServiceContextNativeTests"
+COST_LEDGER_SOURCE_CLASS = "tests.test_hia_cost_ledger_native.CostLedgerSourceTests"
+COST_LEDGER_NATIVE_CLASS = "tests.test_hia_cost_ledger_native.CostLedgerNativeTests"
 
 # These classes occur only in complete discovery, not the source/native tuples
 # extracted by the unchanged v4. Keep their actual same-run build evidence for
@@ -160,6 +173,9 @@ FULL_DISCOVERY_EVIDENCE = {
                       "HEPTA_HIA_STATIC_BUDGET_EVIDENCE"),
     "store-lifecycle": ("tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests",
                         "HEPTA_HIA_STORE_LIFECYCLE_EVIDENCE"),
+    "default-release": (DEFAULT_RELEASE_NATIVE_CLASS, "HEPTA_HIA_DEFAULT_RELEASE_EVIDENCE"),
+    "service-context": (SERVICE_CONTEXT_NATIVE_CLASS, "HEPTA_HIA_SERVICE_CONTEXT_EVIDENCE"),
+    "cost-ledger": (COST_LEDGER_NATIVE_CLASS, "HEPTA_HIA_COST_LEDGER_EVIDENCE"),
 }
 # The selected CLI callers use a separate fixture under the same evidence root.
 # They remain their own complete class in the original full discovery.
@@ -185,6 +201,9 @@ ADDITIONAL_DISCARDED_SELECTORS = (
     "HEPTA_HIA_CLI_DISCOVERY_CALLERS_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_STATIC_BUDGET_MANIFEST", "HEPTA_HIA_STATIC_BUDGET_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_STORE_LIFECYCLE_MANIFEST", "HEPTA_HIA_STORE_LIFECYCLE_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_DEFAULT_RELEASE_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_SERVICE_CONTEXT_MANIFEST", "HEPTA_HIA_SERVICE_CONTEXT_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_COST_LEDGER_MANIFEST", "HEPTA_HIA_COST_LEDGER_DEVELOPMENT_COMPILER",
 )
 
 
@@ -194,6 +213,12 @@ def component_workflow_coverage(root):
     if len(blocks) != 2:
         raise ValueError("expected the original two extracted workflow groups")
     named = [re.findall(r"'(tests\.[^']+)'", block) for block in blocks]
+    if DEFAULT_RELEASE_SOURCE_CLASS not in named[0]:
+        raise ValueError("default-release source class must remain in the first extracted source tuple")
+    if SERVICE_CONTEXT_SOURCE_CLASS not in named[0]:
+        raise ValueError("service-context source class must remain in the first extracted source tuple")
+    if COST_LEDGER_SOURCE_CLASS not in named[0]:
+        raise ValueError("cost-ledger source class must remain in the first extracted source tuple")
     groups = [node for node in ast.walk(ast.parse((root / RUNNER).read_bytes()))
               if isinstance(node, ast.Assign) and len(node.targets) == 1
               and getattr(node.targets[0], "id", None) == "groups"]
@@ -212,6 +237,9 @@ def component_workflow_coverage(root):
     return {"source_workflow_selectors": named[0], "native_workflow_selectors": named[1],
             "original_component_groups": original_groups,
             "required_full_discovery_classes": required_classes,
+            "default_release_source_class_in_first_source_tuple": True,
+            "service_context_source_class_in_first_source_tuple": True,
+            "cost_ledger_source_class_in_first_source_tuple": True,
             "retained_native_classes_first_execute_in_full_discovery": True,
             "extra_component_suite_reruns": False}
 
@@ -417,12 +445,19 @@ def require_observed_component_methods(discovery, identity):
     classes = [row[0] for row in FULL_DISCOVERY_EVIDENCE.values()]
     classes.append("tests.test_hia_bounded_memory_native.BoundedMemoryNativeTests")
     classes.extend(ADDITIONAL_FULL_DISCOVERY_CLASSES)
+    classes.append(COST_LEDGER_SOURCE_CLASS)
     checked = {}
     for name in classes:
         planned = [item for item in discovery["planned_test_ids"] if item.startswith(name + ".")]
         observed = [row for row in identity["observations"]
                     if isinstance(row.get("id"), str) and row["id"].startswith(name + ".")]
+        if name == SERVICE_CONTEXT_NATIVE_CLASS and len(planned) != 12:
+            raise ValueError("service-context requires all twelve original native methods")
+        if ((name == COST_LEDGER_NATIVE_CLASS and len(planned) != 9)
+                or (name == COST_LEDGER_SOURCE_CLASS and len(planned) != 3)):
+            raise ValueError("cost-ledger requires all nine native and three source methods")
         if (not planned or [row["id"] for row in observed] != planned
+                or (name == DEFAULT_RELEASE_NATIVE_CLASS and len(planned) != 12)
                 or not all(row.get("completion_observed") is True
                            and len(row["terminal_status_candidates"]) == 1
                            and row["terminal_status_candidates"][0]["status"] == "ok" for row in observed)):
@@ -446,6 +481,850 @@ def require_cold_component(manifest_path, source_name, cold_sha, compiler_sha, s
             or manifest.get("image_sha256") != pins[str(image)]):
         raise ValueError("full-discovery component does not bind this same cold: " + str(manifest_path))
     return str(manifest_path)
+
+
+def release_bytes(path, pins):
+    """Capture real artifact bytes for the supplemental final readback."""
+    path = Path(path)
+    if path.is_symlink() or not stat.S_ISREG(path.lstat().st_mode):
+        raise ValueError("default-release artifact is not a regular file: " + str(path))
+    path = path.resolve(strict=True)
+    raw = path.read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    if str(path) in pins and pins[str(path)] != digest:
+        raise ValueError("default-release captured artifact changed: " + str(path))
+    pins[str(path)] = digest
+    return raw
+
+
+def release_json(path, pins):
+    return json.loads(release_bytes(path, pins))
+
+
+def require_release_record(files, record, *, installed=False):
+    """Check every recorded byte, including pip's target-directory script row."""
+    rows = list(csv.reader(io.StringIO(files[record].decode("utf-8"), newline="")))
+    observed = set()
+    for row in rows:
+        if len(row) != 3:
+            raise ValueError("default-release RECORD row shape differs")
+        name, digest, size = row
+        # pip --target retains this script row relative to its temporary
+        # site-packages directory, then moves the actual script to bin/hia.
+        if installed and name == "../../bin/hia":
+            name = "bin/hia"
+        if name not in files or name in observed:
+            raise ValueError("default-release RECORD has an absent or duplicate member")
+        observed.add(name)
+        expected = base64.urlsafe_b64encode(hashlib.sha256(files[name]).digest()).rstrip(b"=").decode("ascii")
+        if ((name == record and (digest or size)) or (name != record
+                and (digest != "sha256=" + expected or size != str(len(files[name]))))):
+            raise ValueError("default-release RECORD hash or length differs: " + name)
+    if observed != set(files):
+        raise ValueError("default-release RECORD omits actual members")
+
+
+def release_wheel(path, pins):
+    raw = release_bytes(path, pins)
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        members = archive.infolist()
+        names = [item.filename for item in members]
+        if (len(names) != len(set(names)) or any(item.is_dir()
+                or stat.S_IFMT(item.external_attr >> 16) not in (0, stat.S_IFREG)
+                or Path(item.filename).is_absolute() or ".." in Path(item.filename).parts
+                or "\\" in item.filename or Path(item.filename).as_posix() != item.filename
+                for item in members)):
+            raise ValueError("default-release wheel member inventory differs")
+        files = {name: archive.read(name) for name in names}
+    records = [name for name in files if name.endswith(".dist-info/RECORD")]
+    if len(records) != 1:
+        raise ValueError("default-release wheel requires exactly one RECORD")
+    require_release_record(files, records[0])
+    return files, records[0].removesuffix("/RECORD")
+
+
+def require_release_installation(directory, expected, files, distribution, wheel, wheel_sha, pins):
+    directory = Path(directory).resolve(strict=True)
+    actual = {}
+    for path in sorted(directory.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("default-release installed member is a symlink")
+        if path.is_file():
+            actual[path.relative_to(directory).as_posix()] = release_bytes(path, pins)
+    if {name: hashlib.sha256(raw).hexdigest() for name, raw in actual.items()} != expected:
+        raise ValueError("default-release installation changed since original observation")
+    record = distribution + "/RECORD"
+    extras = {"bin/hia", *(distribution + "/" + name for name in ("INSTALLER", "REQUESTED", "direct_url.json"))}
+    if (set(actual) != set(files) | extras
+            or any(actual.get(name) != raw for name, raw in files.items() if name != record)):
+        raise ValueError("default-release installed product bytes differ from the real wheel")
+    require_release_record(actual, record, installed=True)
+    origin = json.loads(actual[distribution + "/direct_url.json"])
+    if (origin.get("url") != wheel.as_uri()
+            or origin.get("archive_info", {}).get("hashes", {}).get("sha256") != wheel_sha):
+        raise ValueError("default-release installation names another wheel")
+    return {"path": str(directory), "actual_files": len(actual), "record_sha256": pins[str(directory / record)]}
+
+
+def require_release_compilation(directory, label, source_name, input_names, root, compiler, sources, pins):
+    """Read existing compiler transport evidence; never compile or invoke again."""
+    from tools.build_hia_source_build import _check_pack_output, _check_compile_receipt
+    directory = Path(directory)
+    build = release_json(directory / "build.json", pins)
+    manifest = release_json(directory / "manifest.json", pins)
+    receipt = release_json(directory / (label + ".receipt.json"), pins)
+    request = release_json(directory / (label + ".request.json"), pins)
+    source = release_bytes(root / source_name, pins)
+    image_path = directory / (label + ".image.bin")
+    image = release_bytes(image_path, pins)
+    output = release_bytes(directory / (label + ".output.bin"), pins)
+    artifact = release_bytes(compiler, pins)
+    if (build.get("native_compile_receipt") != receipt
+            or build.get("component_inputs") != {name: sources[name] for name in input_names}
+            or manifest.get("image_path") != image_path.name
+            or receipt.get("produced_image") != str(image_path)
+            or release_bytes(directory / (label + ".input.bin"), pins) != source
+            or request != {"capacity": 1048576, "format": "flat-x86-64", "image": str(compiler),
+                "image_sha256": hashlib.sha256(artifact).hexdigest(),
+                "output": str(directory / (label + ".output.bin")),
+                "source": str(directory / (label + ".input.bin")),
+                "source_sha256": sources[source_name], "workspace_fill": 0, "workspace_size": 1048576}
+            or _check_pack_output(receipt, output, artifact=artifact, source=source) != image):
+        raise ValueError("default-release compiler transport differs from actual source and image")
+    _check_compile_receipt(receipt, compiler=artifact, source=source, produced=image)
+    return manifest
+
+
+def require_release_callers(directory, root, package, manifest, sources, discovery, files, distribution, pins):
+    """Reuse all 38 nested observations and their original verbose log."""
+    from tools.qualify_hia_full_cost_callers import ORIGINAL_MODULES
+    directory = Path(directory)
+    report = release_json(directory / "report.json", pins)
+    child = release_json(directory / "child-report.json", pins)
+    descriptions = [row for module in ORIGINAL_MODULES for row in discovery["test_descriptions"]
+                    if row["id"].startswith(module + ".")]
+    planned = [row["id"] for row in descriptions]
+    original_pins = {module.replace(".", "/") + ".py": sources[module.replace(".", "/") + ".py"]
+                     for module in ORIGINAL_MODULES}
+    for name, digest in original_pins.items():
+        if hashlib.sha256(release_bytes(root / name, pins)).hexdigest() != digest:
+            raise ValueError("default-release original caller source differs")
+    shared = ("scope", "compiler_sha256", "cold_report_sha256", "wheel_sha256",
+              "default_bundle_sha256", "source_manifest")
+    installed = directory / "installed"
+    if (report.get("schema") != "hepta.hia.default-native-original-callers.v1"
+            or report.get("status") != "PASS" or report.get("child_returncode") != 0
+            or any(report.get(key) != package[key] for key in shared)
+            or any(report.get(key) != value for key, value in child.items())
+            or report.get("package_build_sha256") != pins[str(directory.parent / "build/build.json")]
+            or report.get("native_image_sha256") != manifest["image_sha256"]
+            or report.get("original_modules") != list(ORIGINAL_MODULES)
+            or report.get("original_caller_pins") != original_pins
+            or len(planned) != 38 or len(set(planned)) != 38
+            or not all(any(row.startswith(module + ".") for row in planned) for module in ORIGINAL_MODULES)
+            or not (report.get("planned") == report.get("started") == report.get("stopped") == planned)
+            or type(report.get("actual_tests")) is not int or report["actual_tests"] != 38
+            or any(report.get(key) != [] for key in ("errors", "failures", "skipped",
+                                                    "expected_failures", "unexpected_successes"))
+            or not all(type(report.get(key)) is int and report[key] > 0
+                       for key in ("native_arm_calls", "native_decision_calls"))
+            or not all(report.get(key) is True for key in ("no_native_selector_environment",
+                "retained_python_arithmetic_forbidden", "source_wheel_and_installation_unchanged"))
+            or report.get("retained_reference_bodies_removed") is not False
+            or report.get("whole_native_delivery_qualified") is not False
+            or report.get("product_module") != str(installed / "hepta/hia_full_cost_gate.py")
+            or report.get("native_source") != str(installed / "hepta/_data/examples/hia_bootstrap/full_cost.hepta")):
+        raise ValueError("default-release original 38 no-selector caller observations differ")
+    observed = audit_verbose_stderr(release_bytes(directory / "tests.log", pins),
+        {"planned_test_ids": planned, "test_descriptions": descriptions})
+    if observed["equivalent"] is not True:
+        raise ValueError("default-release original verbose log does not contain all 38 successful methods")
+    for name in ("install.stdout", "install.stderr", "child.stdout", "child.stderr"):
+        release_bytes(directory / name, pins)
+    installation = require_release_installation(installed, report["installation_before"], files,
+        distribution, Path(package["wheel"]), package["wheel_sha256"], pins)
+    return {"report": str(directory / "report.json"), "actual_tests": 38,
+            "native_arm_calls": report["native_arm_calls"], "native_decision_calls": report["native_decision_calls"],
+            "original_verbose_identity": observed, "installation": installation,
+            "no_native_selector_environment": True, "test_bodies_rerun_by_supplement": False}
+
+
+def require_default_release(directory, root, cold_path, compiler, sources, discovery, pins):
+    """Admit the real candidate produced by the first full native class only."""
+    from hepta.hia_default_native import BUNDLE_RESOURCE, PIN_SCHEMA, SELECTOR, TARGET, render_pin
+    from tools.build_hia_default_release import encoded
+    from tools.build_hia_full_cost import INPUTS as COST_INPUTS
+    from tools.build_hia_patch_impact import INPUTS as PATCH_INPUTS
+    directory = Path(directory)
+    package_path = directory / "build/build.json"
+    package = release_json(package_path, pins)
+    cold_raw = release_bytes(cold_path, pins)
+    cold_sha, compiler_sha = pins[str(cold_path)], hashlib.sha256(release_bytes(compiler, pins)).hexdigest()
+    scope = "MATCHING_SOURCE_COLD_COMPONENT"
+    source_sha = hashlib.sha256(encoded(sources)).hexdigest()
+    if (package.get("schema") != "hepta.hia.default-native-wheel-build.v1"
+            or package.get("scope") != scope or package.get("cold_report_sha256") != cold_sha
+            or package.get("compiler_sha256") != compiler_sha or package.get("source_manifest") != sources
+            or package.get("source_identity_sha256") != source_sha or package.get("target") != TARGET
+            or package.get("wheel_tag") != "py3-none-linux_x86_64"
+            or package.get("matching_source_cold_component") is not True
+            or any(package.get(key) is not False for key in ("ordinary_source_default_changed",
+                "retained_reference_bodies_removed", "installed_default_qualification_completed",
+                "whole_native_delivery_qualified", "production_activated"))):
+        raise ValueError("default-release package does not bind this matching-source cold")
+    components = {}
+    for label, relative, source_name, inputs in (
+            ("full-cost", "build/component", "examples/hia_bootstrap/full_cost.hepta", COST_INPUTS),
+            ("patch-impact", "other-owner", "examples/hia_bootstrap/patch_impact.hepta", PATCH_INPUTS)):
+        location = directory / relative
+        components[label] = require_cold_component(location / "manifest.json", source_name,
+            cold_sha, compiler_sha, sources, pins)
+        require_release_compilation(location, label, source_name, inputs, root, compiler, sources, pins)
+    manifest_raw = release_bytes(directory / "build/component/manifest.json", pins)
+    manifest = json.loads(manifest_raw)
+    component_raw = release_bytes(directory / "build/component/build.json", pins)
+    image_raw = release_bytes(directory / "build/component/full-cost.image.bin", pins)
+    wheel = Path(package["wheel"])
+    if wheel.parent != directory / "build" or not wheel.name.endswith("-1hiafullcostcold-py3-none-linux_x86_64.whl"):
+        raise ValueError("default-release wheel path or platform build tag differs")
+    files, distribution = release_wheel(wheel, pins)
+    bases = list((directory / "build/base-wheel").glob("*.whl"))
+    if len(bases) != 1:
+        raise ValueError("default-release ordinary base wheel is absent or ambiguous")
+    base, base_distribution = release_wheel(bases[0], pins)
+    if (base_distribution != distribution or pins[str(wheel)] != package.get("wheel_sha256")
+            or pins[str(bases[0])] != package.get("base_wheel_sha256")
+            or {name: hashlib.sha256(raw).hexdigest() for name, raw in files.items()} != package.get("members")):
+        raise ValueError("default-release real wheel bytes or members differ from construction")
+    pin_name = "hepta/hia_default_native_pin.py"
+    source_python = {name: digest for name, digest in sources.items()
+                     if name.startswith("hepta/") and name.endswith(".py")}
+    for name, digest in source_python.items():
+        if name not in base or hashlib.sha256(base[name]).hexdigest() != digest:
+            raise ValueError("default-release base wheel changed or omitted source Python")
+    for name, raw in base.items():
+        if name.startswith("hepta/"):
+            source_name = name.removeprefix("hepta/_data/") if name.startswith("hepta/_data/") else name
+            if sources.get(source_name) != hashlib.sha256(raw).hexdigest():
+                raise ValueError("default-release base wheel has unbound product bytes")
+        elif not name.startswith(distribution + "/"):
+            raise ValueError("default-release base wheel has unexpected members")
+    if base.get(pin_name) != render_pin(None):
+        raise ValueError("default-release ordinary source pin is no longer portable")
+    prefix = "hepta/" + str(Path(BUNDLE_RESOURCE).parent) + "/"
+    bundle = encoded({"schema": "hepta.hia.native-helpers.v1", "target": TARGET,
+        "abi": "hia-byte-six-argument-v1", "helpers": [{"selector": SELECTOR,
+            "manifest_path": "manifest.json", "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest()}]})
+    bundle_sha = hashlib.sha256(bundle).hexdigest()
+    pin = (PIN_SCHEMA, TARGET, BUNDLE_RESOURCE, bundle_sha, scope, cold_sha, source_sha)
+    pin_raw = render_pin(pin)
+    provenance = {"schema": "hepta.hia.default-native-package-provenance.v1", "scope": scope,
+        "target": TARGET, "source_identity_sha256": source_sha, "source_manifest": sources,
+        "compiler_sha256": compiler_sha, "cold_report_sha256": cold_sha,
+        "component_build_sha256": hashlib.sha256(component_raw).hexdigest(),
+        "default_bundle_sha256": bundle_sha, "pin_template_sha256": sources[pin_name],
+        "derived_pin_sha256": hashlib.sha256(pin_raw).hexdigest(),
+        "runtime_source_transformations": {pin_name: "data-only pin derived by the cold-bound builder"},
+        "retained_reference_bodies_removed": False, "whole_native_delivery_qualified": False,
+        "production_activated": False}
+    derived = {pin_name: pin_raw, prefix + "bundle.json": bundle, prefix + "manifest.json": manifest_raw,
+        prefix + "full-cost.image.bin": image_raw, prefix + "component-build.json": component_raw,
+        prefix + "cold-report.json": cold_raw, prefix + "provenance.json": encoded(provenance),
+        distribution + "/WHEEL": ("Wheel-Version: 1.0\nGenerator: hepta.default-native-candidate.v1\n"
+            "Root-Is-Purelib: false\nBuild: 1hiafullcostcold\nTag: py3-none-linux_x86_64\n").encode()}
+    if (package.get("pin") != list(pin) or package.get("default_bundle_sha256") != bundle_sha
+            or package.get("derived_package_members") != sorted(derived)
+            or set(files) != set(base) | set(derived)
+            or any(files.get(name) != raw for name, raw in derived.items())
+            or any(files[name] != raw for name, raw in base.items()
+                   if name not in derived and name != distribution + "/RECORD")):
+        raise ValueError("default-release derived pin, image, provenance or preserved source differs")
+    custody = release_json(directory / "component-custody.json", pins)
+    if (custody.get("schema") != "hepta.hia.default-native-release-test-custody.v1"
+            or any(custody.get(key) != package[key] for key in ("scope", "compiler_sha256",
+                "cold_report_sha256", "wheel", "wheel_sha256", "default_bundle_sha256"))
+            or custody.get("package_build_sha256") != pins[str(package_path)]
+            or custody.get("source_manifest_before") != sources or custody.get("source_manifest_after") != sources
+            or custody.get("installed_files_before") != custody.get("installed_files_after")
+            or custody.get("source_and_installation_unchanged") is not True
+            or custody.get("independent_VM_both_protocols_before_image_construction") is not True
+            or custody.get("retained_reference_bodies_removed") is not False
+            or custody.get("whole_native_delivery_qualified") is not False):
+        raise ValueError("default-release full-class source and installation custody differs")
+    installation = require_release_installation(directory / "installed", custody["installed_files_before"],
+        files, distribution, wheel, package["wheel_sha256"], pins)
+    callers = require_release_callers(directory / "original-callers", root, package, manifest, sources,
+                                     discovery, files, distribution, pins)
+    return {"scope": scope, "package_build": str(package_path), "wheel": str(wheel),
+        "wheel_sha256": package["wheel_sha256"], "default_bundle_sha256": bundle_sha,
+        "native_image_sha256": manifest["image_sha256"], "source_identity_sha256": source_sha,
+        "same_cold_components": components, "installation": installation, "original_callers": callers,
+        "full_native_methods": 12, "test_bodies_rerun_by_supplement": False,
+        "ordinary_source_default_changed": False, "retained_reference_bodies_removed": False,
+        "whole_native_delivery_qualified": False, "passed": True}
+
+
+def service_context_installed_record(actual, files, distribution, installed):
+    """Validate pip's derived caches without executing their code objects."""
+    record = distribution + "/RECORD"
+    extras = {"bin/hia", *(distribution + "/" + name for name in ("INSTALLER", "REQUESTED", "direct_url.json"))}
+    caches = set(actual) - set(files) - extras
+    metadata, origins = {}, set()
+    attributes = ("co_argcount", "co_posonlyargcount", "co_kwonlyargcount", "co_nlocals", "co_stacksize",
+                  "co_flags", "co_code", "co_names", "co_varnames", "co_filename", "co_name", "co_qualname",
+                  "co_firstlineno", "co_linetable", "co_exceptiontable", "co_freevars", "co_cellvars")
+    def same_code(left, right):
+        return (type(left) is types.CodeType and type(right) is types.CodeType and left == right
+                and all(getattr(left, key) == getattr(right, key) for key in attributes)
+                and all(same_code(a, b) for a, b in zip(left.co_consts, right.co_consts)
+                        if type(a) is types.CodeType or type(b) is types.CodeType))
+    for name in caches:
+        cache_path = installed / name
+        source_path = Path(importlib.util.source_from_cache(str(cache_path)))
+        source_name = source_path.relative_to(installed).as_posix()
+        if source_name not in files or not source_name.endswith(".py"):
+            raise ValueError("service-context installed cache has no wheel source")
+        levels = [level for level in (0, 1, 2) if cache_path == Path(importlib.util.cache_from_source(
+            str(source_path), optimization="" if level == 0 else str(level)))]
+        raw, source = actual[name], files[source_name]
+        flags = int.from_bytes(raw[4:8], "little")
+        if (len(levels) != 1 or len(raw) < 16 or raw[:4] != importlib.util.MAGIC_NUMBER
+                or flags not in (0, 1, 3)
+                or (flags & 1 and raw[8:16] != importlib.util.source_hash(source))
+                or (not flags and (int.from_bytes(raw[8:12], "little") != int(source_path.stat().st_mtime) & 0xffffffff
+                                   or int.from_bytes(raw[12:16], "little") != len(source) & 0xffffffff))):
+            raise ValueError("service-context installed cache header differs from its actual source")
+        body = io.BytesIO(raw[16:])
+        code = marshal.load(body)
+        if (body.read() or type(code) is not types.CodeType
+                or not Path(code.co_filename).is_absolute() or ".." in Path(code.co_filename).parts
+                or Path(code.co_filename).as_posix() != code.co_filename
+                or any(ord(char) < 32 for char in code.co_filename)
+                or not code.co_filename.endswith("/" + source_name)
+                or not same_code(code, compile(source, code.co_filename, "exec", dont_inherit=True, optimize=levels[0]))):
+            raise ValueError("service-context installed cache code differs from its wheel source")
+        origin = code.co_filename[:-(len(source_name) + 1)]
+        origins.add(origin)
+        metadata[name] = {"source_member": source_name, "co_filename": code.co_filename,
+                          "header_hex": raw[:16].hex(), "optimization": levels[0],
+                          "source_sha256": hashlib.sha256(source).hexdigest(),
+                          "cache_sha256": hashlib.sha256(raw).hexdigest()}
+    if len(origins) > 1:
+        raise ValueError("service-context cache filename metadata spans different installation origins")
+    # Cache rows legitimately have no hash/size in pip's original RECORD. Every
+    # such row must be one of the independently verified derived code objects.
+    retained, observed = [], set()
+    for row in csv.reader(io.StringIO(actual[record].decode("utf-8"), newline="")):
+        if len(row) != 3:
+            raise ValueError("service-context installed RECORD row shape differs")
+        if row[0] in caches:
+            if row[0] in observed or row[1:] != ["", ""]:
+                raise ValueError("service-context cache RECORD row differs")
+            observed.add(row[0])
+        else:
+            retained.append(row)
+    if observed != caches:
+        raise ValueError("service-context RECORD omits a derived cache")
+    ordinary = {name: raw for name, raw in actual.items() if name not in caches}
+    if (set(ordinary) != set(files) | extras
+            or any(ordinary.get(name) != raw for name, raw in files.items() if name != record)):
+        raise ValueError("service-context installed production bytes differ from its real wheel")
+    normalized = io.StringIO(newline="")
+    csv.writer(normalized).writerows(retained)
+    ordinary[record] = normalized.getvalue().encode("utf-8")
+    require_release_record(ordinary, record, installed=True)
+    return {"files": metadata, "compilation_origins": sorted(origins)}
+
+
+def require_service_context_installation(directory, root, sources, manifest, pins):
+    """Read the already executed wheel/worker/bundle observation without reruns."""
+    from hepta.hia_native_helpers import ABI, SCHEMA, TARGET
+    directory = Path(directory)
+    location = directory / "installation"
+    custody = release_json(location / "installed-custody.json", pins)
+    wheels = sorted((location / "wheels").glob("*.whl"))
+    if len(wheels) != 1:
+        raise ValueError("service-context requires its one actual installed wheel")
+    wheel = wheels[0]
+    files, distribution = release_wheel(wheel, pins)
+    required = ("real_public_context_lookup_budget_remaining", "references_poisoned",
+                "actual_installed_JSON_worker_context_request", "administrator_bundle_scope_restored",
+                "installed_source_and_child_manifest_drift_refused")
+    if (custody.get("wheel_sha256") != pins[str(wheel)]
+            or custody.get("native_image_sha256") != manifest["image_sha256"]
+            or any(custody.get(key) is not True for key in required)):
+        raise ValueError("service-context installed observations differ from the actual wheel/image")
+    for name, raw in files.items():
+        if name.startswith("hepta/"):
+            source_name = name.removeprefix("hepta/_data/") if name.startswith("hepta/_data/") else name
+            if sources.get(source_name) != hashlib.sha256(raw).hexdigest():
+                raise ValueError("service-context wheel contains unbound production source")
+        elif not name.startswith(distribution + "/"):
+            raise ValueError("service-context wheel contains an unexpected member")
+    installed = location / "installed"
+    actual = {}
+    for path in sorted(installed.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("service-context installed member is a symlink")
+        if path.is_file():
+            actual[path.relative_to(installed).as_posix()] = release_bytes(path, pins)
+    caches = service_context_installed_record(actual, files, distribution, installed)
+    origin = json.loads(actual[distribution + "/direct_url.json"])
+    if (origin.get("url") != wheel.as_uri()
+            or origin.get("archive_info", {}).get("hashes", {}).get("sha256") != pins[str(wheel)]):
+        raise ValueError("service-context installation names another wheel")
+    child = location / "context.json"
+    child_raw = release_bytes(child, pins)
+    image = release_bytes(location / manifest["image_path"], pins)
+    bundle = release_json(location / "helpers.json", pins)
+    if (child_raw != release_bytes(directory / "built/manifest.json", pins)
+            or hashlib.sha256(image).hexdigest() != manifest["image_sha256"]
+            or bundle != {"schema": SCHEMA, "target": TARGET, "abi": ABI, "helpers": [{
+                "selector": "HEPTA_HIA_SERVICE_CONTEXT_MANIFEST", "manifest_path": child.name,
+                "manifest_sha256": hashlib.sha256(child_raw).hexdigest()}]}):
+        raise ValueError("service-context administrator bundle differs from its executed component")
+    return {"wheel": str(wheel), "wheel_sha256": pins[str(wheel)],
+            "actual_wheel_members": len(files), "actual_installed_files": len(actual),
+            "verified_derived_cache_files": len(caches["files"]),
+            "actual_cache_metadata": caches, "cache_code_objects_executed": False,
+            "installed_product_bytes_match_source_and_wheel": True,
+            "four_public_routes_and_actual_JSON_worker_observed": True,
+            "test_bodies_rerun_by_supplement": False}
+
+
+def service_context_composition_observations(directory, expected_scope, pins):
+    report = release_json(Path(directory) / "composition.json", pins)
+    counts = report.get("actual_native_entries", {})
+    if (report.get("scope") != expected_scope
+            or report.get("original_context_wall_ms") != 3000
+            or report.get("context_store_execution_and_candidate_budget_composed") is not True
+            or report.get("all_retained_policy_references_forbidden") is not True
+            or report.get("whole_native_delivery_qualified") is not False
+            or type(counts) is not dict or set(counts) != {"NativeServiceContextImage",
+                "NativeStoreLifecycleImage", "NativeExecutionBudgetImage", "NativeCandidateBudgetImage"}
+            or any(type(value) is not int or value <= 0 for value in counts.values())):
+        raise ValueError("service-context four-owner composition observations differ")
+    return report
+
+
+def require_service_context_composition(directory, root, cold_path, compiler, sources, pins):
+    from hepta.hia_native_helpers import ABI, SCHEMA, TARGET
+    from tools.build_hia_store_lifecycle import INPUTS as STORE_INPUTS
+    from tools.build_hia_source_build import _check_pack_output, _check_compile_receipt
+    directory = Path(directory)
+    composition = directory / "four-owner-composition"
+    report = service_context_composition_observations(composition, "MATCHING_SOURCE_COLD_COMPONENT", pins)
+    manifests = {"HEPTA_HIA_SERVICE_CONTEXT_MANIFEST": directory / "built/manifest.json",
+                 "HEPTA_HIA_STORE_LIFECYCLE_MANIFEST": composition / "store/manifest.json"}
+    source_name = "examples/hia_bootstrap/store_lifecycle.hepta"
+    require_cold_component(manifests["HEPTA_HIA_STORE_LIFECYCLE_MANIFEST"], source_name,
+                           sha(cold_path), sha(compiler), sources, pins)
+    require_release_compilation(composition / "store", "store-lifecycle", source_name,
+                                STORE_INPUTS, root, compiler, sources, pins)
+    for selector, label, source_name in (
+            ("HEPTA_HIA_EXECUTION_BUDGET_MANIFEST", "execution-budget", "examples/hia_bootstrap/execution_budget.hepta"),
+            ("HEPTA_HIA_CANDIDATE_BUDGET_MANIFEST", "candidate-budget", "examples/hia_bootstrap/candidate_budget.hepta")):
+        location = composition / label
+        manifest_path = location / "manifest.json"
+        manifest = release_json(manifest_path, pins)
+        build = release_json(location / "build.json", pins)
+        request = release_json(location / (label + ".request.json"), pins)
+        receipt = release_json(location / (label + ".receipt.json"), pins)
+        source = release_bytes(root / source_name, pins)
+        artifact = release_bytes(compiler, pins)
+        image_path = location / (label + ".image.bin")
+        image = release_bytes(image_path, pins)
+        output = release_bytes(location / (label + ".output.bin"), pins)
+        if (build.get("schema") != "hepta.hia." + label + "-build.v1"
+                or build.get("status") != "NATIVE_CANDIDATE_BUILT"
+                or build.get("source_manifest") != sources or build.get("cold_report_sha256") != sha(cold_path)
+                or build.get("manifest") != manifest or build.get("native_compile_receipt") != receipt
+                or manifest.get("schema") != "hepta.hia." + label + "-native.v1"
+                or manifest.get("compiler_sha256") != hashlib.sha256(artifact).hexdigest()
+                or manifest.get("source_sha256") != sources[source_name]
+                or manifest.get("image_path") != image_path.name
+                or manifest.get("image_sha256") != hashlib.sha256(image).hexdigest()
+                or receipt.get("produced_image") != str(image_path)
+                or release_bytes(location / (label + ".input.bin"), pins) != source
+                or request != {"capacity": 1048576, "format": "flat-x86-64", "image": str(compiler),
+                    "image_sha256": hashlib.sha256(artifact).hexdigest(), "output": str(location / (label + ".output.bin")),
+                    "source": str(location / (label + ".input.bin")), "source_sha256": sources[source_name],
+                    "workspace_fill": 0, "workspace_size": 1048576}
+                or _check_pack_output(receipt, output, artifact=artifact, source=source) != image):
+            raise ValueError("service-context composed budget does not bind the same cold compiler transport")
+        _check_compile_receipt(receipt, compiler=artifact, source=source, produced=image)
+        manifests[selector] = manifest_path
+    bundle = release_json(composition / "bundle.json", pins)
+    expected = {"schema": SCHEMA, "target": TARGET, "abi": ABI, "helpers": [{
+        "selector": selector, "manifest_path": str(path.resolve()),
+        "manifest_sha256": hashlib.sha256(release_bytes(path, pins)).hexdigest()}
+        for selector, path in sorted(manifests.items())]}
+    if bundle != expected:
+        raise ValueError("service-context four-owner bundle differs from the executed cold components")
+    raw_count = 0
+    for path in sorted(composition.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("service-context composition evidence contains a symlink")
+        if path.is_file():
+            release_bytes(path, pins)
+            raw_count += 1
+    return {"scope": "MATCHING_SOURCE_COLD_COMPONENT", "actual_native_entries": report["actual_native_entries"],
+            "original_context_wall_ms": 3000, "all_retained_policy_references_forbidden": True,
+            "raw_composition_evidence_files": raw_count, "bundle": str(composition / "bundle.json"),
+            "test_bodies_rerun_by_supplement": False, "passed": True}
+
+
+def require_service_context_component(directory, root, cold_path, compiler, sources, pins):
+    from tools.build_hia_service_context import INPUTS, SOURCE_NAME
+    directory = Path(directory)
+    manifest_path = directory / "built/manifest.json"
+    require_cold_component(manifest_path, SOURCE_NAME, sha(cold_path), sha(compiler), sources, pins)
+    manifest = require_release_compilation(directory / "built", "service-context", SOURCE_NAME,
+                                          INPUTS, root, compiler, sources, pins)
+    custody = release_json(directory / "component-custody.json", pins)
+    if (manifest.get("schema") != "hepta.hia.service-context-native.v1"
+            or custody.get("schema") != "hepta.hia.service-context-test-custody.v1"
+            or custody.get("scope") != "MATCHING_SOURCE_COLD_COMPONENT"
+            or custody.get("compiler_sha256") != sha(compiler)
+            or custody.get("compiler_unchanged") is not True
+            or custody.get("image_sha256") != manifest["image_sha256"]
+            or custody.get("whole_native_delivery_qualified") is not False):
+        raise ValueError("service-context first-full component custody differs")
+    effects = release_json(directory / "original-effects.json", pins)
+    if (effects.get("modes") != 4 or effects.get("foreign_failure_points") != 37
+            or any(effects.get(key) is not True for key in (
+                "actual_SQLite_rows_compared", "fixed_schema_and_buffer_providers",
+                "exception_identity_cause_context_notes_preserved",
+                "original_effect_order_and_partial_mutations_preserved"))):
+        raise ValueError("service-context original foreign-effect observations differ")
+    installation = require_service_context_installation(directory, root, sources, manifest, pins)
+    composition = require_service_context_composition(directory, root, cold_path, compiler, sources, pins)
+    return {"scope": "MATCHING_SOURCE_COLD_COMPONENT", "manifest": str(manifest_path),
+            "image_sha256": manifest["image_sha256"], "installation": installation,
+            "four_owner_composition": composition,
+            "original_foreign_failure_points": 37, "test_bodies_rerun_by_supplement": False,
+            "whole_native_delivery_qualified": False, "passed": True}
+
+
+def require_service_context_caller_observations(directory, root, sources, discovery, manifest_path, pins):
+    """Check frozen original methods, source pins and actual existing entries/log."""
+    from tools.qualify_hia_service_context_callers import FIXTURE_NAME, FIXTURE_SHA256
+    from tools.build_hia_service_context import INPUTS
+    from tools.hia_selfhost_contract import file_digests
+    directory = Path(directory)
+    manifest_path = Path(manifest_path)
+    manifest = release_json(manifest_path, pins)
+    report = release_json(directory / "report.json", pins)
+    fixture_path = root / FIXTURE_NAME
+    original = release_json(fixture_path, pins)
+    modules = original.get("modules", [])
+    original_names = {name.replace(".", "/") + ".py" for name in modules}
+    if (pins[str(fixture_path)] != FIXTURE_SHA256
+            or sources.get(FIXTURE_NAME) != FIXTURE_SHA256
+            or original.get("schema") != "hepta.hia.service-context-original-callers.v1"
+            or len(modules) != 4 or len(original_names) != 4
+            or len(original.get("ordered_ids", [])) != 50
+            or set(original.get("source_sha256", {})) != original_names
+            or any((name in sources and sources[name] != digest)
+                   or hashlib.sha256(release_bytes(root / name, pins)).hexdigest() != digest
+                   for name, digest in original["source_sha256"].items())):
+        raise ValueError("service-context original four-module/50-method source inventory differs")
+    # Some original test modules enter cold custody through this frozen caller
+    # inventory rather than a second individual source-manifest key. Both the
+    # inventory's exact bytes and every referenced caller byte are mandatory.
+    bindings = {**sources, **original["source_sha256"]}
+    descriptions = [row for module in modules for row in discovery["test_descriptions"]
+                    if row["id"].startswith(module + ".")]
+    planned = [row["id"] for row in descriptions]
+    source_names = set(file_digests(root)) | {"tools/qualify_hia_service_context_callers.py", FIXTURE_NAME,
+                                             *INPUTS, *original_names}
+    source_pins = {name: hashlib.sha256(release_bytes(root / name, pins)).hexdigest() for name in source_names}
+    bundle_pins = {}
+    for path in sorted(manifest_path.parent.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("service-context caller build contains a symlink")
+        if path.is_file():
+            bundle_pins[str(path)] = hashlib.sha256(release_bytes(path, pins)).hexdigest()
+    modes, events, integers = (report.get(name, {}) for name in
+                              ("native_mode_frames", "actual_machine_mode_events", "actual_integer_operations"))
+    if (report.get("status") != "PASS" or planned != original["ordered_ids"]
+            or len(planned) != 50 or len(set(planned)) != 50
+            or report.get("original_modules") != modules
+            or not (report.get("planned") == report.get("started") == report.get("stopped") == planned)
+            or type(report.get("actual_tests")) is not int or report["actual_tests"] != 50
+            or any(report.get(key) != [] for key in ("errors", "failures", "skipped",
+                                                    "expected_failures", "unexpected_successes", "reference_calls"))
+            or report.get("reference_poison_scope")
+                != "test process; subprocesses inherit selector, not Python patches"
+            or report.get("all_original_modules_unfiltered") is not True
+            or report.get("original_test_budgets_changed") is not False
+            or report.get("source_and_bundle_unchanged") is not True
+            or report.get("foreign_schema_profile_buffer_sqlite_clock_budget_effects_still_hosted") is not True
+            or report.get("whole_native_delivery_qualified") is not False
+            or manifest.get("schema") != "hepta.hia.service-context-native.v1"
+            or manifest.get("source_sha256") != sources["examples/hia_bootstrap/service_context.hepta"]
+            or report.get("native_image_sha256") != manifest["image_sha256"]
+            or bundle_pins.get(str(manifest_path.parent / manifest["image_path"])) != manifest["image_sha256"]
+            or report.get("source_pins") != source_pins or not bundle_pins
+            or report.get("bundle_pins") != bundle_pins
+            or any(bindings.get(name) != digest for name, digest in source_pins.items())
+            or type(modes) is not dict or set(modes) != {"1", "2", "3", "4"}
+            or any(type(value) is not int or value <= 0 for value in modes.values())
+            or type(events) is not dict
+            or not set(events) <= {mode + ":" + event for mode in modes for event in ("0", "1", "2", "3")}
+            or any(type(value) is not int or value <= 0 for value in events.values())
+            or any(events.get(mode + ":0") != modes[mode]
+                   or type(events.get(mode + ":1")) is not int or type(events.get(mode + ":2")) is not int
+                   or events[mode + ":1"] != events[mode + ":2"] + events.get(mode + ":3", 0)
+                   for mode in modes)
+            or type(integers) is not dict or not {"1", "2", "3", "4", "5", "6", "8"} <= set(integers)
+            or not set(integers) <= {str(number) for number in range(1, 9)}
+            or any(type(value) is not int or value <= 0 for value in integers.values())):
+        raise ValueError("service-context original 50 caller observations or captured inputs differ")
+    observed = audit_verbose_stderr(release_bytes(directory / "tests.log", pins),
+        {"planned_test_ids": planned, "test_descriptions": descriptions})
+    if observed["equivalent"] is not True:
+        raise ValueError("service-context original verbose log does not contain all 50 successful methods")
+    return {"actual_tests": 50, "mode_frames": modes, "actual_control_entries": sum(events.values()),
+            "actual_integer_entries": sum(integers.values()), "source_pin_count": len(source_pins),
+            "bundle_pin_count": len(bundle_pins), "original_verbose_identity": observed,
+            "callers_bound_through_frozen_inventory": sorted(original_names - set(sources)),
+            "original_test_budgets_changed": False, "test_bodies_rerun_by_readback": False}
+
+
+def require_cost_ledger_installation(directory, root, sources, manifest, pins):
+    """Read the real installed worker's receipts, without invoking it again."""
+    from hepta import hia_agent_contract as contract
+    from hepta.hia_native_helpers import ABI, SCHEMA, TARGET
+    directory = Path(directory)
+    location = directory / "test_actual_installed_wheel_and_original_worker_use_pinned_ledger"
+    observation = release_json(location / "installed-observation.json", pins)
+    wheels = sorted((location / "wheels").glob("*.whl"))
+    if len(wheels) != 1:
+        raise ValueError("cost-ledger requires its one actual installed wheel")
+    wheel = wheels[0]
+    files, distribution = release_wheel(wheel, pins)
+    for name, raw in files.items():
+        if name.startswith("hepta/"):
+            source_name = name.removeprefix("hepta/_data/") if name.startswith("hepta/_data/") else name
+            if sources.get(source_name) != hashlib.sha256(raw).hexdigest():
+                raise ValueError("cost-ledger wheel contains unbound production source")
+        elif not name.startswith(distribution + "/"):
+            raise ValueError("cost-ledger wheel contains an unexpected member")
+    installed = location / "installed"
+    actual = {}
+    for path in sorted(installed.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("cost-ledger installed member is a symlink")
+        if path.is_file():
+            actual[path.relative_to(installed).as_posix()] = release_bytes(path, pins)
+    record = distribution + "/RECORD"
+    extras = {"bin/hia", *(distribution + "/" + name for name in ("INSTALLER", "REQUESTED", "direct_url.json"))}
+    if (set(actual) != set(files) | extras
+            or any(actual.get(name) != raw for name, raw in files.items() if name != record)):
+        raise ValueError("cost-ledger installed product bytes differ from its real wheel")
+    require_release_record(actual, record, installed=True)
+    origin = json.loads(actual[distribution + "/direct_url.json"])
+    if (origin.get("url") != wheel.as_uri()
+            or origin.get("archive_info", {}).get("hashes", {}).get("sha256") != pins[str(wheel)]):
+        raise ValueError("cost-ledger installation names another wheel")
+    manifest_path = directory / "built/manifest.json"
+    manifest_raw = release_bytes(manifest_path, pins)
+    image = release_bytes(manifest_path.parent / manifest["image_path"], pins)
+    bundle_path = location / "bundle.json"
+    bundle = release_json(bundle_path, pins)
+    bundle_sha = pins[str(bundle_path)]
+    if (json.loads(manifest_raw) != manifest
+            or hashlib.sha256(image).hexdigest() != manifest["image_sha256"]
+            or bundle != {"schema": SCHEMA, "target": TARGET, "abi": ABI, "helpers": [{
+                "selector": "HEPTA_HIA_COST_LEDGER_MANIFEST", "manifest_path": str(manifest_path),
+                "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest()}]}
+            or observation.get("wheel") != str(wheel)
+            or observation.get("wheel_sha256") != pins[str(wheel)]
+            or observation.get("bundle_sha256") != bundle_sha
+            or observation.get("actual_installed_source_sha256")
+                != sources["examples/hia_bootstrap/cost_ledger.hepta"]
+            or observation.get("old_reference_forbidden") is not True
+            or observation.get("original_worker_replay") is not True
+            or observation.get("whole_native_delivery_qualified") is not False):
+        raise ValueError("cost-ledger installed observation or administrator bundle differs")
+    # Derive the worker identity from its actual wheel bytes. This reads data;
+    # it does not import the installed package or invoke an installation probe.
+    entries = {name: hashlib.sha256(raw).hexdigest() for name, raw in files.items()
+               if name.startswith("hepta/") and name.endswith(".py") and not name.startswith("hepta/_data/")}
+    resources = ["docs/" + name for name in contract.DISCOVERY_FILES]
+    for group in ("NATIVE_SOURCE_FILES", "SOURCE_BUILD_FILES", "COMPILER_BUILD_FILES", "PUBLICATION_BUILD_FILES",
+                  "BACKEND_BUILD_FILES", "EMITTER_BUILD_FILES", "BYTE_WRAPPER_BUILD_FILES",
+                  "MACHINE_OBJECT_BUILD_FILES", "EXECUTION_OBSERVATION_BUILD_FILES", "CONTINUATION_BUILD_FILES"):
+        resources.extend(getattr(contract, group))
+    for name in resources:
+        entries[name] = hashlib.sha256(files["hepta/_data/" + name]).hexdigest()
+    worker_sha = hashlib.sha256(json.dumps(entries, ensure_ascii=False, sort_keys=True,
+                                           separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
+    first = release_json(location / "first-report.json", pins)
+    replay = release_json(location / "replay-report.json", pins)
+    counts = []
+    for name in ("first_native_stderr", "replay_native_stderr"):
+        stderr = observation.get(name)
+        markers = re.findall(r"^LEDGER_NATIVE_ADDITIONS=(0|[1-9][0-9]*)$", stderr, re.M) if type(stderr) is str else []
+        if len(markers) != 1:
+            raise ValueError("cost-ledger worker requires one actual native-addition marker per invocation")
+        counts.append(int(markers[0]))
+    response = first.get("response", {})
+    ledger = response.get("result", {}).get("full_cost_ledger", {})
+    if (first != replay or first.get("schema") != "hia-agent-worker-report-v1"
+            or first.get("tool") != "hia_evaluate" or first.get("complete") is not True
+            or first.get("native_helpers_sha256") != bundle_sha
+            or first.get("worker_sha256") != worker_sha
+            or first.get("catalog_sha256") != entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"]
+            or first.get("profile_sha256") != "a" * 64
+            or any(type(first.get(name)) is not str or re.fullmatch(r"[0-9a-f]{64}", first[name]) is None
+                   for name in ("backend_sha256", "request_sha256"))
+            or response.get("status") != "completed" or response.get("contract_version") != contract.VERSION
+            or type(response.get("request_id")) is not str or not response["request_id"]
+            or type(ledger.get("id")) is not str or not ledger["id"]
+            or type(ledger.get("uri")) is not str or not ledger["uri"].startswith("hia://artifacts/")
+            or type(ledger.get("sha256")) is not str or re.fullmatch(r"[0-9a-f]{64}", ledger["sha256"]) is None
+            or counts[0] <= 0 or counts[1] != 0):
+        raise ValueError("cost-ledger actual installed worker/replay receipts differ")
+    return {"wheel": str(wheel), "wheel_sha256": pins[str(wheel)],
+            "actual_wheel_members": len(files), "actual_installed_files": len(actual),
+            "installed_record_sha256": pins[str(installed / record)],
+            "installed_product_bytes_match_source_and_wheel": True,
+            "worker_identity_derived_from_actual_wheel": worker_sha,
+            "first_worker_native_additions": counts[0], "replay_worker_native_additions": counts[1],
+            "native_observation_scope": "installed hia_evaluate worker process NativeCostLedger.add calls",
+            "reference_poison_scope": "installed worker process only; descendant poison is not observed",
+            "worker_replay_receipts_identical": True, "retained_ledger_artifact_reference": ledger,
+            "ledger_artifact_body_retained_by_fixture": False, "request_body_retained_by_fixture": False,
+            "test_bodies_rerun_by_supplement": False, "whole_native_delivery_qualified": False}
+
+
+def require_cost_ledger_component(directory, root, cold_path, compiler, sources, pins):
+    from tools.build_hia_cost_ledger import INPUTS, SOURCE_NAME
+    directory = Path(directory)
+    manifest_path = directory / "built/manifest.json"
+    require_cold_component(manifest_path, SOURCE_NAME, sha(cold_path), sha(compiler), sources, pins)
+    manifest = require_release_compilation(directory / "built", "cost-ledger", SOURCE_NAME,
+                                          INPUTS, root, compiler, sources, pins)
+    build = release_json(directory / "built/build.json", pins)
+    custody = release_json(directory / "component-custody.json", pins)
+    if (manifest.get("schema") != "hepta.hia.cost-ledger-native.v1"
+            or build.get("schema") != "hepta.hia.cost-ledger-build.v1"
+            or build.get("foreign_sqlite_json_object_conversion_and_allocation_hosted") is not True
+            or build.get("ledger_control_comparisons_and_signed_accumulation_owned_by_hia") is not True
+            or build.get("whole_stack_rewritten_in_hia") is not False
+            or build.get("all_input_equivalence_proved") is not False
+            or custody.get("schema") != "hepta.hia.cost-ledger-test-custody.v1"
+            or custody.get("manifest") != str(manifest_path)
+            or custody.get("matching_cold_report") != str(cold_path)
+            or custody.get("compiler_sha256") != sha(compiler)
+            or custody.get("compiler_unchanged") is not True
+            or custody.get("source_manifest_before") != sources or custody.get("source_manifest_after") != sources
+            or custody.get("source_and_compiler_unchanged") is not True
+            or custody.get("test_result_owned_by_outer_runner") is not True
+            or custody.get("foreign_sqlite_json_int_str_and_objects_hosted") is not True
+            or custody.get("whole_native_delivery_qualified") is not False):
+        raise ValueError("cost-ledger first-full component source/compiler custody differs")
+    installation = require_cost_ledger_installation(directory, root, sources, manifest, pins)
+    return {"scope": "MATCHING_SOURCE_COLD_COMPONENT", "manifest": str(manifest_path),
+            "image_sha256": manifest["image_sha256"], "installation": installation,
+            "source_and_compiler_custody_verified": True, "test_result_owned_by_original_full_runner": True,
+            "test_bodies_rerun_by_supplement": False, "whole_native_delivery_qualified": False, "passed": True}
+
+
+def require_cost_ledger_caller_observations(directory, root, sources, discovery, manifest_path, pins):
+    """Bind all seven ordinary modules to their frozen 81 ordered identities."""
+    from tools.qualify_hia_cost_ledger_callers import FIXTURE_NAME, FIXTURE_SHA256
+    from tools.build_hia_cost_ledger import INPUTS
+    from tools.hia_selfhost_contract import file_digests
+    directory = Path(directory)
+    manifest_path = Path(manifest_path)
+    manifest = release_json(manifest_path, pins)
+    report = release_json(directory / "report.json", pins)
+    fixture_path = root / FIXTURE_NAME
+    original = release_json(fixture_path, pins)
+    modules = original.get("modules", [])
+    original_names = {name.replace(".", "/") + ".py" for name in modules}
+    original_sources = original.get("original_source_sha256", {})
+    separate = original.get("explicit_scope_integration_modules", {})
+    separate_names = {name.replace(".", "/") + ".py" for name in separate}
+    if (pins[str(fixture_path)] != FIXTURE_SHA256 or sources.get(FIXTURE_NAME) != FIXTURE_SHA256
+            or original.get("schema") != "hepta.hia.cost-ledger-original-callers.v1"
+            or len(modules) != 7 or len(original_names) != 7 or len(original.get("ordered_ids", [])) != 81
+            or len(separate) != 4 or original_names & separate_names
+            or set(original_sources) != original_names | separate_names
+            or original.get("whole_project_dynamic_caller_closure_claimed") is not False
+            or any((name in sources and sources[name] != original_sources[name])
+                   or hashlib.sha256(release_bytes(root / name, pins)).hexdigest() != original_sources[name]
+                   for name in original_names)):
+        raise ValueError("cost-ledger frozen seven-module/81-method source inventory differs")
+    # The other four modules own explicit administrator bundles. Preserve their
+    # declared inventory in full discovery without injecting this ledger into
+    # them or pretending that this ordinary-caller command executes their cases.
+    for module, declared in separate.items():
+        planned_separate = [row["id"] for row in discovery["test_descriptions"]
+                            if row["id"].startswith(module + ".")]
+        if (not planned_separate or planned_separate != declared.get("ordered_ids")
+                or declared.get("gate") != "unchanged full discovery and original owner gates"
+                or declared.get("selection_boundary")
+                    != "original explicit administrator bundles exclude COST_LEDGER; preserved without image injection"):
+            raise ValueError("cost-ledger separate administrator-scope inventory differs")
+    bindings = {**sources, **{name: original_sources[name] for name in original_names}}
+    descriptions = [row for module in modules for row in discovery["test_descriptions"]
+                    if row["id"].startswith(module + ".")]
+    planned = [row["id"] for row in descriptions]
+    source_names = set(file_digests(root)) | {"tools/qualify_hia_cost_ledger_callers.py", FIXTURE_NAME,
+                                             *INPUTS, *original_names}
+    source_pins = {name: hashlib.sha256(release_bytes(root / name, pins)).hexdigest() for name in source_names}
+    bundle_pins = {}
+    for path in sorted(manifest_path.parent.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("cost-ledger caller build contains a symlink")
+        if path.is_file():
+            bundle_pins[str(path)] = hashlib.sha256(release_bytes(path, pins)).hexdigest()
+    events, frames = report.get("actual_native_event_counts", {}), report.get("actual_ledger_frames")
+    if (report.get("schema") != "hepta.hia.cost-ledger-seven-ordinary-callers.v1"
+            or report.get("status") != "PASS" or planned != original["ordered_ids"]
+            or len(planned) != 81 or len(set(planned)) != 81 or report.get("original_modules") != modules
+            or not (report.get("planned") == report.get("started") == report.get("stopped") == planned)
+            or type(report.get("actual_tests")) is not int or report["actual_tests"] != 81
+            or any(report.get(key) != [] for key in ("errors", "failures", "skipped",
+                                                    "expected_failures", "unexpected_successes", "reference_calls"))
+            or report.get("reference_poison_scope")
+                != "test process; subprocesses inherit selector, not Python patches"
+            or report.get("retained_ledger_body_forbidden") is not True
+            or report.get("all_seven_ordinary_modules_unfiltered") is not True
+            or report.get("original_test_budgets_changed") is not False
+            or report.get("source_and_bundle_unchanged") is not True
+            or report.get("separate_original_administrator_scope_gates") != separate
+            or report.get("whole_project_dynamic_caller_closure_claimed") is not False
+            or report.get("whole_native_delivery_qualified") is not False
+            or manifest.get("schema") != "hepta.hia.cost-ledger-native.v1"
+            or manifest.get("source_sha256") != sources["examples/hia_bootstrap/cost_ledger.hepta"]
+            or report.get("native_image_sha256") != manifest["image_sha256"]
+            or bundle_pins.get(str(manifest_path.parent / manifest["image_path"])) != manifest["image_sha256"]
+            or report.get("source_pins") != source_pins or not bundle_pins or report.get("bundle_pins") != bundle_pins
+            or any(bindings.get(name) != digest for name, digest in source_pins.items())
+            or type(frames) is not int or frames <= 0 or type(events) is not dict
+            or not {"0", "1", "2", "10", "11"} <= set(events) <= {"0", "1", "2", "3", "10", "11"}
+            or any(type(value) is not int or value <= 0 for value in events.values())
+            or events["0"] != frames or events["1"] != events["2"] + events.get("3", 0)):
+        raise ValueError("cost-ledger original 81 caller observations or captured inputs differ")
+    observed = audit_verbose_stderr(release_bytes(directory / "tests.log", pins),
+        {"planned_test_ids": planned, "test_descriptions": descriptions})
+    if observed["equivalent"] is not True:
+        raise ValueError("cost-ledger original verbose log does not contain all 81 successful methods")
+    return {"actual_tests": 81, "actual_ledger_frames": frames, "actual_native_event_counts": events,
+            "actual_control_entries": sum(value for event, value in events.items() if event not in ("10", "11")),
+            "actual_native_additions": events["10"], "actual_native_comparisons": events["11"],
+            "source_pin_count": len(source_pins), "bundle_pin_count": len(bundle_pins),
+            "original_verbose_identity": observed,
+            "callers_bound_through_frozen_inventory": sorted(original_names - set(sources)),
+            "separate_administrator_scope_inventories": separate,
+            "reference_poison_scope": report["reference_poison_scope"],
+            "whole_project_dynamic_caller_closure_claimed": False, "original_test_budgets_changed": False,
+            "test_bodies_rerun_by_readback": False, "whole_native_delivery_qualified": False}
 
 
 def require_discovery_fixture(path, cold_path, cold_sha, compiler_sha, sources, pins):
@@ -519,6 +1398,7 @@ def supplemental(args):
     output.mkdir(exist_ok=False)
     before, error, source_error = None, None, None
     pins, commands, methods, companions, added_components = {}, [], {}, {}, {}
+    default_release = service_context = cost_ledger = None
     sha_image_bound = False
     try:
         if read_pinned_json(args.target, pins) != target:
@@ -584,6 +1464,14 @@ def supplemental(args):
                     or (name == "full-cost" and custody.get("patch_manifest")
                         != added_components["installed-patch-impact"])):
                 raise ValueError("full-discovery component custody differs: " + name)
+        default_release = require_default_release(retained / "default-release", root, cold_path,
+                                                  compiler, sources, discovery, pins)
+        service_context = require_service_context_component(retained / "service-context", root, cold_path,
+                                                            compiler, sources, pins)
+        added_components["service-context"] = service_context["manifest"]
+        cost_ledger = require_cost_ledger_component(retained / "cost-ledger", root, cold_path,
+                                                  compiler, sources, pins)
+        added_components["cost-ledger"] = cost_ledger["manifest"]
         discovery_root = retained / "cli-discovery-json"
         for name in ("CliDiscoveryJsonNativeTests", "CliDiscoverySelectionFixture"):
             fixture_path = discovery_root / name / "cold-fixture/FIXTURE.json"
@@ -636,7 +1524,15 @@ def supplemental(args):
             ("store-lifecycle-callers", ["tools/qualify_hia_store_lifecycle_callers.py",
                 "--cold-report", str(cold_path), "--evidence", str(output / "store-lifecycle-callers")], {}),
         )
-        for name, arguments, selection in jobs:
+        service_context_jobs = (
+            ("service-context-callers", ["tools/qualify_hia_service_context_callers.py",
+                "--cold-report", str(cold_path), "--evidence", str(output / "service-context-callers")], {}),
+        )
+        cost_ledger_jobs = (
+            ("cost-ledger-callers", ["tools/qualify_hia_cost_ledger_callers.py",
+                "--cold-report", str(cold_path), "--evidence", str(output / "cost-ledger-callers")], {}),
+        )
+        for name, arguments, selection in (*jobs, *service_context_jobs, *cost_ledger_jobs):
             command = [sys.executable, "-B", *arguments]
             record = {"name": name, "command": command, "passed": False}
             try:
@@ -658,6 +1554,8 @@ def supplemental(args):
                         "patch-impact-callers": "MATCHING_SOURCE_COLD_ORIGINAL_PATCH_IMPACT_CALLERS",
                         "static-budget-callers": "MATCHING_SOURCE_COLD_ORIGINAL_STATIC_BUDGET_CALLERS",
                         "store-lifecycle-callers": "MATCHING_SOURCE_COLD_ORIGINAL_STORE_LIFECYCLE_CALLERS",
+                        "service-context-callers": "MATCHING_SOURCE_COLD_ORIGINAL_SERVICE_CONTEXT_CALLERS",
+                        "cost-ledger-callers": "MATCHING_SOURCE_COLD_SEVEN_ORDINARY_COST_LEDGER_CALLER_MODULES",
                     }[name]
                     record["passed"] = bool(record["passed"] and report.get("status") == "PASS"
                         and report.get("scope") == expected_scope
@@ -726,6 +1624,22 @@ def supplemental(args):
                             and type(events) is dict
                             and all(type(events.get(key)) is int and events[key] > 0 for key in ("1:1", "2:1"))
                             and all(type(value) is int and value > 0 for value in events.values()))
+                    elif name == "service-context-callers":
+                        from tools.build_hia_service_context import INPUTS, SOURCE_NAME
+                        manifest_path = output / name / "qualified/manifest.json"
+                        require_cold_component(manifest_path, SOURCE_NAME, cold_sha, compiler_sha, sources, pins)
+                        require_release_compilation(manifest_path.parent, "service-context", SOURCE_NAME,
+                                                    INPUTS, root, compiler, sources, pins)
+                        record["service_context_original_observations"] = require_service_context_caller_observations(
+                            output / name, root, sources, discovery, manifest_path, pins)
+                    elif name == "cost-ledger-callers":
+                        from tools.build_hia_cost_ledger import INPUTS, SOURCE_NAME
+                        manifest_path = output / name / "qualified/manifest.json"
+                        require_cold_component(manifest_path, SOURCE_NAME, cold_sha, compiler_sha, sources, pins)
+                        require_release_compilation(manifest_path.parent, "cost-ledger", SOURCE_NAME,
+                                                    INPUTS, root, compiler, sources, pins)
+                        record["cost_ledger_original_observations"] = require_cost_ledger_caller_observations(
+                            output / name, root, sources, discovery, manifest_path, pins)
                 elif name == "cli-discovery-original-groups":
                     from tools import qualify_hia_cli_discovery_json as original_discovery
                     report = read_pinned_json(output / name / "REPORT.json", pins)
@@ -812,7 +1726,10 @@ def supplemental(args):
         source_unchanged, readback = False, False
         source_error = {"type": type(failure).__name__, "message": str(failure)}
     passed = bool(error is None and source_error is None and source_unchanged and readback
-                  and sha_image_bound and len(commands) == 10 and all(row["passed"] for row in commands))
+                  and sha_image_bound and default_release is not None and default_release["passed"]
+                  and service_context is not None and service_context["passed"]
+                  and cost_ledger is not None and cost_ledger["passed"]
+                  and len(commands) == 12 and all(row["passed"] for row in commands))
     write_json(output / "supplemental-result.json", {
         "schema": "hepta.hia.same-cold-supplemental-callers.v1", "target": target,
         "scope": "MISSING_CALLER_GATES_AND_PRODUCTION_SHA_BINDING_AFTER_UNCHANGED_ORIGINAL_FULL",
@@ -820,9 +1737,18 @@ def supplemental(args):
         "complete_source_unchanged": source_unchanged, "all_captured_inputs_read_back": readback,
         "reused_complete_full_discovery_methods": methods, "same_cold_companion_manifests": companions,
         "new_full_discovery_component_inputs": added_components,
+        "default_release_full_discovery_artifact_readback": default_release,
+        "service_context_full_discovery_artifact_readback": service_context,
+        "cost_ledger_full_discovery_artifact_readback": cost_ledger,
         "production_sha_image_matches_actual_executed_differential_image": sha_image_bound,
         "commands": commands, "captured_inputs": pins, "original_35_stages_modified": False,
         "original_component_test_suites_rerun": False,
+        "original_10_supplemental_jobs_modified": False,
+        "service_context_job_11_modified": False,
+        "service_context_original_caller_gate_attempted": any(
+            row["name"] == "service-context-callers" for row in commands),
+        "cost_ledger_seven_ordinary_caller_gate_attempted": any(
+            row["name"] == "cost-ledger-callers" for row in commands),
         "additional_bounded_cli_groups_observed": next((row.get("observed_groups", [])
             for row in commands if row["name"] == "cli-discovery-original-groups"), []),
         "additional_bounded_cli_caller_gate_attempted": any(
