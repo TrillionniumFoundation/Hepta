@@ -139,7 +139,7 @@ EXTRA_COLD_COMPONENTS = (
     "BOUNDED_MEMORY", "SCALAR_PROFILE", "GENERATION_RETENTION",
     "PUBLICATION_MEASUREMENT", "SHA256_STREAM_DIFFERENTIAL",
     "FULL_COST", "PATCH_IMPACT", "CLI_DISCOVERY_JSON", "STATIC_BUDGET", "STORE_LIFECYCLE",
-    "DEFAULT_RELEASE", "SERVICE_CONTEXT", "COST_LEDGER",
+    "DEFAULT_RELEASE", "SERVICE_CONTEXT", "COST_LEDGER", "EVALUATION", "NATIVE_TRANSPORT",
 )
 
 DEFAULT_RELEASE_SOURCE_CLASS = "tests.test_hia_default_native_release.DefaultReleaseSourceTests"
@@ -148,6 +148,10 @@ SERVICE_CONTEXT_SOURCE_CLASS = "tests.test_hia_service_context_native.ServiceCon
 SERVICE_CONTEXT_NATIVE_CLASS = "tests.test_hia_service_context_native.ServiceContextNativeTests"
 COST_LEDGER_SOURCE_CLASS = "tests.test_hia_cost_ledger_native.CostLedgerSourceTests"
 COST_LEDGER_NATIVE_CLASS = "tests.test_hia_cost_ledger_native.CostLedgerNativeTests"
+EVALUATION_SOURCE_CLASS = "tests.test_hia_evaluation_native.EvaluationSourceTests"
+EVALUATION_NATIVE_CLASS = "tests.test_hia_evaluation_native.EvaluationNativeTests"
+NATIVE_TRANSPORT_SOURCE_CLASS = "tests.test_hia_native_transport_failures.NativeTransportSourceTests"
+NATIVE_TRANSPORT_NATIVE_CLASS = "tests.test_hia_native_transport_failures.NativeTransportNativeTests"
 
 # These classes occur only in complete discovery, not the source/native tuples
 # extracted by the unchanged v4. Keep their actual same-run build evidence for
@@ -176,6 +180,8 @@ FULL_DISCOVERY_EVIDENCE = {
     "default-release": (DEFAULT_RELEASE_NATIVE_CLASS, "HEPTA_HIA_DEFAULT_RELEASE_EVIDENCE"),
     "service-context": (SERVICE_CONTEXT_NATIVE_CLASS, "HEPTA_HIA_SERVICE_CONTEXT_EVIDENCE"),
     "cost-ledger": (COST_LEDGER_NATIVE_CLASS, "HEPTA_HIA_COST_LEDGER_EVIDENCE"),
+    "evaluation": (EVALUATION_NATIVE_CLASS, "HEPTA_HIA_EVALUATION_EVIDENCE"),
+    "native-transport": (NATIVE_TRANSPORT_NATIVE_CLASS, "HEPTA_HIA_NATIVE_TRANSPORT_EVIDENCE"),
 }
 # The selected CLI callers use a separate fixture under the same evidence root.
 # They remain their own complete class in the original full discovery.
@@ -204,6 +210,8 @@ ADDITIONAL_DISCARDED_SELECTORS = (
     "HEPTA_HIA_DEFAULT_RELEASE_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_SERVICE_CONTEXT_MANIFEST", "HEPTA_HIA_SERVICE_CONTEXT_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_COST_LEDGER_MANIFEST", "HEPTA_HIA_COST_LEDGER_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_EVALUATION_MANIFEST", "HEPTA_HIA_EVALUATION_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_NATIVE_TRANSPORT_DEVELOPMENT_COMPILER",
 )
 
 
@@ -219,6 +227,10 @@ def component_workflow_coverage(root):
         raise ValueError("service-context source class must remain in the first extracted source tuple")
     if COST_LEDGER_SOURCE_CLASS not in named[0]:
         raise ValueError("cost-ledger source class must remain in the first extracted source tuple")
+    if EVALUATION_SOURCE_CLASS not in named[0]:
+        raise ValueError("evaluation source class must remain in the first extracted source tuple")
+    if NATIVE_TRANSPORT_SOURCE_CLASS not in named[0]:
+        raise ValueError("native-transport source class must remain in the first extracted source tuple")
     groups = [node for node in ast.walk(ast.parse((root / RUNNER).read_bytes()))
               if isinstance(node, ast.Assign) and len(node.targets) == 1
               and getattr(node.targets[0], "id", None) == "groups"]
@@ -240,6 +252,8 @@ def component_workflow_coverage(root):
             "default_release_source_class_in_first_source_tuple": True,
             "service_context_source_class_in_first_source_tuple": True,
             "cost_ledger_source_class_in_first_source_tuple": True,
+            "evaluation_source_class_in_first_source_tuple": True,
+            "native_transport_source_class_in_first_source_tuple": True,
             "retained_native_classes_first_execute_in_full_discovery": True,
             "extra_component_suite_reruns": False}
 
@@ -446,6 +460,8 @@ def require_observed_component_methods(discovery, identity):
     classes.append("tests.test_hia_bounded_memory_native.BoundedMemoryNativeTests")
     classes.extend(ADDITIONAL_FULL_DISCOVERY_CLASSES)
     classes.append(COST_LEDGER_SOURCE_CLASS)
+    classes.append(EVALUATION_SOURCE_CLASS)
+    classes.append(NATIVE_TRANSPORT_SOURCE_CLASS)
     checked = {}
     for name in classes:
         planned = [item for item in discovery["planned_test_ids"] if item.startswith(name + ".")]
@@ -456,6 +472,12 @@ def require_observed_component_methods(discovery, identity):
         if ((name == COST_LEDGER_NATIVE_CLASS and len(planned) != 9)
                 or (name == COST_LEDGER_SOURCE_CLASS and len(planned) != 3)):
             raise ValueError("cost-ledger requires all nine native and three source methods")
+        if ((name == EVALUATION_SOURCE_CLASS and len(planned) != 3)
+                or (name == EVALUATION_NATIVE_CLASS and len(planned) != 7)):
+            raise ValueError("evaluation requires all three source and seven native methods")
+        if ((name == NATIVE_TRANSPORT_SOURCE_CLASS and len(planned) != 1)
+                or (name == NATIVE_TRANSPORT_NATIVE_CLASS and len(planned) != 6)):
+            raise ValueError("native-transport requires its source and all six native methods")
         if (not planned or [row["id"] for row in observed] != planned
                 or (name == DEFAULT_RELEASE_NATIVE_CLASS and len(planned) != 12)
                 or not all(row.get("completion_observed") is True
@@ -1327,6 +1349,638 @@ def require_cost_ledger_caller_observations(directory, root, sources, discovery,
             "test_bodies_rerun_by_readback": False, "whole_native_delivery_qualified": False}
 
 
+def evaluation_json_bytes(value):
+    """Keep JSON bool/int/float distinctions in retained observations."""
+    return json.dumps(value, ensure_ascii=False, sort_keys=True,
+                      separators=(",", ":"), allow_nan=False).encode("utf-8")
+
+
+def evaluation_native_counts(raw):
+    prefix = b"EVALUATION_NATIVE_COUNTS="
+    found = [line[len(prefix):] for line in raw.splitlines() if line.startswith(prefix)]
+    if len(found) != 1:
+        raise ValueError("evaluation worker needs one original native observation marker")
+    value = json.loads(found[0])
+    if (type(value) is not dict or set(value) != {"frames", "continuations", "integers", "native_results"}
+            or any(type(value[key]) is not int or value[key] < 0
+                   for key in ("frames", "continuations", "integers"))
+            or type(value["native_results"]) is not list):
+        raise ValueError("evaluation worker native observation shape differs")
+    return value
+
+
+def evaluation_installed_bytes(location, sources, observation, pins):
+    wheels = sorted((location / "wheels").glob("*.whl"))
+    if len(wheels) != 1:
+        raise ValueError("evaluation needs the one actual installed wheel")
+    wheel = wheels[0]
+    files, distribution = release_wheel(wheel, pins)
+    for name, raw in files.items():
+        if name.startswith("hepta/"):
+            source_name = name.removeprefix("hepta/_data/") if name.startswith("hepta/_data/") else name
+            if sources.get(source_name) != hashlib.sha256(raw).hexdigest():
+                raise ValueError("evaluation wheel contains unbound production source")
+        elif not name.startswith(distribution + "/"):
+            raise ValueError("evaluation wheel contains an unexpected member")
+    installed = location / "installed"
+    actual = {}
+    for path in sorted(installed.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("evaluation installed member is a symlink")
+        if path.is_file():
+            actual[path.relative_to(installed).as_posix()] = release_bytes(path, pins)
+    record = distribution + "/RECORD"
+    member = "hepta/_data/examples/hia_bootstrap/evaluation.hepta"
+    extras = {"bin/hia", *(distribution + "/" + name for name in ("INSTALLER", "REQUESTED", "direct_url.json"))}
+    if (set(actual) != set(files) | extras or member not in files
+            or any(actual.get(name) != raw for name, raw in files.items() if name not in (record, member))
+            or actual.get(member) != files[member] + b"\n"):
+        raise ValueError("evaluation installed bytes differ beyond the one-LF source control")
+    # Validate the original RECORD against the exact pre-drift bytes in memory.
+    # The deliberate final mutation and every other actual byte remain pinned.
+    recorded = dict(actual)
+    recorded[member] = files[member]
+    require_release_record(recorded, record, installed=True)
+    origin = json.loads(actual[distribution + "/direct_url.json"])
+    drift = observation.get("installed_source_drift", {})
+    if (origin.get("url") != wheel.as_uri()
+            or origin.get("archive_info", {}).get("hashes", {}).get("sha256") != pins[str(wheel)]
+            or observation.get("wheel") != str(wheel) or observation.get("wheel_sha256") != pins[str(wheel)]
+            or drift.get("before_sha256") != sources["examples/hia_bootstrap/evaluation.hepta"]
+            or drift["before_sha256"] != hashlib.sha256(files[member]).hexdigest()
+            or drift.get("after_sha256") != hashlib.sha256(actual[member]).hexdigest()):
+        raise ValueError("evaluation wheel origin or exact source drift hashes differ")
+    return files, {"wheel": str(wheel), "wheel_sha256": pins[str(wheel)],
+        "actual_wheel_members": len(files), "actual_installed_files": len(actual),
+        "all_other_installed_product_bytes_equal_wheel": True,
+        "installed_RECORD_checked_against_exact_pre_drift_bytes": True,
+        "only_intentional_installed_mutation": {"member": member, "change": "append exactly one LF",
+            "before_sha256": drift["before_sha256"], "after_sha256": drift["after_sha256"]}}
+
+
+def evaluation_worker_streams(location, worker_sha, catalog_sha, bundle_sha, version, pins):
+    logs, counts = {}, {}
+    labels = ("first", "replay", "lost-ack-valueerror", "lost-ack-replay",
+              "process-lost-after-native", "unknown-replay", "changed-installed-source")
+    for label in ("wheel", "install", *labels):
+        logs[label] = {stream: release_bytes(location / (label + "." + stream), pins)
+                       for stream in ("stdout", "stderr")}
+        if label in labels:
+            counts[label] = evaluation_native_counts(logs[label]["stderr"])
+    zero = {"frames": 0, "continuations": 0, "integers": 0, "native_results": []}
+    for label in ("replay", "lost-ack-replay", "unknown-replay", "changed-installed-source"):
+        if counts[label] != zero:
+            raise ValueError("evaluation replay or changed-source refusal executed a native operation")
+    for label, expected_results in (("first", 2), ("lost-ack-valueerror", 1), ("process-lost-after-native", 1)):
+        row = counts[label]
+        if (row["frames"] != 1 or row["continuations"] <= 0 or row["integers"] <= 0
+                or len(row["native_results"]) != expected_results
+                or any(type(item) is not dict or item.get("started") is not True
+                       or item.get("termination_confirmed") is not True or item.get("status") != "returned"
+                       or type(item.get("wall_ns")) is not str
+                       or re.fullmatch(r"[1-9][0-9]*", item["wall_ns"]) is None
+                       for item in row["native_results"])):
+            raise ValueError("evaluation lacks actual completed original native-runner observations")
+    reports = {label: json.loads(logs[label]["stdout"])
+               for label in ("first", "replay", "lost-ack-replay", "unknown-replay")}
+    for report in reports.values():
+        if (report.get("schema") != "hia-agent-worker-report-v1" or report.get("tool") != "hia_evaluate"
+                or report.get("complete") is not True or report.get("native_helpers_sha256") != bundle_sha
+                or report.get("worker_sha256") != worker_sha or report.get("catalog_sha256") != catalog_sha
+                or report.get("profile_sha256") != "a" * 64
+                or any(type(report.get(key)) is not str or re.fullmatch(r"[0-9a-f]{64}", report[key]) is None
+                       for key in ("backend_sha256", "request_sha256"))
+                or report.get("response", {}).get("contract_version") != version
+                or type(report.get("response", {}).get("request_id")) is not str
+                or not report["response"]["request_id"]):
+            raise ValueError("evaluation actual installed worker identity or report differs")
+    if (evaluation_json_bytes(reports["first"]) != evaluation_json_bytes(reports["replay"])
+            or len({reports[label]["request_sha256"]
+                    for label in ("first", "lost-ack-replay", "unknown-replay")}) != 3
+            or b"ValueError: controlled lost native acknowledgement" not in logs["lost-ack-valueerror"]["stderr"]
+            or b"hepta.hia_evaluation_native.EvaluationUnknown:" not in logs["lost-ack-valueerror"]["stderr"]):
+        raise ValueError("evaluation normal replay or lost acknowledgement correlation differs")
+    return reports, counts, logs
+
+
+def evaluation_worker_loss(observation, reports, counts, logs):
+    budgets = {}
+    for key, lost, replay in (("native_ack_exception", "lost-ack-valueerror", "lost-ack-replay"),
+                              ("process_loss", "process-lost-after-native", "unknown-replay")):
+        row = observation.get(key, {})
+        budget = row.get("retained_budget", {})
+        response = reports[replay]["response"]
+        if (evaluation_json_bytes(row.get("actual_native_counts")) != evaluation_json_bytes(counts[lost])
+                or evaluation_json_bytes(row.get("replay_counts")) != evaluation_json_bytes(counts[replay])
+                or evaluation_json_bytes(row.get("replay")) != evaluation_json_bytes(reports[replay])
+                or logs[lost]["stdout"] != b""
+                or response.get("status") != "rejected"
+                or response.get("error", {}).get("code") != "E_HIA_REQUEST_UNKNOWN"
+                or set(budget) != {"context_id", "owner", "used_native_ns"}
+                or type(budget["context_id"]) is not str or not budget["context_id"]
+                or type(budget["owner"]) is not str or re.fullmatch(r"[0-9a-f]{64}", budget["owner"]) is None
+                or budget["used_native_ns"] != "0"):
+            raise ValueError("evaluation unconfirmed effect was completed, retried or refunded")
+        budgets[key] = budget
+    drift = observation.get("installed_source_drift", {})
+    if (drift.get("native_counts") != counts["changed-installed-source"]
+            or type(drift.get("worker_exit_code")) is not int or drift["worker_exit_code"] == 0
+            or logs["changed-installed-source"]["stdout"] != b""):
+        raise ValueError("evaluation exact installed-source refusal record differs")
+    return budgets
+
+
+def require_evaluation_installation(directory, root, sources, manifest, pins):
+    """Read real wheel/worker artifacts; the original full test owns execution."""
+    from hepta import hia_agent_contract as contract
+    from hepta.hia_native_helpers import ABI, SCHEMA, TARGET
+    directory = Path(directory)
+    location = directory / "test_actual_installed_worker_replay_process_loss_and_source_pinning"
+    observation = release_json(location / "installed-observations.json", pins)
+    files, installation = evaluation_installed_bytes(location, sources, observation, pins)
+    manifest_path = directory / "built/manifest.json"
+    manifest_raw = release_bytes(manifest_path, pins)
+    image = release_bytes(manifest_path.parent / manifest["image_path"], pins)
+    bundle_path = location / "bundle.json"
+    bundle = release_json(bundle_path, pins)
+    bundle_sha = pins[str(bundle_path)]
+    if (json.loads(manifest_raw) != manifest or manifest.get("schema") != "hepta.hia.evaluation-native.v1"
+            or manifest.get("source_sha256") != sources["examples/hia_bootstrap/evaluation.hepta"]
+            or hashlib.sha256(image).hexdigest() != manifest["image_sha256"]
+            or bundle != {"schema": SCHEMA, "target": TARGET, "abi": ABI, "helpers": [{
+                "selector": "HEPTA_HIA_EVALUATION_MANIFEST", "manifest_path": str(manifest_path),
+                "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest()}]}
+            or observation.get("bundle_sha256") != bundle_sha
+            or any(observation.get(key) is not True for key in (
+                "retained_body_forbidden_in_actual_child", "authoring_imports_forbidden_in_actual_child",
+                "original_worker_used"))
+            or observation.get("whole_native_delivery_qualified") is not False):
+        raise ValueError("evaluation installed observation or exact administrator bundle differs")
+    entries = {name: hashlib.sha256(raw).hexdigest() for name, raw in files.items()
+               if name.startswith("hepta/") and name.endswith(".py") and not name.startswith("hepta/_data/")}
+    resources = ["docs/" + name for name in contract.DISCOVERY_FILES]
+    for group in ("NATIVE_SOURCE_FILES", "SOURCE_BUILD_FILES", "COMPILER_BUILD_FILES", "PUBLICATION_BUILD_FILES",
+                  "BACKEND_BUILD_FILES", "EMITTER_BUILD_FILES", "BYTE_WRAPPER_BUILD_FILES",
+                  "MACHINE_OBJECT_BUILD_FILES", "EXECUTION_OBSERVATION_BUILD_FILES", "CONTINUATION_BUILD_FILES"):
+        resources.extend(getattr(contract, group))
+    for name in resources:
+        entries[name] = hashlib.sha256(files["hepta/_data/" + name]).hexdigest()
+    worker_sha = hashlib.sha256(evaluation_json_bytes(entries)).hexdigest()
+    reports, counts, logs = evaluation_worker_streams(location, worker_sha,
+        entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"], bundle_sha, contract.VERSION, pins)
+    for name in ("first", "replay"):
+        if (evaluation_json_bytes(observation.get(name, {}).get("report")) != evaluation_json_bytes(reports[name])
+                or evaluation_json_bytes(observation[name].get("counts")) != evaluation_json_bytes(counts[name])):
+            raise ValueError("evaluation worker observations disagree with original streams")
+    result = reports["first"]["response"].get("result", {})
+    measurement = observation["first"].get("measurement", {})
+    if (reports["first"]["response"].get("status") != "completed"
+            or measurement.get("planned_workload_complete") is not True
+            or measurement.get("universal_equivalence_or_native_refinement_proved") is not False
+            or result.get("planned_workload_complete") is not True or result.get("adopted") is not False
+            or result.get("outcome") != measurement.get("outcome")
+            or result.get("measurements", {}).get("sha256")
+                != hashlib.sha256(evaluation_json_bytes(measurement)).hexdigest()
+            or any(evaluation_json_bytes(measurement.get("native_runs", {}).get(label, {}).get("normal"))
+                   != evaluation_json_bytes(counts["first"]["native_results"][index])
+                   for index, label in enumerate(("baseline", "candidate")))):
+        raise ValueError("evaluation measurement is not bound to actual native worker results")
+    for key in ("measurements", "evaluation_receipt", "full_cost_ledger"):
+        ref = result.get(key, {})
+        if (type(ref.get("id")) is not str or not ref["id"]
+                or type(ref.get("uri")) is not str or not ref["uri"].startswith("hia://artifacts/")
+                or type(ref.get("sha256")) is not str or re.fullmatch(r"[0-9a-f]{64}", ref["sha256"]) is None):
+            raise ValueError("evaluation worker artifact reference differs")
+    budgets = evaluation_worker_loss(observation, reports, counts, logs)
+    return {**installation, "worker_identity_derived_from_actual_wheel": worker_sha,
+            "native_counts_from_original_stderr": counts, "retained_unknown_budget_rows": budgets,
+            "measurement_body_matches_actual_artifact_reference": True,
+            "other_artifact_bodies_or_request_bytes_retained": False,
+            "normal_worker_and_replay_reports_identical": True,
+            "unknown_replays_execute_no_native_operation": True,
+            "unknown_budget_equality_after_replay_owned_by_original_full_test": True,
+            "unknown_budget_after_rows_separately_retained": False,
+            "process_exit_73_and_ACK_exit_1_owned_by_original_full_test": True,
+            "loss_process_returncodes_separately_serialized": False,
+            "source_drift_exit_code_recorded_by_original_test": observation["installed_source_drift"]["worker_exit_code"],
+            "retained_body_poison_scope": "actual installed worker process; descendant poisoning is not observed",
+            "native_observation_scope": "actual installed evaluation image and original runner results",
+            "test_bodies_rerun_by_readback": False, "whole_native_delivery_qualified": False}
+
+
+def require_evaluation_control_observations(directory, pins):
+    """Compare retained complete traces, without running either evaluator."""
+    from tests.hia_evaluation_scenarios import scenarios
+    directory = Path(directory)
+    records = release_json(directory / "test_complete_111_original_foreign_effect_traces_and_first_errors/complete-observations.json", pins)
+    names = [case.name for case in scenarios()]
+    if (len(names) != 111 or len(set(names)) != 111 or type(records) is not list
+            or [row.get("case") for row in records] != names
+            or any(set(row) != {"case", "expected", "actual"}
+                   or evaluation_json_bytes(row["expected"]) != evaluation_json_bytes(row["actual"])
+                   for row in records)):
+        raise ValueError("evaluation complete original 111 foreign-effect traces differ")
+    vm = release_json(directory / "test_actual_native_full_buffers_and_state_match_independent_VM/vm-native-entry-counts.json", pins)
+    if (set(vm) != {"continuation", "integer"} or any(type(value) is not int for value in vm.values())
+            or vm != {"continuation": 962, "integer": 130}):
+        raise ValueError("evaluation original six-case VM/native entry observations differ")
+    reference = next(row["expected"] for row in records if row["case"] == "artifact_improved")
+    folder = directory / "test_lost_native_run_and_publication_ACK_never_repeat_or_complete"
+    expected_names, loss_records = set(), {}
+    for port, effect, calls, completed, publications in (
+            ("normal_run", "budget_run", 1, False, 0),
+            ("normal_report_arithmetic", "budget_run", 1, False, 0),
+            ("measurements", "json", 2, True, 1)):
+        index = next(index for index, row in enumerate(reference["trace"]) if row["effect"] == effect)
+        for failure in ("KeyboardInterrupt", "ValueError", "OSError", "OverflowError"):
+            name = port + "-" + failure + ".json"
+            expected_names.add(name)
+            row = release_json(folder / name, pins)
+            error_type = ("builtins.KeyboardInterrupt" if failure == "KeyboardInterrupt"
+                          else "hepta.hia_evaluation_native.EvaluationUnknown")
+            if (row.get("outcome", {}).get("status") != "raised" or row["outcome"].get("type") != error_type
+                    or evaluation_json_bytes(row.get("trace")) != evaluation_json_bytes(reference["trace"][:index + 1])
+                    or type(row.get("native_calls")) is not int or row["native_calls"] != calls
+                    or row.get("claim_completed") is not completed
+                    or evaluation_json_bytes(row.get("published")) != evaluation_json_bytes(reference["published"][:publications])):
+                raise ValueError("evaluation lost acknowledgement or arithmetic boundary differs: " + name)
+            loss_records[name] = {"exception": error_type, "actual_native_calls": calls,
+                                  "claim_completed_before_loss": completed, "publications": publications}
+    if {path.name for path in folder.glob("*.json")} != expected_names:
+        raise ValueError("evaluation loss matrix lacks the complete twelve controls")
+    return {"independent_original_trace_count": 111, "full_trace_payloads_compared": True,
+            "original_VM_native_cases": 6, "actual_VM_native_entry_counts": vm,
+            "actual_VM_native_entries": sum(vm.values()),
+            "full_return_output_and_state_buffer_equality_owned_by_original_full_test": True,
+            "raw_VM_return_output_and_state_buffers_separately_retained": False,
+            "lost_observation_controls": loss_records,
+            "nonrepeat_after_loss_owned_by_original_full_test": True,
+            "test_bodies_rerun_by_readback": False, "all_input_equivalence_proved": False}
+
+
+def evaluation_composition_observations(directory, expected_scope, pins):
+    report = release_json(Path(directory) / "composition.json", pins)
+    selectors = {"HEPTA_HIA_" + name + "_MANIFEST" for name in (
+        "STORE_LIFECYCLE", "SERVICE_CONTEXT", "EXECUTION_BUDGET", "CANDIDATE_BUDGET", "COST_LEDGER", "EVALUATION")}
+    counts = report.get("actual_native_entries", {})
+    before, after, delta = (report.get(key, {}) for key in (
+        "entries_before_replay", "entries_after_replay", "replay_additional_entries"))
+    if (report.get("schema") != "hepta.hia.evaluation-six-owner-composition.v1"
+            or report.get("scope") != expected_scope or report.get("original_context_wall_ms") != 3000
+            or report.get("original_native_wall_ms") != 1000
+            or any(type(row) is not dict or set(row) != selectors for row in (counts, before, after, delta))
+            or any(type(value) is not int or value <= 0 for row in (counts, before, after) for value in row.values())
+            or any(type(value) is not int or value != 0 for value in delta.values())
+            or before != after or any(counts[key] < after[key] for key in selectors)
+            or report.get("durable_changes_on_replay") != 0 or type(report.get("durable_changes_on_replay")) is not int
+            or report.get("reference_calls") != []
+            or any(report.get(key) is not True for key in (
+                "all_six_retained_policy_references_forbidden",
+                "hosted_request_journal_sqlite_runner_and_object_protocols_retained",
+                "source_and_compiler_custody_owned_by_outer_component"))
+            or report.get("whole_native_delivery_qualified") is not False):
+        raise ValueError("evaluation six-owner composition or exact native replay differs")
+    first = report.get("first_response", {})
+    result = first.get("result", {})
+    if (first.get("status") != "completed"
+            or evaluation_json_bytes(first) != evaluation_json_bytes(report.get("replayed_response"))
+            or any(result.get(key) is not True for key in (
+                "report_complete", "planned_workload_complete", "termination_confirmed"))
+            or result.get("adopted") is not False):
+        raise ValueError("evaluation composed public response or replay differs")
+    documents = {"measurements": report.get("measurements", {}), "full_cost_ledger": report.get("ledger", {}),
+                 "evaluation_receipt": report.get("evaluation_receipt", {})}
+    for name, value in documents.items():
+        if result.get(name, {}).get("sha256") != hashlib.sha256(evaluation_json_bytes(value)).hexdigest():
+            raise ValueError("evaluation composed artifact body differs from its actual reference: " + name)
+    measurement, ledger, receipt = (documents[name] for name in ("measurements", "full_cost_ledger", "evaluation_receipt"))
+    if (measurement.get("planned_cases") != 1 or len(measurement.get("observations", [])) != 1
+            or measurement.get("planned_workload_complete") is not True
+            or measurement.get("universal_equivalence_or_native_refinement_proved") is not False
+            or ledger.get("full_search_cost_complete") is not False or ledger.get("net_optimization_benefit_proved") is not False
+            or ledger.get("context") != measurement.get("context") or receipt.get("context") != ledger.get("context")
+            or receipt.get("measurements") != result["measurements"]
+            or receipt.get("full_cost_ledger") != result["full_cost_ledger"]):
+        raise ValueError("evaluation composed artifact contracts or cross-references differ")
+    for arm in ("baseline", "candidate"):
+        run = measurement.get("native_runs", {}).get(arm, {}).get("normal", {})
+        if run.get("started") is not True or run.get("termination_confirmed") is not True or run.get("status") != "returned":
+            raise ValueError("evaluation composed native runner was not actually completed")
+    budget = report.get("budget_before_replay", {})
+    if (set(budget) != {"context_id", "owner", "used_native_ns"} or budget.get("owner") is not None
+            or budget.get("context_id") != ledger.get("context", {}).get("id")
+            or type(budget.get("used_native_ns")) is not str or re.fullmatch(r"[1-9][0-9]*", budget["used_native_ns"]) is None
+            or budget["used_native_ns"] != ledger.get("native_child_wall_ns")
+            or evaluation_json_bytes(budget) != evaluation_json_bytes(report.get("budget_after_replay"))):
+        raise ValueError("evaluation composed native budget was not confirmed and preserved on replay")
+    return report
+
+
+def require_evaluation_budget_build(location, label, source_name, root, cold_path, compiler, sources, pins):
+    from tools.build_hia_source_build import _check_pack_output, _check_compile_receipt
+    location = Path(location)
+    manifest_path = location / "manifest.json"
+    manifest = release_json(manifest_path, pins)
+    build = release_json(location / "build.json", pins)
+    request = release_json(location / (label + ".request.json"), pins)
+    receipt = release_json(location / (label + ".receipt.json"), pins)
+    source, artifact = release_bytes(root / source_name, pins), release_bytes(compiler, pins)
+    image_path = location / (label + ".image.bin")
+    image, output = release_bytes(image_path, pins), release_bytes(location / (label + ".output.bin"), pins)
+    if (build.get("schema") != "hepta.hia." + label + "-build.v1"
+            or build.get("status") != "NATIVE_CANDIDATE_BUILT"
+            or build.get("source_manifest") != sources or build.get("cold_report_sha256") != sha(cold_path)
+            or build.get("manifest") != manifest or build.get("native_compile_receipt") != receipt
+            or manifest.get("schema") != "hepta.hia." + label + "-native.v1"
+            or manifest.get("compiler_sha256") != hashlib.sha256(artifact).hexdigest()
+            or manifest.get("source_sha256") != sources[source_name]
+            or manifest.get("image_path") != image_path.name
+            or manifest.get("image_sha256") != hashlib.sha256(image).hexdigest()
+            or receipt.get("produced_image") != str(image_path)
+            or release_bytes(location / (label + ".input.bin"), pins) != source
+            or request != {"capacity": 1048576, "format": "flat-x86-64", "image": str(compiler),
+                "image_sha256": hashlib.sha256(artifact).hexdigest(), "output": str(location / (label + ".output.bin")),
+                "source": str(location / (label + ".input.bin")), "source_sha256": sources[source_name],
+                "workspace_fill": 0, "workspace_size": 1048576}
+            or _check_pack_output(receipt, output, artifact=artifact, source=source) != image):
+        raise ValueError("evaluation composed budget lacks the same-cold original compiler transport")
+    _check_compile_receipt(receipt, compiler=artifact, source=source, produced=image)
+    return manifest_path
+
+
+def evaluation_composition_bundle(composition, report, manifests, pins):
+    from hepta.hia_native_helpers import ABI, SCHEMA, TARGET
+    composition = Path(composition)
+    bundle_path = composition / "bundle.json"
+    bundle = release_json(bundle_path, pins)
+    expected = {"schema": SCHEMA, "target": TARGET, "abi": ABI, "helpers": [{
+        "selector": selector, "manifest_path": str(path.resolve()),
+        "manifest_sha256": hashlib.sha256(release_bytes(path, pins)).hexdigest()}
+        for selector, path in sorted(manifests.items())]}
+    if (bundle != expected or report.get("bundle") != str(bundle_path)
+            or report.get("bundle_sha256") != pins[str(bundle_path)]
+            or report.get("manifests") != {selector: str(path) for selector, path in manifests.items()}):
+        raise ValueError("evaluation six-owner composition bundle differs from its actual builds")
+    return pins[str(bundle_path)]
+
+
+def require_evaluation_composition(directory, root, cold_path, compiler, sources, pins):
+    from tools.build_hia_store_lifecycle import INPUTS as STORE_INPUTS
+    from tools.build_hia_service_context import INPUTS as CONTEXT_INPUTS
+    from tools.build_hia_cost_ledger import INPUTS as LEDGER_INPUTS
+    directory = Path(directory)
+    composition = directory / "test_six_owner_public_evaluation_and_exact_replay_forbid_all_retained_policies/six-owner-composition"
+    report = evaluation_composition_observations(composition, "MATCHING_SOURCE_COLD_COMPONENT", pins)
+    manifests = {"HEPTA_HIA_EVALUATION_MANIFEST": directory / "built/manifest.json"}
+    for selector, label, source_name, inputs in (
+            ("STORE_LIFECYCLE", "store-lifecycle", "store_lifecycle", STORE_INPUTS),
+            ("SERVICE_CONTEXT", "service-context", "service_context", CONTEXT_INPUTS),
+            ("COST_LEDGER", "cost-ledger", "cost_ledger", LEDGER_INPUTS)):
+        manifest_path = composition / label / "manifest.json"
+        source_name = "examples/hia_bootstrap/" + source_name + ".hepta"
+        require_cold_component(manifest_path, source_name, sha(cold_path), sha(compiler), sources, pins)
+        require_release_compilation(manifest_path.parent, label, source_name, inputs, root, compiler, sources, pins)
+        manifests["HEPTA_HIA_" + selector + "_MANIFEST"] = manifest_path
+    for selector, label, source_name in (
+            ("EXECUTION_BUDGET", "execution-budget", "execution_budget"),
+            ("CANDIDATE_BUDGET", "candidate-budget", "candidate_budget")):
+        manifests["HEPTA_HIA_" + selector + "_MANIFEST"] = require_evaluation_budget_build(
+            composition / label, label, "examples/hia_bootstrap/" + source_name + ".hepta",
+            root, cold_path, compiler, sources, pins)
+    bundle_sha = evaluation_composition_bundle(composition, report, manifests, pins)
+    return {"bundle_sha256": bundle_sha, "manifests": report["manifests"],
+            "actual_native_entries": report["actual_native_entries"], "replay_additional_entries": report["replay_additional_entries"],
+            "actual_artifact_bodies_bound_to_response": True, "native_budget_before_after_retained_and_equal": True,
+            "native_observation_scope": "test-process fixture construction, public evaluation and cleanup across six admitted images",
+            "all_original_context_and_native_budgets_preserved": True, "whole_native_delivery_qualified": False,
+            "test_bodies_rerun_by_readback": False}
+
+
+def require_evaluation_component(directory, root, cold_path, compiler, sources, pins):
+    from tools.build_hia_evaluation import INPUTS, SOURCE_NAME
+    directory = Path(directory)
+    manifest_path = directory / "built/manifest.json"
+    require_cold_component(manifest_path, SOURCE_NAME, sha(cold_path), sha(compiler), sources, pins)
+    manifest = require_release_compilation(directory / "built", "evaluation", SOURCE_NAME,
+                                          INPUTS, root, compiler, sources, pins)
+    build = release_json(directory / "built/build.json", pins)
+    custody = release_json(directory / "component-custody.json", pins)
+    if (manifest.get("schema") != "hepta.hia.evaluation-native.v1"
+            or build.get("schema") != "hepta.hia.evaluation-build.v1"
+            or any(build.get(key) is not True for key in (
+                "evaluation_control_branches_and_ordered_effects_owned_by_hia", "exact_integer_arithmetic_owned_by_hia",
+                "binary64_true_division_and_comparison_hosted", "foreign_object_protocols_and_providers_hosted"))
+            or any(build.get(key) is not False for key in (
+                "retained_evaluation_body_invoked", "whole_stack_rewritten_in_hia", "all_input_equivalence_proved"))
+            or custody.get("schema") != "hepta.hia.evaluation-test-custody.v1"
+            or custody.get("manifest") != str(manifest_path) or custody.get("matching_cold_report") != str(cold_path)
+            or custody.get("compiler_sha256") != sha(compiler) or custody.get("compiler_unchanged") is not True
+            or custody.get("source_manifest_before") != sources or custody.get("source_manifest_after") != sources
+            or custody.get("source_and_compiler_unchanged") is not True
+            or custody.get("test_result_owned_by_outer_runner") is not True
+            or custody.get("foreign_object_protocols_providers_and_binary64_hosted") is not True
+            or custody.get("all_input_equivalence_proved") is not False
+            or custody.get("whole_native_delivery_qualified") is not False):
+        raise ValueError("evaluation first-full source/compiler custody or boundary declaration differs")
+    controls = require_evaluation_control_observations(directory, pins)
+    installation = require_evaluation_installation(directory, root, sources, manifest, pins)
+    composition = require_evaluation_composition(directory, root, cold_path, compiler, sources, pins)
+    return {"scope": "MATCHING_SOURCE_COLD_COMPONENT", "manifest": str(manifest_path),
+            "image_sha256": manifest["image_sha256"], "controls": controls, "installation": installation,
+            "six_owner_composition": composition,
+            "source_and_compiler_custody_verified": True, "test_result_owned_by_original_full_runner": True,
+            "test_bodies_rerun_by_supplement": False, "whole_native_delivery_qualified": False, "passed": True}
+
+
+def evaluation_original_inventory(root, sources, discovery, pins):
+    from tools.qualify_hia_evaluation_callers import FIXTURE_NAME, FIXTURE_SHA256, admit_original_sources
+    fixture_path = root / FIXTURE_NAME
+    original = release_json(fixture_path, pins)
+    modules = original.get("ordinary_modules", [])
+    inventory = original.get("modules", {})
+    separate = original.get("explicit_scope_modules", [])
+    if (pins[str(fixture_path)] != FIXTURE_SHA256 or sources.get(FIXTURE_NAME) != FIXTURE_SHA256
+            or original.get("schema") != "hepta.hia.evaluation-original-callers-review.v1"
+            or original.get("base_commit") != "19065d2f97c92d3cf28a4de1fe7387c2d5c66a02"
+            or len(modules) != 7 or len(set(modules)) != 7 or len(separate) != 5 or len(set(separate)) != 5
+            or set(modules) & set(separate) or set(inventory) != set(modules) | set(separate)
+            or original.get("ordinary_count") != 81 or len(original.get("ordinary_ordered_ids", [])) != 81
+            or original.get("all_original_tests") != 183 or len(original.get("all_original_ordered_ids", [])) != 183
+            or original.get("whole_project_dynamic_caller_closure_claimed") is not False):
+        raise ValueError("evaluation frozen complete 183-method inventory differs")
+    original_files = {row["path"]: row["sha256"] for row in inventory.values()}
+    adjustments = admit_original_sources(root, original_files)
+    for module, row in inventory.items():
+        observed = [item["id"] for item in discovery["test_descriptions"] if item["id"].startswith(module + ".")]
+        if (row.get("path") != module.replace(".", "/") + ".py" or row.get("count") != len(observed)
+                or observed != row.get("ordered_ids")):
+            raise ValueError("evaluation complete original caller module changed: " + module)
+    descriptions = [row for module in modules for row in discovery["test_descriptions"]
+                    if row["id"].startswith(module + ".")]
+    planned = [row["id"] for row in descriptions]
+    if planned != original["ordinary_ordered_ids"] or len(planned) != 81 or len(set(planned)) != 81:
+        raise ValueError("evaluation original complete 81-method order differs")
+    return original, original_files, adjustments, descriptions, planned
+
+
+def evaluation_event_accounting(report, planned):
+    frames, events = report.get("actual_evaluation_frames"), report.get("actual_native_event_counts", {})
+    allowed = {"continuation:" + str(event) for event in range(4)} | {"integer:" + str(event) for event in range(1, 9)}
+    mandatory = allowed - {"continuation:3"}
+    if (type(frames) is not int or frames <= 0 or type(events) is not dict
+            or not mandatory <= set(events) <= allowed
+            or any(type(value) is not int or value <= 0 for value in events.values())
+            or events["continuation:0"] != frames
+            or events["continuation:1"] != events["continuation:2"] + events.get("continuation:3", 0)):
+        raise ValueError("evaluation actual native frame/event observations differ")
+    frame_rows, event_rows = report.get("frames_by_original_test", {}), report.get("native_event_counts_by_original_test", {})
+    totals = {}
+    if (type(frame_rows) is not dict or not set(frame_rows) <= set(planned)
+            or any(type(value) is not int or value <= 0 for value in frame_rows.values())
+            or sum(frame_rows.values()) != frames or type(event_rows) is not dict
+            or not set(event_rows) <= set(planned)):
+        raise ValueError("evaluation native frames lack original caller identities")
+    for identity, row in event_rows.items():
+        if (type(row) is not dict or not set(row) <= allowed
+                or any(type(value) is not int or value <= 0 for value in row.values())
+                or row.get("continuation:0", 0) != frame_rows.get(identity, 0)
+                or row.get("continuation:1", 0) != row.get("continuation:2", 0) + row.get("continuation:3", 0)):
+            raise ValueError("evaluation per-method native event accounting differs")
+        for key, value in row.items():
+            totals[key] = totals.get(key, 0) + value
+    if totals != events:
+        raise ValueError("evaluation aggregate counts differ from original per-test observations")
+    return frames, events
+
+
+def require_evaluation_caller_observations(directory, root, sources, discovery, manifest_path, pins):
+    from tools.qualify_hia_evaluation_callers import FIXTURE_NAME
+    from tools.build_hia_evaluation import INPUTS, SOURCE_NAME
+    from tools.hia_selfhost_contract import file_digests
+    directory, manifest_path = Path(directory), Path(manifest_path)
+    manifest = release_json(manifest_path, pins)
+    build = release_json(manifest_path.with_name("build.json"), pins)
+    report = release_json(directory / "report.json", pins)
+    original, original_files, adjustments, descriptions, planned = evaluation_original_inventory(
+        root, sources, discovery, pins)
+    names = set(file_digests(root)) | {*INPUTS, *original_files, FIXTURE_NAME,
+                                      "tools/qualify_hia_evaluation_callers.py"}
+    source_pins = {name: hashlib.sha256(release_bytes(root / name, pins)).hexdigest() for name in names}
+    bundle_pins = {}
+    for path in sorted(manifest_path.parent.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("evaluation caller build contains a symlink")
+        if path.is_file():
+            bundle_pins[str(path)] = hashlib.sha256(release_bytes(path, pins)).hexdigest()
+    scopes = {"MATCHING_SOURCE_COLD_SEVEN_ORDINARY_EVALUATION_CALLER_MODULES",
+              "EXPLICIT_DEVELOPMENT_SEVEN_ORDINARY_EVALUATION_CALLER_MODULES"}
+    expected_build_scope = ("MATCHING_SOURCE_COLD_COMPONENT" if report.get("scope", "").startswith("MATCHING_SOURCE_COLD_")
+                            else "DEVELOPMENT_COMPONENT")
+    if (report.get("schema") != "hepta.hia.evaluation-seven-ordinary-callers.v1"
+            or report.get("status") != "PASS" or report.get("scope") not in scopes
+            or build.get("scope") != expected_build_scope
+            or report.get("original_baseline_commit") != original["base_commit"]
+            or report.get("original_modules") != original["ordinary_modules"]
+            or not (report.get("planned") == report.get("started") == report.get("stopped") == planned)
+            or type(report.get("actual_tests")) is not int or report["actual_tests"] != 81
+            or any(report.get(key) != [] for key in (
+                "errors", "failures", "skipped", "expected_failures", "unexpected_successes", "reference_calls"))
+            or report.get("retained_evaluation_body_forbidden") is not True
+            or report.get("reference_poison_scope") != "test process; subprocesses inherit selector, not Python patches"
+            or report.get("all_seven_ordinary_modules_unfiltered") is not True
+            or report.get("original_test_budgets_changed") is not False or report.get("source_and_bundle_unchanged") is not True
+            or report.get("original_registry_count_assertion_adjustments") != adjustments
+            or report.get("separate_original_administrator_scope_gates") != original["explicit_scope_modules"]
+            or report.get("whole_project_dynamic_caller_closure_claimed") is not False
+            or report.get("whole_native_delivery_qualified") is not False
+            or manifest.get("schema") != "hepta.hia.evaluation-native.v1"
+            or manifest.get("source_sha256") != sources[SOURCE_NAME]
+            or report.get("native_image_sha256") != manifest["image_sha256"]
+            or bundle_pins.get(str(manifest_path.parent / manifest["image_path"])) != manifest["image_sha256"]
+            or report.get("source_pins") != source_pins or not bundle_pins or report.get("bundle_pins") != bundle_pins
+            or any(name in sources and sources[name] != digest for name, digest in source_pins.items())
+            or any(name not in sources and name not in original_files for name in source_pins)):
+        raise ValueError("evaluation complete 81 caller observations or captured inputs differ")
+    frames, events = evaluation_event_accounting(report, planned)
+    observed = audit_verbose_stderr(release_bytes(directory / "tests.log", pins),
+        {"planned_test_ids": planned, "test_descriptions": descriptions})
+    if observed["equivalent"] is not True:
+        raise ValueError("evaluation original verbose log lacks all 81 successful methods in order")
+    return {"actual_tests": 81, "actual_evaluation_frames": frames, "actual_native_event_counts": events,
+            "actual_control_entries": sum(value for key, value in events.items() if key.startswith("continuation:")),
+            "actual_integer_entries": sum(value for key, value in events.items() if key.startswith("integer:")),
+            "source_pin_count": len(source_pins), "bundle_pin_count": len(bundle_pins),
+            "original_verbose_identity": observed, "complete_original_inventory_count": 183,
+            "original_registry_count_assertion_adjustments": adjustments,
+            "separate_administrator_scope_inventory_modules": original["explicit_scope_modules"],
+            "reference_poison_scope": report["reference_poison_scope"], "observed_report_scope": report["scope"],
+            "original_test_budgets_changed": False, "whole_project_dynamic_caller_closure_claimed": False,
+            "test_bodies_rerun_by_readback": False, "whole_native_delivery_qualified": False}
+
+
+def native_transport_custody_observations(directory, root, cold_path, compiler, sources, pins):
+    """Read real source/build custody; cold admission remains a separate required gate."""
+    from tools.build_hia_store_lifecycle import INPUTS as STORE_INPUTS
+    from tools.build_hia_service_context import INPUTS as CONTEXT_INPUTS
+    from tools.build_hia_cost_ledger import INPUTS as LEDGER_INPUTS
+    from tools.hia_selfhost_contract import file_digests
+    directory = Path(directory)
+    expected_cold = None if cold_path is None else str(cold_path)
+    scope = "DEVELOPMENT_COMPONENT" if cold_path is None else "MATCHING_SOURCE_COLD_COMPONENT"
+    compiler_sha = hashlib.sha256(release_bytes(compiler, pins)).hexdigest()
+    custody = release_json(directory / "component-custody.json", pins)
+    names = set(file_digests(root)) | {"tests/test_hia_native_transport_failures.py"}
+    expected_sources = {name: hashlib.sha256(release_bytes(root / name, pins)).hexdigest() for name in names}
+    manifests, build_files = {}, {}
+    for name, label, source_name, inputs in (
+            ("context", "service-context", "service_context", CONTEXT_INPUTS),
+            ("ledger", "cost-ledger", "cost_ledger", LEDGER_INPUTS),
+            ("store", "store-lifecycle", "store_lifecycle", STORE_INPUTS)):
+        manifest_path = directory / name / "manifest.json"
+        source_name = "examples/hia_bootstrap/" + source_name + ".hepta"
+        manifest = require_release_compilation(manifest_path.parent, label, source_name, inputs, root, compiler, sources, pins)
+        build = release_json(manifest_path.with_name("build.json"), pins)
+        image = release_bytes(manifest_path.parent / (label + ".image.bin"), pins)
+        if (build.get("scope") != scope or build.get("manifest") != manifest
+                or build.get("cold_report_sha256") != (None if cold_path is None else sha(cold_path))
+                or build.get("source_manifest") != (None if cold_path is None else sources)
+                or manifest.get("compiler_sha256") != compiler_sha
+                or manifest.get("source_sha256") != sources[source_name]
+                or manifest.get("image_sha256") != hashlib.sha256(image).hexdigest()):
+            raise ValueError("native transport actual build scope or image differs")
+        manifests[name] = str(manifest_path)
+        for path in sorted(manifest_path.parent.rglob("*")):
+            if path.is_symlink():
+                raise ValueError("native transport captured build contains a symlink")
+            if path.is_file():
+                build_files[str(path)] = hashlib.sha256(release_bytes(path, pins)).hexdigest()
+    if (custody.get("schema") != "hepta.hia.native-transport-test-custody.v1"
+            or custody.get("matching_cold_report") != expected_cold
+            or custody.get("compiler_sha256") != compiler_sha or custody.get("manifests") != manifests
+            or custody.get("source_before") != expected_sources or custody.get("source_after") != expected_sources
+            or any(sources.get(name) != digest for name, digest in expected_sources.items())
+            or custody.get("build_files") != build_files or not build_files
+            or custody.get("source_compiler_and_build_unchanged") is not True
+            or custody.get("test_result_owned_by_outer_runner") is not True
+            or custody.get("whole_native_delivery_qualified") is not False):
+        raise ValueError("native transport source/compiler/three-build custody differs")
+    return {"scope": scope, "manifests": manifests,
+            "source_pin_count": len(expected_sources), "build_pin_count": len(build_files),
+            "source_compiler_and_build_custody_verified": True,
+            "native_fault_control_results_owned_by_original_full_runner": True,
+            "test_bodies_rerun_by_supplement": False, "additional_caller_command": False,
+            "whole_native_delivery_qualified": False, "passed": True}
+
+
+def require_native_transport_component(directory, root, cold_path, compiler, sources, pins):
+    directory = Path(directory)
+    for name, source_name in (("context", "service_context"), ("ledger", "cost_ledger"),
+                              ("store", "store_lifecycle")):
+        require_cold_component(directory / name / "manifest.json", "examples/hia_bootstrap/" + source_name + ".hepta",
+                               sha(cold_path), sha(compiler), sources, pins)
+    return native_transport_custody_observations(directory, root, cold_path, compiler, sources, pins)
+
+
 def require_discovery_fixture(path, cold_path, cold_sha, compiler_sha, sources, pins):
     """Use the product's original strict fixture admission, bound to this run."""
     from tools.qualify_hia_cli_discovery_json import admit_fixture
@@ -1399,6 +2053,8 @@ def supplemental(args):
     before, error, source_error = None, None, None
     pins, commands, methods, companions, added_components = {}, [], {}, {}, {}
     default_release = service_context = cost_ledger = None
+    evaluation = None
+    native_transport = None
     sha_image_bound = False
     try:
         if read_pinned_json(args.target, pins) != target:
@@ -1472,6 +2128,11 @@ def supplemental(args):
         cost_ledger = require_cost_ledger_component(retained / "cost-ledger", root, cold_path,
                                                   compiler, sources, pins)
         added_components["cost-ledger"] = cost_ledger["manifest"]
+        evaluation = require_evaluation_component(retained / "evaluation", root, cold_path,
+                                                  compiler, sources, pins)
+        added_components["evaluation"] = evaluation["manifest"]
+        native_transport = require_native_transport_component(retained / "native-transport", root,
+                                                              cold_path, compiler, sources, pins)
         discovery_root = retained / "cli-discovery-json"
         for name in ("CliDiscoveryJsonNativeTests", "CliDiscoverySelectionFixture"):
             fixture_path = discovery_root / name / "cold-fixture/FIXTURE.json"
@@ -1532,7 +2193,11 @@ def supplemental(args):
             ("cost-ledger-callers", ["tools/qualify_hia_cost_ledger_callers.py",
                 "--cold-report", str(cold_path), "--evidence", str(output / "cost-ledger-callers")], {}),
         )
-        for name, arguments, selection in (*jobs, *service_context_jobs, *cost_ledger_jobs):
+        evaluation_jobs = (
+            ("evaluation-callers", ["tools/qualify_hia_evaluation_callers.py",
+                "--cold-report", str(cold_path), "--evidence", str(output / "evaluation-callers")], {}),
+        )
+        for name, arguments, selection in (*jobs, *service_context_jobs, *cost_ledger_jobs, *evaluation_jobs):
             command = [sys.executable, "-B", *arguments]
             record = {"name": name, "command": command, "passed": False}
             try:
@@ -1556,6 +2221,7 @@ def supplemental(args):
                         "store-lifecycle-callers": "MATCHING_SOURCE_COLD_ORIGINAL_STORE_LIFECYCLE_CALLERS",
                         "service-context-callers": "MATCHING_SOURCE_COLD_ORIGINAL_SERVICE_CONTEXT_CALLERS",
                         "cost-ledger-callers": "MATCHING_SOURCE_COLD_SEVEN_ORDINARY_COST_LEDGER_CALLER_MODULES",
+                        "evaluation-callers": "MATCHING_SOURCE_COLD_SEVEN_ORDINARY_EVALUATION_CALLER_MODULES",
                     }[name]
                     record["passed"] = bool(record["passed"] and report.get("status") == "PASS"
                         and report.get("scope") == expected_scope
@@ -1639,6 +2305,14 @@ def supplemental(args):
                         require_release_compilation(manifest_path.parent, "cost-ledger", SOURCE_NAME,
                                                     INPUTS, root, compiler, sources, pins)
                         record["cost_ledger_original_observations"] = require_cost_ledger_caller_observations(
+                            output / name, root, sources, discovery, manifest_path, pins)
+                    elif name == "evaluation-callers":
+                        from tools.build_hia_evaluation import INPUTS, SOURCE_NAME
+                        manifest_path = output / name / "qualified/manifest.json"
+                        require_cold_component(manifest_path, SOURCE_NAME, cold_sha, compiler_sha, sources, pins)
+                        require_release_compilation(manifest_path.parent, "evaluation", SOURCE_NAME,
+                                                    INPUTS, root, compiler, sources, pins)
+                        record["evaluation_original_observations"] = require_evaluation_caller_observations(
                             output / name, root, sources, discovery, manifest_path, pins)
                 elif name == "cli-discovery-original-groups":
                     from tools import qualify_hia_cli_discovery_json as original_discovery
@@ -1729,7 +2403,9 @@ def supplemental(args):
                   and sha_image_bound and default_release is not None and default_release["passed"]
                   and service_context is not None and service_context["passed"]
                   and cost_ledger is not None and cost_ledger["passed"]
-                  and len(commands) == 12 and all(row["passed"] for row in commands))
+                  and evaluation is not None and evaluation["passed"]
+                  and native_transport is not None and native_transport["passed"]
+                  and len(commands) == 13 and all(row["passed"] for row in commands))
     write_json(output / "supplemental-result.json", {
         "schema": "hepta.hia.same-cold-supplemental-callers.v1", "target": target,
         "scope": "MISSING_CALLER_GATES_AND_PRODUCTION_SHA_BINDING_AFTER_UNCHANGED_ORIGINAL_FULL",
@@ -1740,15 +2416,20 @@ def supplemental(args):
         "default_release_full_discovery_artifact_readback": default_release,
         "service_context_full_discovery_artifact_readback": service_context,
         "cost_ledger_full_discovery_artifact_readback": cost_ledger,
+        "evaluation_full_discovery_artifact_readback": evaluation,
+        "native_transport_full_discovery_artifact_readback": native_transport,
         "production_sha_image_matches_actual_executed_differential_image": sha_image_bound,
         "commands": commands, "captured_inputs": pins, "original_35_stages_modified": False,
         "original_component_test_suites_rerun": False,
         "original_10_supplemental_jobs_modified": False,
         "service_context_job_11_modified": False,
+        "cost_ledger_job_12_modified": False,
         "service_context_original_caller_gate_attempted": any(
             row["name"] == "service-context-callers" for row in commands),
         "cost_ledger_seven_ordinary_caller_gate_attempted": any(
             row["name"] == "cost-ledger-callers" for row in commands),
+        "evaluation_seven_ordinary_caller_gate_attempted": any(
+            row["name"] == "evaluation-callers" for row in commands),
         "additional_bounded_cli_groups_observed": next((row.get("observed_groups", [])
             for row in commands if row["name"] == "cli-discovery-original-groups"), []),
         "additional_bounded_cli_caller_gate_attempted": any(

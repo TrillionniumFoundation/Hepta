@@ -20,6 +20,12 @@ The cost-ledger owner uses the same cold for its first-full component and a
 separate gate over seven complete ordinary caller modules, totaling 81 methods.
 Its four explicit administrator-scope integration modules keep their original
 gates and bundles; this ordinary caller gate does not inject the ledger into them.
+The evaluation owner adds its complete current native class to first full
+discovery and a thirteenth supplemental command over all 81 frozen ordinary
+callers. Readback retains the 111 original traces, independent VM comparisons,
+actual installed worker and six-owner composition. The native-transport fault
+controls also run in first full discovery, using the original Store, context
+and ledger images; they add no caller command.
 The default-release native class constructs and installs its candidate wheel
 within full discovery. The supplement only reads back that real artifact and
 its already executed original callers; it adds no command or test rerun.
@@ -124,7 +130,7 @@ leave full discovery evidence and prevent an attempted passing run.
 
 The pre-discovery environment mirrors v4's existing static selector removals
 and its original cold-report bindings, read from the admitted v4 source.
-Twenty-nine newer cold selectors, including `NATIVE_MAPPING`, additionally point
+Thirty-one newer cold selectors, including `NATIVE_MAPPING`, additionally point
 to **this same run's future `qualification/cold.json`**. The real unchanged v4
 still performs its own original assignments. All native consumers retain their
 existing matching-source cold admission. The two `WRONG_COLD_REPORT` negative
@@ -134,7 +140,7 @@ The additions include `BOUNDED_MEMORY`, `SCALAR_PROFILE`,
 `GENERATION_RETENTION`, `PUBLICATION_MEASUREMENT`, the actual
 `SHA256_STREAM_DIFFERENTIAL` selector, and the new `FULL_COST`, `PATCH_IMPACT`,
 `STATIC_BUDGET`, `STORE_LIFECYCLE`, `CLI_DISCOVERY_JSON`, `DEFAULT_RELEASE`,
-`SERVICE_CONTEXT` and `COST_LEDGER` selectors. Full discovery
+`SERVICE_CONTEXT`, `COST_LEDGER`, `EVALUATION` and `NATIVE_TRANSPORT` selectors. Full discovery
 retains the original mapping, scalar, measurement, generation and stream
 differential component evidence under `qualification/full-discovery-components/`.
 Before execution the
@@ -169,6 +175,16 @@ methods and nine native methods must appear successfully in complete discovery;
 the native class first executes there, with its actual evidence retained under
 `HEPTA_HIA_COST_LEDGER_EVIDENCE`. Inherited ledger runtime manifests and development
 compilers are discarded before applying the same-run cold and evidence bindings.
+`EvaluationSourceTests` retains its three methods in the first source tuple.
+The complete seven-method `EvaluationNativeTests` class first executes in full
+discovery, including the six-owner public-evaluation and replay method. Its
+evidence is retained under `HEPTA_HIA_EVALUATION_EVIDENCE`. The original runtime
+manifest and development compiler alternatives are discarded. The separate
+`NativeTransportSourceTests` method also remains in the first source tuple,
+and all six `NativeTransportNativeTests` methods first run in full discovery
+under `HEPTA_HIA_NATIVE_TRANSPORT_EVIDENCE`. Its three actual builds and complete
+source/compiler custody must bind the same cold report. Readback does not rerun
+these fault-control bodies or create a fourteenth caller command.
 
 ## Original full execution and bounds
 
@@ -315,6 +331,52 @@ native. The fixture retains the ledger artifact reference, but not the ledger
 artifact body or request bytes, so readback does not claim to revalidate those
 contents. This readback does not rerun the component, worker or 81 caller methods.
 
+The thirteenth command runs every original evaluation caller in seven complete
+modules: 81 ordered methods with the retained evaluation body forbidden. The
+fixture separately freezes all 183 original methods in twelve modules. The
+four original administrator-scope modules and original ledger component keep
+their full discovery and existing bundles. No new helper is injected into those
+inputs. The only permitted original-source adjustment is the exact one-line
+helper-registry count assertion; normalizing that decimal literal back to 35
+must restore the original entire-file hash. All other original bytes remain
+exact. Readback checks aggregate and per-method continuation/integer counts,
+complete actual verbose identities, source/build pins and zero anomalies.
+
+Evaluation component readback compares every retained expected/actual trace
+as canonical JSON bytes, preserving bool/int/float distinctions. It requires
+all 111 independent original scenarios, the six-case VM/native observation
+counts (962 continuation and 130 integer entries), and all twelve lost-ACK or
+arithmetic-observation controls. Complete return/output/state buffer equality
+and nonrepeat assertions remain owned by the original successful full test;
+those raw buffers are not separately serialized by the fixture.
+
+The actual installed wheel must match the cold-bound source. Every installed
+file must match that wheel except the final intentional source-drift control:
+exactly one LF appended to the installed `evaluation.hepta`. Readback checks
+both recorded hashes and those actual bytes, then verifies the unchanged
+installed RECORD against the exact pre-drift source bytes in memory. It never
+normalizes another member or modifies the retained installation. Original
+stdout/stderr must agree with the worker reports and actual native counters.
+Normal replay and both unknown replays must have zero native operations.
+The retained measurement body is checked against its actual artifact reference
+and native runner results. Other artifact bodies and original worker request
+bytes are not retained by this installed fixture. Process exit 73, ACK-exception
+exit 1 and equality of durable budget rows after replay are checked by the
+original full test; separate process returncode receipts and the latter rows
+are not serialized, so readback does not claim to independently reconstruct them.
+
+The six-owner composition retains a different boundary: one admitted bundle
+for Store lifecycle, service context, execution budget, candidate budget,
+cost ledger and evaluation in the test process. All six actual images and
+their original compiler transports must bind this same cold report. Readback
+checks the public completed response and exact replay, all three published
+artifact bodies and hashes, before/after native-budget rows, zero durable
+changes and zero additional native entries on replay. Counters cover fixture
+construction, public evaluation and cleanup; they are not represented as six
+new installed-worker observations. The original 3000 ms context and 1000 ms
+native budget remain unchanged. Original request-journal, SQLite, runner,
+object and binary64 interoperability boundaries remain explicit.
+
 The default-release class already executes all 38 original full-cost callers
 from a second real installation, with no native selector environment and with
 the retained Python arithmetic bodies forbidden. The supplement reads its
@@ -349,8 +411,9 @@ JSON fixture, source identities and original process-owner results are checked
 again against this run's exact cold report. These are additional observations,
 not extra credit in the full-discovery denominator.
 
-The ten existing supplemental command definitions and service-context command
-eleven remain unchanged. The cost-ledger caller command follows as number twelve,
+The ten existing supplemental command definitions, service-context command
+eleven and cost-ledger command twelve remain unchanged. Evaluation follows as
+number thirteen,
 all using the unmodified product workflow supervisor
 with its ordinary 1800-second budget. The original inner limits, including the
 CLI compilation and installed subprocess limits of twenty seconds, remain in
