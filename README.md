@@ -1,32 +1,37 @@
-# HIA 原生重写进度 — v140
+# HIA 原生重写进度 — v141
 
-冻结时间：2026-11-14 09:33:07 UTC。前一提交：`b894c34e7ce7c3bff45b46f2f25a9fba885fcce9`。完整状态、范围和证据标识见 [STATE.json](STATE.json)。
+冻结时间：2026-11-14 10:41:14 UTC。前一提交：`9bd3bbd52f09f535708532dc38c3e4c7196dd905`。完整范围、历史及证据见 [STATE.json](STATE.json)。
 
 **整套原生资格未闭合，旧生产套未删除。** 原测试、断言、燃料、期限和历史失败保留。
 
-| 本次实际范围 | 结果 |
+| 实际范围 | 结果 |
 |---|---|
-| 原CLI43后继R3 | 43方法、86事件、493子测试全PASS；原-B启动、180+3、ECHILD不变，Root独立核完整3187源字节/模式/七项stat |
-| Inspect入口保护 | 3188独立inode私有源已物化；旧3187源不变；两次真实生成与原check全PASS，Root完整当前源核对通过 |
-| 命名空间完整保存 | 49逻辑原件、47唯一blob全GET；7段重组原2684449字节ZIP，46成员全CRC/SHA/Git/模式核对；原方法仍FAIL |
-| u32本地完整R2 | 原180秒超时保留；6/38阶段、1484项实际判定真；2阶段启动后终止，30未启动；无最终5052报告 |
-| u32托管完整R4 | 唯一CI attempt终态SUCCESS，原launch/outer日志PASS，133.193627602秒；完整原件逐项读回仍待完成 |
-| Inspect Source18前置审查 | 原Source10及独立Source8共享执行器审查通过；Root重读60份生成原件与两棵完整源码树；两组产品尚未执行 |
+| Inspect Source18 | 原Source10加独立Source8：18方法、36事件、21子测试PASS；两组180+3、exit0/ECHILD |
+| Source18完整原件 | 54文件、12目录、9823915字节、43CAS、5分片；Root全20叶Git读回及原字节/模式/七stat/路径集通过 |
+| 原Inspect编译 | 一次PASS，120231字节image；原20秒/1MiB，固定旧B3开发编译，非当前cold |
+| 原Native17/VM12 | 实际Native12：11PASS、1ERROR；首败停止，5Native及12VM未启动，无重试 |
+| u32完整原资格 | 5052/5052、38阶段；原报告、owner、完整源及原归档读回PASS，限显式固定子集 |
+| u32完整原归档 | 1270286664原ZIP字节、4945成员、4941原文件mode、3180源、86组实际六缓冲区逐项核对 |
+| 空间恢复 | 追加408份已归档PASS展开原件回收；1222非目标原件未变；28份全过程记录完整Git保管 |
 
-## 后继准备与边界
+## Inspect 当前失败
 
-Inspect新保护保留继承构造器，新增Source8合成控制不替代原Native17/VM12。原1GiB门槛未降；完成归档恢复核验后回收486份本地重复展开原件，实际生成2次和原check1次均PASS、各180+3/ECHILD。HIA主体/端口未变，新身份绑定13宿主源及新运行时。原回归R2父FAIL和19份原件未变。
+provider/protocol第二项在owner.finish(second)报“native machine-plan observation lacks its actual acknowledgement”。原drive直接step，第二frame已有未service的真实pending。nonce4实际仅有启动及返回4294967293的退役拒绝，没有claim/ACK。原确认检查应保留，不能伪造确认或删测试。
 
-冻结u32托管R4包完成独立静态审查：22harness、51材料7688994字节、10份原执行Python、4JSON的155处绑定位置不变；补齐复制材料使用前完整核对与实际nlink收集。保留3180源、5052/38、17参考加2observer、180+3和3GiB。冻结提交 `de4afa1f7f4cb1fc2d5284965f7f2a7c55632d2a` 的唯一run `43579403463` 已终态SUCCESS；两个原ZIP完整SHA/CRC与原launch/outer在完整日志中报告PASS。1,270,286,664字节原归档超过连接器536,870,912字节上限，原拒绝完整保留，本机已收ZIP为0字节。Root未把API或日志当作5052/38、owner清理与源码终态的完整原件读回；独立保管拆分仅作者中，0重跑。
+Root独立核完58127证据文件、12882机器调用的全部BEFORE/AFTER及32261个完整buffer（解码62780560字节），当前3187/3188源字节/模式/七stat与8guard相同。三个owner均完整ECHILD清理、返回0/0/1；进程清理不等于失败frame正常退役。完整失败原件本机无损封存，Git运输中。仅提议在独立后继Inspect.drive中通过原service处理既有pending后推进；尚无修复资格。
 
-单次fresh源码扫描分析为作者阶段：一次原current_sources，callback仅记ordinal/type/len，解除后核1552项map；不缓存摘要、裁剪闭包或把测量开销当作收益。
+原workspace Source18入口因真实空间不足在Popen前拒绝，保存拒绝又遇ENOSPC，原记录保留。后继只将证据置于核过身份的固定/dev/shm根，源、运行时、预算、1GiB门不变。Source8合成控制不替代Native17。
 
-## 同组织运行时
+## u32 资格和原件边界
 
-只读核验hepta-runtime PR121当前head `008036843625e12c21b6dc533be5cf3115cda579`的40叶native子树及只读host_list/binary_read记录。记录报告234次ELF请求、118次Python比较、7次控制器调用，Root未重放语料，更早CI不继承到当前head。原125处理器未完整替代，实际部署版本未知。Hepta PR898的紧凑JSON和5049项旧cold不替代本任务5052资格，冻结R2未吸收该变更。
+原产品run43579403463保持唯一执行；本地原180秒超时不改写。独立保管run43582958164拆分原ZIP，十段以单128MiB缓存读回，零产品重跑、没有第二整ZIP或源码树。
 
-## 仍须闭合
+17 fresh参考有B0前完成时间戳；两observer原收据、最终报告同值及冻结串行producer调用/写入先于seed已核，但无独立completion timestamp。owner exit0/ECHILD，cleanup5870611ns。四份unbound计划全文等冻结R2，155个pointer正逆完整字节一致；98报告和NODE原字节相同。86组实际六缓冲区及六代image/output prefix均核对通过。
 
-Inspect新源Source10/Source8、编译、Native17/VM12及CLI op10/Service接线；托管自举全原件读回、匹配当前源cold、R8/aggregate；默认CLI、Worker、Service、Store、外部运行时和安装构建链。仅在全链替代与原资格实际闭合后清除旧生产套。
+源树4c62be4ed66ff107fa6f88c6131313a354868bd9；B1/B2/B3为658860字节、SHA56cddd318fbdd7cd269c103fa70c8061d43a3bf9130e877961a5b8af2078c764。该5052门不替代ordinary encoding、entry layout、匹配当前源cold、R8或whole。11个大二进制ZIP保存在本机及实际Actions run，未声称全数已作为Git blob发布。内层归档本体已全hash/CRC读取，未声称再次展开或执行。
 
-主要证据：[CLI43读回](inspect-retained-r3/ROOT-TERMINAL-READBACK.json)、[u32超时时序](u32-full-qualification-r2-timeout/TIMELINE-ANALYSIS.json)、[运行时审计](adjacent-runtime/READONLY-AUDIT.json)。完整归档、作者原件与Root错误及修正均保留。
+## 继续闭合
+
+修复Inspect恢复驱动并完成原Native17/VM12、CLI op10/Service；匹配当前源cold及R8/aggregate；原预算下namespace失败；默认CLI、Worker、Service、Store、外部运行时、安装构建和所有生产入口。全链实际通过后才退役生产旧套。
+
+[Source18终态](root-v141-records/ROOT-SOURCE18-TERMINAL.json) · [完整Git读回](root-source18/ROOT-SOURCE18-GIT-CUSTODY.json) · [Native失败读回](root-native-terminal/ROOT-NATIVE-TERMINAL-FAILURE.json)

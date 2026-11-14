@@ -1,0 +1,395 @@
+{
+  "Git_POSTs": 0,
+  "actual_ZIP_members_read": 0,
+  "actual_hosted_success_stage_log": {
+    "collect": {
+      "line": 565,
+      "payload": {
+        "elapsed_ns": 2976380831,
+        "exit_code": 0,
+        "stage": "collect",
+        "status": "ALL_EXISTING_LOGICAL_NODES_RECORDED_FOR_ARTIFACT_UPLOAD"
+      },
+      "raw_line": "2026-11-14T09:15:14.7462558Z {\"elapsed_ns\": 2976380831, \"exit_code\": 0, \"stage\": \"collect\", \"status\": \"ALL_EXISTING_LOGICAL_NODES_RECORDED_FOR_ARTIFACT_UPLOAD\"}"
+    },
+    "launch": {
+      "line": 550,
+      "payload": {
+        "elapsed_ns": 133193627602,
+        "exit_code": 0,
+        "stage": "launch",
+        "status": "ORIGINAL_R2_PROCESS_AND_OUTER_PASS_FIXED_SCOPE_ONLY"
+      },
+      "raw_line": "2026-11-14T09:15:11.7075753Z {\"elapsed_ns\": 133193627602, \"exit_code\": 0, \"stage\": \"launch\", \"status\": \"ORIGINAL_R2_PROCESS_AND_OUTER_PASS_FIXED_SCOPE_ONLY\"}"
+    }
+  },
+  "boundaries": [
+    "Pinned original writer/read sites and actual collector code establish all five exact logical paths.",
+    "The hosted terminal log confirms successful launch and collect. This static proof has not read any original ZIP member.",
+    "The relay still requires all five real file nodes and full identities; absence or oversize fails without truncation.",
+    "The local R2 timeout has no qualification.json and remains a distinct failed attempt."
+  ],
+  "custody_program_executions": 0,
+  "exact_AST_write_binding_and_read_points": [
+    {
+      "end_line": 25,
+      "exact_source": "ROOT = Path(__file__).resolve().parents[2]",
+      "line": 25,
+      "source": "qualification_support.py"
+    },
+    {
+      "end_line": 34,
+      "exact_source": "OUT = ROOT / 'evidence/full-qualification-r2'",
+      "line": 34,
+      "source": "qualification_support.py"
+    },
+    {
+      "end_line": 35,
+      "exact_source": "REPORT_PATH = OUT / 'qualification.json'",
+      "line": 35,
+      "source": "qualification_support.py"
+    },
+    {
+      "end_line": 244,
+      "exact_source": "support.dump(support.OUT / 'OUTER.json', result)",
+      "line": 244,
+      "source": "run_full_qualification.py"
+    },
+    {
+      "end_line": 217,
+      "exact_source": "receipt_path=support.OUT / 'OWNER.json'",
+      "line": 217,
+      "source": "run_full_qualification.py"
+    },
+    {
+      "end_line": 220,
+      "exact_source": "support.read_owner_return(support.OUT / 'OWNER.json', returned)",
+      "line": 220,
+      "source": "run_full_qualification.py"
+    },
+    {
+      "end_line": 149,
+      "exact_source": "namespace['qualify_explicit'](support.REPORT_PATH, source_path)",
+      "line": 149,
+      "source": "run_full_qualification.py"
+    },
+    {
+      "end_line": 152,
+      "exact_source": "support.identity(support.REPORT_PATH)",
+      "line": 152,
+      "source": "run_full_qualification.py"
+    },
+    {
+      "end_line": 309,
+      "exact_source": "output.write_text(json.dumps(report, indent=2, sort_keys=True) + \"\\n\")",
+      "line": 309,
+      "source": "qualification_projection.py"
+    },
+    {
+      "end_line": 704,
+      "exact_source": "out = evidence / args.stage",
+      "line": 704,
+      "source": "materialize_hosted.py"
+    },
+    {
+      "end_line": 546,
+      "exact_source": "dump(out / 'PROCESS-EXIT.json', result)",
+      "line": 546,
+      "source": "materialize_hosted.py"
+    },
+    {
+      "end_line": 548,
+      "exact_source": "original = load(Path(plan['evidence']) / 'OUTER.json')",
+      "line": 548,
+      "source": "materialize_hosted.py"
+    },
+    {
+      "end_line": 549,
+      "exact_source": "require(original['status'] == 'PASS_EXPLICIT_U32_FULL_QUALIFICATION_ONLY', 'original outer result is not PASS')",
+      "line": 549,
+      "source": "materialize_hosted.py"
+    },
+    {
+      "end_line": 550,
+      "exact_source": "result['status'] = 'ORIGINAL_R2_PROCESS_AND_OUTER_PASS_FIXED_SCOPE_ONLY'",
+      "line": 550,
+      "source": "materialize_hosted.py"
+    },
+    {
+      "end_line": 725,
+      "exact_source": "dump(out / 'RESULT.json', result)",
+      "line": 725,
+      "source": "materialize_hosted.py"
+    },
+    {
+      "end_line": 635,
+      "exact_source": "roots = [('evidence', evidence), ('scope', scope), ('harness', HARNESS), ('archive-inputs', archives)]",
+      "line": 635,
+      "source": "materialize_hosted.py"
+    },
+    {
+      "end_line": 643,
+      "exact_source": "logical = prefix + ('/' + suffix if suffix else '')",
+      "line": 643,
+      "source": "materialize_hosted.py"
+    },
+    {
+      "end_line": 671,
+      "exact_source": "target = destination / 'files' / relative(logical)",
+      "line": 671,
+      "source": "materialize_hosted.py"
+    },
+    {
+      "end_line": 673,
+      "exact_source": "row.update(kind='file', storage_path='files/' + logical,\n                           **collect_file(path, target, before))",
+      "line": 672,
+      "source": "materialize_hosted.py"
+    },
+    {
+      "end_line": 678,
+      "exact_source": "dump(destination / 'NODE-MANIFEST.json', records)",
+      "line": 678,
+      "source": "materialize_hosted.py"
+    }
+  ],
+  "local_failed_R2_history_not_promoted": {
+    "OUTER.json": {
+      "identity": {
+        "bytes": 4082,
+        "git_blob": "1b3096d68ffa5066283d3c72e9ddc414be728b7d",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "d1d9767e6bfbdf047265df413991b7e211b0bf6a6dac1154c87c981fcec9ccd2"
+      },
+      "returncode": null,
+      "status": "FAIL"
+    },
+    "OWNER.json": {
+      "identity": {
+        "bytes": 2149,
+        "git_blob": "770a92326b2bc2049b23808d89152f66486ee538",
+        "git_mode": "100644",
+        "mode": 384,
+        "sha256": "569ba3c1464c12bb5ff7e19652f7148b694703667ef95e4362465962c416f727"
+      },
+      "returncode": -9,
+      "status": "QUALIFICATION_TIMEOUT"
+    },
+    "qualification.json": {
+      "exists": false,
+      "not_a_substitute_for_hosted_success_output": true
+    }
+  },
+  "mandatory_paths": [
+    {
+      "collector_storage_path": "files/evidence/launch/PROCESS-EXIT.json",
+      "literal_producer_proof": [
+        {
+          "end_line": 546,
+          "exact_source": "dump(out / 'PROCESS-EXIT.json', result)",
+          "line": 546,
+          "source": "materialize_hosted.py"
+        }
+      ],
+      "logical_path": "evidence/launch/PROCESS-EXIT.json",
+      "member_rule": "parent of unique NODE-MANIFEST.json plus collector_storage_path"
+    },
+    {
+      "collector_storage_path": "files/evidence/launch/RESULT.json",
+      "literal_producer_proof": [
+        {
+          "end_line": 725,
+          "exact_source": "dump(out / 'RESULT.json', result)",
+          "line": 725,
+          "source": "materialize_hosted.py"
+        }
+      ],
+      "logical_path": "evidence/launch/RESULT.json",
+      "member_rule": "parent of unique NODE-MANIFEST.json plus collector_storage_path"
+    },
+    {
+      "collector_storage_path": "files/scope/evidence/full-qualification-r2/OUTER.json",
+      "literal_producer_proof": [
+        {
+          "end_line": 244,
+          "exact_source": "support.dump(support.OUT / 'OUTER.json', result)",
+          "line": 244,
+          "source": "run_full_qualification.py"
+        },
+        {
+          "end_line": 548,
+          "exact_source": "original = load(Path(plan['evidence']) / 'OUTER.json')",
+          "line": 548,
+          "source": "materialize_hosted.py"
+        }
+      ],
+      "logical_path": "scope/evidence/full-qualification-r2/OUTER.json",
+      "member_rule": "parent of unique NODE-MANIFEST.json plus collector_storage_path"
+    },
+    {
+      "collector_storage_path": "files/scope/evidence/full-qualification-r2/OWNER.json",
+      "literal_producer_proof": [
+        {
+          "end_line": 217,
+          "exact_source": "receipt_path=support.OUT / 'OWNER.json'",
+          "line": 217,
+          "source": "run_full_qualification.py"
+        },
+        {
+          "end_line": 220,
+          "exact_source": "support.read_owner_return(support.OUT / 'OWNER.json', returned)",
+          "line": 220,
+          "source": "run_full_qualification.py"
+        }
+      ],
+      "logical_path": "scope/evidence/full-qualification-r2/OWNER.json",
+      "member_rule": "parent of unique NODE-MANIFEST.json plus collector_storage_path"
+    },
+    {
+      "collector_storage_path": "files/scope/evidence/full-qualification-r2/qualification.json",
+      "literal_producer_proof": [
+        {
+          "end_line": 149,
+          "exact_source": "namespace['qualify_explicit'](support.REPORT_PATH, source_path)",
+          "line": 149,
+          "source": "run_full_qualification.py"
+        },
+        {
+          "end_line": 309,
+          "exact_source": "output.write_text(json.dumps(report, indent=2, sort_keys=True) + \"\\n\")",
+          "line": 309,
+          "source": "qualification_projection.py"
+        },
+        {
+          "end_line": 152,
+          "exact_source": "support.identity(support.REPORT_PATH)",
+          "line": 152,
+          "source": "run_full_qualification.py"
+        }
+      ],
+      "logical_path": "scope/evidence/full-qualification-r2/qualification.json",
+      "member_rule": "parent of unique NODE-MANIFEST.json plus collector_storage_path"
+    }
+  ],
+  "original_head": "de4afa1f7f4cb1fc2d5284965f7f2a7c55632d2a",
+  "original_job": 132400693130,
+  "original_run": 43579403463,
+  "product_executions": 0,
+  "refs_or_CI": 0,
+  "schema": "hepta.u32.custody-mandatory-producer-path-proof.v1",
+  "source_identities": {
+    "ACTUAL_HOSTED_FULL_JOB_LOG": {
+      "identity": {
+        "bytes": 65822,
+        "git_blob": "5fd9f7a3d78d44afa5d5c4d1f6f87455820335ea",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "2eca0e4436f8df9e9a486556384b7bfe2034456a25b312613dd80373f5c9d703"
+      },
+      "path": "/workspace/scratch/dda74a4fae35/v134-u32-hosted-publication-r1/actual/FULL-JOB.log"
+    },
+    "LOCAL_R2_TIMEOUT_OUTER.json": {
+      "identity": {
+        "bytes": 4082,
+        "git_blob": "1b3096d68ffa5066283d3c72e9ddc414be728b7d",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "d1d9767e6bfbdf047265df413991b7e211b0bf6a6dac1154c87c981fcec9ccd2"
+      },
+      "path": "/workspace/scratch/dda74a4fae35/v121-selfhost-small-constant-r1/evidence/full-qualification-r2/OUTER.json"
+    },
+    "LOCAL_R2_TIMEOUT_OWNER.json": {
+      "identity": {
+        "bytes": 2149,
+        "git_blob": "770a92326b2bc2049b23808d89152f66486ee538",
+        "git_mode": "100644",
+        "mode": 384,
+        "sha256": "569ba3c1464c12bb5ff7e19652f7148b694703667ef95e4362465962c416f727"
+      },
+      "path": "/workspace/scratch/dda74a4fae35/v121-selfhost-small-constant-r1/evidence/full-qualification-r2/OWNER.json"
+    },
+    "R1_retain_original.py": {
+      "identity": {
+        "bytes": 22086,
+        "git_blob": "60625d1ca0a83220f711365e7aebbd40c250e7bb",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "a9b1e8cd53ec362f4206e951ed329eeb141089a1a4d63e33ffce5291b0b1943d"
+      },
+      "path": "/workspace/scratch/dda74a4fae35/v134-u32-hosted-publication-r1/custody-relay-prepared-r1/harness/tools/retain_original.py"
+    },
+    "R4_AUTHORING_RESULT": {
+      "identity": {
+        "bytes": 12847,
+        "git_blob": "52af40c20b3eff793c74336d431321c61933ecef",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "dec7a153320a8b1555588844340f97b1be70d9568be69c85d81983cc372f23e2"
+      },
+      "path": "/workspace/scratch/dda74a4fae35/v134-u32-full-hosted-plan-r1/prepared-r4/AUTHORING-RESULT.json"
+    },
+    "R4_EXECUTION_SPEC": {
+      "identity": {
+        "bytes": 9868,
+        "git_blob": "dd13fcec6ac24e90e56592f0dbc192ced942ff4a",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "ea2d702834a4f2adb44b77d5593e243d81e146196065cb70e94194eda738bdd6"
+      },
+      "path": "/workspace/scratch/dda74a4fae35/v134-u32-full-hosted-plan-r1/prepared-r4/harness/inputs/EXECUTION-SPEC.json"
+    },
+    "materialize_hosted.py": {
+      "identity": {
+        "bytes": 38097,
+        "git_blob": "ede4df92ceeaf255d620e4c96ff8a63e4670e95e",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "5050f0fc07fefa4962278dc396c5bfc1d0534a15014e3df685d4819e36761ea7"
+      },
+      "path": "/workspace/scratch/dda74a4fae35/v134-u32-full-hosted-plan-r1/prepared-r4/harness/tools/materialize_hosted.py"
+    },
+    "qualification.yml": {
+      "identity": {
+        "bytes": 5477,
+        "git_blob": "96aeb56e55fd5ef83b218b393c3715937a510ea4",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "bead1d0b16671ec61791cc39e99f5ca4ccfaa8b824cd1ed79380d534bfacd659"
+      },
+      "path": "/workspace/scratch/dda74a4fae35/v134-u32-full-hosted-plan-r1/prepared-r4/harness/.github/workflows/qualification.yml"
+    },
+    "qualification_projection.py": {
+      "identity": {
+        "bytes": 23342,
+        "git_blob": "1c491cdf36917c08ef43d7bd6244473589005dcd",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "6e949dd63987ea711563a4e048f3b802363e2780c1438f86d854ebbcba94a94e"
+      },
+      "path": "/workspace/scratch/dda74a4fae35/v121-selfhost-small-constant-r1/authoring/full-qualification-r2/qualification_projection.py"
+    },
+    "qualification_support.py": {
+      "identity": {
+        "bytes": 21597,
+        "git_blob": "27a9c36452ca61f1a04084bb6e15607fb9b49f03",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "5676f964e6e6c8b51bfad29fe517f9e8f7c0697be1fc62f134b6d0c864b8b39c"
+      },
+      "path": "/workspace/scratch/dda74a4fae35/v121-selfhost-small-constant-r1/authoring/full-qualification-r2/qualification_support.py"
+    },
+    "run_full_qualification.py": {
+      "identity": {
+        "bytes": 16401,
+        "git_blob": "9511aa0224678a1eb462e118a1822bc03e473732",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "cee16e87910b12b8a6ab243c823c5dcf21cfec1c599ee4765a0593918ae550dd"
+      },
+      "path": "/workspace/scratch/dda74a4fae35/v121-selfhost-small-constant-r1/authoring/full-qualification-r2/run_full_qualification.py"
+    }
+  },
+  "status": "EXACT_FROZEN_PRODUCER_AND_COLLECTOR_PATHS_STATICALLY_VERIFIED",
+  "workflow_collect_block": "          python3.14 -I -S -B harness/tools/materialize_hosted.py collect\n          --scope \"$RUNNER_TEMP/u32-frozen-r2\"\n          --archives \"$RUNNER_TEMP/u32-original-artifacts\"\n          --evidence \"$GITHUB_WORKSPACE/evidence\"\n          --collection \"$GITHUB_WORKSPACE/retained\"\n",
+  "workflow_launch_block": "          python3.14 -I -S -B harness/tools/materialize_hosted.py launch\n          --scope \"$RUNNER_TEMP/u32-frozen-r2\"\n          --evidence \"$GITHUB_WORKSPACE/evidence\"\n"
+}
