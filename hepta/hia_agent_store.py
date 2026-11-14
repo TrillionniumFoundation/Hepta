@@ -11,6 +11,7 @@ from hashlib import sha256
 import json
 import math
 import os
+import os as _store_artifact_selection_os
 from pathlib import Path
 import sqlite3
 import stat
@@ -404,6 +405,14 @@ class AgentStore:
         self.db.close()
 
     def put(self, data, kind, metadata=None):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 1,
+                                              self, (data, kind, metadata)).finish()
+        return _STORE_ARTIFACT_PROFILE_REFERENCES['put'](self, data, kind, metadata)
+
+    def _put_reference(self, data, kind, metadata=None):
         if type(data) is not bytes or len(data) > MAX_ARTIFACT_BYTES:
             reject("E_HIA_ARTIFACT_LIMIT", "artifact exceeds the 64 MiB store limit")
         metadata = {} if metadata is None else metadata
@@ -450,13 +459,38 @@ class AgentStore:
         return self._ref(row)
 
     def json(self, value, kind, metadata=None):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 2,
+                                              self, (value, kind, metadata)).finish()
+        return _STORE_ARTIFACT_PROFILE_REFERENCES['json'](self, value, kind, metadata)
+
+    def _json_reference(self, value, kind, metadata=None):
         return self.put(wire(value), kind, metadata)
 
     @staticmethod
     def _ref(row):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 3,
+                                              None, (row,)).finish()
+        return _STORE_ARTIFACT_PROFILE_REFERENCES['_ref'](row)
+
+    @staticmethod
+    def _ref_reference(row):
         return {name: row[name] for name in ("id", "sha256", "uri")}
 
     def get(self, ref, *, kind=None):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 4,
+                                              self, (ref, kind)).finish()
+        return _STORE_ARTIFACT_PROFILE_REFERENCES['get'](self, ref, kind=kind)
+
+    def _get_reference(self, ref, *, kind=None):
         keys(ref, ("id", "sha256", "uri"), label="artifact reference")
         row = self.db.execute("SELECT * FROM artifacts WHERE id=?", (ref["id"],)).fetchone()
         if row is None or self._ref(row) != ref:
@@ -471,10 +505,26 @@ class AgentStore:
         return data, decode_data(row["metadata"])
 
     def get_json(self, ref, *, kind=None):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 5,
+                                              self, (ref, kind)).finish()
+        return _STORE_ARTIFACT_PROFILE_REFERENCES['get_json'](self, ref, kind=kind)
+
+    def _get_json_reference(self, ref, *, kind=None):
         data, metadata = self.get(ref, kind=kind)
         return decode_data(data), metadata
 
     def resolve_uri(self, uri):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 6,
+                                              self, (uri,)).finish()
+        return _STORE_ARTIFACT_PROFILE_REFERENCES['resolve_uri'](self, uri)
+
+    def _resolve_uri_reference(self, uri):
         row = self.db.execute("SELECT * FROM artifacts WHERE uri=?", (uri,)).fetchone()
         if row is None:
             reject("E_HIA_ARTIFACT_IDENTITY", "resource URI was not issued in this runtime namespace")
@@ -483,6 +533,14 @@ class AgentStore:
         return ref
 
     def profile(self, identifier, value):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 7,
+                                              self, (identifier, value)).finish()
+        return _STORE_ARTIFACT_PROFILE_REFERENCES['profile'](self, identifier, value)
+
+    def _profile_reference(self, identifier, value):
         ref = self.json(value, "profile")
         profile = {"id": identifier, "sha256": ref["sha256"]}
         self.db.execute("INSERT OR IGNORE INTO profiles VALUES (?,?,?)",
@@ -490,6 +548,14 @@ class AgentStore:
         return profile, ref
 
     def check_profile(self, ref, expected):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 8,
+                                              self, (ref, expected)).finish()
+        return _STORE_ARTIFACT_PROFILE_REFERENCES['check_profile'](self, ref, expected)
+
+    def _check_profile_reference(self, ref, expected):
         if ref != expected:
             reject("E_HIA_PROFILE_STALE", "profile is unavailable or differs from the installed implementation")
         row = self.db.execute("SELECT artifact FROM profiles WHERE id=? AND sha256=?",
@@ -502,3 +568,18 @@ class AgentStore:
 # Freeze the original no-selector lifecycle without dynamic Store attribute hooks.
 _NATIVE_STORE_INITIALIZE_REFERENCE = AgentStore._initialize_reference
 _NATIVE_STORE_CLOSE_REFERENCE = AgentStore._close_reference
+
+# Only the explicit unselected compatibility route invokes these original
+# bodies. Selected canonical calls and user overrides use the real public
+# method expressions; no mutable hook is treated as a forbidden default.
+_STORE_ARTIFACT_PROFILE_REFERENCES = {
+    'put': AgentStore._put_reference,
+    'json': AgentStore._json_reference,
+    '_ref': AgentStore._ref_reference,
+    'get': AgentStore._get_reference,
+    'get_json': AgentStore._get_json_reference,
+    'resolve_uri': AgentStore._resolve_uri_reference,
+    'profile': AgentStore._profile_reference,
+    'check_profile': AgentStore._check_profile_reference,
+}
+_STORE_ARTIFACT_PROFILE_BUILTINS = AgentStore.put.__builtins__

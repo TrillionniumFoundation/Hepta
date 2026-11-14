@@ -19,10 +19,10 @@ The canonical suffix entered main at
 
 | Current inventory | Count |
 | --- | ---: |
-| Physical HIA sources ending in `.hepta` | 195 |
+| Physical HIA sources ending in `.hepta` | 196 |
 | Physical legacy `.hia`, `.HIA`, `.hiaasm`, `.hia.json`, including case variants | 0 |
-| Production Python modules directly under `hepta/` | 210 |
-| Registered native helper selectors | 38 |
+| Production Python modules directly under `hepta/` | 212 |
+| Registered native helper selectors | 39 |
 
 These counts describe files, not percentages of behavior. The additional
 Python modules are explicit adapters for new native owners; their existence is
@@ -47,6 +47,7 @@ source-bound evidence. The host dependencies remain explicit.
 | Area | HIA-owned behavior | Retained host boundary |
 | --- | --- | --- |
 | [Compile and emission](HIA_EMISSION_NATIVE.md) | Both complete original methods: branch/loop control, dynamic compile calls, context-manager cleanup and suppression, generator iteration and publication order | Core emitter/compiler/linker, filesystem, Store/SQLite/clock/hash providers and opaque Python object protocols |
+| [Store artifact and profile](HIA_STORE_ARTIFACT_PROFILE_NATIVE.md) | All eight original put/json/reference/get/get-json/URI/profile/check-profile methods: original guard and dynamic global reads, short circuits, ordered reference iteration, argument evaluation, publication and cleanup control | Original filesystem, SQLite, hash, JSON and native-artifact providers, opaque object protocols and the separate transaction context manager |
 | [Native artifact and build receipt](HIA_NATIVE_BUILD_ADMISSION.md) | All four original signature/native/build-input/build-receipt methods, including ordered loops, composite checks, short circuits and nested admission | Opaque Python object protocols, original Core/context/ABI providers, Store/SQLite and SHA-256 |
 | [Evaluation](HIA_EVALUATION_NATIVE.md) | Complete original evaluation branches, case/arm iteration, correctness and completeness flags, six-outcome precedence, budget/effect order and exact integer deadlines | Original reference VM and native runner, Store/SQLite/clock providers, object protocols, integer-to-binary64 division and threshold comparison |
 | [Cost ledger](HIA_COST_LEDGER_NATIVE.md) | Original query/decode/policy ordering, 10,001-row truncation, context/unscoped selection, exact signed sums and output construction order | SQLite query/fetch, JSON decoding, row/object allocation and the original integer/string conversions |
@@ -76,7 +77,8 @@ descriptor lookup and exception metadata. Canonical nested calls enter selected
 HIA child frames without returning to the four retained policies. An actual
 child native loss fences its active causal ancestors; a genuine foreign
 exception preserves its identity and each caller's confirmed-error handling.
-The worker registry remains 37 source-bound single-image selectors.
+That admission execution used 37 source-bound single-image selectors; the
+current registry count, including subsequent owners, is recorded above.
 
 The separately frozen 205-case dynamic/runtime matrix and the original 303-case
 matrix match their original observations on Python 3.12.14, 3.13.5 and 3.14.10.
@@ -126,19 +128,35 @@ success below qualifies this successor automatically.
 
 | Scope | Observed result and remaining gate |
 | --- | --- |
-| Published parent `727edb4` | Both Source jobs passed all 672 methods (539.107 and 518.983 seconds). At 2026-11-14 13:33 UTC both Native jobs had passed through step 87 and were running execution-budget step 88. [Push](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43592319767), [PR](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43592454060). The [full retained run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43592977558) was still running the original v4 step. |
+| Published parent `7076ec1` | Both Source jobs passed all 675 methods (505.290 and 741.047 seconds). At 2026-11-14 14:02 UTC both Native jobs had passed the complete emission component and were running its original 112 callers. [Push](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43600841563), [PR](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43600938346). Its [complete retained run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43603610027) started under exact harness `1e0231dd4cf8821ccae67a96de86ba6e986e6ae5`; the original 35 stages, 14 earlier supplements and limits are unchanged. This successor's additional Store inputs require their own matching cold qualification. |
+| Earlier parent `727edb4` | Both Source jobs passed all 672 methods (539.107 and 518.983 seconds). Both Native jobs subsequently failed the original 5-second wire assertion at 6.483813 and 6.502349 seconds; their complete 91-method gates took 390.784 and 390.018 seconds. All 97 earlier steps passed. [Push](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43592319767), [PR](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43592454060). At 2026-11-14 14:02 UTC the [full retained run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43592977558) was still running the original v4 step. |
 | Complete emission owner | Source3, Native8 and all original nine-module 112 callers passed. The 112 runner took 167.838 seconds, entered 216 native frames and forbade both retained bodies. All 954 frozen original observations matched on observed CPython 3.12, 3.13 and 3.14; 512 complete buffers matched the independent VM. These are development results for the emission component inputs, before this integration's changed composite sources. |
 | Installed emission and composition | The actual fresh-wheel emission worker exercised normal publication, lost ACK, process loss, replay and source-drift refusal. A separate source-process eight-owner evaluation/adoption composition preserved original 3000/1000 ms limits and replay with no new entries or database changes. The latter was not an installed eight-owner worker and does not prove cross-owner loss delivery. |
 | Composite allocator | Replaced only the original zeroing loop with the existing checked HIA range fill; six generated owners changed. All 9,816 entries across 16 original documents matched complete input/output/workspace bytes and returns; 48 independent allocator boundary cases matched. The original 1024-function case passed A/B/A at 210.356 / 22.349 / 207.940 seconds with identical complete 385,050-byte observations. This is one measured case, not a full-regression speed claim. |
 | Composite original callers | The complete original 122-method gate was attempted: 120 passed, no test failed or skipped, and one class setup refused development manifests because two joint-composition methods require matching-current-source cold. Those two methods never started. All original 64 methods are an exact ordered subset of the 120 actual passes. Full122 remains HOLD until the unchanged joint-cold gate runs. |
-| Earlier complete runs | The [73f1634 full run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43585323484) failed its original v4 and supplemental steps; its complete inner artifact still requires readback. The [aac7550 full workflow](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43579990844) succeeded, but its 556,659,914-byte artifact exceeds the current 512 MiB transfer limit, so its inner qualification is not asserted. Both belong to their own source. |
+| Store artifact/profile component | Source3 and Native8 passed together in 64.625 seconds. The original 463 cases, 160 literal-call inputs in both cold and warm profiles, and 41 separately frozen dynamic-global guard cases matched on observed CPython 3.12, 3.13 and 3.14. The final image matched the independent VM at 533 complete buffer entries across six cases. These are development results, with filesystem/SQL and object providers still hosted. |
+| Store original callers | All 130 original methods started and stopped: 124 passed and six failed, with no errors, skips or retained-body calls. The complete original nine-module 112 methods are an ordered passing subset; 12 of the separate 18 artifact-store methods passed. The gate observed 95,924 frames and 1,755,792 native entries in 287.638 seconds. Three failures directly report ptrace permission refusal; the other three report missed checkpoints or empty traces. All six remain failures until the unchanged full gate passes in a capable matching-source environment. |
+| Installed Store worker | The actual fresh-wheel worker covered all eight modes, normal publication and URI reads, lost ACK, process exit 73, unknown replay and source-drift refusal. Its first request used 250 entries; replay used zero request entries and separately recorded 3,714 startup entries. Same-owner child-loss controls passed; cross-owner delivery and native-artifact-provider post-effect loss remain open. |
+| Earlier complete runs | The [73f1634 full run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43585323484) is fully read back: 30,209 original files and 31,854 tar members preserve bytes, modes and nanosecond metadata. Its first 34 stages passed; original stage35 exhausted the cumulative 5,400-second limit. Of 5,001 planned methods, 4,561 ended `ok`, one had started without a terminal observation, and 439 never started. No supplemental commands ran because the later same-run prerequisites were incomplete. The [aac7550 full workflow](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43579990844) succeeded, but its 556,659,914-byte artifact exceeds the current 512 MiB transfer limit, so its inner qualification is not asserted. Both belong to their own source. |
 
 The original 5-second JSON-wire timeout assertion remains open. The earlier
 `73f1634` Native push failed it at 5.499958 seconds while the separate PR run
 passed. Two local value-cache candidates also failed the unchanged assertion;
 neither is integrated here. Their successful finite semantic controls cannot
 turn those failures into performance acceptance. The next optimization must be
-based on the actual original workload.
+based on the actual original workload. A diagnostic profile of the original
+`7076ec1` evaluation observed 383,542 native steps and 382,418 observations in
+the timed call. Profiling overhead makes its elapsed time diagnostic only.
+The original caller accounting and per-request source admission remain intact;
+neither may be bypassed to meet the performance assertion.
+
+The independent Store handoff readback verified 1,264 source/evidence files and
+preserved a reporting defect: the three dynamic-limit comparison reports pair
+a `report.json` path with the `first.json` observation digest. The original
+freeze separately binds both files. Readback checked those independent pins,
+both original observation repeats and the complete candidate observations;
+the original reports were not rewritten. This correction does not turn the
+six failing original caller methods into passes.
 
 Cross-owner native delivery is also open: the selected owners retain their own
 unknown-outcome custody, but a provider can swallow or replace a child owner's
@@ -187,8 +205,9 @@ remaining service methods listed here.
 | `hia_rollback` | Request, retained-image and receipt coordination |
 
 `hia_resource_read` remains a supported alias, not a twelfth catalog tool.
-`AgentStore` still owns transaction begin/commit/rollback, artifact get/put and
-profiles in addition to foreign SQLite effects. The service cost ledger has its
+`AgentStore` still owns transaction begin/commit/rollback and foreign SQLite
+effects. Its eight artifact/profile methods have the selected HIA owner above;
+their unselected original bodies and original providers remain. The service cost ledger has its
 own selected HIA policy and retained foreign primitives, separate from full-cost
 comparison. The native child runner still starts
 through Python. These live dependencies prevent deleting the hosted stack.

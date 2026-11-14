@@ -13,7 +13,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle service_context cost_ledger evaluation native_build_admission emission cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -86,6 +86,7 @@ jobs:
               'tests.test_hia_native_build_admission_native.NativeBuildAdmissionSourceTests',
               'tests.test_hia_native_build_dispatch.NativeBuildDispatchSourceTests',
               'tests.test_hia_emission_native.EmissionSourceTests',
+              'tests.test_hia_store_artifact_profile_native.StoreArtifactProfileSourceTests',
               'tests.test_hia_native_transport_failures.NativeTransportSourceTests',
               'tests.test_hia_static_budget_native.StaticBudgetSourceTests',
               'tests.test_hia_patch_impact_native.PatchImpactSourceTests',
@@ -353,6 +354,16 @@ jobs:
           python -B tools/qualify_hia_emission_callers.py
           --cold-report "$RUNNER_TEMP/hia-cold.json"
           --evidence "$RUNNER_TEMP/hia-emission-callers"
+      - name: Native complete Store artifact and profile methods with original cleanup semantics
+        env:
+          HEPTA_HIA_STORE_ARTIFACT_PROFILE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_STORE_ARTIFACT_PROFILE_EVIDENCE: ${{ runner.temp }}/hia-store-artifact-profile
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_store_artifact_profile_native
+      - name: Complete original Store ordinary and artifact callers with eight retained bodies forbidden
+        run: >-
+          python -B tools/qualify_hia_store_artifact_profile_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-store-artifact-profile-callers"
       - name: Native full-cost arithmetic and actual installed cost and patch impact owners
         env:
           HEPTA_HIA_FULL_COST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
