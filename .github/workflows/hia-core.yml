@@ -13,7 +13,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle store_transaction service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -88,6 +88,8 @@ jobs:
               'tests.test_hia_emission_native.EmissionSourceTests',
               'tests.test_hia_store_artifact_profile_native.StoreArtifactProfileSourceTests',
               'tests.test_hia_store_native_delivery.StoreNativeDeliverySourceTests',
+              'tests.test_hia_artifact_delivery.ArtifactDeliverySourceTests',
+              'tests.test_hia_store_transaction_native.StoreTransactionSourceTests',
               'tests.test_hia_native_transport_failures.NativeTransportSourceTests',
               'tests.test_hia_native_delivery.NativeDeliverySourceTests',
               'tests.test_hia_static_budget_native.StaticBudgetSourceTests',
@@ -371,6 +373,31 @@ jobs:
           HEPTA_HIA_STORE_NATIVE_DELIVERY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_STORE_NATIVE_DELIVERY_EVIDENCE: ${{ runner.temp }}/hia-store-native-delivery
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_store_native_delivery
+      - name: Artifact provider native delivery and exact installed resource custody
+        env:
+          HEPTA_HIA_ARTIFACT_DELIVERY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_ARTIFACT_DELIVERY_EVIDENCE: ${{ runner.temp }}/hia-artifact-delivery
+        run: |
+          set -o pipefail
+          python -B tools/run_hia_unittest_gate.py \
+            tests.test_hia_artifact_delivery.ArtifactDeliverySourceTests \
+            tests.test_hia_artifact_delivery.ArtifactDeliveryNativeTests \
+            2>&1 | tee "$RUNNER_TEMP/hia-artifact-delivery.log"
+      - name: Native complete Store transaction history and installed worker custody
+        env:
+          HEPTA_HIA_STORE_TRANSACTION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_STORE_TRANSACTION_EVIDENCE: ${{ runner.temp }}/hia-store-transaction
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_store_transaction_native
+      - name: Complete original Store transaction ordinary callers
+        run: >-
+          python -B tools/qualify_hia_store_transaction_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-store-transaction-callers"
+      - name: Complete original transaction journal budget and slot-ledger callers
+        run: >-
+          python -B tools/qualify_hia_store_transaction.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-store-transaction-separate-callers"
       - name: Shared native delivery causal custody and actual installed worker controls
         run: >-
           python -B tools/qualify_hia_native_delivery.py --group focused
@@ -1001,6 +1028,11 @@ jobs:
             ${{ runner.temp }}/hia-native-build-admission-callers/
             ${{ runner.temp }}/hia-native-transport/
             ${{ runner.temp }}/hia-store-native-delivery/
+            ${{ runner.temp }}/hia-artifact-delivery/
+            ${{ runner.temp }}/hia-artifact-delivery.log
+            ${{ runner.temp }}/hia-store-transaction/
+            ${{ runner.temp }}/hia-store-transaction-callers/
+            ${{ runner.temp }}/hia-store-transaction-separate-callers/
             ${{ runner.temp }}/hia-native-delivery-focused/
             ${{ runner.temp }}/hia-native-delivery-components/
             ${{ runner.temp }}/hia-native-delivery-callers/
@@ -1071,3 +1103,547 @@ jobs:
             ${{ runner.temp }}/native-no-child-continuation-callers/
             ${{ runner.temp }}/worker-report-fixture/
             ${{ runner.temp }}/worker-scheduling-fixture/
+      - name: Preserve original raw text diagnostics separately
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-native-raw-diagnostics-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-bounded-memory.log
+            ${{ runner.temp }}/hia-cold.json
+            ${{ runner.temp }}/hia-generation-retention.log
+            ${{ runner.temp }}/hia-journal-callers.json
+            ${{ runner.temp }}/hia-json-wire-callers.json
+            ${{ runner.temp }}/hia-language.assertions.json
+            ${{ runner.temp }}/hia-language.json
+            ${{ runner.temp }}/hia-native-mapping-original-callers.log
+            ${{ runner.temp }}/hia-publication-measurement.log
+            ${{ runner.temp }}/hia-rust-caller-inputs.sha256
+            ${{ runner.temp }}/hia-scalar-profile.log
+            ${{ runner.temp }}/hia-sha256-stream-differential.log
+            ${{ runner.temp }}/machine-plan-callers.json
+            ${{ runner.temp }}/byte-wrapper-callers/*.json
+            ${{ runner.temp }}/byte-wrapper-callers/**/report.json
+            ${{ runner.temp }}/byte-wrapper-callers/**/component-custody.json
+            ${{ runner.temp }}/byte-wrapper-callers/**/*.log
+            ${{ runner.temp }}/byte-wrapper-callers/**/*.stdout
+            ${{ runner.temp }}/byte-wrapper-callers/**/*.stderr
+            ${{ runner.temp }}/byte-wrapper-composed-callers/*.json
+            ${{ runner.temp }}/byte-wrapper-composed-callers/**/report.json
+            ${{ runner.temp }}/byte-wrapper-composed-callers/**/component-custody.json
+            ${{ runner.temp }}/byte-wrapper-composed-callers/**/*.log
+            ${{ runner.temp }}/byte-wrapper-composed-callers/**/*.stdout
+            ${{ runner.temp }}/byte-wrapper-composed-callers/**/*.stderr
+            ${{ runner.temp }}/byte-wrapper-fixture/*.json
+            ${{ runner.temp }}/byte-wrapper-fixture/**/report.json
+            ${{ runner.temp }}/byte-wrapper-fixture/**/component-custody.json
+            ${{ runner.temp }}/byte-wrapper-fixture/**/*.log
+            ${{ runner.temp }}/byte-wrapper-fixture/**/*.stdout
+            ${{ runner.temp }}/byte-wrapper-fixture/**/*.stderr
+            ${{ runner.temp }}/core-emitter-callers/*.json
+            ${{ runner.temp }}/core-emitter-callers/**/report.json
+            ${{ runner.temp }}/core-emitter-callers/**/component-custody.json
+            ${{ runner.temp }}/core-emitter-callers/**/*.log
+            ${{ runner.temp }}/core-emitter-callers/**/*.stdout
+            ${{ runner.temp }}/core-emitter-callers/**/*.stderr
+            ${{ runner.temp }}/core-emitter-fixture/*.json
+            ${{ runner.temp }}/core-emitter-fixture/**/report.json
+            ${{ runner.temp }}/core-emitter-fixture/**/component-custody.json
+            ${{ runner.temp }}/core-emitter-fixture/**/*.log
+            ${{ runner.temp }}/core-emitter-fixture/**/*.stdout
+            ${{ runner.temp }}/core-emitter-fixture/**/*.stderr
+            ${{ runner.temp }}/core-emitter-function-callers/*.json
+            ${{ runner.temp }}/core-emitter-function-callers/**/report.json
+            ${{ runner.temp }}/core-emitter-function-callers/**/component-custody.json
+            ${{ runner.temp }}/core-emitter-function-callers/**/*.log
+            ${{ runner.temp }}/core-emitter-function-callers/**/*.stdout
+            ${{ runner.temp }}/core-emitter-function-callers/**/*.stderr
+            ${{ runner.temp }}/core-lowering-callers/*.json
+            ${{ runner.temp }}/core-lowering-callers/**/report.json
+            ${{ runner.temp }}/core-lowering-callers/**/component-custody.json
+            ${{ runner.temp }}/core-lowering-callers/**/*.log
+            ${{ runner.temp }}/core-lowering-callers/**/*.stdout
+            ${{ runner.temp }}/core-lowering-callers/**/*.stderr
+            ${{ runner.temp }}/core-lowering-fixture/*.json
+            ${{ runner.temp }}/core-lowering-fixture/**/report.json
+            ${{ runner.temp }}/core-lowering-fixture/**/component-custody.json
+            ${{ runner.temp }}/core-lowering-fixture/**/*.log
+            ${{ runner.temp }}/core-lowering-fixture/**/*.stdout
+            ${{ runner.temp }}/core-lowering-fixture/**/*.stderr
+            ${{ runner.temp }}/execution-observation-callers/*.json
+            ${{ runner.temp }}/execution-observation-callers/**/report.json
+            ${{ runner.temp }}/execution-observation-callers/**/component-custody.json
+            ${{ runner.temp }}/execution-observation-callers/**/*.log
+            ${{ runner.temp }}/execution-observation-callers/**/*.stdout
+            ${{ runner.temp }}/execution-observation-callers/**/*.stderr
+            ${{ runner.temp }}/execution-observation-fixture/*.json
+            ${{ runner.temp }}/execution-observation-fixture/**/report.json
+            ${{ runner.temp }}/execution-observation-fixture/**/component-custody.json
+            ${{ runner.temp }}/execution-observation-fixture/**/*.log
+            ${{ runner.temp }}/execution-observation-fixture/**/*.stdout
+            ${{ runner.temp }}/execution-observation-fixture/**/*.stderr
+            ${{ runner.temp }}/hia-bounded-memory-callers/*.json
+            ${{ runner.temp }}/hia-bounded-memory-callers/**/report.json
+            ${{ runner.temp }}/hia-bounded-memory-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-bounded-memory-callers/**/*.log
+            ${{ runner.temp }}/hia-bounded-memory-callers/**/*.stdout
+            ${{ runner.temp }}/hia-bounded-memory-callers/**/*.stderr
+            ${{ runner.temp }}/hia-candidate-budget/*.json
+            ${{ runner.temp }}/hia-candidate-budget/**/report.json
+            ${{ runner.temp }}/hia-candidate-budget/**/component-custody.json
+            ${{ runner.temp }}/hia-candidate-budget/**/*.log
+            ${{ runner.temp }}/hia-candidate-budget/**/*.stdout
+            ${{ runner.temp }}/hia-candidate-budget/**/*.stderr
+            ${{ runner.temp }}/hia-cli-discovery-callers/*.json
+            ${{ runner.temp }}/hia-cli-discovery-callers/**/report.json
+            ${{ runner.temp }}/hia-cli-discovery-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-cli-discovery-callers/**/*.log
+            ${{ runner.temp }}/hia-cli-discovery-callers/**/*.stdout
+            ${{ runner.temp }}/hia-cli-discovery-callers/**/*.stderr
+            ${{ runner.temp }}/hia-cli-discovery-json/*.json
+            ${{ runner.temp }}/hia-cli-discovery-json/**/report.json
+            ${{ runner.temp }}/hia-cli-discovery-json/**/component-custody.json
+            ${{ runner.temp }}/hia-cli-discovery-json/**/*.log
+            ${{ runner.temp }}/hia-cli-discovery-json/**/*.stdout
+            ${{ runner.temp }}/hia-cli-discovery-json/**/*.stderr
+            ${{ runner.temp }}/hia-cli-native/*.json
+            ${{ runner.temp }}/hia-cli-native/**/report.json
+            ${{ runner.temp }}/hia-cli-native/**/component-custody.json
+            ${{ runner.temp }}/hia-cli-native/**/*.log
+            ${{ runner.temp }}/hia-cli-native/**/*.stdout
+            ${{ runner.temp }}/hia-cli-native/**/*.stderr
+            ${{ runner.temp }}/hia-cold.cold/*.json
+            ${{ runner.temp }}/hia-cold.cold/**/report.json
+            ${{ runner.temp }}/hia-cold.cold/**/component-custody.json
+            ${{ runner.temp }}/hia-cold.cold/**/*.log
+            ${{ runner.temp }}/hia-cold.cold/**/*.stdout
+            ${{ runner.temp }}/hia-cold.cold/**/*.stderr
+            ${{ runner.temp }}/hia-cost-ledger/*.json
+            ${{ runner.temp }}/hia-cost-ledger/**/report.json
+            ${{ runner.temp }}/hia-cost-ledger/**/component-custody.json
+            ${{ runner.temp }}/hia-cost-ledger/**/*.log
+            ${{ runner.temp }}/hia-cost-ledger/**/*.stdout
+            ${{ runner.temp }}/hia-cost-ledger/**/*.stderr
+            ${{ runner.temp }}/hia-cost-ledger-callers/*.json
+            ${{ runner.temp }}/hia-cost-ledger-callers/**/report.json
+            ${{ runner.temp }}/hia-cost-ledger-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-cost-ledger-callers/**/*.log
+            ${{ runner.temp }}/hia-cost-ledger-callers/**/*.stdout
+            ${{ runner.temp }}/hia-cost-ledger-callers/**/*.stderr
+            ${{ runner.temp }}/hia-default-release/*.json
+            ${{ runner.temp }}/hia-default-release/**/report.json
+            ${{ runner.temp }}/hia-default-release/**/component-custody.json
+            ${{ runner.temp }}/hia-default-release/**/*.log
+            ${{ runner.temp }}/hia-default-release/**/*.stdout
+            ${{ runner.temp }}/hia-default-release/**/*.stderr
+            ${{ runner.temp }}/hia-emission/*.json
+            ${{ runner.temp }}/hia-emission/**/report.json
+            ${{ runner.temp }}/hia-emission/**/component-custody.json
+            ${{ runner.temp }}/hia-emission/**/*.log
+            ${{ runner.temp }}/hia-emission/**/*.stdout
+            ${{ runner.temp }}/hia-emission/**/*.stderr
+            ${{ runner.temp }}/hia-emission-callers/*.json
+            ${{ runner.temp }}/hia-emission-callers/**/report.json
+            ${{ runner.temp }}/hia-emission-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-emission-callers/**/*.log
+            ${{ runner.temp }}/hia-emission-callers/**/*.stdout
+            ${{ runner.temp }}/hia-emission-callers/**/*.stderr
+            ${{ runner.temp }}/hia-evaluation/*.json
+            ${{ runner.temp }}/hia-evaluation/**/report.json
+            ${{ runner.temp }}/hia-evaluation/**/component-custody.json
+            ${{ runner.temp }}/hia-evaluation/**/*.log
+            ${{ runner.temp }}/hia-evaluation/**/*.stdout
+            ${{ runner.temp }}/hia-evaluation/**/*.stderr
+            ${{ runner.temp }}/hia-evaluation-callers/*.json
+            ${{ runner.temp }}/hia-evaluation-callers/**/report.json
+            ${{ runner.temp }}/hia-evaluation-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-evaluation-callers/**/*.log
+            ${{ runner.temp }}/hia-evaluation-callers/**/*.stdout
+            ${{ runner.temp }}/hia-evaluation-callers/**/*.stderr
+            ${{ runner.temp }}/hia-execution-budget/*.json
+            ${{ runner.temp }}/hia-execution-budget/**/report.json
+            ${{ runner.temp }}/hia-execution-budget/**/component-custody.json
+            ${{ runner.temp }}/hia-execution-budget/**/*.log
+            ${{ runner.temp }}/hia-execution-budget/**/*.stdout
+            ${{ runner.temp }}/hia-execution-budget/**/*.stderr
+            ${{ runner.temp }}/hia-full-cost/*.json
+            ${{ runner.temp }}/hia-full-cost/**/report.json
+            ${{ runner.temp }}/hia-full-cost/**/component-custody.json
+            ${{ runner.temp }}/hia-full-cost/**/*.log
+            ${{ runner.temp }}/hia-full-cost/**/*.stdout
+            ${{ runner.temp }}/hia-full-cost/**/*.stderr
+            ${{ runner.temp }}/hia-full-cost-callers/*.json
+            ${{ runner.temp }}/hia-full-cost-callers/**/report.json
+            ${{ runner.temp }}/hia-full-cost-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-full-cost-callers/**/*.log
+            ${{ runner.temp }}/hia-full-cost-callers/**/*.stdout
+            ${{ runner.temp }}/hia-full-cost-callers/**/*.stderr
+            ${{ runner.temp }}/hia-generation-retention/*.json
+            ${{ runner.temp }}/hia-generation-retention/**/report.json
+            ${{ runner.temp }}/hia-generation-retention/**/component-custody.json
+            ${{ runner.temp }}/hia-generation-retention/**/*.log
+            ${{ runner.temp }}/hia-generation-retention/**/*.stdout
+            ${{ runner.temp }}/hia-generation-retention/**/*.stderr
+            ${{ runner.temp }}/hia-generation-retention-callers/*.json
+            ${{ runner.temp }}/hia-generation-retention-callers/**/report.json
+            ${{ runner.temp }}/hia-generation-retention-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-generation-retention-callers/**/*.log
+            ${{ runner.temp }}/hia-generation-retention-callers/**/*.stdout
+            ${{ runner.temp }}/hia-generation-retention-callers/**/*.stderr
+            ${{ runner.temp }}/hia-json-wire-callers/*.json
+            ${{ runner.temp }}/hia-json-wire-callers/**/report.json
+            ${{ runner.temp }}/hia-json-wire-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-json-wire-callers/**/*.log
+            ${{ runner.temp }}/hia-json-wire-callers/**/*.stdout
+            ${{ runner.temp }}/hia-json-wire-callers/**/*.stderr
+            ${{ runner.temp }}/hia-language.evidence/*.json
+            ${{ runner.temp }}/hia-language.evidence/**/report.json
+            ${{ runner.temp }}/hia-language.evidence/**/component-custody.json
+            ${{ runner.temp }}/hia-language.evidence/**/*.log
+            ${{ runner.temp }}/hia-language.evidence/**/*.stdout
+            ${{ runner.temp }}/hia-language.evidence/**/*.stderr
+            ${{ runner.temp }}/hia-linked-observer/*.json
+            ${{ runner.temp }}/hia-linked-observer/**/report.json
+            ${{ runner.temp }}/hia-linked-observer/**/component-custody.json
+            ${{ runner.temp }}/hia-linked-observer/**/*.log
+            ${{ runner.temp }}/hia-linked-observer/**/*.stdout
+            ${{ runner.temp }}/hia-linked-observer/**/*.stderr
+            ${{ runner.temp }}/hia-module-projects/*.json
+            ${{ runner.temp }}/hia-module-projects/**/report.json
+            ${{ runner.temp }}/hia-module-projects/**/component-custody.json
+            ${{ runner.temp }}/hia-module-projects/**/*.log
+            ${{ runner.temp }}/hia-module-projects/**/*.stdout
+            ${{ runner.temp }}/hia-module-projects/**/*.stderr
+            ${{ runner.temp }}/hia-native-build-admission/*.json
+            ${{ runner.temp }}/hia-native-build-admission/**/report.json
+            ${{ runner.temp }}/hia-native-build-admission/**/component-custody.json
+            ${{ runner.temp }}/hia-native-build-admission/**/*.log
+            ${{ runner.temp }}/hia-native-build-admission/**/*.stdout
+            ${{ runner.temp }}/hia-native-build-admission/**/*.stderr
+            ${{ runner.temp }}/hia-native-build-admission-callers/*.json
+            ${{ runner.temp }}/hia-native-build-admission-callers/**/report.json
+            ${{ runner.temp }}/hia-native-build-admission-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-native-build-admission-callers/**/*.log
+            ${{ runner.temp }}/hia-native-build-admission-callers/**/*.stdout
+            ${{ runner.temp }}/hia-native-build-admission-callers/**/*.stderr
+            ${{ runner.temp }}/hia-native-build-dispatch/*.json
+            ${{ runner.temp }}/hia-native-build-dispatch/**/report.json
+            ${{ runner.temp }}/hia-native-build-dispatch/**/component-custody.json
+            ${{ runner.temp }}/hia-native-build-dispatch/**/*.log
+            ${{ runner.temp }}/hia-native-build-dispatch/**/*.stdout
+            ${{ runner.temp }}/hia-native-build-dispatch/**/*.stderr
+            ${{ runner.temp }}/hia-native-delivery-callers/*.json
+            ${{ runner.temp }}/hia-native-delivery-callers/**/report.json
+            ${{ runner.temp }}/hia-native-delivery-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-native-delivery-callers/**/*.log
+            ${{ runner.temp }}/hia-native-delivery-callers/**/*.stdout
+            ${{ runner.temp }}/hia-native-delivery-callers/**/*.stderr
+            ${{ runner.temp }}/hia-native-delivery-components/*.json
+            ${{ runner.temp }}/hia-native-delivery-components/**/report.json
+            ${{ runner.temp }}/hia-native-delivery-components/**/component-custody.json
+            ${{ runner.temp }}/hia-native-delivery-components/**/*.log
+            ${{ runner.temp }}/hia-native-delivery-components/**/*.stdout
+            ${{ runner.temp }}/hia-native-delivery-components/**/*.stderr
+            ${{ runner.temp }}/hia-native-delivery-focused/*.json
+            ${{ runner.temp }}/hia-native-delivery-focused/**/report.json
+            ${{ runner.temp }}/hia-native-delivery-focused/**/component-custody.json
+            ${{ runner.temp }}/hia-native-delivery-focused/**/*.log
+            ${{ runner.temp }}/hia-native-delivery-focused/**/*.stdout
+            ${{ runner.temp }}/hia-native-delivery-focused/**/*.stderr
+            ${{ runner.temp }}/hia-native-mapping/*.json
+            ${{ runner.temp }}/hia-native-mapping/**/report.json
+            ${{ runner.temp }}/hia-native-mapping/**/component-custody.json
+            ${{ runner.temp }}/hia-native-mapping/**/*.log
+            ${{ runner.temp }}/hia-native-mapping/**/*.stdout
+            ${{ runner.temp }}/hia-native-mapping/**/*.stderr
+            ${{ runner.temp }}/hia-native-transport/*.json
+            ${{ runner.temp }}/hia-native-transport/**/report.json
+            ${{ runner.temp }}/hia-native-transport/**/component-custody.json
+            ${{ runner.temp }}/hia-native-transport/**/*.log
+            ${{ runner.temp }}/hia-native-transport/**/*.stdout
+            ${{ runner.temp }}/hia-native-transport/**/*.stderr
+            ${{ runner.temp }}/hia-nominal-fixture/*.json
+            ${{ runner.temp }}/hia-nominal-fixture/**/report.json
+            ${{ runner.temp }}/hia-nominal-fixture/**/component-custody.json
+            ${{ runner.temp }}/hia-nominal-fixture/**/*.log
+            ${{ runner.temp }}/hia-nominal-fixture/**/*.stdout
+            ${{ runner.temp }}/hia-nominal-fixture/**/*.stderr
+            ${{ runner.temp }}/hia-nominal-json/*.json
+            ${{ runner.temp }}/hia-nominal-json/**/report.json
+            ${{ runner.temp }}/hia-nominal-json/**/component-custody.json
+            ${{ runner.temp }}/hia-nominal-json/**/*.log
+            ${{ runner.temp }}/hia-nominal-json/**/*.stdout
+            ${{ runner.temp }}/hia-nominal-json/**/*.stderr
+            ${{ runner.temp }}/hia-nominal-json-ingress/*.json
+            ${{ runner.temp }}/hia-nominal-json-ingress/**/report.json
+            ${{ runner.temp }}/hia-nominal-json-ingress/**/component-custody.json
+            ${{ runner.temp }}/hia-nominal-json-ingress/**/*.log
+            ${{ runner.temp }}/hia-nominal-json-ingress/**/*.stdout
+            ${{ runner.temp }}/hia-nominal-json-ingress/**/*.stderr
+            ${{ runner.temp }}/hia-patch-impact/*.json
+            ${{ runner.temp }}/hia-patch-impact/**/report.json
+            ${{ runner.temp }}/hia-patch-impact/**/component-custody.json
+            ${{ runner.temp }}/hia-patch-impact/**/*.log
+            ${{ runner.temp }}/hia-patch-impact/**/*.stdout
+            ${{ runner.temp }}/hia-patch-impact/**/*.stderr
+            ${{ runner.temp }}/hia-patch-impact-callers/*.json
+            ${{ runner.temp }}/hia-patch-impact-callers/**/report.json
+            ${{ runner.temp }}/hia-patch-impact-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-patch-impact-callers/**/*.log
+            ${{ runner.temp }}/hia-patch-impact-callers/**/*.stdout
+            ${{ runner.temp }}/hia-patch-impact-callers/**/*.stderr
+            ${{ runner.temp }}/hia-publication-measurement/*.json
+            ${{ runner.temp }}/hia-publication-measurement/**/report.json
+            ${{ runner.temp }}/hia-publication-measurement/**/component-custody.json
+            ${{ runner.temp }}/hia-publication-measurement/**/*.log
+            ${{ runner.temp }}/hia-publication-measurement/**/*.stdout
+            ${{ runner.temp }}/hia-publication-measurement/**/*.stderr
+            ${{ runner.temp }}/hia-publication-measurement-callers/*.json
+            ${{ runner.temp }}/hia-publication-measurement-callers/**/report.json
+            ${{ runner.temp }}/hia-publication-measurement-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-publication-measurement-callers/**/*.log
+            ${{ runner.temp }}/hia-publication-measurement-callers/**/*.stdout
+            ${{ runner.temp }}/hia-publication-measurement-callers/**/*.stderr
+            ${{ runner.temp }}/hia-release-install/*.json
+            ${{ runner.temp }}/hia-release-install/**/report.json
+            ${{ runner.temp }}/hia-release-install/**/component-custody.json
+            ${{ runner.temp }}/hia-release-install/**/*.log
+            ${{ runner.temp }}/hia-release-install/**/*.stdout
+            ${{ runner.temp }}/hia-release-install/**/*.stderr
+            ${{ runner.temp }}/hia-release-selection/*.json
+            ${{ runner.temp }}/hia-release-selection/**/report.json
+            ${{ runner.temp }}/hia-release-selection/**/component-custody.json
+            ${{ runner.temp }}/hia-release-selection/**/*.log
+            ${{ runner.temp }}/hia-release-selection/**/*.stdout
+            ${{ runner.temp }}/hia-release-selection/**/*.stderr
+            ${{ runner.temp }}/hia-retirement-state/*.json
+            ${{ runner.temp }}/hia-retirement-state/**/report.json
+            ${{ runner.temp }}/hia-retirement-state/**/component-custody.json
+            ${{ runner.temp }}/hia-retirement-state/**/*.log
+            ${{ runner.temp }}/hia-retirement-state/**/*.stdout
+            ${{ runner.temp }}/hia-retirement-state/**/*.stderr
+            ${{ runner.temp }}/hia-scalar-profile/*.json
+            ${{ runner.temp }}/hia-scalar-profile/**/report.json
+            ${{ runner.temp }}/hia-scalar-profile/**/component-custody.json
+            ${{ runner.temp }}/hia-scalar-profile/**/*.log
+            ${{ runner.temp }}/hia-scalar-profile/**/*.stdout
+            ${{ runner.temp }}/hia-scalar-profile/**/*.stderr
+            ${{ runner.temp }}/hia-scalar-profile-callers/*.json
+            ${{ runner.temp }}/hia-scalar-profile-callers/**/report.json
+            ${{ runner.temp }}/hia-scalar-profile-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-scalar-profile-callers/**/*.log
+            ${{ runner.temp }}/hia-scalar-profile-callers/**/*.stdout
+            ${{ runner.temp }}/hia-scalar-profile-callers/**/*.stderr
+            ${{ runner.temp }}/hia-service-context/*.json
+            ${{ runner.temp }}/hia-service-context/**/report.json
+            ${{ runner.temp }}/hia-service-context/**/component-custody.json
+            ${{ runner.temp }}/hia-service-context/**/*.log
+            ${{ runner.temp }}/hia-service-context/**/*.stdout
+            ${{ runner.temp }}/hia-service-context/**/*.stderr
+            ${{ runner.temp }}/hia-service-context-callers/*.json
+            ${{ runner.temp }}/hia-service-context-callers/**/report.json
+            ${{ runner.temp }}/hia-service-context-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-service-context-callers/**/*.log
+            ${{ runner.temp }}/hia-service-context-callers/**/*.stdout
+            ${{ runner.temp }}/hia-service-context-callers/**/*.stderr
+            ${{ runner.temp }}/hia-sha256-stream-differential/*.json
+            ${{ runner.temp }}/hia-sha256-stream-differential/**/report.json
+            ${{ runner.temp }}/hia-sha256-stream-differential/**/component-custody.json
+            ${{ runner.temp }}/hia-sha256-stream-differential/**/*.log
+            ${{ runner.temp }}/hia-sha256-stream-differential/**/*.stdout
+            ${{ runner.temp }}/hia-sha256-stream-differential/**/*.stderr
+            ${{ runner.temp }}/hia-slot-ledger/*.json
+            ${{ runner.temp }}/hia-slot-ledger/**/report.json
+            ${{ runner.temp }}/hia-slot-ledger/**/component-custody.json
+            ${{ runner.temp }}/hia-slot-ledger/**/*.log
+            ${{ runner.temp }}/hia-slot-ledger/**/*.stdout
+            ${{ runner.temp }}/hia-slot-ledger/**/*.stderr
+            ${{ runner.temp }}/hia-source-build/*.json
+            ${{ runner.temp }}/hia-source-build/**/report.json
+            ${{ runner.temp }}/hia-source-build/**/component-custody.json
+            ${{ runner.temp }}/hia-source-build/**/*.log
+            ${{ runner.temp }}/hia-source-build/**/*.stdout
+            ${{ runner.temp }}/hia-source-build/**/*.stderr
+            ${{ runner.temp }}/hia-static-budget/*.json
+            ${{ runner.temp }}/hia-static-budget/**/report.json
+            ${{ runner.temp }}/hia-static-budget/**/component-custody.json
+            ${{ runner.temp }}/hia-static-budget/**/*.log
+            ${{ runner.temp }}/hia-static-budget/**/*.stdout
+            ${{ runner.temp }}/hia-static-budget/**/*.stderr
+            ${{ runner.temp }}/hia-static-budget-callers/*.json
+            ${{ runner.temp }}/hia-static-budget-callers/**/report.json
+            ${{ runner.temp }}/hia-static-budget-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-static-budget-callers/**/*.log
+            ${{ runner.temp }}/hia-static-budget-callers/**/*.stdout
+            ${{ runner.temp }}/hia-static-budget-callers/**/*.stderr
+            ${{ runner.temp }}/hia-store-artifact-profile/*.json
+            ${{ runner.temp }}/hia-store-artifact-profile/**/report.json
+            ${{ runner.temp }}/hia-store-artifact-profile/**/component-custody.json
+            ${{ runner.temp }}/hia-store-artifact-profile/**/*.log
+            ${{ runner.temp }}/hia-store-artifact-profile/**/*.stdout
+            ${{ runner.temp }}/hia-store-artifact-profile/**/*.stderr
+            ${{ runner.temp }}/hia-store-artifact-profile-callers/*.json
+            ${{ runner.temp }}/hia-store-artifact-profile-callers/**/report.json
+            ${{ runner.temp }}/hia-store-artifact-profile-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-store-artifact-profile-callers/**/*.log
+            ${{ runner.temp }}/hia-store-artifact-profile-callers/**/*.stdout
+            ${{ runner.temp }}/hia-store-artifact-profile-callers/**/*.stderr
+            ${{ runner.temp }}/hia-store-lifecycle/*.json
+            ${{ runner.temp }}/hia-store-lifecycle/**/report.json
+            ${{ runner.temp }}/hia-store-lifecycle/**/component-custody.json
+            ${{ runner.temp }}/hia-store-lifecycle/**/*.log
+            ${{ runner.temp }}/hia-store-lifecycle/**/*.stdout
+            ${{ runner.temp }}/hia-store-lifecycle/**/*.stderr
+            ${{ runner.temp }}/hia-store-lifecycle-callers/*.json
+            ${{ runner.temp }}/hia-store-lifecycle-callers/**/report.json
+            ${{ runner.temp }}/hia-store-lifecycle-callers/**/component-custody.json
+            ${{ runner.temp }}/hia-store-lifecycle-callers/**/*.log
+            ${{ runner.temp }}/hia-store-lifecycle-callers/**/*.stdout
+            ${{ runner.temp }}/hia-store-lifecycle-callers/**/*.stderr
+            ${{ runner.temp }}/hia-store-native-delivery/*.json
+            ${{ runner.temp }}/hia-store-native-delivery/**/report.json
+            ${{ runner.temp }}/hia-store-native-delivery/**/component-custody.json
+            ${{ runner.temp }}/hia-store-native-delivery/**/*.log
+            ${{ runner.temp }}/hia-store-native-delivery/**/*.stdout
+            ${{ runner.temp }}/hia-store-native-delivery/**/*.stderr
+            ${{ runner.temp }}/json-wire-cache-fixture/*.json
+            ${{ runner.temp }}/json-wire-cache-fixture/**/report.json
+            ${{ runner.temp }}/json-wire-cache-fixture/**/component-custody.json
+            ${{ runner.temp }}/json-wire-cache-fixture/**/*.log
+            ${{ runner.temp }}/json-wire-cache-fixture/**/*.stdout
+            ${{ runner.temp }}/json-wire-cache-fixture/**/*.stderr
+            ${{ runner.temp }}/json-wire-entry-fixture/*.json
+            ${{ runner.temp }}/json-wire-entry-fixture/**/report.json
+            ${{ runner.temp }}/json-wire-entry-fixture/**/component-custody.json
+            ${{ runner.temp }}/json-wire-entry-fixture/**/*.log
+            ${{ runner.temp }}/json-wire-entry-fixture/**/*.stdout
+            ${{ runner.temp }}/json-wire-entry-fixture/**/*.stderr
+            ${{ runner.temp }}/json-wire-fixture/*.json
+            ${{ runner.temp }}/json-wire-fixture/**/report.json
+            ${{ runner.temp }}/json-wire-fixture/**/component-custody.json
+            ${{ runner.temp }}/json-wire-fixture/**/*.log
+            ${{ runner.temp }}/json-wire-fixture/**/*.stdout
+            ${{ runner.temp }}/json-wire-fixture/**/*.stderr
+            ${{ runner.temp }}/machine-encoding-callers/*.json
+            ${{ runner.temp }}/machine-encoding-callers/**/report.json
+            ${{ runner.temp }}/machine-encoding-callers/**/component-custody.json
+            ${{ runner.temp }}/machine-encoding-callers/**/*.log
+            ${{ runner.temp }}/machine-encoding-callers/**/*.stdout
+            ${{ runner.temp }}/machine-encoding-callers/**/*.stderr
+            ${{ runner.temp }}/machine-encoding-fixture/*.json
+            ${{ runner.temp }}/machine-encoding-fixture/**/report.json
+            ${{ runner.temp }}/machine-encoding-fixture/**/component-custody.json
+            ${{ runner.temp }}/machine-encoding-fixture/**/*.log
+            ${{ runner.temp }}/machine-encoding-fixture/**/*.stdout
+            ${{ runner.temp }}/machine-encoding-fixture/**/*.stderr
+            ${{ runner.temp }}/machine-instructions-callers/*.json
+            ${{ runner.temp }}/machine-instructions-callers/**/report.json
+            ${{ runner.temp }}/machine-instructions-callers/**/component-custody.json
+            ${{ runner.temp }}/machine-instructions-callers/**/*.log
+            ${{ runner.temp }}/machine-instructions-callers/**/*.stdout
+            ${{ runner.temp }}/machine-instructions-callers/**/*.stderr
+            ${{ runner.temp }}/machine-instructions-fixture/*.json
+            ${{ runner.temp }}/machine-instructions-fixture/**/report.json
+            ${{ runner.temp }}/machine-instructions-fixture/**/component-custody.json
+            ${{ runner.temp }}/machine-instructions-fixture/**/*.log
+            ${{ runner.temp }}/machine-instructions-fixture/**/*.stdout
+            ${{ runner.temp }}/machine-instructions-fixture/**/*.stderr
+            ${{ runner.temp }}/machine-object-callers/*.json
+            ${{ runner.temp }}/machine-object-callers/**/report.json
+            ${{ runner.temp }}/machine-object-callers/**/component-custody.json
+            ${{ runner.temp }}/machine-object-callers/**/*.log
+            ${{ runner.temp }}/machine-object-callers/**/*.stdout
+            ${{ runner.temp }}/machine-object-callers/**/*.stderr
+            ${{ runner.temp }}/machine-object-composed-callers/*.json
+            ${{ runner.temp }}/machine-object-composed-callers/**/report.json
+            ${{ runner.temp }}/machine-object-composed-callers/**/component-custody.json
+            ${{ runner.temp }}/machine-object-composed-callers/**/*.log
+            ${{ runner.temp }}/machine-object-composed-callers/**/*.stdout
+            ${{ runner.temp }}/machine-object-composed-callers/**/*.stderr
+            ${{ runner.temp }}/machine-object-fixture/*.json
+            ${{ runner.temp }}/machine-object-fixture/**/report.json
+            ${{ runner.temp }}/machine-object-fixture/**/component-custody.json
+            ${{ runner.temp }}/machine-object-fixture/**/*.log
+            ${{ runner.temp }}/machine-object-fixture/**/*.stdout
+            ${{ runner.temp }}/machine-object-fixture/**/*.stderr
+            ${{ runner.temp }}/machine-plan-callers/*.json
+            ${{ runner.temp }}/machine-plan-callers/**/report.json
+            ${{ runner.temp }}/machine-plan-callers/**/component-custody.json
+            ${{ runner.temp }}/machine-plan-callers/**/*.log
+            ${{ runner.temp }}/machine-plan-callers/**/*.stdout
+            ${{ runner.temp }}/machine-plan-callers/**/*.stderr
+            ${{ runner.temp }}/machine-plan-fixture/*.json
+            ${{ runner.temp }}/machine-plan-fixture/**/report.json
+            ${{ runner.temp }}/machine-plan-fixture/**/component-custody.json
+            ${{ runner.temp }}/machine-plan-fixture/**/*.log
+            ${{ runner.temp }}/machine-plan-fixture/**/*.stdout
+            ${{ runner.temp }}/machine-plan-fixture/**/*.stderr
+            ${{ runner.temp }}/machine-state-callers/*.json
+            ${{ runner.temp }}/machine-state-callers/**/report.json
+            ${{ runner.temp }}/machine-state-callers/**/component-custody.json
+            ${{ runner.temp }}/machine-state-callers/**/*.log
+            ${{ runner.temp }}/machine-state-callers/**/*.stdout
+            ${{ runner.temp }}/machine-state-callers/**/*.stderr
+            ${{ runner.temp }}/machine-state-fixture/*.json
+            ${{ runner.temp }}/machine-state-fixture/**/report.json
+            ${{ runner.temp }}/machine-state-fixture/**/component-custody.json
+            ${{ runner.temp }}/machine-state-fixture/**/*.log
+            ${{ runner.temp }}/machine-state-fixture/**/*.stdout
+            ${{ runner.temp }}/machine-state-fixture/**/*.stderr
+            ${{ runner.temp }}/native-continuation-callers/*.json
+            ${{ runner.temp }}/native-continuation-callers/**/report.json
+            ${{ runner.temp }}/native-continuation-callers/**/component-custody.json
+            ${{ runner.temp }}/native-continuation-callers/**/*.log
+            ${{ runner.temp }}/native-continuation-callers/**/*.stdout
+            ${{ runner.temp }}/native-continuation-callers/**/*.stderr
+            ${{ runner.temp }}/native-inprocess-continuation-callers/*.json
+            ${{ runner.temp }}/native-inprocess-continuation-callers/**/report.json
+            ${{ runner.temp }}/native-inprocess-continuation-callers/**/component-custody.json
+            ${{ runner.temp }}/native-inprocess-continuation-callers/**/*.log
+            ${{ runner.temp }}/native-inprocess-continuation-callers/**/*.stdout
+            ${{ runner.temp }}/native-inprocess-continuation-callers/**/*.stderr
+            ${{ runner.temp }}/native-no-child-continuation-callers/*.json
+            ${{ runner.temp }}/native-no-child-continuation-callers/**/report.json
+            ${{ runner.temp }}/native-no-child-continuation-callers/**/component-custody.json
+            ${{ runner.temp }}/native-no-child-continuation-callers/**/*.log
+            ${{ runner.temp }}/native-no-child-continuation-callers/**/*.stdout
+            ${{ runner.temp }}/native-no-child-continuation-callers/**/*.stderr
+            ${{ runner.temp }}/worker-report-fixture/*.json
+            ${{ runner.temp }}/worker-report-fixture/**/report.json
+            ${{ runner.temp }}/worker-report-fixture/**/component-custody.json
+            ${{ runner.temp }}/worker-report-fixture/**/*.log
+            ${{ runner.temp }}/worker-report-fixture/**/*.stdout
+            ${{ runner.temp }}/worker-report-fixture/**/*.stderr
+            ${{ runner.temp }}/worker-scheduling-fixture/*.json
+            ${{ runner.temp }}/worker-scheduling-fixture/**/report.json
+            ${{ runner.temp }}/worker-scheduling-fixture/**/component-custody.json
+            ${{ runner.temp }}/worker-scheduling-fixture/**/*.log
+            ${{ runner.temp }}/worker-scheduling-fixture/**/*.stdout
+            ${{ runner.temp }}/worker-scheduling-fixture/**/*.stderr
+            ${{ runner.temp }}/hia-artifact-delivery.log
+            ${{ runner.temp }}/hia-artifact-delivery/*.json
+            ${{ runner.temp }}/hia-artifact-delivery/**/*.json
+            ${{ runner.temp }}/hia-artifact-delivery/**/*.log
+            ${{ runner.temp }}/hia-artifact-delivery/**/*.stdout
+            ${{ runner.temp }}/hia-artifact-delivery/**/*.stderr
+            ${{ runner.temp }}/hia-store-transaction/**/*.json
+            ${{ runner.temp }}/hia-store-transaction/**/*.jsonl
+            ${{ runner.temp }}/hia-store-transaction/**/*.log
+            ${{ runner.temp }}/hia-store-transaction/**/*.stdout
+            ${{ runner.temp }}/hia-store-transaction/**/*.stderr
+            ${{ runner.temp }}/hia-store-transaction/**/*.txt
+            ${{ runner.temp }}/hia-store-transaction-callers/**/*.json
+            ${{ runner.temp }}/hia-store-transaction-callers/**/*.jsonl
+            ${{ runner.temp }}/hia-store-transaction-callers/**/*.log
+            ${{ runner.temp }}/hia-store-transaction-callers/**/*.stdout
+            ${{ runner.temp }}/hia-store-transaction-callers/**/*.stderr
+            ${{ runner.temp }}/hia-store-transaction-callers/**/*.txt
+            ${{ runner.temp }}/hia-store-transaction-separate-callers/**/*.json
+            ${{ runner.temp }}/hia-store-transaction-separate-callers/**/*.jsonl
+            ${{ runner.temp }}/hia-store-transaction-separate-callers/**/*.log
+            ${{ runner.temp }}/hia-store-transaction-separate-callers/**/*.stdout
+            ${{ runner.temp }}/hia-store-transaction-separate-callers/**/*.stderr
+            ${{ runner.temp }}/hia-store-transaction-separate-callers/**/*.txt

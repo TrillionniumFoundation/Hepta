@@ -240,6 +240,8 @@ class StoreArtifactProfileFrame:
         self.fenced = self.finished = self.unconfirmed = self.native_failed = False
         self.effect_started = False
         self._delivery = DeliveryRecord(self)
+        if store is not None:
+            self._delivery.associate(store, unknown=StoreArtifactProfileUnknown)
         try:
             with _custody_lock():
                 _FRAME_CUSTODY[id(self)] = self

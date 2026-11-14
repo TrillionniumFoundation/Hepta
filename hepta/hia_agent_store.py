@@ -21,6 +21,8 @@ import re
 
 from .hia_program_tools import bounded_json_wire
 from .hia_json_preflight import preflight_hia_json
+from .hia_native_delivery import (resource_scope as _store_resource_scope,
+                                 check_resource_retirement as _store_retirement_check)
 
 MAX_INPUT_BYTES = 8 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
@@ -271,9 +273,11 @@ class AgentStore:
         owner = capture_store_lifecycle()
         bind_store_lifecycle(self, owner)
         if owner is None:
-            arguments = {'callee': _NATIVE_STORE_INITIALIZE_REFERENCE, 'self': self, 'root': root}
+            arguments = {'callee': _NATIVE_STORE_INITIALIZE_REFERENCE, 'self': self, 'root': root,
+                         'scope': _store_resource_scope(self)}
             del self, root, owner
-            return arguments.pop('callee')(arguments.pop('self'), arguments.pop('root'))
+            with arguments.pop('scope'):
+                return arguments.pop('callee')(arguments.pop('self'), arguments.pop('root'))
         frame = owner.prepare(1, self, root)
         del self, root
         return owner.finish(frame)
@@ -393,6 +397,7 @@ class AgentStore:
         from .hia_store_lifecycle_selection import store_lifecycle_owner
         owner = store_lifecycle_owner(self)
         if owner is None:
+            _store_retirement_check(self)
             arguments = {'callee': _NATIVE_STORE_CLOSE_REFERENCE, 'self': self}
             del self, owner
             return arguments.pop('callee')(arguments.pop('self'))
@@ -410,7 +415,8 @@ class AgentStore:
             from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 1,
                                               self, (data, kind, metadata)).finish()
-        return _STORE_ARTIFACT_PROFILE_REFERENCES['put'](self, data, kind, metadata)
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['put'](self, data, kind, metadata)
 
     def _put_reference(self, data, kind, metadata=None):
         if type(data) is not bytes or len(data) > MAX_ARTIFACT_BYTES:
@@ -464,7 +470,8 @@ class AgentStore:
             from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 2,
                                               self, (value, kind, metadata)).finish()
-        return _STORE_ARTIFACT_PROFILE_REFERENCES['json'](self, value, kind, metadata)
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['json'](self, value, kind, metadata)
 
     def _json_reference(self, value, kind, metadata=None):
         return self.put(wire(value), kind, metadata)
@@ -488,7 +495,8 @@ class AgentStore:
             from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 4,
                                               self, (ref, kind)).finish()
-        return _STORE_ARTIFACT_PROFILE_REFERENCES['get'](self, ref, kind=kind)
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['get'](self, ref, kind=kind)
 
     def _get_reference(self, ref, *, kind=None):
         keys(ref, ("id", "sha256", "uri"), label="artifact reference")
@@ -510,7 +518,8 @@ class AgentStore:
             from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 5,
                                               self, (ref, kind)).finish()
-        return _STORE_ARTIFACT_PROFILE_REFERENCES['get_json'](self, ref, kind=kind)
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['get_json'](self, ref, kind=kind)
 
     def _get_json_reference(self, ref, *, kind=None):
         data, metadata = self.get(ref, kind=kind)
@@ -522,7 +531,8 @@ class AgentStore:
             from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 6,
                                               self, (uri,)).finish()
-        return _STORE_ARTIFACT_PROFILE_REFERENCES['resolve_uri'](self, uri)
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['resolve_uri'](self, uri)
 
     def _resolve_uri_reference(self, uri):
         row = self.db.execute("SELECT * FROM artifacts WHERE uri=?", (uri,)).fetchone()
@@ -538,7 +548,8 @@ class AgentStore:
             from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 7,
                                               self, (identifier, value)).finish()
-        return _STORE_ARTIFACT_PROFILE_REFERENCES['profile'](self, identifier, value)
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['profile'](self, identifier, value)
 
     def _profile_reference(self, identifier, value):
         ref = self.json(value, "profile")
@@ -553,7 +564,8 @@ class AgentStore:
             from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 8,
                                               self, (ref, expected)).finish()
-        return _STORE_ARTIFACT_PROFILE_REFERENCES['check_profile'](self, ref, expected)
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['check_profile'](self, ref, expected)
 
     def _check_profile_reference(self, ref, expected):
         if ref != expected:
@@ -583,3 +595,81 @@ _STORE_ARTIFACT_PROFILE_REFERENCES = {
     'check_profile': AgentStore._check_profile_reference,
 }
 _STORE_ARTIFACT_PROFILE_BUILTINS = AgentStore.put.__builtins__
+
+
+# The historical class-AST check fixes this retained original, not the public
+# binding below. Selected transactions never call the retained generator.
+_STORE_TRANSACTION_REFERENCE = AgentStore.transaction
+AgentStore._transaction_reference = _STORE_TRANSACTION_REFERENCE
+_STORE_TRANSACTION_GLOBAL_BUILTINS = _STORE_TRANSACTION_REFERENCE.__wrapped__.__builtins__
+_STORE_TRANSACTION_BASE_EXCEPTION = BaseException
+_STORE_TRANSACTION_SELECT = object()
+
+
+@contextmanager
+def _store_transaction_context(self, image=_STORE_TRANSACTION_SELECT, *, namespace=None):
+    # A single actual generator performs native suspension/resumption. In
+    # particular no outer forwarding handler keeps a suppressed body exception
+    # active while HIA completes its remaining continuation.
+    if image is _STORE_TRANSACTION_SELECT:
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_TRANSACTION_MANIFEST')
+        if selected is None:
+            generator = _STORE_TRANSACTION_REFERENCE.__wrapped__(self)
+            try:
+                value = next(generator)
+            except StopIteration as stopped:
+                return stopped.value
+            while True:
+                forwarded_error = None
+                try:
+                    sent = yield value
+                except _STORE_TRANSACTION_BASE_EXCEPTION as error:
+                    forwarded_error = error
+                # Forward outside our handler. The original generator must
+                # inherit the caller's actual outer exception, rather than a
+                # new forwarding handler that outlives its own suppression.
+                if forwarded_error is not None:
+                    # yield-from turns GeneratorExit into close(), losing the
+                    # actual thrown object and the original suppression result.
+                    try:
+                        value = generator.throw(forwarded_error)
+                    except StopIteration as stopped:
+                        return stopped.value
+                else:
+                    try:
+                        value = generator.send(sent)
+                    except StopIteration as stopped:
+                        return stopped.value
+        from .hia_store_transaction_native import installed_store_transaction
+        image = installed_store_transaction(selected)
+    from .hia_store_transaction_native import StoreTransactionFrame, BODY_WAIT, BODY_RAISED, BODY_RETURNED
+    frame = StoreTransactionFrame(image, self, namespace=namespace)
+    try:
+        if frame.start() != BODY_WAIT:
+            return
+        frame.suspend()
+        try:
+            yield
+        except _STORE_TRANSACTION_BASE_EXCEPTION:
+            frame.resume(BODY_RAISED)
+            frame._exception_continuation()
+            frame.exception = None
+        else:
+            frame.resume(BODY_RETURNED)
+        frame.drive()
+    except _STORE_TRANSACTION_BASE_EXCEPTION as error:
+        frame.failed(error)
+        raise
+    finally:
+        frame.finish_advance()
+
+
+def _store_transaction_dispatch(self):
+    # Context-manager creation remains inert; even selection is deferred to
+    # the first actual generator advance.
+    return _store_transaction_context(self)
+
+
+_store_transaction_dispatch.__name__ = 'transaction'
+_store_transaction_dispatch.__qualname__ = 'AgentStore.transaction'
+AgentStore.transaction = _store_transaction_dispatch

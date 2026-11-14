@@ -1,0 +1,901 @@
+{
+  "base_commit": "5bf69586b890706290c5fbfe93065ec0d3af40b1",
+  "base_tree": "9008d431cf28b51edd8a5de589081090e3a19916",
+  "modules": [
+    {
+      "budget_and_extent_source_lines": [
+        {
+          "line": 85,
+          "original_text": "resource.setrlimit(resource.RLIMIT_AS,(384 << 20,384 << 20))"
+        },
+        {
+          "line": 94,
+          "original_text": "machine=_Machine(program,20000000,64 << 20,None,128)"
+        },
+        {
+          "line": 105,
+          "original_text": "                                capture_output=True, timeout=45)"
+        },
+        {
+          "line": 663,
+          "original_text": "                child.communicate(timeout=5)"
+        },
+        {
+          "line": 666,
+          "original_text": "                    child.kill(); child.communicate(timeout=5)"
+        },
+        {
+          "line": 692,
+          "original_text": "        from hepta.hia_agent_journal_native import MAX_BYTES"
+        },
+        {
+          "line": 695,
+          "original_text": "        response = {'status': 'rejected', 'error': {'message': 'x' * (MAX_BYTES - 4096)}}"
+        },
+        {
+          "line": 699,
+          "original_text": "        self.assertGreater(len(result.response) + len(result.cost_details), MAX_BYTES)"
+        },
+        {
+          "line": 700,
+          "original_text": "        self.assertLessEqual(len(result.response), MAX_BYTES)"
+        },
+        {
+          "line": 701,
+          "original_text": "        self.assertLessEqual(len(result.cost_details), MAX_BYTES)"
+        },
+        {
+          "line": 706,
+          "original_text": "resource.setrlimit(resource.RLIMIT_AS,(384 << 20,384 << 20))"
+        },
+        {
+          "line": 707,
+          "original_text": "from hepta.hia_agent_journal_native import installed_agent_journal,MAX_BYTES"
+        },
+        {
+          "line": 709,
+          "original_text": "raw=b'{\"status\":\"rejected\",\"error\":{\"a\":\"'+b'x'*(MAX_BYTES-8000)+b'\",\"z\":['+b','.join([b'1e15']*1000)+b']}}'"
+        },
+        {
+          "line": 710,
+          "original_text": "assert len(raw)<MAX_BYTES"
+        },
+        {
+          "line": 717,
+          "original_text": "                                cwd=ROOT, capture_output=True, timeout=30)"
+        },
+        {
+          "line": 752,
+          "original_text": "            capture_output=True, timeout=120, env={**os.environ, 'PIP_DISABLE_PIP_VERSION_CHECK': '1'})"
+        },
+        {
+          "line": 758,
+          "original_text": "            timeout=120, env={**os.environ, 'PIP_DISABLE_PIP_VERSION_CHECK': '1'})"
+        },
+        {
+          "line": 797,
+          "original_text": "                             capture_output=True, timeout=30)"
+        }
+      ],
+      "bytes": 48482,
+      "classes": [
+        {
+          "bases": [
+            "unittest.TestCase"
+          ],
+          "name": "JournalNativeTests",
+          "original_hooks": {
+            "selected": {
+              "ast_sha256": "17e68bafc1fbde65fa234a7956d08dca1d5ae95bb5b2712fa08c2440ea3586f5",
+              "end_line": 145,
+              "line": 140,
+              "source": "def selected(self):\n        stack = ExitStack()\n        stack.enter_context(patch.dict(os.environ, {SELECTOR: str(self.manifest)}))\n        stack.enter_context(patch.object(HIAAgentService, '_reference_call',\n                                       side_effect=AssertionError('retained journal owner entered')))\n        return stack",
+              "source_sha256": "eba8fd1e51956183296b0b4c2fc4a4b900f101c86dbe9f3b7d7a5683d74e3839"
+            },
+            "setUp": {
+              "ast_sha256": "b06fe4213eb24cc653144280610e68615b974603d916c07376c04aff47b227d9",
+              "end_line": 138,
+              "line": 137,
+              "source": "def setUp(self):\n        self.case = Path(tempfile.mkdtemp(prefix='case-', dir=self.folder))",
+              "source_sha256": "5cff73f58c44e4e83860fa4b16b018f2c7abab2d0b31299fc196e3e02bbfed50"
+            },
+            "setUpClass": {
+              "ast_sha256": "4c39d651ead8ee7fc643e53622997fe66523e378c016bb542e0fb5b8567f8c80",
+              "end_line": 131,
+              "line": 112,
+              "source": "def setUpClass(cls):\n        development, cold = os.environ.get(DEVELOPMENT), os.environ.get(COLD)\n        if development and cold:\n            raise AssertionError('development image cannot override a requested cold report')\n        cls.temp = tempfile.TemporaryDirectory(prefix='hia-journal-native-')\n        cls.folder = Path(cls.temp.name)\n        if cold:\n            from tools.build_hia_json_preflight import build\n            report = json.loads(Path(cold).read_bytes())\n            nested = json.loads(Path(report['nested_report']).read_bytes())\n            compiler = Path(nested['generations'][-1]['produced_image'])\n            cls.manifest = build(cls.folder / 'build', compiler, Path(cold), candidate='agent-journal')\n            cls.scope = 'MATCHING_SOURCE_COLD_BUILD'\n        elif development:\n            cls.manifest = Path(development).resolve(strict=True)\n            cls.scope = 'EXPLICIT_DEVELOPMENT_ONLY'\n        else:\n            cls.temp.cleanup()\n            raise unittest.SkipTest('requires explicit journal cold report or development manifest')\n        cls.image = installed_agent_journal(str(cls.manifest))",
+              "source_sha256": "cf02e2ced122c55d2a984d00be25fb263866918081188dc35841ddf3f72b67e1"
+            },
+            "tearDownClass": {
+              "ast_sha256": "80161008768bd5de2c4c31597e39d71bf5e7520cc779e795b36a90756e6deb0e",
+              "end_line": 135,
+              "line": 134,
+              "source": "def tearDownClass(cls):\n        cls.temp.cleanup()",
+              "source_sha256": "c351a9aac6458d71eeb5c6d236c8eeb5b40b6736dea7615bc0e8d310107f8441"
+            }
+          },
+          "test_count": 18,
+          "tests": [
+            {
+              "ast_sha256": "dca3228a75d3106292f7940b5c2b53d78bac3ca9b5d2284b16383cde2533e61f",
+              "end_line": 501,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_HIA_UTF8_codec_reports_python_byte_spans_without_host_decoding",
+              "line": 482,
+              "source_sha256": "5c778d0b475e013df4dea3c5c37050576f851db4c055fca4de7c66ceb0cb397c"
+            },
+            {
+              "ast_sha256": "f401c90850a48807d1913c6aace555f3b4fc7ef8e7c55c86df18890ab046c20d",
+              "end_line": 229,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_ack_order_conflict_unknown_and_special_verification_replay",
+              "line": 188,
+              "source_sha256": "d2e8b6c548361255db1becf3049a3bf42ad2d1217ec73a7b6210c737b3bfc7b7"
+            },
+            {
+              "ast_sha256": "83d0567e28ef38ac2d12c49b156cb6ac5cdb269d78085b8bc48f710270cd45f4",
+              "end_line": 605,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_cached_explicit_selectors_are_readmitted_after_argument_snapshot",
+              "line": 503,
+              "source_sha256": "ce939a46a4aed8f0c2a8c09dc6994d9cd18a0dc95ddf33b2645d5a1f25d37445"
+            },
+            {
+              "ast_sha256": "bf57430fe609aa958b5f62a0a95a7944d3f01a9029049777baf7e1c8288e275f",
+              "end_line": 441,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_cached_foreign_values_and_lazy_numeric_selector_match_reference",
+              "line": 409,
+              "source_sha256": "8e8f78d153ee829ee221b3698d7a52e0a83113c7f7f84d58a363e3dc3c7f2704"
+            },
+            {
+              "ast_sha256": "45501e1be8efc852c3bf7991fa50052eafb4a6b8a9b262afed84d5f8d78a24b3",
+              "end_line": 480,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_cached_syntax_UTF8_and_budget_errors_match_reference_exactly",
+              "line": 443,
+              "source_sha256": "36b992260831938052670c4b0292474cf7e5ac9b1598d9d64fe4d18788db71d0"
+            },
+            {
+              "ast_sha256": "dbb51abbdac82f1b88dd4ec19c1d8a18014122c7c7d3655d227e9a90b3ec9ada",
+              "end_line": 273,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_exact_reference_errors_rows_and_arbitrary_precision_clock_TEXT",
+              "line": 231,
+              "source_sha256": "ba41bb07389fa9a8dc9c81f4288f1e049b91774ad54d2515c8056ad9ee148ffa"
+            },
+            {
+              "ast_sha256": "0cc30a2c2d76017eee7df21929379284f0d93d63ccdc295c7901a22c4fae5365",
+              "end_line": 799,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_installed_wheel_ordinary_call_no_tools_and_source_catalog_binding",
+              "line": 739,
+              "source_sha256": "b23df25f5bfa816fcebdb65d582939f21a0120870527674cfde793a1feff988d"
+            },
+            {
+              "ast_sha256": "c87eca6bd5c98f674115b28876119f320d3385c5f86451113088b4b56199e776",
+              "end_line": 321,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_malformed_cached_response_never_reexecutes_or_rewrites_request",
+              "line": 307,
+              "source_sha256": "3b27f24959bcf157b02ab5149c23051b846ab268807a6ee3d2c6d0719546c342"
+            },
+            {
+              "ast_sha256": "88f2efae6808323db8f7fd17950d4f8005004fb35cb0056ee2f522c63965e613",
+              "end_line": 737,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_native_ABI_canaries_and_instruction_header_refuse_corruption",
+              "line": 721,
+              "source_sha256": "4b10f34391493319677d75a9b072a4a2d2e6cfd542fa761cd7c68cb9066bbeb2"
+            },
+            {
+              "ast_sha256": "7b27c6151f49f645af820676e125e446014ddc8490ff2236fd2bf4f3d074eba6",
+              "end_line": 407,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_native_protocol_failure_cannot_journal_a_rolled_back_success",
+              "line": 373,
+              "source_sha256": "e1f3539bfa6e3866b4fd5b80f6b9fdc7b0b4647e0b27d3767e10b64bd168ca92"
+            },
+            {
+              "ast_sha256": "5939d8eb8f00b8072f7acea58b62fd7eefedc609199ed3119c6c35016048b0dd",
+              "end_line": 719,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_raw_numeric_expansion_refuses_before_channel_overwrite",
+              "line": 703,
+              "source_sha256": "88f072e9528a22f7b0ad32819266344ab8d071bfcebf22f6adb50cc083b20975"
+            },
+            {
+              "ast_sha256": "dee5a2bac38262d1ac621e574b6ec009d090ab9bac42d790cfb824214238adbc",
+              "end_line": 371,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_SQL_commit_fault_preserves_ack_before_commit_semantics",
+              "line": 323,
+              "source_sha256": "af34eeccedd6f02ecef3904d222eb25b42067cdab5c5274b958606dc0bf61271"
+            },
+            {
+              "ast_sha256": "235ce95222f0a7de5b1d03659df308a0fedc2cd2158d86b6a44394320c7b64b8",
+              "end_line": 629,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_SQLite_non_TEXT_observations_preserve_conflict_before_state",
+              "line": 607,
+              "source_sha256": "791693058dfac7954d4f7751bd43d499ea34e147413d65002767a6dcb1fed1ca"
+            },
+            {
+              "ast_sha256": "8f4f22037d1a4a1e159cd48d9afaf115086d6228702b2ef8bcf6bf5e810c1906",
+              "end_line": 305,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_artifact_restart_replay_alias_and_no_effect_cost_or_update",
+              "line": 275,
+              "source_sha256": "a340042737e2893e88468e9c0ab3eeab69d64344e9cdabc1b943578513454899"
+            },
+            {
+              "ast_sha256": "a6cea612fb227e1aaa884fc7cc6f3f8d92a7d3de9d3308b420bc69d5e3be35eb",
+              "end_line": 672,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_process_kill_after_effect_preserves_running_intent",
+              "line": 631,
+              "source_sha256": "ccd413535c7c671d351b2ad0fec3a603b9f6ed063805bc60d47817d6c11eb89a"
+            },
+            {
+              "ast_sha256": "a2c9cc7db50a028f5404e312cae0bd774f9b1e843fbaf22b9415271719798c1a",
+              "end_line": 186,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_request_identity_keys_unicode_binary64_and_unknown_tool_order",
+              "line": 147,
+              "source_sha256": "f26c24865e2f59a5f1b9b3413c5a4cfce71645012f4af9f0f766b32ff090de8c"
+            },
+            {
+              "ast_sha256": "2ab3f85db89c75275be76e60b8717eb77be94117ede63ced59becacc0ee32fa7",
+              "end_line": 689,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_selected_source_and_catalog_drift_fail_closed_before_SQL",
+              "line": 674,
+              "source_sha256": "1aa9666e88958dff3cc1c685213fa5f66ae10642bc5f0a43814a59160e525df2"
+            },
+            {
+              "ast_sha256": "62e84f74b3fdc42afe5c35b90331bf32e1339f62e6b33ea58c3b95d1848e5e4a",
+              "end_line": 701,
+              "id": "tests.test_hia_agent_journal_native.JournalNativeTests.test_terminal_channels_do_not_add_a_combined_eight_MiB_gate",
+              "line": 691,
+              "source_sha256": "a1014ef922d8c7bf05eb304ebf4d39a1b91b3114d1c16813d930aa4a90b086eb"
+            }
+          ]
+        },
+        {
+          "bases": [
+            "unittest.TestCase"
+          ],
+          "name": "JournalSourceTests",
+          "original_hooks": {},
+          "test_count": 3,
+          "tests": [
+            {
+              "ast_sha256": "03fd7b49d1320c2f8d517d594b3d298b1696b91b55dad766c75935470cb1bec3",
+              "end_line": 68,
+              "id": "tests.test_hia_agent_journal_native.JournalSourceTests.test_caller_gate_rejects_incomplete_and_expected_failure_results",
+              "line": 49,
+              "source_sha256": "5f4bfa5d32508d630e018278437ff134f2c405909960088f28687d757a64657c"
+            },
+            {
+              "ast_sha256": "cb1f0278f87574d5a06b5035c5d2d30123ca7aaeaa822615da972a19cb1bb3c6",
+              "end_line": 107,
+              "id": "tests.test_hia_agent_journal_native.JournalSourceTests.test_independent_core_VM_request_identity",
+              "line": 80,
+              "source_sha256": "011a1713205cf806a77d356baabf9ee0b95841ee17e0defd746beebb36363f21"
+            },
+            {
+              "ast_sha256": "377092c710d608551d19ae9dead54e6b70265c8b2f60b16bbc29f5f12422404b",
+              "end_line": 78,
+              "id": "tests.test_hia_agent_journal_native.JournalSourceTests.test_source_reproduces_and_original_owner_is_unchanged",
+              "line": 70,
+              "source_sha256": "9911b5055de0d97eb8c6db080d844848e56ab5c2d8c4767d9e97305830ad873d"
+            }
+          ]
+        }
+      ],
+      "current_file_equals_base": true,
+      "load_tests_defined": false,
+      "module": "tests.test_hia_agent_journal_native",
+      "path": "tests/test_hia_agent_journal_native.py",
+      "selection": {
+        "cold": "HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT",
+        "development": "HEPTA_HIA_AGENT_JOURNAL_DEVELOPMENT_MANIFEST",
+        "evidence": null,
+        "setup": "Both nonempty cold and development reject. A nonempty cold report builds agent-journal with the original strict builder; otherwise an explicit development manifest is resolved. Without either, the original native class raises SkipTest. Its TemporaryDirectory is deleted by original tearDownClass. No persistent evidence variable is added."
+      },
+      "sha256": "a0a6e63291eb76ee84787b432c56eaa32bd1181b762f9593532c059d4a665077",
+      "test_count": 21
+    },
+    {
+      "budget_and_extent_source_lines": [
+        {
+          "line": 24,
+          "original_text": "    REQUEST_MAGIC, RESULT_MAGIC, SCHEMA, SELECTOR, SOURCE, STATE_BYTES, OUTPUT_BYTES)"
+        },
+        {
+          "line": 62,
+          "original_text": "        self.state = bytearray(STATE_BYTES)"
+        },
+        {
+          "line": 66,
+          "original_text": "        objects = [_Owner(-1, bytearray(raw)), _Owner(-2, bytearray(OUTPUT_BYTES)), _Owner(-3, self.state)]"
+        },
+        {
+          "line": 67,
+          "original_text": "        machine = _Machine(self.checked, 100000000, 16 << 20, None, 128)"
+        },
+        {
+          "line": 76,
+          "original_text": "        self.state = ctypes.create_string_buffer(STATE_BYTES + 16)"
+        },
+        {
+          "line": 77,
+          "original_text": "        ctypes.memset(ctypes.addressof(self.state) + STATE_BYTES, 0xb7, 16)"
+        },
+        {
+          "line": 81,
+          "original_text": "        output = ctypes.create_string_buffer(OUTPUT_BYTES + 16)"
+        },
+        {
+          "line": 82,
+          "original_text": "        ctypes.memset(ctypes.addressof(output) + OUTPUT_BYTES, 0xa5, 16)"
+        },
+        {
+          "line": 83,
+          "original_text": "        count = self.image._entry(source, len(raw), output, OUTPUT_BYTES, self.state, STATE_BYTES)"
+        },
+        {
+          "line": 85,
+          "original_text": "        assert output.raw[OUTPUT_BYTES:] == b'\\xa5' * 16"
+        },
+        {
+          "line": 86,
+          "original_text": "        assert self.state.raw[STATE_BYTES:] == b'\\xb7' * 16"
+        },
+        {
+          "line": 87,
+          "original_text": "        return count, output.raw[:count], self.state.raw[:STATE_BYTES]"
+        },
+        {
+          "line": 497,
+          "original_text": "                            second.result(timeout=0.1)"
+        },
+        {
+          "line": 503,
+          "original_text": "                    claim = first.result(timeout=5)"
+        },
+        {
+          "line": 504,
+          "original_text": "                    second.result(timeout=5)"
+        },
+        {
+          "line": 567,
+          "original_text": "                        env={**os.environ, SELECTOR: str(self.manifest)}, capture_output=True, text=True, timeout=30)"
+        },
+        {
+          "line": 657,
+          "original_text": "                    barrier.wait(timeout=5)"
+        },
+        {
+          "line": 665,
+          "original_text": "                    results = [future.result(timeout=10) for future in futures]"
+        },
+        {
+          "line": 874,
+          "original_text": "            cwd=source, capture_output=True, timeout=120)"
+        },
+        {
+          "line": 884,
+          "original_text": "            capture_output=True, timeout=120)"
+        },
+        {
+          "line": 889,
+          "original_text": "            '--target', str(installed), str(wheel)], cwd=case, capture_output=True, timeout=120)"
+        },
+        {
+          "line": 924,
+          "original_text": "            str(self.manifest), str(case / 'state')], cwd=case, capture_output=True, text=True, timeout=30)"
+        }
+      ],
+      "bytes": 56525,
+      "classes": [
+        {
+          "bases": [
+            "unittest.TestCase"
+          ],
+          "name": "ExecutionBudgetNativeTests",
+          "original_hooks": {
+            "selected": {
+              "ast_sha256": "c844ed41af4a45f4a9f7d77e9cb1701a7615012e7b67c7cb8dd6fe12a5d76b5f",
+              "end_line": 239,
+              "line": 238,
+              "source": "def selected(self):\n        return patch.dict(os.environ, {SELECTOR: str(self.manifest)})",
+              "source_sha256": "6ff158ee1ba97f6415cdc031517bbe54a354afc070c2e3f4983f17f2b7227ede"
+            },
+            "selected_journal_v2": {
+              "ast_sha256": "dc5bf248758cd12e32dc1e44c1fabce949f6e882655c61214fd9fada0bcbd75b",
+              "end_line": 270,
+              "line": 241,
+              "source": "def selected_journal_v2(self):\n        \"\"\"Compose the current journal image without substituting the v67 owner.\"\"\"\n        cls = type(self)\n        if cls.journal_manifest is None:\n            if cls.cold_report is not None:\n                from tools.build_hia_json_preflight import build\n                cls.journal_manifest = build(cls.folder / 'qualified-agent-journal',\n                    cls.compiler, cls.cold_report, candidate='agent-journal')\n            else:\n                from tools.qualify_hia_selfhost import compile_stage\n                from hepta.hia_agent_journal_native import SOURCE as journal_source, SCHEMA as journal_schema\n                image, receipt = compile_stage(cls.folder, 'agent-journal-v2', cls.compiler,\n                                               journal_source.read_bytes())\n                manifest = {'schema': journal_schema,\n                    'source_sha256': sha256(journal_source.read_bytes()).hexdigest(),\n                    'image_path': image.name, 'image_sha256': sha256(image.read_bytes()).hexdigest(),\n                    'compiler_sha256': sha256(cls.compiler.read_bytes()).hexdigest()}\n                cls.journal_manifest = cls.folder / 'agent-journal-v2-manifest.json'\n                cls.journal_manifest.write_text(json.dumps(manifest, indent=2) + '\\n')\n                (cls.folder / 'agent-journal-v2-development-build.json').write_text(json.dumps({\n                    'mode': 'DEVELOPMENT_REUSED_COMPILER', 'manifest': manifest,\n                    'compile_receipt': receipt, 'matching_current_source_cold_qualified': False},\n                    indent=2) + '\\n')\n        from hepta.hia_agent_journal_native import SELECTOR as journal_selector\n        from hepta.hia_agent_service import HIAAgentService\n        stack = ExitStack()\n        stack.enter_context(patch.dict(os.environ, {journal_selector: str(cls.journal_manifest)}))\n        stack.enter_context(patch.object(HIAAgentService, '_reference_call',\n                                        side_effect=AssertionError('hosted journal policy called')))\n        return stack",
+              "source_sha256": "ba422259d319d59ab3c2584076e8a29743ef8f5fe91b8695599b58e99b30624e"
+            },
+            "setUpClass": {
+              "ast_sha256": "5ab6908f372d883e33a3fb581122cdbd5254f4b58811ffe8a29dbae0da339f93",
+              "end_line": 232,
+              "line": 167,
+              "source": "def setUpClass(cls):\n        from tools.qualify_hia_selfhost import compile_stage, build_seed\n        cold = os.environ.get('HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT')\n        development = os.environ.get('HEPTA_HIA_EXECUTION_BUDGET_DEVELOPMENT_COMPILER')\n        if cold and development:\n            raise ValueError('development compiler cannot be combined with an execution budget cold report')\n        cls.cold_report = Path(cold) if cold else None\n        cls.journal_manifest = None\n        if cold:\n            from tools.build_hia_execution_budget import admit_cold_build\n            cold = Path(cold)\n            cold_bytes = cold.read_bytes()\n            report = json.loads(cold_bytes)\n            try:\n                nested = json.loads(Path(report['nested_report']).read_bytes())\n                compiler = Path(nested['generations'][-1]['produced_image'])\n            except (KeyError, IndexError, TypeError) as error:\n                raise ValueError('execution budget cold report lacks a compiler') from error\n            compiler_bytes = compiler.read_bytes()\n            admit_cold_build(compiler_bytes, cold_bytes)\n        cls.temporary = None\n        evidence = os.environ.get('HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE')\n        if evidence:\n            base = Path(evidence); base.mkdir(mode=0o700, exist_ok=True)\n            cls.folder = base / cls.__name__; cls.folder.mkdir(mode=0o700)\n        else:\n            cls.temporary = tempfile.TemporaryDirectory(prefix='hia-execution-budget-')\n            cls.folder = Path(cls.temporary.name)\n        if cold:\n            from tools.build_hia_execution_budget import build\n            cls.manifest = build(cls.folder / 'qualified-execution-budget', compiler, cold)\n            manifest = json.loads(cls.manifest.read_bytes())\n            image = cls.manifest.parent / manifest['image_path']\n            cls.image = NativeExecutionBudgetImage(image.read_bytes(), manifest['image_sha256'])\n            if cold.read_bytes() != cold_bytes or compiler.read_bytes() != compiler_bytes:\n                raise AssertionError('qualified execution budget fixture inputs changed')\n            cls.compiler = compiler\n            (cls.folder / 'qualified-build.json').write_text(json.dumps({\n                'mode': 'MATCHING_CURRENT_SOURCE_COLD_BUILD',\n                'manifest_path': str(cls.manifest),\n                'cold_report_sha256': sha256(cold_bytes).hexdigest(),\n                'compiler_sha256': sha256(compiler_bytes).hexdigest(),\n                'matching_current_source_cold_qualified': True,\n            }, indent=2) + '\\n')\n            return\n        if development:\n            compiler = Path(development)\n            mode = 'DEVELOPMENT_REUSED_COMPILER'\n        else:\n            seed, _ = build_seed(cls.folder)\n            source = (ROOT / 'examples/hia_bootstrap/selfhost.hepta').read_bytes()\n            first, _ = compile_stage(cls.folder, 'B1', seed, source, image_format='seed-shared')\n            compiler, _ = compile_stage(cls.folder, 'B2', first, source)\n            assert first.read_bytes() == compiler.read_bytes()\n            mode = 'DEVELOPMENT_B0_B1_B2'\n        cls.compiler = compiler\n        image, receipt = compile_stage(cls.folder, 'execution-budget', compiler, SOURCE.read_bytes())\n        cls.image = NativeExecutionBudgetImage(image.read_bytes(), sha256(image.read_bytes()).hexdigest())\n        manifest = {'schema': SCHEMA, 'source_sha256': sha256(SOURCE.read_bytes()).hexdigest(),\n            'image_path': image.name, 'image_sha256': cls.image.image_sha256,\n            'compiler_sha256': sha256(compiler.read_bytes()).hexdigest()}\n        cls.manifest = cls.folder / 'manifest.json'\n        cls.manifest.write_text(json.dumps(manifest, indent=2) + '\\n')\n        (cls.folder / 'development-build.json').write_text(json.dumps({'mode': mode,\n            'manifest': manifest, 'compile_receipt': receipt,\n            'matching_current_source_cold_qualified': False}, indent=2) + '\\n')",
+              "source_sha256": "673938576498d465ef44846938b117c33cdb5f77204d9dc675e6bdffb0a8b2b1"
+            },
+            "tearDownClass": {
+              "ast_sha256": "68d47236b3643df36408e4f0af8dd9b52ff493449823b22fe2d680965aa34395",
+              "end_line": 236,
+              "line": 235,
+              "source": "def tearDownClass(cls):\n        if cls.temporary is not None: cls.temporary.cleanup()",
+              "source_sha256": "0b7f2f5a95971bb929b257d3b521d97c8f6243f3026525a1c351476f2ddbd4e8"
+            }
+          },
+          "test_count": 22,
+          "tests": [
+            {
+              "ast_sha256": "36180bdc817789f4c0bb28ca601f3e3154a1dca548d3e2ce7834e7ba86df7821",
+              "end_line": 829,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_agent_journal_v2_lifecycle_and_campaign_disable_both_references",
+              "line": 827,
+              "source_sha256": "d2c6542021cb09461f8567e6e1431dc1990d7e8863691b16f71df1ee19826b81"
+            },
+            {
+              "ast_sha256": "9e4cd1526f7e47bc8767d7632de058fb115aaf8bad7eec0966dd0be77db9961c",
+              "end_line": 770,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_agent_journal_v2_lost_outcome_keeps_request_and_budget_unknown",
+              "line": 768,
+              "source_sha256": "29b42d3563913f8bcca13ec25805996766e31372f67e09e6c6b8467b2839fb3c"
+            },
+            {
+              "ast_sha256": "92f18ea069ddb641afc392d5f9e5b8cbac0228f51771352a926a236de8eec501",
+              "end_line": 766,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_agent_native_effect_lost_outcome_keeps_request_and_budget_unknown",
+              "line": 765,
+              "source_sha256": "406f1b2ab2c5782c7aa09f596d287627ebae4a38eb022da525706131254d8e7d"
+            },
+            {
+              "ast_sha256": "631a6a5f1ba4e19e05fa717ce433b67d0eed9f805525e83aa9eed73335a6cfd6",
+              "end_line": 360,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_claim_precommit_failure_rolls_back_and_lost_commit_ack_stays_owned",
+              "line": 326,
+              "source_sha256": "6bc5e95bbb993b1be6e14ea751c8ba672d25f6d14938c009f80c4b45a4051337"
+            },
+            {
+              "ast_sha256": "2588fb70ae22603cc515369385d4fc1fb8729e33097760cb00abb53e9746c52f",
+              "end_line": 675,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_competing_native_claims_have_one_durable_owner",
+              "line": 649,
+              "source_sha256": "b3d3a789e7c1ab39581f18e0754ba8122f5472bbdf8f45426aca02155b1b7b38"
+            },
+            {
+              "ast_sha256": "ae920c495e1f28ac942968546a0e5ac5462ee888bb22e3afeaa2b9e1afd59f77",
+              "end_line": 393,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_completion_lost_ack_is_never_replayed_from_equal_cost",
+              "line": 362,
+              "source_sha256": "090cc605fa3d13a19ff530e8230dbb07d601ffd05ea43125b489442941e4c73f"
+            },
+            {
+              "ast_sha256": "d3950d81c52ebda7f08f422e2ac15deecfae5a18d783f460496242825e75a671",
+              "end_line": 618,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_database_and_wal_replacement_refuse_without_new_store_or_effect",
+              "line": 587,
+              "source_sha256": "5d2ff3a6d6c6fb5fe37b5f4421a509471b629574c21f0c92b726c8985c437f4d"
+            },
+            {
+              "ast_sha256": "3200d46b909ad0dd249e3da0f590aa18f6d3ce1d463760e440c52dafc8eebe12",
+              "end_line": 510,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_dedicated_transaction_cannot_capture_ordinary_writer",
+              "line": 471,
+              "source_sha256": "847ce426295ccb78c7f57d97463cd1600a68c07774dfc49c352dcc6910d20502"
+            },
+            {
+              "ast_sha256": "bfbf2ec51d1e65032e02678927b1e9d249a09802cfa374c470e9da6245b992d9",
+              "end_line": 528,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_existing_transaction_is_not_borrowed_or_rolled_back",
+              "line": 512,
+              "source_sha256": "344a7ecf1f115fcbde36d8eb78962d45d3d10c45668a304e8b0494693d36c0bc"
+            },
+            {
+              "ast_sha256": "084a92d5014728bfdae253573338bb537e6e3250297018c3eb552b8e554589fb",
+              "end_line": 310,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_original_sqlite_rows_claim_cost_complete_and_observe",
+              "line": 277,
+              "source_sha256": "5feab974adefdbca30b60336948758ba21d3f4d964ac6f714d218f400b31b763"
+            },
+            {
+              "ast_sha256": "0ca59d21660654f0d8d69a1f23ced885fc254fb6aeaa914c48d071bf89142898",
+              "end_line": 438,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_owner_and_original_cost_cas_refuse_concurrent_change",
+              "line": 421,
+              "source_sha256": "944d35d364179c34d9e79d5eb86aca2b40d385729590275f3824911d3d83cd18"
+            },
+            {
+              "ast_sha256": "1622d144ecbef8375dd3838d52178e16e0cd3a0c3a915764dd281bcd78303ad1",
+              "end_line": 585,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_process_crash_preserves_sqlite_pre_and_post_commit_boundaries",
+              "line": 530,
+              "source_sha256": "2fb7aef98f40f8f8954b11f87f7e612632ff3cb9e34eeb49c5acad692142b2f4"
+            },
+            {
+              "ast_sha256": "c92ac891a7e0fb3340fec8eb4f15fda40a8b871680f713d0cb0da2c69cc79394",
+              "end_line": 469,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_rowcount_and_readback_faults_cannot_commit_a_claim",
+              "line": 440,
+              "source_sha256": "aacb0b72ab26a31b260f4833f0a5f5a8af12366c5ed240ac6535098973fed55f"
+            },
+            {
+              "ast_sha256": "8c13f5e542939540080a11eceed3f7c80a48293e1996af0bbed293ba5f4acd5c",
+              "end_line": 744,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_temp_shadow_cannot_replace_main_journal_claim_authority",
+              "line": 708,
+              "source_sha256": "047d2f4b0f127a522aeb4bd35dcf40c872ccedf61c00f372ab2029d3106581d9"
+            },
+            {
+              "ast_sha256": "6d62a1d0c206f306b23a944f0da74731a9106af82a3f0732c5c09663961df683",
+              "end_line": 419,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_uncertain_or_interrupted_run_never_clears_or_retries_owner",
+              "line": 395,
+              "source_sha256": "67ff740e2960803ff25e6f314dc13148af250dde3f5e2692f245033f0e3fc74e"
+            },
+            {
+              "ast_sha256": "a55e4696f6b5e414b17729863c127ee52c7c1cf05258afcbebeacdd9a7d784ff",
+              "end_line": 324,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_default_reference_original_budget_ordering",
+              "line": 312,
+              "source_sha256": "beff588be391eb98c9724a35186410ca5fe5dc37ac062a012d908caff65d69d7"
+            },
+            {
+              "ast_sha256": "b2fed377ebfeccfb05c012786e269d6fb7f7a2924bb342be5c724904f41576db",
+              "end_line": 927,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_installed_wheel_same_journal_lifecycle_without_authoring_or_reference",
+              "line": 861,
+              "source_sha256": "f4150516ff431677b122b5cb823175988cc4ea3efcf0a20135432197f75113b5"
+            },
+            {
+              "ast_sha256": "7796c028c154a8b946b82053b8a5de8c901cd7c6f95658a77a0729401b126511",
+              "end_line": 275,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_machine_matches_every_independent_vm_state_byte",
+              "line": 272,
+              "source_sha256": "4f1e85c1c32a0fd117ee1c21f5ee7c8dd721cbcf2da1c49d0217e10dec2da103"
+            },
+            {
+              "ast_sha256": "5fe3c06484091131d719af3d9febcfaef6e51565dd6c2894e74dfbb9c44cceb0",
+              "end_line": 706,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_native_wrong_instance_replay_and_corruption_never_write_sql",
+              "line": 677,
+              "source_sha256": "0c6d44af6b73128f1aae2ff578b16f1c9dcd2f6a100c6899007593abfc1b0e4d"
+            },
+            {
+              "ast_sha256": "e1773c1edd12249c1912374df109f474cdc47adebc4051ae1d9a1fbabaab1040",
+              "end_line": 825,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_original_actual_agent_lifecycle_and_campaign_disable_reference",
+              "line": 824,
+              "source_sha256": "5d36a3e182939a3ed75a4b333efcd76eea47f06266e3ec477de5b383b686cfac"
+            },
+            {
+              "ast_sha256": "c53209d4e99a945711e8f2477e70b91bfbbb133c19691bb105c743d57b9e9e00",
+              "end_line": 763,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_selected_source_custody_refuses_before_store_creation_and_never_falls_back",
+              "line": 746,
+              "source_sha256": "9e241b52bf535d8644cb4079f8a8e38a8bdc19e0249bfaff694bf9e5a9b35e51"
+            },
+            {
+              "ast_sha256": "2ac9a789616c1f29470ecce6bc633ad7cad907c3e93f5e98b4559c39795d9d4a",
+              "end_line": 647,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_stored_noncanonical_cost_and_decimal_overflow_preserve_original_rows",
+              "line": 620,
+              "source_sha256": "e4ae2c71ffbd6d295e0305a13e71f4d265236882fcda118a42c27457ad70f71f"
+            }
+          ]
+        },
+        {
+          "bases": [
+            "unittest.TestCase"
+          ],
+          "name": "ExecutionBudgetSourceTests",
+          "original_hooks": {},
+          "test_count": 3,
+          "tests": [
+            {
+              "ast_sha256": "c1146997f43e0a73f9d26aef094658072fd28e3432b95150eb3238e2e4c35ab7",
+              "end_line": 162,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests.test_bad_cold_builder_refuses_before_output_or_native_compilation",
+              "line": 153,
+              "source_sha256": "c3f6172c2c913b385778e34dfb4020ab92f0ec0d57e7c1118740cb4c8cc5dcbf"
+            },
+            {
+              "ast_sha256": "01e3619afd6510ff79cc93369bf5a1c8f11dc37733115f740868663d3ec00516",
+              "end_line": 145,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests.test_fixture_cold_admission_precedes_evidence_seed_and_compilation",
+              "line": 123,
+              "source_sha256": "c5c5ac01aeb389f0df1f16f79ec4e084c7aab348e95ba33e4ce48095d85b790b"
+            },
+            {
+              "ast_sha256": "fe297f0aef7270a91914fe485b312f9d996b71501c3c576c3b2638b230f74027",
+              "end_line": 151,
+              "id": "tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests.test_generated_source_and_independent_vm_full_claim_run_completion",
+              "line": 147,
+              "source_sha256": "ee36e778c916acbbc067eba39d310dec202cb6e8391460cb88aba9843ab7f43c"
+            }
+          ]
+        }
+      ],
+      "current_file_equals_base": true,
+      "load_tests_defined": false,
+      "module": "tests.test_hia_execution_budget_native",
+      "path": "tests/test_hia_execution_budget_native.py",
+      "selection": {
+        "cold": "HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT",
+        "development": "HEPTA_HIA_EXECUTION_BUDGET_DEVELOPMENT_COMPILER",
+        "evidence": "HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE",
+        "setup": "Both nonempty cold and development reject. Cold admission occurs before the evidence directory or seed build. Cold builds the original qualified image; development may reuse the explicit compiler, or the original no-selector path builds B0/B1/B2. Evidence is stored under the original class name or original TemporaryDirectory. selected_journal_v2 lazily constructs the original companion in the same cold/development scope."
+      },
+      "sha256": "7e75e2eec37affe6173d08fd4e5d85dadd58a44fef224518bde38ac5acbecb71",
+      "test_count": 25
+    },
+    {
+      "budget_and_extent_source_lines": [
+        {
+          "line": 15,
+          "original_text": "    REQUEST_MAGIC, RESULT_MAGIC, SCHEMA, SELECTOR, SOURCE, STATE_BYTES, MAX_U64,"
+        },
+        {
+          "line": 38,
+          "original_text": "        self.state = bytearray(STATE_BYTES)"
+        },
+        {
+          "line": 48,
+          "original_text": "        machine = _Machine(self.program, 4_000_000, 16 << 20, None, 128)"
+        },
+        {
+          "line": 62,
+          "original_text": "        self.state = ctypes.create_string_buffer(STATE_BYTES + 16)"
+        },
+        {
+          "line": 63,
+          "original_text": "        ctypes.memset(ctypes.addressof(self.state) + STATE_BYTES, 0xb7, 16)"
+        },
+        {
+          "line": 75,
+          "original_text": "        count = self.image._entry(source, len(raw), output, capacity, self.state, STATE_BYTES)"
+        },
+        {
+          "line": 77,
+          "original_text": "                or self.state.raw[STATE_BYTES:] != b'\\xb7' * 16):"
+        },
+        {
+          "line": 79,
+          "original_text": "        return count, output.raw[:min(count, capacity)], self.state.raw[:STATE_BYTES]"
+        },
+        {
+          "line": 559,
+          "original_text": "        state = ctypes.create_string_buffer(STATE_BYTES)"
+        },
+        {
+          "line": 580,
+          "original_text": "        state = ctypes.create_string_buffer(STATE_BYTES)"
+        }
+      ],
+      "bytes": 32364,
+      "classes": [
+        {
+          "bases": [
+            "unittest.TestCase"
+          ],
+          "name": "SlotLedgerNativeTests",
+          "original_hooks": {
+            "setUpClass": {
+              "ast_sha256": "d99a083108371d8006aa14a341a129d253654d09c60940ce5e24683e2f0cb4d1",
+              "end_line": 531,
+              "line": 470,
+              "source": "def setUpClass(cls):\n        from tools.qualify_hia_selfhost import compile_stage\n        cold = os.environ.get('HEPTA_HIA_SLOT_LEDGER_COLD_REPORT')\n        development = os.environ.get('HEPTA_HIA_SLOT_LEDGER_DEVELOPMENT_COMPILER')\n        if cold and development:\n            raise ValueError('slot ledger development compiler cannot be combined with a cold report')\n        if not cold and not development:\n            raise ValueError('slot ledger fixture requires an explicit matching cold report or development compiler')\n        cls.cold = Path(cold) if cold else None\n        cls.temporary = None\n        if cls.cold:\n            from tools.build_hia_json_preflight import admit_cold_build\n            cold_bytes = cls.cold.read_bytes()\n            report = json.loads(cold_bytes)\n            try:\n                nested_bytes = Path(report['nested_report']).read_bytes()\n                nested = json.loads(nested_bytes)\n                cls.compiler = Path(nested['generations'][-1]['produced_image'])\n            except (KeyError, IndexError, TypeError) as error:\n                raise ValueError('slot ledger cold report lacks a compiler') from error\n            compiler_bytes = cls.compiler.read_bytes()\n            admitted = admit_cold_build(compiler_bytes, cold_bytes)\n        else:\n            cls.compiler = Path(development).resolve(strict=True)\n            compiler_bytes = cls.compiler.read_bytes()\n        source_bytes = SOURCE.read_bytes()\n        evidence = os.environ.get('HEPTA_HIA_SLOT_LEDGER_EVIDENCE')\n        if evidence:\n            cls.folder = Path(evidence) / cls.__name__\n            cls.folder.mkdir(mode=0o700, parents=True)\n        else:\n            cls.temporary = tempfile.TemporaryDirectory(prefix='hia-slot-ledger-')\n            cls.folder = Path(cls.temporary.name)\n        if cls.cold:\n            from tools.build_hia_slot_ledger import build\n            cls.manifest = build(cls.folder / 'qualified', cls.compiler, cls.cold)\n            record = json.loads(cls.manifest.read_bytes())\n            image_path = cls.manifest.parent / record['image_path']\n            receipt = json.loads((cls.manifest.parent / 'build.json').read_bytes())['native_compile_receipt']\n            mode = 'MATCHING_CURRENT_SOURCE_COLD_BUILD'\n            if (cls.cold.read_bytes() != cold_bytes\n                    or Path(report['nested_report']).read_bytes() != nested_bytes\n                    or admit_cold_build(compiler_bytes, cold_bytes) != admitted):\n                raise AssertionError('slot ledger fixture cold evidence changed')\n        else:\n            image_path, receipt = compile_stage(cls.folder, 'slot-ledger-development',\n                                               cls.compiler, source_bytes)\n            raw_image = image_path.read_bytes()\n            record = {'schema': SCHEMA, 'source_sha256': sha256(source_bytes).hexdigest(),\n                'image_path': image_path.name, 'image_sha256': sha256(raw_image).hexdigest(),\n                'compiler_sha256': sha256(compiler_bytes).hexdigest()}\n            cls.manifest = cls.folder / 'manifest.json'\n            cls.manifest.write_text(json.dumps(record, indent=2, sort_keys=True) + '\\n')\n            mode = 'EXPLICIT_DEVELOPMENT_COMPILER_NOT_COLD_QUALIFIED'\n        image_bytes = image_path.read_bytes()\n        cls.image = NativeSlotLedger(image_bytes, record['image_sha256'])\n        if SOURCE.read_bytes() != source_bytes or cls.compiler.read_bytes() != compiler_bytes:\n            raise AssertionError('slot ledger fixture source/compiler changed')\n        (cls.folder / 'fixture.json').write_text(json.dumps({'mode': mode,\n            'manifest': record, 'native_compile_receipt': receipt,\n            'cold_report': str(cls.cold) if cls.cold else None,\n            'matching_current_source_cold_qualified': bool(cls.cold)}, indent=2, sort_keys=True) + '\\n')",
+              "source_sha256": "ac03492940d5e651ec808cf631beaea72b1510c113ad42121c4a1ec6f5083090"
+            },
+            "tearDownClass": {
+              "ast_sha256": "68d47236b3643df36408e4f0af8dd9b52ff493449823b22fe2d680965aa34395",
+              "end_line": 536,
+              "line": 534,
+              "source": "def tearDownClass(cls):\n        if cls.temporary is not None:\n            cls.temporary.cleanup()",
+              "source_sha256": "25cbd05f4e80562f9132564ae2cf65960a9d619285d5f22f1ce19235c0fddf21"
+            }
+          },
+          "test_count": 5,
+          "tests": [
+            {
+              "ast_sha256": "37d261845e2d25a81fad3bb99a93fcbcc84dfa1aa912d457bec4cd4abc52820a",
+              "end_line": 556,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerNativeTests.test_actual_evaluation_policy_matches_independent_value_semantics",
+              "line": 549,
+              "source_sha256": "b2dcc746abe1571dd10acde898236a797130ac8b1091de278c1aea69b64f51e3"
+            },
+            {
+              "ast_sha256": "a4bdaf6eb1dada435be5e1a9476e3cacccbbd62aebc7e835911b73efb77d4e49",
+              "end_line": 588,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerNativeTests.test_actual_fold_has_no_history_count_limit_and_uses_numeric_u64_order",
+              "line": 579,
+              "source_sha256": "f157a490f947648e2ab074bf72d1e802cf2d4ae6ab157810f5f78f533a5ac765"
+            },
+            {
+              "ast_sha256": "e22ea940a669ceab44e1858e1d202a8636fe86a7913e423e62eda07634323829",
+              "end_line": 577,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerNativeTests.test_actual_image_receipts_bind_frozen_state_and_full_descriptors",
+              "line": 558,
+              "source_sha256": "9f5eec6545b03dba1276fd339841de3799508e2ed9900818ed1a3d5711efe63e"
+            },
+            {
+              "ast_sha256": "8bec2e95a393a22559546a0671a563d8269bbda9ae67438a9f736949e4203d6b",
+              "end_line": 544,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerNativeTests.test_actual_machine_matches_every_independent_vm_result_and_state_byte",
+              "line": 538,
+              "source_sha256": "7dfdfe879d95306f4bdcf4afca802848b90de6675edc10f318e719bea28f7a2b"
+            },
+            {
+              "ast_sha256": "49842cd4abacc867b0b52d5a7f5e7758d59276831d6f1c9649af227189af50dd",
+              "end_line": 547,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerNativeTests.test_actual_machine_refuses_wrapped_lengths_without_partial_output",
+              "line": 546,
+              "source_sha256": "46614cb53db5528bc55d8f2598a0d92d05c0ed7762c3cb93099ba855963e75c3"
+            }
+          ]
+        },
+        {
+          "bases": [
+            "unittest.TestCase"
+          ],
+          "name": "SlotLedgerSourceTests",
+          "original_hooks": {},
+          "test_count": 10,
+          "tests": [
+            {
+              "ast_sha256": "f75e9df11c9b5048708a84fbb65dd7166d0a5c111e0163d479d86fb18a75d92f",
+              "end_line": 465,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_actual_sqlite_blob_and_short_circuit_via_independent_hia_vm",
+              "line": 396,
+              "source_sha256": "511df524e84dfc8134ad64d2ed953ca151b8f2a0cbc838ea9f2b1027e9c39f9a"
+            },
+            {
+              "ast_sha256": "8d9d577ac88ac66ac027b1d3fecaee28403945d65e46220634bd33a8fb96d561",
+              "end_line": 356,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_bad_cold_builder_refuses_before_output_or_compilation",
+              "line": 346,
+              "source_sha256": "3b505f2591c92a33a63d8a40cdc3eef85b58fc518743a44a0eebdc4923c70eb8"
+            },
+            {
+              "ast_sha256": "21fb485c02dd1de2177f4f76a8c0ba59a2ad3235147a675d598adb2927f564e0",
+              "end_line": 286,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_evaluation_adapter_preserves_reference_errors_and_short_circuit",
+              "line": 248,
+              "source_sha256": "6880ad8598ee6d0fffc427f2c629e5691808a822a5958d3ee15737a6d19d126c"
+            },
+            {
+              "ast_sha256": "3be6dfd035cf016481906d96467e32a0dd9afba5ef1a8ad2dcb3a65b37536835",
+              "end_line": 240,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_exact_generated_source_and_independent_vm_decisions",
+              "line": 235,
+              "source_sha256": "02a62bb5f11c1716f83964dde41577c47b51d61d4bb3cfa9eac84dc9e944a141"
+            },
+            {
+              "ast_sha256": "689aabb7059ab692c1e2d990bb34037d0e33385f92fd8a02e9dbe4181822e767",
+              "end_line": 381,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_fixture_requires_explicit_cold_or_development_and_admits_before_output",
+              "line": 358,
+              "source_sha256": "9c748a6b44ea3428f8365420cbfff376f59cdaef79acef52764d9e9f79cd0f3e"
+            },
+            {
+              "ast_sha256": "1fd5a358543ecee06f723b16dfe85a135d1a50bc5a4d55b636907a2006794e9c",
+              "end_line": 246,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_independent_vm_admits_evaluation_values_and_outcomes",
+              "line": 245,
+              "source_sha256": "8e6dd8f1325ecd3f205eb2a4fb121858f95b6480f04e3f2cc98160f8770856db"
+            },
+            {
+              "ast_sha256": "c02130c8863f5cdd662e19144a9773e13789b14b885c517f72071cac18e508b8",
+              "end_line": 243,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_independent_vm_refuses_wrapped_lengths_and_partial_publication",
+              "line": 242,
+              "source_sha256": "f14f7bb9569fe2a428532890b4f0ed2a88bf6a73e6e11cb43834c28da9d78ed2"
+            },
+            {
+              "ast_sha256": "b8e6a3f5cccff86ec52b86bbe286d3709d1a46f505cfd700afc84fd72572edd7",
+              "end_line": 344,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_outcome_diagnostic_cannot_override_native_decisions",
+              "line": 319,
+              "source_sha256": "4f8d679189d829f2911c8be1ecdc8ca623e18a99b2041dfe4949cd4571a83db4"
+            },
+            {
+              "ast_sha256": "85ca3286ceadef63839c304a0b1dce9d7e1fe261a1c64c5d71c86b658f25eece",
+              "end_line": 393,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_selected_empty_or_missing_image_refuses_before_state_effect",
+              "line": 383,
+              "source_sha256": "8d1076f5582e018f0d64758ab35fc356817b3af00ce393ea3e379dd420925a22"
+            },
+            {
+              "ast_sha256": "508bb46b4cc62c2781f974f6fbeaa63651f3243cb6a1cf591c67c012cd3a4ac6",
+              "end_line": 317,
+              "id": "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_unhashable_outcome_uses_interpreter_error_after_native_refusal",
+              "line": 288,
+              "source_sha256": "e79b940f5722f8b3561295a44bda89dad1f4096acb9127746597a51375a201f6"
+            }
+          ]
+        }
+      ],
+      "current_file_equals_base": true,
+      "load_tests_defined": false,
+      "module": "tests.test_hia_slot_ledger_native",
+      "path": "tests/test_hia_slot_ledger_native.py",
+      "selection": {
+        "cold": "HEPTA_HIA_SLOT_LEDGER_COLD_REPORT",
+        "development": "HEPTA_HIA_SLOT_LEDGER_DEVELOPMENT_COMPILER",
+        "evidence": "HEPTA_HIA_SLOT_LEDGER_EVIDENCE",
+        "setup": "Both nonempty cold and development reject; absence of both raises ValueError. Cold admission and compiler read precede evidence creation. Cold uses the original slot-ledger builder; explicit development compiles the original source. Evidence is stored under the original class name or original TemporaryDirectory, with the original source/compiler readback."
+      },
+      "sha256": "cfd2224fa96ef8c6a08a5aeb44f9d7576bf7fbaa611813ee0233edac7d5dcef8",
+      "test_count": 15
+    }
+  ],
+  "modules_in_requested_order": [
+    "tests.test_hia_agent_journal_native",
+    "tests.test_hia_execution_budget_native",
+    "tests.test_hia_slot_ledger_native"
+  ],
+  "ordered_ids": [
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_HIA_UTF8_codec_reports_python_byte_spans_without_host_decoding",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_ack_order_conflict_unknown_and_special_verification_replay",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_cached_explicit_selectors_are_readmitted_after_argument_snapshot",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_cached_foreign_values_and_lazy_numeric_selector_match_reference",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_cached_syntax_UTF8_and_budget_errors_match_reference_exactly",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_exact_reference_errors_rows_and_arbitrary_precision_clock_TEXT",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_installed_wheel_ordinary_call_no_tools_and_source_catalog_binding",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_malformed_cached_response_never_reexecutes_or_rewrites_request",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_native_ABI_canaries_and_instruction_header_refuse_corruption",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_native_protocol_failure_cannot_journal_a_rolled_back_success",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_raw_numeric_expansion_refuses_before_channel_overwrite",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_SQL_commit_fault_preserves_ack_before_commit_semantics",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_SQLite_non_TEXT_observations_preserve_conflict_before_state",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_artifact_restart_replay_alias_and_no_effect_cost_or_update",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_real_process_kill_after_effect_preserves_running_intent",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_request_identity_keys_unicode_binary64_and_unknown_tool_order",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_selected_source_and_catalog_drift_fail_closed_before_SQL",
+    "tests.test_hia_agent_journal_native.JournalNativeTests.test_terminal_channels_do_not_add_a_combined_eight_MiB_gate",
+    "tests.test_hia_agent_journal_native.JournalSourceTests.test_caller_gate_rejects_incomplete_and_expected_failure_results",
+    "tests.test_hia_agent_journal_native.JournalSourceTests.test_independent_core_VM_request_identity",
+    "tests.test_hia_agent_journal_native.JournalSourceTests.test_source_reproduces_and_original_owner_is_unchanged",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_agent_journal_v2_lifecycle_and_campaign_disable_both_references",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_agent_journal_v2_lost_outcome_keeps_request_and_budget_unknown",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_agent_native_effect_lost_outcome_keeps_request_and_budget_unknown",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_claim_precommit_failure_rolls_back_and_lost_commit_ack_stays_owned",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_competing_native_claims_have_one_durable_owner",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_completion_lost_ack_is_never_replayed_from_equal_cost",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_database_and_wal_replacement_refuse_without_new_store_or_effect",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_dedicated_transaction_cannot_capture_ordinary_writer",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_existing_transaction_is_not_borrowed_or_rolled_back",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_original_sqlite_rows_claim_cost_complete_and_observe",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_owner_and_original_cost_cas_refuse_concurrent_change",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_process_crash_preserves_sqlite_pre_and_post_commit_boundaries",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_rowcount_and_readback_faults_cannot_commit_a_claim",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_temp_shadow_cannot_replace_main_journal_claim_authority",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_actual_uncertain_or_interrupted_run_never_clears_or_retries_owner",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_default_reference_original_budget_ordering",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_installed_wheel_same_journal_lifecycle_without_authoring_or_reference",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_machine_matches_every_independent_vm_state_byte",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_native_wrong_instance_replay_and_corruption_never_write_sql",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_original_actual_agent_lifecycle_and_campaign_disable_reference",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_selected_source_custody_refuses_before_store_creation_and_never_falls_back",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetNativeTests.test_stored_noncanonical_cost_and_decimal_overflow_preserve_original_rows",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests.test_bad_cold_builder_refuses_before_output_or_native_compilation",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests.test_fixture_cold_admission_precedes_evidence_seed_and_compilation",
+    "tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests.test_generated_source_and_independent_vm_full_claim_run_completion",
+    "tests.test_hia_slot_ledger_native.SlotLedgerNativeTests.test_actual_evaluation_policy_matches_independent_value_semantics",
+    "tests.test_hia_slot_ledger_native.SlotLedgerNativeTests.test_actual_fold_has_no_history_count_limit_and_uses_numeric_u64_order",
+    "tests.test_hia_slot_ledger_native.SlotLedgerNativeTests.test_actual_image_receipts_bind_frozen_state_and_full_descriptors",
+    "tests.test_hia_slot_ledger_native.SlotLedgerNativeTests.test_actual_machine_matches_every_independent_vm_result_and_state_byte",
+    "tests.test_hia_slot_ledger_native.SlotLedgerNativeTests.test_actual_machine_refuses_wrapped_lengths_without_partial_output",
+    "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_actual_sqlite_blob_and_short_circuit_via_independent_hia_vm",
+    "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_bad_cold_builder_refuses_before_output_or_compilation",
+    "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_evaluation_adapter_preserves_reference_errors_and_short_circuit",
+    "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_exact_generated_source_and_independent_vm_decisions",
+    "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_fixture_requires_explicit_cold_or_development_and_admits_before_output",
+    "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_independent_vm_admits_evaluation_values_and_outcomes",
+    "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_independent_vm_refuses_wrapped_lengths_and_partial_publication",
+    "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_outcome_diagnostic_cannot_override_native_decisions",
+    "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_selected_empty_or_missing_image_refuses_before_state_effect",
+    "tests.test_hia_slot_ledger_native.SlotLedgerSourceTests.test_unhashable_outcome_uses_interpreter_error_after_native_refusal"
+  ],
+  "ordering": "Requested module order; within each module direct unittest.TestCase classes and test-prefixed methods are lexicographically sorted, matching default loader ordering only under the recorded static assumptions.",
+  "original_selector_inputs_and_limits_changed": false,
+  "original_test_files_modified": false,
+  "product_modules_imported": false,
+  "runtime_discovery_required_by_runner": true,
+  "schema": "hepta.audit.three-transaction-caller-modules-static.v1",
+  "scope": "STATIC_AST_INVENTORY_ONLY_NOT_TESTLOADER_DISCOVERY_OR_EXECUTION",
+  "scope_limit": "This records the three complete named module files and their static test definitions. It does not replace real discovery, prove dynamic caller closure, force development into cold scope, or remove original setup failures/skips.",
+  "test_count": 61,
+  "tests_or_native_or_vm_executed": false
+}

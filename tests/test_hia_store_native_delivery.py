@@ -55,9 +55,18 @@ def original_inventory():
 
 def admit_originals():
     value = original_inventory()
+    from tests.hia_store_delivery_successor import admit_composition
+    composition = admit_composition(value)
     adjustments = []
+    successors = []
     for name, expected in value['unchanged_files'].items():
         raw = (ROOT / name).read_bytes()
+        if name in composition['source_adjustments']:
+            reviewed = composition['source_adjustments'][name]
+            if len(raw) != reviewed['current_bytes'] or sha256(raw).hexdigest() != reviewed['current_sha256']:
+                raise AssertionError('reviewed Store successor changed: ' + name)
+            successors.append(reviewed)
+            continue
         if len(raw) == expected['bytes'] and sha256(raw).hexdigest() == expected['sha256']:
             continue
         from hepta.hia_native_helpers import HELPERS
@@ -73,6 +82,9 @@ def admit_originals():
             'current_helper_count': len(HELPERS),
             'sole_permitted_change': 'one exact registry-count assertion decimal literal'})
     value['registry_count_adjustments'] = adjustments
+    value['successor_source_adjustments'] = successors
+    value['shared_source_adjustments'] = composition['shared_adjustments']
+    value['shared_dependency_review'] = composition['shared_dependency_review']
     return value
 
 

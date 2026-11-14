@@ -8,7 +8,7 @@ foreign dependencies; this is not a native SQLite implementation.
 from __future__ import annotations
 
 import ctypes
-from .hia_native_delivery import DeliveryRecord
+from .hia_native_delivery import DeliveryRecord, check_resource_retirement
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -162,6 +162,7 @@ class LifecycleFrame:
         # continuation keeps its actual Python/SQLite owners until process
         # termination, rather than letting GC invent an unrecorded close.
         self._delivery = DeliveryRecord(self)
+        self._delivery.associate(store, unknown=StoreLifecycleUnknown)
         try:
             with _custody_lock():
                 _FRAME_CUSTODY[id(self)] = self
@@ -431,6 +432,7 @@ class NativeStoreLifecycleOwner:
         with _custody_lock():
             if any(frame.unconfirmed and frame.store is store for frame in _FRAME_CUSTODY.values()):
                 raise StoreLifecycleUnknown('Store has an unconfirmed lifecycle; it cannot be reopened or closed in this worker')
+        check_resource_retirement(store, unknown=StoreLifecycleUnknown)
 
     def finish(self, frame):
         if type(frame) is not LifecycleFrame or frame.image is not self.image:

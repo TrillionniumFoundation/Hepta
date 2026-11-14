@@ -20,7 +20,7 @@ from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_source_build import _check_pack_output
 from tools.hia_selfhost_contract import PROFILE
 from tools.qualify_hia_selfhost import compile_stage,invoke
-from tools.qualify_hia_selfhost_cli import inspect_executable
+from hepta.hia_artifact_delivery_protocol import control_descriptor, private_executable, ACK_BYTES, NONCE_BYTES
 from tools.generate_hia_artifact_publication import MAGIC
 from hepta.artifact_publication_native import NATIVE_PUBLICATION_OPERATIONS,NATIVE_PUBLICATION_SOURCES
 OPERATIONS=list(NATIVE_PUBLICATION_OPERATIONS)
@@ -44,7 +44,15 @@ def build(output:Path,compiler:Path,cold_report:Path):
     frame=struct.pack('<3Q',MAGIC,len(policy),len(sha))+policy+sha
     result,packed=invoke(output,'publication-pack',images['packer'][0],frame)
     executable=_check_pack_output(result,packed,artifact=images['packer'][1],source=frame)
-    inspection=inspect_executable(executable)
+    descriptor=control_descriptor(executable)
+    private=private_executable(executable)
+    inspection={'elf_type':'ET_EXEC','machine':'EM_X86_64','entry':descriptor.public_entry,
+        'program_headers':['PT_LOAD_RX','PT_GNU_STACK_RW','PT_NOTE_HIADELIV'],
+        'interpreter':None,'dynamic_loader':False,'libc':False,
+        'bytes':len(executable),'sha256':sha256(executable).hexdigest(),
+        'private_delivery_entry':descriptor.private_entry,'private_delivery_ack_bytes':ACK_BYTES,
+        'private_delivery_prefix_bytes':NONCE_BYTES,
+        'public_cli_unchanged':True,'argv_env_stdin_control_markers':False}
     if (any(path.read_bytes()!=raw for path,raw in pins.items()) or current_sources()!=sources
             or any(path.read_bytes()!=raw for path,raw in images.values())):
         raise ValueError('native publication build custody changed')
@@ -55,6 +63,8 @@ def build(output:Path,compiler:Path,cold_report:Path):
         'profile':PROFILE,'source_manifest':sources,'source_sha256':{name:sha256(pins[ROOT/name]).hexdigest() for name in SOURCES},
         'compiler_sha256':sha256(pins[compiler]).hexdigest(),'cold_report_sha256':sha256(pins[cold_report]).hexdigest(),
         'executable_path':path.name,'executable_sha256':sha256(executable).hexdigest(),'executable':inspection,
+        'public_executable_sha256':sha256(executable).hexdigest(),
+        'private_executable_sha256':sha256(private).hexdigest(),
         'image_sha256':{label:sha256(raw).hexdigest() for label,(_,raw) in images.items()},
         'compile_receipts':receipts,'native_packer_receipt':result,'frame_sha256':sha256(frame).hexdigest(),
         'operations':OPERATIONS,'artifact_payload_fixed_size_limit':None,

@@ -28,6 +28,7 @@ MAX_SOURCE_BYTES = 8 << 20
 # Only single-image contracts with the existing six-argument byte ABI.
 # Multi-image and external executable contracts need a separate custody closure.
 HELPERS = {
+    "HEPTA_HIA_STORE_TRANSACTION_MANIFEST": ("hia_store_transaction_native", "NativeStoreTransaction"),
     "HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST": ("hia_store_artifact_profile_native", "NativeStoreArtifactProfile"),
     "HEPTA_HIA_EMISSION_MANIFEST": ("hia_emission_native", "NativeEmission"),
     "HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST": ("hia_native_build_admission_native", "NativeBuildAdmission"),
@@ -307,7 +308,10 @@ def native_helpers_scope(path=None, expected_sha256=None):
         if sha256(captured.raw).hexdigest() != expected_sha256:
             raise ValueError("native helper bundle identity mismatch")
         record = _decode(captured.raw)
-        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v3':
+        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v4':
+            from .hia_artifact_delivery_worker import NativeArtifactWorkerBinding
+            binding = NativeArtifactWorkerBinding(captured, expected_sha256)
+        elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v3':
             from .hia_worker_scheduling_bundle import NativeWorkerSchedulingBinding
             binding = NativeWorkerSchedulingBinding(captured, expected_sha256)
         elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v2':

@@ -20,12 +20,17 @@ def bind_store_lifecycle(store, owner):
     if previous is not None and previous[0]() is store:
         previous[1].check_store(store)
     if owner is None:
+        from .hia_native_delivery import bind_resource_lifetime
+        bind_resource_lifetime(store)
         if previous is not None and previous[0]() is store:
             del _BOUND_STORES[id(store)]
         return
     from .hia_store_lifecycle_native import NativeStoreLifecycleOwner
     if type(owner) is not NativeStoreLifecycleOwner:
         raise TypeError('store lifecycle requires an admitted owner')
+    from .hia_native_delivery import bind_resource_lifetime
+    from .hia_store_lifecycle_native import StoreLifecycleUnknown
+    bind_resource_lifetime(store, unknown=StoreLifecycleUnknown)
     key = id(store)
     def released(reference):
         current = _BOUND_STORES.get(key)
