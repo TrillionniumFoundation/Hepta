@@ -1,4 +1,4 @@
-"""Supervise three unchanged methods on the fixed source; no build or qualification."""
+"""Supervise one unchanged R20 method; no fixture build or qualification."""
 from __future__ import annotations
 import argparse
 import ast
@@ -89,7 +89,7 @@ def main():
     source, harness, evidence = args.source.resolve(), args.harness.resolve(), args.evidence.resolve()
     evidence.mkdir(parents=True, exist_ok=False)
     expected = json.loads((harness / 'inputs/INPUTS.json').read_bytes())
-    report = {'schema': 'hepta.original-namespace-three-method-diagnostic.v1', 'status': 'INCOMPLETE',
+    report = {'schema': 'hepta.original-namespace-single-method-diagnostic.v2', 'status': 'INCOMPLETE',
               'python': sys.version, 'source_commit': expected['source_commit'],
               'source_tree': expected['source_tree'], 'original_run': expected['original_run'],
               'original_native_job': expected['original_native_job'], 'qualification': False,
@@ -102,14 +102,27 @@ def main():
         assert tuple(sys.version_info[:3]) == tuple(expected['python_version'])
         before = snapshot(source, expected)
         write_json(evidence / 'SOURCE-BEFORE.json', before)
+        manifest_raw = (harness / 'inputs/SOURCE-MANIFEST.json').read_bytes()
+        assert identity(manifest_raw) == expected['source_manifest']
+        expected_files = json.loads(manifest_raw)
+        assert before['files'] == {name: {'mode': row['git_mode'], **{key: row[key]
+            for key in ('bytes', 'sha256', 'git_blob')}} for name, row in expected_files.items()}
+        # Original production prerequisite admission, before the observed group.
+        # The child remains a fresh interpreter; no product provider is replaced.
+        sys.path.insert(0, str(source))
+        from tools.qualify_hia_store_lifecycle import _prerequisites
+        report['prerequisites'] = _prerequisites(dict(os.environ))
+        write_json(evidence / 'PREREQUISITES.json', report['prerequisites'])
         selected = unpack(harness, retained, expected)
         write_json(evidence / 'RETAINED-INPUT-READBACK.json', selected)
         selected_before = retained_map(retained)
         test_path = source / 'tests/test_hia_agent_native_tools.py'
+        assert identity(test_path.read_bytes()) == expected['original_test_file']
         tree = ast.parse(test_path.read_bytes())
         owner = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'NativeLifecycleTests')
         methods = {node.name: node for node in owner.body if isinstance(node, ast.FunctionDef)}
-        assert len(expected['methods']) == len(set(expected['methods'])) == 3
+        assert len(expected['methods']) == len(set(expected['methods'])) == 1
+        assert expected['test_id'] == 'tests.test_hia_agent_native_tools.NativeLifecycleTests.' + expected['methods'][0]
         report['original_method_ast'] = {name: ast.dump(methods[name], include_attributes=False) for name in expected['methods']}
         report['original_test_file'] = identity(test_path.read_bytes())
         report['group_started_ns'] = time.monotonic_ns()
@@ -120,7 +133,8 @@ def main():
             remaining = deadline - time.monotonic()
             assert remaining > 0, 'original shared 1800-second diagnostic group exhausted'
             command = [sys.executable, '-B', str(harness / 'tools/observe_case.py'),
-                '--source', str(source), '--retained', str(retained),
+                '--source', str(source), '--inputs', str(harness / 'inputs/INPUTS.json'),
+                '--retained', str(retained),
                 '--evidence', str(output / 'observations'), '--method', method]
             terminal = run_case(command, source, output, remaining)
             report_path = output / 'observations/REPORT.json'

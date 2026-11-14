@@ -22,10 +22,14 @@ from budget_profile import Profile
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source', type=Path, required=True)
+    parser.add_argument('--inputs', type=Path, required=True)
     parser.add_argument('--retained', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
     parser.add_argument('--method', required=True)
     args = parser.parse_args()
+    expected = json.loads(args.inputs.read_bytes())
+    assert expected['methods'] == [args.method]
+    assert tuple(sys.version_info[:3]) == tuple(expected['python_version'])
     source, retained, evidence = args.source.resolve(), args.retained.resolve(), args.evidence.resolve()
     evidence.mkdir(parents=True, exist_ok=False)
     sys.path.insert(0, str(source))
@@ -71,10 +75,13 @@ def main():
     forbidden_calls = []
     images = []
     clients = []
-    report = {'schema': 'hepta.original-namespace-method-section-diagnostic.v1',
+    report = {'schema': 'hepta.original-namespace-method-section-diagnostic.v2',
         'status': 'INCOMPLETE', 'python': sys.version, 'method': args.method,
-        'source_commit': 'abeef212e34023534d91f8f952280e2a8d0cbde6',
-        'original_run': 43459534648, 'original_native_job': 132002437588,
+        'source_commit': expected['source_commit'], 'source_tree': expected['source_tree'],
+        'original_run': expected['original_run'], 'original_native_job': expected['original_native_job'],
+        'original_test_id': expected['test_id'],
+        'store_observer_revision': expected['store_observer_revision'],
+        'store_observer_addendum': expected['store_observer_addendum'],
         'binary_scope': 'RETAINED_EXACT_ORIGINAL_RUN_INPUTS', 'qualification': False,
         'whole_native': False, 'new_fixture_compilations': 0,
         'selection': {key: str(value) for key, value in selectors.items()}}
@@ -112,6 +119,11 @@ def main():
 
     original_json_init = NativeHiaJsonImage.__init__
     def json_init(image, raw, expected):
+        # Only the exact Store image is observed by store_init below.  Its original
+        # receipt predicate and constructor still run; the generic sampled wrapper
+        # must not wrap the same entry a second time (immutable prior addendum).
+        if type(image) is NativeStoreLifecycleImage:
+            return original_json_init(image, raw, expected)
         label = type(image).__name__
         with profile.span('image-admission', label):
             original_json_init(image, raw, expected)

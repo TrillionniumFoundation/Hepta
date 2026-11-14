@@ -1,11 +1,11 @@
-name: Fixed original namespace three-method sections
+name: Fixed R20 original namespace expired-method sections
 on:
   push:
-    branches: [codex/hia-namespace-sections-v94-r1-20261113-dda7]
+    branches: [codex/hia-namespace-sections-v131-r20-20261114-dda7]
 permissions:
   contents: read
 jobs:
-  original-three-method-sections:
+  original-expired-method-sections:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -16,14 +16,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: TrillionniumFoundation/Hepta
-          ref: abeef212e34023534d91f8f952280e2a8d0cbde6
+          ref: 26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d
           path: source
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14.4'
-      - name: Install original discovery dependencies
-        run: python -m pip install jsonschema==4.26.0 setuptools==78.1.1 wheel==0.46.3
+      - name: Install qualified Clang 20 native execution prerequisites
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace
+          printf 'CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n' >> "$GITHUB_ENV"
+      - run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
       - name: Observe original method sections with retained exact inputs
         env:
           PYTHONDONTWRITEBYTECODE: '1'
@@ -31,13 +41,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: namespace-sections-${{ github.sha }}
+          name: namespace-r20-expired-sections-${{ github.sha }}
           path: |
             evidence
             harness/README.md
             harness/inputs
             harness/tools
             harness/.github/workflows/diagnostic.yml
+            ${{ runner.temp }}/hia-llvm.asc
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
