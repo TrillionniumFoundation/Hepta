@@ -1,0 +1,74 @@
+--- R1 original
++++ R3 metadata/count binding
+@@ -2,11 +2,11 @@
+ from pathlib import Path
+ import base64, gzip, hashlib, io, json, os, stat, tarfile, time, traceback, zlib
+ 
+-ROOT=Path('/tmp/hia-op13-actual-transport-r1-dda7')
++ROOT=Path('/tmp/hia-op13-actual-transport-r3-dda7')
+ KEYS=('st_dev','st_ino','st_mode','st_size','st_mtime_ns','st_ctime_ns','st_nlink')
+ OLD_KEYS=('st_dev','st_ino','st_mode','st_nlink','st_size','st_mtime_ns','st_ctime_ns')
+-INDEX_PIN={'bytes':77271,'git_blob':'5fb8cd9e65e51dd0c7c96c5f2ad5b9e50af69c5c',
+- 'sha256':'de8c1f2e098b82a899ebb84565c602190b9b01035cc346f0913e82b0339f6284'}
++INDEX_PIN={'bytes':170264,'git_blob':'a68598729fd0b28496e790e5d31f40d020fe36d9',
++ 'sha256':'b0bc0ab44554b6eb2441083b88567d71be1b8586d771a52f935986b6ee840fc4'}
+ READS={};COUNT=0;BYTES=0
+ 
+ def need(ok,msg):
+@@ -47,7 +47,7 @@
+ def main():
+  start=time.monotonic_ns()
+  rows=json.loads((ROOT/'PUBLICATION-INPUTS.json').read_bytes())
+- need(len(rows)==128 and len({r['logical']for r in rows})==128,'full original publication set differs')
++ need(len(rows)==275 and len({r['logical']for r in rows})==275,'full original publication set differs')
+  publication={r['logical']:r for r in rows}
+  need(publication['INDEX.json']['pin']==INDEX_PIN,'fixed complete index differs')
+  receipts=[]
+@@ -61,7 +61,7 @@
+  packed=joined('metadata',index['metadata_parts'],publication);need(pin(packed)==index['metadata_zlib'],'metadata stream differs')
+  z=zlib.decompressobj();payload=z.decompress(packed)+z.flush()
+  need(z.eof and not z.unused_data and not z.unconsumed_tail and pin(payload)==index['metadata_payload'],'complete metadata decode differs')
+- meta=json.loads(payload);need(len(meta['files'])==7 and meta['metadata_originals']==7,'all seven metadata required')
++ meta=json.loads(payload);need(len(meta['files'])==17 and meta['metadata_originals']==17,'all seventeen metadata required')
+  rawmeta={}
+  for name,row in meta['files'].items():
+   need(row['encoding']=='utf-8'and row['descriptor']==index['metadata_files'][name],'metadata authority differs')
+@@ -72,9 +72,9 @@
+  report=json.loads(rawmeta['REPORT.json'])
+  need(report['status']=='PASS_COMPLETE_ORIGINAL_BYTES_AND_MODES'and report['manifest']==pin(rawmeta['MANIFEST.json']),'retained original report differs')
+  files=manifest['files'];objects=manifest['objects'];aliases={}
+- need(len(files)==manifest['file_count']==11714 and len(objects)==manifest['unique_objects']==10397,'original counts differ')
+- need(sum(r['identity']['bytes']for r in files.values())==manifest['logical_bytes']==135672211,'logical byte count differs')
+- need(sum(r['identity']['bytes']for r in objects.values())==manifest['unique_bytes']==134246573,'CAS byte count differs')
++ need(len(files)==manifest['file_count']==40990 and len(objects)==manifest['unique_objects']==36048,'original counts differ')
++ need(sum(r['identity']['bytes']for r in files.values())==manifest['logical_bytes']==236321241,'logical byte count differs')
++ need(sum(r['identity']['bytes']for r in objects.values())==manifest['unique_bytes']==235079599,'CAS byte count differs')
+  need({n:r['source_path']for n,r in files.items()}==intent['all_original_files'],'intent paths differ')
+  for name,row in files.items():
+   sha=row['identity']['sha256'];need(row['storage_path']=='objects/'+sha and objects[sha]['identity']==row['identity'],'CAS mapping differs')
+@@ -99,7 +99,7 @@
+      actual=fresh(row['source_path'],row['identity'],row['mode'],expected)
+      need(actual==raw,'complete logical bytes differ');compared+=1
+   while gz.read(1<<20):pass
+- need(seen=={'MANIFEST.json'}|{'objects/'+s for s in objects}and compared==11714,'complete archive denominator differs')
++ need(seen=={'MANIFEST.json'}|{'objects/'+s for s in objects}and compared==40990,'complete archive denominator differs')
+  current_dirs={};root_files={}
+  for label,root_name in plan['roots'].items():
+   root=Path(root_name)
+@@ -116,12 +116,12 @@
+  put('ACTUAL-GET-RECEIPTS.json',receipts)
+  put('ACTUAL-GET-FILE-STATS.json',{str(ROOT/'actual-get'/r['logical']):READS[str(ROOT/'actual-get'/r['logical'])]for r in rows})
+  result={'schema':'hepta.op13.actual.complete-custody.actual-git-readback.v1','status':'PASS_FULL_ACTUAL_GET_DECODE_AND_ORIGINAL_COMPARISON',
+-  'initial_leaves':128,'archive_parts':len(index['archive_parts']),'metadata_parts':len(index['metadata_parts']),
+-  'metadata_originals':7,'archive':report['archive'],'manifest':report['manifest'],'archive_members':len(seen),
++  'initial_leaves':275,'archive_parts':len(index['archive_parts']),'metadata_parts':len(index['metadata_parts']),
++  'metadata_originals':17,'archive':report['archive'],'manifest':report['manifest'],'archive_members':len(seen),
+   'complete_gzip_crc':True,'metadata_zlib_eof':True,'logical_files_full_byte_compared':compared,
+-  'logical_bytes':135672211,'cas_objects':10397,'cas_bytes':134246573,'directories':len(current_dirs),
++  'logical_bytes':236321241,'cas_objects':36048,'cas_bytes':235079599,'directories':len(current_dirs),
+   'every_original_mode_and_seven_stats':True,'all_original_pathsets_unchanged':True,'fresh_reads':COUNT,'fresh_read_bytes':BYTES,
+-  'unique_read_paths':len(READS),'new_full_uncompressed_copy':False,'original_product_status':'FAIL','failed_group':'native-05',
++  'unique_read_paths':len(READS),'new_full_uncompressed_copy':False,'original_product_status':'FAIL','failed_group':'native-11',
+   'compile_full_workspace_observed':False,'all_frames_retired':False,'semantic_qualification_reused':False,
+   'seal_rerun':0,'product_executions':0,'CI':0,'whole':False,'elapsed_ns':time.monotonic_ns()-start}
+  put('FULL-READBACK.json',result);print(json.dumps(result,sort_keys=True))

@@ -1,0 +1,127 @@
+{
+  "actual_R8_HIA": {
+    "bytes": 395910,
+    "git_blob": "093489201db8aa0eade2e2a91eddf95463ada4ea",
+    "sha256": "83953e66677fa0cd7f63f3b1742276d954537df71487c3cd4a6eef9486e3e4de"
+  },
+  "actual_error_word": 0,
+  "actual_failed_input": {
+    "bytes": 19089,
+    "git_blob": "9756dc84ab515c9cf5e1dc31de40ff67afba68e0",
+    "sha256": "49e64b5bfab82e711f92cedff2a844a09cfc127fd3468b51d5fed93ce4e86c19"
+  },
+  "actual_phase": 0,
+  "actual_signature_flag": 0,
+  "actual_user_function_count": 38,
+  "cache_capacity": 5956,
+  "cache_count": 5197,
+  "cache_exact_key_at_saved_index": 18088,
+  "candidate_R9_unchanged": "8dde3a64f7388f81f8996888c97d43def2b336db",
+  "current_function_name": "partial_shared",
+  "current_zero_based_function": 35,
+  "cursor": 18088,
+  "cursor_line": 459,
+  "falsified_or_unproven_shortcuts": [
+    {
+      "finding": "False for the recorded stop:5197<5956.",
+      "hypothesis": "cache capacity exhausted"
+    },
+    {
+      "finding": "False: frozen state_get32/state_put32/get/put already straight-line ordered code.",
+      "hypothesis": "field u32 get/put still have a four-iteration loop"
+    },
+    {
+      "finding": "Unproven and misleading: current body phase0 has not completed, and phase1 remains.",
+      "hypothesis": "near function36/38 means qualification almost finished"
+    },
+    {
+      "finding": "Not established: VM ticks each op once; bulk work affects host/native time, not a per-byte VM tick here.",
+      "hypothesis": "large fill_range byte counts dominate VM fuel"
+    },
+    {
+      "finding": "False: edge has different input/call counts; no cross-target per-function profile yet.",
+      "hypothesis": "edge per-function costs are cross-target costs"
+    }
+  ],
+  "new_optimization_applied": false,
+  "next_observation_if_Root_requests": {
+    "count_only_actual_removed_cast_op_entries_and_per_function_exclusive_inclusive_ticks": true,
+    "executable_plan_ready": false,
+    "full_before_after_FOW_required": true,
+    "must_match_old_actual_partial_failure": true,
+    "new_Native_or_compile_calls": 0,
+    "no_fuel_failure_to_PASS_relabel": true,
+    "one_Counted_VM_only": true,
+    "original_10M_1MiB_128_180plus3": true,
+    "same_original_input_source_image": true,
+    "separate_signature0_body0_phase1_timestamps": true
+  },
+  "product_executions": 0,
+  "remaining_input_bytes_after_cursor": 1001,
+  "schema": "hia.R8.phase0-algorithm-static-followup.v1",
+  "source_control_flow": [
+    {
+      "fact": "assembly_limits before first full initialization; then compile_phases; active cache tail and metadata cleanup after its normal return.",
+      "function": "f0/compile"
+    },
+    {
+      "blocks": [
+        "b0",
+        "b1",
+        "b2",
+        "b32",
+        "b33",
+        "b34",
+        "b35",
+        "b36"
+      ],
+      "fact": "Initialize w432=1 and phase local0. Loop while phase<2; every iteration resets header0..255 and cache sequential index1038. At phase0/signature1 completion clear w432 and repeat phase0 without increment; next phase0 completion increments to1; then phase1 completes before exit.",
+      "function": "f105/compile_phases"
+    },
+    {
+      "blocks": [
+        "b10",
+        "b13",
+        "b21",
+        "b28",
+        "b31",
+        "b35",
+        "b38",
+        "b40"
+      ],
+      "fact": "Per-function values/names reset precedes params; discover_blocks before entry-block parse; parse_block iterates blocks; check_graph is guarded by phase0 and signature0 and error0.",
+      "function": "f1/parse_function"
+    },
+    {
+      "blocks": [
+        "b0",
+        "b17",
+        "b18",
+        "b19",
+        "b20",
+        "b23",
+        "b9"
+      ],
+      "fact": "Saves lexer header, scans each line byte-by-byte to newline, discovers block names and restores six header fields on its normal restoration branch. It is not an extra whole input validation that can simply be deleted.",
+      "function": "f87/discover_blocks"
+    },
+    {
+      "blocks": [
+        "b0",
+        "b4",
+        "b5",
+        "b7",
+        "b9",
+        "b19"
+      ],
+      "fact": "Pending/retired/error guard, sequential key comparison, two real move_within ops on hit, original lexer on miss and bounded append. Exact key at one stop does not establish historic hit ratio.",
+      "function": "f106/next_token"
+    }
+  ],
+  "status": "STATIC_ONLY_NO_SECOND_CANDIDATE",
+  "unmeasured": [
+    "remaining phase1 cost",
+    "cross-target dynamic identity-cast count",
+    "actual R9 size and complete fuel result"
+  ]
+}

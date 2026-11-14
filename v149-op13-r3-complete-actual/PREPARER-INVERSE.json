@@ -1,0 +1,92 @@
+{
+  "after": {
+    "bytes": 7553,
+    "git_blob": "5a02ff87f6216e757ee6598f96a26d5fc87f8c2f",
+    "sha256": "2d92da72d3c3a83584e1a986dc97e838199547e895aaf084fd470f3efe79d07d"
+  },
+  "before": {
+    "bytes": 6118,
+    "git_blob": "269f0b36555562acb8537b73794f83d0fb8f2d83",
+    "sha256": "02ad7342cee7d904c80a87faca1296d614d5066fa0bd1d4e79c190d968245b2b"
+  },
+  "edits": [
+    {
+      "after": "BASE=Path('/tmp/hia-op13-actual-complete-custody-r3-dda7')",
+      "before": "BASE=Path('/tmp/hia-op13-actual-complete-custody-r1-dda7')",
+      "count": 1
+    },
+    {
+      "after": "ROOT=Path('/tmp/hia-op13-actual-transport-r3-dda7')",
+      "before": "ROOT=Path('/tmp/hia-op13-actual-transport-r1-dda7')",
+      "count": 1
+    },
+    {
+      "after": "EXPECTED={'bytes':51879965,'git_blob':'69644d01823345ce1cfdfaf381fefb840ff366c5',\n    'sha256':'8fbc6d59f6d153616c298b8cd848efc3d51d9267f81c7a22bce4608fa1c8e25d'}",
+      "before": "EXPECTED={'bytes':25363782,'git_blob':'00991e6622537b8d4788868de554a2fa88fe84c2',\n    'sha256':'db2281a3272f2d59da56e0de9f78e6c5f5b78c90c1953c95357ace141470609b'}",
+      "count": 1
+    },
+    {
+      "after": "40990",
+      "before": "11714",
+      "count": 2
+    },
+    {
+      "after": "236321241",
+      "before": "135672211",
+      "count": 2
+    },
+    {
+      "after": "36048",
+      "before": "10397",
+      "count": 2
+    },
+    {
+      "after": "235079599",
+      "before": "134246573",
+      "count": 2
+    },
+    {
+      "after": "['INPUT-PLAN.json','AUTHOR-REVIEW.json','INTENT.json','MANIFEST.json','REPORT.json','seal_originals.py']",
+      "before": "['INPUT-PLAN.json','INTENT.json','MANIFEST.json','REPORT.json','seal_originals.py']",
+      "count": 1
+    },
+    {
+      "after": "['OP13-R3-CUSTODY-EXEC.json','OP13-R3-CUSTODY-RETURN.json']",
+      "before": "['OP13-CUSTODY-EXEC.json','OP13-CUSTODY-RETURN.json']",
+      "count": 1
+    },
+    {
+      "after": "    root_tools = {'root/admit_op13_preparation_r3.py': '/tmp/hia-progress-v149-20261114-dda7/admit_op13_preparation_r3.py', 'root/author_op13_binding_reader_r4.py': '/tmp/hia-progress-v149-20261114-dda7/author_op13_binding_reader_r4.py', 'root/author_op13_product_binder_r3.py': '/tmp/hia-progress-v149-20261114-dda7/author_op13_product_binder_r3.py', 'root/author_op13_terminal_reader_r3.py': '/tmp/hia-progress-v149-20261114-dda7/author_op13_terminal_reader_r3.py', 'root/bind_op13_product_launch_r3.py': '/tmp/hia-progress-v149-20261114-dda7/bind_op13_product_launch_r3.py', 'root/build_op13_admission_r3.py': '/tmp/hia-progress-v149-20261114-dda7/build_op13_admission_r3.py', 'root/build_op13_custody_r3.py': '/tmp/hia-progress-v149-20261114-dda7/build_op13_custody_r3.py', 'root/launch_op13_terminal_reader_r3.py': '/tmp/hia-progress-v149-20261114-dda7/launch_op13_terminal_reader_r3.py', 'root/observe_op13_r3.py': '/tmp/hia-progress-v149-20261114-dda7/observe_op13_r3.py'}\n    for name,path in root_tools.items():\n        raw,desc=read(Path(path))\n        metadata[name]={'descriptor':desc,'encoding':'utf-8','text':raw.decode()}\n    for item in metadata.values():\n        need(not re.search(rb'https?://[^\\s\"<>]+[?&](?:sig|X-Amz-Signature|X-Goog-Signature)=',item['text'].encode()),'signed URL refused')\n    need(len(metadata)==17,'complete R3 metadata set differs')\n    need(metadata['MANIFEST.json']['descriptor']['pin']==report['manifest'],'complete manifest identity differs')",
+      "before": "    need(metadata['MANIFEST.json']['descriptor']['pin']==report['manifest'],'complete manifest identity differs')",
+      "count": 1
+    },
+    {
+      "after": "'metadata_originals':17",
+      "before": "'metadata_originals':7",
+      "count": 1
+    },
+    {
+      "after": "for path in [ROOT/'prepare_transport.py',BASE/'INPUT-PLAN.json',BASE/'AUTHOR-REVIEW.json',BASE/'REPORT.json',BASE/'seal_originals.py',\n        Path('/tmp/hia-progress-v149-20261114-dda7/OP13-R3-CUSTODY-EXEC.json'),Path('/tmp/hia-progress-v149-20261114-dda7/OP13-R3-CUSTODY-RETURN.json')]:",
+      "before": "for path in [ROOT/'prepare_transport.py',BASE/'INPUT-PLAN.json',BASE/'REPORT.json',BASE/'seal_originals.py',\n        Path('/tmp/hia-progress-v149-20261114-dda7/OP13-CUSTODY-EXEC.json'),Path('/tmp/hia-progress-v149-20261114-dda7/OP13-CUSTODY-RETURN.json')]:",
+      "count": 1
+    }
+  ],
+  "helper_AST_equal": true,
+  "metadata_Root_tools": [
+    "root/admit_op13_preparation_r3.py",
+    "root/author_op13_binding_reader_r4.py",
+    "root/author_op13_product_binder_r3.py",
+    "root/author_op13_terminal_reader_r3.py",
+    "root/bind_op13_product_launch_r3.py",
+    "root/build_op13_admission_r3.py",
+    "root/build_op13_custody_r3.py",
+    "root/launch_op13_terminal_reader_r3.py",
+    "root/observe_op13_r3.py"
+  ],
+  "metadata_originals": 17,
+  "new_product_calls": 0,
+  "old_sealer_reexecuted": false,
+  "schema": "hepta.op13.actual.r3-transport-authoring-inverse.v1",
+  "status": "STATIC_ONLY",
+  "whole_byte_inverse": true
+}
