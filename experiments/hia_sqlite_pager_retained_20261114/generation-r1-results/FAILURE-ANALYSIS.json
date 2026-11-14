@@ -1,0 +1,136 @@
+{
+  "schema": "hia.retained-pager.first-generation-failure.v1",
+  "status": "CLOSED_GENERATION_FAILURE",
+  "job_id": "1a1db848f0e-392-19d2",
+  "owner": {
+    "status": "CLOSED_GENERATION_FAILURE",
+    "owner_closed": true,
+    "product_pass": false,
+    "request_to_exit_seconds": 1.088042223,
+    "cleanup_ns": 10960814,
+    "checks": 7,
+    "historical_descendant_inventory_complete": false
+  },
+  "owner_checks": [
+    {
+      "name": "complete wrapper to original owner receipt",
+      "pass": true
+    },
+    {
+      "name": "exact original180+3 owner implementation and request",
+      "pass": true
+    },
+    {
+      "name": "frozen original command/env/cwd",
+      "pass": true
+    },
+    {
+      "name": "owner deadline exact180seconds",
+      "pass": true
+    },
+    {
+      "name": "closed ECHILD no cleanup errors",
+      "pass": true
+    },
+    {
+      "name": "closed explicit failure not timeout",
+      "pass": true
+    },
+    {
+      "name": "exact original four owner events",
+      "pass": true
+    }
+  ],
+  "failure": {
+    "stage": "author.document -> compact_authoring_cfg -> verify_program",
+    "exception": "hepta.hia_program.HIAProgramRejected: E_HIA_TYPE: compare.eq: operand types must match ('equality', '=0')",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/hepta/hia_program.py\", line 688, in instruction\n    self.required.update(check_instruction(spec, actual, types, attrs))\n                         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/hepta/hia_opcodes.py\", line 227, in check_instruction\n    raise OpcodeRejected(f\"{spec.name}: {label} types must match {rules}\", code)\nhepta.hia_opcodes.OpcodeRejected: compare.eq: operand types must match ('equality', '=0')\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r1/qualification/pager_worker_r1.py\", line 65, in main\n    report['programs'] = generate(q, output/'generation')\n                         ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r1/qualification/pager_generation_r1.py\", line 119, in generate\n    document = author.document()\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r1/inputs/tools/generate_hia_sqlite_pager_retained_owner_r1.py\", line 89, in document\n    return compact_authoring_cfg({\n        'schema': 'hepta.hia.program.v8', 'module': 'sqlite_pager_retained_read_owner',\n        'functions': functions,\n    })\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/tools/generate_hia_selfhost.py\", line 2069, in compact_authoring_cfg\n    verify_program(document)\n    ~~~~~~~~~~~~~~^^^^^^^^^^\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/hepta/hia_program.py\", line 959, in verify_program\n    _verify_function(data[\"schema\"], fn, block_maps[fn[\"name\"]], interfaces)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/hepta/hia_program.py\", line 912, in _verify_function\n    check.instruction(ins)\n    ~~~~~~~~~~~~~~~~~^^^^^\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/hepta/hia_program.py\", line 696, in instruction\n    _reject(str(exc), exc.code)\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/hepta/hia_program.py\", line 61, in _reject\n    raise HIAProgramRejected(message, code)\nhepta.hia_program.HIAProgramRejected: E_HIA_TYPE: compare.eq: operand types must match ('equality', '=0')\n",
+    "first_author": "pager",
+    "second_author_started": false,
+    "Core_or_ASM_products_written": false,
+    "original_type_verifier_retained": true
+  },
+  "first_author": "pager",
+  "linker_started": false,
+  "Core_ASM_files_in_closed_catalog": 0,
+  "closed_catalog_files": 15,
+  "closed_catalog_bytes": 8801764,
+  "actual_originals_including_catalog_and_FINAL": 17,
+  "original_type_verifier_retained": true,
+  "static_cause": {
+    "schema": "hia.retained-pager.type-fix.v1",
+    "before": {
+      "bytes": 6115,
+      "sha256": "60129d48d1bb4144a01ef80d8763aae97f894c70f2576dc645022d7ec43f76e6",
+      "git": "79f3ecdda0551fc46913db197ef1ab6d2bf1abad"
+    },
+    "after": {
+      "bytes": 6223,
+      "sha256": "3c9ec1a7e570c27bdf879c1d88f810bb1dd9598800c36c0a9b144d9f16ede7f9",
+      "git": "d82e838224cbe3fe0b49798c1ed4bbd03628370e"
+    },
+    "exact_edits": [
+      {
+        "before": "if result == ABI:",
+        "after": "if retained_status(result) == ABI:",
+        "count": 1
+      },
+      {
+        "before": "if result == 129 and get(w, 73744) == 1:",
+        "after": "if retained_status(result) == 129 and get(w, 73744) == 1:",
+        "count": 1
+      },
+      {
+        "before": "if result != ABI:",
+        "after": "if retained_status(result) != ABI:",
+        "count": 1
+      }
+    ],
+    "append": "\ndef retained_status(value:u32) -> u64:\n    return value\n",
+    "full_inverse_equal": true,
+    "independent_peer_hash_equal": true,
+    "root_builder_original": {
+      "bytes": 82193,
+      "sha256": "9337d6704e47c4257b8b3723c0676809e1ba31914d6cfa6b13e07f2789b03ec2",
+      "git": "19876107428018182d8dd0bf99eee65167489ded"
+    },
+    "cause": "Builder constants default u64; calls retain declared u32 result; compare requires equal types. Return casts allow one lossless u32-to-u64 helper.",
+    "all_original_signatures_and_assignments_unchanged": true,
+    "original_verifier_unchanged": true,
+    "execution": "NOT_STARTED"
+  },
+  "semantic_peer_review": {
+    "reviewer": "hia_remote_audit",
+    "status": "STATIC_ONLY_NO_DEFINITE_BLOCKER_BEYOND_TYPE_IN_PRIVATE_CUSTODIAN_STATE",
+    "sources": [
+      "79f3ecdda0551fc46913db197ef1ab6d2bf1abad",
+      "32fac9ee295ca848cce2dd096acc7102b1daeac6",
+      "c32133c133ed4a55c1615f5414ea2d845afc1f4f",
+      "39b358a9fb761c87aca8a6b2bddb95daefc1685d",
+      "1427e1465a6535e9bd90c0599f0694df972dea0f"
+    ],
+    "scope": "Private original custodian reachable state; no claim for arbitrary forged raw workspace",
+    "findings": [
+      "147456 is workspace length; capture copies page_size plus48byte snapshot header",
+      "source/destination extents disjoint and bounded; active committed last",
+      "retain A/autorelease/PAGE B/autorelease/span A required",
+      "pin comparison intentionally allows retained pin less than current monotonically increasing pin",
+      "release135 invalidates copy and preserves read transaction; never count as130 CLOSED orOS unlock",
+      "cleanup invalidates token before OS release request is executed; ABI rejection must not be recast asCLOSED",
+      "span65536upper bound derives from prior capture invariant; no independent revalidation of size on eachspan",
+      "original4cases98C40native24process24release retained separately; full147456state/new134/135 required"
+    ],
+    "io": {
+      "git_reads": 5,
+      "host": 0,
+      "product": 0,
+      "writes": 0
+    },
+    "state": "PAUSED0"
+  },
+  "retry_policy": "No replay of r1. Minimal fix in new r2 namespace; all original caps and budgets unchanged.",
+  "standard_current_CI": "43612781760 failed; combined Core69started68completed/116; UNPACK18 skipped; Full32 not started",
+  "whole_HIA_native_stack": false,
+  "default_switch": false,
+  "legacy_delete": false
+}

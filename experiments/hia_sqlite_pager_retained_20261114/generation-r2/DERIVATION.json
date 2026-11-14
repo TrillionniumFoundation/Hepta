@@ -1,0 +1,216 @@
+{
+  "schema": "hia.pager-retained-generation-r2-derivation.v1",
+  "type_fix": {
+    "schema": "hia.retained-pager.type-fix.v1",
+    "before": {
+      "bytes": 6115,
+      "sha256": "60129d48d1bb4144a01ef80d8763aae97f894c70f2576dc645022d7ec43f76e6",
+      "git": "79f3ecdda0551fc46913db197ef1ab6d2bf1abad"
+    },
+    "after": {
+      "bytes": 6223,
+      "sha256": "3c9ec1a7e570c27bdf879c1d88f810bb1dd9598800c36c0a9b144d9f16ede7f9",
+      "git": "d82e838224cbe3fe0b49798c1ed4bbd03628370e"
+    },
+    "exact_edits": [
+      {
+        "before": "if result == ABI:",
+        "after": "if retained_status(result) == ABI:",
+        "count": 1
+      },
+      {
+        "before": "if result == 129 and get(w, 73744) == 1:",
+        "after": "if retained_status(result) == 129 and get(w, 73744) == 1:",
+        "count": 1
+      },
+      {
+        "before": "if result != ABI:",
+        "after": "if retained_status(result) != ABI:",
+        "count": 1
+      }
+    ],
+    "append": "\ndef retained_status(value:u32) -> u64:\n    return value\n",
+    "full_inverse_equal": true,
+    "independent_peer_hash_equal": true,
+    "root_builder_original": {
+      "bytes": 82193,
+      "sha256": "9337d6704e47c4257b8b3723c0676809e1ba31914d6cfa6b13e07f2789b03ec2",
+      "git": "19876107428018182d8dd0bf99eee65167489ded"
+    },
+    "cause": "Builder constants default u64; calls retain declared u32 result; compare requires equal types. Return casts allow one lossless u32-to-u64 helper.",
+    "all_original_signatures_and_assignments_unchanged": true,
+    "original_verifier_unchanged": true,
+    "execution": "NOT_STARTED"
+  },
+  "controls": [
+    {
+      "name": "pager_generation_r1.py",
+      "before": {
+        "bytes": 6975,
+        "sha256": "a4f3a12f660b62f73044874f795fee68716a48f461fc27009ba670b4c5ced857",
+        "git": "af7830ff45c15f840459e2424baf49485a2d1f8d"
+      },
+      "after": {
+        "bytes": 6975,
+        "sha256": "9d28c99a1bf95e15f5daf33a3dd7eef05caa237fcb6871b4010e5f6e1e08b810",
+        "git": "c97aa312d8ea7054632ceea08483374d96a8a0de"
+      },
+      "edits": [
+        {
+          "before": "        and len(raw) == 6115",
+          "after": "        and len(raw) == 6223",
+          "count": 1
+        },
+        {
+          "before": "            '60129d48d1bb4144a01ef80d8763aae97f894c70f2576dc645022d7ec43f76e6',",
+          "after": "            '3c9ec1a7e570c27bdf879c1d88f810bb1dd9598800c36c0a9b144d9f16ede7f9',",
+          "count": 1
+        }
+      ],
+      "full_inverse_equal": true,
+      "independent_peer_hash_equal": true
+    },
+    {
+      "name": "pager_policy_r1.py",
+      "before": {
+        "bytes": 7318,
+        "sha256": "dd100ea457615d68a5ae40e2abf41be929c7a12ae97ad401bcd534eaff6c3b12",
+        "git": "4a38a1d2c43e4cb06a665b68300ff43f5cf144f1"
+      },
+      "after": {
+        "bytes": 7318,
+        "sha256": "7b9ce9cfa1a8956aa3edf008ef30194589c875324cf1268400fc9f271dc70c73",
+        "git": "57cbbda54db8f9d2feaf4a276c11b0ad184106a2"
+      },
+      "edits": [
+        {
+          "before": "ACTUAL_NAME = 'pager-retained-generation-r1-actual'",
+          "after": "ACTUAL_NAME = 'pager-retained-generation-r2-actual'",
+          "count": 1
+        },
+        {
+          "before": "        and ROOT.name == 'pager-retained-generation-r1'",
+          "after": "        and ROOT.name == 'pager-retained-generation-r2'",
+          "count": 1
+        },
+        {
+          "before": "        (6115, '60129d48d1bb4144a01ef80d8763aae97f894c70f2576dc645022d7ec43f76e6'),",
+          "after": "        (6223, '3c9ec1a7e570c27bdf879c1d88f810bb1dd9598800c36c0a9b144d9f16ede7f9'),",
+          "count": 1
+        },
+        {
+          "before": "        (4813, '5db58dff51acc4ce63f6a899c31e58011762711418d1adb529bd57655f115b6c'),",
+          "after": "        (4813, 'ad9aa762eac3721e61918fef363c0092fc0f52dad47540a4d27037298f18445c'),",
+          "count": 1
+        }
+      ],
+      "full_inverse_equal": true,
+      "independent_peer_hash_equal": true
+    },
+    {
+      "name": "pager_clean_exec_r1.py",
+      "before": {
+        "bytes": 1777,
+        "sha256": "798d76c4ccceed18ec766216d15e82abb884d7af8ed0679145742e66cd1743e8",
+        "git": "08224593966dff0ffe790af364d8267e2ad918c2"
+      },
+      "after": {
+        "bytes": 1777,
+        "sha256": "fa01dadbba1d9f3fe3017e664468e5a3ab605dfb3a947840df1825a8ce4a8cd7",
+        "git": "b5dcf7d02692ddd4caee3dfa610776a93e0dc682"
+      },
+      "edits": [
+        {
+          "before": "FIXED_ROOT = Path('/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r1')",
+          "after": "FIXED_ROOT = Path('/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r2')",
+          "count": 1
+        },
+        {
+          "before": "        'TMPDIR': str(ROOT.parent/'pager-retained-generation-r1-actual/tmp')}",
+          "after": "        'TMPDIR': str(ROOT.parent/'pager-retained-generation-r2-actual/tmp')}",
+          "count": 1
+        },
+        {
+          "before": "        and request['output'] == str(ROOT.parent/'pager-retained-generation-r1-actual')",
+          "after": "        and request['output'] == str(ROOT.parent/'pager-retained-generation-r2-actual')",
+          "count": 1
+        }
+      ],
+      "full_inverse_equal": true,
+      "independent_peer_hash_equal": true
+    }
+  ],
+  "unchanged_assets": [
+    {
+      "name": "inputs/tools/generate_hia_pager_elf_linker.py",
+      "key": "root_v9_CorePutMask_PagerR3_inputs/tools/generate_hia_pager_elf_linker.py",
+      "bytes": 3979,
+      "sha256": "25fe26191fc58965a4346f49cc39fd1d4d8f8b322fd818c7c7ad10f5e742c029",
+      "git": "2c0c67c7c20d48490535fa27c0adcf1d20c9da62"
+    },
+    {
+      "name": "inputs/tools/pager_owner_common_source_r2.py",
+      "key": "root_v9_CorePutMask_PagerR3_inputs/tools/pager_owner_common_source_r2.py",
+      "bytes": 7069,
+      "sha256": "da2df5548aaf1497db907f6d18bb7f9508c01991699c3b88713a07b03f2b8eaa",
+      "git": "1427e1465a6535e9bd90c0599f0694df972dea0f"
+    },
+    {
+      "name": "inputs/tools/pager_owner_lock_source_r3.py",
+      "key": "root_v9_CorePutMask_PagerR3_inputs/tools/pager_owner_lock_source_r3.py",
+      "bytes": 15651,
+      "sha256": "49e5c19a3d00b6e40ade3b632c1739433a647afafbed690163cacc3b6eb4fb4c",
+      "git": "c32133c133ed4a55c1615f5414ea2d845afc1f4f"
+    },
+    {
+      "name": "inputs/tools/pager_owner_page_source.py",
+      "key": "root_v9_CorePutMask_PagerR3_inputs/tools/pager_owner_page_source.py",
+      "bytes": 4797,
+      "sha256": "ab2b5080b3aa8480a7d500e16185ffae8cda6060a025d5eef3074e3edfbc8aa9",
+      "git": "39b358a9fb761c87aca8a6b2bddb95daefc1685d"
+    },
+    {
+      "name": "qualification/pager_common_r1.py",
+      "key": "root_v12_PagerGeneration_control_pager_common_r1.py",
+      "bytes": 4167,
+      "sha256": "9f1cc290b40ac5926a015e4f610c8e64f0998691b6511821d519613b778cdd85",
+      "git": "fed8c3ba1aab80771bba09585e86eedce0c5c617"
+    },
+    {
+      "name": "qualification/pager_launch_r1.py",
+      "key": "root_v12_PagerGeneration_control_pager_launch_r1.py",
+      "bytes": 12815,
+      "sha256": "7b6df4483f4734b63b6de43ed645f6b577b6c5152ce14791032cbcf1eb647120",
+      "git": "44112c9451ed8a3d45775e689387bb06a074561f"
+    },
+    {
+      "name": "qualification/pager_support_r1.py",
+      "key": "root_v12_PagerGeneration_control_pager_support_r1.py",
+      "bytes": 12696,
+      "sha256": "1216126fb8ac0958816c9a861465fd61f9b037a6318970b9ed0e25fa8c678d9f",
+      "git": "1b5a64c03ade74edb62860209c33ee68b43520a5"
+    },
+    {
+      "name": "qualification/pager_worker_r1.py",
+      "key": "root_v12_PagerGeneration_control_pager_worker_r1.py",
+      "bytes": 4977,
+      "sha256": "e067558f4674dd01083fad47f0311e719d5eef043edc2a7e9518a76e2f41813e",
+      "git": "091837a72dd1727023ffe97cd2e809cd43802524"
+    },
+    {
+      "name": "qualification/process_owner_impl.py",
+      "key": "root_v11_CurrentNative_capture_control_process_owner_impl.py",
+      "bytes": 17601,
+      "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+      "git": "6f600ab75894859b9840c0311cc8891a67b6c53a"
+    }
+  ],
+  "new_root": "/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r2",
+  "all_basenames_retained": true,
+  "original_r1_failure_retained": true,
+  "original_original_four_interop_cases_unchanged": true,
+  "original_caps_unchanged": true,
+  "original_180_plus_3_owner_unchanged": true,
+  "original_4MiB_output_cap_unchanged": true,
+  "no_generation_executed": true
+}

@@ -1,0 +1,117 @@
+{
+  "CPython_author_tooling": true,
+  "VM_execution_authorized": false,
+  "elapsed_ns": 1002764112,
+  "exception": "hepta.hia_program.HIAProgramRejected: E_HIA_TYPE: compare.eq: operand types must match ('equality', '=0')",
+  "full_SQLite_or_AgentStore_qualification": false,
+  "generation_completed": false,
+  "generation_started": true,
+  "inputs_before": {
+    "bytes": 8847,
+    "git_blob": "4772666817bf8e02a473aad6dc4ff5728b1733ba",
+    "identity": [
+      66306,
+      79742621,
+      33152,
+      1000,
+      1000,
+      1,
+      8847,
+      1794684262722344480,
+      1794684262722344480
+    ],
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r1-actual/WORKER-INPUTS-BEFORE.json",
+    "sha256": "e847d052dfe83665ba6335af9c1fa3a0826012e721b821d722241bde18304ac2"
+  },
+  "interop_qualification": false,
+  "matching_current_cold_compiler": false,
+  "native_execution_authorized": false,
+  "owner_request": {
+    "bytes": 1146,
+    "git_blob": "7854383e1f42781e60b17ffa630ebafc2b055573",
+    "identity": [
+      66306,
+      79742618,
+      33152,
+      1000,
+      1000,
+      1,
+      1146,
+      1794684261805764656,
+      1794684261805764656
+    ],
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r1-actual/lifecycle.json.request.json",
+    "sha256": "5c16013d9554e92533443095664cb4735bae0763d0d90e2eae9abb1a0b06f07c"
+  },
+  "request": {
+    "bytes": 13286,
+    "git_blob": "220ae8d24e5a5b9912ddcc38d61be97eddeaf63e",
+    "identity": [
+      66306,
+      79742609,
+      33152,
+      1000,
+      1000,
+      1,
+      13286,
+      1794683846601855070,
+      1794683846601855070
+    ],
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r1/REQUEST.json",
+    "sha256": "dc5663f4f20d524289f99244bbc0a53f8f1698356b9dde549d135cd985cfe650"
+  },
+  "runtime": {
+    "bytes": 7477160,
+    "git_blob": "7b80a4c7dd84e362a605aa22d30e46309ef2e460",
+    "identity": [
+      66306,
+      82182572,
+      33261,
+      0,
+      0,
+      1,
+      7477160,
+      1787222518000000000,
+      1791031877815904042
+    ],
+    "path": "/usr/bin/python3.14",
+    "sha256": "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41"
+  },
+  "schema": "hia.sqlite-pager.retained-generation-worker.v1",
+  "source_before": {
+    "bytes": 2303247,
+    "git_blob": "33a073b7adce5dbadc1e3f9126e72d2d0b0759d9",
+    "identity": [
+      66306,
+      79742622,
+      33152,
+      1000,
+      1000,
+      1,
+      2303247,
+      1794684262741208686,
+      1794684262741208686
+    ],
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r1-actual/WORKER-SOURCE-BEFORE.json",
+    "sha256": "22bc43ae5cbd64ee8d7870f2fe49344e8a9cb35aa6bec31244aebe8a759f348d"
+  },
+  "status": "HOLD",
+  "system_before": {
+    "bytes": 2076795,
+    "git_blob": "93b689630b62b06bc6259d348bf0d75673ace7b7",
+    "identity": [
+      66306,
+      79742623,
+      33152,
+      1000,
+      1000,
+      1,
+      2076795,
+      1794684262750077324,
+      1794684262750077324
+    ],
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r1-actual/WORKER-SYSTEM-BEFORE.json",
+    "sha256": "845ccb6c1ecf2f9b65369bd61131a7745a20201e28e69ef1f22a6fcb21e146ee"
+  },
+  "traceback": "Traceback (most recent call last):\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/hepta/hia_program.py\", line 688, in instruction\n    self.required.update(check_instruction(spec, actual, types, attrs))\n                         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/hepta/hia_opcodes.py\", line 227, in check_instruction\n    raise OpcodeRejected(f\"{spec.name}: {label} types must match {rules}\", code)\nhepta.hia_opcodes.OpcodeRejected: compare.eq: operand types must match ('equality', '=0')\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r1/qualification/pager_worker_r1.py\", line 65, in main\n    report['programs'] = generate(q, output/'generation')\n                         ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r1/qualification/pager_generation_r1.py\", line 119, in generate\n    document = author.document()\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/pager-retained-generation-r1/inputs/tools/generate_hia_sqlite_pager_retained_owner_r1.py\", line 89, in document\n    return compact_authoring_cfg({\n        'schema': 'hepta.hia.program.v8', 'module': 'sqlite_pager_retained_read_owner',\n        'functions': functions,\n    })\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/tools/generate_hia_selfhost.py\", line 2069, in compact_authoring_cfg\n    verify_program(document)\n    ~~~~~~~~~~~~~~^^^^^^^^^^\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/hepta/hia_program.py\", line 959, in verify_program\n    _verify_function(data[\"schema\"], fn, block_maps[fn[\"name\"]], interfaces)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/hepta/hia_program.py\", line 912, in _verify_function\n    check.instruction(ins)\n    ~~~~~~~~~~~~~~~~~^^^^^\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/hepta/hia_program.py\", line 696, in instruction\n    _reject(str(exc), exc.code)\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qq/hia-rewrite-20261113-e26e-r1/core-put-mask-elision-derive8-r1/source/hepta/hia_program.py\", line 61, in _reject\n    raise HIAProgramRejected(message, code)\nhepta.hia_program.HIAProgramRejected: E_HIA_TYPE: compare.eq: operand types must match ('equality', '=0')\n"
+}
