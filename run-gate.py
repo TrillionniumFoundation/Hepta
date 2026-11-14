@@ -133,6 +133,7 @@ EXTRA_COLD_COMPONENTS = (
     "NATIVE_CONTINUATION", "NATIVE_MAPPING", "WORKER_REPORT", "WORKER_SCHEDULING",
     "BOUNDED_MEMORY", "SCALAR_PROFILE", "GENERATION_RETENTION",
     "PUBLICATION_MEASUREMENT", "SHA256_STREAM_DIFFERENTIAL",
+    "FULL_COST", "PATCH_IMPACT", "CLI_DISCOVERY_JSON",
 )
 
 # These classes occur only in complete discovery, not the source/native tuples
@@ -149,7 +150,18 @@ FULL_DISCOVERY_EVIDENCE = {
                              "HEPTA_HIA_GENERATION_RETENTION_EVIDENCE"),
     "sha256-stream-differential": ("tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionNativeTests",
                                    "HEPTA_HIA_SHA256_STREAM_DIFFERENTIAL_EVIDENCE"),
+    "full-cost": ("tests.test_hia_full_cost_native.FullCostNativeTests",
+                  "HEPTA_HIA_FULL_COST_EVIDENCE"),
+    "patch-impact": ("tests.test_hia_patch_impact_native.PatchImpactNativeTests",
+                     "HEPTA_HIA_PATCH_IMPACT_EVIDENCE"),
+    "cli-discovery-json": ("tests.test_hia_cli_discovery_json.CliDiscoveryJsonNativeTests",
+                           "HEPTA_HIA_CLI_DISCOVERY_JSON_EVIDENCE"),
 }
+# The selected CLI callers use a separate fixture under the same evidence root.
+# They remain their own complete class in the original full discovery.
+ADDITIONAL_FULL_DISCOVERY_CLASSES = (
+    "tests.test_hia_cli_discovery_selection.CliDiscoverySelectionNativeTests",
+)
 ADDITIONAL_DISCARDED_SELECTORS = (
     "HEPTA_HIA_BOUNDED_MEMORY_MANIFEST", "HEPTA_HIA_SCALAR_PROFILE_MANIFEST",
     "HEPTA_HIA_GENERATION_RETENTION_MANIFEST", "HEPTA_HIA_PUBLICATION_MEASUREMENT_MANIFEST",
@@ -159,6 +171,14 @@ ADDITIONAL_DISCARDED_SELECTORS = (
     "HEPTA_HIA_PUBLICATION_MEASUREMENT_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_NATIVE_MAPPING_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_SHA256_STREAM_DIFFERENTIAL_COMPILER",
+    "HEPTA_HIA_FULL_COST_MANIFEST", "HEPTA_HIA_PATCH_IMPACT_MANIFEST",
+    "HEPTA_HIA_CLI_DISCOVERY_JSON_MANIFEST",
+    "HEPTA_HIA_FULL_COST_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_PATCH_IMPACT_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_CLI_DISCOVERY_JSON_DEVELOPMENT_MANIFEST",
+    "HEPTA_HIA_CLI_DISCOVERY_JSON_COLD_FIXTURE",
+    "HEPTA_HIA_CLI_DISCOVERY_CALLERS_CLI_MANIFEST",
+    "HEPTA_HIA_CLI_DISCOVERY_CALLERS_DEVELOPMENT_COMPILER",
 )
 
 
@@ -175,14 +195,17 @@ def component_workflow_coverage(root):
         raise ValueError("cannot identify the unchanged original component groups")
     original_groups = ast.literal_eval(groups[0].value)
     before_full = [*named[0], *named[1], *(item for group in original_groups.values() for item in group)]
+    required_classes = {name: row[0] for name, row in FULL_DISCOVERY_EVIDENCE.items()}
+    required_classes.update({name: name for name in ADDITIONAL_FULL_DISCOVERY_CLASSES})
     repeated = {name: [selector for selector in before_full
                        if selector == test_class or test_class.startswith(selector + ".")
                        or selector.startswith(test_class + ".")]
-                for name, (test_class, _) in FULL_DISCOVERY_EVIDENCE.items()}
+                for name, test_class in required_classes.items()}
     if any(repeated.values()):
         raise ValueError("retained component evidence would be reused before full discovery: " + repr(repeated))
     return {"source_workflow_selectors": named[0], "native_workflow_selectors": named[1],
             "original_component_groups": original_groups,
+            "required_full_discovery_classes": required_classes,
             "retained_native_classes_first_execute_in_full_discovery": True,
             "extra_component_suite_reruns": False}
 
@@ -387,6 +410,7 @@ def require_observed_component_methods(discovery, identity):
     """Reuse actual full-suite observations; do not execute these suites twice."""
     classes = [row[0] for row in FULL_DISCOVERY_EVIDENCE.values()]
     classes.append("tests.test_hia_bounded_memory_native.BoundedMemoryNativeTests")
+    classes.extend(ADDITIONAL_FULL_DISCOVERY_CLASSES)
     checked = {}
     for name in classes:
         planned = [item for item in discovery["planned_test_ids"] if item.startswith(name + ".")]
@@ -418,8 +442,67 @@ def require_cold_component(manifest_path, source_name, cold_sha, compiler_sha, s
     return str(manifest_path)
 
 
+def require_discovery_fixture(path, cold_path, cold_sha, compiler_sha, sources, pins):
+    """Use the product's original strict fixture admission, bound to this run."""
+    from tools.qualify_hia_cli_discovery_json import admit_fixture
+    fixture = read_pinned_json(path, pins)
+    if admit_fixture(path) != fixture:
+        raise ValueError("discovery fixture changed during independent readback")
+    authority = fixture["authority"]
+    if (authority.get("cold_report") != str(cold_path.resolve(strict=True))
+            or authority.get("cold_report_sha256") != cold_sha
+            or authority.get("compiler_sha256") != compiler_sha
+            or authority.get("source_manifest") != sources):
+        raise ValueError("discovery fixture belongs to another cold execution")
+    for row in [*authority["input_bindings"], *fixture["build"]["input_bindings"]]:
+        path = str(Path(row["path"]).resolve(strict=True))
+        digest = sha(path)
+        if digest != row["sha256"] or (path in pins and pins[path] != digest):
+            raise ValueError("discovery input differs from its original binding")
+        pins[path] = digest
+    return fixture
+
+
+def require_discovery_cli_companion(directory, authority, root, pins):
+    """Read actual CLI control/format compilation under the same cold compiler."""
+    from tools.build_hia_cli_native import SOURCES, owner_sources
+    from tools.hia_cli_discovery_custody import admit_compilation
+    directory = Path(directory)
+    bundle = read_pinned_json(directory / "manifest.json", pins)
+    build = read_pinned_json(directory / "build.json", pins)
+    if (build.get("scope") != "MATCHING_SOURCE_COLD_BUILD"
+            or build.get("cold_report_sha256") != authority["cold_report_sha256"]
+            or build.get("compiler_sha256") != authority["compiler_sha256"]
+            or build.get("source_manifest") != authority["source_manifest"]
+            or build.get("owner_sources_before") != owner_sources()
+            or build.get("owner_sources_after") != owner_sources()
+            or build.get("bundle") != bundle or set(build.get("children", {})) != set(SOURCES)):
+        raise ValueError("CLI companion does not bind this same cold execution")
+    for name, source_name in SOURCES.items():
+        manifest_path = directory / name / "manifest.json"
+        manifest = read_pinned_json(manifest_path, pins)
+        if (bundle.get(name + "_manifest") != name + "/manifest.json"
+                or bundle.get(name + "_manifest_sha256") != sha(manifest_path)
+                or manifest.get("compiler_sha256") != authority["compiler_sha256"]
+                or manifest.get("source_sha256") != authority["source_manifest"][source_name]):
+            raise ValueError("CLI companion child/source identity differs")
+        image = directory / name / ("cli-" + name + ".image.bin")
+        if manifest.get("image_path") != image.name or manifest.get("image_sha256") != sha(image):
+            raise ValueError("CLI companion executable identity differs")
+        receipt, observations = admit_compilation(directory / name, "cli-" + name,
+            authority["compiler"], (root / source_name).read_bytes(), image)
+        if build["children"][name] != {"manifest": manifest, "native_compile_receipt": receipt}:
+            raise ValueError("CLI companion receipt differs from actual compiler output")
+        for row in observations:
+            if row["path"] in pins and pins[row["path"]] != row["sha256"]:
+                raise ValueError("CLI companion input changed after its earlier admission")
+            pins[row["path"]] = row["sha256"]
+        pins[str(image.resolve())] = sha(image)
+    return str(directory / "manifest.json")
+
+
 def supplemental(args):
-    """Run only caller gates absent from the unchanged original 35 stages."""
+    """Run additional caller gates and original bounded CLI qualification."""
     require_native_runner()
     target = load_target(args.target)
     root = args.source.resolve(strict=True)
@@ -429,7 +512,7 @@ def supplemental(args):
         raise ValueError("supplemental evidence must stay outside the product checkout")
     output.mkdir(exist_ok=False)
     before, error, source_error = None, None, None
-    pins, commands, methods, companions = {}, [], {}, {}
+    pins, commands, methods, companions, added_components = {}, [], {}, {}, {}
     sha_image_bound = False
     try:
         if read_pinned_json(args.target, pins) != target:
@@ -476,6 +559,38 @@ def supplemental(args):
         for selector, relative, component in specifications:
             companions[selector] = require_cold_component(retained / relative,
                 "examples/hia_bootstrap/" + component + ".hepta", cold_sha, compiler_sha, sources, pins)
+        for name, relative, component in (
+                ("full-cost", "full-cost/built/manifest.json", "full_cost"),
+                ("patch-impact", "patch-impact/build/manifest.json", "patch_impact"),
+                ("installed-patch-impact", "full-cost/patch-built/manifest.json", "patch_impact")):
+            added_components[name] = require_cold_component(retained / relative,
+                "examples/hia_bootstrap/" + component + ".hepta", cold_sha, compiler_sha, sources, pins)
+        for name in ("full-cost", "patch-impact"):
+            custody = read_pinned_json(retained / name / "component-custody.json", pins)
+            if (custody.get("schema") != "hepta.hia." + name + "-test-custody.v1"
+                    or custody.get("compiler_unchanged") is not True
+                    or custody.get("compiler_sha256") != compiler_sha
+                    or custody.get("matching_cold_report") != str(cold_path)
+                    or custody.get("manifest") != added_components[name]
+                    or custody.get("test_result_owned_by_outer_runner") is not True
+                    or (name == "full-cost" and custody.get("patch_manifest")
+                        != added_components["installed-patch-impact"])):
+                raise ValueError("full-discovery component custody differs: " + name)
+        discovery_root = retained / "cli-discovery-json"
+        for name in ("CliDiscoveryJsonNativeTests", "CliDiscoverySelectionFixture"):
+            fixture_path = discovery_root / name / "cold-fixture/FIXTURE.json"
+            fixture = require_discovery_fixture(fixture_path, cold_path, cold_sha, compiler_sha, sources, pins)
+            added_components[name] = str(fixture_path)
+        added_components["cli-discovery-companion"] = require_discovery_cli_companion(
+            discovery_root / "CliDiscoverySelectionFixture/cli-companion", fixture["authority"], root, pins)
+        cli_observations = read_pinned_json(
+            discovery_root / "CliDiscoverySelectionFixture/ORDINARY_CLI.json", pins)
+        if (cli_observations.get("status") != "PASS"
+                or cli_observations.get("scope") != "MATCHING_SOURCE_COLD_FIXTURE"
+                or cli_observations.get("actual_native_json_calls") != 20
+                or cli_observations.get("retained_semantic_calls") != 0
+                or cli_observations.get("host_json_constructor_calls") != 0):
+            raise ValueError("complete selected CLI discovery observations are missing")
         stream = read_pinned_json(retained / "sha256-stream-differential/observations.json", pins)
         if (stream.get("actualCold") is not True or stream.get("cold_report_selected") is not True
                 or stream.get("cold_report_sha256") != cold_sha
@@ -500,6 +615,14 @@ def supplemental(args):
             ("generation-retention-callers", ["tools/qualify_hia_generation_retention_callers.py",
                 "--cold-report", str(cold_path), "--require-companion-policies",
                 "--evidence", str(output / "generation-retention-callers")], companions),
+            ("full-cost-callers", ["tools/qualify_hia_full_cost_callers.py",
+                "--cold-report", str(cold_path), "--evidence", str(output / "full-cost-callers")], {}),
+            ("patch-impact-callers", ["tools/qualify_hia_patch_impact_callers.py",
+                "--cold-report", str(cold_path), "--evidence", str(output / "patch-impact-callers")], {}),
+            ("cli-discovery-original-groups", ["tools/qualify_hia_cli_discovery_json.py",
+                "--cold-report", str(cold_path), "--evidence", str(output / "cli-discovery-original-groups")], {}),
+            ("cli-discovery-callers", ["tools/qualify_hia_cli_discovery_callers.py",
+                "--cold-report", str(cold_path), "--evidence", str(output / "cli-discovery-callers")], {}),
         )
         for name, arguments, selection in jobs:
             command = [sys.executable, "-B", *arguments]
@@ -512,13 +635,15 @@ def supplemental(args):
                 record["passed"] = (owner.get("status") == "WORKFLOW_STEP_COMPLETED"
                     and owner.get("returncode") == 0 and owner.get("timed_out") is False
                     and owner.get("cleanup", {}).get("complete") is True)
-                if name.endswith("-callers"):
+                if name.endswith("-callers") and name != "cli-discovery-callers":
                     report = read_pinned_json(output / name / "report.json", pins)
                     record["actual_tests"] = report.get("actual_tests")
                     expected_scope = {
                         "scalar-profile-callers": "MATCHING_SOURCE_COLD_ORIGINAL_SCALAR_PROFILE_CALLERS",
                         "bounded-memory-callers": "MATCHING_SOURCE_COLD_ORIGINAL_VM_MEMORY_CALLERS",
                         "generation-retention-callers": "MATCHING_SOURCE_COLD_ORIGINAL_GENERATION_CALLERS",
+                        "full-cost-callers": "MATCHING_SOURCE_COLD_ORIGINAL_FULL_COST_CALLERS",
+                        "patch-impact-callers": "MATCHING_SOURCE_COLD_ORIGINAL_PATCH_IMPACT_CALLERS",
                     }[name]
                     record["passed"] = bool(record["passed"] and report.get("status") == "PASS"
                         and report.get("scope") == expected_scope
@@ -528,6 +653,82 @@ def supplemental(args):
                         and len(report["planned"]) == len(set(report["planned"]))
                         and all(report.get(key) == [] for key in ("errors", "failures", "skipped",
                                                                   "expected_failures", "unexpected_successes")))
+                    if name in ("full-cost-callers", "patch-impact-callers"):
+                        component = "full_cost" if name == "full-cost-callers" else "patch_impact"
+                        manifest_path = output / name / "qualified/manifest.json"
+                        require_cold_component(manifest_path, "examples/hia_bootstrap/" + component + ".hepta",
+                                               cold_sha, compiler_sha, sources, pins)
+                        manifest = read_pinned_json(manifest_path, pins)
+                        counts = (("native_arm_calls", "native_decision_calls") if component == "full_cost"
+                                  else ("native_change_calls", "native_graph_calls"))
+                        forbidden = ("retained_python_arithmetic_bodies_forbidden" if component == "full_cost"
+                                     else "retained_python_impact_bodies_forbidden")
+                        record["passed"] = bool(record["passed"]
+                            and report.get("all_original_modules_unfiltered") is True
+                            and report.get("source_and_bundle_unchanged") is True and report.get(forbidden) is True
+                            and report.get("native_image_sha256") == manifest["image_sha256"]
+                            and all(type(report.get(key)) is int and report[key] > 0 for key in counts))
+                elif name == "cli-discovery-original-groups":
+                    from tools import qualify_hia_cli_discovery_json as original_discovery
+                    report = read_pinned_json(output / name / "REPORT.json", pins)
+                    fixture = require_discovery_fixture(output / name / "fixture/FIXTURE.json",
+                        cold_path, cold_sha, compiler_sha, sources, pins)
+                    groups = report.get("groups", [])
+                    record["observed_groups"] = [item.get("group") for item in groups]
+                    record["passed"] = bool(record["passed"]
+                        and report.get("status") == "MATCHING_SOURCE_COLD_CLI_DISCOVERY_JSON_PASS"
+                        and report.get("scope") == "MATCHING_SOURCE_COLD_CLI_DISCOVERY_JSON"
+                        and report.get("qualification_complete") is True
+                        and report.get("authority") == fixture["authority"]
+                        and report.get("source_before") == report.get("source_after") == sources
+                        and report.get("source_and_inputs_unchanged") is True
+                        and report.get("expected_ids") == list(original_discovery.EXPECTED_IDS)
+                        and report.get("expected_count") == 4
+                        and report.get("machine_cases") == 61 and report.get("vm_cases") == 6
+                        and report.get("vm_steps") == 10000000 and report.get("vm_heap_bytes") == 8 << 20
+                        and report.get("vm_call_depth") == 128 and report.get("buffer_capacity") == 1048576
+                        and report.get("compile_seconds") == 20
+                        and report.get("group_seconds") == 180 and report.get("cleanup_seconds") == 3
+                        and original_discovery._owner_pass(report.get("preparation_owner", {}))
+                        and [item.get("group") for item in groups] == list(original_discovery.GROUPS))
+                    for item in groups:
+                        group = item["group"]
+                        request_path = output / name / group / "REQUEST.json"
+                        read_pinned_json(request_path, pins)
+                        observations = read_pinned_json(output / name / group / "REPORT.json", pins)
+                        if observations != item["observations"]:
+                            raise ValueError("original CLI group observations differ from their retained file")
+                        original_discovery.admit_result(observations, group, sha(request_path))
+                        record["passed"] = bool(record["passed"] and item.get("status") == "PASS"
+                            and original_discovery._owner_pass(item.get("owner", {})))
+                elif name == "cli-discovery-callers":
+                    from tools import qualify_hia_cli_discovery_json as original_discovery
+                    from tools.hia_cli_discovery_custody import owner_sources as discovery_sources
+                    from tools.qualify_hia_cli_discovery_callers import EXPECTED_IDS
+                    report = read_pinned_json(output / name / "REPORT.json", pins)
+                    request_path = output / name / "REQUEST.json"
+                    read_pinned_json(request_path, pins)
+                    tests = read_pinned_json(output / name / "TESTS.json", pins)
+                    native = read_pinned_json(output / name / "controls/ORDINARY_CLI.json", pins)
+                    fixture = require_discovery_fixture(output / name / "json-fixture/FIXTURE.json",
+                        cold_path, cold_sha, compiler_sha, sources, pins)
+                    require_discovery_cli_companion(output / name / "cli", fixture["authority"], root, pins)
+                    record["actual_tests"] = tests.get("actual_tests")
+                    record["passed"] = bool(record["passed"] and report.get("status") == "PASS"
+                        and report.get("scope") == "MATCHING_SOURCE_COLD_ORDINARY_CLI_DISCOVERY_CALLERS"
+                        and report.get("matching_cold") is True and report.get("source_and_inputs_unchanged") is True
+                        and report.get("source_before") == report.get("source_after") == discovery_sources()
+                        and report.get("tests") == tests and report.get("native_observations") == native
+                        and original_discovery._owner_pass(report.get("process_owner", {}))
+                        and tests.get("status") == "PASS" and tests.get("source_and_inputs_unchanged") is True
+                        and tests.get("scope") == "MATCHING_SOURCE_COLD_ORDINARY_CLI_DISCOVERY_CALLERS"
+                        and tests.get("request_sha256") == sha(request_path)
+                        and tests.get("planned") == tests.get("started") == tests.get("stopped") == list(EXPECTED_IDS)
+                        and type(tests.get("actual_tests")) is int and tests["actual_tests"] == len(EXPECTED_IDS)
+                        and all(tests.get(key) == [] for key in original_discovery.ANOMALIES)
+                        and native.get("status") == "PASS" and native.get("actual_native_json_calls") == 20
+                        and native.get("scope") == "MATCHING_SOURCE_COLD_FIXTURE"
+                        and native.get("retained_semantic_calls") == 0 and native.get("host_json_constructor_calls") == 0)
             except Exception as failure:
                 record.update(passed=False, error={"type": type(failure).__name__, "message": str(failure)})
             commands.append(record)
@@ -553,16 +754,22 @@ def supplemental(args):
         source_unchanged, readback = False, False
         source_error = {"type": type(failure).__name__, "message": str(failure)}
     passed = bool(error is None and source_error is None and source_unchanged and readback
-                  and sha_image_bound and len(commands) == 4 and all(row["passed"] for row in commands))
+                  and sha_image_bound and len(commands) == 8 and all(row["passed"] for row in commands))
     write_json(output / "supplemental-result.json", {
         "schema": "hepta.hia.same-cold-supplemental-callers.v1", "target": target,
         "scope": "MISSING_CALLER_GATES_AND_PRODUCTION_SHA_BINDING_AFTER_UNCHANGED_ORIGINAL_FULL",
         "passed": passed, "error": error, "source_error": source_error,
         "complete_source_unchanged": source_unchanged, "all_captured_inputs_read_back": readback,
         "reused_complete_full_discovery_methods": methods, "same_cold_companion_manifests": companions,
+        "new_full_discovery_component_inputs": added_components,
         "production_sha_image_matches_actual_executed_differential_image": sha_image_bound,
         "commands": commands, "captured_inputs": pins, "original_35_stages_modified": False,
-        "component_test_suites_rerun": False, "per_command_workflow_seconds": 1800,
+        "original_component_test_suites_rerun": False,
+        "additional_bounded_cli_groups_observed": next((row.get("observed_groups", [])
+            for row in commands if row["name"] == "cli-discovery-original-groups"), []),
+        "additional_bounded_cli_caller_gate_attempted": any(
+            row["name"] == "cli-discovery-callers" for row in commands),
+        "per_command_workflow_seconds": 1800,
         "all_input_equivalence_proved": False, "whole_native_delivery_qualified": False,
     })
     print(json.dumps({"supplemental_passed": passed, "commands": len(commands), "error": error}))

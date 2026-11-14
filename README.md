@@ -5,10 +5,13 @@ This minimal Git tree runs the product's original
 on one immutable product commit. It provisions the prerequisites required by
 complete `unittest` discovery, preserves original success and failure output,
 and independently checks the ordered method identities visible in the original
-verbose test log. Product source, selectors, test bodies, skip rules and all
-inner budgets remain unchanged. A separate supplemental step runs missing
-original caller qualifiers and binds the production SHA stream image to the
-same cold compilation and the native observations already made by full discovery.
+verbose test log. Product source, test bodies, skip rules and all inner budgets
+remain unchanged. A separate supplemental step runs missing original caller
+qualifiers and binds the production SHA stream image to the same cold
+compilation and the native observations already made by full discovery. The
+new full-cost, patch-impact and CLI-discovery owners use that same cold result;
+the original CLI-discovery qualifier additionally enforces its separate group
+deadlines and installed-resource checks.
 
 ## Freeze and publish
 
@@ -16,9 +19,8 @@ same cold compilation and the native observations already made by full discovery
 SHA and full tree SHA. Its values name the frozen product selected for this
 run. A later audit requires replacing both SHAs with that audit's separately
 frozen product commit and tree. Nothing resolves a moving product branch at runtime.
-The unpublishable draft uses `REPLACE_PRODUCT_COMMIT` and `REPLACE_PRODUCT_TREE`;
-both must be replaced before publication. The normal strict target parser
-rejects these placeholders. It has no draft execution or target fallback.
+The strict target parser accepts only full immutable commit and tree hashes.
+It has no draft execution or target fallback.
 
 Publish exactly these five files as a fresh Git tree without a product base:
 
@@ -103,23 +105,24 @@ unittest.TestLoader().discover('tests', top_level_dir='.')
 It records every ordered method ID, count, description, loader error, declared
 skip and expected failure, without executing any test body. The separate
 interpreter prevents discovery imports from changing the environment of the
-actual v4 process. An earlier local Python 3.12 discovery, before this round's mapping addition,
-found 4731 unique IDs; that number is informational. The audit uses the actual
-Python 3.14 discovery of its final target and includes any newly added tests.
+actual v4 process. The audit uses the actual Python 3.14 discovery of its final
+target and includes every newly added test. Earlier discovery counts and prior
+run results are never credited to this target.
 It imposes no fixed count or selector subset. Missing declared prerequisites
 leave full discovery evidence and prevent an attempted passing run.
 
 The pre-discovery environment mirrors v4's existing static selector removals
 and its original cold-report bindings, read from the admitted v4 source.
-Twenty-one newer cold selectors, including `NATIVE_MAPPING`, additionally point
+Twenty-four newer cold selectors, including `NATIVE_MAPPING`, additionally point
 to **this same run's future `qualification/cold.json`**. The real unchanged v4
 still performs its own original assignments. All native consumers retain their
 existing matching-source cold admission. The two `WRONG_COLD_REPORT` negative
 control variables are never populated.
 
-The current additions are `BOUNDED_MEMORY`, `SCALAR_PROFILE`,
-`GENERATION_RETENTION`, `PUBLICATION_MEASUREMENT`, and the actual
-`SHA256_STREAM_DIFFERENTIAL` cold selector. Full discovery retains the original
+The additions include `BOUNDED_MEMORY`, `SCALAR_PROFILE`,
+`GENERATION_RETENTION`, `PUBLICATION_MEASUREMENT`, the actual
+`SHA256_STREAM_DIFFERENTIAL` selector, and the new `FULL_COST`, `PATCH_IMPACT`
+and `CLI_DISCOVERY_JSON` selectors. Full discovery retains the original
 mapping, scalar, measurement, generation and stream differential component
 evidence under `qualification/full-discovery-components/`. Before execution the
 harness checks the same source/native tuples that v4 extracts, together with
@@ -128,6 +131,17 @@ in full discovery, so their evidence directories are not reused by an earlier
 stage. Their source-only classes stay in the existing source test tuple.
 Inherited production manifests and development compiler alternatives for these
 components are removed before the same-run cold bindings are applied.
+
+Full-cost and patch-impact native classes retain their actual same-cold builds,
+compiler readback records and installed-wheel/bundle observations in separate
+evidence directories. CLI discovery's explicit cold-report setup calls the
+original strict fixture builder after the unchanged v4 has produced its cold
+report. The original JSON class and selected CLI class each own a separate
+fixture directory. The latter also builds and admits the original CLI control
+and format images against that same compiler. No pre-existing cold fixture,
+development manifest or inherited CLI companion is used. All four new native
+classes must first execute in complete discovery and must have complete
+ordered successful method observations before supplemental acceptance.
 
 ## Original full execution and bounds
 
@@ -169,7 +183,7 @@ visible when a prerequisite, component or final suite fails.
 `whole_native_delivery_qualified` remains false even after a passing retained
 regression; the original v4 does not grant whole-native product qualification.
 
-## Supplemental callers without repeating component suites
+## Supplemental callers and original CLI group limits
 
 The workflow's separate supplemental step does not insert a stage into v4 or
 change its `steps.json`. It requires all 35 original stages to have been reached,
@@ -179,7 +193,7 @@ variable or from a generated source file.
 
 The component modules already run through complete discovery. The independent
 qualifier commands in the product workflow are not part of the two tuples that
-v4 extracts. The supplemental step therefore runs only the missing original
+v4 extracts. The supplemental step runs the missing original
 scalar-profile, bounded-memory and generation-retention caller qualifiers,
 each with the same `qualification/cold.json`. Generation uses the original
 `--require-companion-policies` gate with mapping, scalar and measurement
@@ -198,14 +212,34 @@ with that cold compiler. The produced manifest must name exactly the candidate
 image hash that the original differential class actually executed. The older
 `test_hia_sha256_stream_native` development fixture is not relabelled as cold.
 
-All four supplemental commands use the unmodified product workflow supervisor
-with its ordinary 1800-second budget. Original caller tests retain their own
-limits and zero-anomaly conditions. Reports require complete planned/started/
-stopped IDs, nonzero exact counts, zero skips, and preserved captured inputs.
+The two additional full-cost and patch-impact caller qualifiers build their
+images from this same cold compiler and run every declared original caller
+module with the retained Python decision bodies forbidden. Reports must retain
+identical planned/started/stopped IDs, positive actual native call counts, the
+exact image identity and unchanged complete source and bundle inputs.
+
+Two further commands run the unchanged four-group CLI-discovery qualifier and
+the complete ordinary CLI-discovery caller qualifier. Complete discovery alone
+does not establish their original per-group deadlines. The four original groups
+therefore execute again under their existing 180-second qualification and
+three-second cleanup owners, retaining all 61 native frames, six independent
+full-buffer VM controls, public byte-API checks and the actual installed wheel.
+The selected caller qualifier retains all three methods and twenty native JSON
+calls through both ordinary CLI routes. Its real CLI control/format compilation,
+JSON fixture, source identities and original process-owner results are checked
+again against this run's exact cold report. These are additional observations,
+not extra credit in the full-discovery denominator.
+
+All eight supplemental commands use the unmodified product workflow supervisor
+with its ordinary 1800-second budget. The original inner limits, including the
+CLI compilation and installed subprocess limits of twenty seconds, remain in
+force. Reports require complete planned/started/stopped IDs, nonzero exact
+counts, zero skips, and preserved captured inputs.
 The supplemental result is separate from the original full result; a successful
 GitHub job requires both. An original full failure remains a failure even if
-these added caller gates pass. No component test suite is executed again by
-the supplemental step.
+these added caller gates pass. The five previously retained component suites
+are not repeated by the supplement; the added CLI group and caller executions
+are explicitly recorded with their separate original bounds.
 
 The retained v4 plus this supplement does not reproduce every independent step
 of the current `hia-core.yml`: the selected mapping and publication-measurement

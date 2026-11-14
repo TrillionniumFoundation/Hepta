@@ -125,7 +125,7 @@ jobs:
             --output "$HIA_AUDIT_ROOT/full-run" \
             > "$HIA_AUDIT_ROOT/setup/gate-wrapper.stdout" 2> "$HIA_AUDIT_ROOT/setup/gate-wrapper.stderr"
 
-      - name: Require missing original callers and the same-cold production SHA image
+      - name: Require complete original callers, CLI group limits and same-cold images
         if: ${{ !cancelled() }}
         shell: bash
         run: |
