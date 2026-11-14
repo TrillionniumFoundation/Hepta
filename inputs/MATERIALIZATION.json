@@ -1609,6 +1609,83 @@
       "path": "tools/hia_selfhost_contract.py",
       "to": "8fa1577270bf6e0765ea0a10b68ff8a7dccb3c02",
       "to_packet": "representation-components-integration-r16-02"
+    },
+    {
+      "from": "2866965fc3122b610a6608983045e637cb40d0fa",
+      "from_packet": "representation-components-integration-r16-00",
+      "path": ".github/workflows/hia-core.yml",
+      "to": "02a0e2704cdc93e9fbfb3e55768c134e393df764",
+      "to_packet": "report-roundtrip-optional-profiles-integration-r19-00"
+    },
+    {
+      "from": "41c20354306bbface78d9057cc8270eb5124b29c",
+      "from_packet": "representation-components-integration-r16-00",
+      "path": "MANIFEST.in",
+      "to": "a10df07249a106ae906db05cc8c24e6879399654",
+      "to_packet": "report-roundtrip-optional-profiles-integration-r19-00"
+    },
+    {
+      "from": "a5aa0d83d952ea947214e95cbb9fdb41916afe5f",
+      "from_packet": "linux-file-render-v3-integration-r14-01",
+      "path": "hepta/hia_agent_assembly.py",
+      "to": "f547c9c8078c4bfea7df488cc996f7061be3a2ac",
+      "to_packet": "report-roundtrip-optional-profiles-integration-r19-01"
+    },
+    {
+      "from": "467172725c3d9c076836d906b9946ad1ca4b0472",
+      "from_packet": "representation-components-integration-r16-01",
+      "path": "hepta/hia_agent_contract.py",
+      "to": "c7f63324186b6baf5ade369843b4c0364f942d98",
+      "to_packet": "report-roundtrip-optional-profiles-integration-r19-02"
+    },
+    {
+      "from": "abdf466ddad0a3ff6bbc5fe24d7cda028f516f70",
+      "from_packet": "linux-file-render-v2-integration-r13-03",
+      "path": "hepta/hia_checker_identity.py",
+      "to": "4455babbad685f1b1b6e2d07f8261a25347b1d17",
+      "to_packet": "report-roundtrip-optional-profiles-integration-r19-02"
+    },
+    {
+      "from": "4b95e056092be82531a03894f130493e89d38bd5",
+      "from_packet": "cli-discovery-bundle-integration-r11-00",
+      "path": "hepta/hia_cli_native.py",
+      "to": "5d33ab8be69faf922cc3c92b0e226e4180169bcc",
+      "to_packet": "report-roundtrip-optional-profiles-integration-r19-02"
+    },
+    {
+      "from": "c3573d0588e51f576e0afa4567e684409e16acc7",
+      "from_packet": "linux-file-render-v3-integration-r14-01",
+      "path": "hepta/hia_program.py",
+      "to": "d56089119158ff6f27de605140f0fbdf23c9e006",
+      "to_packet": "report-roundtrip-optional-profiles-integration-r19-02"
+    },
+    {
+      "from": "a7a87ffe09e8a3756422e3c1863f6f9bb3107d50",
+      "from_packet": "linux-file-render-v3-integration-r14-01",
+      "path": "hepta/hia_program_runtime.py",
+      "to": "d1c95d4ea30fe9cc5a368017a61439049c74d925",
+      "to_packet": "report-roundtrip-optional-profiles-integration-r19-02"
+    },
+    {
+      "from": "4eb7faaae67e53a32f7d084c86e9a7ab587a2f96",
+      "from_packet": "joint-launcher-entry-candidate-store-plan-r5-01",
+      "path": "setup.py",
+      "to": "2199c41e3bbb2c5e012faecf73e828563a0260a4",
+      "to_packet": "report-roundtrip-optional-profiles-integration-r19-02"
+    },
+    {
+      "from": "64a739c5c9cf239da1ff232dd2eab622beeca5e6",
+      "from_packet": "cli-discovery-bundle-integration-r11-01",
+      "path": "tests/fixtures/hia_cli_routing_retained.json",
+      "to": "f7a3b336b41b836b10eee81e85b3cd66eb50439f",
+      "to_packet": "report-roundtrip-optional-profiles-integration-r19-03"
+    },
+    {
+      "from": "8fa1577270bf6e0765ea0a10b68ff8a7dccb3c02",
+      "from_packet": "representation-components-integration-r16-02",
+      "path": "tools/hia_selfhost_contract.py",
+      "to": "4328fe50e7ae9a0407c6d4f2abd1499440b226e5",
+      "to_packet": "report-roundtrip-optional-profiles-integration-r19-05"
     }
   ],
   "asset_references": [
@@ -1958,7 +2035,7 @@
       "reason": "Latest main adds three failure-diagnostic lines without changing the original decision or limits."
     }
   ],
-  "expected_authored_files": 481,
+  "expected_authored_files": 524,
   "final_inventory_commands": [
     [
       "tools/audit_hia_native_rewrite.py",
@@ -2100,7 +2177,12 @@
     "native_file_render",
     "assembly_reparse",
     "core_representation_internal",
-    "core_representation_private"
+    "core_representation_private",
+    "file_render_checker_v4",
+    "selfhost_linux_file_roundtrip",
+    "linux_file_roundtrip_entry",
+    "native_file_roundtrip",
+    "verified_report"
   ],
   "harness_files": [
     {
@@ -2720,6 +2802,54 @@
       "label": "representation-components-integration-r16-02",
       "layout": "array-after",
       "sha256": "447c28c892901e5c06fcb33b99c0c2a20d5f51f323180fea5722c85a0f28f21b"
+    },
+    {
+      "blob": "de547713a26a4f0c12ee92ec68cc2ea742272843",
+      "bytes": 627172,
+      "files": 7,
+      "label": "report-roundtrip-optional-profiles-integration-r19-00",
+      "layout": "array-after",
+      "sha256": "260217ff774834d8f292f7f15c9b67bfb2bf0732180720cef14e7e75a40a2a79"
+    },
+    {
+      "blob": "7f01c697ba59001b477edc8d82d7084db40f825b",
+      "bytes": 601071,
+      "files": 3,
+      "label": "report-roundtrip-optional-profiles-integration-r19-01",
+      "layout": "array-after",
+      "sha256": "24ad909aae941aebfa8b72b1e005382cfd927f789df7e1564ac0629c7e3833f5"
+    },
+    {
+      "blob": "bb147d58370e37e599f517b37a3d3cbb0c6eabb6",
+      "bytes": 608590,
+      "files": 11,
+      "label": "report-roundtrip-optional-profiles-integration-r19-02",
+      "layout": "array-after",
+      "sha256": "868846727aace8ce7eadd2d0c829043c97e8cb701c164366af1207a0f267343e"
+    },
+    {
+      "blob": "1fd24d7291d12dd5b393e8740082d68529e1bb85",
+      "bytes": 359931,
+      "files": 1,
+      "label": "report-roundtrip-optional-profiles-integration-r19-03",
+      "layout": "array-after",
+      "sha256": "8d5ea2f4c02f8cb2eff9660659313e02211be7e2834ecc8e71f46f61caed309d"
+    },
+    {
+      "blob": "8c54cc4ab860c32c21ac38425ed1ae10d1bc3451",
+      "bytes": 612980,
+      "files": 18,
+      "label": "report-roundtrip-optional-profiles-integration-r19-04",
+      "layout": "array-after",
+      "sha256": "a9428cc93ab7b5c71b5936b6cfd4d38a1a773b3530c59881da71c7dde91b4081"
+    },
+    {
+      "blob": "9cd10b84edc6f5f5fa0931009701d052be1b1736",
+      "bytes": 410015,
+      "files": 14,
+      "label": "report-roundtrip-optional-profiles-integration-r19-05",
+      "layout": "array-after",
+      "sha256": "b97dbbb0880f49f803d1f14fe7279da2f1b1a5138e5618691ec8379cdadca4e5"
     }
   ],
   "physical_migration": [
@@ -4939,6 +5069,134 @@
     "selectors": 232,
     "whole_native": false
   },
+  "r19_integration": {
+    "Core": 54,
+    "MECH": 56,
+    "SOURCE_FILES": 1400,
+    "Source_expected": 1411,
+    "all_original_ordered_projections_required": true,
+    "base_plan": {
+      "bytes": 342530,
+      "git_blob": "cb22fcf729aab99441773428a10e83308380ff33",
+      "mode": "100644",
+      "sha256": "e421c079836db85aea5e3ff7a55e5a4aeb2dc84ce48a59eda7431ceac212e6c2"
+    },
+    "changed_existing_paths": [
+      ".github/workflows/hia-core.yml",
+      "MANIFEST.in",
+      "hepta/hia_agent_assembly.py",
+      "hepta/hia_agent_contract.py",
+      "hepta/hia_checker_identity.py",
+      "hepta/hia_cli_native.py",
+      "hepta/hia_program.py",
+      "hepta/hia_program_runtime.py",
+      "setup.py",
+      "tests/fixtures/hia_cli_routing_retained.json",
+      "tools/hia_selfhost_contract.py",
+      "tools/hia_selfhost_process_owner.py"
+    ],
+    "component_results_inherited": false,
+    "default_resources": 210,
+    "exact_generated_author_preimage_reconciliations": [
+      {
+        "actual_R16_formal_source_equal": true,
+        "all_function_and_class_AST_equal": true,
+        "author_chain_before": {
+          "bytes": 332406,
+          "git_blob": "abdf466ddad0a3ff6bbc5fe24d7cda028f516f70",
+          "mode": "100644",
+          "sha256": "5f68fc9a89bb909643f22b7571820ac9f68224efaca896449fc776f7ad4c5e9f"
+        },
+        "materialized_source_before": {
+          "bytes": 343801,
+          "git_blob": "80f71aa010b373b387357c29772441fa93e0dd79",
+          "mode": "100644",
+          "sha256": "2a8a99b1a80ed07341c524b4937cf49e0b1a17b436aaaed40fa4d638d449c3d0"
+        },
+        "only_five_generated_assignments_changed": [
+          "CORE_SOURCE_FILES",
+          "CHECKER_IMPORT_EDGES",
+          "CHECKER_SOURCE_ROLES",
+          "CHECKER_DYNAMIC_IMPORTS",
+          "CHECKER_EXTERNAL_IMPORTS"
+        ],
+        "original_author_packet": "linux-file-render-v2-integration-r13-03",
+        "path": "hepta/hia_checker_identity.py"
+      }
+    ],
+    "expected_ids": {
+      "bytes": 1846503,
+      "git_blob": "27a1ab38d1578b52289cb0aa51be4888e9946ab2",
+      "mode": "100644",
+      "sha256": "c2f0a26bf399872dd7789a1fcfe906d25d23a0ea4704a054746e0ce28e4b36e9"
+    },
+    "first_authored_existing_paths": [
+      "tools/hia_selfhost_process_owner.py"
+    ],
+    "first_authored_existing_preimages": {
+      "tools/hia_selfhost_process_owner.py": {
+        "bytes": 17601,
+        "git_blob": "6f600ab75894859b9840c0311cc8891a67b6c53a",
+        "mode": "100644",
+        "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+      }
+    },
+    "full_Source_executed": false,
+    "generators": 139,
+    "new_paths": [
+      "docs/HIA_LINUX_FILE_ROUNDTRIP_COLD.md",
+      "docs/HIA_VERIFIED_REPORT_NATIVE.md",
+      "examples/hia_bootstrap/file_render_checker_v4.hepta",
+      "examples/hia_bootstrap/linux_file_roundtrip_entry_packer.hepta",
+      "examples/hia_bootstrap/native_file_roundtrip.hepta",
+      "examples/hia_bootstrap/selfhost_linux_file_roundtrip.hepta",
+      "examples/hia_bootstrap/verified_report.hepta",
+      "hepta/hia_cli_verified_report_native.py",
+      "hepta/hia_linux_file_roundtrip.py",
+      "hepta/hia_optional_profiles.py",
+      "hepta/hia_verified_report_native.py",
+      "hepta/hia_verified_report_ports.py",
+      "tests/fixtures/hia_linux_file_roundtrip_retained.zlib.json",
+      "tests/fixtures/hia_linux_file_roundtrip_source_frames.zlib.json",
+      "tests/fixtures/hia_verified_report_retained.json",
+      "tests/hia_linux_file_roundtrip_cases.py",
+      "tests/hia_linux_file_roundtrip_exec.py",
+      "tests/hia_linux_file_roundtrip_ids.py",
+      "tests/hia_linux_file_roundtrip_installed.py",
+      "tests/hia_linux_file_roundtrip_observer.py",
+      "tests/hia_linux_file_roundtrip_portable.py",
+      "tests/test_hia_cli_verified_report_native.py",
+      "tests/test_hia_linux_file_roundtrip_cold.py",
+      "tests/test_hia_linux_file_roundtrip_source.py",
+      "tests/test_hia_optional_profile_races.py",
+      "tests/test_hia_optional_profiles.py",
+      "tests/test_hia_verified_report_source.py",
+      "tools/build_hia_cli_verified_report_bundle.py",
+      "tools/build_hia_linux_file_roundtrip_cold.py",
+      "tools/build_hia_linux_file_roundtrip_program.py",
+      "tools/generate_hia_file_render_checker_v4.py",
+      "tools/generate_hia_linux_file_roundtrip_entry.py",
+      "tools/generate_hia_native_file_roundtrip.py",
+      "tools/generate_hia_selfhost_linux_file_roundtrip.py",
+      "tools/generate_hia_verified_report.py",
+      "tools/hia_cli_verified_report_custody.py",
+      "tools/hia_linux_file_roundtrip_cold.py",
+      "tools/hia_linux_file_roundtrip_readback.py",
+      "tools/hia_verified_report_controls.py",
+      "tools/hia_verified_report_policy.py",
+      "tools/qualify_hia_cli_verified_report_bundle.py",
+      "tools/qualify_hia_linux_file_roundtrip.py"
+    ],
+    "optional_union": 8,
+    "original_Native121_fragment_projection_exact": true,
+    "prepared_R16_tree": "6272c76d61e55393b665f7091d274720d50451ca",
+    "prepared_source_files": 3175,
+    "prepared_source_tree": "ab0514765fc819b921557b9d857a9a13a1a4f48b",
+    "prior_R16_full_Source_status": "1353_PASS_3_FAIL_1_ERROR_PRESERVED",
+    "prior_R16_original62_executed": 0,
+    "selectors": 239,
+    "whole_native": false
+  },
   "r5_integration": {
     "all_resource_total": 192,
     "component_packets": {
@@ -6607,7 +6865,7 @@
     }
   },
   "source_contract": {
-    "declared_paths": 1357,
+    "declared_paths": 1400,
     "profile": "selfhost-core-linux-x86_64-v93-merged-native-development-pending"
   },
   "source_evidence_capture_r12": {
@@ -6994,18 +7252,18 @@
       }
     ],
     "after_fragment": {
-      "blob": "5de1594854f646f3648ca1dab515a5e8b8520ef3",
-      "bytes": 23601,
-      "git_blob": "5de1594854f646f3648ca1dab515a5e8b8520ef3",
+      "blob": "4eef2a27c8692c0e647013ca7afd74c97f1ea6a5",
+      "bytes": 24325,
+      "git_blob": "4eef2a27c8692c0e647013ca7afd74c97f1ea6a5",
       "mode": "100644",
-      "sha256": "34e097e5f61839b36b40c3f7bd67164f533b0becbb4567eadf25cd57f16d6968"
+      "sha256": "a5231c977983a5fd514ff20ea20b026aac3c5710c32064d89eaf40e30ba2a3a0"
     },
     "authored_counts": {
       "actual_executed_tests": null,
       "actual_loaded_test_ids": null,
-      "generators": 134,
-      "owner_loop_generators": 134,
-      "selectors": 232
+      "generators": 139,
+      "owner_loop_generators": 139,
+      "selectors": 239
     },
     "covered_selectors": [
       {
@@ -7040,7 +7298,14 @@
       "tests.test_hia_cli_discovery_routing_native.CliDiscoveryRoutingSourceTests",
       "tests.test_hia_linux_file.LinuxFileSourceTests",
       "tests.test_hia_linux_file_render.LinuxFileRenderSourceTests",
-      "tests.test_hia_core_representation_source.CoreRepresentationSourceTests"
+      "tests.test_hia_core_representation_source.CoreRepresentationSourceTests",
+      "tests.test_hia_verified_report_source.VerifiedReportSourceTests",
+      "tests.test_hia_linux_file_roundtrip_source.LinuxFileRoundtripSourceTests",
+      "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests",
+      "tests.test_hia_optional_profiles.OptionalProfileSourceTests",
+      "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests",
+      "tests.test_hia_linux_file_roundtrip_cold.LinuxFileRoundtripColdSourceTests",
+      "tests.hia_linux_file_roundtrip_portable.RoundtripProfileCaptureSourceTests"
     ],
     "generator_renames": {
       "core_emitter": "core_emitter_control",
@@ -7182,7 +7447,12 @@
       "native_file_render",
       "assembly_reparse",
       "core_representation_internal",
-      "core_representation_private"
+      "core_representation_private",
+      "file_render_checker_v4",
+      "selfhost_linux_file_roundtrip",
+      "linux_file_roundtrip_entry",
+      "native_file_roundtrip",
+      "verified_report"
     ],
     "inputs": {
       "a733": "a733926a2786a3d4a37304bd2d18ebb2eac57ac9",
@@ -7398,7 +7668,9 @@
       "R12 preserves all prior Source methods and ordered selectors. It adds twelve LinuxFileSourceTests and one SourceSuffix method, three generators, eight SOURCE_FILES, three ENTRY assets, and one explicit mechanism provider. All 121 Native step bytes remain exact. There is no new Native selector or matching-current-source cold qualification. The inherited R11 parser generator failed on actual CPython 3.14.4 before any product tests; that failure remains unchanged and requires a separate successor revision.",
       "R13 adds the frozen v2 file renderer, five generators, thirteen source paths, five ENTRY assets, one explicit mechanism provider, nine component Source controls, and one SourceSuffix control. All old IDs, original assertion counts, and 121 Native workflow steps are retained. No component result transfers to this union, no old CLI action is retired, and no current-source cold qualification is claimed. R12-R2 historical parser records and failures remain exact.",
       "R14 applies the exact frozen file-render v2-to-v3 delta and two exact-path version maps. It adds one Source method, with all old IDs and assertions retained. No selector, generator, resource role, provider edge, Source environment or Native workflow step changes. Development130, Source10 and newVM4 do not qualify this union; the actual oldVM7 6PASS1FAIL remains a separate preserved version transition. No cold or whole-native result is inherited.",
-      "R16 adds the separate complete public R7 representation, independent formatter inverse and private three-request R8 representation: twelve new paths, three generators, three ENTRY build assets and four Source controls in one new selector. Six author helpers are dependencies, not additional generator entries. Existing R14 test files and the entire original Native121 workflow remain byte-identical. No component Native/VM, installed, portable or cold result transfers to the combined source. R15 fixture failures and its three-control passing successor remain separate originals."
+      "R16 adds the separate complete public R7 representation, independent formatter inverse and private three-request R8 representation: twelve new paths, three generators, three ENTRY build assets and four Source controls in one new selector. Six author helpers are dependencies, not additional generator entries. Existing R14 test files and the entire original Native121 workflow remain byte-identical. No component Native/VM, installed, portable or cold result transfers to the combined source. R15 fixture failures and its three-control passing successor remain separate originals.",
+      "R19 adds the frozen R17 report and roundtrip source work, R18 portable report, explicit optional profile registry and safe captured bytes, and permanent roundtrip cold/native/portable controls. The complete default worker contract is restored byte-for-byte to its original 19 ENTRY, 92 NATIVE and 210-resource form; the eight optional HIA assets remain explicitly registered in the source closure and selected only by named build profiles. All old Source ordered projections and the original Native121 fragment are retained under two explicit new qualifier/archive insertions. All earlier failures and each component version remain separate. No component Source, Native, installed, portable or cold observation supplies qualification for this combined source.",
+      "The existing process-owner helper becomes an explicit authored path for the first time. Its exact prior blob 6f600ab75894859b9840c0311cc8891a67b6c53a is retained. The new optional supervisor_env parameter is used only by the new roundtrip qualifier to bind the already running interpreter and its actual library; the None default preserves all original callers, owner request schema, deadline and cleanup behavior. No ambient-loader precondition is imposed on interpreters that already start through their ordinary runtime search configuration."
     ],
     "original_source_blocks": {
       "a733": {
@@ -7450,6 +7722,13 @@
       "git_blob": "270a658f940d8caf990245a11d81595d38ddba60",
       "mode": "100644",
       "sha256": "1dbdc06ec367378a8d5a64032194ee535919225387fad24636bace3aa6e11329"
+    },
+    "prior_after_fragment_r16": {
+      "blob": "5de1594854f646f3648ca1dab515a5e8b8520ef3",
+      "bytes": 23601,
+      "git_blob": "5de1594854f646f3648ca1dab515a5e8b8520ef3",
+      "mode": "100644",
+      "sha256": "34e097e5f61839b36b40c3f7bd67164f533b0becbb4567eadf25cd57f16d6968"
     },
     "prior_after_fragment_r4": {
       "blob": "074447bde1d93f3b8ab5c5c4f997f58f94e724d0",
@@ -7514,6 +7793,13 @@
       "After all deterministic output reproduction checks, git add final sources and generated outputs; run the static native inventory once and stage it.",
       "Run the actual231 selectors, with ordered IDs and both original projections; no authored method count substitutes for loading."
     ],
+    "prior_required_support_actions_r16": [
+      "Install all fixed owner source overlays and all new SOURCE_FILES before generation.",
+      "Run checker generation before and after all134 owner generators; run its final --check.",
+      "Run original language --generate-inventory before support-contract generation because the contract includes that file.",
+      "After all deterministic output reproduction checks, git add final sources and generated outputs; run the static native inventory once and stage it.",
+      "Run the actual232 selectors, with ordered IDs and both original projections; no authored method count substitutes for loading."
+    ],
     "prior_required_support_actions_r5": [
       "Install all fixed owner source overlays and all new SOURCE_FILES before generation.",
       "Run checker generation before and after all109 owner generators; run its final --check.",
@@ -7571,10 +7857,10 @@
     "required_native_addendum": "Included by the complete workflow in this packet; all original steps and per-test limits remain.",
     "required_support_actions": [
       "Install all fixed owner source overlays and all new SOURCE_FILES before generation.",
-      "Run checker generation before and after all134 owner generators; run its final --check.",
+      "Run checker generation before and after all139 owner generators; run its final --check.",
       "Run original language --generate-inventory before support-contract generation because the contract includes that file.",
       "After all deterministic output reproduction checks, git add final sources and generated outputs; run the static native inventory once and stage it.",
-      "Run the actual232 selectors, with ordered IDs and both original projections; no authored method count substitutes for loading."
+      "Run the actual239 selectors, with ordered IDs and both original projections; no authored method count substitutes for loading."
     ],
     "schema": "hepta.hia.source-workflow-registration.v2",
     "selector_renames": {
@@ -7815,7 +8101,14 @@
       "tests.test_hia_cli_discovery_routing_native.CliDiscoveryRoutingSourceTests",
       "tests.test_hia_linux_file.LinuxFileSourceTests",
       "tests.test_hia_linux_file_render.LinuxFileRenderSourceTests",
-      "tests.test_hia_core_representation_source.CoreRepresentationSourceTests"
+      "tests.test_hia_core_representation_source.CoreRepresentationSourceTests",
+      "tests.test_hia_verified_report_source.VerifiedReportSourceTests",
+      "tests.test_hia_linux_file_roundtrip_source.LinuxFileRoundtripSourceTests",
+      "tests.test_hia_cli_verified_report_native.CliVerifiedReportSourceTests",
+      "tests.test_hia_optional_profiles.OptionalProfileSourceTests",
+      "tests.test_hia_optional_profile_races.OptionalProfileRaceSourceTests",
+      "tests.test_hia_linux_file_roundtrip_cold.LinuxFileRoundtripColdSourceTests",
+      "tests.hia_linux_file_roundtrip_portable.RoundtripProfileCaptureSourceTests"
     ],
     "status": "AUTHORED_NOT_EXECUTED"
   },
