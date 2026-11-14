@@ -44,11 +44,16 @@ class NativeFullCost(NativeHiaJsonImage):
     def observe(self, wire):
         if type(wire) is not bytes:
             raise TypeError('full-cost arithmetic requires exact admitted-fact bytes')
+        binding = getattr(self, '_default_package_binding', None)
+        if binding is not None:
+            binding.check_files()
         source = ctypes.create_string_buffer(wire, max(1, len(wire)))
         initial = b'\xa5' * OUTPUT_BYTES
         output = ctypes.create_string_buffer(initial, OUTPUT_BYTES)
         unused = ctypes.create_string_buffer(1)
         code = self._entry(source, len(wire), output, OUTPUT_BYTES, unused, 0)
+        if binding is not None:
+            binding.check_files()
         if source.raw != (wire or b'\0') or unused.raw != b'\0':
             raise RuntimeError('full-cost image changed immutable facts or zero-length workspace')
         if code != OUTPUT_BYTES:

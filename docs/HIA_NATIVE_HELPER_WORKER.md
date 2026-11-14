@@ -16,7 +16,11 @@ Pass both arguments to `python -m hepta.hia_agent_worker`:
 The same flags apply to `--installation-manifest` and request execution. A
 selected installation and terminal worker report include the optional
 `native_helpers_sha256` identity. An unselected installation retains its three
-existing identities. Native selection is not enabled by default.
+existing identities. Source checkouts and ordinary portable wheels retain this
+unselected default. The explicit [default-owner candidate wheel](HIA_DEFAULT_NATIVE_RELEASE.md)
+automatically binds its fixed package bundle when administrator flags are absent.
+An administrator bundle still defines the complete executable set; it cannot be
+supplemented by package defaults. The worker and durable service remain hosted.
 
 ## Bundle format and executable custody
 

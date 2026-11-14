@@ -353,6 +353,13 @@ class HIAAgentService:
         return verify_program(decode_json(data))
 
     def _context(self, ref):
+        from .hia_service_context_selection import run_service_context, UNSELECTED
+        result = run_service_context(2, self, ref)
+        if result is UNSELECTED:
+            return _NATIVE_SERVICE_CONTEXT_LOOKUP_REFERENCE(self, ref)
+        return result
+
+    def _context_reference(self, ref):
         keys(ref, ("id", "sha256"), label="context reference")
         row = self.store.db.execute("SELECT * FROM contexts WHERE id=?", (ref["id"],)).fetchone()
         if row is None or row["sha256"] != ref["sha256"]:
@@ -366,6 +373,13 @@ class HIAAgentService:
         return context
 
     def _budget(self, context, *, candidate=False):
+        from .hia_service_context_selection import run_service_context, UNSELECTED
+        result = run_service_context(3, self, context, candidate=candidate)
+        if result is UNSELECTED:
+            return _NATIVE_SERVICE_CONTEXT_BUDGET_REFERENCE(self, context, candidate=candidate)
+        return result
+
+    def _budget_reference(self, context, *, candidate=False):
         row = self.store.db.execute("SELECT * FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
         limits = context["budget"]
         if time.time_ns() - int(row["created_ns"]) > limits["max_total_wall_ms"] * 1_000_000:
@@ -385,6 +399,13 @@ class HIAAgentService:
             reject("E_HIA_BUDGET", "candidate attempt budget exhausted", "context")
 
     def _remaining_ms(self, context):
+        from .hia_service_context_selection import run_service_context, UNSELECTED
+        result = run_service_context(4, self, context)
+        if result is UNSELECTED:
+            return _NATIVE_SERVICE_CONTEXT_REMAINING_REFERENCE(self, context)
+        return result
+
+    def _remaining_ms_reference(self, context):
         row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
         deadline = int(row["created_ns"]) + context["budget"]["max_total_wall_ms"] * 1_000_000
         return max(0, (deadline - time.time_ns()) // 1_000_000)
@@ -478,6 +499,13 @@ class HIAAgentService:
         return {"artifact": ref, "encoding": encoding, "content": content, "next_cursor": next_cursor}
 
     def _hia_context(self, args):
+        from .hia_service_context_selection import run_service_context, UNSELECTED
+        result = run_service_context(1, self, args)
+        if result is UNSELECTED:
+            return _NATIVE_SERVICE_CONTEXT_FREEZE_REFERENCE(self, args)
+        return result
+
+    def _hia_context_reference(self, args):
         from .hia_agent_buffers import export_manifest, buffer_size, MAX_WORKLOAD_BUFFER_BYTES
         self._profile(args["compiler_profile"], "compiler")
         self._profile(args["target_profile"], "target")
@@ -1083,6 +1111,14 @@ class HIAAgentService:
         return objective
 
     def _cost_ledger(self, context, evaluation_wall_ns, native_wall_ns):
+        selected = os.environ.get('HEPTA_HIA_COST_LEDGER_MANIFEST')
+        if selected is not None:
+            from .hia_cost_ledger_native import installed_cost_ledger, CostLedgerFrame
+            return CostLedgerFrame(installed_cost_ledger(selected), self, context,
+                                   evaluation_wall_ns, native_wall_ns).finish()
+        return self._cost_ledger_reference(context, evaluation_wall_ns, native_wall_ns)
+
+    def _cost_ledger_reference(self, context, evaluation_wall_ns, native_wall_ns):
         rows = self.store.db.execute("SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001",
                                      (context["ref"]["id"],)).fetchall()
         truncated = len(rows) > 10000
@@ -1511,3 +1547,11 @@ class HIAAgentService:
         lease = self._lease(lease)
         self.store.db.execute("UPDATE leases SET active=0 WHERE id=?", (lease["id"],))
         return {"released": True, "generation": lease["generation"], "artifact_retained": True}
+
+
+# Direct references preserve the original private self/provider dispatch on
+# the unselected route; native continuations never invoke these policy bodies.
+_NATIVE_SERVICE_CONTEXT_FREEZE_REFERENCE = HIAAgentService._hia_context_reference
+_NATIVE_SERVICE_CONTEXT_LOOKUP_REFERENCE = HIAAgentService._context_reference
+_NATIVE_SERVICE_CONTEXT_BUDGET_REFERENCE = HIAAgentService._budget_reference
+_NATIVE_SERVICE_CONTEXT_REMAINING_REFERENCE = HIAAgentService._remaining_ms_reference

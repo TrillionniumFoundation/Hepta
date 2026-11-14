@@ -365,7 +365,7 @@ def symbol(w:mutbuf, o:mutbuf, node:u64, namespace:u64, insert:u64, value:u64) -
 '''
 
 
-def source_program():
+def source_program(*, diagnostics=None):
     constants = {'K_'+name: 1<<i for i,name in enumerate(KEYS)}
     constants.update({'NONE': (1<<64)-1, **ERRORS})
     constants.update({'T_'+name:i+1 for i,name in enumerate(TYPES)})
@@ -379,7 +379,8 @@ def source_program():
                 args.extend(ast.Constant(x) for x in literals[arg.id]) if isinstance(arg,ast.Name) and arg.id in literals else args.append(arg)
             node.args=args;return node
     helpers=[n for n in ast.parse(FRONTEND).body if n.name in {'kind','count','child','field','shape','same','text_is'}]
-    tree=Expand().visit(ast.parse(SOURCE+'\n'+ast.unparse(ast.Module(body=helpers,type_ignores=[]))))
+    source = SOURCE if diagnostics is None else diagnostics.function_source(SOURCE)
+    tree=Expand().visit(ast.parse(source+'\n'+ast.unparse(ast.Module(body=helpers,type_ignores=[]))))
     text=ast.unparse(ast.fix_missing_locations(tree))+'\n'
     key_fn=['def key_id(w:mutbuf, node:u64) -> u64:',
             '    start = get(w, 64 + node * 56 + 40)', '    size = get(w, 64 + node * 56 + 48)']

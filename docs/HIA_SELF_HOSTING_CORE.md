@@ -80,6 +80,33 @@ The observed child list is not a complete historical inventory of descendants
 that exited and were reaped normally. This remains process lifecycle control
 on the current host, not a security sandbox.
 
+The [process owner](../tools/hia_selfhost_process_owner.py) runs in a fresh
+`python -I -S -B` supervisor. It verifies its single-threaded state, default
+`SIGCHLD` disposition and subreaper readback before launch. Qualification uses
+an explicit argument vector and environment, with streams written directly to
+retained files. The deadline starts before the owner request and interpreter
+startup. The supervisor identifies direct children by bounded `/proc` PPID
+scans, retaining PID, start ticks, parent, process group and session; it observes
+terminal state with `waitid(WNOWAIT)` before exact `waitpid` reaping. Live owned
+children are terminated before the next adoption/cleanup pass.
+
+Receipt absence, metadata errors, an exhausted cleanup budget or an unconfirmed
+supervisor produce an explicit HOLD. The parent does not kill the subreaper
+first and then assert that its descendants were cleaned up. The cold runner
+reads no nested report until timely leader exit, actual status zero and
+confirmed cleanup have all been established. Unsupported process interfaces
+refuse before qualification launch. Kernel scheduling may prevent timely
+confirmation; it cannot convert an overdue observation into a pass.
+
+The [process-lifetime controls](../tests/test_hia_selfhost_process_owner.py)
+retain normal binary streams, timeout, leader-zero and leader-nonzero cases
+with children in separate sessions, exhausted cleanup, and invalid-platform
+admission. Their finite observations are separate from actual HIA qualification.
+Current source-specific run results are indexed in [CURRENT.md](CURRENT.md).
+The two superseded November 8 process narratives remain recoverable through
+the [published-object ledger](../review-evidence/hia-native-cleanup-20261111/retired-process-documents.json);
+their historical failures and successful controls are not current run receipts.
+
 ## Fixed seed and actual generation chain
 
 | Generation | Executed compiler | Input | Output construction |

@@ -93,8 +93,8 @@ def program_shape(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 '''
 
 
-def source_program():
-    nodes=ast.parse(function_source()).body
+def source_program(*, diagnostics=None):
+    nodes=ast.parse(function_source(diagnostics=diagnostics)).body
     original=nodes[0]
     assert original.name=='function_shape'
     cut=next(i for i,n in enumerate(original.body) if isinstance(n,ast.Assign)
@@ -121,7 +121,8 @@ def source_program():
     class Expand(ast.NodeTransformer):
         def visit_Name(self,node):
             return ast.copy_location(ast.Constant(constants[node.id]),node) if node.id in constants else node
-    root=Expand().visit(ast.parse(PROGRAM))
+    source = PROGRAM if diagnostics is None else diagnostics.program_source(PROGRAM)
+    root=Expand().visit(ast.parse(source))
     body=[*root.body,header,*nodes[1:]]
     text=ast.unparse(ast.fix_missing_locations(ast.Module(body=body,type_ignores=[])))+'\n'
     text+='def schema_version(w:mutbuf, node:u64) -> u64:\n'

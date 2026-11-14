@@ -213,9 +213,13 @@ def assess_full_cost(raw):
                                   minimum=1 if key == "execution_ns" else 0)
             _integer(row["peak_rss_bytes"], name + ".peak_rss_bytes", 1, MAX_BYTES)
             _integer(row["p99_ns"], name + ".p99_ns", 1)
-        if selected is not None and native is None:
-            from .hia_full_cost_native import installed_full_cost
-            native = installed_full_cost(selected)
+        if native is None:
+            if selected is not None:
+                from .hia_full_cost_native import installed_full_cost
+                native = installed_full_cost(selected)
+            else:
+                from .hia_default_native import default_image
+                native = default_image('HEPTA_HIA_FULL_COST_MANIFEST')
         if native is None:
             total, peak_rss, peak_p99 = _reference_arm(costs, rows)
         else:
