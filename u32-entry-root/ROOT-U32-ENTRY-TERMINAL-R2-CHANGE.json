@@ -1,0 +1,9 @@
+{
+  "before_git": "48e0bdab83a8d8a156dc7276cac61f1d78101ac5",
+  "after_git": "f0bd61949ec71cd45a8df06fb539894d69338e5b",
+  "change": "Root reader now distinguishes original compilation-time ELF mode0644 from original later chmod0700, verifies same complete bytes and later exact executable journal capture; four expected labels only. Product unchanged.",
+  "before": "for c in calls:\n for key in ('image','produced'):\n  if key in c:assert identity(c[key+'_path'])==c[key]\n",
+  "after": "mode_transitions=[]\nfor c in calls:\n for key in ('image','produced'):\n  if key not in c:continue\n  current=identity(c[key+'_path'])\n  if current!=c[key]:\n   assert key=='produced' and c['kind']=='compile' and c['label'] in [v.replace('-E2-run','-E1') for v in PLAN['expected']['executable_labels']]\n   assert c[key]['mode']==0o644 and c[key]['git_mode']=='100644' and current['mode']==0o700 and current['git_mode']=='100755'\n   assert {k:v for k,v in current.items() if k not in ('mode','git_mode')}=={k:v for k,v in c[key].items() if k not in ('mode','git_mode')}\n   later=next(x for x in calls if x['kind']=='executable' and x['image_path']==c[key+'_path'])\n   assert later['image']==current and later['started_monotonic_ns']>c['finished_monotonic_ns']\n   mode_transitions.append(dict(label=c['label'],before=c[key],after=current))\nassert len(mode_transitions)==4\n",
+  "product_changes": 0,
+  "product_retries": 0
+}
