@@ -1,30 +1,30 @@
 # Complete retained HIA qualification harness
 
-This independent extension starts at published harness
-`4c929543ade24b7ac9d740956bbb7294b84bab10`, tree
-`df7ab8ef25e220f17aa155ee5c513fa41af4eb72`. It retains the original 35 stages,
-18 supplemental jobs, complete original test inventories, dependency preparation,
-full-run 5,400-second bound and all original inner limits. It adds the complete
-transaction and artifact-delivery component readbacks and three whole-module
-caller gates described below. The original full archive and uploads remain;
-one separate artifact preserves only collector-owned raw text diagnostics.
+This source-binding successor starts at published harness `202e0cdd1cc0cf71918cf33f342f9fea1eaf8ce3`,
+tree `24b8f1ba07e7a9c56dee9ed2df3db16362a10844`. All 35 original stages,
+21 supplemental jobs, eight job tuples, complete test inventories, the 5,400-second
+full-run bound and every inner limit remain unchanged. The complete transaction
+and artifact-delivery readers, three final caller jobs, archive, dependency
+preparation and collector-owned raw diagnostic upload are inherited unchanged.
 
-**Published product target:** `bb3120d26cfd483b5cd85a13c72c90a24d119603`, tree
-`11d957ccbab3b0a765285d549306b45353483012`, sole parent
-`91bbd077ce5f7ff7b5236b1b14b7989b6e90a8a6`. The exact GitHub commit object, feature
-branch and draft PR head were independently read back before binding
-`target.json` and `FINAL_DELIVERY_FREEZE`. This successor includes the complete
-transaction and artifact-delivery integration, the narrow representation-lock
-repair, and the single-artifact raw-path workflow repair. Its complete new
-three-method lock regression module stays in the product's first Source tuple
-and complete discovery. It introduces no cold component or supplemental command.
+**Published product target:** `e7c1729345d5d06757b38a6ae1ce54ae9790fd85`, tree
+`fc74cd284dfa85a32dfb988baddb0bfb1ddcd61f`, sole parent
+`bb3120d26cfd483b5cd85a13c72c90a24d119603`. The exact Git commit object, product branch
+and preceding harness branch were independently read back before binding
+`target.json` and `FINAL_DELIVERY_FREEZE`. This successor preserves active exception context
+when unknown custody refuses retirement and repairs the nonexecuting standalone
+publication descriptor fixture without weakening production admission. All fifteen
+original standalone test methods remain. Five new integration Source methods
+join the actual product first Source tuple and complete discovery; the preceding
+three lock Source methods remain. No new component or supplemental job is added.
+The original Store warm test and its expected exception fields remain unchanged.
 
 The five-file successor fixture is
-`5560d263335d7c48a575eeb5a7a3a47f6c2122588608f837efb185bb371ef859` and its helper is
-`692f5bce0f4c58263a22f2e91f0c8d7699a83b23a282818768bd83f15887199e`. All five complete
+`e98fdea293d50b3f42b8f28661c1cdb0c01c915357e6269b801f47913a9382a7` and its helper is
+`f822a3fe818b6be18aec4a290687d8f38d431122e1896c36e90cf6620f380de9`. All five complete
 source hashes and their exact reversible original-byte pins are bound. The
 other four source hashes retain the preceding combination; the shared-delivery
-hash now includes the two representation-lock replacements.
+hash is now `d8d636a89fc691b8c5711ae0279b1f83e9149c3e15607bff7698b489ffd4f576`.
 
 This binding establishes source identity, not matching-current cold or full-suite
 qualification. Existing component HOLD results and historical failures remain.
@@ -33,6 +33,15 @@ cold-positive result. The original 35 stages, 18 prior supplemental jobs and
 three final-delivery caller jobs retain all reviewed commands and budgets.
 
 ## Previous target history
+
+The immediately preceding published harness `202e0cdd1cc0cf71918cf33f342f9fea1eaf8ce3`
+(tree `24b8f1ba07e7a9c56dee9ed2df3db16362a10844`) targeted product
+`bb3120d26cfd483b5cd85a13c72c90a24d119603`, tree `11d957ccbab3b0a765285d549306b45353483012`.
+Its fixture `5560d263335d7c48a575eeb5a7a3a47f6c2122588608f837efb185bb371ef859` and helper
+`692f5bce0f4c58263a22f2e91f0c8d7699a83b23a282818768bd83f15887199e` remain historical bindings.
+The original final-delivery extension began at harness
+`4c929543ade24b7ac9d740956bbb7294b84bab10`, preserving 18 prior supplemental
+jobs and adding the three caller jobs now inherited in this 21-job successor.
 
 The preceding harness was derived from `e40723c6eda02c888444059cad98189a65b284bb`,
 tree `9f3ac52ffa33d3316324dbe4a28c727fbe2868d4`. Its then-current target was the

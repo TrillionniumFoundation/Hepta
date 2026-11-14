@@ -176,13 +176,13 @@ ARTIFACT_DELIVERY_NATIVE_CLASS = "tests.test_hia_artifact_delivery.ArtifactDeliv
 # A draft fixture or an unbound target cannot enter a formal same-cold reader.
 FINAL_DELIVERY_FREEZE = {'five_source_sha256': {'hepta/artifact_publication_native.py': '3ede824779490e60d6cbaa17ce30ee3fcec166175fb8dc7f6b016743b2a94532',
                         'hepta/hia_agent_store.py': 'daeeca1b6a0e0e901a4958c115efeee877ba95fea3617b5226575f04482f2486',
-                        'hepta/hia_native_delivery.py': '4c217d213f16cc499649b509f553e4209882d6929281610d19150703e4e6ec46',
+                        'hepta/hia_native_delivery.py': 'd8d636a89fc691b8c5711ae0279b1f83e9149c3e15607bff7698b489ffd4f576',
                         'hepta/hia_store_lifecycle_native.py': '9ce14c14745cf50ae8ea1b32f7ea60d4ff4c3e95c66eb320f0f457d1dcc06df7',
                         'hepta/hia_store_lifecycle_selection.py': '6f56b91061c0be019ea5dceb86613d307793a4bf691228101776a46885887c7b'},
- 'product_commit': 'bb3120d26cfd483b5cd85a13c72c90a24d119603',
- 'product_tree': '11d957ccbab3b0a765285d549306b45353483012',
- 'successor_fixture_sha256': '5560d263335d7c48a575eeb5a7a3a47f6c2122588608f837efb185bb371ef859',
- 'successor_helper_sha256': '692f5bce0f4c58263a22f2e91f0c8d7699a83b23a282818768bd83f15887199e'}
+ 'product_commit': 'e7c1729345d5d06757b38a6ae1ce54ae9790fd85',
+ 'product_tree': 'fc74cd284dfa85a32dfb988baddb0bfb1ddcd61f',
+ 'successor_fixture_sha256': 'e98fdea293d50b3f42b8f28661c1cdb0c01c915357e6269b801f47913a9382a7',
+ 'successor_helper_sha256': 'f822a3fe818b6be18aec4a290687d8f38d431122e1896c36e90cf6620f380de9'}
 FINAL_STORE_SOURCE_PATHS = ("hepta/artifact_publication_native.py", "hepta/hia_agent_store.py",
                            "hepta/hia_store_lifecycle_selection.py")
 FINAL_STORE_SHARED_PATHS = ("hepta/hia_native_delivery.py", "hepta/hia_store_lifecycle_native.py")
