@@ -39,6 +39,18 @@ PORTS = (
     'build_result', 'receipt_result',
     'reject_native_subject', 'reject_native_identity', 'reject_build_subject',
     'reject_metadata', 'reject_build_bytes', 'reject_object',
+    'dispatch_native_call', 'dispatch_build_inputs_call',
+    'dispatch_signatures_lookup', 'dispatch_signatures_call',
+    'signature_param_reiterate', 'signature_returns_reiterate',
+    'build_metadata_reiterate',
+    'signature_scalar_reiterate', 'signature_params_reiterate',
+    'signature_export_params_reiterate',
+    'signature_scalar_release',
+    'signature_param_release_pass', 'signature_param_release_skip',
+    'signature_returns_release_pass', 'signature_returns_release_skip',
+    'signature_params_release', 'signature_export_loop_release',
+    'signature_export_params_release',
+    'build_metadata_release_pass', 'build_metadata_release_reject',
 )
 PORT = {name: index + 1 for index, name in enumerate(PORTS)}
 MODES = {'signatures': 1, 'native': 2, 'build_inputs': 3, 'build_receipt': 4}

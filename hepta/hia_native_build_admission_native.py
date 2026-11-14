@@ -6,6 +6,7 @@ ABI, Store, SHA-256 and individual object operations. Those providers remain
 explicit interoperability boundaries; they are not claimed newly native.
 """
 from __future__ import annotations
+from contextvars import ContextVar
 import ctypes
 from dataclasses import dataclass
 from functools import lru_cache
@@ -33,10 +34,31 @@ _FRAME_CUSTODY = {}
 _CUSTODY_LOCK = threading.Lock()
 _CUSTODY_PID = os.getpid()
 _REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
+_ACTIVE_FOREIGN_CALL = ContextVar('hia_native_build_admission_foreign_call', default=None)
 
 
 class NativeBuildAdmissionUnknown(RuntimeError):
     """A native observation is unconfirmed; the frame must not be replayed."""
+
+
+class _ForeignAdmissionCall:
+    """Causal scope for child native owners entered by one foreign call.
+
+The scope carries transport custody only. It never classifies an exception by
+its Python type or changes which user method the original call expression uses.
+    """
+    def __init__(self, frame):
+        self.frame = frame
+        self.active = False
+
+    def __enter__(self):
+        self.active = True
+        self.token = _ACTIVE_FOREIGN_CALL.set(self)
+
+    def __exit__(self, kind, error, traceback):
+        self.active = False
+        _ACTIVE_FOREIGN_CALL.reset(self.token)
+        return False
 
 
 def _after_fork_child():
@@ -102,6 +124,93 @@ def installed_native_build_admission(manifest_path):
     return selected
 
 
+def _global_signatures(namespace, builtins):
+    """Perform the original global/builtins name resolution.
+
+Leave missing lookup handlers before raising NameError, preserving its ordinary
+exception context and suppression flag rather than chaining an internal miss.
+    """
+    try:
+        value = namespace['_signatures']
+    except KeyError:
+        pass
+    else:
+        return value
+    try:
+        value = builtins['_signatures']
+    except KeyError:
+        pass
+    else:
+        return value
+    raise NameError("name '_signatures' is not defined", name='_signatures')
+
+
+@lru_cache(maxsize=1)
+def _runtime_generator_reiterations():
+    """Observe the interpreter's genexpr protocol on one private object.
+
+No user operation or Python-version threshold is involved. HIA uses this
+runtime fact to issue the original iterator operations at their body points.
+    """
+    class Probe:
+        def __init__(self):
+            self.iterations = 0
+
+        def __iter__(self):
+            self.iterations += 1
+            return self
+
+        def __next__(self):
+            raise StopIteration
+
+    probe = Probe()
+    generator = (None for _ in probe)
+    before = probe.iterations
+    try:
+        generator.__next__()
+    except StopIteration:
+        pass
+    return probe.iterations - before
+
+
+@lru_cache(maxsize=1)
+def _runtime_list_reiterations():
+    """Observe this interpreter's list-comprehension iterator protocol."""
+    class Probe:
+        def __init__(self):
+            self.iterations = 0
+
+        def __iter__(self):
+            self.iterations += 1
+            return self
+
+        def __next__(self):
+            raise StopIteration
+
+    probe = Probe()
+    [None for _ in probe]
+    return probe.iterations - 1
+
+
+@lru_cache(maxsize=1)
+def _runtime_dict_reiterations():
+    """Observe dict-comprehension entry separately from list and generator entry."""
+    class Probe:
+        def __init__(self):
+            self.iterations = 0
+
+        def __iter__(self):
+            self.iterations += 1
+            return self
+
+        def __next__(self):
+            raise StopIteration
+
+    probe = Probe()
+    {item: None for item in probe}
+    return probe.iterations - 1
+
+
 @dataclass(frozen=True)
 class NativeBuildAdmissionReceipt:
     port: int
@@ -117,13 +226,21 @@ class NativeBuildAdmissionFrame:
             raise TypeError('native build admission requires an admitted image')
         if type(mode) is not int or mode not in (1, 2, 3, 4):
             raise ValueError('native build admission requires one original mode')
+        from . import hia_agent_service
         if namespace is None:
-            from . import hia_agent_service
             namespace = vars(hia_agent_service)
+        self.signatures_bridge = hia_agent_service._NATIVE_BUILD_SIGNATURES_BRIDGE
+        self.global_builtins = hia_agent_service._NATIVE_BUILD_GLOBAL_BUILTINS
+        self.generator_reiterations = _runtime_generator_reiterations()
+        self.list_reiterations = _runtime_list_reiterations()
+        self.dict_reiterations = _runtime_dict_reiterations()
         self.image, self.mode, self.service, self.namespace = image, mode, service, namespace
         self.data = {'arguments': arguments}
         self.identity = struct.unpack('<2Q', os.urandom(16))
         self.creator, self.thread = os.getpid(), threading.get_ident()
+        parent = _ACTIVE_FOREIGN_CALL.get()
+        self.parent_scope = parent if (parent is not None and parent.active
+            and parent.frame.creator == self.creator and parent.frame.thread == self.thread) else None
         self.buffer = ctypes.create_string_buffer(STATE_BYTES)
         self.receipt = None
         self.fenced = self.finished = self.unconfirmed = self.native_failed = False
@@ -142,12 +259,22 @@ class NativeBuildAdmissionFrame:
         with _custody_lock():
             _FRAME_CUSTODY.pop(id(self), None)
 
+    def _propagate_native_loss(self):
+        """Fence only active causal ancestors of this actual native failure."""
+        scope = self.parent_scope
+        while scope is not None and scope.active:
+            parent = scope.frame
+            parent.fenced = parent.native_failed = True
+            parent.unconfirmed = parent.effect_started
+            scope = parent.parent_scope
+
     def call(self, event, observation=0):
         if self.fenced or self.finished or os.getpid() != self.creator or threading.get_ident() != self.thread:
             raise NativeBuildAdmissionUnknown('native build admission frame cannot be resumed or inherited')
         try:
             port, sequence = (0, 0) if self.receipt is None else (self.receipt.port, self.receipt.sequence)
-            raw = struct.pack('<10Q', REQUEST_MAGIC, event, sequence, port, observation, self.mode, *self.identity, 0, 0)
+            raw = struct.pack('<10Q', REQUEST_MAGIC, event, sequence, port, observation, self.mode,
+                              *self.identity, 0, 0)
             source = ctypes.create_string_buffer(raw + b'\xc9' * 16, len(raw) + 16)
             output = ctypes.create_string_buffer(OUTPUT_BYTES + 16)
             ctypes.memmove(ctypes.addressof(output) + OUTPUT_BYTES, b'\xa5' * 16, 16)
@@ -162,6 +289,7 @@ class NativeBuildAdmissionFrame:
             if (words[0] != RESULT_MAGIC or words[1] != 0
                     or words[2:7] != (state[3], state[4], state[5], state[2], state[12])
                     or state[:3] != (STATE_MAGIC, 1, self.mode)
+                    or state[9] > state[8]
                     or words[8:10] != self.identity or state[6:8] != self.identity
                     or words[7] != 0 or words[10:12] != (0, 0)
                     or words[3] != expected_sequence or words[4] not in expected_phases
@@ -173,6 +301,7 @@ class NativeBuildAdmissionFrame:
         except BaseException as error:
             self.fenced = self.native_failed = True
             self.unconfirmed = self.effect_started
+            self._propagate_native_loss()
             # RuntimeError identity and BaseException signals retain their
             # original behavior. RuntimeError subclasses also caught by the
             # public request rejection wrapper (notably RecursionError) must
@@ -236,12 +365,15 @@ class NativeBuildAdmissionFrame:
         elif name == 'signature_scalar_init':
             d['signature_functions'] = iter(d['document']['functions'])
             d['signatures'] = {}
+            return self.dict_reiterations
         elif name == 'signature_fn_next':
             return self._next('signature_functions', 'fn')
         elif name == 'signature_fn_entry':
             return int(d['fn']['name'] in d['program'].scalar_entrypoints)
         elif name == 'signature_param_init':
             d['signature_parameters'] = iter(d['fn']['params'])
+            d['signature_parameters_initial'] = d['signature_parameters']
+            return self.generator_reiterations
         elif name == 'signature_param_next':
             return self._next('signature_parameters', 'parameter')
         elif name == 'signature_param_allowed':
@@ -253,6 +385,8 @@ class NativeBuildAdmissionFrame:
             return len(d['fn']['returns'])
         elif name == 'signature_returns_init':
             d['signature_returns'] = iter(d['fn']['returns'])
+            d['signature_returns_initial'] = d['signature_returns']
+            return self.generator_reiterations
         elif name == 'signature_returns_next':
             return self._next('signature_returns', 'return_type')
         elif name == 'signature_return_allowed':
@@ -266,6 +400,7 @@ class NativeBuildAdmissionFrame:
         elif name == 'signature_params_init':
             d['signature_parameter_values'] = iter(d['fn']['params'])
             d['parameter_types'] = []
+            return self.list_reiterations
         elif name == 'signature_params_next':
             return self._next('signature_parameter_values', 'parameter')
         elif name == 'signature_params_append':
@@ -284,6 +419,7 @@ class NativeBuildAdmissionFrame:
         elif name == 'signature_export_params_init':
             d['signature_export_parameters'] = iter(d['fn']['params'])
             d['parameter_types'] = []
+            return self.list_reiterations
         elif name == 'signature_export_params_next':
             return self._next('signature_export_parameters', 'parameter')
         elif name == 'signature_export_params_append':
@@ -321,6 +457,9 @@ class NativeBuildAdmissionFrame:
             d['export_pairs'].append(d['export_pair'])
         elif name == 'native_exports_finish':
             d['foreign_buffer_exports'] = tuple(d['export_pairs'])
+            del d['native_exports']
+            del d['export_pairs']
+            d.pop('export_pair', None)
         elif name == 'native_core_differs':
             return int(bool(d['metadata']['core_sha256'] != d['program'].sha256))
         elif name == 'native_signatures_differs':
@@ -334,6 +473,8 @@ class NativeBuildAdmissionFrame:
         elif name == 'native_exports_list_append':
             d['export_lists'].append(list(d['export_pair']))
         elif name == 'native_exports_differs':
+            del d['native_export_pairs']
+            d.pop('export_pair', None)
             return int(bool(d['recorded_exports'] != d['export_lists']))
         elif name == 'native_result':
             d['result'] = (d['data'], d['metadata'], d['program'])
@@ -353,6 +494,8 @@ class NativeBuildAdmissionFrame:
             return int(bool(d['record'].get('backend_profile') != s.profiles['backend']))
         elif name == 'build_metadata_init':
             d['metadata_items'] = iter(d['metadata'].items())
+            d['metadata_items_initial'] = d['metadata_items']
+            return self.generator_reiterations
         elif name == 'build_metadata_next':
             return self._next('metadata_items', 'metadata_item')
         elif name == 'build_metadata_unpack':
@@ -360,6 +503,7 @@ class NativeBuildAdmissionFrame:
                 d['metadata_name'], d['metadata_value'] = d['metadata_item']
             except StopIteration as error:
                 raise RuntimeError('generator raised StopIteration') from error
+            del d['metadata_item']
         elif name == 'build_metadata_compare':
             try:
                 d['metadata_comparison'] = d['record'].get(d['metadata_name']) != d['metadata_value']
@@ -368,7 +512,10 @@ class NativeBuildAdmissionFrame:
         elif name == 'build_metadata_truth':
             # any() applies truth outside the generator. A StopIteration here
             # remains the original exception, unlike a generator-body error.
-            return int(bool(d['metadata_comparison']))
+            try:
+                return int(bool(d['metadata_comparison']))
+            finally:
+                del d['metadata_comparison']
         elif name == 'build_built':
             d['built'] = d['record'].get('native_build')
         elif name == 'build_built_not_dict':
@@ -423,6 +570,69 @@ class NativeBuildAdmissionFrame:
             api['reject']('E_HIA_RECEIPT_BINDING', 'build record differs from actual artifact bytes')
         elif name == 'reject_object':
             api['reject']('E_HIA_RECEIPT_BINDING', 'retained object differs from its exact build binding')
+        elif name == 'dispatch_native_call':
+            # Keep the actual method-call lookup protocol. Splitting this into
+            # an ordinary attribute read changes descriptor AttributeError
+            # name/obj metadata on supported CPython runtimes.
+            with _ForeignAdmissionCall(self):
+                d['data'], d['metadata'], d['program'] = s._native(d['native_ref'], d['context_ref'])
+        elif name == 'dispatch_build_inputs_call':
+            with _ForeignAdmissionCall(self):
+                d['result'] = s._build_inputs(d['build_ref'], d['context_ref'], d['native_ref'])
+        elif name == 'dispatch_signatures_lookup':
+            d['signatures_callee'] = _global_signatures(api, self.global_builtins)
+            return int(d['signatures_callee'] is self.signatures_bridge)
+        elif name == 'dispatch_signatures_call':
+            with _ForeignAdmissionCall(self):
+                d['signatures'] = d['signatures_callee'](d['program'], d['foreign_buffer_exports'])
+        elif name == 'signature_param_reiterate':
+            try:
+                d['signature_parameters'] = iter(d['signature_parameters'])
+            except StopIteration as error:
+                raise RuntimeError('generator raised StopIteration') from error
+        elif name == 'signature_returns_reiterate':
+            try:
+                d['signature_returns'] = iter(d['signature_returns'])
+            except StopIteration as error:
+                raise RuntimeError('generator raised StopIteration') from error
+        elif name == 'build_metadata_reiterate':
+            try:
+                d['metadata_items'] = iter(d['metadata_items'])
+            except StopIteration as error:
+                raise RuntimeError('generator raised StopIteration') from error
+        elif name == 'signature_scalar_reiterate':
+            d['signature_functions'] = iter(d['signature_functions'])
+        elif name == 'signature_params_reiterate':
+            d['signature_parameter_values'] = iter(d['signature_parameter_values'])
+        elif name == 'signature_export_params_reiterate':
+            d['signature_export_parameters'] = iter(d['signature_export_parameters'])
+        elif name == 'signature_scalar_release':
+            del d['signature_functions']
+            d.pop('fn', None)
+        elif name in ('signature_param_release_pass', 'signature_param_release_skip'):
+            # A genexpr retains its original .0 even when a runtime entry
+            # conversion returns a different iterator. Release that local
+            # before the active iterator at the HIA-selected loop boundary.
+            del d['signature_parameters_initial']
+            del d['signature_parameters']
+            d.pop('parameter', None)
+        elif name in ('signature_returns_release_pass', 'signature_returns_release_skip'):
+            del d['signature_returns_initial']
+            del d['signature_returns']
+            d.pop('return_type', None)
+        elif name == 'signature_params_release':
+            del d['signature_parameter_values']
+            d.pop('parameter', None)
+        elif name == 'signature_export_loop_release':
+            del d['signature_export_functions']
+        elif name == 'signature_export_params_release':
+            del d['signature_export_parameters']
+            d.pop('parameter', None)
+        elif name in ('build_metadata_release_pass', 'build_metadata_release_reject'):
+            del d['metadata_items_initial']
+            del d['metadata_items']
+            d.pop('metadata_name', None)
+            d.pop('metadata_value', None)
         else:
             raise NativeBuildAdmissionUnknown('native build admission port has no foreign operation')
         return 0

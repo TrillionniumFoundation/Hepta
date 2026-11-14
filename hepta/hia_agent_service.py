@@ -1595,3 +1595,10 @@ _NATIVE_SERVICE_CONTEXT_FREEZE_REFERENCE = HIAAgentService._hia_context_referenc
 _NATIVE_SERVICE_CONTEXT_LOOKUP_REFERENCE = HIAAgentService._context_reference
 _NATIVE_SERVICE_CONTEXT_BUDGET_REFERENCE = HIAAgentService._budget_reference
 _NATIVE_SERVICE_CONTEXT_REMAINING_REFERENCE = HIAAgentService._remaining_ms_reference
+
+# Stable identities describe only the original selected bridges. Later public
+# class/global replacements remain foreign callables and must be observed.
+_NATIVE_BUILD_SIGNATURES_BRIDGE = _signatures
+_NATIVE_BUILD_NATIVE_BRIDGE = HIAAgentService._native
+_NATIVE_BUILD_INPUTS_BRIDGE = HIAAgentService._build_inputs
+_NATIVE_BUILD_GLOBAL_BUILTINS = _signatures.__builtins__

@@ -23,18 +23,18 @@ RESULT_MAGIC = int.from_bytes(b'HNBARS01', 'little')
 STATE_MAGIC = int.from_bytes(b'HNBAST01', 'little')
 SOURCE_NAME = 'examples/hia_bootstrap/native_build_admission.hepta'
 FALSE_TARGETS = {
-    'signature_fn_next': 'signature_normalize',
+    'signature_fn_next': 'signature_scalar_release',
     'signature_fn_entry': 'signature_fn_next',
-    'signature_param_next': 'signature_return_length',
-    'signature_returns_next': 'signature_capture_name',
-    'signature_params_next': 'signature_scalar_publish',
-    'signature_export_fn_next': 'signature_result',
+    'signature_param_next': 'signature_param_release_pass',
+    'signature_returns_next': 'signature_returns_release_pass',
+    'signature_params_next': 'signature_params_release',
+    'signature_export_fn_next': 'signature_export_loop_release',
     'signature_export_contains': 'signature_export_fn_next',
-    'signature_export_params_next': 'signature_export_publish',
+    'signature_export_params_next': 'signature_export_params_release',
     'native_context_present': 'native_program',
     'native_exports_next': 'native_exports_finish',
     'native_exports_list_next': 'native_exports_differs',
-    'build_metadata_next': 'build_built',
+    'build_metadata_next': 'build_metadata_release_pass',
     'build_output_is_object': 'build_result',
 }
 TRUE_TARGETS = {
@@ -62,11 +62,12 @@ TRUE_TARGETS = {
     'build_object_bytes_differs': 'reject_object',
 }
 CHOICES = {
-    'signature_param_allowed': ('signature_fn_next', 'signature_param_next'),
-    'signature_return_allowed': ('signature_fn_next', 'signature_returns_next'),
-    'native_core_differs': ('signature_imports', 'reject_native_identity'),
-    'build_backend_differs': ('native_get', 'reject_build_subject'),
-    'build_metadata_truth': ('build_metadata_next', 'reject_metadata'),
+    'signature_param_allowed': ('signature_param_release_skip', 'signature_param_next'),
+    'signature_return_allowed': ('signature_returns_release_skip', 'signature_returns_next'),
+    'native_core_differs': ('dispatch_signatures_lookup', 'reject_native_identity'),
+    'build_backend_differs': ('dispatch_native_call', 'reject_build_subject'),
+    'build_metadata_truth': ('build_metadata_next', 'build_metadata_release_reject'),
+    'dispatch_signatures_lookup': ('dispatch_signatures_call', 'signature_imports'),
 }
 JUMPS = {
     'signature_params_append': 'signature_params_next',
@@ -78,10 +79,31 @@ JUMPS = {
     # A returning test reject keeps the original continuation after the if.
     'reject_native_subject': 'native_program',
     'reject_native_identity': 'native_result',
-    'reject_build_subject': 'native_get',
+    'reject_build_subject': 'dispatch_native_call',
     'reject_metadata': 'build_built',
     'reject_build_bytes': 'build_object_get',
     'reject_object': 'build_result',
+    'dispatch_native_call': 'build_metadata_init',
+    'dispatch_build_inputs_call': 'receipt_result',
+    'dispatch_signatures_call': 'native_signatures_differs',
+    'signature_scalar_release': 'signature_normalize',
+    'signature_param_release_pass': 'signature_return_length',
+    'signature_param_release_skip': 'signature_fn_next',
+    'signature_returns_release_pass': 'signature_capture_name',
+    'signature_returns_release_skip': 'signature_fn_next',
+    'signature_params_release': 'signature_scalar_publish',
+    'signature_export_loop_release': 'signature_result',
+    'signature_export_params_release': 'signature_export_publish',
+    'build_metadata_release_pass': 'build_built',
+    'build_metadata_release_reject': 'reject_metadata',
+}
+REITERATIONS = {
+    'signature_scalar_init': ('signature_scalar_reiterate', 'signature_fn_next'),
+    'signature_param_init': ('signature_param_reiterate', 'signature_param_next'),
+    'signature_returns_init': ('signature_returns_reiterate', 'signature_returns_next'),
+    'signature_params_init': ('signature_params_reiterate', 'signature_params_next'),
+    'signature_export_params_init': ('signature_export_params_reiterate', 'signature_export_params_next'),
+    'build_metadata_init': ('build_metadata_reiterate', 'build_metadata_next'),
 }
 PREDICATES = set(FALSE_TARGETS) | set(TRUE_TARGETS) | set(CHOICES)
 TRANSITIONS = {name: f'if observed == 0:\n    next_port = @{target}@'
@@ -91,7 +113,20 @@ TRANSITIONS.update({name: f'if observed == 1:\n    next_port = @{target}@'
 TRANSITIONS.update({name: f'if observed == 0:\n    next_port = @{targets[0]}@\nelse:\n    next_port = @{targets[1]}@'
                     for name, targets in CHOICES.items()})
 TRANSITIONS.update({name: f'next_port = @{target}@' for name, target in JUMPS.items()})
+for initial, (repeated, following) in REITERATIONS.items():
+    TRANSITIONS[initial] = f'''set(w, 8, observed)
+set(w, 9, observed)
+next_port = @{following}@
+if get(w, 9) != 0:
+    next_port = @{repeated}@'''
+    TRANSITIONS[repeated] = f'''if get(w, 9) == 0:
+    return refuse(o, w)
+set(w, 9, get(w, 9) - 1)
+next_port = @{following}@
+if get(w, 9) != 0:
+    next_port = @{repeated}@'''
 TRANSITIONS.update({
+    'args_build': 'if get(w, 2) == 4:\n    next_port = @dispatch_build_inputs_call@',
     'signature_return_length': 'if observed > 1:\n    next_port = @signature_fn_next@',
     'signature_result': 'if get(w, 2) == 1:\n    return advance(o, w, 0, 4)\nnext_port = @native_signatures_differs@',
     'native_result': 'if get(w, 2) == 2:\n    return advance(o, w, 0, 4)\nnext_port = @build_metadata_init@',
@@ -127,7 +162,7 @@ def admission(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if is_predicate(get(w, 3)) == 1:
             if observed > 1:
                 return refuse(o, w)
-        elif get(w, 3) != @signature_return_length@:
+        elif is_counted_observation(get(w, 3)) == 0:
             if observed != 0:
                 return refuse(o, w)
         return succeeded(o, w, observed)
@@ -170,7 +205,7 @@ def valid_state(w:mutbuf) -> u64:
         return 0
     if get(w, 4) == 0 or get(w, 5) == 0 or get(w, 5) == 3 or get(w, 5) > 6:
         return 0
-    if get(w, 8) != 0 or get(w, 9) != 0 or get(w, 11) != 0 or get(w, 12) > 1:
+    if get(w, 9) > get(w, 8) or get(w, 11) != 0 or get(w, 12) > 1:
         return 0
     if get(w, 13) != 0 or get(w, 14) != 0 or get(w, 15) != 0:
         return 0
@@ -277,6 +312,10 @@ def source_program():
     for index in range(0, len(predicates), 8):
         condition = ' or '.join(f'port == {value}' for value in predicates[index:index + 8])
         fragments.append('    if ' + condition + ':\n        return 1\n')
+    fragments.append('    return 0\n\n')
+    counted = sorted(PORT[name] for name in (*REITERATIONS, 'signature_return_length'))
+    fragments.append('def is_counted_observation(port:u64) -> u64:\n')
+    fragments.append('    if ' + ' or '.join(f'port == {value}' for value in counted) + ':\n        return 1\n')
     fragments.append('    return 0\n\n')
     values = {**PORT, 'REQUEST_MAGIC': REQUEST_MAGIC, 'RESULT_MAGIC': RESULT_MAGIC,
               'STATE_MAGIC': STATE_MAGIC, 'MAX_PORT': len(PORTS)}

@@ -29,6 +29,9 @@ INPUTS = (SOURCE_NAME, 'tools/generate_hia_native_build_admission.py',
           'tests/fixtures/hia_native_build_admission_callers_aac7550.json',
           'tests/hia_native_build_admission_oracle.py', 'tests/hia_native_build_admission_scenarios.py',
           'tests/test_hia_native_build_admission_native.py',
+          'tests/test_hia_native_build_dispatch.py',
+          'tests/hia_native_build_dispatch_oracle.py',
+          'tests/fixtures/hia_native_build_dispatch_cases_aac7550.json',
           'tools/qualify_hia_native_build_admission_callers.py')
 
 
@@ -69,6 +72,12 @@ def build(output, compiler, cold_report=None, *, development=False):
               'core_abi_store_hash_providers_hosted': True,
               'foreign_object_protocols_and_providers_hosted': True,
               'retained_four_bodies_invoked': False,
+              'retained_body_claim_scope': 'canonical selected route; explicit foreign callables remain unconstrained',
+              'dynamic_method_and_global_lookup_preserved': True,
+              'original_method_calls_enter_selected_native_child_owners': True,
+              'active_causal_native_loss_propagated_without_exception_type_inference': True,
+              'runtime_comprehension_protocols_observed_without_version_threshold': True,
+              'normal_and_short_circuit_iterator_release_owned_by_hia': True,
               'whole_stack_rewritten_in_hia': False, 'all_input_equivalence_proved': False}
     (output / 'build.json').write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
     return output / 'manifest.json'

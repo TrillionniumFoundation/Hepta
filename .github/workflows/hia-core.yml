@@ -84,6 +84,7 @@ jobs:
               'tests.test_hia_cost_ledger_native.CostLedgerSourceTests',
               'tests.test_hia_evaluation_native.EvaluationSourceTests',
               'tests.test_hia_native_build_admission_native.NativeBuildAdmissionSourceTests',
+              'tests.test_hia_native_build_dispatch.NativeBuildDispatchSourceTests',
               'tests.test_hia_native_transport_failures.NativeTransportSourceTests',
               'tests.test_hia_static_budget_native.StaticBudgetSourceTests',
               'tests.test_hia_patch_impact_native.PatchImpactSourceTests',
@@ -331,6 +332,11 @@ jobs:
           HEPTA_HIA_NATIVE_BUILD_ADMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_NATIVE_BUILD_ADMISSION_EVIDENCE: ${{ runner.temp }}/hia-native-build-admission
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_native_build_admission_native
+      - name: Native original dynamic dispatch and runtime iterator observations
+        env:
+          HEPTA_HIA_NATIVE_BUILD_DISPATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_BUILD_DISPATCH_EVIDENCE: ${{ runner.temp }}/hia-native-build-dispatch
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_native_build_dispatch
       - name: Complete original native build callers with all four retained bodies forbidden
         run: >-
           python -B tools/qualify_hia_native_build_admission_callers.py

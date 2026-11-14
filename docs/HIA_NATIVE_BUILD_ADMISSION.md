@@ -11,8 +11,16 @@ HIA byte image for four complete methods from commit
 | 3 | `_build_inputs` | Every original receipt/metadata/object/final-byte binding check |
 | 4 | `_build_receipt` | The complete mode 3 observation followed by the original receipt projection |
 
-Build-to-native-to-signature subcalls stay within the same continuation. A selected
-owner never calls any of the four retained Python bodies. Empty, malformed,
+The original dynamic method and global lookups remain in their original order.
+The two method-call expressions remain actual Python method calls, preserving
+descriptor lookup, captured-call order and exception metadata. The default
+selected public methods enter nested HIA owners; their acceptance policies do
+not return to Python. HIA invokes explicit replacements at the same call points,
+including a replacement that itself calls a retained implementation. The global
+signature callable is captured once at its original short-circuit point. HIA
+inlines its known canonical owner or invokes the captured foreign replacement.
+The canonical selected route never falls back to any of the four retained
+Python bodies. Empty, malformed,
 unbound or changed selections fail; they do not choose the portable path.
 Unselected calls retain the original lazy route.
 
@@ -25,6 +33,9 @@ operations. The existing `_program` Core checker, `_context` provider,
 `normalize_exports` ABI provider, Store/SQLite and SHA-256 remain explicit foreign
 providers. This component does not claim to rewrite or prove those providers,
 the surrounding proof-policy methods, emission, evaluation or adoption.
+Explicit method/global replacements are foreign providers too. A zero-retained-
+body control establishes the canonical selected path, not what an arbitrary
+user-supplied callable might call internally.
 
 The complete original input behavior is retained: `!=` keeps its own Python
 protocol; export materialization precedes the Core hash check; late hashes and
@@ -34,6 +45,24 @@ the different evaluation orders of a dictionary comprehension and a subscript
 assignment. Generator-body `StopIteration` retains PEP 479 conversion, whereas
 iterator exhaustion and the outer `any` truth operation keep their distinct
 original meanings. No new shape, integer-magnitude or frame-count quota is added.
+
+Comprehension iteration is also an explicit runtime protocol boundary. Three
+private probes separately observe generator, list and dictionary comprehension
+entry; no version threshold or user object is probed. At each of the six original
+entry points, the observed count is acknowledged into native state. HIA decides
+whether and how often to request the original iterator conversion, and uses its
+actual returned iterator. The three generator-body conversions retain PEP 479;
+the initial conversions and nongenerator conversions keep plain `StopIteration`.
+
+HIA also chooses the normal and short-circuit loop boundaries that release the
+opaque iterators. A nongenerator replacement releases its predecessor before
+the new iterator's first `next`. A generator retains its original argument
+through its active loop. The independent cases preserve the observed release
+order and never invent a call to a user iterator's `close` method. These runtime
+facts preserve the observed CPython 3.13 distinctions without rejecting other
+Python versions. Supported Python versions are not restricted by this change;
+the explicit runtime evidence covers 3.12.14, 3.13.5 and 3.14.10, not every
+interpreter satisfying the package's `>=3.11` requirement.
 
 ## Continuation custody
 
@@ -53,6 +82,16 @@ intersections such as RecursionError. Other RuntimeError objects and process
 control signals retain identity. A confirmed foreign exception remains the
 original object and is not reclassified as native transport loss.
 
+A child owner entered during one of these foreign calls records that active
+causal scope. An actual child native transport failure fences every still-active
+ancestor and retains their unknown custody. Those ancestors never acknowledge
+that loss as a confirmed foreign exception. This propagation uses the actual
+child frame's failed transport state, not an exception-class guess or a change
+in global registry size. A genuine foreign exception, including the same
+RuntimeError or process-control object, keeps its original identity and is
+confirmed independently in each caller. Completed or unrelated frames are not
+retroactively treated as causal parents.
+
 The image is a registered single-image worker helper. The standard pinned-loader
 scope is checked before standalone selection. The installed worker uses the
 packaged `.hepta` resource, not a source-checkout path or authoring import.
@@ -68,10 +107,25 @@ ordered provider traces. Six scenarios additionally compare the reference Core
 VM and the actual native image, including all returned and mutated buffers.
 These are finite observations, not an all-input equivalence theorem.
 
+A separate, independently frozen 205-case matrix covers dynamic instance,
+class, descriptor and global replacements; captured-call order; ordinary
+foreign exceptions; iterator conversion errors; and observable iterator
+replacement/lifetimes. Its original traces were frozen twice on each of the
+three stated runtimes before candidate execution. The prior eight fixture files
+and all 303 prior inputs remain unchanged. Three replacement cases additionally
+run through the independent Core VM; post-effect lost-ACK controls cover each
+of the three explicit foreign-call ports. The 303 default observations are also
+retained in this runtime matrix, with only their candidate binding glue selecting
+the real canonical public bridges.
+Focused nested-loss controls cover modes 2 inside 3, 3 inside 4 and 2 through 3
+inside 4. Ten exception families at each boundary are paired with genuine
+foreign exceptions, retaining original identities, no-retry checks and every
+causal frame's custody outcome.
+
 The source inventory freezes nine complete ordinary modules with 112 test IDs,
 plus eight separate scope modules with 128 outer IDs. Inherited tests are
 included. The ordinary qualifier runs all 112 methods with all four retained
-bodies forbidden and reports actual per-test native entries and per-mode frames.
+bodies forbidden on canonical paths and reports actual per-test native entries and per-mode frames.
 It does not claim that every method enters the owner. Parent-only poison does
 not establish child-process coverage; installed-worker controls separately
 poison the actual child's four retained methods and prohibit authoring imports.
@@ -105,6 +159,21 @@ requires exactly one nonempty `HEPTA_HIA_NATIVE_BUILD_ADMISSION_COLD_REPORT` or
 python -B -m unittest tests.test_hia_native_build_admission_native.NativeBuildAdmissionSourceTests -v
 python -B -m unittest tests.test_hia_native_build_admission_native.NativeBuildAdmissionNativeTests -v
 python -B tools/qualify_hia_native_build_admission_callers.py --cold-report COLD_REPORT --evidence NEW_CALLER_EVIDENCE
+```
+
+The additional `NativeBuildDispatchSourceTests` and
+`NativeBuildDispatchNativeTests` live in `tests.test_hia_native_build_dispatch`.
+They contain two source methods and three native methods respectively.
+The latter strictly requires exactly one nonempty
+`HEPTA_HIA_NATIVE_BUILD_DISPATCH_COLD_REPORT` or
+`HEPTA_HIA_NATIVE_BUILD_DISPATCH_DEVELOPMENT_COMPILER`; optional
+`HEPTA_HIA_NATIVE_BUILD_DISPATCH_EVIDENCE` names a fresh evidence directory.
+It uses the same admission builder and source-bound image, and records its
+actual interpreter and private protocol observations.
+
+```sh
+python -B -m unittest tests.test_hia_native_build_dispatch.NativeBuildDispatchSourceTests -v
+python -B -m unittest tests.test_hia_native_build_dispatch.NativeBuildDispatchNativeTests -v
 ```
 
 The caller qualifier also accepts explicit `--development-manifest MANIFEST`.

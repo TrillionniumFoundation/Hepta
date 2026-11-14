@@ -28,7 +28,7 @@ from unittest.mock import patch
 from hepta import hia_agent_service as api
 from hepta import hia_native_build_admission_native as native
 from hepta.hia_agent_assembly import assemble_program, render_assembly
-from tests.hia_native_build_admission_oracle import Fixture, observe_case, METHOD_SHA256
+from tests.hia_native_build_admission_oracle import Fixture as OriginalFixture, observe_case, METHOD_SHA256
 from tests.hia_native_build_admission_scenarios import scenarios
 from tools import generate_hia_native_build_admission as generator
 
@@ -92,9 +92,43 @@ def encoded(value):
                       separators=(',', ':'), allow_nan=False).encode()
 
 
+def bind_canonical_defaults(service, namespace):
+    """Bind the original default-only matrix to actual selected public bridges.
+
+Frozen originals and observations stay unchanged. Explicit replacement cases
+use their separate fixture and never pass through this default-only helper.
+    """
+    if service is not None:
+        service._native = api._NATIVE_BUILD_NATIVE_BRIDGE.__get__(service)
+        service._build_inputs = api._NATIVE_BUILD_INPUTS_BRIDGE.__get__(service)
+    namespace['_signatures'] = api._NATIVE_BUILD_SIGNATURES_BRIDGE
+
+
+def Fixture(case):
+    fixture = OriginalFixture(case)
+    bind_canonical_defaults(fixture.service, fixture.namespace)
+    original_providers = fixture.providers
+    def providers():
+        scope = original_providers()
+        scope.enter_context(patch.object(api, 'sha256', fixture.namespace['sha256']))
+        scope.enter_context(patch.object(api, 'reject', fixture.namespace['reject']))
+        return scope
+    fixture.providers = providers
+    return fixture
+
+
 def invoke(image):
-    return lambda mode, service, arguments, namespace: native.NativeBuildAdmissionFrame(
-        image, mode, service, arguments, namespace=namespace).finish()
+    def owner(mode, service, arguments, namespace):
+        bind_canonical_defaults(service, namespace)
+        # This explicit-image fixture also serves the pre-mapping Core VM.
+        # Public child bridges use that same supplied image boundary. Separate
+        # public/installed controls still exercise the real pinned loader.
+        with patch.dict(os.environ, {native.SELECTOR: 'explicit-fixture-image'}), \
+                patch.object(native, 'installed_native_build_admission', return_value=image), \
+                patch.object(api, 'sha256', namespace['sha256']), \
+                patch.object(api, 'reject', namespace['reject']):
+            return native.NativeBuildAdmissionFrame(image, mode, service, arguments, namespace=namespace).finish()
+    return owner
 
 
 def public_owner(mode, service, arguments, namespace):
@@ -218,6 +252,9 @@ class NativeBuildAdmissionNativeTests(unittest.TestCase):
         self.case = self.root / self._testMethodName
         self.case.mkdir()
         self.maxDiff = 8000
+        selection = patch.dict(os.environ, {native.SELECTOR: str(self.manifest)})
+        selection.start()
+        self.addCleanup(selection.stop)
 
     def test_complete_original_foreign_effect_traces_and_first_errors(self):
         records = []
@@ -505,14 +542,14 @@ raise SystemExit(status)
             self.assertEqual(first_report['response']['status'], 'completed', first_report)
             self.assertEqual(replay_report['response'], first_report['response'])
             self.assertEqual(first_report['native_helpers_sha256'], bundle_sha)
-            self.assertEqual(first_counts['modes'], {'4': 2})
-            self.assertEqual(first_counts['frames'], 2)
+            self.assertEqual(first_counts['modes'], {'2': 2, '3': 2, '4': 2})
+            self.assertEqual(first_counts['frames'], 6)
             self.assertEqual(first_counts['object_observations'], 2)
             self.assertEqual(first_counts['unknown_frames'], 0)
             self.assertGreater(first_counts['entries'], 0)
             # The frozen original hia_verify replay calls _verification,
             # whose _subject must revalidate the complete retained build.
-            self.assertEqual(replay_counts, {'frames': 1, 'modes': {'4': 1},
+            self.assertEqual(replay_counts, {'frames': 3, 'modes': {'2': 1, '3': 1, '4': 1},
                 'entries': first_counts['entries'] // 2, 'object_observations': 1, 'unknown_frames': 0})
             self.assertEqual(first_counts['entries'] % 2, 0)
             self.assertEqual(retained_after, retained_before)
@@ -532,9 +569,9 @@ raise SystemExit(status)
             try:
                 lost = worker(label, case, envelope, mode, exit_code)
                 lost_counts = counts(lost)
-                self.assertEqual(lost_counts['frames'], 1)
+                self.assertEqual(lost_counts['frames'], 3)
                 self.assertEqual(lost_counts['object_observations'], 1)
-                self.assertEqual(lost_counts['unknown_frames'], 1)
+                self.assertEqual(lost_counts['unknown_frames'], 2)
                 if mode == 'lost_ack_valueerror':
                     self.assertIn(b'NativeBuildAdmissionUnknown', lost.stderr)
                 key = digest({'tool': envelope['tool'], 'key': envelope['arguments']['request_key']})
