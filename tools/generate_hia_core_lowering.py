@@ -274,18 +274,37 @@ def unit_source(unit, selected, entries, total, workspace, output):
     first, last = selected[0]['pc'], selected[-1]['pc']
     chunks = [selected[i:i + GROUP] for i in range(0, len(selected), GROUP)]
     main = main_source(unit, first, last, total, workspace, output)
+
+    def balanced(nodes, indent):
+        if len(nodes) == 1:
+            return [indent + line for line in nodes[0][1]]
+        middle = len(nodes) // 2
+        return [
+            indent + 'if pc <= ' + str(nodes[middle - 1][0]) + ':',
+            *balanced(nodes[:middle], indent + '    '),
+            indent + 'else:',
+            *balanced(nodes[middle:], indent + '    '),
+        ]
+
     leaves = []
     for number, group in enumerate(chunks):
+        nodes = [
+            (instruction['pc'], [
+                'if pc == ' + str(instruction['pc']) + ':',
+                *['    ' + line for line in instruction_lines(instruction)],
+            ])
+            for instruction in group
+        ]
         lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf, pc:u64) -> u64:']
-        for instruction in group:
-            lines.append('    if pc == ' + str(instruction['pc']) + ':')
-            lines += ['        ' + line for line in instruction_lines(instruction)]
+        lines += balanced(nodes, '    ')
         lines.append('    return ' + str(ABI))
         leaves.append('\n'.join(lines))
+    nodes = [
+        (group[-1]['pc'], ['return group_' + str(number) + '(w, o, pc)'])
+        for number, group in enumerate(chunks)
+    ]
     lines = ['def dispatch(w:mutbuf, o:mutbuf, pc:u64) -> u64:']
-    for number, group in enumerate(chunks):
-        lines += ['    if pc <= ' + str(group[-1]['pc']) + ':',
-                  '        return group_' + str(number) + '(w, o, pc)']
+    lines += balanced(nodes, '    ')
     lines.append('    return ' + str(ABI))
     # Initial mode admission exists in unit zero only; other units cannot start.
     startup = start_source(entries) if unit == 0 else (

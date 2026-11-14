@@ -81,6 +81,7 @@ SOURCE_FILES = (
     'tests/hia_core_pc_expected.py',
     'tests/fixtures/hia_core_pc_forwarding_v93.json',
     'tests/fixtures/hia_core_fixed_word_reads_v94.json',
+    'tests/fixtures/hia_core_balanced_dispatch_v1.json',
     'hepta/hia_core_unpack_abi.json',
     'examples/hia_bootstrap/core_unpack.hiaasm',
     'docs/HIA_CORE_UNPACK_NATIVE.md',

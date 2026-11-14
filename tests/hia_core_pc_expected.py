@@ -2,7 +2,7 @@
 
 The original UNPACK and comparison snapshot files stay byte-identical.  Their
 provenance describes historical bytes.  This loader returns separately labelled
-current expectations from exact legacy, PC-forwarding or fixed-word-read identities.
+current expectations from exact legacy, PC-forwarding, fixed-word-read or balanced-dispatch identities.
 The fixed Core39 revision also admits the exact two-loop UNPACK zero-store successor;
 it never computes expected HIA hashes from the current HIA files.  The original
 callers still read and compare all 40 actual files, so mixed revisions fail.
@@ -18,6 +18,13 @@ MANIFEST = "tests/fixtures/hia_core_pc_forwarding_v93.json"
 MANIFEST_SHA256 = "a3d49510a846b05c5a0985d747f2e87aaceb14ed6932bf8f1ee3ce6372c71ea4"
 FIXED_READS_MANIFEST = "tests/fixtures/hia_core_fixed_word_reads_v94.json"
 FIXED_READS_MANIFEST_SHA256 = "cb8def3b93a6ed6c285fe40dcc3f2cc5ed79af1b6f8bc182e74b5880a86ce6c9"
+BALANCED_MANIFEST = "tests/fixtures/hia_core_balanced_dispatch_v1.json"
+BALANCED_MANIFEST_SHA256 = "575c3a408a6130a54eff4667ef699a361977fa358b616960f4c94d6b98df5772"
+BALANCED_GENERATOR_PIN = {
+    "size": 17538,
+    "sha256": "f89aa27693deb0b9a4db7325de9b346c2abdf947e5fed6e0c6e738b7c91cf7fa",
+    "git_blob_sha1": "cb894b1bf7cf7e0a5e36bd26e37bc24ec6b83308",
+}
 EXPECTED_PATHS = {
     *(f"examples/hia_bootstrap/core_lowering_{number:03d}.hiaasm" for number in range(38)),
     "examples/hia_bootstrap/core_lowering_pool.hiaasm",
@@ -95,6 +102,69 @@ def _zero_store_unpack(fixed_raw, actual):
         raise ValueError("mixed fixed-word-read generator revisions")
 
 
+def _balanced_dispatch(root, fixed_raw, actual, by_path, numbered):
+    """Admit one whole author derivation and its separately frozen 40 outputs."""
+    raw = (root / BALANCED_MANIFEST).read_bytes()
+    if (BALANCED_MANIFEST_SHA256 is None
+            or sha256(raw).hexdigest() != BALANCED_MANIFEST_SHA256):
+        raise ValueError("balanced-dispatch expectation manifest is not frozen")
+    manifest = _json(raw)
+    if manifest["schema"] != "hepta.hia.core39.explicit-balanced-dispatch.v1":
+        raise ValueError("unknown balanced-dispatch expectation schema")
+    if manifest["fixed_word_reads_manifest"] != {
+            "path": FIXED_READS_MANIFEST, "sha256": FIXED_READS_MANIFEST_SHA256}:
+        raise ValueError("balanced-dispatch predecessor differs")
+    generator = manifest["generator"]
+    _require_pin(fixed_raw, generator["fixed_word_reads"])
+    if generator["balanced_dispatch"] != BALANCED_GENERATOR_PIN:
+        raise ValueError("balanced-dispatch author pin differs")
+    replacements = generator["exact_forward_replacements"]
+    if type(replacements) is not list or len(replacements) != 1:
+        raise ValueError("balanced-dispatch derivation must have one substitution")
+    replacement = replacements[0]
+    if type(replacement) is not dict or set(replacement) != {"before", "after"}:
+        raise ValueError("malformed balanced-dispatch derivation")
+    before, after = replacement["before"], replacement["after"]
+    text = fixed_raw.decode("utf-8")
+    if (type(before) is not str or type(after) is not str or not before or not after
+            or text.count(before) != 1 or text.count(after) != 0):
+        raise ValueError("ambiguous balanced-dispatch derivation")
+    successor = text.replace(before, after, 1)
+    successor_raw = successor.encode("utf-8")
+    _require_pin(successor_raw, BALANCED_GENERATOR_PIN)
+    if (successor.count(after) != 1
+            or successor.replace(after, before, 1).encode("utf-8") != fixed_raw
+            or actual != successor_raw):
+        raise ValueError("unknown Core39 generator revision")
+    rows = manifest["files"]
+    if type(rows) is not list or len(rows) != 40:
+        raise ValueError("balanced-dispatch expectation population differs")
+    balanced = {}
+    for row in rows:
+        if type(row) is not dict or set(row) != {"path", "fixed_word_reads", "balanced_dispatch"}:
+            raise ValueError("malformed balanced-dispatch expectation")
+        path = row["path"]
+        if type(path) is not str or path in balanced or path not in EXPECTED_PATHS:
+            raise ValueError("duplicate or unknown balanced-dispatch expectation")
+        for revision in ("fixed_word_reads", "balanced_dispatch"):
+            expected = row[revision]
+            if (type(expected) is not dict or set(expected) != {"size", "sha256", "git_blob_sha1"}
+                    or type(expected["size"]) is not int or expected["size"] < 0):
+                raise ValueError("malformed balanced-dispatch identity")
+        if row["fixed_word_reads"] != by_path[path]["fixed_word_reads"]:
+            raise ValueError("balanced-dispatch predecessor file differs")
+        balanced[path] = row
+    if set(balanced) != EXPECTED_PATHS:
+        raise ValueError("balanced-dispatch expected paths differ")
+    changed = {path for path, row in balanced.items()
+               if row["fixed_word_reads"] != row["balanced_dispatch"]}
+    if changed != numbered:
+        raise ValueError("only the 38 numbered balanced-dispatch Core units may differ")
+    for path, row in balanced.items():
+        by_path[path]["balanced_dispatch"] = row["balanced_dispatch"]
+    return "balanced_dispatch"
+
+
 def _fixed_word_reads(root, pc_raw, actual, by_path, numbered):
     raw = (root / FIXED_READS_MANIFEST).read_bytes()
     if sha256(raw).hexdigest() != FIXED_READS_MANIFEST_SHA256:
@@ -122,7 +192,8 @@ def _fixed_word_reads(root, pc_raw, actual, by_path, numbered):
         if text.count(after) != 1:
             raise ValueError("ambiguous inverse fixed-word-read Core derivation")
         text = text.replace(after, before, 1)
-    if text.encode("utf-8") != pc_raw or actual != fixed_raw:
+    if (text.encode("utf-8") != pc_raw
+            or (actual != fixed_raw and _pin(actual) != BALANCED_GENERATOR_PIN)):
         raise ValueError("unknown Core39 generator revision")
 
     unpack = manifest["unpack_generator"]
@@ -176,6 +247,8 @@ def _fixed_word_reads(root, pc_raw, actual, by_path, numbered):
         raise ValueError("only the 38 numbered fixed-word-read Core units may differ")
     for path, row in fixed.items():
         by_path[path]["fixed_word_reads"] = row["fixed_word_reads"]
+    if actual != fixed_raw:
+        return _balanced_dispatch(root, fixed_raw, actual, by_path, numbered)
     return "fixed_word_reads"
 
 
