@@ -884,6 +884,15 @@ class HIAAgentService:
             reject("E_HIA_PROOF_SCOPE", "cached proof differs from the original subject or retained conclusion; rerun verification with a fresh request key", "verification")
 
     def _compile(self, program, kind, machine_plan, timeout_ms, *, foreign_buffer_exports=()):
+        selected = os.environ.get('HEPTA_HIA_EMISSION_MANIFEST')
+        if selected is not None:
+            from .hia_emission_native import installed_emission, EmissionFrame
+            return EmissionFrame(installed_emission(selected), 1, self,
+                (program, kind, machine_plan, timeout_ms, foreign_buffer_exports)).finish()
+        return self._compile_reference(program, kind, machine_plan, timeout_ms,
+                                       foreign_buffer_exports=foreign_buffer_exports)
+
+    def _compile_reference(self, program, kind, machine_plan, timeout_ms, *, foreign_buffer_exports=()):
         from .hia_program_native import emit_program_machine, compile_program_machine
         if timeout_ms <= 0:
             reject("E_HIA_BUDGET", "frozen context deadline expired before emission", "codegen")
@@ -912,6 +921,13 @@ class HIAAgentService:
         return data, result
 
     def _hia_emit(self, args):
+        selected = os.environ.get('HEPTA_HIA_EMISSION_MANIFEST')
+        if selected is not None:
+            from .hia_emission_native import installed_emission, EmissionFrame
+            return EmissionFrame(installed_emission(selected), 2, self, (args,)).finish()
+        return self._hia_emit_reference(args)
+
+    def _hia_emit_reference(self, args):
         self._profile(args["backend_profile"], "backend")
         context = self._context(args["context"])
         program = self._program(args["candidate"])
@@ -1602,3 +1618,7 @@ _NATIVE_BUILD_SIGNATURES_BRIDGE = _signatures
 _NATIVE_BUILD_NATIVE_BRIDGE = HIAAgentService._native
 _NATIVE_BUILD_INPUTS_BRIDGE = HIAAgentService._build_inputs
 _NATIVE_BUILD_GLOBAL_BUILTINS = _signatures.__builtins__
+
+# Preserve the original functions' bound builtins dictionary even if a caller
+# later replaces the module's __builtins__ binding or an explicit provider.
+_EMISSION_GLOBAL_BUILTINS = HIAAgentService._compile.__builtins__
