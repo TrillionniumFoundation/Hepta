@@ -56,6 +56,7 @@ SOURCE_FILES = (
     'docs/HIA_STORE_NATIVE_DELIVERY.md',
     'tests/test_hia_native_delivery.py',
     'tests/test_hia_native_delivery_lock.py',
+    'tests/test_hia_delivery_integration.py',
     'tests/hia_native_delivery_cases.py',
     'tests/fixtures/native_delivery_original_9c46166.json',
     'tools/qualify_hia_native_delivery.py',

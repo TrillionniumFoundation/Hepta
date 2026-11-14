@@ -9,6 +9,45 @@ is HIA; the canonical source suffix is lowercase `.hepta`.
 `hepta.cli:hia_main`. Selected HIA machine-code owners do not replace the
 remaining hosted service, storage, proof, process and runtime owners.
 
+## Latest integration repair
+
+The parent `bb3120d26cfd483b5cd85a13c72c90a24d119603` was admitted by
+GitHub Actions after the raw-diagnostic path fix. Its push run
+[`43644328783`](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43644328783)
+completed all 693 declared Source tests with one error: the old nonexecuting
+publisher pack stub lacked the newly required private-entry descriptor. The
+PR Source run independently reported the same error. Only that stub's
+`publication-pack` output now includes a complete static descriptor and two
+trap entries; all 15 original test method ASTs, assertions and budgets remain
+unchanged. Production descriptor validation remains strict and unchanged.
+
+The parent push Native job also completed the original Store artifact/profile
+11-test module (three Source and eight Native tests) with one failure: refusal to close a Store with uncertain native
+delivery explicitly chained the earlier raw loss and hid the active owner's
+transport exception. Retirement now keeps an active handler/finally exception
+as its ordinary implicit context. Without an active exception it still chains
+the actual retained loss. Resource refusal, the retained loss identity and
+custody are unchanged; an unrelated outer handler does not become the loss's
+causal origin.
+
+The complete 15-test standalone builder module plus five new diagnostic
+controls passed on Python 3.12 and 3.13. The new controls cover the three
+exception-context boundaries, reversible private entry metadata, and 13 invalid
+descriptors with correctly bound nonexecuting pack receipts. These are Source
+controls, not native qualification. Current cold/full acceptance remains a
+separate gate. Every earlier failure and indeterminate execution below remains
+part of the record.
+
+The complete original Store artifact/profile module also ran on Python 3.12
+with the explicit development compiler. The installed-worker case passed after
+the diagnostic-chain repair, but the full module remains **HOLD**: three warm
+lookup subcases in the unchanged 160-case literal-call test observed different
+`AttributeError.name`/`obj` metadata. An independent run of the unchanged
+`bb3120d` parent reproduced those same three differences, together with its
+original installed-worker failure. Neither the original oracle nor its
+expectations were changed. This is a retained Python 3.12 compatibility gap,
+not full native acceptance or authority to retire the hosted stack.
+
 ## Source naming and inventory
 
 Main was independently read at

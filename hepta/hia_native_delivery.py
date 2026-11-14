@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from contextvars import ContextVar
 import os
+import sys
 import threading
 import weakref
 
@@ -61,6 +62,11 @@ retain their separate policy and precedence.
     """
     loss = _resource_loss(resource)
     if loss is not None:
+        if sys.exception() is not None:
+            # Keep the active handler/finally exception in the diagnostic chain.
+            # Explicitly chaining the earlier raw loss would hide that context.
+            # The retained loss and resource refusal do not change.
+            raise unknown('resource has unconfirmed native delivery; it cannot be retired')
         raise unknown('resource has unconfirmed native delivery; it cannot be retired') from loss.error
 
 

@@ -11,6 +11,7 @@ import importlib
 import json
 from pathlib import Path
 import stat
+import struct
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -27,6 +28,32 @@ CHECKS = {
     'origin_hashes_preserved', 'owned_process_tree_cleanup_confirmed',
     'source_export_hashes_preserved',
 }
+
+
+def _publication_descriptor_fixture():
+    """Nonexecuting pack output with the publisher's complete private ABI note.
+
+    Both entry points contain UD2 traps. This records custody and descriptor
+    admission only; it cannot publish a file or qualify native execution.
+    """
+    raw = bytearray(360)
+    raw[:16] = b'\x7fELF\x02\x01\x01' + bytes(9)
+    struct.pack_into('<HHIQQQIHHHHHH', raw, 16,
+                     2, 62, 1, 0x400160, 64, 0, 0, 64, 56, 3, 0, 0, 0)
+    headers = (
+        (1, 5, 0, 0x400000, 0x400000, 360, 360, 4096),
+        (0x6474e551, 6, 0, 0, 0, 0, 0, 16),
+        (4, 4, 232, 0x4000e8, 0x4000e8, 120, 120, 4),
+    )
+    for index, header in enumerate(headers):
+        struct.pack_into('<II6Q', raw, 64 + index * 56, *header)
+    struct.pack_into('<III', raw, 232, 9, 96, 1)
+    raw[244:256] = b'HIADELIV\0' + bytes(3)
+    struct.pack_into('<12Q', raw, 256,
+                     int.from_bytes(b'HIADCTL1', 'little'), 1,
+                     0x400160, 0x400164, 16, 128, 96, 24, 0, 0, 63, 0)
+    raw[352:] = b'\x0f\x0b\0\0\x0f\x0b\0\0'
+    return bytes(raw)
 
 
 class StandaloneBuilderSourceBindingTests(unittest.TestCase):
@@ -169,6 +196,8 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
         # Bind the actual fixture image and input at the recording boundary.
         # This nonexecuting stub never constitutes native qualification.
         raw = b'not an ELF executable; custody fixture only'
+        if len(args) >= 4 and args[1] == 'publication-pack':
+            raw = _publication_descriptor_fixture()
         receipt = {'status': 'returned', 'custody_stub': True,
                    'native_execution': False, 'core_u32': len(raw),
                    'result_u64': len(raw), 'format': 'flat-x86-64',
