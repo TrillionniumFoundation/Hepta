@@ -87,7 +87,9 @@ jobs:
               'tests.test_hia_native_build_dispatch.NativeBuildDispatchSourceTests',
               'tests.test_hia_emission_native.EmissionSourceTests',
               'tests.test_hia_store_artifact_profile_native.StoreArtifactProfileSourceTests',
+              'tests.test_hia_store_native_delivery.StoreNativeDeliverySourceTests',
               'tests.test_hia_native_transport_failures.NativeTransportSourceTests',
+              'tests.test_hia_native_delivery.NativeDeliverySourceTests',
               'tests.test_hia_static_budget_native.StaticBudgetSourceTests',
               'tests.test_hia_patch_impact_native.PatchImpactSourceTests',
               'tests.test_hia_cli_discovery_json.CliDiscoveryJsonSourceTests',
@@ -364,6 +366,26 @@ jobs:
           python -B tools/qualify_hia_store_artifact_profile_callers.py
           --cold-report "$RUNNER_TEMP/hia-cold.json"
           --evidence "$RUNNER_TEMP/hia-store-artifact-profile-callers"
+      - name: Store cross-owner native delivery and original installed worker boundaries
+        env:
+          HEPTA_HIA_STORE_NATIVE_DELIVERY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_STORE_NATIVE_DELIVERY_EVIDENCE: ${{ runner.temp }}/hia-store-native-delivery
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_store_native_delivery
+      - name: Shared native delivery causal custody and actual installed worker controls
+        run: >-
+          python -B tools/qualify_hia_native_delivery.py --group focused
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-native-delivery-focused"
+      - name: Complete original native delivery component inventory without filtered methods
+        run: >-
+          python -B tools/qualify_hia_native_delivery.py --group components
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-native-delivery-components"
+      - name: All six complete original caller gates with shared native delivery custody
+        run: >-
+          python -B tools/qualify_hia_native_delivery.py --group callers
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-native-delivery-callers"
       - name: Native full-cost arithmetic and actual installed cost and patch impact owners
         env:
           HEPTA_HIA_FULL_COST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
@@ -978,6 +1000,10 @@ jobs:
             ${{ runner.temp }}/hia-native-build-admission/
             ${{ runner.temp }}/hia-native-build-admission-callers/
             ${{ runner.temp }}/hia-native-transport/
+            ${{ runner.temp }}/hia-store-native-delivery/
+            ${{ runner.temp }}/hia-native-delivery-focused/
+            ${{ runner.temp }}/hia-native-delivery-components/
+            ${{ runner.temp }}/hia-native-delivery-callers/
             ${{ runner.temp }}/byte-wrapper-callers/
             ${{ runner.temp }}/byte-wrapper-composed-callers/
             ${{ runner.temp }}/byte-wrapper-fixture/

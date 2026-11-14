@@ -6,8 +6,8 @@ ABI, Store, SHA-256 and individual object operations. Those providers remain
 explicit interoperability boundaries; they are not claimed newly native.
 """
 from __future__ import annotations
-from contextvars import ContextVar
 import ctypes
+from .hia_native_delivery import DeliveryRecord
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -34,31 +34,10 @@ _FRAME_CUSTODY = {}
 _CUSTODY_LOCK = threading.Lock()
 _CUSTODY_PID = os.getpid()
 _REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
-_ACTIVE_FOREIGN_CALL = ContextVar('hia_native_build_admission_foreign_call', default=None)
 
 
 class NativeBuildAdmissionUnknown(RuntimeError):
     """A native observation is unconfirmed; the frame must not be replayed."""
-
-
-class _ForeignAdmissionCall:
-    """Causal scope for child native owners entered by one foreign call.
-
-The scope carries transport custody only. It never classifies an exception by
-its Python type or changes which user method the original call expression uses.
-    """
-    def __init__(self, frame):
-        self.frame = frame
-        self.active = False
-
-    def __enter__(self):
-        self.active = True
-        self.token = _ACTIVE_FOREIGN_CALL.set(self)
-
-    def __exit__(self, kind, error, traceback):
-        self.active = False
-        _ACTIVE_FOREIGN_CALL.reset(self.token)
-        return False
 
 
 def _after_fork_child():
@@ -238,39 +217,36 @@ class NativeBuildAdmissionFrame:
         self.data = {'arguments': arguments}
         self.identity = struct.unpack('<2Q', os.urandom(16))
         self.creator, self.thread = os.getpid(), threading.get_ident()
-        parent = _ACTIVE_FOREIGN_CALL.get()
-        self.parent_scope = parent if (parent is not None and parent.active
-            and parent.frame.creator == self.creator and parent.frame.thread == self.thread) else None
         self.buffer = ctypes.create_string_buffer(STATE_BYTES)
         self.receipt = None
         self.fenced = self.finished = self.unconfirmed = self.native_failed = False
         self.effect_started = False
-        with _custody_lock():
-            # Growable custody is reserved before effects, with no new quota
-            # or service-wide exclusion policy imposed on the original domain.
-            _FRAME_CUSTODY[id(self)] = self
+        self._delivery = DeliveryRecord(self)
+        try:
+            with _custody_lock():
+                # Growable custody is reserved before effects, with no new quota
+                # or service-wide exclusion policy imposed on the original domain.
+                _FRAME_CUSTODY[id(self)] = self
+        except BaseException:
+            self._delivery.retire()
+            raise
         try:
             self.call(0)
         except BaseException:
             self._release()
+            self._delivery.retire()
             raise
 
     def _release(self):
         with _custody_lock():
             _FRAME_CUSTODY.pop(id(self), None)
 
-    def _propagate_native_loss(self):
-        """Fence only active causal ancestors of this actual native failure."""
-        scope = self.parent_scope
-        while scope is not None and scope.active:
-            parent = scope.frame
-            parent.fenced = parent.native_failed = True
-            parent.unconfirmed = parent.effect_started
-            scope = parent.parent_scope
-
     def call(self, event, observation=0):
         if self.fenced or self.finished or os.getpid() != self.creator or threading.get_ident() != self.thread:
             raise NativeBuildAdmissionUnknown('native build admission frame cannot be resumed or inherited')
+        if self._delivery.loss is not None:
+            self.fenced = self.native_failed = self.unconfirmed = True
+        self._delivery.check(NativeBuildAdmissionUnknown)
         try:
             port, sequence = (0, 0) if self.receipt is None else (self.receipt.port, self.receipt.sequence)
             raw = struct.pack('<10Q', REQUEST_MAGIC, event, sequence, port, observation, self.mode,
@@ -278,6 +254,7 @@ class NativeBuildAdmissionFrame:
             source = ctypes.create_string_buffer(raw + b'\xc9' * 16, len(raw) + 16)
             output = ctypes.create_string_buffer(OUTPUT_BYTES + 16)
             ctypes.memmove(ctypes.addressof(output) + OUTPUT_BYTES, b'\xa5' * 16, 16)
+            self._delivery.enter_native()
             code = self.image._entry(source, len(raw), output, OUTPUT_BYTES, self.buffer, STATE_BYTES)
             if (code != OUTPUT_BYTES or source.raw != raw + b'\xc9' * 16
                     or output.raw[OUTPUT_BYTES:] != b'\xa5' * 16):
@@ -297,11 +274,12 @@ class NativeBuildAdmissionFrame:
                     or (event == 1 and words[2] != port)):
                 raise NativeBuildAdmissionUnknown('native build admission receipt differs from issued state')
             self.receipt = NativeBuildAdmissionReceipt(*words[2:7])
+            self._delivery.confirmed(terminal=words[4] in (4, 5))
             return self.receipt
         except BaseException as error:
+            self._delivery.failed(error)
             self.fenced = self.native_failed = True
             self.unconfirmed = self.effect_started
-            self._propagate_native_loss()
             # RuntimeError identity and BaseException signals retain their
             # original behavior. RuntimeError subclasses also caught by the
             # public request rejection wrapper (notably RecursionError) must
@@ -312,6 +290,28 @@ class NativeBuildAdmissionFrame:
             raise
 
     def finish(self):
+        try:
+            if (not self._delivery.current() or self._delivery.loss is not None
+                    or self._delivery.terminal or self._delivery.retired):
+                # The original owner guard determines a foreign PID/thread's
+                # exception and refusal point before any ambient activation.
+                return self._finish()
+            # Keep implicit foreign object release/lookup between issued ports
+            # on this actual invocation too. The individual effect scopes still
+            # identify the precise pending observation; this ambient scope does
+            # not invent an ACK obligation.
+            with self._delivery.foreign(observation=False):
+                return self._finish()
+        except BaseException as error:
+            self._delivery.failed(error)
+            if self._delivery.loss is not None:
+                self.fenced = self.native_failed = self.unconfirmed = True
+                self._delivery.propagate(error, NativeBuildAdmissionUnknown, _REQUEST_REJECTIONS)
+            raise
+        finally:
+            self._delivery.retire()
+
+    def _finish(self):
         if self.finished:
             raise NativeBuildAdmissionUnknown('native build admission frame already completed')
         while True:
@@ -321,10 +321,12 @@ class NativeBuildAdmissionFrame:
             self.call(1)
             self.effect_started = self.unconfirmed = True
             try:
-                observed = self.effect(self.receipt.port)
-            except BaseException:
-                if self.native_failed:
+                with self._delivery.foreign():
+                    observed = self.effect(self.receipt.port)
+            except BaseException as error:
+                if self.native_failed or self._delivery.loss is not None:
                     self.fenced = self.unconfirmed = True
+                    self._delivery.propagate(error, NativeBuildAdmissionUnknown, _REQUEST_REJECTIONS)
                     raise
                 self.call(3)
                 if self.receipt.phase != 5:
@@ -574,17 +576,14 @@ class NativeBuildAdmissionFrame:
             # Keep the actual method-call lookup protocol. Splitting this into
             # an ordinary attribute read changes descriptor AttributeError
             # name/obj metadata on supported CPython runtimes.
-            with _ForeignAdmissionCall(self):
-                d['data'], d['metadata'], d['program'] = s._native(d['native_ref'], d['context_ref'])
+            d['data'], d['metadata'], d['program'] = s._native(d['native_ref'], d['context_ref'])
         elif name == 'dispatch_build_inputs_call':
-            with _ForeignAdmissionCall(self):
-                d['result'] = s._build_inputs(d['build_ref'], d['context_ref'], d['native_ref'])
+            d['result'] = s._build_inputs(d['build_ref'], d['context_ref'], d['native_ref'])
         elif name == 'dispatch_signatures_lookup':
             d['signatures_callee'] = _global_signatures(api, self.global_builtins)
             return int(d['signatures_callee'] is self.signatures_bridge)
         elif name == 'dispatch_signatures_call':
-            with _ForeignAdmissionCall(self):
-                d['signatures'] = d['signatures_callee'](d['program'], d['foreign_buffer_exports'])
+            d['signatures'] = d['signatures_callee'](d['program'], d['foreign_buffer_exports'])
         elif name == 'signature_param_reiterate':
             try:
                 d['signature_parameters'] = iter(d['signature_parameters'])

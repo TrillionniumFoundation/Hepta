@@ -10,6 +10,7 @@ as native arithmetic. No retained evaluation body is invoked by this adapter.
 from __future__ import annotations
 
 import ctypes
+from .hia_native_delivery import DeliveryRecord
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -18,6 +19,7 @@ import operator
 import os
 from pathlib import Path
 import struct
+import sqlite3
 import threading
 
 from .hia_evaluation_protocol import PORT, PORTS, OUTCOMES
@@ -35,6 +37,7 @@ OUTPUT_BYTES = 112
 _FRAME_CUSTODY = {}
 _CUSTODY_LOCK = threading.Lock()
 _CUSTODY_PID = os.getpid()
+_REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
 
 
 class EvaluationUnknown(RuntimeError):
@@ -140,14 +143,20 @@ class EvaluationFrame:
         self.receipt = None
         self.fenced = self.finished = self.unconfirmed = self.native_failed = False
         self.effect_started = False
-        with _custody_lock():
-            # Reserve growable custody before the first effect. There is no
-            # new frame-count quota or service-wide exclusion policy.
-            _FRAME_CUSTODY[id(self)] = self
+        self._delivery = DeliveryRecord(self)
+        try:
+            with _custody_lock():
+                # Reserve growable custody before the first effect. There is no
+                # new frame-count quota or service-wide exclusion policy.
+                _FRAME_CUSTODY[id(self)] = self
+        except BaseException:
+            self._delivery.retire()
+            raise
         try:
             self.call(0)
         except BaseException:
             self._release()
+            self._delivery.retire()
             raise
 
     def _release(self):
@@ -157,12 +166,16 @@ class EvaluationFrame:
     def call(self, event, observation=0):
         if self.fenced or self.finished or os.getpid() != self.creator or threading.get_ident() != self.thread:
             raise EvaluationUnknown('evaluation frame cannot be resumed or inherited')
+        if self._delivery.loss is not None:
+            self.fenced = self.native_failed = self.unconfirmed = True
+        self._delivery.check(EvaluationUnknown)
         try:
             port, sequence = (0, 0) if self.receipt is None else (self.receipt.port, self.receipt.sequence)
             raw = struct.pack('<10Q', REQUEST_MAGIC, event, sequence, port, observation, 0, *self.identity, 0, 0)
             source = ctypes.create_string_buffer(raw + b'\xc9' * 16, len(raw) + 16)
             output = ctypes.create_string_buffer(OUTPUT_BYTES + 16)
             ctypes.memmove(ctypes.addressof(output) + OUTPUT_BYTES, b'\xa5' * 16, 16)
+            self._delivery.enter_native()
             code = self.image._entry(source, len(raw), output, OUTPUT_BYTES, self.buffer, STATE_BYTES)
             if (code != OUTPUT_BYTES or source.raw != raw + b'\xc9' * 16
                     or output.raw[OUTPUT_BYTES:] != b'\xa5' * 16):
@@ -178,8 +191,10 @@ class EvaluationFrame:
                     or words[6] > 1 or words[7] > 7 or words[8] > 6 or words[9] > 1):
                 raise EvaluationUnknown('evaluation receipt differs from the actual issued state')
             self.receipt = EvaluationReceipt(*words[2:10])
+            self._delivery.confirmed(terminal=words[4] in (4, 5))
             return self.receipt
         except BaseException as error:
+            self._delivery.failed(error)
             self.fenced = self.native_failed = True
             self.unconfirmed = self.effect_started
             # A transport failure is not a confirmed foreign rejection. The
@@ -192,6 +207,28 @@ class EvaluationFrame:
             raise
 
     def finish(self):
+        try:
+            if (not self._delivery.current() or self._delivery.loss is not None
+                    or self._delivery.terminal or self._delivery.retired):
+                # The original owner guard determines a foreign PID/thread's
+                # exception and refusal point before any ambient activation.
+                return self._finish()
+            # Keep implicit foreign object release/lookup between issued ports
+            # on this actual invocation too. The individual effect scopes still
+            # identify the precise pending observation; this ambient scope does
+            # not invent an ACK obligation.
+            with self._delivery.foreign(observation=False):
+                return self._finish()
+        except BaseException as error:
+            self._delivery.failed(error)
+            if self._delivery.loss is not None:
+                self.fenced = self.native_failed = self.unconfirmed = True
+                self._delivery.propagate(error, EvaluationUnknown, _REQUEST_REJECTIONS)
+            raise
+        finally:
+            self._delivery.retire()
+
+    def _finish(self):
         if self.finished:
             raise EvaluationUnknown('evaluation frame already completed')
         while True:
@@ -201,10 +238,12 @@ class EvaluationFrame:
             self.call(1)
             self.effect_started = self.unconfirmed = True
             try:
-                observed = self.effect(self.receipt.port)
-            except BaseException:
-                if self.native_failed:
+                with self._delivery.foreign():
+                    observed = self.effect(self.receipt.port)
+            except BaseException as error:
+                if self.native_failed or self._delivery.loss is not None:
                     self.fenced = self.unconfirmed = True
+                    self._delivery.propagate(error, EvaluationUnknown, _REQUEST_REJECTIONS)
                     raise
                 self.call(3)
                 if self.receipt.phase != 5:
@@ -232,6 +271,8 @@ class EvaluationFrame:
         try:
             value = self.image.arithmetic(operation, left, right)
         except BaseException as error:
+            if self._delivery.loss is None:
+                raise
             self.native_failed = True
             if isinstance(error, Exception) and not isinstance(error, EvaluationUnknown):
                 raise EvaluationUnknown('evaluation arithmetic observation failed') from error

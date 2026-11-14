@@ -3,10 +3,10 @@
 Literal calls preserve actual method binding before arguments. HIA owns policy,
 reference iteration, argument continuations and cleanup order. Filesystem,
 SQLite, hash, JSON and object protocols remain foreign. The separate transaction
-context manager is unchanged. Causal loss custody here covers this owner only.
+context manager is unchanged. Shared custody follows actual active calls;
+artifact-provider child delivery and independent later close remain separate.
 """
 from __future__ import annotations
-from contextvars import ContextVar
 import ctypes
 from dataclasses import dataclass
 from functools import lru_cache
@@ -23,6 +23,7 @@ import types
 from .hia_store_artifact_profile_protocol import MODES, ARGUMENT_MODES, PORT, PORTS
 from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path, _unique_manifest_pairs
 from .hia_store_lifecycle_native import _regular_bytes
+from .hia_native_delivery import DeliveryRecord, _ACTIVE as _ACTIVE_FOREIGN_CALL
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/store_artifact_profile.hepta')
 SCHEMA = 'hepta.hia.store-artifact-profile.v1'
@@ -35,25 +36,10 @@ _FRAME_CUSTODY = {}
 _CUSTODY_LOCK = threading.Lock()
 _CUSTODY_PID = os.getpid()
 _REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
-_ACTIVE_FOREIGN_CALL = ContextVar('hia_store_artifact_profile_foreign_call', default=None)
 
 
 class StoreArtifactProfileUnknown(RuntimeError):
     """An actual native observation is unconfirmed; this frame cannot retry."""
-
-
-class _ForeignStoreCall:
-    def __init__(self, frame):
-        self.frame, self.active = frame, False
-
-    def __enter__(self):
-        self.active = True
-        self.token = _ACTIVE_FOREIGN_CALL.set(self)
-
-    def __exit__(self, kind, error, traceback):
-        self.active = False
-        _ACTIVE_FOREIGN_CALL.reset(self.token)
-        return False
 
 
 def _after_fork_child():
@@ -249,43 +235,41 @@ class StoreArtifactProfileFrame:
         self.data = {'arguments': arguments}
         self.identity = struct.unpack('<2Q', os.urandom(16))
         self.creator, self.thread = os.getpid(), threading.get_ident()
-        parent = _ACTIVE_FOREIGN_CALL.get()
-        self.parent_scope = parent if (parent is not None and parent.active
-            and parent.frame.creator == self.creator and parent.frame.thread == self.thread) else None
         self.buffer = ctypes.create_string_buffer(STATE_BYTES)
         self.receipt = None
         self.fenced = self.finished = self.unconfirmed = self.native_failed = False
         self.effect_started = False
-        with _custody_lock():
-            _FRAME_CUSTODY[id(self)] = self
+        self._delivery = DeliveryRecord(self)
+        try:
+            with _custody_lock():
+                _FRAME_CUSTODY[id(self)] = self
+        except BaseException:
+            self._delivery.retire()
+            raise
         try:
             self.call(0)
         except BaseException:
-            self._release()
+            if self._delivery.loss is None:
+                self._release()
+            self._delivery.retire()
             raise
 
     def _release(self):
         with _custody_lock():
             _FRAME_CUSTODY.pop(id(self), None)
 
-    def _propagate_native_loss(self):
-        scope = self.parent_scope
-        while scope is not None and scope.active:
-            parent = scope.frame
-            parent.fenced = parent.native_failed = True
-            parent.unconfirmed = parent.effect_started
-            scope = parent.parent_scope
-
     def call(self, event, observation=0):
         if self.fenced or self.finished or os.getpid() != self.creator or threading.get_ident() != self.thread:
             raise StoreArtifactProfileUnknown('Store artifact frame cannot be resumed or inherited')
         try:
+            self._delivery.check(StoreArtifactProfileUnknown)
             port, sequence = (0, 0) if self.receipt is None else (self.receipt.port, self.receipt.sequence)
             raw = struct.pack('<10Q', REQUEST_MAGIC, event, sequence, port, observation, self.mode,
                               *self.identity, 0, 0)
             source = ctypes.create_string_buffer(raw + b'\xc9' * 16, len(raw) + 16)
             output = ctypes.create_string_buffer(OUTPUT_BYTES + 16)
             ctypes.memmove(ctypes.addressof(output) + OUTPUT_BYTES, b'\xa5' * 16, 16)
+            self._delivery.enter_native()
             code = self.image._entry(source, len(raw), output, OUTPUT_BYTES, self.buffer, STATE_BYTES)
             if (code != OUTPUT_BYTES or source.raw != raw + b'\xc9' * 16
                     or output.raw[OUTPUT_BYTES:] != b'\xa5' * 16):
@@ -308,11 +292,13 @@ class StoreArtifactProfileFrame:
                     or (words[4] in (1, 2, 7) and not 1 <= words[2] <= len(PORTS))):
                 raise StoreArtifactProfileUnknown('Store artifact receipt differs from issued state')
             self.receipt = StoreArtifactProfileReceipt(*words[2:7])
+            self._delivery.check(StoreArtifactProfileUnknown)
+            self._delivery.confirmed(terminal=words[4] in (4, 5))
             return self.receipt
         except BaseException as error:
+            self._delivery.failed(error)
             self.fenced = self.native_failed = True
-            self.unconfirmed = self.effect_started
-            self._propagate_native_loss()
+            self.unconfirmed = self.effect_started or self._delivery.loss is not None
             if isinstance(error, Exception) and (
                     not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
                 raise StoreArtifactProfileUnknown('Store artifact continuation observation failed') from error
@@ -336,11 +322,13 @@ causes a repeated close, unlink, or exit.
             self.call(1)
             self.effect_started = self.unconfirmed = True
             try:
-                with _ForeignStoreCall(self):
+                with self._delivery.foreign():
                     observed = self.effect(self.receipt.port)
-            except BaseException:
-                if self.native_failed:
-                    self.fenced = self.unconfirmed = True
+            except BaseException as error:
+                if self.native_failed or self._delivery.loss is not None:
+                    self.fenced = self.native_failed = self.unconfirmed = True
+                    if isinstance(error, _REQUEST_REJECTIONS):
+                        self._delivery.propagate(error, StoreArtifactProfileUnknown, _REQUEST_REJECTIONS)
                     raise
                 self.data['exception'] = sys.exc_info()
                 self.call(3)
@@ -358,6 +346,29 @@ causes a repeated close, unlink, or exit.
         raise
 
     def finish(self):
+        # Keep the original owner-specific refusal ahead of a shared scope's
+        # generic guard, including a foreign thread or forked child.
+        if (self.fenced or self.finished or os.getpid() != self.creator
+                or threading.get_ident() != self.thread):
+            return self._finish()
+        try:
+            # An ambient activation covers implicit release between ports. It
+            # does not invent an observation or extend a completed request.
+            with self._delivery.foreign(observation=False):
+                return self._finish()
+        except BaseException as error:
+            self._delivery.failed(error)
+            if self._delivery.loss is not None:
+                self.fenced = self.native_failed = self.unconfirmed = True
+                # Only the original request-rejection family needs conversion.
+                # In particular, preserve a foreign MemoryError object.
+                if isinstance(error, _REQUEST_REJECTIONS):
+                    self._delivery.propagate(error, StoreArtifactProfileUnknown, _REQUEST_REJECTIONS)
+            raise
+        finally:
+            self._delivery.retire()
+
+    def _finish(self):
         if self.finished:
             raise StoreArtifactProfileUnknown('Store artifact frame already completed')
         while True:
@@ -367,11 +378,13 @@ causes a repeated close, unlink, or exit.
             self.call(1)
             self.effect_started = self.unconfirmed = True
             try:
-                with _ForeignStoreCall(self):
+                with self._delivery.foreign():
                     observed = self.effect(self.receipt.port)
-            except BaseException:
-                if self.native_failed:
-                    self.fenced = self.unconfirmed = True
+            except BaseException as error:
+                if self.native_failed or self._delivery.loss is not None:
+                    self.fenced = self.native_failed = self.unconfirmed = True
+                    if isinstance(error, _REQUEST_REJECTIONS):
+                        self._delivery.propagate(error, StoreArtifactProfileUnknown, _REQUEST_REJECTIONS)
                     raise
                 self.data['exception'] = sys.exc_info()
                 self.call(3)

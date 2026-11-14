@@ -15,7 +15,7 @@ from tools.build_hia_source_build import _check_pack_output
 from tools.qualify_hia_selfhost import compile_stage
 
 SOURCE_NAME = 'examples/hia_bootstrap/native_build_admission.hepta'
-INPUTS = (SOURCE_NAME, 'tools/generate_hia_native_build_admission.py',
+INPUTS = (SOURCE_NAME, 'hepta/hia_native_delivery.py', 'tools/generate_hia_native_build_admission.py',
           'tools/build_hia_native_build_admission.py',
           'hepta/hia_native_build_admission_native.py', 'hepta/hia_native_build_admission_protocol.py',
           'hepta/hia_agent_service.py', 'hepta/hia_native_helpers.py',

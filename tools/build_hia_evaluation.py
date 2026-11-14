@@ -15,7 +15,7 @@ from tools.build_hia_source_build import _check_pack_output
 from tools.qualify_hia_selfhost import compile_stage
 
 SOURCE_NAME = 'examples/hia_bootstrap/evaluation.hepta'
-INPUTS = (SOURCE_NAME, 'tools/generate_hia_evaluation.py', 'tools/build_hia_evaluation.py',
+INPUTS = (SOURCE_NAME, 'hepta/hia_native_delivery.py', 'tools/generate_hia_evaluation.py', 'tools/build_hia_evaluation.py',
           'hepta/hia_evaluation_native.py', 'hepta/hia_evaluation_protocol.py',
           'hepta/hia_agent_service.py', 'hepta/hia_service_context_native.py',
           'tools/generate_hia_service_context.py', 'tools/hia_service_context_arithmetic.py',

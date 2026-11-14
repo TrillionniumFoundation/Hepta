@@ -20,6 +20,10 @@ import tempfile
 import time
 import uuid
 
+from .hia_native_delivery import (DeliveryRecord, NativeDeliveryUnknown,
+    check_current as _delivery_check, delivery_lost as _delivery_lost,
+    guarded as _delivery_guard)
+
 from .hia_agent_contract import (VERSION, ROOT, COST_POLICY_SCHEMA, OBJECTIVE_SCHEMA,
     PLAN_SCHEMA, WORKLOAD_SCHEMA, catalog, installation_manifest, validate)
 from .hia_agent_store import (AgentRejected, AgentStore, capture_path, digest, keys,
@@ -271,10 +275,24 @@ class HIAAgentService:
         selected = os.environ.get('HEPTA_HIA_AGENT_JOURNAL_MANIFEST')
         if selected == '':
             raise ValueError('Agent journal selector must not be empty')
-        if selected:
-            from .hia_agent_journal_native import call_with_native_journal
-            return call_with_native_journal(self, tool, arguments, selected)
-        return self._reference_call(tool, arguments)
+        delivery = DeliveryRecord(self)
+        try:
+            with delivery.foreign(observation=False):
+                if selected:
+                    from .hia_agent_journal_native import call_with_native_journal
+                    result = call_with_native_journal(self, tool, arguments, selected)
+                else:
+                    result = self._reference_call(tool, arguments)
+                delivery.check()
+                return result
+        except BaseException as error:
+            delivery.failed(error)
+            domain_errors = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
+            if isinstance(error, domain_errors):
+                delivery.propagate(error, NativeDeliveryUnknown, domain_errors)
+            raise
+        finally:
+            delivery.retire()
 
     def _reference_call(self, tool, arguments):
         started = time.monotonic_ns()
@@ -320,38 +338,43 @@ class HIAAgentService:
                 reject("E_HIA_IMPLEMENTATION_STALE", "installed implementation changed during this service session")
             if "context" in arguments:
                 context = self._context(arguments["context"])
+                _delivery_check()
                 context_id = arguments["context"]["id"]
                 if tool not in {"hia_inspect", "hia_rollback"}:
                     self._budget(context, candidate=tool == "hia_candidate")
+                    _delivery_check()
             # Slot effect and exact response journal commit together. A crash
             # cannot leave a changed slot with a replayable uncommitted result.
             if tool in {"hia_adopt", "hia_rollback"}:
                 with self.store.transaction():
                     result = getattr(self, "_" + tool)(arguments)
+                    _delivery_check()
                     response = {"contract_version": VERSION, "request_id": request_id,
                                 "status": "completed", "result": result}
                     validate(response, self.tools[tool]["outputSchema"], "result")
                     if reserved:
                         self.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
-                                              (wire(response).decode(), key))
+                                              _delivery_guard((wire(response).decode(), key)))
                         reserved = False
             else:
                 result = getattr(self, "_" + tool)(arguments)
+                _delivery_check()
                 response = {"contract_version": VERSION, "request_id": request_id,
                             "status": "completed", "result": result}
                 validate(response, self.tools[tool]["outputSchema"], "result")
         except (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error) as exc:
+            _delivery_check()
             response = self._error(request_id, exc)
         finally:
-            if response is not None:
+            if response is not None and not _delivery_lost():
                 # Preserve every attempted request, including malformed, slower,
                 # timed-out and rejected candidates; exact replay costs no effect.
                 self.store.db.execute("INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)",
-                    (context_id, str(tool), request_id, str(time.monotonic_ns() - started), response["status"],
-                     wire({"error": response.get("error"), "replayed": False}).decode()))
+                    _delivery_guard((context_id, str(tool), request_id, str(time.monotonic_ns() - started), response["status"],
+                     wire({"error": response.get("error"), "replayed": False}).decode())))
                 if reserved:
                     self.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
-                                          (wire(response).decode(), key))
+                                          _delivery_guard((wire(response).decode(), key)))
         return response
 
     def _profile(self, ref, name):

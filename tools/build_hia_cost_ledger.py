@@ -16,7 +16,7 @@ from tools.build_hia_source_build import _check_pack_output
 from tools.qualify_hia_selfhost import compile_stage
 
 SOURCE_NAME = 'examples/hia_bootstrap/cost_ledger.hepta'
-INPUTS = (SOURCE_NAME, 'tools/generate_hia_cost_ledger.py',
+INPUTS = (SOURCE_NAME, 'hepta/hia_native_delivery.py', 'tools/generate_hia_cost_ledger.py',
           'tools/build_hia_cost_ledger.py', 'hepta/hia_agent_service.py',
           'hepta/hia_cost_ledger_native.py',
           'hepta/hia_json_preflight_native.py',

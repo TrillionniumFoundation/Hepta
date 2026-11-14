@@ -17,7 +17,7 @@ from tools.qualify_hia_selfhost import compile_stage
 
 SOURCE_NAME = 'examples/hia_bootstrap/emission.hepta'
 ORIGINAL_DIRECTORY = 'tests/fixtures/hia_emission_original_73f1634/'
-INPUTS = (SOURCE_NAME, 'tools/generate_hia_emission.py', 'tools/build_hia_emission.py',
+INPUTS = (SOURCE_NAME, 'hepta/hia_native_delivery.py', 'tools/generate_hia_emission.py', 'tools/build_hia_emission.py',
           'hepta/hia_emission_native.py', 'hepta/hia_emission_protocol.py',
           'hepta/hia_agent_service.py', 'hepta/hia_native_helpers.py',
           'tools/generate_hia_service_context.py', 'tools/generate_hia_selfhost.py',
@@ -68,8 +68,9 @@ def build(output, compiler, cold_report=None, *, development=False):
               'runtime_context_and_comprehension_facts_observed_without_version_threshold': True,
               'active_exception_context_preserved_during_native_issued_cleanup': True,
               'active_causal_native_loss_propagated_without_exception_type_inference': True,
-              'causal_native_loss_scope': 'active same-process same-thread EmissionFrame ancestors',
-              'cross_owner_native_delivery_loss_tracking_implemented': False,
+              'causal_native_loss_scope': 'active same-process same-thread integrated D0-D3 invocation ancestors',
+              'cross_owner_native_delivery_loss_tracking_implemented': True,
+              'remaining_store_artifact_profile_and_D5_owners_integrated': False,
               'retained_two_bodies_invoked': False,
               'retained_body_claim_scope': 'canonical selected route; explicit foreign callables remain unconstrained',
               'all_python_versions_tested': False,

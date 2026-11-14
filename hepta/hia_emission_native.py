@@ -6,7 +6,7 @@ opaque Python object protocols remain explicit foreign providers.
 """
 from __future__ import annotations
 import ctypes
-from contextvars import ContextVar
+from .hia_native_delivery import DeliveryRecord
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -35,26 +35,10 @@ _FRAME_CUSTODY = {}
 _CUSTODY_LOCK = threading.Lock()
 _CUSTODY_PID = os.getpid()
 _REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
-_ACTIVE_FOREIGN_CALL = ContextVar('hia_emission_foreign_call', default=None)
 
 
 class EmissionUnknown(RuntimeError):
     """A native observation is unconfirmed; the frame must not be replayed."""
-
-
-class _ForeignEmissionCall:
-    """Carry causal custody during one issued foreign operation."""
-    def __init__(self, frame):
-        self.frame, self.active = frame, False
-
-    def __enter__(self):
-        self.active = True
-        self.token = _ACTIVE_FOREIGN_CALL.set(self)
-
-    def __exit__(self, kind, error, traceback):
-        self.active = False
-        _ACTIVE_FOREIGN_CALL.reset(self.token)
-        return False
 
 
 def _after_fork_child():
@@ -271,44 +255,43 @@ class EmissionFrame:
         self.data = {'arguments': arguments}
         self.identity = struct.unpack('<2Q', os.urandom(16))
         self.creator, self.thread = os.getpid(), threading.get_ident()
-        parent = _ACTIVE_FOREIGN_CALL.get()
-        self.parent_scope = parent if (parent is not None and parent.active
-            and parent.frame.creator == self.creator and parent.frame.thread == self.thread) else None
         self.buffer = ctypes.create_string_buffer(STATE_BYTES)
         self.receipt = None
         self.fenced = self.finished = self.unconfirmed = self.native_failed = False
         self.effect_started = False
-        with _custody_lock():
-            # Growable custody is reserved before effects, with no new quota
-            # or service-wide exclusion policy imposed on the original domain.
-            _FRAME_CUSTODY[id(self)] = self
+        self._delivery = DeliveryRecord(self)
+        try:
+            with _custody_lock():
+                # Growable custody is reserved before effects, with no new quota
+                # or service-wide exclusion policy imposed on the original domain.
+                _FRAME_CUSTODY[id(self)] = self
+        except BaseException:
+            self._delivery.retire()
+            raise
         try:
             self.call(0)
         except BaseException:
             self._release()
+            self._delivery.retire()
             raise
 
     def _release(self):
         with _custody_lock():
             _FRAME_CUSTODY.pop(id(self), None)
 
-    def _propagate_native_loss(self):
-        scope = self.parent_scope
-        while scope is not None and scope.active:
-            parent = scope.frame
-            parent.fenced = parent.native_failed = True
-            parent.unconfirmed = parent.effect_started
-            scope = parent.parent_scope
-
     def call(self, event, observation=0):
         if self.fenced or self.finished or os.getpid() != self.creator or threading.get_ident() != self.thread:
             raise EmissionUnknown('native emission frame cannot be resumed or inherited')
+        if self._delivery.loss is not None:
+            self.fenced = self.native_failed = self.unconfirmed = True
+        self._delivery.check(EmissionUnknown)
         try:
             port, sequence = (0, 0) if self.receipt is None else (self.receipt.port, self.receipt.sequence)
             raw = struct.pack('<10Q', REQUEST_MAGIC, event, sequence, port, observation, self.mode, *self.identity, 0, 0)
             source = ctypes.create_string_buffer(raw + b'\xc9' * 16, len(raw) + 16)
             output = ctypes.create_string_buffer(OUTPUT_BYTES + 16)
             ctypes.memmove(ctypes.addressof(output) + OUTPUT_BYTES, b'\xa5' * 16, 16)
+            self._delivery.enter_native()
             code = self.image._entry(source, len(raw), output, OUTPUT_BYTES, self.buffer, STATE_BYTES)
             if (code != OUTPUT_BYTES or source.raw != raw + b'\xc9' * 16
                     or output.raw[OUTPUT_BYTES:] != b'\xa5' * 16):
@@ -328,11 +311,12 @@ class EmissionFrame:
                     or (event == 1 and words[2] != port)):
                 raise EmissionUnknown('native emission receipt differs from issued state')
             self.receipt = EmissionReceipt(*words[2:8])
+            self._delivery.confirmed(terminal=words[4] in (4, 5))
             return self.receipt
         except BaseException as error:
+            self._delivery.failed(error)
             self.fenced = self.native_failed = True
             self.unconfirmed = self.effect_started
-            self._propagate_native_loss()
             # RuntimeError identity and BaseException signals retain their
             # original behavior. RuntimeError subclasses also caught by the
             # public request rejection wrapper (notably RecursionError) must
@@ -360,11 +344,12 @@ The image alone chooses suppression, propagation, and the next effect.
             self.call(1)
             self.effect_started = self.unconfirmed = True
             try:
-                with _ForeignEmissionCall(self):
+                with self._delivery.foreign():
                     observed = self.effect(self.receipt.port)
-            except BaseException:
-                if self.native_failed:
+            except BaseException as error:
+                if self.native_failed or self._delivery.loss is not None:
                     self.fenced = self.unconfirmed = True
+                    self._delivery.propagate(error, EmissionUnknown, _REQUEST_REJECTIONS)
                     raise
                 self.data['exception'] = sys.exc_info()
                 self.call(3)
@@ -378,6 +363,28 @@ The image alone chooses suppression, propagation, and the next effect.
         raise
 
     def finish(self):
+        try:
+            if (not self._delivery.current() or self._delivery.loss is not None
+                    or self._delivery.terminal or self._delivery.retired):
+                # The original owner guard determines a foreign PID/thread's
+                # exception and refusal point before any ambient activation.
+                return self._finish()
+            # Keep implicit foreign object release/lookup between issued ports
+            # on this actual invocation too. The individual effect scopes still
+            # identify the precise pending observation; this ambient scope does
+            # not invent an ACK obligation.
+            with self._delivery.foreign(observation=False):
+                return self._finish()
+        except BaseException as error:
+            self._delivery.failed(error)
+            if self._delivery.loss is not None:
+                self.fenced = self.native_failed = self.unconfirmed = True
+                self._delivery.propagate(error, EmissionUnknown, _REQUEST_REJECTIONS)
+            raise
+        finally:
+            self._delivery.retire()
+
+    def _finish(self):
         if self.finished:
             raise EmissionUnknown('native emission frame already completed')
         while True:
@@ -387,11 +394,12 @@ The image alone chooses suppression, propagation, and the next effect.
             self.call(1)
             self.effect_started = self.unconfirmed = True
             try:
-                with _ForeignEmissionCall(self):
+                with self._delivery.foreign():
                     observed = self.effect(self.receipt.port)
-            except BaseException:
-                if self.native_failed:
+            except BaseException as error:
+                if self.native_failed or self._delivery.loss is not None:
                     self.fenced = self.unconfirmed = True
+                    self._delivery.propagate(error, EmissionUnknown, _REQUEST_REJECTIONS)
                     raise
                 self.data['exception'] = sys.exc_info()
                 self.call(3)

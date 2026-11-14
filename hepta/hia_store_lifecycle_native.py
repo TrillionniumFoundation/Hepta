@@ -8,6 +8,7 @@ foreign dependencies; this is not a native SQLite implementation.
 from __future__ import annotations
 
 import ctypes
+from .hia_native_delivery import DeliveryRecord
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -160,13 +161,25 @@ class LifecycleFrame:
         # An unconfirmed
         # continuation keeps its actual Python/SQLite owners until process
         # termination, rather than letting GC invent an unrecorded close.
-        with _custody_lock():
-            _FRAME_CUSTODY[id(self)] = self
-        self.call(0)
+        self._delivery = DeliveryRecord(self)
+        try:
+            with _custody_lock():
+                _FRAME_CUSTODY[id(self)] = self
+        except BaseException:
+            self._delivery.retire()
+            raise
+        try:
+            self.call(0)
+        except BaseException:
+            self._delivery.retire()
+            raise
 
     def call(self, event, observation=0):
         if self.fenced or os.getpid() != self.creator or threading.get_ident() != self.thread:
             raise StoreLifecycleUnknown('lifecycle frame cannot be resumed or inherited')
+        if self._delivery.loss is not None:
+            self.fenced = self.native_failed = self.unconfirmed = True
+        self._delivery.check(StoreLifecycleUnknown)
         try:
             sequence, port = (0, 0) if self.receipt is None else (self.receipt.sequence, self.receipt.port)
             numbers = (REQUEST_MAGIC, event, sequence, port, observation, self.mode, *self.identity, 0, 0)
@@ -175,6 +188,7 @@ class LifecycleFrame:
             raw = struct.pack('<10Q', *numbers)
             source = ctypes.create_string_buffer(raw, len(raw))
             output = ctypes.create_string_buffer(OUTPUT_BYTES)
+            self._delivery.enter_native()
             code = self.image._entry(source, len(raw), output, OUTPUT_BYTES, self.buffer, STATE_BYTES)
             if type(code) is not int or code != OUTPUT_BYTES or source.raw != raw:
                 raise StoreLifecycleUnknown('lifecycle machine return is unconfirmed')
@@ -190,8 +204,10 @@ class LifecycleFrame:
                 raise StoreLifecycleUnknown('lifecycle native claim or observation refused')
             receipt = LifecycleReceipt(*words[2:8])
             self.receipt = receipt
+            self._delivery.confirmed(terminal=words[4] in (4, 5))
             return receipt
         except BaseException as error:
+            self._delivery.failed(error)
             self.fenced = True
             self.unconfirmed = True
             if isinstance(error, Exception) and (
@@ -217,8 +233,13 @@ class LifecycleFrame:
                 raise StoreLifecycleUnknown('lifecycle continuation was already claimed')
             self.call(1)
             try:
-                observed = self.effect(self.receipt.port)
+                with self._delivery.foreign():
+                    observed = self.effect(self.receipt.port)
             except BaseException as error:
+                if self._delivery.loss is not None:
+                    self.fenced = self.unconfirmed = True
+                    self._delivery.propagate(error, StoreLifecycleUnknown, _REQUEST_REJECTIONS)
+                    raise
                 self.errors.append(error)
                 self.call(3)
                 outcome = self.drive()
@@ -236,6 +257,28 @@ class LifecycleFrame:
                 self.call(2, 0 if observed is None else observed)
 
     def finish(self):
+        try:
+            if (not self._delivery.current() or self._delivery.loss is not None
+                    or self._delivery.terminal or self._delivery.retired):
+                # The original owner guard determines a foreign PID/thread's
+                # exception and refusal point before any ambient activation.
+                return self._finish()
+            # Keep implicit foreign object release/lookup between issued ports
+            # on this actual invocation too. The individual effect scopes still
+            # identify the precise pending observation; this ambient scope does
+            # not invent an ACK obligation.
+            with self._delivery.foreign(observation=False):
+                return self._finish()
+        except BaseException as error:
+            self._delivery.failed(error)
+            if self._delivery.loss is not None:
+                self.fenced = self.native_failed = self.unconfirmed = True
+                self._delivery.propagate(error, StoreLifecycleUnknown, _REQUEST_REJECTIONS)
+            raise
+        finally:
+            self._delivery.retire()
+
+    def _finish(self):
         returned = False
         try:
             if self.drive() != 4 or self.errors:

@@ -21,7 +21,7 @@ The canonical suffix entered main at
 | --- | ---: |
 | Physical HIA sources ending in `.hepta` | 196 |
 | Physical legacy `.hia`, `.HIA`, `.hiaasm`, `.hia.json`, including case variants | 0 |
-| Production Python modules directly under `hepta/` | 212 |
+| Production Python modules directly under `hepta/` | 213 |
 | Registered native helper selectors | 39 |
 
 These counts describe files, not percentages of behavior. The additional
@@ -128,20 +128,25 @@ success below qualifies this successor automatically.
 
 | Scope | Observed result and remaining gate |
 | --- | --- |
-| Published parent `7076ec1` | Both Source jobs passed all 675 methods (505.290 and 741.047 seconds). At 2026-11-14 14:02 UTC both Native jobs had passed the complete emission component and were running its original 112 callers. [Push](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43600841563), [PR](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43600938346). Its [complete retained run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43603610027) started under exact harness `1e0231dd4cf8821ccae67a96de86ba6e986e6ae5`; the original 35 stages, 14 earlier supplements and limits are unchanged. This successor's additional Store inputs require their own matching cold qualification. |
-| Earlier parent `727edb4` | Both Source jobs passed all 672 methods (539.107 and 518.983 seconds). Both Native jobs subsequently failed the original 5-second wire assertion at 6.483813 and 6.502349 seconds; their complete 91-method gates took 390.784 and 390.018 seconds. All 97 earlier steps passed. [Push](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43592319767), [PR](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43592454060). At 2026-11-14 14:02 UTC the [full retained run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43592977558) was still running the original v4 step. |
+| Published Store parent `c019564` | Both Source jobs passed all 678 methods (1,043.489 and 853.576 seconds). The [push Native job](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43604415976) succeeded, including all original 130 Store callers and 91 wire callers. The [PR Native job](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43604589399) passed Store 130 but failed the original wire 5-second assertion at 5.730544 seconds; its complete 91 took 350.253 seconds. The PR checkout `0ead562e07fe6af5c99accbd7e09d24e60aa0e20` independently has the same `7a37b1ced47251fdc58e50624a5f77be56af374a` tree as c019. These runs contain neither the new shared delivery adapter nor its controls. The [complete retained run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43607286167), pinned by harness `dd55bb5c9a7af5fe0f33910c43461e4d01cdd1d1`, was still in original v4 step 12 at the latest API observation. |
+| Earlier emission parent `7076ec1` | Both Source jobs passed all 675 methods (505.290 and 741.047 seconds). Both Native jobs subsequently failed the original wire caller step; the push log reports the original 5-second assertion at 6.487631 seconds, complete 91 in 392.244 seconds. [Push](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43600841563), [PR](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43600938346). Its [complete retained run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43603610027), exact harness `1e0231dd4cf8821ccae67a96de86ba6e986e6ae5`, finished with both the unchanged original v4 step 12 and supplemental step 13 reporting strict-wrapper success. The job failed later at the added lossless audit-copy step because its check reported changed original modes or nanosecond timestamps. The original 603,131,483-byte artifact remains above the current transfer limit; its redirected inner reports have not been independently read. The complete small status archive and job log were read back, so the outer successes and separate archival failure are retained without promoting them to independently verified inner qualification. |
+| Shared D0–D3 delivery candidate | The exact local R6 tree `4ffb97a9c62077888dcb268588a09ce41b8dcac7` passed all 11 new source/native controls (20.401 seconds), the complete original 24-combination method (6.227 seconds), all 152 methods in the eleven original component modules (450.781 seconds), and all 112 methods in the nine original emission caller modules (131.049 qualifier seconds; 216 actual frames). Every planned/started/stopped identity matched; no failure, error, skip or retained-body call was accepted. This is CPython 3.12.14 development evidence with actual LLVM 20.1.8 / Z3 dependencies, before this integration's CI and documentation changes. Other caller owners, Store D4, matching-current-cold and whole-product delivery retain separate gates. |
+| Shared Store D4 delivery candidate | The exact development tree `5f15785fbac278ffbf6bc5efc2c24874488afa62` passed all 11 new controls in 20.416 outer seconds. Its complete original Store 11 remains HOLD: ten methods passed; the literal-call method has three warm AttributeError metadata subtest failures. Its complete original 130 remains HOLD at 124 PASS / 6 FAIL, with all 130 ordered methods started and stopped, no errors/skips/retained-body calls, 95,924 frames and 1,755,792 entries in 258.934 qualifier seconds. Three failures explicitly report ptrace permission refusal; the others report two unreached link checkpoints and one missing injected EIO trace. All 112 ordinary methods form the passing ordered subset. A fresh single-method comparison passes both adapters; the full original 11 with an immutable c019 adapter overlay has the same three failures and identical complete 320 comparison records. A subsequent separate, clean checkout of the complete c019 tree, using the same CPython 3.12.14, verified prerequisites and development compiler, also failed exactly those three warm subtests (39.702 unittest / 40.048 outer seconds); all 320 observation records were byte-identical to D4, and every tracked source matched c019 before and after. This establishes reproduction in the unchanged parent under this runtime; it does not waive either complete gate or prove the interpreter mechanism. |
+| Earlier parent `727edb4` | Both Source jobs passed all 672 methods (539.107 and 518.983 seconds). Both Native jobs subsequently failed the original 5-second wire assertion at 6.483813 and 6.502349 seconds; their complete 91-method gates took 390.784 and 390.018 seconds. All 97 earlier steps passed. [Push](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43592319767), [PR](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43592454060). Its [full retained run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43592977558) subsequently failed original v4 step 12 and the dependent supplemental step 13. The inner failure has not been read back; it is not assumed to be the same timeout as the older 73 run. |
 | Complete emission owner | Source3, Native8 and all original nine-module 112 callers passed. The 112 runner took 167.838 seconds, entered 216 native frames and forbade both retained bodies. All 954 frozen original observations matched on observed CPython 3.12, 3.13 and 3.14; 512 complete buffers matched the independent VM. These are development results for the emission component inputs, before this integration's changed composite sources. |
 | Installed emission and composition | The actual fresh-wheel emission worker exercised normal publication, lost ACK, process loss, replay and source-drift refusal. A separate source-process eight-owner evaluation/adoption composition preserved original 3000/1000 ms limits and replay with no new entries or database changes. The latter was not an installed eight-owner worker and does not prove cross-owner loss delivery. |
 | Composite allocator | Replaced only the original zeroing loop with the existing checked HIA range fill; six generated owners changed. All 9,816 entries across 16 original documents matched complete input/output/workspace bytes and returns; 48 independent allocator boundary cases matched. The original 1024-function case passed A/B/A at 210.356 / 22.349 / 207.940 seconds with identical complete 385,050-byte observations. This is one measured case, not a full-regression speed claim. |
 | Composite original callers | The complete original 122-method gate was attempted: 120 passed, no test failed or skipped, and one class setup refused development manifests because two joint-composition methods require matching-current-source cold. Those two methods never started. All original 64 methods are an exact ordered subset of the 120 actual passes. Full122 remains HOLD until the unchanged joint-cold gate runs. |
 | Store artifact/profile component | Source3 and Native8 passed together in 64.625 seconds. The original 463 cases, 160 literal-call inputs in both cold and warm profiles, and 41 separately frozen dynamic-global guard cases matched on observed CPython 3.12, 3.13 and 3.14. The final image matched the independent VM at 533 complete buffer entries across six cases. These are development results, with filesystem/SQL and object providers still hosted. |
-| Store original callers | All 130 original methods started and stopped: 124 passed and six failed, with no errors, skips or retained-body calls. The complete original nine-module 112 methods are an ordered passing subset; 12 of the separate 18 artifact-store methods passed. The gate observed 95,924 frames and 1,755,792 native entries in 287.638 seconds. Three failures directly report ptrace permission refusal; the other three report missed checkpoints or empty traces. All six remain failures until the unchanged full gate passes in a capable matching-source environment. |
+| Store original callers | The historical local development run remains 124 PASS / 6 FAIL: all 130 started and stopped, no errors/skips/retained-body calls, 95,924 frames and 1,755,792 entries in 287.638 seconds. Three failures directly report ptrace refusal; three report missed checkpoints or empty traces. The later exact c019 push and PR strict qualifier summaries both report the complete original 130 PASS with 95,925 frames, in 232.822 and 294.433 seconds. Their inner per-method artifacts have not been independently read. This later source-bound evidence does not rewrite the local failures or qualify the new delivery changes. |
 | Installed Store worker | The actual fresh-wheel worker covered all eight modes, normal publication and URI reads, lost ACK, process exit 73, unknown replay and source-drift refusal. Its first request used 250 entries; replay used zero request entries and separately recorded 3,714 startup entries. Same-owner child-loss controls passed; cross-owner delivery and native-artifact-provider post-effect loss remain open. |
 | Earlier complete runs | The [73f1634 full run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43585323484) is fully read back: 30,209 original files and 31,854 tar members preserve bytes, modes and nanosecond metadata. Its first 34 stages passed; original stage35 exhausted the cumulative 5,400-second limit. Of 5,001 planned methods, 4,561 ended `ok`, one had started without a terminal observation, and 439 never started. No supplemental commands ran because the later same-run prerequisites were incomplete. The [aac7550 full workflow](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43579990844) succeeded, but its 556,659,914-byte artifact exceeds the current 512 MiB transfer limit, so its inner qualification is not asserted. Both belong to their own source. |
 
-The original 5-second JSON-wire timeout assertion remains open. The earlier
-`73f1634` Native push failed it at 5.499958 seconds while the separate PR run
-passed. Two local value-cache candidates also failed the unchanged assertion;
+The original 5-second JSON-wire timeout assertion remains open. The c019
+push passed all 91 original wire methods in 276.193 seconds; the passing
+method's individual elapsed time was not printed. Its same-tree PR run failed
+that assertion at 5.730544 seconds. The earlier `73f1634` Native push failed
+it at 5.499958 seconds while the separate PR run passed. Two local value-cache candidates also failed the unchanged assertion;
 neither is integrated here. Their successful finite semantic controls cannot
 turn those failures into performance acceptance. The next optimization must be
 based on the actual original workload. A diagnostic profile of the original
@@ -158,11 +163,30 @@ both original observation repeats and the complete candidate observations;
 the original reports were not rewritten. This correction does not turn the
 six failing original caller methods into passes.
 
-Cross-owner native delivery is also open: the selected owners retain their own
-unknown-outcome custody, but a provider can swallow or replace a child owner's
-loss before its parent sees it. Same-owner loss controls and successful normal
-composition do not close this gap. Shared causal tracking and both durable
-request-journal boundaries require separate implementation and qualification.
+The new [shared delivery adapter](HIA_NATIVE_DELIVERY_CAUSALITY.md) connects
+six continuation families, three arithmetic transports, both request-journal
+lanes and the execution/candidate-budget boundaries. It records an actual
+pending native handoff or undelivered observation, follows live process/thread
+ancestry, and keeps a child loss visible through swallowing, replacement and
+suppression. Ordinary confirmed foreign failures retain their original paths;
+exception names alone do not prove native loss. Original SQL and argument
+ordering remain intact. This is retained host transport custody, not another
+HIA policy owner or removal of the Python runtime.
+
+Its actual installed controls exercise an emission/context/native-journal
+bundle of three owners. The observed original 24 combinations, 152 components
+and emission 112 callers do not prove all owner combinations. The
+[Store adapter](HIA_STORE_NATIVE_DELIVERY.md) now participates through its
+actual native handoffs, all 138 foreign ports and implicit object release,
+with the original HIA graph and literal effect definitions unchanged. Its own
+new 11 controls pass; the complete original Store component and 130 callers
+retain the failures described above. The real artifact-provider handoff and
+receipt, the worker's later independent close, opaque provider internals and
+matching-current-cold acceptance remain separate open boundaries. A previous R5 run remains 150 PASS / 1 FAIL / 1 ERROR: the
+strict nested original test refused missing Clang/Z3, and an added fixture
+used the wrong journal compilation label. R6 fixes the actual prerequisites
+and that new fixture, with production bytes unchanged from R5 and all original
+assertions, workloads and timeouts preserved.
 
 Cold keeps **180 seconds plus three seconds cleanup**, the complete original
 regression keeps **5,400 seconds**, and supplemental gates keep their original

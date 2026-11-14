@@ -10,6 +10,7 @@ claimed native here.
 """
 from __future__ import annotations
 import ctypes
+from .hia_native_delivery import DeliveryRecord, NativeCall
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -80,26 +81,32 @@ class NativeServiceContextImage(NativeHiaJsonImage):
         workspace = ctypes.create_string_buffer(extent + 16)
         ctypes.memmove(ctypes.addressof(output) + capacity, b'\xa5' * 16, 16)
         ctypes.memmove(ctypes.addressof(workspace) + extent, b'\xda' * 16, 16)
-        try:
-            code = self._entry(source, len(raw), output, capacity, workspace, extent)
-            if (type(code) is not int or code != 32 or source.raw != raw + b'\xc9' * 16
-                    or output.raw[capacity:] != b'\xa5' * 16 or workspace.raw[extent:] != b'\xda' * 16):
-                raise ServiceContextUnknown('context arithmetic has no exact guarded result')
-            magic, kind, size, echoed = struct.unpack_from('<4Q', output)
-            if (magic != MATH_RESULT_MAGIC or echoed != operation or size > width
-                    or output.raw[32 + size:capacity] != bytes(capacity - 32 - size)):
-                raise ServiceContextUnknown('context arithmetic receipt differs')
-            if kind == 1 and size == 0:
-                return _INTEROP
-            if kind == 2 and size == 1 and output.raw[32] in (0, 1):
-                return bool(output.raw[32])
-            if kind == 0 and size > 0:
-                return int.from_bytes(output.raw[32:32 + size], 'little', signed=True)
-            raise ServiceContextUnknown('context arithmetic representation differs')
-        except Exception as error:
-            if isinstance(error, RuntimeError) and not isinstance(error, _REQUEST_REJECTIONS):
-                raise
-            raise ServiceContextUnknown('context arithmetic transport is unconfirmed') from error
+        with NativeCall(self) as delivery:
+            try:
+                delivery.enter_native()
+                code = self._entry(source, len(raw), output, capacity, workspace, extent)
+                if (type(code) is not int or code != 32 or source.raw != raw + b'\xc9' * 16
+                        or output.raw[capacity:] != b'\xa5' * 16 or workspace.raw[extent:] != b'\xda' * 16):
+                    raise ServiceContextUnknown('context arithmetic has no exact guarded result')
+                magic, kind, size, echoed = struct.unpack_from('<4Q', output)
+                if (magic != MATH_RESULT_MAGIC or echoed != operation or size > width
+                        or output.raw[32 + size:capacity] != bytes(capacity - 32 - size)):
+                    raise ServiceContextUnknown('context arithmetic receipt differs')
+                if kind == 1 and size == 0:
+                    delivery.confirmed(terminal=True)
+                    return _INTEROP
+                if kind == 2 and size == 1 and output.raw[32] in (0, 1):
+                    delivery.confirmed(terminal=True)
+                    return bool(output.raw[32])
+                if kind == 0 and size > 0:
+                    delivery.confirmed(terminal=True)
+                    return int.from_bytes(output.raw[32:32 + size], 'little', signed=True)
+                raise ServiceContextUnknown('context arithmetic representation differs')
+            except Exception as error:
+                delivery.failed(error)
+                if isinstance(error, RuntimeError) and not isinstance(error, _REQUEST_REJECTIONS):
+                    raise
+                raise ServiceContextUnknown('context arithmetic transport is unconfirmed') from error
 
 
 def _pairs(items):
@@ -180,15 +187,27 @@ class ContextFrame:
         self.error = None
         # Reserve growable process-lifetime custody before any foreign effect.
         # A failed acknowledgement cannot drop the only actual effect owner.
-        with _custody_lock():
-            if any(frame.unconfirmed and frame.service is service for frame in _FRAME_CUSTODY.values()):
-                raise ServiceContextUnknown('service has an unconfirmed context effect')
-            _FRAME_CUSTODY[id(self)] = self
-        self.call(0)
+        self._delivery = DeliveryRecord(self)
+        try:
+            with _custody_lock():
+                if any(frame.unconfirmed and frame.service is service for frame in _FRAME_CUSTODY.values()):
+                    raise ServiceContextUnknown('service has an unconfirmed context effect')
+                _FRAME_CUSTODY[id(self)] = self
+        except BaseException:
+            self._delivery.retire()
+            raise
+        try:
+            self.call(0)
+        except BaseException:
+            self._delivery.retire()
+            raise
 
     def call(self, event, observation=0):
         if self.fenced or os.getpid() != self.creator or threading.get_ident() != self.thread:
             raise ServiceContextUnknown('context frame cannot be resumed or inherited')
+        if self._delivery.loss is not None:
+            self.fenced = self.native_failed = self.unconfirmed = True
+        self._delivery.check(ServiceContextUnknown)
         try:
             sequence, port = (0, 0) if self.receipt is None else (self.receipt.sequence, self.receipt.port)
             numbers = (REQUEST_MAGIC, event, sequence, port, observation, self.mode, *self.identity, 0, 0)
@@ -197,6 +216,7 @@ class ContextFrame:
             raw = struct.pack('<10Q', *numbers)
             source = ctypes.create_string_buffer(raw, len(raw))
             output = ctypes.create_string_buffer(OUTPUT_BYTES)
+            self._delivery.enter_native()
             code = self.image._entry(source, len(raw), output, OUTPUT_BYTES, self.buffer, STATE_BYTES)
             if type(code) is not int or code != OUTPUT_BYTES or source.raw != raw:
                 raise ServiceContextUnknown('context machine return is unconfirmed')
@@ -211,8 +231,10 @@ class ContextFrame:
             if words[1] or words[4] == 6:
                 raise ServiceContextUnknown('context native claim or observation refused')
             self.receipt = ContextReceipt(*words[2:8])
+            self._delivery.confirmed(terminal=words[4] in (4, 5))
             return self.receipt
         except BaseException as error:
+            self._delivery.failed(error)
             self.fenced = self.unconfirmed = True
             if isinstance(error, Exception) and (
                     not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
@@ -220,16 +242,40 @@ class ContextFrame:
             raise
 
     def finish(self):
+        try:
+            if (not self._delivery.current() or self._delivery.loss is not None
+                    or self._delivery.terminal or self._delivery.retired):
+                # The original owner guard determines a foreign PID/thread's
+                # exception and refusal point before any ambient activation.
+                return self._finish()
+            # Keep implicit foreign object release/lookup between issued ports
+            # on this actual invocation too. The individual effect scopes still
+            # identify the precise pending observation; this ambient scope does
+            # not invent an ACK obligation.
+            with self._delivery.foreign(observation=False):
+                return self._finish()
+        except BaseException as error:
+            self._delivery.failed(error)
+            if self._delivery.loss is not None:
+                self.fenced = self.native_failed = self.unconfirmed = True
+                self._delivery.propagate(error, ServiceContextUnknown, _REQUEST_REJECTIONS)
+            raise
+        finally:
+            self._delivery.retire()
+
+    def _finish(self):
         returned = False
         try:
             while self.receipt.phase == 1:
                 self.call(1)
                 try:
-                    observed = self.effect(self.receipt.port)
+                    with self._delivery.foreign():
+                        observed = self.effect(self.receipt.port)
                 except BaseException as error:
                     self.error = error
-                    if self.native_failed:
+                    if self.native_failed or self._delivery.loss is not None:
                         self.unconfirmed = True
+                        self._delivery.propagate(error, ServiceContextUnknown, _REQUEST_REJECTIONS)
                         raise
                     self.call(3)
                     if self.receipt.phase != 5:
@@ -273,6 +319,8 @@ class ContextFrame:
         try:
             value = self.image.arithmetic(operation, left, right)
         except BaseException as error:
+            if self._delivery.loss is None:
+                raise
             self.native_failed = True
             if isinstance(error, Exception) and (
                     not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):

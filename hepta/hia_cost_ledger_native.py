@@ -8,6 +8,7 @@ and is never replayed or replaced by the retained Python method.
 """
 from __future__ import annotations
 import ctypes
+from .hia_native_delivery import DeliveryRecord, NativeCall
 from functools import lru_cache
 from hashlib import sha256
 import json
@@ -72,24 +73,29 @@ class NativeCostLedger(NativeHiaJsonImage):
         initial = b'\xa5' * capacity
         output = ctypes.create_string_buffer(initial, capacity)
         unused = ctypes.create_string_buffer(1)
-        try:
-            code = self._entry(source, len(raw), output, capacity, unused, 0)
-            if code != 16 or source.raw != raw or unused.raw != b'\0':
-                raise CostLedgerUnknown('cost-ledger binary return or immutable input differs')
-            magic, value = struct.unpack_from('<2Q', output.raw)
-            if magic != RESULT_MAGIC:
-                raise CostLedgerUnknown('cost-ledger binary output identity differs')
-            if mode == 10:
-                if not 1 <= value <= capacity - 16:
-                    raise CostLedgerUnknown('cost-ledger sum extent differs')
-                return output.raw[16:16+value]
-            if value not in (0, 1):
-                raise CostLedgerUnknown('cost-ledger equality result differs')
-            return value
-        except Exception as error:
-            if isinstance(error, RuntimeError) and not isinstance(error, _REQUEST_REJECTIONS):
-                raise
-            raise CostLedgerUnknown('cost-ledger binary transport is unconfirmed') from error
+        with NativeCall(self) as delivery:
+            try:
+                delivery.enter_native()
+                code = self._entry(source, len(raw), output, capacity, unused, 0)
+                if code != 16 or source.raw != raw or unused.raw != b'\0':
+                    raise CostLedgerUnknown('cost-ledger binary return or immutable input differs')
+                magic, value = struct.unpack_from('<2Q', output.raw)
+                if magic != RESULT_MAGIC:
+                    raise CostLedgerUnknown('cost-ledger binary output identity differs')
+                if mode == 10:
+                    if not 1 <= value <= capacity - 16:
+                        raise CostLedgerUnknown('cost-ledger sum extent differs')
+                    delivery.confirmed(terminal=True)
+                    return output.raw[16:16+value]
+                if value not in (0, 1):
+                    raise CostLedgerUnknown('cost-ledger equality result differs')
+                delivery.confirmed(terminal=True)
+                return value
+            except Exception as error:
+                delivery.failed(error)
+                if isinstance(error, RuntimeError) and not isinstance(error, _REQUEST_REJECTIONS):
+                    raise
+                raise CostLedgerUnknown('cost-ledger binary transport is unconfirmed') from error
 
     def add(self, left, right):
         return self.binary(10, left, right)
@@ -166,17 +172,26 @@ class CostLedgerFrame:
         self.buffer = ctypes.create_string_buffer(STATE_BYTES)
         self.receipt, self.fenced, self.finished = None, False, False
         self.native_failed = False
-        self.call(0)
+        self._delivery = DeliveryRecord(self)
+        try:
+            self.call(0)
+        except BaseException:
+            self._delivery.retire()
+            raise
 
     def call(self, event, observation=0):
         if self.fenced or self.finished or os.getpid() != self.creator or threading.get_ident() != self.thread:
             raise CostLedgerUnknown('cost-ledger frame cannot be resumed or inherited')
+        if self._delivery.loss is not None:
+            self.fenced = self.native_failed = self.unconfirmed = True
+        self._delivery.check(CostLedgerUnknown)
         try:
             port, sequence = (0, 0) if self.receipt is None else self.receipt[:2]
             values = (REQUEST_MAGIC, event, sequence, port, observation, 0, *self.identity, 0, 0)
             raw = struct.pack('<10Q', *values)
             source = ctypes.create_string_buffer(raw, len(raw))
             output = ctypes.create_string_buffer(OUTPUT_BYTES)
+            self._delivery.enter_native()
             code = self.image._entry(source, len(raw), output, OUTPUT_BYTES, self.buffer, STATE_BYTES)
             if code != OUTPUT_BYTES or source.raw != raw:
                 raise CostLedgerUnknown('cost-ledger continuation return is unconfirmed')
@@ -188,8 +203,10 @@ class CostLedgerFrame:
                 raise CostLedgerUnknown('cost-ledger receipt differs from issued state')
             self.receipt = words[2:8]
             self.retained_rows = state[12]
+            self._delivery.confirmed(terminal=words[4] in (4, 5))
             return self.receipt
         except BaseException as error:
+            self._delivery.failed(error)
             self.fenced = self.native_failed = True
             if isinstance(error, Exception) and (
                     not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
@@ -197,17 +214,41 @@ class CostLedgerFrame:
             raise
 
     def finish(self):
+        try:
+            if (not self._delivery.current() or self._delivery.loss is not None
+                    or self._delivery.terminal or self._delivery.retired):
+                # The original owner guard determines a foreign PID/thread's
+                # exception and refusal point before any ambient activation.
+                return self._finish()
+            # Keep implicit foreign object release/lookup between issued ports
+            # on this actual invocation too. The individual effect scopes still
+            # identify the precise pending observation; this ambient scope does
+            # not invent an ACK obligation.
+            with self._delivery.foreign(observation=False):
+                return self._finish()
+        except BaseException as error:
+            self._delivery.failed(error)
+            if self._delivery.loss is not None:
+                self.fenced = self.native_failed = self.unconfirmed = True
+                self._delivery.propagate(error, CostLedgerUnknown, _REQUEST_REJECTIONS)
+            raise
+        finally:
+            self._delivery.retire()
+
+    def _finish(self):
         while not self.finished:
             if self.receipt[2] != 1:
                 self.fenced = True
                 raise CostLedgerUnknown('cost-ledger effect is not newly issued')
             self.call(1)
             try:
-                observed = self.effect(self.receipt[0])
-            except BaseException:
-                if self.native_failed:
+                with self._delivery.foreign():
+                    observed = self.effect(self.receipt[0])
+            except BaseException as error:
+                if self.native_failed or self._delivery.loss is not None:
                     # An uncertain image operation is not a confirmed foreign
                     # exception and must never receive a synthetic event 3.
+                    self._delivery.propagate(error, CostLedgerUnknown, _REQUEST_REJECTIONS)
                     raise
                 self.call(3)
                 if self.receipt[2] != 5:
@@ -224,6 +265,8 @@ class CostLedgerFrame:
         try:
             return operation(*arguments)
         except BaseException as error:
+            if self._delivery.loss is None:
+                raise
             self.fenced = self.native_failed = True
             if isinstance(error, Exception) and (
                     not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
