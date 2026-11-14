@@ -54,6 +54,8 @@ def checker_identity():
                  "hia_program_composite.py", "hia_json_preflight.py",
                  "hia_program_runtime.py", "hia_bounded_memory.py"):
         digest.update(name.encode() + b"\0" + Path(__file__).with_name(name).read_bytes() + b"\0")
+    from .hia_checker_identity import checker_digest
+    digest.update(checker_digest().encode())
     return digest.hexdigest()
 
 

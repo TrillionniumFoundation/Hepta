@@ -301,10 +301,14 @@ class FiniteV8HeapTests(unittest.TestCase):
             source["functions"].append(fn)
             with self.subTest(kind=kind), self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_UNBOUNDED"):
                 qualify(source)
-        for variable in ("_FINITE_MAX_CONTEXTS", "_FINITE_MAX_TRANSFER_STEPS", "_FINITE_MAX_ANALYSIS_DEPTH"):
-            with self.subTest(variable=variable), patch("hepta.hia_heap_bound." + variable, 1):
-                with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_LIMIT"):
-                    qualify(mixed_transfer_program())
+        from tests.hia_heap_native_fixture import native_heap_selected, assert_native_finite_work_limits
+        if native_heap_selected():
+            assert_native_finite_work_limits(self,'qualify_finite_entry_live_heap_budget_v8',8)
+        else:
+            for variable in ("_FINITE_MAX_CONTEXTS", "_FINITE_MAX_TRANSFER_STEPS", "_FINITE_MAX_ANALYSIS_DEPTH"):
+                with self.subTest(variable=variable), patch("hepta.hia_heap_bound." + variable, 1):
+                    with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_LIMIT"):
+                        qualify(mixed_transfer_program())
 
     def test_exact_arguments_policy_and_captured_snapshot_remain_bound(self):
         source = mixed_transfer_program()
@@ -320,8 +324,15 @@ class FiniteV8HeapTests(unittest.TestCase):
         def modify(analysis, fn, bounds):
             arguments[0] = 123
             return original(analysis, fn, bounds)
-        with patch.object(_FiniteInvocationAnalysis, "invoke", modify):
-            report = qualify(source, arguments=arguments, limit=16)
+        from tests.hia_heap_native_fixture import native_heap_selected, before_native_finite_invocation
+        if native_heap_selected():
+            def modify_native(bounds):
+                arguments[0] = 123
+            with before_native_finite_invocation(modify_native):
+                report = qualify(source, arguments=arguments, limit=16)
+        else:
+            with patch.object(_FiniteInvocationAnalysis, "invoke", modify):
+                report = qualify(source, arguments=arguments, limit=16)
         self.assertEqual(arguments, [123, False])
         self.assertEqual(report["arguments"], [9, False])
         self.assertEqual(report["peak_bound_bytes"], 16)

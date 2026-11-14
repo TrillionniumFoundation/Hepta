@@ -215,3 +215,7 @@ def hia_main(argv=None):
     return _reference_hia_main(argv)
 
 main = hia_main
+
+# Definition anchors for the optional discovery expression owner.
+_HIA_DISCOVERY_DEFINITIONS = (agent_capabilities, output_json, _reference_hia_main,
+                              agent_capabilities.__code__, output_json.__code__, _reference_hia_main.__code__)

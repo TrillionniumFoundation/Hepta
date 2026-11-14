@@ -258,7 +258,8 @@ def supervise(request):
 
 
 def run_owned(command, *, cwd, env, stdout_path, stderr_path, receipt_path,
-              qualification_seconds=QUALIFICATION_SECONDS, cleanup_seconds=CLEANUP_SECONDS):
+              qualification_seconds=QUALIFICATION_SECONDS, cleanup_seconds=CLEANUP_SECONDS,
+              supervisor_env=None):
     """Launch the dedicated owner; never set subreaper attributes in this caller."""
     require_linux()
     for value, maximum in ((qualification_seconds, QUALIFICATION_SECONDS), (cleanup_seconds, CLEANUP_SECONDS)):
@@ -269,6 +270,10 @@ def run_owned(command, *, cwd, env, stdout_path, stderr_path, receipt_path,
             "nonempty shell-free command required")
     require(type(env) is dict and all(type(k) is str and type(v) is str and k and "=" not in k
                                     and "\0" not in k + v for k, v in env.items()), "explicit environment required")
+    require(supervisor_env is None or (type(supervisor_env) is dict
+            and all(type(k) is str and type(v) is str and k and "=" not in k
+                    and "\0" not in k + v for k, v in supervisor_env.items())),
+            "explicit supervisor environment required")
     paths = {key: str(Path(value).absolute()) for key, value in (
         ("stdout_path", stdout_path), ("stderr_path", stderr_path), ("receipt_path", receipt_path))}
     require(len(set(paths.values())) == 3, "distinct private output paths required")
@@ -290,10 +295,13 @@ def run_owned(command, *, cwd, env, stdout_path, stderr_path, receipt_path,
     owner_out = Path(paths["receipt_path"] + ".stdout.log")
     owner_err = Path(paths["receipt_path"] + ".stderr.log")
     create(owner_out, b""); create(owner_err, b"")
+    # None preserves the original Popen keyword set and ambient inheritance.
+    supervisor_options = {} if supervisor_env is None else {"env": dict(supervisor_env)}
     with owner_out.open("ab", buffering=0) as stdout, owner_err.open("ab", buffering=0) as stderr:
         owner = subprocess.Popen([sys.executable, "-I", "-S", "-B", str(implementation),
             "--request", str(request_path), "--request-sha256", sha256(raw).hexdigest()],
-            stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, close_fds=True, start_new_session=True)
+            stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, close_fds=True,
+            start_new_session=True, **supervisor_options)
     bound = qualification_seconds + cleanup_seconds + 2
     try:
         owner.wait(timeout=max(0.001, bound - (time.monotonic_ns() - started) / 1e9))

@@ -199,5 +199,262 @@ class HiaSourceSuffixTests(unittest.TestCase):
                 check(root)
 
 
+    def test_linux_stdio_source_roles_are_explicit_and_fully_verified(self):
+        from unittest.mock import patch
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program import verify_program
+        from hepta.hia_linux_stdio import PROFILE
+        from tools.check_hia_core_only import EXPLICIT_SOURCE_PROFILES
+        names = (
+            'tests/fixtures/hia_linux_stdio_bounded-copy.hepta',
+            'tests/fixtures/hia_linux_stdio_out-of-bounds.hepta',
+            'tests/fixtures/hia_linux_stdio_read-ebadf-exact.hepta',
+            'tests/fixtures/hia_linux_stdio_write-ebadf-exact.hepta',
+            'tests/fixtures/hia_linux_stdio_zero-transfer.hepta',
+        )
+        expected_profiles = {name: PROFILE for name in names}
+        expected_profiles['examples/hia_bootstrap/native_cli_process.hepta'] = 'hepta.hia.linux-cli-process.v1'
+        expected_profiles['examples/hia_bootstrap/native_file_read.hepta'] = 'hepta.hia.linux-file.v1'
+        expected_profiles['examples/hia_bootstrap/native_file_render.hepta'] = 'hepta.hia.linux-file-render.v3'
+        self.assertEqual(EXPLICIT_SOURCE_PROFILES, expected_profiles)
+        source = {name: (ROOT / name).read_bytes() for name in names}
+        structured = {}
+        for name, raw in source.items():
+            with self.subTest(default_assembly=name), self.assertRaises(ValueError):
+                assemble_program(raw)
+            structured[name] = assemble_program(raw, profile=PROFILE).canonical_bytes
+            with self.subTest(default_json=name), self.assertRaises(ValueError):
+                verify_program(structured[name])
+        with source_tree() as root:
+            for name, raw in source.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(raw)
+            with patch('hepta.hia_agent_assembly.assemble_program', wraps=assemble_program) as calls:
+                report = check(root)
+            self.assertEqual(report['status'], 'PASS')
+            self.assertEqual(report['hia_source_files'], 5)
+            self.assertEqual([call.args for call in calls.call_args_list],
+                             [(source[name],) for name in sorted(names)])
+            self.assertEqual([call.kwargs for call in calls.call_args_list],
+                             [{'profile': PROFILE}] * 5)
+            for name, raw in structured.items():
+                (root / name).write_bytes(raw)
+            with patch('hepta.hia_program.verify_program', wraps=verify_program) as calls:
+                report = check(root)
+            self.assertEqual(report['status'], 'PASS')
+            self.assertEqual(report['hia_source_files'], 5)
+            self.assertEqual([call.args for call in calls.call_args_list],
+                             [(structured[name],) for name in sorted(names)])
+            self.assertEqual([call.kwargs for call in calls.call_args_list],
+                             [{'profile': PROFILE}] * 5)
+            unregistered = root / 'examples' / 'unregistered_stdio.hepta'
+            for raw in (source[names[0]], structured[names[0]]):
+                unregistered.write_bytes(raw)
+                with self.subTest(unregistered_format=raw[:1]), self.assertRaisesRegex(
+                        ValueError, 'invalid HIA source content: examples/unregistered_stdio'):
+                    check(root)
+                self.assertEqual(unregistered.read_bytes(), raw)
+                unregistered.unlink()
+            selected = root / names[0]
+            self.assertIn(b'linux_io', source[names[0]])
+            selected.write_bytes(source[names[0]].replace(b'linux_io', b'unregistered_io'))
+            with self.assertRaisesRegex(ValueError, 'E_HIA_EFFECT'):
+                check(root)
+            broken = json.loads(structured[names[0]])
+            broken['functions'][0]['blocks'][0]['ops'][0]['out'][0]['name'] = 'invalid value name'
+            selected.write_text(json.dumps(broken))
+            with self.assertRaisesRegex(ValueError, 'invalid HIA source content'):
+                check(root)
+            selected.unlink()
+            selected.symlink_to(ROOT / names[0])
+            with self.assertRaisesRegex(ValueError, 'regular non-symlink'):
+                check(root)
+            selected.unlink()
+            for name, raw in source.items():
+                (root / name).write_bytes(raw)
+            self.assertEqual(check(root)['hia_source_files'], 5)
+            for name, raw in source.items():
+                self.assertEqual((root / name).read_bytes(), raw)
+
+    def test_native_cli_process_source_role_is_explicit_and_fully_verified(self):
+        from unittest.mock import patch
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program import verify_program
+        from hepta.hia_linux_cli_process import PROFILE
+        from tools.check_hia_core_only import EXPLICIT_SOURCE_PROFILES
+        name = 'examples/hia_bootstrap/native_cli_process.hepta'
+        self.assertEqual(EXPLICIT_SOURCE_PROFILES[name], PROFILE)
+        raw = (ROOT / name).read_bytes()
+        with self.assertRaises(ValueError):
+            assemble_program(raw)
+        structured = assemble_program(raw, profile=PROFILE).canonical_bytes
+        with self.assertRaises(ValueError):
+            verify_program(structured)
+        with source_tree() as root:
+            selected = root / name
+            selected.parent.mkdir(parents=True, exist_ok=True)
+            selected.write_bytes(raw)
+            with patch('hepta.hia_agent_assembly.assemble_program', wraps=assemble_program) as calls:
+                report = check(root)
+            self.assertEqual(report['status'], 'PASS')
+            self.assertEqual(report['hia_source_files'], 1)
+            self.assertEqual([call.args for call in calls.call_args_list], [(raw,)])
+            self.assertEqual([call.kwargs for call in calls.call_args_list], [{'profile': PROFILE}])
+            self.assertEqual(selected.read_bytes(), raw)
+            selected.write_bytes(structured)
+            with patch('hepta.hia_program.verify_program', wraps=verify_program) as calls:
+                report = check(root)
+            self.assertEqual(report['status'], 'PASS')
+            self.assertEqual(report['hia_source_files'], 1)
+            self.assertEqual([call.args for call in calls.call_args_list], [(structured,)])
+            self.assertEqual([call.kwargs for call in calls.call_args_list], [{'profile': PROFILE}])
+            self.assertEqual(selected.read_bytes(), structured)
+            unregistered = root / 'examples' / 'unregistered_cli_process.hepta'
+            for content in (raw, structured):
+                unregistered.write_bytes(content)
+                with self.subTest(unregistered_format=content[:1]), self.assertRaisesRegex(
+                        ValueError, 'invalid HIA source content: examples/unregistered_cli_process'):
+                    check(root)
+                self.assertEqual(unregistered.read_bytes(), content)
+                unregistered.unlink()
+            broken = json.loads(structured)
+            output = next(operation['out'][0]
+                          for function in broken['functions']
+                          for block in function['blocks']
+                          for operation in block['ops'] if operation['out'])
+            output['name'] = 'invalid value name'
+            selected.write_text(json.dumps(broken))
+            with self.assertRaisesRegex(ValueError, 'invalid HIA source content'):
+                check(root)
+            selected.unlink()
+            selected.symlink_to(ROOT / name)
+            with self.assertRaisesRegex(ValueError, 'regular non-symlink'):
+                check(root)
+            selected.unlink()
+            selected.write_bytes(raw)
+            self.assertEqual(check(root)['hia_source_files'], 1)
+            self.assertEqual(selected.read_bytes(), raw)
+
+    def test_native_file_source_role_is_explicit_and_fully_verified(self):
+        from unittest.mock import patch
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program import verify_program
+        from hepta.hia_linux_file import PROFILE
+        from tools.check_hia_core_only import EXPLICIT_SOURCE_PROFILES
+        name = 'examples/hia_bootstrap/native_file_read.hepta'
+        self.assertEqual(EXPLICIT_SOURCE_PROFILES[name], PROFILE)
+        raw = (ROOT / name).read_bytes()
+        with self.assertRaises(ValueError):
+            assemble_program(raw)
+        structured = assemble_program(raw, profile=PROFILE).canonical_bytes
+        with self.assertRaises(ValueError):
+            verify_program(structured)
+        with source_tree() as root:
+            selected = root / name
+            selected.parent.mkdir(parents=True, exist_ok=True)
+            selected.write_bytes(raw)
+            with patch('hepta.hia_agent_assembly.assemble_program', wraps=assemble_program) as calls:
+                report = check(root)
+            self.assertEqual(report['status'], 'PASS')
+            self.assertEqual(report['hia_source_files'], 1)
+            self.assertEqual([call.args for call in calls.call_args_list], [(raw,)])
+            self.assertEqual([call.kwargs for call in calls.call_args_list], [{'profile': PROFILE}])
+            self.assertEqual(selected.read_bytes(), raw)
+            selected.write_bytes(structured)
+            with patch('hepta.hia_program.verify_program', wraps=verify_program) as calls:
+                report = check(root)
+            self.assertEqual(report['status'], 'PASS')
+            self.assertEqual(report['hia_source_files'], 1)
+            self.assertEqual([call.args for call in calls.call_args_list], [(structured,)])
+            self.assertEqual([call.kwargs for call in calls.call_args_list], [{'profile': PROFILE}])
+            self.assertEqual(selected.read_bytes(), structured)
+            unregistered = root / 'examples' / 'unregistered_file.hepta'
+            for content in (raw, structured):
+                unregistered.write_bytes(content)
+                with self.subTest(unregistered_format=content[:1]), self.assertRaisesRegex(
+                        ValueError, 'invalid HIA source content: examples/unregistered_file'):
+                    check(root)
+                self.assertEqual(unregistered.read_bytes(), content)
+                unregistered.unlink()
+            broken = json.loads(structured)
+            output = next(operation['out'][0]
+                          for function in broken['functions']
+                          for block in function['blocks']
+                          for operation in block['ops'] if operation['out'])
+            output['name'] = 'invalid value name'
+            selected.write_text(json.dumps(broken))
+            with self.assertRaisesRegex(ValueError, 'invalid HIA source content'):
+                check(root)
+            selected.unlink()
+            selected.symlink_to(ROOT / name)
+            with self.assertRaisesRegex(ValueError, 'regular non-symlink'):
+                check(root)
+            selected.unlink()
+            selected.write_bytes(raw)
+            self.assertEqual(check(root)['hia_source_files'], 1)
+            self.assertEqual(selected.read_bytes(), raw)
+
+    def test_native_file_render_source_role_is_explicit_and_fully_verified(self):
+        from unittest.mock import patch
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program import verify_program
+        from hepta.hia_linux_file_render import PROFILE
+        from tools.check_hia_core_only import EXPLICIT_SOURCE_PROFILES
+        name = 'examples/hia_bootstrap/native_file_render.hepta'
+        self.assertEqual(EXPLICIT_SOURCE_PROFILES[name], PROFILE)
+        raw = (ROOT / name).read_bytes()
+        with self.assertRaises(ValueError):
+            assemble_program(raw)
+        structured = assemble_program(raw, profile=PROFILE).canonical_bytes
+        with self.assertRaises(ValueError):
+            verify_program(structured)
+        with source_tree() as root:
+            selected = root / name
+            selected.parent.mkdir(parents=True, exist_ok=True)
+            selected.write_bytes(raw)
+            with patch('hepta.hia_agent_assembly.assemble_program', wraps=assemble_program) as calls:
+                report = check(root)
+            self.assertEqual(report['status'], 'PASS')
+            self.assertEqual(report['hia_source_files'], 1)
+            self.assertEqual([call.args for call in calls.call_args_list], [(raw,)])
+            self.assertEqual([call.kwargs for call in calls.call_args_list], [{'profile': PROFILE}])
+            self.assertEqual(selected.read_bytes(), raw)
+            selected.write_bytes(structured)
+            with patch('hepta.hia_program.verify_program', wraps=verify_program) as calls:
+                report = check(root)
+            self.assertEqual(report['status'], 'PASS')
+            self.assertEqual(report['hia_source_files'], 1)
+            self.assertEqual([call.args for call in calls.call_args_list], [(structured,)])
+            self.assertEqual([call.kwargs for call in calls.call_args_list], [{'profile': PROFILE}])
+            self.assertEqual(selected.read_bytes(), structured)
+            unregistered = root / 'examples' / 'unregistered_file_render.hepta'
+            for content in (raw, structured):
+                unregistered.write_bytes(content)
+                with self.subTest(unregistered_format=content[:1]), self.assertRaisesRegex(
+                        ValueError, 'invalid HIA source content: examples/unregistered_file_render'):
+                    check(root)
+                self.assertEqual(unregistered.read_bytes(), content)
+                unregistered.unlink()
+            broken = json.loads(structured)
+            output = next(operation['out'][0]
+                          for function in broken['functions']
+                          for block in function['blocks']
+                          for operation in block['ops'] if operation['out'])
+            output['name'] = 'invalid value name'
+            selected.write_text(json.dumps(broken))
+            with self.assertRaisesRegex(ValueError, 'invalid HIA source content'):
+                check(root)
+            selected.unlink()
+            selected.symlink_to(ROOT / name)
+            with self.assertRaisesRegex(ValueError, 'regular non-symlink'):
+                check(root)
+            selected.unlink()
+            selected.write_bytes(raw)
+            self.assertEqual(check(root)['hia_source_files'], 1)
+            self.assertEqual(selected.read_bytes(), raw)
+
+
+
 if __name__ == '__main__':
     unittest.main()

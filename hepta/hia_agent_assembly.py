@@ -319,3 +319,206 @@ def diagnose_assembly(source: str | bytes) -> dict:
     result.update(accepted=True, core_sha256=checked.sha256,
                   core_schema=checked.as_dict()["schema"], diagnostic=None)
     return result
+
+# Explicit HIA selection; original function bodies remain the default.
+from .hia_assembly_front_selection import native_assembly_front_scope as _native_assembly_front_scope
+
+_assembly_front_reference_reject = _reject
+
+def _reject(message, *, line=None, limit=False):
+    with _native_assembly_front_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _assembly_front_reference_reject, 'message': message, 'line': line, 'limit': limit}
+            del message, line, limit, owner
+            return carrier.pop('callee')(carrier.pop('message'), line=carrier.pop('line'), limit=carrier.pop('limit'))
+        frame = owner.prepare('_reject', (message, line, limit))
+        del message, line, limit
+        return owner.finish(frame)
+
+_assembly_front_reference_source = _source
+
+def _source(value):
+    with _native_assembly_front_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _assembly_front_reference_source, 'value': value}
+            del value, owner
+            return carrier.pop('callee')(carrier.pop('value'))
+        frame = owner.prepare('_source', (value,))
+        del value
+        return owner.finish(frame)
+
+_assembly_front_reference_items = _items
+
+def _items(value, line):
+    with _native_assembly_front_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _assembly_front_reference_items, 'value': value, 'line': line}
+            del value, line, owner
+            return carrier.pop('callee')(carrier.pop('value'), carrier.pop('line'))
+        frame = owner.prepare('_items', (value, line))
+        del value, line
+        return owner.finish(frame)
+
+_assembly_front_reference_names = _names
+
+def _names(value, line):
+    with _native_assembly_front_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _assembly_front_reference_names, 'value': value, 'line': line}
+            del value, line, owner
+            return carrier.pop('callee')(carrier.pop('value'), carrier.pop('line'))
+        frame = owner.prepare('_names', (value, line))
+        del value, line
+        return owner.finish(frame)
+
+_assembly_front_reference_parameters = _parameters
+
+def _parameters(value, line):
+    with _native_assembly_front_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _assembly_front_reference_parameters, 'value': value, 'line': line}
+            del value, line, owner
+            return carrier.pop('callee')(carrier.pop('value'), carrier.pop('line'))
+        frame = owner.prepare('_parameters', (value, line))
+        del value, line
+        return owner.finish(frame)
+
+_assembly_front_reference_attrs = _attrs
+
+def _attrs(value, line):
+    with _native_assembly_front_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _assembly_front_reference_attrs, 'value': value, 'line': line}
+            del value, line, owner
+            return carrier.pop('callee')(carrier.pop('value'), carrier.pop('line'))
+        frame = owner.prepare('_attrs', (value, line))
+        del value, line
+        return owner.finish(frame)
+
+_assembly_front_reference_parse_assembly_document = _parse_assembly_document
+
+def _parse_assembly_document(source: str | bytes) -> dict:
+    with _native_assembly_front_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _assembly_front_reference_parse_assembly_document, 'source': source}
+            del source, owner
+            return carrier.pop('callee')(carrier.pop('source'))
+        frame = owner.prepare('_parse_assembly_document', (source,))
+        del source
+        return owner.finish(frame)
+
+_assembly_front_referenceassemble_program = assemble_program
+
+def assemble_program(source: str | bytes, *, profile=None):
+    if profile is not None:
+        if type(profile) is str and profile == "hepta.hia.linux-file-roundtrip.v2":
+            from .hia_program_tools import _ROUNDTRIP_PROFILE_PROVIDERS
+            assemble_linux_file_roundtrip = _ROUNDTRIP_PROFILE_PROVIDERS['assemble_program']()
+            return assemble_linux_file_roundtrip(source)
+        elif type(profile) is str and profile == "hepta.hia.linux-file-render.v3":
+            from .hia_linux_file_render import assemble_linux_file_render
+            return assemble_linux_file_render(source)
+        if type(profile) is str and profile == "hepta.hia.linux-file.v1":
+            from .hia_linux_file import assemble_linux_file
+            return assemble_linux_file(source)
+        elif type(profile) is str and profile == "hepta.hia.linux-cli-process.v1":
+            from .hia_linux_cli_process import assemble_linux_cli_process
+            return assemble_linux_cli_process(source)
+        elif type(profile) is str and profile == "hepta.hia.linux-process.v1":
+            from .hia_linux_process import assemble_linux_process
+            return assemble_linux_process(source)
+        from .hia_linux_stdio import require_profile, assemble_linux_stdio
+        require_profile(profile)
+        return assemble_linux_stdio(source)
+    with _native_assembly_front_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _assembly_front_referenceassemble_program, 'source': source}
+            del source, owner
+            return carrier.pop('callee')(carrier.pop('source'))
+        frame = owner.prepare('assemble_program', (source,))
+        del source
+        return owner.finish(frame)
+
+_assembly_front_reference_render_parameters = _render_parameters
+
+def _render_parameters(parameters):
+    with _native_assembly_front_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _assembly_front_reference_render_parameters, 'parameters': parameters}
+            del parameters, owner
+            return carrier.pop('callee')(carrier.pop('parameters'))
+        frame = owner.prepare('_render_parameters', (parameters,))
+        del parameters
+        return owner.finish(frame)
+
+_assembly_front_reference_render_assembly_document = _render_assembly_document
+
+def _render_assembly_document(data: dict) -> str:
+    with _native_assembly_front_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _assembly_front_reference_render_assembly_document, 'data': data}
+            del data, owner
+            return carrier.pop('callee')(carrier.pop('data'))
+        frame = owner.prepare('_render_assembly_document', (data,))
+        del data
+        return owner.finish(frame)
+
+_assembly_front_referencerender_assembly = render_assembly
+
+def render_assembly(document, *, profile=None) -> str:
+    if profile is not None:
+        if type(profile) is str and profile == "hepta.hia.linux-file-roundtrip.v2":
+            from .hia_program_tools import _ROUNDTRIP_PROFILE_PROVIDERS
+            render_linux_file_roundtrip = _ROUNDTRIP_PROFILE_PROVIDERS['render_assembly']()
+            return render_linux_file_roundtrip(document)
+        elif type(profile) is str and profile == "hepta.hia.linux-file-render.v3":
+            from .hia_linux_file_render import render_linux_file_render
+            return render_linux_file_render(document)
+        if type(profile) is str and profile == "hepta.hia.linux-file.v1":
+            from .hia_linux_file import render_linux_file
+            return render_linux_file(document)
+        elif type(profile) is str and profile == "hepta.hia.linux-cli-process.v1":
+            from .hia_linux_cli_process import render_linux_cli_process
+            return render_linux_cli_process(document)
+        elif type(profile) is str and profile == "hepta.hia.linux-process.v1":
+            from .hia_linux_process import render_linux_process
+            return render_linux_process(document)
+        from .hia_linux_stdio import require_profile, render_linux_stdio
+        require_profile(profile)
+        return render_linux_stdio(document)
+    with _native_assembly_front_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _assembly_front_referencerender_assembly, 'document': document}
+            del document, owner
+            return carrier.pop('callee')(carrier.pop('document'))
+        frame = owner.prepare('render_assembly', (document,))
+        del document
+        return owner.finish(frame)
+
+_assembly_front_referencediagnose_assembly = diagnose_assembly
+
+def diagnose_assembly(source: str | bytes) -> dict:
+    with _native_assembly_front_scope() as owner:
+        if owner is None:
+            carrier = {'callee': _assembly_front_referencediagnose_assembly, 'source': source}
+            del source, owner
+            return carrier.pop('callee')(carrier.pop('source'))
+        frame = owner.prepare('diagnose_assembly', (source,))
+        del source
+        return owner.finish(frame)
+
+# Definition anchors never follow late global replacement or deletion.
+_NATIVE_ASSEMBLY_FRONT_ENTRIES = {
+    '_reject': _reject,
+    '_source': _source,
+    '_items': _items,
+    '_names': _names,
+    '_parameters': _parameters,
+    '_attrs': _attrs,
+    '_parse_assembly_document': _parse_assembly_document,
+    'assemble_program': assemble_program,
+    '_render_parameters': _render_parameters,
+    '_render_assembly_document': _render_assembly_document,
+    'render_assembly': render_assembly,
+    'diagnose_assembly': diagnose_assembly,
+}

@@ -10,6 +10,7 @@ from copy import deepcopy
 import platform
 
 from .hia_agent_store import digest, reject
+from .hia_checker_identity import checker_native_selection
 
 
 PROOF_SCHEMA = "hepta.hia.agent.proof-result.v1"
@@ -54,16 +55,16 @@ _PROPERTIES = {
 }
 
 
-def _item(identity, statement):
+def _item_reference(identity, statement):
     return {"id": identity, "statement": statement}
 
 
-def _require(condition, message):
+def _require_reference(condition, message):
     if not condition:
         reject("E_HIA_PROOF_SCOPE", message, "verification")
 
 
-def _safe_core_method(status, subject, evidence):
+def _safe_core_method_reference(status, subject, evidence):
     """Consume the independent checker's exact identity and ordered obligations."""
     from .hia_safe_core import (ARTIFACT_PROFILE, ARTIFACT_PROPERTY, ARTIFACT_OBLIGATIONS,
         SCHEMA, CLAIMS, ASSUMPTIONS, LIMITS, UNPROVED_OBLIGATIONS, _checker_source_identity,
@@ -106,6 +107,7 @@ def _safe_core_method(status, subject, evidence):
     _require(solver == actual_solver and validation.get("solver") == solver,
              "independent machine solver binding or native library differs")
     checker = {"name": _CHECKERS[SAFE_CORE_METHOD], "source_identity": identity,
+               "native_selection": checker_native_selection(),
                "solver": solver, "producer_reemission_used": False}
     _require(validation.get("schema") == SCHEMA and validation.get("profile") == ARTIFACT_PROFILE
              and validation.get("artifact_input_profile") == ARTIFACT_PROFILE
@@ -160,7 +162,7 @@ def _safe_core_method(status, subject, evidence):
     return SAFE_CORE_METHOD
 
 
-def proof_subject(record, target_profile):
+def proof_subject_reference(record, target_profile):
     """Bind a selected Core/plan/native subject to exact programs and context."""
     return {
         **deepcopy(record["subject"]),
@@ -173,7 +175,7 @@ def proof_subject(record, target_profile):
     }
 
 
-def _method(claim, status, subject, evidence):
+def _method_reference(claim, status, subject, evidence):
     """Reject a conclusion that contradicts the retained checker's own result."""
     _require(type(evidence) is dict, "verification evidence must be a retained object")
     core = subject["candidate_core_sha256"]
@@ -261,8 +263,12 @@ def _method(claim, status, subject, evidence):
     _require(False, "unknown proof property")
 
 
-def proof_result(*, claim, status, domain, subject, profile, installation, evidence):
+def proof_result_reference(*, claim, status, domain, subject, profile, installation, evidence,
+                 held_native_owners=()):
     """Produce a self-contained description, never upgrade checker conclusions."""
+    native_selection = checker_native_selection(held_owners=held_native_owners)
+    _require(evidence.get("native_checker_selection") == native_selection,
+             "native checker selection differs from the actual verification owners")
     method = _method(claim, status, subject, evidence)
     assumptions = [
         _item("identified_checker_execution", "The identified Python runtime, checker source and hashing implementation execute their specified checks faithfully."),
@@ -326,6 +332,7 @@ def proof_result(*, claim, status, domain, subject, profile, installation, evide
         "checker": {
             "name": _CHECKERS[method], "method": method,
             "installation": deepcopy(installation),
+            "native_selection_sha256": digest(native_selection),
             "python": {"implementation": platform.python_implementation(), "version": platform.python_version()},
             "auxiliary_checker_sha256": evidence.get("checker_sha256") if method in {"compositional_scalar_effect", SAFE_CORE_METHOD} else None,
             "solver": solver_identity,
@@ -335,7 +342,7 @@ def proof_result(*, claim, status, domain, subject, profile, installation, evide
     }
 
 
-def assumptions_document(result):
+def assumptions_document_reference(result):
     return {
         "schema": "hepta.hia.agent.proof-assumptions.v1",
         "subject": result["subject"], "property": result["property"],
@@ -345,7 +352,7 @@ def assumptions_document(result):
     }
 
 
-def proof_contract_description():
+def proof_contract_description_reference():
     return {
         "schema": PROOF_SCHEMA, "proved_meaning": PROVED_MEANING,
         "required_scope_fields": list(PROOF_FIELDS),
@@ -359,3 +366,121 @@ def proof_contract_description():
             "producer_reemission_used": False, "whole_language_refinement": False},
         "receipt_consumption": "Recheck exact subject/profile/checker, retained evidence conclusion and assumptions before satisfying any required claim.",
     }
+
+
+def _item(identity, statement):
+    from .hia_proof_contract_selection import selected_proof_contract, proof_contract_scope
+    owner = selected_proof_contract()
+    with proof_contract_scope(owner):
+        if owner is None:
+            parameters = {'callee': _item_reference, 'identity': identity, 'statement': statement}
+            del identity, statement, owner
+            return parameters.pop('callee')(parameters.pop('identity'), parameters.pop('statement'))
+        frame = owner.prepare('_item', (identity, statement))
+        identity = statement = None
+        return owner.finish(frame)
+
+
+def _require(condition, message):
+    from .hia_proof_contract_selection import selected_proof_contract, proof_contract_scope
+    owner = selected_proof_contract()
+    with proof_contract_scope(owner):
+        if owner is None:
+            parameters = {'callee': _require_reference, 'condition': condition, 'message': message}
+            del condition, message, owner
+            return parameters.pop('callee')(parameters.pop('condition'), parameters.pop('message'))
+        frame = owner.prepare('_require', (condition, message))
+        condition = message = None
+        return owner.finish(frame)
+
+
+def _safe_core_method(status, subject, evidence):
+    from .hia_proof_contract_selection import selected_proof_contract, proof_contract_scope
+    owner = selected_proof_contract()
+    with proof_contract_scope(owner):
+        if owner is None:
+            parameters = {'callee': _safe_core_method_reference, 'status': status, 'subject': subject, 'evidence': evidence}
+            del status, subject, evidence, owner
+            return parameters.pop('callee')(parameters.pop('status'), parameters.pop('subject'), parameters.pop('evidence'))
+        frame = owner.prepare('_safe_core_method', (status, subject, evidence))
+        status = subject = evidence = None
+        return owner.finish(frame)
+
+
+def proof_subject(record, target_profile):
+    from .hia_proof_contract_selection import selected_proof_contract, proof_contract_scope
+    owner = selected_proof_contract()
+    with proof_contract_scope(owner):
+        if owner is None:
+            parameters = {'callee': proof_subject_reference, 'record': record, 'target_profile': target_profile}
+            del record, target_profile, owner
+            return parameters.pop('callee')(parameters.pop('record'), parameters.pop('target_profile'))
+        frame = owner.prepare('proof_subject', (record, target_profile))
+        record = target_profile = None
+        return owner.finish(frame)
+
+
+def _method(claim, status, subject, evidence):
+    from .hia_proof_contract_selection import selected_proof_contract, proof_contract_scope
+    owner = selected_proof_contract()
+    with proof_contract_scope(owner):
+        if owner is None:
+            parameters = {'callee': _method_reference, 'claim': claim, 'status': status, 'subject': subject, 'evidence': evidence}
+            del claim, status, subject, evidence, owner
+            return parameters.pop('callee')(parameters.pop('claim'), parameters.pop('status'), parameters.pop('subject'), parameters.pop('evidence'))
+        frame = owner.prepare('_method', (claim, status, subject, evidence))
+        claim = status = subject = evidence = None
+        return owner.finish(frame)
+
+
+def proof_result(*, claim, status, domain, subject, profile, installation, evidence, held_native_owners=()):
+    from .hia_proof_contract_selection import selected_proof_contract, proof_contract_scope
+    owner = selected_proof_contract()
+    with proof_contract_scope(owner):
+        if owner is None:
+            parameters = {'callee': proof_result_reference, 'claim': claim, 'status': status, 'domain': domain, 'subject': subject, 'profile': profile, 'installation': installation, 'evidence': evidence, 'held_native_owners': held_native_owners}
+            del claim, status, domain, subject, profile, installation, evidence, held_native_owners, owner
+            return parameters.pop('callee')(claim=parameters.pop('claim'), status=parameters.pop('status'), domain=parameters.pop('domain'), subject=parameters.pop('subject'), profile=parameters.pop('profile'), installation=parameters.pop('installation'), evidence=parameters.pop('evidence'), held_native_owners=parameters.pop('held_native_owners'))
+        held_native_owners = owner.bind_checker_owners(held_native_owners)
+        frame = owner.prepare('proof_result', (claim, status, domain, subject, profile, installation, evidence, held_native_owners))
+        claim = status = domain = subject = profile = installation = evidence = held_native_owners = None
+        return owner.finish(frame)
+
+
+def assumptions_document(result):
+    from .hia_proof_contract_selection import selected_proof_contract, proof_contract_scope
+    owner = selected_proof_contract()
+    with proof_contract_scope(owner):
+        if owner is None:
+            parameters = {'callee': assumptions_document_reference, 'result': result}
+            del result, owner
+            return parameters.pop('callee')(parameters.pop('result'))
+        frame = owner.prepare('assumptions_document', (result,))
+        result = None
+        return owner.finish(frame)
+
+
+def proof_contract_description():
+    from .hia_proof_contract_selection import selected_proof_contract, proof_contract_scope
+    owner = selected_proof_contract()
+    with proof_contract_scope(owner):
+        if owner is None:
+            parameters = {'callee': proof_contract_description_reference}
+            del owner
+            return parameters.pop('callee')()
+        frame = owner.prepare('proof_contract_description', ())
+        return owner.finish(frame)
+
+
+# Fixed identity anchors preserve replacements and deletion of public globals.
+# Selected HIA continuations substitute only these exact original facade objects.
+_NATIVE_PROOF_PUBLIC_ENTRIES = {
+    '_item': _item,
+    '_require': _require,
+    '_safe_core_method': _safe_core_method,
+    'proof_subject': proof_subject,
+    '_method': _method,
+    'proof_result': proof_result,
+    'assumptions_document': assumptions_document,
+    'proof_contract_description': proof_contract_description,
+}

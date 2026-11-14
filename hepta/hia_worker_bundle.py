@@ -99,6 +99,9 @@ class NativeWorkerBundleBinding:
         loaded = {}
         for name, (manifest, source, image, image_record, factory) in captures.items():
             loaded[name] = factory(image.raw, image_record['image_sha256'])
+            from .hia_json_preflight_native import NativeHiaJsonImage
+            if issubclass(type(loaded[name]), NativeHiaJsonImage):
+                loaded[name]._bind_manifest_source(image_record['source_sha256'])
             key = (str(manifest.path.resolve(strict=True)), str(source.path.resolve(strict=True)),
                    image_record['schema'], factory)
             if key in self.images:

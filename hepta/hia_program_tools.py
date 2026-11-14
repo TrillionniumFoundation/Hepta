@@ -473,3 +473,25 @@ def publish_program(document, destination):
             "input_sha256": getattr(verified, "input_sha256", verified.sha256),
             "published_representation": "independently_verified_normalized_core",
             "publication": receipt}
+
+
+# These zero-argument factories belong to the application provider. They only
+# resolve the current explicit-profile target; the caller invokes that target
+# after the factory has returned, without retaining the input in another frame.
+def _roundtrip_assembly_provider():
+    from .hia_linux_file_roundtrip import assemble_linux_file_roundtrip
+    return assemble_linux_file_roundtrip
+
+
+def _roundtrip_render_provider():
+    from .hia_linux_file_roundtrip import render_linux_file_roundtrip
+    return render_linux_file_roundtrip
+
+
+# Actual definition anchors are consumed by the two explicit public branches.
+# The generator also binds these exact definitions and literal imports. This
+# is source/namespace custody, not an executable capability or a qualification.
+_ROUNDTRIP_PROFILE_PROVIDERS = {
+    'assemble_program': _roundtrip_assembly_provider,
+    'render_assembly': _roundtrip_render_provider,
+}

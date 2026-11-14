@@ -419,10 +419,15 @@ class BorrowedExtentHeapTests(unittest.TestCase):
             source["functions"].append(hidden)
             with self.subTest(kind=kind), self.assertRaises(HIAHeapBoundRejected):
                 qualify(source, arguments=[False])
-        for cap in ("_FINITE_MAX_CONTEXTS", "_FINITE_MAX_TRANSFER_STEPS", "_FINITE_MAX_ANALYSIS_DEPTH"):
-            with self.subTest(cap=cap), patch("hepta.hia_heap_bound." + cap, 1):
-                with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_LIMIT"):
-                    qualify(context_program())
+        from tests.hia_heap_native_fixture import native_heap_selected, assert_native_finite_work_limits
+        if native_heap_selected():
+            assert_native_finite_work_limits(self,
+                'qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents',8)
+        else:
+            for cap in ("_FINITE_MAX_CONTEXTS", "_FINITE_MAX_TRANSFER_STEPS", "_FINITE_MAX_ANALYSIS_DEPTH"):
+                with self.subTest(cap=cap), patch("hepta.hia_heap_bound." + cap, 1):
+                    with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_LIMIT"):
+                        qualify(context_program())
 
 
 @unittest.skipUnless(shutil.which("cargo"), "Actual Cargo required: borrowed-extent Rust execution NOT qualified")

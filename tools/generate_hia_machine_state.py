@@ -16,6 +16,7 @@ if __package__ in {None, ''}:
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
+from tools.hia_exception_delivery import BODY as EXCEPTION_DELIVERY_BODY
 
 LITERALS = (
     'scratch_registers', 'move_immediate', 'alu_immediate', 'data',
@@ -50,6 +51,8 @@ CONSTANTS = {
 
 SOURCE = r'''
 def machine_state(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) == 64:
+        return emit_exception_delivery(s, o, w)
     if length(s) != 80 or length(o) < 8 or length(w) != 2048:
         return ABI
     if word(s, 0) != MAGIC:
@@ -76,6 +79,9 @@ def machine_state(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return ABI
         if word(s, 24) != 0 or word(s, 64) != 0 or word(s, 72) != 0:
             return ABI
+    put(w, 640, 0)
+    put(w, 776, 0)
+    put(w, 912, 0)
     if get(w, 32) == 990:
         return ask(w, RAISE_ERROR, word(s, 32), 0, 0, 0, 991)
     mode = get(w, 24)
@@ -120,32 +126,33 @@ def initialize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return ask(w, SET_PAIR, get(w, 88), get(w, 96), 0, 0, 6)
     if pc == 6:
         put(w, 104, x)
-        return ask(w, NOT_EQUAL, get(w, 120), x, 0, 0, 7)
+        return ask_owned(w, NOT_EQUAL, get(w, 120), x, 0, 0, 7, 1)
     if pc == 7:
         if x != 0:
             return error(w, E_SCRATCH)
         return ask_attribute(w, get(w, 80), 7, 8)
     if pc == 8:
-        return ask(w, CALL0, x, 0, 0, 0, 9)
+        return ask_owned(w, CALL0, x, 0, 0, 0, 9, 1)
     if pc == 9:
-        return ask(w, GET_ITER, x, 0, 0, 0, 10)
+        return ask_owned(w, GET_ITER, x, 0, 0, 0, 10, 1)
     if pc == 10:
         put(w, 112, x)
         return ask(w, NEXT, x, 0, 0, 0, 11)
     if pc == 11:
         if word(s, 40) == 0:
+            release_before(w, get(w, 112))
             return ask_attribute(w, get(w, 80), 7, 14)
-        return ask(w, TYPE, x, 0, 0, 0, 12)
+        return ask_owned(w, TYPE, x, 0, 0, 0, 12, 1)
     if pc == 12:
         if x != 3:
             return error(w, E_SCRATCH)
         return ask(w, NEXT, get(w, 112), 0, 0, 0, 11)
     if pc == 14:
-        return ask(w, CALL0, x, 0, 0, 0, 15)
+        return ask_owned(w, CALL0, x, 0, 0, 0, 15, 1)
     if pc == 15:
-        return ask(w, SET_COPY, x, 0, 0, 0, 16)
+        return ask_owned(w, SET_COPY, x, 0, 0, 0, 16, 1)
     if pc == 16:
-        return ask(w, NOT_EQUAL, x, get(w, 104), 0, 0, 17)
+        return ask_owned(w, NOT_EQUAL, x, get(w, 104), 0, 0, 17, 1)
     if pc == 17:
         if x != 0:
             return error(w, E_SCRATCH)
@@ -181,6 +188,7 @@ def initialize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return error(w, E_ALU)
         return ask(w, DICT_COPY, get(w, 80), 0, 0, 0, 28)
     if pc == 28:
+        release_after(w, x)
         return set_attribute(w, 0, x, 29)
     if pc == 29:
         return set_attribute(w, 1, get(w, 56), 30)
@@ -189,18 +197,22 @@ def initialize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if pc == 31:
         return ask(w, BYTEARRAY_NEW, 0, 0, 0, 0, 32)
     if pc == 32:
+        release_after(w, x)
         return set_attribute(w, 3, x, 33)
     if pc == 33:
         return ask(w, DICT_NEW, 0, 0, 0, 0, 34)
     if pc == 34:
+        release_after(w, x)
         return set_attribute(w, 4, x, 35)
     if pc == 35:
         return ask(w, LIST_NEW, 0, 0, 0, 0, 36)
     if pc == 36:
+        release_after(w, x)
         return set_attribute(w, 5, x, 37)
     if pc == 37:
         return ask(w, LIST_NEW, 0, 0, 0, 0, 38)
     if pc == 38:
+        release_after(w, x)
         return set_attribute(w, 6, x, 39)
     if pc == 39:
         return done(w, o, get(w, 72))
@@ -228,16 +240,16 @@ def emit_state(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, 80, word(s, 40))
         return ask_attribute(w, get(w, 40), 3, 3)
     if pc == 3:
-        return ask(w, LEN, x, 0, 0, 0, 4)
+        return ask_owned(w, LEN, x, 0, 0, 0, 4, 1)
     if pc == 4:
         size = word(s, 40)
         if size > MAX_CODE or get(w, 80) > MAX_CODE - size:
             return error(w, E_LIMIT)
         return ask_attribute(w, get(w, 40), 3, 5)
     if pc == 5:
-        return ask_attribute(w, x, 9, 6)
+        return attribute_owned(w, x, 9, 6)
     if pc == 6:
-        return ask(w, CALL1, x, get(w, 48), 0, 0, 7)
+        return ask_discard(w, CALL1, x, get(w, 48), 0, 0, 7, 1)
     if pc == 7:
         return done(w, o, get(w, 72))
     return ABI
@@ -256,18 +268,18 @@ def label_state(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return error(w, E_LABEL)
         return ask_attribute(w, get(w, 40), 4, 3)
     if pc == 3:
-        return ask(w, CONTAINS, x, get(w, 48), 0, 0, 4)
+        return ask_owned(w, CONTAINS, x, get(w, 48), 0, 0, 4, 1)
     if pc == 4:
         if x != 0:
             return error(w, E_LABEL)
         return ask_attribute(w, get(w, 40), 3, 5)
     if pc == 5:
-        return ask(w, LEN, x, 0, 0, 0, 6)
+        return ask_owned(w, LEN, x, 0, 0, 0, 6, 1)
     if pc == 6:
         put(w, 80, x)
         return ask_attribute(w, get(w, 40), 4, 7)
     if pc == 7:
-        return ask(w, SET_ITEM, x, get(w, 48), get(w, 80), 0, 8)
+        return ask_owned(w, SET_ITEM, x, get(w, 48), get(w, 80), 0, 8, 5)
     if pc == 8:
         return done(w, o, get(w, 72))
     return ABI
@@ -277,7 +289,7 @@ def offset_state(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if pc == 0:
         return ask_attribute(w, get(w, 40), 3, 1)
     if pc == 1:
-        return ask(w, LEN, word(s, 32), 0, 0, 0, 2)
+        return ask_owned(w, LEN, word(s, 32), 0, 0, 0, 2, 1)
     if pc == 2:
         return done(w, o, word(s, 32))
     return ABI
@@ -292,9 +304,9 @@ def register_state(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return error(w, E_REG)
         return ask_attribute(w, get(w, 40), 0, 2)
     if pc == 2:
-        return ask_attribute(w, x, 8, 3)
+        return attribute_owned(w, x, 8, 3)
     if pc == 3:
-        return ask(w, CALL2, x, get(w, 48), get(w, 48), 0, 4)
+        return ask_owned(w, CALL2, x, get(w, 48), get(w, 48), 0, 4, 1)
     if pc == 4:
         put(w, 80, x)
         return ask(w, TYPE, x, 0, 0, 0, 5)
@@ -347,37 +359,40 @@ def finalize_state(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if pc == 0:
         return ask_attribute(w, get(w, 40), 3, 1)
     if pc == 1:
-        return ask(w, LEN, x, 0, 0, 0, 2)
+        return ask_owned(w, LEN, x, 0, 0, 0, 2, 1)
     if pc == 2:
         if word(s, 40) > MAX_CODE:
             return error(w, E_LIMIT)
         return ask_attribute(w, get(w, 40), 3, 3)
     if pc == 3:
-        return ask(w, BYTEARRAY_COPY, x, 0, 0, 0, 4)
+        return ask_owned(w, BYTEARRAY_COPY, x, 0, 0, 0, 4, 1)
     if pc == 4:
         put(w, 136, x)
         return ask_attribute(w, get(w, 40), 5, 5)
     if pc == 5:
-        return ask(w, GET_ITER, x, 0, 0, 0, 6)
+        return ask_owned(w, GET_ITER, x, 0, 0, 0, 6, 1)
     if pc == 6:
         put(w, 112, x)
         return ask(w, NEXT, x, 0, 0, 0, 7)
     if pc == 7:
         if word(s, 40) == 0:
+            release_before(w, get(w, 112))
             return ask(w, BYTES_COPY, get(w, 136), 0, 0, 0, 20)
-        return ask(w, UNPACK_TWO, x, 0, 0, 0, 8)
+        return ask_owned(w, UNPACK_TWO, x, 0, 0, 0, 8, 1)
     if pc == 8:
+        release_before(w, get(w, 144))
+        release_before(w, get(w, 152))
         put(w, 144, x)
         put(w, 152, word(s, 40))
         return ask_attribute(w, get(w, 40), 4, 9)
     if pc == 9:
-        return ask(w, CONTAINS, x, get(w, 152), 0, 0, 10)
+        return ask_owned(w, CONTAINS, x, get(w, 152), 0, 0, 10, 1)
     if pc == 10:
         if x == 0:
             return ask_literal(w, 24, 30)
         return ask_attribute(w, get(w, 40), 4, 11)
     if pc == 11:
-        return ask(w, GET_ITEM, x, get(w, 152), 0, 0, 12)
+        return ask_owned(w, GET_ITEM, x, get(w, 152), 0, 0, 12, 1)
     if pc == 12:
         put(w, 168, x)
         return ask(w, NEW_INT, 4, 0, 0, 0, 13)
@@ -385,7 +400,7 @@ def finalize_state(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, 120, x)
         return ask(w, ADD, get(w, 144), x, 0, 0, 14)
     if pc == 14:
-        return ask(w, SUB, get(w, 168), x, 0, 0, 15)
+        return ask_owned(w, SUB, get(w, 168), x, 0, 0, 15, 3)
     if pc == 15:
         put(w, 168, x)
         return ask(w, TYPE, x, 0, 0, 0, 16)
@@ -400,19 +415,19 @@ def finalize_state(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         else:
             if word(s, 48) > 31 and (word(s, 48) != 32 or x != 18446744071562067968):
                 return error(w, E_DISP)
-        return ask(w, ENCODE_REL32, get(w, 168), 0, 0, 0, 18)
+        return ask_owned(w, ENCODE_REL32, get(w, 168), 0, 0, 0, 18, 1)
     if pc == 18:
         put(w, 168, x)
         return ask(w, ADD, get(w, 144), get(w, 120), 0, 0, 19)
     if pc == 19:
-        return ask(w, SET_SLICE, get(w, 136), get(w, 144), x, get(w, 168), 24)
+        return ask_owned(w, SET_SLICE, get(w, 136), get(w, 144), x, get(w, 168), 24, 12)
     if pc == 24:
         return ask(w, NEXT, get(w, 112), 0, 0, 0, 7)
     if pc == 20:
         put(w, 184, x)
         return ask_attribute(w, get(w, 40), 6, 21)
     if pc == 21:
-        return ask(w, GET_ITER, x, 0, 0, 0, 22)
+        return ask_owned(w, GET_ITER, x, 0, 0, 0, 22, 1)
     if pc == 22:
         put(w, 112, x)
         return ask(w, LIST_NEW, 0, 0, 0, 0, 23)
@@ -421,16 +436,23 @@ def finalize_state(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return ask(w, NEXT, get(w, 112), 0, 0, 0, 25)
     if pc == 25:
         if word(s, 40) == 0:
+            release_before(w, get(w, 112))
+            release_before(w, get(w, 200))
             return ask(w, TUPLE_TWO, get(w, 184), get(w, 192), 0, 0, 28)
+        release_before(w, get(w, 200))
+        put(w, 200, x)
         return ask(w, DICT_COPY, x, 0, 0, 0, 26)
     if pc == 26:
-        return ask(w, LIST_APPEND, get(w, 192), x, 0, 0, 27)
+        return ask_owned(w, LIST_APPEND, get(w, 192), x, 0, 0, 27, 2)
     if pc == 27:
         return ask(w, NEXT, get(w, 112), 0, 0, 0, 25)
     if pc == 28:
+        release_before(w, get(w, 136))
+        release_before(w, get(w, 144))
+        release_before(w, get(w, 152))
         return done(w, o, x)
     if pc == 30:
-        return ask(w, ADD, x, get(w, 152), 0, 0, 31)
+        return ask_owned(w, ADD, x, get(w, 152), 0, 0, 31, 1)
     if pc == 31:
         return ask(w, RAISE_ERROR, x, 0, 0, 0, 32)
     return ABI
@@ -464,6 +486,42 @@ def done(w:mutbuf, o:mutbuf, value:u64) -> u32:
     put(w, 32, TERMINAL)
     put(o, 0, value)
     return 0
+
+
+def release_before(w:mutbuf, handle:u64) -> u64:
+    if handle != 0 and handle != get(w, 72):
+        count = get(w, 640)
+        if count < 16:
+            put(w, 648 + count * 8, handle)
+        put(w, 640, count + 1)
+    return 0
+
+def release_after(w:mutbuf, handle:u64) -> u64:
+    if handle != 0 and handle != get(w, 72):
+        count = get(w, 776)
+        if count < 16:
+            put(w, 784 + count * 8, handle)
+        put(w, 776, count + 1)
+    return 0
+
+def ask_owned(w:mutbuf, opcode:u64, a:u64, b:u64, c:u64, d:u64, pc:u64, mask:u64) -> u32:
+    if mask & 1 != 0:
+        release_after(w, a)
+    if mask & 2 != 0:
+        release_after(w, b)
+    if mask & 4 != 0:
+        release_after(w, c)
+    if mask & 8 != 0:
+        release_after(w, d)
+    return ask(w, opcode, a, b, c, d, pc)
+
+def ask_discard(w:mutbuf, opcode:u64, a:u64, b:u64, c:u64, d:u64, pc:u64, mask:u64) -> u32:
+    put(w, 912, 1)
+    return ask_owned(w, opcode, a, b, c, d, pc, mask)
+
+def attribute_owned(w:mutbuf, object:u64, which:u64, pc:u64) -> u32:
+    n = literal(w, which)
+    return ask_owned(w, GETATTR, object, 1024, n, 0, pc, 1)
 
 def word(s:readbuf, at:u64) -> u64:
     value = 0
@@ -513,7 +571,7 @@ def source_program():
             if node.id in CONSTANTS:
                 return ast.copy_location(ast.Constant(CONSTANTS[node.id]), node)
             return node
-    module = ast.parse(SOURCE + '\n' + literal_functions())
+    module = ast.parse(SOURCE + '\n' + literal_functions() + '\n' + EXCEPTION_DELIVERY_BODY)
     return ast.unparse(ast.fix_missing_locations(Expand().visit(module))) + '\n'
 
 

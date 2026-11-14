@@ -147,7 +147,7 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
         return image, {'custody_stub': True, 'native_execution': False,
                        'produced_sha256': sha256(raw).hexdigest(), 'produced_bytes': len(raw)}
 
-    def pack(self, *args):
+    def pack(self, *args, **options):
         # Bind the actual fixture image and input at the recording boundary.
         # This nonexecuting stub never constitutes native qualification.
         receipt = {'status': 'returned', 'custody_stub': True,
@@ -377,6 +377,45 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
                 self.assertFalse(receipt.get('whole_native_delivery_qualified',
                                             receipt.get('native_only_delivery_qualified',
                                                         receipt.get('whole_stack_rewritten_in_hia', False))))
+
+    def test_core_json_cli_refuses_incomplete_or_misbound_pack_receipts(self):
+        self.write_report()
+        module = next(module for module, _, _ in self.applications
+                      if module.__name__ == 'tools.build_hia_core_json_cli')
+        fields = ('status', 'abi_status', 'core_u32', 'image_sha256',
+                  'source_sha256', 'source_unchanged')
+        changes = [('missing-' + name, name, None, True) for name in fields]
+        changes += [
+            ('not-returned', 'status', 'trapped', False),
+            ('failed-abi', 'abi_status', 1, False),
+            ('boolean-abi', 'abi_status', False, False),
+            ('boolean-size', 'core_u32', True, False),
+            ('zero-size', 'core_u32', 0, False),
+            ('fractional-size', 'core_u32', 1.5, False),
+            ('truncated-output', 'core_u32', 100, False),
+            ('wrong-image', 'image_sha256', '0' * 64, False),
+            ('wrong-frame', 'source_sha256', '0' * 64, False),
+            ('mutated-input', 'source_unchanged', False, False),
+            ('numeric-unchanged', 'source_unchanged', 1, False),
+        ]
+        for label, field, value, remove in changes:
+            with self.subTest(receipt=label):
+                output = self.root / ('json-cli-pack-receipt-' + label)
+
+                def untrusted_pack(*args, **kwargs):
+                    receipt, packed = self.pack(*args, **kwargs)
+                    if remove:
+                        del receipt[field]
+                    else:
+                        receipt[field] = value
+                    return receipt, packed
+
+                with patch.object(module, 'invoke', side_effect=untrusted_pack):
+                    with self.assertRaisesRegex(ValueError, 'packer rejected image frame'):
+                        module.build(output, self.compiler, self.cold)
+                self.assertFalse((output / 'hia-core-json').exists())
+                self.assertFalse((output / 'build.json').exists())
+                self.assertFalse((output / 'compiler-manifest.json').exists())
 
     def test_outer_builders_refuse_stale_captured_source_before_creating_output(self):
         self.write_report()

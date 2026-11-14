@@ -76,6 +76,74 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/composite_outer_owner.hepta',
     'examples/hia_bootstrap/composite_outer_render.hepta',
     'examples/hia_bootstrap/retirement_state.hepta',
+    'examples/hia_bootstrap/core_verification.hepta',
+    'examples/hia_bootstrap/assembly_front.hepta',
+    'examples/hia_bootstrap/service_requests.hepta',
+    'examples/hia_bootstrap/proof_contract.hepta',
+    'examples/hia_bootstrap/service_verification.hepta',
+    'examples/hia_bootstrap/service_emission.hepta',
+    'examples/hia_bootstrap/native_build.hepta',
+    'examples/hia_bootstrap/native_byte_abi.hepta',
+    'examples/hia_bootstrap/core_emitter.hepta',
+    'examples/hia_bootstrap/core_lowering.hepta',
+    'examples/hia_bootstrap/machine_elf.hepta',
+    'examples/hia_bootstrap/machine_plan_control.hepta',
+    'examples/hia_bootstrap/service_context.hepta',
+    'examples/hia_bootstrap/source_admission.hepta',
+    'examples/hia_bootstrap/request_journal.hepta',
+    'examples/hia_bootstrap/artifact_namespace.hepta',
+    'examples/hia_bootstrap/slot_ledger_continuation.hepta',
+    'examples/hia_bootstrap/program_execution.hepta',
+    'examples/hia_bootstrap/static_budget.hepta',
+    'examples/hia_bootstrap/heap_bound.hepta',
+    'examples/hia_bootstrap/heap_live_engine.hepta',
+    'examples/hia_bootstrap/heap_payload.hepta',
+    'examples/hia_bootstrap/task_helper_cache.hepta',
+    'examples/hia_bootstrap/enum_match.hepta',
+    'examples/hia_bootstrap/enum_operations.hepta',
+    'examples/hia_bootstrap/record_operations.hepta',
+    'examples/hia_bootstrap/record_transitions.hepta',
+    'examples/hia_bootstrap/nominal_terminators.hepta',
+    'examples/hia_bootstrap/nominal_function.hepta',
+    'examples/hia_bootstrap/call_primitive.hepta',
+    'examples/hia_bootstrap/task_operations.hepta',
+    'examples/hia_bootstrap/nominal_module.hepta',
+    'examples/hia_bootstrap/nominal_admission.hepta',
+    'examples/hia_bootstrap/core_json_bytes.hepta',
+    'examples/hia_bootstrap/program_normalization.hepta',
+    'examples/hia_bootstrap/cpython_note_packer.hepta',
+    'hepta/hia_program_normalization_notes.py',
+    'examples/hia_bootstrap/service_artifacts.hepta',
+    'examples/hia_bootstrap/service_evaluation.hepta',
+    'examples/hia_bootstrap/store_lifecycle.hepta',
+    'examples/hia_bootstrap/cli_discovery_json.hepta',
+    'examples/hia_bootstrap/cli_discovery_routing.hepta',
+    'examples/hia_bootstrap/cli_parser_context.hepta',
+)
+
+
+# Explicit standalone entry build data, not loadable hepta runtime image bridges.
+# Neither these assets nor their installation authorizes execution or changes defaults.
+ENTRY_BUILD_FILES = (
+    'examples/hia_bootstrap/release_launch_policy.hepta',
+    'examples/hia_bootstrap/release_launch_packer.hepta',
+    'examples/hia_bootstrap/candidate_build_policy.hepta',
+    'examples/hia_bootstrap/candidate_build_packer.hepta',
+    'examples/hia_bootstrap/selfhost_linux_stdio.hepta',
+    'examples/hia_bootstrap/linux_stdio_entry_packer.hepta',
+    'examples/hia_bootstrap/selfhost_linux_process.hepta',
+    'examples/hia_bootstrap/linux_process_entry_packer.hepta',
+    'examples/hia_bootstrap/selfhost_linux_cli_process.hepta',
+    'examples/hia_bootstrap/linux_cli_entry_packer.hepta',
+    'examples/hia_bootstrap/native_cli_process.hepta',
+    'examples/hia_bootstrap/selfhost_linux_file.hepta',
+    'examples/hia_bootstrap/linux_file_entry_packer.hepta',
+    'examples/hia_bootstrap/native_file_read.hepta',
+    'examples/hia_bootstrap/file_render_checker.hepta',
+    'examples/hia_bootstrap/file_render_frontend.hepta',
+    'examples/hia_bootstrap/linux_file_render_entry_packer.hepta',
+    'examples/hia_bootstrap/native_file_render.hepta',
+    'examples/hia_bootstrap/selfhost_linux_file_render.hepta',
 )
 
 
@@ -210,8 +278,13 @@ def installation_manifest():
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
-    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES):
-        entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
+    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES, *ENTRY_BUILD_FILES):
+        resource_sha256 = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
+        if native_source.startswith("hepta/") and native_source.endswith(".py"):
+            package_sha256 = entries.get(native_source)
+            if package_sha256 is None or package_sha256 != resource_sha256:
+                raise ValueError("installed Python resource differs from its package module: " + native_source)
+        entries[native_source] = resource_sha256
     from .hia_program_native import _implementation_hash
     from .hia_native_helpers import native_helpers_identity
     return {"worker_sha256": sha256(wire(entries)).hexdigest(),

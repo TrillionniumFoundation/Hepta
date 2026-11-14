@@ -32,6 +32,7 @@ SYMBOLS = {
     "F_HELP_ROWS": 43008, "F_HELP_LABELS": 43264,
     "F_UNICODE_COMPRESSED": 49152, "F_UNICODE_TABLE": 65536,
     "F_EXTRAS": 131072,
+    "FIELD_COUNT": len(grammar.FIELDS), "TOKEN_COUNT": len(grammar.TOKENS),
 }
 
 SOURCE = r'''
@@ -72,7 +73,7 @@ def format_cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if cursor != length(s):
         return 199
     if get(w, 8) == 3:
-        if get(w, 32) < 1 or get(w, 32) > 9 or get(w, 40) > 18:
+        if get(w, 32) < 1 or get(w, 32) > 9 or get(w, 40) >= FIELD_COUNT:
             return 199
         if get(w, 48) > length(s) or get(w, 56) > (length(s) - get(w, 48)) >> 2:
             return 199
@@ -417,33 +418,37 @@ def text_point(s:readbuf, w:mutbuf, kind:u64, begin:u64, index:u64) -> u64:
         return byte(w, begin + index)
     return read32(s, begin + index * 4)
 
+def help_letter(point_value:u64) -> bool:
+    return (point_value >= 65 and point_value <= 90) or (point_value >= 97 and point_value <= 122)
+
 def wrap_text(s:readbuf, o:mutbuf, w:mutbuf, kind:u64, begin:u64, size:u64, width:u64, indent:u64) -> u64:
     index = 0
     used = 0
     while index < size:
-        previous = index
+        separated = False
         while index < size and (text_point(s, w, kind, begin, index) == 32 or (text_point(s, w, kind, begin, index) >= 9 and text_point(s, w, kind, begin, index) <= 13)):
+            separated = True
             index = index + 1
         if index == size:
             return 0
         end = index
-        split = False
-        while end < size and split == False and text_point(s, w, kind, begin, end) != 32 and (text_point(s, w, kind, begin, end) < 9 or text_point(s, w, kind, begin, end) > 13):
-            if end >= index + 2 and end + 2 < size:
-                if text_point(s, w, kind, begin, end) == 45:
-                    a = text_point(s, w, kind, begin, end - 2)
-                    b = text_point(s, w, kind, begin, end - 1)
-                    c = text_point(s, w, kind, begin, end + 1)
-                    d = text_point(s, w, kind, begin, end + 2)
-                    split = ascii_letter(a) and ascii_letter(b) and ascii_letter(c) and ascii_letter(d)
+        stopped = False
+        while end < size and stopped == False and text_point(s, w, kind, begin, end) != 32 and (text_point(s, w, kind, begin, end) < 9 or text_point(s, w, kind, begin, end) > 13):
+            # The fixed English help vocabulary contains compound words.
+            # Match textwrap's ordinary two-letter / hyphen / two-letter
+            # boundary without inserting a space between the two chunks.
+            if text_point(s, w, kind, begin, end) == 45 and end >= index + 2 and end + 2 < size:
+                if help_letter(text_point(s, w, kind, begin, end - 2)) and help_letter(text_point(s, w, kind, begin, end - 1)) and help_letter(text_point(s, w, kind, begin, end + 1)) and help_letter(text_point(s, w, kind, begin, end + 2)):
+                    stopped = True
             end = end + 1
         word_size = end - index
-        gap = choose(index != previous, 1, 0)
+        gap = choose(used != 0 and separated, 1, 0)
         if used != 0 and used + gap + word_size > width:
             point(o, w, 10)
             spaces(o, w, indent)
             used = 0
-        if used != 0 and gap != 0:
+            gap = 0
+        if gap != 0:
             point(o, w, 32)
             used = used + 1
         while index < end:
@@ -455,9 +460,6 @@ def wrap_text(s:readbuf, o:mutbuf, w:mutbuf, kind:u64, begin:u64, size:u64, widt
             used = used + 1
             index = index + 1
     return 0
-
-def ascii_letter(value:u64) -> bool:
-    return (value >= 65 and value <= 90) or (value >= 97 and value <= 122)
 
 def help_header(o:mutbuf, w:mutbuf, field:u64, plain:u64) -> u64:
     if get(w, F_COLOR) == 0:
@@ -654,7 +656,7 @@ def required_error(o:mutbuf, w:mutbuf) -> u64:
         literal(o, w, error_label(15))
         wrote = True
     field = 0
-    while field < 19:
+    while field < FIELD_COUNT:
         if field != 15 and (mask & (1 << field)) != 0:
             if wrote:
                 literal(o, w, L_COMMA_SPACE)
@@ -668,12 +670,12 @@ def error_message(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     literal(o, w, L_ERROR)
     reason = get(w, 32)
     field = get(w, 40)
+    if reason == 1:
+        return required_error(o, w)
     if reason == 8:
         return literal(o, w, L_SELFHOST_REQUIRED)
     if reason == 9:
-        return literal(o, w, L_SELFHOST_BACKEND)
-    if reason == 1:
-        return required_error(o, w)
+        return literal(o, w, L_SELFHOST_ONLY)
     if reason == 7:
         literal(o, w, L_UNRECOGNIZED)
         index = 0
@@ -692,7 +694,7 @@ def error_message(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         literal(o, w, L_COULD_MATCH)
         token = 0
         wrote = False
-        while token < 19:
+        while token < TOKEN_COUNT:
             if (get(w, 64) & (1 << token)) != 0:
                 if wrote:
                     literal(o, w, L_COMMA_SPACE)
@@ -780,25 +782,25 @@ def _metadata():
         "L_ARGUMENT": "argument ", "L_COLON_SPACE": ": ",
         "L_EXPECTED": "expected one argument", "L_IGNORED": "ignored explicit argument ",
         "L_INVALID": "invalid choice: ", "L_CHOOSE": " (choose from ",
-        "L_SELFHOST_REQUIRED": "--backend selfhost requires --selfhost-manifest and --selfhost-manifest-sha256",
-        "L_SELFHOST_BACKEND": "selfhost compiler options require --backend selfhost",
         "L_RESET": "\x1b[0m", "L_GREEN": "\x1b[32m", "L_CYAN": "\x1b[36m",
         "L_YELLOW": "\x1b[33m", "L_BOLD_BLUE": "\x1b[1;34m",
         "L_BOLD_MAGENTA": "\x1b[1;35m", "L_BOLD_CYAN": "\x1b[1;36m",
         "L_BOLD_GREEN": "\x1b[1;32m", "L_BOLD_YELLOW": "\x1b[1;33m",
         "L_U00": "\\u00",
+        "L_SELFHOST_REQUIRED": "--backend selfhost requires --selfhost-manifest and --selfhost-manifest-sha256",
+        "L_SELFHOST_ONLY": "selfhost compiler options require --backend selfhost",
         "L_DRIVER_PREFIX": '{\n  "diagnostics": [\n    {\n      "code": "E_DRIVER",\n      "message": "',
         "L_DRIVER_SUFFIX": '",\n      "phase": "driver"\n    }\n  ],\n  "ok": false,\n  "status": "error"\n}',
     }
     symbols = {name: intern(text) for name, text in fixed.items()}
     option_strings = {field: [text for text, number in grammar.TOKENS if number == field]
-                      for field in range(19) if field not in (15, 16)}
+                      for field in range(len(grammar.FIELDS)) if field not in (15, 16)}
     choice_values = {2: grammar.SCHEMAS, 4: ("native", "selfhost"), 5: ("object",),
                      6: ("x86_64-unknown-linux-gnu",), 16: grammar.ACTIONS}
     def metavar(field):
         if field in choice_values:
             return "{" + ",".join(choice_values[field]) + "}"
-        return grammar.FIELDS[field].upper() if field not in (15, 16) else grammar.FIELDS[field]
+        return grammar.FIELDS[field] if field in (15, 16) else grammar.FIELDS[field].upper()
     usage_rows = bytearray()
     usage_parts = bytearray()
     help_rows = bytearray()
@@ -837,12 +839,12 @@ def _metadata():
                     help_text = "show this help message and exit"
                 elif field == 1:
                     help_text = "show program's version number and exit"
+                elif field == 15:
+                    help_text = "Explicit HIA assembly or standalone Core JSON"
                 elif field == 17:
                     help_text = "Operator-selected native compiler manifest"
                 elif field == 18:
                     help_text = "Exact operator pin for that manifest"
-                elif field == 15:
-                    help_text = "Explicit HIA assembly or standalone Core JSON"
                 if field == 15 or field == 16:
                     label = metavar(field)
                 elif field < 2:
@@ -856,10 +858,10 @@ def _metadata():
     lookup.append(grammar._lookup("primary_literal", "field",
                                   ((field, intern(strings[0])) for field, strings in option_strings.items())))
     lookup.append(grammar._lookup("metavar_literal", "field",
-                                  ((field, intern(metavar(field))) for field in range(2, 19))))
+                                  ((field, intern(metavar(field))) for field in range(2, len(grammar.FIELDS)))))
     lookup.append(grammar._lookup("error_label", "field",
-                                  ((field, intern("/".join(option_strings[field]) if field not in (15, 16)
-                                                  else grammar.FIELDS[field])) for field in range(19))))
+                                  ((field, intern(grammar.FIELDS[field] if field in (15, 16)
+                                                  else "/".join(option_strings[field]))) for field in range(len(grammar.FIELDS)))))
     lookup.append(grammar._lookup("token_text", "token",
                                   ((index, intern(text)) for index, (text, _) in enumerate(grammar.TOKENS))))
     lookup.append(grammar._lookup("choice_count", "field",

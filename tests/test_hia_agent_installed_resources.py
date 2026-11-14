@@ -2,25 +2,43 @@
 from pathlib import Path
 from hashlib import sha256
 import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
-from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, installation_manifest, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
+from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, installation_manifest, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES, ENTRY_BUILD_FILES
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
-RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
-# Source-distribution test inputs are not installed Agent resources and must
-# never expand the worker's production source identity or _data payload.
-SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',)
+RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES + ENTRY_BUILD_FILES
+# Source-distribution support includes retained test inputs and explicit
+# optional-profile build sources. It does not expand the default worker's
+# 210 resources or its default installed _data payload.
+SDIST_SUPPORT_FILES=(
+    'tests/fixtures/hia_compiler_rename_reference.json.gz',
+    'tests/fixtures/hia_reference_compiler_v64.json.xz',
+    'examples/hia_bootstrap/assembly_reparse.hepta',
+    'examples/hia_bootstrap/core_representation_internal.hepta',
+    'examples/hia_bootstrap/core_representation_private.hepta',
+    'examples/hia_bootstrap/file_render_checker_v4.hepta',
+    'examples/hia_bootstrap/linux_file_roundtrip_entry_packer.hepta',
+    'examples/hia_bootstrap/native_file_roundtrip.hepta',
+    'examples/hia_bootstrap/selfhost_linux_file_roundtrip.hepta',
+    'examples/hia_bootstrap/verified_report.hepta',
+)
 BUNDLED_SOURCE_BINDINGS={
-    'cli_control':('hepta.hia_cli_native','control'),
-    'cli_format':('hepta.hia_cli_native','format'),
-    'composite_function_admit':('hepta.hia_composite_functions_native','admit'),
-    'composite_function_records':('hepta.hia_composite_functions_native','records'),
-    'composite_function_advanced':('hepta.hia_composite_functions_native','advanced'),
-    'composite_function_terms':('hepta.hia_composite_functions_native','terms'),
-    'composite_function_render':('hepta.hia_composite_functions_native','render'),
-    'composite_constructor_owner':('hepta.hia_composite_constructor_native','owner'),
-    'composite_constructor_render':('hepta.hia_composite_constructor_native','render'),
-    'composite_outer_owner':('hepta.hia_composite_outer_native','owner'),
-    'composite_outer_render':('hepta.hia_composite_outer_native','render'),
+    'core_emitter':('hepta.hia_core_emitter_control_native','SOURCE',None),
+    'core_lowering':('hepta.hia_core_lowering_control_native','SOURCE',None),
+    'cli_control':('hepta.hia_cli_native','SOURCES','control'),
+    'cli_format':('hepta.hia_cli_native','SOURCES','format'),
+    'composite_function_admit':('hepta.hia_composite_functions_native','SOURCES','admit'),
+    'composite_function_records':('hepta.hia_composite_functions_native','SOURCES','records'),
+    'composite_function_advanced':('hepta.hia_composite_functions_native','SOURCES','advanced'),
+    'composite_function_terms':('hepta.hia_composite_functions_native','SOURCES','terms'),
+    'composite_function_render':('hepta.hia_composite_functions_native','SOURCES','render'),
+    'composite_constructor_owner':('hepta.hia_composite_constructor_native','SOURCES','owner'),
+    'composite_constructor_render':('hepta.hia_composite_constructor_native','SOURCES','render'),
+    'composite_outer_owner':('hepta.hia_composite_outer_native','SOURCES','owner'),
+    'composite_outer_render':('hepta.hia_composite_outer_native','SOURCES','render'),
+    'heap_live_engine':('hepta.hia_heap_live_native','SOURCE',None),
+    'program_normalization':('hepta.hia_program_normalization_native','SOURCES','normalization'),
+    'cpython_note_packer':('hepta.hia_program_normalization_native','NOTE_SOURCES','examples/hia_bootstrap/cpython_note_packer.hepta'),
+    'hia_program_normalization_notes':('hepta.hia_program_normalization_native','NOTE_SOURCES','hepta/hia_program_normalization_notes.py'),
 }
 
 class AgentInstalledResourceSourceTests(unittest.TestCase):
@@ -72,8 +90,9 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
         for resource in NATIVE_SOURCE_FILES:
             name=Path(resource).stem
             if name in BUNDLED_SOURCE_BINDINGS:
-                module,key=BUNDLED_SOURCE_BINDINGS[name]
-                source=import_module(module).SOURCES[key]
+                module,attribute,key=BUNDLED_SOURCE_BINDINGS[name]
+                binding=getattr(import_module(module),attribute)
+                source=binding if key is None else binding[key]
             else:
                 source=import_module('hepta.hia_'+name+'_native').SOURCE
             self.assertEqual(source,ROOT/resource)
@@ -362,8 +381,9 @@ elif sys.argv[2]=='source-bindings':
     observed={}
     for name in names:
         if name in BUNDLED_SOURCE_BINDINGS:
-            module,key=BUNDLED_SOURCE_BINDINGS[name]
-            source=import_module(module).SOURCES[key]
+            module,attribute,key=BUNDLED_SOURCE_BINDINGS[name]
+            binding=getattr(import_module(module),attribute)
+            source=binding if key is None else binding[key]
         else:
             source=import_module('hepta.hia_'+name+'_native').SOURCE
         assert Path(sys.argv[1]) in source.parents,source
@@ -676,3 +696,137 @@ assert not blocked.intersection(sys.modules)
             state=self.folder/'no-data';r=self.invoke(state,wire(self.request))
             self.assertNotEqual(r.returncode,0);self.assertEqual(r.stdout,b'');self.assertFalse(state.exists())
         finally:hold.rename(p)
+
+    def _assert_publication_dual_python_source_custody(self, role, missing):
+        name='hepta/hia_program_normalization_notes.py'
+        module=self.installed/name;resource=self.installed/'hepta/_data'/name
+        self.assertNotEqual(module,resource)
+        original=module.read_bytes()
+        self.assertEqual(original,resource.read_bytes())
+        source=module if role=='module' else resource
+        held=source.with_name(source.name+'.publication-custody-held')
+        label='publication-notes-'+role+('-missing' if missing else '-tampered')
+        case=self.publication_case(label)
+        # Reuse the actual installed wheel and existing HIA publisher image.
+        # Poison the other identity route and every execution/fallback point:
+        # these negative controls must stop in the publisher's own admission.
+        child=r'''
+import importlib.abc,os,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+class NoBuildTools(importlib.abc.MetaPathFinder):
+    def find_spec(self,fullname,path=None,target=None):
+        if fullname=='tools' or fullname.startswith('tools.'):
+            raise AssertionError('installed publisher imported checkout tools')
+sys.meta_path.insert(0,NoBuildTools())
+from hepta import artifact_publication as publication
+from hepta import artifact_publication_native as publisher
+from hepta import hia_agent_contract as contract
+assert Path(sys.argv[1]) in Path(publisher.__file__).parents
+def forbidden(*args,**kwargs):raise AssertionError('custody refusal reached foreign effects or another identity route')
+contract.installation_manifest=forbidden
+publisher.os.memfd_create=forbidden
+publisher.subprocess.run=forbidden
+publication._read_exact=forbidden
+publication.sha256=forbidden
+manifest=sys.argv[2];case=Path(sys.argv[3])
+if sys.argv[4]=='admit':
+    code=publisher._validated_code(manifest)
+    assert type(code) is bytes and code[:4]==b'\x7fELF'
+    sys.stdout.write('ADMITTED\n')
+else:
+    os.environ['HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST']=manifest
+    publication.publish_verified(case/'stage',case/'published',b'installed\x00native\xff')
+'''
+        def invoke(mode):
+            return subprocess.run(
+                [sys.executable,'-I','-S','-B','-c',child,str(self.installed),
+                 str(self.publication/'build.json'),str(case),mode],
+                capture_output=True,timeout=15,cwd=self.folder,
+                env={'PATH':'','LANG':'C','LC_ALL':'C'})
+        admitted=invoke('admit')
+        self.assertEqual(admitted.returncode,0,admitted.stderr)
+        self.assertEqual(admitted.stdout,b'ADMITTED\n');self.assertEqual(admitted.stderr,b'')
+        if missing:source.rename(held)
+        else:source.write_bytes(original+b'\n# actual installed source drift\n')
+        try:
+            result=invoke('publish')
+            self.assertNotEqual(result.returncode,0)
+            self.assertEqual(result.stdout,b'')
+            self.assertIn(b'E_PUBLISH_NATIVE_CUSTODY',result.stderr)
+            self.assertFalse((case/'published').exists())
+            self.assertEqual((case/'stage').read_bytes(),b'installed\x00native\xff')
+            self.assertFalse((case/'state').exists())
+        finally:
+            if missing:held.rename(source)
+            else:source.write_bytes(original)
+        self.assertEqual(module.read_bytes(),original)
+        self.assertEqual(resource.read_bytes(),original)
+
+    def test_installed_publication_rejects_changed_actual_notes_module_before_execution(self):
+        self._assert_publication_dual_python_source_custody('module',False)
+
+    def test_installed_publication_rejects_missing_actual_notes_module_before_execution(self):
+        self._assert_publication_dual_python_source_custody('module',True)
+
+    def test_installed_publication_rejects_changed_notes_resource_before_execution(self):
+        self._assert_publication_dual_python_source_custody('resource',False)
+
+    def test_installed_publication_rejects_missing_notes_resource_before_execution(self):
+        self._assert_publication_dual_python_source_custody('resource',True)
+
+
+    def _assert_dual_python_source_custody(self, role, missing):
+        name='hepta/hia_program_normalization_notes.py'
+        module=self.installed/name
+        resource=self.installed/'hepta/_data'/name
+        self.assertNotEqual(module,resource)
+        original_module,original_resource=module.read_bytes(),resource.read_bytes()
+        self.assertEqual(original_module,original_resource)
+        target=module if role=='module' else resource
+        raw=target.read_bytes()
+        case='dual-python-'+role+('-missing' if missing else '-tampered')
+        state=self.folder/case
+        self.assertFalse(state.exists())
+        held=target.with_name(target.name+'.custody-held')
+        if missing:
+            self.assertFalse(held.exists())
+            target.rename(held)
+        else:
+            target.write_bytes(raw+b'\n# controlled installed source custody change\n')
+        try:
+            identity=self.invoke('identity',b'')
+            self.assertNotEqual(identity.returncode,0,
+                                (identity.stdout,identity.stderr))
+            self.assertEqual(identity.stdout,b'')
+            self.assertTrue(identity.stderr)
+            result=self.invoke(state,wire(self.request),
+                ('--expected-worker-sha256',self.identity['worker_sha256']))
+            self.assertNotEqual(result.returncode,0,(result.stdout,result.stderr))
+            self.assertEqual(result.stdout,b'')
+            self.assertFalse(state.exists())
+        finally:
+            if missing:held.rename(target)
+            else:target.write_bytes(raw)
+        self.assertEqual(module.read_bytes(),original_module)
+        self.assertEqual(resource.read_bytes(),original_resource)
+        restored=self.invoke('identity',b'')
+        self.assertEqual(restored.returncode,0,restored.stderr)
+        self.assertEqual(json.loads(restored.stdout),self.identity)
+        print(json.dumps({'case':case,'identity_returncode':identity.returncode,
+            'worker_returncode':result.returncode,'worker_stdout_bytes':len(result.stdout),
+            'service_state_created':state.exists(),'restored_identity_equal':True},
+            sort_keys=True))
+
+    def test_installed_python_resource_module_tamper_refuses_before_service(self):
+        self._assert_dual_python_source_custody('module',False)
+
+    def test_installed_python_resource_module_missing_refuses_before_service(self):
+        self._assert_dual_python_source_custody('module',True)
+
+    def test_installed_python_resource_data_tamper_refuses_before_service(self):
+        self._assert_dual_python_source_custody('resource',False)
+
+    def test_installed_python_resource_data_missing_refuses_before_service(self):
+        self._assert_dual_python_source_custody('resource',True)
+

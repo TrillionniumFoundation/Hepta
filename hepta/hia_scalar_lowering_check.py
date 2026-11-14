@@ -65,6 +65,8 @@ def checker_identity():
     for name in ("hia_scalar_lowering_check.py", "hia_optimization.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py",
                  "hia_program_runtime.py", "hia_program_llvm.py", "hia_initialization.py", "hia_schema.py"):
         digest.update(name.encode() + b"\0" + Path(__file__).with_name(name).read_bytes() + b"\0")
+    from .hia_checker_identity import checker_digest
+    digest.update(checker_digest().encode())
     return digest.hexdigest()
 
 

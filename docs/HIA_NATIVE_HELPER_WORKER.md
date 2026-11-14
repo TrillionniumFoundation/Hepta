@@ -143,3 +143,42 @@ The helper CI step requires a complete nonempty run and no failures, errors,
 skips, expected failures or unexpected successes. Explicit development images
 and local B0/B1/B2 builds remain development observations; they cannot override
 a requested cold report or establish whole-product native completion.
+
+## Isolated continuation and CONTROL integration
+
+The main v1/v2/v3 bundle formats, factory views, process/thread ownership,
+`pinned_scheduling`, and complete selector-environment restoration remain in
+place. The existing snapshot selector continues to name
+`hia_agent_snapshot_native.NativeAgentSnapshot`, whose public method is
+`evaluate`. The independent snapshot JSON materializer remains a different
+direct API; its manifest is not interchangeable with that typed snapshot entry.
+
+New single-image CONTROL families use separate selectors:
+`HEPTA_HIA_CORE_LOWERING_CONTROL_MANIFEST`,
+`HEPTA_HIA_CORE_EMITTER_CONTROL_MANIFEST`, and
+`HEPTA_HIA_MACHINE_PLAN_CONTROL_MANIFEST`. The published bundle/v1 selectors
+keep their own formats and validation order. A requested family never falls back
+to a different loader after a rejection.
+
+The independent slot continuation uses
+`HEPTA_HIA_SLOT_LEDGER_CONTINUATION_MANIFEST` and requires the explicitly pinned
+request-journal and artifact-namespace helpers. The original slot-ledger selector
+continues to name the statement owner.
+
+The shared image loader records its admitted source hash through the read-only,
+single-value binding. Every declared factory view receives that binding. Worker
+v2/v3 captures use the exact source bytes they already read; immutable executable
+identity is taken from the actual retained mappings. The new bundle custody
+records are in-process observations tied to the real owner, pool and units.
+Serialized records do not grant execution authority.
+
+The ordinary CLI loader retains its published warm-mapping behavior.
+`installed_cli_strict` is a separate explicit admission entry for the development
+policy that rereads and refuses changed or missing disk images. The strict
+negative tests use that entry directly. There is no exception-based fallback or
+extra disk-image read on the ordinary warm path.
+
+All active native assets remain in the existing eleven package resource groups.
+New integration artifacts do not create an untracked twelfth group. These
+integration changes are authored candidates until their source, original caller,
+installed-resource and native suites have actually completed.

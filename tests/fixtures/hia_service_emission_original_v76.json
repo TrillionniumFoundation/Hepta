@@ -1,0 +1,69 @@
+{
+  "calls": {
+    "_compile": [
+      {
+        "caller": "_hia_verify",
+        "line": 832
+      },
+      {
+        "caller": "_hia_emit",
+        "line": 968
+      }
+    ],
+    "_hia_emit": [],
+    "_signatures": [
+      {
+        "caller": "_behavior_equivalence",
+        "line": 679
+      },
+      {
+        "caller": "_behavior_equivalence",
+        "line": 680
+      },
+      {
+        "caller": "_hia_emit",
+        "line": 972
+      },
+      {
+        "caller": "_native",
+        "line": 992
+      }
+    ]
+  },
+  "current_source_cold": false,
+  "functions": {
+    "_compile": {
+      "ast_sha256": "cacbb884f53ff9d855f3b20b9a4447930940c60325d4566ca7fd79fa193eaec5",
+      "sha256": "6fa042e28a22da388dfab01e4d300cc29a7691df34a3de1c448159d0ef875c99",
+      "source": "def _compile(self, program, kind, machine_plan, timeout_ms, *, foreign_buffer_exports=()):\n        from .hia_program_native import emit_program_machine, compile_program_machine\n        if timeout_ms <= 0:\n            reject(\"E_HIA_BUDGET\", \"frozen context deadline expired before emission\", \"codegen\")\n        deadline = time.monotonic() + timeout_ms / 1000\n        image = emit_program_machine(program, machine_plan=machine_plan, foreign_buffer_exports=foreign_buffer_exports)\n        object_bytes = image.object_bytes\n        if type(object_bytes) is not bytes:\n            reject(\"E_HIA_RECEIPT_BINDING\", \"emission did not produce immutable object bytes\", \"codegen\")\n        commands = []\n        with tempfile.TemporaryDirectory(prefix=\"build-\", dir=self.store.root) as directory:\n            output = Path(directory) / (\"program.o\" if kind == \"object\" else \"program.so\")\n            result = compile_program_machine(image, program=program, output=output, kind=kind,\n                linker=\"ld\", command_log=commands, machine_plan=machine_plan, parent_death_guard=True,\n                timeout_seconds=min(3600, max(0, deadline - time.monotonic())))\n            data = output.read_bytes()\n        result.pop(\"output\", None)\n        result[\"commands\"] = commands\n        if (result.get(\"object_sha256\") != sha256(object_bytes).hexdigest()\n                or result.get(\"core_sha256\") != program.sha256\n                or result.get(\"artifact_sha256\") != sha256(data).hexdigest()\n                or kind == \"object\" and data != object_bytes):\n            reject(\"E_HIA_RECEIPT_BINDING\", \"native build metadata differs from the actual emitted bytes\", \"codegen\")\n        result[\"object_artifact\"] = self.store.put(object_bytes, \"build-object\", {\n            \"schema\": \"hepta.hia.agent.build-object.v1\", \"core_sha256\": program.sha256,\n            \"machine_plan_sha256\": result[\"machine_plan_sha256\"], \"installation\": self.identities})\n        return data, result"
+    },
+    "_hia_emit": {
+      "ast_sha256": "54f30067f52eb26edba7ba8bf63d39435a9b7e97543326b961ca27e12c964e4d",
+      "sha256": "d89bbbb6f8c4242d9206fdb934fb5e6febde9021c9a484168447869ba54fb75d",
+      "source": "def _hia_emit(self, args):\n        self._profile(args[\"backend_profile\"], \"backend\")\n        context = self._context(args[\"context\"])\n        program = self._program(args[\"candidate\"])\n        for ref in args[\"verification_receipts\"]:\n            self._verification(ref, args[\"context\"], args[\"candidate\"])\n        codegen, plan = args[\"codegen\"], None\n        if codegen[\"kind\"] == \"canonical\":\n            self._profile(codegen[\"lowering_profile\"], \"lowering\")\n        else:\n            self._profile(codegen[\"plan_profile\"], \"plan\")\n            plan, _ = self.store.get_json(codegen[\"plan\"])\n            validate(plan, PLAN_SCHEMA, \"machine_plan\")\n            receipt = self._verification(codegen[\"verification_receipt\"], args[\"context\"], args[\"candidate\"])\n            expected_subject = {\"kind\": \"agent_machine_plan\", \"backend_profile\": args[\"backend_profile\"],\n                                \"plan_profile\": codegen[\"plan_profile\"], \"plan\": codegen[\"plan\"]}\n            if receipt[\"subject\"] != expected_subject or not any(c[\"claim\"] == \"lowering_refinement\" and c[\"status\"] == \"proved\" for c in receipt[\"checks\"]):\n                reject(\"E_HIA_PLAN_RECEIPT\", \"plan lacks an exact subject-bound qualified layout receipt\", \"codegen\")\n        exports = tuple(map(tuple, context.get(\"foreign_buffer_exports\", [])))\n        data, native_build = self._compile(program, args[\"output_kind\"], plan, self._remaining_ms(context),\n                                          **({\"foreign_buffer_exports\": exports} if exports else {}))\n        metadata = {\"context\": args[\"context\"], \"candidate\": args[\"candidate\"],\n            \"core_sha256\": program.sha256, \"output_kind\": args[\"output_kind\"], \"codegen\": codegen,\n            \"machine_plan\": plan, \"installation\": self.identities, \"signatures\": _signatures(program, exports),\n            \"foreign_buffer_exports\": [list(pair) for pair in exports],\n            \"object_artifact\": native_build[\"object_artifact\"], \"object_sha256\": native_build[\"object_sha256\"]}\n        artifact = self.store.put(data, \"native\", metadata)\n        receipt = self.store.json({\"schema\": \"hepta.hia.agent.build.v1\", **metadata,\n            \"native_artifact\": artifact, \"native_build\": native_build,\n            \"backend_profile\": args[\"backend_profile\"], \"target_profile\": context[\"target_profile\"],\n            \"verification_receipts\": args[\"verification_receipts\"]}, \"build-receipt\")\n        return {\"candidate\": args[\"candidate\"], \"native_artifact\": artifact, \"build_receipt\": receipt,\n            \"backend_profile\": args[\"backend_profile\"], \"target_profile\": context[\"target_profile\"],\n            \"codegen_backend\": \"hia-direct\", \"llvm_codegen_used\": False, \"external_assembler_used\": False,\n            \"linker_used\": args[\"output_kind\"] == \"shared\", \"native_execution_observed\": False, \"adopted\": False}"
+    },
+    "_signatures": {
+      "ast_sha256": "ebc2301725fef077a854f9649f8b958412d4895b42c271207cb2c8c9aff7f935",
+      "sha256": "dce6f39a1c6d32b2b10d8d81d519b2f6e4754e5a284b8251db342f5388118771",
+      "source": "def _signatures(program, foreign_buffer_exports=()):\n    from .hia_program_native import WIDTHS\n    from .hia_native_byte_abi import normalize_exports\n    from .hia_agent_buffers import PROFILE as BUFFER_PROFILE\n    document = program.as_dict()\n    signatures = {fn[\"name\"]: {\"params\": [p[\"type\"] for p in fn[\"params\"]],\n                         \"returns\": fn[\"returns\"]}\n            for fn in document[\"functions\"] if fn[\"name\"] in program.scalar_entrypoints\n            and all(p[\"type\"] in set(WIDTHS) | {\"bool\"} for p in fn[\"params\"])\n            and len(fn[\"returns\"]) <= 1\n            and all(typ in set(WIDTHS) | {\"bool\", \"unit\"} for typ in fn[\"returns\"])}\n    exports = dict(normalize_exports(foreign_buffer_exports, program))\n    for fn in document[\"functions\"]:\n        if fn[\"name\"] in exports:\n            signatures[fn[\"name\"]] = {\"params\": [p[\"type\"] for p in fn[\"params\"]],\n                \"returns\": fn[\"returns\"], \"abi\": BUFFER_PROFILE,\n                \"max_buffer_bytes\": exports[fn[\"name\"]]}\n    return signatures"
+    }
+  },
+  "schema": "hia.service-emission.original-source.v1",
+  "service_source_sha256": "3bc1a2e761378ecf58176cd454727f4c351b5c4c2cb30e06f7a883c781d8a0e3",
+  "source_base": {
+    "base": "/workspace/scratch/dda74a4fae35/v76-unified-integration-r1/source",
+    "base_before_after_unchanged": true,
+    "basis": "frozen 3153-file root v76 integration source copy; no Git metadata and not a current-source cold checkout",
+    "current_source_cold": false,
+    "default_changed": false,
+    "development_only": true,
+    "files": 3153,
+    "production_parent": "5f7f95367e8e395863801487e969d286b9091110",
+    "raw_bytes": 114206610,
+    "schema": "hia.agent-emission.development-base.v1",
+    "source": "/workspace/scratch/dda74a4fae35/v77-agent-emission-development-r1/source",
+    "source_generation_harness": "46c559bf03a256e1a0999721d8ca82a0225c5bfe",
+    "whole_stack_native": false
+  },
+  "whole_stack_native": false
+}

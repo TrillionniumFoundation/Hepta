@@ -531,13 +531,88 @@ class _Machine:
 
 def execute_program(program, function, arguments, *, max_steps=1_000_000,
                     max_heap_bytes=16 * 1024 * 1024, allocation_fail_at=None,
-                    max_call_depth=256, bounded_resource_limits=None):
+                    max_call_depth=256, bounded_resource_limits=None,
+                    profile=None, linux_stdio_provider=None,
+                    linux_process_startup=None, linux_process_provider=None, linux_cli_components=None, linux_file_provider=None,
+                    linux_file_render_components=None, linux_file_roundtrip_components=None):
     """Verify immutable bytes, then execute a scalar public entry point.
 
     Owners and views can be created, moved and called internally. Python callers
     cannot fabricate them: public interpreter inputs/outputs are scalar values.
     Resource-returning functions remain available as internal core functions.
     """
+    if linux_file_roundtrip_components is not None and not (
+            type(profile) is str and profile == "hepta.hia.linux-file-roundtrip.v2"):
+        raise HIAProgramRejected("roundtrip components require their exact profile",
+                                 "E_HIA_LINUX_FILE_ROUNDTRIP_PROFILE")
+    if profile is not None:
+        if type(profile) is str and profile == "hepta.hia.linux-file-roundtrip.v2":
+            from .hia_linux_file_roundtrip import execute_linux_file_roundtrip
+            if (bounded_resource_limits is not None or linux_stdio_provider is not None
+                    or linux_process_provider is not None or linux_cli_components is not None
+                    or linux_file_render_components is not None):
+                raise HIAProgramRejected("separate file-render authority required", "E_HIA_LINUX_FILE_RENDER_PROFILE")
+            return execute_linux_file_roundtrip(program, function, arguments,
+                provider=linux_file_provider, startup=linux_process_startup,
+                components=linux_file_roundtrip_components,
+                max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+                allocation_fail_at=allocation_fail_at, max_call_depth=max_call_depth)
+        elif type(profile) is str and profile == "hepta.hia.linux-file-render.v3":
+            from .hia_linux_file_render import execute_linux_file_render
+            if (bounded_resource_limits is not None or linux_stdio_provider is not None
+                    or linux_process_provider is not None or linux_cli_components is not None):
+                raise HIAProgramRejected("separate file-render authority required", "E_HIA_LINUX_FILE_RENDER_PROFILE")
+            return execute_linux_file_render(program, function, arguments,
+                provider=linux_file_provider, startup=linux_process_startup,
+                components=linux_file_render_components,
+                max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+                allocation_fail_at=allocation_fail_at, max_call_depth=max_call_depth)
+        if linux_file_render_components is not None:
+            raise HIAProgramRejected("file-render components require their exact profile", "E_HIA_LINUX_FILE_RENDER_PROFILE")
+        if type(profile) is str and profile == "hepta.hia.linux-file.v1":
+            from .hia_linux_file import execute_linux_file
+            if (bounded_resource_limits is not None or linux_stdio_provider is not None
+                    or linux_process_provider is not None or linux_cli_components is not None):
+                raise HIAProgramRejected("separate file-profile authority required", "E_HIA_LINUX_FILE_PROFILE")
+            return execute_linux_file(program, function, arguments,
+                provider=linux_file_provider, startup=linux_process_startup,
+                max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+                allocation_fail_at=allocation_fail_at, max_call_depth=max_call_depth)
+        if linux_file_provider is not None:
+            raise HIAProgramRejected("file provider requires exact file profile", "E_HIA_LINUX_FILE_PROFILE")
+        if type(profile) is str and profile == "hepta.hia.linux-cli-process.v1":
+            from .hia_linux_cli_process import execute_linux_cli_process
+            if bounded_resource_limits is not None or linux_stdio_provider is not None:
+                raise HIAProgramRejected("separate CLI-process authority required", "E_HIA_LINUX_CLI_PROCESS_PROFILE")
+            return execute_linux_cli_process(program, function, arguments,
+                provider=linux_process_provider, startup=linux_process_startup, components=linux_cli_components,
+                max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+                allocation_fail_at=allocation_fail_at, max_call_depth=max_call_depth)
+        if linux_cli_components is not None:
+            raise HIAProgramRejected("CLI components require exact CLI profile", "E_HIA_LINUX_CLI_PROCESS_PROFILE")
+        if type(profile) is str and profile == "hepta.hia.linux-process.v1":
+            from .hia_linux_process import execute_linux_process
+            if bounded_resource_limits is not None or linux_stdio_provider is not None:
+                raise HIAProgramRejected("separate process-profile authority and provider required",
+                                         "E_HIA_LINUX_PROCESS_PROFILE")
+            return execute_linux_process(program, function, arguments,
+                provider=linux_process_provider, startup=linux_process_startup,
+                max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+                allocation_fail_at=allocation_fail_at, max_call_depth=max_call_depth)
+        if linux_process_startup is not None or linux_process_provider is not None:
+            raise HIAProgramRejected("startup authority requires the exact process profile",
+                                     "E_HIA_LINUX_PROCESS_PROFILE")
+        from .hia_linux_stdio import require_profile, execute_linux_stdio
+        require_profile(profile)
+        if bounded_resource_limits is not None:
+            raise HIAProgramRejected("ordinary Core budget receipts do not admit Linux I/O",
+                                     "E_HIA_LINUX_STDIO_PROFILE")
+        return execute_linux_stdio(program, function, arguments, provider=linux_stdio_provider,
+            max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+            allocation_fail_at=allocation_fail_at, max_call_depth=max_call_depth)
+    if linux_stdio_provider is not None or linux_process_startup is not None or linux_process_provider is not None or linux_cli_components is not None or linux_file_provider is not None or linux_file_render_components is not None:
+        raise HIAProgramRejected("physical-effect provider requires an explicit profile",
+                                 "E_HIA_LINUX_STDIO_PROFILE")
     checked = verify_program(program)
     if (type(function) is not str or type(arguments) not in (list, tuple)
             or type(max_steps) is not int or not 1 <= max_steps <= 10_000_000
@@ -567,6 +642,20 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
         max_steps = min(max_steps, budget["limits"]["max_vm_ticks"])
         max_heap_bytes = min(max_heap_bytes, budget["limits"]["max_live_heap_bytes"])
         max_call_depth = min(max_call_depth, budget["limits"]["max_call_depth"])
+    from .hia_program_execution_native import selected_program_execution
+    native = selected_program_execution()
+    if native is not None:
+        try:
+            observed = native.execute(checked, function, arguments, max_steps=max_steps,
+                max_heap_bytes=max_heap_bytes, allocation_fail_at=allocation_fail_at,
+                max_call_depth=max_call_depth)
+        except (HIAProgramTrap, HIAProgramBudgetExceeded) as exc:
+            if budget is not None:
+                exc.report['bounded_resources'] = budget
+            raise
+        if budget is not None:
+            observed['bounded_resources'] = budget
+        return observed
     machine = _Machine(checked, max_steps, max_heap_bytes, allocation_fail_at, max_call_depth)
 
     def report(status, values=None, error=None):

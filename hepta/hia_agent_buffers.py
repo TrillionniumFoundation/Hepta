@@ -132,6 +132,10 @@ def reference_observation(program, case, exports, *, steps, heap):
     signature = {"params": [p["type"] for p in fn["params"]], "returns": fn["returns"],
                  "abi": PROFILE, "max_buffer_bytes": admitted[function]}
     validate_arguments(signature, case["arguments"])
+    from .hia_program_execution_native import selected_program_execution
+    native = selected_program_execution()
+    if native is not None:
+        return _native_reference_observation(native, checked, case, signature, steps=steps, heap=heap)
     machine = _Machine(checked, steps, heap, None, 256)
     external, arguments = [], []
     for index, (typ, value) in enumerate(zip(signature["params"], case["arguments"])):
@@ -178,3 +182,39 @@ def reference_observation(program, case, exports, *, steps, heap):
         if typ == "readbuf" and bytes(root.data) != buffer_bytes(case["arguments"][index]):
             raise HIAProgramRejected("reference changed a read-only snapshot", "E_HIA_RUNTIME_INVARIANT")
     return {**report("returned", values=values), "values": values}
+
+
+def _native_reference_observation(native, checked, case, signature, *, steps, heap):
+    """Keep the snapshot boundary; the selected HIA machine owns execution."""
+    from .hia_program import HIAProgramRejected
+    from .hia_program_execution_native import ExternalBuffer
+    from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap
+    external, arguments = [], []
+    for index, (typ, value) in enumerate(zip(signature['params'], case['arguments'])):
+        if typ in LOANS:
+            snapshot = ExternalBuffer(bytearray(buffer_bytes(value)), typ == 'mutbuf')
+            external.append((index, typ, snapshot))
+            arguments.append(snapshot)
+        else:
+            arguments.append(value)
+    stopped = None
+    try:
+        ledger = native.execute(checked, case['function'], tuple(arguments),
+            max_steps=steps, max_heap_bytes=heap, max_call_depth=256, borrowed=True)
+    except (HIAProgramTrap, HIAProgramBudgetExceeded) as exc:
+        ledger = exc.report
+        stopped = exc
+    if stopped is None:
+        for index, typ, snapshot in external:
+            if typ == 'readbuf' and bytes(snapshot.data) != buffer_bytes(case['arguments'][index]):
+                raise HIAProgramRejected('reference changed a read-only snapshot', 'E_HIA_RUNTIME_INVARIANT')
+    buffers = [buffer_observation(index, typ, snapshot.data) for index, typ, snapshot in external]
+    ledger['external_buffers'] = {'profile': PROFILE,
+        'byte_length': sum(row['byte_length'] for row in buffers),
+        'distinct_roots': len(external), 'included_in_core_heap_ledger': False}
+    result = {'status': ledger['status'], 'buffers': buffers, 'ledger': ledger}
+    if stopped is None:
+        result['values'] = ledger['values']
+    else:
+        result['trap_code' if isinstance(stopped, HIAProgramTrap) else 'budget_code'] = stopped.code
+    return result

@@ -2,7 +2,9 @@
 
 This is an explicit qualification transport, not a compiler, parser, production
 activation or security sandbox. Each call execs a new sealed immutable ELF and
-loads the supplied flat image RW-to-RX. Seed/shared-library loading retains the independent Python loader. Parent-owned
+loads the supplied flat image RW-to-RX. Seed loading retains the independent
+Python loader. The explicit linked format uses the separately built HIA policy
+and system dynamic-loader bridge. Parent-owned
 size-sealed shared output preserves real writes after native traps. No child is reused.
 """
 from __future__ import annotations
@@ -152,7 +154,16 @@ def read_capture(descriptor,capacity):
 
 
 def invoke(directory, label, observer, image, source, *, capacity, workspace_size, workspace_fill,
-           output_initial=None, observe_trap_writes=False):
+           output_initial=None, observe_trap_writes=False, image_format='flat-x86-64'):
+    if image_format == 'linked-selfhost':
+        from tools.hia_selfhost_linked_observer import invoke as linked_invoke
+        return linked_invoke(directory,label,observer,image,source,capacity=capacity,
+            workspace_size=workspace_size,workspace_fill=workspace_fill,
+            output_initial=output_initial,observe_trap_writes=observe_trap_writes)
+    if image_format != 'flat-x86-64':
+        raise ValueError('unknown explicit native observer format')
+    transport = 'HIA-emitted-static-ELF-observer-v2'
+    loader_operations = 'HIA-emitted static ELF; sealed exec; RW-to-RX image; fixed ABI call'
     directory, image, observer = Path(directory), Path(image), Path(observer)
     image_bytes, executable = image.read_bytes(), observer.read_bytes()
     # Validate before creating a file descriptor or serializing large buffers.
@@ -165,7 +176,7 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
         input_path = directory/(label+'.input.bin')
         output_path = directory/(label+'.output.bin')
         input_path.write_bytes(source)
-        request = {'format':'flat-x86-64', 'transport':'HIA-emitted-static-ELF-observer-v2',
+        request = {'format':image_format, 'transport':transport,
             'image':str(image.resolve()), 'image_sha256':digest(image_bytes),
             'source':str(input_path.resolve()), 'source_sha256':digest(source),
             'capacity':capacity, 'workspace_size':workspace_size, 'workspace_fill':workspace_fill,
@@ -213,7 +224,7 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                             'workspace_header':{str(at):int.from_bytes(workspace[at:at+8],'little')
                                 for at in WORKSPACE_FIELDS if workspace_size>=at+8},
                             'native_elapsed_ns':elapsed,'forbidden_compiler_modules_loaded':[],
-                            'loader_operations':'HIA-emitted static ELF; sealed exec; RW-to-RX image; fixed ABI call',
+                            'loader_operations':loader_operations,
                             'limits':{'cpu_seconds':10,'address_bytes':256<<20,'core_dumpable':False,
                                 'stack_bytes':8<<20,'output_capacity':capacity,'workspace_bytes':workspace_size}}
         finally:
@@ -232,7 +243,7 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                 'observed_bytes':len(output),'unchanged':output==initial,
                 'capture_origin':'parent-owned size-sealed memfd, mapped by actual native child'}
         result.update(case=label,input_sha256=digest(source),input_bytes=len(source),
-            artifact_sha256=digest(image_bytes),format='flat-x86-64',runner_sha256=digest(executable),
+            artifact_sha256=digest(image_bytes),format=image_format,runner_sha256=digest(executable),
             wall_elapsed_ns=time.monotonic_ns()-began,transport=request['transport'],
             fresh_native_exec=True,successor_process_reuse=False)
         if observer.read_bytes()!=executable or image.read_bytes()!=image_bytes or input_path.read_bytes()!=source:

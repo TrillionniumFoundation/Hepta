@@ -235,3 +235,12 @@ creating its output directory and rechecks all original sources/images/report
 bytes before publishing. Passing a development test does not qualify a later
 merged source, activate a default CLI, migrate a live worker or authorize
 retiring an unported production owner.
+
+## Merged-source acceptance boundary
+
+This document retains the main component protocol and its original reference
+and native controls. Integrating it with the continuation owners does not
+transfer a prior run's qualification to the new source. The merged source,
+generated HIA, installed resources and complete original controls must bind to
+the same current-source cold report. Development or source-only observations
+do not authorize default activation or removal of a retained owner.

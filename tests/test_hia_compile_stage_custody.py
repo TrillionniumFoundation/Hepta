@@ -22,18 +22,28 @@ class CompileStageCustodyTests(unittest.TestCase):
             image.write_bytes(b'captured compiler fixture')
             source = b'captured source fixture'
             result = self.receipt(image, source)
-            with patch('tools.qualify_hia_selfhost.invoke', return_value=(result, b'codeunused')):
+            with patch('tools.qualify_hia_selfhost.invoke', return_value=(result, self.output())):
                 produced, receipt = compile_stage(root, 'result', image, source)
             self.assertEqual(produced.read_bytes(), b'code')
             self.assertEqual(receipt['produced_sha256'], sha256(b'code').hexdigest())
             self.assertEqual(receipt['produced_bytes'], 4)
 
     @staticmethod
+    def output():
+        # The real observer returns the complete admitted output extent.
+        return b'codeunused' + bytes(CAPACITY - len(b'codeunused'))
+
+    @staticmethod
     def receipt(image, source):
         return {'status': 'returned', 'abi_status': 0, 'core_u32': 4,
+                'result_u64': 4, 'return_encoding': 'zero-extended-u32',
                 'source_unchanged': True, 'forbidden_compiler_modules_loaded': [],
+                'source_sha256': sha256(source).hexdigest(),
                 'input_sha256': sha256(source).hexdigest(), 'input_bytes': len(source),
+                'image_sha256': sha256(image.read_bytes()).hexdigest(),
                 'artifact_sha256': sha256(image.read_bytes()).hexdigest(),
+                'output_sha256': sha256(CompileStageCustodyTests.output()).hexdigest(),
+                'limits': {'output_capacity': CAPACITY, 'workspace_bytes': CAPACITY},
                 'format': 'flat-x86-64'}
 
     def test_refusal_cannot_publish_even_a_partial_image(self):
@@ -57,14 +67,14 @@ class CompileStageCustodyTests(unittest.TestCase):
                     receipt = deepcopy(base)
                     receipt[field] = value
                     label = 'refusal-' + str(index)
-                    with patch('tools.qualify_hia_selfhost.invoke', return_value=(receipt, b'code')):
+                    with patch('tools.qualify_hia_selfhost.invoke', return_value=(receipt, self.output())):
                         with self.assertRaises(AssertionError):
                             compile_stage(root, label, image, source)
                     self.assertFalse((root / (label + '.image.bin')).exists())
             for field in base:
                 receipt = deepcopy(base)
                 del receipt[field]
-                with patch('tools.qualify_hia_selfhost.invoke', return_value=(receipt, b'code')):
+                with patch('tools.qualify_hia_selfhost.invoke', return_value=(receipt, self.output())):
                     with self.assertRaises(AssertionError):
                         compile_stage(root, 'missing', image, source)
                 self.assertFalse((root / 'missing.image.bin').exists())
@@ -78,7 +88,7 @@ class CompileStageCustodyTests(unittest.TestCase):
             receipt = self.receipt(image, source)
             def invoke(*args, **kwargs):
                 image.write_bytes(b'replaced compiler fixture')
-                return receipt, b'code'
+                return receipt, self.output()
             with patch('tools.qualify_hia_selfhost.invoke', side_effect=invoke):
                 with self.assertRaises(AssertionError):
                     compile_stage(root, 'changed', image, source)
@@ -100,7 +110,7 @@ with TemporaryDirectory() as temporary:
     compiler.write_bytes(b'fixture')
     receipt = CompileStageCustodyTests.receipt(compiler, b'source')
     receipt['source_unchanged'] = False
-    with patch('tools.qualify_hia_selfhost.invoke', return_value=(receipt, b'code')):
+    with patch('tools.qualify_hia_selfhost.invoke', return_value=(receipt, CompileStageCustodyTests.output())):
         try:
             compile_stage(root, 'forbidden', compiler, b'source')
         except AssertionError:

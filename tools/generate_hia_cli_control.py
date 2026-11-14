@@ -20,7 +20,8 @@ ACTIONS = (
 )
 FIELDS = ("help", "version", "schema", "output", "backend", "kind", "target",
           "request", "function", "block", "value", "fields", "selections",
-          "query", "response", "input", "hia_action", "selfhost_manifest", "selfhost_manifest_sha256")
+          "query", "response", "input", "hia_action",
+          "selfhost_manifest", "selfhost_manifest_sha256")
 OUTPUT_ACTIONS = frozenset((3, 4, 8, 9, 10, 12, 13, 14, 15))
 TOKENS = (
     ("-h", 0), ("--help", 0), ("--version", 1), ("--schema", 2),
@@ -41,6 +42,8 @@ SYMBOLS = {
     "ARGV_MAGIC": int.from_bytes(b"HCLIARG4", "little"),
     "RESULT_MAGIC": int.from_bytes(b"HCLIRES4", "little"),
     "STEP_MAGIC": int.from_bytes(b"HCLISTP4", "little"),
+    "CLAIM_MAGIC": int.from_bytes(b"HCLICLM5", "little"),
+    "FIELD_COUNT": len(FIELDS),
     "CONTROL_MAGIC": int.from_bytes(b"HCLICTL4", "little"),
     "TOKEN_COUNT": len(TOKENS), "ACTION_COUNT": len(ACTIONS),
     "FIELD_BASE": 256, "FIELD_STRIDE": 32,
@@ -64,6 +67,8 @@ def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return control_refuse(w)
     if read64(s, 0) == STEP_MAGIC:
         return control_step(s, o, w)
+    if read64(s, 0) == CLAIM_MAGIC:
+        return control_claim(s, o, w)
     if get(w, C_MAGIC) == CONTROL_MAGIC:
         return control_refuse(w)
     if read64(s, 0) != ARGV_MAGIC or length(s) < 192:
@@ -80,7 +85,7 @@ def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return control_refuse(w)
     if read64(s, 40) > 1 or read64(s, 48) > 1 or read64(s, 72) > 63:
         return control_refuse(w)
-    if read64(s, 64) != 0 or read64(s, 80) != 0 or read64(s, 88) != 0:
+    if read64(s, 64) != 0 or read64(s, 80) == 0 or read64(s, 88) != 0:
         return control_refuse(w)
     cursor = 192 + argc * 16
     record = 96
@@ -108,7 +113,7 @@ def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(w, 128, profile)
     put(w, 120, 1)
     field = 0
-    while field < 19:
+    while field < FIELD_COUNT:
         put(w, FIELD_BASE + field * FIELD_STRIDE + 24, field_literal(field))
         field = field + 1
     copy_at = 65536 + argc * 80
@@ -119,30 +124,13 @@ def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(w, 152, copy_at)
     parse_root(s, w)
     if get(w, 8) == 0:
-        backend = field_equal(s, w, 4, SELFHOST_LITERAL)
-        if get(w, 16) == 9:
-            if backend == 1:
-                if field_truth(w, 17) == 0 or field_truth(w, 18) == 0:
-                    put(w, 24, 0)
-                    refusal(w, 8, 0, 0, 0, 0)
-            else:
-                if get(w, FIELD_BASE + 17 * FIELD_STRIDE) > 1 or get(w, FIELD_BASE + 18 * FIELD_STRIDE) > 1:
-                    put(w, 24, 0)
-                    refusal(w, 9, 0, 0, 0, 0)
-        if get(w, 8) == 0:
-            control_seed(w, get(w, 16), field_truth(w, 3), backend)
+        control_seed(w, get(w, 16), field_truth(w, 3))
+        put(w, C_NONCE, read64(s, 80))
+        put(w, C_SELFHOST, choose(field_equal(s, w, 4, SELFHOST_LITERAL), 1, 0))
     index = 0
     while index < 128:
         store(o, index, byte(w, index))
         index = index + 1
-    return 0
-
-def field_equal(s:readbuf, w:mutbuf, field:u64, literal:u64) -> u64:
-    base = FIELD_BASE + field * FIELD_STRIDE
-    if get(w, base) != 2:
-        return 0
-    if literal_equal(s, w, get(w, base + 8), get(w, base + 16), literal):
-        return 1
     return 0
 
 def read64(s:readbuf, at:u64) -> u64:
@@ -345,6 +333,14 @@ def field_truth(w:mutbuf, field:u64) -> u64:
     at = FIELD_BASE + field * FIELD_STRIDE
     return choose(get(w, at) > 1 and get(w, at + 16) > 0, 1, 0)
 
+def field_equal(s:readbuf, w:mutbuf, field:u64, literal:u64) -> bool:
+    at = FIELD_BASE + field * FIELD_STRIDE
+    if get(w, at) == 2:
+        return literal_equal(s, w, get(w, at + 8), get(w, at + 16), literal)
+    if get(w, at) == 3:
+        return get(w, at + 8) == get(w, LITERAL_BASE + literal * 16)
+    return False
+
 def add_extra(w:mutbuf, begin:u64, size:u64, hyphen:u64) -> u64:
     at = ARG_BASE + get(w, 88) * ARG_STRIDE + get(w, 80) * EXTRA_STRIDE
     put(w, at, begin)
@@ -509,6 +505,15 @@ def parse_root(s:readbuf, w:mutbuf) -> u64:
                 if get(w, 8) == 0 and get(w, 80) != 0:
                     put(w, 24, 0)
                     refusal(w, 7, 0, 0, 0, 0)
+                if get(w, 8) == 0 and action == 9:
+                    if field_equal(s, w, 4, SELFHOST_LITERAL):
+                        if field_truth(w, 17) == 0 or field_truth(w, 18) == 0:
+                            put(w, 24, 0)
+                            refusal(w, 8, 0, 0, 0, 0)
+                    else:
+                        if get(w, FIELD_BASE + 17 * FIELD_STRIDE) != 1 or get(w, FIELD_BASE + 18 * FIELD_STRIDE) != 1:
+                            put(w, 24, 0)
+                            refusal(w, 9, 0, 0, 0, 0)
                 return 0
             add_extra(w, read64(s, 192 + index * 16), read64(s, 200 + index * 16), 0)
             index = index + 1
