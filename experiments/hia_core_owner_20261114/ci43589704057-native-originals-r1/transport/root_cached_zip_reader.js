@@ -1,0 +1,9 @@
+return function(N,R){
+ const manifest=load(N+"_zip_cache_manifest"),index=load(N+"_zip_index"),zr=(new Function(load(N+"_zip_reader").text))()(R);
+ if(!manifest||manifest.bytes!==81424337||manifest.chunks.length!==78||!load(N+"_root_whole_byte_transport_closed")?.complete)throw Error("closed cache unavailable");
+ const cached=new Map();
+ function chunk(i){if(cached.has(i))return cached.get(i);const m=manifest.chunks[i];if(!m||m.offset!==i*1048576)throw Error("cache location");const b=R.dec(load(m.key));if(b.length!==m.bytes)throw Error("cache extent");if(cached.size>=4)cached.delete(cached.keys().next().value);cached.set(i,b);return b;}
+ function bytes(name){const e=index.entries.find(e=>e.name===name);if(!e)throw Error("missing member "+name);if(e.method!==0||e.bytes!==e.compressed_bytes)throw Error("current artifact stored member expected");const out=new Uint8Array(e.bytes);let p=e.data_offset,op=0;while(op<out.length){const i=Math.floor(p/1048576),b=chunk(i),at=p-i*1048576,n=Math.min(b.length-at,out.length-op);if(n<=0)throw Error("cache range");out.set(b.subarray(at,at+n),op);p+=n;op+=n;}if(zr.crc32(out)!==e.crc32)throw Error("full member CRC");return out;}
+ function read(name,parse=false){let rec=load(N+"_archive_"+name);if(!rec){const b=bytes(name);rec={name,bytes:b.length,sha256:R.sha256(b)};if(b.length<=2097152)rec.git=R.object("blob",b);try{rec.text=R.decode(b);}catch{rec.data_base64=R.enc(b);}store(N+"_archive_"+name,rec);}if(parse){if(typeof rec.text!=="string")throw Error("not UTF8");rec.data=(new Function(load(N+"_fast_exact_source")))()(rec.text);store(N+"_archive_"+name,rec);}return rec;}
+ return{bytes,read};
+};

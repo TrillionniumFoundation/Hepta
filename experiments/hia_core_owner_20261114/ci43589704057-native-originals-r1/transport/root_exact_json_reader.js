@@ -1,0 +1,1 @@
+return function(text){return JSON.parse(text,(k,v,c)=>typeof v==="number"&&c&&/^-?\d{16,}$/.test(c.source)?c.source:v);};
