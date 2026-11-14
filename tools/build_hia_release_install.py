@@ -17,6 +17,7 @@ if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.build_hia_source_build import _check_pack_output
 from tools.generate_hia_release_install import MAGIC
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -45,10 +46,7 @@ def build(output: Path, compiler: Path, cold_report: Path):
     policy, sha = images['policy'][1], images['sha256'][1]
     frame = struct.pack('<3Q', MAGIC, len(policy), len(sha)) + policy + sha
     result, packed = invoke(output, 'release-pack', images['packer'][0], frame)
-    size = result.get('core_u32')
-    if result.get('status') != 'returned' or type(size) is not int or not 0 < size <= len(packed):
-        raise ValueError('native HIA release packer refused image frame')
-    raw = packed[:size]
+    raw = _check_pack_output(result, packed, artifact=images['packer'][1], source=frame)
     inspection = inspect_executable(raw)
     if (compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != cold_bytes
             or any((ROOT/name).read_bytes() != data for name, data in source_bytes.items())

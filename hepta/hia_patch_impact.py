@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections import deque
 from hashlib import sha256
 import json
+import os
 
 from .hia_program import verify_program
 from .hia_program_tools import apply_program_patch, function_signature
@@ -85,6 +86,47 @@ def _interface(functions):
             for name, fn in functions.items()}
 
 
+def _reference_changes(before, after):
+    if set(before) - set(after):
+        # Current mutation grammar never deletes entire declarations.
+        _reject("patch unexpectedly removed a function")
+    changes = sorted(name for name in set(before) | set(after)
+                     if name not in before or name not in after
+                     or _canonical(before[name]) != _canonical(after[name]))
+    old_abi, new_abi = _interface(before), _interface(after)
+    interface_changes = sorted(name for name in set(old_abi) | set(new_abi)
+                               if old_abi.get(name) != new_abi.get(name))
+    return changes, interface_changes
+
+
+def _reference_graph(before, after, changes):
+    old_edges, new_edges = _incoming(before), _incoming(after)
+    reverse = {name: set() for name in set(before) | set(after)}
+    for graph in (old_edges, new_edges):
+        for callee, callers in graph.items():
+            reverse[callee].update(callers)
+    pending = deque(changes)
+    affected = set(changes)
+    while pending:
+        current = pending.popleft()
+        for caller in sorted(reverse.get(current, ())):
+            if caller not in affected:
+                affected.add(caller)
+                pending.append(caller)
+    impacted_existing = sorted(affected & set(after))
+    unchanged_candidates = sorted(set(after) - affected)
+    return {
+        "potentially_affected_functions": impacted_existing,
+        "unaffected_by_static_callgraph": unchanged_candidates,
+        "old_call_edges": sorted([{"caller": caller, "callee": callee}
+                                  for callee, callers in old_edges.items()
+                                  for caller in callers], key=lambda e: (e["caller"], e["callee"])),
+        "new_call_edges": sorted([{"caller": caller, "callee": callee}
+                                  for callee, callers in new_edges.items()
+                                  for caller in callers], key=lambda e: (e["caller"], e["callee"])),
+    }
+
+
 def analyze_patch_impact(document, request):
     """Run the existing Agent patch verifier and report conservative impact.
 
@@ -118,15 +160,18 @@ def analyze_patch_impact(document, request):
         _reject("unqualified or fabricated Agent patch receipt")
 
     before, after = _functions(original), _functions(checked)
-    if set(before) - set(after):
-        # Current mutation grammar never deletes entire declarations.
-        _reject("patch unexpectedly removed a function")
-    changes = sorted(name for name in set(before) | set(after)
-                     if name not in before or name not in after
-                     or _canonical(before[name]) != _canonical(after[name]))
-    old_abi, new_abi = _interface(before), _interface(after)
-    interface_changes = sorted(name for name in set(old_abi) | set(new_abi)
-                               if old_abi.get(name) != new_abi.get(name))
+    selected = os.environ.get('HEPTA_HIA_PATCH_IMPACT_MANIFEST')
+    if selected == '':
+        raise ValueError('patch impact selector must not be empty')
+    native = None
+    if selected is not None:
+        from .hia_patch_impact_native import installed_patch_impact
+        native = installed_patch_impact(selected)
+        metadata = native.observe(before, after, phase=0)
+        changes = metadata['direct_changed_functions']
+        interface_changes = metadata['interface_changed_functions']
+    else:
+        changes, interface_changes = _reference_changes(before, after)
     if (type(patch_receipt.get("interface_changes")) is not list
             or patch_receipt["interface_changes"] != interface_changes):
         _reject("Agent interface change receipt contradicts actual programs")
@@ -139,21 +184,13 @@ def analyze_patch_impact(document, request):
     elif interface_changes:
         _reject("legacy patch may not claim changed interface")
 
-    old_edges, new_edges = _incoming(before), _incoming(after)
-    reverse = {name: set() for name in set(before) | set(after)}
-    for graph in (old_edges, new_edges):
-        for callee, callers in graph.items():
-            reverse[callee].update(callers)
-    pending = deque(changes)
-    affected = set(changes)
-    while pending:
-        current = pending.popleft()
-        for caller in sorted(reverse.get(current, ())):
-            if caller not in affected:
-                affected.add(caller)
-                pending.append(caller)
-    impacted_existing = sorted(affected & set(after))
-    unchanged_candidates = sorted(set(after) - affected)
+    if native is None:
+        graph = _reference_graph(before, after, changes)
+    else:
+        graph = native.observe(before, after, phase=1)
+        if (graph.pop('direct_changed_functions') != changes
+                or graph.pop('interface_changed_functions') != interface_changes):
+            raise RuntimeError('native patch impact phases disagree on verified facts')
     report = {
         "schema": SCHEMA,
         "status": "verified_static_callgraph_impact_not_equivalence",
@@ -162,14 +199,7 @@ def analyze_patch_impact(document, request):
         "patch_result_schema": patch_receipt["schema"],
         "direct_changed_functions": changes,
         "interface_changed_functions": interface_changes,
-        "potentially_affected_functions": impacted_existing,
-        "unaffected_by_static_callgraph": unchanged_candidates,
-        "old_call_edges": sorted([{"caller": caller, "callee": callee}
-                                  for callee, callers in old_edges.items()
-                                  for caller in callers], key=lambda e: (e["caller"], e["callee"])),
-        "new_call_edges": sorted([{"caller": caller, "callee": callee}
-                                  for callee, callers in new_edges.items()
-                                  for caller in callers], key=lambda e: (e["caller"], e["callee"])),
+        **graph,
         "claims": {
             "source_and_candidate_reverified": True,
             "both_verified_call_graphs_scanned": True,

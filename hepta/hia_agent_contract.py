@@ -76,6 +76,22 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/composite_outer_owner.hepta',
     'examples/hia_bootstrap/composite_outer_render.hepta',
     'examples/hia_bootstrap/retirement_state.hepta',
+    'examples/hia_bootstrap/native_mapping.hepta',
+    'examples/hia_bootstrap/publication_measurement.hepta',
+    'examples/hia_bootstrap/scalar_profile.hepta',
+    'examples/hia_bootstrap/generation_retention.hepta',
+    'examples/hia_bootstrap/bounded_memory.hepta',
+    'examples/hia_bootstrap/full_cost.hepta',
+    'examples/hia_bootstrap/store_lifecycle.hepta',
+    'examples/hia_bootstrap/service_context.hepta',
+    'examples/hia_bootstrap/cost_ledger.hepta',
+    'examples/hia_bootstrap/evaluation.hepta',
+    'examples/hia_bootstrap/native_build_admission.hepta',
+    'examples/hia_bootstrap/emission.hepta',
+    'examples/hia_bootstrap/store_artifact_profile.hepta',
+    'examples/hia_bootstrap/patch_impact.hepta',
+    'examples/hia_bootstrap/static_budget.hepta',
+    'examples/hia_bootstrap/cli_discovery_json.hepta',
 )
 
 

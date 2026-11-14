@@ -1,0 +1,87 @@
+def _admit(document, *, prove_total=False, timeout_ms=2000):
+    """Reverify exact bytes, then close the extra total/native-callable profile."""
+    program = verify_program(document)
+    data = program.as_dict()
+    if program.structured_bytes is not None or data["schema"] not in QUALIFIED_CORE_SCHEMAS:
+        _reject("native lifecycle requires the qualified primitive v1-v7 proof profile")
+    functions = data["functions"]
+    if not 1 <= len(functions) <= _MAX_FUNCTIONS:
+        _reject("finite profile requires one to sixteen functions")
+    if program.scalar_entrypoints != frozenset(f["name"] for f in functions):
+        _reject("every function must be an exported scalar function")
+    abi = []
+    for function in functions:
+        parameters = tuple(p["type"] for p in function["params"])
+        bad_effects = (set(function["effects"]) - {"trap"} if prove_total else function["effects"])
+        if (bad_effects or len(parameters) > 16
+                or any(t not in _CTYPES for t in parameters)
+                or len(function["returns"]) != 1 or function["returns"][0] not in _CTYPES):
+            _reject("only effect-free scalar signatures with one scalar result are admitted")
+        blocks = function["blocks"]
+        if len(blocks) > _MAX_BLOCKS or sum(len(b["ops"]) for b in blocks) > _MAX_OPS:
+            _reject("finite block/instruction budget exceeded")
+        graph = {}
+        for block in blocks:
+            if any(p["type"] not in _CTYPES for p in block["params"]):
+                _reject("resource block parameters are outside the scalar profile")
+            for op in block["ops"]:
+                proved_operation = (prove_total and op["op"] in _PROVABLE_OPS
+                                    and op["out"][0]["type"] in {"u8", "u16"})
+                if (op["op"] not in _OPS and not proved_operation
+                        or op["op"] == "int.cast" and op["attrs"]["mode"] != "wrap"
+                        or any(p["type"] not in _CTYPES for p in op["out"])):
+                    _reject("instruction may trap, allocate, call or escape the total scalar profile")
+            term = block["term"]
+            if term["op"] == "ret" or prove_total and term["op"] == "trap":
+                graph[block["id"]] = ()
+            elif term["op"] == "jump":
+                graph[block["id"]] = (term["target"],)
+            elif term["op"] == "branch":
+                graph[block["id"]] = (term["then"]["target"], term["else"]["target"])
+            else:
+                _reject("trapping terminators are outside the total scalar profile")
+        # The canonical verifier checks edges/types; this separate finite
+        # topological check rules out unbounded native loops, even if unreachable
+        # under a condition that a producer claims to be false.
+        incoming = {name: 0 for name in graph}
+        for targets in graph.values():
+            for target in targets:
+                incoming[target] += 1
+        ready = [name for name, count in incoming.items() if count == 0]
+        visited = 0
+        while ready:
+            name = ready.pop()
+            visited += 1
+            for target in graph[name]:
+                incoming[target] -= 1
+                if incoming[target] == 0:
+                    ready.append(target)
+        if visited != len(graph):
+            _reject("cyclic control flow is outside the total scalar profile")
+        abi.append(ScalarABI(function["name"], parameters, function["returns"][0]))
+    abi = tuple(sorted(abi, key=lambda a: a.function))
+    totality = []
+    if prove_total:
+        from . import hia_scalar_totality as total
+        from . import hia_translation_validation as encoding
+        for signature in abi:
+            proof = total.validate_scalar_totality(program, function=signature.function,
+                                                  timeout_ms=timeout_ms)
+            expected = {"schema": total.SCHEMA, "profile": total.PROFILE,
+                        "scope": "selected_public_scalar_function", "status": "proved",
+                        "function": signature.function, "program_sha256": program.sha256,
+                        "input_sha256": program.input_sha256,
+                        "validator_sha256": total._implementation_digest(),
+                        "encoder_sha256": encoding._implementation_digest(),
+                        "encoder_profile": encoding.PROFILE}
+            if (type(proof) is not dict or any(proof.get(k) != v for k, v in expected.items())
+                    or proof.get("structural_verification") is not True
+                    or type(proof.get("claims")) is not dict
+                    or proof["claims"].get("all_inputs_return_normally_proved") is not True
+                    or type(proof.get("solver")) is not dict
+                    or proof["solver"].get("result") != "unsat"):
+                _reject("fresh scalar totality did not prove every input returns normally")
+            # Freeze evidence independently of a validator-owned mutable dict.
+            totality.append(json.dumps(proof, sort_keys=True, separators=(",", ":"),
+                                       allow_nan=False).encode())
+    return program, abi, tuple(totality)

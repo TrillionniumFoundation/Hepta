@@ -1,0 +1,29 @@
+class FrozenCostLedger:
+    def _cost_ledger(self, context, evaluation_wall_ns, native_wall_ns):
+        rows = self.store.db.execute("SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001",
+                                     (context["ref"]["id"],)).fetchall()
+        truncated = len(rows) > 10000
+        rows = rows[:10000]
+        entries = [{"sequence": row["sequence"], "tool": row["tool"], "request_id": row["request_id"],
+                    "context_id": row["context_id"], "wall_ns": row["wall_ns"], "status": row["status"],
+                    "details": decode_data(row["details"])} for row in rows]
+        policy, _ = self.store.get_json(context["budget"]["cost_policy"])
+        external = dict(policy["external_costs"])
+        # A caller may record measured zero; an incomplete model ledger cannot
+        # convert a placeholder zero into an observed zero-cost model call.
+        if not policy["external_costs_complete"]:
+            external = {name: None for name in external}
+        attributed = sum(int(row["wall_ns"]) for row in rows if row["context_id"] == context["ref"]["id"])
+        unscoped = sum(int(row["wall_ns"]) for row in rows if row["context_id"] is None)
+        return {"schema": "hepta.hia.agent.cost-ledger.v1", "context": context["ref"],
+            "entries": entries, "entries_truncated": truncated,
+            "context_tool_wall_ns_before_evaluation": str(attributed),
+            "unattributed_discovery_artifact_read_wall_ns": str(unscoped),
+            "evaluation_wall_ns_through_report": str(evaluation_wall_ns),
+            "native_child_wall_ns": str(native_wall_ns),
+            "external_costs": external, "external_cost_source": "caller-supplied report, independently unmeasured",
+            "external_costs_complete": policy["external_costs_complete"],
+            "adoption_wall_ns": None, "future_execution_count": policy["expected_invocations"],
+            "failed_attempts_retained": True, "full_search_cost_complete": False,
+            "net_optimization_benefit_proved": False,
+            "scope": "observed request prefix; unscoped calls cannot be uniquely attributed and adoption/future/model cost may be unknown"}

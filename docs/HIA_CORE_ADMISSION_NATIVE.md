@@ -22,6 +22,34 @@ The strict `tools.build_hia_core_admission` requires the completed cold report
 to match the current complete source manifest and compiler generation hashes.
 An older compiler used in development is not exact-source qualification.
 
+## Complete native diagnostics
+
+Every primitive semantic refusal carries the original English text, including
+function, block and value identifiers, instruction signature rules, and complete
+callee return-type lists. HIA owns the text constants and constructs the UTF-8
+message. The bridge validates the private trailer, decodes those bytes, and
+raises the existing `HIAProgramRejected`; it never runs a Python checker to
+reconstruct an error. The public `status(bytes) -> int` codes remain unchanged.
+
+An edge's entire renamed capability graph is checked before comparing any
+predecessor state. This preserves the original first-refusal order when one
+resource disagrees with a prior predecessor and another lacks a required
+owner or parent.
+
+The message region reserves the raw input byte count plus its bounded node
+count and 4,096 bytes. Every copied name or opcode is already present in the
+input; a Python-style type list adds at most one space per node. The resulting
+maximum private state is 65,450,176 bytes, below the existing standalone
+64 MiB allocation. Input limits, compiler limits, CLI mappings, native child
+limits and independent-VM limits are unchanged.
+
+The adapter transports one invocation's message through an input-bound
+`ContextVar` while keeping the existing public `status` observation boundary.
+Its token is restored in `finally`; nested or concurrent admissions cannot
+reuse another call's message. A status returned without the corresponding
+native observation is refused. Tests cover overlap, re-entry, exceptions,
+wrong-input observations, malformed trailers and invalid output UTF-8.
+
 The selector is unselected only when its environment variable is absent. An explicitly present empty value is rejected before image loading or entry into the hosted reference. Remove the variable to use the unselected reference path; an empty assignment does not disable selection.
 
 ## Remaining boundaries and claims

@@ -1,0 +1,35 @@
+    def _hia_emit(self, args):
+        self._profile(args["backend_profile"], "backend")
+        context = self._context(args["context"])
+        program = self._program(args["candidate"])
+        for ref in args["verification_receipts"]:
+            self._verification(ref, args["context"], args["candidate"])
+        codegen, plan = args["codegen"], None
+        if codegen["kind"] == "canonical":
+            self._profile(codegen["lowering_profile"], "lowering")
+        else:
+            self._profile(codegen["plan_profile"], "plan")
+            plan, _ = self.store.get_json(codegen["plan"])
+            validate(plan, PLAN_SCHEMA, "machine_plan")
+            receipt = self._verification(codegen["verification_receipt"], args["context"], args["candidate"])
+            expected_subject = {"kind": "agent_machine_plan", "backend_profile": args["backend_profile"],
+                                "plan_profile": codegen["plan_profile"], "plan": codegen["plan"]}
+            if receipt["subject"] != expected_subject or not any(c["claim"] == "lowering_refinement" and c["status"] == "proved" for c in receipt["checks"]):
+                reject("E_HIA_PLAN_RECEIPT", "plan lacks an exact subject-bound qualified layout receipt", "codegen")
+        exports = tuple(map(tuple, context.get("foreign_buffer_exports", [])))
+        data, native_build = self._compile(program, args["output_kind"], plan, self._remaining_ms(context),
+                                          **({"foreign_buffer_exports": exports} if exports else {}))
+        metadata = {"context": args["context"], "candidate": args["candidate"],
+            "core_sha256": program.sha256, "output_kind": args["output_kind"], "codegen": codegen,
+            "machine_plan": plan, "installation": self.identities, "signatures": _signatures(program, exports),
+            "foreign_buffer_exports": [list(pair) for pair in exports],
+            "object_artifact": native_build["object_artifact"], "object_sha256": native_build["object_sha256"]}
+        artifact = self.store.put(data, "native", metadata)
+        receipt = self.store.json({"schema": "hepta.hia.agent.build.v1", **metadata,
+            "native_artifact": artifact, "native_build": native_build,
+            "backend_profile": args["backend_profile"], "target_profile": context["target_profile"],
+            "verification_receipts": args["verification_receipts"]}, "build-receipt")
+        return {"candidate": args["candidate"], "native_artifact": artifact, "build_receipt": receipt,
+            "backend_profile": args["backend_profile"], "target_profile": context["target_profile"],
+            "codegen_backend": "hia-direct", "llvm_codegen_used": False, "external_assembler_used": False,
+            "linker_used": args["output_kind"] == "shared", "native_execution_observed": False, "adopted": False}

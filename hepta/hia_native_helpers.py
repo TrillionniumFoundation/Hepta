@@ -28,6 +28,21 @@ MAX_SOURCE_BYTES = 8 << 20
 # Only single-image contracts with the existing six-argument byte ABI.
 # Multi-image and external executable contracts need a separate custody closure.
 HELPERS = {
+    "HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST": ("hia_store_artifact_profile_native", "NativeStoreArtifactProfile"),
+    "HEPTA_HIA_EMISSION_MANIFEST": ("hia_emission_native", "NativeEmission"),
+    "HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST": ("hia_native_build_admission_native", "NativeBuildAdmission"),
+    "HEPTA_HIA_EVALUATION_MANIFEST": ("hia_evaluation_native", "NativeEvaluation"),
+    "HEPTA_HIA_COST_LEDGER_MANIFEST": ("hia_cost_ledger_native", "NativeCostLedger"),
+    "HEPTA_HIA_STATIC_BUDGET_MANIFEST": ("hia_static_budget_native", "NativeStaticBudget"),
+    "HEPTA_HIA_FULL_COST_MANIFEST": ("hia_full_cost_native", "NativeFullCost"),
+    "HEPTA_HIA_STORE_LIFECYCLE_MANIFEST": ("hia_store_lifecycle_native", "NativeStoreLifecycleImage"),
+    "HEPTA_HIA_SERVICE_CONTEXT_MANIFEST": ("hia_service_context_native", "NativeServiceContextImage"),
+    "HEPTA_HIA_PATCH_IMPACT_MANIFEST": ("hia_patch_impact_native", "NativePatchImpact"),
+    "HEPTA_HIA_GENERATION_RETENTION_MANIFEST": ("hia_generation_retention_native", "NativeGenerationImage"),
+    "HEPTA_HIA_SCALAR_PROFILE_MANIFEST": ("hia_scalar_profile_native", "NativeScalarProfile"),
+    "HEPTA_HIA_BOUNDED_MEMORY_MANIFEST": ("hia_bounded_memory_native", "NativeBoundedMemory"),
+    "HEPTA_HIA_NATIVE_MAPPING_MANIFEST": ("native_mapping_native", "NativeMappingImage"),
+    "HEPTA_HIA_PUBLICATION_MEASUREMENT_MANIFEST": ("hia_publication_measurement_native", "NativePublicationMeasurement"),
     "HEPTA_HIA_WORKER_REQUEST_MANIFEST": ("hia_worker_request_native", "NativeWorkerRequest"),
     "HEPTA_HIA_AGENT_IDENTITY_MANIFEST": ("hia_agent_identity_native", "NativeAgentIdentity"),
     "HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST": ("hia_agent_snapshot_native", "NativeAgentSnapshot"),
@@ -276,6 +291,13 @@ def native_helpers_scope(path=None, expected_sha256=None):
             raise ValueError("native helper manifest and expected SHA256 must be supplied together")
         if _ACTIVE is not None or _selectors():
             raise ValueError("worker native helper selection must come only from its explicit pinned bundle")
+        package_pin = None
+        if path is None:
+            from .hia_default_native import capture_default_bundle
+            packaged = capture_default_bundle()
+            if packaged is not None:
+                path, expected_sha256, package_pin = packaged
+                path = str(path)
         if path is None:
             yield None
             return
@@ -293,6 +315,9 @@ def native_helpers_scope(path=None, expected_sha256=None):
             binding = NativeWorkerBundleBinding(captured, expected_sha256)
         else:
             binding = NativeHelpersBinding(path, expected_sha256)
+        if package_pin is not None:
+            binding.snapshots.extend(package_pin)
+            binding.check_files()
         _ACTIVE = binding
         os.environ.update(binding.selections)
         binding.check()

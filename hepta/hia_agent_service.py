@@ -36,6 +36,15 @@ def _now():
 
 
 def _signatures(program, foreign_buffer_exports=()):
+    selected = os.environ.get('HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST')
+    if selected is not None:
+        from .hia_native_build_admission_native import installed_native_build_admission, NativeBuildAdmissionFrame
+        return NativeBuildAdmissionFrame(installed_native_build_admission(selected), 1,
+                                         None, (program, foreign_buffer_exports)).finish()
+    return _signatures_reference(program, foreign_buffer_exports)
+
+
+def _signatures_reference(program, foreign_buffer_exports=()):
     from .hia_program_native import WIDTHS
     from .hia_native_byte_abi import normalize_exports
     from .hia_agent_buffers import PROFILE as BUFFER_PROFILE
@@ -260,6 +269,8 @@ class HIAAgentService:
 
     def call(self, tool, arguments):
         selected = os.environ.get('HEPTA_HIA_AGENT_JOURNAL_MANIFEST')
+        if selected == '':
+            raise ValueError('Agent journal selector must not be empty')
         if selected:
             from .hia_agent_journal_native import call_with_native_journal
             return call_with_native_journal(self, tool, arguments, selected)
@@ -351,6 +362,13 @@ class HIAAgentService:
         return verify_program(decode_json(data))
 
     def _context(self, ref):
+        from .hia_service_context_selection import run_service_context, UNSELECTED
+        result = run_service_context(2, self, ref)
+        if result is UNSELECTED:
+            return _NATIVE_SERVICE_CONTEXT_LOOKUP_REFERENCE(self, ref)
+        return result
+
+    def _context_reference(self, ref):
         keys(ref, ("id", "sha256"), label="context reference")
         row = self.store.db.execute("SELECT * FROM contexts WHERE id=?", (ref["id"],)).fetchone()
         if row is None or row["sha256"] != ref["sha256"]:
@@ -364,6 +382,13 @@ class HIAAgentService:
         return context
 
     def _budget(self, context, *, candidate=False):
+        from .hia_service_context_selection import run_service_context, UNSELECTED
+        result = run_service_context(3, self, context, candidate=candidate)
+        if result is UNSELECTED:
+            return _NATIVE_SERVICE_CONTEXT_BUDGET_REFERENCE(self, context, candidate=candidate)
+        return result
+
+    def _budget_reference(self, context, *, candidate=False):
         row = self.store.db.execute("SELECT * FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
         limits = context["budget"]
         if time.time_ns() - int(row["created_ns"]) > limits["max_total_wall_ms"] * 1_000_000:
@@ -383,6 +408,13 @@ class HIAAgentService:
             reject("E_HIA_BUDGET", "candidate attempt budget exhausted", "context")
 
     def _remaining_ms(self, context):
+        from .hia_service_context_selection import run_service_context, UNSELECTED
+        result = run_service_context(4, self, context)
+        if result is UNSELECTED:
+            return _NATIVE_SERVICE_CONTEXT_REMAINING_REFERENCE(self, context)
+        return result
+
+    def _remaining_ms_reference(self, context):
         row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
         deadline = int(row["created_ns"]) + context["budget"]["max_total_wall_ms"] * 1_000_000
         return max(0, (deadline - time.time_ns()) // 1_000_000)
@@ -476,6 +508,13 @@ class HIAAgentService:
         return {"artifact": ref, "encoding": encoding, "content": content, "next_cursor": next_cursor}
 
     def _hia_context(self, args):
+        from .hia_service_context_selection import run_service_context, UNSELECTED
+        result = run_service_context(1, self, args)
+        if result is UNSELECTED:
+            return _NATIVE_SERVICE_CONTEXT_FREEZE_REFERENCE(self, args)
+        return result
+
+    def _hia_context_reference(self, args):
         from .hia_agent_buffers import export_manifest, buffer_size, MAX_WORKLOAD_BUFFER_BYTES
         self._profile(args["compiler_profile"], "compiler")
         self._profile(args["target_profile"], "target")
@@ -845,6 +884,15 @@ class HIAAgentService:
             reject("E_HIA_PROOF_SCOPE", "cached proof differs from the original subject or retained conclusion; rerun verification with a fresh request key", "verification")
 
     def _compile(self, program, kind, machine_plan, timeout_ms, *, foreign_buffer_exports=()):
+        selected = os.environ.get('HEPTA_HIA_EMISSION_MANIFEST')
+        if selected is not None:
+            from .hia_emission_native import installed_emission, EmissionFrame
+            return EmissionFrame(installed_emission(selected), 1, self,
+                (program, kind, machine_plan, timeout_ms, foreign_buffer_exports)).finish()
+        return self._compile_reference(program, kind, machine_plan, timeout_ms,
+                                       foreign_buffer_exports=foreign_buffer_exports)
+
+    def _compile_reference(self, program, kind, machine_plan, timeout_ms, *, foreign_buffer_exports=()):
         from .hia_program_native import emit_program_machine, compile_program_machine
         if timeout_ms <= 0:
             reject("E_HIA_BUDGET", "frozen context deadline expired before emission", "codegen")
@@ -873,6 +921,13 @@ class HIAAgentService:
         return data, result
 
     def _hia_emit(self, args):
+        selected = os.environ.get('HEPTA_HIA_EMISSION_MANIFEST')
+        if selected is not None:
+            from .hia_emission_native import installed_emission, EmissionFrame
+            return EmissionFrame(installed_emission(selected), 2, self, (args,)).finish()
+        return self._hia_emit_reference(args)
+
+    def _hia_emit_reference(self, args):
         self._profile(args["backend_profile"], "backend")
         context = self._context(args["context"])
         program = self._program(args["candidate"])
@@ -909,6 +964,14 @@ class HIAAgentService:
             "linker_used": args["output_kind"] == "shared", "native_execution_observed": False, "adopted": False}
 
     def _native(self, ref, context=None):
+        selected = os.environ.get('HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST')
+        if selected is not None:
+            from .hia_native_build_admission_native import installed_native_build_admission, NativeBuildAdmissionFrame
+            return NativeBuildAdmissionFrame(installed_native_build_admission(selected), 2,
+                                             self, (ref, context)).finish()
+        return self._native_reference(ref, context)
+
+    def _native_reference(self, ref, context=None):
         data, metadata = self.store.get(ref, kind="native")
         if metadata["installation"] != self.identities or context is not None and metadata["context"] != context:
             reject("E_HIA_RECEIPT_BINDING", "native artifact belongs to a different context or implementation")
@@ -921,9 +984,25 @@ class HIAAgentService:
         return data, metadata, program
 
     def _build_receipt(self, ref, context, artifact):
+        selected = os.environ.get('HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST')
+        if selected is not None:
+            from .hia_native_build_admission_native import installed_native_build_admission, NativeBuildAdmissionFrame
+            return NativeBuildAdmissionFrame(installed_native_build_admission(selected), 4,
+                                             self, (ref, context, artifact)).finish()
+        return self._build_receipt_reference(ref, context, artifact)
+
+    def _build_receipt_reference(self, ref, context, artifact):
         return self._build_inputs(ref, context, artifact)[0]
 
     def _build_inputs(self, ref, context, artifact):
+        selected = os.environ.get('HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST')
+        if selected is not None:
+            from .hia_native_build_admission_native import installed_native_build_admission, NativeBuildAdmissionFrame
+            return NativeBuildAdmissionFrame(installed_native_build_admission(selected), 3,
+                                             self, (ref, context, artifact)).finish()
+        return self._build_inputs_reference(ref, context, artifact)
+
+    def _build_inputs_reference(self, ref, context, artifact):
         """Capture and validate one immutable Core/object/final build observation."""
         record, _ = self.store.get_json(ref, kind="build-receipt")
         if (record["context"] != context or record["native_artifact"] != artifact or record["installation"] != self.identities
@@ -1081,6 +1160,14 @@ class HIAAgentService:
         return objective
 
     def _cost_ledger(self, context, evaluation_wall_ns, native_wall_ns):
+        selected = os.environ.get('HEPTA_HIA_COST_LEDGER_MANIFEST')
+        if selected is not None:
+            from .hia_cost_ledger_native import installed_cost_ledger, CostLedgerFrame
+            return CostLedgerFrame(installed_cost_ledger(selected), self, context,
+                                   evaluation_wall_ns, native_wall_ns).finish()
+        return self._cost_ledger_reference(context, evaluation_wall_ns, native_wall_ns)
+
+    def _cost_ledger_reference(self, context, evaluation_wall_ns, native_wall_ns):
         rows = self.store.db.execute("SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001",
                                      (context["ref"]["id"],)).fetchall()
         truncated = len(rows) > 10000
@@ -1110,6 +1197,13 @@ class HIAAgentService:
             "scope": "observed request prefix; unscoped calls cannot be uniquely attributed and adoption/future/model cost may be unknown"}
 
     def _hia_evaluate(self, args):
+        selected = os.environ.get('HEPTA_HIA_EVALUATION_MANIFEST')
+        if selected is not None:
+            from .hia_evaluation_native import installed_evaluation, EvaluationFrame
+            return EvaluationFrame(installed_evaluation(selected), self, args).finish()
+        return self._hia_evaluate_reference(args)
+
+    def _hia_evaluate_reference(self, args):
         from .hia_agent_runner import run_native_batch, run_reference_batch
         from .hia_agent_buffers import validate_cases
         started = time.monotonic_ns()
@@ -1509,3 +1603,22 @@ class HIAAgentService:
         lease = self._lease(lease)
         self.store.db.execute("UPDATE leases SET active=0 WHERE id=?", (lease["id"],))
         return {"released": True, "generation": lease["generation"], "artifact_retained": True}
+
+
+# Direct references preserve the original private self/provider dispatch on
+# the unselected route; native continuations never invoke these policy bodies.
+_NATIVE_SERVICE_CONTEXT_FREEZE_REFERENCE = HIAAgentService._hia_context_reference
+_NATIVE_SERVICE_CONTEXT_LOOKUP_REFERENCE = HIAAgentService._context_reference
+_NATIVE_SERVICE_CONTEXT_BUDGET_REFERENCE = HIAAgentService._budget_reference
+_NATIVE_SERVICE_CONTEXT_REMAINING_REFERENCE = HIAAgentService._remaining_ms_reference
+
+# Stable identities describe only the original selected bridges. Later public
+# class/global replacements remain foreign callables and must be observed.
+_NATIVE_BUILD_SIGNATURES_BRIDGE = _signatures
+_NATIVE_BUILD_NATIVE_BRIDGE = HIAAgentService._native
+_NATIVE_BUILD_INPUTS_BRIDGE = HIAAgentService._build_inputs
+_NATIVE_BUILD_GLOBAL_BUILTINS = _signatures.__builtins__
+
+# Preserve the original functions' bound builtins dictionary even if a caller
+# later replaces the module's __builtins__ binding or an explicit provider.
+_EMISSION_GLOBAL_BUILTINS = HIAAgentService._compile.__builtins__

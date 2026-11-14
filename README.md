@@ -20,6 +20,12 @@ under an explicit administrator bundle pin; its hosted custody and durable
 service/runtime dependencies are not yet retired. See
 [worker policy and custody](docs/HIA_WORKER_REPORT_NATIVE.md).
 
+An explicit [default-owner candidate wheel](docs/HIA_DEFAULT_NATIVE_RELEASE.md)
+packages the full-cost HIA image for Linux x86-64. Its ordinary full-cost API and
+worker scope bind the installed image without selector environment variables.
+The source/portable package and the remaining worker/service owners are unchanged;
+this candidate is a step toward default native delivery, not whole-stack cutover.
+
 ## Agent entry
 
 ```sh
@@ -30,14 +36,14 @@ hia verify examples/hia_program/counter.hepta
 ```
 
 The `hia` entry is currently a Python-hosted bridge. An explicitly selected
-[two-image HIA CLI owner](docs/HIA_NATIVE_CLI_CONTROL_RECOVERY_20261111.md)
+[HIA CLI ownership](docs/HIA_CLI_NATIVE.md)
 now controls all fifteen actions, argument/help/error presentation, sequencing
 and current selfhost-build selection. Semantic action bodies, file policy and
 successful JSON presentation remain named foreign owners; this is not a
 standalone wholly native CLI.
 The independently built
 HIA-native stdio application supports `capabilities`, `verify`, `compile`,
-`render-assembly` and direct HIA-source `assemble` on
+`render-assembly`, direct HIA-source `assemble` and `check-assembly` on
 Linux x86-64 without Python at runtime; see [native stdio](docs/HIA_AGENT_STDIO_NATIVE.md).
 The ordinary `hia build --backend selfhost` route can explicitly select an
 operator-pinned HIA compiler for bounded primitive Core v8 ELF objects. Its
@@ -105,7 +111,7 @@ independent reference controls and resource refusal witnesses. Source contracts
 are identities, not correctness or release approvals. Old high-level-specific
 CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
 
-Repository cleanup: [current audit](docs/CURRENT.md#repository-ownership-and-cleanup).
+Repository cleanup: [current audit](docs/CURRENT.md#repository-cleanup-and-parallel-work).
 Native rewrite: [current implementation and remaining owners](docs/CURRENT.md).
 Runtime integration: [compatibility and upgrade requirements](docs/CURRENT.md#remaining-product-acceptance).
 

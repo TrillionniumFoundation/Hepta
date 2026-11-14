@@ -8,10 +8,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
+      - name: Install the frozen caller inventory dependency
+        run: python -m pip install jsonschema==4.26.0
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -30,6 +32,8 @@ jobs:
               'tests.test_hia_complete_output_observation',
               'tests.test_hia_agent_identity_source_binding',
               'tests.test_hia_source_suffix',
+              'tests.test_hia_empty_native_selectors',
+              'tests.test_hia_fixed_word_access',
               'tests.test_hia_original_select_fragments.SourceSuffixConsumerTests',
               'tests.test_hia_evidence_archive',
               'tests.test_hia_retained_evidence',
@@ -57,6 +61,7 @@ jobs:
               'tests.test_hia_selfhost_word_io.WordIOSourceTests',
               'tests.test_hia_selfhost_emitter_words.EmitterSourceTests',
               'tests.test_hia_sha256_stream_native.Sha256StreamSourceTests',
+              'tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests',
               'tests.test_hia_sha256_native.Sha256HiaSourceTests',
               'tests.test_hia_json_preflight',
               'tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests',
@@ -65,6 +70,28 @@ jobs:
               'tests.test_hia_selfhost_exports.ExportSourceTests',
               'tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaSourceTests',
               'tests.test_hia_selfhost.SelfhostSourceTests',
+              'tests.test_hia_selfhost_linked_observer.LinkedObserverSourceTests',
+              'tests.test_hia_linked_observer_build_custody',
+              'tests.test_hia_native_mapping_native.NativeMappingSourceTests',
+              'tests.test_hia_publication_measurement_native.PublicationMeasurementSourceTests',
+              'tests.test_hia_scalar_profile_native.ScalarProfileSourceTests',
+              'tests.test_hia_generation_retention_native.GenerationRetentionSourceTests',
+              'tests.test_hia_bounded_memory_native.BoundedMemorySourceTests',
+              'tests.test_hia_full_cost_native.FullCostSourceTests',
+              'tests.test_hia_default_native_release.DefaultReleaseSourceTests',
+              'tests.test_hia_store_lifecycle_native.StoreLifecycleSourceTests',
+              'tests.test_hia_service_context_native.ServiceContextSourceTests',
+              'tests.test_hia_cost_ledger_native.CostLedgerSourceTests',
+              'tests.test_hia_evaluation_native.EvaluationSourceTests',
+              'tests.test_hia_native_build_admission_native.NativeBuildAdmissionSourceTests',
+              'tests.test_hia_native_build_dispatch.NativeBuildDispatchSourceTests',
+              'tests.test_hia_emission_native.EmissionSourceTests',
+              'tests.test_hia_store_artifact_profile_native.StoreArtifactProfileSourceTests',
+              'tests.test_hia_native_transport_failures.NativeTransportSourceTests',
+              'tests.test_hia_static_budget_native.StaticBudgetSourceTests',
+              'tests.test_hia_patch_impact_native.PatchImpactSourceTests',
+              'tests.test_hia_cli_discovery_json.CliDiscoveryJsonSourceTests',
+              'tests.test_hia_cli_discovery_selection.CliDiscoverySelectionSourceTests',
               'tests.test_hia_selfhost_call_graph_efficiency.CallGraphSourceTests',
               'tests.test_hia_selfhost_contract.SelfhostContractTests',
               'tests.test_hia_selfhost_cli',
@@ -107,6 +134,9 @@ jobs:
               'tests.test_hia_standalone_builder_source_binding',
               'tests.test_hia_compile_stage_custody',
               'tests.test_hia_unittest_gate',
+              'tests.test_hia_verified_increment_gate',
+              'tests.test_hia_increment_source_admission',
+              'tests.test_hia_recursive_chain',
               'tests.test_hia_sha256_builder_source_binding',
               'tests.test_hia_source_build_entrypoint',
               'tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests',
@@ -175,6 +205,207 @@ jobs:
           sha256sum --check "$RUNNER_TEMP/hia-rust-caller-inputs.sha256"
           git diff --exit-code -- rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock
       - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - name: Native linked observer and independent loader lifecycle controls
+        env:
+          HEPTA_HIA_LINKED_OBSERVER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_LINKED_OBSERVER_EVIDENCE: ${{ runner.temp }}/hia-linked-observer
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_selfhost_linked_observer
+      - name: Native loaded mapping policy and original kernel evidence controls
+        env:
+          HEPTA_HIA_NATIVE_MAPPING_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_MAPPING_EVIDENCE: ${{ runner.temp }}/hia-native-mapping
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_native_mapping_native
+      - name: Original runtime and lease callers with selected HIA mapping policy
+        env:
+          HEPTA_HIA_NATIVE_MAPPING_MANIFEST: ${{ runner.temp }}/hia-native-mapping/candidate/build/manifest.json
+          HEPTA_TEST_CLANG: /usr/bin/clang-20
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_native_mapping_identity tests.test_hia_multiversion_mapping tests.test_hia_host_region 2>&1 | tee "$RUNNER_TEMP/hia-native-mapping-original-callers.log"
+      - name: Native publication measurement policy and installed scope controls
+        env:
+          HEPTA_HIA_PUBLICATION_MEASUREMENT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_PUBLICATION_MEASUREMENT_EVIDENCE: ${{ runner.temp }}/hia-publication-measurement
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_publication_measurement_native 2>&1 | tee "$RUNNER_TEMP/hia-publication-measurement.log"
+      - name: Complete original publication callers with selected HIA measurement policy
+        run: >-
+          python -B tools/qualify_hia_publication_measurement_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-publication-measurement-callers"
+      - name: Native scalar admission profile and installed scope controls
+        env:
+          HEPTA_HIA_SCALAR_PROFILE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SCALAR_PROFILE_EVIDENCE: ${{ runner.temp }}/hia-scalar-profile
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_scalar_profile_native 2>&1 | tee "$RUNNER_TEMP/hia-scalar-profile.log"
+      - name: Complete original scalar runtime callers with selected HIA admission profile
+        run: >-
+          python -B tools/qualify_hia_scalar_profile_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-scalar-profile-callers"
+      - name: Retained HIA generation references and installed scope controls
+        env:
+          HEPTA_HIA_GENERATION_RETENTION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_GENERATION_RETENTION_EVIDENCE: ${{ runner.temp }}/hia-generation-retention
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_generation_retention_native 2>&1 | tee "$RUNNER_TEMP/hia-generation-retention.log"
+      - name: Complete original generation callers with combined native policies
+        env:
+          HEPTA_HIA_SCALAR_PROFILE_MANIFEST: ${{ runner.temp }}/hia-scalar-profile/candidate/build/manifest.json
+          HEPTA_HIA_PUBLICATION_MEASUREMENT_MANIFEST: ${{ runner.temp }}/hia-publication-measurement/PublicationMeasurementNativeTests/candidate/manifest.json
+          HEPTA_HIA_NATIVE_MAPPING_MANIFEST: ${{ runner.temp }}/hia-native-mapping/candidate/build/manifest.json
+        run: >-
+          python -B tools/qualify_hia_generation_retention_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --require-companion-policies
+          --evidence "$RUNNER_TEMP/hia-generation-retention-callers"
+      - name: Native VM byte memory and installed helper custody controls
+        env:
+          HEPTA_HIA_BOUNDED_MEMORY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_bounded_memory_native 2>&1 | tee "$RUNNER_TEMP/hia-bounded-memory.log"
+      - name: Complete original VM memory callers with selected HIA owner
+        run: >-
+          python -B tools/qualify_hia_bounded_memory_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-bounded-memory-callers"
+      - name: Native static resource arithmetic and installed controls
+        env:
+          HEPTA_HIA_STATIC_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_STATIC_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-static-budget
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_static_budget_native
+      - name: Complete original static resource callers with all retained owners forbidden
+        run: >-
+          python -B tools/qualify_hia_static_budget_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-static-budget-callers"
+      - name: Native current Store lifecycle and installed worker controls
+        env:
+          HEPTA_HIA_STORE_LIFECYCLE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_STORE_LIFECYCLE_EVIDENCE: ${{ runner.temp }}/hia-store-lifecycle
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_store_lifecycle_native
+      - name: Complete original Store callers with retained lifecycle bodies forbidden
+        run: >-
+          python -B tools/qualify_hia_store_lifecycle_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-store-lifecycle-callers"
+      - name: Native service context control and actual installed worker
+        env:
+          HEPTA_HIA_SERVICE_CONTEXT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_CONTEXT_EVIDENCE: ${{ runner.temp }}/hia-service-context
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_service_context_native
+      - name: Complete original context callers with all four policy bodies forbidden
+        run: >-
+          python -B tools/qualify_hia_service_context_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-service-context-callers"
+      - name: Native cost-ledger policy and actual installed worker controls
+        env:
+          HEPTA_HIA_COST_LEDGER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COST_LEDGER_EVIDENCE: ${{ runner.temp }}/hia-cost-ledger
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_cost_ledger_native
+      - name: Complete original cost-ledger callers with retained policy forbidden
+        run: >-
+          python -B tools/qualify_hia_cost_ledger_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-cost-ledger-callers"
+      - name: Native transport failures preserve durable unknown outcomes
+        env:
+          HEPTA_HIA_NATIVE_TRANSPORT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_TRANSPORT_EVIDENCE: ${{ runner.temp }}/hia-native-transport
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_native_transport_failures
+      - name: Native complete evaluation control and actual installed worker custody
+        env:
+          HEPTA_HIA_EVALUATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_EVALUATION_EVIDENCE: ${{ runner.temp }}/hia-evaluation
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_evaluation_native
+      - name: Complete original evaluation callers with retained policy forbidden
+        run: >-
+          python -B tools/qualify_hia_evaluation_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-evaluation-callers"
+      - name: Native complete artifact and build receipt admission with installed worker custody
+        env:
+          HEPTA_HIA_NATIVE_BUILD_ADMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_BUILD_ADMISSION_EVIDENCE: ${{ runner.temp }}/hia-native-build-admission
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_native_build_admission_native
+      - name: Native original dynamic dispatch and runtime iterator observations
+        env:
+          HEPTA_HIA_NATIVE_BUILD_DISPATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_BUILD_DISPATCH_EVIDENCE: ${{ runner.temp }}/hia-native-build-dispatch
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_native_build_dispatch
+      - name: Complete original native build callers with all four retained bodies forbidden
+        run: >-
+          python -B tools/qualify_hia_native_build_admission_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-native-build-admission-callers"
+      - name: Native complete emission and compile control with original cleanup semantics
+        env:
+          HEPTA_HIA_EMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_EMISSION_EVIDENCE: ${{ runner.temp }}/hia-emission
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_emission_native
+      - name: Complete original emission callers with both retained bodies forbidden
+        run: >-
+          python -B tools/qualify_hia_emission_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-emission-callers"
+      - name: Native complete Store artifact and profile methods with original cleanup semantics
+        env:
+          HEPTA_HIA_STORE_ARTIFACT_PROFILE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_STORE_ARTIFACT_PROFILE_EVIDENCE: ${{ runner.temp }}/hia-store-artifact-profile
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_store_artifact_profile_native
+      - name: Complete original Store ordinary and artifact callers with eight retained bodies forbidden
+        run: >-
+          python -B tools/qualify_hia_store_artifact_profile_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-store-artifact-profile-callers"
+      - name: Native full-cost arithmetic and actual installed cost and patch impact owners
+        env:
+          HEPTA_HIA_FULL_COST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_FULL_COST_EVIDENCE: ${{ runner.temp }}/hia-full-cost
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_full_cost_native
+      - name: Complete original full-cost and observation callers with HIA arithmetic
+        run: >-
+          python -B tools/qualify_hia_full_cost_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-full-cost-callers"
+      - name: Installed default HIA full-cost package and ordinary worker custody
+        env:
+          HEPTA_HIA_DEFAULT_RELEASE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_DEFAULT_RELEASE_EVIDENCE: ${{ runner.temp }}/hia-default-release
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_default_native_release
+      - name: Native patch impact and complete original public graph controls
+        env:
+          HEPTA_HIA_PATCH_IMPACT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_PATCH_IMPACT_EVIDENCE: ${{ runner.temp }}/hia-patch-impact
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_patch_impact_native
+      - name: Complete original patch impact callers with HIA comparison and graph owners
+        run: >-
+          python -B tools/qualify_hia_patch_impact_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-patch-impact-callers"
+      - name: Original complete CLI discovery JSON native VM runtime and installed controls
+        run: >-
+          python -B tools/qualify_hia_cli_discovery_json.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-cli-discovery-json"
+      - name: Complete JSON outputs through both ordinary CLI control routes
+        run: >-
+          python -B tools/qualify_hia_cli_discovery_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-cli-discovery-callers"
+      - name: Native SHA stream transitions against pinned original full-buffer observations
+        env:
+          HEPTA_HIA_SHA256_STREAM_DIFFERENTIAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SHA256_STREAM_DIFFERENTIAL_EVIDENCE: ${{ runner.temp }}/hia-sha256-stream-differential
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_sha256_stream_transition_equivalence 2>&1 | tee "$RUNNER_TEMP/hia-sha256-stream-differential.log"
       - name: Original call graph and native convergence controls
         run: python -B -m unittest tests.test_hia_selfhost_call_graph_efficiency.CallGraphNativeTests -v
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
@@ -727,6 +958,26 @@ jobs:
           retention-days: 7
           include-hidden-files: true
           path: |
+            ${{ runner.temp }}/hia-full-cost/
+            ${{ runner.temp }}/hia-full-cost-callers/
+            ${{ runner.temp }}/hia-patch-impact/
+            ${{ runner.temp }}/hia-patch-impact-callers/
+            ${{ runner.temp }}/hia-cli-discovery-json/
+            ${{ runner.temp }}/hia-cli-discovery-callers/
+            ${{ runner.temp }}/hia-default-release/
+            ${{ runner.temp }}/hia-static-budget/
+            ${{ runner.temp }}/hia-static-budget-callers/
+            ${{ runner.temp }}/hia-store-lifecycle/
+            ${{ runner.temp }}/hia-store-lifecycle-callers/
+            ${{ runner.temp }}/hia-service-context/
+            ${{ runner.temp }}/hia-service-context-callers/
+            ${{ runner.temp }}/hia-cost-ledger/
+            ${{ runner.temp }}/hia-cost-ledger-callers/
+            ${{ runner.temp }}/hia-evaluation/
+            ${{ runner.temp }}/hia-evaluation-callers/
+            ${{ runner.temp }}/hia-native-build-admission/
+            ${{ runner.temp }}/hia-native-build-admission-callers/
+            ${{ runner.temp }}/hia-native-transport/
             ${{ runner.temp }}/byte-wrapper-callers/
             ${{ runner.temp }}/byte-wrapper-composed-callers/
             ${{ runner.temp }}/byte-wrapper-fixture/
@@ -748,6 +999,22 @@ jobs:
             ${{ runner.temp }}/hia-language.assertions.json
             ${{ runner.temp }}/hia-language.evidence/
             ${{ runner.temp }}/hia-language.json
+            ${{ runner.temp }}/hia-linked-observer/
+            ${{ runner.temp }}/hia-native-mapping/
+            ${{ runner.temp }}/hia-native-mapping-original-callers.log
+            ${{ runner.temp }}/hia-publication-measurement/
+            ${{ runner.temp }}/hia-publication-measurement.log
+            ${{ runner.temp }}/hia-publication-measurement-callers/
+            ${{ runner.temp }}/hia-scalar-profile/
+            ${{ runner.temp }}/hia-scalar-profile.log
+            ${{ runner.temp }}/hia-scalar-profile-callers/
+            ${{ runner.temp }}/hia-generation-retention/
+            ${{ runner.temp }}/hia-generation-retention.log
+            ${{ runner.temp }}/hia-generation-retention-callers/
+            ${{ runner.temp }}/hia-bounded-memory.log
+            ${{ runner.temp }}/hia-bounded-memory-callers/
+            ${{ runner.temp }}/hia-sha256-stream-differential/
+            ${{ runner.temp }}/hia-sha256-stream-differential.log
             ${{ runner.temp }}/hia-llvm.asc
             ${{ runner.temp }}/hia-module-projects/
             ${{ runner.temp }}/hia-nominal-fixture/

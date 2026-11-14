@@ -1,0 +1,11 @@
+    def _native(self, ref, context=None):
+        data, metadata = self.store.get(ref, kind="native")
+        if metadata["installation"] != self.identities or context is not None and metadata["context"] != context:
+            reject("E_HIA_RECEIPT_BINDING", "native artifact belongs to a different context or implementation")
+        program = self._program(metadata["candidate"])
+        retained_context = self._context(metadata["context"])
+        exports = tuple(map(tuple, retained_context.get("foreign_buffer_exports", [])))
+        if (metadata["core_sha256"] != program.sha256 or _signatures(program, exports) != metadata["signatures"]
+                or metadata.get("foreign_buffer_exports", []) != [list(pair) for pair in exports]):
+            reject("E_HIA_RECEIPT_BINDING", "native artifact's admitted Core identity differs")
+        return data, metadata, program

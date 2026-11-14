@@ -1,0 +1,6 @@
+def _value_observation(observation):
+    value = ({"status": "returned", "values": observation["values"]}
+             if observation["status"] == "returned" else {"status": observation["status"]})
+    if "buffers" in observation:
+        value["buffers"] = observation["buffers"]
+    return value

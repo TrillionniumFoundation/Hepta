@@ -2,7 +2,9 @@
 
 This is an explicit qualification transport, not a compiler, parser, production
 activation or security sandbox. Each call execs a new sealed immutable ELF and
-loads the supplied flat image RW-to-RX. Seed/shared-library loading retains the independent Python loader. Parent-owned
+loads the supplied flat image RW-to-RX. Seed loading retains the independent
+Python loader. The explicit linked format uses the separately built HIA policy
+and system dynamic-loader bridge. Parent-owned
 size-sealed shared output preserves real writes after native traps. No child is reused.
 """
 from __future__ import annotations
@@ -152,7 +154,14 @@ def read_capture(descriptor,capacity):
 
 
 def invoke(directory, label, observer, image, source, *, capacity, workspace_size, workspace_fill,
-           output_initial=None, observe_trap_writes=False):
+           output_initial=None, observe_trap_writes=False, image_format='flat-x86-64'):
+    if image_format == 'linked-selfhost':
+        from tools.hia_selfhost_linked_observer import invoke as linked_invoke
+        return linked_invoke(directory,label,observer,image,source,capacity=capacity,
+            workspace_size=workspace_size,workspace_fill=workspace_fill,
+            output_initial=output_initial,observe_trap_writes=observe_trap_writes)
+    if image_format != 'flat-x86-64':
+        raise ValueError('unknown explicit native observer format')
     directory, image, observer = Path(directory), Path(image), Path(observer)
     image_bytes, executable = image.read_bytes(), observer.read_bytes()
     # Validate before creating a file descriptor or serializing large buffers.

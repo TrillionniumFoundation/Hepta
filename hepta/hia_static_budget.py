@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections import deque
 from hashlib import sha256
 import json
+import os
 
 
 SCHEMA = "hepta.hia.static-budget.v1"
@@ -49,7 +50,7 @@ _V8_CHAIN_OPS = frozenset({
 })
 
 
-def _audit_resource_profile(document: dict, *, schema: str, allow_chain: bool) -> None:
+def _reference_audit_resource_profile(document: dict, *, schema: str, allow_chain: bool) -> None:
     """Check the entire already-verified module against one reviewed domain.
 
     This never replaces Core's alias, origin, CFG or effect validation. The
@@ -74,6 +75,24 @@ def _audit_resource_profile(document: dict, *, schema: str, allow_chain: bool) -
         if any(typ not in types for typ in declared):
             _reject("E_HIA_BUDGET_PROFILE",
                     f"{fn['name']}: resource type lacks this {schema} resource-event review")
+
+
+def _native_owner():
+    selected = os.environ.get('HEPTA_HIA_STATIC_BUDGET_MANIFEST')
+    if selected is None:
+        return None
+    if not selected:
+        raise ValueError('static-budget selector must not be empty')
+    from .hia_static_budget_native import installed_static_budget
+    return installed_static_budget(selected)
+
+
+def _audit_resource_profile(document: dict, *, schema: str, allow_chain: bool) -> None:
+    native = _native_owner()
+    if native is None:
+        _reference_audit_resource_profile(document, schema=schema, allow_chain=allow_chain)
+    else:
+        native.audit_profile(document, schema=schema, allow_chain=allow_chain)
 
 
 def _audit_v8_resource_profile(document: dict, *, allow_chain: bool) -> None:
@@ -104,7 +123,7 @@ def _limit(value, label: str) -> None:
         _reject("E_HIA_BUDGET_POLICY", f"{label} must be a nonnegative integer")
 
 
-def _topological(names: list[str], edges: dict[str, set[str]], context: str) -> list[str]:
+def _reference_topological(names: list[str], edges: dict[str, set[str]], context: str) -> list[str]:
     """Iterative stable DAG order, no recursion even for deeply nested graphs."""
     indegree = {name: 0 for name in names}
     for source, targets in edges.items():
@@ -126,6 +145,12 @@ def _topological(names: list[str], edges: dict[str, set[str]], context: str) -> 
     return result
 
 
+def _topological(names: list[str], edges: dict[str, set[str]], context: str) -> list[str]:
+    native = _native_owner()
+    return (_reference_topological(names, edges, context) if native is None
+            else native.topological(names, edges, context))
+
+
 def _successors(term: dict) -> set[str]:
     kind = term["op"]
     if kind == "jump":
@@ -135,7 +160,7 @@ def _successors(term: dict) -> set[str]:
     return set()
 
 
-def _bound_function(fn: dict, calculated: dict[str, dict]) -> dict:
+def _reference_bound_function(fn: dict, calculated: dict[str, dict]) -> dict:
     blocks = {block["id"]: block for block in fn["blocks"]}
     successors = {name: _successors(block["term"]) for name, block in blocks.items()}
     order = _topological(list(blocks), successors, f"{fn['name']} control flow")
@@ -163,6 +188,34 @@ def _bound_function(fn: dict, calculated: dict[str, dict]) -> dict:
             "max_allocator_interactions": entry["alloc"],
             "max_vm_ticks": entry["ticks"] + 1,
             "max_call_depth": entry["depth"]}
+
+
+def _bound_function(fn: dict, calculated: dict[str, dict]) -> dict:
+    native = _native_owner()
+    return (_reference_bound_function(fn, calculated) if native is None
+            else native.function(fn, calculated))
+
+
+def _reference_frame_rows(functions, edges):
+    order = _topological([fn['name'] for fn in functions], edges, 'synchronous HIA call graph')
+    depth = {}
+    for name in reversed(order):
+        depth[name] = 1 + max((depth[callee] for callee in edges[name]), default=0)
+    return [{'function': fn['name'], 'max_call_depth': depth[fn['name']]} for fn in functions]
+
+
+def _reference_first_exceeded(rows, limits, fields):
+    for row in rows:
+        for key in fields:
+            if limits[key] is not None and row[key] > limits[key]:
+                return row['function'], key
+    return None
+
+
+def _first_exceeded(rows, limits, fields):
+    native = _native_owner()
+    return (_reference_first_exceeded(rows, limits, fields) if native is None
+            else native.first_exceeded(rows, limits, fields))
 
 
 def qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
@@ -204,13 +257,10 @@ def qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
     }
     # No trusted producer receipt or bounded-loop assertion can eliminate a
     # true recursive call edge. All definitions are checked, even if private.
-    order = _topological(list(named), edges, "synchronous HIA call graph")
-    depth = {}
-    for name in reversed(order):
-        depth[name] = 1 + max((depth[callee] for callee in edges[name]), default=0)
-    rows = [{"function": fn["name"], "max_call_depth": depth[fn["name"]]}
-            for fn in functions]
-    if any(row["max_call_depth"] > max_call_depth for row in rows):
+    native = _native_owner()
+    rows = (_reference_frame_rows(functions, edges) if native is None
+            else native.depths(functions, edges))
+    if _first_exceeded(rows, {'max_call_depth': max_call_depth}, ('max_call_depth',)) is not None:
         _reject("E_HIA_BUDGET_EXCEEDED",
                 "at least one verified function exceeds the synchronous VM frame limit")
     report = {
@@ -295,15 +345,17 @@ def analyze_static_budget(program, *, max_allocator_interactions=None,
         for row in rows:
             observed = bounds[row["function"]]
             row["max_live_heap_bytes"] = observed
-            if observed > max_live_heap_bytes:
-                _reject("E_HIA_BUDGET_EXCEEDED",
-                        f"{row['function']}: requested live payload bytes exceed explicit policy")
-    for row in rows:
-        for key, limit in (("max_allocator_interactions", max_allocator_interactions),
-                           ("max_vm_ticks", max_vm_ticks),
-                           ("max_call_depth", max_call_depth)):
-            if limit is not None and row[key] > limit:
-                _reject("E_HIA_BUDGET_EXCEEDED", f"{row['function']}: {key} exceeds explicit policy")
+        exceeded = _first_exceeded(rows, {'max_live_heap_bytes': max_live_heap_bytes},
+                                   ('max_live_heap_bytes',))
+        if exceeded is not None:
+            _reject("E_HIA_BUDGET_EXCEEDED",
+                    f"{exceeded[0]}: requested live payload bytes exceed explicit policy")
+    exceeded = _first_exceeded(rows, {
+        'max_allocator_interactions': max_allocator_interactions,
+        'max_vm_ticks': max_vm_ticks, 'max_call_depth': max_call_depth},
+        ('max_allocator_interactions', 'max_vm_ticks', 'max_call_depth'))
+    if exceeded is not None:
+        _reject("E_HIA_BUDGET_EXCEEDED", f"{exceeded[0]}: {exceeded[1]} exceeds explicit policy")
     result = {"schema": SCHEMA, "status": "finite_structural_upper_bound_not_native_time_proof",
               "core_sha256": checked.sha256, "functions": rows,
               "limits": {"max_allocator_interactions": max_allocator_interactions,
@@ -399,7 +451,8 @@ def qualify_bounded_resources(program, *, limits: dict) -> dict:
         peaks = {row["function"]: row["peak_bound_bytes"] for row in heaps}
     else:
         peaks = analyze_constant_live_heap(checked)
-        if any(value > policy["max_live_heap_bytes"] for value in peaks.values()):
+        if _first_exceeded([{'function': name, 'max_live_heap_bytes': value}
+                            for name, value in peaks.items()], policy, ('max_live_heap_bytes',)) is not None:
             _reject("E_HIA_BUDGET_EXCEEDED", "requested payload peak exceeds bounded resource policy")
     rows = [{**event_rows[name], "max_live_heap_bytes": peaks[name]} for name in exports]
     report = {

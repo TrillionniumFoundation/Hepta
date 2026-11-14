@@ -12,6 +12,7 @@ from hashlib import sha256
 import builtins
 import json
 from pathlib import Path
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -22,6 +23,7 @@ from unittest.mock import patch
 from jsonschema import Draft202012Validator
 
 from hepta.hia_agent_service import HIAAgentService
+from hepta.hia_agent_store import AgentStore
 from tools.hia_agent_native_qualification import (
     CATALOG_PATH, Session, ToolClient, add_program, branch_program,
     exhaustive_u8_workload, json_bytes, scripted_loop,
@@ -711,6 +713,57 @@ class NativeLifecycleTests(AgentToolCase):
             self.reject("hia_rollback", self.session.arguments(target_slot="does-not-exist",
                 expected_current={"generation": invalid, "epoch": "0"},
                 retained_generation="0", reason="integer range must be checked"))
+
+
+class AgentStoreInitializationTests(unittest.TestCase):
+    def test_malformed_database_closes_connection_and_preserves_input(self):
+        with tempfile.TemporaryDirectory(prefix="hia-store-malformed-") as directory:
+            root = Path(directory)
+            database = root / "state.sqlite3"
+            original = b"this is not a sqlite database\n" * 8
+            database.write_bytes(original)
+            database.chmod(0o600)
+            identity = database.stat()
+            connections = []
+            real_connect = sqlite3.connect
+
+            def connect(*args, **kwargs):
+                connection = real_connect(*args, **kwargs)
+                connections.append(connection)
+                self.addCleanup(connection.close)
+                return connection
+
+            with patch("hepta.hia_agent_store.sqlite3.connect", side_effect=connect):
+                with self.assertRaisesRegex(sqlite3.DatabaseError, "not a database"):
+                    AgentStore(root)
+            self.assertEqual(len(connections), 1)
+            with self.assertRaisesRegex(sqlite3.ProgrammingError, "closed database"):
+                connections[0].execute("SELECT 1")
+            self.assertEqual(database.read_bytes(), original)
+            self.assertEqual((database.stat().st_dev, database.stat().st_ino),
+                             (identity.st_dev, identity.st_ino))
+
+    def test_normal_store_retains_wal_durability_and_artifact_across_reopen(self):
+        with tempfile.TemporaryDirectory(prefix="hia-store-reopen-") as directory:
+            store = AgentStore(directory)
+            try:
+                self.assertIsNone(store.db.isolation_level)
+                self.assertFalse(store.db.in_transaction)
+                self.assertEqual(store.db.execute("PRAGMA journal_mode").fetchone()[0], "wal")
+                self.assertEqual(store.db.execute("PRAGMA synchronous").fetchone()[0], 2)
+                with store.transaction():
+                    reference = store.put(b"retained artifact", "input", {"purpose": "reopen"})
+            finally:
+                store.close()
+            with self.assertRaisesRegex(sqlite3.ProgrammingError, "closed database"):
+                store.db.execute("SELECT 1")
+            reopened = AgentStore(directory)
+            try:
+                self.assertEqual(reopened.get(reference, kind="input"),
+                                 (b"retained artifact", {"purpose": "reopen"}))
+                self.assertFalse(reopened.db.in_transaction)
+            finally:
+                reopened.close()
 
 
 if __name__ == "__main__":

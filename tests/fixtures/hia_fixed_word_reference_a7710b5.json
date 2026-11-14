@@ -1,0 +1,28 @@
+{
+  "schema": "hepta.hia.fixed-word-reference.v1",
+  "origin_commit": "a7710b5727cca43875357f92c6b83308046deb6e",
+  "scope": "Frozen pre-expansion authoring helpers used only by differential controls; never a runtime fallback.",
+  "components": {
+    "execution-budget": {
+      "original_generator_path": "tools/generate_hia_execution_budget.py",
+      "original_generator_sha256": "b90b2b891ad419aec82a6e605921027447d854194843fc8cdc4f39f765884d97",
+      "original_assembly_path": "examples/hia_bootstrap/execution_budget.hepta",
+      "original_assembly_sha256": "43274fb7abe9f3fb6fea667791a8302016ab4365774b8466c901379bf84e9c70",
+      "helpers": {
+        "get": "def get(w: mutbuf, index: u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | byte(w, index * 8 + i) << i * 8\n        i = i + 1\n    return value\n",
+        "read_word": "def read_word(s: readbuf, index: u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | byte(s, index + i) << i * 8\n        i = i + 1\n    return value\n",
+        "set": "def set(w: mutbuf, index: u64, value: u64) -> u64:\n    i = 0\n    while i < 8:\n        store(w, index * 8 + i, value >> i * 8)\n        i = i + 1\n    return value\n"
+      }
+    },
+    "agent-journal": {
+      "original_generator_path": "tools/generate_hia_agent_journal.py",
+      "original_generator_sha256": "609a58822eb3a7d30564bbba2310a719d3e411024f41a73d94dac69d5dc76303",
+      "original_assembly_path": "examples/hia_bootstrap/agent_journal.hepta",
+      "original_assembly_sha256": "7d96f0c3fac0d71d18f49e01204c02d3a9a0ed2d91b0a9493903e8227a62be9c",
+      "helpers": {
+        "hash_get": "def hash_get(w: mutbuf, index: u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | byte(w, length(w) - 4096 + (index + i)) << i * 8\n        i = i + 1\n    return value\n",
+        "hash_put": "def hash_put(w: mutbuf, index: u64, value: u64) -> u64:\n    i = 0\n    while i < 8:\n        store(w, length(w) - 4096 + (index + i), value & 255)\n        value = value >> 8\n        i = i + 1\n    return 0\n"
+      }
+    }
+  }
+}

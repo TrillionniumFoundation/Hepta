@@ -1,0 +1,8 @@
+    def check_profile(self, ref, expected):
+        if ref != expected:
+            reject("E_HIA_PROFILE_STALE", "profile is unavailable or differs from the installed implementation")
+        row = self.db.execute("SELECT artifact FROM profiles WHERE id=? AND sha256=?",
+                              (ref["id"], ref["sha256"])).fetchone()
+        if row is None:
+            reject("E_HIA_PROFILE_AUTHORITY", "profile does not resolve to a retained server record")
+        return self.get_json(decode_data(row["artifact"]), kind="profile")[0]

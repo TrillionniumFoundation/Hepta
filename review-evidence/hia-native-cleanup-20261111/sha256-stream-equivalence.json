@@ -1,0 +1,436 @@
+{
+  "CI_selection": {
+    "cold_env": "HEPTA_HIA_SHA256_STREAM_DIFFERENTIAL_COLD_REPORT",
+    "contract_additions": [
+      "tests/fixtures/sha256_stream_a7710b5.hepta.txt",
+      "tests/test_hia_sha256_stream_transition_equivalence.py"
+    ],
+    "development_env_must_be_absent": "HEPTA_HIA_SHA256_STREAM_DIFFERENTIAL_COMPILER",
+    "evidence_env": "HEPTA_HIA_SHA256_STREAM_DIFFERENTIAL_EVIDENCE",
+    "full_module_planned": [
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionNativeTests.test_all_original_protocol_refusals_leave_every_public_buffer_unchanged",
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionNativeTests.test_foreign_pointer_alias_frames_preserve_complete_original_memory_effects",
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionNativeTests.test_original_and_candidate_images_match_both_VMs_on_every_valid_transition",
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_cold_and_development_selection_are_exclusive_and_empty_never_falls_back",
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_frozen_original_and_all_nonword_functions_are_identical",
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_full_u64_word_helpers_and_partial_bounds_write_order",
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_readback_guard_refuses_report_compiler_or_complete_source_map_drift",
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_real_shared_gate_reads_last_nested_compiler_and_rejects_unqualified_report"
+    ],
+    "independent_reference_is_production_source": false,
+    "source_class_planned": [
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_cold_and_development_selection_are_exclusive_and_empty_never_falls_back",
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_frozen_original_and_all_nonword_functions_are_identical",
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_full_u64_word_helpers_and_partial_bounds_write_order",
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_readback_guard_refuses_report_compiler_or_complete_source_map_drift",
+      "tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_real_shared_gate_reads_last_nested_compiler_and_rejects_unqualified_report"
+    ]
+  },
+  "actualCold": false,
+  "all_input_equivalence_proved": false,
+  "candidate": {
+    "base_commit": "a7710b5727cca43875357f92c6b83308046deb6e",
+    "base_tree": "b5618be239fc07513cbdd46de819fa24440167b4",
+    "candidate_tree": "e39136723444a2a48e75dc617c47ecaebd0363dc",
+    "files": [
+      {
+        "bytes": 33838,
+        "owner": "root",
+        "path": "examples/hia_bootstrap/sha256_stream.hepta",
+        "sha256": "8ec4824c04a47fb1594bd202674c1b39714486d58b531beb830f9a84836472b6"
+      },
+      {
+        "bytes": 30747,
+        "owner": "runtime_audit",
+        "path": "tests/fixtures/sha256_stream_a7710b5.hepta.txt",
+        "sha256": "5818184f4decbde6a56741238a9d017fda66a3ed41136f9ceb9533a81c552a20"
+      },
+      {
+        "bytes": 28125,
+        "owner": "runtime_audit",
+        "path": "tests/test_hia_sha256_stream_transition_equivalence.py",
+        "sha256": "c263ea809f7e91e64fc14d0161e69a5d8cd11370adffcea2c641065fee1d1124"
+      },
+      {
+        "bytes": 5281,
+        "owner": "root",
+        "path": "tools/generate_hia_sha256_stream.py",
+        "sha256": "f6d4465b67a056edc3a9ed32b5bac1d481246ac59f1693e083b42ae1e5c4f762"
+      }
+    ],
+    "patches": [
+      {
+        "base_apply_check_passed": true,
+        "bytes": 68918,
+        "files": [
+          "examples/hia_bootstrap/sha256_stream.hepta",
+          "tests/fixtures/sha256_stream_a7710b5.hepta.txt",
+          "tests/test_hia_sha256_stream_transition_equivalence.py",
+          "tools/generate_hia_sha256_stream.py"
+        ],
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/sha256-stream-a771-candidate.patch",
+        "sha256": "eefc73cf4d56dcdc65dc4de706cd3239a37a3a2b8cf99e9c6d750bf05351ae72"
+      },
+      {
+        "base_apply_check_passed": true,
+        "bytes": 60759,
+        "files": [
+          "tests/fixtures/sha256_stream_a7710b5.hepta.txt",
+          "tests/test_hia_sha256_stream_transition_equivalence.py"
+        ],
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/sha256-stream-tests-only.patch",
+        "sha256": "c32d05bcbe58e1d0fc743cc38de9f4e4c852dadf6919376d8ab71a71c8ab8aee"
+      }
+    ],
+    "root_owned_generator_and_HIA_not_modified_by_runtime_audit": true
+  },
+  "final_source_after_R3": {
+    "changed_paths": [
+      "tests/test_hia_sha256_stream_transition_equivalence.py"
+    ],
+    "final_entire_8_test_module_actual_execution": "PENDING_CURRENT_SOURCE_COLD_CI",
+    "final_source_controls_pins": {
+      "examples/hia_bootstrap/sha256_stream.hepta": "8ec4824c04a47fb1594bd202674c1b39714486d58b531beb830f9a84836472b6",
+      "tests/fixtures/sha256_stream_a7710b5.hepta.txt": "5818184f4decbde6a56741238a9d017fda66a3ed41136f9ceb9533a81c552a20",
+      "tests/test_hia_sha256_stream_transition_equivalence.py": "c263ea809f7e91e64fc14d0161e69a5d8cd11370adffcea2c641065fee1d1124",
+      "tools/build_hia_json_preflight.py": "0bdbfe17229ca2873307a2ee6ce4f3fa857c51f2de4df0fc5af496c640ff18a4",
+      "tools/build_hia_source_build.py": "a4ee186712c88b5ebba39d5f2269be4dbb27d658a22437c7163abf33ded84c2a",
+      "tools/generate_hia_sha256_stream.py": "f6d4465b67a056edc3a9ed32b5bac1d481246ac59f1693e083b42ae1e5c4f762"
+    },
+    "native_HIA_generator_adapter_and_witness_cases_changed": false,
+    "reason": "Added mutually-exclusive cold compiler selection, complete source/report/compiler readback and three source-only negative controls."
+  },
+  "images": {
+    "candidate": "fec0945b5c1fd69931f23075bf494d78cce175f443177b222fb85a9b37424388",
+    "original": "6223f097e9eb588cb141f0b8d1bda87bc72fddccbe3af8c052f225642bd18fd8"
+  },
+  "matching_current_cold": false,
+  "original_tests_or_budgets_modified": false,
+  "prior_root_experiment": {
+    "actualCold": false,
+    "new_performance_threshold_added": false,
+    "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/candidate/experiment-r1.json",
+    "performance_result_is_finite_local_observation": true,
+    "sha256": "eacad9cd5f43befa803efdc1d48199696f3d34f5ff74e0885c4d1fc7726c7dee"
+  },
+  "quota_operations": [
+    {
+      "input": {
+        "bytes": 67108864,
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/blobs/e20a69eca39368572e90b9135738a613838f954987a0b44b6220889c171cbb76.bin",
+        "sha256": "e20a69eca39368572e90b9135738a613838f954987a0b44b6220889c171cbb76"
+      },
+      "input_bytes": 67108864,
+      "operation": "store-put",
+      "returncode": 0,
+      "seconds": 23.124247679,
+      "stderr": {
+        "bytes": 0,
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/blobs/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 95,
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/blobs/6bb822a0f51ecfc118b10b8304415311474bdabc253fdf832f77ec0a8a9134bc.bin",
+        "sha256": "6bb822a0f51ecfc118b10b8304415311474bdabc253fdf832f77ec0a8a9134bc"
+      },
+      "timeout": 60
+    },
+    {
+      "input": {
+        "bytes": 0,
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/blobs/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "input_bytes": 0,
+      "operation": "store-get",
+      "returncode": 0,
+      "seconds": 18.885254828,
+      "stderr": {
+        "bytes": 0,
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/blobs/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 67108864,
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/blobs/e20a69eca39368572e90b9135738a613838f954987a0b44b6220889c171cbb76.bin",
+        "sha256": "e20a69eca39368572e90b9135738a613838f954987a0b44b6220889c171cbb76"
+      },
+      "timeout": 60
+    },
+    {
+      "input": {
+        "bytes": 67108865,
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/blobs/6832d5ef0f8b4923d7ac5d3ffe71fc0865ed9bf9ef988547583644a461476ca1.bin",
+        "sha256": "6832d5ef0f8b4923d7ac5d3ffe71fc0865ed9bf9ef988547583644a461476ca1"
+      },
+      "input_bytes": 67108865,
+      "operation": "store-hash",
+      "returncode": 17,
+      "seconds": 0.119574963,
+      "stderr": {
+        "bytes": 0,
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/blobs/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/blobs/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "timeout": 60
+    },
+    {
+      "input": {
+        "bytes": 67108865,
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/blobs/6832d5ef0f8b4923d7ac5d3ffe71fc0865ed9bf9ef988547583644a461476ca1.bin",
+        "sha256": "6832d5ef0f8b4923d7ac5d3ffe71fc0865ed9bf9ef988547583644a461476ca1"
+      },
+      "input_bytes": 67108865,
+      "operation": "store-put",
+      "returncode": 17,
+      "seconds": 0.192300909,
+      "stderr": {
+        "bytes": 0,
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/blobs/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/blobs/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "timeout": 60
+    }
+  ],
+  "raw_artifact_manifest": {
+    "files": 187,
+    "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/raw-artifact-manifest.json",
+    "sha256": "dbc7894175c79b226003ea268109ea3b4c2f87ac69e4f29e9d7d7c8e1ca2d1cb"
+  },
+  "raw_evidence": {
+    "cold-source-controls-r1.json": {
+      "bytes": 1849,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/cold-source-controls-r1.json",
+      "sha256": "e5ab1609a07567226d26b529761f7a7e0e9b11a1709a604300bc2dde441ad66d"
+    },
+    "cold-source-controls-r1.log": {
+      "bytes": 1271,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/cold-source-controls-r1.log",
+      "raw_text": "test_cold_and_development_selection_are_exclusive_and_empty_never_falls_back (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_cold_and_development_selection_are_exclusive_and_empty_never_falls_back) ... ok\ntest_frozen_original_and_all_nonword_functions_are_identical (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_frozen_original_and_all_nonword_functions_are_identical) ... ok\ntest_full_u64_word_helpers_and_partial_bounds_write_order (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_full_u64_word_helpers_and_partial_bounds_write_order) ... ok\ntest_readback_guard_refuses_report_compiler_or_complete_source_map_drift (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_readback_guard_refuses_report_compiler_or_complete_source_map_drift) ... ok\ntest_real_shared_gate_reads_last_nested_compiler_and_rejects_unqualified_report (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_real_shared_gate_reads_last_nested_compiler_and_rejects_unqualified_report) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.416s\n\nOK\n",
+      "sha256": "142f97c2e10262aea7e5b3a364c4f1834b749d2263dacf4952b0faf9740a076a"
+    },
+    "differential-r1.log": {
+      "bytes": 1013,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/differential-r1.log",
+      "raw_text": "test_all_original_protocol_refusals_leave_every_public_buffer_unchanged (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionNativeTests.test_all_original_protocol_refusals_leave_every_public_buffer_unchanged) ... ok\ntest_original_and_candidate_images_match_both_VMs_on_every_valid_transition (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionNativeTests.test_original_and_candidate_images_match_both_VMs_on_every_valid_transition) ... ok\ntest_frozen_original_and_all_nonword_functions_are_identical (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_frozen_original_and_all_nonword_functions_are_identical) ... ok\ntest_full_u64_word_helpers_and_partial_bounds_write_order (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_full_u64_word_helpers_and_partial_bounds_write_order) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 10.218s\n\nOK\n",
+      "sha256": "099d79af89689a1255324c5638a1982b942cb909a36b74e84d6aa25199fc681e"
+    },
+    "differential-r2-incomplete.json": {
+      "bytes": 748,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/differential-r2-incomplete.json",
+      "sha256": "6524f1177de3fcbbc0d717c00d6d776dfa06d55815d8dac27aebf6cc65820e76"
+    },
+    "differential-r2.log": {
+      "bytes": 0,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/differential-r2.log",
+      "raw_text": "",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "differential-r3.log": {
+      "bytes": 1260,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/differential-r3.log",
+      "raw_text": "test_all_original_protocol_refusals_leave_every_public_buffer_unchanged (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionNativeTests.test_all_original_protocol_refusals_leave_every_public_buffer_unchanged) ... ok\ntest_foreign_pointer_alias_frames_preserve_complete_original_memory_effects (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionNativeTests.test_foreign_pointer_alias_frames_preserve_complete_original_memory_effects) ... ok\ntest_original_and_candidate_images_match_both_VMs_on_every_valid_transition (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionNativeTests.test_original_and_candidate_images_match_both_VMs_on_every_valid_transition) ... ok\ntest_frozen_original_and_all_nonword_functions_are_identical (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_frozen_original_and_all_nonword_functions_are_identical) ... ok\ntest_full_u64_word_helpers_and_partial_bounds_write_order (tests.test_hia_sha256_stream_transition_equivalence.Sha256StreamTransitionSourceTests.test_full_u64_word_helpers_and_partial_bounds_write_order) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 41.270s\n\nOK\n",
+      "sha256": "46bac2569aae50fb5df75677e4970b70edc700ec80b97e5133c7e4ad178eb52d"
+    },
+    "differential-r3/candidate.receipt.json": {
+      "bytes": 1690,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/differential-r3/candidate.receipt.json",
+      "sha256": "1609f60aeb4ff2b178ee314d45e7fc4ee860cb77bcf6ee1effecac2745058fda"
+    },
+    "differential-r3/independent-VM-before-native.json": {
+      "bytes": 292006,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/differential-r3/independent-VM-before-native.json",
+      "sha256": "60eb848a90786d9378a408663ffff443c38bc40c595781663a63ab97873e02d0"
+    },
+    "differential-r3/independent-alias-VM-before-native.json": {
+      "bytes": 30835,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/differential-r3/independent-alias-VM-before-native.json",
+      "sha256": "5ae534584c4a4b111d8722825da5c05fdd2d259c5cc972d48b8be0dee288b3fb"
+    },
+    "differential-r3/observations.json": {
+      "bytes": 339708,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/differential-r3/observations.json",
+      "sha256": "7467e7b50176b204d3456de4d52962c0610d7da95116facaa7557d9f1a0a725d"
+    },
+    "differential-r3/original.receipt.json": {
+      "bytes": 1688,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/differential-r3/original.receipt.json",
+      "sha256": "219547eb2010661a13a2060f6e2ce6c8b77232838a430e25ef9a5a8fcf5e52fa"
+    },
+    "differential-r3/source-before.json": {
+      "bytes": 60375,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/differential-r3/source-before.json",
+      "sha256": "fb21d08e6bb51c34d8d638c47fb106bedccdd7b5c186e3bb0d455de43a88b766"
+    },
+    "original-module-r1.log": {
+      "bytes": 143,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-module-r1.log",
+      "raw_text": "{\"status\": \"PASS\", \"selector\": \"tests.test_hia_sha256_stream_native\", \"actual_tests\": 6, \"elapsed_ns\": 11718487508, \"sources_unchanged\": true}\n",
+      "sha256": "38504610fcd0dbe809a8d7bd42de8f0fac871f4ad5fe0ca96b9006185d178829"
+    },
+    "original-module-r1/report.json": {
+      "bytes": 3336,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-module-r1/report.json",
+      "sha256": "ab3b54c7199e1fcee3554df34cfc2d03bc5c2bc6754280fc026cc496c8832b03"
+    },
+    "original-module-r1/tests.log": {
+      "bytes": 1197,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-module-r1/tests.log",
+      "raw_text": "test_FIPS_padding_splits_and_digest_is_reusable (tests.test_hia_sha256_stream_native.Sha256StreamNativeTests.test_FIPS_padding_splits_and_digest_is_reusable) ... ok\ntest_beyond_old_one_shot_limit_private_concurrency_and_no_foreign_hash (tests.test_hia_sha256_stream_native.Sha256StreamNativeTests.test_beyond_old_one_shot_limit_private_concurrency_and_no_foreign_hash) ... ok\ntest_invalid_protocol_lengths_and_states_refuse_before_any_write (tests.test_hia_sha256_stream_native.Sha256StreamNativeTests.test_invalid_protocol_lengths_and_states_refuse_before_any_write) ... ok\ntest_manifest_identity_fail_closed_and_original_Core_semantics (tests.test_hia_sha256_stream_native.Sha256StreamNativeTests.test_manifest_identity_fail_closed_and_original_Core_semantics) ... ok\ntest_one_thousand_random_partitions (tests.test_hia_sha256_stream_native.Sha256StreamNativeTests.test_one_thousand_random_partitions) ... ok\ntest_generated_source_and_independent_VM_chunk_transitions (tests.test_hia_sha256_stream_native.Sha256StreamSourceTests.test_generated_source_and_independent_VM_chunk_transitions) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 11.718s\n\nOK\n",
+      "sha256": "dc140ec7c4d4e20e8ea8e9d903b06768d7dd43db33c117e63a385c752b328c7f"
+    },
+    "original-quota-r1.log": {
+      "bytes": 248,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1.log",
+      "raw_text": "{\"status\": \"PASS\", \"selector\": \"tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_quota_is_original_64MiB_and_never_applied_to_generic_publisher\", \"actual_tests\": 1, \"elapsed_ns\": 53794236110, \"sources_unchanged\": true}\n",
+      "sha256": "7d198fed87dfe56473ead7e8e4c2c3cf6d73dd1f1c1ea98199ecc44e34eda5cc"
+    },
+    "original-quota-r1/operations.json": {
+      "bytes": 4754,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/operations.json",
+      "sha256": "d8d47f7ef519282398f451007615ca5997aa74064157f7790a08813a24b58be3"
+    },
+    "original-quota-r1/report.json": {
+      "bytes": 7077,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/report.json",
+      "sha256": "09a35df838cdc46010e9b80bc93938b8bf2035848a9f7a8a52155c9df944e66e"
+    },
+    "original-quota-r1/tests.log": {
+      "bytes": 316,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/tests.log",
+      "raw_text": "test_quota_is_original_64MiB_and_never_applied_to_generic_publisher (tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_quota_is_original_64MiB_and_never_applied_to_generic_publisher) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 53.793s\n\nOK\n",
+      "sha256": "bb266909c388c621bc6ad902d5511f6e47c7906f6be8e9720a484c068c04d56a"
+    },
+    "run_original_controls.py": {
+      "bytes": 5446,
+      "path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/run_original_controls.py",
+      "sha256": "6aa21a65fb3bb4bbb62cd97e7cd42743075e36434c440bd68d789c579c9ce854"
+    }
+  },
+  "real_original_test_artifact_bindings": [
+    {
+      "actual_image": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-module-r1/retained/1-hia-sha256-stream-8gx64h29/sha256-stream.image.bin",
+      "captured_compiler_input": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-module-r1/retained/1-hia-sha256-stream-8gx64h29/sha256-stream.input.bin",
+      "image_sha256": "fec0945b5c1fd69931f23075bf494d78cce175f443177b222fb85a9b37424388",
+      "run": "original_module",
+      "source_sha256": "8ec4824c04a47fb1594bd202674c1b39714486d58b531beb830f9a84836472b6"
+    },
+    {
+      "actual_image": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/retained/3-hia-publication-kernel-hhls2b7g/sha256_stream.image.bin",
+      "captured_compiler_input": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/original-quota-r1/retained/3-hia-publication-kernel-hhls2b7g/sha256_stream.input.bin",
+      "image_sha256": "fec0945b5c1fd69931f23075bf494d78cce175f443177b222fb85a9b37424388",
+      "run": "original_quota",
+      "source_sha256": "8ec4824c04a47fb1594bd202674c1b39714486d58b531beb830f9a84836472b6"
+    }
+  ],
+  "remaining_blockers": [
+    "Fresh exact integrated-source cold compiler qualification and complete final 8-method differential CI.",
+    "Unchanged complete 47 original publication/store controls with actual qualified Clang in CI."
+  ],
+  "root_owned_sources_modified_by_reviewer": false,
+  "runs": {
+    "differential_R1": {
+      "seconds": 10.218,
+      "skipped": 0,
+      "status": "PASS",
+      "tests": 4
+    },
+    "differential_R2": {
+      "cause": "Not established; only source snapshot survives; no VM/native/terminal result exists.",
+      "claimed_pass": false,
+      "claimed_test_failure": false,
+      "followup": "A new run will include added foreign alias stress and complete raw inputs; unchanged original module and quota tests are not rerun.",
+      "log_bytes": 0,
+      "log_path": "/workspace/scratch/37204f9845e5/sha256-throughput-review/independent/differential-r2.log",
+      "observed_files": [
+        {
+          "bytes": 60375,
+          "relative_path": "source-before.json",
+          "sha256": "7ae74b39d7c9936ccabeac3296b58e1e66420f432ae9fd8a46e3de2906f88722"
+        }
+      ],
+      "original_exec_session": "27363",
+      "session_recovery": "Unknown process id",
+      "status": "INCOMPLETE_NO_TERMINAL_RECEIPT"
+    },
+    "differential_R3": {
+      "foreign_alias_stress_frames": 6,
+      "full_native_alias_comparisons": 12,
+      "full_native_public_comparisons": 108,
+      "invalid_protocol_zero_write_frames": 23,
+      "public_frames": 54,
+      "raw_aliases_are_not_affine_Core_ownership_admission": true,
+      "scope": "RETAINED_COMPILER_DEVELOPMENT_COMPONENT",
+      "seconds": 41.27,
+      "skipped": 0,
+      "status": "PASS",
+      "tests": 5
+    },
+    "final_cold_source_controls": {
+      "actualCold": false,
+      "scope": "source-only cold-selector and readback refusal controls; no actual cold qualification",
+      "seconds": 0.416,
+      "skipped": 0,
+      "status": "PASS",
+      "tests": 5
+    },
+    "original_complete_64MiB_quota_method": {
+      "all_subprocess_timeouts_seconds": 60,
+      "seconds": 53.793,
+      "skipped": 0,
+      "status": "PASS",
+      "tests": 1
+    },
+    "original_complete_stream_module": {
+      "seconds": 11.718,
+      "skipped": 0,
+      "status": "PASS",
+      "tests": 6
+    }
+  },
+  "schema": "hepta.hia.sha256-stream-throughput-independent-review.v1",
+  "semantic_review": {
+    "byte_access_order": "0 through 7, same as the original loop",
+    "changed_functions": [
+      "get",
+      "put"
+    ],
+    "partial_bounds_trap_prefix_preserved": true,
+    "unchanged_functions": [
+      "stream",
+      "compress",
+      "rotate"
+    ],
+    "word_type": "u64; no u32 truncation",
+    "write_identity": "((v >> (8*i)) & 255) equals the original i successive logical right shifts for i=0..7"
+  },
+  "status": "LOCAL_DEVELOPMENT_EQUIVALENCE_AND_ORIGINAL_QUOTA_PASS_CURRENT_COLD_PENDING",
+  "structures": {
+    "candidate": {
+      "blocks": 61,
+      "functions": 5,
+      "operations": 719,
+      "source_bytes": 33838,
+      "source_sha256": "8ec4824c04a47fb1594bd202674c1b39714486d58b531beb830f9a84836472b6"
+    },
+    "original": {
+      "blocks": 67,
+      "functions": 5,
+      "operations": 619,
+      "source_bytes": 30747,
+      "source_sha256": "5818184f4decbde6a56741238a9d017fda66a3ed41136f9ceb9533a81c552a20"
+    }
+  },
+  "whole_native_delivery_qualified": false
+}

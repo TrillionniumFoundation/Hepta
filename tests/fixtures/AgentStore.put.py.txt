@@ -1,0 +1,45 @@
+    def put(self, data, kind, metadata=None):
+        if type(data) is not bytes or len(data) > MAX_ARTIFACT_BYTES:
+            reject("E_HIA_ARTIFACT_LIMIT", "artifact exceeds the 64 MiB store limit")
+        metadata = {} if metadata is None else metadata
+        admission = _native_artifact_admission()
+        native_hash = (_native_artifact_file('store-hash',self.artifacts,data=data,_admission=admission)
+                       if admission is not None else None)
+        content_hash = native_hash['sha256'] if native_hash is not None else sha256(data).hexdigest()
+        content_key = digest({"sha256": content_hash, "kind": kind, "metadata": metadata})
+        previous = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
+        if previous is not None:
+            ref = self._ref(previous)
+            self.get(ref, kind=kind)
+            return ref
+        if native_hash is not None:
+            stored = _native_artifact_file('store-put',self.artifacts,data=data,_admission=admission)
+            if stored != native_hash:
+                reject('E_HIA_ARTIFACT_CORRUPT','native artifact hash and durable file receipt differ')
+        else:
+            destination = self.artifacts / content_hash
+            temporary = self.artifacts / (".write-" + uuid.uuid4().hex)
+            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o400)
+            try:
+                with os.fdopen(descriptor, "wb") as stream:
+                    stream.write(data)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                try:
+                    os.link(temporary, destination, follow_symlinks=False)
+                except FileExistsError:
+                    if stable_read(destination, MAX_ARTIFACT_BYTES) != data:
+                        reject("E_HIA_ARTIFACT_CORRUPT", "stored content does not match its immutable identity")
+                directory_fd = os.open(self.artifacts, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+                try:
+                    os.fsync(directory_fd)
+                finally:
+                    os.close(directory_fd)
+            finally:
+                temporary.unlink(missing_ok=True)
+        ref = {"id": "a-" + uuid.uuid4().hex, "sha256": content_hash,
+               "uri": "hia://artifacts/" + uuid.uuid4().hex}
+        self.db.execute("INSERT OR IGNORE INTO artifacts VALUES (?,?,?,?,?,?)",
+                        (ref["id"], content_hash, ref["uri"], kind, wire(metadata).decode(), content_key))
+        row = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
+        return self._ref(row)
