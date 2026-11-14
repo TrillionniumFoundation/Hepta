@@ -1,0 +1,810 @@
+{
+  "Full32_started": false,
+  "artifact_metadata": {
+    "artifacts": [
+      {
+        "archive_download_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/14122354265/zip",
+        "created_at": "2026-11-14T16:46:50Z",
+        "digest": "sha256:3dd4796ee8c27d6ef59e2916ccbca108713fd22b83600703782857cca17c902c",
+        "expired": false,
+        "expires_at": "2026-11-21T16:46:01Z",
+        "id": 14122354265,
+        "name": "hia-core-native-ff6360049d6b567f708532650ddbcddf4c55a63d-1",
+        "size_in_bytes": 662866102,
+        "updated_at": "2026-11-14T16:46:50Z",
+        "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/14122354265",
+        "workflow_run": {
+          "head_branch": "codex/hia-core-put-mask-standard-ci-r1-20261114-e26e",
+          "head_repository_id": 1432132756,
+          "head_sha": "ff6360049d6b567f708532650ddbcddf4c55a63d",
+          "id": 43612781760,
+          "repository_id": 1432132756
+        }
+      }
+    ]
+  },
+  "full_standard_CI_pass": false,
+  "jobs": {
+    "jobs": [
+      {
+        "check_run_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/check-runs/132501241798",
+        "completed_at": "2026-11-14T16:46:54Z",
+        "conclusion": "failure",
+        "created_at": "2026-11-14T15:55:37Z",
+        "head_branch": "codex/hia-core-put-mask-standard-ci-r1-20261114-e26e",
+        "head_sha": "ff6360049d6b567f708532650ddbcddf4c55a63d",
+        "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/43612781760/job/132501241798",
+        "id": 132501241798,
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "name": "native",
+        "node_id": "CR_kwDOVVyclM8AAAAe2bB_xg",
+        "run_attempt": 1,
+        "run_id": 43612781760,
+        "run_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/43612781760",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions",
+        "runner_id": 1000144278,
+        "runner_name": "GitHub Actions 1000144278",
+        "started_at": "2026-11-14T15:55:39Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completed_at": "2026-11-14T15:55:40Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "started_at": "2026-11-14T15:55:40Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:55:49Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "started_at": "2026-11-14T15:55:40Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:55:58Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-python@v5",
+            "number": 3,
+            "started_at": "2026-11-14T15:55:49Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:56:18Z",
+            "conclusion": "success",
+            "name": "Install qualified Clang 20 native execution prerequisites",
+            "number": 4,
+            "started_at": "2026-11-14T15:55:58Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:56:21Z",
+            "conclusion": "success",
+            "name": "Run python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0",
+            "number": 5,
+            "started_at": "2026-11-14T15:56:18Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:58:20Z",
+            "conclusion": "success",
+            "name": "Run python -B tools/replay_hia_selfhost_cold.py --output \"$RUNNER_TEMP/hia-cold.json\"",
+            "number": 6,
+            "started_at": "2026-11-14T15:56:21Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:59:46Z",
+            "conclusion": "success",
+            "name": "Run python -B tests/test_hia_selfhost_language_coverage.py --output \"$RUNNER_TEMP/hia-language.json\"",
+            "number": 7,
+            "started_at": "2026-11-14T15:58:20Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:59:49Z",
+            "conclusion": "success",
+            "name": "Matching-cold bounded read and original public callers",
+            "number": 8,
+            "started_at": "2026-11-14T15:59:46Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:04:23Z",
+            "conclusion": "success",
+            "name": "Native applications and actual Core memory controls",
+            "number": 9,
+            "started_at": "2026-11-14T15:59:49Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:04:33Z",
+            "conclusion": "success",
+            "name": "Native Core module graph and actual workspace projects",
+            "number": 10,
+            "started_at": "2026-11-14T16:04:23Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:05:24Z",
+            "conclusion": "success",
+            "name": "Native Core workspace JSON materialization and actual ABI",
+            "number": 11,
+            "started_at": "2026-11-14T16:04:33Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:05:27Z",
+            "conclusion": "success",
+            "name": "Native Core capability edge policy and actual CFG",
+            "number": 12,
+            "started_at": "2026-11-14T16:05:24Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:06:06Z",
+            "conclusion": "success",
+            "name": "Native explicit workspace facts and semantic ELF materialization",
+            "number": 13,
+            "started_at": "2026-11-14T16:05:27Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:06:17Z",
+            "conclusion": "success",
+            "name": "Native full Core function declarations SSA and CFG",
+            "number": 14,
+            "started_at": "2026-11-14T16:06:06Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:06:30Z",
+            "conclusion": "success",
+            "name": "Native whole primitive Core declaration SSA CFG and export admission",
+            "number": 15,
+            "started_at": "2026-11-14T16:06:17Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:06:33Z",
+            "conclusion": "success",
+            "name": "Native complete local instruction policy",
+            "number": 16,
+            "started_at": "2026-11-14T16:06:30Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:07:39Z",
+            "conclusion": "success",
+            "name": "Native exact-byte artifact publication and real kernel races",
+            "number": 17,
+            "started_at": "2026-11-14T16:06:33Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:07:51Z",
+            "conclusion": "success",
+            "name": "Preserve original artifact publication fixtures and call records",
+            "number": 18,
+            "started_at": "2026-11-14T16:07:39Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:08:21Z",
+            "conclusion": "success",
+            "name": "Native whole primitive Core admission and body resource flow",
+            "number": 19,
+            "started_at": "2026-11-14T16:07:51Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:08:46Z",
+            "conclusion": "success",
+            "name": "Standalone native complete Core admission CLI",
+            "number": 20,
+            "started_at": "2026-11-14T16:08:21Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:10:06Z",
+            "conclusion": "success",
+            "name": "Native snapshot-bound edits and complete Core patch CLI",
+            "number": 21,
+            "started_at": "2026-11-14T16:08:46Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:10:49Z",
+            "conclusion": "success",
+            "name": "Native ordinary Agent candidate bytes diagnostics and real crash cuts",
+            "number": 22,
+            "started_at": "2026-11-14T16:10:06Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:20:15Z",
+            "conclusion": "success",
+            "name": "Native complete nominal types helpers constructor functions and outer lowering",
+            "number": 23,
+            "started_at": "2026-11-14T16:10:49Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:20:41Z",
+            "conclusion": "success",
+            "name": "Native worker request admission and ordinary request continuity",
+            "number": 24,
+            "started_at": "2026-11-14T16:20:15Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:22:01Z",
+            "conclusion": "success",
+            "name": "Native request journal decisions and actual SQL crash controls",
+            "number": 25,
+            "started_at": "2026-11-14T16:20:41Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:26:00Z",
+            "conclusion": "success",
+            "name": "Ordinary Agent callers with native journal and retained owner forbidden",
+            "number": 26,
+            "started_at": "2026-11-14T16:22:01Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:26:07Z",
+            "conclusion": "success",
+            "name": "Native immutable release installation and recovery observations",
+            "number": 27,
+            "started_at": "2026-11-14T16:26:00Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:27:28Z",
+            "conclusion": "success",
+            "name": "Native graph wire worker machine-plan and linked observer",
+            "number": 28,
+            "started_at": "2026-11-14T16:26:07Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:27:32Z",
+            "conclusion": "success",
+            "name": "Protocol 04 complete six native controls under a separate process owner",
+            "number": 29,
+            "started_at": "2026-11-14T16:27:28Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:27:51Z",
+            "conclusion": "success",
+            "name": "Ordinary machine-plan and Agent callers with retained plan owners forbidden",
+            "number": 30,
+            "started_at": "2026-11-14T16:27:32Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:28:14Z",
+            "conclusion": "success",
+            "name": "Ordinary instruction-byte callers with retained encoders forbidden",
+            "number": 31,
+            "started_at": "2026-11-14T16:27:51Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:32:28Z",
+            "conclusion": "success",
+            "name": "Ordinary wire and Agent callers with retained serialization forbidden",
+            "number": 32,
+            "started_at": "2026-11-14T16:28:14Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:32:32Z",
+            "conclusion": "success",
+            "name": "Protocol 05 complete eight native controls under a separate process owner",
+            "number": 33,
+            "started_at": "2026-11-14T16:32:28Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:32:38Z",
+            "conclusion": "success",
+            "name": "Native Store reference URI and profile authority with retained cold fixtures",
+            "number": 34,
+            "started_at": "2026-11-14T16:32:32Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:34:15Z",
+            "conclusion": "success",
+            "name": "Ordinary Store reference URI and profile authority callers with retained owners forbidden",
+            "number": 35,
+            "started_at": "2026-11-14T16:32:38Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:35:28Z",
+            "conclusion": "success",
+            "name": "Native ordinary artifact read and complete page boundaries with retained cold fixtures",
+            "number": 36,
+            "started_at": "2026-11-14T16:34:15Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:37:04Z",
+            "conclusion": "success",
+            "name": "Ordinary ordinary artifact read and complete page boundaries callers with retained owners forbidden",
+            "number": 37,
+            "started_at": "2026-11-14T16:35:28Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:37:44Z",
+            "conclusion": "success",
+            "name": "Complete six-state component and original 51 callers",
+            "number": 38,
+            "started_at": "2026-11-14T16:37:04Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:38:34Z",
+            "conclusion": "success",
+            "name": "Complete 41 instruction controls and original 51 callers",
+            "number": 39,
+            "started_at": "2026-11-14T16:37:44Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:41:16Z",
+            "conclusion": "success",
+            "name": "Complete 39-image Core lowering component and original 51 plus 50 callers",
+            "number": 40,
+            "started_at": "2026-11-14T16:38:34Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:42:34Z",
+            "conclusion": "success",
+            "name": "Complete native ELF source lifecycle wheel and 11 boundary cases",
+            "number": 41,
+            "started_at": "2026-11-14T16:41:16Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:42:56Z",
+            "conclusion": "success",
+            "name": "Original 51 ELF callers with retained writer forbidden",
+            "number": 42,
+            "started_at": "2026-11-14T16:42:34Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:45:58Z",
+            "conclusion": "failure",
+            "name": "Matching-cold UNPACK with the original complete Core116",
+            "number": 43,
+            "started_at": "2026-11-14T16:42:56Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:45:58Z",
+            "conclusion": "skipped",
+            "name": "Complete 18 UNPACK controls and independent two-gate conjunction",
+            "number": 44,
+            "started_at": "2026-11-14T16:45:58Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:46:50Z",
+            "conclusion": "success",
+            "name": "Preserve actual cold failure and stage evidence",
+            "number": 45,
+            "started_at": "2026-11-14T16:45:58Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:46:50Z",
+            "conclusion": "skipped",
+            "name": "Post Run actions/setup-python@v5",
+            "number": 89,
+            "started_at": "2026-11-14T16:46:50Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:46:51Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 90,
+            "started_at": "2026-11-14T16:46:50Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:46:51Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 91,
+            "started_at": "2026-11-14T16:46:51Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/jobs/132501241798",
+        "workflow_name": "HIA Core-only"
+      },
+      {
+        "check_run_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/check-runs/132501242106",
+        "completed_at": "2026-11-14T16:03:55Z",
+        "conclusion": "success",
+        "created_at": "2026-11-14T15:55:37Z",
+        "head_branch": "codex/hia-core-put-mask-standard-ci-r1-20261114-e26e",
+        "head_sha": "ff6360049d6b567f708532650ddbcddf4c55a63d",
+        "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/43612781760/job/132501242106",
+        "id": 132501242106,
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "name": "source",
+        "node_id": "CR_kwDOVVyclM8AAAAe2bCA-g",
+        "run_attempt": 1,
+        "run_id": 43612781760,
+        "run_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/43612781760",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions",
+        "runner_id": 1000144279,
+        "runner_name": "GitHub Actions 1000144279",
+        "started_at": "2026-11-14T15:55:39Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completed_at": "2026-11-14T15:55:41Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "started_at": "2026-11-14T15:55:40Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:55:49Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "started_at": "2026-11-14T15:55:41Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:55:57Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-python@v5",
+            "number": 3,
+            "started_at": "2026-11-14T15:55:49Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:57:01Z",
+            "conclusion": "success",
+            "name": "Regenerate actual HIA sources",
+            "number": 4,
+            "started_at": "2026-11-14T15:55:57Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:57:07Z",
+            "conclusion": "success",
+            "name": "Run python -B tools/check_hia_core_only.py",
+            "number": 5,
+            "started_at": "2026-11-14T15:57:01Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:57:07Z",
+            "conclusion": "success",
+            "name": "Run python -B tools/generate_hia_selfhost_contract.py --check",
+            "number": 6,
+            "started_at": "2026-11-14T15:57:07Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:57:09Z",
+            "conclusion": "success",
+            "name": "Run python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory",
+            "number": 7,
+            "started_at": "2026-11-14T15:57:07Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T15:57:09Z",
+            "conclusion": "success",
+            "name": "Run git diff --exit-code",
+            "number": 8,
+            "started_at": "2026-11-14T15:57:09Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:03:52Z",
+            "conclusion": "success",
+            "name": "Core source and independent reference controls",
+            "number": 9,
+            "started_at": "2026-11-14T15:57:09Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:03:52Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-python@v5",
+            "number": 17,
+            "started_at": "2026-11-14T16:03:52Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:03:53Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 18,
+            "started_at": "2026-11-14T16:03:52Z",
+            "status": "completed"
+          },
+          {
+            "completed_at": "2026-11-14T16:03:53Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 19,
+            "started_at": "2026-11-14T16:03:53Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/jobs/132501242106",
+        "workflow_name": "HIA Core-only"
+      }
+    ],
+    "total_count": 2
+  },
+  "legacy_deleted": false,
+  "native_job_log": {
+    "bytes": 378396,
+    "git": "5de864168632538862caf947e07598ba3250627a",
+    "sha256": "5570f3edf3dc1611a3ba0e567615595992cfd15e64e521b019f9481cc929185b"
+  },
+  "native_original_owners_admitted": false,
+  "observed_failures": {
+    "step43": "failure; outer owned-callers status HOLD; original owner and exact completed methods pending full artifact readback",
+    "step44": "skipped"
+  },
+  "run": {
+    "actor": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/102159240?v=4",
+      "events_url": "https://api.github.com/users/ProfHepta/events{/privacy}",
+      "followers_url": "https://api.github.com/users/ProfHepta/followers",
+      "following_url": "https://api.github.com/users/ProfHepta/following{/other_user}",
+      "gists_url": "https://api.github.com/users/ProfHepta/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/ProfHepta",
+      "id": 102159240,
+      "login": "ProfHepta",
+      "node_id": "U_kgDOBhbTiA",
+      "organizations_url": "https://api.github.com/users/ProfHepta/orgs",
+      "received_events_url": "https://api.github.com/users/ProfHepta/received_events",
+      "repos_url": "https://api.github.com/users/ProfHepta/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/ProfHepta/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/ProfHepta/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/ProfHepta",
+      "user_view_type": "public"
+    },
+    "artifacts_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/43612781760/artifacts",
+    "cancel_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/43612781760/cancel",
+    "check_suite_id": 118087545811,
+    "check_suite_node_id": "CS_kwDOVVyclM8AAAAbfpDz0w",
+    "check_suite_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/check-suites/118087545811",
+    "conclusion": "failure",
+    "created_at": "2026-11-14T15:55:36Z",
+    "display_title": "Run original HIA standard CI for put-mask-elision candidate",
+    "event": "push",
+    "head_branch": "codex/hia-core-put-mask-standard-ci-r1-20261114-e26e",
+    "head_commit": {
+      "author": {
+        "email": "102159240+ProfHepta@users.noreply.github.com",
+        "name": "Qian QI"
+      },
+      "committer": {
+        "email": "102159240+ProfHepta@users.noreply.github.com",
+        "name": "Qian QI"
+      },
+      "id": "ff6360049d6b567f708532650ddbcddf4c55a63d",
+      "message": "Run original HIA standard CI for put-mask-elision candidate\n\nSame source tree as the preceding pure implementation commit. Trigger the unchanged hia-core push workflow once. Preserve original tests, timeouts, caps, evidence upload, and all historical failed runs. This trigger does not assert CI success.",
+      "timestamp": "2026-11-14T15:55:27Z",
+      "tree_id": "a5d9ce2d6fdff616bf91611c650e0fd3dc1786f2"
+    },
+    "head_repository": {
+      "archive_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/{archive_format}{/ref}",
+      "assignees_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/assignees{/user}",
+      "blobs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/blobs{/sha}",
+      "branches_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/branches{/branch}",
+      "collaborators_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/collaborators{/collaborator}",
+      "comments_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/comments{/number}",
+      "commits_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/commits{/sha}",
+      "compare_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/compare/{base}...{head}",
+      "contents_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/contents/{+path}",
+      "contributors_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/contributors",
+      "deployments_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/deployments",
+      "description": null,
+      "downloads_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/downloads",
+      "events_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/events",
+      "fork": false,
+      "forks_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/forks",
+      "full_name": "TrillionniumFoundation/Hepta",
+      "git_commits_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/commits{/sha}",
+      "git_refs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/refs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/tags{/sha}",
+      "hooks_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/hooks",
+      "html_url": "https://github.com/TrillionniumFoundation/Hepta",
+      "id": 1432132756,
+      "issue_comment_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/issues/comments{/number}",
+      "issue_events_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/issues/events{/number}",
+      "issues_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/issues{/number}",
+      "keys_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/keys{/key_id}",
+      "labels_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/labels{/name}",
+      "languages_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/languages",
+      "merges_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/merges",
+      "milestones_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/milestones{/number}",
+      "name": "Hepta",
+      "node_id": "R_kgDOVVyclA",
+      "notifications_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/notifications{?since,all,participating}",
+      "owner": {
+        "avatar_url": "https://avatars.githubusercontent.com/u/262513357?v=4",
+        "events_url": "https://api.github.com/users/TrillionniumFoundation/events{/privacy}",
+        "followers_url": "https://api.github.com/users/TrillionniumFoundation/followers",
+        "following_url": "https://api.github.com/users/TrillionniumFoundation/following{/other_user}",
+        "gists_url": "https://api.github.com/users/TrillionniumFoundation/gists{/gist_id}",
+        "gravatar_id": "",
+        "html_url": "https://github.com/TrillionniumFoundation",
+        "id": 262513357,
+        "login": "TrillionniumFoundation",
+        "node_id": "O_kgDOD6WizQ",
+        "organizations_url": "https://api.github.com/users/TrillionniumFoundation/orgs",
+        "received_events_url": "https://api.github.com/users/TrillionniumFoundation/received_events",
+        "repos_url": "https://api.github.com/users/TrillionniumFoundation/repos",
+        "site_admin": false,
+        "starred_url": "https://api.github.com/users/TrillionniumFoundation/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/TrillionniumFoundation/subscriptions",
+        "type": "Organization",
+        "url": "https://api.github.com/users/TrillionniumFoundation",
+        "user_view_type": "public"
+      },
+      "private": false,
+      "pulls_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls{/number}",
+      "releases_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/releases{/id}",
+      "stargazers_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/stargazers",
+      "statuses_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/statuses/{sha}",
+      "subscribers_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/subscribers",
+      "subscription_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/subscription",
+      "tags_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/tags",
+      "teams_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/teams",
+      "trees_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/trees{/sha}",
+      "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta"
+    },
+    "head_sha": "ff6360049d6b567f708532650ddbcddf4c55a63d",
+    "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/43612781760",
+    "id": 43612781760,
+    "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/43612781760/jobs",
+    "logs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/43612781760/logs",
+    "name": "HIA Core-only",
+    "node_id": "WFR_kwLOVVyclM8AAAAKJ4Y8wA",
+    "path": ".github/workflows/hia-core.yml",
+    "previous_attempt_url": null,
+    "pull_requests": [],
+    "referenced_workflows": [],
+    "repository": {
+      "archive_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/{archive_format}{/ref}",
+      "assignees_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/assignees{/user}",
+      "blobs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/blobs{/sha}",
+      "branches_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/branches{/branch}",
+      "collaborators_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/collaborators{/collaborator}",
+      "comments_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/comments{/number}",
+      "commits_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/commits{/sha}",
+      "compare_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/compare/{base}...{head}",
+      "contents_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/contents/{+path}",
+      "contributors_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/contributors",
+      "deployments_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/deployments",
+      "description": null,
+      "downloads_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/downloads",
+      "events_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/events",
+      "fork": false,
+      "forks_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/forks",
+      "full_name": "TrillionniumFoundation/Hepta",
+      "git_commits_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/commits{/sha}",
+      "git_refs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/refs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/tags{/sha}",
+      "hooks_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/hooks",
+      "html_url": "https://github.com/TrillionniumFoundation/Hepta",
+      "id": 1432132756,
+      "issue_comment_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/issues/comments{/number}",
+      "issue_events_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/issues/events{/number}",
+      "issues_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/issues{/number}",
+      "keys_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/keys{/key_id}",
+      "labels_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/labels{/name}",
+      "languages_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/languages",
+      "merges_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/merges",
+      "milestones_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/milestones{/number}",
+      "name": "Hepta",
+      "node_id": "R_kgDOVVyclA",
+      "notifications_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/notifications{?since,all,participating}",
+      "owner": {
+        "avatar_url": "https://avatars.githubusercontent.com/u/262513357?v=4",
+        "events_url": "https://api.github.com/users/TrillionniumFoundation/events{/privacy}",
+        "followers_url": "https://api.github.com/users/TrillionniumFoundation/followers",
+        "following_url": "https://api.github.com/users/TrillionniumFoundation/following{/other_user}",
+        "gists_url": "https://api.github.com/users/TrillionniumFoundation/gists{/gist_id}",
+        "gravatar_id": "",
+        "html_url": "https://github.com/TrillionniumFoundation",
+        "id": 262513357,
+        "login": "TrillionniumFoundation",
+        "node_id": "O_kgDOD6WizQ",
+        "organizations_url": "https://api.github.com/users/TrillionniumFoundation/orgs",
+        "received_events_url": "https://api.github.com/users/TrillionniumFoundation/received_events",
+        "repos_url": "https://api.github.com/users/TrillionniumFoundation/repos",
+        "site_admin": false,
+        "starred_url": "https://api.github.com/users/TrillionniumFoundation/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/TrillionniumFoundation/subscriptions",
+        "type": "Organization",
+        "url": "https://api.github.com/users/TrillionniumFoundation",
+        "user_view_type": "public"
+      },
+      "private": false,
+      "pulls_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls{/number}",
+      "releases_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/releases{/id}",
+      "stargazers_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/stargazers",
+      "statuses_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/statuses/{sha}",
+      "subscribers_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/subscribers",
+      "subscription_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/subscription",
+      "tags_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/tags",
+      "teams_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/teams",
+      "trees_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/git/trees{/sha}",
+      "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta"
+    },
+    "rerun_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/43612781760/rerun",
+    "run_attempt": 1,
+    "run_number": 556,
+    "run_started_at": "2026-11-14T15:55:36Z",
+    "status": "completed",
+    "triggering_actor": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/102159240?v=4",
+      "events_url": "https://api.github.com/users/ProfHepta/events{/privacy}",
+      "followers_url": "https://api.github.com/users/ProfHepta/followers",
+      "following_url": "https://api.github.com/users/ProfHepta/following{/other_user}",
+      "gists_url": "https://api.github.com/users/ProfHepta/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/ProfHepta",
+      "id": 102159240,
+      "login": "ProfHepta",
+      "node_id": "U_kgDOBhbTiA",
+      "organizations_url": "https://api.github.com/users/ProfHepta/orgs",
+      "received_events_url": "https://api.github.com/users/ProfHepta/received_events",
+      "repos_url": "https://api.github.com/users/ProfHepta/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/ProfHepta/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/ProfHepta/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/ProfHepta",
+      "user_view_type": "public"
+    },
+    "updated_at": "2026-11-14T16:46:54Z",
+    "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/43612781760",
+    "workflow_id": 413220734,
+    "workflow_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/workflows/413220734"
+  },
+  "schema": "hia.current-standard-CI.outer-observation.v1",
+  "source_closure": {
+    "bytes": 2997,
+    "git": "56666f869a9a47440c3a504729510585da361893",
+    "sha256": "755510a6b32892942457aea1ef49a94cc1bbee1543aee4cb64b716de1a68fb83"
+  },
+  "whole_native": false
+}
