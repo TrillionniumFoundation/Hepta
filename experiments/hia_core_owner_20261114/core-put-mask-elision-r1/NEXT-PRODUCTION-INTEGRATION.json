@@ -1,0 +1,59 @@
+{
+  "CLI_CPython_port_block_preserved": true,
+  "FOR_ITER_written": false,
+  "cost_query": {
+    "details": "original decode_data and original domain",
+    "external_incomplete_values": null,
+    "filter_before_limit": true,
+    "matching_row10001_only_sets_truncated": true,
+    "observed_request_prefix_unchanged": true,
+    "projection_decode_and_sums_first10000_only": true,
+    "sequence": "INTEGER PRIMARY KEY AUTOINCREMENT; project rowid",
+    "sql": "SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001",
+    "wall_ns": "TEXT summed with arbitrary precision"
+  },
+  "default_switched": false,
+  "full_SQL_replacement": false,
+  "legacy_deleted": false,
+  "matrix_V5": {
+    "bytes": 45164,
+    "git": "d4f33bb646b3eb557ebe9c1b4f3b93590740edc9",
+    "sha256": "64a0d9990eacb6129b28d43ebdc10fabe616661df29a1ba705ff28e10fd69a6a"
+  },
+  "next_actual_tests": [
+    "reader snapshot remains stable across writer commit; fresh reader sees commit",
+    "checkpoint safe-prefix progress and WAL reset constraints",
+    "retained leaf ownership while reading overflow",
+    "old tokens rejected after END/CLOSE and actual lock/fd cleanup",
+    "busy/EINTR/short-read/late-error/reentry",
+    "cost0/10000/10001 filtered rows, mixed contexts/NULL, rowid and large integer/details boundaries"
+  ],
+  "next_implementation": "Bind the real Pager snapshot/transaction to native retained-page and current-cell leases, then consume the same retained leaf in Payload.",
+  "not_a_Python_pread_provider": true,
+  "required_behavior": [
+    "BEGIN binds nonce/generation and real snapshot",
+    "FIRST/NEXT retains the exact current leaf bytes",
+    "Payload consumes retained cell without rereading leaf",
+    "RELEASE_PAGE does not end transaction",
+    "END/CLOSE invalidates snapshot and leases",
+    "preserve primary/cleanup errors and late-error partial outputs"
+  ],
+  "reviewer": "native_install_owner",
+  "root_primary_sources": [
+    {
+      "bytes": 21838,
+      "git": "935fd9b5c327f91407f9e910afa23edd0f01f04f",
+      "sha256": "822a493b7c6096934af384099eaadd5c4467c6d89193dc3f695887aca256e579"
+    },
+    {
+      "bytes": 101065,
+      "git": "e8eb3f28e77d9e4c7d3b3f3ea018d8cec76b9271",
+      "sha256": "1d8180c6a3d009350edeec5b055b9f35dbfcc84ae38d8dcd0a8cf110ad4c59c4"
+    }
+  ],
+  "same_connection_uncommitted_visibility_unresolved": true,
+  "schema": "hia.next-production-integration-audit.v1",
+  "state_owner": "HIA owns snapshot generation, page/cell leases, invalidation and provider-error ordering; existing fixed OS transport remains a declared bootstrap boundary.",
+  "status": "AUDITED_INTERFACE_GAP_NOT_IMPLEMENTED",
+  "whole_native": false
+}
