@@ -160,6 +160,113 @@ jobs:
           retention-days: 30
           include-hidden-files: true
 
+      - name: Upload complete owned raw text diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-full-retained-raw-text-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/artifact-manifest.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/collection-receipt.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/checkout-unavailable.txt
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/artifact-manifest.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/harness/target.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/environment.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/preparation.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/preparation-exit.txt
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/preparation-target.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/preparation-source-before.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/preparation-source-after.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/verification-tools.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/raw-model-readiness.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/ranking-build/build-receipt.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/ranking-build/build-failure.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/ranking-build/identity.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/ranking-build/build-commands.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/recursive-build/build-receipt.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/recursive-build/build-failure.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/recursive-build/identity.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/recursive-build/build-commands.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/finite-build/build-receipt.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/finite-build/build-failure.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/finite-build/identity.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/finite-build/build-commands.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/stream-build/build-receipt.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/stream-build/build-failure.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/stream-build/identity.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/stream-build/build-commands.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/raw-model-build/build-receipt.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/raw-model-build/build-failure.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/raw-model-build/identity.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/raw-model-build/build-commands.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/dynamic-policy-build/build-receipt.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/dynamic-policy-build/build-failure.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/dynamic-policy-build/identity.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/dynamic-policy-build/build-commands.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/setup/**/*.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/setup/**/*.jsonl
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/setup/**/*.log
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/setup/**/*.stdout
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/setup/**/*.stderr
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/setup/**/*.txt
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/evidence/**/*.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/evidence/**/*.jsonl
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/evidence/**/*.log
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/evidence/**/*.stdout
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/evidence/**/*.stderr
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/evidence/**/*.txt
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/full-run/**/*.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/full-run/**/*.jsonl
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/full-run/**/*.log
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/full-run/**/*.stdout
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/full-run/**/*.stderr
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/full-run/**/*.txt
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/logs/**/*.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/logs/**/*.jsonl
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/logs/**/*.log
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/logs/**/*.stdout
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/logs/**/*.stderr
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/logs/**/*.txt
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/ranking-build/command-evidence/**/*.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/ranking-build/command-evidence/**/*.jsonl
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/ranking-build/command-evidence/**/*.log
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/ranking-build/command-evidence/**/*.stdout
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/ranking-build/command-evidence/**/*.stderr
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/ranking-build/command-evidence/**/*.txt
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/recursive-build/commands/**/*.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/recursive-build/commands/**/*.jsonl
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/recursive-build/commands/**/*.log
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/recursive-build/commands/**/*.stdout
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/recursive-build/commands/**/*.stderr
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/recursive-build/commands/**/*.txt
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/finite-build/commands/**/*.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/finite-build/commands/**/*.jsonl
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/finite-build/commands/**/*.log
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/finite-build/commands/**/*.stdout
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/finite-build/commands/**/*.stderr
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/finite-build/commands/**/*.txt
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/stream-build/commands/**/*.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/stream-build/commands/**/*.jsonl
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/stream-build/commands/**/*.log
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/stream-build/commands/**/*.stdout
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/stream-build/commands/**/*.stderr
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/stream-build/commands/**/*.txt
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/raw-model-build/command-evidence/**/*.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/raw-model-build/command-evidence/**/*.jsonl
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/raw-model-build/command-evidence/**/*.log
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/raw-model-build/command-evidence/**/*.stdout
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/raw-model-build/command-evidence/**/*.stderr
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/raw-model-build/command-evidence/**/*.txt
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/dynamic-policy-build/command-evidence/**/*.json
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/dynamic-policy-build/command-evidence/**/*.jsonl
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/dynamic-policy-build/command-evidence/**/*.log
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/dynamic-policy-build/command-evidence/**/*.stdout
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/dynamic-policy-build/command-evidence/**/*.stderr
+            ${{ runner.temp }}/hia-full-retained-audit/artifact/evidence/dependencies/dynamic-policy-build/command-evidence/**/*.txt
+          if-no-files-found: error
+          retention-days: 30
+          include-hidden-files: true
+
       - name: Create a verified complete lossless audit copy after the original upload
         id: audit_copy
         if: ${{ !cancelled() }}

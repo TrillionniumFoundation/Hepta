@@ -1,16 +1,48 @@
 # Complete retained HIA qualification harness
 
-This target-binding successor is prepared from published harness
-`e40723c6eda02c888444059cad98189a65b284bb`, tree
-`9f3ac52ffa33d3316324dbe4a28c727fbe2868d4`. Its runner, workflow and dependency
-preparation are byte-identical to that harness.
-The immutable product target is the actually published commit
+This independent extension starts at published harness
+`4c929543ade24b7ac9d740956bbb7294b84bab10`, tree
+`df7ab8ef25e220f17aa155ee5c513fa41af4eb72`. It retains the original 35 stages,
+18 supplemental jobs, complete original test inventories, dependency preparation,
+full-run 5,400-second bound and all original inner limits. It adds the complete
+transaction and artifact-delivery component readbacks and three whole-module
+caller gates described below. The original full archive and uploads remain;
+one separate artifact preserves only collector-owned raw text diagnostics.
+
+**Published product target:** `bb3120d26cfd483b5cd85a13c72c90a24d119603`, tree
+`11d957ccbab3b0a765285d549306b45353483012`, sole parent
+`91bbd077ce5f7ff7b5236b1b14b7989b6e90a8a6`. The exact GitHub commit object, feature
+branch and draft PR head were independently read back before binding
+`target.json` and `FINAL_DELIVERY_FREEZE`. This successor includes the complete
+transaction and artifact-delivery integration, the narrow representation-lock
+repair, and the single-artifact raw-path workflow repair. Its complete new
+three-method lock regression module stays in the product's first Source tuple
+and complete discovery. It introduces no cold component or supplemental command.
+
+The five-file successor fixture is
+`5560d263335d7c48a575eeb5a7a3a47f6c2122588608f837efb185bb371ef859` and its helper is
+`692f5bce0f4c58263a22f2e91f0c8d7699a83b23a282818768bd83f15887199e`. All five complete
+source hashes and their exact reversible original-byte pins are bound. The
+other four source hashes retain the preceding combination; the shared-delivery
+hash now includes the two representation-lock replacements.
+
+This binding establishes source identity, not matching-current cold or full-suite
+qualification. Existing component HOLD results and historical failures remain.
+No development record, earlier target or moving branch is accepted as a formal
+cold-positive result. The original 35 stages, 18 prior supplemental jobs and
+three final-delivery caller jobs retain all reviewed commands and budgets.
+
+## Previous target history
+
+The preceding harness was derived from `e40723c6eda02c888444059cad98189a65b284bb`,
+tree `9f3ac52ffa33d3316324dbe4a28c727fbe2868d4`. Its then-current target was the
+actually published commit
 `5bf69586b890706290c5fbfe93065ec0d3af40b1`, tree
 `9008d431cf28b51edd8a5de589081090e3a19916`. Its parent
 `04492c20356b459d003152fc8b71b4c7d90e4244`, tree
 `4e45e5118880dda99249ee37000d04d82e2994f9`, passed generated-file cleanliness
 but its complete push Source suite ran 684 methods with one release-freeze
-inventory failure. The new target removes the duplicated runtime delivery
+inventory failure. That source-inventory successor removes the duplicated runtime delivery
 module from the explicit non-package bootstrap list; the unchanged complete
 `hepta/**/*.py` discovery still binds that module. All 1,193 source paths and
 support semantics remain unchanged. The complete related 36 controls passed,
@@ -85,7 +117,7 @@ first sixteen supplemental command tuples, supervisor limit and archive path.
 Its existing-function changes are confined to source/discovery wiring and the
 supplemental dispatcher. A separate archive-reader correction below changes one
 additional function. The original `run()`, `collect()`, complete `audit_copy()`
-driver, gzip archive, XZ settings and upload workflow remain unchanged.
+driver, gzip archive, XZ settings and original complete-upload step remain unchanged. The separately scoped raw-text upload described below is new.
 
 `NativeDeliverySourceTests` and `StoreNativeDeliverySourceTests` each contribute
 all three methods to the first extracted Source tuple. Their complete Native
@@ -644,6 +676,15 @@ controls. Unknown outcomes retain effects and custody without replay or invented
 cleanup; confirmed foreign errors preserve their object and original cleanup.
 Nested loss fences active same-process, same-thread emission ancestors. This
 completed same-owner scope does not claim cross-owner delivery-loss tracking.
+The source-bound build separately declares the implemented D0–D3 ancestor scope.
+Its build readback therefore requires exactly `integrated D0-D3 invocation
+ancestors`, `cross_owner_native_delivery_loss_tracking_implemented=true`, and
+`remaining_store_artifact_profile_and_D5_owners_integrated=false`; the component
+custody and composition keep their original narrower declarations. This repairs
+the independently retained 04492/e407 supplemental failure, whose two old build
+predicates incorrectly required the earlier scope. The failed run remains a
+failed run. No caller, component assertion or original budget changes with this
+reader correction.
 
 The fresh wheel's actual worker runs public emission with both retained bodies
 and authoring imports forbidden in that child. Wheel, installed RECORD, worker
@@ -929,3 +970,93 @@ Every preparation and qualification output directory must be new and outside
 the product checkout. The workflow installs the system/Python prerequisites
 before these commands. Keep the original attempt and failures; a later target
 or repaired harness is a separately identified run.
+
+## Final transaction and artifact-delivery extension
+
+Both new owners add their complete three-method Source classes to the first
+extracted Source tuple. Their complete eight-method Native classes execute in
+first full discovery, under separate evidence roots and the same current-source
+cold report. Development selectors are discarded. The reader checks exact
+class counts and requires the original full method log; a component JSON marked
+PASS cannot replace a missing or failed full-discovery method.
+
+The first eighteen supplemental jobs, carried by the original eight job tuples,
+are unchanged. The extension appends:
+
+| Job | Full original scope | Evidence required |
+| --- | --- | --- |
+| 19: store-transaction-callers | Nine complete ordinary modules, 112 methods | Ordered planned/started/stopped IDs, raw verbose log, actual transaction frame and event counts, retained-body poison, source and same-cold image custody |
+| 20: store-transaction-separate-callers | Complete journal, execution-budget and slot-ledger modules: 21 + 25 + 15 methods | All three original subprocess stages and logs, no anomaly/timeout/unconfirmed pipe cleanup, aggregate native observations, retained budget/slot builds, original shared 1,800-second group allowance |
+| 21: artifact-delivery-callers | Seven complete original modules: 63 + 37 + 32 methods | Three complete group logs, exact module-level selection, source and actual executable pins, original retained-policy guard scope, all six operations' actual handoff/ACK/public-receipt observations |
+
+The original reference 16 retain their unselected policy. The original direct
+63 retain their own setup; additional NDU/assembly 37 use generic publication,
+and all NativeTools 32 use the Store selector. There is no per-test routing
+exception, inventory filter, global reference ban or new aggregate test budget.
+The original Store 130 gate and its original artifact fixtures remain required.
+Temporary journal and direct-publication builds that original fixtures remove
+are not described as retained compiler evidence.
+
+Transaction readback retains all 521 original cases in each independently
+executed H0/H1 child, complete original-versus-candidate canonical observations,
+actual event accounting, native loss controls, SQL order, full packet buffers and
+the original installed worker. The two finite histories are checked separately;
+runtime-specific exception metadata is not normalized. Unknown COMMIT and
+ordinary cached replay retain their different original cost-row behavior.
+
+Artifact-delivery readback admits the exact public ELF and its one fixed private
+entry, the complete 128-byte ACK (including nonce, checksum and disposition),
+all 44 terminal VM/native observations, public/private six-operation controls,
+separate five operation-object cases, actual fsync refusals and resource-loss
+matrices. Its installed artifact capsule is a separate ABI, not a sixth-argument
+helper entry. Full wheel/RECORD, installed source, original child stdout/stderr,
+normal and unknown replay, source drift and fresh-inventory scope controls are
+read back from actual records. Fields not separately serialized remain explicit
+original-full-method assertions; they are not inferred from a PASS label.
+
+The R9 installed supervisor records one real same-capsule closed SQLite/CAS
+baseline and six independent complete copies before any worker starts. Readback
+checks every recorded tree path, file length/hash, mode and nanosecond timestamp,
+all seven distinct database device/inode identities, the common live files root,
+and the unchanged source trees after completion. These temporary databases and
+CAS files are deleted by the original fixture; their retained observations are
+not described as independently available original database bytes.
+
+The five original worker/replay pairs may overlap on at most two supervisor
+threads. All fourteen command labels, their original raw output, recorded
+starts/finishes, actual per-pair observations and all five joined outcomes remain
+mandatory. Within each pair, first worker, durable-state observations and replay
+retain the original order. Source drift and scope mutation begin only after all
+five pairs join. No fixed cross-pair completion order is imposed. The original
+60-second child limits and every original business assertion remain in force.
+R9 structural reader controls use explicitly synthetic JSON and do not claim
+that an installed product run or matching-cold qualification has passed.
+
+The original D4 source admission now accepts exactly one complete successor
+composition for five files. It independently reverses all five byte patches to
+the frozen originals, keeps the other 86 source memberships with only the existing exact registry-count
+decimal exception, and keeps all other bytes, the other 20 shared pins and all
+21 adapter definitions exact. It rereads inputs before returning.
+An all-original source set remains distinct from the frozen successor. Every
+partial old/new mixture fails. The fixture SHA is
+`dbfd600122d9bb05ff14cc21946dc8f6444226e7b1fe806496d6277fe127b4a5`;
+the source-bound helper SHA is
+`fb87d734d0a0db5b34cecfbbcf21582d422452189972b0d8abc0fd984f321697`.
+The published final commit/tree remains a separate mandatory admission check.
+
+Historical D5 R6/R7 fsync-environment and installed-timeout failures are still
+HOLD. Static reader checks, transaction development PASS, and independent
+five-file composition controls do not override those outcomes or qualify the
+new full run. No component, native image or original test body is executed by
+the new readers.
+
+## Collector-owned raw text diagnostic artifact
+
+An independent always-upload step preserves existing raw JSON/JSONL, logs,
+stdout/stderr and text files inside the collector's ten declared destination
+roots, plus 37 exact named metadata files. Its 97 patterns are all below
+`hia-full-retained-audit/artifact`; they do not glob arbitrary Actions temporary
+directories. No original bytes are synthesized, truncated or substituted. The
+original complete upload, gzip evidence, XZ copy, metadata comparisons and archive
+budgets remain unchanged. This additional artifact has no promised size bound
+and does not make an unavailable or failed original audit copy successful.
