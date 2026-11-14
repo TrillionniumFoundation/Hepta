@@ -1,3 +1,30 @@
+# HIA 原生重写实际执行检查点 — v148
+
+冻结时间：2026-11-14 18:29:32 UTC。父检查点：`b5f4c9e899395a7a66634d04d61966ca6d1984b1`。
+
+**整套 HIA 原生化尚未闭合，旧生产实现保留。** 本轮已执行恢复后的真实产品检查，新增 345 个已逐一完整 Git GET 验证的证据叶。以下为当前实际结果；后附 v147 全文逐字节保留，仅作为历史记录。
+
+| 范围 | 实际结果与边界 |
+|---|---|
+| R8 输入准备 | 808 份独立输入、136 份原始 oracle 恢复均通过。R4 执行前重新完整读取 6,777 文件、948,620,735 B，原始字节、模式、七字段 stat、路径集合和全部防护保留。 |
+| R8 R3 | 首个 public-refusal 的实际零调用证据正确；封装把零写成 None，使原精确数量断言失败。完整失败保留；R4 只修为调用原始 validator，不改断言。 |
+| R8 R4 | public-refusal、Native162、edge-VM 通过；共 163 次 Native、6 项 VM，其中 5 通过，cross-target-loans 在第 10,000,001 步触发原 10,000,000 步限制。四个后续组未启动。122.196 秒结束，各 owner 清理完成，无超时。 |
+| op13 R1 | 新 3,210 文件源码绑定及独立读回通过；产品启动前 /dev 祖先设备号变化触发原保护，零产品 owner。失败原件保留。 |
+| op13 R2 | 新 /tmp 路径绑定、12,146 次独立完整读取通过；Source8、8 次编译、Native01–04 通过。Native05 在原参考夹具初始化时缺少 consume_mask，尚未进入新 adapter；Native06–12、VM12 未启动。 |
+| 证据范围 | 上述实际主报告已保存。冻结时，R4 与 op13 的全部原始帧远程归档及独立终态读回仍待完成；观察摘要不替代完整原始证据。 |
+| R6 与 Namespace | R6 是显式另版合约修正，原 R5 FAIL 保留，尚未执行。Namespace 固定八字节循环候选只完成作者与逆投影；原 35 项仍为 32 PASS / 3 FAIL。 |
+| 清理 | 只清除经完整校验且可重取的 344,034,257 B 冗余下载 ZIP；生产旧实现删除数为零。 |
+
+原测试方法、ID、断言、预算、fuel、完整 fresh reads 和目录/祖先守卫均保留。没有自动重跑、抬高预算、缓存摘要代替读取或删减覆盖。详见 [STATE.json](STATE.json)、[R4 实际观察](v148-late-observations/R4-OBSERVED-TERMINAL.json)、[op13 实际观察](v148-late-observations/OP13-R2-OBSERVED-TERMINAL.json)。
+
+Hepta 默认 main 仍为 `f33d8da316de8fdf27b504371f1a5310997ff548`。相邻 runtime 默认分支为 `hepta-runtime-base`，头为 `ba574f2a6a1b74e85191c58d7bec011720736bb9`；默认 22 个 Rust 工具与另一个固定 PR 的 125 个 Rust handlers 是不同审计范围。默认 CLI / Worker / Service / Store 仍由 Python / SQLite 承担部分职责，部署状态未知。
+
+下一步先封存全部实际原件并完成独立终态读回，再分别修复 op13 原参考夹具与 R8 的真实 HIA 成本；继续执行原大小/pack、完整语义与 aggregate 链、R6、Namespace、普通 current-cold 链和默认入口、存储、runtime、安装替换。只有全套资格闭合后才清除生产旧实现。
+
+---
+
+## 完整保留的 v147 历史记录
+
 # HIA 原生重写当前恢复检查点 — v147
 
 冻结时间：2026-11-14 16:50:45 UTC。前一完整检查点：`bdc9db0a4ba04cc29dd590c098e572da7ef37471`。

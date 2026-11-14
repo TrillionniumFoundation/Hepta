@@ -1,0 +1,53 @@
+{
+  "after": {
+    "bytes": 36956,
+    "git_blob": "afef7d0e7c628b0a476d4b9961552a6689b8dd3f",
+    "sha256": "ed5e2e312c953c3d300559ae92c0e70a86a6592f3b3c479ca292bce1a8750449"
+  },
+  "all_other_generator_bytes_equal": true,
+  "before": {
+    "bytes": 36025,
+    "git_blob": "0aab927439ce8c3b77518f9734b0691786cb8efb",
+    "sha256": "839e5aa2e42821621ee9ef3acddab237904a8373473f5f56fb0c68e832a1d831"
+  },
+  "compile_calls": 0,
+  "generator_calls": 0,
+  "hunks": [
+    {
+      "after": "def get(w:mutbuf, index:u64) -> u64:\n    value = 0\n    value = value | (byte(w, index * 8 + 0) << (0 * 8))\n    value = value | (byte(w, index * 8 + 1) << (1 * 8))\n    value = value | (byte(w, index * 8 + 2) << (2 * 8))\n    value = value | (byte(w, index * 8 + 3) << (3 * 8))\n    value = value | (byte(w, index * 8 + 4) << (4 * 8))\n    value = value | (byte(w, index * 8 + 5) << (5 * 8))\n    value = value | (byte(w, index * 8 + 6) << (6 * 8))\n    value = value | (byte(w, index * 8 + 7) << (7 * 8))\n    return value\n",
+      "before": "def get(w:mutbuf, index:u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | (byte(w, index * 8 + i) << (i * 8))\n        i = i + 1\n    return value\n",
+      "expansion": "actual original loop body, i=0..7 in ascending order",
+      "function": "get"
+    },
+    {
+      "after": "def read_word(s:readbuf, index:u64) -> u64:\n    value = 0\n    value = value | (byte(s, index + 0) << (0 * 8))\n    value = value | (byte(s, index + 1) << (1 * 8))\n    value = value | (byte(s, index + 2) << (2 * 8))\n    value = value | (byte(s, index + 3) << (3 * 8))\n    value = value | (byte(s, index + 4) << (4 * 8))\n    value = value | (byte(s, index + 5) << (5 * 8))\n    value = value | (byte(s, index + 6) << (6 * 8))\n    value = value | (byte(s, index + 7) << (7 * 8))\n    return value\n",
+      "before": "def read_word(s:readbuf, index:u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | (byte(s, index + i) << (i * 8))\n        i = i + 1\n    return value\n",
+      "expansion": "actual original loop body, i=0..7 in ascending order",
+      "function": "read_word"
+    },
+    {
+      "after": "def set(w:mutbuf, index:u64, value:u64) -> u64:\n    store(w, index * 8 + 0, value >> (0 * 8))\n    store(w, index * 8 + 1, value >> (1 * 8))\n    store(w, index * 8 + 2, value >> (2 * 8))\n    store(w, index * 8 + 3, value >> (3 * 8))\n    store(w, index * 8 + 4, value >> (4 * 8))\n    store(w, index * 8 + 5, value >> (5 * 8))\n    store(w, index * 8 + 6, value >> (6 * 8))\n    store(w, index * 8 + 7, value >> (7 * 8))\n    return value\n",
+      "before": "def set(w:mutbuf, index:u64, value:u64) -> u64:\n    i = 0\n    while i < 8:\n        store(w, index * 8 + i, value >> (i * 8))\n        i = i + 1\n    return value\n",
+      "expansion": "actual original loop body, i=0..7 in ascending order",
+      "function": "set"
+    }
+  ],
+  "limits": {
+    "asynchronous_interrupt": "No all-instruction-prefix equivalence claim.",
+    "bounds": "Same 8 byte accesses and first bounds failure, identical successful store prefix.",
+    "fuel": "Instruction count changes. No identical instruction-prefix, PC, or partial state claim at arbitrary fuel exhaustion. Fuel limits unchanged.",
+    "shift": "Same shift expressions; counts 0,8,16,24,32,40,48,56.",
+    "u64": "Same original multiply/add expressions; induction variable replaced by its exact original value."
+  },
+  "native_calls": 0,
+  "performance_result": null,
+  "qualification": false,
+  "relative_path": "tools/generate_hia_artifact_namespace.py",
+  "schema": "hepta.namespace-word-unroll-static.v1",
+  "status": "AUTHORING_STATIC_CHECKS_ONLY",
+  "tests_run": 0,
+  "version": "namespace-word-unroll-r1",
+  "vm_calls": 0,
+  "whole_inverse_ast_equal": true,
+  "whole_inverse_bytes_equal": true
+}
