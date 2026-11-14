@@ -141,6 +141,7 @@ EXTRA_COLD_COMPONENTS = (
     "FULL_COST", "PATCH_IMPACT", "CLI_DISCOVERY_JSON", "STATIC_BUDGET", "STORE_LIFECYCLE",
     "DEFAULT_RELEASE", "SERVICE_CONTEXT", "COST_LEDGER", "EVALUATION", "NATIVE_TRANSPORT",
     "NATIVE_BUILD_ADMISSION", "NATIVE_BUILD_DISPATCH", "EMISSION", "STORE_ARTIFACT_PROFILE",
+    "NATIVE_DELIVERY", "STORE_NATIVE_DELIVERY",
 )
 
 DEFAULT_RELEASE_SOURCE_CLASS = "tests.test_hia_default_native_release.DefaultReleaseSourceTests"
@@ -161,6 +162,10 @@ EMISSION_SOURCE_CLASS = "tests.test_hia_emission_native.EmissionSourceTests"
 EMISSION_NATIVE_CLASS = "tests.test_hia_emission_native.EmissionNativeTests"
 STORE_ARTIFACT_PROFILE_SOURCE_CLASS = "tests.test_hia_store_artifact_profile_native.StoreArtifactProfileSourceTests"
 STORE_ARTIFACT_PROFILE_NATIVE_CLASS = "tests.test_hia_store_artifact_profile_native.StoreArtifactProfileNativeTests"
+NATIVE_DELIVERY_SOURCE_CLASS = "tests.test_hia_native_delivery.NativeDeliverySourceTests"
+NATIVE_DELIVERY_NATIVE_CLASS = "tests.test_hia_native_delivery.NativeDeliveryNativeTests"
+STORE_NATIVE_DELIVERY_SOURCE_CLASS = "tests.test_hia_store_native_delivery.StoreNativeDeliverySourceTests"
+STORE_NATIVE_DELIVERY_NATIVE_CLASS = "tests.test_hia_store_native_delivery.StoreNativeDeliveryNativeTests"
 
 # These classes occur only in complete discovery, not the source/native tuples
 # extracted by the unchanged v4. Keep their actual same-run build evidence for
@@ -195,6 +200,8 @@ FULL_DISCOVERY_EVIDENCE = {
     "native-build-dispatch": (NATIVE_BUILD_DISPATCH_NATIVE_CLASS, "HEPTA_HIA_NATIVE_BUILD_DISPATCH_EVIDENCE"),
     "emission": (EMISSION_NATIVE_CLASS, "HEPTA_HIA_EMISSION_EVIDENCE"),
     "store-artifact-profile": (STORE_ARTIFACT_PROFILE_NATIVE_CLASS, "HEPTA_HIA_STORE_ARTIFACT_PROFILE_EVIDENCE"),
+    "native-delivery": (NATIVE_DELIVERY_NATIVE_CLASS, "HEPTA_HIA_NATIVE_DELIVERY_EVIDENCE"),
+    "store-native-delivery": (STORE_NATIVE_DELIVERY_NATIVE_CLASS, "HEPTA_HIA_STORE_NATIVE_DELIVERY_EVIDENCE"),
 }
 # The selected CLI callers use a separate fixture under the same evidence root.
 # They remain their own complete class in the original full discovery.
@@ -229,6 +236,8 @@ ADDITIONAL_DISCARDED_SELECTORS = (
     "HEPTA_HIA_NATIVE_BUILD_DISPATCH_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_EMISSION_MANIFEST", "HEPTA_HIA_EMISSION_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST", "HEPTA_HIA_STORE_ARTIFACT_PROFILE_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_NATIVE_DELIVERY_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_STORE_NATIVE_DELIVERY_DEVELOPMENT_COMPILER",
 )
 
 
@@ -256,6 +265,10 @@ def component_workflow_coverage(root):
         raise ValueError("emission source class must remain in the first extracted source tuple")
     if STORE_ARTIFACT_PROFILE_SOURCE_CLASS not in named[0]:
         raise ValueError("Store artifact/profile source class must remain in the first extracted source tuple")
+    if NATIVE_DELIVERY_SOURCE_CLASS not in named[0]:
+        raise ValueError("D0-D3 delivery source class must remain in the first extracted source tuple")
+    if STORE_NATIVE_DELIVERY_SOURCE_CLASS not in named[0]:
+        raise ValueError("D4 Store delivery source class must remain in the first extracted source tuple")
     groups = [node for node in ast.walk(ast.parse((root / RUNNER).read_bytes()))
               if isinstance(node, ast.Assign) and len(node.targets) == 1
               and getattr(node.targets[0], "id", None) == "groups"]
@@ -283,6 +296,10 @@ def component_workflow_coverage(root):
             "native_build_dispatch_source_class_in_first_source_tuple": True,
             "emission_source_class_in_first_source_tuple": True,
             "store_artifact_profile_source_class_in_first_source_tuple": True,
+            "native_delivery_source_class_in_first_source_tuple": True,
+            "store_native_delivery_source_class_in_first_source_tuple": True,
+            "coverage_scope": "SOURCE_AND_NATIVE_GROUPS_BEFORE_FIRST_FULL_DISCOVERY",
+            "post_full_delivery_original_152_supplement_added": True,
             "retained_native_classes_first_execute_in_full_discovery": True,
             "extra_component_suite_reruns": False}
 
@@ -495,6 +512,7 @@ def require_observed_component_methods(discovery, identity):
     classes.append(NATIVE_BUILD_DISPATCH_SOURCE_CLASS)
     classes.append(EMISSION_SOURCE_CLASS)
     classes.append(STORE_ARTIFACT_PROFILE_SOURCE_CLASS)
+    classes.extend((NATIVE_DELIVERY_SOURCE_CLASS, STORE_NATIVE_DELIVERY_SOURCE_CLASS))
     checked = {}
     for name in classes:
         planned = [item for item in discovery["planned_test_ids"] if item.startswith(name + ".")]
@@ -523,6 +541,9 @@ def require_observed_component_methods(discovery, identity):
         if ((name == STORE_ARTIFACT_PROFILE_SOURCE_CLASS and len(planned) != 3)
                 or (name == STORE_ARTIFACT_PROFILE_NATIVE_CLASS and len(planned) != 8)):
             raise ValueError("Store artifact/profile requires all three source and eight native methods")
+        if ((name in (NATIVE_DELIVERY_SOURCE_CLASS, STORE_NATIVE_DELIVERY_SOURCE_CLASS) and len(planned) != 3)
+                or (name in (NATIVE_DELIVERY_NATIVE_CLASS, STORE_NATIVE_DELIVERY_NATIVE_CLASS) and len(planned) != 8)):
+            raise ValueError("each delivery class requires all three source and eight native methods")
         if (not planned or [row["id"] for row in observed] != planned
                 or (name == DEFAULT_RELEASE_NATIVE_CLASS and len(planned) != 12)
                 or not all(row.get("completion_observed") is True
@@ -4451,6 +4472,1082 @@ def require_store_profile_component(directory, root, cold_path, compiler, source
 
 
 
+# Delivery acceptance adds readback only. None of these helpers runs a product
+# suite, creates a component, loads an image, or supplies a development selector.
+DELIVERY_OWNERS = (
+    'service_context', 'store_lifecycle', 'cost_ledger', 'evaluation',
+    'native_build_admission', 'emission', 'execution_budget', 'candidate_budget', 'agent_journal',
+)
+DELIVERY_COMPONENT_MODULES = (
+    'tests.test_hia_service_context_native', 'tests.test_hia_store_lifecycle_native',
+    'tests.test_hia_cost_ledger_native', 'tests.test_hia_evaluation_native',
+    'tests.test_hia_native_build_admission_native', 'tests.test_hia_native_build_dispatch',
+    'tests.test_hia_emission_native', 'tests.test_hia_native_transport_failures',
+    'tests.test_hia_execution_budget_native', 'tests.test_hia_candidate_budget_native',
+    'tests.test_hia_agent_journal_native',
+)
+DELIVERY_CALLERS = ('service_context', 'cost_ledger', 'evaluation',
+                    'native_build_admission', 'emission', 'agent_journal')
+DELIVERY_METHODS = {
+    'frames': 'test_six_real_frames_block_swallowed_and_replaced_cross_owner_loss',
+    'cleanup': 'test_active_except_cleanup_cannot_suppress_cross_owner_loss',
+    'safe': 'test_safe_preentry_confirmed_refusal_and_foreign_unknown_do_not_publish',
+    'requests': 'test_both_journals_keep_running_intent_after_swallowed_and_replaced_loss',
+    'journal_gaps': 'test_final_serialization_and_sql_before_ack_cannot_hide_loss',
+    'budgets': 'test_budget_invocations_follow_actual_parent_and_keep_original_sql_refusals',
+    'ancestry': 'test_stale_thread_and_fork_contexts_do_not_adopt_inherited_custody',
+    'installed': 'test_actual_installed_worker_pinned_bundle_blocks_cross_owner_loss',
+}
+STORE_DELIVERY_METHODS = {
+    'frames': 'test_all_seven_frame_families_bidirectional_actual_loss',
+    'cleanup': 'test_literal_children_and_active_exit_cannot_swallow_or_replace_loss',
+    'initialization': 'test_native_init_pending_and_preentry_refusal_keep_distinct_custody',
+    'safe': 'test_ordinary_foreign_and_confirmed_child_keep_original_exception_identity',
+    'ancestry': 'test_prepared_frames_implicit_release_thread_and_fork_ancestry',
+    'requests': 'test_both_original_journals_keep_unknown_intent_and_no_replay',
+    'installed': 'test_actual_installed_worker_store_peer_journal_bundle',
+    'installed_process': 'test_actual_worker_process_loss_and_packaged_source_drift',
+}
+
+
+def delivery_literal_values(path, names, pins):
+    """Read narrow constant declarations, without importing product code."""
+    tree = ast.parse(release_bytes(path, pins))
+    declarations = {node.targets[0].id: node.value for node in tree.body
+                    if isinstance(node, ast.Assign) and len(node.targets) == 1
+                    and isinstance(node.targets[0], ast.Name)}
+    active = set()
+    def value(node, local):
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.Name):
+            if node.id in local:
+                return local[node.id]
+            if node.id in active or node.id not in declarations:
+                raise ValueError('delivery constant dependency is missing or cyclic')
+            active.add(node.id)
+            try:
+                return value(declarations[node.id], local)
+            finally:
+                active.remove(node.id)
+        if isinstance(node, (ast.Tuple, ast.List)):
+            result = []
+            for item in node.elts:
+                if isinstance(item, ast.Starred):
+                    result.extend(value(item.value, local))
+                else:
+                    result.append(value(item, local))
+            return tuple(result) if isinstance(node, ast.Tuple) else result
+        if isinstance(node, ast.Dict) and all(key is not None for key in node.keys):
+            return {value(key, local): value(item, local) for key, item in zip(node.keys, node.values)}
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            return value(node.left, local) + value(node.right, local)
+        if isinstance(node, ast.JoinedStr):
+            result = []
+            for part in node.values:
+                if isinstance(part, ast.Constant) and isinstance(part.value, str):
+                    result.append(part.value)
+                elif isinstance(part, ast.FormattedValue) and part.conversion == -1 and part.format_spec is None:
+                    item = value(part.value, local)
+                    if type(item) is not str:
+                        raise ValueError('delivery declaration requires exact string substitution')
+                    result.append(item)
+                else:
+                    raise ValueError('unsupported delivery constant formatting')
+            return ''.join(result)
+        if isinstance(node, ast.GeneratorExp) and len(node.generators) == 1:
+            loop = node.generators[0]
+            if isinstance(loop.target, ast.Name) and not loop.ifs and not loop.is_async:
+                return tuple(value(node.elt, dict(local, **{loop.target.id: item}))
+                             for item in value(loop.iter, local))
+        raise ValueError('delivery declaration is not a supported static constant: ' + type(node).__name__)
+    return {name: value(ast.Name(id=name, ctx=ast.Load()), {}) for name in names}
+
+
+def delivery_original_inventory(root, pins, *, store=False):
+    root = Path(root)
+    module = 'tests/test_hia_store_native_delivery.py' if store else 'tests/test_hia_native_delivery.py'
+    fixture = ('tests/fixtures/store_native_delivery_original_c019.json' if store else
+               'tests/fixtures/native_delivery_original_9c46166.json')
+    constants = delivery_literal_values(root / module, ('ORIGINAL_SHA256',), pins)
+    raw = release_bytes(root / fixture, pins)
+    original = json.loads(raw)
+    if hashlib.sha256(raw).hexdigest() != constants['ORIGINAL_SHA256']:
+        raise ValueError('delivery frozen original fixture digest differs')
+    expected_base = ('c0195643083e1d4c68679237edfa77143dc7b1c6' if store else
+                     '9c461664adc27e576d33fba6618b3764672eea9d')
+    if original.get('base_commit') != expected_base or original.get('runtime_execution_before_freeze') is not False:
+        raise ValueError('delivery original fixture identity differs')
+    if store:
+        inventory = original.get('original_caller_inventory', {})
+        components = inventory.get('D0_D3_component_ordered_152', {})
+        if (original.get('base_tree') != '7a37b1ced47251fdc58e50624a5f77be56af374a'
+                or original.get('D0_D3_original_component_modules') != list(DELIVERY_COMPONENT_MODULES)
+                or len(inventory.get('ordinary_ordered_112', [])) != 112
+                or len(inventory.get('store_ordinary_and_artifact_ordered_130', [])) != 130
+                or len(inventory.get('artifact_publication_ordered_18', [])) != 18
+                or len(inventory.get('separate_ordered_128', [])) != 128
+                or len(inventory.get('lifecycle_ordered_50', [])) != 50
+                or len(original.get('unchanged_files', {})) != 89
+                or original.get('whole_native_delivery_qualified') is not False):
+            raise ValueError('Store delivery complete original inventory differs')
+    else:
+        components = original.get('component_ordered_ids', {})
+        if (original.get('component_modules') != list(DELIVERY_COMPONENT_MODULES)
+                or len(original.get('ordinary_ordered_ids', [])) != 112
+                or len(original.get('unchanged_files', {})) != 64):
+            raise ValueError('D0-D3 complete original inventory differs')
+    ids = [item for name in DELIVERY_COMPONENT_MODULES for item in components.get(name, [])]
+    if set(components) != set(DELIVERY_COMPONENT_MODULES) or len(ids) != 152 or len(set(ids)) != 152:
+        raise ValueError('delivery requires exactly the frozen eleven complete modules / 152 ordered methods')
+    helper_tree = ast.parse(release_bytes(root / 'hepta/hia_native_helpers.py', pins))
+    helpers = [node.value for node in helper_tree.body if isinstance(node, ast.Assign)
+               and any(isinstance(target, ast.Name) and target.id == 'HELPERS' for target in node.targets)]
+    if len(helpers) != 1 or not isinstance(helpers[0], ast.Dict) or any(key is None for key in helpers[0].keys):
+        raise ValueError('delivery helper registry must remain an explicit dictionary')
+    helper_count, previous = len(helpers[0].keys), 39 if store else 38
+    adjustments = []
+    for name, expected in original['unchanged_files'].items():
+        body = release_bytes(root / name, pins)
+        digest = hashlib.sha256(body).hexdigest()
+        if len(body) == expected['bytes'] and digest == expected['sha256']:
+            continue
+        old = ('        self.assertEqual(len(HELPERS), ' + str(previous) + ')\n').encode()
+        new = ('        self.assertEqual(len(HELPERS), ' + str(helper_count) + ')\n').encode()
+        restored = body.replace(new, old, 1)
+        if (name != 'tests/test_hia_worker_native_helpers.py' or helper_count < previous
+                or body.count(new) != 1 or len(restored) != expected['bytes']
+                or hashlib.sha256(restored).hexdigest() != expected['sha256']):
+            raise ValueError('delivery original test, fixture or caller changed: ' + name)
+        adjustment = {'path': name, 'original_sha256': expected['sha256'], 'current_sha256': digest,
+                      'original_helper_count': previous, 'current_helper_count': helper_count,
+                      'sole_permitted_change': 'one exact registry-count assertion decimal literal'}
+        if not store:
+            adjustment['all_other_source_bytes_unchanged'] = True
+        adjustments.append(adjustment)
+    return {**original, 'registry_count_adjustments': adjustments}
+
+
+def delivery_source_identity(root, sources, original, pins, *, store=False):
+    expected = {name: digest for name, digest in sources.items() if name != 'docs/HIA_SELFHOST_CORE_SUPPORT.json'}
+    extra = {'tests/test_hia_native_delivery.py', 'tests/hia_native_delivery_cases.py',
+             'tests/fixtures/native_delivery_original_9c46166.json', 'tools/qualify_hia_native_delivery.py'}
+    if store:
+        extra |= set(original['unchanged_files']) | set(original['shared_dependency_review']) | {
+            'hepta/hia_native_delivery.py', 'tests/test_hia_store_native_delivery.py',
+            'tests/hia_store_native_delivery_cases.py', 'tests/fixtures/store_native_delivery_original_c019.json',
+            'hepta/hia_store_artifact_profile_native.py', 'tools/build_hia_store_artifact_profile.py'}
+    for name in extra:
+        digest = hashlib.sha256(release_bytes(Path(root) / name, pins)).hexdigest()
+        if name in expected and expected[name] != digest:
+            raise ValueError('delivery extra source differs from the admitted source contract')
+        expected[name] = digest
+    return expected
+
+
+def delivery_compile_readback(directory, owner, root, compiler, sources, pins, *, cold_path=None, development=False):
+    """Check actual original receipt/output bytes with no image execution or product import."""
+    if type(development) is not bool or development == (cold_path is not None):
+        raise ValueError('delivery readback requires exactly one explicit source scope')
+    directory, root, compiler = Path(directory), Path(root), Path(compiler)
+    special = owner in ('execution_budget', 'candidate_budget', 'agent_journal')
+    labels = {'service_context': 'service-context', 'store_lifecycle': 'store-lifecycle',
+              'cost_ledger': 'cost-ledger'}
+    label = labels.get(owner, owner)
+    if special:
+        label = 'agent-journal' if owner == 'agent_journal' else (owner if development else owner.replace('_', '-'))
+    source_name = 'examples/hia_bootstrap/' + owner + '.hepta'
+    source, artifact = release_bytes(root / source_name, pins), release_bytes(compiler, pins)
+    source_sha, compiler_sha = hashlib.sha256(source).hexdigest(), hashlib.sha256(artifact).hexdigest()
+    manifest = release_json(directory / 'manifest.json', pins)
+    receipt = release_json(directory / (label + '.receipt.json'), pins)
+    request = release_json(directory / (label + '.request.json'), pins)
+    image_path = directory / (label + '.image.bin')
+    image, output = release_bytes(image_path, pins), release_bytes(directory / (label + '.output.bin'), pins)
+    build = release_json(directory / ('development-build.json' if special and development else 'build.json'), pins)
+    schemas = {'native_build_admission': 'hepta.hia.native-build-admission.v1',
+               'store_artifact_profile': 'hepta.hia.store-artifact-profile.v1',
+               'agent_journal': 'hepta.hia.agent-journal-native.v2'}
+    schema = schemas.get(owner, 'hepta.hia.' + owner.replace('_', '-') + '-native.v1')
+    expected_manifest = {'schema': schema, 'source_sha256': source_sha, 'image_path': image_path.name,
+                         'image_sha256': hashlib.sha256(image).hexdigest(), 'compiler_sha256': compiler_sha}
+    size = len(image)
+    if (manifest != expected_manifest or source_sha != sources.get(source_name)
+            or build.get('manifest') != manifest or build.get('native_compile_receipt') != receipt
+            or not 0 < size <= len(output) <= 1048576 or output[:size] != image
+            or release_bytes(directory / (label + '.input.bin'), pins) != source
+            or request != {'capacity': 1048576, 'format': 'flat-x86-64', 'image': str(compiler),
+                'image_sha256': compiler_sha, 'output': str(directory / (label + '.output.bin')),
+                'source': str(directory / (label + '.input.bin')), 'source_sha256': source_sha,
+                'workspace_fill': 0, 'workspace_size': 1048576}
+            or receipt.get('status') != 'returned' or type(receipt.get('abi_status')) is not int
+            or receipt['abi_status'] != 0 or type(receipt.get('core_u32')) is not int or receipt['core_u32'] != size
+            or type(receipt.get('result_u64')) is not int or receipt['result_u64'] != size
+            or receipt.get('format') != 'flat-x86-64' or receipt.get('return_encoding') != 'zero-extended-u32'
+            or receipt.get('output_sha256') != hashlib.sha256(output).hexdigest()
+            or receipt.get('artifact_sha256') != compiler_sha or receipt.get('image_sha256') != compiler_sha
+            or receipt.get('input_sha256') != source_sha or receipt.get('source_sha256') != source_sha
+            or type(receipt.get('input_bytes')) is not int or receipt['input_bytes'] != len(source)
+            or receipt.get('source_unchanged') is not True or receipt.get('forbidden_compiler_modules_loaded') != []
+            or type(receipt.get('produced_bytes')) is not int or receipt['produced_bytes'] != size
+            or receipt.get('produced_sha256') != manifest['image_sha256']
+            or receipt.get('produced_image') != str(image_path)):
+        raise ValueError('delivery actual compiler request, receipt, full output or image differs: ' + owner)
+    if not special:
+        inputs = delivery_literal_values(root / ('tools/build_hia_' + owner + '.py'), ('INPUTS',), pins)['INPUTS']
+        if (type(inputs) is not tuple or any(type(name) is not str for name in inputs)
+                or len(inputs) != len(set(inputs))
+                or build.get('component_inputs') != {name: sources[name] for name in inputs}):
+            raise ValueError('delivery original builder input inventory differs: ' + owner)
+    if development:
+        if (build.get('scope') != 'DEVELOPMENT_COMPONENT'
+                or (special and build.get('matching_current_source_cold_qualified') is not False)
+                or (not special and (build.get('cold_report_sha256') is not None
+                                     or build.get('source_manifest') is not None))):
+            raise ValueError('delivery development evidence has been relabeled')
+    else:
+        if (build.get('cold_report_sha256') != hashlib.sha256(release_bytes(cold_path, pins)).hexdigest()
+                or build.get('source_manifest') != sources
+                or (special and (build.get('status') != 'NATIVE_CANDIDATE_BUILT'
+                                  or build.get('profile') != 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'))
+                or (not special and build.get('scope') != 'MATCHING_SOURCE_COLD_COMPONENT')):
+            raise ValueError('delivery build is not bound to the same current-source cold: ' + owner)
+    return manifest
+
+
+def delivery_custody(directory, root, compiler, sources, pins, *, cold_path=None, development=False, store=False):
+    if type(development) is not bool or development == (cold_path is not None):
+        raise ValueError('delivery custody requires explicit DEV or the real same-run cold')
+    directory = Path(directory)
+    original = delivery_original_inventory(root, pins, store=store)
+    expected_sources = delivery_source_identity(root, sources, original, pins, store=store)
+    owners = (('store_artifact_profile',) if store else ()) + DELIVERY_OWNERS
+    custody = release_json(directory / 'component-custody.json', pins)
+    manifests, build_files = {}, {}
+    for owner in owners:
+        path = directory / ('build-' + owner) / 'manifest.json'
+        delivery_compile_readback(path.parent, owner, root, compiler, sources, pins,
+                                  cold_path=cold_path, development=development)
+        manifests[owner] = str(path)
+        for item in sorted(path.parent.rglob('*')):
+            if item.is_symlink():
+                raise ValueError('delivery captured build contains a symlink')
+            if item.is_file():
+                build_files[str(item)] = hashlib.sha256(release_bytes(item, pins)).hexdigest()
+    schema = 'hepta.hia.' + ('store-native-delivery' if store else 'native-delivery') + '-custody.v1'
+    stable = 'source_compiler_cold_and_build_unchanged' if store else 'source_compiler_and_build_unchanged'
+    if (custody.get('schema') != schema
+            or custody.get('scope') != ('DEVELOPMENT_COMPONENT' if development else 'MATCHING_SOURCE_COLD_COMPONENT')
+            or custody.get('matching_cold_report') != (None if development else str(cold_path))
+            or custody.get('compiler_sha256') != hashlib.sha256(release_bytes(compiler, pins)).hexdigest()
+            or custody.get('manifests') != manifests or release_json(directory / 'manifests.json', pins) != manifests
+            or custody.get('build_files') != build_files or not build_files
+            or custody.get('source_before') != expected_sources or custody.get('source_after') != expected_sources
+            or custody.get(stable) is not True or custody.get('test_result_owned_by_outer_runner') is not True
+            or custody.get('whole_native_delivery_qualified') is not False):
+        raise ValueError('delivery source, compiler, cold or complete build custody differs')
+    if store:
+        if (custody.get('matching_cold_sha256') != (None if development else sha(cold_path))
+                or custody.get('implemented_scope') != 'D4 Store active delivery with explicit D0-D3 dependencies'
+                or any(custody.get(key) is not False for key in (
+                    'artifact_provider_D5_delivery_qualified',
+                    'independent_worker_finally_close_resource_association_qualified',
+                    'opaque_provider_internal_effects_qualified'))):
+            raise ValueError('Store delivery custody overstates the implemented boundary')
+    elif (custody.get('implemented_scope') != ['D0', 'D1', 'D2', 'D3']
+            or custody.get('store_artifact_profile_D4_integrated') is not False
+            or custody.get('remaining_D5_integrated') is not False):
+        raise ValueError('D0-D3 custody overstates its owner boundary')
+    return {'scope': custody['scope'], 'manifests': manifests,
+            'original_inventory': original, 'source_identity': expected_sources,
+            'source_pin_count': len(expected_sources), 'build_pin_count': len(build_files),
+            'custody_verified': True, 'matching_cold_qualified': not development,
+            'whole_native_delivery_qualified': False}
+
+
+def delivery_child_observations(directory, kind, pins, *, store=False):
+    methods = STORE_DELIVERY_METHODS if store else DELIVERY_METHODS
+    directory = Path(directory) / methods[kind]
+    report = release_json(directory / 'observations.json', pins)
+    if (report.get('schema') != 'hepta.hia.' + ('store-native-delivery' if store else 'native-delivery') + '-child.v1'
+            or report.get('kind') != kind or report.get('status') != 'PASS'
+            or json.loads(release_bytes(directory / 'stdout.log', pins)) != {'kind': kind, 'status': 'PASS'}):
+        raise ValueError('delivery child observations or raw completion stdout differs: ' + kind)
+    release_bytes(directory / 'stderr.log', pins)
+    # The child's return code is asserted by its original complete Native class,
+    # not separately serialized here; a PASS JSON alone is never full authority.
+    return report
+
+
+def delivery_headers(rows, *, width=4, events=None, nonempty=True):
+    if (type(rows) is not list or (nonempty and not rows)
+            or any(type(row) is not list or len(row) != width
+                   or any(type(word) is not int or not 0 <= word < 1 << 64 for word in row)
+                   or (events is not None and row[1] not in events) for row in rows)):
+        raise ValueError('delivery actual native entry observations differ')
+    return rows
+
+
+def delivery_math_observations(rows, *, store=False):
+    if (type(rows) is not list or len(rows) != 1 or type(rows[0]) is not dict
+            or set(rows[0]) != {'native_return', 'request_bytes'}
+            or type(rows[0]['native_return']) is not int or type(rows[0]['request_bytes']) is not int
+            or rows[0]['native_return'] <= 0 or rows[0]['request_bytes'] <= 0):
+        raise ValueError('delivery requires the actual returned child arithmetic observation')
+
+
+def delivery_running_request(row):
+    if (type(row) is not dict or row.get('state') != 'running' or row.get('response') is not None
+            or type(row.get('key')) is not str or type(row.get('digest')) is not str
+            or not re.fullmatch('[0-9a-f]{64}', row['key']) or not re.fullmatch('[0-9a-f]{64}', row['digest'])
+            or type(row.get('started_ns')) is not str or not row['started_ns'].isdecimal() or int(row['started_ns']) <= 0):
+        raise ValueError('delivery request intent is not retained as running/unknown')
+
+
+def delivery_store_snapshot_delta(before, retained, after, *, completed, payload_sha):
+    """Check serialized durable rows; the original test owns the live SQLite read."""
+    keys = {'request', 'artifacts', 'profiles', 'costs'}
+    if (any(type(value) is not dict or set(value) != keys for value in (before, retained, after))
+            or any(type(value[key]) is not list for value in (before, retained, after)
+                   for key in ('artifacts', 'profiles', 'costs'))
+            or before['request'] is not None or retained['profiles'] != before['profiles']
+            or len(retained['artifacts']) != len(before['artifacts']) + 1
+            or any(row not in retained['artifacts'] for row in before['artifacts'])
+            or after['request'] != retained['request'] or after['artifacts'] != retained['artifacts']
+            or after['profiles'] != retained['profiles']):
+        raise ValueError('Store delivery durable publication or replay rows differ')
+    added = [row for row in retained['artifacts'] if row not in before['artifacts']]
+    if (len(added) != 1 or added[0].get('sha256') != payload_sha
+            or type(payload_sha) is not str or not re.fullmatch('[0-9a-f]{64}', payload_sha)):
+        raise ValueError('Store delivery durable payload digest differs from its sole added artifact')
+    if completed:
+        if (retained['request'].get('state') != 'completed'
+                or type(retained['request'].get('response')) is not str
+                or len(retained['costs']) != len(before['costs']) + 1
+                or any(row not in retained['costs'] for row in before['costs']) or after != retained):
+            raise ValueError('Store delivery normal request or exact replay differs')
+    else:
+        delivery_running_request(retained['request'])
+        if (retained['costs'] != before['costs'] or len(after['costs']) != len(retained['costs']) + 1
+                or any(row not in after['costs'] for row in retained['costs'])):
+            raise ValueError('Store delivery unknown request cost/intent preservation differs')
+
+
+def delivery_control_observations(directory, root, pins, *, store=False):
+    methods = STORE_DELIVERY_METHODS if store else DELIVERY_METHODS
+    reports = {kind: delivery_child_observations(directory, kind, pins, store=store)
+               for kind in methods if not kind.startswith('installed')}
+    if not store:
+        rows = reports['frames'].get('cases', [])
+        expected = [(parent, ('cost_ledger', 'service_context', 'evaluation')[index % 3], behavior)
+                    for index, parent in enumerate(DELIVERY_OWNERS[:6])
+                    for behavior in ('swallow', 'replace', 'memory')]
+        if [(row.get('parent'), row.get('child'), row.get('behavior')) for row in rows] != expected:
+            raise ValueError('D0-D3 six-family / eighteen original frame cases differ')
+        for row in rows:
+            delivery_headers(row.get('actual_parent_calls'), events={1})
+            delivery_math_observations(row.get('actual_child_calls'))
+            if (row.get('ack_or_foreign_error_ack_after_loss') is not False
+                    or row.get('owner_retained') is not True
+                    or row.get('memory_error_identity_preserved') is not (row['behavior'] == 'memory')):
+                raise ValueError('D0-D3 frame acknowledgement or exception identity differs')
+        cleanup = reports['cleanup'].get('cases', [])
+        ports = delivery_literal_values(Path(root) / 'hepta/hia_emission_protocol.py', ('PORTS',), pins)['PORTS']
+        exit_port = ports.index('compile_exit_exception') + 1
+        if [row.get('behavior') for row in cleanup] != ['suppress', 'replace']:
+            raise ValueError('D0-D3 complete active-except cleanup cases differ')
+        for row in cleanup:
+            calls = delivery_headers(row.get('parent_calls'))
+            delivery_math_observations(row.get('child_calls'))
+            if (row.get('active_exception_identity') != [True, True, True] or row.get('store_effects') != []
+                    or not any(call[1] == 1 and call[3] == exit_port for call in calls)
+                    or any(call[1] in (2, 3) and call[3] == exit_port for call in calls)):
+                raise ValueError('D0-D3 cleanup acknowledged an unconfirmed child effect')
+        safe = reports['safe']
+        confirmed = safe.get('confirmed_arithmetic_followed_by_foreign_error', [])
+        if (type(safe.get('preentry_native_calls')) is not int or safe['preentry_native_calls'] != 0
+                or safe.get('native_refusal_confirmed') is not True
+                or [row.get('owner') for row in confirmed] != list(DELIVERY_OWNERS[:6])
+                or any(row.get('foreign_exception_identity_preserved') is not True
+                       or row.get('confirmed_terminal') != 5 or row.get('loss') is not False for row in confirmed)):
+            raise ValueError('D0-D3 preentry/confirmed foreign exception controls differ')
+        requests = reports['requests'].get('cases', [])
+        if [(row.get('lane'), row.get('behavior')) for row in requests] != [
+                (lane, behavior) for lane in ('ordinary', 'native') for behavior in ('swallow', 'replace', 'memory')]:
+            raise ValueError('D0-D3 both original journal lanes are required')
+        for row in requests:
+            delivery_running_request(row.get('request'))
+            calls = delivery_headers(row.get('calls'), width=2)
+            if (type(row.get('context_count')) is not int or row['context_count'] != 1 or any(call[0] == 3 for call in calls)
+                    or calls[-1] != [2, 44]
+                    or row.get('replay', {}).get('error', {}).get('code') != 'E_HIA_REQUEST_UNKNOWN'
+                    or row.get('error_type') != ('MemoryError' if row['behavior'] == 'memory' else 'NativeDeliveryUnknown')
+                    or row.get('memory_error_identity_preserved') is not (row['behavior'] == 'memory')):
+                raise ValueError('D0-D3 lost SQL ACK was cached, replayed, or reclassified')
+        gaps = reports['journal_gaps'].get('cases', [])
+        expected_gaps = [('ordinary', 'terminal-serialization'), ('native', 'terminal-serialization'),
+                         ('native', 'native-ack'), ('native', 'before-ack-lookup'), ('native', 'foreign-sql')]
+        if (len(gaps) != 9 or [(row.get('lane'), row.get('boundary')) for row in gaps[:5]] != expected_gaps
+                or [(row.get('operation'), row.get('after')) for row in gaps[5:]] != [
+                    (operation, after) for operation in ('reserved', 'committed_inline') for after in (False, True)]):
+            raise ValueError('D0-D3 complete serialization/SQL/exact activation cases differ')
+        for row in gaps[:2]:
+            delivery_running_request(row.get('request'))
+            delivery_math_observations(row.get('child_calls'))
+        for row, observed, count in zip(gaps[2:5], ('actual-native-ack-return', 'lookup-after-running-insert', 'foreign-sql-refusal'), (0, 0, 1)):
+            if row.get('request') is not None or type(row.get('cost_count')) is not int or row['cost_count'] != count or row.get('observed') != [observed]:
+                raise ValueError('D0-D3 original reservation rollback/foreign refusal differs')
+        for row in gaps[5:]:
+            stage = 2 if row['operation'] == 'reserved' else 7
+            calls = row.get('calls')
+            if (row.get('lane') != 'native' or row.get('boundary') != 'exact-ACK-activation'
+                    or row.get('stage') != stage or row.get('active_after_call') is not False
+                    or row.get('memory_error_identity_preserved') is not True
+                    or row.get('complete') is not row['after'] or type(calls) is not list
+                    or any(type(number) is not int for number in calls) or (stage in calls) is not row['after']
+                    or type(row.get('new_lost_records')) is not int
+                    or (row['new_lost_records'] != 0 if row['after'] else row['new_lost_records'] <= 0)):
+                raise ValueError('D0-D3 actual ACK activation confirmation boundary differs')
+            if row['operation'] == 'reserved':
+                if row.get('request') is not None:
+                    raise ValueError('D0-D3 reserved failure fabricated an intent')
+            else:
+                delivery_running_request(row.get('request'))
+        budgets = reports['budgets'].get('cases', [])
+        if len(budgets) != 5:
+            raise ValueError('D0-D3 original execution/candidate budget cases are missing')
+        first = budgets[0]
+        if (first.get('owner') != 'execution' or first.get('entry_events') != [5, 6]
+                or first.get('long_lived_store_constructed_outside_parent') is not True
+                or first.get('stored') != {'context_id': 'context-execution', 'owner': 'a' * 64, 'used_native_ns': '0'}):
+            raise ValueError('D0-D3 execution outcome ACK or owner retention differs')
+        if [(row.get('lane'), row.get('failure')) for row in budgets[1:]] != [
+                (lane, failure) for lane in ('ordinary', 'native') for failure in ('native', 'foreign')]:
+            raise ValueError('D0-D3 complete candidate native/foreign boundary differs')
+        for row in budgets[1:]:
+            if row.get('owner') != 'candidate' or type(row.get('attempts')) is not int or row['attempts'] != 1:
+                raise ValueError('D0-D3 candidate original attempt was refunded or repeated')
+            if row['failure'] == 'native':
+                delivery_running_request(row.get('request'))
+                if row.get('native_events') != [0, 1, 2, 3, 2, 4]:
+                    raise ValueError('D0-D3 candidate actual commit ACK is missing')
+            elif (row.get('native_events') != [] or row.get('request', {}).get('state') != 'completed'
+                    or json.loads(row['request']['response']).get('error', {}).get('code') != 'E_HIA_CANDIDATE_BUDGET_UNKNOWN'):
+                raise ValueError('D0-D3 original foreign SQL refusal was reclassified')
+        ancestry = reports['ancestry']
+        guards = ancestry.get('owner_creator_guards', [])
+        if ([row.get('owner') for row in guards] != list(DELIVERY_OWNERS[:6])
+                or any(row.get('matches_original_direct_guard') is not True or row.get('native_entries') != 0
+                       or row.get('causal_loss') is not False or not row.get('exception_type') or not row.get('message') for row in guards)
+                or any(ancestry.get(key) is not True for key in ('late_frame_current_parent_poisoned',
+                                                              'stale_parent_unpoisoned', 'new_thread_unpoisoned'))
+                or ancestry.get('fork') != {'status': 'PASS', 'old_pid_unchanged': True,
+                                           'inherited_owner_retained': True, 'new_parent_absent': True}):
+            raise ValueError('D0-D3 creator/stale/thread/fork custody differs')
+        delivery_math_observations(ancestry.get('actual_child_calls'))
+        return {'cases_by_kind': {'frames': 18, 'cleanup': 2, 'safe_foreign': 6, 'requests': 6,
+                                 'journal_gaps': 9, 'budgets': 5, 'creator_guards': 6},
+                'actual_child_observations_read_back': True,
+                'child_return_codes_owned_by_complete_original_Native8_assertions': True,
+                'unserialized_SQL_counts_and_post_replay_rows_owned_by_original_methods': True,
+                'all_pairs_of_six_frame_families_claimed': False, 'passed': True}
+
+    rows = reports['frames'].get('cases', [])
+    expected = [(parent, child, behavior, fault) for peer in DELIVERY_OWNERS[:6]
+                for parent, child in (('store_artifact_profile', peer), (peer, 'store_artifact_profile'))
+                for behavior in ('swallow', 'replace') for fault in ('ValueError', 'RuntimeError', 'KeyboardInterrupt')]
+    if ([(row.get('parent'), row.get('child'), row.get('behavior'), row.get('fault_class')) for row in rows] != expected
+            or reports['frames'].get('actual_both_directions') is not True
+            or reports['frames'].get('all_seven_frame_families') is not True):
+        raise ValueError('D4 complete bidirectional Store/six-peer/72-frame matrix differs')
+    for row in rows:
+        parent = delivery_headers(row.get('parent_calls'), width=5, events={1})
+        child = delivery_headers(row.get('child_calls'), width=5)
+        if (len(parent) != 1 or [call[1] for call in child] != [1, 2]
+                or any(call[4] <= 0 for call in parent + child)
+                or any(row.get(key) is not True for key in ('same_actual_loss_origin', 'no_parent_ACK_or_event3',
+                                                           'no_replay_entry', 'unknown_owner_retained'))):
+            raise ValueError('D4 actual child ACK and fenced parent observations differ')
+    ports = delivery_literal_values(Path(root) / 'hepta/hia_store_artifact_profile_protocol.py', ('PORTS',), pins)['PORTS']
+    cleanup = reports['cleanup'].get('cases', [])
+    if ([(row.get('boundary'), row.get('behavior')) for row in cleanup] != [
+            ('literal-public-put', 'swallow'), ('literal-public-put', 'replace'),
+            ('active-except-exit', 'suppress'), ('active-except-exit', 'replace')]
+            or reports['cleanup'].get('native_artifact_provider_D5_exercised') is not False):
+        raise ValueError('D4 complete literal/active-except cleanup boundary differs')
+    for row in cleanup:
+        literal = row['boundary'] == 'literal-public-put'
+        target = ports.index('json_call_put' if literal else 'put_exit_exception') + 1
+        calls = delivery_headers(row.get('parent_and_argument_entries' if literal else 'calls'), width=5)
+        delivery_math_observations(row.get('child_calls'), store=True)
+        if (not any(call[1] == 1 and call[3] == target for call in calls)
+                or any(call[1] in (2, 3) and call[3] == target for call in calls)
+                or not row.get('trace') or (literal and (row.get('ACK_after_loss') is not False
+                    or not any(call[1] == 0 for call in calls)))
+                or (not literal and (row.get('active_exception_identity') != [[True, True, True]]
+                    or row.get('no_cleanup_retry') is not True or row.get('temporary_retained') is not True))):
+            raise ValueError('D4 literal or cleanup loss received an ACK or released custody')
+    initialization = reports['initialization']
+    cases = initialization.get('cases', [])
+    if (len(cases) != 2 or initialization.get('exception_class_used_to_infer_loss') is not False
+            or cases[0] != {'boundary': 'safe-packet-allocation', 'actual_entries': 0,
+                            'owner_reservation_retired': True, 'ancestor_loss': False}
+            or cases[1].get('boundary') != 'actual-init-receipt-loss'
+            or cases[1].get('effect_started') is not False or cases[1].get('init_unknown_owner_retained') is not True
+            or cases[1].get('same_actual_ancestor_origin') is not True or cases[1].get('replay_entries') != []):
+        raise ValueError('D4 preentry and actual init receipt loss were conflated')
+    if len(delivery_headers(cases[1].get('actual_entries'), width=5, events={0})) != 1:
+        raise ValueError('D4 init must record exactly one real native return')
+    safe = reports['safe']
+    foreign = safe.get('confirmed_foreign_cases', [])
+    if [row.get('fault_class') for row in foreign] != [
+            'ValueError', 'MemoryError', 'RuntimeError', 'KeyboardInterrupt', 'SystemExit', 'StoreArtifactProfileUnknown']:
+        raise ValueError('D4 original six foreign exception classes are missing')
+    for row in foreign:
+        calls = delivery_headers(row.get('parent_and_child_entries'), width=5)
+        if (row.get('confirmed_child_phase') != 4 or row.get('parent_confirmed_phase') != 5
+                or row.get('same_exception_object') is not True or row.get('loss') is not False
+                or not any(call[1] == 3 for call in calls)):
+            raise ValueError('D4 confirmed child and original foreign exception identity differ')
+    unavailable = safe.get('foreign_observation_storage', {})
+    delivery_headers(unavailable.get('calls'), width=5, events={1})
+    if (unavailable.get('same_MemoryError_object') is not True or unavailable.get('original_foreign_class') != 'ValueError'
+            or unavailable.get('retained_unknown_observation') is not True or unavailable.get('no_event3') is not True):
+        raise ValueError('D4 failed foreign observation storage was misclassified')
+    ancestry = reports['ancestry']
+    cases = ancestry.get('cases', [])
+    if (len(cases) != 4 or ancestry.get('no_global_custody_clear') is not True
+            or [row.get('boundary') for row in cases] != ['prepared-before-actual-invocation',
+                'implicit-release-between-ports', 'copied-thread-context', 'fork-with-parent-representation-locks-held']
+            or cases[0].get('actual_parent_lost') is not True or cases[0].get('old_parent_lost') is not False
+            or cases[1].get('observed') != [{'actual_owner': True, 'ambient_observation': False,
+                'transport_error_type_preserved': True, 'original_native_cause_preserved': True, 'callback_failure': None}]
+            or cases[1].get('temporary_retained') is not True
+            or cases[2].get('observed') != ['StoreArtifactProfileUnknown-with-zero-entry', 'fresh-independent-finished']
+            or cases[2].get('foreign_thread_cannot_poison_creator') is not True
+            or cases[3] != {'boundary': 'fork-with-parent-representation-locks-held', 'status': 'PASS',
+                           'fresh_parent': None, 'inherited_creator_unchanged': True, 'inherited_owner_retained': True}):
+        raise ValueError('D4 prepared/implicit-release/thread/fork attribution differs')
+    delivery_math_observations(cases[0].get('actual_child_calls'), store=True)
+    delivery_math_observations(cases[1].get('child_calls'), store=True)
+    delivery_headers(cases[1].get('calls'), width=5)
+    delivery_headers(cases[2].get('fresh_thread_actual_entries'), width=5)
+    requests = reports['requests']
+    rows = requests.get('cases', [])
+    if (requests.get('ordinary_and_native_journal_lanes') is not True
+            or requests.get('resources_retained_until_disposable_process_exit') is not True
+            or [(row.get('lane'), row.get('behavior')) for row in rows] != [
+                (lane, behavior) for lane in ('ordinary', 'native') for behavior in ('swallow', 'replace', 'memory')]):
+        raise ValueError('D4 complete two-journal six-case durable request matrix differs')
+    for row in rows:
+        delivery_math_observations(row.get('actual_peer_calls'), store=True)
+        calls = delivery_headers(row.get('Store_calls'), width=5)
+        if (row.get('MemoryError_identity_preserved') is not (row['behavior'] == 'memory')
+                or row.get('raised') != ('MemoryError' if row['behavior'] == 'memory' else 'StoreArtifactProfileUnknown')
+                or type(row.get('actual_publication_inserts')) is not int or row['actual_publication_inserts'] != 1 or any(call[1] == 3 for call in calls)
+                or row.get('replay_Store_entries') != []
+                or row.get('replay', {}).get('error', {}).get('code') != 'E_HIA_REQUEST_UNKNOWN'
+                or row.get('native_artifact_provider_D5_not_selected') is not True):
+            raise ValueError('D4 actual publication loss was completed, repeated, or reclassified')
+        delivery_store_snapshot_delta(row.get('before'), row.get('retained_before_replay'), row.get('after_replay'),
+                                      completed=False, payload_sha=row.get('durable_payload_sha256'))
+    return {'cases_by_kind': {'frames': 72, 'cleanup': 4, 'initialization': 2,
+                             'safe_foreign': 6, 'foreign_observation_storage': 1, 'ancestry': 4, 'requests': 6},
+            'actual_child_observations_read_back': True,
+            'child_return_codes_owned_by_complete_original_Native8_assertions': True,
+            'durable_rows_are_original_live_read_snapshots_not_a_new_SQL_execution': True,
+            'provider_D5_and_independent_worker_close_qualified': False, 'passed': True}
+
+
+def delivery_counter_line(path, prefix, pins):
+    raw = release_bytes(path, pins)
+    rows = [line[len(prefix):] for line in raw.splitlines() if line.startswith(prefix)]
+    if len(rows) != 1:
+        raise ValueError('delivery raw child stderr lacks its unique actual counter record')
+    return json.loads(rows[0])
+
+
+def delivery_worker_observations(directory, report, shared_sha, pins, *, store=False, adapter_sha=None):
+    """Bind serialized observations to the real worker/replay stdout and stderr."""
+    directory = Path(directory)
+    modes = ['exit'] if report.get('kind') == 'installed_process' else ['normal', 'swallow', 'replace']
+    rows = report.get('cases', [])
+    if ([row.get('mode') for row in rows] != modes
+            or report.get('all_D0_D3_owners_exercised_in_installed_child') is not False
+            or report.get('whole_native_delivery_qualified') is not False):
+        raise ValueError('delivery installed case inventory or scope differs')
+    if store:
+        if (report.get('scope') != 'actual installed worker; Store publication effect invokes context arithmetic; native journal'
+                or any(report.get(key) is not True for key in ('startup_and_request_entries_separated',
+                    'retained_Store_and_journal_bodies_forbidden_in_actual_child',
+                    'authoring_and_test_imports_forbidden_in_actual_child'))
+                or any(report.get(key) is not False for key in ('provider_internal_post_effect_delivery_qualified',
+                    'independent_worker_finally_close_resource_link_qualified', 'remaining_D5_integrated'))):
+            raise ValueError('D4 installed report overstates its provider/worker scope')
+    elif report.get('scope') != 'actual installed worker; emission to context; native request journal':
+        raise ValueError('D0-D3 installed scope differs')
+    prefix = b'D4_COUNTS=' if store else b'DELIVERY_COUNTS='
+    actual_rows = []
+    for row in rows:
+        mode = row['mode']
+        first = release_bytes(directory / ('worker-' + mode + '.stdout'), pins)
+        replay = release_bytes(directory / ('replay-' + mode + '.stdout'), pins)
+        counts = delivery_counter_line(directory / ('worker-' + mode + '.stderr'), prefix, pins)
+        replay_counts = delivery_counter_line(directory / ('replay-' + mode + '.stderr'), prefix, pins)
+        replay_report = json.loads(replay)
+        if (counts != row.get('counts') or replay_counts != row.get('replay_counts')
+                or replay_report != row.get('replay_report')
+                or replay_report.get('schema') != 'hia-agent-worker-report-v1'
+                or replay_report.get('complete') is not True
+                or replay_report.get('tool') != ('hia_artifact' if store else 'hia_emit')
+                or replay_report.get('native_helpers_sha256') != report.get('bundle_sha256')
+                or type(row.get('worker_exit')) is not int
+                or counts.get('shared_module_sha256') != shared_sha
+                or replay_counts.get('shared_module_sha256') != shared_sha):
+            raise ValueError('delivery worker raw observations or pinned bundle/source differ')
+        if store:
+            scalar_counts = {'Store_unknown_frames', 'lost_returns', 'publication_inserts',
+                             'shared_lost_records', 'shared_pending_native_records', 'swallowed'}
+            for current in (counts, replay_counts):
+                if (set(current) != scalar_counts | {'startup', 'request', 'shared_module_sha256', 'Store_adapter_sha256'}
+                        or current.get('Store_adapter_sha256') != adapter_sha
+                        or any(type(current[key]) is not int or current[key] < 0 for key in scalar_counts)
+                        or any(type(current.get(phase)) is not dict or set(current[phase]) != {'store', 'context', 'journal'}
+                               or any(type(value) is not int or value < 0 for value in current[phase].values())
+                               for phase in ('startup', 'request'))):
+                    raise ValueError('D4 actual startup/request counters or installed adapter digest differ')
+            if (counts['startup']['store'] <= 0 or any(counts['request'][name] <= 0 for name in ('store', 'context', 'journal'))
+                    or counts['publication_inserts'] != 1 or replay_counts['startup']['store'] <= 0
+                    or replay_counts['request']['store'] != 0 or replay_counts['request']['context'] != 0
+                    or replay_counts['publication_inserts'] != 0 or replay_counts['lost_returns'] != 0
+                    or type(row.get('replay_exit')) is not int or row['replay_exit'] != 0
+                    or row.get('native_artifact_provider_not_selected_or_qualified') is not True
+                    or row.get('independent_worker_finally_close_preserved_not_resource_fenced') is not True):
+                raise ValueError('D4 actual first request/replay entries or provider boundary differs')
+            delivery_store_snapshot_delta(row.get('before'), row.get('retained_before_replay'), row.get('after_replay'),
+                                          completed=mode == 'normal', payload_sha=row.get('durable_payload_sha256'))
+            payload = ('installed D4 durable artifact — 雪 ' + mode).encode()
+            if hashlib.sha256(payload).hexdigest() != row['durable_payload_sha256']:
+                raise ValueError('D4 durable artifact is not the original installed control payload')
+            if mode == 'normal':
+                first_report = json.loads(first)
+                if (row['worker_exit'] != 0 or first_report != row.get('worker_report')
+                        or first_report.get('response', {}).get('status') != 'completed'
+                        or first_report.get('native_helpers_sha256') != report['bundle_sha256']
+                        or first_report.get('response') != replay_report.get('response')
+                        or json.loads(row['retained_before_replay']['request']['response']) != first_report['response']
+                        or counts['lost_returns'] != 0 or counts['shared_lost_records'] != 0):
+                    raise ValueError('D4 normal actual worker completion or exact replay differs')
+            else:
+                if (first != b'' or row.get('worker_report') is not None
+                        or row['worker_exit'] != (73 if mode == 'exit' else 1) or counts['lost_returns'] != 1
+                        or replay_report.get('response', {}).get('error', {}).get('code') != 'E_HIA_REQUEST_UNKNOWN'):
+                    raise ValueError('D4 process/native loss did not remain an unknown intent')
+                if mode == 'exit':
+                    if counts['shared_pending_native_records'] < 1 or counts['swallowed'] != 0:
+                        raise ValueError('D4 process exit lacks its pending actual native handoff')
+                elif counts['swallowed'] != 1 or counts['shared_lost_records'] < 3 or counts['Store_unknown_frames'] < 1:
+                    raise ValueError('D4 swallowed/replaced actual child loss was not causally retained')
+        else:
+            numeric = {'context', 'emission', 'journal', 'lost', 'swallowed', 'unknown_records'}
+            for current in (counts, replay_counts):
+                if (set(current) != numeric | {'shared_module_sha256'}
+                        or any(type(current[name]) is not int or current[name] < 0 for name in numeric)):
+                    raise ValueError('D0-D3 installed actual counter shape differs')
+            if (any(counts[name] <= 0 for name in ('context', 'emission', 'journal'))
+                    or any(replay_counts[name] != 0 for name in ('context', 'emission', 'lost'))):
+                raise ValueError('D0-D3 installed selected entries or no-reentry replay differs')
+            if mode == 'normal':
+                first_report = json.loads(first)
+                if (row['worker_exit'] != 0 or first != replay
+                        or first_report.get('response', {}).get('status') != 'completed'
+                        or row.get('request', {}).get('state') != 'completed'
+                        or json.loads(row['request']['response']) != first_report['response']
+                        or counts['lost'] != 0 or counts['unknown_records'] != 0):
+                    raise ValueError('D0-D3 actual normal worker or byte-exact replay differs')
+            else:
+                delivery_running_request(row.get('request'))
+                if (row['worker_exit'] == 0 or first != b'' or counts['lost'] != 1 or counts['swallowed'] != 1
+                        or counts['unknown_records'] < 3
+                        or replay_report.get('response', {}).get('error', {}).get('code') != 'E_HIA_REQUEST_UNKNOWN'):
+                    raise ValueError('D0-D3 installed native loss was cached as a response')
+        actual_rows.append({'mode': mode, 'worker_exit': row['worker_exit'], 'counts': counts,
+                            'replay_counts': replay_counts, 'replay_exit': row.get('replay_exit') if store else None})
+    return {'actual_worker_modes': modes, 'actual_counts_and_raw_logs': actual_rows,
+            'replay_exit_separately_serialized': store,
+            'unserialized_replay_exit_and_live_DB_equality_owned_by_original_method': not store,
+            'actual_child_owner_scope': ['store_artifact_profile', 'service_context', 'agent_journal'] if store
+                                       else ['service_context', 'emission', 'agent_journal'],
+            'all_D0_D3_owners_exercised_in_installed_child': False,
+            'provider_D5_and_independent_worker_close_qualified': False, 'passed': True}
+
+
+def delivery_installation(directory, root, manifests, sources, pins, *, store=False, process_loss=False):
+    kind = 'installed_process' if process_loss else 'installed'
+    report = delivery_child_observations(directory, kind, pins, store=store)
+    directory = Path(directory) / (STORE_DELIVERY_METHODS if store else DELIVERY_METHODS)[kind]
+    root = Path(root)
+    wheels = sorted((directory / 'wheels').glob('*.whl'))
+    if len(wheels) != 1 or report.get('wheel') != str(wheels[0]):
+        raise ValueError('delivery requires the one actual built and installed wheel')
+    wheel = wheels[0]
+    files, distribution = release_wheel(wheel, pins)
+    wheel_sha = pins[str(wheel.resolve())]
+    if report.get('wheel_sha256') != wheel_sha:
+        raise ValueError('delivery wheel hash differs')
+    product_names = [name for name in files if name.startswith('hepta/')]
+    for name in product_names:
+        source_name = name.removeprefix('hepta/_data/') if name.startswith('hepta/_data/') else name
+        expected = release_bytes(root / source_name, pins)
+        if files[name] != expected or (source_name in sources and hashlib.sha256(expected).hexdigest() != sources[source_name]):
+            raise ValueError('delivery packaged product bytes differ from admitted source: ' + name)
+    installed = directory / 'installed'
+    observed = {}
+    for path in sorted(installed.rglob('*')):
+        if path.is_symlink():
+            raise ValueError('delivery actual installation contains a symlink')
+        if path.is_file():
+            observed[path.relative_to(installed).as_posix()] = hashlib.sha256(release_bytes(path, pins)).hexdigest()
+    installation = require_release_installation(installed, observed, files, distribution, wheel, wheel_sha, pins)
+    shared_sha = sources['hepta/hia_native_delivery.py']
+    if store:
+        expected_installed = {}
+        for name in ('hepta/hia_native_delivery.py', 'hepta/hia_store_artifact_profile_native.py',
+                     'hepta/hia_store_artifact_profile_protocol.py'):
+            body = files[name]
+            expected_installed[name] = {'bytes': len(body), 'sha256': hashlib.sha256(body).hexdigest(),
+                'wheel_record': [name, 'sha256=' + base64.urlsafe_b64encode(hashlib.sha256(body).digest()).rstrip(b'=').decode(), str(len(body))]}
+        if report.get('installed_files') != expected_installed:
+            raise ValueError('D4 installed three-file source/RECORD observation differs')
+    elif (report.get('installed_shared_module') != str(installed / 'hepta/hia_native_delivery.py')
+            or report.get('installed_shared_sha256') != shared_sha):
+        raise ValueError('D0-D3 installed shared module differs')
+    constants = delivery_literal_values(root / 'hepta/hia_native_helpers.py', ('SCHEMA', 'TARGET', 'ABI'), pins)
+    owners = ('store_artifact_profile', 'service_context', 'agent_journal') if store else ('service_context', 'emission', 'agent_journal')
+    expected_bundle = {'schema': constants['SCHEMA'], 'target': constants['TARGET'], 'abi': constants['ABI'],
+        'helpers': [{'selector': 'HEPTA_HIA_' + owner.upper() + '_MANIFEST', 'manifest_path': manifests[owner],
+                     'manifest_sha256': hashlib.sha256(release_bytes(manifests[owner], pins)).hexdigest()} for owner in owners]}
+    bundle_path = directory / 'bundle.json'
+    if (report.get('bundle') != str(bundle_path) or release_json(bundle_path, pins) != expected_bundle
+            or report.get('bundle_sha256') != pins[str(bundle_path.resolve())]):
+        raise ValueError('delivery installed bundle changes the actual three selected manifests')
+    case_source = root / ('tests/hia_store_native_delivery_cases.py' if store else 'tests/hia_native_delivery_cases.py')
+    if store:
+        script = delivery_literal_values(case_source, ('INSTALLED_CONTROL',), pins)['INSTALLED_CONTROL']
+    else:
+        tree = ast.parse(release_bytes(case_source, pins))
+        function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == '_installed')
+        assignments = [node.value for node in function.body if isinstance(node, ast.Assign)
+                       and any(isinstance(target, ast.Name) and target.id == 'script' for target in node.targets)]
+        if len(assignments) != 1:
+            raise ValueError('delivery original installed worker script declaration differs')
+        script = ast.literal_eval(assignments[0])
+    if (type(script) is not str or release_bytes(directory / 'worker-control.py', pins) != script.encode()
+            or (store and report.get('worker_control_sha256') != hashlib.sha256(script.encode()).hexdigest())):
+        raise ValueError('delivery real child poison/instrumentation script differs from its full original method')
+    for name in ('wheel.stdout', 'wheel.stderr', 'install.stdout', 'install.stderr'):
+        release_bytes(directory / name, pins)
+    worker = delivery_worker_observations(directory, report, shared_sha, pins, store=store,
+        adapter_sha=sources['hepta/hia_store_artifact_profile_native.py'] if store else None)
+    drift_readback = None
+    if process_loss:
+        row, = report['cases']
+        drift = row.get('source_drift', {})
+        original = files['hepta/_data/examples/hia_bootstrap/store_artifact_profile.hepta']
+        counts = delivery_counter_line(directory / 'source-drift.stderr', b'D4_COUNTS=', pins)
+        release_bytes(directory / 'source-drift.stdout', pins)
+        if (type(drift.get('worker_exit')) is not int or drift['worker_exit'] == 0
+                or drift.get('counts') != counts or drift.get('exact_change') != 'one appended LF'
+                or drift.get('before_sha256') != hashlib.sha256(original).hexdigest()
+                or drift.get('after_sha256') != hashlib.sha256(original + b'\n').hexdigest()
+                or counts.get('shared_module_sha256') != shared_sha
+                or counts.get('Store_adapter_sha256') != sources['hepta/hia_store_artifact_profile_native.py']
+                or any(type(counts.get(phase)) is not dict or set(counts[phase]) != {'store', 'context', 'journal'}
+                       or any(type(value) is not int or value != 0 for value in counts[phase].values())
+                       for phase in ('startup', 'request'))):
+            raise ValueError('D4 exact installed LF drift or zero-entry refusal differs')
+        # Unlike older owner fixtures, this control restores the original byte
+        # string in finally; the actual installed tree above must match wheel.
+        drift_readback = {'exact_appended_LF_digests_verified': True, 'installed_source_restored_and_wheel_exact': True,
+                          'worker_exit': drift['worker_exit'], 'startup_and_request_entries_zero': True,
+                          'unserialized_post_drift_DB_equality_owned_by_original_method': True}
+    return {'wheel': str(wheel), 'wheel_sha256': wheel_sha, 'packaged_product_members_verified': len(product_names),
+            'installation': installation, 'worker': worker, 'source_drift': drift_readback,
+            'test_body_rerun': False, 'whole_native_delivery_qualified': False, 'passed': True}
+
+
+def require_native_delivery_component(directory, root, cold_path, compiler, sources, pins, *, store=False):
+    """Production entry: DEV is never an acceptable substitute for same cold."""
+    if cold_path is None:
+        raise ValueError('delivery full-discovery admission requires the same current-source cold report')
+    cold = release_json(cold_path, pins)
+    if cold.get('source_manifest') != sources or cold.get('status') != 'COLD_SELFHOST_REPLAY_PASS':
+        raise ValueError('delivery full-discovery cold identity differs')
+    custody = delivery_custody(directory, root, compiler, sources, pins, cold_path=cold_path, store=store)
+    controls = delivery_control_observations(directory, root, pins, store=store)
+    installed = delivery_installation(directory, root, custody['manifests'], sources, pins, store=store)
+    process_loss = (delivery_installation(directory, root, custody['manifests'], sources, pins, store=True, process_loss=True)
+                    if store else None)
+    return {'scope': custody['scope'], 'source_pin_count': custody['source_pin_count'],
+            'build_pin_count': custody['build_pin_count'], 'manifests': custody['manifests'],
+            'controls': controls, 'installed': installed, 'installed_process_loss': process_loss,
+            'complete_original_Native8_authority_required': True, 'source_cold_build_custody_verified': True,
+            'focused_test_bodies_rerun_by_supplement': False, 'D4_original_Store11_separate_gate_required': store,
+            'remaining_D5_qualified': False, 'whole_native_delivery_qualified': False, 'passed': True}
+
+
+def delivery_description_subset(discovery, ordered_ids):
+    rows = discovery.get('test_descriptions', [])
+    indexed = {row['id']: row for row in rows}
+    if len(indexed) != len(rows) or len(set(ordered_ids)) != len(ordered_ids) or not ordered_ids:
+        raise ValueError('delivery original discovery descriptions are duplicate or empty')
+    if any(name not in indexed or name not in discovery.get('planned_test_ids', []) for name in ordered_ids):
+        raise ValueError('delivery original method is absent from the unchanged complete discovery')
+    return {'planned_test_ids': ordered_ids, 'test_descriptions': [indexed[name] for name in ordered_ids]}
+
+
+def delivery_caller_method_log(directory, ordered_ids, expected_scope, discovery, pins):
+    """Read every original caller method from its own retained verbose log."""
+    directory = Path(directory)
+    report = release_json(directory / 'report.json', pins)
+    if (report.get('status') != 'PASS' or report.get('scope') != expected_scope
+            or not (report.get('planned') == report.get('started') == report.get('stopped') == ordered_ids)
+            or not ordered_ids or len(set(ordered_ids)) != len(ordered_ids)
+            or type(report.get('actual_tests')) is not int or report['actual_tests'] != len(ordered_ids)
+            or any(report.get(key) != [] for key in ('errors', 'failures', 'skipped',
+                'expected_failures', 'unexpected_successes', 'reference_calls'))
+            or report.get('source_and_bundle_unchanged') is not True
+            or report.get('original_test_budgets_changed') is not False
+            or report.get('reference_poison_scope') != 'test process; subprocesses inherit selector, not Python patches'
+            or report.get('whole_native_delivery_qualified') is not False):
+        raise ValueError('delivery complete original caller method observations differ')
+    log = release_bytes(directory / 'tests.log', pins)
+    identity = audit_verbose_stderr(log, delivery_description_subset(discovery, ordered_ids))
+    if identity.get('equivalent') is not True:
+        raise ValueError('delivery retained caller tests.log differs from its complete original methods')
+    return {'complete_original_method_count': len(ordered_ids), 'ordered_ids_sha256': ids_digest(ordered_ids),
+            'actual_verbose_log': str(directory / 'tests.log'), 'actual_verbose_sha256': hashlib.sha256(log).hexdigest(),
+            'native_entries_and_full_source_build_readback_required_separately': True,
+            'same_cold_qualified': expected_scope.startswith('MATCHING_SOURCE_COLD_'), 'passed': True}
+
+
+def delivery_gate_readback(directory, group, root, compiler, expected_sources, original, discovery, pins, *,
+                           cold_path=None, development=False, development_manifests=None, python_executable=None):
+    """Strict original 152 / six-group supervisor and raw-log readback, with explicit scope."""
+    if (group not in ('components', 'callers') or type(development) is not bool
+            or development == (cold_path is not None) or type(python_executable) is not str or not python_executable):
+        raise ValueError('delivery group readback requires the exact group, interpreter and source scope')
+    directory, root, compiler = Path(directory), Path(root), Path(compiler)
+    report = release_json(directory / 'report.json', pins)
+    scope = ('EXPLICIT_DEVELOPMENT_D0_D3_' if development else 'MATCHING_SOURCE_COLD_D0_D3_') + group.upper()
+    selectors = list(DELIVERY_COMPONENT_MODULES) if group == 'components' else [
+        'tools/qualify_hia_' + name + '_callers.py' for name in DELIVERY_CALLERS]
+    records = report.get('stages', [])
+    compiler_sha = hashlib.sha256(release_bytes(compiler, pins)).hexdigest()
+    expected_manifest_pins = {}
+    if development:
+        if type(development_manifests) is not dict or set(development_manifests) != set(DELIVERY_OWNERS):
+            raise ValueError('delivery DEV readback requires all actual focused same-source manifest paths')
+        for owner in DELIVERY_OWNERS:
+            path = Path(development_manifests[owner])
+            manifest = release_json(path, pins)
+            image = path.parent / manifest['image_path']
+            raw = release_bytes(image, pins)
+            if (image.resolve().parent != path.resolve().parent
+                    or manifest.get('source_sha256') != expected_sources['examples/hia_bootstrap/' + owner + '.hepta']
+                    or manifest.get('compiler_sha256') != compiler_sha
+                    or manifest.get('image_sha256') != hashlib.sha256(raw).hexdigest()):
+                raise ValueError('delivery original group DEV image/source identity differs')
+            expected_manifest_pins[str(path)] = pins[str(path.resolve())]
+            expected_manifest_pins[str(image)] = pins[str(image.resolve())]
+    elif development_manifests is not None:
+        raise ValueError('delivery cold group cannot accept development manifests')
+    if (report.get('schema') != 'hepta.hia.native-delivery-gate.v1' or report.get('status') != 'PASS'
+            or report.get('scope') != scope or report.get('outer_allowance_seconds') != 1800
+            or type(report.get('elapsed_seconds')) not in (int, float) or not 0 <= report['elapsed_seconds'] < 1800
+            or report.get('compiler_sha256') != compiler_sha
+            or report.get('source_before') != expected_sources or report.get('source_after') != expected_sources
+            or report.get('source_and_build_unchanged') is not True or report.get('manifest_pins') != expected_manifest_pins
+            or report.get('original_registry_count_adjustments') != original['registry_count_adjustments']
+            or report.get('original_assertions_inputs_and_timeouts_changed') is not False
+            or report.get('whole_native_delivery_qualified') is not False
+            or [row.get('selector') for row in records] != selectors):
+        raise ValueError('delivery original group is incomplete, changed, over budget, or not in the required source scope')
+    result, all_ids = [], []
+    for index, record in enumerate(records, 1):
+        selector = record['selector']
+        stem = f'{index:02d}-' + selector.replace('/', '_').replace('.', '_')
+        if group == 'components':
+            path = directory / (stem + '.json')
+            selection = ['--development-compiler', str(compiler)] if development else ['--cold-report', str(cold_path)]
+            command = [python_executable, '-B', str(root / 'tools/qualify_hia_native_delivery.py'),
+                       '--group', group, '--evidence', str(directory), '--execute-module', selector,
+                       '--stage-report', str(path), *selection]
+        else:
+            owner = DELIVERY_CALLERS[index - 1]
+            if owner == 'agent_journal':
+                path = directory / 'agent-journal-callers.json'
+                selection = (['--manifest', development_manifests[owner], '--development'] if development
+                             else ['--cold-report', str(cold_path)])
+                command = [python_executable, '-B', str(root / selector), '--output', str(path), *selection]
+            else:
+                path = directory / (owner + '-callers') / 'report.json'
+                selection = (['--development-manifest', development_manifests[owner]] if development
+                             else ['--cold-report', str(cold_path)])
+                command = [python_executable, '-B', str(root / selector), '--evidence', str(path.parent), *selection]
+        expected_journal_env = (development_manifests['agent_journal'] if development
+                                and selector == 'tests.test_hia_agent_journal_native' else None)
+        stdout = release_bytes(directory / (stem + '.stdout'), pins)
+        stderr = release_bytes(directory / (stem + '.stderr'), pins)
+        if (record.get('command') != command or record.get('status') != 'PASS'
+                or type(record.get('exit_code')) is not int or record['exit_code'] != 0
+                or type(record.get('supervised_pid')) is not int or record['supervised_pid'] <= 0
+                or record.get('timed_out') is not False or record.get('report') != str(path)
+                or record.get('report_present') is not True
+                or record.get('owned_process_group_killed_on_timeout') is not False
+                or record.get('cleanup_pipes_unconfirmed') is not False
+                or record.get('escaped_process_sessions_qualified') is not False
+                or record.get('journal_development_manifest_environment') != expected_journal_env
+                or record.get('stdout_sha256') != hashlib.sha256(stdout).hexdigest()
+                or record.get('stderr_sha256') != hashlib.sha256(stderr).hexdigest()):
+            raise ValueError('delivery stage command, process result or actual stdout/stderr differs: ' + selector)
+        observed = release_json(path, pins)
+        if observed.get('status') != 'PASS':
+            raise ValueError('delivery stage report is missing or not PASS: ' + selector)
+        if group == 'components':
+            planned = original['component_ordered_ids'][selector]
+            if (observed.get('schema') != 'hepta.hia.native-delivery-stage.v1'
+                    or observed.get('selector') != selector
+                    or not (observed.get('planned') == observed.get('started') == observed.get('stopped') == planned)
+                    or observed.get('outcomes') != [[name, 'ok'] for name in planned]
+                    or type(observed.get('testsRun')) is not int or observed['testsRun'] != len(planned)
+                    or observed.get('unstarted') != [] or observed.get('unterminated') != []
+                    or observed.get('anomalies') != {key: [] for key in ('errors', 'failures', 'skipped', 'expectedFailures', 'unexpectedSuccesses')}
+                    or observed.get('source_before') != expected_sources or observed.get('source_after') != expected_sources
+                    or observed.get('source_unchanged') is not True
+                    or observed.get('original_registry_count_adjustments') != original['registry_count_adjustments']
+                    or observed.get('original_deadlines_changed') is not False
+                    or type(observed.get('elapsed_seconds')) not in (int, float)
+                    or not 0 <= observed['elapsed_seconds'] < 1800):
+                raise ValueError('delivery complete original module observations differ: ' + selector)
+            all_ids.extend(planned)
+        else:
+            planned = observed.get('chosen_test_ids') if owner == 'agent_journal' else observed.get('planned')
+            if type(planned) is not list or not planned:
+                raise ValueError('delivery original caller inventory is absent')
+        # The five owner callers intentionally write tests.log; their outer
+        # stderr is still captured and hashed, but is not a method transcript.
+        # Only the unchanged journal caller uses its process stderr directly.
+        method_log = path.parent / 'tests.log' if group == 'callers' and owner != 'agent_journal' else directory / (stem + '.stderr')
+        method_raw = release_bytes(method_log, pins)
+        identity = audit_verbose_stderr(method_raw, delivery_description_subset(discovery, planned))
+        if identity.get('equivalent') is not True:
+            raise ValueError('delivery actual original verbose log is incomplete or reordered: ' + selector)
+        result.append({'selector': selector, 'report': str(path), 'report_sha256': pins[str(path.resolve())],
+                       'method_count': len(planned), 'ordered_ids_sha256': ids_digest(planned),
+                       'raw_stderr_sha256': hashlib.sha256(stderr).hexdigest(),
+                       'method_log': str(method_log), 'method_log_sha256': hashlib.sha256(method_raw).hexdigest(),
+                       'complete_verbose_identity_verified': True})
+    if group == 'components' and (len(all_ids) != 152 or len(set(all_ids)) != 152):
+        raise ValueError('delivery group did not execute all 152 frozen original methods')
+    return {'scope': scope, 'group': group, 'stages': result,
+            'complete_original_method_count': 152 if group == 'components' else sum(row['method_count'] for row in result),
+            'outer_allowance_seconds': 1800, 'elapsed_seconds': report['elapsed_seconds'],
+            'same_cold_qualified': not development, 'escaped_process_sessions_qualified': False,
+            'all_original_assertions_inputs_and_timeouts_unchanged': True,
+            'whole_native_delivery_qualified': False, 'passed': True}
+
+
+def delivery_journal_callers(directory, root, sources, discovery, journal_manifest, pins):
+    """The unchanged journal qualifier deletes its temporary build; do not invent a receipt."""
+    directory, root = Path(directory), Path(root)
+    report = release_json(directory / 'agent-journal-callers.json', pins)
+    modules = delivery_literal_values(root / 'tools/qualify_hia_agent_journal_callers.py', ('DEFAULT_MODULES',), pins)['DEFAULT_MODULES']
+    if type(modules) is not tuple or len(modules) != 8 or len(set(modules)) != 8:
+        raise ValueError('delivery journal requires its eight complete original modules')
+    planned = [name for module in modules for name in discovery['planned_test_ids'] if name.startswith(module + '.')]
+    if any(not any(name.startswith(module + '.') for name in planned) for module in modules):
+        raise ValueError('delivery journal original module is absent from full discovery')
+    manifest = release_json(journal_manifest, pins)
+    names = ('hepta/hia_agent_journal_native.py', 'hepta/hia_agent_service.py', 'hepta/hia_agent_store.py',
+             'hepta/hia_agent_contract.py', 'tools/generate_hia_agent_journal.py',
+             'tools/qualify_hia_agent_journal_callers.py', 'examples/hia_bootstrap/agent_journal.hepta')
+    source_pins = {name: hashlib.sha256(release_bytes(root / name, pins)).hexdigest() for name in names}
+    tools = delivery_literal_values(root / 'hepta/hia_agent_journal_native.py', ('TOOLS',), pins)['TOOLS']
+    drivers, stages, by_test = (report.get(name) for name in ('selected_driver_calls', 'actual_native_stage_returns', 'per_test_entries'))
+    if (report.get('schema') != 'hepta.hia.agent-journal-selected-callers.v1'
+            or report.get('status') != 'PASS' or report.get('scope') != 'MATCHING_SOURCE_COLD_SELECTED_CALLERS'
+            or not (report.get('loaded_test_ids') == report.get('chosen_test_ids') == report.get('executed_test_ids') == planned)
+            or any(type(report.get(key)) is not int or report[key] != len(planned) for key in ('tests_run', 'tests_loaded', 'tests_chosen'))
+            or report.get('explicit_development_exclusions') != {}
+            or any(report.get(key) != [] for key in ('failures', 'errors', 'skipped', 'expected_failures', 'unexpected_successes'))
+            or report.get('manifest') != manifest or report.get('image_sha256') != manifest.get('image_sha256')
+            or report.get('source_sha256') != source_pins
+            or any(name in sources and sources[name] != digest for name, digest in source_pins.items())
+            or report.get('retained_call_owner_forbidden') is not True
+            or report.get('all_eleven_tools_entered_selected_driver') is not True
+            or report.get('subprocesses_inherit_selector') is not True
+            or any(report.get(key) is not False for key in ('subprocess_stage_entries_in_parent_counters',
+                                                          'default_whole_regression_claimed', 'sqlite_durability_replaced'))
+            or type(drivers) is not dict or not set(tools[:-1]) <= set(drivers)
+            or any(type(value) is not int or value <= 0 for value in drivers.values())
+            or type(stages) is not dict or not stages or any(type(key) is not str or not key.isdecimal()
+                or type(value) is not int or value <= 0 for key, value in stages.items())
+            or type(by_test) is not dict or not set(by_test) <= set(planned) | {'outside-test'}):
+        raise ValueError('delivery complete journal caller inventory/source/native observations differ')
+    for counts in by_test.values():
+        if type(counts) is not dict or not set(counts) <= {'selected_driver', 'native_stage'} or any(type(value) is not int or value <= 0 for value in counts.values()):
+            raise ValueError('delivery per-test journal actual counters differ')
+    if (sum(drivers.values()) != sum(row.get('selected_driver', 0) for row in by_test.values())
+            or sum(stages.values()) != sum(row.get('native_stage', 0) for row in by_test.values())):
+        raise ValueError('delivery journal global counters differ from all original test observations')
+    return {'complete_original_modules': list(modules), 'complete_original_method_count': len(planned),
+            'ordered_ids_sha256': ids_digest(planned), 'selected_driver_calls': drivers, 'actual_native_stage_returns': stages,
+            'actual_caller_embedded_manifest_matches_same_cold_focused_image': True,
+            'caller_temporary_build_receipt_retained': False,
+            'cold_builder_admission_owned_by_unchanged_original_caller_command': True,
+            'subprocess_native_entries_in_parent_counters': False, 'passed': True}
+
+
+def require_native_delivery_group(directory, group, root, cold_path, compiler, sources, discovery, pins, focused_manifests):
+    if cold_path is None:
+        raise ValueError('delivery production supplemental groups require the actual same-run cold')
+    original = delivery_original_inventory(root, pins)
+    expected_sources = delivery_source_identity(root, sources, original, pins)
+    record = delivery_gate_readback(directory, group, root, compiler, expected_sources, original, discovery, pins,
+                                   cold_path=cold_path, python_executable=sys.executable)
+    if group == 'components':
+        record['existing_component_build_and_effect_assertions_owned_by_complete_original_152'] = True
+        return record
+    readers = {'service_context': require_service_context_caller_observations,
+               'cost_ledger': require_cost_ledger_caller_observations,
+               'evaluation': require_evaluation_caller_observations,
+               'native_build_admission': require_native_build_admission_callers,
+               'emission': require_emission_callers}
+    scopes = {'service_context': 'MATCHING_SOURCE_COLD_ORIGINAL_SERVICE_CONTEXT_CALLERS',
+              'cost_ledger': 'MATCHING_SOURCE_COLD_SEVEN_ORDINARY_COST_LEDGER_CALLER_MODULES',
+              'evaluation': 'MATCHING_SOURCE_COLD_SEVEN_ORDINARY_EVALUATION_CALLER_MODULES',
+              'native_build_admission': 'MATCHING_SOURCE_COLD_NINE_ORDINARY_NATIVE_BUILD_ADMISSION_CALLER_MODULES',
+              'emission': 'MATCHING_SOURCE_COLD_NINE_ORDINARY_EMISSION_CALLER_MODULES'}
+    caller_readbacks = {}
+    for owner in DELIVERY_CALLERS[:-1]:
+        child = Path(directory) / (owner + '-callers')
+        observed = release_json(child / 'report.json', pins)
+        if observed.get('scope') != scopes[owner]:
+            raise ValueError('delivery original caller did not select this same-source cold: ' + owner)
+        manifest_path = child / 'qualified/manifest.json'
+        delivery_compile_readback(manifest_path.parent, owner, root, compiler, sources, pins, cold_path=cold_path)
+        method_log = delivery_caller_method_log(child, observed['planned'], scopes[owner], discovery, pins)
+        caller_readbacks[owner] = {'actual_method_log': method_log,
+                                  'unchanged_owner_reader': readers[owner](child, root, sources, discovery, manifest_path, pins)}
+    caller_readbacks['agent_journal'] = delivery_journal_callers(directory, root, sources, discovery,
+                                                                focused_manifests['agent_journal'], pins)
+    record['complete_six_caller_group_readbacks'] = caller_readbacks
+    record['existing_five_caller_reader_bodies_reused_unchanged'] = True
+    record['journal_caller_actual_image_compared_to_retained_same_cold_focused_build'] = True
+    return record
+
+
 def supplemental(args):
     """Run additional caller gates and original bounded CLI qualification."""
     require_native_runner()
@@ -4470,6 +5567,7 @@ def supplemental(args):
     native_build_dispatch = None
     emission = None
     store_artifact_profile = None
+    native_delivery = store_native_delivery = None
     sha_image_bound = False
     try:
         if read_pinned_json(args.target, pins) != target:
@@ -4559,6 +5657,10 @@ def supplemental(args):
         store_artifact_profile = require_store_profile_component(retained / "store-artifact-profile", root,
                                                                  cold_path, compiler, sources, pins)
         added_components["store-artifact-profile"] = store_artifact_profile["manifest"]
+        native_delivery = require_native_delivery_component(retained / "native-delivery", root, cold_path,
+                                                            compiler, sources, pins)
+        store_native_delivery = require_native_delivery_component(retained / "store-native-delivery", root, cold_path,
+                                                                  compiler, sources, pins, store=True)
         discovery_root = retained / "cli-discovery-json"
         for name in ("CliDiscoveryJsonNativeTests", "CliDiscoverySelectionFixture"):
             fixture_path = discovery_root / name / "cold-fixture/FIXTURE.json"
@@ -4635,8 +5737,15 @@ def supplemental(args):
             ("store-artifact-profile-callers", ["tools/qualify_hia_store_artifact_profile_callers.py",
                 "--cold-report", str(cold_path), "--evidence", str(output / "store-artifact-profile-callers")], {}),
         )
+        native_delivery_jobs = (
+            ("native-delivery-components", ["tools/qualify_hia_native_delivery.py", "--group", "components",
+                "--cold-report", str(cold_path), "--evidence", str(output / "native-delivery-components")], {}),
+            ("native-delivery-caller-groups", ["tools/qualify_hia_native_delivery.py", "--group", "callers",
+                "--cold-report", str(cold_path), "--evidence", str(output / "native-delivery-caller-groups")], {}),
+        )
         for name, arguments, selection in (*jobs, *service_context_jobs, *cost_ledger_jobs, *evaluation_jobs,
-                                           *native_build_admission_jobs, *emission_jobs, *store_artifact_profile_jobs):
+                                           *native_build_admission_jobs, *emission_jobs, *store_artifact_profile_jobs,
+                                           *native_delivery_jobs):
             command = [sys.executable, "-B", *arguments]
             record = {"name": name, "command": command, "passed": False}
             try:
@@ -4780,6 +5889,12 @@ def supplemental(args):
                                                     INPUTS, root, compiler, sources, pins)
                         record["store_artifact_profile_original_observations"] = require_store_profile_callers(
                             output / name, root, sources, discovery, manifest_path, cold_path, pins)
+                elif name in ("native-delivery-components", "native-delivery-caller-groups"):
+                    group = "components" if name == "native-delivery-components" else "callers"
+                    record["native_delivery_original_gate_readback"] = require_native_delivery_group(
+                        output / name, group, root, cold_path, compiler, sources, discovery, pins,
+                        native_delivery["manifests"])
+                    record["passed"] = bool(record["passed"] and record["native_delivery_original_gate_readback"]["passed"])
                 elif name == "cli-discovery-original-groups":
                     from tools import qualify_hia_cli_discovery_json as original_discovery
                     report = read_pinned_json(output / name / "REPORT.json", pins)
@@ -4875,7 +5990,9 @@ def supplemental(args):
                   and native_build_dispatch is not None and native_build_dispatch["passed"]
                   and emission is not None and emission["passed"]
                   and store_artifact_profile is not None and store_artifact_profile["passed"]
-                  and len(commands) == 16 and all(row["passed"] for row in commands))
+                  and native_delivery is not None and native_delivery["passed"]
+                  and store_native_delivery is not None and store_native_delivery["passed"]
+                  and len(commands) == 18 and all(row["passed"] for row in commands))
     write_json(output / "supplemental-result.json", {
         "schema": "hepta.hia.same-cold-supplemental-callers.v1", "target": target,
         "scope": "MISSING_CALLER_GATES_AND_PRODUCTION_SHA_BINDING_AFTER_UNCHANGED_ORIGINAL_FULL",
@@ -4892,9 +6009,13 @@ def supplemental(args):
         "native_build_dispatch_full_discovery_artifact_readback": native_build_dispatch,
         "emission_full_discovery_artifact_readback": emission,
         "store_artifact_profile_full_discovery_artifact_readback": store_artifact_profile,
+        "native_delivery_full_discovery_artifact_readback": native_delivery,
+        "store_native_delivery_full_discovery_artifact_readback": store_native_delivery,
         "production_sha_image_matches_actual_executed_differential_image": sha_image_bound,
         "commands": commands, "captured_inputs": pins, "original_35_stages_modified": False,
-        "original_component_test_suites_rerun": False,
+        "original_component_test_suites_rerun": True,
+        "original_component_rerun_scope": "complete eleven original modules / 152 methods in added delivery job 17",
+        "new_focused_delivery_suites_rerun_by_supplement": False,
         "original_10_supplemental_jobs_modified": False,
         "service_context_job_11_modified": False,
         "cost_ledger_job_12_modified": False,
@@ -4903,6 +6024,9 @@ def supplemental(args):
         "emission_job_15_added": True,
         "emission_job_15_modified": False,
         "store_artifact_profile_job_16_added": True,
+        "store_artifact_profile_job_16_modified": False,
+        "native_delivery_complete_original_152_job_17_added": True,
+        "native_delivery_complete_six_caller_groups_job_18_added": True,
         "service_context_original_caller_gate_attempted": any(
             row["name"] == "service-context-callers" for row in commands),
         "cost_ledger_seven_ordinary_caller_gate_attempted": any(
@@ -5263,7 +6387,10 @@ def audit_copy_tar_payload(stream, manifest, manifest_raw):
             else:
                 if member.name not in expected_directories or member.size != 0:
                     raise ValueError("audit copy replaced an original file with a directory")
-                expected = directories.get(member.name.removeprefix("evidence/"), {})
+                # The staging root is not the original audit/evidence directory,
+                # whose recorded member is evidence/evidence. Its actual metadata
+                # still participates in both complete tar reads and ordered hash.
+                expected = {} if member.name == "evidence" else directories.get(member.name.removeprefix("evidence/"), {})
             if ("mode_octal" in expected and member.mode != int(expected["mode_octal"], 8)
                     or "mtime_ns" in expected and mtime_ns != expected["mtime_ns"]):
                 raise ValueError("audit copy changed recorded original modes or nanosecond timestamps")

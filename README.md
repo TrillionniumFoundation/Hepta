@@ -1,12 +1,21 @@
 # Complete retained HIA qualification harness
 
-This successor is prepared from published harness
-`1e0231dd4cf8821ccae67a96de86ba6e986e6ae5` for the actually published product
+This delivery successor is prepared from published harness
+`dd55bb5c9a7af5fe0f33910c43461e4d01cdd1d1`, tree
+`dce39ae4ddc854bbcd446a0e13398518cb5462ba`.
+The immutable product target is the actually published commit
+`04492c20356b459d003152fc8b71b4c7d90e4244`, tree
+`4e45e5118880dda99249ee37000d04d82e2994f9`. This metadata-only successor of
+`5da589f0bf6444c2c0acd95e2ba778c7e4ae1cfd`, tree
+`c612c8795f59d1726ef404b5e9d678c69869ad87`, synchronizes the generated language
+coverage and support inventories. All production, HIA, tests and workflow bytes
+remain those of 5da. That shared-delivery implementation's parent is
 `c0195643083e1d4c68679237edfa77143dc7b1c6`, tree
-`7a37b1ced47251fdc58e50624a5f77be56af374a`. That immutable target adds the
-complete eight-method Store artifact/profile owner on the allocation/emission
-parent `7076ec13acd7433b7def7deeb7b62e6fcbe70103`.
-Preparation and raw Git identity checks are not preflight or qualification.
+`7a37b1ced47251fdc58e50624a5f77be56af374a`, which introduced the complete
+eight-method Store artifact/profile owner. The new target adds the shared
+delivery controls while retaining the recorded original Store HOLD results.
+Target/source identity checks and static reader QA are not cold or full-suite
+qualification.
 No development result, earlier target or moving branch substitutes for the
 actual target's complete source admission, same-run cold or original full suite.
 
@@ -54,10 +63,108 @@ methods to that same first full discovery, plus a fifteenth supplemental command
 over all 112 frozen ordinary callers. Readback retains 954 original cases, six
 independent VM comparisons, native/foreign failure controls, the actual installed
 emission worker and the separate source-process eight-owner composition. It does
-not rerun these component methods or credit development evidence as current cold.
+not rerun these component methods within the original fifteen supplemental commands or credit development evidence as current cold.
 The default-release native class constructs and installs its candidate wheel
 within full discovery. The supplement only reads back that real artifact and
 its already executed original callers; it adds no command or test rerun.
+
+
+## Shared native-delivery acceptance
+
+The delivery extension preserves every original stage, owner-specific reader,
+first sixteen supplemental command tuples, supervisor limit and archive path.
+Its existing-function changes are confined to source/discovery wiring and the
+supplemental dispatcher. A separate archive-reader correction below changes one
+additional function. The original `run()`, `collect()`, complete `audit_copy()`
+driver, gzip archive, XZ settings and upload workflow remain unchanged.
+
+`NativeDeliverySourceTests` and `StoreNativeDeliverySourceTests` each contribute
+all three methods to the first extracted Source tuple. Their complete Native
+classes each contain eight methods and first run in the unchanged full discovery.
+`HEPTA_HIA_NATIVE_DELIVERY_COLD_REPORT` and
+`HEPTA_HIA_STORE_NATIVE_DELIVERY_COLD_REPORT` name the actual report produced by
+this run. Separate evidence directories retain both classes' original child
+stdout/stderr, nine- and ten-image builds, source/compiler custody, installed
+wheels and actual worker observations. Development compiler variables are
+removed before discovery. A production reader cannot accept DEV evidence.
+
+Two supplemental commands follow the unchanged first sixteen:
+
+| Command | Unchanged product qualifier | Required complete scope | Original group allowance |
+| --- | --- | --- | --- |
+| 17: native-delivery-components | `qualify_hia_native_delivery.py --group components` | Eleven frozen original modules, all 152 ordered methods | 1,800 seconds total |
+| 18: native-delivery-caller-groups | `qualify_hia_native_delivery.py --group callers` | Service context, cost ledger, evaluation, native/build admission, emission and journal; every group's complete original inventory | 1,800 seconds total |
+
+These explicit groups repeat the complete original component and caller gates
+as required by the delivery qualification. They do not repeat the two new
+focused Native classes or replace the original 35 stages. The final full
+regression remains at 5,400 seconds. Inner test budgets, inputs, skip rules,
+child process limits and the original cold/CLI 180+3-second boundaries are
+unchanged. Each new group retains its own original remaining-time supervisor;
+no per-module reset of that group allowance is introduced.
+
+Readback requires every frozen original ID to start and finish successfully in
+order, all stage JSONs and original raw logs, no timeout or unconfirmed pipe
+cleanup, exact source/compile/image identities and the same current cold.
+The five owner callers write their method transcripts to `tests.log`; the
+journal caller writes its transcript to the process stderr. Both these actual
+method logs and the group's raw stdout/stderr are retained and checked. A
+missing JSON, changed scope, skipped method or an incomplete six-group report
+is a rejection, never a partial PASS.
+
+The unchanged journal caller deletes its temporary build. Its recorded actual
+image hash and embedded manifest must equal the retained journal image built
+by the same-cold focused class. This comparison does not invent a retained
+caller-specific compiler receipt. The existing five detailed owner caller
+readers retain their original source, input, counters and bundle checks.
+
+Focused readback covers the D0-D3 frame, cleanup, journal, budget and ancestry
+cases and D4's 72 bidirectional Store/peer loss cases, literal calls, active
+exceptions, initialization, confirmed foreign errors, implicit releases,
+thread/fork ancestry and both journals' durable unknown-intent behavior.
+Actual worker receipts distinguish startup and request entries where the
+original D4 control records them. Exact worker scripts, real wheels, RECORDs,
+installed product bytes, three-owner bundles and raw counter lines must match.
+D4's process-loss control records exit 73 and an unknown request whose replay
+makes no Store/context request entry. Its packaged-source drift appends exactly
+one LF, observes rejection before native entry, and then restores the original
+bytes; the retained installation must therefore remain wheel-exact.
+
+The focused child return codes are asserted by the complete original Native
+methods and are not separately serialized. D0-D3's installed replay return
+code and post-replay database equality likewise remain original-method
+assertions; D4 does serialize its first/replay exit codes and durable snapshots.
+The reader distinguishes these boundaries and does not infer missing fields
+from an empty stdout or a PASS marker.
+
+Both focused classes, the original full suite, the unchanged original Store
+class and all original caller gates must pass independently. Focused delivery
+success cannot offset the original Store warm-call failures or an unrelated
+original regression. The installed controls exercise their stated three-owner
+bundles, not every owner. Publisher-internal post-effect loss, independent
+worker-finally resource association and the remaining D5 boundary stay outside
+this qualification; it is not a claim of whole-native delivery or a complete
+HIA-only implementation.
+
+## Archive root metadata correction
+
+The original `audit_copy_tar_payload()` confused the staging tar member
+`evidence` with the recorded original directory whose manifest key is
+`evidence` and whose actual tar member is `evidence/evidence`. It compared the
+staging root's mode and nanosecond timestamp with that child directory's
+metadata, rejecting a valid complete archive when those values differed.
+The corrected lookup treats only the staging root as an implicit directory.
+Every recorded original file and directory still receives the same strict
+mode, nanosecond timestamp, type, size and hash comparisons.
+
+The staging root's real mode and timestamp still enter both complete tar reads
+and the ordered-member hash. The unchanged full-copy driver additionally
+requires exact decoded tar bytes, including padding. A change to root metadata
+between the original and copied tar is therefore still a rejection. No original
+manifest, timestamp, gzip payload, qualification result or upload condition is
+rewritten. The historical failed run stays failed; the correction has only a
+small synthetic tar regression at preparation time, pending the next actual
+complete archive and current-source full run.
 
 ## Freeze and publish
 
