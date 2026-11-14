@@ -1,0 +1,51 @@
+--- R1/harness/.github/workflows/custody.yml
++++ R2/harness/.github/workflows/custody.yml
+@@ -18,7 +18,7 @@
+         id: capture
+         env:
+           GITHUB_TOKEN: ${{ github.token }}
+-          CUSTODY_a9b1e8cd53ec362f4206e951ed329eeb141089a1a4d63e33ffce5291b0b1943d256: a9b1e8cd53ec362f4206e951ed329eeb141089a1a4d63e33ffce5291b0b1943d
++          CUSTODY_SCRIPT_SHA256: a9b1e8cd53ec362f4206e951ed329eeb141089a1a4d63e33ffce5291b0b1943d
+           PYTHONDONTWRITEBYTECODE: '1'
+         run: python3 -I -S -B harness/tools/retain_original.py "$GITHUB_WORKSPACE/relay"
+       - name: Preserve complete original reports and all custody observations
+--- R1/freeze_metadata.py
++++ R2/freeze_metadata.py
+@@ -63,7 +63,7 @@
+         id: capture
+         env:
+           GITHUB_TOKEN: ${{ github.token }}
+-          CUSTODY_SCRIPT_SHA256: SCRIPT_SHA
++          CUSTODY_SCRIPT_SHA256: __CUSTODY_SCRIPT_DIGEST_VALUE__
+           PYTHONDONTWRITEBYTECODE: '1'
+         run: python3 -I -S -B harness/tools/retain_original.py "$GITHUB_WORKSPACE/relay"
+       - name: Preserve complete original reports and all custody observations
+@@ -76,7 +76,27 @@
+           if-no-files-found: error
+           compression-level: 6
+           retention-days: 90
+-'''.replace('SCRIPT_SHA', pin(SCRIPT)['sha256'])
++'''
++    placeholder_line = '          CUSTODY_SCRIPT_SHA256: __CUSTODY_SCRIPT_DIGEST_VALUE__\n'
++    digest = pin(SCRIPT)['sha256']
++    actual_line = '          CUSTODY_SCRIPT_SHA256: ' + digest + '\n'
++    assert workflow.count(placeholder_line) == 1
++    workflow = workflow.replace(placeholder_line, actual_line, 1)
++    assert '__CUSTODY_SCRIPT_DIGEST_VALUE__' not in workflow
++    assert workflow.count('        env:\n') == 1
++    env_text = workflow.split('        env:\n', 1)[1].split('        run:', 1)[0]
++    env_rows = [line[10:].split(': ', 1) for line in env_text.splitlines()]
++    assert all(line.startswith('          ') for line in env_text.splitlines())
++    assert len(env_rows) == len(dict(env_rows)) == 3
++    assert dict(env_rows) == {'GITHUB_TOKEN': '${{ github.token }}',
++                             'CUSTODY_SCRIPT_SHA256': digest,
++                             'PYTHONDONTWRITEBYTECODE': "'1'"}
++    runtime_reads = [node for node in ast.walk(parsed)
++                     if isinstance(node, ast.Call)
++                     and ast.dump(node.func) == ast.dump(ast.parse('os.environ.get', mode='eval').body)
++                     and node.args and isinstance(node.args[0], ast.Constant)
++                     and node.args[0].value == 'CUSTODY_SCRIPT_SHA256']
++    assert len(runtime_reads) == 1
+     for i in range(10):
+         workflow += '''      - name: Preserve original ZIP byte span NUM
+         if: ${{ always() && hashFiles('relay/parts/part-NUM.bin') != '' }}

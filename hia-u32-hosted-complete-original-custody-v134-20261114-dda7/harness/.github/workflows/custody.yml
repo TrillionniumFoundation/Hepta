@@ -1,0 +1,123 @@
+name: Preserve exact completed u32 original artifact without product execution
+on:
+  push:
+    branches: [codex/hia-u32-original-custody-v134-r1-20261114-dda7]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  original-artifact-custody:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Receive and preserve only the fixed completed original artifact
+        id: capture
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CUSTODY_SCRIPT_SHA256: a9b1e8cd53ec362f4206e951ed329eeb141089a1a4d63e33ffce5291b0b1943d
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 -I -S -B harness/tools/retain_original.py "$GITHUB_WORKSPACE/relay"
+      - name: Preserve complete original reports and all custody observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: u32-original-reports-43579403463-${{ github.run_id }}-${{ github.run_attempt }}
+          path: relay/reports
+          include-hidden-files: true
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 90
+      - name: Preserve original ZIP byte span 000
+        if: ${{ always() && hashFiles('relay/parts/part-000.bin') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: u32-original-span-43579403463-${{ github.run_id }}-${{ github.run_attempt }}-000
+          path: relay/parts/part-000.bin
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 90
+      - name: Preserve original ZIP byte span 001
+        if: ${{ always() && hashFiles('relay/parts/part-001.bin') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: u32-original-span-43579403463-${{ github.run_id }}-${{ github.run_attempt }}-001
+          path: relay/parts/part-001.bin
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 90
+      - name: Preserve original ZIP byte span 002
+        if: ${{ always() && hashFiles('relay/parts/part-002.bin') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: u32-original-span-43579403463-${{ github.run_id }}-${{ github.run_attempt }}-002
+          path: relay/parts/part-002.bin
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 90
+      - name: Preserve original ZIP byte span 003
+        if: ${{ always() && hashFiles('relay/parts/part-003.bin') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: u32-original-span-43579403463-${{ github.run_id }}-${{ github.run_attempt }}-003
+          path: relay/parts/part-003.bin
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 90
+      - name: Preserve original ZIP byte span 004
+        if: ${{ always() && hashFiles('relay/parts/part-004.bin') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: u32-original-span-43579403463-${{ github.run_id }}-${{ github.run_attempt }}-004
+          path: relay/parts/part-004.bin
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 90
+      - name: Preserve original ZIP byte span 005
+        if: ${{ always() && hashFiles('relay/parts/part-005.bin') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: u32-original-span-43579403463-${{ github.run_id }}-${{ github.run_attempt }}-005
+          path: relay/parts/part-005.bin
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 90
+      - name: Preserve original ZIP byte span 006
+        if: ${{ always() && hashFiles('relay/parts/part-006.bin') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: u32-original-span-43579403463-${{ github.run_id }}-${{ github.run_attempt }}-006
+          path: relay/parts/part-006.bin
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 90
+      - name: Preserve original ZIP byte span 007
+        if: ${{ always() && hashFiles('relay/parts/part-007.bin') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: u32-original-span-43579403463-${{ github.run_id }}-${{ github.run_attempt }}-007
+          path: relay/parts/part-007.bin
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 90
+      - name: Preserve original ZIP byte span 008
+        if: ${{ always() && hashFiles('relay/parts/part-008.bin') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: u32-original-span-43579403463-${{ github.run_id }}-${{ github.run_attempt }}-008
+          path: relay/parts/part-008.bin
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 90
+      - name: Preserve original ZIP byte span 009
+        if: ${{ always() && hashFiles('relay/parts/part-009.bin') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: u32-original-span-43579403463-${{ github.run_id }}-${{ github.run_attempt }}-009
+          path: relay/parts/part-009.bin
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 90

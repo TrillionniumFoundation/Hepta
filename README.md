@@ -1,37 +1,40 @@
-# HIA 原生重写进度 — v141
+# HIA 原生重写进度 — v142
 
-冻结时间：2026-11-14 10:41:14 UTC。前一提交：`9bd3bbd52f09f535708532dc38c3e4c7196dd905`。完整范围、历史及证据见 [STATE.json](STATE.json)。
+冻结时间：2026-11-14 11:10:37 UTC。前一提交：`ff5d32027796e599b8d9cf8ea8fe0269c3516b2e`。完整历史与边界见 [STATE.json](STATE.json)。
 
-**整套原生资格未闭合，旧生产套未删除。** 原测试、断言、燃料、期限和历史失败保留。
+**整套 HIA 原生资格尚未闭合，旧生产实现未删除。** 原测试、断言、燃料、期限、历史失败及未执行项均保留。
 
-| 实际范围 | 结果 |
+| 实际范围 | 当前结论 |
 |---|---|
-| Inspect Source18 | 原Source10加独立Source8：18方法、36事件、21子测试PASS；两组180+3、exit0/ECHILD |
-| Source18完整原件 | 54文件、12目录、9823915字节、43CAS、5分片；Root全20叶Git读回及原字节/模式/七stat/路径集通过 |
-| 原Inspect编译 | 一次PASS，120231字节image；原20秒/1MiB，固定旧B3开发编译，非当前cold |
-| 原Native17/VM12 | 实际Native12：11PASS、1ERROR；首败停止，5Native及12VM未启动，无重试 |
-| u32完整原资格 | 5052/5052、38阶段；原报告、owner、完整源及原归档读回PASS，限显式固定子集 |
-| u32完整原归档 | 1270286664原ZIP字节、4945成员、4941原文件mode、3180源、86组实际六缓冲区逐项核对 |
-| 空间恢复 | 追加408份已归档PASS展开原件回收；1222非目标原件未变；28份全过程记录完整Git保管 |
+| Inspect Source18 | 原 Source10 + 独立 Source8：18 方法、36 事件、21 子测试 PASS |
+| Inspect 首次 Native | 一次编译 PASS；实际 12 方法为 11 PASS / 1 ERROR；余 5 Native 和全部 12 VM 未启动 |
+| 失败原件完整 Git 保管 | 168 分片 + 8 元数据；58140 文件、17 目录、104908020 原字节；完整恢复及全部 12882 调用六缓冲区回读通过 |
+| Inspect drive R3 | 五行未应用修复通过两轮代码阅读，独立物化与生成 runner 编写中；尚无后继产品结果 |
+| CLI op10 | 三份新增代码已完整阅读，12 组实际控制编写中；尚无 token、port、编译或测试执行 |
+| u32 原固定资格 | 5052/5052、38 阶段、完整原 ZIP 4945 成员、3180 源及 86 次六缓冲区观察均已核对 |
+| u32 原件小文件 | 96 文件 / 7152829 字节完整 Git 解码，Root 对原字节、模式、七 stat 核对通过 |
+| u32 后续门禁 | 普通编码回归、20 项入口布局、新当前源码 cold、R8/aggregate 均有精确缺口，不能从 5052 子集推定通过 |
 
-## Inspect 当前失败
+## Inspect 的实际失败和修复范围
 
-provider/protocol第二项在owner.finish(second)报“native machine-plan observation lacks its actual acknowledgement”。原drive直接step，第二frame已有未service的真实pending。nonce4实际仅有启动及返回4294967293的退役拒绝，没有claim/ACK。原确认检查应保留，不能伪造确认或删测试。
+原 provider/protocol 第二项在 `owner.finish(second)` 报缺少真实确认。第二 frame 已产生 pending，但继承的 drive 先调用 step，尚未 service。nonce4 实际仅有启动和退役拒绝，没有 claim 或 ACK；其所有权仍为 unknown。三个进程 owner 的 ECHILD 清理不证明该 frame 正常退役。
 
-Root独立核完58127证据文件、12882机器调用的全部BEFORE/AFTER及32261个完整buffer（解码62780560字节），当前3187/3188源字节/模式/七stat与8guard相同。三个owner均完整ECHILD清理、返回0/0/1；进程清理不等于失败frame正常退役。完整失败原件本机无损封存，Git运输中。仅提议在独立后继Inspect.drive中通过原service处理既有pending后推进；尚无修复资格。
+五行后继方法先使用原每帧物理入口保护，只有 pending 存在且尚未执行时才调用原 service，再交回原 drive 完成真实 ACK。原 service、step、finish、ContinuationFrame、测试和预算不变；没有直接写入 ACK 或补造帧状态。新代码增加的调用帧及其可观察性边界明确保留。新源码及证据范围为独立 `/dev/shm/hia-inspect-drive-r3-dda7`，不改动已归档旧失败根。
 
-原workspace Source18入口因真实空间不足在Popen前拒绝，保存拒绝又遇ENOSPC，原记录保留。后继只将证据置于核过身份的固定/dev/shm根，源、运行时、预算、1GiB门不变。Source8合成控制不替代Native17。
+Root 原终态检查已覆盖 58127 证据文件、全部 12882 次调用和 32261 个完整缓冲区。新增完整 Git 保管还覆盖封存程序、实际封存失败修正和传输记录；Root 对全部 176 叶全文与 hash 再核对，并完整阅读实际恢复程序。额外重复的 Root 内存拼接因耗时中止，不作第二次 Root 归档恢复通过声明；实际 executor 完整恢复和 Root 原终态检查保持独立范围。
 
-## u32 资格和原件边界
+## CLI op10 尚处作者阶段
 
-原产品run43579403463保持唯一执行；本地原180秒超时不改写。独立保管run43582958164拆分原ZIP，十段以单128MiB缓存读回，零产品重跑、没有第二整ZIP或源码树。
+新增三文件提供预先签发的真实 Inspect 定义记录、原 op35 导入实际模块操作数捕获及 op10 分派。正向要求真实六映像 CLI 和实际 Inspect HIA 调用；缺失/伪造记录、模块替换、定义漂移、参数求值重入和确认丢失等路径均须实际控制。三个新增文件尚须纳入实际完整实现/源码闭包。原 Source10、Source8、CLI43 和旧三项字节及 IDs 保留。代码阅读不计作执行通过。
 
-17 fresh参考有B0前完成时间戳；两observer原收据、最终报告同值及冻结串行producer调用/写入先于seed已核，但无独立completion timestamp。owner exit0/ECHILD，cleanup5870611ns。四份unbound计划全文等冻结R2，155个pointer正逆完整字节一致；98报告和NODE原字节相同。86组实际六缓冲区及六代image/output prefix均核对通过。
+## u32 源码谱系与剩余门禁
 
-源树4c62be4ed66ff107fa6f88c6131313a354868bd9；B1/B2/B3为658860字节、SHA56cddd318fbdd7cd269c103fa70c8061d43a3bf9130e877961a5b8af2078c764。该5052门不替代ordinary encoding、entry layout、匹配当前源cold、R8或whole。11个大二进制ZIP保存在本机及实际Actions run，未声称全数已作为Git blob发布。内层归档本体已全hash/CRC读取，未声称再次展开或执行。
+当前资格的 3180 文件等于实际 R19 的 3175 个原身份加五个 u32 路径，不是后来的 R20 树。原生产静态 SOURCE_FILES 仍有 1400 项，未包含这五个路径；此前完整 3180 清单确实绑定了它们，但新 cold 的 owner、reader、asset 闭包仍需补齐。
 
-## 继续闭合
+最窄下一步是显式 source 参数投影的原入口布局函数，保持完整 20 check keys、24 次编译、4 次 executable 自复现及 8 个资源引用。资源 VM 使用原默认 **1000000 steps**，不是 10M；其余原 15s executable、20s/10 CPU/1MiB 编译和 180+3 owner 保留。实际方法 ID 作为来源记录，不谎称原固定 SOURCE 的 unittest 已测试新源。
 
-修复Inspect恢复驱动并完成原Native17/VM12、CLI op10/Service；匹配当前源cold及R8/aggregate；原预算下namespace失败；默认CLI、Worker、Service、Store、外部运行时、安装构建和所有生产入口。全链实际通过后才退役生产旧套。
+新 cold 尚无生产 producer/strict reader/selector/正反控。R8 尚无新编码实 image；原 162 Native、6 独立 VM 及 aggregate 140 IDs 不能继承 R5 或旧七 pipeline 的结果。最终源码闭包应先冻结，再执行真实 current-cold，避免把临时树或旧 B3 改标签当新冷启动。
 
-[Source18终态](root-v141-records/ROOT-SOURCE18-TERMINAL.json) · [完整Git读回](root-source18/ROOT-SOURCE18-GIT-CUSTODY.json) · [Native失败读回](root-native-terminal/ROOT-NATIVE-TERMINAL-FAILURE.json)
+u32 两 observer 的完整收据和冻结串行顺序已核；没有独立完成时间戳，与 17 个 fresh reference 进程时间戳证明分别记录。11 个大 ZIP 仍保存在本机和实际 Actions，尚未声称全部二进制 Git 保管。11 份带签名下载引用原件仅私有本机完整 hash/mode/stat 核对，未发布内容。
+
+[Inspect 失败完整保管](inspect-private-r2-native-failure/MOUNT-RECIPE.json) · [Root 保管核对](root-native-failure-custody/ROOT-NATIVE-FAILURE-CUSTODY-REVIEW.json) · [u32 小原件核对](root-u32-complete-custody/ROOT-U32-COMPLETE-CUSTODY-REVIEW.json) · [后续门禁计划](hia-u32-remaining-gates-author-plan-20261114-dda7/PLAN.md)
