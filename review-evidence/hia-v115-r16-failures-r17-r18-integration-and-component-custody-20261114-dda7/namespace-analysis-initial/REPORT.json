@@ -1,0 +1,5424 @@
+{
+  "candidate_implemented": false,
+  "cost_estimates_not_hard_lower_bounds": [
+    {
+      "multiplication_ns": 3327095884,
+      "observed_scan_count": 98,
+      "single_owned_map_wall_ns": 33949958
+    },
+    {
+      "multiplication_ns": 3349751034,
+      "observed_scan_count": 98,
+      "single_owned_map_wall_ns": 34181133
+    }
+  ],
+  "fresh_domain": {
+    "bytes": 51971962,
+    "extension_distribution": {
+      "": {
+        "bytes": 1078,
+        "paths": 1
+      },
+      ".5-4B__LICENSE": {
+        "bytes": 11544,
+        "paths": 1
+      },
+      ".S": {
+        "bytes": 63314,
+        "paths": 12
+      },
+      ".c": {
+        "bytes": 14478,
+        "paths": 4
+      },
+      ".cpp": {
+        "bytes": 36295,
+        "paths": 2
+      },
+      ".gz": {
+        "bytes": 182803,
+        "paths": 1
+      },
+      ".hepta": {
+        "bytes": 29982776,
+        "paths": 206
+      },
+      ".in": {
+        "bytes": 11021,
+        "paths": 1
+      },
+      ".jinja": {
+        "bytes": 7816,
+        "paths": 1
+      },
+      ".json": {
+        "bytes": 1246409,
+        "paths": 46
+      },
+      ".ld": {
+        "bytes": 366,
+        "paths": 2
+      },
+      ".lock": {
+        "bytes": 10982,
+        "paths": 1
+      },
+      ".md": {
+        "bytes": 1246826,
+        "paths": 128
+      },
+      ".py": {
+        "bytes": 16473562,
+        "paths": 990
+      },
+      ".rs": {
+        "bytes": 33260,
+        "paths": 4
+      },
+      ".toml": {
+        "bytes": 839,
+        "paths": 2
+      },
+      ".txt": {
+        "bytes": 509976,
+        "paths": 19
+      },
+      ".xz": {
+        "bytes": 726696,
+        "paths": 3
+      },
+      ".yml": {
+        "bytes": 128895,
+        "paths": 4
+      },
+      ".zip": {
+        "bytes": 1283026,
+        "paths": 1
+      }
+    },
+    "paths": 1429
+  },
+  "inputs": [
+    {
+      "bytes": 40880,
+      "git_blob": "fb44d09c3b3f8e3d603ba25df5cd3fe495db9f0c",
+      "mode": "0o644",
+      "path": "/workspace/scratch/dda74a4fae35/v94-native-namespace-budget-r1/ci-components-r1/actual/raw/evidence/REPORT.json",
+      "sha256": "9dfea070a7643632b0f60cd8e58799182a8652a9475d972f977cc867acca652e"
+    },
+    {
+      "bytes": 117447,
+      "git_blob": "82212b51072a54be7ed1549f43fb8bc0e82d03d2",
+      "mode": "0o644",
+      "path": "/workspace/scratch/dda74a4fae35/v94-native-namespace-budget-r1/ci-components-r1/actual/raw/evidence/FILE-SIZES.json",
+      "sha256": "40423349b41f47b534da3beaf0ac8780a088b7333feb88111efa9d9292f56967"
+    },
+    {
+      "bytes": 1531924,
+      "git_blob": "9f591ce0d8c00eafaa1fc80014ecd786e39185c2",
+      "mode": "0o644",
+      "path": "/workspace/scratch/dda74a4fae35/v94-native-namespace-budget-r1/ci-phase-r1/actual/raw/evidence/case-0/observations/REPORT.json",
+      "sha256": "33e4d56df60206d71577d262eff080e734129540b76c4beb6c38b203683c2e95"
+    },
+    {
+      "bytes": 1525231,
+      "git_blob": "b10c1077b60a8a25d4605d8671855bf24f9b360d",
+      "mode": "0o644",
+      "path": "/workspace/scratch/dda74a4fae35/v94-native-namespace-budget-r1/ci-phase-r1/actual/raw/evidence/case-1/observations/REPORT.json",
+      "sha256": "f54f69b523b0f4c679e4e578ae1d7293fa4d127af2984ee4c3f048bf5dfdf938"
+    },
+    {
+      "bytes": 3395676,
+      "git_blob": "ad1217c8472f5ba832c08ef07e6dfb4017c2423f",
+      "mode": "0o644",
+      "path": "/workspace/scratch/dda74a4fae35/v94-native-namespace-budget-r1/ci-phase-r1/actual/raw/evidence/case-2/observations/REPORT.json",
+      "sha256": "ba4cee68b2cebbb504d2f6ea2ddffb4b9317af6fe52d3d293196468a5e59dc30"
+    }
+  ],
+  "new_benchmarks": 0,
+  "new_product_executions": 0,
+  "original_budgets_changed": false,
+  "original_component_capabilities": {
+    "OPENSSL_ia32cap": null,
+    "available_cpus": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "cpu_count": 4,
+    "cpu_flag_sets": [
+      [
+        "fpu",
+        "vme",
+        "de",
+        "pse",
+        "tsc",
+        "msr",
+        "pae",
+        "mce",
+        "cx8",
+        "apic",
+        "sep",
+        "mtrr",
+        "pge",
+        "mca",
+        "cmov",
+        "pat",
+        "pse36",
+        "clflush",
+        "mmx",
+        "fxsr",
+        "sse",
+        "sse2",
+        "ht",
+        "syscall",
+        "nx",
+        "mmxext",
+        "fxsr_opt",
+        "pdpe1gb",
+        "rdtscp",
+        "lm",
+        "constant_tsc",
+        "rep_good",
+        "nopl",
+        "tsc_reliable",
+        "nonstop_tsc",
+        "cpuid",
+        "extd_apicid",
+        "aperfmperf",
+        "tsc_known_freq",
+        "pni",
+        "pclmulqdq",
+        "ssse3",
+        "fma",
+        "cx16",
+        "pcid",
+        "sse4_1",
+        "sse4_2",
+        "movbe",
+        "popcnt",
+        "aes",
+        "xsave",
+        "avx",
+        "f16c",
+        "rdrand",
+        "hypervisor",
+        "lahf_lm",
+        "cmp_legacy",
+        "svm",
+        "cr8_legacy",
+        "abm",
+        "sse4a",
+        "misalignsse",
+        "3dnowprefetch",
+        "osvw",
+        "topoext",
+        "vmmcall",
+        "fsgsbase",
+        "bmi1",
+        "avx2",
+        "smep",
+        "bmi2",
+        "erms",
+        "invpcid",
+        "rdseed",
+        "adx",
+        "smap",
+        "clflushopt",
+        "clwb",
+        "sha_ni",
+        "xsaveopt",
+        "xsavec",
+        "xgetbv1",
+        "xsaves",
+        "user_shstk",
+        "clzero",
+        "xsaveerptr",
+        "rdpru",
+        "arat",
+        "npt",
+        "nrip_save",
+        "tsc_scale",
+        "vmcb_clean",
+        "flushbyasid",
+        "decodeassists",
+        "pausefilter",
+        "pfthreshold",
+        "v_vmsave_vmload",
+        "umip",
+        "vaes",
+        "vpclmulqdq",
+        "rdpid",
+        "fsrm"
+      ]
+    ],
+    "cpu_models": [
+      "AMD EPYC 7763 64-Core Processor"
+    ],
+    "cpu_vendors": [
+      "AuthenticAMD"
+    ],
+    "cpuinfo": {
+      "bytes": 5228,
+      "git_blob": "570f5e58934d4d023a60c9ab86d975aa115a67f9",
+      "sha256": "f014159c4032ca7a80afeedd20c6f741ee93e9717575be786f44b3320b06d72b"
+    },
+    "hardware_flags_do_not_prove_runtime_dispatch": true,
+    "hashlib_is_openssl_sha256": true,
+    "hashlib_sha256": {
+      "block_size": 64,
+      "digest_size": 32,
+      "empty_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "function_type": "builtin_function_or_method",
+      "hash_module": "_hashlib",
+      "hash_type": "HASH",
+      "module": "_hashlib",
+      "name": "openssl_sha256"
+    },
+    "mapped_libcrypto_files": [
+      {
+        "bytes": 5309400,
+        "git_blob": "9fd8149d6cd9a2ab8881ab408a3dc8a55127e4b3",
+        "path": "/usr/lib/x86_64-linux-gnu/libcrypto.so.3",
+        "sha256": "6866ed711dab8927e1bf82bf1cd30e828bdfc34f3cc1e83b1c9eb01ce6c37d9a"
+      }
+    ],
+    "module_files": {
+      "_hashlib": {
+        "bytes": 336896,
+        "git_blob": "12704a1fc9f96541a623227bb14cd5aea6155bfe",
+        "path": "/opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/lib-dynload/_hashlib.cpython-314-x86_64-linux-gnu.so",
+        "sha256": "711b69bfcedb5196a109c027413357e12c6a93d1a3494aeb9136797c54dc4489"
+      },
+      "_sha2": {
+        "bytes": 1529072,
+        "git_blob": "83adcb60490528f276c5c12bc2c42b49e0da00f2",
+        "path": "/opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/lib-dynload/_sha2.cpython-314-x86_64-linux-gnu.so",
+        "sha256": "e3b6341606981b9e518c10ba7fea9e868f937b0373442893796b24cc5a328150"
+      },
+      "hashlib": {
+        "bytes": 9459,
+        "git_blob": "0e9bd98aa1fc31b5dccef0d34780b86ae05f6ab3",
+        "path": "/opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/hashlib.py",
+        "sha256": "88fa624821fbdee7eb2ef87c2437b207afe328cf117c7463367e2db5eb1af492"
+      },
+      "ssl": {
+        "bytes": 52715,
+        "git_blob": "8889aff92fa6c0c221282f8c6347ed97fd5dfb75",
+        "path": "/opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/ssl.py",
+        "sha256": "21d28174e953bcfd042b328676c52584fcd8b4f0457a4db582b7f0acd78854d5"
+      }
+    },
+    "openssl_version": "OpenSSL 3.0.13 30 Jan 2024",
+    "openssl_version_info": [
+      3,
+      0,
+      0,
+      13,
+      0
+    ],
+    "sha2_sha256": {
+      "block_size": 64,
+      "digest_size": 32,
+      "empty_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "function_type": "builtin_function_or_method",
+      "hash_module": "_sha2",
+      "hash_type": "SHA256Type",
+      "module": "_sha2",
+      "name": "sha256"
+    }
+  },
+  "original_owned_byte_hash_runs": [
+    {
+      "kind": "hashlib.sha256",
+      "map": {
+        "bytes": 155087,
+        "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+        "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+      },
+      "owned_bytes": 51971962,
+      "owned_paths": 1429,
+      "paths": 1429,
+      "process_cpu_ns": 33941395,
+      "provider": "hashlib.sha256",
+      "status": "MATCH",
+      "wall_ns": 33949958
+    },
+    {
+      "kind": "_sha2.sha256",
+      "map": {
+        "bytes": 155087,
+        "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+        "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+      },
+      "owned_bytes": 51971962,
+      "owned_paths": 1429,
+      "paths": 1429,
+      "process_cpu_ns": 204028079,
+      "provider": "_sha2.sha256",
+      "status": "MATCH",
+      "wall_ns": 204066488
+    },
+    {
+      "kind": "_sha2.sha256",
+      "map": {
+        "bytes": 155087,
+        "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+        "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+      },
+      "owned_bytes": 51971962,
+      "owned_paths": 1429,
+      "paths": 1429,
+      "process_cpu_ns": 204228011,
+      "provider": "_sha2.sha256",
+      "status": "MATCH",
+      "wall_ns": 204262637
+    },
+    {
+      "kind": "hashlib.sha256",
+      "map": {
+        "bytes": 155087,
+        "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+        "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+      },
+      "owned_bytes": 51971962,
+      "owned_paths": 1429,
+      "paths": 1429,
+      "process_cpu_ns": 34175011,
+      "provider": "hashlib.sha256",
+      "status": "MATCH",
+      "wall_ns": 34181133
+    }
+  ],
+  "original_scans": [
+    {
+      "kind": "original",
+      "map": {
+        "bytes": 155087,
+        "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+        "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+      },
+      "paths": 1429,
+      "process_cpu_ns": 98380880,
+      "wall_ns": 98390416
+    },
+    {
+      "components": {
+        "all_lexical_completions_precede_hash": true,
+        "inclusive_totals": {
+          "digest": {
+            "count": 1429,
+            "process_cpu_ns": 36175784,
+            "wall_ns": 37725185
+          },
+          "guard": {
+            "count": 1687,
+            "process_cpu_ns": 16653698,
+            "wall_ns": 18588263
+          },
+          "lexical_inclusive": {
+            "count": 1429,
+            "process_cpu_ns": 50277141,
+            "wall_ns": 51878297
+          },
+          "open": {
+            "count": 1429,
+            "process_cpu_ns": 10771091,
+            "wall_ns": 12458810
+          },
+          "read": {
+            "count": 1429,
+            "process_cpu_ns": 8987244,
+            "wall_ns": 10658821
+          }
+        },
+        "lexical_residual_includes": "close/context manager, argument dispatch, row allocation and timer overhead; not an exact close timer",
+        "lexical_residual_wall_ns": 12528461
+      },
+      "events": {
+        "bytes": 1570417,
+        "git_blob": "cdf3934fee8e06832372c3f9dfbe05bdb60db504",
+        "sha256": "7383369d5637d2ca27216339f37836ef985f24374a3600170b5d04c86be6b4c1"
+      },
+      "kind": "instrumented",
+      "map": {
+        "bytes": 155087,
+        "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+        "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+      },
+      "paths": 1429,
+      "process_cpu_ns": 96834475,
+      "wall_ns": 96852693
+    },
+    {
+      "components": {
+        "all_lexical_completions_precede_hash": true,
+        "inclusive_totals": {
+          "digest": {
+            "count": 1429,
+            "process_cpu_ns": 36240860,
+            "wall_ns": 37800699
+          },
+          "guard": {
+            "count": 1687,
+            "process_cpu_ns": 17356518,
+            "wall_ns": 19261677
+          },
+          "lexical_inclusive": {
+            "count": 1429,
+            "process_cpu_ns": 50417540,
+            "wall_ns": 51995115
+          },
+          "open": {
+            "count": 1429,
+            "process_cpu_ns": 10651049,
+            "wall_ns": 12270481
+          },
+          "read": {
+            "count": 1429,
+            "process_cpu_ns": 9000171,
+            "wall_ns": 10608878
+          }
+        },
+        "lexical_residual_includes": "close/context manager, argument dispatch, row allocation and timer overhead; not an exact close timer",
+        "lexical_residual_wall_ns": 12170896
+      },
+      "events": {
+        "bytes": 1570402,
+        "git_blob": "d2f1347a5f6c3a76d74e178b6258e15511af284b",
+        "sha256": "109bb4110ce6059349141e8fe00d2fd2800febd3482cdb323c7373a46423258a"
+      },
+      "kind": "instrumented",
+      "map": {
+        "bytes": 155087,
+        "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+        "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+      },
+      "paths": 1429,
+      "process_cpu_ns": 96703641,
+      "wall_ns": 96719333
+    },
+    {
+      "kind": "original",
+      "map": {
+        "bytes": 155087,
+        "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+        "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+      },
+      "paths": 1429,
+      "process_cpu_ns": 67794585,
+      "wall_ns": 67801852
+    }
+  ],
+  "qualification": false,
+  "schema": "hepta.namespace-budget-existing-cost-analysis.v1",
+  "scope_limits": [
+    "The phase run and isolated components run are separate exact-source diagnostics; their timings are not interchangeable observations.",
+    "Case 2 completes build_pair with its original default total budget. Its 98 post-freeze scans do not prove either 3000ms method completed that path.",
+    "Original qualification failed two preparation methods at the FIRST baseline emit and timed out at 5.721897753s; the phase run reached SECOND and timeout passed. Both original outcomes remain unchanged.",
+    "All original fresh read/hash/provider and callback boundaries remain required. The source domain is not reduced.",
+    "Memo R1-R4 and metadata-loop micro prototypes remain NOT_ADOPTED. This report does not revive them.",
+    "Native StoreLifecycle observer counts include a separately recorded duplicate observer correction; no new entry-count claim is made here.",
+    "The publication bridge exclusive timer still includes kernel/provider work and diagnostic overhead; it is not an exact removable-cost measurement."
+  ],
+  "sections": [
+    {
+      "case": 0,
+      "context_created_observations": [
+        {
+          "context_id": "ctx-bbc5c3215fc0498e93dadbf2315ac85a",
+          "created_ns": "1794591618937961566",
+          "elapsed_ns": 116186,
+          "kind": "context-created-read",
+          "parent_span": 388,
+          "sampled_at": "2026-11-13T17:40:18.688829+00:00"
+        },
+        {
+          "context_id": "ctx-8fe7117c7ec54aba999e613e442748d4",
+          "created_ns": "1794591621449029339",
+          "elapsed_ns": 23846,
+          "kind": "context-created-read",
+          "parent_span": 568,
+          "sampled_at": "2026-11-13T17:40:21.394095+00:00"
+        }
+      ],
+      "method": "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+      "original_outcome": "FAIL",
+      "post_freeze_stages": [
+        {
+          "fresh_scans": 8,
+          "id": 625,
+          "label": "import_program",
+          "parent": 0,
+          "publication_effects": 22,
+          "wall_ns": 503117564
+        },
+        {
+          "fresh_scans": 11,
+          "id": 700,
+          "label": "verify",
+          "parent": 0,
+          "publication_effects": 28,
+          "wall_ns": 612568703
+        },
+        {
+          "fresh_scans": 11,
+          "id": 799,
+          "label": "verify",
+          "parent": 0,
+          "publication_effects": 28,
+          "wall_ns": 627322450
+        },
+        {
+          "fresh_scans": 20,
+          "id": 898,
+          "label": "emit",
+          "parent": 0,
+          "publication_effects": 46,
+          "wall_ns": 1194710054
+        },
+        {
+          "fresh_scans": 3,
+          "id": 1069,
+          "label": "emit",
+          "parent": 0,
+          "publication_effects": 6,
+          "wall_ns": 198949132
+        }
+      ],
+      "second_freeze_return_to_first_remaining": {
+        "adjacent_scan_effect_boundaries": [
+          {
+            "left_scan": 630,
+            "publication_effect_ids": [
+              631,
+              633
+            ],
+            "right_scan": 637
+          },
+          {
+            "left_scan": 637,
+            "publication_effect_ids": [
+              638,
+              640,
+              642,
+              644
+            ],
+            "right_scan": 650
+          },
+          {
+            "left_scan": 650,
+            "publication_effect_ids": [
+              651,
+              653
+            ],
+            "right_scan": 658
+          },
+          {
+            "left_scan": 658,
+            "publication_effect_ids": [
+              659,
+              661
+            ],
+            "right_scan": 666
+          },
+          {
+            "left_scan": 666,
+            "publication_effect_ids": [
+              667,
+              669
+            ],
+            "right_scan": 673
+          },
+          {
+            "left_scan": 673,
+            "publication_effect_ids": [
+              674,
+              676
+            ],
+            "right_scan": 680
+          },
+          {
+            "left_scan": 680,
+            "publication_effect_ids": [
+              681,
+              683,
+              685,
+              687
+            ],
+            "right_scan": 691
+          },
+          {
+            "left_scan": 691,
+            "publication_effect_ids": [
+              692,
+              694,
+              696,
+              698
+            ],
+            "right_scan": 705
+          },
+          {
+            "left_scan": 705,
+            "publication_effect_ids": [
+              706,
+              708
+            ],
+            "right_scan": 713
+          },
+          {
+            "left_scan": 713,
+            "publication_effect_ids": [
+              714,
+              716
+            ],
+            "right_scan": 721
+          },
+          {
+            "left_scan": 721,
+            "publication_effect_ids": [
+              722,
+              724
+            ],
+            "right_scan": 729
+          },
+          {
+            "left_scan": 729,
+            "publication_effect_ids": [
+              730,
+              732
+            ],
+            "right_scan": 737
+          },
+          {
+            "left_scan": 737,
+            "publication_effect_ids": [
+              738,
+              740
+            ],
+            "right_scan": 745
+          },
+          {
+            "left_scan": 745,
+            "publication_effect_ids": [
+              746,
+              748
+            ],
+            "right_scan": 753
+          },
+          {
+            "left_scan": 753,
+            "publication_effect_ids": [
+              754,
+              756
+            ],
+            "right_scan": 761
+          },
+          {
+            "left_scan": 761,
+            "publication_effect_ids": [
+              762,
+              764
+            ],
+            "right_scan": 768
+          },
+          {
+            "left_scan": 768,
+            "publication_effect_ids": [
+              769,
+              771,
+              773,
+              775
+            ],
+            "right_scan": 779
+          },
+          {
+            "left_scan": 779,
+            "publication_effect_ids": [
+              780,
+              782,
+              784,
+              786
+            ],
+            "right_scan": 790
+          },
+          {
+            "left_scan": 790,
+            "publication_effect_ids": [
+              791,
+              793,
+              795,
+              797
+            ],
+            "right_scan": 804
+          },
+          {
+            "left_scan": 804,
+            "publication_effect_ids": [
+              805,
+              807
+            ],
+            "right_scan": 812
+          },
+          {
+            "left_scan": 812,
+            "publication_effect_ids": [
+              813,
+              815
+            ],
+            "right_scan": 820
+          },
+          {
+            "left_scan": 820,
+            "publication_effect_ids": [
+              821,
+              823
+            ],
+            "right_scan": 828
+          },
+          {
+            "left_scan": 828,
+            "publication_effect_ids": [
+              829,
+              831
+            ],
+            "right_scan": 836
+          },
+          {
+            "left_scan": 836,
+            "publication_effect_ids": [
+              837,
+              839
+            ],
+            "right_scan": 844
+          },
+          {
+            "left_scan": 844,
+            "publication_effect_ids": [
+              845,
+              847
+            ],
+            "right_scan": 852
+          },
+          {
+            "left_scan": 852,
+            "publication_effect_ids": [
+              853,
+              855
+            ],
+            "right_scan": 860
+          },
+          {
+            "left_scan": 860,
+            "publication_effect_ids": [
+              861,
+              863
+            ],
+            "right_scan": 867
+          },
+          {
+            "left_scan": 867,
+            "publication_effect_ids": [
+              868,
+              870,
+              872,
+              874
+            ],
+            "right_scan": 878
+          },
+          {
+            "left_scan": 878,
+            "publication_effect_ids": [
+              879,
+              881,
+              883,
+              885
+            ],
+            "right_scan": 889
+          },
+          {
+            "left_scan": 889,
+            "publication_effect_ids": [
+              890,
+              892,
+              894,
+              896
+            ],
+            "right_scan": 903
+          },
+          {
+            "left_scan": 903,
+            "publication_effect_ids": [
+              904,
+              906
+            ],
+            "right_scan": 911
+          },
+          {
+            "left_scan": 911,
+            "publication_effect_ids": [
+              912,
+              914
+            ],
+            "right_scan": 919
+          },
+          {
+            "left_scan": 919,
+            "publication_effect_ids": [
+              920,
+              922
+            ],
+            "right_scan": 928
+          },
+          {
+            "left_scan": 928,
+            "publication_effect_ids": [
+              929,
+              931
+            ],
+            "right_scan": 936
+          },
+          {
+            "left_scan": 936,
+            "publication_effect_ids": [
+              937,
+              939
+            ],
+            "right_scan": 944
+          },
+          {
+            "left_scan": 944,
+            "publication_effect_ids": [
+              945,
+              947
+            ],
+            "right_scan": 952
+          },
+          {
+            "left_scan": 952,
+            "publication_effect_ids": [
+              953,
+              955
+            ],
+            "right_scan": 960
+          },
+          {
+            "left_scan": 960,
+            "publication_effect_ids": [
+              961,
+              963
+            ],
+            "right_scan": 967
+          },
+          {
+            "left_scan": 967,
+            "publication_effect_ids": [
+              968,
+              970
+            ],
+            "right_scan": 975
+          },
+          {
+            "left_scan": 975,
+            "publication_effect_ids": [
+              976,
+              978
+            ],
+            "right_scan": 983
+          },
+          {
+            "left_scan": 983,
+            "publication_effect_ids": [
+              984,
+              986
+            ],
+            "right_scan": 991
+          },
+          {
+            "left_scan": 991,
+            "publication_effect_ids": [
+              992,
+              994
+            ],
+            "right_scan": 999
+          },
+          {
+            "left_scan": 999,
+            "publication_effect_ids": [
+              1000,
+              1002
+            ],
+            "right_scan": 1007
+          },
+          {
+            "left_scan": 1007,
+            "publication_effect_ids": [
+              1008,
+              1010
+            ],
+            "right_scan": 1014
+          },
+          {
+            "left_scan": 1014,
+            "publication_effect_ids": [
+              1015,
+              1017
+            ],
+            "right_scan": 1021
+          },
+          {
+            "left_scan": 1021,
+            "publication_effect_ids": [
+              1022,
+              1024
+            ],
+            "right_scan": 1029
+          }
+        ],
+        "all_adjacent_scans_have_intervening_publication_effect": true,
+        "each_public_call_exactly_one_fresh_scan": true,
+        "end_ns": 40266060978,
+        "fresh_scans": 47,
+        "inclusive_by_kind": {
+          "client-stage": {
+            "count": 3,
+            "exclusive_timed_children_wall_ns": 111218,
+            "inclusive_process_cpu_ns": 1673497700,
+            "inclusive_wall_ns": 1743008717
+          },
+          "code-admission": {
+            "count": 47,
+            "exclusive_timed_children_wall_ns": 124623521,
+            "inclusive_process_cpu_ns": 2195621580,
+            "inclusive_wall_ns": 2196117630
+          },
+          "fresh-admission": {
+            "count": 47,
+            "exclusive_timed_children_wall_ns": 2071494109,
+            "inclusive_process_cpu_ns": 2070951672,
+            "inclusive_wall_ns": 2071494109
+          },
+          "public-store": {
+            "count": 47,
+            "exclusive_timed_children_wall_ns": 80814521,
+            "inclusive_process_cpu_ns": 2315306558,
+            "inclusive_wall_ns": 2387277440
+          },
+          "publication-effect": {
+            "count": 112,
+            "exclusive_timed_children_wall_ns": 16435891,
+            "inclusive_process_cpu_ns": 41787618,
+            "inclusive_wall_ns": 110345289
+          },
+          "service": {
+            "count": 34,
+            "exclusive_timed_children_wall_ns": 3338974,
+            "inclusive_process_cpu_ns": 2446056554,
+            "inclusive_wall_ns": 2469749091
+          },
+          "subprocess": {
+            "count": 112,
+            "exclusive_timed_children_wall_ns": 93909398,
+            "inclusive_process_cpu_ns": 25300738,
+            "inclusive_wall_ns": 93909398
+          },
+          "tool-call": {
+            "count": 4,
+            "exclusive_timed_children_wall_ns": 195682843,
+            "inclusive_process_cpu_ns": 1673384250,
+            "inclusive_wall_ns": 1742897499
+          }
+        },
+        "public_calls": [
+          {
+            "end_ns": 37727939476,
+            "fresh_scans": 1,
+            "id": 628,
+            "inclusive_wall_ns": 49653214,
+            "label": "check_profile",
+            "parent": 627,
+            "publication_effects": 2,
+            "start_ns": 37678286262
+          },
+          {
+            "end_ns": 37780178169,
+            "fresh_scans": 1,
+            "id": 635,
+            "inclusive_wall_ns": 52224331,
+            "label": "put",
+            "parent": 626,
+            "publication_effects": 4,
+            "start_ns": 37727953838
+          },
+          {
+            "end_ns": 37874171135,
+            "fresh_scans": 1,
+            "id": 648,
+            "inclusive_wall_ns": 49191954,
+            "label": "get_json",
+            "parent": 647,
+            "publication_effects": 2,
+            "start_ns": 37824979181
+          },
+          {
+            "end_ns": 37923284549,
+            "fresh_scans": 1,
+            "id": 656,
+            "inclusive_wall_ns": 49092092,
+            "label": "check_profile",
+            "parent": 655,
+            "publication_effects": 2,
+            "start_ns": 37874192457
+          },
+          {
+            "end_ns": 37972035041,
+            "fresh_scans": 1,
+            "id": 664,
+            "inclusive_wall_ns": 48729120,
+            "label": "check_profile",
+            "parent": 663,
+            "publication_effects": 2,
+            "start_ns": 37923305921
+          },
+          {
+            "end_ns": 38025068155,
+            "fresh_scans": 1,
+            "id": 671,
+            "inclusive_wall_ns": 48776662,
+            "label": "get",
+            "parent": 646,
+            "publication_effects": 2,
+            "start_ns": 37976291493
+          },
+          {
+            "end_ns": 38082565979,
+            "fresh_scans": 1,
+            "id": 678,
+            "inclusive_wall_ns": 57084866,
+            "label": "put",
+            "parent": 646,
+            "publication_effects": 4,
+            "start_ns": 38025481113
+          },
+          {
+            "end_ns": 38134615615,
+            "fresh_scans": 1,
+            "id": 689,
+            "inclusive_wall_ns": 52040612,
+            "label": "json",
+            "parent": 646,
+            "publication_effects": 4,
+            "start_ns": 38082575003
+          },
+          {
+            "end_ns": 38230569620,
+            "fresh_scans": 1,
+            "id": 703,
+            "inclusive_wall_ns": 49826989,
+            "label": "get_json",
+            "parent": 702,
+            "publication_effects": 2,
+            "start_ns": 38180742631
+          },
+          {
+            "end_ns": 38279850909,
+            "fresh_scans": 1,
+            "id": 711,
+            "inclusive_wall_ns": 49259757,
+            "label": "check_profile",
+            "parent": 710,
+            "publication_effects": 2,
+            "start_ns": 38230591152
+          },
+          {
+            "end_ns": 38328892133,
+            "fresh_scans": 1,
+            "id": 719,
+            "inclusive_wall_ns": 49019932,
+            "label": "check_profile",
+            "parent": 718,
+            "publication_effects": 2,
+            "start_ns": 38279872201
+          },
+          {
+            "end_ns": 38379564346,
+            "fresh_scans": 1,
+            "id": 727,
+            "inclusive_wall_ns": 49575306,
+            "label": "get_json",
+            "parent": 726,
+            "publication_effects": 2,
+            "start_ns": 38329989040
+          },
+          {
+            "end_ns": 38428785824,
+            "fresh_scans": 1,
+            "id": 735,
+            "inclusive_wall_ns": 49201688,
+            "label": "check_profile",
+            "parent": 734,
+            "publication_effects": 2,
+            "start_ns": 38379584136
+          },
+          {
+            "end_ns": 38477970827,
+            "fresh_scans": 1,
+            "id": 743,
+            "inclusive_wall_ns": 49164511,
+            "label": "check_profile",
+            "parent": 742,
+            "publication_effects": 2,
+            "start_ns": 38428806316
+          },
+          {
+            "end_ns": 38528153015,
+            "fresh_scans": 1,
+            "id": 751,
+            "inclusive_wall_ns": 50154235,
+            "label": "check_profile",
+            "parent": 750,
+            "publication_effects": 2,
+            "start_ns": 38477998780
+          },
+          {
+            "end_ns": 38578822825,
+            "fresh_scans": 1,
+            "id": 759,
+            "inclusive_wall_ns": 50646424,
+            "label": "get",
+            "parent": 758,
+            "publication_effects": 2,
+            "start_ns": 38528176401
+          },
+          {
+            "end_ns": 38635378607,
+            "fresh_scans": 1,
+            "id": 766,
+            "inclusive_wall_ns": 55267385,
+            "label": "json",
+            "parent": 701,
+            "publication_effects": 4,
+            "start_ns": 38580111222
+          },
+          {
+            "end_ns": 38690340177,
+            "fresh_scans": 1,
+            "id": 777,
+            "inclusive_wall_ns": 54951134,
+            "label": "json",
+            "parent": 701,
+            "publication_effects": 4,
+            "start_ns": 38635389043
+          },
+          {
+            "end_ns": 38744688906,
+            "fresh_scans": 1,
+            "id": 788,
+            "inclusive_wall_ns": 54324032,
+            "label": "json",
+            "parent": 701,
+            "publication_effects": 4,
+            "start_ns": 38690364874
+          },
+          {
+            "end_ns": 38843147416,
+            "fresh_scans": 1,
+            "id": 802,
+            "inclusive_wall_ns": 49921792,
+            "label": "get_json",
+            "parent": 801,
+            "publication_effects": 2,
+            "start_ns": 38793225624
+          },
+          {
+            "end_ns": 38892474745,
+            "fresh_scans": 1,
+            "id": 810,
+            "inclusive_wall_ns": 49307228,
+            "label": "check_profile",
+            "parent": 809,
+            "publication_effects": 2,
+            "start_ns": 38843167517
+          },
+          {
+            "end_ns": 38941718287,
+            "fresh_scans": 1,
+            "id": 818,
+            "inclusive_wall_ns": 49221648,
+            "label": "check_profile",
+            "parent": 817,
+            "publication_effects": 2,
+            "start_ns": 38892496639
+          },
+          {
+            "end_ns": 38992101301,
+            "fresh_scans": 1,
+            "id": 826,
+            "inclusive_wall_ns": 49363094,
+            "label": "get_json",
+            "parent": 825,
+            "publication_effects": 2,
+            "start_ns": 38942738207
+          },
+          {
+            "end_ns": 39041246633,
+            "fresh_scans": 1,
+            "id": 834,
+            "inclusive_wall_ns": 49125001,
+            "label": "check_profile",
+            "parent": 833,
+            "publication_effects": 2,
+            "start_ns": 38992121632
+          },
+          {
+            "end_ns": 39090599662,
+            "fresh_scans": 1,
+            "id": 842,
+            "inclusive_wall_ns": 49332588,
+            "label": "check_profile",
+            "parent": 841,
+            "publication_effects": 2,
+            "start_ns": 39041267074
+          },
+          {
+            "end_ns": 39140751283,
+            "fresh_scans": 1,
+            "id": 850,
+            "inclusive_wall_ns": 50123649,
+            "label": "check_profile",
+            "parent": 849,
+            "publication_effects": 2,
+            "start_ns": 39090627634
+          },
+          {
+            "end_ns": 39190090791,
+            "fresh_scans": 1,
+            "id": 858,
+            "inclusive_wall_ns": 49317825,
+            "label": "get",
+            "parent": 857,
+            "publication_effects": 2,
+            "start_ns": 39140772966
+          },
+          {
+            "end_ns": 39244059953,
+            "fresh_scans": 1,
+            "id": 865,
+            "inclusive_wall_ns": 52844573,
+            "label": "json",
+            "parent": 800,
+            "publication_effects": 4,
+            "start_ns": 39191215380
+          },
+          {
+            "end_ns": 39318709307,
+            "fresh_scans": 1,
+            "id": 876,
+            "inclusive_wall_ns": 74638978,
+            "label": "json",
+            "parent": 800,
+            "publication_effects": 4,
+            "start_ns": 39244070329
+          },
+          {
+            "end_ns": 39372685941,
+            "fresh_scans": 1,
+            "id": 887,
+            "inclusive_wall_ns": 53954971,
+            "label": "json",
+            "parent": 800,
+            "publication_effects": 4,
+            "start_ns": 39318730970
+          },
+          {
+            "end_ns": 39469884697,
+            "fresh_scans": 1,
+            "id": 901,
+            "inclusive_wall_ns": 48939610,
+            "label": "get_json",
+            "parent": 900,
+            "publication_effects": 2,
+            "start_ns": 39420945087
+          },
+          {
+            "end_ns": 39518658626,
+            "fresh_scans": 1,
+            "id": 909,
+            "inclusive_wall_ns": 48754319,
+            "label": "check_profile",
+            "parent": 908,
+            "publication_effects": 2,
+            "start_ns": 39469904307
+          },
+          {
+            "end_ns": 39567339292,
+            "fresh_scans": 1,
+            "id": 917,
+            "inclusive_wall_ns": 48658803,
+            "label": "check_profile",
+            "parent": 916,
+            "publication_effects": 2,
+            "start_ns": 39518680489
+          },
+          {
+            "end_ns": 39617463062,
+            "fresh_scans": 1,
+            "id": 926,
+            "inclusive_wall_ns": 49733056,
+            "label": "check_profile",
+            "parent": 925,
+            "publication_effects": 2,
+            "start_ns": 39567730006
+          },
+          {
+            "end_ns": 39666923974,
+            "fresh_scans": 1,
+            "id": 934,
+            "inclusive_wall_ns": 49366539,
+            "label": "get_json",
+            "parent": 933,
+            "publication_effects": 2,
+            "start_ns": 39617557435
+          },
+          {
+            "end_ns": 39716340639,
+            "fresh_scans": 1,
+            "id": 942,
+            "inclusive_wall_ns": 49396454,
+            "label": "check_profile",
+            "parent": 941,
+            "publication_effects": 2,
+            "start_ns": 39666944185
+          },
+          {
+            "end_ns": 39765524270,
+            "fresh_scans": 1,
+            "id": 950,
+            "inclusive_wall_ns": 49161968,
+            "label": "check_profile",
+            "parent": 949,
+            "publication_effects": 2,
+            "start_ns": 39716362302
+          },
+          {
+            "end_ns": 39815026515,
+            "fresh_scans": 1,
+            "id": 958,
+            "inclusive_wall_ns": 49475445,
+            "label": "get",
+            "parent": 957,
+            "publication_effects": 2,
+            "start_ns": 39765551070
+          },
+          {
+            "end_ns": 39865946714,
+            "fresh_scans": 1,
+            "id": 965,
+            "inclusive_wall_ns": 50410775,
+            "label": "get_json",
+            "parent": 924,
+            "publication_effects": 2,
+            "start_ns": 39815535939
+          },
+          {
+            "end_ns": 39915925814,
+            "fresh_scans": 1,
+            "id": 973,
+            "inclusive_wall_ns": 49955073,
+            "label": "check_profile",
+            "parent": 972,
+            "publication_effects": 2,
+            "start_ns": 39865970741
+          },
+          {
+            "end_ns": 39965260304,
+            "fresh_scans": 1,
+            "id": 981,
+            "inclusive_wall_ns": 49311435,
+            "label": "get",
+            "parent": 980,
+            "publication_effects": 2,
+            "start_ns": 39915948869
+          },
+          {
+            "end_ns": 40015587272,
+            "fresh_scans": 1,
+            "id": 989,
+            "inclusive_wall_ns": 49728198,
+            "label": "get_json",
+            "parent": 988,
+            "publication_effects": 2,
+            "start_ns": 39965859074
+          },
+          {
+            "end_ns": 40065403414,
+            "fresh_scans": 1,
+            "id": 997,
+            "inclusive_wall_ns": 49796142,
+            "label": "check_profile",
+            "parent": 996,
+            "publication_effects": 2,
+            "start_ns": 40015607272
+          },
+          {
+            "end_ns": 40114460823,
+            "fresh_scans": 1,
+            "id": 1005,
+            "inclusive_wall_ns": 49035876,
+            "label": "check_profile",
+            "parent": 1004,
+            "publication_effects": 2,
+            "start_ns": 40065424947
+          },
+          {
+            "end_ns": 40165476447,
+            "fresh_scans": 1,
+            "id": 1012,
+            "inclusive_wall_ns": 50615116,
+            "label": "get_json",
+            "parent": 924,
+            "publication_effects": 2,
+            "start_ns": 40114861331
+          },
+          {
+            "end_ns": 40215681671,
+            "fresh_scans": 1,
+            "id": 1019,
+            "inclusive_wall_ns": 50193546,
+            "label": "get_json",
+            "parent": 924,
+            "publication_effects": 2,
+            "start_ns": 40165488125
+          },
+          {
+            "end_ns": 40266042220,
+            "fresh_scans": 1,
+            "id": 1027,
+            "inclusive_wall_ns": 49409494,
+            "label": "check_profile",
+            "parent": 1026,
+            "publication_effects": 2,
+            "start_ns": 40216632726
+          }
+        ],
+        "public_store_calls": 47,
+        "public_store_labels": {
+          "check_profile": 22,
+          "get": 5,
+          "get_json": 11,
+          "json": 7,
+          "put": 2
+        },
+        "start_ns": 37634532721,
+        "unattributed_wall_after_fresh_scans_ns": 560034148,
+        "wall_ns": 2631528257,
+        "warning": "Inclusive kinds overlap and must not be summed. The residual includes all uninstrumented work and instrumentation. These are existing diagnostic times, not new measurements or qualification."
+      },
+      "selection": {
+        "HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/original-nested-evidence/ArtifactNamespaceNativeTests/publication/build.json",
+        "HEPTA_HIA_ARTIFACT_NAMESPACE_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/original-nested-evidence/ArtifactNamespaceNativeTests/namespace/manifest.json",
+        "HEPTA_HIA_EXECUTION_BUDGET_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/original-nested-evidence/ArtifactNamespaceNativeTests/budget/manifest.json",
+        "HEPTA_HIA_REQUEST_JOURNAL_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/original-nested-evidence/ArtifactNamespaceNativeTests/request/manifest.json",
+        "HEPTA_HIA_STORE_LIFECYCLE_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/build/manifest.json"
+      },
+      "source_commit": "abeef212e34023534d91f8f952280e2a8d0cbde6"
+    },
+    {
+      "case": 1,
+      "context_created_observations": [
+        {
+          "context_id": "ctx-49ff8b84c79a4e63ae150c1991d6c5e4",
+          "created_ns": "1794591628161073367",
+          "elapsed_ns": 33831,
+          "kind": "context-created-read",
+          "parent_span": 388,
+          "sampled_at": "2026-11-13T17:40:28.107695+00:00"
+        },
+        {
+          "context_id": "ctx-bca89388a2c3473ea76a5d4b18ed4471",
+          "created_ns": "1794591629503337973",
+          "elapsed_ns": 22434,
+          "kind": "context-created-read",
+          "parent_span": 568,
+          "sampled_at": "2026-11-13T17:40:29.448526+00:00"
+        }
+      ],
+      "method": "test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+      "original_outcome": "FAIL",
+      "post_freeze_stages": [
+        {
+          "fresh_scans": 8,
+          "id": 625,
+          "label": "import_program",
+          "parent": 0,
+          "publication_effects": 20,
+          "wall_ns": 492762969
+        },
+        {
+          "fresh_scans": 11,
+          "id": 696,
+          "label": "verify",
+          "parent": 0,
+          "publication_effects": 28,
+          "wall_ns": 612743075
+        },
+        {
+          "fresh_scans": 11,
+          "id": 795,
+          "label": "verify",
+          "parent": 0,
+          "publication_effects": 28,
+          "wall_ns": 628262826
+        },
+        {
+          "fresh_scans": 20,
+          "id": 894,
+          "label": "emit",
+          "parent": 0,
+          "publication_effects": 46,
+          "wall_ns": 1154580855
+        },
+        {
+          "fresh_scans": 3,
+          "id": 1065,
+          "label": "emit",
+          "parent": 0,
+          "publication_effects": 6,
+          "wall_ns": 197563023
+        }
+      ],
+      "second_freeze_return_to_first_remaining": {
+        "adjacent_scan_effect_boundaries": [
+          {
+            "left_scan": 630,
+            "publication_effect_ids": [
+              631,
+              633
+            ],
+            "right_scan": 637
+          },
+          {
+            "left_scan": 637,
+            "publication_effect_ids": [
+              638,
+              640,
+              642
+            ],
+            "right_scan": 648
+          },
+          {
+            "left_scan": 648,
+            "publication_effect_ids": [
+              649,
+              651
+            ],
+            "right_scan": 656
+          },
+          {
+            "left_scan": 656,
+            "publication_effect_ids": [
+              657,
+              659
+            ],
+            "right_scan": 664
+          },
+          {
+            "left_scan": 664,
+            "publication_effect_ids": [
+              665,
+              667
+            ],
+            "right_scan": 671
+          },
+          {
+            "left_scan": 671,
+            "publication_effect_ids": [
+              672,
+              674
+            ],
+            "right_scan": 678
+          },
+          {
+            "left_scan": 678,
+            "publication_effect_ids": [
+              679,
+              681,
+              683,
+              685
+            ],
+            "right_scan": 689
+          },
+          {
+            "left_scan": 689,
+            "publication_effect_ids": [
+              690,
+              692,
+              694
+            ],
+            "right_scan": 701
+          },
+          {
+            "left_scan": 701,
+            "publication_effect_ids": [
+              702,
+              704
+            ],
+            "right_scan": 709
+          },
+          {
+            "left_scan": 709,
+            "publication_effect_ids": [
+              710,
+              712
+            ],
+            "right_scan": 717
+          },
+          {
+            "left_scan": 717,
+            "publication_effect_ids": [
+              718,
+              720
+            ],
+            "right_scan": 725
+          },
+          {
+            "left_scan": 725,
+            "publication_effect_ids": [
+              726,
+              728
+            ],
+            "right_scan": 733
+          },
+          {
+            "left_scan": 733,
+            "publication_effect_ids": [
+              734,
+              736
+            ],
+            "right_scan": 741
+          },
+          {
+            "left_scan": 741,
+            "publication_effect_ids": [
+              742,
+              744
+            ],
+            "right_scan": 749
+          },
+          {
+            "left_scan": 749,
+            "publication_effect_ids": [
+              750,
+              752
+            ],
+            "right_scan": 757
+          },
+          {
+            "left_scan": 757,
+            "publication_effect_ids": [
+              758,
+              760
+            ],
+            "right_scan": 764
+          },
+          {
+            "left_scan": 764,
+            "publication_effect_ids": [
+              765,
+              767,
+              769,
+              771
+            ],
+            "right_scan": 775
+          },
+          {
+            "left_scan": 775,
+            "publication_effect_ids": [
+              776,
+              778,
+              780,
+              782
+            ],
+            "right_scan": 786
+          },
+          {
+            "left_scan": 786,
+            "publication_effect_ids": [
+              787,
+              789,
+              791,
+              793
+            ],
+            "right_scan": 800
+          },
+          {
+            "left_scan": 800,
+            "publication_effect_ids": [
+              801,
+              803
+            ],
+            "right_scan": 808
+          },
+          {
+            "left_scan": 808,
+            "publication_effect_ids": [
+              809,
+              811
+            ],
+            "right_scan": 816
+          },
+          {
+            "left_scan": 816,
+            "publication_effect_ids": [
+              817,
+              819
+            ],
+            "right_scan": 824
+          },
+          {
+            "left_scan": 824,
+            "publication_effect_ids": [
+              825,
+              827
+            ],
+            "right_scan": 832
+          },
+          {
+            "left_scan": 832,
+            "publication_effect_ids": [
+              833,
+              835
+            ],
+            "right_scan": 840
+          },
+          {
+            "left_scan": 840,
+            "publication_effect_ids": [
+              841,
+              843
+            ],
+            "right_scan": 848
+          },
+          {
+            "left_scan": 848,
+            "publication_effect_ids": [
+              849,
+              851
+            ],
+            "right_scan": 856
+          },
+          {
+            "left_scan": 856,
+            "publication_effect_ids": [
+              857,
+              859
+            ],
+            "right_scan": 863
+          },
+          {
+            "left_scan": 863,
+            "publication_effect_ids": [
+              864,
+              866,
+              868,
+              870
+            ],
+            "right_scan": 874
+          },
+          {
+            "left_scan": 874,
+            "publication_effect_ids": [
+              875,
+              877,
+              879,
+              881
+            ],
+            "right_scan": 885
+          },
+          {
+            "left_scan": 885,
+            "publication_effect_ids": [
+              886,
+              888,
+              890,
+              892
+            ],
+            "right_scan": 899
+          },
+          {
+            "left_scan": 899,
+            "publication_effect_ids": [
+              900,
+              902
+            ],
+            "right_scan": 907
+          },
+          {
+            "left_scan": 907,
+            "publication_effect_ids": [
+              908,
+              910
+            ],
+            "right_scan": 915
+          },
+          {
+            "left_scan": 915,
+            "publication_effect_ids": [
+              916,
+              918
+            ],
+            "right_scan": 924
+          },
+          {
+            "left_scan": 924,
+            "publication_effect_ids": [
+              925,
+              927
+            ],
+            "right_scan": 932
+          },
+          {
+            "left_scan": 932,
+            "publication_effect_ids": [
+              933,
+              935
+            ],
+            "right_scan": 940
+          },
+          {
+            "left_scan": 940,
+            "publication_effect_ids": [
+              941,
+              943
+            ],
+            "right_scan": 948
+          },
+          {
+            "left_scan": 948,
+            "publication_effect_ids": [
+              949,
+              951
+            ],
+            "right_scan": 956
+          },
+          {
+            "left_scan": 956,
+            "publication_effect_ids": [
+              957,
+              959
+            ],
+            "right_scan": 963
+          },
+          {
+            "left_scan": 963,
+            "publication_effect_ids": [
+              964,
+              966
+            ],
+            "right_scan": 971
+          },
+          {
+            "left_scan": 971,
+            "publication_effect_ids": [
+              972,
+              974
+            ],
+            "right_scan": 979
+          },
+          {
+            "left_scan": 979,
+            "publication_effect_ids": [
+              980,
+              982
+            ],
+            "right_scan": 987
+          },
+          {
+            "left_scan": 987,
+            "publication_effect_ids": [
+              988,
+              990
+            ],
+            "right_scan": 995
+          },
+          {
+            "left_scan": 995,
+            "publication_effect_ids": [
+              996,
+              998
+            ],
+            "right_scan": 1003
+          },
+          {
+            "left_scan": 1003,
+            "publication_effect_ids": [
+              1004,
+              1006
+            ],
+            "right_scan": 1010
+          },
+          {
+            "left_scan": 1010,
+            "publication_effect_ids": [
+              1011,
+              1013
+            ],
+            "right_scan": 1017
+          },
+          {
+            "left_scan": 1017,
+            "publication_effect_ids": [
+              1018,
+              1020
+            ],
+            "right_scan": 1025
+          }
+        ],
+        "all_adjacent_scans_have_intervening_publication_effect": true,
+        "each_public_call_exactly_one_fresh_scan": true,
+        "end_ns": 48317864609,
+        "fresh_scans": 47,
+        "inclusive_by_kind": {
+          "client-stage": {
+            "count": 3,
+            "exclusive_timed_children_wall_ns": 105700,
+            "inclusive_process_cpu_ns": 1680653422,
+            "inclusive_wall_ns": 1733768870
+          },
+          "code-admission": {
+            "count": 47,
+            "exclusive_timed_children_wall_ns": 124705578,
+            "inclusive_process_cpu_ns": 2212326936,
+            "inclusive_wall_ns": 2212530975
+          },
+          "fresh-admission": {
+            "count": 47,
+            "exclusive_timed_children_wall_ns": 2087825397,
+            "inclusive_process_cpu_ns": 2087515243,
+            "inclusive_wall_ns": 2087825397
+          },
+          "public-store": {
+            "count": 47,
+            "exclusive_timed_children_wall_ns": 77031464,
+            "inclusive_process_cpu_ns": 2328305413,
+            "inclusive_wall_ns": 2387154975
+          },
+          "publication-effect": {
+            "count": 110,
+            "exclusive_timed_children_wall_ns": 16310453,
+            "inclusive_process_cpu_ns": 41142618,
+            "inclusive_wall_ns": 97592536
+          },
+          "service": {
+            "count": 34,
+            "exclusive_timed_children_wall_ns": 2758168,
+            "inclusive_process_cpu_ns": 2468560369,
+            "inclusive_wall_ns": 2492948857
+          },
+          "subprocess": {
+            "count": 110,
+            "exclusive_timed_children_wall_ns": 81282083,
+            "inclusive_process_cpu_ns": 24810883,
+            "inclusive_wall_ns": 81282083
+          },
+          "tool-call": {
+            "count": 4,
+            "exclusive_timed_children_wall_ns": 194084409,
+            "inclusive_process_cpu_ns": 1680545408,
+            "inclusive_wall_ns": 1733663170
+          }
+        },
+        "public_calls": [
+          {
+            "end_ns": 45781116580,
+            "fresh_scans": 1,
+            "id": 628,
+            "inclusive_wall_ns": 49892909,
+            "label": "check_profile",
+            "parent": 627,
+            "publication_effects": 2,
+            "start_ns": 45731223671
+          },
+          {
+            "end_ns": 45830805528,
+            "fresh_scans": 1,
+            "id": 635,
+            "inclusive_wall_ns": 49675728,
+            "label": "put",
+            "parent": 626,
+            "publication_effects": 3,
+            "start_ns": 45781129800
+          },
+          {
+            "end_ns": 45926559188,
+            "fresh_scans": 1,
+            "id": 646,
+            "inclusive_wall_ns": 50173494,
+            "label": "get_json",
+            "parent": 645,
+            "publication_effects": 2,
+            "start_ns": 45876385694
+          },
+          {
+            "end_ns": 45976022774,
+            "fresh_scans": 1,
+            "id": 654,
+            "inclusive_wall_ns": 49442804,
+            "label": "check_profile",
+            "parent": 653,
+            "publication_effects": 2,
+            "start_ns": 45926579970
+          },
+          {
+            "end_ns": 46025330884,
+            "fresh_scans": 1,
+            "id": 662,
+            "inclusive_wall_ns": 49283663,
+            "label": "check_profile",
+            "parent": 661,
+            "publication_effects": 2,
+            "start_ns": 45976047221
+          },
+          {
+            "end_ns": 46075657652,
+            "fresh_scans": 1,
+            "id": 669,
+            "inclusive_wall_ns": 49375372,
+            "label": "get",
+            "parent": 644,
+            "publication_effects": 2,
+            "start_ns": 46026282280
+          },
+          {
+            "end_ns": 46128674581,
+            "fresh_scans": 1,
+            "id": 676,
+            "inclusive_wall_ns": 52694039,
+            "label": "put",
+            "parent": 644,
+            "publication_effects": 4,
+            "start_ns": 46075980542
+          },
+          {
+            "end_ns": 46178483121,
+            "fresh_scans": 1,
+            "id": 687,
+            "inclusive_wall_ns": 49798244,
+            "label": "json",
+            "parent": 644,
+            "publication_effects": 3,
+            "start_ns": 46128684877
+          },
+          {
+            "end_ns": 46274252295,
+            "fresh_scans": 1,
+            "id": 699,
+            "inclusive_wall_ns": 50078781,
+            "label": "get_json",
+            "parent": 698,
+            "publication_effects": 2,
+            "start_ns": 46224173514
+          },
+          {
+            "end_ns": 46323611372,
+            "fresh_scans": 1,
+            "id": 707,
+            "inclusive_wall_ns": 49338286,
+            "label": "check_profile",
+            "parent": 706,
+            "publication_effects": 2,
+            "start_ns": 46274273086
+          },
+          {
+            "end_ns": 46372771407,
+            "fresh_scans": 1,
+            "id": 715,
+            "inclusive_wall_ns": 49139013,
+            "label": "check_profile",
+            "parent": 714,
+            "publication_effects": 2,
+            "start_ns": 46323632394
+          },
+          {
+            "end_ns": 46423615480,
+            "fresh_scans": 1,
+            "id": 723,
+            "inclusive_wall_ns": 49835130,
+            "label": "get_json",
+            "parent": 722,
+            "publication_effects": 2,
+            "start_ns": 46373780350
+          },
+          {
+            "end_ns": 46474245268,
+            "fresh_scans": 1,
+            "id": 731,
+            "inclusive_wall_ns": 50609397,
+            "label": "check_profile",
+            "parent": 730,
+            "publication_effects": 2,
+            "start_ns": 46423635871
+          },
+          {
+            "end_ns": 46523682775,
+            "fresh_scans": 1,
+            "id": 739,
+            "inclusive_wall_ns": 49416505,
+            "label": "check_profile",
+            "parent": 738,
+            "publication_effects": 2,
+            "start_ns": 46474266270
+          },
+          {
+            "end_ns": 46573798061,
+            "fresh_scans": 1,
+            "id": 747,
+            "inclusive_wall_ns": 50087875,
+            "label": "check_profile",
+            "parent": 746,
+            "publication_effects": 2,
+            "start_ns": 46523710186
+          },
+          {
+            "end_ns": 46623744641,
+            "fresh_scans": 1,
+            "id": 755,
+            "inclusive_wall_ns": 49922924,
+            "label": "get",
+            "parent": 754,
+            "publication_effects": 2,
+            "start_ns": 46573821717
+          },
+          {
+            "end_ns": 46679077465,
+            "fresh_scans": 1,
+            "id": 762,
+            "inclusive_wall_ns": 54275858,
+            "label": "json",
+            "parent": 697,
+            "publication_effects": 4,
+            "start_ns": 46624801607
+          },
+          {
+            "end_ns": 46734785679,
+            "fresh_scans": 1,
+            "id": 773,
+            "inclusive_wall_ns": 55697227,
+            "label": "json",
+            "parent": 697,
+            "publication_effects": 4,
+            "start_ns": 46679088452
+          },
+          {
+            "end_ns": 46789268962,
+            "fresh_scans": 1,
+            "id": 784,
+            "inclusive_wall_ns": 54459357,
+            "label": "json",
+            "parent": 697,
+            "publication_effects": 4,
+            "start_ns": 46734809605
+          },
+          {
+            "end_ns": 46885678329,
+            "fresh_scans": 1,
+            "id": 798,
+            "inclusive_wall_ns": 49379809,
+            "label": "get_json",
+            "parent": 797,
+            "publication_effects": 2,
+            "start_ns": 46836298520
+          },
+          {
+            "end_ns": 46934980229,
+            "fresh_scans": 1,
+            "id": 806,
+            "inclusive_wall_ns": 49283282,
+            "label": "check_profile",
+            "parent": 805,
+            "publication_effects": 2,
+            "start_ns": 46885696947
+          },
+          {
+            "end_ns": 46984699343,
+            "fresh_scans": 1,
+            "id": 814,
+            "inclusive_wall_ns": 49678572,
+            "label": "check_profile",
+            "parent": 813,
+            "publication_effects": 2,
+            "start_ns": 46935020771
+          },
+          {
+            "end_ns": 47035896483,
+            "fresh_scans": 1,
+            "id": 822,
+            "inclusive_wall_ns": 50177150,
+            "label": "get_json",
+            "parent": 821,
+            "publication_effects": 2,
+            "start_ns": 46985719333
+          },
+          {
+            "end_ns": 47085729441,
+            "fresh_scans": 1,
+            "id": 830,
+            "inclusive_wall_ns": 49812186,
+            "label": "check_profile",
+            "parent": 829,
+            "publication_effects": 2,
+            "start_ns": 47035917255
+          },
+          {
+            "end_ns": 47135287821,
+            "fresh_scans": 1,
+            "id": 838,
+            "inclusive_wall_ns": 49537008,
+            "label": "check_profile",
+            "parent": 837,
+            "publication_effects": 2,
+            "start_ns": 47085750813
+          },
+          {
+            "end_ns": 47185446583,
+            "fresh_scans": 1,
+            "id": 846,
+            "inclusive_wall_ns": 50130990,
+            "label": "check_profile",
+            "parent": 845,
+            "publication_effects": 2,
+            "start_ns": 47135315593
+          },
+          {
+            "end_ns": 47235022730,
+            "fresh_scans": 1,
+            "id": 854,
+            "inclusive_wall_ns": 49552902,
+            "label": "get",
+            "parent": 853,
+            "publication_effects": 2,
+            "start_ns": 47185469828
+          },
+          {
+            "end_ns": 47289489518,
+            "fresh_scans": 1,
+            "id": 861,
+            "inclusive_wall_ns": 53428150,
+            "label": "json",
+            "parent": 796,
+            "publication_effects": 4,
+            "start_ns": 47236061368
+          },
+          {
+            "end_ns": 47357999904,
+            "fresh_scans": 1,
+            "id": 872,
+            "inclusive_wall_ns": 68499800,
+            "label": "json",
+            "parent": 796,
+            "publication_effects": 4,
+            "start_ns": 47289500104
+          },
+          {
+            "end_ns": 47413355332,
+            "fresh_scans": 1,
+            "id": 883,
+            "inclusive_wall_ns": 55310860,
+            "label": "json",
+            "parent": 796,
+            "publication_effects": 4,
+            "start_ns": 47358044472
+          },
+          {
+            "end_ns": 47516142149,
+            "fresh_scans": 1,
+            "id": 897,
+            "inclusive_wall_ns": 50274689,
+            "label": "get_json",
+            "parent": 896,
+            "publication_effects": 2,
+            "start_ns": 47465867460
+          },
+          {
+            "end_ns": 47565970299,
+            "fresh_scans": 1,
+            "id": 905,
+            "inclusive_wall_ns": 49805946,
+            "label": "check_profile",
+            "parent": 904,
+            "publication_effects": 2,
+            "start_ns": 47516164353
+          },
+          {
+            "end_ns": 47615415126,
+            "fresh_scans": 1,
+            "id": 913,
+            "inclusive_wall_ns": 49421862,
+            "label": "check_profile",
+            "parent": 912,
+            "publication_effects": 2,
+            "start_ns": 47565993264
+          },
+          {
+            "end_ns": 47665978844,
+            "fresh_scans": 1,
+            "id": 922,
+            "inclusive_wall_ns": 50220576,
+            "label": "check_profile",
+            "parent": 921,
+            "publication_effects": 2,
+            "start_ns": 47615758268
+          },
+          {
+            "end_ns": 47716601651,
+            "fresh_scans": 1,
+            "id": 930,
+            "inclusive_wall_ns": 50519280,
+            "label": "get_json",
+            "parent": 929,
+            "publication_effects": 2,
+            "start_ns": 47666082371
+          },
+          {
+            "end_ns": 47767299433,
+            "fresh_scans": 1,
+            "id": 938,
+            "inclusive_wall_ns": 50676459,
+            "label": "check_profile",
+            "parent": 937,
+            "publication_effects": 2,
+            "start_ns": 47716622974
+          },
+          {
+            "end_ns": 47817689046,
+            "fresh_scans": 1,
+            "id": 946,
+            "inclusive_wall_ns": 50365387,
+            "label": "check_profile",
+            "parent": 945,
+            "publication_effects": 2,
+            "start_ns": 47767323659
+          },
+          {
+            "end_ns": 47867266791,
+            "fresh_scans": 1,
+            "id": 954,
+            "inclusive_wall_ns": 49548451,
+            "label": "get",
+            "parent": 953,
+            "publication_effects": 2,
+            "start_ns": 47817718340
+          },
+          {
+            "end_ns": 47917329147,
+            "fresh_scans": 1,
+            "id": 961,
+            "inclusive_wall_ns": 49734988,
+            "label": "get_json",
+            "parent": 920,
+            "publication_effects": 2,
+            "start_ns": 47867594159
+          },
+          {
+            "end_ns": 47966700173,
+            "fresh_scans": 1,
+            "id": 969,
+            "inclusive_wall_ns": 49348712,
+            "label": "check_profile",
+            "parent": 968,
+            "publication_effects": 2,
+            "start_ns": 47917351461
+          },
+          {
+            "end_ns": 48015938907,
+            "fresh_scans": 1,
+            "id": 977,
+            "inclusive_wall_ns": 49214237,
+            "label": "get",
+            "parent": 976,
+            "publication_effects": 2,
+            "start_ns": 47966724670
+          },
+          {
+            "end_ns": 48065892337,
+            "fresh_scans": 1,
+            "id": 985,
+            "inclusive_wall_ns": 49540953,
+            "label": "get_json",
+            "parent": 984,
+            "publication_effects": 2,
+            "start_ns": 48016351384
+          },
+          {
+            "end_ns": 48116181067,
+            "fresh_scans": 1,
+            "id": 993,
+            "inclusive_wall_ns": 50268559,
+            "label": "check_profile",
+            "parent": 992,
+            "publication_effects": 2,
+            "start_ns": 48065912508
+          },
+          {
+            "end_ns": 48166209001,
+            "fresh_scans": 1,
+            "id": 1001,
+            "inclusive_wall_ns": 50004999,
+            "label": "check_profile",
+            "parent": 1000,
+            "publication_effects": 2,
+            "start_ns": 48116204002
+          },
+          {
+            "end_ns": 48217127127,
+            "fresh_scans": 1,
+            "id": 1008,
+            "inclusive_wall_ns": 50513512,
+            "label": "get_json",
+            "parent": 920,
+            "publication_effects": 2,
+            "start_ns": 48166613615
+          },
+          {
+            "end_ns": 48266962608,
+            "fresh_scans": 1,
+            "id": 1015,
+            "inclusive_wall_ns": 49821410,
+            "label": "get_json",
+            "parent": 920,
+            "publication_effects": 2,
+            "start_ns": 48217141198
+          },
+          {
+            "end_ns": 48317846912,
+            "fresh_scans": 1,
+            "id": 1023,
+            "inclusive_wall_ns": 49887640,
+            "label": "check_profile",
+            "parent": 1022,
+            "publication_effects": 2,
+            "start_ns": 48267959272
+          }
+        ],
+        "public_store_calls": 47,
+        "public_store_labels": {
+          "check_profile": 22,
+          "get": 5,
+          "get_json": 11,
+          "json": 7,
+          "put": 2
+        },
+        "start_ns": 45688573357,
+        "unattributed_wall_after_fresh_scans_ns": 541465855,
+        "wall_ns": 2629291252,
+        "warning": "Inclusive kinds overlap and must not be summed. The residual includes all uninstrumented work and instrumentation. These are existing diagnostic times, not new measurements or qualification."
+      },
+      "selection": {
+        "HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/original-nested-evidence/ArtifactNamespaceNativeTests/publication/build.json",
+        "HEPTA_HIA_ARTIFACT_NAMESPACE_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/original-nested-evidence/ArtifactNamespaceNativeTests/namespace/manifest.json",
+        "HEPTA_HIA_EXECUTION_BUDGET_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/original-nested-evidence/ArtifactNamespaceNativeTests/budget/manifest.json",
+        "HEPTA_HIA_REQUEST_JOURNAL_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/original-nested-evidence/ArtifactNamespaceNativeTests/request/manifest.json",
+        "HEPTA_HIA_STORE_LIFECYCLE_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/build/manifest.json"
+      },
+      "source_commit": "abeef212e34023534d91f8f952280e2a8d0cbde6"
+    },
+    {
+      "case": 2,
+      "context_created_observations": [
+        {
+          "context_id": "ctx-3fb4a55a3af447ffaf215b8b00032afd",
+          "created_ns": "1794591636239703820",
+          "elapsed_ns": 38389,
+          "kind": "context-created-read",
+          "parent_span": 388,
+          "sampled_at": "2026-11-13T17:40:36.176863+00:00"
+        },
+        {
+          "context_id": "ctx-8f0a85809c9044ce9eb4da205d417d82",
+          "created_ns": "1794591637648179056",
+          "elapsed_ns": 18979,
+          "kind": "context-created-read",
+          "parent_span": 568,
+          "sampled_at": "2026-11-13T17:40:37.594263+00:00"
+        }
+      ],
+      "method": "test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+      "original_outcome": "PASS",
+      "post_freeze_stages": [
+        {
+          "fresh_scans": 8,
+          "id": 625,
+          "label": "import_program",
+          "parent": 0,
+          "publication_effects": 22,
+          "wall_ns": 519222983
+        },
+        {
+          "fresh_scans": 11,
+          "id": 700,
+          "label": "verify",
+          "parent": 0,
+          "publication_effects": 28,
+          "wall_ns": 610993662
+        },
+        {
+          "fresh_scans": 11,
+          "id": 799,
+          "label": "verify",
+          "parent": 0,
+          "publication_effects": 28,
+          "wall_ns": 608713794
+        },
+        {
+          "fresh_scans": 20,
+          "id": 898,
+          "label": "emit",
+          "parent": 0,
+          "publication_effects": 46,
+          "wall_ns": 1146151149
+        },
+        {
+          "fresh_scans": 20,
+          "id": 1069,
+          "label": "emit",
+          "parent": 0,
+          "publication_effects": 46,
+          "wall_ns": 1187454782
+        },
+        {
+          "fresh_scans": 28,
+          "id": 1240,
+          "label": "encoding",
+          "parent": 0,
+          "publication_effects": 63,
+          "wall_ns": 1544734226
+        },
+        {
+          "fresh_scans": 28,
+          "id": 1241,
+          "label": "verify",
+          "parent": 1240,
+          "publication_effects": 63,
+          "wall_ns": 1544722237
+        },
+        {
+          "fresh_scans": 65,
+          "id": 1476,
+          "label": "evaluate",
+          "parent": 0,
+          "publication_effects": 136,
+          "wall_ns": 4668248533
+        }
+      ],
+      "second_freeze_return_to_encoding_return": {
+        "adjacent_scan_effect_boundaries": [
+          {
+            "left_scan": 630,
+            "publication_effect_ids": [
+              631,
+              633
+            ],
+            "right_scan": 637
+          },
+          {
+            "left_scan": 637,
+            "publication_effect_ids": [
+              638,
+              640,
+              642,
+              644
+            ],
+            "right_scan": 650
+          },
+          {
+            "left_scan": 650,
+            "publication_effect_ids": [
+              651,
+              653
+            ],
+            "right_scan": 658
+          },
+          {
+            "left_scan": 658,
+            "publication_effect_ids": [
+              659,
+              661
+            ],
+            "right_scan": 666
+          },
+          {
+            "left_scan": 666,
+            "publication_effect_ids": [
+              667,
+              669
+            ],
+            "right_scan": 673
+          },
+          {
+            "left_scan": 673,
+            "publication_effect_ids": [
+              674,
+              676
+            ],
+            "right_scan": 680
+          },
+          {
+            "left_scan": 680,
+            "publication_effect_ids": [
+              681,
+              683,
+              685,
+              687
+            ],
+            "right_scan": 691
+          },
+          {
+            "left_scan": 691,
+            "publication_effect_ids": [
+              692,
+              694,
+              696,
+              698
+            ],
+            "right_scan": 705
+          },
+          {
+            "left_scan": 705,
+            "publication_effect_ids": [
+              706,
+              708
+            ],
+            "right_scan": 713
+          },
+          {
+            "left_scan": 713,
+            "publication_effect_ids": [
+              714,
+              716
+            ],
+            "right_scan": 721
+          },
+          {
+            "left_scan": 721,
+            "publication_effect_ids": [
+              722,
+              724
+            ],
+            "right_scan": 729
+          },
+          {
+            "left_scan": 729,
+            "publication_effect_ids": [
+              730,
+              732
+            ],
+            "right_scan": 737
+          },
+          {
+            "left_scan": 737,
+            "publication_effect_ids": [
+              738,
+              740
+            ],
+            "right_scan": 745
+          },
+          {
+            "left_scan": 745,
+            "publication_effect_ids": [
+              746,
+              748
+            ],
+            "right_scan": 753
+          },
+          {
+            "left_scan": 753,
+            "publication_effect_ids": [
+              754,
+              756
+            ],
+            "right_scan": 761
+          },
+          {
+            "left_scan": 761,
+            "publication_effect_ids": [
+              762,
+              764
+            ],
+            "right_scan": 768
+          },
+          {
+            "left_scan": 768,
+            "publication_effect_ids": [
+              769,
+              771,
+              773,
+              775
+            ],
+            "right_scan": 779
+          },
+          {
+            "left_scan": 779,
+            "publication_effect_ids": [
+              780,
+              782,
+              784,
+              786
+            ],
+            "right_scan": 790
+          },
+          {
+            "left_scan": 790,
+            "publication_effect_ids": [
+              791,
+              793,
+              795,
+              797
+            ],
+            "right_scan": 804
+          },
+          {
+            "left_scan": 804,
+            "publication_effect_ids": [
+              805,
+              807
+            ],
+            "right_scan": 812
+          },
+          {
+            "left_scan": 812,
+            "publication_effect_ids": [
+              813,
+              815
+            ],
+            "right_scan": 820
+          },
+          {
+            "left_scan": 820,
+            "publication_effect_ids": [
+              821,
+              823
+            ],
+            "right_scan": 828
+          },
+          {
+            "left_scan": 828,
+            "publication_effect_ids": [
+              829,
+              831
+            ],
+            "right_scan": 836
+          },
+          {
+            "left_scan": 836,
+            "publication_effect_ids": [
+              837,
+              839
+            ],
+            "right_scan": 844
+          },
+          {
+            "left_scan": 844,
+            "publication_effect_ids": [
+              845,
+              847
+            ],
+            "right_scan": 852
+          },
+          {
+            "left_scan": 852,
+            "publication_effect_ids": [
+              853,
+              855
+            ],
+            "right_scan": 860
+          },
+          {
+            "left_scan": 860,
+            "publication_effect_ids": [
+              861,
+              863
+            ],
+            "right_scan": 867
+          },
+          {
+            "left_scan": 867,
+            "publication_effect_ids": [
+              868,
+              870,
+              872,
+              874
+            ],
+            "right_scan": 878
+          },
+          {
+            "left_scan": 878,
+            "publication_effect_ids": [
+              879,
+              881,
+              883,
+              885
+            ],
+            "right_scan": 889
+          },
+          {
+            "left_scan": 889,
+            "publication_effect_ids": [
+              890,
+              892,
+              894,
+              896
+            ],
+            "right_scan": 903
+          },
+          {
+            "left_scan": 903,
+            "publication_effect_ids": [
+              904,
+              906
+            ],
+            "right_scan": 911
+          },
+          {
+            "left_scan": 911,
+            "publication_effect_ids": [
+              912,
+              914
+            ],
+            "right_scan": 919
+          },
+          {
+            "left_scan": 919,
+            "publication_effect_ids": [
+              920,
+              922
+            ],
+            "right_scan": 928
+          },
+          {
+            "left_scan": 928,
+            "publication_effect_ids": [
+              929,
+              931
+            ],
+            "right_scan": 936
+          },
+          {
+            "left_scan": 936,
+            "publication_effect_ids": [
+              937,
+              939
+            ],
+            "right_scan": 944
+          },
+          {
+            "left_scan": 944,
+            "publication_effect_ids": [
+              945,
+              947
+            ],
+            "right_scan": 952
+          },
+          {
+            "left_scan": 952,
+            "publication_effect_ids": [
+              953,
+              955
+            ],
+            "right_scan": 960
+          },
+          {
+            "left_scan": 960,
+            "publication_effect_ids": [
+              961,
+              963
+            ],
+            "right_scan": 967
+          },
+          {
+            "left_scan": 967,
+            "publication_effect_ids": [
+              968,
+              970
+            ],
+            "right_scan": 975
+          },
+          {
+            "left_scan": 975,
+            "publication_effect_ids": [
+              976,
+              978
+            ],
+            "right_scan": 983
+          },
+          {
+            "left_scan": 983,
+            "publication_effect_ids": [
+              984,
+              986
+            ],
+            "right_scan": 991
+          },
+          {
+            "left_scan": 991,
+            "publication_effect_ids": [
+              992,
+              994
+            ],
+            "right_scan": 999
+          },
+          {
+            "left_scan": 999,
+            "publication_effect_ids": [
+              1000,
+              1002
+            ],
+            "right_scan": 1007
+          },
+          {
+            "left_scan": 1007,
+            "publication_effect_ids": [
+              1008,
+              1010
+            ],
+            "right_scan": 1014
+          },
+          {
+            "left_scan": 1014,
+            "publication_effect_ids": [
+              1015,
+              1017
+            ],
+            "right_scan": 1021
+          },
+          {
+            "left_scan": 1021,
+            "publication_effect_ids": [
+              1022,
+              1024
+            ],
+            "right_scan": 1029
+          },
+          {
+            "left_scan": 1029,
+            "publication_effect_ids": [
+              1030,
+              1032
+            ],
+            "right_scan": 1038
+          },
+          {
+            "left_scan": 1038,
+            "publication_effect_ids": [
+              1039,
+              1041,
+              1043,
+              1045
+            ],
+            "right_scan": 1049
+          },
+          {
+            "left_scan": 1049,
+            "publication_effect_ids": [
+              1050,
+              1052,
+              1054,
+              1056
+            ],
+            "right_scan": 1060
+          },
+          {
+            "left_scan": 1060,
+            "publication_effect_ids": [
+              1061,
+              1063,
+              1065,
+              1067
+            ],
+            "right_scan": 1074
+          },
+          {
+            "left_scan": 1074,
+            "publication_effect_ids": [
+              1075,
+              1077
+            ],
+            "right_scan": 1082
+          },
+          {
+            "left_scan": 1082,
+            "publication_effect_ids": [
+              1083,
+              1085
+            ],
+            "right_scan": 1090
+          },
+          {
+            "left_scan": 1090,
+            "publication_effect_ids": [
+              1091,
+              1093
+            ],
+            "right_scan": 1099
+          },
+          {
+            "left_scan": 1099,
+            "publication_effect_ids": [
+              1100,
+              1102
+            ],
+            "right_scan": 1107
+          },
+          {
+            "left_scan": 1107,
+            "publication_effect_ids": [
+              1108,
+              1110
+            ],
+            "right_scan": 1115
+          },
+          {
+            "left_scan": 1115,
+            "publication_effect_ids": [
+              1116,
+              1118
+            ],
+            "right_scan": 1123
+          },
+          {
+            "left_scan": 1123,
+            "publication_effect_ids": [
+              1124,
+              1126
+            ],
+            "right_scan": 1131
+          },
+          {
+            "left_scan": 1131,
+            "publication_effect_ids": [
+              1132,
+              1134
+            ],
+            "right_scan": 1138
+          },
+          {
+            "left_scan": 1138,
+            "publication_effect_ids": [
+              1139,
+              1141
+            ],
+            "right_scan": 1146
+          },
+          {
+            "left_scan": 1146,
+            "publication_effect_ids": [
+              1147,
+              1149
+            ],
+            "right_scan": 1154
+          },
+          {
+            "left_scan": 1154,
+            "publication_effect_ids": [
+              1155,
+              1157
+            ],
+            "right_scan": 1162
+          },
+          {
+            "left_scan": 1162,
+            "publication_effect_ids": [
+              1163,
+              1165
+            ],
+            "right_scan": 1170
+          },
+          {
+            "left_scan": 1170,
+            "publication_effect_ids": [
+              1171,
+              1173
+            ],
+            "right_scan": 1178
+          },
+          {
+            "left_scan": 1178,
+            "publication_effect_ids": [
+              1179,
+              1181
+            ],
+            "right_scan": 1185
+          },
+          {
+            "left_scan": 1185,
+            "publication_effect_ids": [
+              1186,
+              1188
+            ],
+            "right_scan": 1192
+          },
+          {
+            "left_scan": 1192,
+            "publication_effect_ids": [
+              1193,
+              1195
+            ],
+            "right_scan": 1200
+          },
+          {
+            "left_scan": 1200,
+            "publication_effect_ids": [
+              1201,
+              1203
+            ],
+            "right_scan": 1209
+          },
+          {
+            "left_scan": 1209,
+            "publication_effect_ids": [
+              1210,
+              1212,
+              1214,
+              1216
+            ],
+            "right_scan": 1220
+          },
+          {
+            "left_scan": 1220,
+            "publication_effect_ids": [
+              1221,
+              1223,
+              1225,
+              1227
+            ],
+            "right_scan": 1231
+          },
+          {
+            "left_scan": 1231,
+            "publication_effect_ids": [
+              1232,
+              1234,
+              1236,
+              1238
+            ],
+            "right_scan": 1246
+          },
+          {
+            "left_scan": 1246,
+            "publication_effect_ids": [
+              1247,
+              1249
+            ],
+            "right_scan": 1254
+          },
+          {
+            "left_scan": 1254,
+            "publication_effect_ids": [
+              1255,
+              1257
+            ],
+            "right_scan": 1262
+          },
+          {
+            "left_scan": 1262,
+            "publication_effect_ids": [
+              1263,
+              1265
+            ],
+            "right_scan": 1270
+          },
+          {
+            "left_scan": 1270,
+            "publication_effect_ids": [
+              1271,
+              1273
+            ],
+            "right_scan": 1278
+          },
+          {
+            "left_scan": 1278,
+            "publication_effect_ids": [
+              1279,
+              1281
+            ],
+            "right_scan": 1286
+          },
+          {
+            "left_scan": 1286,
+            "publication_effect_ids": [
+              1287,
+              1289
+            ],
+            "right_scan": 1294
+          },
+          {
+            "left_scan": 1294,
+            "publication_effect_ids": [
+              1295,
+              1297
+            ],
+            "right_scan": 1302
+          },
+          {
+            "left_scan": 1302,
+            "publication_effect_ids": [
+              1303,
+              1305
+            ],
+            "right_scan": 1310
+          },
+          {
+            "left_scan": 1310,
+            "publication_effect_ids": [
+              1311,
+              1313
+            ],
+            "right_scan": 1318
+          },
+          {
+            "left_scan": 1318,
+            "publication_effect_ids": [
+              1319,
+              1321
+            ],
+            "right_scan": 1326
+          },
+          {
+            "left_scan": 1326,
+            "publication_effect_ids": [
+              1327,
+              1329
+            ],
+            "right_scan": 1334
+          },
+          {
+            "left_scan": 1334,
+            "publication_effect_ids": [
+              1335,
+              1337
+            ],
+            "right_scan": 1342
+          },
+          {
+            "left_scan": 1342,
+            "publication_effect_ids": [
+              1343,
+              1345
+            ],
+            "right_scan": 1350
+          },
+          {
+            "left_scan": 1350,
+            "publication_effect_ids": [
+              1351,
+              1353
+            ],
+            "right_scan": 1358
+          },
+          {
+            "left_scan": 1358,
+            "publication_effect_ids": [
+              1359,
+              1361
+            ],
+            "right_scan": 1365
+          },
+          {
+            "left_scan": 1365,
+            "publication_effect_ids": [
+              1366,
+              1368
+            ],
+            "right_scan": 1373
+          },
+          {
+            "left_scan": 1373,
+            "publication_effect_ids": [
+              1374,
+              1376
+            ],
+            "right_scan": 1381
+          },
+          {
+            "left_scan": 1381,
+            "publication_effect_ids": [
+              1382,
+              1384
+            ],
+            "right_scan": 1389
+          },
+          {
+            "left_scan": 1389,
+            "publication_effect_ids": [
+              1390,
+              1392
+            ],
+            "right_scan": 1397
+          },
+          {
+            "left_scan": 1397,
+            "publication_effect_ids": [
+              1398,
+              1400
+            ],
+            "right_scan": 1405
+          },
+          {
+            "left_scan": 1405,
+            "publication_effect_ids": [
+              1406,
+              1408
+            ],
+            "right_scan": 1413
+          },
+          {
+            "left_scan": 1413,
+            "publication_effect_ids": [
+              1414,
+              1416
+            ],
+            "right_scan": 1420
+          },
+          {
+            "left_scan": 1420,
+            "publication_effect_ids": [
+              1421,
+              1423
+            ],
+            "right_scan": 1427
+          },
+          {
+            "left_scan": 1427,
+            "publication_effect_ids": [
+              1428,
+              1430
+            ],
+            "right_scan": 1436
+          },
+          {
+            "left_scan": 1436,
+            "publication_effect_ids": [
+              1437,
+              1439,
+              1441
+            ],
+            "right_scan": 1445
+          },
+          {
+            "left_scan": 1445,
+            "publication_effect_ids": [
+              1446,
+              1448,
+              1450,
+              1452
+            ],
+            "right_scan": 1456
+          },
+          {
+            "left_scan": 1456,
+            "publication_effect_ids": [
+              1457,
+              1459,
+              1461,
+              1463
+            ],
+            "right_scan": 1467
+          }
+        ],
+        "all_adjacent_scans_have_intervening_publication_effect": true,
+        "each_public_call_exactly_one_fresh_scan": true,
+        "end_ns": 59450651922,
+        "fresh_scans": 98,
+        "inclusive_by_kind": {
+          "client-stage": {
+            "count": 7,
+            "exclusive_timed_children_wall_ns": 186731,
+            "inclusive_process_cpu_ns": 6732997730,
+            "inclusive_wall_ns": 7161992833
+          },
+          "code-admission": {
+            "count": 98,
+            "exclusive_timed_children_wall_ns": 257228002,
+            "inclusive_process_cpu_ns": 4576168408,
+            "inclusive_wall_ns": 4576600668
+          },
+          "fresh-admission": {
+            "count": 98,
+            "exclusive_timed_children_wall_ns": 4319372666,
+            "inclusive_process_cpu_ns": 4318796074,
+            "inclusive_wall_ns": 4319372666
+          },
+          "public-store": {
+            "count": 98,
+            "exclusive_timed_children_wall_ns": 180278926,
+            "inclusive_process_cpu_ns": 4828913229,
+            "inclusive_wall_ns": 5006427371
+          },
+          "publication-effect": {
+            "count": 233,
+            "exclusive_timed_children_wall_ns": 33825484,
+            "inclusive_process_cpu_ns": 86917858,
+            "inclusive_wall_ns": 249547777
+          },
+          "remaining-budget": {
+            "count": 3,
+            "exclusive_timed_children_wall_ns": 134965,
+            "inclusive_process_cpu_ns": 132258,
+            "inclusive_wall_ns": 134965
+          },
+          "service": {
+            "count": 74,
+            "exclusive_timed_children_wall_ns": 266382872,
+            "inclusive_process_cpu_ns": 7830031496,
+            "inclusive_wall_ns": 8255994373
+          },
+          "subprocess": {
+            "count": 233,
+            "exclusive_timed_children_wall_ns": 215722293,
+            "inclusive_process_cpu_ns": 52992030,
+            "inclusive_wall_ns": 215722293
+          },
+          "tool-call": {
+            "count": 7,
+            "exclusive_timed_children_wall_ns": 344138657,
+            "inclusive_process_cpu_ns": 5280868903,
+            "inclusive_wall_ns": 5617083865
+          }
+        },
+        "public_calls": [
+          {
+            "end_ns": 53925205676,
+            "fresh_scans": 1,
+            "id": 628,
+            "inclusive_wall_ns": 49122801,
+            "label": "check_profile",
+            "parent": 627,
+            "publication_effects": 2,
+            "start_ns": 53876082875
+          },
+          {
+            "end_ns": 53977102099,
+            "fresh_scans": 1,
+            "id": 635,
+            "inclusive_wall_ns": 51881771,
+            "label": "put",
+            "parent": 626,
+            "publication_effects": 4,
+            "start_ns": 53925220328
+          },
+          {
+            "end_ns": 54076293647,
+            "fresh_scans": 1,
+            "id": 648,
+            "inclusive_wall_ns": 52141405,
+            "label": "get_json",
+            "parent": 647,
+            "publication_effects": 2,
+            "start_ns": 54024152242
+          },
+          {
+            "end_ns": 54127024000,
+            "fresh_scans": 1,
+            "id": 656,
+            "inclusive_wall_ns": 50700988,
+            "label": "check_profile",
+            "parent": 655,
+            "publication_effects": 2,
+            "start_ns": 54076323012
+          },
+          {
+            "end_ns": 54176616514,
+            "fresh_scans": 1,
+            "id": 664,
+            "inclusive_wall_ns": 49570631,
+            "label": "check_profile",
+            "parent": 663,
+            "publication_effects": 2,
+            "start_ns": 54127045883
+          },
+          {
+            "end_ns": 54227231952,
+            "fresh_scans": 1,
+            "id": 671,
+            "inclusive_wall_ns": 49603501,
+            "label": "get",
+            "parent": 646,
+            "publication_effects": 2,
+            "start_ns": 54177628451
+          },
+          {
+            "end_ns": 54279946818,
+            "fresh_scans": 1,
+            "id": 678,
+            "inclusive_wall_ns": 52298444,
+            "label": "put",
+            "parent": 646,
+            "publication_effects": 4,
+            "start_ns": 54227648374
+          },
+          {
+            "end_ns": 54349691206,
+            "fresh_scans": 1,
+            "id": 689,
+            "inclusive_wall_ns": 69734944,
+            "label": "json",
+            "parent": 646,
+            "publication_effects": 4,
+            "start_ns": 54279956262
+          },
+          {
+            "end_ns": 54445052968,
+            "fresh_scans": 1,
+            "id": 703,
+            "inclusive_wall_ns": 49519393,
+            "label": "get_json",
+            "parent": 702,
+            "publication_effects": 2,
+            "start_ns": 54395533575
+          },
+          {
+            "end_ns": 54493984548,
+            "fresh_scans": 1,
+            "id": 711,
+            "inclusive_wall_ns": 48911800,
+            "label": "check_profile",
+            "parent": 710,
+            "publication_effects": 2,
+            "start_ns": 54445072748
+          },
+          {
+            "end_ns": 54543171897,
+            "fresh_scans": 1,
+            "id": 719,
+            "inclusive_wall_ns": 49152065,
+            "label": "check_profile",
+            "parent": 718,
+            "publication_effects": 2,
+            "start_ns": 54494019832
+          },
+          {
+            "end_ns": 54594725059,
+            "fresh_scans": 1,
+            "id": 727,
+            "inclusive_wall_ns": 50426781,
+            "label": "get_json",
+            "parent": 726,
+            "publication_effects": 2,
+            "start_ns": 54544298278
+          },
+          {
+            "end_ns": 54644349251,
+            "fresh_scans": 1,
+            "id": 735,
+            "inclusive_wall_ns": 49603410,
+            "label": "check_profile",
+            "parent": 734,
+            "publication_effects": 2,
+            "start_ns": 54594745841
+          },
+          {
+            "end_ns": 54694226388,
+            "fresh_scans": 1,
+            "id": 743,
+            "inclusive_wall_ns": 49855994,
+            "label": "check_profile",
+            "parent": 742,
+            "publication_effects": 2,
+            "start_ns": 54644370394
+          },
+          {
+            "end_ns": 54744256306,
+            "fresh_scans": 1,
+            "id": 751,
+            "inclusive_wall_ns": 50002236,
+            "label": "check_profile",
+            "parent": 750,
+            "publication_effects": 2,
+            "start_ns": 54694254070
+          },
+          {
+            "end_ns": 54793233546,
+            "fresh_scans": 1,
+            "id": 759,
+            "inclusive_wall_ns": 48950399,
+            "label": "get",
+            "parent": 758,
+            "publication_effects": 2,
+            "start_ns": 54744283147
+          },
+          {
+            "end_ns": 54847555623,
+            "fresh_scans": 1,
+            "id": 766,
+            "inclusive_wall_ns": 53106070,
+            "label": "json",
+            "parent": 701,
+            "publication_effects": 4,
+            "start_ns": 54794449553
+          },
+          {
+            "end_ns": 54903216964,
+            "fresh_scans": 1,
+            "id": 777,
+            "inclusive_wall_ns": 55650955,
+            "label": "json",
+            "parent": 701,
+            "publication_effects": 4,
+            "start_ns": 54847566009
+          },
+          {
+            "end_ns": 54958053942,
+            "fresh_scans": 1,
+            "id": 788,
+            "inclusive_wall_ns": 54810298,
+            "label": "json",
+            "parent": 701,
+            "publication_effects": 4,
+            "start_ns": 54903243644
+          },
+          {
+            "end_ns": 55057555461,
+            "fresh_scans": 1,
+            "id": 802,
+            "inclusive_wall_ns": 50659995,
+            "label": "get_json",
+            "parent": 801,
+            "publication_effects": 2,
+            "start_ns": 55006895466
+          },
+          {
+            "end_ns": 55107650072,
+            "fresh_scans": 1,
+            "id": 810,
+            "inclusive_wall_ns": 50074620,
+            "label": "check_profile",
+            "parent": 809,
+            "publication_effects": 2,
+            "start_ns": 55057575452
+          },
+          {
+            "end_ns": 55156693242,
+            "fresh_scans": 1,
+            "id": 818,
+            "inclusive_wall_ns": 49020405,
+            "label": "check_profile",
+            "parent": 817,
+            "publication_effects": 2,
+            "start_ns": 55107672837
+          },
+          {
+            "end_ns": 55207184802,
+            "fresh_scans": 1,
+            "id": 826,
+            "inclusive_wall_ns": 49413523,
+            "label": "get_json",
+            "parent": 825,
+            "publication_effects": 2,
+            "start_ns": 55157771279
+          },
+          {
+            "end_ns": 55256573096,
+            "fresh_scans": 1,
+            "id": 834,
+            "inclusive_wall_ns": 49361083,
+            "label": "check_profile",
+            "parent": 833,
+            "publication_effects": 2,
+            "start_ns": 55207212013
+          },
+          {
+            "end_ns": 55305721806,
+            "fresh_scans": 1,
+            "id": 842,
+            "inclusive_wall_ns": 49128059,
+            "label": "check_profile",
+            "parent": 841,
+            "publication_effects": 2,
+            "start_ns": 55256593747
+          },
+          {
+            "end_ns": 55355543839,
+            "fresh_scans": 1,
+            "id": 850,
+            "inclusive_wall_ns": 49795162,
+            "label": "check_profile",
+            "parent": 849,
+            "publication_effects": 2,
+            "start_ns": 55305748677
+          },
+          {
+            "end_ns": 55404348877,
+            "fresh_scans": 1,
+            "id": 858,
+            "inclusive_wall_ns": 48780351,
+            "label": "get",
+            "parent": 857,
+            "publication_effects": 2,
+            "start_ns": 55355568526
+          },
+          {
+            "end_ns": 55457842967,
+            "fresh_scans": 1,
+            "id": 865,
+            "inclusive_wall_ns": 52380489,
+            "label": "json",
+            "parent": 800,
+            "publication_effects": 4,
+            "start_ns": 55405462478
+          },
+          {
+            "end_ns": 55511926151,
+            "fresh_scans": 1,
+            "id": 876,
+            "inclusive_wall_ns": 54072228,
+            "label": "json",
+            "parent": 800,
+            "publication_effects": 4,
+            "start_ns": 55457853923
+          },
+          {
+            "end_ns": 55567381499,
+            "fresh_scans": 1,
+            "id": 887,
+            "inclusive_wall_ns": 55432574,
+            "label": "json",
+            "parent": 800,
+            "publication_effects": 4,
+            "start_ns": 55511948925
+          },
+          {
+            "end_ns": 55665828616,
+            "fresh_scans": 1,
+            "id": 901,
+            "inclusive_wall_ns": 49807831,
+            "label": "get_json",
+            "parent": 900,
+            "publication_effects": 2,
+            "start_ns": 55616020785
+          },
+          {
+            "end_ns": 55715828269,
+            "fresh_scans": 1,
+            "id": 909,
+            "inclusive_wall_ns": 49978220,
+            "label": "check_profile",
+            "parent": 908,
+            "publication_effects": 2,
+            "start_ns": 55665850049
+          },
+          {
+            "end_ns": 55764977760,
+            "fresh_scans": 1,
+            "id": 917,
+            "inclusive_wall_ns": 49127658,
+            "label": "check_profile",
+            "parent": 916,
+            "publication_effects": 2,
+            "start_ns": 55715850102
+          },
+          {
+            "end_ns": 55815364871,
+            "fresh_scans": 1,
+            "id": 926,
+            "inclusive_wall_ns": 49978460,
+            "label": "check_profile",
+            "parent": 925,
+            "publication_effects": 2,
+            "start_ns": 55765386411
+          },
+          {
+            "end_ns": 55864876322,
+            "fresh_scans": 1,
+            "id": 934,
+            "inclusive_wall_ns": 49411820,
+            "label": "get_json",
+            "parent": 933,
+            "publication_effects": 2,
+            "start_ns": 55815464502
+          },
+          {
+            "end_ns": 55914068398,
+            "fresh_scans": 1,
+            "id": 942,
+            "inclusive_wall_ns": 49172746,
+            "label": "check_profile",
+            "parent": 941,
+            "publication_effects": 2,
+            "start_ns": 55864895652
+          },
+          {
+            "end_ns": 55963126982,
+            "fresh_scans": 1,
+            "id": 950,
+            "inclusive_wall_ns": 49034958,
+            "label": "check_profile",
+            "parent": 949,
+            "publication_effects": 2,
+            "start_ns": 55914092024
+          },
+          {
+            "end_ns": 56011970208,
+            "fresh_scans": 1,
+            "id": 958,
+            "inclusive_wall_ns": 48815414,
+            "label": "get",
+            "parent": 957,
+            "publication_effects": 2,
+            "start_ns": 55963154794
+          },
+          {
+            "end_ns": 56061975790,
+            "fresh_scans": 1,
+            "id": 965,
+            "inclusive_wall_ns": 49492293,
+            "label": "get_json",
+            "parent": 924,
+            "publication_effects": 2,
+            "start_ns": 56012483497
+          },
+          {
+            "end_ns": 56111431846,
+            "fresh_scans": 1,
+            "id": 973,
+            "inclusive_wall_ns": 49432581,
+            "label": "check_profile",
+            "parent": 972,
+            "publication_effects": 2,
+            "start_ns": 56061999265
+          },
+          {
+            "end_ns": 56160179578,
+            "fresh_scans": 1,
+            "id": 981,
+            "inclusive_wall_ns": 48723335,
+            "label": "get",
+            "parent": 980,
+            "publication_effects": 2,
+            "start_ns": 56111456243
+          },
+          {
+            "end_ns": 56210204779,
+            "fresh_scans": 1,
+            "id": 989,
+            "inclusive_wall_ns": 49432691,
+            "label": "get_json",
+            "parent": 988,
+            "publication_effects": 2,
+            "start_ns": 56160772088
+          },
+          {
+            "end_ns": 56259791845,
+            "fresh_scans": 1,
+            "id": 997,
+            "inclusive_wall_ns": 49565974,
+            "label": "check_profile",
+            "parent": 996,
+            "publication_effects": 2,
+            "start_ns": 56210225871
+          },
+          {
+            "end_ns": 56309066496,
+            "fresh_scans": 1,
+            "id": 1005,
+            "inclusive_wall_ns": 49252748,
+            "label": "check_profile",
+            "parent": 1004,
+            "publication_effects": 2,
+            "start_ns": 56259813748
+          },
+          {
+            "end_ns": 56359511135,
+            "fresh_scans": 1,
+            "id": 1012,
+            "inclusive_wall_ns": 50042398,
+            "label": "get_json",
+            "parent": 924,
+            "publication_effects": 2,
+            "start_ns": 56309468737
+          },
+          {
+            "end_ns": 56409412428,
+            "fresh_scans": 1,
+            "id": 1019,
+            "inclusive_wall_ns": 49889105,
+            "label": "get_json",
+            "parent": 924,
+            "publication_effects": 2,
+            "start_ns": 56359523323
+          },
+          {
+            "end_ns": 56460600666,
+            "fresh_scans": 1,
+            "id": 1027,
+            "inclusive_wall_ns": 50217674,
+            "label": "check_profile",
+            "parent": 1026,
+            "publication_effects": 2,
+            "start_ns": 56410382992
+          },
+          {
+            "end_ns": 56598850125,
+            "fresh_scans": 1,
+            "id": 1036,
+            "inclusive_wall_ns": 52747301,
+            "label": "put",
+            "parent": 1035,
+            "publication_effects": 4,
+            "start_ns": 56546102824
+          },
+          {
+            "end_ns": 56657811972,
+            "fresh_scans": 1,
+            "id": 1047,
+            "inclusive_wall_ns": 58854594,
+            "label": "put",
+            "parent": 924,
+            "publication_effects": 4,
+            "start_ns": 56598957378
+          },
+          {
+            "end_ns": 56715430686,
+            "fresh_scans": 1,
+            "id": 1058,
+            "inclusive_wall_ns": 57605525,
+            "label": "json",
+            "parent": 924,
+            "publication_effects": 4,
+            "start_ns": 56657825161
+          },
+          {
+            "end_ns": 56816244459,
+            "fresh_scans": 1,
+            "id": 1072,
+            "inclusive_wall_ns": 49862851,
+            "label": "get_json",
+            "parent": 1071,
+            "publication_effects": 2,
+            "start_ns": 56766381608
+          },
+          {
+            "end_ns": 56865589677,
+            "fresh_scans": 1,
+            "id": 1080,
+            "inclusive_wall_ns": 49325790,
+            "label": "check_profile",
+            "parent": 1079,
+            "publication_effects": 2,
+            "start_ns": 56816263887
+          },
+          {
+            "end_ns": 56915185038,
+            "fresh_scans": 1,
+            "id": 1088,
+            "inclusive_wall_ns": 49574030,
+            "label": "check_profile",
+            "parent": 1087,
+            "publication_effects": 2,
+            "start_ns": 56865611008
+          },
+          {
+            "end_ns": 56965433669,
+            "fresh_scans": 1,
+            "id": 1097,
+            "inclusive_wall_ns": 49901346,
+            "label": "check_profile",
+            "parent": 1096,
+            "publication_effects": 2,
+            "start_ns": 56915532323
+          },
+          {
+            "end_ns": 57015261499,
+            "fresh_scans": 1,
+            "id": 1105,
+            "inclusive_wall_ns": 49746311,
+            "label": "get_json",
+            "parent": 1104,
+            "publication_effects": 2,
+            "start_ns": 56965515188
+          },
+          {
+            "end_ns": 57064935816,
+            "fresh_scans": 1,
+            "id": 1113,
+            "inclusive_wall_ns": 49653256,
+            "label": "check_profile",
+            "parent": 1112,
+            "publication_effects": 2,
+            "start_ns": 57015282560
+          },
+          {
+            "end_ns": 57115243082,
+            "fresh_scans": 1,
+            "id": 1121,
+            "inclusive_wall_ns": 50285875,
+            "label": "check_profile",
+            "parent": 1120,
+            "publication_effects": 2,
+            "start_ns": 57064957207
+          },
+          {
+            "end_ns": 57165522618,
+            "fresh_scans": 1,
+            "id": 1129,
+            "inclusive_wall_ns": 50251435,
+            "label": "get",
+            "parent": 1128,
+            "publication_effects": 2,
+            "start_ns": 57115271183
+          },
+          {
+            "end_ns": 57216739637,
+            "fresh_scans": 1,
+            "id": 1136,
+            "inclusive_wall_ns": 50793633,
+            "label": "get_json",
+            "parent": 1095,
+            "publication_effects": 2,
+            "start_ns": 57165946004
+          },
+          {
+            "end_ns": 57267092706,
+            "fresh_scans": 1,
+            "id": 1144,
+            "inclusive_wall_ns": 50329354,
+            "label": "check_profile",
+            "parent": 1143,
+            "publication_effects": 2,
+            "start_ns": 57216763352
+          },
+          {
+            "end_ns": 57316635411,
+            "fresh_scans": 1,
+            "id": 1152,
+            "inclusive_wall_ns": 49517238,
+            "label": "get",
+            "parent": 1151,
+            "publication_effects": 2,
+            "start_ns": 57267118173
+          },
+          {
+            "end_ns": 57366606519,
+            "fresh_scans": 1,
+            "id": 1160,
+            "inclusive_wall_ns": 49442750,
+            "label": "get_json",
+            "parent": 1159,
+            "publication_effects": 2,
+            "start_ns": 57317163769
+          },
+          {
+            "end_ns": 57416306683,
+            "fresh_scans": 1,
+            "id": 1168,
+            "inclusive_wall_ns": 49680645,
+            "label": "check_profile",
+            "parent": 1167,
+            "publication_effects": 2,
+            "start_ns": 57366626038
+          },
+          {
+            "end_ns": 57465363823,
+            "fresh_scans": 1,
+            "id": 1176,
+            "inclusive_wall_ns": 49035669,
+            "label": "check_profile",
+            "parent": 1175,
+            "publication_effects": 2,
+            "start_ns": 57416328154
+          },
+          {
+            "end_ns": 57516324499,
+            "fresh_scans": 1,
+            "id": 1183,
+            "inclusive_wall_ns": 50554736,
+            "label": "get_json",
+            "parent": 1095,
+            "publication_effects": 2,
+            "start_ns": 57465769763
+          },
+          {
+            "end_ns": 57565750935,
+            "fresh_scans": 1,
+            "id": 1190,
+            "inclusive_wall_ns": 49413097,
+            "label": "get_json",
+            "parent": 1095,
+            "publication_effects": 2,
+            "start_ns": 57516337838
+          },
+          {
+            "end_ns": 57615866755,
+            "fresh_scans": 1,
+            "id": 1198,
+            "inclusive_wall_ns": 49147132,
+            "label": "check_profile",
+            "parent": 1197,
+            "publication_effects": 2,
+            "start_ns": 57566719623
+          },
+          {
+            "end_ns": 57777758740,
+            "fresh_scans": 1,
+            "id": 1207,
+            "inclusive_wall_ns": 76842634,
+            "label": "put",
+            "parent": 1206,
+            "publication_effects": 4,
+            "start_ns": 57700916106
+          },
+          {
+            "end_ns": 57837728034,
+            "fresh_scans": 1,
+            "id": 1218,
+            "inclusive_wall_ns": 59845868,
+            "label": "put",
+            "parent": 1095,
+            "publication_effects": 4,
+            "start_ns": 57777882166
+          },
+          {
+            "end_ns": 57901238281,
+            "fresh_scans": 1,
+            "id": 1229,
+            "inclusive_wall_ns": 63496256,
+            "label": "json",
+            "parent": 1095,
+            "publication_effects": 4,
+            "start_ns": 57837742025
+          },
+          {
+            "end_ns": 57998793820,
+            "fresh_scans": 1,
+            "id": 1244,
+            "inclusive_wall_ns": 49714120,
+            "label": "get_json",
+            "parent": 1243,
+            "publication_effects": 2,
+            "start_ns": 57949079700
+          },
+          {
+            "end_ns": 58048749825,
+            "fresh_scans": 1,
+            "id": 1252,
+            "inclusive_wall_ns": 49935484,
+            "label": "check_profile",
+            "parent": 1251,
+            "publication_effects": 2,
+            "start_ns": 57998814341
+          },
+          {
+            "end_ns": 58096881142,
+            "fresh_scans": 1,
+            "id": 1260,
+            "inclusive_wall_ns": 48109263,
+            "label": "check_profile",
+            "parent": 1259,
+            "publication_effects": 2,
+            "start_ns": 58048771879
+          },
+          {
+            "end_ns": 58146124741,
+            "fresh_scans": 1,
+            "id": 1268,
+            "inclusive_wall_ns": 48268445,
+            "label": "get_json",
+            "parent": 1267,
+            "publication_effects": 2,
+            "start_ns": 58097856296
+          },
+          {
+            "end_ns": 58193913400,
+            "fresh_scans": 1,
+            "id": 1276,
+            "inclusive_wall_ns": 47769701,
+            "label": "check_profile",
+            "parent": 1275,
+            "publication_effects": 2,
+            "start_ns": 58146143699
+          },
+          {
+            "end_ns": 58241836862,
+            "fresh_scans": 1,
+            "id": 1284,
+            "inclusive_wall_ns": 47901329,
+            "label": "check_profile",
+            "parent": 1283,
+            "publication_effects": 2,
+            "start_ns": 58193935533
+          },
+          {
+            "end_ns": 58290319530,
+            "fresh_scans": 1,
+            "id": 1292,
+            "inclusive_wall_ns": 48457229,
+            "label": "check_profile",
+            "parent": 1291,
+            "publication_effects": 2,
+            "start_ns": 58241862301
+          },
+          {
+            "end_ns": 58338483677,
+            "fresh_scans": 1,
+            "id": 1300,
+            "inclusive_wall_ns": 48137426,
+            "label": "get",
+            "parent": 1299,
+            "publication_effects": 2,
+            "start_ns": 58290346251
+          },
+          {
+            "end_ns": 58388168392,
+            "fresh_scans": 1,
+            "id": 1308,
+            "inclusive_wall_ns": 49273333,
+            "label": "check_profile",
+            "parent": 1307,
+            "publication_effects": 2,
+            "start_ns": 58338895059
+          },
+          {
+            "end_ns": 58439412245,
+            "fresh_scans": 1,
+            "id": 1316,
+            "inclusive_wall_ns": 51209451,
+            "label": "get_json",
+            "parent": 1315,
+            "publication_effects": 2,
+            "start_ns": 58388202794
+          },
+          {
+            "end_ns": 58491189433,
+            "fresh_scans": 1,
+            "id": 1324,
+            "inclusive_wall_ns": 51748395,
+            "label": "get",
+            "parent": 1323,
+            "publication_effects": 2,
+            "start_ns": 58439441038
+          },
+          {
+            "end_ns": 58539945425,
+            "fresh_scans": 1,
+            "id": 1332,
+            "inclusive_wall_ns": 48734339,
+            "label": "get",
+            "parent": 1331,
+            "publication_effects": 2,
+            "start_ns": 58491211086
+          },
+          {
+            "end_ns": 58589214952,
+            "fresh_scans": 1,
+            "id": 1340,
+            "inclusive_wall_ns": 48750533,
+            "label": "get_json",
+            "parent": 1339,
+            "publication_effects": 2,
+            "start_ns": 58540464419
+          },
+          {
+            "end_ns": 58637829239,
+            "fresh_scans": 1,
+            "id": 1348,
+            "inclusive_wall_ns": 48593385,
+            "label": "check_profile",
+            "parent": 1347,
+            "publication_effects": 2,
+            "start_ns": 58589235854
+          },
+          {
+            "end_ns": 58686197635,
+            "fresh_scans": 1,
+            "id": 1356,
+            "inclusive_wall_ns": 48347444,
+            "label": "check_profile",
+            "parent": 1355,
+            "publication_effects": 2,
+            "start_ns": 58637850191
+          },
+          {
+            "end_ns": 58735112757,
+            "fresh_scans": 1,
+            "id": 1363,
+            "inclusive_wall_ns": 48765296,
+            "label": "get",
+            "parent": 1315,
+            "publication_effects": 2,
+            "start_ns": 58686347461
+          },
+          {
+            "end_ns": 58786136566,
+            "fresh_scans": 1,
+            "id": 1371,
+            "inclusive_wall_ns": 50905430,
+            "label": "get_json",
+            "parent": 1370,
+            "publication_effects": 2,
+            "start_ns": 58735231136
+          },
+          {
+            "end_ns": 58837513701,
+            "fresh_scans": 1,
+            "id": 1379,
+            "inclusive_wall_ns": 51347069,
+            "label": "get",
+            "parent": 1378,
+            "publication_effects": 2,
+            "start_ns": 58786166632
+          },
+          {
+            "end_ns": 58886084702,
+            "fresh_scans": 1,
+            "id": 1387,
+            "inclusive_wall_ns": 48549419,
+            "label": "get",
+            "parent": 1386,
+            "publication_effects": 2,
+            "start_ns": 58837535283
+          },
+          {
+            "end_ns": 58935784390,
+            "fresh_scans": 1,
+            "id": 1395,
+            "inclusive_wall_ns": 49220023,
+            "label": "get_json",
+            "parent": 1394,
+            "publication_effects": 2,
+            "start_ns": 58886564367
+          },
+          {
+            "end_ns": 58984758872,
+            "fresh_scans": 1,
+            "id": 1403,
+            "inclusive_wall_ns": 48954141,
+            "label": "check_profile",
+            "parent": 1402,
+            "publication_effects": 2,
+            "start_ns": 58935804731
+          },
+          {
+            "end_ns": 59033775157,
+            "fresh_scans": 1,
+            "id": 1411,
+            "inclusive_wall_ns": 48994903,
+            "label": "check_profile",
+            "parent": 1410,
+            "publication_effects": 2,
+            "start_ns": 58984780254
+          },
+          {
+            "end_ns": 59083442576,
+            "fresh_scans": 1,
+            "id": 1418,
+            "inclusive_wall_ns": 49512455,
+            "label": "get",
+            "parent": 1370,
+            "publication_effects": 2,
+            "start_ns": 59033930121
+          },
+          {
+            "end_ns": 59136854406,
+            "fresh_scans": 1,
+            "id": 1425,
+            "inclusive_wall_ns": 53359080,
+            "label": "get",
+            "parent": 1242,
+            "publication_effects": 2,
+            "start_ns": 59083495326
+          },
+          {
+            "end_ns": 59272898773,
+            "fresh_scans": 1,
+            "id": 1434,
+            "inclusive_wall_ns": 50439095,
+            "label": "put",
+            "parent": 1433,
+            "publication_effects": 3,
+            "start_ns": 59222459678
+          },
+          {
+            "end_ns": 59327087228,
+            "fresh_scans": 1,
+            "id": 1443,
+            "inclusive_wall_ns": 53418030,
+            "label": "json",
+            "parent": 1242,
+            "publication_effects": 4,
+            "start_ns": 59273669198
+          },
+          {
+            "end_ns": 59390210374,
+            "fresh_scans": 1,
+            "id": 1454,
+            "inclusive_wall_ns": 63114032,
+            "label": "json",
+            "parent": 1242,
+            "publication_effects": 4,
+            "start_ns": 59327096342
+          },
+          {
+            "end_ns": 59444685962,
+            "fresh_scans": 1,
+            "id": 1465,
+            "inclusive_wall_ns": 54452914,
+            "label": "json",
+            "parent": 1242,
+            "publication_effects": 4,
+            "start_ns": 59390233048
+          }
+        ],
+        "public_store_calls": 98,
+        "public_store_labels": {
+          "check_profile": 41,
+          "get": 15,
+          "get_json": 23,
+          "json": 12,
+          "put": 7
+        },
+        "start_ns": 53833321545,
+        "unattributed_wall_after_fresh_scans_ns": 1297957711,
+        "wall_ns": 5617330377,
+        "warning": "Inclusive kinds overlap and must not be summed. The residual includes all uninstrumented work and instrumentation. These are existing diagnostic times, not new measurements or qualification."
+      },
+      "second_freeze_return_to_first_remaining": {
+        "adjacent_scan_effect_boundaries": [
+          {
+            "left_scan": 630,
+            "publication_effect_ids": [
+              631,
+              633
+            ],
+            "right_scan": 637
+          },
+          {
+            "left_scan": 637,
+            "publication_effect_ids": [
+              638,
+              640,
+              642,
+              644
+            ],
+            "right_scan": 650
+          },
+          {
+            "left_scan": 650,
+            "publication_effect_ids": [
+              651,
+              653
+            ],
+            "right_scan": 658
+          },
+          {
+            "left_scan": 658,
+            "publication_effect_ids": [
+              659,
+              661
+            ],
+            "right_scan": 666
+          },
+          {
+            "left_scan": 666,
+            "publication_effect_ids": [
+              667,
+              669
+            ],
+            "right_scan": 673
+          },
+          {
+            "left_scan": 673,
+            "publication_effect_ids": [
+              674,
+              676
+            ],
+            "right_scan": 680
+          },
+          {
+            "left_scan": 680,
+            "publication_effect_ids": [
+              681,
+              683,
+              685,
+              687
+            ],
+            "right_scan": 691
+          },
+          {
+            "left_scan": 691,
+            "publication_effect_ids": [
+              692,
+              694,
+              696,
+              698
+            ],
+            "right_scan": 705
+          },
+          {
+            "left_scan": 705,
+            "publication_effect_ids": [
+              706,
+              708
+            ],
+            "right_scan": 713
+          },
+          {
+            "left_scan": 713,
+            "publication_effect_ids": [
+              714,
+              716
+            ],
+            "right_scan": 721
+          },
+          {
+            "left_scan": 721,
+            "publication_effect_ids": [
+              722,
+              724
+            ],
+            "right_scan": 729
+          },
+          {
+            "left_scan": 729,
+            "publication_effect_ids": [
+              730,
+              732
+            ],
+            "right_scan": 737
+          },
+          {
+            "left_scan": 737,
+            "publication_effect_ids": [
+              738,
+              740
+            ],
+            "right_scan": 745
+          },
+          {
+            "left_scan": 745,
+            "publication_effect_ids": [
+              746,
+              748
+            ],
+            "right_scan": 753
+          },
+          {
+            "left_scan": 753,
+            "publication_effect_ids": [
+              754,
+              756
+            ],
+            "right_scan": 761
+          },
+          {
+            "left_scan": 761,
+            "publication_effect_ids": [
+              762,
+              764
+            ],
+            "right_scan": 768
+          },
+          {
+            "left_scan": 768,
+            "publication_effect_ids": [
+              769,
+              771,
+              773,
+              775
+            ],
+            "right_scan": 779
+          },
+          {
+            "left_scan": 779,
+            "publication_effect_ids": [
+              780,
+              782,
+              784,
+              786
+            ],
+            "right_scan": 790
+          },
+          {
+            "left_scan": 790,
+            "publication_effect_ids": [
+              791,
+              793,
+              795,
+              797
+            ],
+            "right_scan": 804
+          },
+          {
+            "left_scan": 804,
+            "publication_effect_ids": [
+              805,
+              807
+            ],
+            "right_scan": 812
+          },
+          {
+            "left_scan": 812,
+            "publication_effect_ids": [
+              813,
+              815
+            ],
+            "right_scan": 820
+          },
+          {
+            "left_scan": 820,
+            "publication_effect_ids": [
+              821,
+              823
+            ],
+            "right_scan": 828
+          },
+          {
+            "left_scan": 828,
+            "publication_effect_ids": [
+              829,
+              831
+            ],
+            "right_scan": 836
+          },
+          {
+            "left_scan": 836,
+            "publication_effect_ids": [
+              837,
+              839
+            ],
+            "right_scan": 844
+          },
+          {
+            "left_scan": 844,
+            "publication_effect_ids": [
+              845,
+              847
+            ],
+            "right_scan": 852
+          },
+          {
+            "left_scan": 852,
+            "publication_effect_ids": [
+              853,
+              855
+            ],
+            "right_scan": 860
+          },
+          {
+            "left_scan": 860,
+            "publication_effect_ids": [
+              861,
+              863
+            ],
+            "right_scan": 867
+          },
+          {
+            "left_scan": 867,
+            "publication_effect_ids": [
+              868,
+              870,
+              872,
+              874
+            ],
+            "right_scan": 878
+          },
+          {
+            "left_scan": 878,
+            "publication_effect_ids": [
+              879,
+              881,
+              883,
+              885
+            ],
+            "right_scan": 889
+          },
+          {
+            "left_scan": 889,
+            "publication_effect_ids": [
+              890,
+              892,
+              894,
+              896
+            ],
+            "right_scan": 903
+          },
+          {
+            "left_scan": 903,
+            "publication_effect_ids": [
+              904,
+              906
+            ],
+            "right_scan": 911
+          },
+          {
+            "left_scan": 911,
+            "publication_effect_ids": [
+              912,
+              914
+            ],
+            "right_scan": 919
+          },
+          {
+            "left_scan": 919,
+            "publication_effect_ids": [
+              920,
+              922
+            ],
+            "right_scan": 928
+          },
+          {
+            "left_scan": 928,
+            "publication_effect_ids": [
+              929,
+              931
+            ],
+            "right_scan": 936
+          },
+          {
+            "left_scan": 936,
+            "publication_effect_ids": [
+              937,
+              939
+            ],
+            "right_scan": 944
+          },
+          {
+            "left_scan": 944,
+            "publication_effect_ids": [
+              945,
+              947
+            ],
+            "right_scan": 952
+          },
+          {
+            "left_scan": 952,
+            "publication_effect_ids": [
+              953,
+              955
+            ],
+            "right_scan": 960
+          },
+          {
+            "left_scan": 960,
+            "publication_effect_ids": [
+              961,
+              963
+            ],
+            "right_scan": 967
+          },
+          {
+            "left_scan": 967,
+            "publication_effect_ids": [
+              968,
+              970
+            ],
+            "right_scan": 975
+          },
+          {
+            "left_scan": 975,
+            "publication_effect_ids": [
+              976,
+              978
+            ],
+            "right_scan": 983
+          },
+          {
+            "left_scan": 983,
+            "publication_effect_ids": [
+              984,
+              986
+            ],
+            "right_scan": 991
+          },
+          {
+            "left_scan": 991,
+            "publication_effect_ids": [
+              992,
+              994
+            ],
+            "right_scan": 999
+          },
+          {
+            "left_scan": 999,
+            "publication_effect_ids": [
+              1000,
+              1002
+            ],
+            "right_scan": 1007
+          },
+          {
+            "left_scan": 1007,
+            "publication_effect_ids": [
+              1008,
+              1010
+            ],
+            "right_scan": 1014
+          },
+          {
+            "left_scan": 1014,
+            "publication_effect_ids": [
+              1015,
+              1017
+            ],
+            "right_scan": 1021
+          },
+          {
+            "left_scan": 1021,
+            "publication_effect_ids": [
+              1022,
+              1024
+            ],
+            "right_scan": 1029
+          }
+        ],
+        "all_adjacent_scans_have_intervening_publication_effect": true,
+        "each_public_call_exactly_one_fresh_scan": true,
+        "end_ns": 56460618773,
+        "fresh_scans": 47,
+        "inclusive_by_kind": {
+          "client-stage": {
+            "count": 3,
+            "exclusive_timed_children_wall_ns": 108183,
+            "inclusive_process_cpu_ns": 1681996205,
+            "inclusive_wall_ns": 1738930439
+          },
+          "code-admission": {
+            "count": 47,
+            "exclusive_timed_children_wall_ns": 126126112,
+            "inclusive_process_cpu_ns": 2199151606,
+            "inclusive_wall_ns": 2199387657
+          },
+          "fresh-admission": {
+            "count": 47,
+            "exclusive_timed_children_wall_ns": 2073261545,
+            "inclusive_process_cpu_ns": 2072961611,
+            "inclusive_wall_ns": 2073261545
+          },
+          "public-store": {
+            "count": 47,
+            "exclusive_timed_children_wall_ns": 81061030,
+            "inclusive_process_cpu_ns": 2320622408,
+            "inclusive_wall_ns": 2384538281
+          },
+          "publication-effect": {
+            "count": 112,
+            "exclusive_timed_children_wall_ns": 16514893,
+            "inclusive_process_cpu_ns": 42509275,
+            "inclusive_wall_ns": 104089594
+          },
+          "service": {
+            "count": 34,
+            "exclusive_timed_children_wall_ns": 3436394,
+            "inclusive_process_cpu_ns": 2457650562,
+            "inclusive_wall_ns": 2481319053
+          },
+          "subprocess": {
+            "count": 112,
+            "exclusive_timed_children_wall_ns": 87574701,
+            "inclusive_process_cpu_ns": 25952172,
+            "inclusive_wall_ns": 87574701
+          },
+          "tool-call": {
+            "count": 4,
+            "exclusive_timed_children_wall_ns": 193754615,
+            "inclusive_process_cpu_ns": 1681885951,
+            "inclusive_wall_ns": 1738822256
+          }
+        },
+        "public_calls": [
+          {
+            "end_ns": 53925205676,
+            "fresh_scans": 1,
+            "id": 628,
+            "inclusive_wall_ns": 49122801,
+            "label": "check_profile",
+            "parent": 627,
+            "publication_effects": 2,
+            "start_ns": 53876082875
+          },
+          {
+            "end_ns": 53977102099,
+            "fresh_scans": 1,
+            "id": 635,
+            "inclusive_wall_ns": 51881771,
+            "label": "put",
+            "parent": 626,
+            "publication_effects": 4,
+            "start_ns": 53925220328
+          },
+          {
+            "end_ns": 54076293647,
+            "fresh_scans": 1,
+            "id": 648,
+            "inclusive_wall_ns": 52141405,
+            "label": "get_json",
+            "parent": 647,
+            "publication_effects": 2,
+            "start_ns": 54024152242
+          },
+          {
+            "end_ns": 54127024000,
+            "fresh_scans": 1,
+            "id": 656,
+            "inclusive_wall_ns": 50700988,
+            "label": "check_profile",
+            "parent": 655,
+            "publication_effects": 2,
+            "start_ns": 54076323012
+          },
+          {
+            "end_ns": 54176616514,
+            "fresh_scans": 1,
+            "id": 664,
+            "inclusive_wall_ns": 49570631,
+            "label": "check_profile",
+            "parent": 663,
+            "publication_effects": 2,
+            "start_ns": 54127045883
+          },
+          {
+            "end_ns": 54227231952,
+            "fresh_scans": 1,
+            "id": 671,
+            "inclusive_wall_ns": 49603501,
+            "label": "get",
+            "parent": 646,
+            "publication_effects": 2,
+            "start_ns": 54177628451
+          },
+          {
+            "end_ns": 54279946818,
+            "fresh_scans": 1,
+            "id": 678,
+            "inclusive_wall_ns": 52298444,
+            "label": "put",
+            "parent": 646,
+            "publication_effects": 4,
+            "start_ns": 54227648374
+          },
+          {
+            "end_ns": 54349691206,
+            "fresh_scans": 1,
+            "id": 689,
+            "inclusive_wall_ns": 69734944,
+            "label": "json",
+            "parent": 646,
+            "publication_effects": 4,
+            "start_ns": 54279956262
+          },
+          {
+            "end_ns": 54445052968,
+            "fresh_scans": 1,
+            "id": 703,
+            "inclusive_wall_ns": 49519393,
+            "label": "get_json",
+            "parent": 702,
+            "publication_effects": 2,
+            "start_ns": 54395533575
+          },
+          {
+            "end_ns": 54493984548,
+            "fresh_scans": 1,
+            "id": 711,
+            "inclusive_wall_ns": 48911800,
+            "label": "check_profile",
+            "parent": 710,
+            "publication_effects": 2,
+            "start_ns": 54445072748
+          },
+          {
+            "end_ns": 54543171897,
+            "fresh_scans": 1,
+            "id": 719,
+            "inclusive_wall_ns": 49152065,
+            "label": "check_profile",
+            "parent": 718,
+            "publication_effects": 2,
+            "start_ns": 54494019832
+          },
+          {
+            "end_ns": 54594725059,
+            "fresh_scans": 1,
+            "id": 727,
+            "inclusive_wall_ns": 50426781,
+            "label": "get_json",
+            "parent": 726,
+            "publication_effects": 2,
+            "start_ns": 54544298278
+          },
+          {
+            "end_ns": 54644349251,
+            "fresh_scans": 1,
+            "id": 735,
+            "inclusive_wall_ns": 49603410,
+            "label": "check_profile",
+            "parent": 734,
+            "publication_effects": 2,
+            "start_ns": 54594745841
+          },
+          {
+            "end_ns": 54694226388,
+            "fresh_scans": 1,
+            "id": 743,
+            "inclusive_wall_ns": 49855994,
+            "label": "check_profile",
+            "parent": 742,
+            "publication_effects": 2,
+            "start_ns": 54644370394
+          },
+          {
+            "end_ns": 54744256306,
+            "fresh_scans": 1,
+            "id": 751,
+            "inclusive_wall_ns": 50002236,
+            "label": "check_profile",
+            "parent": 750,
+            "publication_effects": 2,
+            "start_ns": 54694254070
+          },
+          {
+            "end_ns": 54793233546,
+            "fresh_scans": 1,
+            "id": 759,
+            "inclusive_wall_ns": 48950399,
+            "label": "get",
+            "parent": 758,
+            "publication_effects": 2,
+            "start_ns": 54744283147
+          },
+          {
+            "end_ns": 54847555623,
+            "fresh_scans": 1,
+            "id": 766,
+            "inclusive_wall_ns": 53106070,
+            "label": "json",
+            "parent": 701,
+            "publication_effects": 4,
+            "start_ns": 54794449553
+          },
+          {
+            "end_ns": 54903216964,
+            "fresh_scans": 1,
+            "id": 777,
+            "inclusive_wall_ns": 55650955,
+            "label": "json",
+            "parent": 701,
+            "publication_effects": 4,
+            "start_ns": 54847566009
+          },
+          {
+            "end_ns": 54958053942,
+            "fresh_scans": 1,
+            "id": 788,
+            "inclusive_wall_ns": 54810298,
+            "label": "json",
+            "parent": 701,
+            "publication_effects": 4,
+            "start_ns": 54903243644
+          },
+          {
+            "end_ns": 55057555461,
+            "fresh_scans": 1,
+            "id": 802,
+            "inclusive_wall_ns": 50659995,
+            "label": "get_json",
+            "parent": 801,
+            "publication_effects": 2,
+            "start_ns": 55006895466
+          },
+          {
+            "end_ns": 55107650072,
+            "fresh_scans": 1,
+            "id": 810,
+            "inclusive_wall_ns": 50074620,
+            "label": "check_profile",
+            "parent": 809,
+            "publication_effects": 2,
+            "start_ns": 55057575452
+          },
+          {
+            "end_ns": 55156693242,
+            "fresh_scans": 1,
+            "id": 818,
+            "inclusive_wall_ns": 49020405,
+            "label": "check_profile",
+            "parent": 817,
+            "publication_effects": 2,
+            "start_ns": 55107672837
+          },
+          {
+            "end_ns": 55207184802,
+            "fresh_scans": 1,
+            "id": 826,
+            "inclusive_wall_ns": 49413523,
+            "label": "get_json",
+            "parent": 825,
+            "publication_effects": 2,
+            "start_ns": 55157771279
+          },
+          {
+            "end_ns": 55256573096,
+            "fresh_scans": 1,
+            "id": 834,
+            "inclusive_wall_ns": 49361083,
+            "label": "check_profile",
+            "parent": 833,
+            "publication_effects": 2,
+            "start_ns": 55207212013
+          },
+          {
+            "end_ns": 55305721806,
+            "fresh_scans": 1,
+            "id": 842,
+            "inclusive_wall_ns": 49128059,
+            "label": "check_profile",
+            "parent": 841,
+            "publication_effects": 2,
+            "start_ns": 55256593747
+          },
+          {
+            "end_ns": 55355543839,
+            "fresh_scans": 1,
+            "id": 850,
+            "inclusive_wall_ns": 49795162,
+            "label": "check_profile",
+            "parent": 849,
+            "publication_effects": 2,
+            "start_ns": 55305748677
+          },
+          {
+            "end_ns": 55404348877,
+            "fresh_scans": 1,
+            "id": 858,
+            "inclusive_wall_ns": 48780351,
+            "label": "get",
+            "parent": 857,
+            "publication_effects": 2,
+            "start_ns": 55355568526
+          },
+          {
+            "end_ns": 55457842967,
+            "fresh_scans": 1,
+            "id": 865,
+            "inclusive_wall_ns": 52380489,
+            "label": "json",
+            "parent": 800,
+            "publication_effects": 4,
+            "start_ns": 55405462478
+          },
+          {
+            "end_ns": 55511926151,
+            "fresh_scans": 1,
+            "id": 876,
+            "inclusive_wall_ns": 54072228,
+            "label": "json",
+            "parent": 800,
+            "publication_effects": 4,
+            "start_ns": 55457853923
+          },
+          {
+            "end_ns": 55567381499,
+            "fresh_scans": 1,
+            "id": 887,
+            "inclusive_wall_ns": 55432574,
+            "label": "json",
+            "parent": 800,
+            "publication_effects": 4,
+            "start_ns": 55511948925
+          },
+          {
+            "end_ns": 55665828616,
+            "fresh_scans": 1,
+            "id": 901,
+            "inclusive_wall_ns": 49807831,
+            "label": "get_json",
+            "parent": 900,
+            "publication_effects": 2,
+            "start_ns": 55616020785
+          },
+          {
+            "end_ns": 55715828269,
+            "fresh_scans": 1,
+            "id": 909,
+            "inclusive_wall_ns": 49978220,
+            "label": "check_profile",
+            "parent": 908,
+            "publication_effects": 2,
+            "start_ns": 55665850049
+          },
+          {
+            "end_ns": 55764977760,
+            "fresh_scans": 1,
+            "id": 917,
+            "inclusive_wall_ns": 49127658,
+            "label": "check_profile",
+            "parent": 916,
+            "publication_effects": 2,
+            "start_ns": 55715850102
+          },
+          {
+            "end_ns": 55815364871,
+            "fresh_scans": 1,
+            "id": 926,
+            "inclusive_wall_ns": 49978460,
+            "label": "check_profile",
+            "parent": 925,
+            "publication_effects": 2,
+            "start_ns": 55765386411
+          },
+          {
+            "end_ns": 55864876322,
+            "fresh_scans": 1,
+            "id": 934,
+            "inclusive_wall_ns": 49411820,
+            "label": "get_json",
+            "parent": 933,
+            "publication_effects": 2,
+            "start_ns": 55815464502
+          },
+          {
+            "end_ns": 55914068398,
+            "fresh_scans": 1,
+            "id": 942,
+            "inclusive_wall_ns": 49172746,
+            "label": "check_profile",
+            "parent": 941,
+            "publication_effects": 2,
+            "start_ns": 55864895652
+          },
+          {
+            "end_ns": 55963126982,
+            "fresh_scans": 1,
+            "id": 950,
+            "inclusive_wall_ns": 49034958,
+            "label": "check_profile",
+            "parent": 949,
+            "publication_effects": 2,
+            "start_ns": 55914092024
+          },
+          {
+            "end_ns": 56011970208,
+            "fresh_scans": 1,
+            "id": 958,
+            "inclusive_wall_ns": 48815414,
+            "label": "get",
+            "parent": 957,
+            "publication_effects": 2,
+            "start_ns": 55963154794
+          },
+          {
+            "end_ns": 56061975790,
+            "fresh_scans": 1,
+            "id": 965,
+            "inclusive_wall_ns": 49492293,
+            "label": "get_json",
+            "parent": 924,
+            "publication_effects": 2,
+            "start_ns": 56012483497
+          },
+          {
+            "end_ns": 56111431846,
+            "fresh_scans": 1,
+            "id": 973,
+            "inclusive_wall_ns": 49432581,
+            "label": "check_profile",
+            "parent": 972,
+            "publication_effects": 2,
+            "start_ns": 56061999265
+          },
+          {
+            "end_ns": 56160179578,
+            "fresh_scans": 1,
+            "id": 981,
+            "inclusive_wall_ns": 48723335,
+            "label": "get",
+            "parent": 980,
+            "publication_effects": 2,
+            "start_ns": 56111456243
+          },
+          {
+            "end_ns": 56210204779,
+            "fresh_scans": 1,
+            "id": 989,
+            "inclusive_wall_ns": 49432691,
+            "label": "get_json",
+            "parent": 988,
+            "publication_effects": 2,
+            "start_ns": 56160772088
+          },
+          {
+            "end_ns": 56259791845,
+            "fresh_scans": 1,
+            "id": 997,
+            "inclusive_wall_ns": 49565974,
+            "label": "check_profile",
+            "parent": 996,
+            "publication_effects": 2,
+            "start_ns": 56210225871
+          },
+          {
+            "end_ns": 56309066496,
+            "fresh_scans": 1,
+            "id": 1005,
+            "inclusive_wall_ns": 49252748,
+            "label": "check_profile",
+            "parent": 1004,
+            "publication_effects": 2,
+            "start_ns": 56259813748
+          },
+          {
+            "end_ns": 56359511135,
+            "fresh_scans": 1,
+            "id": 1012,
+            "inclusive_wall_ns": 50042398,
+            "label": "get_json",
+            "parent": 924,
+            "publication_effects": 2,
+            "start_ns": 56309468737
+          },
+          {
+            "end_ns": 56409412428,
+            "fresh_scans": 1,
+            "id": 1019,
+            "inclusive_wall_ns": 49889105,
+            "label": "get_json",
+            "parent": 924,
+            "publication_effects": 2,
+            "start_ns": 56359523323
+          },
+          {
+            "end_ns": 56460600666,
+            "fresh_scans": 1,
+            "id": 1027,
+            "inclusive_wall_ns": 50217674,
+            "label": "check_profile",
+            "parent": 1026,
+            "publication_effects": 2,
+            "start_ns": 56410382992
+          }
+        ],
+        "public_store_calls": 47,
+        "public_store_labels": {
+          "check_profile": 22,
+          "get": 5,
+          "get_json": 11,
+          "json": 7,
+          "put": 2
+        },
+        "start_ns": 53833321545,
+        "unattributed_wall_after_fresh_scans_ns": 554035683,
+        "wall_ns": 2627297228,
+        "warning": "Inclusive kinds overlap and must not be summed. The residual includes all uninstrumented work and instrumentation. These are existing diagnostic times, not new measurements or qualification."
+      },
+      "selection": {
+        "HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/original-nested-evidence/ArtifactNamespaceNativeTests/publication/build.json",
+        "HEPTA_HIA_ARTIFACT_NAMESPACE_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/original-nested-evidence/ArtifactNamespaceNativeTests/namespace/manifest.json",
+        "HEPTA_HIA_EXECUTION_BUDGET_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/original-nested-evidence/ArtifactNamespaceNativeTests/budget/manifest.json",
+        "HEPTA_HIA_REQUEST_JOURNAL_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/original-nested-evidence/ArtifactNamespaceNativeTests/request/manifest.json",
+        "HEPTA_HIA_STORE_LIFECYCLE_MANIFEST": "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs/build/manifest.json"
+      },
+      "source_commit": "abeef212e34023534d91f8f952280e2a8d0cbde6"
+    }
+  ],
+  "source_commit": "abeef212e34023534d91f8f952280e2a8d0cbde6",
+  "status": "ANALYSIS_COMPLETE_NO_PRODUCT_CHANGE",
+  "whole_native": false
+}
