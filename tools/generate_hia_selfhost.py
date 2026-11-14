@@ -25,6 +25,7 @@ from tools.hia_selfhost_returned_loans import SOURCE as RETURNED_LOAN_SOURCE
 from tools.hia_selfhost_cli import SOURCE as CLI_SOURCE
 from tools.hia_selfhost_names import SOURCE as NAMES_SOURCE
 from tools.hia_selfhost_exports import SOURCE as EXPORTS_SOURCE
+from tools.hia_selfhost_word_memory import SOURCE as WORD_MEMORY_SOURCE, SCHEMA_STATE
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10, "i64": 11, "isize": 12, "i32": 13, "i8": 14, "i16": 15, "unit": 16}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
@@ -34,6 +35,8 @@ WORDS += ["chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain
 WORDS += ["checked", "null"]
 WORDS += ["allocation", "bounds", "division_by_zero", "overflow", "user"]
 WORDS += ["return_loans", "selfhost_exec", "exports"]
+WORDS += ["buffer.load.u64.le", "buffer.load.u64.be",
+          "buffer.store.u64.le", "buffer.store.u64.be", "hepta.hia.program.v9"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -76,7 +79,12 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, 48, phase)
         next_token(s, w)
         expect(s, w, @hia-asm.v1@)
-        expect(s, w, @hepta.hia.program.v8@)
+        if get(w, 8) == @hepta.hia.program.v9@:
+            put(w, SCHEMA_STATE, 9)
+            expect(s, w, @hepta.hia.program.v9@)
+        else:
+            put(w, SCHEMA_STATE, 8)
+            expect(s, w, @hepta.hia.program.v8@)
         if get(w, 32) != 0:
             fail(w, 67)
         identifier(s, w)
@@ -307,11 +315,7 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             if variable(w, v) != 5:
                 fail(w, 14)
             load_var(o, w, 0, v, 0)
-            emit(o, w, 72)
-            emit(o, w, 133)
-            emit(o, w, 192)
-            emit(o, w, 15)
-            emit(o, w, 132)
+            emit_bytes(o, w, 567199958344, 5)
             at = get(w, 56)
             emit4(o, w, 0)
             edge(s, o, w, 0)
@@ -543,13 +547,15 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         if get(w, 256) == 0:
             store_var(o, w, v, 0)
     else:
-        if op != @buffer.store@ and op != @buffer.swap@ and op != @loan.end@ and (op < @buffer.fill@ or op > @buffer.move_within@):
+        if op != @buffer.store@ and op != @buffer.swap@ and op != @loan.end@ and (op < @buffer.fill@ or op > @buffer.move_within@) and op != @buffer.store.u64.le@ and op != @buffer.store.u64.be@:
             fail(w, 27)
     expect(s, w, 10)
     if get(w, 256) != 0 and get(w, 8) != @ret@:
         fail(w, 59)
     return 0
 
+# Adjacent literal encoding bytes share emit_bytes; phase-1 sizing still
+# precedes all phase-2 output, and emitted machine bytes stay identical.
 def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
     if op == @select@:
         return select_scalar(o, w, n, a, b, at, bt, t)
@@ -574,46 +580,11 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         emit8(o, w, 13118921948371419464)
         emit8(o, w, 10382635531107731985)
         return 0
-    if op == @buffer.load@ or op == @buffer.store@:
-        loan_access(w, a)
-        if (at != 6 and at != 7) or bt != 2:
-            fail(w, 29)
-        if op == @buffer.load@:
-            if n != 2 or t != 4:
-                fail(w, 30)
-        else:
-            if n != 3 or t != 0 or at != 7 or variable(w, get(w, ARGS + 16)) != 4:
-                fail(w, 30)
-        load_var(o, w, 1, b, 0)
-        load_var(o, w, 2, a, 1)
-        emit(o, w, 72)
-        emit(o, w, 57)
-        emit(o, w, 209)
-        emit(o, w, 114)
-        emit(o, w, 2)
-        emit(o, w, 15)
-        emit(o, w, 11)
-        load_var(o, w, 0, a, 0)
-        emit(o, w, 72)
-        emit(o, w, 1)
-        emit(o, w, 200)
-        if op == @buffer.load@:
-            emit(o, w, 15)
-            emit(o, w, 182)
-            emit(o, w, 0)
-        else:
-            load_var(o, w, 2, get(w, ARGS + 16), 0)
-            emit(o, w, 136)
-            emit(o, w, 16)
-        return 0
     load_var(o, w, 0, a, 0)
     if op == @bool.not@:
         if n != 1 or at != 5 or t != 5:
             fail(w, 31)
-        emit(o, w, 72)
-        emit(o, w, 131)
-        emit(o, w, 240)
-        emit(o, w, 1)
+        emit_bytes(o, w, 32539464, 4)
         return 0
     if n != 2:
         fail(w, 32)
@@ -621,9 +592,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
     if op >= @compare.eq@ and op <= @compare.ge@:
         if (integer_type(at) != 1 and (at != 5 or (op != @compare.eq@ and op != @compare.ne@))) or at != bt or t != 5:
             fail(w, 33)
-        emit(o, w, 72)
-        emit(o, w, 57)
-        emit(o, w, 200)
+        emit_bytes(o, w, 13121864, 3)
         cond = 148
         if op == @compare.ne@:
             cond = 149
@@ -646,10 +615,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
                 cond = 157
         emit(o, w, 15)
         emit(o, w, cond)
-        emit(o, w, 192)
-        emit(o, w, 15)
-        emit(o, w, 182)
-        emit(o, w, 192)
+        emit_bytes(o, w, 3233157056, 4)
         return 0
     if at != bt or t != at or t == 0:
         fail(w, 34)
@@ -660,48 +626,28 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         if integer_type(t) != 1:
             fail(w, 35)
     if op == @int.add.wrap@:
-        emit(o, w, 72)
-        emit(o, w, 1)
-        emit(o, w, 200)
+        emit_bytes(o, w, 13107528, 3)
     else:
         if op == @int.sub.wrap@:
-            emit(o, w, 72)
-            emit(o, w, 41)
-            emit(o, w, 200)
+            emit_bytes(o, w, 13117768, 3)
         else:
             if op == @int.mul.wrap@:
-                emit(o, w, 72)
-                emit(o, w, 15)
-                emit(o, w, 175)
-                emit(o, w, 193)
+                emit_bytes(o, w, 3249475400, 4)
             else:
                 if op == @bit.and@ or op == @bool.and@:
-                    emit(o, w, 72)
-                    emit(o, w, 33)
-                    emit(o, w, 200)
+                    emit_bytes(o, w, 13115720, 3)
                 else:
                     if op == @bit.or@ or op == @bool.or@:
-                        emit(o, w, 72)
-                        emit(o, w, 9)
-                        emit(o, w, 200)
+                        emit_bytes(o, w, 13109576, 3)
                     else:
                         if op == @bit.xor@:
-                            emit(o, w, 72)
-                            emit(o, w, 49)
-                            emit(o, w, 200)
+                            emit_bytes(o, w, 13119816, 3)
                         else:
                             if op == @int.shl.checked@ or op == @int.shr.checked@:
                                 width = integer_width(t)
-                                emit(o, w, 72)
-                                emit(o, w, 131)
-                                emit(o, w, 249)
+                                emit_bytes(o, w, 16352072, 3)
                                 emit(o, w, width)
-                                emit(o, w, 114)
-                                emit(o, w, 2)
-                                emit(o, w, 15)
-                                emit(o, w, 11)
-                                emit(o, w, 72)
-                                emit(o, w, 211)
+                                emit_bytes(o, w, 232306376639090, 6)
                                 if op == @int.shl.checked@:
                                     emit(o, w, 224)
                                 else:
@@ -1490,6 +1436,8 @@ def bulk_buffer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64,
 
 # Keep dispatch outside the pre-existing operation function's SSA budget.
 def operation_dispatch(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    if op == @buffer.load@ or op == @buffer.store@ or (op >= @buffer.load.u64.le@ and op <= @buffer.store.u64.be@):
+        return word_memory(o, w, op, n, a, b, at, bt, t)
     if op >= @buffer.fill@ and op <= @buffer.move_within@:
         return bulk_buffer(o, w, op, n, a, b, at, bt, t)
     return operation(o, w, op, n, a, b, at, bt, t)
@@ -1810,6 +1758,7 @@ def guard_failure(condition:bool, w:mutbuf, code:u64) -> u64:
 '''
 SOURCE += NAMES_SOURCE
 SOURCE += EXPORTS_SOURCE
+SOURCE += WORD_MEMORY_SOURCE
 
 
 def source_program():
@@ -1821,7 +1770,7 @@ def source_program():
     text = SOURCE.replace('KEYWORD_FUNCTION', keyword_source(W))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
     for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE','CAPBASE','KBASE','CAPTMP','QBASE','ORIGINBASE','BLOCKORIGIN',
-                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS']:
+                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS', 'SCHEMA_STATE']:
         text = text.replace(key, str(globals()[key]))
     # These private header words are cleared in full before each semantic
     # pass. Their only writes are quote0/1, phase0..2, function counts0..128,

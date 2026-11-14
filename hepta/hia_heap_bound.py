@@ -49,6 +49,8 @@ _NO_ALLOCATION_OPS = frozenset({
     "buffer.len", "borrow.read", "borrow.mut", "loan.end",
     "buffer.load", "buffer.store", "buffer.fill", "buffer.copy",
     "buffer.move_within", "buffer.fill_range", "buffer.copy_range", "buffer.swap",
+    "buffer.load.u64.le", "buffer.load.u64.be",
+    "buffer.store.u64.le", "buffer.store.u64.be",
 })
 
 
@@ -1049,7 +1051,7 @@ def qualify_live_heap_budget(program, *, max_live_heap_bytes: int) -> dict:
 
 
 def qualify_entry_live_heap_budget(program, function: str, *, max_live_heap_bytes: int) -> dict:
-    """Bound one scalar public v8 entry across borrowed-call boundaries.
+    """Bound one scalar public v8/v9 entry across borrowed-call boundaries.
 
     Reuse the existing interval/CFG analyzer with a distinct local-peak
     summary meaning. Caller-owned loan roots have UNKNOWN extents, not zero
@@ -1065,7 +1067,7 @@ def qualify_entry_live_heap_budget(program, function: str, *, max_live_heap_byte
     """
     from hashlib import sha256
     import json
-    from .hia_static_budget import _audit_v8_resource_profile
+    from .hia_static_budget import _audit_v8_resource_profile, _audit_v9_resource_profile
 
     if (type(max_live_heap_bytes) is not int
             or not 0 <= max_live_heap_bytes <= MAX_REQUEST
@@ -1075,7 +1077,11 @@ def qualify_entry_live_heap_budget(program, function: str, *, max_live_heap_byte
             "entry requires a function name and integer payload policy in 0..2^63-1")
     checked = verify_program(program)
     document = checked.as_dict()
-    _audit_v8_resource_profile(document, allow_chain=False)
+    word_memory = document["schema"] == "hepta.hia.program.v9"
+    if word_memory:
+        _audit_v9_resource_profile(document, allow_chain=False)
+    else:
+        _audit_v8_resource_profile(document, allow_chain=False)
     if function not in checked.scalar_entrypoints:
         raise HIAHeapBoundRejected(
             "E_HIA_BUDGET_PROFILE", "payload entry must be an admitted public scalar function")
@@ -1084,7 +1090,7 @@ def qualify_entry_live_heap_budget(program, function: str, *, max_live_heap_byte
     calls = {fn["name"]: {instruction["attrs"]["function"]
                           for block in fn["blocks"] for instruction in block["ops"]
                           if instruction["op"] == "call"} for fn in functions}
-    order = _dag(list(by_name), calls, "v8 borrowed-call heap graph")
+    order = _dag(list(by_name), calls, "borrowed-call heap graph")
     calculated = {}
     for name in reversed(order):
         calculated[name] = _function(by_name[name], by_name, calculated,
@@ -1121,6 +1127,10 @@ def qualify_entry_live_heap_budget(program, function: str, *, max_live_heap_byte
             "whole_language_soundness_proved": False,
         },
     }
+    if word_memory:
+        report["schema"] = "hepta.hia.entry-live-heap-admission.v2"
+        report["profile"] = "borrowed-call-local-peaks-word-memory-v9"
+        report["claims"]["fixed_width_memory_allocates_payload"] = False
     raw = json.dumps(report, sort_keys=True, separators=(",", ":"),
                      ensure_ascii=False, allow_nan=False).encode("utf-8")
     report["sha256"] = sha256(raw).hexdigest()
@@ -1187,14 +1197,32 @@ def qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents(
         parameter_loan_returns=True, propagate_borrowed_extents=True)
 
 
+def qualify_finite_entry_live_heap_budget_v9(program, function: str, arguments, *,
+                                            max_live_heap_bytes: int,
+                                            propagate_borrowed_extents=False) -> dict:
+    """The explicit v9 byte-owner profile, including fixed-width word accesses.
+
+    Each word operation has no owner/loan transfer or HIA payload allocation.
+    Loaded words remain unknown scalar facts; their observed bytes never become
+    a trusted allocation extent. Legacy v7/v8 entry points keep their grammar.
+    """
+    if type(propagate_borrowed_extents) is not bool:
+        raise HIAHeapBoundRejected("E_HIA_BUDGET_POLICY", "borrowed extent mode must be boolean")
+    return _qualify_finite_entry_live_heap_budget(
+        program, function, arguments, max_live_heap_bytes=max_live_heap_bytes,
+        parameter_loan_returns=True, propagate_borrowed_extents=propagate_borrowed_extents,
+        word_memory=True)
+
+
 def _qualify_finite_entry_live_heap_budget(program, function, arguments, *,
                                           max_live_heap_bytes, parameter_loan_returns,
-                                          propagate_borrowed_extents=False):
+                                          propagate_borrowed_extents=False, word_memory=False):
     from hashlib import sha256
     import json
     from .hia_program import scalar_value_valid
     from .hia_static_budget import (HIAStaticBudgetRejected, analyze_static_budget,
-                                    _audit_v7_byte_resource_profile, _audit_v8_resource_profile)
+                                    _audit_v7_byte_resource_profile, _audit_v8_resource_profile,
+                                    _audit_v9_resource_profile)
 
     if (type(max_live_heap_bytes) is not int
             or not 0 <= max_live_heap_bytes <= MAX_REQUEST):
@@ -1203,7 +1231,9 @@ def _qualify_finite_entry_live_heap_budget(program, function, arguments, *,
     checked = verify_program(program)
     document = checked.as_dict()
     try:
-        if parameter_loan_returns:
+        if word_memory:
+            _audit_v9_resource_profile(document, allow_chain=False)
+        elif parameter_loan_returns:
             _audit_v8_resource_profile(document, allow_chain=False)
         else:
             _audit_v7_byte_resource_profile(document)
@@ -1295,6 +1325,12 @@ def _qualify_finite_entry_live_heap_budget(program, function, arguments, *,
             borrowed_length_upper_bounds_propagated=True,
             borrowed_lengths_assumed_exact=False,
         )
+    if word_memory:
+        report["schema"] = "hepta.hia.finite-entry-live-heap-admission.v4"
+        report["profile"] = ("acyclic-byte-owner-transfer-caller-borrowed-extents-word-memory-v9"
+                             if propagate_borrowed_extents else
+                             "acyclic-byte-owner-transfer-parameter-loans-word-memory-v9")
+        report["claims"]["fixed_width_memory_allocates_payload"] = False
     raw = json.dumps(report, sort_keys=True, separators=(",", ":"),
                      ensure_ascii=False, allow_nan=False).encode("utf-8")
     report["sha256"] = sha256(raw).hexdigest()

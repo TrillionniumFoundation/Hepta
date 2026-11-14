@@ -193,7 +193,7 @@ class ReturnedLoans(unittest.TestCase):
         self.assertEqual(resources["loans_started"], resources["loans_ended"])
 
     def test_explicit_new_schema_and_legacy_refusal(self):
-        self.assertEqual(LATEST_CORE_SCHEMA, SCHEMA_V8)
+        self.assertEqual(LATEST_CORE_SCHEMA, "hepta.hia.program.v9")
         self.assertEqual(CANONICAL_CORE_SCHEMA, "hepta.hia.program.v6")
         self.assertTrue(supports_feature(SCHEMA_V8, "parameter_loan_returns"))
         for version in range(1, 8):

@@ -15,7 +15,8 @@ def main():
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     outputs = {ROOT / "docs/HIA_OPCODE_REFERENCE.md": render_opcode_reference(),
-               ROOT / "docs/hia-opcode-catalog.v8.json": json.dumps(opcode_catalog(), indent=2, sort_keys=True) + "\n"}
+               ROOT / "docs/hia-opcode-catalog.v8.json": json.dumps(opcode_catalog("hepta.hia.program.v8"), indent=2, sort_keys=True) + "\n",
+               ROOT / "docs/hia-opcode-catalog.v9.json": json.dumps(opcode_catalog(), indent=2, sort_keys=True) + "\n"}
     stale = []
     for path, text in outputs.items():
         if args.check:
