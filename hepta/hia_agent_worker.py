@@ -42,6 +42,8 @@ def main(argv=None):
 
 def _run(parser, args):
     selected = os.environ.get('HEPTA_HIA_WORKER_REPORT_MANIFEST')
+    if selected == '':
+        raise ValueError('worker report selector must not be empty')
     if selected:
         identities = installation_manifest()
         from .hia_worker_report_native import installed_worker_report

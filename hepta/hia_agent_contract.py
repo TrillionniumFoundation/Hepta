@@ -78,6 +78,9 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/retirement_state.hepta',
     'examples/hia_bootstrap/native_mapping.hepta',
     'examples/hia_bootstrap/publication_measurement.hepta',
+    'examples/hia_bootstrap/scalar_profile.hepta',
+    'examples/hia_bootstrap/generation_retention.hepta',
+    'examples/hia_bootstrap/bounded_memory.hepta',
 )
 
 

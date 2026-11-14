@@ -38,12 +38,13 @@ existing identities. Native selection is not enabled by default.
 The example digest is a placeholder. Actual admission requires lowercase
 64-character hexadecimal digests. Paths may be absolute or relative to the
 containing pinned manifest; parent traversal and control characters refuse.
-The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-six
+The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-nine
 current single-image contracts include the original nineteen helper adapters
 and the current **agent-journal-native.v2**, **execution-budget-native.v1**,
 **candidate-budget-native.v1**, **retirement-state-native.v1** and
 **slot-ledger-native.v1**, **native-mapping-native.v1** and
-**publication-measurement-native.v1** owners.
+**publication-measurement-native.v1**, **scalar-profile-native.v1** and
+**generation-retention-native.v1** and **bounded-memory-native.v1** owners.
 A source test imports each
 actual factory and checks its `.hepta` source against the packaged resources.
 Unknown selectors, duplicate entries, extra fields and old journal schemas
@@ -72,6 +73,37 @@ The ordinary default remains the original policy; an explicitly selected
 helper has no fallback. The installed resource and pinned worker scope use the
 same source-bound image contract, with the existing process/thread owner and
 terminal identity checks.
+
+`HEPTA_HIA_BOUNDED_MEMORY_MANIFEST` selects the HIA owner of ordinary VM
+byte fills and overlapping moves. The exact-bytearray extent, exact integer
+kind/sign/width/low bits and buffer address are observed by the Python bridge;
+HIA performs the complete original admission order and in-place operation.
+There is no additional input-size ceiling. The bridge holds the GIL and a
+buffer export for the complete call. The original reference bodies are retained
+as independent controls and are forbidden in the selected caller gate.
+
+`HEPTA_HIA_SCALAR_PROFILE_MANIFEST` selects the scalar admission policy after
+fresh Core verification and before the original fresh per-export Z3 proofs.
+HIA owns the qualified version, export/signature/effect/operation limits,
+whole-CFG acyclicity and ABI ordering. It transports no proof authority and
+cannot bypass those independent proofs, compilation or publication effects.
+
+`HEPTA_HIA_GENERATION_RETENTION_MANIFEST` selects the retained per-generation
+reference count, retired state, one-close lease cells and retirement-task
+handoff. HIA changes the count and cell together, with a growable exact
+magnitude and no new fixed-width reference ceiling. The existing runtime
+keeps its locks, current generation and epoch, cancellation and resource
+effects. Preparation failures before registration retain their original
+cleanup owner. Uncertain native transitions keep strong quarantined custody;
+a verified no-write capacity refusal permits ordinary allocation recovery.
+See the [generation retention contract](hia-generation-retention-native.md).
+
+Selection and construction of a new runtime obey the pinned loader's original
+process/thread admission and source readback. An existing runtime retains its
+admitted image and original concurrent lease lifecycle, protected by its
+creator-process check and locks. Changing an ambient selector does not rebind
+that retained owner. This lifetime does not authorize another request to load
+an unlisted image or bypass the worker's terminal identity check.
 
 The bundle binds every child manifest; each child binds its schema, packaged
 source, image and compiler digest. Only owned, bounded, ordinary files with

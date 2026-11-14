@@ -153,6 +153,8 @@ def _reference_digest(value):
 
 def _native_agent_identity():
     selected = os.environ.get("HEPTA_HIA_AGENT_IDENTITY_MANIFEST")
+    if selected == '':
+        raise ValueError('Agent identity selector must not be empty')
     if not selected:
         return None
     from .hia_agent_identity_native import installed_agent_identity

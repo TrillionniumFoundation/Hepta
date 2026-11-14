@@ -260,6 +260,8 @@ class HIAAgentService:
 
     def call(self, tool, arguments):
         selected = os.environ.get('HEPTA_HIA_AGENT_JOURNAL_MANIFEST')
+        if selected == '':
+            raise ValueError('Agent journal selector must not be empty')
         if selected:
             from .hia_agent_journal_native import call_with_native_journal
             return call_with_native_journal(self, tool, arguments, selected)

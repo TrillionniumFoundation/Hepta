@@ -93,7 +93,12 @@ class WorkerHelperSourceTests(unittest.TestCase):
         import importlib
         from hepta.hia_agent_contract import NATIVE_SOURCE_FILES
         from hepta.hia_json_preflight_native import NativeHiaJsonImage
-        self.assertEqual(len(HELPERS), 26)
+        self.assertEqual(len(HELPERS), 29)
+        from tools.hia_selfhost_contract import support_contract
+        declared = support_contract()['native_worker_helper_bundle']
+        self.assertEqual(declared['supported_single_image_selectors'], len(HELPERS))
+        self.assertEqual(HELPERS['HEPTA_HIA_BOUNDED_MEMORY_MANIFEST'],
+                         ('hia_bounded_memory_native', 'NativeBoundedMemory'))
         for selector, (name, factory_name) in HELPERS.items():
             with self.subTest(selector=selector):
                 module = importlib.import_module('hepta.' + name)
