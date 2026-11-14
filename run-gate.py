@@ -133,7 +133,7 @@ EXTRA_COLD_COMPONENTS = (
     "NATIVE_CONTINUATION", "NATIVE_MAPPING", "WORKER_REPORT", "WORKER_SCHEDULING",
     "BOUNDED_MEMORY", "SCALAR_PROFILE", "GENERATION_RETENTION",
     "PUBLICATION_MEASUREMENT", "SHA256_STREAM_DIFFERENTIAL",
-    "FULL_COST", "PATCH_IMPACT", "CLI_DISCOVERY_JSON",
+    "FULL_COST", "PATCH_IMPACT", "CLI_DISCOVERY_JSON", "STATIC_BUDGET", "STORE_LIFECYCLE",
 )
 
 # These classes occur only in complete discovery, not the source/native tuples
@@ -156,6 +156,10 @@ FULL_DISCOVERY_EVIDENCE = {
                      "HEPTA_HIA_PATCH_IMPACT_EVIDENCE"),
     "cli-discovery-json": ("tests.test_hia_cli_discovery_json.CliDiscoveryJsonNativeTests",
                            "HEPTA_HIA_CLI_DISCOVERY_JSON_EVIDENCE"),
+    "static-budget": ("tests.test_hia_static_budget_native.StaticBudgetNativeTests",
+                      "HEPTA_HIA_STATIC_BUDGET_EVIDENCE"),
+    "store-lifecycle": ("tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests",
+                        "HEPTA_HIA_STORE_LIFECYCLE_EVIDENCE"),
 }
 # The selected CLI callers use a separate fixture under the same evidence root.
 # They remain their own complete class in the original full discovery.
@@ -179,6 +183,8 @@ ADDITIONAL_DISCARDED_SELECTORS = (
     "HEPTA_HIA_CLI_DISCOVERY_JSON_COLD_FIXTURE",
     "HEPTA_HIA_CLI_DISCOVERY_CALLERS_CLI_MANIFEST",
     "HEPTA_HIA_CLI_DISCOVERY_CALLERS_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_STATIC_BUDGET_MANIFEST", "HEPTA_HIA_STATIC_BUDGET_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_STORE_LIFECYCLE_MANIFEST", "HEPTA_HIA_STORE_LIFECYCLE_DEVELOPMENT_COMPILER",
 )
 
 
@@ -562,10 +568,12 @@ def supplemental(args):
         for name, relative, component in (
                 ("full-cost", "full-cost/built/manifest.json", "full_cost"),
                 ("patch-impact", "patch-impact/build/manifest.json", "patch_impact"),
+                ("static-budget", "static-budget/build/manifest.json", "static_budget"),
+                ("store-lifecycle", "store-lifecycle/built/manifest.json", "store_lifecycle"),
                 ("installed-patch-impact", "full-cost/patch-built/manifest.json", "patch_impact")):
             added_components[name] = require_cold_component(retained / relative,
                 "examples/hia_bootstrap/" + component + ".hepta", cold_sha, compiler_sha, sources, pins)
-        for name in ("full-cost", "patch-impact"):
+        for name in ("full-cost", "patch-impact", "static-budget", "store-lifecycle"):
             custody = read_pinned_json(retained / name / "component-custody.json", pins)
             if (custody.get("schema") != "hepta.hia." + name + "-test-custody.v1"
                     or custody.get("compiler_unchanged") is not True
@@ -623,6 +631,10 @@ def supplemental(args):
                 "--cold-report", str(cold_path), "--evidence", str(output / "cli-discovery-original-groups")], {}),
             ("cli-discovery-callers", ["tools/qualify_hia_cli_discovery_callers.py",
                 "--cold-report", str(cold_path), "--evidence", str(output / "cli-discovery-callers")], {}),
+            ("static-budget-callers", ["tools/qualify_hia_static_budget_callers.py",
+                "--cold-report", str(cold_path), "--evidence", str(output / "static-budget-callers")], {}),
+            ("store-lifecycle-callers", ["tools/qualify_hia_store_lifecycle_callers.py",
+                "--cold-report", str(cold_path), "--evidence", str(output / "store-lifecycle-callers")], {}),
         )
         for name, arguments, selection in jobs:
             command = [sys.executable, "-B", *arguments]
@@ -644,6 +656,8 @@ def supplemental(args):
                         "generation-retention-callers": "MATCHING_SOURCE_COLD_ORIGINAL_GENERATION_CALLERS",
                         "full-cost-callers": "MATCHING_SOURCE_COLD_ORIGINAL_FULL_COST_CALLERS",
                         "patch-impact-callers": "MATCHING_SOURCE_COLD_ORIGINAL_PATCH_IMPACT_CALLERS",
+                        "static-budget-callers": "MATCHING_SOURCE_COLD_ORIGINAL_STATIC_BUDGET_CALLERS",
+                        "store-lifecycle-callers": "MATCHING_SOURCE_COLD_ORIGINAL_STORE_LIFECYCLE_CALLERS",
                     }[name]
                     record["passed"] = bool(record["passed"] and report.get("status") == "PASS"
                         and report.get("scope") == expected_scope
@@ -653,21 +667,65 @@ def supplemental(args):
                         and len(report["planned"]) == len(set(report["planned"]))
                         and all(report.get(key) == [] for key in ("errors", "failures", "skipped",
                                                                   "expected_failures", "unexpected_successes")))
-                    if name in ("full-cost-callers", "patch-impact-callers"):
-                        component = "full_cost" if name == "full-cost-callers" else "patch_impact"
+                    if name in ("full-cost-callers", "patch-impact-callers", "static-budget-callers"):
+                        component = {
+                            "full-cost-callers": "full_cost",
+                            "patch-impact-callers": "patch_impact",
+                            "static-budget-callers": "static_budget",
+                        }[name]
                         manifest_path = output / name / "qualified/manifest.json"
                         require_cold_component(manifest_path, "examples/hia_bootstrap/" + component + ".hepta",
                                                cold_sha, compiler_sha, sources, pins)
                         manifest = read_pinned_json(manifest_path, pins)
-                        counts = (("native_arm_calls", "native_decision_calls") if component == "full_cost"
-                                  else ("native_change_calls", "native_graph_calls"))
-                        forbidden = ("retained_python_arithmetic_bodies_forbidden" if component == "full_cost"
-                                     else "retained_python_impact_bodies_forbidden")
+                        counts = {
+                            "full_cost": ("native_arm_calls", "native_decision_calls"),
+                            "patch_impact": ("native_change_calls", "native_graph_calls"),
+                            "static_budget": ("native_topological_calls", "native_function_calls",
+                                              "native_frame_calls", "native_profile_calls", "native_policy_calls"),
+                        }[component]
+                        forbidden = {
+                            "full_cost": "retained_python_arithmetic_bodies_forbidden",
+                            "patch_impact": "retained_python_impact_bodies_forbidden",
+                            "static_budget": "retained_python_resource_bodies_forbidden",
+                        }[component]
                         record["passed"] = bool(record["passed"]
                             and report.get("all_original_modules_unfiltered") is True
                             and report.get("source_and_bundle_unchanged") is True and report.get(forbidden) is True
                             and report.get("native_image_sha256") == manifest["image_sha256"]
                             and all(type(report.get(key)) is int and report[key] > 0 for key in counts))
+                    elif name == "store-lifecycle-callers":
+                        from tools.qualify_hia_store_lifecycle_callers import FIXTURE_NAME, FIXTURE_SHA256
+                        fixture_path = root / FIXTURE_NAME
+                        original = read_pinned_json(fixture_path, pins)
+                        if (sha(fixture_path) != FIXTURE_SHA256
+                                or original.get("schema") != "hepta.hia.store-lifecycle-original-callers.v1"
+                                or len(original.get("ordered_ids", [])) != 50
+                                or any(sha(root / path) != digest
+                                       for path, digest in original["source_sha256"].items())):
+                            raise ValueError("original Store caller source or ordered 50-method inventory differs")
+                        manifest_path = output / name / "qualified/manifest.json"
+                        require_cold_component(manifest_path, "examples/hia_bootstrap/store_lifecycle.hepta",
+                                               cold_sha, compiler_sha, sources, pins)
+                        manifest = read_pinned_json(manifest_path, pins)
+                        modes = report.get("native_mode_frames", {})
+                        events = report.get("actual_machine_mode_events", {})
+                        record["reference_poison_scope"] = report.get("reference_poison_scope")
+                        record["passed"] = bool(record["passed"]
+                            and report.get("original_modules") == original["modules"]
+                            and report.get("planned") == original["ordered_ids"]
+                            and report.get("actual_tests") == 50
+                            and report.get("all_original_modules_unfiltered") is True
+                            and report.get("original_test_budgets_changed") is False
+                            and report.get("source_and_bundle_unchanged") is True
+                            and report.get("native_image_sha256") == manifest["image_sha256"]
+                            and report.get("reference_calls") == []
+                            and report.get("reference_poison_scope")
+                                == "test process; subprocesses inherit selector, not Python patches"
+                            and type(modes) is dict and set(modes) == {"1", "2"}
+                            and all(type(value) is int and value > 0 for value in modes.values())
+                            and type(events) is dict
+                            and all(type(events.get(key)) is int and events[key] > 0 for key in ("1:1", "2:1"))
+                            and all(type(value) is int and value > 0 for value in events.values()))
                 elif name == "cli-discovery-original-groups":
                     from tools import qualify_hia_cli_discovery_json as original_discovery
                     report = read_pinned_json(output / name / "REPORT.json", pins)
@@ -754,7 +812,7 @@ def supplemental(args):
         source_unchanged, readback = False, False
         source_error = {"type": type(failure).__name__, "message": str(failure)}
     passed = bool(error is None and source_error is None and source_unchanged and readback
-                  and sha_image_bound and len(commands) == 8 and all(row["passed"] for row in commands))
+                  and sha_image_bound and len(commands) == 10 and all(row["passed"] for row in commands))
     write_json(output / "supplemental-result.json", {
         "schema": "hepta.hia.same-cold-supplemental-callers.v1", "target": target,
         "scope": "MISSING_CALLER_GATES_AND_PRODUCTION_SHA_BINDING_AFTER_UNCHANGED_ORIGINAL_FULL",

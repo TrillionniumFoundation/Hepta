@@ -9,9 +9,9 @@ verbose test log. Product source, test bodies, skip rules and all inner budgets
 remain unchanged. A separate supplemental step runs missing original caller
 qualifiers and binds the production SHA stream image to the same cold
 compilation and the native observations already made by full discovery. The
-new full-cost, patch-impact and CLI-discovery owners use that same cold result;
-the original CLI-discovery qualifier additionally enforces its separate group
-deadlines and installed-resource checks.
+new full-cost, patch-impact, static-budget, Store-lifecycle and CLI-discovery
+owners use that same cold result. The original CLI-discovery qualifier also
+enforces its separate group deadlines and installed-resource checks.
 
 ## Freeze and publish
 
@@ -113,7 +113,7 @@ leave full discovery evidence and prevent an attempted passing run.
 
 The pre-discovery environment mirrors v4's existing static selector removals
 and its original cold-report bindings, read from the admitted v4 source.
-Twenty-four newer cold selectors, including `NATIVE_MAPPING`, additionally point
+Twenty-six newer cold selectors, including `NATIVE_MAPPING`, additionally point
 to **this same run's future `qualification/cold.json`**. The real unchanged v4
 still performs its own original assignments. All native consumers retain their
 existing matching-source cold admission. The two `WRONG_COLD_REPORT` negative
@@ -121,10 +121,11 @@ control variables are never populated.
 
 The additions include `BOUNDED_MEMORY`, `SCALAR_PROFILE`,
 `GENERATION_RETENTION`, `PUBLICATION_MEASUREMENT`, the actual
-`SHA256_STREAM_DIFFERENTIAL` selector, and the new `FULL_COST`, `PATCH_IMPACT`
-and `CLI_DISCOVERY_JSON` selectors. Full discovery retains the original
-mapping, scalar, measurement, generation and stream differential component
-evidence under `qualification/full-discovery-components/`. Before execution the
+`SHA256_STREAM_DIFFERENTIAL` selector, and the new `FULL_COST`, `PATCH_IMPACT`,
+`STATIC_BUDGET`, `STORE_LIFECYCLE` and `CLI_DISCOVERY_JSON` selectors. Full discovery
+retains the original mapping, scalar, measurement, generation and stream
+differential component evidence under `qualification/full-discovery-components/`.
+Before execution the
 harness checks the same source/native tuples that v4 extracts, together with
 its original component groups. These retained native classes must first run
 in full discovery, so their evidence directories are not reused by an earlier
@@ -132,14 +133,15 @@ stage. Their source-only classes stay in the existing source test tuple.
 Inherited production manifests and development compiler alternatives for these
 components are removed before the same-run cold bindings are applied.
 
-Full-cost and patch-impact native classes retain their actual same-cold builds,
-compiler readback records and installed-wheel/bundle observations in separate
-evidence directories. CLI discovery's explicit cold-report setup calls the
+Full-cost, patch-impact, static-budget and Store-lifecycle native classes retain
+their actual same-cold builds, compiler readback records and installed-wheel/bundle
+observations in separate evidence directories. CLI discovery's explicit
+cold-report setup calls the
 original strict fixture builder after the unchanged v4 has produced its cold
 report. The original JSON class and selected CLI class each own a separate
 fixture directory. The latter also builds and admits the original CLI control
 and format images against that same compiler. No pre-existing cold fixture,
-development manifest or inherited CLI companion is used. All four new native
+development manifest or inherited CLI companion is used. All six new native
 classes must first execute in complete discovery and must have complete
 ordered successful method observations before supplemental acceptance.
 
@@ -212,11 +214,25 @@ with that cold compiler. The produced manifest must name exactly the candidate
 image hash that the original differential class actually executed. The older
 `test_hia_sha256_stream_native` development fixture is not relabelled as cold.
 
-The two additional full-cost and patch-impact caller qualifiers build their
-images from this same cold compiler and run every declared original caller
-module with the retained Python decision bodies forbidden. Reports must retain
+The three additional full-cost, patch-impact and static-budget caller qualifiers
+build their images from this same cold compiler and run every declared original
+caller module with the retained Python decision bodies forbidden. Reports must retain
 identical planned/started/stopped IDs, positive actual native call counts, the
 exact image identity and unchanged complete source and bundle inputs.
+Static-budget acceptance requires actual calls to all five native owners:
+topological order, function bounds, frame rows, resource profile and policy
+selection. Its retained Python resource bodies must remain forbidden throughout
+the complete original caller modules.
+
+The Store-lifecycle caller qualifier independently admits its frozen four-module,
+50-method original inventory and source hashes. It runs all 50 methods under
+their existing budgets, binds its actual image to this same cold compiler, and
+requires positive native initialization and close observations with no retained
+reference calls. The report preserves the precise instrumentation scope: Python
+reference bodies are poisoned in the test process; subprocesses inherit the
+selected image and retain their original controls. Full discovery separately
+retains the complete Store native class, including installed-resource and pinned
+worker-bundle observations, before this caller gate can qualify.
 
 Two further commands run the unchanged four-group CLI-discovery qualifier and
 the complete ordinary CLI-discovery caller qualifier. Complete discovery alone
@@ -230,7 +246,7 @@ JSON fixture, source identities and original process-owner results are checked
 again against this run's exact cold report. These are additional observations,
 not extra credit in the full-discovery denominator.
 
-All eight supplemental commands use the unmodified product workflow supervisor
+All ten supplemental commands use the unmodified product workflow supervisor
 with its ordinary 1800-second budget. The original inner limits, including the
 CLI compilation and installed subprocess limits of twenty seconds, remain in
 force. Reports require complete planned/started/stopped IDs, nonzero exact
