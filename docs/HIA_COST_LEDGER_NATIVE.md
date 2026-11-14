@@ -3,7 +3,7 @@
 `examples/hia_bootstrap/cost_ledger.hepta` owns the control flow of the frozen
 `HIAAgentService._cost_ledger` body from product commit
 `b569c210a807af29a3ad816679f2b9437c5c6875`. Its independent original fixture is
-`tests/fixtures/cost_ledger_b569c210.py.txt`. The portable method remains the
+`cost_ledger_b569c210.py.txt` under `tests/fixtures/`. The portable method remains the
 unchanged reference; a present `HEPTA_HIA_COST_LEDGER_MANIFEST` selects the native
 owner and never falls back after an admission or execution failure.
 
