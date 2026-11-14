@@ -1,0 +1,71 @@
+{
+  "HIA_edits": [
+    {
+      "after": "if offset > get(w, 73776) or count > get(w, 73776) - offset:",
+      "before": "if offset > get(w, 73776) or count > 64 or count > get(w, 73776) - offset:",
+      "count": 1
+    },
+    {
+      "after": "def retained_span(o:mutbuf, w:mutbuf, offset:u64, count:u64) -> u32:\n    # HIA admits the exact held-page span. The fixed native transport publishes\n    # this header, then streams precisely w[73984+offset:73984+offset+count]\n    # before accepting another command. It performs no page or lease decision.\n    return retained_reply(o, w, 134, offset, count)",
+      "before": "def retained_span(o:mutbuf, w:mutbuf, offset:u64, count:u64) -> u32:\n    result = retained_reply(o, w, 134, offset, count)\n    index = 0\n    while index < count:\n        store(o, 64 + index, byte(w, 73984 + offset + index))\n        index = index + 1\n    return result",
+      "count": 1
+    }
+  ],
+  "bootstrap_edits": [
+    {
+      "after": " * PAGE bytes for129 or the HIA-admitted retained span for134.\n * fd3: inherited held directory. fd4: mandatory",
+      "before": " * PAGE bytes when status129. fd3: inherited held directory. fd4: mandatory",
+      "count": 1
+    },
+    {
+      "after": " cmp rax,134\n je retained_span_result\n cmp rax,135\n je retained_result",
+      "before": " cmp rax,134\n je retained_result\n cmp rax,135\n je retained_result",
+      "count": 1
+    },
+    {
+      "after": "retained_span_result:\n call publish_result\n /* HIA has validated the nonce, pin, snapshot and complete page range.\n  * Like PAGE publication, this is exact byte custody until write completion. */\n mov edi,1\n lea rsi,[rbp+W+73984]\n add rsi,[rbp+REQ+48]\n mov rdx,[rbp+REQ+56]\n call write_exact\n jmp client_next\n\nretained_result:\n call publish_result\n jmp client_next",
+      "before": "retained_result:\n call publish_result\n jmp client_next",
+      "count": 1
+    }
+  ],
+  "cleanup_seconds": 3,
+  "compiler_caps_changed": false,
+  "correction": "HIA validates offset/count within the held retained page. Reply134 publishes the fixed metadata header and a separate exact payload from the fixed retained arena. Assembly only streams admitted bytes before reading any next command. Reply135 remains header-only. No 1024-call bound increase.",
+  "executed": false,
+  "generated": false,
+  "global_physical_trace_bytes": 268435456,
+  "global_physical_trace_cap_changed": false,
+  "issue": {
+    "extended_draft_process_raw_cap": 42313856,
+    "max_page_bytes": 65536,
+    "old_process_record_cap": 830,
+    "old_span_max_bytes": 64,
+    "raw_trace_bytes_for_spans_alone": 302710784,
+    "records": 5120,
+    "required_calls": 1024
+  },
+  "new_author": {
+    "bytes": 4813,
+    "git": "32fac9ee295ca848cce2dd096acc7102b1daeac6",
+    "sha256": "5db58dff51acc4ce63f6a899c31e58011762711418d1adb529bd57655f115b6c"
+  },
+  "new_bootstrap": {
+    "bytes": 9048,
+    "git": "fcc6ac958354a87fea3321568f6af79389db28e0",
+    "sha256": "c2d9326913a338d9bb5ed38ef77ca3a402cf156d05ae98485450bc01b0bede10"
+  },
+  "new_source": {
+    "bytes": 6115,
+    "git": "79f3ecdda0551fc46913db197ef1ab6d2bf1abad",
+    "sha256": "60129d48d1bb4144a01ef80d8763aae97f894c70f2576dc645022d7ec43f76e6"
+  },
+  "original_R3_unchanged": true,
+  "owner_seconds": 180,
+  "page_copy_ownership_and_capture_unchanged": true,
+  "prior_author": "8375cb87a2d90c024527420e9f46bf60e085702f",
+  "prior_bootstrap": "8d5bbbf501c014a46381f630a2d075110f86fdba",
+  "prior_source": "39e71e95cea2f292803526938cdc604a7102a81a",
+  "qualified": false,
+  "schema": "hia.pager-retained-page.full-span-correction.v1",
+  "whole_forward_inverse_exact": true
+}

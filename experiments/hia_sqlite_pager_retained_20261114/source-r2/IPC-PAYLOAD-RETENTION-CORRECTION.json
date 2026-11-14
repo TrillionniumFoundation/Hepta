@@ -1,0 +1,28 @@
+{
+  "edits": [
+    {
+      "after": "                require(0 <= size <= 65536, 'native result page bound')\n",
+      "before": "                require(0 <= size <= 65536, 'native result page bound')\n                if out[3] == 134:\n                    require(operation == 7 and out[4] == argument and\n                            out[6] == offset and out[7] == count and\n                            out[8:] == (0,)*8, 'exact retained span envelope')\n                if out[3] == 135:\n                    require(operation == 8 and out[4] == argument and\n                            out[6:] == (0,)*10, 'exact retained release envelope')\n",
+      "count": 1
+    },
+    {
+      "after": "                self.journal.append(dict(identity, kind='payload', bytes=payload.hex()))\n                stage = 'reply_semantics'\n                if out[3] == 134:\n                    require(operation == 7 and out[4] == argument and\n                            out[6] == offset and out[7] == count and\n                            out[8:] == (0,)*8, 'exact retained span envelope')\n                if out[3] == 135:\n                    require(operation == 8 and out[4] == argument and\n                            out[6:] == (0,)*10, 'exact retained release envelope')\n                return {'words': out, 'state': state, 'payload': payload}",
+      "before": "                self.journal.append(dict(identity, kind='payload', bytes=payload.hex()))\n                return {'words': out, 'state': state, 'payload': payload}",
+      "count": 1
+    }
+  ],
+  "execution": false,
+  "fix": "Keep the65536-byte transport bound, read and journal the complete actual bounded payload, then apply new134/135 semantic assertions at stage reply_semantics. No product data interpretation or retry is added.",
+  "issue": "New retained envelope assertions occurred before bounded payload read/journal retention. A semantically wrong134 could therefore omit its actual bounded payload and leave the writer blocked until the outer owner.",
+  "observed_product_failure": false,
+  "prior": "ba6883279d4765c9c07f62514390e296ce2bca23",
+  "reviewer": "native_install_owner",
+  "revised": {
+    "bytes": 16403,
+    "git": "13b284ea4f8190dc3c570ad03da6697524640282",
+    "sha256": "35a9ae04b5f5bf25a7c495d0adab2345be4d69540884f32caca2c4404183da48"
+  },
+  "schema": "hia.pager-retained-page.IPC-payload-retention-correction.v1",
+  "source_review_failure_preserved": true,
+  "whole_inverse_exact": true
+}

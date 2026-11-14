@@ -1,0 +1,306 @@
+{
+  "IPC": {
+    "bytes": 16403,
+    "git": "13b284ea4f8190dc3c570ad03da6697524640282",
+    "sha256": "35a9ae04b5f5bf25a7c495d0adab2345be4d69540884f32caca2c4404183da48"
+  },
+  "IPC_exact_inverse_edits": [
+    {
+      "after": "from pager_audit_stream_retained_r1 import (",
+      "before": "from pager_audit_stream_r3 import (",
+      "count": 1
+    },
+    {
+      "after": "NATIVE_PROFILE = 'native-retained-owner-v1'",
+      "before": "NATIVE_PROFILE = 'native-owner-v2'",
+      "count": 1
+    },
+    {
+      "after": "# Per-process expanded audit bound for the original 75 OS + 16 kernel-only\n# vector, with complete 147456-byte PRE and POST state. The shared compressed\n# physical budget remains exactly 256 MiB, including every index and journal.\nNATIVE_RAW_MAX = 75 * 501120 + 16 * 295616",
+      "before": "NATIVE_RAW_MAX = 75 * 353664 + 16 * 148160",
+      "count": 1
+    },
+    {
+      "after": "    def command(self, operation, argument=0, *, offset=0, count=0, event_nonce=None):\n        require(not self.reaped, 'dead process command')\n        require(all(type(value) is int and 0 <= value < 2**64\n                    for value in (operation, argument, offset, count)),\n                'exact finite command words')\n        packet_nonce = self.nonce if event_nonce is None else event_nonce\n        require(type(packet_nonce) is int and 0 <= packet_nonce < 2**64,\n                'exact event nonce word')\n        require(self.profile == NATIVE_PROFILE or\n                (offset == 0 and count == 0 and event_nonce is None),\n                'C reference command frame unchanged')",
+      "before": "    def command(self, operation, argument=0):\n        require(not self.reaped, 'dead process command')",
+      "count": 1
+    },
+    {
+      "after": "            words = [EVENT_MAGIC, 2, packet_nonce, operation, 0, 0, 0, 0,\n                     argument, offset, count, 0, 0, 0, 0, 0]",
+      "before": "            words = [EVENT_MAGIC, 2, self.nonce, operation, 0, 0, 0, 0,\n                     argument, 0, 0, 0, 0, 0, 0, 0]",
+      "count": 1
+    },
+    {
+      "after": "                size = out[9] if out[3] == 129 else out[7] if out[3] == 134 else 0\n                require(0 <= size <= 65536, 'native result page bound')\n                if out[3] == 134:\n                    require(operation == 7 and out[4] == argument and\n                            out[6] == offset and out[7] == count and\n                            out[8:] == (0,)*8, 'exact retained span envelope')\n                if out[3] == 135:\n                    require(operation == 8 and out[4] == argument and\n                            out[6:] == (0,)*10, 'exact retained release envelope')",
+      "before": "                size = out[9] if out[3] == 129 else 0\n                require(0 <= size <= 65536, 'native result page bound')",
+      "count": 1
+    }
+  ],
+  "IPC_payload_order_edits": [
+    {
+      "after": "                require(0 <= size <= 65536, 'native result page bound')\n",
+      "before": "                require(0 <= size <= 65536, 'native result page bound')\n                if out[3] == 134:\n                    require(operation == 7 and out[4] == argument and\n                            out[6] == offset and out[7] == count and\n                            out[8:] == (0,)*8, 'exact retained span envelope')\n                if out[3] == 135:\n                    require(operation == 8 and out[4] == argument and\n                            out[6:] == (0,)*10, 'exact retained release envelope')\n",
+      "count": 1
+    },
+    {
+      "after": "                self.journal.append(dict(identity, kind='payload', bytes=payload.hex()))\n                stage = 'reply_semantics'\n                if out[3] == 134:\n                    require(operation == 7 and out[4] == argument and\n                            out[6] == offset and out[7] == count and\n                            out[8:] == (0,)*8, 'exact retained span envelope')\n                if out[3] == 135:\n                    require(operation == 8 and out[4] == argument and\n                            out[6:] == (0,)*10, 'exact retained release envelope')\n                return {'words': out, 'state': state, 'payload': payload}",
+      "before": "                self.journal.append(dict(identity, kind='payload', bytes=payload.hex()))\n                return {'words': out, 'state': state, 'payload': payload}",
+      "count": 1
+    }
+  ],
+  "IPC_payload_retention_correction": "b91ed2937c722dd7535e26d1b6342636ca2d0b23",
+  "accounting_name_correction": "Historical draft called the75OS+16kernel bound command_upper; it is per process. Historical original is preserved.",
+  "audit_exact_inverse_edits": [
+    {
+      "after": "a decoded record is <=147,520B.",
+      "before": "a decoded record is <=73,792B.",
+      "count": 1
+    },
+    {
+      "after": "FIXED = {13:128, 14:147456, 11:128, 12:147456,",
+      "before": "FIXED = {13:128, 14:73728, 11:128, 12:73728,",
+      "count": 1
+    },
+    {
+      "after": "native-retained-owner-v1",
+      "before": "native-owner-v2",
+      "count": 5
+    },
+    {
+      "after": "consume_record receives <=147456B bodies.",
+      "before": "consume_record receives <=73728B bodies.",
+      "count": 1
+    }
+  ],
+  "audit_stream": {
+    "bytes": 16720,
+    "git": "299fb43614fd7d9348495db4b260e49de2ff89ad",
+    "sha256": "fff03fb17f71bee2b8d862cb104a548ab8bbd46091dc2da16911696da3d20060"
+  },
+  "exact_inverse_edits": [
+    {
+      "after": " * PAGE bytes for129 or the HIA-admitted retained span for134.\n * fd3: inherited held directory. fd4: mandatory",
+      "before": " * PAGE bytes when status129. fd3: inherited held directory. fd4: mandatory",
+      "count": 1
+    },
+    {
+      "after": " cmp rax,134\n je retained_span_result\n cmp rax,135\n je retained_result",
+      "before": " cmp rax,134\n je retained_result\n cmp rax,135\n je retained_result",
+      "count": 1
+    },
+    {
+      "after": "retained_span_result:\n call publish_result\n /* HIA has validated the nonce, pin, snapshot and complete page range.\n  * Like PAGE publication, this is exact byte custody until write completion. */\n mov edi,1\n lea rsi,[rbp+W+73984]\n add rsi,[rbp+REQ+48]\n mov rdx,[rbp+REQ+56]\n call write_exact\n jmp client_next\n\nretained_result:\n call publish_result\n jmp client_next",
+      "before": "retained_result:\n call publish_result\n jmp client_next",
+      "count": 1
+    }
+  ],
+  "executed": false,
+  "layout": {
+    "complete_state_audit_extended": true,
+    "disjoint": true,
+    "global_trace_budget_not_raised": true,
+    "original_OS_leaf_body_unchanged": true,
+    "original_page_data": [
+      4096,
+      69632
+    ],
+    "original_request_IO_CTX_spans_unchanged": true,
+    "ranges": [
+      [
+        "EV",
+        0,
+        69632
+      ],
+      [
+        "REQ",
+        69632,
+        128
+      ],
+      [
+        "IO",
+        73728,
+        65664
+      ],
+      [
+        "W",
+        143360,
+        147456
+      ],
+      [
+        "CTX",
+        290816,
+        4096
+      ],
+      [
+        "DR",
+        294912,
+        4096
+      ]
+    ],
+    "retained_data": [
+      73984,
+      139520
+    ],
+    "retained_meta": [
+      73728,
+      73984
+    ],
+    "total_mapping": 299008
+  },
+  "new_bootstrap": {
+    "bytes": 9048,
+    "git": "fcc6ac958354a87fea3321568f6af79389db28e0",
+    "sha256": "c2d9326913a338d9bb5ed38ef77ca3a402cf156d05ae98485450bc01b0bede10"
+  },
+  "new_client_events": [
+    6,
+    7,
+    8
+  ],
+  "new_reply_payload": "134 streams fixed retained arena[73984+offset:73984+offset+count] after128-byte header and1024-byte diagnostic;135 header+diagnostic only;129 unchanged",
+  "new_reply_statuses": [
+    134,
+    135
+  ],
+  "old_bootstrap": {
+    "bytes": 8482,
+    "git": "9121b360758117e9c9a895157ec22f8c3cabaa31",
+    "sha256": "af60adc938fa4cd7336b8d55e2db303d1fd1c34ebe3cad1b7d5a8b7ba0e9d2bb"
+  },
+  "payload_order_reviewer": {
+    "Git_GETs": 1,
+    "HIA_ASM_audit_not_reread": true,
+    "IPC": {
+      "bytes": 16403,
+      "git": "13b284ea4f8190dc3c570ad03da6697524640282",
+      "sha256": "35a9ae04b5f5bf25a7c495d0adab2345be4d69540884f32caca2c4404183da48"
+    },
+    "execution": 0,
+    "host_io": 0,
+    "only_changes": "Move original134/135 assertions after full bounded payload read+journal; add42-byte reply_semantics stage line.",
+    "paused0": true,
+    "prior_IPC": "ba6883279d4765c9c07f62514390e296ce2bca23",
+    "qualification": false,
+    "reviewer": "native_install_owner",
+    "status": "LIMITED_STATIC_CLEAR_PAYLOAD_ORDER_BLOCKER_FIXED",
+    "whole_forward_inverse_exact": true,
+    "writes": 0
+  },
+  "prior_bootstrap": {
+    "bytes": 8697,
+    "git": "8d5bbbf501c014a46381f630a2d075110f86fdba",
+    "sha256": "5168fc2758c490a0e04d98fbdd29b0143f4f7cdb47ce0ba3bb4f1b9ffd7b1593"
+  },
+  "prior_exact_inverse_edits": [
+    {
+      "after": ".equ CTX,290816",
+      "before": ".equ CTX,217088",
+      "occurrences": 1
+    },
+    {
+      "after": ".equ DR,294912",
+      "before": ".equ DR,221184",
+      "occurrences": 1
+    },
+    {
+      "after": ".equ MAPSIZE,299008",
+      "before": ".equ MAPSIZE,225280",
+      "occurrences": 1
+    },
+    {
+      "after": " mov edx,147456\n",
+      "before": " mov edx,73728\n",
+      "occurrences": 2
+    },
+    {
+      "after": " mov r9d,147456\n",
+      "before": " mov r9d,73728\n",
+      "occurrences": 1
+    },
+    {
+      "after": " cmp rax,4\n je client_kind_ok\n cmp rax,6\n je client_kind_ok\n cmp rax,7\n je client_kind_ok\n cmp rax,8\n jne driver_protocol_exit\nclient_kind_ok:",
+      "before": " cmp rax,4\n jne driver_protocol_exit\nclient_kind_ok:",
+      "occurrences": 1
+    },
+    {
+      "after": " cmp rax,132\n je owned_failure_result\n cmp rax,134\n je retained_result\n cmp rax,135\n je retained_result\n jmp driver_protocol_exit",
+      "before": " cmp rax,132\n je owned_failure_result\n jmp driver_protocol_exit",
+      "occurrences": 1
+    },
+    {
+      "after": "retained_result:\n call publish_result\n jmp client_next\n\nclosed_result:\n",
+      "before": "closed_result:\n",
+      "occurrences": 1
+    }
+  ],
+  "qualified": false,
+  "required_next_control_work": [
+    "new IPC helper may submit the three new parameter fields without page/source policy",
+    "account the complete larger state in raw capture and keep original global trace budget",
+    "preserve all original four case method bodies and two independent SQLite references",
+    "run new retained-page cases only after owner admission and source/cold binding",
+    "no Source/VM/native claims until actual current outputs close"
+  ],
+  "required_raw_accounting": {
+    "additional_bytes_per_kernel_call": 147456,
+    "global_trace_limit_raised": false,
+    "new_max_OS_cycle_bytes": 501120,
+    "new_max_kernel_only_cycle_bytes": 295616,
+    "new_private_state": 147456,
+    "new_process_upper_bytes": 42313856,
+    "old_max_OS_cycle_bytes": 353664,
+    "old_max_kernel_only_cycle_bytes": 148160,
+    "old_private_state": 73728,
+    "old_process_upper_bytes": 28895360,
+    "original_global_trace_bytes": 268435456,
+    "record_count_upper_unchanged": 830
+  },
+  "review": {
+    "Git_GETs": 4,
+    "IPC_git": "ba6883279d4765c9c07f62514390e296ce2bca23",
+    "audit_git": "299fb43614fd7d9348495db4b260e49de2ff89ad",
+    "blocker": "New134/135 envelope assertions precede the bounded actual payload read+journal, losing failure payload evidence. Move checks after retention and set reply_semantics.",
+    "bootstrap_git": "fcc6ac958354a87fea3321568f6af79389db28e0",
+    "bytes_read": 48244,
+    "checks": {
+      "ASM_exact_fixed_range_only": true,
+      "PAGE129_order_preserved": true,
+      "full147456_state_audits": true,
+      "full_span_HIA_validation": true,
+      "one_full_page_per134": true,
+      "original_global256MiB_and4MiB_parts": true,
+      "per_process_expanded42313856": true,
+      "record830_unchanged": true,
+      "release135_no_payload": true
+    },
+    "execution": 0,
+    "host_io": 0,
+    "observed_product_failure": false,
+    "paused0": true,
+    "qualified": false,
+    "reviewer": "native_install_owner",
+    "source_git": "79f3ecdda0551fc46913db197ef1ab6d2bf1abad",
+    "status": "NORMAL_PATH_STATIC_CLEAR_ONE_PAYLOAD_RETENTION_BLOCKER",
+    "writes": 0
+  },
+  "root_preparation_error": {
+    "actual_native_profile_occurrences": 5,
+    "correction": "Use the observed exact original profile occurrence count; retain full forward/inverse proof.",
+    "expected_native_profile_occurrences": 6,
+    "failed_before_any_draft_store_or_mutation": true,
+    "kind": "ROOT_PURE_STATIC_EDIT_COUNT_ASSERTION",
+    "product_execution": false,
+    "remote_mutation": false
+  },
+  "schema": "hia.pager-retained-page.transport-static-review.v2",
+  "status": "ROOT_AND_PEER_STATIC_FULL_SPAN_CLEAR_NOT_EXECUTED",
+  "unchanged": [
+    "native OS leaf",
+    "all original OS request and receipt frames",
+    "automatic PAGE release only after exact stdout writes",
+    "BEGIN/READ/END result framing and 1024-byte diagnostic prefix",
+    "all audit record kinds and complete before/after spans",
+    "fixed two native entry targets; no arbitrary FFI",
+    "original error exits and no false CLOSED on custody failure"
+  ]
+}
