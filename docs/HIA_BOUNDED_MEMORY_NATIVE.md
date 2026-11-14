@@ -11,8 +11,9 @@ HIA owns the complete helper decision: exact-kind refusal, destination/count
 range checks, fill-value or source-range checks in their original order,
 zero-length admission, and all mutations of the original buffer. HIA's bulk
 operations implement the native fill and both directions of overlapping move.
-The Python adapter only observes exact object kind, integer sign/bit length/low
-bits, buffer address and extent, and renders the HIA-selected exception. It
+The Python adapter only observes exact object kind, integer sign/bit length,
+the unchanged unsigned word for an admitted representation (zero placeholder
+otherwise), buffer address and extent, and renders the HIA-selected exception. It
 holds the buffer export and Python GIL for the complete foreign call.
 
 ## Preserved domain
@@ -42,8 +43,9 @@ resource uses the same source identity as the source-tree component.
 
 `tools/generate_hia_bounded_memory.py` reproduces the single `.hepta` source.
 The generator does not run in selected helper execution. The immutable original
-Python file is retained as `tests/fixtures/bounded_memory_a7710b5.py.txt`; source
-tests compare the retained functions' AST with that exact independent fixture.
+Python file is retained as `bounded_memory_a7710b5.py.txt` in `tests/fixtures/`;
+source tests compare the retained functions' AST with that exact independent
+fixture. It is test data, not an executable Python script.
 
 `tools/build_hia_bounded_memory.py` requires either a matching-current-source
 cold report or an explicit `--development` choice. The development label does
