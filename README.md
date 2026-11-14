@@ -1,3 +1,79 @@
+# HIA 原生重写进度 — v145
+
+冻结时间：2026-11-14 14:20:45 UTC。前一提交：0ff42a9d7fd1f3876deb804c9c3288c64d754d88。完整谱系、原测试与历史失败保留在 [STATE.json](STATE.json)。
+
+**整套 HIA 原生资格仍未闭合，旧生产实现继续保留。** 本轮已经完成 PatchResult 的两次真实生成、一次一致性检查和原 Source11；u32 编译与 HIA 打包跨过 R8 的实际容量障碍。CLI 原控制序列推进到第五个见证用例，暴露并保留了新的真实失败。以下每项结果均限于所列源码和执行域。
+
+| 范围 | 本轮真实结果 | 仍需完成 |
+|---|---|---|
+| PatchResult 原策略 | 两次生成与一次 check 通过；24 函数、247 块、1,876 操作；3,202 文件和 13 宿主绑定由 Root 全量核对 | 单次 Native 编译、原 Native12、原 VM12及默认生产调用接线 |
+| PatchResult Source11 | 11 方法、22 起止事件、15 子测试通过；原 Source10 正文与 ID 保留，新增 slice 常量检查 | Source 通过不授 Native、VM或当前源码 cold 资格 |
+| u32 → R8 → 私有打包 | 1 次实际编译和 1 次 HIA 打包通过；R8 549,866 B，ELF 1,044,480 B | 原 Native162、VM6、aggregate 130/7/6/2 与公开配置及 cold 的独立验证 |
+| CLI op10 R4 | Source18、7 次编译及 witness-01..04 通过；witness-05 失败；后九组未启动 | 修复操作数 code object 的位置表后，保留原 18 组／76 方法调用重验 |
+| CLI op10 R5 源码 | 位置表最小修复已作者；固定 3.14 元数据诊断通过，Root 完整读回 6 个 Git 叶 | 独立物化与原产品控制尚未执行 |
+| u32 原入口布局20 | 既有有限20检查结果不变；完整远端保管补齐，28叶与recipe由Root全文GET | 未执行原 ordinary unittest，未获得 matching-current-source cold |
+| namespace / 默认整套 | 原固定 R20 NativeNamespace 仍为32 PASS／3 FAIL；默认生产链仍有外部语言所有权 | 保留 fresh 全量读取、原守卫与预算，继续真实原生替换 |
+
+## 本轮实现与独立核验
+
+### PatchResult：完整策略生成与 Source11
+
+R3 生成前审查发现的 exact slice 常量缺口，已由 R4 的递归 start/stop/step 比较补齐；未知常量仍拒绝。两段原策略 apply_program_patch 与 _check_patch_interface 全文保留。R4.2 另只修正生成器的唯一输出目录字面量。所有旧作者版本与阻断原件均保留。
+
+真实生成 session 45405 返回0，耗时28.813967791秒。三个原180+3 owner均完成并取得ECHILD；两套输出与三份安装文件逐字相等。Root独立核对原3,188文件、完整3,202文件后继、原3,199准备文件不变、新inode独立无硬链接、所有源文件模式与七字段stat、控制和固定解释器。HIA源码为103,357 B。
+
+Source11 session 28469 返回0，耗时8.829049490秒。原10方法和新增slice控制按原序执行，错误、失败、跳过、expected failure与unexpected success均为空。原测试内部的生成复现仍在同一个180+3 owner内执行。Root核对11方法、22事件、15子测试、89实际执行控制、65作者权威、完整当前3,202文件及进程回执。
+
+- [14个实际原生策略相关源码文件](v145-patch-result-native-source/)
+- [生成终态独立证明](v145-root-review/patch-generation-r4-2-root-terminal.json)
+- [Source11终态独立证明](v145-root-review/patch-source11-root-terminal.json)
+- [生成完整保管清单](v145-actual-custody/patch-r4-generation-manifest.json)
+- [Source11完整保管清单](v145-actual-custody/patch-source11-actual-manifest.json)
+
+接下来的单次编译门已作者，必须消费本次实际Source11记录；冻结时尚未执行。原Native12与VM12也尚未执行。既有selected_prepare_patch、Agent mode2和生产默认入口的资格不会由Source结果自动改变。
+
+### R8：实际镜像与打包容量通过
+
+实际session 93012返回0，外层耗时6.860173643秒。固定u32 B3镜像对原R8完整源码进行一次真实编译，得到549,866 B镜像，比旧562,746 B缩小12,880 B。严格ELF组件上限557,376 B、原1 MiB总容量及frame上限均保持。
+
+实际三组件frame为1,040,064 B；原HIA packer输出ELF 1,044,480 B，余量4,096 B。ELF保持0644，没有执行、安装或公开配置提升。原controller 59,889 B与representation 430,261 B保持。Root完整核对12个逻辑缓冲区、六个物理canary跨度、两个真实request/report/全量hex、输出尾部、源不变、ELF布局及对齐填充、四份完整源码快照和当前3,180文件。
+
+两个调用共享一个原180+3 owner，各自20秒／10CPU／1MiB限制保持，ECHILD成立。原SyntaxWarning完整保留。完整77原件共37,837,128 B已无损保管并全文Git读回。
+
+- [R8实际大小与打包独立证明](v145-root-review/u32-r8-size-pack-root-terminal.json)
+- [全部原件清单](v145-actual-custody/u32-r8-actual-size-pack-manifest.json)
+- [完整可逆保管包](v145-actual-custody/u32-r8-actual-size-pack-capsule.json)
+
+原Native162／VM6和aggregate 130 kernel／7 pipeline VM／6 fullframe／2 last-byte控制待执行。下一阶段使用明确的私有R8参考域，公开R5配置的原source pin及R8拒绝行为继续保留；不将该私有参考等同于原公开profile通过。ordinary源码选择与matching-current-source cold均未闭合。
+
+### CLI：真实 R4 失败与 R5 最小修复
+
+R4仅在records模块补入12字节import copy，恢复固定CPython3.14下被捕获函数与被动模板的原完整code-object比较。没有放宽比较器。3,191文件独立字节复制完成，所有原文件、模式和七字段stat保留。原61,550前驱行完整保留，追加R3真实失败的133行，形成61,683行实际前驱。
+
+session 37139返回1，耗时50.494759353秒。前八阶段通过，包括原Source10、Source8、七次编译和四个新见证方法。witness-05的test_every_import_failure进入正文后，真实ImportFailure经过一个co_linetable为空的60字节私有端口code object，固定traceback查询位置时抛StopIteration；unittest和观察器后续格式化也失败。第九owner返回1并完成清理，其余八owner返回0；全部保留原180+3和ECHILD。后九组，包括retained3和CLI43，没有启动。
+
+Root完整核对2,930原件／22,039,778 B以及600次已观察的真实机器调用及其完整六缓冲区。前四见证的28个journal已最终化；失败组七个journal没有INDEX，已存在的四次调用前后帧仍完整保留。设置阶段早于journal的准入调用不计入600。ECHILD不证明所有语言帧退休；原七次编译未观察完整workspace。
+
+R5源码仅修复操作数位置元数据，保持60 B指令、15项非位置字段、导入顺序、异常传播和原测试。原导入片段19个真实位置与11个合成无位置条目覆盖全部30个code unit；固定3.14元数据诊断另检查完整原模块53个code object／13,389个位置。诊断没有执行项目code object或端口。R5尚无产品通过结果；未来独立运行必须保留原61,683行，再追加R4 proof、inventory与2,930原件，总计64,615行。
+
+- [R4真实失败独立证明](v145-root-review/inspect-cli-r4-product-failure-root-terminal.json)
+- [R4完整保管清单](v145-actual-custody/inspect-cli-r4-actual-failure-manifest.json)
+- [R5源码及诊断完整recipe](v145-cli-r5-source-authoring/TREE-RECIPE.json)
+
+## 整套闭合与清理门
+
+当前default main实际读到f33d8da316de8fdf27b504371f1a5310997ff548；本轮没有把有限组件结果继承为该默认提交的全量资格。固定R20历史Source1421及NativeNamespace结果保留各自谱系。
+
+默认runtime审计中的PR121共125个工具处理器，仍有Rust分发、Rust持久化所有权、Python Worker／Service和sqlite3链。现有局部HIA owner和native-local两个入口已记录，完整默认dispatch替换未完成。CLI opaque issuer registry、外部provider及连接层也仍需处理。
+
+继续顺序是：PatchResult单编译与Native12/VM12；CLI R5原全序列；R8原语义与aggregate；namespace原失败；默认CLI／Worker／Service／Store与runtime全部处理器、安装入口、matching-current-cold producer／strict reader／selector／negative controls。删除旧生产实现须在这些实际路径闭合后进行。已有旧失败、原预算、原断言与所有权隔离不因后继通过而移除。
+
+本轮新增103个Git叶，保留前一提交的1,317叶；仅当前README和STATE替换为新快照。旧Native大档续传停在44/179个完整ACK／GET边界，未冒充完整远端保管。
+
+---
+
+## v144 原快照（完整保留，以下状态属于上一冻结时点）
+
 # HIA 原生重写进度 — v144
 
 冻结时间：2026-11-14 13:39:26 UTC。前一提交：`5ecafbb86dc79514a73efdf6fddaae5f3b9ac708`。完整字段、谱系与历史失败见 [STATE.json](STATE.json)。
