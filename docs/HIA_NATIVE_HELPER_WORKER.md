@@ -38,14 +38,15 @@ existing identities. Native selection is not enabled by default.
 The example digest is a placeholder. Actual admission requires lowercase
 64-character hexadecimal digests. Paths may be absolute or relative to the
 containing pinned manifest; parent traversal and control characters refuse.
-The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its thirty-one
+The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its thirty-three
 current single-image contracts include the original nineteen helper adapters
 and the current **agent-journal-native.v2**, **execution-budget-native.v1**,
 **candidate-budget-native.v1**, **retirement-state-native.v1** and
 **slot-ledger-native.v1**, **native-mapping-native.v1** and
 **publication-measurement-native.v1**, **scalar-profile-native.v1** and
 **generation-retention-native.v1**, **bounded-memory-native.v1**,
-**full-cost-native.v1** and **patch-impact-native.v1** owners.
+**full-cost-native.v1**, **patch-impact-native.v1**, **static-budget-native.v1**
+and **store-lifecycle-native.v1** owners.
 A source test imports each
 actual factory and checks its `.hepta` source against the packaged resources.
 Unknown selectors, duplicate entries, extra fields and old journal schemas
@@ -64,6 +65,17 @@ and the ordinary image loader while invoking their real public APIs. It also
 checks source/child-manifest drift, terminal refusal and complete scope
 restoration. See [full cost](HIA_FULL_COST_NATIVE.md) and
 [patch impact](HIA_PATCH_IMPACT_NATIVE.md).
+
+`HEPTA_HIA_STATIC_BUDGET_MANIFEST` selects stable graph order, exact resource
+arithmetic, synchronous depth, profile admission and numerical policy decisions.
+The Core verifier and independent heap analysis retain their existing owners.
+`HEPTA_HIA_STORE_LIFECYCLE_MANIFEST` selects the complete constructor/close control
+flow, including original cleanup and exception ordering. The choice binds to
+the Store instance; Path, SQLite, clock/budget and Python object effects remain
+foreign operations. Their tests include actual installed wheel calls, pinned
+scope restoration and refusal after source or manifest drift. See
+[static resources](HIA_STATIC_BUDGET_NATIVE.md) and
+[Store lifecycle](HIA_STORE_LIFECYCLE_NATIVE.md).
 
 `HEPTA_HIA_NATIVE_MAPPING_MANIFEST` selects the HIA mapping parser and admission
 decisions used by `verify_loaded_symbols`. The actual descriptor, seals, ctypes

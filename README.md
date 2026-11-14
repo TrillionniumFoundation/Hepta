@@ -30,7 +30,7 @@ hia verify examples/hia_program/counter.hepta
 ```
 
 The `hia` entry is currently a Python-hosted bridge. An explicitly selected
-[two-image HIA CLI owner](docs/HIA_NATIVE_CLI_CONTROL_RECOVERY_20261111.md)
+[HIA CLI ownership](docs/HIA_CLI_NATIVE.md)
 now controls all fifteen actions, argument/help/error presentation, sequencing
 and current selfhost-build selection. Semantic action bodies, file policy and
 successful JSON presentation remain named foreign owners; this is not a

@@ -3,7 +3,8 @@
 This is development-time HIA authoring, not a Python runtime decision table.
 The image parses actual requests and observed rows, computes canonical hashes,
 and emits transition instructions. SQLite and business-method effects remain
-hosted. See HIA_AGENT_JOURNAL_RECOVERY_WIP_20261111.md for recovery provenance.
+hosted. See docs/HIA_AGENT_JOURNAL_NATIVE.md for the current contract and its
+exact published recovery provenance.
 """
 from __future__ import annotations
 

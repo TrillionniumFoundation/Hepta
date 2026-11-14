@@ -17,11 +17,11 @@ tree `378bc0dc613befc7006f1514bd2229357ae0d07c`, on 2026-11-14 UTC.
 The canonical suffix entered main at
 [`51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8`](https://github.com/TrillionniumFoundation/Hepta/commit/51bc24b8b03e5adc3da1b2b3490ad5cc7357e8d8).
 
-| Scope | Audited main `f33d8da` | Parent `0daf86d` | This implementation |
-| --- | ---: | ---: | ---: |
-| HIA source files ending in `.hepta` | 178 | 185 | 188 |
-| Physical legacy `.hia`, `.HIA`, `.hiaasm` or `.hia.json` paths, including case variants | 0 | 0 | 0 |
-| Production Python modules directly under `hepta/` | 186 | 191 | 195 |
+| Scope | Audited main `f33d8da` | Earlier `0daf86d` | Published parent `ad352ee` | This implementation |
+| --- | ---: | ---: | ---: | ---: |
+| HIA source files ending in `.hepta` | 178 | 185 | 188 | 190 |
+| Physical legacy `.hia`, `.HIA`, `.hiaasm` or `.hia.json` paths, including case variants | 0 | 0 | 0 | 0 |
+| Production Python modules directly under `hepta/` | 186 | 191 | 195 | 198 |
 
 These counts describe files, not percentages of behavior. The additional
 Python modules are explicit adapters for new native owners; their existence is
@@ -44,10 +44,16 @@ This revision continues
 `0daf86d0e5b8a8c13c15185d2b2bf553fbb81310` source has tree
 `46f5f3b0611a64393ed06fcc9b91221a1d54cabb`. It retains the packer-admission,
 source-custody, recursive-chain, Store-initialization and linked-ELF repairs,
-and the prior native owners. The first three rows are new in this revision:
+and the prior native owners. Published continuation
+[`ad352eeb77d804c14d7407713e23d37e7f037cf1`](https://github.com/TrillionniumFoundation/Hepta/commit/ad352eeb77d804c14d7407713e23d37e7f037cf1),
+tree `9c56113194795c738d3e7804eb1a89f8a1803cbd`, added full cost, patch impact
+and CLI discovery JSON. This revision adds static resources and Store lifecycle;
+the five new owners across this continuation are listed first:
 
 | Area | HIA-owned behavior | Retained host boundary |
 | --- | --- | --- |
+| [Static resources](HIA_STATIC_BUDGET_NATIVE.md) | Stable graph order, exact allocator/tick arithmetic, synchronous call depth, v7/v8 resource profile and ordered numerical policy decisions | Sole Core verification, primitive/policy shape validation, fact projection, independent heap analysis and final report hashing |
+| [Store lifecycle](HIA_STORE_LIFECYCLE_NATIVE.md) | Complete constructor and close control, effect ordering, short-circuit/loop branches, original cleanup and exception propagation | Path/OS/SQLite effects, execution-budget provider, Python object protocols and exception delivery |
 | [Full cost](HIA_FULL_COST_NATIVE.md) | Eleven one-time cost fields and execution/controller/failure sums, RSS/p99 peaks, ordered baseline/dp/fixed selection, exact signed floor-ppm savings and six ordered refusals | Immutable JSON observation, field validation, identities and final report construction |
 | [Patch impact](HIA_PATCH_IMPACT_NATIVE.md) | Direct function/interface changes, old and new call graphs, duplicate elimination and transitive caller closure, including cycles and self calls | Fresh Core/patch verification, receipt checks, canonical fact projection and final report digest |
 | [CLI discovery JSON](HIA_CLI_DISCOVERY_JSON.md) | Complete capabilities/catalog JSON, pretty/canonical encoding, schema selection, metadata ordering and catalog SHA-256 | Original CLI entry, explicit selector loading, I/O and other action effects |
@@ -58,6 +64,24 @@ and the prior native owners. The first three rows are new in this revision:
 | [Bounded byte memory](HIA_BOUNDED_MEMORY_NATIVE.md) | Original fill/move admission and refusals, actual in-place fill and overlapping move | Exact Python object facts, buffer export lifetime, allocator and GIL custody |
 | [SHA stream](HIA_SHA256_STREAM_NATIVE.md) | Original full-width state transitions with fixed eight-byte word accesses expanded | Original bounded adapter and foreign object lifetime |
 | [Execution budget](HIA_EXECUTION_BUDGET_NATIVE.md) and [journal](HIA_AGENT_JOURNAL_NATIVE.md) | Original budget transitions and complete per-request catalog hashing, with fixed word accesses expanded | Actual clock observations, SQLite transactions, durable journal and request dispatch |
+
+Static resources preserve all 1,024 functions, 4,096 blocks per function and
+262,144 structural nodes. Event magnitudes use exact variable-width arithmetic;
+the maximum-function test produces a 1,026-bit bound. The original seven caller
+modules execute 77 methods with all five reference owners forbidden. Only
+callee facts named by the current function are transported, avoiding repeated
+whole-program copying without narrowing the graph or changing a deadline.
+
+Store lifecycle uses the current `ad352ee` constructor and close bodies as
+independent frozen originals. Selection is bound for the instance lifetime.
+Cleanup protection starts immediately after connection assignment; failures in
+chmod, identity checks, PRAGMA, schema or budget initialization retain the
+original cleanup. Unknown external outcomes retain actual resources and fence
+replay; confirmed native terminal states alone release custody. Custody grows
+before effects without an arbitrary active-Store limit. Fork reinitializes only
+the custody lock and retains unknown references. Its four complete original
+caller modules execute 50 methods with both reference bodies forbidden.
+SQLite and the remaining Store methods are still hosted.
 
 Full cost preserves the original 8..128 trials and exact ratios whose signed
 ppm magnitude exceeds 64 bits. Its complete 38-caller gate poisons the original
@@ -141,20 +165,24 @@ Groups overlap and are never added into a unique-test total.
 | Main `f33d8da`, [CodeQL 43375258558](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43375258558) | C/C++, Actions, Python and Rust jobs succeeded. |
 | Parent `0daf86d`, [push 43541067109](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43541067109) and [PR 43541235838](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43541235838) | Both SUCCESS. All 81 Native API steps completed without a skipped step, including cold 11/11 and language 1,242/1,242. |
 | Parent `0daf86d`, [full retained 43541249953](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43541249953) | SUCCESS. All 4,843 planned/started/finished IDs match; zero failures, errors, skips, expected failures or unexpected successes. The original regression took 4,012.647 seconds within 5,400 seconds; source bytes were unchanged before and after. |
+| Published parent `ad352ee`, [push 43563651594](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43563651594) and [PR 43563684162](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43563684162) | Partial observation at 2026-11-14 06:22 UTC: both Source jobs succeeded with 645/645 tests; both Native jobs passed cold and the added cost/patch gates. Native jobs and separate [full retained 43563838838](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43563838838) had not reached a terminal result. PR merge checkout `5af2ef6b31b3ccd998fdedb8d23d4869bbe4bd66` has the exact published source tree. These observations do not qualify this successor. |
 | `a7710b5`, [push 43475067137](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43475067137) | FAILURE. Source: 585 tests passed. Native failed the accepted 64 MiB `store-put` at its original 60-second subprocess limit; subsequent product steps were skipped. |
 | `a7710b5`, [PR 43475077671](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43475077671) | SUCCESS. Source: 585 tests; every declared Native step completed. Actual checkout was merge `05d0cb2130982c4ffd408521650e20298e4c4ac0`, independently verified to have the same `b5618be` tree, with parents main `f33d8da` and `a7710b5`. |
 | `fbc34a716e31e72dd492fa926025b04808df339a`, [push 43537843469](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43537843469) and [PR 43538070022](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43538070022) | Both failed. Each Source run executed 619 methods with one failure: the bounded-memory installation fixture lacked ten explicit resource-role declarations. Each Native run passed cold and stages 8-16, including 41 scalar and 99 combined generation callers, then executed all 17 bounded-memory tests with two failures at 148,869 bytes against the original 65,536-byte ceiling. Later native steps were skipped. The PR checkout was `5e443ab300c98cc7702d0992b5423d40d9b54f60`, with the same `590189851a4b37965ed9c6b0abbb43f8d8c3115d` tree. This revision fixes the real loader allocation and explicitly copies all resource roles; those earlier runs remain failures. |
 | Product `be36b7cfbe40522ca1b6356e90170aa89aec2bad`, [full retained 43473228901](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43473228901) | FAILURE. All 4,747/4,747 original IDs executed in 5,367.218 seconds, within 5,400 seconds: one failure, one error, zero skips. The 64 MiB operation exceeded 60 seconds; the nested reference-loop test reached its existing three-second context deadline before evaluation. |
 
 The successful parent full run used harness
-`439dd75ad3e9bab61fec6300c64fc83673b4f38e`; its original v4 invocation took
+`91b946f926a030343230d950198062c5abffa05a`; its original v4 invocation took
 7,201.767 seconds in total. Scalar, bounded-memory and combined-generation
 supplemental callers also passed using the same cold compiler. Artifact
 `14096873690` is 345,632,903 ZIP bytes with SHA-256
 `178f4a7af37b8a46ccdb4329801f2b8ad78d1c1073fe54f9b917dfdaa39a3127`.
 All 19,042 manifest members were checked for hash, size and mode, with no
 missing member; 19,043 files including the manifest were examined. This
-qualifies the parent, not the new source in this revision.
+qualifies the parent, not the new source in this revision. The local harness
+commit `439dd75ad3e9bab61fec6300c64fc83673b4f38e` has the same
+`f0011fc625c546f30fa141d8643d02202ccad2fa` tree but was not published; it is
+not the identity of the executed GitHub run.
 
 The earlier failed `be36b7c` full run used product tree `e32d473fc5ce396b513a6b85e04340fb25d81d12`
 and separate harness `59c6e5912c86f6253b68b7a1579dbeef2fe8c111`.
@@ -173,8 +201,12 @@ complete original-caller gates. The retained
 [full qualification entry](../review-evidence/hia-native-rewrite-20261111/README.md)
 keeps original source/harness custody, all 35 stages and complete discovery.
 New component callers are additional gates, not replacements for that suite.
-The workflow now includes full cost, patch impact and both CLI discovery
-qualifiers. Local execution uses an explicitly declared development compiler;
+The workflow now includes full cost, patch impact, static resources, Store
+lifecycle and both CLI discovery qualifiers. Final isolated development
+observations recorded 13/13 static-resource tests plus 77/77 complete original
+callers, and 17/17 Store owner tests (36/36 including shared controls) plus
+50/50 complete original callers. These overlapping groups are not a unique
+test total and do not qualify the integrated source. Local execution uses an explicitly declared development compiler;
 the prior local cold timeout remains a timeout. Matching-source cold and full
 remote regression for this new revision are pending until actual terminal
 reports exist.
@@ -231,11 +263,15 @@ The parent continuation retired **424 historical members**: **423 paths deleted*
 and one historical README replaced by the current qualification entry.
 The original removed/replaced content totals **19,714,542 bytes**. This is the
 scope of that continuation, not a cumulative total for all prior cleanups.
-This revision additionally removes **nine superseded narrative documents,
-35,893 bytes**, after checking active references, and records their exact Git
+This continuation additionally removes **eleven superseded narrative documents,
+54,855 original bytes** (nine in `ad352ee`, two in this successor), after checking active references, and records their exact Git
 blob, mode, size, SHA-256 and published recovery revision in the existing
 process-document ledger. Production implementations, tests and consumed
-evidence are not removed by this narrative cleanup.
+evidence are not removed by this narrative cleanup. The current
+[CLI contract](HIA_CLI_NATIVE.md) replaces its obsolete recovery narrative;
+current journal guidance links to the exact archived source. The cumulative
+process-document ledger now records 30 retired members and 178,258 original
+bytes, including earlier batches.
 The three process summaries are in the existing
 [development ledger](../review-evidence/hia-native-cleanup-20261111/retired-development-versions.json);
 the remaining batches have exact mode, size, SHA-256 and Git-blob identities in:

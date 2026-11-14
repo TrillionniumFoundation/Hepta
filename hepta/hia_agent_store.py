@@ -266,6 +266,18 @@ def _native_artifact_file(operation,root,*,data=b'',content_hash='-',_admission=
 
 class AgentStore:
     def __init__(self, root):
+        from .hia_store_lifecycle_selection import capture_store_lifecycle, bind_store_lifecycle
+        owner = capture_store_lifecycle()
+        bind_store_lifecycle(self, owner)
+        if owner is None:
+            arguments = {'callee': _NATIVE_STORE_INITIALIZE_REFERENCE, 'self': self, 'root': root}
+            del self, root, owner
+            return arguments.pop('callee')(arguments.pop('self'), arguments.pop('root'))
+        frame = owner.prepare(1, self, root)
+        del self, root
+        return owner.finish(frame)
+
+    def _initialize_reference(self, root):
         from .hia_execution_budget import admitted_execution_budget, execution_budget_store
         budget_admission = admitted_execution_budget()
         supplied = Path(root).absolute()
@@ -377,6 +389,17 @@ class AgentStore:
                 self.db.execute("COMMIT")
 
     def close(self):
+        from .hia_store_lifecycle_selection import store_lifecycle_owner
+        owner = store_lifecycle_owner(self)
+        if owner is None:
+            arguments = {'callee': _NATIVE_STORE_CLOSE_REFERENCE, 'self': self}
+            del self, owner
+            return arguments.pop('callee')(arguments.pop('self'))
+        frame = owner.prepare(2, self)
+        del self
+        return owner.finish(frame)
+
+    def _close_reference(self):
         self.execution_budgets.close()
         self.db.close()
 
@@ -474,3 +497,8 @@ class AgentStore:
         if row is None:
             reject("E_HIA_PROFILE_AUTHORITY", "profile does not resolve to a retained server record")
         return self.get_json(decode_data(row["artifact"]), kind="profile")[0]
+
+
+# Freeze the original no-selector lifecycle without dynamic Store attribute hooks.
+_NATIVE_STORE_INITIALIZE_REFERENCE = AgentStore._initialize_reference
+_NATIVE_STORE_CLOSE_REFERENCE = AgentStore._close_reference
