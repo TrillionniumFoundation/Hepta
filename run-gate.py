@@ -140,7 +140,7 @@ EXTRA_COLD_COMPONENTS = (
     "PUBLICATION_MEASUREMENT", "SHA256_STREAM_DIFFERENTIAL",
     "FULL_COST", "PATCH_IMPACT", "CLI_DISCOVERY_JSON", "STATIC_BUDGET", "STORE_LIFECYCLE",
     "DEFAULT_RELEASE", "SERVICE_CONTEXT", "COST_LEDGER", "EVALUATION", "NATIVE_TRANSPORT",
-    "NATIVE_BUILD_ADMISSION", "NATIVE_BUILD_DISPATCH", "EMISSION",
+    "NATIVE_BUILD_ADMISSION", "NATIVE_BUILD_DISPATCH", "EMISSION", "STORE_ARTIFACT_PROFILE",
 )
 
 DEFAULT_RELEASE_SOURCE_CLASS = "tests.test_hia_default_native_release.DefaultReleaseSourceTests"
@@ -159,6 +159,8 @@ NATIVE_BUILD_DISPATCH_SOURCE_CLASS = "tests.test_hia_native_build_dispatch.Nativ
 NATIVE_BUILD_DISPATCH_NATIVE_CLASS = "tests.test_hia_native_build_dispatch.NativeBuildDispatchNativeTests"
 EMISSION_SOURCE_CLASS = "tests.test_hia_emission_native.EmissionSourceTests"
 EMISSION_NATIVE_CLASS = "tests.test_hia_emission_native.EmissionNativeTests"
+STORE_ARTIFACT_PROFILE_SOURCE_CLASS = "tests.test_hia_store_artifact_profile_native.StoreArtifactProfileSourceTests"
+STORE_ARTIFACT_PROFILE_NATIVE_CLASS = "tests.test_hia_store_artifact_profile_native.StoreArtifactProfileNativeTests"
 
 # These classes occur only in complete discovery, not the source/native tuples
 # extracted by the unchanged v4. Keep their actual same-run build evidence for
@@ -192,6 +194,7 @@ FULL_DISCOVERY_EVIDENCE = {
     "native-build-admission": (NATIVE_BUILD_ADMISSION_NATIVE_CLASS, "HEPTA_HIA_NATIVE_BUILD_ADMISSION_EVIDENCE"),
     "native-build-dispatch": (NATIVE_BUILD_DISPATCH_NATIVE_CLASS, "HEPTA_HIA_NATIVE_BUILD_DISPATCH_EVIDENCE"),
     "emission": (EMISSION_NATIVE_CLASS, "HEPTA_HIA_EMISSION_EVIDENCE"),
+    "store-artifact-profile": (STORE_ARTIFACT_PROFILE_NATIVE_CLASS, "HEPTA_HIA_STORE_ARTIFACT_PROFILE_EVIDENCE"),
 }
 # The selected CLI callers use a separate fixture under the same evidence root.
 # They remain their own complete class in the original full discovery.
@@ -225,6 +228,7 @@ ADDITIONAL_DISCARDED_SELECTORS = (
     "HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST", "HEPTA_HIA_NATIVE_BUILD_ADMISSION_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_NATIVE_BUILD_DISPATCH_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_EMISSION_MANIFEST", "HEPTA_HIA_EMISSION_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST", "HEPTA_HIA_STORE_ARTIFACT_PROFILE_DEVELOPMENT_COMPILER",
 )
 
 
@@ -250,6 +254,8 @@ def component_workflow_coverage(root):
         raise ValueError("native-build-dispatch source class must remain in the first extracted source tuple")
     if EMISSION_SOURCE_CLASS not in named[0]:
         raise ValueError("emission source class must remain in the first extracted source tuple")
+    if STORE_ARTIFACT_PROFILE_SOURCE_CLASS not in named[0]:
+        raise ValueError("Store artifact/profile source class must remain in the first extracted source tuple")
     groups = [node for node in ast.walk(ast.parse((root / RUNNER).read_bytes()))
               if isinstance(node, ast.Assign) and len(node.targets) == 1
               and getattr(node.targets[0], "id", None) == "groups"]
@@ -276,6 +282,7 @@ def component_workflow_coverage(root):
             "native_build_admission_source_class_in_first_source_tuple": True,
             "native_build_dispatch_source_class_in_first_source_tuple": True,
             "emission_source_class_in_first_source_tuple": True,
+            "store_artifact_profile_source_class_in_first_source_tuple": True,
             "retained_native_classes_first_execute_in_full_discovery": True,
             "extra_component_suite_reruns": False}
 
@@ -487,6 +494,7 @@ def require_observed_component_methods(discovery, identity):
     classes.append(NATIVE_BUILD_ADMISSION_SOURCE_CLASS)
     classes.append(NATIVE_BUILD_DISPATCH_SOURCE_CLASS)
     classes.append(EMISSION_SOURCE_CLASS)
+    classes.append(STORE_ARTIFACT_PROFILE_SOURCE_CLASS)
     checked = {}
     for name in classes:
         planned = [item for item in discovery["planned_test_ids"] if item.startswith(name + ".")]
@@ -512,6 +520,9 @@ def require_observed_component_methods(discovery, identity):
         if ((name == EMISSION_SOURCE_CLASS and len(planned) != 3)
                 or (name == EMISSION_NATIVE_CLASS and len(planned) != 8)):
             raise ValueError("emission requires all three source and eight native methods")
+        if ((name == STORE_ARTIFACT_PROFILE_SOURCE_CLASS and len(planned) != 3)
+                or (name == STORE_ARTIFACT_PROFILE_NATIVE_CLASS and len(planned) != 8)):
+            raise ValueError("Store artifact/profile requires all three source and eight native methods")
         if (not planned or [row["id"] for row in observed] != planned
                 or (name == DEFAULT_RELEASE_NATIVE_CLASS and len(planned) != 12)
                 or not all(row.get("completion_observed") is True
@@ -3623,6 +3634,823 @@ def require_emission_component(directory, root, cold_path, compiler, sources, pi
 
 
 
+# Independently frozen originals, preceding the Store candidate.
+STORE_PROFILE_ORIGINAL_SHA256 = {
+    "tests/fixtures/hia_store_artifact_profile_cases_73f1634.json": "378d441cdfc4f8fcef3034ae69f464497ba3e5ec2858058024b3fd6f7ef1a280",
+    "tests/hia_store_artifact_profile_oracle.py": "26c1b4ac5970f21a9a258da07d92b87ed8ea5a4db4526b94144a7d76db24b84c",
+    "tests/hia_store_literal_call_oracle.py": "eca4a77776efd3003c7bb3dc4089f49ec1955b0c94a5dc84e31344dc0c5519c9",
+    "tests/hia_store_limit_oracle.py": "5b2a0671e64d2c64a42895f2964584ecef54547fb70eb0298b81c13e098aea80",
+    "tests/fixtures/hia_agent_store_73f1634.py.txt": "5feb5b2d06db497b895ba209bdd7b0ed1b7ed29ad29466aca356f5c3fb21657a",
+    "tests/fixtures/hia_store_artifact_profile_callers_73f1634.json": "acbb8c221d80788ef96eb4b596c24fc1c3eb410229e605b2f01ef77e5530b7d6",
+    "tests/fixtures/AgentStore.put.py.txt": "c75c43cd27942c1073f6b9318ada1188fc5df4012e7900b07e0d321546371469",
+    "tests/fixtures/AgentStore.json.py.txt": "bd8b0f704df24e194e060f24ec3119874cfdd93dad878672665efdaa01972821",
+    "tests/fixtures/AgentStore._ref.py.txt": "6d5952f35a71c9b85d40e35b88fd4b6e2b94d051e424bbc1db887d4eab516c7e",
+    "tests/fixtures/AgentStore.get.py.txt": "76694223a11fe72176ad9b12ce9ccc76043027ba1dc5c96853332766a9f79b31",
+    "tests/fixtures/AgentStore.get_json.py.txt": "e1c1c9245d1a9301c06665c1bc40c32b10d4e086db6c13bc6d3b7e5531fe8c33",
+    "tests/fixtures/AgentStore.resolve_uri.py.txt": "370c9a9ce102ed064cda59466c0f1377c1fe0752e2c5f09e980dd45b7d19c8c4",
+    "tests/fixtures/AgentStore.profile.py.txt": "f32b5820994bf22a57cdb6cdb2e241d5a0ea7775c39fa0a4cae3dea751d16d40",
+    "tests/fixtures/AgentStore.check_profile.py.txt": "5f91d4feaead7e35d141a0edfdd754ed6b40c5f3d8879895a2897e5ba1962dee",
+}
+STORE_PROFILE_LIMIT_CASES_SHA256 = "7dafcf4bfab7566695a15814ab7e9e888b367afdaed6b1e1f35ec12ec8ca2333"
+STORE_PROFILE_MODES = {str(number) for number in range(1, 17)}
+
+
+def store_profile_original_inputs(root, sources, pins):
+    documents = {}
+    for name, digest in STORE_PROFILE_ORIGINAL_SHA256.items():
+        raw = release_bytes(root / name, pins)
+        if hashlib.sha256(raw).hexdigest() != digest or sources.get(name) != digest:
+            raise ValueError("Store independently frozen original input differs: " + name)
+        documents[name] = raw
+    original = json.loads(documents["tests/fixtures/hia_store_artifact_profile_cases_73f1634.json"])
+    rows = original.get("cases", [])
+    methods = ("put", "json", "_ref", "get", "get_json", "resolve_uri", "profile", "check_profile")
+    if (original.get("schema") != "hepta.hia.store-artifact-profile-original-inputs.v1"
+            or original.get("base_commit") != "73f16346e7f84fa13305777a4595e2d1b422dee9"
+            or original.get("base_tree") != "979fcc94c1c6a045e7f6740c97d30c0fdded2dd3"
+            or original.get("candidate_graph_or_candidate_results_used") is not False
+            or original.get("case_count") != 463 or type(rows) is not list or len(rows) != 463
+            or any(type(row) is not dict or type(row.get("name")) is not str
+                   or row.get("method") not in methods for row in rows)
+            or len({row["name"] for row in rows}) != 463
+            or original.get("method_files") != {name: STORE_PROFILE_ORIGINAL_SHA256[
+                "tests/fixtures/AgentStore." + name + ".py.txt"] for name in methods}):
+        raise ValueError("Store complete frozen 463-case source inventory differs")
+    protocol_name = "hepta/hia_store_artifact_profile_protocol.py"
+    raw = release_bytes(root / protocol_name, pins)
+    if sources.get(protocol_name) != hashlib.sha256(raw).hexdigest():
+        raise ValueError("Store fixed protocol is outside the admitted source")
+    nodes = [node for node in ast.parse(raw).body if isinstance(node, ast.Assign)
+             and any(isinstance(target, ast.Name) and target.id == "PORTS" for target in node.targets)]
+    if len(nodes) != 1:
+        raise ValueError("Store fixed port inventory is ambiguous")
+    ports = ast.literal_eval(nodes[0].value)
+    if (type(ports) is not tuple or len(ports) != 138 or len(set(ports)) != 138
+            or any(type(name) is not str or not name for name in ports)):
+        raise ValueError("Store complete fixed 138-port inventory differs")
+    # Only pure frozen input-list constructors; no original/candidate body.
+    from tests.hia_store_literal_call_oracle import cases as literal_cases
+    from tests.hia_store_limit_oracle import cases as limit_cases
+    literal, limits = literal_cases(), limit_cases()
+    if (len(literal) != 160 or len({row["name"] for row in literal}) != 160
+            or len(limits) != 41 or len({row["name"] for row in limits}) != 41
+            or hashlib.sha256(evaluation_json_bytes(limits)).hexdigest() != STORE_PROFILE_LIMIT_CASES_SHA256):
+        raise ValueError("Store frozen literal-call or dynamic-limit case inputs differ")
+    return rows, literal, limits, {name: index + 1 for index, name in enumerate(ports)}
+
+
+def store_profile_custody(directory, root, cold_path, compiler, sources, pins):
+    from tools.build_hia_store_artifact_profile import INPUTS, SOURCE_NAME
+    directory = Path(directory)
+    manifest_path = directory / "built/manifest.json"
+    manifest = require_release_compilation(directory / "built", "store_artifact_profile", SOURCE_NAME,
+                                          INPUTS, root, compiler, sources, pins)
+    build = release_json(directory / "built/build.json", pins)
+    custody = release_json(directory / "component-custody.json", pins)
+    scope = "DEVELOPMENT_COMPONENT" if cold_path is None else "MATCHING_SOURCE_COLD_COMPONENT"
+    if (manifest.get("schema") != "hepta.hia.store-artifact-profile.v1"
+            or manifest.get("source_sha256") != sources[SOURCE_NAME]
+            or manifest.get("compiler_sha256") != sha(compiler)
+            or manifest.get("image_sha256") != hashlib.sha256(release_bytes(
+                manifest_path.parent / manifest["image_path"], pins)).hexdigest()
+            or build.get("schema") != "hepta.hia.store-artifact-profile-build.v1"
+            or build.get("scope") != scope or build.get("manifest") != manifest
+            or build.get("source_manifest") != (None if cold_path is None else sources)
+            or build.get("cold_report_sha256") != (None if cold_path is None else sha(cold_path))
+            or build.get("original_artifact_limit_bytes") != 67108864
+            or any(build.get(key) is not True for key in (
+                "eight_complete_original_methods_owned_by_hia",
+                "control_branches_reference_iteration_and_cleanup_owned_by_hia",
+                "argument_continuations_owned_by_hia", "literal_calls_preserve_original_dynamic_methods",
+                "canonical_nested_calls_enter_selected_native_children",
+                "filesystem_sql_hash_json_and_object_protocols_hosted",
+                "original_dynamic_limit_global_binding_and_opaque_comparison_preserved",
+                "same_owner_active_causal_native_loss_fenced"))
+            or any(build.get(key) is not False for key in (
+                "transaction_context_manager_migrated", "new_production_wall_cap",
+                "cross_owner_causal_loss_closure_qualified", "retained_eight_bodies_invoked_on_selected_canonical_route",
+                "explicit_foreign_overrides_restricted", "whole_stack_rewritten_in_hia", "all_input_equivalence_proved"))
+            or custody.get("schema") != "hepta.hia.store-artifact-profile-test-custody.v1"
+            or custody.get("manifest") != str(manifest_path)
+            or custody.get("matching_cold_report") != (None if cold_path is None else str(cold_path))
+            or custody.get("compiler_sha256") != sha(compiler)
+            or custody.get("source_manifest_before") != sources or custody.get("source_manifest_after") != sources
+            or any(custody.get(key) is not True for key in ("compiler_unchanged", "source_and_compiler_unchanged",
+                "test_result_owned_by_outer_runner", "filesystem_SQL_hash_JSON_and_object_protocols_hosted"))
+            or any(custody.get(key) is not False for key in ("transaction_context_manager_migrated",
+                "cross_owner_causal_loss_closure_qualified", "all_input_equivalence_proved", "whole_native_delivery_qualified"))):
+        raise ValueError("Store first-full build, hosted boundaries or source/compiler custody differs")
+    return manifest, custody
+
+
+def store_profile_rows(records, cases, literal=False):
+    if (type(records) is not list or [row.get("case") for row in records] != [case["name"] for case in cases]
+            or any(type(row) is not dict or set(row) != {"case", "expected", "actual"} for row in records)):
+        raise ValueError("Store complete ordered finite observation inventory differs")
+    for row, case in zip(records, cases):
+        if (type(row["expected"]) is not dict or row["expected"].get("name") != case["name"]
+                or set(row["expected"]) != ({"name", "outcome", "trace"} if literal else {"name", "method", "outcome", "state", "trace"})
+                or (not literal and row["expected"].get("method") != case["method"])
+                or evaluation_json_bytes(row["expected"]) != evaluation_json_bytes(row["actual"])):
+            raise ValueError("Store original full trace, alias, state or exception comparison differs")
+    return {row["case"]: row["expected"] for row in records}
+
+
+def store_profile_positive_counts(value, allowed, required=()):
+    if (type(value) is not dict or not set(required) <= set(value) <= set(allowed)
+            or any(type(amount) is not int or amount <= 0 for amount in value.values())):
+        raise ValueError("Store exact positive native count inventory differs")
+    return value
+
+
+def store_profile_events(events, ports):
+    if type(events) is not list or not events:
+        raise ValueError("Store actual native event sequence is absent")
+    pending, opened = {}, []
+    for row in events:
+        if (type(row) is not dict or set(row) != {"mode", "event", "port"}
+                or any(type(value) is not int for value in row.values())
+                or str(row["mode"]) not in STORE_PROFILE_MODES or row["event"] not in range(4)
+                or row["port"] not in ({0} if row["event"] == 0 else set(ports.values()))):
+            raise ValueError("Store actual native event mode, type or port differs")
+        mode, event, port = row["mode"], row["event"], row["port"]
+        if event == 0:
+            # Completed argument continuations may reuse their mode, without
+            # replacing an instance with an unacknowledged effect.
+            if pending.get(mode) is not None:
+                raise ValueError("Store reinitialized an outstanding native effect")
+            pending[mode] = None
+            opened.append(mode)
+        elif mode not in pending:
+            raise ValueError("Store event precedes its actual initialization")
+        elif event == 1:
+            if pending[mode] is not None:
+                raise ValueError("Store claimed a second unacknowledged effect")
+            pending[mode] = port
+        else:
+            if pending[mode] != port:
+                raise ValueError("Store native acknowledgement differs from its claimed effect")
+            pending[mode] = None
+    return pending, opened
+
+
+def store_profile_transport_observations(directory, expected, ports, pins):
+    record = release_json(Path(directory) / "test_lost_ACK_foreign_errors_and_active_same_owner_ancestors/native-and-foreign-exceptions.json", pins)
+    rows = record.get("records", [])
+    if (record.get("schema") != "hepta.hia.store-artifact-profile-transport-controls.v1"
+            or record.get("native_cases") != 30 or record.get("foreign_cases") != 30
+            or record.get("caught_native_child_cases") != 10 or type(rows) is not list or len(rows) != 70
+            or record.get("cross_owner_causal_closure_claimed") is not False):
+        raise ValueError("Store complete 30 native/30 foreign/10 same-owner controls differ")
+    errors = ("ValueError", "TypeError", "OSError", "OverflowError", "RecursionError", "OperationalError",
+              "MixedRejected", "RuntimeError", "KeyboardInterrupt", "SystemExit")
+    plans = (("put.native", "put_native_put", "native.file.store-put", 1),
+             ("put.fallback", "put_stream_fsync", "os.fsync.file", 1),
+             ("profile.native", "profile_insert", "sql.execute.insert-profile", 7))
+    prefixes, states = {}, {}
+    for name, port, event, mode in plans:
+        trace = expected[name]["trace"]
+        ends = [index for index, row in enumerate(trace) if row.get("event") == event and row.get("occurrence") == 1]
+        if len(ends) != 1:
+            raise ValueError("Store original durable effect prefix is ambiguous")
+        prefixes[name] = trace[:ends[0] + 1]
+        pairs = expected[name]["state"]["dict"]
+        if name == "put.native":
+            pairs = pairs[:4]
+        elif name == "put.fallback":
+            pairs = [[key, True if key == "temporary_exists" else value] for key, value in pairs[:6]]
+        states[name] = {"dict": pairs}
+    for index, (name, port, event, mode, error) in enumerate(
+            (name, port, event, mode, error) for name, port, event, mode in plans for error in errors):
+        native, foreign = rows[index], rows[index + 30]
+        events = native.get("events", [])
+        pending, opened = store_profile_events(events, ports)
+        raised = error if error in ("RuntimeError", "KeyboardInterrupt", "SystemExit") else "StoreArtifactProfileUnknown"
+        if (native.get("lane") != "native" or native.get("case") != name or native.get("port") != port
+                or native.get("error") != error or native.get("raised") != raised or opened[0] != mode
+                or events[-1] != {"mode": mode, "event": 2, "port": ports[port]}
+                or any(row["event"] == 3 for row in events)
+                or native.get("unknown_custody_retained") is not True
+                or native.get("no_retry_or_automatic_cleanup") is not True
+                or evaluation_json_bytes(native.get("trace")) != evaluation_json_bytes(prefixes[name])
+                or evaluation_json_bytes(native.get("state")) != evaluation_json_bytes(states[name])):
+            raise ValueError("Store native delivery loss confirmed, retried or cleaned up the observed durable effect")
+        foreign_events = foreign.get("events", [])
+        trace, state = prefixes[name], states[name]
+        if name == "put.fallback":
+            trace = [*trace,
+                {"event": "stream.exit", "occurrence": 1, "active_exception": "observed-3",
+                 "values": {"tuple": [error, "observed-3", True]}},
+                {"event": "path.unlink", "occurrence": 1, "active_exception": "observed-3",
+                 "values": {"tuple": [{"opaque": "path:artifacts/.write-00000000000000000000000000000001"},
+                                      {"dict": [["missing_ok", True]]}]}}]
+            state = {"dict": [[key, False if key == "temporary_exists" else value]
+                               for key, value in state["dict"]] + [["stream_exited", True]]}
+        if (foreign.get("lane") != "foreign" or foreign.get("case") != name or foreign.get("port") != port
+                or foreign.get("error") != error or foreign.get("same_exception_object") is not True
+                or type(foreign.get("confirmed_phase")) is not int or foreign["confirmed_phase"] != 5
+                or type(foreign_events) is not list or 3 not in foreign_events
+                or any(type(value) is not int or value not in range(4) for value in foreign_events)
+                or evaluation_json_bytes(foreign.get("trace")) != evaluation_json_bytes(trace)
+                or evaluation_json_bytes(foreign.get("state")) != evaluation_json_bytes(state)):
+            raise ValueError("Store original foreign exception identity, confirmation or cleanup differs")
+    trace = expected["json.native"]["trace"]
+    ends = [index for index, row in enumerate(trace) if row.get("event") == "sql.execute.insert-artifact"
+            and row.get("occurrence") == 1]
+    if len(ends) != 1:
+        raise ValueError("Store original JSON child publication is ambiguous")
+    for row, error in zip(rows[60:], errors):
+        events = row.get("events", [])
+        pending, opened = store_profile_events(events, ports)
+        if (row.get("lane") != "caught-native-child" or row.get("error") != error
+                or row.get("actual_public_child_frame_observed") is not True
+                or row.get("parent_and_child_fenced") is not True or opened[:3] != [2, 9, 1]
+                or events[-1] != {"mode": 1, "event": 2, "port": ports["put_insert"]}
+                or any(event["event"] == 3 for event in events) or pending.get(2) is None
+                or evaluation_json_bytes(row.get("trace")) != evaluation_json_bytes(trace[:ends[0] + 1])):
+            raise ValueError("Store swallowed same-owner child loss did not retain its actual causal ancestor")
+    return {"post_effect_native_loss_cases": 30, "confirmed_foreign_exception_cases": 30,
+            "caught_public_same_owner_child_loss_cases": 10,
+            "complete_original_effect_prefixes_and_exact_foreign_cleanup_checked": True,
+            "foreign_exception_identity_and_custody_owned_by_original_complete_test": True,
+            "cross_owner_causal_loss_closure_qualified": False, "test_bodies_rerun_by_readback": False}
+
+
+def store_profile_control_observations(directory, root, sources, pins, runtime=None):
+    directory = Path(directory)
+    cases, literal_cases, limit_cases, ports = store_profile_original_inputs(root, sources, pins)
+    location = directory / "test_complete_463_original_effects_first_errors_and_cleanup_order"
+    complete = release_json(location / "complete-observations.json", pins)
+    expected = store_profile_rows(complete.get("records"), cases)
+    counts = store_profile_positive_counts(complete.get("actual_native_entries_by_event"), set("0123"), set("0123"))
+    modes = store_profile_positive_counts(complete.get("actual_frames_by_mode"), STORE_PROFILE_MODES, STORE_PROFILE_MODES)
+    if (complete.get("schema") != "hepta.hia.store-artifact-profile-original-comparison.v1"
+            or complete.get("case_count") != 463 or complete.get("retained_eight_bodies_forbidden") is not True
+            or complete.get("all_input_equivalence_proved") is not False
+            or counts != {"0": 1196, "1": 12519, "2": 12021, "3": 498}
+            or modes != {"1": 330, "2": 35, "3": 212, "4": 96, "5": 34, "6": 22, "7": 29, "8": 36,
+                         "9": 30, "10": 100, "11": 58, "12": 94, "13": 59, "14": 22, "15": 17, "16": 22}
+            or type(complete.get("runtime")) is not str or not complete["runtime"]
+            or runtime is not None and complete["runtime"] != runtime):
+        raise ValueError("Store complete original comparison or physical native count differs")
+    limits = release_json(location / "dynamic-limit-observations.json", pins)
+    store_profile_rows(limits.get("records"), limit_cases)
+    limit_counts = store_profile_positive_counts(limits.get("actual_native_entries_by_event"), set("0123"), set("0123"))
+    if (limits.get("schema") != "hepta.hia.store-dynamic-limit-native-comparison.v1"
+            or limits.get("case_count") != 41 or limits.get("cases_sha256") != STORE_PROFILE_LIMIT_CASES_SHA256
+            or limits.get("oracle_sha256") != STORE_PROFILE_ORIGINAL_SHA256["tests/hia_store_limit_oracle.py"]
+            or limits.get("runtime") != complete["runtime"] or limit_counts != {"0": 41, "1": 157, "2": 116, "3": 41}
+            or any(limits.get(key) is not True for key in ("original_guard_global_reads_and_opaque_comparison_preserved",
+                "earlier_463_and_160_fixtures_unchanged", "accepted_branch_stops_at_next_original_admission_effect"))
+            or limits.get("all_input_equivalence_proved") is not False):
+        raise ValueError("Store original dynamic limit and first-error observations differ")
+    literal = release_json(directory / "test_frozen_160_literal_calls_cold_and_warm_profiles/literal-call-observations.json", pins)
+    rows = literal.get("records", [])
+    if (literal.get("schema") != "hepta.hia.store-artifact-profile-literal-call-comparison.v1"
+            or literal.get("runtime") != complete["runtime"] or literal.get("cases_per_profile") != 160
+            or literal.get("cold_and_warm_interpreter_profiles_compared") is not True
+            or literal.get("exception_attributes_normalized") is not False
+            or literal.get("all_execution_histories_proved") is not False
+            or type(rows) is not list or len(rows) != 320
+            or [(row.get("profile"), row.get("case")) for row in rows]
+               != [(profile, case["name"]) for profile in ("cold", "warm") for case in literal_cases]
+            or any(set(row) != {"profile", "case", "expected", "actual"} for row in rows)):
+        raise ValueError("Store original complete 160 cold and 160 warm literal-call inventory differs")
+    for offset in (0, 160):
+        store_profile_rows([{key: value for key, value in row.items() if key != "profile"}
+                            for row in rows[offset:offset + 160]], literal_cases, literal=True)
+    vm = release_json(directory / "test_actual_native_full_buffers_match_independent_VM/vm-native-observations.json", pins)
+    if (set(vm) != {"cases", "entries", "input_output_and_state_compared_at_every_entry"}
+            or vm.get("cases") != ["put.native", "put.fallback.link-exists.same", "ref.ordinary", "get.native",
+                                   "profile.native", "check_profile.native"]
+            or type(vm.get("entries")) is not int or vm["entries"] != 533
+            or vm.get("input_output_and_state_compared_at_every_entry") is not True):
+        raise ValueError("Store original six independent full-buffer VM cases differ")
+    public = directory / "test_eight_public_routes_poisoned_reference_and_selector_pinning"
+    public_record = release_json(public / "public-observations.json", pins)
+    public_modes = store_profile_positive_counts(public_record.get("frames_by_mode"), STORE_PROFILE_MODES, map(str, range(1, 9)))
+    if (any(public_record.get(key) is not True for key in ("all_eight_public_routes_observed",
+            "all_eight_reference_bodies_forbidden", "empty_missing_changed_and_outside_scope_refused"))
+            or public_modes != {"1": 3, "2": 2, "3": 9, "4": 4, "5": 2, "6": 1, "7": 1, "8": 1,
+                                "9": 2, "12": 3, "13": 4, "15": 1, "16": 1}):
+        raise ValueError("Store complete public routes or selector pinning differs")
+    manifest_raw = release_bytes(directory / "built/manifest.json", pins)
+    image_name = json.loads(manifest_raw)["image_path"]
+    if (release_bytes(public / "manifest.json", pins) != manifest_raw
+            or release_bytes(public / image_name, pins) != release_bytes(directory / "built" / image_name, pins) + b"\0"):
+        raise ValueError("Store selector drift differs from the original exact one-NUL mutation")
+    protocol = release_json(directory / "test_thread_finished_replay_bad_packets_and_unclaimed_ACK_refuse/protocol-observations.json", pins)
+    invalid = protocol.get("invalid_packets", [])
+    if (protocol.get("foreign_thread_refused_without_poisoning_creator") is not True
+            or protocol.get("finished_replay_and_unclaimed_ACK_no_foreign_effect") is not True
+            or type(invalid) is not list or len(invalid) != 8
+            or [row.get("case") for row in invalid] != ["bad-magic", "bad-mode-low", "bad-mode-high", "initial-sequence",
+                    "initial-port", "initial-observation", "reserved-one", "reserved-two"]
+            or any(type(row.get("status")) is not int or row["status"] != 4294967293
+                   or row.get("all_buffers_unchanged") is not True for row in invalid)):
+        raise ValueError("Store original thread, replay or eight unchanged-buffer refusal controls differ")
+    location = directory / "test_real_store_eight_methods_original_SQL_files_and_reference_authority"
+    real = release_json(location / "store-observations.json", pins)
+    store_profile_positive_counts(real.get("frames_by_mode"), STORE_PROFILE_MODES, STORE_PROFILE_MODES)
+    bundle = release_json(location / "bundle.json", pins)
+    from hepta.hia_native_helpers import SCHEMA, TARGET, ABI
+    if (real.get("bundle_sha256") != pins[str(location / "bundle.json")]
+            or bundle != {"schema": SCHEMA, "target": TARGET, "abi": ABI, "helpers": [{
+                "selector": "HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST",
+                "manifest_path": str(directory / "built/manifest.json"),
+                "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest()}]}
+            or any(real.get(key) is not True for key in ("all_eight_public_routes_real_files_and_SQL",
+                "all_eight_reference_bodies_forbidden", "namespace_and_kind_precedence_preserved",
+                "native_artifact_file_provider_covered_by_separate_original_18_method_gate"))):
+        raise ValueError("Store actual SQL/files bundle or original provider gate scope differs")
+    return {"original_complete_cases": 463, "dynamic_limit_cases": 41,
+            "literal_call_cases_per_cold_and_warm_profile": 160,
+            "actual_native_entries_by_event": counts, "actual_frames_by_mode": modes,
+            "dynamic_limit_native_entries_by_event": limit_counts,
+            "independent_VM_cases": 6, "actual_VM_native_entries": 533,
+            "VM_full_buffer_comparison_owned_by_original_complete_test": True,
+            "raw_VM_buffers_separately_retained": False,
+            "public_selector_observations": public_record, "protocol_observations": protocol,
+            "real_SQL_files_observations": real,
+            "transport": store_profile_transport_observations(directory, expected, ports, pins),
+            "runtime": complete["runtime"], "test_bodies_rerun_by_readback": False,
+            "all_input_equivalence_proved": False, "cross_owner_causal_loss_closure_qualified": False}
+
+
+def store_profile_wheel(location, sources, observation, pins):
+    wheels = sorted((location / "wheels").glob("*.whl"))
+    if len(wheels) != 1:
+        raise ValueError("Store needs the one actual installed wheel")
+    wheel = wheels[0]
+    files, distribution = release_wheel(wheel, pins)
+    source_python = {name for name in sources if name.startswith("hepta/") and name.endswith(".py")}
+    if not source_python <= set(files):
+        raise ValueError("Store wheel omitted production Python source")
+    for name, raw in files.items():
+        if name.startswith("hepta/"):
+            source_name = name.removeprefix("hepta/_data/") if name.startswith("hepta/_data/") else name
+            if sources.get(source_name) != hashlib.sha256(raw).hexdigest():
+                raise ValueError("Store wheel has unbound production bytes")
+        elif not name.startswith(distribution + "/"):
+            raise ValueError("Store wheel has unexpected members")
+    installed, actual = location / "installed", {}
+    for path in sorted(installed.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("Store installed file is a symlink")
+        if path.is_file():
+            actual[path.relative_to(installed).as_posix()] = release_bytes(path, pins)
+    record = distribution + "/RECORD"
+    member = "hepta/_data/examples/hia_bootstrap/store_artifact_profile.hepta"
+    extras = {"bin/hia", *(distribution + "/" + name for name in ("INSTALLER", "REQUESTED", "direct_url.json"))}
+    if (set(actual) != set(files) | extras or member not in files
+            or any(actual.get(name) != raw for name, raw in files.items() if name not in (record, member))
+            or actual.get(member) != files[member] + b"\n"):
+        raise ValueError("Store installation differs beyond its exact one-LF control")
+    recorded = dict(actual)
+    recorded[member] = files[member]
+    require_release_record(recorded, record, installed=True)
+    origin = json.loads(actual[distribution + "/direct_url.json"])
+    drift = observation.get("installed_source_drift", {})
+    if (origin.get("url") != wheel.as_uri()
+            or origin.get("archive_info", {}).get("hashes", {}).get("sha256") != pins[str(wheel)]
+            or observation.get("wheel") != str(wheel) or observation.get("wheel_sha256") != pins[str(wheel)]
+            or drift.get("before_sha256") != sources["examples/hia_bootstrap/store_artifact_profile.hepta"]
+            or drift["before_sha256"] != hashlib.sha256(files[member]).hexdigest()
+            or drift.get("after_sha256") != hashlib.sha256(actual[member]).hexdigest()):
+        raise ValueError("Store installed wheel origin or source drift differs")
+    return files, {"wheel": str(wheel), "wheel_sha256": pins[str(wheel)], "actual_wheel_members": len(files),
+        "actual_installed_files": len(actual), "all_other_product_bytes_equal_wheel": True,
+        "installed_RECORD_checked_against_exact_pre_drift_bytes": True,
+        "only_intentional_installed_mutation": {"member": member, "change": "append exactly one LF",
+            "before_sha256": drift["before_sha256"], "after_sha256": drift["after_sha256"]}}
+
+
+def store_profile_worker_counts(raw):
+    prefix = b"STORE_ARTIFACT_COUNTS="
+    found = [line[len(prefix):] for line in raw.splitlines() if line.startswith(prefix)]
+    if len(found) != 1:
+        raise ValueError("Store installed worker has no unique original count marker")
+    counts = json.loads(found[0])
+    if (type(counts) is not dict or set(counts) != {"startup", "request", "request_artifact_inserts", "unknown_frames"}
+            or any(type(counts[key]) is not int or counts[key] < 0 for key in ("request_artifact_inserts", "unknown_frames"))):
+        raise ValueError("Store installed worker count shape differs")
+    for phase in ("startup", "request"):
+        row = counts[phase]
+        if (type(row) is not dict or set(row) != {"entries", "modes"}
+                or type(row["entries"]) is not int or row["entries"] < 0):
+            raise ValueError("Store installed startup/request count shape differs")
+        store_profile_positive_counts(row["modes"], STORE_PROFILE_MODES)
+        if (row["entries"] == 0) != (not row["modes"]) or row["entries"] < sum(row["modes"].values()):
+            raise ValueError("Store installed entries disagree with their physical frames")
+    return counts
+
+
+def store_profile_worker_streams(location, worker_sha, catalog_sha, bundle_sha, version, pins):
+    names = ("wheel", "install", "first", "replay", "uri-read", "native_ack", "native_ack-replay",
+             "process_loss", "process_loss-replay", "changed-installed-source")
+    logs = {name: {suffix: release_bytes(location / (name + "." + suffix), pins)
+                  for suffix in ("stdout", "stderr")} for name in names}
+    counts = {name: store_profile_worker_counts(logs[name]["stderr"]) for name in names[2:]}
+    startup = {"entries": 3714, "modes": {"1": 27, "2": 17, "3": 54, "4": 27, "7": 7,
+                                           "9": 17, "13": 27, "14": 27, "15": 7}}
+    first_modes = {"1": 1, "3": 2, "4": 1, "5": 1, "8": 1, "10": 1, "11": 1,
+                   "12": 1, "13": 1, "14": 1, "16": 1}
+    requests = {"first": {"entries": 250, "modes": first_modes},
+                "uri-read": {"entries": 170, "modes": {"3": 3, "4": 2, "6": 1, "13": 2, "14": 2}},
+                "native_ack": {"entries": 223, "modes": {**first_modes, "3": 1}},
+                "process_loss": {"entries": 222, "modes": {**first_modes, "3": 1}}}
+    for name, row in counts.items():
+        expected = {"startup": startup if name != "changed-installed-source" else {"entries": 0, "modes": {}},
+                    "request": requests.get(name, {"entries": 0, "modes": {}}),
+                    "request_artifact_inserts": int(name in ("first", "native_ack", "process_loss")),
+                    "unknown_frames": int(name in ("native_ack", "process_loss"))}
+        if row != expected:
+            raise ValueError("Store installed startup, request, durable-insert or custody count differs: " + name)
+    if (any(logs[name]["stdout"] for name in ("native_ack", "process_loss", "changed-installed-source"))
+            or b"ValueError: controlled lost durable Store insertion acknowledgement" not in logs["native_ack"]["stderr"]
+            or b"StoreArtifactProfileUnknown" not in logs["native_ack"]["stderr"]):
+        raise ValueError("Store installed lost acknowledgement or source-drift streams differ")
+    reports = {name: json.loads(logs[name]["stdout"]) for name in (
+        "first", "replay", "uri-read", "native_ack-replay", "process_loss-replay")}
+    for name, report in reports.items():
+        if (report.get("schema") != "hia-agent-worker-report-v1"
+                or report.get("tool") != ("hia_resource_read" if name == "uri-read" else "hia_artifact")
+                or report.get("complete") is not True or report.get("worker_sha256") != worker_sha
+                or report.get("catalog_sha256") != catalog_sha or report.get("native_helpers_sha256") != bundle_sha
+                or report.get("profile_sha256") != "a" * 64
+                or report.get("response", {}).get("contract_version") != version
+                or re.fullmatch(r"[0-9a-f]{64}", str(report.get("request_sha256"))) is None
+                or re.fullmatch(r"[0-9a-f]{64}", str(report.get("backend_sha256"))) is None):
+            raise ValueError("Store installed worker or request identity differs")
+    if (evaluation_json_bytes(reports["first"]) != evaluation_json_bytes(reports["replay"])
+            or len({reports[name]["request_sha256"] for name in ("first", "uri-read", "native_ack-replay", "process_loss-replay")}) != 4
+            or len({report["backend_sha256"] for report in reports.values()}) != 1):
+        raise ValueError("Store installed original/replay request identities are inconsistent")
+    return reports, counts
+
+
+def store_profile_retained_state(state):
+    if (type(state) is not dict or set(state) != {"request", "artifacts", "costs"}
+            or any(type(state[key]) is not int or state[key] < 0 for key in ("artifacts", "costs"))):
+        raise ValueError("Store retained journal/artifact/cost observation shape differs")
+    request = state["request"]
+    if request is not None and (type(request) is not dict
+            or set(request) != {"key", "digest", "tool", "state", "response", "started_ns"}
+            or any(re.fullmatch(r"[0-9a-f]{64}", str(request.get(key))) is None for key in ("key", "digest"))
+            or request.get("tool") != "hia_artifact" or request.get("state") not in ("running", "completed")
+            or type(request.get("started_ns")) is not str or not request["started_ns"].isdecimal()
+            or (request["response"] is not None and type(request["response"]) is not str)):
+        raise ValueError("Store complete retained request row differs")
+    return state
+
+
+def store_profile_worker_journals(observation, reports, counts):
+    for name in ("first", "replay", "uri_read"):
+        stream_name = "uri-read" if name == "uri_read" else name
+        row = observation.get(name, {})
+        if (type(row.get("worker_exit_code")) is not int or row["worker_exit_code"] != 0
+                or evaluation_json_bytes(row.get("report")) != evaluation_json_bytes(reports[stream_name])
+                or evaluation_json_bytes(row.get("counts")) != evaluation_json_bytes(counts[stream_name])):
+            raise ValueError("Store installed observation differs from actual worker streams or exit")
+    payload = "durable Store native owner — 雪"
+    payload_sha = hashlib.sha256(payload.encode()).hexdigest()
+    first = reports["first"].get("response", {})
+    result = first.get("result", {})
+    artifact = result.get("artifact", {})
+    if (first.get("status") != "completed" or result.get("byte_length") != str(len(payload.encode()))
+            or result.get("content_admitted_as_program") is not False
+            or result.get("execution_authority_granted") is not False
+            or type(artifact) is not dict or set(artifact) != {"id", "uri", "sha256"}
+            or not str(artifact.get("id", "")).startswith("a-")
+            or not str(artifact.get("uri", "")).startswith("hia://artifacts/")
+            or artifact.get("sha256") != payload_sha):
+        raise ValueError("Store original installed artifact response differs")
+    before = store_profile_retained_state(observation["first"].get("before"))
+    after = store_profile_retained_state(observation["first"].get("after"))
+    request = after["request"] or {}
+    replay = observation["replay"]
+    store_profile_retained_state(replay.get("before"))
+    store_profile_retained_state(replay.get("after"))
+    if (before["request"] is not None or after["artifacts"] != before["artifacts"] + 1
+            or after["costs"] != before["costs"] + 1 or request.get("state") != "completed"
+            or first.get("request_id") != "r-" + str(request.get("digest"))
+            or type(request.get("response")) is not str
+            or evaluation_json_bytes(json.loads(request["response"])) != evaluation_json_bytes(first)
+            or evaluation_json_bytes(replay.get("before")) != evaluation_json_bytes(after)
+            or evaluation_json_bytes(replay.get("after")) != evaluation_json_bytes(after)
+            or replay.get("zero_request_owner_calls_not_zero_startup_calls") is not True):
+        raise ValueError("Store completed request or exact replay changed its retained observations")
+    uri = reports["uri-read"].get("response", {})
+    content = uri.get("result", {})
+    if (uri.get("status") != "completed" or content.get("artifact") != artifact
+            or content.get("content") != payload or content.get("encoding") != "utf8"
+            or content.get("next_cursor", "missing") is not None
+            or observation["uri_read"].get("durable_payload_sha256") != payload_sha):
+        raise ValueError("Store resource URI did not return the actual published payload identity")
+    journals = {}
+    for name, code in (("native_ack", 1), ("process_loss", 73)):
+        row = observation.get(name, {})
+        original = store_profile_retained_state(row.get("original_state"))
+        before = store_profile_retained_state(row.get("before_replay"))
+        after = store_profile_retained_state(row.get("after_replay"))
+        report, request = reports[name + "-replay"], before["request"] or {}
+        if (type(row.get("lost_worker_exit_code")) is not int or row["lost_worker_exit_code"] != code
+                or type(row.get("replay_worker_exit_code")) is not int or row["replay_worker_exit_code"] != 0
+                or evaluation_json_bytes(row.get("counts")) != evaluation_json_bytes(counts[name])
+                or evaluation_json_bytes(row.get("replay_counts")) != evaluation_json_bytes(counts[name + "-replay"])
+                or evaluation_json_bytes(row.get("replay")) != evaluation_json_bytes(report)
+                or original["request"] is not None or before["artifacts"] != original["artifacts"] + 1
+                or before["costs"] != original["costs"]
+                or report.get("response", {}).get("status") != "rejected"
+                or report["response"].get("error", {}).get("code") != "E_HIA_REQUEST_UNKNOWN"
+                or request.get("state") != "running" or request.get("response") is not None
+                or report["response"].get("request_id") != "r-" + str(request.get("digest"))
+                or evaluation_json_bytes(request) != evaluation_json_bytes(after["request"])
+                or before["artifacts"] != after["artifacts"] or after["costs"] != before["costs"] + 1):
+            raise ValueError("Store unknown durable publication was completed, lost, repeated or changed replay accounting")
+        journals[name] = request
+    drift = observation.get("installed_source_drift", {})
+    if (type(drift.get("worker_exit_code")) is not int or drift["worker_exit_code"] != 2
+            or evaluation_json_bytes(drift.get("counts")) != evaluation_json_bytes(counts["changed-installed-source"])
+            or drift.get("exact_change") != "one appended LF in packaged Store HIA source"):
+        raise ValueError("Store packaged source drift did not reject before startup/request native execution")
+    return journals
+
+
+def require_store_profile_installation(directory, sources, manifest, pins):
+    from hepta import hia_agent_contract as contract
+    from hepta.hia_native_helpers import ABI, SCHEMA, TARGET
+    directory = Path(directory)
+    location = directory / "test_actual_installed_worker_publication_URI_unknown_replay_and_source_drift"
+    observation = release_json(location / "installed-observations.json", pins)
+    files, installation = store_profile_wheel(location, sources, observation, pins)
+    manifest_path = directory / "built/manifest.json"
+    manifest_raw = release_bytes(manifest_path, pins)
+    image = release_bytes(manifest_path.parent / manifest["image_path"], pins)
+    bundle_path = location / "bundle.json"
+    bundle = release_json(bundle_path, pins)
+    bundle_sha = pins[str(bundle_path)]
+    if (observation.get("schema") != "hepta.hia.store-artifact-profile-installed-observations.v1"
+            or json.loads(manifest_raw) != manifest or manifest.get("schema") != "hepta.hia.store-artifact-profile.v1"
+            or manifest.get("source_sha256") != sources["examples/hia_bootstrap/store_artifact_profile.hepta"]
+            or manifest.get("image_sha256") != hashlib.sha256(image).hexdigest()
+            or bundle != {"schema": SCHEMA, "target": TARGET, "abi": ABI, "helpers": [{
+                "selector": "HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST", "manifest_path": str(manifest_path),
+                "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest()}]}
+            or observation.get("bundle_sha256") != bundle_sha
+            or any(observation.get(key) is not True for key in ("all_eight_public_modes_observed",
+                "retained_eight_bodies_forbidden_in_actual_child", "authoring_imports_forbidden_in_actual_child",
+                "original_worker_used", "startup_and_request_native_counts_separated"))
+            or observation.get("whole_native_delivery_qualified") is not False):
+        raise ValueError("Store actual fresh-wheel child bundle or observed scope differs")
+    entries = {name: hashlib.sha256(raw).hexdigest() for name, raw in files.items()
+               if name.startswith("hepta/") and name.endswith(".py") and not name.startswith("hepta/_data/")}
+    resources = ["docs/" + name for name in contract.DISCOVERY_FILES]
+    for group in ("NATIVE_SOURCE_FILES", "SOURCE_BUILD_FILES", "COMPILER_BUILD_FILES", "PUBLICATION_BUILD_FILES",
+                  "BACKEND_BUILD_FILES", "EMITTER_BUILD_FILES", "BYTE_WRAPPER_BUILD_FILES",
+                  "MACHINE_OBJECT_BUILD_FILES", "EXECUTION_OBSERVATION_BUILD_FILES", "CONTINUATION_BUILD_FILES"):
+        resources.extend(getattr(contract, group))
+    for name in resources:
+        entries[name] = hashlib.sha256(files["hepta/_data/" + name]).hexdigest()
+    worker_sha = hashlib.sha256(evaluation_json_bytes(entries)).hexdigest()
+    reports, counts = store_profile_worker_streams(location, worker_sha,
+        entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"], bundle_sha, contract.VERSION, pins)
+    journals = store_profile_worker_journals(observation, reports, counts)
+    return {**installation, "worker_identity_derived_from_actual_wheel": worker_sha,
+            "actual_native_counts_from_original_stderr": counts, "retained_unknown_request_rows": journals,
+            "actual_native_ack_failure_exit_code": 1, "actual_process_loss_exit_code": 73,
+            "normal_and_unknown_replay_request_native_entries": 0,
+            "replay_worker_startup_native_entries": 3714,
+            "normal_replay_complete_retained_observation_preserved": True,
+            "unknown_replay_request_row_and_artifact_count_preserved": True,
+            "unknown_replay_original_cost_delta": 1,
+            "retained_database_snapshot_scope": "full request rows and artifact/cost counts serialized by original complete method; temporary databases removed",
+            "complete_artifact_rows_or_payload_separately_retained": False,
+            "raw_request_envelopes_separately_retained": False,
+            "qualification_topology": "fresh-wheel original worker with Store artifact/profile helper",
+            "cross_owner_causal_loss_closure_qualified": False,
+            "test_bodies_rerun_by_readback": False, "whole_native_delivery_qualified": False}
+
+
+def store_profile_original_inventory(root, sources, discovery, pins):
+    from tools.qualify_hia_store_artifact_profile_callers import FIXTURE_NAME, FIXTURE_SHA256, ARTIFACT_MODULE, admit_original_sources
+    raw = release_bytes(root / FIXTURE_NAME, pins)
+    if (FIXTURE_NAME != "tests/fixtures/hia_store_artifact_profile_callers_73f1634.json"
+            or FIXTURE_SHA256 != STORE_PROFILE_ORIGINAL_SHA256[FIXTURE_NAME]
+            or hashlib.sha256(raw).hexdigest() != FIXTURE_SHA256 or sources.get(FIXTURE_NAME) != FIXTURE_SHA256):
+        raise ValueError("Store complete original caller freeze identity differs")
+    original = json.loads(raw)
+    ordinary = original.get("prior_ordinary_9_modules", [])
+    separate = original.get("prior_separate_8_modules", [])
+    inventory = original.get("modules", {})
+    selected = [*ordinary, ARTIFACT_MODULE]
+    if (original.get("schema") != "hepta.hia.store-artifact-profile-caller-freeze.v1"
+            or original.get("base_commit") != "73f16346e7f84fa13305777a4595e2d1b422dee9"
+            or original.get("base_tree") != "979fcc94c1c6a045e7f6740c97d30c0fdded2dd3"
+            or len(ordinary) != 9 or len(set(ordinary)) != 9 or len(separate) != 8 or len(set(separate)) != 8
+            or len(set(selected) | set(separate)) != 18 or not set(selected + separate) <= set(inventory)
+            or original.get("candidate_module_count") != 40
+            or original.get("candidate_complete_module_method_count") != 612
+            or original.get("every_listed_method_claimed_to_enter_Store_artifact_owner") is not False
+            or original.get("whole_project_dynamic_caller_closure_claimed") is not False):
+        raise ValueError("Store original selected/separate caller scopes differ")
+    ordinary_ids = [name for module in ordinary for name in inventory[module]["ordered_ids"]]
+    artifact_ids = inventory[ARTIFACT_MODULE]["ordered_ids"]
+    separate_ids = [name for module in separate for name in inventory[module]["ordered_ids"]]
+    planned = [*ordinary_ids, *artifact_ids]
+    if (len(ordinary_ids) != 112 or len(artifact_ids) != 18 or len(separate_ids) != 128
+            or len(set(planned + separate_ids)) != 258
+            or ordinary_ids != original.get("prior_ordinary_112_ordered_ids")
+            or separate_ids != original.get("prior_separate_128_ordered_ids")):
+        raise ValueError("Store original 112 + 18 and separate 128 ordered IDs differ")
+    adjustments = admit_original_sources(root, original)
+    original_files = {}
+    for module in selected + separate:
+        row = inventory[module]
+        observed = [item["id"] for item in discovery["test_descriptions"] if item["id"].startswith(module + ".")]
+        if (row.get("source") != module.replace(".", "/") + ".py"
+                or observed != row.get("ordered_ids") or type(row.get("count")) is not int
+                or row["count"] != len(observed)):
+            raise ValueError("Store complete retained original caller module differs: " + module)
+        original_files[row["source"]] = row["sha256"]
+    descriptions = [row for module in selected for row in discovery["test_descriptions"]
+                    if row["id"].startswith(module + ".")]
+    if [row["id"] for row in descriptions] != planned:
+        raise ValueError("Store current complete discovery changed original 130 ordering")
+    return original, selected, original_files, adjustments, descriptions, planned
+
+
+def store_profile_event_accounting(report, planned):
+    allowed = {"continuation:" + str(number) for number in range(4)}
+    events = store_profile_positive_counts(report.get("actual_native_event_counts"), allowed, allowed - {"continuation:3"})
+    modes = store_profile_positive_counts(report.get("frames_by_mode"), STORE_PROFILE_MODES)
+    frames = report.get("actual_store_artifact_profile_frames")
+    if (type(frames) is not int or frames <= 0 or sum(modes.values()) != frames
+            or events["continuation:0"] != frames
+            or events["continuation:1"] != events["continuation:2"] + events.get("continuation:3", 0)):
+        raise ValueError("Store aggregate physical frame and native entry accounting differs")
+    frame_rows = store_profile_positive_counts(report.get("frames_by_original_test"), planned)
+    event_rows = report.get("native_event_counts_by_original_test")
+    mode_rows = report.get("modes_by_original_test")
+    if (sum(frame_rows.values()) != frames or type(event_rows) is not dict or type(mode_rows) is not dict
+            or set(event_rows) != set(planned) or set(mode_rows) != set(frame_rows)
+            or any((identity in frame_rows) != bool(row) for identity, row in event_rows.items())):
+        raise ValueError("Store complete per-test frame/event/mode observation keys differ")
+    total_events, total_modes = {}, {}
+    for identity, row in event_rows.items():
+        store_profile_positive_counts(row, allowed)
+        mode_row = store_profile_positive_counts(mode_rows.get(identity, {}), STORE_PROFILE_MODES)
+        if (row.get("continuation:0", 0) != frame_rows.get(identity, 0)
+                or row.get("continuation:1", 0) != row.get("continuation:2", 0) + row.get("continuation:3", 0)
+                or sum(mode_row.values()) != frame_rows.get(identity, 0)):
+            raise ValueError("Store per-original-method native observations are inconsistent")
+        for key, value in row.items():
+            total_events[key] = total_events.get(key, 0) + value
+        for key, value in mode_row.items():
+            total_modes[key] = total_modes.get(key, 0) + value
+    if total_events != events or total_modes != modes:
+        raise ValueError("Store aggregates differ from their complete per-method entries")
+    return frames, events
+
+
+def store_profile_caller_record(directory, root, sources, discovery, manifest_path, pins):
+    """Read an honest complete terminal record, including a failed historical run.
+
+    This function never qualifies a run. The public require wrapper separately
+    demands matching current cold, no anomalies and all 130 verbose statuses ok.
+    """
+    from tools.qualify_hia_store_artifact_profile_callers import FIXTURE_NAME, ARTIFACT_MODULE
+    from tools.build_hia_store_artifact_profile import INPUTS, SOURCE_NAME
+    from tools.hia_selfhost_contract import file_digests
+    directory, manifest_path = Path(directory), Path(manifest_path)
+    manifest = release_json(manifest_path, pins)
+    build = release_json(manifest_path.with_name("build.json"), pins)
+    report = release_json(directory / "report.json", pins)
+    original, selected, original_files, adjustments, descriptions, planned = store_profile_original_inventory(
+        root, sources, discovery, pins)
+    names = set(file_digests(root)) | {*INPUTS, *original_files, FIXTURE_NAME,
+                                      "tools/qualify_hia_store_artifact_profile_callers.py"}
+    source_pins = {name: hashlib.sha256(release_bytes(root / name, pins)).hexdigest() for name in names}
+    bundle_pins = {}
+    for path in sorted(manifest_path.parent.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("Store original caller build contains a symlink")
+        if path.is_file():
+            bundle_pins[str(path)] = hashlib.sha256(release_bytes(path, pins)).hexdigest()
+    scopes = {"MATCHING_SOURCE_COLD_TEN_ORIGINAL_STORE_ARTIFACT_PROFILE_CALLER_MODULES",
+              "EXPLICIT_DEVELOPMENT_TEN_ORIGINAL_STORE_ARTIFACT_PROFILE_CALLER_MODULES"}
+    expected_scope = ("MATCHING_SOURCE_COLD_COMPONENT" if report.get("scope", "").startswith("MATCHING_SOURCE_COLD_")
+                      else "DEVELOPMENT_COMPONENT")
+    if (report.get("schema") != "hepta.hia.store-artifact-profile-ten-original-callers.v1"
+            or report.get("status") not in ("PASS", "FAIL") or report.get("scope") not in scopes
+            or build.get("scope") != expected_scope
+            or report.get("original_baseline_commit") != original["base_commit"]
+            or report.get("original_modules") != selected
+            or not (report.get("planned") == report.get("started") == report.get("stopped") == planned)
+            or type(report.get("actual_tests")) is not int or report["actual_tests"] != 130
+            or report.get("reference_calls") != []
+            or report.get("all_eight_retained_bodies_forbidden") is not True
+            or report.get("reference_poison_scope") != "test process; subprocesses retain their original environment and do not inherit Python patches"
+            or report.get("all_ten_original_modules_unfiltered") is not True
+            or report.get("original_test_budgets_changed") is not False
+            or type(report.get("original_artifact_bytes_limit")) is not int or report["original_artifact_bytes_limit"] != 67108864
+            or type(report.get("original_store_subprocess_deadline_seconds")) is not int or report["original_store_subprocess_deadline_seconds"] != 60
+            or report.get("new_production_wall_cap") is not False or report.get("original_18_fixture_setup_replaced") is not False
+            or report.get("source_and_bundle_unchanged") is not True
+            or report.get("original_registry_count_assertion_adjustments") != adjustments
+            or report.get("separate_original_administrator_scope_gates") != original["prior_separate_8_modules"]
+            or report.get("separate_original_administrator_scope_ordered_ids") != original["prior_separate_128_ordered_ids"]
+            or report.get("whole_project_dynamic_caller_closure_claimed") is not False
+            or report.get("whole_native_delivery_qualified") is not False
+            or manifest.get("schema") != "hepta.hia.store-artifact-profile.v1"
+            or manifest.get("source_sha256") != sources[SOURCE_NAME]
+            or report.get("native_image_sha256") != manifest["image_sha256"]
+            or bundle_pins.get(str(manifest_path.parent / manifest["image_path"])) != manifest["image_sha256"]
+            or report.get("source_pins") != source_pins or not bundle_pins or report.get("bundle_pins") != bundle_pins
+            or any(name in sources and sources[name] != digest for name, digest in source_pins.items())
+            or any(name not in sources and name not in original_files for name in source_pins)):
+        raise ValueError("Store original complete 130-method caller observations or captured inputs differ")
+    frames, events = store_profile_event_accounting(report, planned)
+    ordinary_ids = original["prior_ordinary_112_ordered_ids"]
+    artifact_ids = original["modules"][ARTIFACT_MODULE]["ordered_ids"]
+    groups = {}
+    for key, modules, ids in (("ordinary_112", original["prior_ordinary_9_modules"], ordinary_ids),
+                              ("artifact_store_18", [ARTIFACT_MODULE], artifact_ids)):
+        total = sum(sum(report["native_event_counts_by_original_test"].get(name, {}).values()) for name in ids)
+        if total <= 0:
+            raise ValueError("Store original caller group observed no native entries")
+        groups[key] = {"modules": modules, "ordered_ids": ids,
+                       "original_source_sha256": {original["modules"][module]["source"]:
+                           original["modules"][module]["sha256"] for module in modules},
+                       "actual_native_entries": total}
+    if evaluation_json_bytes(report.get("original_groups")) != evaluation_json_bytes(groups):
+        raise ValueError("Store original ordinary112/artifact18 groups or actual observations differ")
+    observed = audit_verbose_stderr(release_bytes(directory / "tests.log", pins),
+        {"planned_test_ids": planned, "test_descriptions": descriptions})
+    if (observed.get("errors") or observed.get("started_matches_planned_in_order") is not True
+            or observed.get("completed_matches_planned_in_order") is not True):
+        raise ValueError("Store original verbose log does not independently account for all 130 methods")
+    statuses = {row["id"]: row["terminal_status_candidates"][0]["status"] for row in observed["observations"]}
+    for key, status in (("errors", "ERROR"), ("failures", "FAIL"), ("skipped", "skipped"),
+                        ("expected_failures", "expected failure"), ("unexpected_successes", "unexpected success")):
+        values = report.get(key)
+        if type(values) is not list:
+            raise ValueError("Store original caller anomaly collection is absent")
+        ids = values if key == "unexpected_successes" else [row[0] for row in values]
+        expected = [identity for identity, value in statuses.items()
+                    if value == status or status == "skipped" and value.startswith("skipped ")]
+        if ids != expected:
+            raise ValueError("Store serialized anomalies differ from the actual original verbose terminal statuses")
+    clean = all(report[key] == [] for key in ("errors", "failures", "skipped", "expected_failures", "unexpected_successes"))
+    if (report["status"] == "PASS") != (clean and observed["equivalent"]):
+        raise ValueError("Store reported qualification status contradicts its original terminal observations")
+    return {"actual_tests": 130, "actual_store_artifact_profile_frames": frames,
+            "actual_native_event_counts": events, "frames_by_mode": report["frames_by_mode"],
+            "original_groups": groups, "source_pin_count": len(source_pins), "bundle_pin_count": len(bundle_pins),
+            "original_verbose_identity": observed, "complete_selected_and_separate_original_inventory_count": 258,
+            "original_registry_count_assertion_adjustments": adjustments,
+            "separate_administrator_scope_inventory_modules": original["prior_separate_8_modules"],
+            "reference_poison_scope": report["reference_poison_scope"], "observed_report_scope": report["scope"],
+            "observed_report_status": report["status"],
+            "original_artifact_fixture_cold_selector": report["original_artifact_fixture_cold_selector"],
+            "anomalies": {key: report[key] for key in ("errors", "failures", "skipped", "expected_failures", "unexpected_successes")},
+            "historical_record_readback_is_qualification": False,
+            "original_test_budgets_changed": False, "whole_project_dynamic_caller_closure_claimed": False,
+            "test_bodies_rerun_by_readback": False, "whole_native_delivery_qualified": False}
+
+
+def require_store_profile_callers(directory, root, sources, discovery, manifest_path, cold_path, pins):
+    result = store_profile_caller_record(directory, root, sources, discovery, manifest_path, pins)
+    build = release_json(Path(manifest_path).with_name("build.json"), pins)
+    if (cold_path is None or result["observed_report_status"] != "PASS"
+            or result["observed_report_scope"] != "MATCHING_SOURCE_COLD_TEN_ORIGINAL_STORE_ARTIFACT_PROFILE_CALLER_MODULES"
+            or build.get("scope") != "MATCHING_SOURCE_COLD_COMPONENT"
+            or build.get("source_manifest") != sources or build.get("cold_report_sha256") != sha(cold_path)
+            or result["original_artifact_fixture_cold_selector"] != str(cold_path)
+            or result["original_verbose_identity"].get("equivalent") is not True
+            or any(result["anomalies"].values())):
+        raise ValueError("Store requires the actual same-current-cold complete 130 PASS; DEV or failed originals cannot qualify")
+    return {**result, "both_Store_and_original_artifact18_fixtures_use_same_current_cold": True,
+            "all_130_original_methods_successful_in_exact_order": True}
+
+
+def require_store_profile_component(directory, root, cold_path, compiler, sources, pins):
+    directory = Path(directory)
+    manifest_path = directory / "built/manifest.json"
+    require_cold_component(manifest_path, "examples/hia_bootstrap/store_artifact_profile.hepta",
+                           sha(cold_path), sha(compiler), sources, pins)
+    manifest, custody = store_profile_custody(directory, root, cold_path, compiler, sources, pins)
+    return {"scope": "MATCHING_SOURCE_COLD_COMPONENT", "manifest": str(manifest_path),
+            "image_sha256": manifest["image_sha256"],
+            "controls": store_profile_control_observations(directory, root, sources, pins, runtime=sys.version),
+            "installation": require_store_profile_installation(directory, sources, manifest, pins),
+            "source_and_compiler_custody_verified": True, "test_result_owned_by_original_full_runner": True,
+            "test_bodies_rerun_by_supplement": False, "transaction_context_manager_migrated": False,
+            "cross_owner_causal_loss_closure_qualified": False,
+            "whole_native_delivery_qualified": False, "passed": True}
+
+
+
 def supplemental(args):
     """Run additional caller gates and original bounded CLI qualification."""
     require_native_runner()
@@ -3641,6 +4469,7 @@ def supplemental(args):
     native_build_admission = None
     native_build_dispatch = None
     emission = None
+    store_artifact_profile = None
     sha_image_bound = False
     try:
         if read_pinned_json(args.target, pins) != target:
@@ -3727,6 +4556,9 @@ def supplemental(args):
         added_components["native-build-dispatch"] = native_build_dispatch["manifest"]
         emission = require_emission_component(retained / "emission", root, cold_path, compiler, sources, pins)
         added_components["emission"] = emission["manifest"]
+        store_artifact_profile = require_store_profile_component(retained / "store-artifact-profile", root,
+                                                                 cold_path, compiler, sources, pins)
+        added_components["store-artifact-profile"] = store_artifact_profile["manifest"]
         discovery_root = retained / "cli-discovery-json"
         for name in ("CliDiscoveryJsonNativeTests", "CliDiscoverySelectionFixture"):
             fixture_path = discovery_root / name / "cold-fixture/FIXTURE.json"
@@ -3799,8 +4631,12 @@ def supplemental(args):
             ("emission-callers", ["tools/qualify_hia_emission_callers.py",
                 "--cold-report", str(cold_path), "--evidence", str(output / "emission-callers")], {}),
         )
+        store_artifact_profile_jobs = (
+            ("store-artifact-profile-callers", ["tools/qualify_hia_store_artifact_profile_callers.py",
+                "--cold-report", str(cold_path), "--evidence", str(output / "store-artifact-profile-callers")], {}),
+        )
         for name, arguments, selection in (*jobs, *service_context_jobs, *cost_ledger_jobs, *evaluation_jobs,
-                                           *native_build_admission_jobs, *emission_jobs):
+                                           *native_build_admission_jobs, *emission_jobs, *store_artifact_profile_jobs):
             command = [sys.executable, "-B", *arguments]
             record = {"name": name, "command": command, "passed": False}
             try:
@@ -3827,6 +4663,7 @@ def supplemental(args):
                         "evaluation-callers": "MATCHING_SOURCE_COLD_SEVEN_ORDINARY_EVALUATION_CALLER_MODULES",
                         "native-build-admission-callers": "MATCHING_SOURCE_COLD_NINE_ORDINARY_NATIVE_BUILD_ADMISSION_CALLER_MODULES",
                         "emission-callers": "MATCHING_SOURCE_COLD_NINE_ORDINARY_EMISSION_CALLER_MODULES",
+                        "store-artifact-profile-callers": "MATCHING_SOURCE_COLD_TEN_ORIGINAL_STORE_ARTIFACT_PROFILE_CALLER_MODULES",
                     }[name]
                     record["passed"] = bool(record["passed"] and report.get("status") == "PASS"
                         and report.get("scope") == expected_scope
@@ -3935,6 +4772,14 @@ def supplemental(args):
                                                     INPUTS, root, compiler, sources, pins)
                         record["emission_original_observations"] = require_emission_callers(
                             output / name, root, sources, discovery, manifest_path, pins)
+                    elif name == "store-artifact-profile-callers":
+                        from tools.build_hia_store_artifact_profile import INPUTS, SOURCE_NAME
+                        manifest_path = output / name / "qualified/manifest.json"
+                        require_cold_component(manifest_path, SOURCE_NAME, cold_sha, compiler_sha, sources, pins)
+                        require_release_compilation(manifest_path.parent, "store_artifact_profile", SOURCE_NAME,
+                                                    INPUTS, root, compiler, sources, pins)
+                        record["store_artifact_profile_original_observations"] = require_store_profile_callers(
+                            output / name, root, sources, discovery, manifest_path, cold_path, pins)
                 elif name == "cli-discovery-original-groups":
                     from tools import qualify_hia_cli_discovery_json as original_discovery
                     report = read_pinned_json(output / name / "REPORT.json", pins)
@@ -4029,7 +4874,8 @@ def supplemental(args):
                   and native_build_admission is not None and native_build_admission["passed"]
                   and native_build_dispatch is not None and native_build_dispatch["passed"]
                   and emission is not None and emission["passed"]
-                  and len(commands) == 15 and all(row["passed"] for row in commands))
+                  and store_artifact_profile is not None and store_artifact_profile["passed"]
+                  and len(commands) == 16 and all(row["passed"] for row in commands))
     write_json(output / "supplemental-result.json", {
         "schema": "hepta.hia.same-cold-supplemental-callers.v1", "target": target,
         "scope": "MISSING_CALLER_GATES_AND_PRODUCTION_SHA_BINDING_AFTER_UNCHANGED_ORIGINAL_FULL",
@@ -4045,6 +4891,7 @@ def supplemental(args):
         "native_build_admission_full_discovery_artifact_readback": native_build_admission,
         "native_build_dispatch_full_discovery_artifact_readback": native_build_dispatch,
         "emission_full_discovery_artifact_readback": emission,
+        "store_artifact_profile_full_discovery_artifact_readback": store_artifact_profile,
         "production_sha_image_matches_actual_executed_differential_image": sha_image_bound,
         "commands": commands, "captured_inputs": pins, "original_35_stages_modified": False,
         "original_component_test_suites_rerun": False,
@@ -4054,6 +4901,8 @@ def supplemental(args):
         "evaluation_job_13_modified": False,
         "native_build_admission_job_14_modified": False,
         "emission_job_15_added": True,
+        "emission_job_15_modified": False,
+        "store_artifact_profile_job_16_added": True,
         "service_context_original_caller_gate_attempted": any(
             row["name"] == "service-context-callers" for row in commands),
         "cost_ledger_seven_ordinary_caller_gate_attempted": any(
@@ -4064,6 +4913,8 @@ def supplemental(args):
             row["name"] == "native-build-admission-callers" for row in commands),
         "emission_nine_ordinary_caller_gate_attempted": any(
             row["name"] == "emission-callers" for row in commands),
+        "store_artifact_profile_ten_complete_original_caller_gate_attempted": any(
+            row["name"] == "store-artifact-profile-callers" for row in commands),
         "additional_bounded_cli_groups_observed": next((row.get("observed_groups", [])
             for row in commands if row["name"] == "cli-discovery-original-groups"), []),
         "additional_bounded_cli_caller_gate_attempted": any(

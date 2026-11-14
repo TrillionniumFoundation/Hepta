@@ -1,10 +1,11 @@
 # Complete retained HIA qualification harness
 
 This successor is prepared from published harness
-`e8f9b3bffbab77b3e1cac8a50c5e9cad95871426` for the actually published product
-`7076ec13acd7433b7def7deeb7b62e6fcbe70103`, tree
-`49d263812878fe5464f9736daf99dd52ddde3c84`. That immutable target combines the
-allocation and emission changes on parent `727edb47cd98a41c0fcc4c494cf85422aa879937`.
+`1e0231dd4cf8821ccae67a96de86ba6e986e6ae5` for the actually published product
+`c0195643083e1d4c68679237edfa77143dc7b1c6`, tree
+`7a37b1ced47251fdc58e50624a5f77be56af374a`. That immutable target adds the
+complete eight-method Store artifact/profile owner on the allocation/emission
+parent `7076ec13acd7433b7def7deeb7b62e6fcbe70103`.
 Preparation and raw Git identity checks are not preflight or qualification.
 No development result, earlier target or moving branch substitutes for the
 actual target's complete source admission, same-run cold or original full suite.
@@ -158,7 +159,8 @@ leave full discovery evidence and prevent an attempted passing run.
 
 The pre-discovery environment mirrors v4's existing static selector removals
 and its original cold-report bindings, read from the admitted v4 source.
-Additional cold selectors, including `NATIVE_MAPPING` and `EMISSION`, point
+Additional cold selectors, including `NATIVE_MAPPING`, `EMISSION` and
+`STORE_ARTIFACT_PROFILE`, point
 to **this same run's future `qualification/cold.json`**. The real unchanged v4
 still performs its own original assignments. All native consumers retain their
 existing matching-source cold admission. The two `WRONG_COLD_REPORT` negative
@@ -169,7 +171,8 @@ The additions include `BOUNDED_MEMORY`, `SCALAR_PROFILE`,
 `SHA256_STREAM_DIFFERENTIAL` selector, and the new `FULL_COST`, `PATCH_IMPACT`,
 `STATIC_BUDGET`, `STORE_LIFECYCLE`, `CLI_DISCOVERY_JSON`, `DEFAULT_RELEASE`,
 `SERVICE_CONTEXT`, `COST_LEDGER`, `EVALUATION`, `NATIVE_TRANSPORT` and
-`NATIVE_BUILD_ADMISSION`, `NATIVE_BUILD_DISPATCH` and `EMISSION` selectors. Full discovery
+`NATIVE_BUILD_ADMISSION`, `NATIVE_BUILD_DISPATCH`, `EMISSION` and
+`STORE_ARTIFACT_PROFILE` selectors. Full discovery
 retains the original mapping, scalar, measurement, generation and stream
 differential component evidence under `qualification/full-discovery-components/`.
 Before execution the
@@ -591,8 +594,8 @@ not extra credit in the full-discovery denominator.
 
 The ten existing supplemental command definitions, service-context command
 eleven, cost-ledger command twelve, evaluation command thirteen and
-native/build-admission command fourteen remain unchanged. Emission follows as
-number fifteen,
+native/build-admission command fourteen and emission command fifteen remain
+unchanged. Store artifact/profile follows as number sixteen,
 all using the unmodified product workflow supervisor
 with its ordinary 1800-second budget. The original inner limits, including the
 CLI compilation and installed subprocess limits of twenty seconds, remain in
@@ -608,6 +611,95 @@ The retained v4 plus this supplement does not reproduce every independent step
 of the current `hia-core.yml`: the selected mapping and publication-measurement
 caller gates remain required in the standard workflow on the same final product
 head, and are not duplicated here.
+
+## Complete Store artifact/profile owner
+
+`StoreArtifactProfileSourceTests` keeps all three original source methods in
+the first extracted source tuple. All eight `StoreArtifactProfileNativeTests`
+methods first execute in full discovery. Their existing
+`HEPTA_HIA_STORE_ARTIFACT_PROFILE_COLD_REPORT` points to the same run's actual
+`qualification/cold.json`; `HEPTA_HIA_STORE_ARTIFACT_PROFILE_EVIDENCE` retains the
+fresh `full-discovery-components/store-artifact-profile` directory. Inherited
+runtime manifests and development compilers are removed. No fixture is prepared
+in a background race, and no component method is rerun by the supplement.
+
+Readback binds the build's original compiler request, receipt, complete buffers,
+image and before/after source custody. It admits the independently frozen
+73f1634 original module, eight method bodies, 463-case input matrix, two pure
+literal/limit input constructors and complete original caller inventory by
+fixed hashes. It compares every ordered expected/actual observation as canonical
+JSON bytes, retaining return aliases, opaque values, original exceptions and
+full effect order. The 463 matrix records 1,196 actual frames and all four native
+event types. The separate 41 dynamic-global-limit cases retain their real
+lookup/comparison observations and stop the accepted branch at the next original
+admission effect; they do not allocate or prove an arbitrary-size payload.
+Both 160-case literal-call profiles, cold and warm, preserve exception attributes
+without normalization. Their input files and prior expectations remain unchanged.
+
+The original six independent VM cases compare 533 actual native entries, with
+input/output/state equality owned by the complete original test. Raw per-entry
+buffers are not separately retained. All eight public routes retain reference
+poisoning, empty/missing selector refusal, bundle scope and the exact one-NUL
+image drift control. Thread ownership, finished replay, unclaimed ACK and eight
+invalid-packet unchanged-buffer controls remain mandatory. Real filesystem and
+SQL observations retain their exact single-helper bundle; the native artifact
+provider retains its separate original 18-method qualification.
+
+The complete failure matrix contains 30 post-effect native acknowledgement
+losses, 30 genuine foreign exceptions and 10 swallowed public same-owner child
+losses. Readback checks the full frozen effect prefix and last actual ACK site,
+unknown custody without retry or invented cleanup, and original foreign cleanup
+with the active exception. Genuine foreign identity/custody and no-replay
+assertions remain owned by the original complete method. The child observations
+must include the real public child frame and a fenced active ancestor. This is
+same-owner coverage; cross-owner delivery closure and migration of the Store
+transaction context manager remain explicitly unqualified.
+
+The actual installed test builds a fresh wheel and invokes the original worker
+with all eight retained Store bodies and authoring imports forbidden in that
+child. Every wheel member, RECORD, origin, packaged resource and bundle pin is
+checked. The worker identity is derived from those actual wheel bytes. Startup
+and request counters are separate: each healthy worker startup records 3,714
+Store entries. The first artifact request records 250 entries and one durable
+insert; URI read records 170. Normal and unknown-intent replays record zero
+request-owner entries, while their startup entries remain 3,714. A lost insertion
+ACK records 223 request entries/exit 1; process loss records 222/exit 73. Each
+preserves the running request and one durable artifact. The original unknown
+replay leaves the request and artifact count unchanged and adds its one cost
+record. A single LF appended to installed Store HIA source causes exit 2 before
+either startup or request native entry. No whole-worker-zero-call claim is made.
+The original test serializes full request rows and artifact/cost counts; its
+temporary databases are removed. Readback does not invent complete artifact rows,
+separately retained payload files or raw request envelopes.
+
+Supplemental command sixteen invokes the unchanged
+`tools/qualify_hia_store_artifact_profile_callers.py` with this exact current cold.
+It runs the nine complete original ordinary modules (112 methods), followed by
+all 18 original artifact-store methods, in their frozen order. The original
+artifact fixture receives its own `HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT`
+from that same cold. Its strict builder, 64 MiB artifact limit, 60-second
+subprocess deadlines and test bodies are unchanged. The eight explicit
+administrator-scope modules (128 methods) remain separate; no Store image is
+injected into their bundles. All 18 selected/separate source files retain their
+frozen bytes, except the sole permitted registry-count decimal literal, which
+must normalize exactly to the original 37 before whole-file hashing.
+
+A passing caller gate requires the complete 130 planned/started/stopped IDs,
+independent original verbose terminal statuses all `ok`, zero anomalies, source
+and image-build pins, both original group identities, and consistent per-test
+and aggregate frame/mode/event counts. A historical terminal record can be read
+honestly without qualifying it. In particular, the earlier explicit-development
+130-method attempt with six artifact-store failures remains `FAIL`; its successful
+112-method subset is not substituted for the full gate. Only actual matching
+current-cold success can satisfy the production wrapper. No test skip,
+permission exception or fixture replacement is introduced.
+
+The unchanged first fifteen supplemental tuples, original `run()` and
+`collect()`, 35-stage orchestration, 5400-second full-discovery bound and all
+other original limits remain authoritative. The existing complete lossless XZ
+copy runs afterward under its separate limit. This successor keeps every prior
+negative control and adds Store-specific readback controls separately; preparing
+or checking the harness is not execution of the target's native qualification.
 
 ## Independent method-identity observation
 
