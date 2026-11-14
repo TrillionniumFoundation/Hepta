@@ -1,0 +1,149 @@
+{
+  "exact_inverse_edits": [
+    {
+      "after": ".equ CTX,290816",
+      "before": ".equ CTX,217088",
+      "occurrences": 1
+    },
+    {
+      "after": ".equ DR,294912",
+      "before": ".equ DR,221184",
+      "occurrences": 1
+    },
+    {
+      "after": ".equ MAPSIZE,299008",
+      "before": ".equ MAPSIZE,225280",
+      "occurrences": 1
+    },
+    {
+      "after": " mov edx,147456\n",
+      "before": " mov edx,73728\n",
+      "occurrences": 2
+    },
+    {
+      "after": " mov r9d,147456\n",
+      "before": " mov r9d,73728\n",
+      "occurrences": 1
+    },
+    {
+      "after": " cmp rax,4\n je client_kind_ok\n cmp rax,6\n je client_kind_ok\n cmp rax,7\n je client_kind_ok\n cmp rax,8\n jne driver_protocol_exit\nclient_kind_ok:",
+      "before": " cmp rax,4\n jne driver_protocol_exit\nclient_kind_ok:",
+      "occurrences": 1
+    },
+    {
+      "after": " cmp rax,132\n je owned_failure_result\n cmp rax,134\n je retained_result\n cmp rax,135\n je retained_result\n jmp driver_protocol_exit",
+      "before": " cmp rax,132\n je owned_failure_result\n jmp driver_protocol_exit",
+      "occurrences": 1
+    },
+    {
+      "after": "retained_result:\n call publish_result\n jmp client_next\n\nclosed_result:\n",
+      "before": "closed_result:\n",
+      "occurrences": 1
+    }
+  ],
+  "executed": false,
+  "layout": {
+    "complete_state_audit_extended": true,
+    "disjoint": true,
+    "global_trace_budget_not_raised": true,
+    "original_OS_leaf_body_unchanged": true,
+    "original_page_data": [
+      4096,
+      69632
+    ],
+    "original_request_IO_CTX_spans_unchanged": true,
+    "ranges": [
+      [
+        "EV",
+        0,
+        69632
+      ],
+      [
+        "REQ",
+        69632,
+        128
+      ],
+      [
+        "IO",
+        73728,
+        65664
+      ],
+      [
+        "W",
+        143360,
+        147456
+      ],
+      [
+        "CTX",
+        290816,
+        4096
+      ],
+      [
+        "DR",
+        294912,
+        4096
+      ]
+    ],
+    "retained_data": [
+      73984,
+      139520
+    ],
+    "retained_meta": [
+      73728,
+      73984
+    ],
+    "total_mapping": 299008
+  },
+  "new_bootstrap": {
+    "bytes": 8697,
+    "git": "8d5bbbf501c014a46381f630a2d075110f86fdba",
+    "sha256": "5168fc2758c490a0e04d98fbdd29b0143f4f7cdb47ce0ba3bb4f1b9ffd7b1593"
+  },
+  "new_client_events": [
+    6,
+    7,
+    8
+  ],
+  "new_reply_payload": "at most64 bytes inside existing128-byte output, not a new whole-page/record/database cap",
+  "new_reply_statuses": [
+    134,
+    135
+  ],
+  "old_bootstrap": {
+    "bytes": 8482,
+    "git": "9121b360758117e9c9a895157ec22f8c3cabaa31",
+    "sha256": "af60adc938fa4cd7336b8d55e2db303d1fd1c34ebe3cad1b7d5a8b7ba0e9d2bb"
+  },
+  "required_next_control_work": [
+    "new IPC helper may submit the three new parameter fields without page/source policy",
+    "account the complete larger state in raw capture and keep original global trace budget",
+    "preserve all original four case method bodies and two independent SQLite references",
+    "run new retained-page cases only after owner admission and source/cold binding",
+    "no Source/VM/native claims until actual current outputs close"
+  ],
+  "required_raw_accounting": {
+    "additional_bytes_per_kernel_call": 147456,
+    "global_trace_limit_raised": false,
+    "new_command_upper_bytes": 42313856,
+    "new_max_OS_cycle_bytes": 501120,
+    "new_max_kernel_only_cycle_bytes": 295616,
+    "new_private_state": 147456,
+    "old_command_upper_bytes": 28895360,
+    "old_max_OS_cycle_bytes": 353664,
+    "old_max_kernel_only_cycle_bytes": 148160,
+    "old_private_state": 73728,
+    "original_global_trace_bytes": 268435456,
+    "record_count_upper_unchanged": 830
+  },
+  "schema": "hia.pager-retained-page.transport-review.v1",
+  "status": "STATIC_DRAFT_ONLY",
+  "unchanged": [
+    "native OS leaf",
+    "all original OS request and receipt frames",
+    "automatic PAGE release only after exact stdout writes",
+    "BEGIN/READ/END result framing and 1024-byte diagnostic prefix",
+    "all audit record kinds and complete before/after spans",
+    "fixed two native entry targets; no arbitrary FFI",
+    "original error exits and no false CLOSED on custody failure"
+  ]
+}

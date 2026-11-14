@@ -1,0 +1,154 @@
+# HIA retained-page extension for the fixed real Pager owner.
+# This is HIA authoring source, consumed by the existing HIA builder.
+# It is not imported or executed as Python.
+#
+# The original 73728-byte Pager prefix is followed by a private lease arena.
+# A retained read uses client event 6, a bounded span uses 7, and release uses 8.
+# Original BEGIN/PAGE/END and OS receipts retain their existing meanings.
+# The complete native private state is 147456 bytes. Page copies begin at
+# 73984 and occupy at most 65536 bytes. The preceding 256 bytes are metadata.
+#
+# No file, WAL, lock, retry, or page-source decision is delegated to the client.
+
+def sqlite_pager_retained_owner(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) < 128 or length(o) != 128 or length(w) != 147456:
+        return ABI
+    event = word(s, 24)
+    result = retained_dispatch(s, o, w, event)
+    if result == ABI:
+        return ABI
+    # PAGE is captured before the native IPC custodian publishes its bytes
+    # and sends the original automatic RELEASE_PAGE receipt.
+    if result == 129 and get(w, 73744) == 1:
+        result = retained_capture(o, w)
+    phase = get(w, 8)
+    if (phase >= 100 and phase < 120) or phase == 202 or phase == 203:
+        # Invalidate at the beginning of cleanup, before any lock is released.
+        # Never rewrite the original primary error or cleanup error sequence.
+        put(w, 73736, 0)
+        put(w, 73744, 0)
+    return result
+
+def retained_dispatch(s:readbuf, o:mutbuf, w:mutbuf, event:u64) -> u32:
+    if event == 6 or event == 7 or event == 8:
+        return retained_command(s, o, w, event)
+    return sqlite_pager_read_owner(s, o, w)
+
+def retained_command(s:readbuf, o:mutbuf, w:mutbuf, event:u64) -> u32:
+    if length(s) != 128 or word(s, 0) != EVENT_MAGIC or word(s, 8) != 2:
+        return ABI
+    if zero_event_tail(s) == 0:
+        return ABI
+    if get(w, 0) != STATE_MAGIC or word(s, 16) == 0 or word(s, 16) != get(w, 16):
+        return ABI
+    if get(w, 32) != 0 or word(s, 32) != 0 or word(s, 40) != 0 or word(s, 48) != 0 or word(s, 56) != 0:
+        return ABI
+    if get(w, 8) != 200 and get(w, 8) != 201:
+        return ABI
+    if get(w, 73744) != 0 or word(s, 88) != 0:
+        return ABI
+    if event == 6:
+        if get(w, 8) != 200 or get(w, 73736) != 0:
+            return ABI
+        if word(s, 72) != 0 or word(s, 80) != 0:
+            return ABI
+        if word(s, 64) == 0 or word(s, 64) > get(w, 136) or get(w, 280) == 18446744073709551615:
+            return ABI
+        # Keep original page_begin source selection, sequence and raw IO.
+        result = page_begin(s, o, w)
+        if result != ABI:
+            put(w, 73744, 1)
+        return result
+    if retained_valid(w) == 0 or word(s, 64) != get(w, 73760):
+        return ABI
+    if event == 7:
+        offset = word(s, 72)
+        count = word(s, 80)
+        if offset > get(w, 73776) or count > 64 or count > get(w, 73776) - offset:
+            return ABI
+        return retained_span(o, w, offset, count)
+    if word(s, 72) != 0 or word(s, 80) != 0:
+        return ABI
+    # Releasing this copy leaves the original read transaction alive.
+    # Its token is never accepted again; the original page-pin counter is
+    # monotonically advanced by every new PAGE and is never reset on release.
+    put(w, 73736, 0)
+    return retained_reply(o, w, 135, 0, 0)
+
+def retained_capture(o:mutbuf, w:mutbuf) -> u32:
+    if get(w, 8) != 201 or get(w, 32) != 0 or get(w, 73736) != 0:
+        return fail(o, w, 7, 0)
+    size = get(w, 128)
+    if size < 512 or size > 65536 or (size & (size - 1)) != 0:
+        return fail(o, w, 7, 0)
+    if get(w, 272) != 2 or get(w, 256) != size or get(w, 264) != size:
+        return fail(o, w, 7, 0)
+    if get(w, 224) == 0 or get(w, 224) > get(w, 136) or get(w, 280) == 0:
+        return fail(o, w, 7, 0)
+    if (get(w, 104) & 8) == 0:
+        return fail(o, w, 7, 0)
+    # All source and destination extents are proven before copying. The active
+    # flag is committed last. No provider read, retry, or OS effect occurs here.
+    index = 0
+    while index < size:
+        store(w, 73984 + index, byte(w, 4096 + index))
+        index = index + 1
+    index = 0
+    while index < 48:
+        store(w, 73856 + index, byte(w, 512 + index))
+        index = index + 1
+    put(w, 73728, RETAINED_MAGIC)
+    put(w, 73752, get(w, 16))
+    put(w, 73760, get(w, 280))
+    put(w, 73768, get(w, 224))
+    put(w, 73776, size)
+    put(w, 73784, get(w, 136))
+    put(w, 73792, get(w, 144))
+    put(w, 73800, get(w, 152))
+    put(w, 73808, get(w, 160))
+    put(w, 73744, 0)
+    put(w, 73736, 1)
+    return outcome(o, w, 129)
+
+def retained_valid(w:mutbuf) -> u64:
+    if get(w, 73728) != RETAINED_MAGIC or get(w, 73736) != 1 or get(w, 73744) != 0:
+        return 0
+    if get(w, 73752) != get(w, 16) or get(w, 73760) == 0 or get(w, 73760) > get(w, 280):
+        return 0
+    if get(w, 73768) == 0 or get(w, 73768) > get(w, 136):
+        return 0
+    if get(w, 73776) != get(w, 128) or get(w, 73784) != get(w, 136):
+        return 0
+    if get(w, 73792) != get(w, 144) or get(w, 73800) != get(w, 152) or get(w, 73808) != get(w, 160):
+        return 0
+    if (get(w, 104) & 8) == 0:
+        return 0
+    index = 0
+    while index < 48:
+        if byte(w, 73856 + index) != byte(w, 512 + index):
+            return 0
+        index = index + 1
+    return 1
+
+def retained_reply(o:mutbuf, w:mutbuf, status:u64, offset:u64, count:u64) -> u32:
+    index = 0
+    while index < 128:
+        store(o, index, 0)
+        index = index + 1
+    put(o, 0, OUTPUT_MAGIC)
+    put(o, 8, 2)
+    put(o, 16, get(w, 16))
+    put(o, 24, status)
+    put(o, 32, get(w, 73760))
+    put(o, 40, get(w, 73768))
+    put(o, 48, offset)
+    put(o, 56, count)
+    return status
+
+def retained_span(o:mutbuf, w:mutbuf, offset:u64, count:u64) -> u32:
+    result = retained_reply(o, w, 134, offset, count)
+    index = 0
+    while index < count:
+        store(o, 64 + index, byte(w, 73984 + offset + index))
+        index = index + 1
+    return result

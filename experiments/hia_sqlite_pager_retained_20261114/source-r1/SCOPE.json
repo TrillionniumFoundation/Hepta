@@ -1,0 +1,190 @@
+{
+  "CLI_CPython_port_block_preserved": true,
+  "FOR_ITER_written": false,
+  "VM_executed": false,
+  "author": {
+    "bytes": 4813,
+    "git": "8375cb87a2d90c024527420e9f46bf60e085702f",
+    "sha256": "f95d0d50a89aaf0220943b4e17391cf5191abc0b9729f1436905407006a507ec"
+  },
+  "bootstrap": {
+    "bytes": 8697,
+    "git": "8d5bbbf501c014a46381f630a2d075110f86fdba",
+    "sha256": "5168fc2758c490a0e04d98fbdd29b0143f4f7cdb47ce0ba3bb4f1b9ffd7b1593"
+  },
+  "component": "separate extended Pager component; original R3 artifacts unchanged",
+  "cost_ledger_query_replaced": false,
+  "default_switched": false,
+  "draft_type_correction": {
+    "forward_inverse_exact": true,
+    "product_execution": false,
+    "reason": "Use an explicitly u32-returning dispatcher so the wrapper result has one type throughout; avoid depending on a u64 ABI sentinel initializer being narrowed at an SSA join.",
+    "source_prior": "82db6b9ecadffc2af9be712dbdc66653b2b4919d"
+  },
+  "full_SQLite_replaced": false,
+  "generation_executed": false,
+  "layout": {
+    "complete_state_audit_extended": true,
+    "disjoint": true,
+    "global_trace_budget_not_raised": true,
+    "original_OS_leaf_body_unchanged": true,
+    "original_page_data": [
+      4096,
+      69632
+    ],
+    "original_request_IO_CTX_spans_unchanged": true,
+    "ranges": [
+      [
+        "EV",
+        0,
+        69632
+      ],
+      [
+        "REQ",
+        69632,
+        128
+      ],
+      [
+        "IO",
+        73728,
+        65664
+      ],
+      [
+        "W",
+        143360,
+        147456
+      ],
+      [
+        "CTX",
+        290816,
+        4096
+      ],
+      [
+        "DR",
+        294912,
+        4096
+      ]
+    ],
+    "retained_data": [
+      73984,
+      139520
+    ],
+    "retained_meta": [
+      73728,
+      73984
+    ],
+    "total_mapping": 299008
+  },
+  "legacy_deleted": false,
+  "meaningful_required_tests": [
+    "run all original four two-SQLite-version interoperability cases without changing method bodies",
+    "retain a real leaf, read a different page, and verify retained bytes remain identical",
+    "retain across concurrent writer commit while old snapshot stays held",
+    "release/reacquire rejects old pin IDs and wrong nonces",
+    "END and cleanup-entry invalidate lease before unlock",
+    "bad span length/offset refuses before output/state mutation",
+    "busy/EINTR/short-read/late-error preserve original cleanup and partial-prefix evidence",
+    "audit full extended state and original OS leaf, with original180+3 and nine compiler caps"
+  ],
+  "native_executed": false,
+  "new_entry": "sqlite_pager_retained_owner",
+  "new_events": {
+    "6": "READ_RETAIN: actual Pager read, capture inside HIA before original automatic RELEASE_PAGE",
+    "7": "READ_RETAINED_SPAN: nonce+pin bound copy from retained bytes, max64 transport bytes per reply",
+    "8": "RELEASE_RETAINED: invalidate retained copy only; keep read transaction alive"
+  },
+  "new_result_statuses": {
+    "134": "retained span in reply[64:128]",
+    "135": "retained copy released"
+  },
+  "original_R3_qualification": {
+    "C_commands": 98,
+    "FINAL": "7007670297b27d68b7e9f7ea4371e393376eacae",
+    "assembly_bootstrap": true,
+    "build_review": "6736c0b0dc80f59f2b60c0cd4947e90bec36ad4a",
+    "cases": 4,
+    "default_AgentStore_replaced": false,
+    "historical_B3": true,
+    "interop_review": "1b68036e9ba11d870558f39194e71a8a39c4c4bb",
+    "native_commands": 40,
+    "processes": 24,
+    "release_returns": 24,
+    "source": "Existing Root fully closed actual evidence, PR R27 and native_install_owner message; no new execution or re-decompression."
+  },
+  "original_core_prefix_bytes": 73728,
+  "original_lock_source_changes": {
+    "length(w) != 73728": "length(w) != 147456",
+    "while index < 73728:": "while index < 147456:"
+  },
+  "private_state_bytes": 147456,
+  "retained_cursor_payload_connection_complete": false,
+  "root_input_read_footprint": {
+    "agents_PAUSED0": true,
+    "bulk_generation_archive_reads_deferred": true,
+    "current_CI_artifact_reads": 0,
+    "current_CI_source_mutations": 0,
+    "host_read_calls": 1,
+    "new_processes": 0,
+    "old_owner_already_closed": true,
+    "source_files": [
+      {
+        "bytes": 7069,
+        "git": "1427e1465a6535e9bd90c0599f0694df972dea0f",
+        "name": "inputs/tools/pager_owner_common_source_r2.py",
+        "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-pager-read-owner-native-r3/inputs/tools/pager_owner_common_source_r2.py",
+        "sha256": "da2df5548aaf1497db907f6d18bb7f9508c01991699c3b88713a07b03f2b8eaa",
+        "version": "66306:80647028:7069:1794630845069004889:1794630845069004889"
+      },
+      {
+        "bytes": 15651,
+        "git": "c32133c133ed4a55c1615f5414ea2d845afc1f4f",
+        "name": "inputs/tools/pager_owner_lock_source_r3.py",
+        "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-pager-read-owner-native-r3/inputs/tools/pager_owner_lock_source_r3.py",
+        "sha256": "49e5c19a3d00b6e40ade3b632c1739433a647afafbed690163cacc3b6eb4fb4c",
+        "version": "66306:80647027:15651:1794630845068415070:1794630845068415070"
+      },
+      {
+        "bytes": 4797,
+        "git": "39b358a9fb761c87aca8a6b2bddb95daefc1685d",
+        "name": "inputs/tools/pager_owner_page_source.py",
+        "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-pager-read-owner-native-r3/inputs/tools/pager_owner_page_source.py",
+        "sha256": "ab2b5080b3aa8480a7d500e16185ffae8cda6060a025d5eef3074e3edfbc8aa9",
+        "version": "66306:80647029:4797:1794630845069546610:1794630845069546610"
+      },
+      {
+        "bytes": 3778,
+        "git": "1826ae4435ac149023bad6f40f9d90249ecc1570",
+        "name": "inputs/tools/generate_hia_sqlite_pager_read_owner_r2.py",
+        "path": "/home/qq/hia-rewrite-20261113-e26e-r1/sqlite-pager-read-owner-native-r3/inputs/tools/generate_hia_sqlite_pager_read_owner_r2.py",
+        "sha256": "4b3e52f25919d6d357b3d087076ce77c6c5a3be01d4923c2708de1e2be720c2b",
+        "version": "66306:80647030:3778:1794630845070085612:1794630845070085612"
+      }
+    ],
+    "total_bytes": 31295,
+    "writes": 0
+  },
+  "same_connection_uncommitted_visibility_resolved": false,
+  "schema": "hia.pager-retained-page.source-draft.v1",
+  "source": {
+    "bytes": 6040,
+    "git": "39e71e95cea2f292803526938cdc604a7102a81a",
+    "sha256": "b46a085b0f4db84a09f4973be28c99fe1a950042c02abd64cb3fae2e33bbda56"
+  },
+  "source_changes_are_whole_inverse_checked": true,
+  "source_function_count": 51,
+  "state_rules": [
+    "one retained page per owner, explicit release before replacement",
+    "retained token is original monotonic page-pin ID, bound to session nonce and exact held snapshot header",
+    "ordinary PAGE and overflow reads may overwrite original page buffer but not retained copy",
+    "cleanup entry invalidates retained active/pending flags before lock release",
+    "primary error, secondary cleanup errors, short-read semantics and OS requests remain original"
+  ],
+  "status": "SOURCE_DRAFT_ONLY_NOT_GENERATED_OR_QUALIFIED",
+  "trace_rules": {
+    "complete_native_state_before_and_after_every_entry": true,
+    "global_256MiB_trace_budget_unchanged": true,
+    "new_raw_bytes_formulas_and_controls_not_yet_qualified": true
+  },
+  "transport_scope": "fixed client framing only; original native OS leaf unchanged; assembly remains declared bootstrap",
+  "whole_native": false
+}
