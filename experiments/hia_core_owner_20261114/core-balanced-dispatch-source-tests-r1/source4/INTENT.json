@@ -1,0 +1,98 @@
+{
+  "schema": "hia.core-balanced-dispatch.original-source4-intent.v1",
+  "status": "ACTUAL_ORIGINAL_FOUR_METHODS_INTENT",
+  "metadata_HJOB": "054067661a9ed4b243d7a798c022b0dd1cece3f4",
+  "request": {
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/REQUEST-source4.json",
+    "bytes": 14805,
+    "sha256": "cbd4221cde9c2b6a23b1d505aa217013c497fd709ba95489cde08191e57d2456",
+    "git": "1266ea6e972185e16ffa904ab925040ebfe572b1"
+  },
+  "launch": {
+    "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/LAUNCH-source4.json",
+    "bytes": 1455,
+    "sha256": "1730784be9768e811cea1efbfff514e3d5c15ea9a962903a8aec43d5d2250f04",
+    "git": "996ae7ead14a3bde08c032f7b25a63423a1d38aa"
+  },
+  "outer_command": {
+    "host": "ai395",
+    "executable": "/usr/bin/python3.14",
+    "args": [
+      "-I",
+      "-S",
+      "-B",
+      "-c",
+      "import os, sys\nEXPECTED = {\"LANG\":\"C.UTF-8\",\"LC_ALL\":\"C.UTF-8\",\"PATH\":\"\",\"PYTHONDONTWRITEBYTECODE\":\"1\",\"PYTHONHASHSEED\":\"0\",\"PYTHONNOUSERSITE\":\"1\"}\nTARGET = [\"/usr/bin/python3.14\",\"-I\",\"-S\",\"-B\",\"/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/launch.py\",\"--request\",\"/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/REQUEST-source4.json\",\"--sha256\",\"cbd4221cde9c2b6a23b1d505aa217013c497fd709ba95489cde08191e57d2456\"]\nif (sys.executable != TARGET[0] or tuple(sys.version_info[:3]) != (3, 14, 4) or sys.flags.isolated != 1 or sys.flags.no_site != 1 or not sys.dont_write_bytecode or os.getcwd() != '/' or not all(os.environ.get(k) == v for k, v in EXPECTED.items())):\n    raise SystemExit('isolated metadata launcher input mismatch')\nos.execve(TARGET[0], TARGET, EXPECTED)\n"
+    ],
+    "cwd": "/",
+    "env": {
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "PATH": "",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONNOUSERSITE": "1"
+    },
+    "idempotency_key": "core-balanced-original-source4-r1-20261114-e26e-cbd4221c",
+    "timeout_seconds": 300,
+    "memory_max_bytes": 536870912,
+    "cpu_quota_percent": 100
+  },
+  "exact_execve_target": [
+    "/usr/bin/python3.14",
+    "-I",
+    "-S",
+    "-B",
+    "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/launch.py",
+    "--request",
+    "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/REQUEST-source4.json",
+    "--sha256",
+    "cbd4221cde9c2b6a23b1d505aa217013c497fd709ba95489cde08191e57d2456"
+  ],
+  "exact_parent_environment": {
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONHASHSEED": "0",
+    "PYTHONNOUSERSITE": "1"
+  },
+  "launcher": {
+    "bytes": 845,
+    "sha256": "d95589602c9deba714bb6426285514dc260be452c7f52461b33d06268edd06f7",
+    "git": "4782431c0371946ab6a1085067e094b1bff564dd"
+  },
+  "launcher_proof": "Only TARGET line changed from the reviewed and actually successful 818-byte metadata isolation launcher; inverse recovers the complete original text.",
+  "verified_template": "b200d3a7146cc95371ff6a69833cbef86170aa14",
+  "requested_ids": [
+    "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_complete_original_Function_and_five_helpers_are_independent",
+    "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_current_32_sources_keep_original_Core_caps_and_literal_VM",
+    "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_unqualified_cold_refuses_before_output_creation",
+    "tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_unselected_constructor_subclass_and_early_target_errors_stay_original"
+  ],
+  "expected_tests": 4,
+  "source_root": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-derive8-r1/source",
+  "source_files": 4135,
+  "source_tree": "cd7d49368f9621ea9379ba32c3f1f969a28c65b4",
+  "source_map_count": 900,
+  "source_map_sha256": "8f8c3f07735391ec0d095dcaca9bd10c8d7f12bf8c32aa763195bee365885179",
+  "original_qualification_seconds": 180,
+  "original_cleanup_seconds": 3,
+  "outer_timeout_seconds": 300,
+  "outer_timeout_purpose": "Administrative parent whole-source scans and custody closure; inner original 180+3 unchanged.",
+  "original_literal_VM_permitted": true,
+  "original_python_object_emission_and_binder_permitted": true,
+  "actual_native_image_or_compiler_forbidden": true,
+  "Core_author_write_forbidden": true,
+  "source_writes_forbidden": true,
+  "group_not_split": true,
+  "no_skips_or_expected_failures": true,
+  "all_agents": "PAUSED 0 IO",
+  "root_max_host_IO": 1,
+  "owner_admission_before_child_report_or_logs": true,
+  "matching_cold_executed": false,
+  "Core116_executed": false,
+  "whole_native": false,
+  "legacy_deleted": false,
+  "prior_UNKNOWNs_preserved": true
+}

@@ -1,0 +1,183 @@
+{
+  "schema": "hia.core-balanced-dispatch.metadata-environment-probe-HJOB.v1",
+  "status": "NAMES_ONLY_PROBE_NATURAL_ZERO_CLOSED",
+  "intent": "04fb05df96054e4919ac4716138ae5d5035f5ce4",
+  "start_ACK": {
+    "audit_recorded": true,
+    "job": {
+      "args": [
+        "-I",
+        "-S",
+        "-B",
+        "-c",
+        "import json, os, sys\nwanted = {\"LANG\":\"C.UTF-8\",\"LC_ALL\":\"C.UTF-8\",\"PATH\":\"\",\"PYTHONDONTWRITEBYTECODE\":\"1\",\"PYTHONHASHSEED\":\"0\",\"PYTHONNOUSERSITE\":\"1\"}\nextras = sorted(set(os.environ) - set(wanted))\nassert len(extras) <= 128\nprint(json.dumps({'schema':'hia.metadata.environment-names-only.v1','cwd':os.getcwd(),'extra_names':extras,'configured_matches':{k:os.environ.get(k)==v for k,v in wanted.items()},'runtime':sys.executable,'version':list(sys.version_info[:3]),'project_imports':[k for k in sys.modules if k.split('.',1)[0] in {'hepta','tools','tests'}]},sort_keys=True))\n"
+      ],
+      "created_unix_ms": 1794653123249,
+      "cwd": "/",
+      "env_keys": [
+        "LANG",
+        "LC_ALL",
+        "PATH",
+        "PYTHONDONTWRITEBYTECODE",
+        "PYTHONHASHSEED",
+        "PYTHONNOUSERSITE"
+      ],
+      "executable": "/usr/bin/python3.14",
+      "execution_mode": "operator",
+      "host": "ai395",
+      "id": "1a1d9a972b1-392-1369",
+      "idempotency_key": "core-balanced-metadata-environment-names-probe-r1-20261114-e26e",
+      "launch_error": null,
+      "launch_state": "launched",
+      "remote_job_dir": "/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d9a972b1-392-1369",
+      "request_digest": "f29c831dbd927c6b4eba5abeffda8962fdbc27f3edfa3f50b9c6e97f4d32a2ef",
+      "request_fingerprint": "17481992017303207019",
+      "ssh_target": "ai395-lan",
+      "system_jobctl": false,
+      "unit": "hepta-runtime-job-1a1d9a972b1-392-1369"
+    },
+    "launch": {
+      "backend": "systemd",
+      "launcher_pid": null,
+      "ok": true,
+      "unit": "hepta-runtime-job-1a1d9a972b1-392-1369"
+    },
+    "local_record_pending": false,
+    "reused": false
+  },
+  "terminal": {
+    "at_unix_ms": 1794653124507,
+    "audit_recorded": true,
+    "automatic_retry": false,
+    "cancelled": false,
+    "exit_code": 0,
+    "job_id": "1a1d9a972b1-392-1369",
+    "launch_nonce": "3e304ac4c321b7e5771ba66f5565d0d2",
+    "log_bytes": {
+      "stderr": {
+        "seen": 0,
+        "stored": 0
+      },
+      "stdout": {
+        "seen": 644,
+        "stored": 644
+      }
+    },
+    "log_errors": {
+      "stderr": null,
+      "stdout": null
+    },
+    "log_synced": {
+      "stderr": true,
+      "stdout": true
+    },
+    "log_truncated": {
+      "stderr": false,
+      "stdout": false
+    },
+    "output_complete": true,
+    "output_durable": true,
+    "state": "succeeded",
+    "terminal_publication_confirmed": true,
+    "terminal_publication_protocol": 1,
+    "timed_out": false
+  },
+  "outer_request": {
+    "allow_detached_fallback": true,
+    "allow_job_network": true,
+    "args": [
+      "-I",
+      "-S",
+      "-B",
+      "-c",
+      "import json, os, sys\nwanted = {\"LANG\":\"C.UTF-8\",\"LC_ALL\":\"C.UTF-8\",\"PATH\":\"\",\"PYTHONDONTWRITEBYTECODE\":\"1\",\"PYTHONHASHSEED\":\"0\",\"PYTHONNOUSERSITE\":\"1\"}\nextras = sorted(set(os.environ) - set(wanted))\nassert len(extras) <= 128\nprint(json.dumps({'schema':'hia.metadata.environment-names-only.v1','cwd':os.getcwd(),'extra_names':extras,'configured_matches':{k:os.environ.get(k)==v for k,v in wanted.items()},'runtime':sys.executable,'version':list(sys.version_info[:3]),'project_imports':[k for k in sys.modules if k.split('.',1)[0] in {'hepta','tools','tests'}]},sort_keys=True))\n"
+    ],
+    "cpu_quota_percent": 100,
+    "cwd": "/",
+    "default_cwd": "/home/qq",
+    "env": {
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "PATH": "",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONNOUSERSITE": "1"
+    },
+    "executable": "/usr/bin/python3.14",
+    "execution_mode": "operator",
+    "job_dir": "/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d9a972b1-392-1369",
+    "job_id": "1a1d9a972b1-392-1369",
+    "launch_nonce": "3e304ac4c321b7e5771ba66f5565d0d2",
+    "memory_max_bytes": 134217728,
+    "nice": 0,
+    "platform": "linux",
+    "request_digest": "f29c831dbd927c6b4eba5abeffda8962fdbc27f3edfa3f50b9c6e97f4d32a2ef",
+    "request_fingerprint": "f29c831dbd927c6b4eba5abeffda8962fdbc27f3edfa3f50b9c6e97f4d32a2ef",
+    "terminal_publication_protocol": 1,
+    "timeout_seconds": 30,
+    "unit": "hepta-runtime-job-1a1d9a972b1-392-1369"
+  },
+  "complete_logs": {
+    "audit_recorded": true,
+    "job_id": "1a1d9a972b1-392-1369",
+    "stderr": {
+      "bytes_hex": "",
+      "eof": true,
+      "next_offset": 0,
+      "offset": 0,
+      "size": 0,
+      "text": ""
+    },
+    "stdout": {
+      "bytes_hex": "7b22636f6e666967757265645f6d617463686573223a207b224c414e47223a20747275652c20224c435f414c4c223a20747275652c202250415448223a20747275652c2022505954484f4e444f4e54575249544542595445434f4445223a20747275652c2022505954484f4e4841534853454544223a20747275652c2022505954484f4e4e4f5553455253495445223a20747275657d2c2022637764223a20222f222c202265787472615f6e616d6573223a205b22444255535f53455353494f4e5f4255535f41444452455353222c20224750475f4147454e545f494e464f222c202247544b5f4d4f44554c4553222c202248455054415f52554e54494d455f4a4f425f4944222c2022484f4d45222c2022494e564f434154494f4e5f4944222c20224a4f55524e414c5f53545245414d222c20224c4f474e414d45222c20224d414e41474552504944222c20224d414e4147455250494446444944222c20224d454d4f52595f50524553535552455f5741544348222c20224d454d4f52595f50524553535552455f5752495445222c202251545f4143434553534942494c495459222c20225348454c4c222c20225353485f415554485f534f434b222c202253595354454d445f455845435f504944222c202255534552222c20225844475f444154415f44495253222c20225844475f52554e54494d455f444952225d2c202270726f6a6563745f696d706f727473223a205b5d2c202272756e74696d65223a20222f7573722f62696e2f707974686f6e332e3134222c2022736368656d61223a20226869612e6d657461646174612e656e7669726f6e6d656e742d6e616d65732d6f6e6c792e7631222c202276657273696f6e223a205b332c2031342c20345d7d0a",
+      "eof": true,
+      "next_offset": 644,
+      "offset": 0,
+      "size": 644,
+      "text": "{\"configured_matches\": {\"LANG\": true, \"LC_ALL\": true, \"PATH\": true, \"PYTHONDONTWRITEBYTECODE\": true, \"PYTHONHASHSEED\": true, \"PYTHONNOUSERSITE\": true}, \"cwd\": \"/\", \"extra_names\": [\"DBUS_SESSION_BUS_ADDRESS\", \"GPG_AGENT_INFO\", \"GTK_MODULES\", \"HEPTA_RUNTIME_JOB_ID\", \"HOME\", \"INVOCATION_ID\", \"JOURNAL_STREAM\", \"LOGNAME\", \"MANAGERPID\", \"MANAGERPIDFDID\", \"MEMORY_PRESSURE_WATCH\", \"MEMORY_PRESSURE_WRITE\", \"QT_ACCESSIBILITY\", \"SHELL\", \"SSH_AUTH_SOCK\", \"SYSTEMD_EXEC_PID\", \"USER\", \"XDG_DATA_DIRS\", \"XDG_RUNTIME_DIR\"], \"project_imports\": [], \"runtime\": \"/usr/bin/python3.14\", \"schema\": \"hia.metadata.environment-names-only.v1\", \"version\": [3, 14, 4]}\n"
+    }
+  },
+  "observation": {
+    "configured_matches": {
+      "LANG": true,
+      "LC_ALL": true,
+      "PATH": true,
+      "PYTHONDONTWRITEBYTECODE": true,
+      "PYTHONHASHSEED": true,
+      "PYTHONNOUSERSITE": true
+    },
+    "cwd": "/",
+    "extra_names": [
+      "DBUS_SESSION_BUS_ADDRESS",
+      "GPG_AGENT_INFO",
+      "GTK_MODULES",
+      "HEPTA_RUNTIME_JOB_ID",
+      "HOME",
+      "INVOCATION_ID",
+      "JOURNAL_STREAM",
+      "LOGNAME",
+      "MANAGERPID",
+      "MANAGERPIDFDID",
+      "MEMORY_PRESSURE_WATCH",
+      "MEMORY_PRESSURE_WRITE",
+      "QT_ACCESSIBILITY",
+      "SHELL",
+      "SSH_AUTH_SOCK",
+      "SYSTEMD_EXEC_PID",
+      "USER",
+      "XDG_DATA_DIRS",
+      "XDG_RUNTIME_DIR"
+    ],
+    "project_imports": [],
+    "runtime": "/usr/bin/python3.14",
+    "schema": "hia.metadata.environment-names-only.v1",
+    "version": [
+      3,
+      14,
+      4
+    ]
+  },
+  "environment_values_printed": false,
+  "source_files_read_or_written": false,
+  "product_or_test_executed": false
+}

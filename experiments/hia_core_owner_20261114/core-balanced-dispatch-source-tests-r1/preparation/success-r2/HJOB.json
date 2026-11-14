@@ -1,0 +1,434 @@
+{
+  "schema": "hia.core-balanced-dispatch.source-tests-metadata-HJOB.v2",
+  "status": "PREPARED_ONLY_FULL_METADATA_READBACK_CLOSED",
+  "intent": "82bd7f5a8eaf3fe4f8248146f84e77ceeff07b58",
+  "predecessor_known_failure_HJOB": "016d91608e6da279a05f56c0052e9e52b9dde1bd",
+  "environment_names_probe_HJOB": "3d477969b7ae7be096bd69a4b29a859b32491043",
+  "isolating_launcher": {
+    "git": "b200d3a7146cc95371ff6a69833cbef86170aa14",
+    "bytes": 818,
+    "sha256": "31d66249536cf48e8074871a34a9cbe36500aa8c4de24a897998fe4d4daad3d9"
+  },
+  "outer_command": {
+    "host": "ai395",
+    "executable": "/usr/bin/python3.14",
+    "args": [
+      "-I",
+      "-S",
+      "-B",
+      "-c",
+      "import os, sys\nEXPECTED = {\"LANG\":\"C.UTF-8\",\"LC_ALL\":\"C.UTF-8\",\"PATH\":\"\",\"PYTHONDONTWRITEBYTECODE\":\"1\",\"PYTHONHASHSEED\":\"0\",\"PYTHONNOUSERSITE\":\"1\"}\nTARGET = [\"/usr/bin/python3.14\",\"-I\",\"-S\",\"-B\",\"/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1-stage.py\",\"--config\",\"/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1-CONFIG.json\",\"--sha256\",\"d947170d1560e8b0709e68f9176db18263db22da1c7bfc11240ae1564395e84a\"]\nif (sys.executable != TARGET[0] or tuple(sys.version_info[:3]) != (3, 14, 4) or sys.flags.isolated != 1 or sys.flags.no_site != 1 or not sys.dont_write_bytecode or os.getcwd() != '/' or not all(os.environ.get(k) == v for k, v in EXPECTED.items())):\n    raise SystemExit('isolated metadata launcher input mismatch')\nos.execve(TARGET[0], TARGET, EXPECTED)\n"
+    ],
+    "cwd": "/",
+    "env": {
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "PATH": "",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONNOUSERSITE": "1"
+    },
+    "idempotency_key": "core-balanced-source-tests-metadata-r2-isolated-20261114-e26e-b200d3a7",
+    "timeout_seconds": 180,
+    "memory_max_bytes": 536870912,
+    "cpu_quota_percent": 100
+  },
+  "exact_execve_target": {
+    "executable": "/usr/bin/python3.14",
+    "args": [
+      "-I",
+      "-S",
+      "-B",
+      "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1-stage.py",
+      "--config",
+      "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1-CONFIG.json",
+      "--sha256",
+      "d947170d1560e8b0709e68f9176db18263db22da1c7bfc11240ae1564395e84a"
+    ],
+    "cwd": "/",
+    "environment": {
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "PATH": "",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONNOUSERSITE": "1"
+    }
+  },
+  "start_ACK": {
+    "audit_recorded": true,
+    "job": {
+      "args": [
+        "-I",
+        "-S",
+        "-B",
+        "-c",
+        "import os, sys\nEXPECTED = {\"LANG\":\"C.UTF-8\",\"LC_ALL\":\"C.UTF-8\",\"PATH\":\"\",\"PYTHONDONTWRITEBYTECODE\":\"1\",\"PYTHONHASHSEED\":\"0\",\"PYTHONNOUSERSITE\":\"1\"}\nTARGET = [\"/usr/bin/python3.14\",\"-I\",\"-S\",\"-B\",\"/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1-stage.py\",\"--config\",\"/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1-CONFIG.json\",\"--sha256\",\"d947170d1560e8b0709e68f9176db18263db22da1c7bfc11240ae1564395e84a\"]\nif (sys.executable != TARGET[0] or tuple(sys.version_info[:3]) != (3, 14, 4) or sys.flags.isolated != 1 or sys.flags.no_site != 1 or not sys.dont_write_bytecode or os.getcwd() != '/' or not all(os.environ.get(k) == v for k, v in EXPECTED.items())):\n    raise SystemExit('isolated metadata launcher input mismatch')\nos.execve(TARGET[0], TARGET, EXPECTED)\n"
+      ],
+      "created_unix_ms": 1794653523594,
+      "cwd": "/",
+      "env_keys": [
+        "LANG",
+        "LC_ALL",
+        "PATH",
+        "PYTHONDONTWRITEBYTECODE",
+        "PYTHONHASHSEED",
+        "PYTHONNOUSERSITE"
+      ],
+      "executable": "/usr/bin/python3.14",
+      "execution_mode": "operator",
+      "host": "ai395",
+      "id": "1a1d9af8e8a-392-137d",
+      "idempotency_key": "core-balanced-source-tests-metadata-r2-isolated-20261114-e26e-b200d3a7",
+      "launch_error": null,
+      "launch_state": "launched",
+      "remote_job_dir": "/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d9af8e8a-392-137d",
+      "request_digest": "6c0825d271723c7e60f3fb970f88a55b05c14b7c61e3c4cbe8bf8fc3ba6d9e29",
+      "request_fingerprint": "7784513541686574206",
+      "ssh_target": "ai395-lan",
+      "system_jobctl": false,
+      "unit": "hepta-runtime-job-1a1d9af8e8a-392-137d"
+    },
+    "launch": {
+      "backend": "systemd",
+      "launcher_pid": null,
+      "ok": true,
+      "unit": "hepta-runtime-job-1a1d9af8e8a-392-137d"
+    },
+    "local_record_pending": false,
+    "reused": false
+  },
+  "terminal": {
+    "at_unix_ms": 1794653526618,
+    "audit_recorded": true,
+    "automatic_retry": false,
+    "cancelled": false,
+    "exit_code": 0,
+    "job_id": "1a1d9af8e8a-392-137d",
+    "launch_nonce": "cc399d9cc4737780a770861eb941d7f8",
+    "log_bytes": {
+      "stderr": {
+        "seen": 0,
+        "stored": 0
+      },
+      "stdout": {
+        "seen": 2056,
+        "stored": 2056
+      }
+    },
+    "log_errors": {
+      "stderr": null,
+      "stdout": null
+    },
+    "log_synced": {
+      "stderr": true,
+      "stdout": true
+    },
+    "log_truncated": {
+      "stderr": false,
+      "stdout": false
+    },
+    "output_complete": true,
+    "output_durable": true,
+    "state": "succeeded",
+    "terminal_publication_confirmed": true,
+    "terminal_publication_protocol": 1,
+    "timed_out": false
+  },
+  "complete_outer_logs": {
+    "stdout": "{\"launches\": {\"fixture6\": {\"bytes\": 1459, \"identity\": {\"ctime_ns\": 1794653526483894687, \"dev\": 66306, \"gid\": 1000, \"ino\": 79741840, \"mode\": 384, \"mtime_ns\": 1794653526483894687, \"nlink\": 1, \"size\": 1459, \"uid\": 1000}, \"path\": \"/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/LAUNCH-fixture6.json\", \"sha256\": \"890059658e21fcfbd4b76454e2f2ef855e4245ceed36786df7a9b404527004db\"}, \"source4\": {\"bytes\": 1455, \"identity\": {\"ctime_ns\": 1794653526482514676, \"dev\": 66306, \"gid\": 1000, \"ino\": 79741838, \"mode\": 384, \"mtime_ns\": 1794653526482514676, \"nlink\": 1, \"size\": 1455, \"uid\": 1000}, \"path\": \"/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/LAUNCH-source4.json\", \"sha256\": \"1730784be9768e811cea1efbfff514e3d5c15ea9a962903a8aec43d5d2250f04\"}}, \"report\": {\"bytes\": 15984, \"identity\": {\"ctime_ns\": 1794653526561995943, \"dev\": 66306, \"gid\": 1000, \"ino\": 79741841, \"mode\": 384, \"mtime_ns\": 1794653526561995943, \"nlink\": 1, \"size\": 15984, \"uid\": 1000}, \"path\": \"/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/STATIC-FREEZE.json\", \"sha256\": \"62625fad7606077de51b93f97f822cc0082ff9fdc23cc47f11b401c8e7b1f25c\"}, \"requests\": {\"fixture6\": {\"bytes\": 15138, \"identity\": {\"ctime_ns\": 1794653526483238500, \"dev\": 66306, \"gid\": 1000, \"ino\": 79741839, \"mode\": 384, \"mtime_ns\": 1794653526483238500, \"nlink\": 1, \"size\": 15138, \"uid\": 1000}, \"path\": \"/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/REQUEST-fixture6.json\", \"sha256\": \"c2c9210d70ba2525b5b8418b8431a9bb03b7c67c449055d93d36cbd9110efb1a\"}, \"source4\": {\"bytes\": 14805, \"identity\": {\"ctime_ns\": 1794653526481861449, \"dev\": 66306, \"gid\": 1000, \"ino\": 79741837, \"mode\": 384, \"mtime_ns\": 1794653526481861449, \"nlink\": 1, \"size\": 14805, \"uid\": 1000}, \"path\": \"/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/REQUEST-source4.json\", \"sha256\": \"cbd4221cde9c2b6a23b1d505aa217013c497fd709ba95489cde08191e57d2456\"}}, \"status\": \"PREPARED_ONLY\"}\n",
+    "stderr": "",
+    "stdout_complete": true,
+    "stderr_complete": true
+  },
+  "raw_originals": [
+    {
+      "name": "STATIC-FREEZE.json",
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/STATIC-FREEZE.json",
+      "bytes": 15984,
+      "sha256": "62625fad7606077de51b93f97f822cc0082ff9fdc23cc47f11b401c8e7b1f25c",
+      "git": "61a66dedde78ce06cc699c78fe8f512518deed26",
+      "version": "66306:79741841:15984:1794653526561995943:1794653526561995943"
+    },
+    {
+      "name": "REQUEST-source4.json",
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/REQUEST-source4.json",
+      "bytes": 14805,
+      "sha256": "cbd4221cde9c2b6a23b1d505aa217013c497fd709ba95489cde08191e57d2456",
+      "git": "1266ea6e972185e16ffa904ab925040ebfe572b1",
+      "version": "66306:79741837:14805:1794653526481861449:1794653526481861449"
+    },
+    {
+      "name": "REQUEST-fixture6.json",
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/REQUEST-fixture6.json",
+      "bytes": 15138,
+      "sha256": "c2c9210d70ba2525b5b8418b8431a9bb03b7c67c449055d93d36cbd9110efb1a",
+      "git": "184b4c05b7755d28ade9b7e51e54abe27430f24e",
+      "version": "66306:79741839:15138:1794653526483238500:1794653526483238500"
+    },
+    {
+      "name": "LAUNCH-source4.json",
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/LAUNCH-source4.json",
+      "bytes": 1455,
+      "sha256": "1730784be9768e811cea1efbfff514e3d5c15ea9a962903a8aec43d5d2250f04",
+      "git": "996ae7ead14a3bde08c032f7b25a63423a1d38aa",
+      "version": "66306:79741838:1455:1794653526482514676:1794653526482514676"
+    },
+    {
+      "name": "LAUNCH-fixture6.json",
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/LAUNCH-fixture6.json",
+      "bytes": 1459,
+      "sha256": "890059658e21fcfbd4b76454e2f2ef855e4245ceed36786df7a9b404527004db",
+      "git": "0c65b7a8ba48d59288dbe60c6d846adbf67bb33e",
+      "version": "66306:79741840:1459:1794653526483894687:1794653526483894687"
+    },
+    {
+      "name": "outer-request.json",
+      "path": "/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1d9af8e8a-392-137d/request.json",
+      "bytes": 1760,
+      "sha256": "f38f58b9f7ebbdc96ef77edae43cfbb40ebd32d52e1c2e53e4768c50ab655025",
+      "git": "ee4a405094bb2c213deef9d2ac8da45dff1b6c92",
+      "version": "66306:78030924:1760:1794653524764559783:1794653524764559783"
+    }
+  ],
+  "root_binding": {
+    "files": 4135,
+    "source_tree": "cd7d49368f9621ea9379ba32c3f1f969a28c65b4",
+    "source_map900": true,
+    "all_original6_file_pins": true,
+    "original_group4_and6": true,
+    "original_owner180_3": true,
+    "source_immutable": true,
+    "copied_control_full_bodies_identical": true,
+    "inputs": 19,
+    "actual_parent_environment_exact6": true,
+    "outer_execve_and_inner_argv_both_bound": true
+  },
+  "actual_source": {
+    "body_changes_from_old_MAT": [
+      "docs/HIA_SELFHOST_CORE_SUPPORT.json"
+    ],
+    "bytes": 412691995,
+    "file_count": 4135,
+    "final_identity_namespace_equal": true,
+    "full_content_reads": 4135,
+    "git_tree": "cd7d49368f9621ea9379ba32c3f1f969a28c65b4",
+    "identity_changes_from_old_MAT": [
+      "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
+    ],
+    "root": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-derive8-r1/source",
+    "source_map_count": 900,
+    "source_map_sha256": "8f8c3f07735391ec0d095dcaca9bd10c8d7f12bf8c32aa763195bee365885179"
+  },
+  "materialization": {
+    "original": {
+      "bytes": 2039174,
+      "identity": {
+        "ctime_ns": "1794653526478680811",
+        "dev": 66306,
+        "gid": 1000,
+        "ino": 79741835,
+        "mode": 384,
+        "mtime_ns": "1794653526478680811",
+        "nlink": 1,
+        "size": 2039174,
+        "uid": 1000
+      },
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/MATERIALIZATION.json",
+      "sha256": "5c983bd91b0bec5ca4d208a6b89c271da6887de80286ad6aa07c899136c83103"
+    },
+    "root_full_reconstructed_bytes": 2039174,
+    "root_full_reconstructed_sha256": "5c983bd91b0bec5ca4d208a6b89c271da6887de80286ad6aa07c899136c83103",
+    "root_computed_git": "e2137f4f815d0fb7c5f7cef4ef1aec77275a99d9",
+    "fresh_native_info": {
+      "metadata": {
+        "acl_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "gid": 1000,
+        "link_count": 1,
+        "metadata_platform": "linux",
+        "mode": 384,
+        "uid": 1000,
+        "xattr_names": [],
+        "xattr_sha256": {}
+      },
+      "mode": 384,
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/MATERIALIZATION.json",
+      "sha256": "5c983bd91b0bec5ca4d208a6b89c271da6887de80286ad6aa07c899136c83103",
+      "size": 2039174,
+      "version": "66306:79741835:2039174:1794653526478680811:1794653526478680811"
+    },
+    "method": "Root full independent canonical inverse from previous fully closed source-after and exact provenance",
+    "full_separate_download_claimed": false
+  },
+  "source_map": {
+    "original": {
+      "bytes": 98221,
+      "identity": {
+        "ctime_ns": "1794653526480921472",
+        "dev": 66306,
+        "gid": 1000,
+        "ino": 79741836,
+        "mode": 384,
+        "mtime_ns": "1794653526480921472",
+        "nlink": 1,
+        "size": 98221,
+        "uid": 1000
+      },
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/SOURCE-MAP.json",
+      "sha256": "8f8c3f07735391ec0d095dcaca9bd10c8d7f12bf8c32aa763195bee365885179"
+    },
+    "root_full_known_text_bytes": 98221,
+    "root_full_known_text_sha256": "8f8c3f07735391ec0d095dcaca9bd10c8d7f12bf8c32aa763195bee365885179",
+    "fresh_native_info": {
+      "metadata": {
+        "acl_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "gid": 1000,
+        "link_count": 1,
+        "metadata_platform": "linux",
+        "mode": 384,
+        "uid": 1000,
+        "xattr_names": [],
+        "xattr_sha256": {}
+      },
+      "mode": 384,
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/SOURCE-MAP.json",
+      "sha256": "8f8c3f07735391ec0d095dcaca9bd10c8d7f12bf8c32aa763195bee365885179",
+      "size": 98221,
+      "version": "66306:79741836:98221:1794653526480921472:1794653526480921472"
+    }
+  },
+  "selected_controls": {
+    "child": {
+      "bytes": 19322,
+      "identity": {
+        "ctime_ns": "1794653526471851692",
+        "dev": 66306,
+        "gid": 1000,
+        "ino": 79741833,
+        "mode": 384,
+        "mtime_ns": "1794653526471851692",
+        "nlink": 1,
+        "size": 19322,
+        "uid": 1000
+      },
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/source_tests_child.py",
+      "sha256": "aa9f537cf0cce13d1e6703ed3e86aa82aec2fc8507a71e010fb4120a20a63757"
+    },
+    "common": {
+      "bytes": 9376,
+      "identity": {
+        "ctime_ns": "1794653526470886076",
+        "dev": 66306,
+        "gid": 1000,
+        "ino": 79741832,
+        "mode": 384,
+        "mtime_ns": "1794653526470886076",
+        "nlink": 1,
+        "size": 9376,
+        "uid": 1000
+      },
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/source_common.py",
+      "sha256": "a03e29a99c29c3b88343c1db4334be8680b41faf54874175e2c68235d4e34537"
+    },
+    "launch": {
+      "bytes": 11124,
+      "identity": {
+        "ctime_ns": "1794653526472527058",
+        "dev": 66306,
+        "gid": 1000,
+        "ino": 79741834,
+        "mode": 384,
+        "mtime_ns": "1794653526472527058",
+        "nlink": 1,
+        "size": 11124,
+        "uid": 1000
+      },
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/launch.py",
+      "sha256": "e88c38da56b297edbcab31c2aa59735af26a52826671ffb3d8c04ca6b80e99cb"
+    }
+  },
+  "requests": {
+    "fixture6": {
+      "bytes": 15138,
+      "identity": {
+        "ctime_ns": "1794653526483238500",
+        "dev": 66306,
+        "gid": 1000,
+        "ino": 79741839,
+        "mode": 384,
+        "mtime_ns": "1794653526483238500",
+        "nlink": 1,
+        "size": 15138,
+        "uid": 1000
+      },
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/REQUEST-fixture6.json",
+      "sha256": "c2c9210d70ba2525b5b8418b8431a9bb03b7c67c449055d93d36cbd9110efb1a"
+    },
+    "source4": {
+      "bytes": 14805,
+      "identity": {
+        "ctime_ns": "1794653526481861449",
+        "dev": 66306,
+        "gid": 1000,
+        "ino": 79741837,
+        "mode": 384,
+        "mtime_ns": "1794653526481861449",
+        "nlink": 1,
+        "size": 14805,
+        "uid": 1000
+      },
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/REQUEST-source4.json",
+      "sha256": "cbd4221cde9c2b6a23b1d505aa217013c497fd709ba95489cde08191e57d2456"
+    }
+  },
+  "launches": {
+    "fixture6": {
+      "bytes": 1459,
+      "identity": {
+        "ctime_ns": "1794653526483894687",
+        "dev": 66306,
+        "gid": 1000,
+        "ino": 79741840,
+        "mode": 384,
+        "mtime_ns": "1794653526483894687",
+        "nlink": 1,
+        "size": 1459,
+        "uid": 1000
+      },
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/LAUNCH-fixture6.json",
+      "sha256": "890059658e21fcfbd4b76454e2f2ef855e4245ceed36786df7a9b404527004db"
+    },
+    "source4": {
+      "bytes": 1455,
+      "identity": {
+        "ctime_ns": "1794653526482514676",
+        "dev": 66306,
+        "gid": 1000,
+        "ino": 79741838,
+        "mode": 384,
+        "mtime_ns": "1794653526482514676",
+        "nlink": 1,
+        "size": 1455,
+        "uid": 1000
+      },
+      "path": "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/control/LAUNCH-source4.json",
+      "sha256": "1730784be9768e811cea1efbfff514e3d5c15ea9a962903a8aec43d5d2250f04"
+    }
+  },
+  "actual_output_roots_absent": [
+    "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/source4-actual-r1",
+    "/home/qq/hia-rewrite-20261113-e26e-r1/core-balanced-dispatch-source-tests-r1/fixture6-actual-r1"
+  ],
+  "metadata_elapsed_ns": 1707992755,
+  "stage_and_config_and_three_controls_unchanged": true,
+  "source_files_copied": 0,
+  "source_written": 0,
+  "Source4_executed": 0,
+  "fixture6_executed": 0,
+  "VM_native_executed": false,
+  "whole_native": false,
+  "legacy_deleted": false,
+  "all_prior_unknowns_preserved": true,
+  "new_UNKNOWN": false
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "hia.core-balanced-dispatch.source-tests-stage-exact-fix.v1",
+  "status": "STATIC_PRE_EXECUTION_SINGLE_FIELD_CORRECTION",
+  "original": {
+    "bytes": 32833,
+    "sha256": "596a4790ec40594c5c78bcb2e5dc4c354f688a33bf5b6a118e5fed9c60256ee7",
+    "git": "991ea290402d3feaf343835040bc8c1ce6b2c73d"
+  },
+  "final": {
+    "bytes": 32836,
+    "sha256": "443b37269a1940b7cfd9964eab21c87748837a6dd8a6ab3637f29d49e7e383c9",
+    "git": "116ae58c312fe44971d5b1f239fca2d6193d4d61"
+  },
+  "occurrences": 1,
+  "old": "            mode = row[\"git_mode\"]\n",
+  "replacement": "            mode = before[\"git_mode\"]\n",
+  "exact_reverse_to_original": true,
+  "actual_old_MAT_rows": 4135,
+  "rows_with_top_level_git_mode": 0,
+  "actual_logical_and_physical_modes": {
+    "100644/384": 4135
+  },
+  "rationale": "The frozen old MAT stores git_mode inside row.candidate. Use the already assigned before object for this one field. The original mode and physical execution-bit comparison remains intact and agrees with every actual row.",
+  "all_other_bytes_identical": true,
+  "all_original_guards_preserved": true,
+  "discarded_guard_removal_proposal_never_published_or_executed": true,
+  "source_or_test_changes": false,
+  "original_stage_uploaded": false,
+  "original_stage_executed": false,
+  "final_stage_executed": false
+}

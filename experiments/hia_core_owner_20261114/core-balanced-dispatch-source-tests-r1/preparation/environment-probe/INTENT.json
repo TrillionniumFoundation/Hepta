@@ -1,0 +1,52 @@
+{
+  "schema": "hia.core-balanced-dispatch.metadata-environment-probe-intent.v1",
+  "status": "READ_ONLY_PROCESS_ENVIRONMENT_NAMES_AND_EQUALITY_ONLY",
+  "predecessor_known_failure": "016d91608e6da279a05f56c0052e9e52b9dde1bd",
+  "command": {
+    "host": "ai395",
+    "executable": "/usr/bin/python3.14",
+    "args": [
+      "-I",
+      "-S",
+      "-B",
+      "-c",
+      "import json, os, sys\nwanted = {\"LANG\":\"C.UTF-8\",\"LC_ALL\":\"C.UTF-8\",\"PATH\":\"\",\"PYTHONDONTWRITEBYTECODE\":\"1\",\"PYTHONHASHSEED\":\"0\",\"PYTHONNOUSERSITE\":\"1\"}\nextras = sorted(set(os.environ) - set(wanted))\nassert len(extras) <= 128\nprint(json.dumps({'schema':'hia.metadata.environment-names-only.v1','cwd':os.getcwd(),'extra_names':extras,'configured_matches':{k:os.environ.get(k)==v for k,v in wanted.items()},'runtime':sys.executable,'version':list(sys.version_info[:3]),'project_imports':[k for k in sys.modules if k.split('.',1)[0] in {'hepta','tools','tests'}]},sort_keys=True))\n"
+    ],
+    "cwd": "/",
+    "env": {
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "PATH": "",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONNOUSERSITE": "1"
+    },
+    "idempotency_key": "core-balanced-metadata-environment-names-probe-r1-20261114-e26e",
+    "timeout_seconds": 30,
+    "memory_max_bytes": 134217728,
+    "cpu_quota_percent": 100
+  },
+  "code_bytes": 577,
+  "code_sha256": "1a196e7f8a083690160239aec87fc0ff05ac78ffb02d4069a68d4de0cb2a5ba4",
+  "environment_values_printed": false,
+  "source_files_read": false,
+  "source_files_written": false,
+  "product_or_test_execution": false,
+  "all_agents": "PAUSED 0 IO",
+  "runtime": {
+    "bytes": 7477160,
+    "identity": {
+      "ctime_ns": "1791031877815904042",
+      "dev": 66306,
+      "gid": 0,
+      "ino": 82182572,
+      "mode": 493,
+      "mtime_ns": "1787222518000000000",
+      "nlink": 1,
+      "size": 7477160,
+      "uid": 0
+    },
+    "path": "/usr/bin/python3.14",
+    "sha256": "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41"
+  }
+}
