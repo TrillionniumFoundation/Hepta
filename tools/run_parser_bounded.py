@@ -70,7 +70,7 @@ def read_sources(source, expected_tree):
         actual_mode = stat.S_IMODE(path.stat().st_mode)
         check(actual_mode == (0o755 if mode == '100755' else 0o644), 'source mode differs: ' + name)
         rows[name] = dict(pin(raw), mode=actual_mode, git_mode=mode)
-    check(len(rows) == 3175, 'full generated source file count differs')
+    check(len(rows) == 3177, 'full generated source file count differs')
     for directory, dirs, files in os.walk(source, followlinks=False):
         directory = Path(directory)
         if directory == source:
@@ -93,10 +93,10 @@ def source_authority(materialization_root, source, fixed, ids, out):
     result_raw, report_raw = result_path.read_bytes(), report_path.read_bytes()
     result, report = json.loads(result_raw), json.loads(report_raw)
     check(result['status'] == 'SOURCE_PASS' and not result['failures'], 'whole Source did not pass')
-    check(type(result['product_tests_executed']) is int and result['product_tests_executed'] == 1411, 'whole Source denominator differs')
+    check(type(result['product_tests_executed']) is int and result['product_tests_executed'] == 1421, 'whole Source denominator differs')
     check(report == result['source_tests'], 'source report differs from materializer result')
-    expected = ids['r19_expected_ordered_ids']
-    check(type(report['tests_run']) is int and report['tests_run'] == report['expected'] == len(expected) == 1411, 'source test count differs')
+    expected = ids['r20_expected_ordered_ids']
+    check(type(report['tests_run']) is int and report['tests_run'] == report['expected'] == len(expected) == 1421, 'source test count differs')
     check(report['status'] == 'PASS' and report['complete'] is True, 'incomplete Source result')
     check(report['ordered_ids'] == report['actual_started_ids'] == report['actual_stopped_ids'] == expected, 'Source ordered IDs differ')
     for key in ('errors', 'failures', 'skipped', 'expected_failures', 'unexpected_successes', 'duplicate_ids',
@@ -107,7 +107,7 @@ def source_authority(materialization_root, source, fixed, ids, out):
     prior = ids['required_r11_ordered_projection']
     check(len(prior) == len(set(prior)) == 1329 and [n for n in expected if n in set(prior)] == prior,
           'original1329 Source projection changed')
-    for key, count in (('r18_expected_ordered_ids', 1374), ('r17_expected_ordered_ids', 1363),
+    for key, count in (('r19_expected_ordered_ids', 1411), ('r18_expected_ordered_ids', 1374), ('r17_expected_ordered_ids', 1363),
                        ('r16_expected_ordered_ids', 1357), ('r15_expected_ordered_ids', 1356), ('r14_expected_ordered_ids', 1353),
                        ('r13_expected_ordered_ids', 1352), ('r12_expected_ordered_ids', 1342),
                        ('original_r10_r2_ordered_ids', 1319)):
@@ -131,7 +131,7 @@ def source_authority(materialization_root, source, fixed, ids, out):
     return {'source_tree': tree, 'source_files': len(rows), 'result': pin(result_raw), 'source_tests': pin(report_raw),
             'repository_HEAD': git(source, 'rev-parse', 'HEAD').decode().strip(),
             'identity_note': 'The harness Actions head and repository historical HEAD are not the generated source tree.',
-            'required_original_projection': 1329, 'tests_run': 1411}, rows
+            'required_original_projection': 1329, 'tests_run': 1421}, rows
 
 
 def clean_environment(source, out):
@@ -192,7 +192,7 @@ def main():
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=False)
     (out / 'evidence').mkdir()
-    report = {'schema': 'hepta.r19-formal-parser-bounded.v1', 'status': 'FAIL',
+    report = {'schema': 'hepta.r20-formal-parser-bounded.v1', 'status': 'FAIL',
         'scope': 'ACTUAL314_SOURCE_SUCCESS_REQUIRED_DEVELOPMENT_IMAGE_CONTROLS_NOT_COLD',
         'python': sys.version, 'executable': str(Path(sys.executable).resolve()),
         'full_Source_pass_inherited': False, 'required_tests': 62, 'groups': {}, 'failures': [],
