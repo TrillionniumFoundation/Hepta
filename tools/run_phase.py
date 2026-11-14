@@ -1,4 +1,4 @@
-"""Supervise one unchanged R20 method; no fixture build or qualification."""
+"""Supervise one original R20 fresh admission; no warmup, test or qualification."""
 from __future__ import annotations
 import argparse
 import ast
@@ -88,89 +88,154 @@ def main():
     args = parser.parse_args()
     source, harness, evidence = args.source.resolve(), args.harness.resolve(), args.evidence.resolve()
     evidence.mkdir(parents=True, exist_ok=False)
-    expected = json.loads((harness / 'inputs/INPUTS.json').read_bytes())
-    report = {'schema': 'hepta.original-namespace-single-method-diagnostic.v2', 'status': 'INCOMPLETE',
+    inputs_path = harness / 'inputs/EXECUTION-INPUTS.json'
+    expected_raw = inputs_path.read_bytes()
+    expected = json.loads(expected_raw)
+    report = {'schema': 'hepta.r20.single-original-fresh-supervisor.v1', 'status': 'INCOMPLETE',
               'python': sys.version, 'source_commit': expected['source_commit'],
               'source_tree': expected['source_tree'], 'original_run': expected['original_run'],
               'original_native_job': expected['original_native_job'], 'qualification': False,
               'whole_native': False, 'new_fixture_compilations': 0,
-              'runtime_executables': {'clang': shutil.which('clang'), 'cc': shutil.which('cc')}, 'cases': []}
-    before = None
-    selected_before = None
-    retained = evidence / 'retained-original-inputs'
+              'runtime_executables': {'clang': shutil.which('clang'), 'cc': shutil.which('cc')},
+              'execution_inputs': identity(expected_raw), 'cases': [],
+              'process_launch_attempts': 0, 'planned_product_calls': 1,
+              'planned_product_warmups': 0, 'planned_business_tests': 0,
+              'planned_compilers': 0, 'planned_native_images': 0, 'planned_vm_runs': 0,
+              'supervision_scope': 'original child wait and same process-group absence; no ECHILD or subreaper assertion',
+              'automatic_retry': False}
+    before = bindings_before = None
+    terminal_errors = []
+
+    def execution_bindings():
+        rows = {}
+        for name, row in expected['execution_files'].items():
+            relative = PurePosixPath(name)
+            assert not relative.is_absolute() and str(relative) == name
+            assert name and '..' not in relative.parts and '.' not in relative.parts
+            target = harness / name
+            for parent in target.parents:
+                if parent == harness:
+                    break
+                assert not parent.is_symlink()
+            info = target.lstat()
+            assert stat.S_ISREG(info.st_mode) and not target.is_symlink()
+            value = {'mode': stat.S_IMODE(info.st_mode), **identity(target.read_bytes())}
+            assert value == row, ('execution file differs', name)
+            rows[name] = value
+        assert inputs_path.read_bytes() == expected_raw
+        return rows
+
+    def attempt_terminal(label, action):
+        try:
+            return action()
+        except BaseException:
+            detail = {'action': label, 'traceback': traceback.format_exc()}
+            terminal_errors.append(detail)
+            try:
+                print(json.dumps({'terminal_evidence_error': detail}, sort_keys=True), file=sys.stderr, flush=True)
+            except BaseException:
+                pass
+            return None
+
     try:
-        assert tuple(sys.version_info[:3]) == tuple(expected['python_version'])
+        assert expected['schema'] == 'hepta.r20.single-original-fresh-execution-inputs.v1'
+        assert tuple(sys.version_info[:3]) == (3, 14, 4) == tuple(expected['python_version'])
+        assert expected['source_commit'] == '26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d'
+        assert expected['source_tree'] == '84df4b42f1e20fd7d0c7229e658cf3b458984ffb'
+        assert expected['source_files'] == 3177
+        assert expected['operations'] == ['tools.build_hia_json_preflight.current_sources']
+        assert expected['group_limit_seconds'] == 1800 and expected['cleanup_seconds'] == 3
+        assert expected['planned_product_calls'] == 1 and expected['planned_product_warmups'] == 0
+        assert set(expected['function_source']) == {'bytes', 'git_blob', 'sha256'}
+        assert expected['fresh_paths'] == 1551 and expected['fresh_bytes'] == 58637295
+        bindings_before = execution_bindings()
+        write_json(evidence / 'EXECUTION-FILES-BEFORE.json', bindings_before)
         before = snapshot(source, expected)
         write_json(evidence / 'SOURCE-BEFORE.json', before)
-        manifest_raw = (harness / 'inputs/SOURCE-MANIFEST.json').read_bytes()
+        manifest_raw = (harness / expected['source_manifest_file']).read_bytes()
         assert identity(manifest_raw) == expected['source_manifest']
         expected_files = json.loads(manifest_raw)
         assert before['files'] == {name: {'mode': row['git_mode'], **{key: row[key]
             for key in ('bytes', 'sha256', 'git_blob')}} for name, row in expected_files.items()}
+        fresh_raw = (harness / expected['fresh_map_file']).read_bytes()
+        assert identity(fresh_raw) == expected['fresh_map']
+        expected_fresh = json.loads(fresh_raw)
+        assert len(expected_fresh) == expected['fresh_paths']
+        assert all(expected_files[name]['sha256'] == digest for name, digest in expected_fresh.items())
+        assert sum(expected_files[name]['bytes'] for name in expected_fresh) == expected['fresh_bytes']
         # Original production prerequisite admission, before the observed group.
         # The child remains a fresh interpreter; no product provider is replaced.
         sys.path.insert(0, str(source))
         from tools.qualify_hia_store_lifecycle import _prerequisites
         report['prerequisites'] = _prerequisites(dict(os.environ))
         write_json(evidence / 'PREREQUISITES.json', report['prerequisites'])
-        selected = unpack(harness, retained, expected)
-        write_json(evidence / 'RETAINED-INPUT-READBACK.json', selected)
-        selected_before = retained_map(retained)
-        test_path = source / 'tests/test_hia_agent_native_tools.py'
-        assert identity(test_path.read_bytes()) == expected['original_test_file']
-        tree = ast.parse(test_path.read_bytes())
-        owner = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'NativeLifecycleTests')
-        methods = {node.name: node for node in owner.body if isinstance(node, ast.FunctionDef)}
-        assert len(expected['methods']) == len(set(expected['methods'])) == 1
-        assert expected['test_id'] == 'tests.test_hia_agent_native_tools.NativeLifecycleTests.' + expected['methods'][0]
-        report['original_method_ast'] = {name: ast.dump(methods[name], include_attributes=False) for name in expected['methods']}
-        report['original_test_file'] = identity(test_path.read_bytes())
         report['group_started_ns'] = time.monotonic_ns()
         deadline = time.monotonic() + 1800
-        for number, method in enumerate(expected['methods']):
-            output = evidence / ('case-%d' % number)
-            output.mkdir()
-            remaining = deadline - time.monotonic()
-            assert remaining > 0, 'original shared 1800-second diagnostic group exhausted'
-            command = [sys.executable, '-B', str(harness / 'tools/observe_case.py'),
-                '--source', str(source), '--inputs', str(harness / 'inputs/INPUTS.json'),
-                '--retained', str(retained),
-                '--evidence', str(output / 'observations'), '--method', method]
-            terminal = run_case(command, source, output, remaining)
-            report_path = output / 'observations/REPORT.json'
-            child = json.loads(report_path.read_bytes()) if report_path.is_file() else None
-            report['cases'].append({'method': method, 'process': terminal,
-                'observation_status': child.get('status') if child else None,
-                'tests_run': child.get('tests_run') if child else None,
-                'original_outcome': child.get('original_outcome') if child else None,
-                'report_path': report_path.relative_to(evidence).as_posix(),
-                'report_identity': identity(report_path.read_bytes()) if child else None})
+        output = evidence / 'case-0'
+        output.mkdir()
+        remaining = deadline - time.monotonic()
+        assert remaining > 0, 'original shared 1800-second diagnostic group exhausted'
+        command = [sys.executable, '-B', str(harness / 'tools/observe_single_fresh.py'),
+            '--source', str(source), '--harness', str(harness),
+            '--inputs', str(inputs_path), '--evidence', str(output / 'observations')]
+        report['process_launch_attempts'] += 1
+        terminal = run_case(command, source, output, remaining)
         report['group_elapsed_ns'] = time.monotonic_ns() - report['group_started_ns']
-        completed = all(row['process']['returncode'] == 0 and not row['process']['timed_out']
-                        and row['process']['same_process_group_absent'] is True
-                        and row['observation_status'] == 'OBSERVATIONS_COMPLETE' and row['tests_run'] == 1
-                        for row in report['cases'])
-        report['status'] = 'OBSERVATIONS_COMPLETE' if completed else 'DIAGNOSTIC_FAILURE'
+        report_path = output / 'observations/REPORT.json'
+        child_raw = report_path.read_bytes() if report_path.is_file() else None
+        child = json.loads(child_raw) if child_raw is not None else None
+        report['cases'].append({'operation': expected['operations'][0], 'process': terminal,
+            'observation_status': child.get('status') if child else None,
+            'product_calls_attempted': child.get('product_calls_attempted') if child else None,
+            'report_path': report_path.relative_to(evidence).as_posix(),
+            'report_identity': identity(child_raw) if child_raw is not None else None})
+        completed = (terminal['returncode'] == 0 and not terminal['timed_out']
+            and terminal['same_process_group_absent'] is True
+            and type(child) is dict and child.get('status') == 'ONE_ORIGINAL_FRESH_OBSERVATION_COMPLETE'
+            and child.get('source_commit') == expected['source_commit']
+            and child.get('source_tree') == expected['source_tree']
+            and child.get('product_calls_attempted') == 1
+            and all(child.get(name) == 0 for name in ('product_tests', 'compilers', 'Native', 'VM'))
+            and child.get('actual_fresh_paths') == 1551 and child.get('actual_current_sources_paths') == 1552
+            and child.get('source_unchanged') is True
+            and child.get('bindings_and_function_definitions_unchanged') is True
+            and child.get('profile_is_original_none') is True and child.get('monitor_tool_released') is True
+            and child.get('observer_cleanup_errors') == [] and child.get('terminal_evidence_errors') == []
+            and child.get('qualification') is False and child.get('whole_native') is False
+            and child.get('automatic_retry') is False)
+        report['status'] = 'ONE_ORIGINAL_FRESH_OBSERVATION_COMPLETE' if completed else 'DIAGNOSTIC_FAILURE'
     except BaseException:
         report['status'] = 'DIAGNOSTIC_FAILURE'
         report['error'] = traceback.format_exc()
     finally:
+        after = None
         try:
             after = snapshot(source, expected)
-            write_json(evidence / 'SOURCE-AFTER.json', after)
-            report['source_unchanged'] = before == after
-            selected_after = retained_map(retained) if retained.exists() else None
-            write_json(evidence / 'RETAINED-AFTER.json', selected_after)
-            report['retained_inputs_unchanged'] = selected_before is not None and selected_before == selected_after
-            if report['source_unchanged'] is not True or report['retained_inputs_unchanged'] is not True:
-                report['status'] = 'DIAGNOSTIC_FAILURE'
+            report['source_unchanged'] = before is not None and before == after
         except BaseException:
+            report['source_unchanged'] = False
+            report['source_readback_error'] = traceback.format_exc()
+        if after is not None:
+            attempt_terminal('source after save', lambda: write_json(evidence / 'SOURCE-AFTER.json', after))
+        bindings_after = None
+        try:
+            bindings_after = execution_bindings()
+            report['execution_files_unchanged'] = bindings_before is not None and bindings_before == bindings_after
+        except BaseException:
+            report['execution_files_unchanged'] = False
+            report['execution_readback_error'] = traceback.format_exc()
+        if bindings_after is not None:
+            attempt_terminal('execution files after save', lambda: write_json(evidence / 'EXECUTION-FILES-AFTER.json', bindings_after))
+        report['terminal_evidence_errors'] = terminal_errors
+        if terminal_errors or report['source_unchanged'] is not True or report['execution_files_unchanged'] is not True:
             report['status'] = 'DIAGNOSTIC_FAILURE'
-            report['readback_error'] = traceback.format_exc()
-        write_json(evidence / 'REPORT.json', report)
-        print(json.dumps({key: value for key, value in report.items() if key != 'original_method_ast'}, sort_keys=True))
-    return 0 if report['status'] == 'OBSERVATIONS_COMPLETE' else 1
-
+        attempt_terminal('terminal report save', lambda: write_json(evidence / 'REPORT.json', report))
+        if terminal_errors:
+            report['status'] = 'DIAGNOSTIC_FAILURE'
+        attempt_terminal('terminal stdout report', lambda: print(json.dumps(report, sort_keys=True), flush=True))
+        if terminal_errors:
+            report['status'] = 'DIAGNOSTIC_FAILURE'
+    return 0 if report['status'] == 'ONE_ORIGINAL_FRESH_OBSERVATION_COMPLETE' else 1
 
 if __name__ == '__main__':
     raise SystemExit(main())
