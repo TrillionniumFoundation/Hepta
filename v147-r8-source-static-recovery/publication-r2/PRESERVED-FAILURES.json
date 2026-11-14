@@ -1,0 +1,94 @@
+{
+  "cases": [
+    {
+      "batch": "batch-0752-0767",
+      "failure": "1,455,479-byte text Contents response was empty; full-batch byte guard rejected before writes",
+      "resolution": "Exact 3fed2d926d8169a1085b7ea3aad8aad129489ba8 UTF-8 blob; successor receipt PASS"
+    },
+    {
+      "batch": "batch-0848-0863",
+      "failure": "Read-only RemoteProtocolError retained",
+      "resolution": "Exact fd5f741adf6911940002424de1362768bf9c4104 readback; successor PASS"
+    },
+    {
+      "batch": "batch-1808-1823",
+      "failure": "R20 program_tools f2f0d5aebc1edb924bc584046c837b8493a12609 rejected before any batch writes",
+      "resolution": "Exact frozen R19 ff9eae40d474b8b74ceb90177863e211100e80bc /22,889 B; successor PASS; rejected R20 bytes never written"
+    },
+    {
+      "batch": "batch-2080-2095",
+      "failure": "Read-only RemoteProtocolError retained",
+      "resolution": "Exact 76a0b2c0d7155cbdae2d5cde1cf2ef2e55721a4c readback; successor PASS"
+    },
+    {
+      "failure": "Contents large-object empty bytes and Git blob UTF-8 decoding restriction retained",
+      "resolution": "Authorized existing u32 span0; full span and four complete members/descriptors/CRC/SHA/Git matched before writes",
+      "scope": "four binary sources"
+    },
+    {
+      "failure": "Direct computed cb3256e6424aab3dbd5895677547847e0ec0f29f blob lookup not found",
+      "resolution": "Published b88da58d0898865bcac09bc2b57c08702b7dddf9 metadata capsule supplies exact manifest; compressed/payload/member pins verified",
+      "scope": "original ZIP manifest"
+    }
+  ],
+  "products": 0,
+  "raw_read_errors": [
+    {
+      "batch": "git-batches/batch-0848-0863.json",
+      "error": {
+        "result": {
+          "content": [
+            {
+              "text": "RemoteProtocolError: Server disconnected without sending a response.",
+              "type": "text"
+            }
+          ],
+          "isError": true,
+          "structuredContent": {
+            "error": "RemoteProtocolError: Server disconnected without sending a response.",
+            "error_code": "UNKNOWN"
+          }
+        },
+        "type": "API_ERROR"
+      },
+      "index": 862,
+      "request": {
+        "blob": "fd5f741adf6911940002424de1362768bf9c4104",
+        "bytes": 10364,
+        "paths": [
+          "experiments/hia_initialization_frontiers_20261103/CONTIGUOUS_CERTIFICATE_PARTITION_PLAN.md"
+        ],
+        "sha256": "b03589578cb6bba1e9d1f62fc979efa138fdab35013dd68fa36f65d479366c86"
+      }
+    },
+    {
+      "batch": "git-batches/batch-2080-2095.json",
+      "error": {
+        "result": {
+          "content": [
+            {
+              "text": "RemoteProtocolError: Server disconnected without sending a response.",
+              "type": "text"
+            }
+          ],
+          "isError": true,
+          "structuredContent": {
+            "error": "RemoteProtocolError: Server disconnected without sending a response.",
+            "error_code": "UNKNOWN"
+          }
+        },
+        "type": "API_ERROR"
+      },
+      "index": 2088,
+      "request": {
+        "blob": "76a0b2c0d7155cbdae2d5cde1cf2ef2e55721a4c",
+        "bytes": 8098,
+        "paths": [
+          "tests/test_hia_edit_cfg_context.py"
+        ],
+        "sha256": "003444271687038d6f448a9620329429feee8926cd21cab8b5efc88c6465f86d"
+      }
+    }
+  ],
+  "schema": "hepta.r8.source-recovery-preserved-failures.v1"
+}

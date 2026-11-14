@@ -1,3 +1,28 @@
+# HIA 原生重写当前恢复检查点 — v147
+
+冻结时间：2026-11-14 16:50:45 UTC。前一完整检查点：`bdc9db0a4ba04cc29dd590c098e572da7ef37471`。
+
+**整套 HIA 原生化尚未闭合，旧生产实现保留。** 本轮完成原源码和固定输入在新路径的实际恢复、独立逐完整字节核验，以及一次固定开发解释器的标准库探针。原R8语义组仍未执行，CLI op13仍在作者与审查，准备结果没有提升为产品资格。
+
+| 范围 | 当前实际结果 | 完整证据 |
+|---|---|---|
+| R8冻结源码 | 3,180文件、98,471,253 B；原SHA/Git/模式、新七字段stat、精确路径集合和Git树全部一致 | [Root读回](v147-root-static-readbacks/SOURCE-RESULT.json)、[恢复包](v147-r8-source-static-recovery/RECIPE.json) |
+| 原固定输入 | 948次引用逐次完整读取717,016,014 B；944独立路径710,690,611 B，原角色、顺序、阶段及身份逐项相等 | [Root读回](v147-root-static-readbacks/INPUTS-RESULT.json)、[恢复包](v147-r8-inputs-static-recovery/RECIPE.json) |
+| 远端完整保管 | 输入13叶、源码19叶及2个recipe全文GET；实际重组576份元数据19,160,281 B并逐字比较当前原件 | [独立重组读回](v147-root-static-readbacks/REMOTE-CUSTODY-RESULT.json) |
+| 固定开发解释器 | 1次CPython3.14.4标准库探针退出0、stderr空、ECHILD及进程组清理通过；2,496文件前后保持 | [完整结果](v147-runtime-readiness/runtime-readiness-r1/RESULT.json) |
+
+原源码树为`4c62be4ed66ff107fa6f88c6131313a354868bd9`。两个输入模式差异明确保留：编译器被捕获副本0400转原要求0644，作者OWNER副本0644转原要求0600。Root输入reader前两次对声明Git字段和嵌套模式来源的错误、完整作者与回执均保留；最终按原声明字段核验948行，为全部行测量新Git身份，没有降低约束。[Root完整作者和读回包](v147-root-static-readbacks/MOUNT-RECIPE.json)保存17个逻辑文件3,362,845 B。
+
+R8正在作者新连贯目录视图：808个非oracle输入独立复制到新的共享内存目录；136个原oracle仍须由原restore owner在180秒执行、3秒清理限制内实际恢复。原3GiB空闲门槛、Native162、VM6及130/7/6/2 aggregate的正文、顺序和预算保留；本冻结时binder、copy及上述产品组均为0。静态恢复不替代原restore阶段。
+
+开发探针明确发现z3和pytest尚未恢复，旧venv没有继承，项目导入依赖仍在审查。源码公开恢复包排除4份私有签名下载响应/HTTP头，168份完整源码GET响应正文仅留本地。原CLI R5 witness-10仍为FAIL，未应用的契约提案、未到达后缀及历史原件缺口全部保持。
+
+本冻结时再次核对默认Hepta main=`f33d8da316de8fdf27b504371f1a5310997ff548`、runtime默认`hepta-runtime-base`=`ba574f2a6a1b74e85191c58d7bec011720736bb9`；实际部署runtime版本仍未知。没有修改原测试、提高燃料或预算、缓存摘要、裁剪源码或删除旧生产实现。
+
+---
+
+## 保留的v146完整记录
+
 # HIA 原生重写恢复检查点 — v146
 
 冻结时间：2026-11-14 16:12:04 UTC。前一完整检查点：`eb0e9670b8065707187204f21f1e8ae8919a3a15`。
