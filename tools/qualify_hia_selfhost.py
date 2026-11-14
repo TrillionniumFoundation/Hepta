@@ -1008,7 +1008,9 @@ def qualify(output):
             "Linux x86-64 hardware, caller-owned exclusive buffers and resource limits"],
         "scope": "fixed canonical HIA v8 subset documented in docs/HIA_SELF_HOSTING_CORE.md",
     }
-    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    # Preserve every evidence field without spending the fixed wall budget on
+    # indentation of the large aggregate and its repeated observation objects.
+    output.write_text(json.dumps(report, separators=(",", ":"), sort_keys=True) + "\n")
     return report
 
 
@@ -1019,7 +1021,7 @@ def main():
     arguments = parser.parse_args()
     if arguments.phase_request is not None:
         report = qualification_phase(arguments.phase_request)
-        arguments.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+        arguments.output.write_text(json.dumps(report, separators=(",", ":"), sort_keys=True) + "\n")
         print(json.dumps({"status": report["status"], "family": report["family"],
                           "compiler_label": report["compiler_label"],
                           "checks_passed": sum(report["checks"].values()), "checks_total": len(report["checks"])}))

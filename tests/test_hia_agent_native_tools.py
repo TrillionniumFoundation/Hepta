@@ -588,9 +588,18 @@ class NativeLifecycleTests(AgentToolCase):
             ]}]}
         workload = {"schema": "hepta.hia.agent.workload.v1", "cases": [
             {"function": "spin", "arguments": []}], "warmup_iterations": 0, "repetitions": 1}
-        _base, _candidate, baseline, build, receipts = self.build_pair(
-            document=looping, candidate=looping, workload=workload,
-            budget={"max_total_wall_ms": 3000, "max_native_wall_ms": 1000})
+        # Both subjects are this same looping program. Build and verify it
+        # once in the original frozen context; duplicated preparation is not
+        # part of the reference runner's deadline/termination claim.
+        budget = {"max_total_wall_ms": 3000, "max_native_wall_ms": 1000}
+        self.session.freeze(workload, budget=budget)
+        candidate = self.session.import_program(looping)
+        self.session.freeze(workload, baseline=candidate, budget=budget)
+        checked = self.session.verify(candidate)
+        build = self.session.emit(candidate, receipts=[checked["verification_receipt"]])
+        encoding = self.session.encoding(candidate, build)
+        receipts = [checked["verification_receipt"], encoding["verification_receipt"]]
+        baseline = build
         frozen = next(row["response"]["result"] for row in reversed(self.client.records)
                       if row["tool"] == "hia_context")
         deadline = datetime.fromisoformat(frozen["sampled_at"]).timestamp() + 3.0
