@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 import json
+import os
 import re
 
 from .hia_bounded_wire import WireBudgetExceeded, checked_utf8_wire
@@ -103,6 +104,36 @@ def _wire(raw):
     return parsed, sha256(source.encode("utf-8")).hexdigest()
 
 
+def _reference_arm(costs, rows):
+    total = sum(costs.values())
+    peak_rss = peak_p99 = 0
+    for row in rows:
+        total += row["execution_ns"] + row["controller_ns"] + row["failed_attempt_ns"]
+        peak_rss = max(peak_rss, row["peak_rss_bytes"])
+        peak_p99 = max(peak_p99, row["p99_ns"])
+    return total, peak_rss, peak_p99
+
+
+def _reference_decision(totals, peaks, unknown, observers, data):
+    best = min((totals[name], name) for name in ("baseline", "fixed", "dp"))
+    saving = best[0] - totals["ndu"]
+    fraction_ppm = saving * 1_000_000 // best[0]
+    reasons = []
+    if any(unknown.values()):
+        reasons.append("unaccounted_costs")
+    if len(observers) != 1:
+        reasons.append("different_observation_sources")
+    if saving < data["minimum_gain_ns"]:
+        reasons.append("no_absolute_full_cost_advantage")
+    if saving * 1_000_000 < best[0] * data["minimum_gain_ppm"]:
+        reasons.append("no_relative_full_cost_advantage")
+    if peaks["ndu"]["peak_rss_bytes"] > data["maximum_peak_rss_bytes"]:
+        reasons.append("memory_limit_exceeded")
+    if peaks["ndu"]["p99_ns"] > data["maximum_p99_ns"]:
+        reasons.append("p99_limit_exceeded")
+    return best, saving, fraction_ppm, reasons
+
+
 def assess_full_cost(raw):
     """Evaluate observed-scope NDU benefit against *all* three strong controls.
 
@@ -141,6 +172,10 @@ def assess_full_cost(raw):
     if type(arms) is not list or len(arms) != len(_STRATEGIES):
         _fail("exactly four strategy arms are required")
     totals, peaks, unknown, observers = {}, {}, {}, set()
+    native = None
+    selected = os.environ.get('HEPTA_HIA_FULL_COST_MANIFEST')
+    if selected == '':
+        raise ValueError('full-cost selector must not be empty')
     for arm in arms:
         _shape(arm, {"strategy", "core_digest", "artifact_digest", "toolchain_digest",
                      "observer_digest", "candidate_bank_digest", "one_time_ns",
@@ -155,12 +190,12 @@ def assess_full_cost(raw):
         observers.add(arm["observer_digest"])
         costs = arm["one_time_ns"]
         _shape(costs, _COSTS, name + " one-time ledger")
-        total = sum(_integer(v, name + "." + k) for k, v in costs.items())
+        for key, value in costs.items():
+            _integer(value, name + "." + key)
         rows = arm["observations"]
         if type(rows) is not list or len(rows) != len(expected):
             _fail("missing/extra task observations")
         seen = set()
-        peak_rss = peak_p99 = 0
         for row in rows:
             _shape(row, {"trial_id", "input_digest", "result_digest", "execution_ns",
                          "controller_ns", "failed_attempt_ns", "peak_rss_bytes",
@@ -174,11 +209,17 @@ def assess_full_cost(raw):
             if row["completed"] is not True:
                 _fail("failed, skipped or unfinished work cannot count as a successful arm")
             for key in ("execution_ns", "controller_ns", "failed_attempt_ns"):
-                total += _integer(row[key], name + "." + key,
+                _integer(row[key], name + "." + key,
                                   minimum=1 if key == "execution_ns" else 0)
-            peak_rss = max(peak_rss, _integer(row["peak_rss_bytes"],
-                                              name + ".peak_rss_bytes", 1, MAX_BYTES))
-            peak_p99 = max(peak_p99, _integer(row["p99_ns"], name + ".p99_ns", 1))
+            _integer(row["peak_rss_bytes"], name + ".peak_rss_bytes", 1, MAX_BYTES)
+            _integer(row["p99_ns"], name + ".p99_ns", 1)
+        if selected is not None and native is None:
+            from .hia_full_cost_native import installed_full_cost
+            native = installed_full_cost(selected)
+        if native is None:
+            total, peak_rss, peak_p99 = _reference_arm(costs, rows)
+        else:
+            total, peak_rss, peak_p99 = native.arm(costs, rows)
         if total > MAX_NS:
             _fail("complete arm total exceeds finite profile")
         costs_unknown = arm["unknown_costs"]
@@ -191,22 +232,12 @@ def assess_full_cost(raw):
         peaks[name] = {"peak_rss_bytes": peak_rss, "p99_ns": peak_p99}
     if set(totals) != _STRATEGIES:
         _fail("missing required control strategies")
-    best = min((totals[name], name) for name in ("baseline", "fixed", "dp"))
-    saving = best[0] - totals["ndu"]
-    fraction_ppm = saving * 1_000_000 // best[0]
-    reasons = []
-    if any(unknown.values()):
-        reasons.append("unaccounted_costs")
-    if len(observers) != 1:
-        reasons.append("different_observation_sources")
-    if saving < data["minimum_gain_ns"]:
-        reasons.append("no_absolute_full_cost_advantage")
-    if saving * 1_000_000 < best[0] * data["minimum_gain_ppm"]:
-        reasons.append("no_relative_full_cost_advantage")
-    if peaks["ndu"]["peak_rss_bytes"] > data["maximum_peak_rss_bytes"]:
-        reasons.append("memory_limit_exceeded")
-    if peaks["ndu"]["p99_ns"] > data["maximum_p99_ns"]:
-        reasons.append("p99_limit_exceeded")
+    if native is None:
+        best, saving, fraction_ppm, reasons = _reference_decision(
+            totals, peaks, unknown, observers, data)
+    else:
+        best, saving, fraction_ppm, reasons = native.decide(
+            totals, peaks, unknown, observers, data)
     return {"schema": "hepta.hia.full-cost-verdict.v1", "input_sha256": input_digest,
             "objective_digest": data["objective_digest"],
             "source_digest": data["source_digest"], "workload_digest": data["workload_digest"],

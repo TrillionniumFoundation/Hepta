@@ -81,6 +81,9 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/scalar_profile.hepta',
     'examples/hia_bootstrap/generation_retention.hepta',
     'examples/hia_bootstrap/bounded_memory.hepta',
+    'examples/hia_bootstrap/full_cost.hepta',
+    'examples/hia_bootstrap/patch_impact.hepta',
+    'examples/hia_bootstrap/cli_discovery_json.hepta',
 )
 
 

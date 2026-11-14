@@ -105,7 +105,7 @@ independent reference controls and resource refusal witnesses. Source contracts
 are identities, not correctness or release approvals. Old high-level-specific
 CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
 
-Repository cleanup: [current audit](docs/CURRENT.md#repository-ownership-and-cleanup).
+Repository cleanup: [current audit](docs/CURRENT.md#repository-cleanup-and-parallel-work).
 Native rewrite: [current implementation and remaining owners](docs/CURRENT.md).
 Runtime integration: [compatibility and upgrade requirements](docs/CURRENT.md#remaining-product-acceptance).
 

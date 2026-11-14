@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -75,6 +75,10 @@ jobs:
               'tests.test_hia_scalar_profile_native.ScalarProfileSourceTests',
               'tests.test_hia_generation_retention_native.GenerationRetentionSourceTests',
               'tests.test_hia_bounded_memory_native.BoundedMemorySourceTests',
+              'tests.test_hia_full_cost_native.FullCostSourceTests',
+              'tests.test_hia_patch_impact_native.PatchImpactSourceTests',
+              'tests.test_hia_cli_discovery_json.CliDiscoveryJsonSourceTests',
+              'tests.test_hia_cli_discovery_selection.CliDiscoverySelectionSourceTests',
               'tests.test_hia_selfhost_call_graph_efficiency.CallGraphSourceTests',
               'tests.test_hia_selfhost_contract.SelfhostContractTests',
               'tests.test_hia_selfhost_cli',
@@ -257,6 +261,36 @@ jobs:
           python -B tools/qualify_hia_bounded_memory_callers.py
           --cold-report "$RUNNER_TEMP/hia-cold.json"
           --evidence "$RUNNER_TEMP/hia-bounded-memory-callers"
+      - name: Native full-cost arithmetic and actual installed cost and patch impact owners
+        env:
+          HEPTA_HIA_FULL_COST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_FULL_COST_EVIDENCE: ${{ runner.temp }}/hia-full-cost
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_full_cost_native
+      - name: Complete original full-cost and observation callers with HIA arithmetic
+        run: >-
+          python -B tools/qualify_hia_full_cost_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-full-cost-callers"
+      - name: Native patch impact and complete original public graph controls
+        env:
+          HEPTA_HIA_PATCH_IMPACT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_PATCH_IMPACT_EVIDENCE: ${{ runner.temp }}/hia-patch-impact
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_patch_impact_native
+      - name: Complete original patch impact callers with HIA comparison and graph owners
+        run: >-
+          python -B tools/qualify_hia_patch_impact_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-patch-impact-callers"
+      - name: Original complete CLI discovery JSON native VM runtime and installed controls
+        run: >-
+          python -B tools/qualify_hia_cli_discovery_json.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-cli-discovery-json"
+      - name: Complete JSON outputs through both ordinary CLI control routes
+        run: >-
+          python -B tools/qualify_hia_cli_discovery_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --evidence "$RUNNER_TEMP/hia-cli-discovery-callers"
       - name: Native SHA stream transitions against pinned original full-buffer observations
         env:
           HEPTA_HIA_SHA256_STREAM_DIFFERENTIAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json

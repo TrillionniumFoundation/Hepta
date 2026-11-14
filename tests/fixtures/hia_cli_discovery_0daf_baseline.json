@@ -1,0 +1,57 @@
+{
+  "base_commit": "0daf86d0e5b8a8c13c15185d2b2bf553fbb81310",
+  "files": {
+    "examples/hia_bootstrap/cli_control.hepta": {
+      "baseline_sha256": "1e4110171f3fa6e6595f400b31bcbaf10ffbc8b91e6700ac7f2a4a542d442983",
+      "edits": []
+    },
+    "examples/hia_bootstrap/cli_format.hepta": {
+      "baseline_sha256": "cc6e399a055947316784c448c0e0c70ee4f45d0083e51839318d3543fe47c3b5",
+      "edits": []
+    },
+    "hepta/cli.py": {
+      "baseline_sha256": "c1a587485d3b7188f44b28dc1b2dbb18a6784139afd14941a417496fa1a85fa0",
+      "edits": [
+        {
+          "new": "def output_json(value):\n    from .hia_cli_discovery_selection import DiscoveryJsonBytes\n    if type(value) is DiscoveryJsonBytes:\n        print(value.payload.decode(\"utf-8\")[:-1])\n        return\n    print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))",
+          "old": "def output_json(value):\n    print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))"
+        },
+        {
+          "new": "        if args.hia_action==\"capabilities\":\n            from .hia_cli_discovery_selection import selected_json\n            selected = selected_json(1)\n            output_json(agent_capabilities() if selected is None else selected)",
+          "old": "        if args.hia_action==\"capabilities\":\n            output_json(agent_capabilities())"
+        },
+        {
+          "new": "        if args.hia_action == 'catalog':\n            from .hia_opcodes import opcode_catalog\n            from .hia_cli_discovery_selection import selected_json\n            selected = selected_json(2, args.schema)\n            output_json(opcode_catalog(args.schema) if selected is None else selected)",
+          "old": "        if args.hia_action == 'catalog':\n            from .hia_opcodes import opcode_catalog\n            output_json(opcode_catalog(args.schema))"
+        }
+      ]
+    },
+    "hepta/hia_cli_native.py": {
+      "baseline_sha256": "e66a22a39c6a49aad859bed01f21380cc867b6319e61cdaad3b6482307626706",
+      "edits": [
+        {
+          "new": "        if operation == 1:\n            from .hia_cli_discovery_selection import selected_json\n            selected = selected_json(1)\n            result = self.cli.agent_capabilities() if selected is None else selected",
+          "old": "        if operation == 1:\n            result = self.cli.agent_capabilities()"
+        },
+        {
+          "new": "        elif operation == 2:\n            from .hia_opcodes import opcode_catalog\n            from .hia_cli_discovery_selection import selected_json\n            schema = field(a, b)\n            selected = selected_json(2, schema)\n            result = opcode_catalog(schema) if selected is None else selected",
+          "old": "        elif operation == 2:\n            from .hia_opcodes import opcode_catalog\n            result = opcode_catalog(field(a, b))"
+        }
+      ]
+    },
+    "hepta/hia_opcodes.py": {
+      "baseline_sha256": "05d09dad1057b9a929389ac80de1fddf533652e63160434ace41818c22f0289b",
+      "edits": []
+    },
+    "hepta/hia_schema.py": {
+      "baseline_sha256": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253",
+      "edits": []
+    },
+    "tests/test_hia_cli_native.py": {
+      "baseline_sha256": "83c83d7b1f74e0f3b4be2b67f793b4d1abc6158dc7b0746b5b913ab117c07b92",
+      "edits": []
+    }
+  },
+  "r20_only_continuation_tests": "Not present in this baseline; no original baseline test is removed or edited.",
+  "schema": "hepta.hia.cli-discovery-retained-base.v1"
+}
