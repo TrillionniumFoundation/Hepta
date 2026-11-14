@@ -1,0 +1,45 @@
+{
+  "schema": "hia.R10.byte-io.additional-controls-and-retained-gates.v1",
+  "status": "AUTHORED_NOT_EXECUTED",
+  "product_executions": 0,
+  "generator_path": "overlay/tools/generate_hia_file_render_checker_word64_bytes.py",
+  "generated_asset": "examples/hia_bootstrap/file_render_checker_word64_bytes.hepta",
+  "generated_asset_identity": null,
+  "compiled_image_identity": null,
+  "aggregate_ELF_identity": null,
+  "original_limits": {
+    "outer_owner_seconds": 180,
+    "cleanup_grace_seconds": 3,
+    "native_compile_seconds": 20,
+    "native_CPU_seconds": 10,
+    "aggregate_ELF_bytes": 1048576,
+    "VM_max_steps": 10000000,
+    "VM_max_heap_bytes": 1048576,
+    "VM_max_call_depth": 128,
+    "Core_functions_max": 128,
+    "Core_blocks_max": 1536,
+    "Core_ops_max": 8192
+  },
+  "helper_boundary_matrix": [
+    {"id":"write_full_word", "functions":["f22","f24"], "domains":"0,1,255,256,65535,65536,2**32-1,2**32,2**63,2**64-1,mixed-byte patterns; unaligned offsets; dirty buffers"},
+    {"id":"write_short", "functions":["f22","f24"], "domains":"every remaining extent 0..width-1; exact first failing store and all preceding writes; no post-last increment"},
+    {"id":"read_full_word", "functions":["f23","f25"], "domains":"unaligned positions; low/high/all bits; independent int.from_bytes oracle; same ordered byte loads"},
+    {"id":"read_short", "functions":["f23","f25"], "domains":"every remaining extent 0..width-1; exact first failing load and no changed buffer"},
+    {"id":"high_offset", "functions":["f22","f23","f24","f25","f92"], "domains":"65535,65536,2**32-1,2**32,2**63,2**64-width,2**64-1; finite actual buffers, no giant allocation"},
+    {"id":"cp16_success", "functions":["f92"], "domains":"0,255,256,65535; full/short/overlapping field positions and dirty bytes"},
+    {"id":"cp16_refusal", "functions":["f92","f21"], "domains":"65536,2**32,2**63,2**64-1; byte40 zero/nonzero; short error writes at40 and cursor-copy writes at104; refusal CFG unchanged"},
+    {"id":"borrow_failure", "functions":["f22","f23","f24","f25","f92"], "domains":"private-callee expired owner/view and nonmutable view compared to exact predecessor; no new public ABI"}
+  ],
+  "helper_controls_status": "matrix authored; executable owner binding and helper runner are subsequent authoring, no execution is authorized by this file",
+  "observation_contract": {
+    "original_VM_body_changed": false,
+    "save_before_assert": ["request", "actual original/candidate initial buffers", "actual original/candidate final or partial buffers", "ordered physical access events", "values or exact exception", "steps/resources"],
+    "missing_observation": "retain and fail-stop; never synthesize",
+    "comparison": "status, values, error, resources, access order and complete buffers; charged steps and source identity differ intentionally"
+  },
+  "gate_order": ["fresh exact full-source binding", "new generation/check/full Core verification", "original actual u32-B3 compile and HIA pack", "additional helper boundaries", "original retained Native162", "original logical VM6", "original aggregate kernel130/observer/pipeline7/full-kernel6/fault2"],
+  "retained_inputs_assertions_and_ID_changes": "none",
+  "public_profile_default_or_current_cold_change": false,
+  "fail_stop": "any failed bound stage preserves all actual records and prevents subsequent stages; no retry or budget increase",
+  "qualification_transferred": false
+}

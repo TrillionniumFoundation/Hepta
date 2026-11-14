@@ -1,0 +1,138 @@
+{
+  "appended_actual_R10_roles": 14,
+  "binder_invocations": 0,
+  "dynamic_ELF_length": "full equality to actual Root prefix proof and actual ELF, within original1048576 cap; no predicted literal",
+  "expected_Root_status": "PASS_INDEPENDENT_R10_PREFIX_TERMINAL_ONLY",
+  "expected_bound_controls": 67,
+  "expected_total_roles": 962,
+  "future_execution_root": "/workspace/hia-r10-controls-r1-dda7",
+  "future_source_image_ELF_pins": null,
+  "metadata_label_correction": "Future binding counts itself as one metadata invocation, and zero product calls.",
+  "old_actual_R9_failure_unchanged": true,
+  "original63_controls_retained_or_exactly_projected": true,
+  "original948_fixed_input_roles_retained": true,
+  "original_R4_complete_controls_are_future_binder_preimage": true,
+  "original_budget_or_test_body_change": false,
+  "phase_count": 8,
+  "prefix_root": "/workspace/hia-r10-prefix-r1-dda7",
+  "product_invocations": 0,
+  "root_prefix_proof_required": true,
+  "rows": [
+    {
+      "after": {
+        "bytes": 22085,
+        "git_blob": "c19af02092661d8c2a3bc623459bd5ca685d43fa",
+        "sha256": "8da81213ebf5bbf0849157fb2092dc82d51af934a31c4484dcfd9b7ce548536b"
+      },
+      "before": {
+        "bytes": 18107,
+        "git_blob": "f397bda3ac87fbfc1d2f1519bdf16810148c16e9",
+        "sha256": "a19c07c3140af38cb7c444e9c10a4cfd90c6114ab3cee4c40d33188e50b747f1"
+      },
+      "insertion": {
+        "anchor": "\ndef main(root_proof,root_proof_git):\n",
+        "text": "\ndef require(value, message):\n    if not value: raise AssertionError(message)\n\ndef validate_scalar_byte_proof(generated):\n    \"\"\"Consume the complete new bounded proof without changing original gates.\"\"\"\n    require(set(generated) == {'functions', 'blocks', 'ops', 'word64_projection', 'scalar_byte_projection'},\n            'R10 generated result keys differ')\n    require({k: generated[k] for k in ('functions', 'blocks', 'ops')}\n            == {'functions': 107, 'blocks': 1456, 'ops': 6299}, 'R10 complete Core counts differ')\n    prior = generated['word64_projection']\n    proof = generated['scalar_byte_projection']\n    require(set(proof) == {'schema', 'original_counts', 'after_counts', 'original_core_sha256',\n            'after_core_sha256', 'full_word_bits', 'ordered_full_byte_effects_equal',\n            'new_field_range_or_initialization_assumption', 'refusal_branch_unchanged',\n            'all_102_other_functions_unchanged', 'external_f0_and_all_function_ABIs_unchanged',\n            'whole_inverse_equal', 'edits', 'helpers', 'complete_original_Core_verifier_returned',\n            'public_compiler_or_VM_changed', 'machine_size_or_fuel_PASS_claim'},\n            'R10 scalar proof keys differ')\n    require(proof['schema'] == 'hia.R10.private-scalar-byte-Core-projection.v1'\n            and proof['original_counts'] == {'functions': 107, 'blocks': 1456, 'ops': 6347}\n            and proof['after_counts'] == {'functions': 107, 'blocks': 1456, 'ops': 6299}\n            and proof['original_core_sha256'] == prior['after_core_sha256']\n            and type(proof['after_core_sha256']) is str and len(proof['after_core_sha256']) == 64\n            and all(c in '0123456789abcdef' for c in proof['after_core_sha256'])\n            and proof['full_word_bits'] == 64, 'R10 proof chain or complete counts differ')\n    for key in ('ordered_full_byte_effects_equal', 'refusal_branch_unchanged',\n                'all_102_other_functions_unchanged', 'external_f0_and_all_function_ABIs_unchanged',\n                'whole_inverse_equal', 'complete_original_Core_verifier_returned'):\n        require(proof[key] is True, 'R10 proof missing true claim: '+key)\n    for key in ('new_field_range_or_initialization_assumption', 'public_compiler_or_VM_changed',\n                'machine_size_or_fuel_PASS_claim'):\n        require(proof[key] is False, 'R10 forbidden proof claim: '+key)\n    helpers = []\n    paths = []\n    for fi, width, writing, old_count, new_count in (\n            (22, 8, True, 54, 33), (23, 8, False, 51, 39),\n            (24, 4, True, 26, 17), (25, 4, False, 23, 19),\n            (92, 2, True, 11, 9)):\n        trace = {'accesses': [['store', i, 8*i] for i in range(width)] if writing\n                           else [['load', i] for i in range(width)],\n                 'returned_value': ['const', 0] if writing\n                           else ['packed', [[i, 8*i] for i in range(width)]]}\n        row = {'function': 'f'+str(fi), 'width_bytes': width, 'writing': writing,\n               'before_ops': old_count, 'after_ops': new_count,\n               'normalized_trace': trace, 'equal': True}\n        if fi == 92:\n            row['complete_refusal_and_first_error_blocks_unchanged'] = True\n            paths.append(['functions', fi, 'blocks', 2, 'ops'])\n        else:\n            paths.extend([['functions', fi, 'blocks', 0, 'ops'],\n                          ['functions', fi, 'blocks', 0, 'term']])\n        helpers.append(row)\n    require(proof['helpers'] == helpers, 'R10 complete ordered byte trace proof differs')\n    require(type(proof['edits']) is list and len(proof['edits']) == 9\n            and all(type(edit) is dict and set(edit) == {'path', 'before', 'after'}\n                    for edit in proof['edits'])\n            and [edit['path'] for edit in proof['edits']] == paths,\n            'R10 whole inverse edit domain differs')\n\n"
+      },
+      "literal_changes": [
+        {
+          "after": "R10",
+          "before": "R9",
+          "count": 42
+        },
+        {
+          "after": "PREFIX=Path('/workspace/hia-r10-prefix-r1-dda7')",
+          "before": "PREFIX=Path('/hia-r8-r9-execution-20261114-dda7')",
+          "count": 1
+        },
+        {
+          "after": "OUTPUT=Path('/workspace/hia-r10-controls-r1-dda7')",
+          "before": "OUTPUT=Path('/hia-r8-r9-controls-20261114-dda7')",
+          "count": 1
+        },
+        {
+          "after": "AUTHOR=Path('/tmp/hia-r10-execution-author-r1-dda7')",
+          "before": "AUTHOR=Path('/tmp/hia-r8-r9-execution-author-r1-dda7')",
+          "count": 1
+        },
+        {
+          "after": "CANDIDATE=Path('/tmp/hia-r10-byte-io-author-r1-dda7/overlay/tools/generate_hia_file_render_checker_word64_bytes.py')",
+          "before": "CANDIDATE=Path('/tmp/hia-r8-fuel-successor-analysis-r1-dda7/candidate-r2/overlay/tools/generate_hia_file_render_checker_word64.py')",
+          "count": 1
+        },
+        {
+          "after": "{'functions','blocks','ops','word64_projection','scalar_byte_projection'}",
+          "before": "{'functions','blocks','ops','word64_projection'}",
+          "count": 1
+        },
+        {
+          "after": "{'functions':107,'blocks':1456,'ops':6299}",
+          "before": "{'functions':107,'blocks':1456,'ops':6347}",
+          "count": 1
+        },
+        {
+          "after": "and len(p['removed_identity_casts'])==317\n    validate_scalar_byte_proof(counts)\n",
+          "before": "and len(p['removed_identity_casts'])==317\n",
+          "count": 1
+        },
+        {
+          "after": "generated/file_render_checker_word64_bytes.hepta",
+          "before": "generated/file_render_checker_word64.hepta",
+          "count": 1
+        },
+        {
+          "after": "a9e617c1262fddd4dd90c58b85dcfabe4399b878",
+          "before": "8dde3a64f7388f81f8996888c97d43def2b336db",
+          "count": 1
+        },
+        {
+          "after": "hepta.test-only.u32-r10-byte-io-roundtrip-reference.v1",
+          "before": "hepta.test-only.u32-r9-word64-roundtrip-reference.v1",
+          "count": 1
+        },
+        {
+          "after": "/tmp/hia-r10-controls-outer-r1-dda7",
+          "before": "/tmp/hia-r9-controls-outer-r1-dda7",
+          "count": 1
+        },
+        {
+          "after": "'metadata_binding_invocations':1,'product_executions':0",
+          "before": "'binders_or_products_executed':0",
+          "count": 1
+        }
+      ],
+      "path": "prepare_controls_author.py",
+      "whole_AST_inverse": true,
+      "whole_byte_inverse": true
+    },
+    {
+      "after": {
+        "bytes": 7932,
+        "git_blob": "0b1f34fb2c29321b7dcd7c22f0f62b4011760fb4",
+        "sha256": "cc150ba5775030d2662d7ed0e27b7c85bec826bee5427928719cb009c133cea1"
+      },
+      "before": {
+        "bytes": 7848,
+        "git_blob": "44aac057b121df9e46dd0a1fbc0071737edf9117",
+        "sha256": "5f86e5273116e36e6905286a13a770e82912482b55ab3e6938028f80e209f85a"
+      },
+      "insertion": null,
+      "literal_changes": [
+        {
+          "after": "R10",
+          "before": "R9",
+          "count": 8
+        },
+        {
+          "after": "assert fixture['build']['elf_inspection']['file_bytes']==elf['bytes']==json.loads(read(Path(roles['R10-root-proof']['path']))[0])['ELF']['bytes']<=1048576",
+          "before": "assert fixture['build']['elf_inspection']['file_bytes']==elf['bytes']==1040384",
+          "count": 1
+        }
+      ],
+      "path": "verify_controls_author.py",
+      "whole_AST_inverse": true,
+      "whole_byte_inverse": true
+    }
+  ],
+  "schema": "hia.R10.future-eight-group-binding-code-inverse.v1",
+  "status": "STATIC_AUTHORING_ONLY"
+}

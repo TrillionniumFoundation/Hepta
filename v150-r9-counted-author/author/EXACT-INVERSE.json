@@ -1,0 +1,223 @@
+{
+  "Counted_class_file": {
+    "bytes": 882,
+    "git_blob": "4c42e7e9d5e8bf147f5743c9db07a41223e14871",
+    "sha256": "17bcbe82f1d0fb4fde00e3e76106c474ef02381b82ccbae83e77726e5390e44a"
+  },
+  "Counted_class_file_whole_equal": true,
+  "files": {
+    "counted_support.py": {
+      "after": {
+        "bytes": 14886,
+        "git_blob": "7fef5eb96c9e7b5646e9b83a3592284e1e2bedfc",
+        "sha256": "c8be1960b0a29976867faabaafca851811e9d1ff3110b31ff936c5c257aa8e29"
+      },
+      "before": {
+        "bytes": 13241,
+        "git_blob": "1ffde0f7c501d09f009797b86e934d8f242d5215",
+        "sha256": "e9f06ac34c7cbcac8572ed03950b278c0f1546815ecd815562fe82a976bc4563"
+      },
+      "edits": [
+        {
+          "after": "one actual R9 Counted observation",
+          "before": "one original R8 Counted observation",
+          "count": 1
+        },
+        {
+          "after": "'/workspace/hia-r9-cross-counted-r1-dda7'",
+          "before": "'/hia-r8-cross-counted-r1-dda7'",
+          "count": 1
+        },
+        {
+          "after": "'R9-source'",
+          "before": "'R8-source'",
+          "count": 1
+        },
+        {
+          "after": "'R9-image'",
+          "before": "'R8-image'",
+          "count": 1
+        },
+        {
+          "after": "'R9-native-image'",
+          "before": "'R4-native-image'",
+          "count": 2
+        },
+        {
+          "after": "\ndef open_output_parent(plan):\n    \"\"\"Hold and verify exactly / and /workspace; caller owns returned fd.\"\"\"\n    expected=plan['output_ancestors']\n    require(set(expected)=={'/','/workspace'},'output ancestor set differs')\n    keys=('st_dev','st_ino','st_mode')\n    root_fd=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)\n    parent_fd=None\n    try:\n        def check(path,descriptor):\n            held=os.fstat(descriptor);named=Path(path).lstat()\n            require(stat.S_ISDIR(held.st_mode) and stat.S_ISDIR(named.st_mode)\n                and {k:getattr(held,k) for k in keys}==expected[path]\n                and {k:getattr(named,k) for k in keys}==expected[path],\n                'output ancestor identity differs: '+path)\n        check('/',root_fd)\n        parent_fd=os.open('workspace',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=root_fd)\n        check('/workspace',parent_fd)\n        named=os.stat('workspace',dir_fd=root_fd,follow_symlinks=False)\n        require({k:getattr(named,k) for k in keys}==expected['/workspace'],\n            'held root names a different workspace')\n        check('/',root_fd)\n        return parent_fd\n    except BaseException:\n        if parent_fd is not None:os.close(parent_fd)\n        raise\n    finally:\n        os.close(root_fd)\n\n\ndef output_parent_snapshot(plan):\n    descriptor=open_output_parent(plan)\n    try:\n        return {path:{k:getattr(Path(path).lstat(),k) for k in ('st_dev','st_ino','st_mode')}\n                for path in ('/','/workspace')}\n    finally:\n        os.close(descriptor)\n\n\ndef fixed(plan,name):",
+          "before": "\ndef fixed(plan,name):",
+          "count": 1
+        },
+        {
+          "after": "return {'controls':controls,'inputs':inputs,'runtime':runtime,\n            'environment':dict(os.environ),'python_version':sys.version,\n            'output_ancestors':output_parent_snapshot(plan)}",
+          "before": "return {'controls':controls,'inputs':inputs,'runtime':runtime,\n            'environment':dict(os.environ),'python_version':sys.version}",
+          "count": 1
+        }
+      ],
+      "whole_AST_inverse_equal": true,
+      "whole_byte_inverse_equal": true
+    },
+    "freeze_authoring.py": {
+      "after": {
+        "bytes": 13628,
+        "git_blob": "57b41faa136e9713f10a1d36dca54e671bcc118c",
+        "sha256": "b1dd645d3ae6694b4df51a1ba8c7ffd0cc79e8c0879c599c82c62c3013a78890"
+      },
+      "before": {
+        "bytes": 13140,
+        "git_blob": "531478f090c18adf5c24581ec461ca97712af84e",
+        "sha256": "f61b9d2117776147e43d3eb2fe2e5f90e9e67abd4f2e47ae49b00f4f3b469fc7"
+      },
+      "edits": [
+        {
+          "after": "ROOT=Path('/tmp/hia-r9-cross-counted-author-r1-dda7')",
+          "before": "ROOT=Path('/tmp/hia-r8-cross-counted-author-r1-dda7')",
+          "count": 1
+        },
+        {
+          "after": "OLD=Path('/tmp/hia-r8-r9-controls-author-r1-dda7')",
+          "before": "OLD=Path('/tmp/hia-u32-r8-post-reset-r4-dda7')",
+          "count": 1
+        },
+        {
+          "after": "EVIDENCE=Path('/hia-r8-r9-controls-20261114-dda7/semantic/evidence')",
+          "before": "EVIDENCE=Path('/dev/shm/hia-u32-r8-controls-r4-dda7/semantic/evidence')",
+          "count": 1
+        },
+        {
+          "after": "OUTPUT=Path('/workspace/hia-r9-cross-counted-r1-dda7')",
+          "before": "OUTPUT=Path('/hia-r8-cross-counted-r1-dda7')",
+          "count": 1
+        },
+        {
+          "after": "'R9-plan'",
+          "before": "'R4-plan'",
+          "count": 1
+        },
+        {
+          "after": "'R9-source-map'",
+          "before": "'R4-source-map'",
+          "count": 2
+        },
+        {
+          "after": "'R9-source'",
+          "before": "'R8-source'",
+          "count": 2
+        },
+        {
+          "after": "'R9-image'",
+          "before": "'R8-image'",
+          "count": 2
+        },
+        {
+          "after": "'R9-native-image'",
+          "before": "'R4-native-image'",
+          "count": 1
+        },
+        {
+          "after": "/hia-r8-r9-execution-20261114-dda7/generated/file_render_checker_word64.hepta",
+          "before": "/dev/shm/hia-u32-r8-input-view-r3-dda7/inputs/other/0007/R8.hepta",
+          "count": 1
+        },
+        {
+          "after": "/hia-r8-r9-execution-20261114-dda7/size-pack/R8.u32.image.bin",
+          "before": "/dev/shm/hia-u32-r8-input-view-r3-dda7/inputs/other/0002/R8.u32.image.bin",
+          "count": 1
+        },
+        {
+          "after": "5e998dee9ed4c5b4156ba3b778b218ca1fd5992c",
+          "before": "093489201db8aa0eade2e2a91eddf95463ada4ea",
+          "count": 1
+        },
+        {
+          "after": "4caa8a0e7c76128b260b8384689ecba873fd63e2",
+          "before": "3c4ef50a3c736d8d45905c2c452ce977f1e50c5a",
+          "count": 1
+        },
+        {
+          "after": "actual R9 changed",
+          "before": "actual R8 changed",
+          "count": 1
+        },
+        {
+          "after": "hepta.r9.cross-target-counted-",
+          "before": "hepta.r8.cross-target-counted-",
+          "count": 3
+        },
+        {
+          "after": "same actual R9 HIA/image",
+          "before": "same original R8 HIA/image",
+          "count": 1
+        },
+        {
+          "after": "'actual_R9_partial_buffer_binding'",
+          "before": "'actual_R4_partial_buffer_binding'",
+          "count": 1
+        },
+        {
+          "after": "'runtime':runtime,'fixed_inputs':fixed,'controls':controls,\n        'output_ancestors':{path:{k:getattr(Path(path).lstat(),k)\n            for k in ('st_dev','st_ino','st_mode')} for path in ('/','/workspace')},",
+          "before": "'runtime':runtime,'fixed_inputs':fixed,'controls':controls,",
+          "count": 1
+        },
+        {
+          "after": "'all_new_Python_AST_parse_only':['counted_machine.py','counted_support.py','run_cross_counted.py','freeze_authoring.py','project_authoring.py'],\n        'R8_to_R9_whole_inverse':json.loads(read(ROOT/'EXACT-INVERSE.json')[0]),\n        'runtime_guard_scope':'only executable and libpython two-file closure; not all2496 runtime files',\n        'output_ancestor_keys':['st_dev','st_ino','st_mode'],\n        'output_space_floor_from_held_directory':True,",
+          "before": "'all_new_Python_AST_parse_only':['counted_machine.py','counted_support.py','run_cross_counted.py','freeze_authoring.py'],",
+          "count": 1
+        }
+      ],
+      "whole_AST_inverse_equal": true,
+      "whole_byte_inverse_equal": true
+    },
+    "run_cross_counted.py": {
+      "after": {
+        "bytes": 19290,
+        "git_blob": "5655d53a1ac94b5f7fd885e2f589be6deb519ad7",
+        "sha256": "85a77323c0a55e901dccd66634ed62753fecb25bbda09df374c69fd1c759e35b"
+      },
+      "before": {
+        "bytes": 19123,
+        "git_blob": "17dee3d4b4200d7c3801212b42ef6adef2cd47cf",
+        "sha256": "71ca2c6bc5fae8701fbc45be237a43cc957a7c01f75b6050846ff97572b31f3a"
+      },
+      "edits": [
+        {
+          "after": "actual-R9 Counted diagnostic",
+          "before": "original-R8 Counted diagnostic",
+          "count": 1
+        },
+        {
+          "after": "hepta.r9.cross-target-counted-",
+          "before": "hepta.r8.cross-target-counted-",
+          "count": 2
+        },
+        {
+          "after": "'original_R9_VM6'",
+          "before": "'original_R4_VM6'",
+          "count": 1
+        },
+        {
+          "after": "==6347,",
+          "before": "==6664,",
+          "count": 1
+        },
+        {
+          "after": "actual original R9 IR denominator differs",
+          "before": "actual original R8 IR denominator differs",
+          "count": 1
+        },
+        {
+          "after": "S.require(output.is_absolute() and output.parent==Path('/workspace') and not os.path.lexists(output),'one-shot output exists or differs')\n    parent_fd=S.open_output_parent(plan)\n    try:\n        free=os.fstatvfs(parent_fd);S.require(free.f_bavail*free.f_frsize>=plan['minimum_free_bytes'],'original 3GiB floor not met')\n        os.mkdir(output.name,mode=0o700,dir_fd=parent_fd);created=True\n        S.output_parent_snapshot(plan)\n    finally:\n        os.close(parent_fd)",
+          "before": "S.require(output.is_absolute() and output.parent==Path('/') and not os.path.lexists(output),'one-shot output exists or differs')\n    free=os.statvfs(output.parent);S.require(free.f_bavail*free.f_frsize>=plan['minimum_free_bytes'],'original 3GiB floor not met')\n    output.mkdir(mode=0o700);created=True",
+          "count": 1
+        }
+      ],
+      "whole_AST_inverse_equal": true,
+      "whole_byte_inverse_equal": true
+    }
+  },
+  "product_executions": 0,
+  "project_imports": 0,
+  "schema": "hepta.r9.cross-counted-mechanical-inverse.v1",
+  "source_map_whole_equal": true,
+  "status": "STATIC_ONLY"
+}

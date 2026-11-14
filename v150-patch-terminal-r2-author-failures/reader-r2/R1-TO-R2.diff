@@ -1,0 +1,59 @@
+--- retained-r1/read_terminal.py
++++ r2/read_terminal.py
+@@ -2,10 +2,10 @@
+ from __future__ import annotations
+ import argparse,ast,hashlib,json,os,stat,time,re,struct,zlib
+ from pathlib import Path
+-AUTHOR=Path('/workspace/hia-patch-terminal-quarantine-qualification-terminal-reader-r1-dda7')
++AUTHOR=Path('/workspace/hia-patch-terminal-quarantine-qualification-terminal-reader-r2-dda7')
+ SCOPE=Path('/workspace/hia-patch-terminal-quarantine-qualification-r2-dda7')
+ OUTER=Path('/workspace/hia-patch-terminal-quarantine-qualification-outer-r2-dda7')
+-OUTPUT=Path('/workspace/hia-patch-terminal-quarantine-qualification-terminal-actual-r1-dda7')
++OUTPUT=Path('/workspace/hia-patch-terminal-quarantine-qualification-terminal-actual-r2-dda7')
+ TREE='b4f7d4862d6b391781808d603547ce3a504ffc83'
+ SCHEMA='hepta.hia.patch-terminal.qualification.v1'
+ SUCCESS='PASS_ALL_SIX_EXPLICIT_COHORTS_AND_EIGHT_DEVELOPMENT_BUILDS'
+@@ -109,10 +109,40 @@
+ 
+ 
+ def publish(path,value):
+-    b=(json.dumps(value,sort_keys=True,indent=2)+'\n').encode()
++    # Same JSONEncoder options, ordering, indentation and trailing LF as R1.
++    # Count the exact encoding before creation so the Git header is known.
++    expected_bytes=0;expected_sha=hashlib.sha256()
++    for text in json.JSONEncoder(sort_keys=True,indent=2).iterencode(value):
++        chunk=text.encode();expected_bytes+=len(chunk);expected_sha.update(chunk)
++    expected_bytes+=1;expected_sha.update(b'\n')
++    written_bytes=0;written_sha=hashlib.sha256()
++    written_git=hashlib.sha1(b'blob '+str(expected_bytes).encode()+b'\0')
+     fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o644)
+-    with os.fdopen(fd,'wb')as f:f.write(b)
+-    require(Path(path).read_bytes()==b,'reader evidence write failed')
++    with os.fdopen(fd,'wb')as stream:
++        for text in json.JSONEncoder(sort_keys=True,indent=2).iterencode(value):
++            chunk=text.encode();stream.write(chunk);written_bytes+=len(chunk)
++            written_sha.update(chunk);written_git.update(chunk)
++        stream.write(b'\n');written_bytes+=1;written_sha.update(b'\n');written_git.update(b'\n')
++    require(written_bytes==expected_bytes and written_sha.digest()==expected_sha.digest(),
++        'reader JSON encoding changed between exact streamed passes')
++    # Independent held/named complete readback; no complete JSON string/bytes copy.
++    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK)
++    try:
++        before=seven(os.fstat(fd))
++        require(stat.S_ISREG(before['st_mode'])and before['st_nlink']==1
++            and before==seven(Path(path).lstat())and before['st_size']==expected_bytes,
++            'reader streamed output physical identity differs')
++        actual_bytes=0;actual_sha=hashlib.sha256()
++        actual_git=hashlib.sha1(b'blob '+str(expected_bytes).encode()+b'\0')
++        while True:
++            chunk=os.read(fd,1048576)
++            if not chunk:break
++            actual_bytes+=len(chunk);actual_sha.update(chunk);actual_git.update(chunk)
++        require(actual_bytes==written_bytes and actual_sha.digest()==written_sha.digest()
++            and actual_git.digest()==written_git.digest()
++            and before==seven(os.fstat(fd))==seven(Path(path).lstat()),
++            'reader independent streamed full-byte double-hash verification failed')
++    finally:os.close(fd)
+ 
+ 
+ def source_authority(value, count):

@@ -1,0 +1,296 @@
+--- before/tools/generate_hia_file_render_checker_word64.py
++++ after/tools/generate_hia_file_render_checker_word64_bytes.py
+@@ -21,7 +21,7 @@
+ from tools import generate_hia_selfhost as compiler
+ from hepta.hia_agent_assembly import render_assembly
+ 
+-SOURCE = 'examples/hia_bootstrap/file_render_checker_word64.hepta'
++SOURCE = 'examples/hia_bootstrap/file_render_checker_word64_bytes.hepta'
+ PARENT_EXPANDED = 'fff28420e62b771a51518ed5e78d99275f8adb8a8deee90076c5854b085dba87'
+ COUNTS = {'functions': 256, 'blocks': 4096, 'operations': 16384,
+           'list_items': 256, 'SSA_per_function': 32768, 'block_parameters_total': 32768}
+@@ -1131,6 +1131,270 @@
+     return after,proof
+ 
+ 
++# R10 private scalar-byte successor: all physical accesses remain in order.
++BYTE_IO_R9_SOURCE_BYTES = 398741
++BYTE_IO_R9_SOURCE_SHA256 = '2f271037fa0adfbc1875fc7759bdf058842db57e1dee591db8e84122f8cad4e7'
++BYTE_IO_R9_COUNTS = {'functions': 107, 'blocks': 1456, 'ops': 6347}
++BYTE_IO_AFTER_COUNTS = {'functions': 107, 'blocks': 1456, 'ops': 6299}
++
++
++def _scalar_byte_trace(block, writing):
++    """Normalize just the reviewed straight-line byte/word algebra.
++
++    Each byte access is retained as an ordered event. Offset normalization is
++    modulo 2**64; no bound on an input offset or word value is assumed.
++    """
++    expected_types = ['mutbuf', 'usize'] + (['usize'] if writing else [])
++    if [p['type'] for p in block['params']] != expected_types:
++        raise ValueError('scalar-byte block parameter types differ')
++    env = {block['params'][0]['name']: ('buffer',),
++           block['params'][1]['name']: ('offset', 0)}
++    if writing:
++        env[block['params'][2]['name']] = ('word-shift', 0)
++    trace = []
++    def constant(value):
++        if value[0] != 'const' or type(value[1]) is not int:
++            raise ValueError('scalar-byte expected one integer constant')
++        return value[1]
++    def packed(value):
++        if value[0] != 'packed':
++            raise ValueError('scalar-byte expected packed read bytes')
++        return dict(value[1])
++    for instruction in block['ops']:
++        if set(instruction) != {'op', 'args', 'out', 'attrs'}:
++            raise ValueError('scalar-byte operation shape differs')
++        op, attrs, outputs = instruction['op'], instruction['attrs'], instruction['out']
++        args = [env[name] for name in instruction['args']]
++        value = None
++        if op == 'const':
++            if set(attrs) != {'value'} or type(attrs['value']) is not int:
++                raise ValueError('scalar-byte constant differs')
++            value = ('const', attrs['value'])
++        elif op == 'int.add.wrap':
++            if attrs or args[0][0] != 'offset':
++                raise ValueError('scalar-byte offset operation differs')
++            value = ('offset', (args[0][1] + constant(args[1])) % (1 << 64))
++        elif op == 'buffer.load':
++            if attrs or args[0] != ('buffer',) or args[1][0] != 'offset':
++                raise ValueError('scalar-byte load differs')
++            ordinal = sum(event[0] == 'load' for event in trace)
++            trace.append(('load', args[1][1]))
++            value = ('loaded-byte', ordinal)
++        elif op == 'int.cast':
++            if attrs != {'mode': 'wrap'} or len(outputs) != 1:
++                raise ValueError('scalar-byte cast differs')
++            target = outputs[0]['type']
++            if target == 'usize' and args[0][0] == 'loaded-byte':
++                value = ('packed', ((args[0][1], 0),))
++            elif target == 'u8' and args[0][0] in ('word-shift', 'masked-byte'):
++                value = ('write-byte', args[0][1])
++            else:
++                raise ValueError('scalar-byte unexpected cast domain')
++        elif op == 'int.shl.checked':
++            shift = constant(args[1])
++            if attrs or not 0 <= shift < 64:
++                raise ValueError('scalar-byte invalid left-shift count')
++            terms = {index: position + shift for index, position in packed(args[0]).items()}
++            if any(not 0 <= position <= 56 for position in terms.values()):
++                raise ValueError('scalar-byte packed term exceeds its full word')
++            value = ('packed', tuple(sorted(terms.items())))
++        elif op == 'bit.or':
++            if attrs:
++                raise ValueError('scalar-byte or attrs differ')
++            left, right = packed(args[0]), packed(args[1])
++            positions = list(left.values()) + list(right.values())
++            if set(left) & set(right) or any(abs(a-b) < 8 for i,a in enumerate(positions) for b in positions[i+1:]):
++                raise ValueError('scalar-byte packed lanes overlap')
++            value = ('packed', tuple(sorted(tuple(left.items()) + tuple(right.items()))))
++        elif op == 'int.shr.checked':
++            shift = constant(args[1])
++            if attrs or args[0][0] != 'word-shift' or not 0 <= shift < 64:
++                raise ValueError('scalar-byte right shift differs')
++            total = args[0][1] + shift
++            if total > 56:
++                raise ValueError('scalar-byte right shift exceeds selected byte')
++            value = ('word-shift', total)
++        elif op == 'bit.and':
++            if attrs or args[0][0] != 'word-shift' or constant(args[1]) != 255:
++                raise ValueError('scalar-byte mask is not the exact low-byte mask')
++            value = ('masked-byte', args[0][1])
++        elif op == 'buffer.store':
++            if (attrs or outputs or args[0] != ('buffer',)
++                    or args[1][0] != 'offset' or args[2][0] != 'write-byte'):
++                raise ValueError('scalar-byte store differs')
++            trace.append(('store', args[1][1], args[2][1]))
++        else:
++            raise ValueError('scalar-byte unexpected operation: '+op)
++        if value is not None:
++            if len(outputs) != 1 or outputs[0]['name'] in env:
++                raise ValueError('scalar-byte output is not fresh SSA')
++            env[outputs[0]['name']] = value
++    if block['term']['op'] != 'ret' or len(block['term']['values']) != 1:
++        raise ValueError('scalar-byte terminator differs')
++    return {'accesses': trace, 'returned_value': env[block['term']['values'][0]]}
++
++
++def _scalar_byte_operations(params, width, writing):
++    """Emit full-width operations; never omit or widen a physical byte access."""
++    operations = []
++    next_value = max(int(p['name'][1:]) for p in params) + 1
++    constants = {}
++    def operation(name, args, typ=None, attrs=None):
++        nonlocal next_value
++        outputs = []
++        if typ is not None:
++            result = 'v'+str(next_value)
++            next_value += 1
++            outputs = [{'name': result, 'type': typ}]
++        operations.append({'op': name, 'args': list(args), 'out': outputs, 'attrs': dict(attrs or {})})
++        return outputs[0]['name'] if outputs else None
++    def constant(value):
++        if value not in constants:
++            constants[value] = operation('const', [], 'usize', {'value': value})
++        return constants[value]
++    storage, offset = (p['name'] for p in params[:2])
++    if writing:
++        value = params[2]['name']
++        for index in range(width):
++            byte_value = operation('int.cast', [value], 'u8', {'mode': 'wrap'})
++            operation('buffer.store', [storage, offset, byte_value])
++            if index+1 < width:
++                offset = operation('int.add.wrap', [offset, constant(1)], 'usize')
++                value = operation('int.shr.checked', [value, constant(8)], 'usize')
++        result = constant(0)
++    else:
++        values = []
++        for index in range(width):
++            if index:
++                offset = operation('int.add.wrap', [offset, constant(1)], 'usize')
++            byte_value = operation('buffer.load', [storage, offset], 'u8')
++            values.append(operation('int.cast', [byte_value], 'usize', {'mode': 'wrap'}))
++        result = values[-1]
++        for value in reversed(values[:-1]):
++            result = operation('int.shl.checked', [result, constant(8)], 'usize')
++            result = operation('bit.or', [result, value], 'usize')
++    return operations, {'op': 'ret', 'values': [result]}
++
++
++def _scalar_byte_core_document(original):
++    """Change five exact scalar helpers, retaining every ordered byte effect."""
++    from hepta.hia_opcodes import WIDTHS
++    from hepta.hia_program import verify_program
++    if WIDTHS['usize'] != 64 or WIDTHS['u8'] != 8:
++        raise ValueError('scalar-byte primitive widths differ')
++    before = copy.deepcopy(original)
++    def counts(value):
++        return {'functions': len(value['functions']),
++                'blocks': sum(len(f['blocks']) for f in value['functions']),
++                'ops': sum(len(b['ops']) for f in value['functions'] for b in f['blocks'])}
++    raw = render_assembly(before).encode()
++    if (len(raw) != BYTE_IO_R9_SOURCE_BYTES or sha256(raw).hexdigest() != BYTE_IO_R9_SOURCE_SHA256
++            or counts(before) != BYTE_IO_R9_COUNTS
++            or [f['name'] for f in before['functions']] != ['f'+str(i) for i in range(107)]):
++        raise ValueError('scalar-byte exact actual R9 preimage differs')
++    after = copy.deepcopy(before)
++    edits, proofs = [], []
++    def replace(path, value):
++        parent = after
++        for key in path[:-1]:
++            parent = parent[key]
++        key = path[-1]
++        old = copy.deepcopy(parent[key])
++        edits.append({'path': path, 'before': old, 'after': copy.deepcopy(value)})
++        parent[key] = copy.deepcopy(value)
++    targets = ((22, 8, True), (23, 8, False), (24, 4, True), (25, 4, False))
++    for fi, width, writing in targets:
++        function = before['functions'][fi]
++        if (len(function['blocks']) != 1 or function['entry'] != function['blocks'][0]['id']
++                or function['params'] != function['blocks'][0]['params']
++                or function['returns'] != ['usize']):
++            raise ValueError('scalar-byte exact leaf function shape differs')
++        block = function['blocks'][0]
++        operations, term = _scalar_byte_operations(block['params'], width, writing)
++        replace(['functions', fi, 'blocks', 0, 'ops'], operations)
++        replace(['functions', fi, 'blocks', 0, 'term'], term)
++        old_trace = _scalar_byte_trace(block, writing)
++        new_trace = _scalar_byte_trace(after['functions'][fi]['blocks'][0], writing)
++        expected = ([('store', i, 8*i) for i in range(width)] if writing
++                    else [('load', i) for i in range(width)])
++        if old_trace != new_trace or old_trace['accesses'] != expected:
++            raise ValueError('scalar-byte ordered effects or return differ')
++        proofs.append({'function': function['name'], 'width_bytes': width, 'writing': writing,
++                       'before_ops': len(block['ops']), 'after_ops': len(operations),
++                       'normalized_trace': old_trace, 'equal': True})
++    # cp16's refusal/first-error path is left completely untouched. Only the
++    # already-existing low-byte mask in its successful store block is removed.
++    fi = 92
++    function = before['functions'][fi]
++    if (len(function['blocks']) != 3 or function['entry'] != 'b0'
++            or [b['id'] for b in function['blocks']] != ['b0', 'b1', 'b2']):
++        raise ValueError('scalar-byte cp16 CFG differs')
++    block = function['blocks'][2]
++    params = block['params']
++    if [p['type'] for p in params] != ['mutbuf', 'usize', 'usize']:
++        raise ValueError('scalar-byte cp16 success parameters differ')
++    operations = copy.deepcopy(block['ops'])
++    mask_constants = [op for op in operations if op['op'] == 'const' and op['attrs'] == {'value': 255}]
++    if len(mask_constants) != 1:
++        raise ValueError('scalar-byte cp16 mask constant differs')
++    mask_constant = mask_constants[0]
++    mask_name = mask_constant['out'][0]['name']
++    masks = [op for op in operations if op['op'] == 'bit.and'
++             and op['args'] == [params[2]['name'], mask_name] and op['attrs'] == {}]
++    if len(masks) != 1:
++        raise ValueError('scalar-byte cp16 mask site differs')
++    mask = masks[0]
++    masked_name = mask['out'][0]['name']
++    uses = [op for op in operations if masked_name in op['args']]
++    if (len(uses) != 1 or uses[0]['op'] != 'int.cast' or uses[0]['args'] != [masked_name]
++            or uses[0]['out'][0]['type'] != 'u8' or uses[0]['attrs'] != {'mode': 'wrap'}
++            or sum(mask_name in op['args'] for op in operations) != 1):
++        raise ValueError('scalar-byte cp16 low-byte use differs')
++    operations = [op for op in operations if op not in (mask_constant, mask)]
++    for op in operations:
++        op['args'] = [params[2]['name'] if name == masked_name else name for name in op['args']]
++    replace(['functions', fi, 'blocks', 2, 'ops'], operations)
++    old_trace = _scalar_byte_trace(block, True)
++    new_trace = _scalar_byte_trace(after['functions'][fi]['blocks'][2], True)
++    if (old_trace != new_trace or old_trace['accesses'] != [('store', 0, 0), ('store', 1, 8)]
++            or before['functions'][fi]['blocks'][:2] != after['functions'][fi]['blocks'][:2]):
++        raise ValueError('scalar-byte cp16 effects or error path differ')
++    proofs.append({'function': 'f92', 'width_bytes': 2, 'writing': True,
++                   'before_ops': len(block['ops']), 'after_ops': len(operations),
++                   'normalized_trace': old_trace, 'equal': True,
++                   'complete_refusal_and_first_error_blocks_unchanged': True})
++    restored = copy.deepcopy(after)
++    for edit in reversed(edits):
++        parent = restored
++        for key in edit['path'][:-1]:
++            parent = parent[key]
++        key = edit['path'][-1]
++        if parent[key] != edit['after']:
++            raise ValueError('scalar-byte inverse preimage differs')
++        parent[key] = copy.deepcopy(edit['before'])
++    if restored != before or counts(after) != BYTE_IO_AFTER_COUNTS:
++        raise ValueError('scalar-byte whole inverse or counts differ')
++    selected = {22, 23, 24, 25, 92}
++    if any(after['functions'][i] != before['functions'][i] for i in range(107) if i not in selected):
++        raise ValueError('scalar-byte changed an unselected function')
++    for fi in selected:
++        if {k:v for k,v in after['functions'][fi].items() if k != 'blocks'} != {
++                k:v for k,v in before['functions'][fi].items() if k != 'blocks'}:
++            raise ValueError('scalar-byte changed a function ABI or annotation')
++    verify_program(after)
++    encode = lambda value: json.dumps(value, sort_keys=True, separators=(',', ':')).encode()
++    return after, {'schema': 'hia.R10.private-scalar-byte-Core-projection.v1',
++                   'original_counts': counts(before), 'after_counts': counts(after),
++                   'original_core_sha256': sha256(encode(before)).hexdigest(),
++                   'after_core_sha256': sha256(encode(after)).hexdigest(),
++                   'full_word_bits': 64, 'ordered_full_byte_effects_equal': True,
++                   'new_field_range_or_initialization_assumption': False,
++                   'refusal_branch_unchanged': True, 'all_102_other_functions_unchanged': True,
++                   'external_f0_and_all_function_ABIs_unchanged': True,
++                   'whole_inverse_equal': True, 'edits': edits, 'helpers': proofs,
++                   'complete_original_Core_verifier_returned': True,
++                   'public_compiler_or_VM_changed': False, 'machine_size_or_fuel_PASS_claim': False}
++
+ def document():
+     namespace = dict(compiler.document.__globals__, source_program=source_program, Builder=DenseReplayBuilder)
+     method = FunctionType(compiler.document.__code__, namespace, compiler.document.__name__)
+@@ -1142,11 +1406,12 @@
+             or sha256(baseline).hexdigest() != WORD64_BASE_SOURCE_SHA256):
+         raise ValueError('word64 original rendered R8 bytes differ')
+     doc, word64_proof = _word64_core_document(doc)
++    doc, scalar_byte_proof = _scalar_byte_core_document(doc)
+     counts = {'functions': len(doc['functions']), 'blocks': sum(len(f['blocks']) for f in doc['functions']),
+               'ops': sum(len(b['ops']) for f in doc['functions'] for b in f['blocks'])}
+     if counts['functions'] > 128 or counts['blocks'] > 1536 or counts['ops'] > 8192:
+         raise ValueError('compact resident exceeds unchanged compiler author limits: ' + repr(counts))
+-    return doc, dict(counts, word64_projection=word64_proof)
++    return doc, dict(counts, word64_projection=word64_proof, scalar_byte_projection=scalar_byte_proof)
+ 
+ def main(argv=None):
+     parser = argparse.ArgumentParser(description=__doc__)

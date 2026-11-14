@@ -1,0 +1,45 @@
+{
+  "after": {
+    "bytes": 6803,
+    "git_blob": "68197e439d56bec966f69a816add7f9f77fb9909",
+    "sha256": "647438c5efcb75c1bb2e46327404c27096ed98a761542e54b9393a5184ce046b"
+  },
+  "before": {
+    "bytes": 6468,
+    "git_blob": "1fb11c76681840620daec373fb3bbb6452a41cf9",
+    "sha256": "16e7766d7f37531fb26540adc3198be45921429394c719a7ed3759014b4cf3a7"
+  },
+  "edits": [
+    {
+      "after": "def actual_get(path,expected,local_path=None):",
+      "before": "def actual_get(path,expected):"
+    },
+    {
+      "after": "need(b==read(Path(local_path) if local_path is not None else R/path)[0],'local wrapper differs from actual full GET')",
+      "before": "need(b==read(R/path)[0],'local wrapper differs from actual full GET')"
+    },
+    {
+      "after": " need(len(rows)==len(publication['files']),'initial publication pathset differs')\n for item in publication['files']:actual_get(item['path'],item['identity'],item.get('local_path'))",
+      "before": " need(len(rows)==len(publication['files'])==46,'initial publication denominator differs')\n for item in publication['files']:actual_get(item['path'],item['identity'])"
+    },
+    {
+      "after": " index=json.loads(actual_get('TRANSPORT-INDEX.json',rows['TRANSPORT-INDEX.json']['identity']))\n need(len(rows)==16+len(index['parts']),'fixed 16 metadata plus complete parts denominator differs')",
+      "before": " index=json.loads(actual_get('TRANSPORT-INDEX.json',rows['TRANSPORT-INDEX.json']['identity']))"
+    },
+    {
+      "after": "need(compared==manifest['file_count']==33 and byte_total==manifest['logical_bytes']==10674864",
+      "before": "need(compared==manifest['file_count']==2213 and byte_total==manifest['logical_bytes']==1122457162"
+    },
+    {
+      "after": "hepta.r9.terminal-readback.complete-originals.actual-Git-readback.v1",
+      "before": "hepta.r8.r9.complete-originals.actual-Git-readback.v1"
+    },
+    {
+      "after": "  'all9_actual_terminal_readback_outputs_present':True,'all20_author_files_including_R1_failure_present':True,\n  'all4_Root_review_execution_originals_present':True,'terminal_readback':'PASS_READBACK_OF_ACTUAL_R9_VM_FUEL_FAILURE',\n  'actual_full_buffer_payload_recipe':'90fa722cc35d3eec283193dcb4e7d72c59d9a36f',\n  'additional_reader_executions':0,",
+      "before": "  'Native163_full_frames_present':True,'VM6_including_original_fuel_failure_present':True,\n  'all_four_owners_and_source_control_guards_present':True,'all_fresh_admission_and_author_records_present':True,"
+    }
+  ],
+  "products": 0,
+  "reader_executions": 0,
+  "whole_inverse": true
+}

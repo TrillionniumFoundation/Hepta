@@ -1,0 +1,95 @@
+--- R4-sealer
++++ R9-sealer
+@@ -1,4 +1,4 @@
+-"""Complete immutable R4 data custody; stdlib only, zero products/CI."""
++"""Complete immutable R9 data custody; stdlib only, zero products/CI."""
+ from pathlib import Path
+ import gzip
+ import hashlib
+@@ -14,16 +14,30 @@
+ ROOT=Path(__file__).resolve().parent
+ KEYS=('st_dev','st_ino','st_mode','st_nlink','st_size','st_mtime_ns','st_ctime_ns')
+ ROOTS={
+- 'r4_actual':Path('/dev/shm/hia-u32-r8-controls-r4-dda7'),
+- 'r4_outer':Path('/tmp/hia-r8-original-controls-r4-outer-dda7'),
+- 'fresh_admission':Path('/tmp/hia-u32-r8-r4-fresh-admission-r1-dda7'),
+- 'admission_author':Path('/tmp/hia-u32-r8-r4-admission-author-r1-dda7'),
+- 'r4_author':Path('/tmp/hia-u32-r8-post-reset-r4-dda7'),
++ 'r9_actual':Path('/hia-r8-r9-controls-20261114-dda7'),
++ 'r9_outer':Path('/tmp/hia-r9-controls-outer-r1-dda7'),
++ 'fresh_admission':Path('/tmp/hia-r9-controls-fresh-admission-r1-dda7'),
++ 'r9_author':Path('/tmp/hia-r8-r9-controls-author-r1-dda7'),
+ }
+-EXTRAS={name:Path('/tmp/hia-progress-v148-20261114-dda7')/name for name in (
+- 'R8-PRODUCT-AUTHORIZATION-R4.json','launch_r8_products_r4.py',
+- 'R4-LAUNCHER-EXACT-INVERSE.json','R4-ROOT-STATIC-REVIEW.json',
+- 'R4-ACTUAL-TOOL-RETURNS.json','R4-OBSERVED-TERMINAL.json')}
++EXTRAS={
++ 'R9-CONTROLS-ADMISSION-EXEC.json':Path('/tmp/hia-progress-v149-20261114-dda7/R9-CONTROLS-ADMISSION-EXEC.json'),
++ 'R9-CONTROLS-ADMISSION-RETURN.json':Path('/tmp/hia-progress-v149-20261114-dda7/R9-CONTROLS-ADMISSION-RETURN.json'),
++ 'R9-CONTROLS-AUTHOR-RECIPE.json':Path('/tmp/hia-progress-v149-20261114-dda7/R9-CONTROLS-AUTHOR-RECIPE.json'),
++ 'R9-CONTROLS-EXEC.json':Path('/tmp/hia-progress-v149-20261114-dda7/R9-CONTROLS-EXEC.json'),
++ 'R9-CONTROLS-R2-EXEC.json':Path('/tmp/hia-progress-v149-20261114-dda7/R9-CONTROLS-R2-EXEC.json'),
++ 'R9-CONTROLS-R2-RETURN.json':Path('/tmp/hia-progress-v149-20261114-dda7/R9-CONTROLS-R2-RETURN.json'),
++ 'R9-CONTROLS-ROOT-LAUNCHER-R1-FAILURE-RETAINED.json':Path('/tmp/hia-progress-v149-20261114-dda7/R9-CONTROLS-ROOT-LAUNCHER-R1-FAILURE-RETAINED.json'),
++ 'author_r9_controls_admission.py':Path('/tmp/hia-progress-v149-20261114-dda7/author_r9_controls_admission.py'),
++ 'author_r9_controls_outer.py':Path('/tmp/hia-progress-v149-20261114-dda7/author_r9_controls_outer.py'),
++ 'author_r9_controls_outer_r2.py':Path('/tmp/hia-progress-v149-20261114-dda7/author_r9_controls_outer_r2.py'),
++ 'launch_r9_controls_r1.py':Path('/tmp/hia-progress-v149-20261114-dda7/launch_r9_controls_r1.py'),
++ 'launch_r9_controls_r2.py':Path('/tmp/hia-progress-v149-20261114-dda7/launch_r9_controls_r2.py'),
++ 'r9_controls_admission_body.py.txt':Path('/tmp/hia-progress-v149-20261114-dda7/r9_controls_admission_body.py.txt'),
++ 'r9_controls_outer_header.py.txt':Path('/tmp/hia-progress-v149-20261114-dda7/r9_controls_outer_header.py.txt'),
++ 'r9_controls_outer_main_prefix.py.txt':Path('/tmp/hia-progress-v149-20261114-dda7/r9_controls_outer_main_prefix.py.txt'),
++ 'verify_r9_controls_admission.py':Path('/tmp/hia-progress-v149-20261114-dda7/verify_r9_controls_admission.py'),
++ 'R9-ORIGINAL-SEMANTIC-REPORT.json':Path('/dev/shm/hia-u32-r8-controls-r4-dda7/semantic/evidence/compact-vm-remaining-r1/REPORT.json'),
++}
+ 
+ def need(ok,msg):
+  if not ok: raise AssertionError(msg)
+@@ -55,6 +69,7 @@
+  for label,root in ROOTS.items():
+   need(stat.S_ISDIR(root.lstat().st_mode),'missing input root')
+   for here,ds,ns in os.walk(root,followlinks=False):
++   if label=='r9_author' and Path(here)==root:ds[:]=[d for d in ds if d!='publication-r1']
+    ds.sort();ns.sort();here=Path(here)
+    need(stat.S_ISDIR(here.lstat().st_mode),'directory symlink')
+    dirs[label+'/'+here.relative_to(root).as_posix()]=stamp(here)
+@@ -73,7 +88,7 @@
+  start=time.monotonic_ns();files,dirs=inventory();before={n:stamp(p) for n,p in files.items()}
+  v=os.statvfs(ROOT);free=v.f_bavail*v.f_frsize
+  need(free>=268435456,'custody requires 256MiB available before writing archive')
+- dump(ROOT/'INTENT.json',{'schema':'hepta.r8.r4.complete-custody.intent.v1','all_original_files':files,
++ dump(ROOT/'INTENT.json',{'schema':'hepta.r9.controls.complete-custody.intent.v1','all_original_files':files,
+   'before_seven_stats':before,'directories':dirs,'products':0,'CI':0,'archive_only_no_unpacked_copy':True,
+   'raw_preserved':True,'maximum_compressed_bytes':268435456,'minimum_reserved_free_bytes':134217728,
+   'actual_qualification':'FAIL','failed_group':'semantic-remaining-vm','failed_VM':'root-v8-cross-target-loans',
+@@ -86,12 +101,12 @@
+   rows[name]=row;aliases.setdefault(sha,[]).append(name)
+   if sha not in unique:unique[sha]={'identity':ident,'source_path':p}
+   else:need(unique[sha]['identity']==ident,'CAS length/Git collision')
+- product=[r for n,r in rows.items() if n.startswith(('r4_actual/','r4_outer/'))]
+- need(len(product)==2105 and sum(r['identity']['bytes'] for r in product)==1110378385,'R4 actual originals changed')
+- need(sum(n.startswith('fresh_admission/') for n in rows)==5,'admission raw closure differs')
+- need(sum(n.startswith('admission_author/') for n in rows)==14,'admission author closure differs')
+- need(sum(n.startswith('r4_author/') for n in rows)==86,'R4 author closure differs')
+- manifest={'schema':'hepta.r8.r4.complete-custody.manifest.v1','files':rows,'directories':dirs,
++ product=[r for n,r in rows.items() if n.startswith(('r9_actual/','r9_outer/'))]
++ need(len(product)==2105 and sum(r['identity']['bytes'] for r in product)==1110456844,'R9 actual originals changed')
++ need(sum(n.startswith('fresh_admission/') for n in rows)==4,'admission raw closure differs')
++ need(sum(n.startswith('root_author/') for n in rows)==17,'Root original metadata closure differs')
++ need(sum(n.startswith('r9_author/') for n in rows)==87,'R9 author closure differs')
++ manifest={'schema':'hepta.r9.controls.complete-custody.manifest.v1','files':rows,'directories':dirs,
+   'file_count':len(rows),'logical_bytes':sum(r['identity']['bytes'] for r in rows.values()),
+   'objects':unique,'unique_objects':len(unique),'unique_bytes':sum(r['identity']['bytes'] for r in unique.values()),
+   'archive_storage_modes_are_transport_only':True,'all_original_modes_are_explicit_per_logical_file':True,
+@@ -132,8 +147,8 @@
+  need(len(seen)==len(unique)+1 and compared==len(rows),'complete transport/readback denominator differs')
+  after_files,after_dirs=inventory();need(after_files==files and after_dirs==dirs,'original raw pathset changed')
+  need({n:stamp(p) for n,p in files.items()}==before,'original stats changed')
+- report={'schema':'hepta.r8.r4.complete-custody.local-readback.v1','status':'PASS_COMPLETE_ORIGINAL_BYTES_AND_MODES',
+-  'original_qualification':'FAIL','all_actual_raw_files':2105,'all_actual_raw_bytes':1110378385,
++ report={'schema':'hepta.r9.controls.complete-custody.local-readback.v1','status':'PASS_COMPLETE_ORIGINAL_BYTES_AND_MODES',
++  'original_qualification':'FAIL','all_actual_raw_files':2105,'all_actual_raw_bytes':1110456844,
+   'all_files':len(rows),'logical_bytes':manifest['logical_bytes'],'unique_objects':len(unique),'unique_bytes':manifest['unique_bytes'],
+   'archive':archive_pin,'manifest':pin(mb),'archive_members':len(seen),'complete_gzip_footer_CRC':True,
+   'logical_files_full_byte_compared':compared,'all_original_seven_stats_unchanged':True,'pathsets_unchanged':True,
