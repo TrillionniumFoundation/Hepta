@@ -159,3 +159,43 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           include-hidden-files: true
+
+      - name: Create a verified complete lossless audit copy after the original upload
+        id: audit_copy
+        if: ${{ !cancelled() }}
+        timeout-minutes: 30
+        shell: bash
+        run: |
+          set -euo pipefail
+          audit_root="$RUNNER_TEMP/hia-full-retained-audit"
+          python -B "$GITHUB_WORKSPACE/harness/run-gate.py" audit-copy \
+            --original "$audit_root/artifact" --output "$audit_root/audit-copy" \
+            --github-output "$GITHUB_OUTPUT" \
+            > "$audit_root/audit-copy.stdout" 2> "$audit_root/audit-copy.stderr"
+
+      - name: Upload the verified complete XZ audit copy
+        if: ${{ !cancelled() && steps.audit_copy.outputs.upload_ready == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-full-retained-audit-complete-xz-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-full-retained-audit/audit-copy/original-evidence.tar.xz
+            ${{ runner.temp }}/hia-full-retained-audit/audit-copy/artifact-manifest.json
+            ${{ runner.temp }}/hia-full-retained-audit/audit-copy/collection-receipt.json
+            ${{ runner.temp }}/hia-full-retained-audit/audit-copy/audit-copy-receipt.json
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Retain the independent audit-copy delivery status
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-full-retained-audit-copy-status-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-full-retained-audit/audit-copy/audit-copy-receipt.json
+            ${{ runner.temp }}/hia-full-retained-audit/audit-copy.stdout
+            ${{ runner.temp }}/hia-full-retained-audit/audit-copy.stderr
+          if-no-files-found: error
+          retention-days: 30
+          include-hidden-files: true

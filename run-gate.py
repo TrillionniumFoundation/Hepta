@@ -140,7 +140,7 @@ EXTRA_COLD_COMPONENTS = (
     "PUBLICATION_MEASUREMENT", "SHA256_STREAM_DIFFERENTIAL",
     "FULL_COST", "PATCH_IMPACT", "CLI_DISCOVERY_JSON", "STATIC_BUDGET", "STORE_LIFECYCLE",
     "DEFAULT_RELEASE", "SERVICE_CONTEXT", "COST_LEDGER", "EVALUATION", "NATIVE_TRANSPORT",
-    "NATIVE_BUILD_ADMISSION", "NATIVE_BUILD_DISPATCH",
+    "NATIVE_BUILD_ADMISSION", "NATIVE_BUILD_DISPATCH", "EMISSION",
 )
 
 DEFAULT_RELEASE_SOURCE_CLASS = "tests.test_hia_default_native_release.DefaultReleaseSourceTests"
@@ -157,6 +157,8 @@ NATIVE_BUILD_ADMISSION_SOURCE_CLASS = "tests.test_hia_native_build_admission_nat
 NATIVE_BUILD_ADMISSION_NATIVE_CLASS = "tests.test_hia_native_build_admission_native.NativeBuildAdmissionNativeTests"
 NATIVE_BUILD_DISPATCH_SOURCE_CLASS = "tests.test_hia_native_build_dispatch.NativeBuildDispatchSourceTests"
 NATIVE_BUILD_DISPATCH_NATIVE_CLASS = "tests.test_hia_native_build_dispatch.NativeBuildDispatchNativeTests"
+EMISSION_SOURCE_CLASS = "tests.test_hia_emission_native.EmissionSourceTests"
+EMISSION_NATIVE_CLASS = "tests.test_hia_emission_native.EmissionNativeTests"
 
 # These classes occur only in complete discovery, not the source/native tuples
 # extracted by the unchanged v4. Keep their actual same-run build evidence for
@@ -189,6 +191,7 @@ FULL_DISCOVERY_EVIDENCE = {
     "native-transport": (NATIVE_TRANSPORT_NATIVE_CLASS, "HEPTA_HIA_NATIVE_TRANSPORT_EVIDENCE"),
     "native-build-admission": (NATIVE_BUILD_ADMISSION_NATIVE_CLASS, "HEPTA_HIA_NATIVE_BUILD_ADMISSION_EVIDENCE"),
     "native-build-dispatch": (NATIVE_BUILD_DISPATCH_NATIVE_CLASS, "HEPTA_HIA_NATIVE_BUILD_DISPATCH_EVIDENCE"),
+    "emission": (EMISSION_NATIVE_CLASS, "HEPTA_HIA_EMISSION_EVIDENCE"),
 }
 # The selected CLI callers use a separate fixture under the same evidence root.
 # They remain their own complete class in the original full discovery.
@@ -221,6 +224,7 @@ ADDITIONAL_DISCARDED_SELECTORS = (
     "HEPTA_HIA_NATIVE_TRANSPORT_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST", "HEPTA_HIA_NATIVE_BUILD_ADMISSION_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_NATIVE_BUILD_DISPATCH_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_EMISSION_MANIFEST", "HEPTA_HIA_EMISSION_DEVELOPMENT_COMPILER",
 )
 
 
@@ -244,6 +248,8 @@ def component_workflow_coverage(root):
         raise ValueError("native-build-admission source class must remain in the first extracted source tuple")
     if NATIVE_BUILD_DISPATCH_SOURCE_CLASS not in named[0]:
         raise ValueError("native-build-dispatch source class must remain in the first extracted source tuple")
+    if EMISSION_SOURCE_CLASS not in named[0]:
+        raise ValueError("emission source class must remain in the first extracted source tuple")
     groups = [node for node in ast.walk(ast.parse((root / RUNNER).read_bytes()))
               if isinstance(node, ast.Assign) and len(node.targets) == 1
               and getattr(node.targets[0], "id", None) == "groups"]
@@ -269,6 +275,7 @@ def component_workflow_coverage(root):
             "native_transport_source_class_in_first_source_tuple": True,
             "native_build_admission_source_class_in_first_source_tuple": True,
             "native_build_dispatch_source_class_in_first_source_tuple": True,
+            "emission_source_class_in_first_source_tuple": True,
             "retained_native_classes_first_execute_in_full_discovery": True,
             "extra_component_suite_reruns": False}
 
@@ -479,6 +486,7 @@ def require_observed_component_methods(discovery, identity):
     classes.append(NATIVE_TRANSPORT_SOURCE_CLASS)
     classes.append(NATIVE_BUILD_ADMISSION_SOURCE_CLASS)
     classes.append(NATIVE_BUILD_DISPATCH_SOURCE_CLASS)
+    classes.append(EMISSION_SOURCE_CLASS)
     checked = {}
     for name in classes:
         planned = [item for item in discovery["planned_test_ids"] if item.startswith(name + ".")]
@@ -501,6 +509,9 @@ def require_observed_component_methods(discovery, identity):
         if ((name == NATIVE_BUILD_DISPATCH_SOURCE_CLASS and len(planned) != 2)
                 or (name == NATIVE_BUILD_DISPATCH_NATIVE_CLASS and len(planned) != 3)):
             raise ValueError("native-build-dispatch requires both source and all three native methods")
+        if ((name == EMISSION_SOURCE_CLASS and len(planned) != 3)
+                or (name == EMISSION_NATIVE_CLASS and len(planned) != 8)):
+            raise ValueError("emission requires all three source and eight native methods")
         if (not planned or [row["id"] for row in observed] != planned
                 or (name == DEFAULT_RELEASE_NATIVE_CLASS and len(planned) != 12)
                 or not all(row.get("completion_observed") is True
@@ -2814,6 +2825,804 @@ def require_discovery_cli_companion(directory, authority, root, pins):
     return str(directory / "manifest.json")
 
 
+EMISSION_ORIGINAL_DIRECTORY = "tests/fixtures/hia_emission_original_73f1634/"
+EMISSION_ORIGINAL_SHA256 = {
+    "hia_emission_original_oracle.py": "c2aa8bda736a211adbcfcfd156de47e576cbb348f26f4370649782016ba4b1e2",
+    "original-freeze.json": "dec08c099ea1d262f1a3d32dc34801c816484bda6724fac60f5a8a1d5d8c4048",
+    "hia_emission_compile_73f1634.py.txt": "5286d998c3f3bed72e217b4fb774662003c6db225352bb26c32bba30f789023d",
+    "hia_emission_emit_73f1634.py.txt": "7c5968a59d591a1d056c5d1fad7b580f55c6c1032b636315df2878e2bb185679",
+    "cases.json": "a4e54267dbcfebced157c2f48dd8d9680364bb03fd7104ab4f509045554bfe68",
+}
+
+
+def emission_original_inputs(root, sources, pins):
+    documents = {}
+    for filename, digest in EMISSION_ORIGINAL_SHA256.items():
+        name = EMISSION_ORIGINAL_DIRECTORY + filename
+        raw = release_bytes(root / name, pins)
+        if hashlib.sha256(raw).hexdigest() != digest or sources.get(name) != digest:
+            raise ValueError("emission independently frozen original input differs: " + name)
+        documents[filename] = raw
+    original = json.loads(documents["original-freeze.json"])
+    cases = json.loads(documents["cases.json"])
+    rows = cases.get("cases", [])
+    if (original.get("schema") != "hepta.hia.emission-original-freeze.v1"
+            or original.get("base_commit") != "73f16346e7f84fa13305777a4595e2d1b422dee9"
+            or original.get("base_tree") != "979fcc94c1c6a045e7f6740c97d30c0fdded2dd3"
+            or cases.get("candidate_execution_before_freeze") is not False
+            or type(rows) is not list or len(rows) != 954
+            or any(type(row) is not dict or type(row.get("name")) is not str
+                   or type(row.get("mode")) is not int or row["mode"] not in (1, 2) for row in rows)
+            or len({row["name"] for row in rows}) != 954):
+        raise ValueError("emission complete original 954-case identity differs")
+    protocol_name = "hepta/hia_emission_protocol.py"
+    raw = release_bytes(root / protocol_name, pins)
+    if sources.get(protocol_name) != hashlib.sha256(raw).hexdigest():
+        raise ValueError("emission protocol is outside the same source custody")
+    nodes = [node for node in ast.parse(raw).body if isinstance(node, ast.Assign)
+             and any(isinstance(target, ast.Name) and target.id == "PORTS" for target in node.targets)]
+    if len(nodes) != 1:
+        raise ValueError("emission fixed foreign-port declaration is ambiguous")
+    ports = ast.literal_eval(nodes[0].value)
+    if (type(ports) is not tuple or len(ports) != 84 or len(set(ports)) != 84
+            or any(type(name) is not str or not name for name in ports)):
+        raise ValueError("emission fixed foreign-port inventory differs")
+    return original, rows, {name: index + 1 for index, name in enumerate(ports)}
+
+
+def emission_custody(directory, root, cold_path, compiler, sources, pins):
+    from tools.build_hia_emission import INPUTS, SOURCE_NAME
+    directory = Path(directory)
+    manifest_path = directory / "built/manifest.json"
+    manifest = require_release_compilation(directory / "built", "emission", SOURCE_NAME,
+                                          INPUTS, root, compiler, sources, pins)
+    build = release_json(directory / "built/build.json", pins)
+    custody = release_json(directory / "component-custody.json", pins)
+    scope = "DEVELOPMENT_COMPONENT" if cold_path is None else "MATCHING_SOURCE_COLD_COMPONENT"
+    causal_scope = "active same-process same-thread EmissionFrame ancestors"
+    facts = custody.get("runtime_protocol_facts", {})
+    if (manifest.get("schema") != "hepta.hia.emission-native.v1"
+            or manifest.get("source_sha256") != sources[SOURCE_NAME]
+            or manifest.get("compiler_sha256") != sha(compiler)
+            or manifest.get("image_sha256") != hashlib.sha256(release_bytes(manifest_path.parent / manifest["image_path"], pins)).hexdigest()
+            or build.get("schema") != "hepta.hia.emission-build.v1"
+            or build.get("scope") != scope or build.get("manifest") != manifest
+            or build.get("source_manifest") != (None if cold_path is None else sources)
+            or build.get("cold_report_sha256") != (None if cold_path is None else sha(cold_path))
+            or any(build.get(key) is not True for key in (
+                "two_complete_original_control_methods_owned_by_hia",
+                "control_branches_loops_and_cleanup_continuations_owned_by_hia",
+                "core_emitter_linker_store_filesystem_clock_hash_providers_hosted",
+                "foreign_object_and_numeric_protocols_hosted",
+                "dynamic_compile_lookup_and_keyword_presence_preserved",
+                "runtime_context_and_comprehension_facts_observed_without_version_threshold",
+                "active_exception_context_preserved_during_native_issued_cleanup",
+                "active_causal_native_loss_propagated_without_exception_type_inference"))
+            or build.get("retained_body_claim_scope") != "canonical selected route; explicit foreign callables remain unconstrained"
+            or build.get("causal_native_loss_scope") != causal_scope
+            or any(build.get(key) is not False for key in (
+                "retained_two_bodies_invoked", "whole_stack_rewritten_in_hia", "all_input_equivalence_proved",
+                "all_python_versions_tested", "cross_owner_native_delivery_loss_tracking_implemented"))
+            or custody.get("schema") != "hepta.hia.emission-test-custody.v1"
+            or custody.get("manifest") != str(manifest_path)
+            or custody.get("matching_cold_report") != (None if cold_path is None else str(cold_path))
+            or custody.get("compiler_sha256") != sha(compiler)
+            or custody.get("source_manifest_before") != sources or custody.get("source_manifest_after") != sources
+            or custody.get("source_and_compiler_unchanged") is not True
+            or custody.get("test_result_owned_by_outer_runner") is not True
+            or custody.get("canonical_and_explicit_foreign_override_scopes_distinct") is not True
+            or custody.get("causal_native_loss_scope") != causal_scope
+            or any(custody.get(key) is not False for key in (
+                "all_python_versions_tested", "all_input_equivalence_proved", "whole_native_delivery_qualified",
+                "cross_owner_native_delivery_loss_tracking_implemented"))
+            or type(custody.get("python_version")) is not str or not custody["python_version"]
+            or (cold_path is not None and custody["python_version"] != sys.version)
+            or type(facts) is not dict or set(facts) != {"context_lookup_order", "generator_reiterations"}
+            or facts.get("context_lookup_order") not in ([1, 2], [2, 1])
+            or any(type(value) is not int for value in facts["context_lookup_order"])
+            or type(facts.get("generator_reiterations")) is not int or facts["generator_reiterations"] < 0):
+        raise ValueError("emission first-full build, causal scope or source/compiler custody differs")
+    return manifest, custody
+
+
+def emission_observation_rows(path, names, modes, pins, originals=None):
+    records = release_json(path, pins)
+    if (type(records) is not list or [row.get("case") for row in records] != names
+            or len(names) != len(set(names))):
+        raise ValueError("emission complete ordered observation inventory differs")
+    result = {}
+    for row in records:
+        if (set(row) != {"case", "expected", "actual"}
+                or row["expected"].get("name") != row["case"]
+                or type(row["expected"].get("mode")) is not int
+                or row["expected"]["mode"] != modes[row["case"]]
+                or evaluation_json_bytes(row["expected"]) != evaluation_json_bytes(row["actual"])
+                or (originals is not None and evaluation_json_bytes(row["expected"])
+                    != evaluation_json_bytes(originals[row["case"]]))):
+            raise ValueError("emission original full trace, return alias or exception differs")
+        result[row["case"]] = row["expected"]
+    return result
+
+
+def emission_events(events, modes, ports):
+    if type(events) is not list or not events:
+        raise ValueError("emission native event trace is absent")
+    pending, opened = {}, []
+    for row in events:
+        if (type(row) is not dict or set(row) != {"mode", "event", "port"}
+                or any(type(value) is not int for value in row.values())
+                or row["mode"] not in modes or row["event"] not in range(4)
+                or row["port"] not in ({0} if row["event"] == 0 else set(ports.values()))):
+            raise ValueError("emission native event type, mode or port differs")
+        mode, event, port = row["mode"], row["event"], row["port"]
+        if event == 0:
+            if mode in pending:
+                raise ValueError("emission failure control has a duplicate frame initialization")
+            pending[mode] = None
+            opened.append(mode)
+        elif mode not in pending:
+            raise ValueError("emission event precedes its frame initialization")
+        elif event == 1:
+            if pending[mode] is not None:
+                raise ValueError("emission claimed a second effect before acknowledging the first")
+            pending[mode] = port
+        else:
+            if pending[mode] != port:
+                raise ValueError("emission acknowledgement differs from its claimed effect")
+            pending[mode] = None
+    if opened != modes:
+        raise ValueError("emission causal initialization order differs")
+    return pending
+
+
+def emission_control_observations(directory, root, sources, pins):
+    directory = Path(directory)
+    _, cases, ports = emission_original_inputs(root, sources, pins)
+    names = [row["name"] for row in cases]
+    modes = {row["name"]: row["mode"] for row in cases}
+    complete = directory / "test_954_independent_original_provider_and_cleanup_observations"
+    expected = emission_observation_rows(complete / "complete-observations.json", names, modes, pins)
+    counts = release_json(complete / "entry-counts.json", pins)
+    if (type(counts) is not dict or set(counts) != {"event_0", "event_1", "event_2", "event_3", "mode_1", "mode_2"}
+            or any(type(value) is not int or value <= 0 for value in counts.values())
+            or counts["mode_1"] != 431 or counts["mode_2"] != 649 or counts["event_0"] != 1080
+            or counts["event_1"] != counts["event_2"] + counts["event_3"]):
+        raise ValueError("emission complete 954-case actual frame/event accounting differs")
+    vm_names = ["compile.object", "compile.with.compile_failure_exit_bare_raise",
+                "compile.with.read_failure_suppressed", "emit.plan", "composed.plan_exports_receipts",
+                "composed.override_after_binding"]
+    vm = directory / "test_actual_native_full_buffers_match_independent_VM"
+    emission_observation_rows(vm / "vm-native-observations.json", vm_names, modes, pins, expected)
+    vm_counts = release_json(vm / "vm-native-entry-counts.json", pins)
+    if vm_counts != {"continuation": 512} or type(vm_counts.get("continuation")) is not int:
+        raise ValueError("emission original six full-buffer VM comparisons differ")
+    public = directory / "test_public_canonical_routes_preserve_overrides_without_retained_fallback"
+    public_names = ["compile.shared", "compile.object", "emit.canonical", "emit.plan", "composed.canonical",
+                    "composed.override_before_binding", "composed.override_after_binding"]
+    emission_observation_rows(public / "public-observations.json", public_names, modes, pins, expected)
+    original_manifest = release_bytes(directory / "built/manifest.json", pins)
+    original_image_name = json.loads(original_manifest)["image_path"]
+    if (release_bytes(public / "manifest.json", pins) != original_manifest
+            or release_bytes(public / original_image_name, pins)
+                != release_bytes(directory / "built" / original_image_name, pins) + b"\0"):
+        raise ValueError("emission explicit image-drift control is not the original one-NUL mutation")
+    protocol = release_json(directory / "test_owner_thread_and_forged_receipt_refuse_before_foreign_effects/protocol-observations.json", pins)
+    if (set(protocol) != {"foreign_thread_refused_before_effect", "forged_initial_receipt_refused_before_effect",
+                         "no_new_unknown_effect_custody"} or any(value is not True for value in protocol.values())):
+        raise ValueError("emission owner-thread or initial-receipt control differs")
+    errors = ("ValueError", "TypeError", "OSError", "OverflowError", "RecursionError", "OperationalError",
+              "MixedRejected", "RuntimeError", "KeyboardInterrupt", "SystemExit")
+    plans = (("compile.shared", "compile_call"), ("compile.shared", "compile_read"),
+             ("compile.shared", "compile_exit_normal"), ("compile.shared", "compile_store_object"),
+             ("compile.with.compile_failure_unsuppressed", "compile_exit_exception"),
+             ("emit.canonical", "emit_native_put"), ("emit.canonical", "emit_receipt_put"))
+    location = directory / "test_lost_ACK_preserves_effects_and_foreign_errors_follow_original_cleanup"
+    unknown = release_json(location / "native-loss.json", pins)
+    foreign = release_json(location / "confirmed-foreign.json", pins)
+    if type(unknown) is not list or len(unknown) != 70 or type(foreign) is not list or len(foreign) != 60:
+        raise ValueError("emission complete 70 native-loss and 60 foreign controls are absent")
+    for row, (name, port, error) in zip(unknown, ((name, port, error) for name, port in plans for error in errors)):
+        events, trace = row.get("events", []), row.get("trace", [])
+        emission_events(events, [modes[name]], ports)
+        raised = error if error in ("RuntimeError", "KeyboardInterrupt", "SystemExit") else "EmissionUnknown"
+        if (row.get("case") != name or row.get("port") != port or row.get("injected") != error
+                or row.get("raised") != raised or events[-1] != {"mode": modes[name], "event": 2, "port": ports[port]}
+                or any(row.get(key) is not True for key in ("original_exception_or_cause_identity_retained",
+                    "unknown_custody_retained", "no_replay_or_cleanup_after_loss"))
+                or not trace or evaluation_json_bytes(trace) != evaluation_json_bytes(expected[name]["trace"][:len(trace)])
+                or evaluation_json_bytes(row.get("store_effects"))
+                    != evaluation_json_bytes(expected[name]["store_effects"][:len(row.get("store_effects", []))])):
+            raise ValueError("emission lost native ACK was confirmed, replayed or changed its actual effect prefix")
+        temporaries = row.get("temporaries", [])
+        if port in ("compile_call", "compile_read") and temporaries != [{"entered": True, "exited": False, "exit_calls": 0}]:
+            raise ValueError("emission lost body ACK invented temporary-directory cleanup")
+    foreign_plans = [(name, port, error) for name, port in plans if port != "compile_exit_exception" for error in errors]
+    for row, (name, port, error) in zip(foreign, foreign_plans):
+        events = row.get("events", [])
+        pending = emission_events(events, [modes[name]], ports)
+        if (row.get("case") != name or row.get("port") != port or row.get("injected") != error
+                or any(value is not None for value in pending.values())
+                or [event["port"] for event in events if event["event"] == 3] != [ports[port]]
+                or any(row.get(key) is not True for key in (
+                    "same_exception_object", "confirmed_custody_released", "original_cleanup_completed"))):
+            raise ValueError("emission confirmed foreign exception lost identity, cleanup or acknowledgement")
+    nested = emission_nested_observations(directory, expected["composed.canonical"], ports, errors, pins)
+    return {"original_complete_cases": 954, "actual_native_counts": counts,
+            "canonical_full_trace_alias_and_exception_comparison": True,
+            "original_independent_VM_cases": 6, "actual_VM_native_entry_counts": vm_counts,
+            "VM_output_and_state_buffer_comparison_owned_by_original_full_test": True,
+            "raw_VM_buffers_separately_retained": False,
+            "public_default_and_override_cases": 7, "invalid_selectors_and_scope_refusal_owned_by_full_test": True,
+            "post_effect_native_loss_cases": 70, "confirmed_foreign_exception_cases": 60,
+            "same_owner_nested_observations": nested, "protocol_observations": protocol,
+            "cross_owner_native_delivery_loss_tracking_implemented": False,
+            "test_bodies_rerun_by_readback": False}
+
+
+def emission_nested_observations(directory, expected, ports, errors, pins):
+    location = Path(directory) / "test_nested_compile_native_loss_fences_ancestors_and_foreign_errors_confirm"
+    unknown = release_json(location / "nested-native-loss.json", pins)
+    foreign = release_json(location / "nested-confirmed-foreign.json", pins)
+    plans = [(port, error) for port in ("compile_call", "compile_exit_normal", "compile_store_object") for error in errors]
+    if type(unknown) is not list or type(foreign) is not list or len(unknown) != 30 or len(foreign) != 30:
+        raise ValueError("emission complete nested 30 native-loss and 30 foreign controls are absent")
+    for row, (port, error) in zip(unknown, plans):
+        events, trace = row.get("events", []), row.get("trace", [])
+        emission_events(events, [2, 1], ports)
+        raised = error if error in ("RuntimeError", "KeyboardInterrupt", "SystemExit") else "EmissionUnknown"
+        message = ("nested compile boundary failure" if raised == error
+                   else "native emission continuation observation failed")
+        unwind = {"event": "raise", "index": 1, "operation": "service._compile.call.original",
+                  "error": {"exception": raised, "args": {"tuple": [message]}}}
+        if (row.get("port") != port or row.get("injected") != error or row.get("raised") != raised
+                or row.get("active_causal_frames") != [2, 1]
+                or events[-1] != {"mode": 1, "event": 2, "port": ports[port]}
+                or any(event["event"] == 3 for event in events)
+                or any(row.get(key) is not True for key in ("original_exception_or_cause_identity_retained",
+                    "all_causal_unknown_custody_retained", "no_replay_after_loss"))
+                or not trace or evaluation_json_bytes(trace[-1]) != evaluation_json_bytes(unwind)
+                or evaluation_json_bytes(trace[:-1]) != evaluation_json_bytes(expected["trace"][:len(trace) - 1])
+                or evaluation_json_bytes(row.get("store_effects"))
+                    != evaluation_json_bytes(expected["store_effects"][:len(row.get("store_effects", []))])):
+            raise ValueError("emission nested native loss failed to retain both same-owner ancestors")
+    for row, (port, error) in zip(foreign, plans):
+        events = row.get("events", [])
+        pending = emission_events(events, [2, 1], ports)
+        if (row.get("port") != port or row.get("injected") != error
+                or row.get("confirmed_frames") != [1, 2]
+                or [event["mode"] for event in events if event["event"] == 3] != [1, 2]
+                or any(value is not None for value in pending.values())
+                or row.get("same_exception_object") is not True or row.get("all_causal_custody_released") is not True):
+            raise ValueError("emission nested genuine foreign exception was misclassified or retained")
+    return {"native_loss_cases": 30, "confirmed_foreign_cases": 30,
+            "same_owner_causal_frames": [2, 1], "cross_owner_native_delivery_loss_tracking_implemented": False,
+            "original_effect_prefix_and_exact_observed_outer_call_unwind": True,
+            "test_bodies_rerun_by_readback": False}
+
+
+def emission_wheel(location, sources, observation, pins):
+    wheels = sorted((location / "wheels").glob("*.whl"))
+    if len(wheels) != 1:
+        raise ValueError("emission needs the one actual installed wheel")
+    wheel = wheels[0]
+    files, distribution = release_wheel(wheel, pins)
+    source_python = {name for name in sources if name.startswith("hepta/") and name.endswith(".py")}
+    if not source_python <= set(files):
+        raise ValueError("emission wheel omitted production Python source")
+    for name, raw in files.items():
+        if name.startswith("hepta/"):
+            source_name = name.removeprefix("hepta/_data/") if name.startswith("hepta/_data/") else name
+            if sources.get(source_name) != hashlib.sha256(raw).hexdigest():
+                raise ValueError("emission wheel has unbound production bytes")
+        elif not name.startswith(distribution + "/"):
+            raise ValueError("emission wheel has unexpected members")
+    installed, actual = location / "installed", {}
+    for path in sorted(installed.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("emission installed file is a symlink")
+        if path.is_file():
+            actual[path.relative_to(installed).as_posix()] = release_bytes(path, pins)
+    record = distribution + "/RECORD"
+    member = "hepta/_data/examples/hia_bootstrap/emission.hepta"
+    extras = {"bin/hia", *(distribution + "/" + name for name in ("INSTALLER", "REQUESTED", "direct_url.json"))}
+    if (set(actual) != set(files) | extras or member not in files
+            or any(actual.get(name) != raw for name, raw in files.items() if name not in (record, member))
+            or actual.get(member) != files[member] + b"\n"):
+        raise ValueError("emission installation differs beyond its exact one-LF control")
+    recorded = dict(actual)
+    recorded[member] = files[member]
+    require_release_record(recorded, record, installed=True)
+    origin = json.loads(actual[distribution + "/direct_url.json"])
+    drift = observation.get("installed_source_drift", {})
+    if (origin.get("url") != wheel.as_uri()
+            or origin.get("archive_info", {}).get("hashes", {}).get("sha256") != pins[str(wheel)]
+            or observation.get("wheel") != str(wheel) or observation.get("wheel_sha256") != pins[str(wheel)]
+            or drift.get("before_sha256") != sources["examples/hia_bootstrap/emission.hepta"]
+            or drift["before_sha256"] != hashlib.sha256(files[member]).hexdigest()
+            or drift.get("after_sha256") != hashlib.sha256(actual[member]).hexdigest()):
+        raise ValueError("emission installed wheel origin or source drift differs")
+    return files, {"wheel": str(wheel), "wheel_sha256": pins[str(wheel)], "actual_wheel_members": len(files),
+        "actual_installed_files": len(actual), "all_other_product_bytes_equal_wheel": True,
+        "installed_RECORD_checked_against_exact_pre_drift_bytes": True,
+        "only_intentional_installed_mutation": {"member": member, "change": "append exactly one LF",
+            "before_sha256": drift["before_sha256"], "after_sha256": drift["after_sha256"]}}
+
+
+def emission_worker_counts(raw):
+    prefix = b"EMISSION_COUNTS="
+    found = [line[len(prefix):] for line in raw.splitlines() if line.startswith(prefix)]
+    if len(found) != 1:
+        raise ValueError("emission worker has no unique original count marker")
+    counts = json.loads(found[0])
+    if (type(counts) is not dict
+            or set(counts) != {"frames", "entries", "modes", "native_publications", "unknown_frames"}
+            or any(type(counts[key]) is not int or counts[key] < 0
+                   for key in ("frames", "entries", "native_publications", "unknown_frames"))
+            or type(counts["modes"]) is not dict or not set(counts["modes"]) <= {"1", "2"}
+            or any(type(value) is not int or value <= 0 for value in counts["modes"].values())
+            or sum(counts["modes"].values()) != counts["frames"]):
+        raise ValueError("emission worker native count shape differs")
+    return counts
+
+
+def emission_worker_streams(location, worker_sha, catalog_sha, bundle_sha, version, pins):
+    names = ("wheel", "install", "first", "replay", "native_ack", "native_ack-replay",
+             "process_loss", "process_loss-replay", "changed-installed-source")
+    logs = {name: {suffix: release_bytes(location / (name + "." + suffix), pins)
+                  for suffix in ("stdout", "stderr")} for name in names}
+    counts = {name: emission_worker_counts(logs[name]["stderr"]) for name in names[2:]}
+    zero = {"frames": 0, "entries": 0, "modes": {}, "native_publications": 0, "unknown_frames": 0}
+    if (counts["first"] != {"frames": 2, "entries": 116, "modes": {"1": 1, "2": 1},
+                            "native_publications": 1, "unknown_frames": 0}
+            or any(counts[name] != zero for name in ("replay", "native_ack-replay", "process_loss-replay",
+                                                    "changed-installed-source"))):
+        raise ValueError("emission original installed route or zero-entry replay differs")
+    for name, entries in (("native_ack", 112), ("process_loss", 111)):
+        if (counts[name] != {"frames": 2, "entries": entries, "modes": {"1": 1, "2": 1},
+                             "native_publications": 1, "unknown_frames": 1}
+                or logs[name]["stdout"]):
+            raise ValueError("emission actual lost worker did not retain the unfinished publication")
+    if (b"ValueError: controlled lost native publication acknowledgement" not in logs["native_ack"]["stderr"]
+            or b"EmissionUnknown" not in logs["native_ack"]["stderr"]
+            or logs["changed-installed-source"]["stdout"]):
+        raise ValueError("emission actual lost acknowledgement or source-drift streams differ")
+    reports = {name: json.loads(logs[name]["stdout"]) for name in (
+        "first", "replay", "native_ack-replay", "process_loss-replay")}
+    for report in reports.values():
+        if (report.get("schema") != "hia-agent-worker-report-v1" or report.get("tool") != "hia_emit"
+                or report.get("complete") is not True or report.get("worker_sha256") != worker_sha
+                or report.get("catalog_sha256") != catalog_sha or report.get("native_helpers_sha256") != bundle_sha
+                or report.get("profile_sha256") != "a" * 64
+                or report.get("response", {}).get("contract_version") != version
+                or re.fullmatch(r"[0-9a-f]{64}", str(report.get("request_sha256"))) is None
+                or re.fullmatch(r"[0-9a-f]{64}", str(report.get("backend_sha256"))) is None):
+            raise ValueError("emission installed worker or request identity differs")
+    if (evaluation_json_bytes(reports["first"]) != evaluation_json_bytes(reports["replay"])
+            or len({reports[name]["request_sha256"] for name in ("first", "native_ack-replay", "process_loss-replay")}) != 3
+            or len({report["backend_sha256"] for report in reports.values()}) != 1):
+        raise ValueError("emission installed replay identities are inconsistent")
+    return reports, counts
+
+
+def emission_retained_state(state):
+    if (type(state) is not dict or set(state) != {"request", "artifact_kinds", "artifacts", "costs"}
+            or state["request"] is not None and type(state["request"]) is not dict
+            or type(state["artifact_kinds"]) is not dict or type(state["artifacts"]) is not list
+            or type(state["costs"]) is not int or state["costs"] < 0
+            or any(type(key) is not str or type(value) is not int or value <= 0
+                   for key, value in state["artifact_kinds"].items())):
+        raise ValueError("emission retained journal/artifact/cost observation shape differs")
+    ids, kinds = [], {}
+    for row in state["artifacts"]:
+        if (type(row) is not dict or set(row) != {"id", "uri", "sha256", "content_key", "kind", "metadata"}
+                or any(type(value) is not str for value in row.values())
+                or re.fullmatch(r"[0-9a-f]{64}", row["sha256"]) is None):
+            raise ValueError("emission complete retained artifact row differs")
+        ids.append(row["id"])
+        kinds[row["kind"]] = kinds.get(row["kind"], 0) + 1
+    if ids != sorted(ids) or len(ids) != len(set(ids)) or kinds != state["artifact_kinds"]:
+        raise ValueError("emission retained artifact row inventory differs from its kind counts")
+    return state
+
+
+def emission_publication_delta(before, after, kinds):
+    emission_retained_state(before)
+    emission_retained_state(after)
+    if before["request"] is not None:
+        raise ValueError("emission publication control already had a request intent")
+    old = {row["id"]: row for row in before["artifacts"]}
+    new = {row["id"]: row for row in after["artifacts"]}
+    if any(evaluation_json_bytes(row) != evaluation_json_bytes(new.get(identity)) for identity, row in old.items()):
+        raise ValueError("emission publication changed a previously retained artifact")
+    for kind, amount in kinds.items():
+        if after["artifact_kinds"].get(kind, 0) - before["artifact_kinds"].get(kind, 0) != amount:
+            raise ValueError("emission observed publication count differs: " + kind)
+
+
+def emission_worker_journals(observation, reports, counts):
+    for name in ("first", "replay"):
+        row = observation.get(name, {})
+        if (evaluation_json_bytes(row.get("report")) != evaluation_json_bytes(reports[name])
+                or evaluation_json_bytes(row.get("counts")) != evaluation_json_bytes(counts[name])):
+            raise ValueError("emission installed observation differs from actual worker streams")
+    first = reports["first"].get("response", {})
+    result = first.get("result", {})
+    if (first.get("status") != "completed" or result.get("linker_used") is not True
+            or result.get("adopted") is not False or result.get("codegen_backend") != "hia-direct"
+            or any(result.get(key) is not False for key in (
+                "external_assembler_used", "llvm_codegen_used", "native_execution_observed"))):
+        raise ValueError("emission installed original publication response differs")
+    replay = observation.get("replay", {})
+    retained = emission_retained_state(replay.get("retained_before"))
+    request = retained["request"] or {}
+    emission_retained_state(replay.get("retained_after"))
+    if (request.get("tool") != "hia_emit" or request.get("state") != "completed"
+            or first.get("request_id") != "r-" + str(request.get("digest"))
+            or type(request.get("response")) is not str
+            or evaluation_json_bytes(json.loads(request["response"])) != evaluation_json_bytes(first)
+            or evaluation_json_bytes(retained) != evaluation_json_bytes(replay.get("retained_after"))
+            or evaluation_json_bytes(observation["first"].get("retained_after")) != evaluation_json_bytes(retained)):
+        raise ValueError("emission normal replay changed its complete retained observation")
+    emission_publication_delta(observation["first"].get("retained_before"), retained,
+                               {"build-object": 1, "native": 1, "build-receipt": 1})
+    for key, kind in (("native_artifact", "native"), ("build_receipt", "build-receipt")):
+        reference = result.get(key, {})
+        rows = [row for row in retained["artifacts"] if row["id"] == reference.get("id")]
+        if len(rows) != 1 or rows[0]["kind"] != kind or any(rows[0][name] != reference.get(name) for name in ("id", "uri", "sha256")):
+            raise ValueError("emission response publication is absent from actual retained artifact rows")
+    journals = {}
+    for name, code in (("native_ack", 1), ("process_loss", 73)):
+        row = observation.get(name, {})
+        before = emission_retained_state(row.get("retained_before_replay"))
+        after = emission_retained_state(row.get("retained_after_replay"))
+        report, request = reports[name + "-replay"], before["request"] or {}
+        emission_publication_delta(row.get("retained_before_attempt"), before,
+                                   {"build-object": 1, "native": 1, "build-receipt": 0})
+        if (type(row.get("lost_worker_exit_code")) is not int or row["lost_worker_exit_code"] != code
+                or evaluation_json_bytes(row.get("native_counts")) != evaluation_json_bytes(counts[name])
+                or evaluation_json_bytes(row.get("replay_counts")) != evaluation_json_bytes(counts[name + "-replay"])
+                or evaluation_json_bytes(row.get("replay")) != evaluation_json_bytes(report)
+                or report.get("response", {}).get("status") != "rejected"
+                or report["response"].get("error", {}).get("code") != "E_HIA_REQUEST_UNKNOWN"
+                or request.get("state") != "running" or request.get("response") is not None
+                or request.get("tool") != "hia_emit"
+                or report["response"].get("request_id") != "r-" + str(request.get("digest"))
+                or evaluation_json_bytes(request) != evaluation_json_bytes(after["request"])
+                or evaluation_json_bytes(before["artifacts"]) != evaluation_json_bytes(after["artifacts"])):
+            raise ValueError("emission unknown publication was completed, replayed or lost its retained artifacts")
+        journals[name] = request
+    drift = observation.get("installed_source_drift", {})
+    if (type(drift.get("worker_exit_code")) is not int or drift["worker_exit_code"] != 2
+            or evaluation_json_bytes(drift.get("native_counts")) != evaluation_json_bytes(counts["changed-installed-source"])):
+        raise ValueError("emission installed source drift did not reject before native execution")
+    return journals
+
+
+def require_emission_installation(directory, sources, manifest, pins):
+    from hepta import hia_agent_contract as contract
+    from hepta.hia_native_helpers import ABI, SCHEMA, TARGET
+    directory = Path(directory)
+    location = directory / "test_actual_installed_worker_publication_loss_replay_and_source_pinning"
+    observation = release_json(location / "installed-observations.json", pins)
+    files, installation = emission_wheel(location, sources, observation, pins)
+    manifest_path = directory / "built/manifest.json"
+    manifest_raw = release_bytes(manifest_path, pins)
+    image = release_bytes(manifest_path.parent / manifest["image_path"], pins)
+    bundle_path = location / "bundle.json"
+    bundle = release_json(bundle_path, pins)
+    bundle_sha = pins[str(bundle_path)]
+    if (json.loads(manifest_raw) != manifest or manifest.get("schema") != "hepta.hia.emission-native.v1"
+            or manifest.get("source_sha256") != sources["examples/hia_bootstrap/emission.hepta"]
+            or manifest.get("image_sha256") != hashlib.sha256(image).hexdigest()
+            or bundle != {"schema": SCHEMA, "target": TARGET, "abi": ABI, "helpers": [{
+                "selector": "HEPTA_HIA_EMISSION_MANIFEST", "manifest_path": str(manifest_path),
+                "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest()}]}
+            or observation.get("bundle_sha256") != bundle_sha
+            or any(observation.get(key) is not True for key in (
+                "both_references_forbidden_in_actual_child", "authoring_imports_forbidden_in_actual_child", "original_worker_used"))
+            or observation.get("qualification_topology") != "fresh-wheel actual installed worker with emission helper"
+            or observation.get("whole_native_delivery_qualified") is not False):
+        raise ValueError("emission actual installed child bundle or observed scope differs")
+    entries = {name: hashlib.sha256(raw).hexdigest() for name, raw in files.items()
+               if name.startswith("hepta/") and name.endswith(".py") and not name.startswith("hepta/_data/")}
+    resources = ["docs/" + name for name in contract.DISCOVERY_FILES]
+    for group in ("NATIVE_SOURCE_FILES", "SOURCE_BUILD_FILES", "COMPILER_BUILD_FILES", "PUBLICATION_BUILD_FILES",
+                  "BACKEND_BUILD_FILES", "EMITTER_BUILD_FILES", "BYTE_WRAPPER_BUILD_FILES",
+                  "MACHINE_OBJECT_BUILD_FILES", "EXECUTION_OBSERVATION_BUILD_FILES", "CONTINUATION_BUILD_FILES"):
+        resources.extend(getattr(contract, group))
+    for name in resources:
+        entries[name] = hashlib.sha256(files["hepta/_data/" + name]).hexdigest()
+    worker_sha = hashlib.sha256(evaluation_json_bytes(entries)).hexdigest()
+    reports, counts = emission_worker_streams(location, worker_sha,
+        entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"], bundle_sha, contract.VERSION, pins)
+    journals = emission_worker_journals(observation, reports, counts)
+    return {**installation, "worker_identity_derived_from_actual_wheel": worker_sha,
+            "actual_native_counts_from_original_stderr": counts, "retained_unknown_request_rows": journals,
+            "actual_process_loss_exit_code": 73, "actual_native_ack_failure_exit_code": 1,
+            "normal_and_unknown_replay_native_entries": 0,
+            "normal_replay_complete_retained_observation_preserved": True,
+            "unknown_replay_request_and_artifact_rows_preserved": True,
+            "retained_database_snapshot_scope": "original complete method serialized rows; temporary database removed after test",
+            "raw_request_envelopes_separately_retained": False,
+            "qualification_topology": "fresh-wheel actual installed worker with emission helper",
+            "installed_eight_owner_worker_observed": False,
+            "cross_owner_native_delivery_loss_tracking_implemented": False,
+            "test_bodies_rerun_by_readback": False, "whole_native_delivery_qualified": False}
+
+
+
+def emission_composition_observations(directory, expected_scope, pins):
+    report = release_json(Path(directory) / "composition.json", pins)
+    selectors = {"HEPTA_HIA_" + name + "_MANIFEST" for name in (
+        "STORE_LIFECYCLE", "SERVICE_CONTEXT", "EXECUTION_BUDGET", "CANDIDATE_BUDGET", "COST_LEDGER", "EVALUATION", "NATIVE_BUILD_ADMISSION", "EMISSION")}
+    counts = report.get("actual_native_entries", {})
+    before, after, delta = (report.get(key, {}) for key in (
+        "entries_before_replay", "entries_after_replay", "replay_additional_entries"))
+    if (report.get("schema") != "hepta.hia.emission-eight-owner-composition.v1"
+            or report.get("qualification_topology") != "source-process eight-owner public composition"
+            or report.get("installed_eight_owner_worker_observed") is not False
+            or report.get("cross_owner_native_delivery_loss_tracking_implemented") is not False
+            or report.get("scope") != expected_scope or report.get("original_context_wall_ms") != 3000
+            or report.get("original_native_wall_ms") != 1000
+            or any(type(row) is not dict or set(row) != selectors for row in (counts, before, after, delta))
+            or any(type(value) is not int or value <= 0 for row in (counts, before, after) for value in row.values())
+            or any(type(value) is not int or value != 0 for value in delta.values())
+            or before != after or any(counts[key] < after[key] for key in selectors)
+            or report.get("durable_changes_on_replay") != 0 or type(report.get("durable_changes_on_replay")) is not int
+            or report.get("reference_calls") != []
+            or any(report.get(key) is not True for key in (
+                "all_eight_retained_policy_references_forbidden", "all_four_admission_retained_bodies_forbidden",
+                "both_emission_retained_bodies_forbidden",
+                "hosted_request_journal_sqlite_runner_and_object_protocols_retained",
+                "source_and_compiler_custody_owned_by_outer_component"))
+            or report.get("whole_native_delivery_qualified") is not False):
+        raise ValueError("emission eight-owner composition or exact native replay differs")
+    first = report.get("first_response", {})
+    result = first.get("result", {})
+    adoption = report.get("adoption_response", {})
+    if (first.get("status") != "completed"
+            or adoption.get("status") != "completed"
+            or evaluation_json_bytes(adoption) != evaluation_json_bytes(report.get("adoption_replay"))
+            or adoption.get("result", {}).get("active_artifact") != result.get("candidate_artifact")
+            or evaluation_json_bytes(first) != evaluation_json_bytes(report.get("replayed_response"))
+            or any(result.get(key) is not True for key in (
+                "report_complete", "planned_workload_complete", "termination_confirmed"))
+            or result.get("adopted") is not False):
+        raise ValueError("emission composed public response or replay differs")
+    adoption_before, adoption_after, adoption_delta = (report.get(key, {}) for key in (
+        "adoption_entries_before_replay", "adoption_entries_after_replay", "adoption_replay_additional_entries"))
+    if (any(type(row) is not dict or set(row) != selectors for row in (adoption_before, adoption_after, adoption_delta))
+            or any(type(value) is not int or value <= 0 for row in (adoption_before, adoption_after) for value in row.values())
+            or any(type(value) is not int or value != 0 for value in adoption_delta.values())
+            or adoption_before != adoption_after or any(counts[key] < adoption_after[key] for key in selectors)
+            or type(report.get("adoption_durable_changes_on_replay")) is not int
+            or report["adoption_durable_changes_on_replay"] != 0):
+        raise ValueError("emission composed adoption replay native or durable delta differs")
+    for arm in ("baseline", "candidate"):
+        emitted = report.get(arm + "_emission", {})
+        if (emitted.get("linker_used") is not True or emitted.get("adopted") is not False
+                or evaluation_json_bytes(emitted.get("native_artifact")) != evaluation_json_bytes(result.get(arm + "_artifact"))):
+            raise ValueError("emission composed evaluation does not use its actual emitted artifact")
+    documents = {"measurements": report.get("measurements", {}), "full_cost_ledger": report.get("ledger", {}),
+                 "evaluation_receipt": report.get("evaluation_receipt", {})}
+    for name, value in documents.items():
+        if result.get(name, {}).get("sha256") != hashlib.sha256(evaluation_json_bytes(value)).hexdigest():
+            raise ValueError("emission composed artifact body differs from its actual reference: " + name)
+    measurement, ledger, receipt = (documents[name] for name in ("measurements", "full_cost_ledger", "evaluation_receipt"))
+    if (type(measurement.get("planned_cases")) is not int or measurement.get("planned_cases") != 1 or len(measurement.get("observations", [])) != 1
+            or measurement.get("planned_workload_complete") is not True
+            or measurement.get("universal_equivalence_or_native_refinement_proved") is not False
+            or ledger.get("full_search_cost_complete") is not False or ledger.get("net_optimization_benefit_proved") is not False
+            or ledger.get("context") != measurement.get("context") or receipt.get("context") != ledger.get("context")
+            or receipt.get("candidate_artifact") != result.get("candidate_artifact")
+            or receipt.get("measurements") != result["measurements"]
+            or receipt.get("full_cost_ledger") != result["full_cost_ledger"]):
+        raise ValueError("emission composed artifact contracts or cross-references differ")
+    for arm in ("baseline", "candidate"):
+        run = measurement.get("native_runs", {}).get(arm, {}).get("normal", {})
+        if run.get("started") is not True or run.get("termination_confirmed") is not True or run.get("status") != "returned":
+            raise ValueError("emission composed native runner was not actually completed")
+    budget = report.get("budget_before_replay", {})
+    if (set(budget) != {"context_id", "owner", "used_native_ns"} or budget.get("owner") is not None
+            or budget.get("context_id") != ledger.get("context", {}).get("id")
+            or type(budget.get("used_native_ns")) is not str or re.fullmatch(r"[1-9][0-9]*", budget["used_native_ns"]) is None
+            or budget["used_native_ns"] != ledger.get("native_child_wall_ns")
+            or evaluation_json_bytes(budget) != evaluation_json_bytes(report.get("budget_after_replay"))):
+        raise ValueError("emission composed native budget was not confirmed and preserved on replay")
+    return report
+
+
+def emission_event_accounting(report, planned):
+    frames = report.get("actual_emission_frames")
+    events = report.get("actual_native_event_counts", {})
+    modes = report.get("frames_by_mode", {})
+    allowed = {"continuation:" + str(event) for event in range(4)}
+    mandatory = allowed - {"continuation:3"}
+    if (type(frames) is not int or frames <= 0 or type(events) is not dict
+            or not mandatory <= set(events) <= allowed
+            or any(type(value) is not int or value <= 0 for value in events.values())
+            or events["continuation:0"] != frames
+            or events["continuation:1"] != events["continuation:2"] + events.get("continuation:3", 0)
+            or type(modes) is not dict or set(modes) != {"1", "2"}
+            or any(type(value) is not int or value <= 0 for value in modes.values())
+            or sum(modes.values()) != frames):
+        raise ValueError("emission actual frame, mode or native event observations differ")
+    frame_rows = report.get("frames_by_original_test", {})
+    event_rows = report.get("native_event_counts_by_original_test", {})
+    if (type(frame_rows) is not dict or not set(frame_rows) <= set(planned)
+            or any(type(value) is not int or value <= 0 for value in frame_rows.values())
+            or sum(frame_rows.values()) != frames or type(event_rows) is not dict
+            or set(event_rows) != set(frame_rows)):
+        raise ValueError("emission frame counts lack original caller identities")
+    totals = {}
+    for identity, row in event_rows.items():
+        if (type(row) is not dict or not set(row) <= allowed
+                or any(type(value) is not int or value <= 0 for value in row.values())
+                or row.get("continuation:0", 0) != frame_rows[identity]
+                or row.get("continuation:1", 0) != row.get("continuation:2", 0) + row.get("continuation:3", 0)):
+            raise ValueError("emission per-method native event accounting differs")
+        for key, value in row.items():
+            totals[key] = totals.get(key, 0) + value
+    if totals != events:
+        raise ValueError("emission aggregate entries differ from per-test observations")
+    return frames, events
+
+
+def require_emission_callers(directory, root, sources, discovery, manifest_path, pins):
+    from tools.qualify_hia_emission_callers import FIXTURE_NAME
+    from tools.build_hia_emission import INPUTS, SOURCE_NAME
+    from tools.hia_selfhost_contract import file_digests
+    directory, manifest_path = Path(directory), Path(manifest_path)
+    manifest = release_json(manifest_path, pins)
+    build = release_json(manifest_path.with_name("build.json"), pins)
+    report = release_json(directory / "report.json", pins)
+    original, original_files, adjustments, descriptions, planned = emission_original_inventory(
+        root, sources, discovery, pins)
+    names = set(file_digests(root)) | {*INPUTS, *original_files, FIXTURE_NAME,
+                                      "tools/qualify_hia_emission_callers.py"}
+    source_pins = {name: hashlib.sha256(release_bytes(root / name, pins)).hexdigest() for name in names}
+    bundle_pins = {}
+    for path in sorted(manifest_path.parent.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("emission caller build contains a symlink")
+        if path.is_file():
+            bundle_pins[str(path)] = hashlib.sha256(release_bytes(path, pins)).hexdigest()
+    scopes = {"MATCHING_SOURCE_COLD_NINE_ORDINARY_EMISSION_CALLER_MODULES",
+              "EXPLICIT_DEVELOPMENT_NINE_ORDINARY_EMISSION_CALLER_MODULES"}
+    expected_build_scope = ("MATCHING_SOURCE_COLD_COMPONENT" if report.get("scope", "").startswith("MATCHING_SOURCE_COLD_")
+                            else "DEVELOPMENT_COMPONENT")
+    if (report.get("schema") != "hepta.hia.emission-nine-ordinary-callers.v1"
+            or report.get("status") != "PASS" or report.get("scope") not in scopes
+            or build.get("scope") != expected_build_scope
+            or report.get("original_baseline_commit") != original["base_commit"]
+            or report.get("original_modules") != original["ordinary_modules"]
+            or not (report.get("planned") == report.get("started") == report.get("stopped") == planned)
+            or type(report.get("actual_tests")) is not int or report["actual_tests"] != 112
+            or any(report.get(key) != [] for key in (
+                "errors", "failures", "skipped", "expected_failures", "unexpected_successes", "reference_calls"))
+            or report.get("both_retained_bodies_forbidden") is not True
+            or report.get("reference_poison_scope") != "test process; subprocesses inherit selector, not Python patches"
+            or report.get("all_nine_ordinary_modules_unfiltered") is not True
+            or report.get("original_test_budgets_changed") is not False or report.get("source_and_bundle_unchanged") is not True
+            or report.get("original_registry_count_assertion_adjustments") != adjustments
+            or report.get("separate_original_administrator_scope_gates") != original["separate_scope_modules"]
+            or report.get("whole_project_dynamic_caller_closure_claimed") is not False
+            or report.get("whole_native_delivery_qualified") is not False
+            or manifest.get("schema") != "hepta.hia.emission-native.v1"
+            or manifest.get("source_sha256") != sources[SOURCE_NAME]
+            or report.get("native_image_sha256") != manifest["image_sha256"]
+            or bundle_pins.get(str(manifest_path.parent / manifest["image_path"])) != manifest["image_sha256"]
+            or report.get("source_pins") != source_pins or not bundle_pins or report.get("bundle_pins") != bundle_pins
+            or any(name in sources and sources[name] != digest for name, digest in source_pins.items())
+            or any(name not in sources and name not in original_files for name in source_pins)):
+        raise ValueError("emission complete 112 caller observations or captured inputs differ")
+    frames, events = emission_event_accounting(report, planned)
+    observed = audit_verbose_stderr(release_bytes(directory / "tests.log", pins),
+        {"planned_test_ids": planned, "test_descriptions": descriptions})
+    if observed["equivalent"] is not True:
+        raise ValueError("emission original verbose log lacks all 112 successful methods in order")
+    return {"actual_tests": 112, "actual_emission_frames": frames, "actual_native_event_counts": events,
+            "actual_control_entries": sum(value for key, value in events.items() if key.startswith("continuation:")),
+            "frames_by_mode": report["frames_by_mode"],
+            "source_pin_count": len(source_pins), "bundle_pin_count": len(bundle_pins),
+            "original_verbose_identity": observed, "complete_original_inventory_count": 240,
+            "original_registry_count_assertion_adjustments": adjustments,
+            "separate_administrator_scope_inventory_modules": original["separate_scope_modules"],
+            "reference_poison_scope": report["reference_poison_scope"], "observed_report_scope": report["scope"],
+            "original_test_budgets_changed": False, "whole_project_dynamic_caller_closure_claimed": False,
+            "test_bodies_rerun_by_readback": False, "whole_native_delivery_qualified": False}
+
+
+def emission_original_inventory(root, sources, discovery, pins):
+    from tools.qualify_hia_emission_callers import FIXTURE_NAME, FIXTURE_SHA256, admit_original_sources
+    original, _, _ = emission_original_inputs(root, sources, pins)
+    modules = original.get("ordinary_modules", [])
+    separate = original.get("separate_scope_modules", [])
+    inventory = original.get("callers", {})
+    if (FIXTURE_NAME != EMISSION_ORIGINAL_DIRECTORY + "original-freeze.json"
+            or FIXTURE_SHA256 != EMISSION_ORIGINAL_SHA256["original-freeze.json"]
+            or len(modules) != 9 or len(set(modules)) != 9 or len(separate) != 8 or len(set(separate)) != 8
+            or set(modules) & set(separate) or set(inventory) != set(modules) | set(separate)
+            or original.get("ordinary_count") != 112 or original.get("separate_scope_count") != 128):
+        raise ValueError("emission complete frozen ordinary/separate caller inventory differs")
+    all_ids = [identity for module in (*modules, *separate) for identity in inventory[module]["recorded_ids"]]
+    if (len(all_ids) != 240 or len(set(all_ids)) != 240
+            or sum(len(inventory[module]["recorded_ids"]) for module in separate) != 128):
+        raise ValueError("emission complete original 240-method inventory differs")
+    original_files = {row["path"]: row["sha256"] for row in inventory.values()}
+    adjustments = admit_original_sources(root, original)
+    for module, row in inventory.items():
+        observed = [item["id"] for item in discovery["test_descriptions"] if item["id"].startswith(module + ".")]
+        if row.get("path") != module.replace(".", "/") + ".py" or observed != row.get("recorded_ids"):
+            raise ValueError("emission complete original caller module differs: " + module)
+    descriptions = [row for module in modules for row in discovery["test_descriptions"]
+                    if row["id"].startswith(module + ".")]
+    planned = [row["id"] for row in descriptions]
+    if planned != original.get("ordinary_ordered_ids") or len(planned) != 112 or len(set(planned)) != 112:
+        raise ValueError("emission original complete 112-method order differs")
+    return original, original_files, adjustments, descriptions, planned
+
+
+def require_emission_composition(directory, root, cold_path, compiler, sources, pins):
+    from tools.build_hia_native_build_admission import INPUTS as ADMISSION_INPUTS
+    from tools.build_hia_store_lifecycle import INPUTS as STORE_INPUTS
+    from tools.build_hia_service_context import INPUTS as CONTEXT_INPUTS
+    from tools.build_hia_cost_ledger import INPUTS as LEDGER_INPUTS
+    from tools.build_hia_evaluation import INPUTS as EVALUATION_INPUTS
+    directory = Path(directory)
+    composition = directory / "test_eight_owner_emission_evaluation_adoption_and_exact_replay/eight-owner-composition"
+    report = emission_composition_observations(composition, "MATCHING_SOURCE_COLD_COMPONENT", pins)
+    manifests = {"HEPTA_HIA_EMISSION_MANIFEST": directory / "built/manifest.json"}
+    for selector, label, compile_label, source_name, inputs in (
+            ("NATIVE_BUILD_ADMISSION", "native-build-admission", "native_build_admission", "native_build_admission", ADMISSION_INPUTS),
+            ("STORE_LIFECYCLE", "store-lifecycle", "store-lifecycle", "store_lifecycle", STORE_INPUTS),
+            ("SERVICE_CONTEXT", "service-context", "service-context", "service_context", CONTEXT_INPUTS),
+            ("COST_LEDGER", "cost-ledger", "cost-ledger", "cost_ledger", LEDGER_INPUTS),
+            ("EVALUATION", "evaluation", "evaluation", "evaluation", EVALUATION_INPUTS)):
+        manifest_path = composition / label / "manifest.json"
+        source_name = "examples/hia_bootstrap/" + source_name + ".hepta"
+        require_cold_component(manifest_path, source_name, sha(cold_path), sha(compiler), sources, pins)
+        require_release_compilation(manifest_path.parent, compile_label, source_name, inputs, root, compiler, sources, pins)
+        manifests["HEPTA_HIA_" + selector + "_MANIFEST"] = manifest_path
+    for selector, label, source_name in (
+            ("EXECUTION_BUDGET", "execution-budget", "execution_budget"),
+            ("CANDIDATE_BUDGET", "candidate-budget", "candidate_budget")):
+        manifests["HEPTA_HIA_" + selector + "_MANIFEST"] = require_evaluation_budget_build(
+            composition / label, label, "examples/hia_bootstrap/" + source_name + ".hepta",
+            root, cold_path, compiler, sources, pins)
+    bundle_sha = evaluation_composition_bundle(composition, report, manifests, pins)
+    return {"bundle_sha256": bundle_sha, "manifests": report["manifests"],
+            "actual_native_entries": report["actual_native_entries"],
+            "replay_additional_entries": report["replay_additional_entries"],
+            "adoption_replay_additional_entries": report["adoption_replay_additional_entries"],
+            "actual_artifact_bodies_bound_to_response": True, "actual_emissions_bound_to_evaluated_artifacts": True,
+            "native_budget_before_after_retained_and_equal": True,
+            "qualification_topology": "source-process eight-owner public composition",
+            "installed_eight_owner_worker_observed": False,
+            "cross_owner_native_delivery_loss_tracking_implemented": False,
+            "all_original_context_and_native_budgets_preserved": True,
+            "evaluation_and_adoption_replay_native_and_SQL_deltas_retained": True,
+            "test_bodies_rerun_by_readback": False, "whole_native_delivery_qualified": False}
+
+
+def require_emission_component(directory, root, cold_path, compiler, sources, pins):
+    directory = Path(directory)
+    manifest_path = directory / "built/manifest.json"
+    require_cold_component(manifest_path, "examples/hia_bootstrap/emission.hepta",
+                           sha(cold_path), sha(compiler), sources, pins)
+    manifest, custody = emission_custody(directory, root, cold_path, compiler, sources, pins)
+    return {"scope": "MATCHING_SOURCE_COLD_COMPONENT", "manifest": str(manifest_path),
+            "image_sha256": manifest["image_sha256"], "runtime_protocol_facts": custody["runtime_protocol_facts"],
+            "controls": emission_control_observations(directory, root, sources, pins),
+            "installation": require_emission_installation(directory, sources, manifest, pins),
+            "eight_owner_composition": require_emission_composition(directory, root, cold_path, compiler, sources, pins),
+            "source_and_compiler_custody_verified": True, "test_result_owned_by_original_full_runner": True,
+            "test_bodies_rerun_by_supplement": False,
+            "cross_owner_native_delivery_loss_tracking_implemented": False,
+            "whole_native_delivery_qualified": False, "passed": True}
+
+
+
 def supplemental(args):
     """Run additional caller gates and original bounded CLI qualification."""
     require_native_runner()
@@ -2831,6 +3640,7 @@ def supplemental(args):
     native_transport = None
     native_build_admission = None
     native_build_dispatch = None
+    emission = None
     sha_image_bound = False
     try:
         if read_pinned_json(args.target, pins) != target:
@@ -2915,6 +3725,8 @@ def supplemental(args):
         native_build_dispatch = require_native_build_dispatch_component(retained / "native-build-dispatch", root,
                                                                         cold_path, compiler, sources, pins)
         added_components["native-build-dispatch"] = native_build_dispatch["manifest"]
+        emission = require_emission_component(retained / "emission", root, cold_path, compiler, sources, pins)
+        added_components["emission"] = emission["manifest"]
         discovery_root = retained / "cli-discovery-json"
         for name in ("CliDiscoveryJsonNativeTests", "CliDiscoverySelectionFixture"):
             fixture_path = discovery_root / name / "cold-fixture/FIXTURE.json"
@@ -2983,8 +3795,12 @@ def supplemental(args):
             ("native-build-admission-callers", ["tools/qualify_hia_native_build_admission_callers.py",
                 "--cold-report", str(cold_path), "--evidence", str(output / "native-build-admission-callers")], {}),
         )
+        emission_jobs = (
+            ("emission-callers", ["tools/qualify_hia_emission_callers.py",
+                "--cold-report", str(cold_path), "--evidence", str(output / "emission-callers")], {}),
+        )
         for name, arguments, selection in (*jobs, *service_context_jobs, *cost_ledger_jobs, *evaluation_jobs,
-                                           *native_build_admission_jobs):
+                                           *native_build_admission_jobs, *emission_jobs):
             command = [sys.executable, "-B", *arguments]
             record = {"name": name, "command": command, "passed": False}
             try:
@@ -3010,6 +3826,7 @@ def supplemental(args):
                         "cost-ledger-callers": "MATCHING_SOURCE_COLD_SEVEN_ORDINARY_COST_LEDGER_CALLER_MODULES",
                         "evaluation-callers": "MATCHING_SOURCE_COLD_SEVEN_ORDINARY_EVALUATION_CALLER_MODULES",
                         "native-build-admission-callers": "MATCHING_SOURCE_COLD_NINE_ORDINARY_NATIVE_BUILD_ADMISSION_CALLER_MODULES",
+                        "emission-callers": "MATCHING_SOURCE_COLD_NINE_ORDINARY_EMISSION_CALLER_MODULES",
                     }[name]
                     record["passed"] = bool(record["passed"] and report.get("status") == "PASS"
                         and report.get("scope") == expected_scope
@@ -3110,6 +3927,14 @@ def supplemental(args):
                                                     INPUTS, root, compiler, sources, pins)
                         record["native_build_admission_original_observations"] = require_native_build_admission_callers(
                             output / name, root, sources, discovery, manifest_path, pins)
+                    elif name == "emission-callers":
+                        from tools.build_hia_emission import INPUTS, SOURCE_NAME
+                        manifest_path = output / name / "qualified/manifest.json"
+                        require_cold_component(manifest_path, SOURCE_NAME, cold_sha, compiler_sha, sources, pins)
+                        require_release_compilation(manifest_path.parent, "emission", SOURCE_NAME,
+                                                    INPUTS, root, compiler, sources, pins)
+                        record["emission_original_observations"] = require_emission_callers(
+                            output / name, root, sources, discovery, manifest_path, pins)
                 elif name == "cli-discovery-original-groups":
                     from tools import qualify_hia_cli_discovery_json as original_discovery
                     report = read_pinned_json(output / name / "REPORT.json", pins)
@@ -3203,7 +4028,8 @@ def supplemental(args):
                   and native_transport is not None and native_transport["passed"]
                   and native_build_admission is not None and native_build_admission["passed"]
                   and native_build_dispatch is not None and native_build_dispatch["passed"]
-                  and len(commands) == 14 and all(row["passed"] for row in commands))
+                  and emission is not None and emission["passed"]
+                  and len(commands) == 15 and all(row["passed"] for row in commands))
     write_json(output / "supplemental-result.json", {
         "schema": "hepta.hia.same-cold-supplemental-callers.v1", "target": target,
         "scope": "MISSING_CALLER_GATES_AND_PRODUCTION_SHA_BINDING_AFTER_UNCHANGED_ORIGINAL_FULL",
@@ -3218,6 +4044,7 @@ def supplemental(args):
         "native_transport_full_discovery_artifact_readback": native_transport,
         "native_build_admission_full_discovery_artifact_readback": native_build_admission,
         "native_build_dispatch_full_discovery_artifact_readback": native_build_dispatch,
+        "emission_full_discovery_artifact_readback": emission,
         "production_sha_image_matches_actual_executed_differential_image": sha_image_bound,
         "commands": commands, "captured_inputs": pins, "original_35_stages_modified": False,
         "original_component_test_suites_rerun": False,
@@ -3226,6 +4053,7 @@ def supplemental(args):
         "cost_ledger_job_12_modified": False,
         "evaluation_job_13_modified": False,
         "native_build_admission_job_14_modified": False,
+        "emission_job_15_added": True,
         "service_context_original_caller_gate_attempted": any(
             row["name"] == "service-context-callers" for row in commands),
         "cost_ledger_seven_ordinary_caller_gate_attempted": any(
@@ -3234,6 +4062,8 @@ def supplemental(args):
             row["name"] == "evaluation-callers" for row in commands),
         "native_build_admission_nine_ordinary_caller_gate_attempted": any(
             row["name"] == "native-build-admission-callers" for row in commands),
+        "emission_nine_ordinary_caller_gate_attempted": any(
+            row["name"] == "emission-callers" for row in commands),
         "additional_bounded_cli_groups_observed": next((row.get("observed_groups", [])
             for row in commands if row["name"] == "cli-discovery-original-groups"), []),
         "additional_bounded_cli_caller_gate_attempted": any(
@@ -3545,6 +4375,232 @@ def collect(args):
     return 0
 
 
+def audit_copy_tar_payload(stream, manifest, manifest_raw):
+    """Verify every recorded member without extracting or rebuilding the tar."""
+    files = manifest["files"]
+    directories = manifest["original_evidence_directories"]
+    expected_files = {"evidence/" + name: row for name, row in files.items()}
+    embedded = "evidence/artifact-manifest.json"
+    expected_files[embedded] = {"bytes": len(manifest_raw), "sha256": hashlib.sha256(manifest_raw).hexdigest()}
+    expected_directories = {"evidence", *("evidence/" + name for name in directories)}
+    for name in (*expected_files, *expected_directories):
+        path = Path(name)
+        if path.is_absolute() or ".." in path.parts or path.as_posix() != name:
+            raise ValueError("audit copy manifest contains a non-canonical archive path")
+        expected_directories.update(parent.as_posix() for parent in path.parents if parent.as_posix() != ".")
+    expected_names = set(expected_files) | expected_directories
+    seen, ordered_members = set(), hashlib.sha256()
+    with tarfile.open(fileobj=stream, mode="r|", bufsize=1024 * 1024) as archive:
+        for member in archive:
+            if (member.name in seen or member.name not in expected_names
+                    or not (member.isfile() or member.isdir())
+                    or "mtime" not in member.pax_headers):
+                raise ValueError("audit copy has an unexpected, duplicate or unsupported original member")
+            seen.add(member.name)
+            mtime_ns = int(Decimal(member.pax_headers["mtime"]) * 1_000_000_000)
+            member_digest = None
+            if member.isfile():
+                if member.name not in expected_files:
+                    raise ValueError("audit copy replaced an original directory with a file")
+                expected = expected_files[member.name]
+                if member.size != expected["bytes"]:
+                    raise ValueError("audit copy changed an original file size")
+                with archive.extractfile(member) as body:
+                    member_digest = hashlib.file_digest(body, "sha256").hexdigest()
+                if member_digest != expected["sha256"]:
+                    raise ValueError("audit copy changed original evidence bytes")
+            else:
+                if member.name not in expected_directories or member.size != 0:
+                    raise ValueError("audit copy replaced an original file with a directory")
+                expected = directories.get(member.name.removeprefix("evidence/"), {})
+            if ("mode_octal" in expected and member.mode != int(expected["mode_octal"], 8)
+                    or "mtime_ns" in expected and mtime_ns != expected["mtime_ns"]):
+                raise ValueError("audit copy changed recorded original modes or nanosecond timestamps")
+            observed = {"name": member.name, "kind": "file" if member.isfile() else "directory",
+                        "bytes": member.size, "sha256": member_digest, "mode": member.mode,
+                        "mtime_ns": mtime_ns, "uid": member.uid, "gid": member.gid,
+                        "uname": member.uname, "gname": member.gname, "pax_headers": member.pax_headers}
+            ordered_members.update(evaluation_json_bytes(observed) + b"\n")
+    if seen != expected_names:
+        raise ValueError("audit copy omitted an original archive member")
+    # tarfile may stop at the tar end marker. The remaining decoded bytes are
+    # still part of the original payload and must enter the stream hash/copy.
+    while stream.read(1024 * 1024):
+        pass
+    return {"verified_archive_member_count": len(seen), "verified_original_file_count": len(files),
+            "ordered_member_observations_sha256": ordered_members.hexdigest()}
+
+
+def audit_copy(args):
+    """Create one verified complete XZ copy after the original upload has run.
+
+    This command never changes qualification results or the original archive.
+    It accepts only an archive collected by the current exact five-file harness.
+    """
+    import gzip
+    import lzma
+
+    output = args.output.resolve()
+    output.mkdir(parents=True, exist_ok=False)
+    receipt_path = output / "audit-copy-receipt.json"
+    record = {"schema": "hepta.hia.full-retained-audit-lossless-copy.v1", "status": "HOLD",
+              "scope": "COMPLETE_ORIGINAL_TAR_PAYLOAD_COPY_NOT_A_QUALIFICATION_RESULT",
+              "qualification_result_changed": False, "original_collect_replaced": False,
+              "original_archive_removed": False, "split_or_range_delivery_used": False,
+              "upload_ready": False, "error": None}
+    before = {}
+    try:
+        source = args.original.resolve(strict=True)
+        original_paths = {name: source / name for name in (
+            "original-evidence.tar.gz", "artifact-manifest.json", "collection-receipt.json")}
+        for name, path in original_paths.items():
+            observed = path.lstat()
+            if not stat.S_ISREG(observed.st_mode):
+                raise ValueError("original audit archive input is not a regular file")
+            before[name] = {"bytes": observed.st_size, "sha256": sha(path),
+                            "mode": stat.S_IMODE(observed.st_mode), "mtime_ns": observed.st_mtime_ns,
+                            "device": observed.st_dev, "inode": observed.st_ino}
+        record["original_inputs_before"] = before
+        manifest_raw = original_paths["artifact-manifest.json"].read_bytes()
+        collection_raw = original_paths["collection-receipt.json"].read_bytes()
+        manifest, collection = json.loads(manifest_raw), json.loads(collection_raw)
+        if (manifest.get("schema") != "hepta.hia.full-retained-audit-artifact.v1"
+                or manifest.get("scope") != "ORIGINAL_SUCCESS_FAILURE_AND_PARTIAL_EVIDENCE_NOT_A_PASS_CLAIM"
+                or type(manifest.get("files")) is not dict or type(manifest.get("original_evidence_directories")) is not dict
+                or collection.get("archive") != "original-evidence.tar.gz"
+                or type(collection.get("bytes")) is not int
+                or collection["bytes"] != before["original-evidence.tar.gz"]["bytes"]
+                or collection.get("sha256") != before["original-evidence.tar.gz"]["sha256"]
+                or collection.get("artifact_manifest_sha256") != hashlib.sha256(manifest_raw).hexdigest()
+                or type(collection.get("retained_file_count")) is not int
+                or collection["retained_file_count"] != len(manifest["files"])
+                or type(collection.get("verified_archive_member_count")) is not int
+                or any(collection.get(key) is not True for key in (
+                    "all_archived_bytes_hashes_types_modes_and_mtimes_read_back",
+                    "original_modes_recorded_and_archived", "failure_or_interrupted_results_not_rewritten"))):
+            raise ValueError("original complete collection receipt or manifest differs")
+        harness = Path(__file__).resolve().parent
+        harness_hashes = {}
+        for relative, archived in HARNESS_FILES.items():
+            digest = sha(harness / relative)
+            if manifest["files"].get("harness/" + archived, {}).get("sha256") != digest:
+                raise ValueError("archive was not collected by this exact current five-file harness")
+            harness_hashes[relative] = digest
+        if not lzma.is_check_supported(lzma.CHECK_SHA256):
+            raise ValueError("the runtime lacks the required XZ SHA-256 integrity check")
+        record["source_harness_files_sha256"] = harness_hashes
+        parameters = {"format": "XZ", "preset": 9, "extreme": True, "integrity_check": "SHA256",
+                      "implementation": "Python stdlib lzma.LZMACompressor", "parallel_streams": 1,
+                      "python_version": sys.version, "bit_identical_compression_across_library_versions_claimed": False}
+        compressor = lzma.LZMACompressor(format=lzma.FORMAT_XZ,
+                                        preset=9 | lzma.PRESET_EXTREME, check=lzma.CHECK_SHA256)
+        partial = output / "original-evidence.tar.xz.partial"
+
+        class PayloadReader:
+            def __init__(self, raw, write=None):
+                self.raw, self.write = raw, write
+                self.digest, self.bytes = hashlib.sha256(), 0
+
+            def read(self, count=-1):
+                data = self.raw.read(count)
+                self.digest.update(data)
+                self.bytes += len(data)
+                if self.write is not None:
+                    self.write(data)
+                return data
+
+        class StrictXZReader:
+            def __init__(self, raw):
+                self.raw = raw
+                self.decoder = lzma.LZMADecompressor(format=lzma.FORMAT_XZ)
+                self.buffer, self.finished = bytearray(), False
+
+            def read(self, count):
+                if count < 0:
+                    raise ValueError("audit copy requires bounded streaming reads")
+                while len(self.buffer) < count and not self.finished:
+                    incoming = self.raw.read(1024 * 1024) if self.decoder.needs_input else b""
+                    if self.decoder.needs_input and not incoming:
+                        raise ValueError("audit copy XZ stream ended before its checksum")
+                    self.buffer.extend(self.decoder.decompress(incoming, max_length=max(count, 1024 * 1024)))
+                    if self.decoder.eof:
+                        if (self.decoder.check != lzma.CHECK_SHA256
+                                or self.decoder.unused_data or self.raw.read(1)):
+                            raise ValueError("audit copy XZ has a wrong checksum type or unverified trailing stream")
+                        self.finished = True
+                data = bytes(self.buffer[:count])
+                del self.buffer[:count]
+                return data
+
+        with original_paths["original-evidence.tar.gz"].open("rb") as raw, \
+                gzip.GzipFile(fileobj=raw, mode="rb") as decoded, partial.open("xb") as encoded:
+            def encode(data):
+                encoded.write(compressor.compress(data))
+            original = PayloadReader(decoded, encode)
+            original_members = audit_copy_tar_payload(original, manifest, manifest_raw)
+            encoded.write(compressor.flush())
+        del compressor
+        if original_members["verified_archive_member_count"] != collection["verified_archive_member_count"]:
+            raise ValueError("decoded original member count differs from its full collection receipt")
+        compressed_sha = sha(partial)
+        with partial.open("rb") as encoded:
+            copied = PayloadReader(StrictXZReader(encoded))
+            copied_members = audit_copy_tar_payload(copied, manifest, manifest_raw)
+        if (original.bytes != copied.bytes or original.digest.digest() != copied.digest.digest()
+                or original_members != copied_members or sha(partial) != compressed_sha):
+            raise ValueError("complete XZ readback differs from the exact original tar stream")
+        after = {}
+        for name, path in original_paths.items():
+            observed = path.lstat()
+            if not stat.S_ISREG(observed.st_mode):
+                raise ValueError("original audit archive input changed type during copy")
+            after[name] = {"bytes": observed.st_size, "sha256": sha(path),
+                           "mode": stat.S_IMODE(observed.st_mode), "mtime_ns": observed.st_mtime_ns,
+                           "device": observed.st_dev, "inode": observed.st_ino}
+        if after != before or any(sha(harness / name) != digest for name, digest in harness_hashes.items()):
+            raise ValueError("original gzip, manifest, receipt or current harness changed during complete copy")
+        record["original_inputs_after"] = after
+        destination = output / "original-evidence.tar.xz"
+        partial.rename(destination)
+        (output / "artifact-manifest.json").write_bytes(manifest_raw)
+        (output / "collection-receipt.json").write_bytes(collection_raw)
+        # The service's later artifact metadata is authoritative for its outer
+        # ZIP size. Reserve overhead; never split, truncate or range-download.
+        limit, zip_reserve, receipt_reserve = 512 * 1024 * 1024, 1024 * 1024, 64 * 1024
+        delivery_bytes = destination.stat().st_size + len(manifest_raw) + len(collection_raw)
+        upload_ready = delivery_bytes + zip_reserve + receipt_reserve < limit
+        record.update({"status": "VERIFIED_COMPLETE_COPY" if upload_ready else "HOLD",
+            "upload_ready": upload_ready,
+            "hold_reason": None if upload_ready else "complete copy exceeds conservative normal-artifact delivery budget",
+            "original_gzip": before["original-evidence.tar.gz"],
+            "original_artifact_manifest_sha256": hashlib.sha256(manifest_raw).hexdigest(),
+            "original_collection_receipt_sha256": hashlib.sha256(collection_raw).hexdigest(),
+            "exact_uncompressed_tar": {"bytes": original.bytes, "sha256": original.digest.hexdigest()},
+            "complete_xz_readback_tar": {"bytes": copied.bytes, "sha256": copied.digest.hexdigest()},
+            "compressed_copy": {"file": destination.name, "bytes": destination.stat().st_size,
+                                "sha256": compressed_sha, "parameters": parameters},
+            "member_readback": copied_members,
+            "original_recorded_files_modes_and_nanosecond_times_verified": True,
+            "all_original_tar_bytes_including_padding_preserved": True,
+            "unrecorded_implicit_directory_metadata_preserved_by_exact_tar_identity": True,
+            "original_gzip_manifest_receipt_and_harness_unchanged": True,
+            "lossless_tar_payload_rebuilt_from_filesystem": False,
+            "normal_artifact_size_limit_bytes": limit, "outer_zip_overhead_reserved_bytes": zip_reserve,
+            "copy_receipt_reserved_bytes": receipt_reserve,
+            "actual_outer_artifact_size_observed": False,
+            "workflow_scheduling_scope": "separate post-collection and post-original-upload step; no benchmark execution"})
+    except Exception as error:
+        record["error"] = {"type": type(error).__name__, "message": str(error)}
+    write_json(receipt_path, record)
+    if args.github_output is not None:
+        with args.github_output.open("a", encoding="utf-8") as stream:
+            stream.write("upload_ready=" + ("true" if record["upload_ready"] else "false") + "\n")
+            stream.write("delivery_status=" + record["status"] + "\n")
+    print(json.dumps({"delivery_status": record["status"], "upload_ready": record["upload_ready"],
+                      "receipt": str(receipt_path), "qualification_result_changed": False}))
+    return 0 if record["upload_ready"] else 2
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -3579,6 +4635,11 @@ def main():
     collect_parser.add_argument("--audit-root", type=Path, required=True)
     collect_parser.add_argument("--output", type=Path, required=True)
     collect_parser.set_defaults(operation=collect)
+    copy_parser = commands.add_parser("audit-copy")
+    copy_parser.add_argument("--original", type=Path, required=True)
+    copy_parser.add_argument("--output", type=Path, required=True)
+    copy_parser.add_argument("--github-output", type=Path)
+    copy_parser.set_defaults(operation=audit_copy)
     args = parser.parse_args()
     return args.operation(args)
 

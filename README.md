@@ -1,5 +1,14 @@
 # Complete retained HIA qualification harness
 
+This successor is prepared from published harness
+`e8f9b3bffbab77b3e1cac8a50c5e9cad95871426` for the actually published product
+`7076ec13acd7433b7def7deeb7b62e6fcbe70103`, tree
+`49d263812878fe5464f9736daf99dd52ddde3c84`. That immutable target combines the
+allocation and emission changes on parent `727edb47cd98a41c0fcc4c494cf85422aa879937`.
+Preparation and raw Git identity checks are not preflight or qualification.
+No development result, earlier target or moving branch substitutes for the
+actual target's complete source admission, same-run cold or original full suite.
+
 This minimal Git tree runs the product's original
 `review-evidence/hia-native-rewrite-20261111/run_hia_qualification_v4.py --full`
 on one immutable product commit. It provisions the prerequisites required by
@@ -39,6 +48,12 @@ acknowledgements, 30 nested native losses and 30 matched foreign exceptions.
 Canonical calls enter selected child HIA owners; an unconfirmed child outcome
 must retain every active causal ancestor as unknown. These checks add no
 supplemental caller command and do not rerun test bodies.
+The complete compile/emission owner adds three source methods and eight native
+methods to that same first full discovery, plus a fifteenth supplemental command
+over all 112 frozen ordinary callers. Readback retains 954 original cases, six
+independent VM comparisons, native/foreign failure controls, the actual installed
+emission worker and the separate source-process eight-owner composition. It does
+not rerun these component methods or credit development evidence as current cold.
 The default-release native class constructs and installs its candidate wheel
 within full discovery. The supplement only reads back that real artifact and
 its already executed original callers; it adds no command or test rerun.
@@ -143,7 +158,7 @@ leave full discovery evidence and prevent an attempted passing run.
 
 The pre-discovery environment mirrors v4's existing static selector removals
 and its original cold-report bindings, read from the admitted v4 source.
-Thirty-two newer cold selectors, including `NATIVE_MAPPING`, additionally point
+Additional cold selectors, including `NATIVE_MAPPING` and `EMISSION`, point
 to **this same run's future `qualification/cold.json`**. The real unchanged v4
 still performs its own original assignments. All native consumers retain their
 existing matching-source cold admission. The two `WRONG_COLD_REPORT` negative
@@ -154,7 +169,7 @@ The additions include `BOUNDED_MEMORY`, `SCALAR_PROFILE`,
 `SHA256_STREAM_DIFFERENTIAL` selector, and the new `FULL_COST`, `PATCH_IMPACT`,
 `STATIC_BUDGET`, `STORE_LIFECYCLE`, `CLI_DISCOVERY_JSON`, `DEFAULT_RELEASE`,
 `SERVICE_CONTEXT`, `COST_LEDGER`, `EVALUATION`, `NATIVE_TRANSPORT` and
-`NATIVE_BUILD_ADMISSION` selectors. Full discovery
+`NATIVE_BUILD_ADMISSION`, `NATIVE_BUILD_DISPATCH` and `EMISSION` selectors. Full discovery
 retains the original mapping, scalar, measurement, generation and stream
 differential component evidence under `qualification/full-discovery-components/`.
 Before execution the
@@ -474,6 +489,72 @@ development report cannot satisfy that wrapper. Explicit foreign overrides
 remain unconstrained user callables; the retained-body claim concerns the
 canonical selected route. This readback does not prove all-input equivalence.
 
+The fifteenth command runs all 112 original compile/emission callers in their
+nine complete ordinary modules. Its separately frozen 73f1634 inventory retains
+all 17 original modules and 240 identities; the eight separate administrator
+modules retain their own gates. The only accepted original-source adjustment
+is the exact registry count literal, normalized from the actual helper count
+back to the frozen 37 before comparing the whole original file hash. All other
+original bytes, method order and time limits remain unchanged. Readback requires
+the complete original verbose log, all planned/started/stopped identities, both
+modes, consistent per-method and aggregate frame/event counts, zero reference
+calls and every source and image-build pin. The poison applies in the test
+process; subprocesses inherit the selector, not Python monkey patches.
+
+All three `EmissionSourceTests` methods remain in the original source tuple.
+All eight `EmissionNativeTests` methods first run in full discovery, using
+`HEPTA_HIA_EMISSION_COLD_REPORT` bound to this run's actual `qualification/cold.json`
+and `HEPTA_HIA_EMISSION_EVIDENCE` bound to fresh
+`full-discovery-components/emission` evidence. Runtime/development alternatives
+are removed. The supplement reads the native compiler request, receipt, full
+input/output buffers, image and before/after source custody without rerunning
+these component bodies.
+
+The five independently frozen original files must retain their exact hashes.
+All 954 ordered original/native observations are compared as canonical JSON
+bytes, preserving aliases, exception causes and runtime-specific object events.
+The six independent VM cases retain their observations and 512 full-buffer
+comparisons; the complete original method owns those comparisons because raw
+VM buffers are not separately serialized. Seven public default/override cases
+must agree with the complete matrix. The exact one-NUL image-drift control,
+initial receipt and foreign-thread refusals retain their original assertions.
+
+Failure readback checks 70 post-effect native acknowledgement losses, 60 genuine
+foreign exceptions, 30 nested native losses and 30 matched nested foreign
+controls. Unknown outcomes retain effects and custody without replay or invented
+cleanup; confirmed foreign errors preserve their object and original cleanup.
+Nested loss fences active same-process, same-thread emission ancestors. This
+completed same-owner scope does not claim cross-owner delivery-loss tracking.
+
+The fresh wheel's actual worker runs public emission with both retained bodies
+and authoring imports forbidden in that child. Wheel, installed RECORD, worker
+identity and single-helper bundle must match the source-bound image. The first
+request records 116 entries/two frames and exact replay records zero. A lost
+post-publication acknowledgement records 112 entries/exit 1; process loss records
+111 entries/exit 73. Each retains one unknown frame, the running intent and
+published object/native artifacts, without a build receipt or replay execution.
+Normal replay preserves the complete serialized retained snapshot; unknown
+replay preserves the request and artifact rows. The temporary database is
+removed by the original test; readback does not claim to reopen it or to retain
+the raw request envelopes. One LF appended to installed emission source must
+cause exit 2 before native entry.
+
+The separate eight-owner composition runs in the source process. Its eight
+images and exact bundle bind to the same cold; the emitted baseline/candidate
+must equal the evaluated artifacts. Measurement, ledger and evaluation bodies
+bind to their returned references. Evaluation and adoption replay retain zero
+native and durable-write deltas, with original 3000 ms context and 1000 ms native
+budgets. This is not an installed eight-owner worker observation. Neither this
+normal composition nor the single-helper installed worker establishes
+cross-owner unknown-delivery handling or whole-native delivery.
+
+Allocation/task-helper composition retains its existing joint-cold prerequisite.
+Both `HEPTA_HIA_COMPOSITE_TYPES_COLD_REPORT` and
+`HEPTA_HIA_TASK_HELPERS_COLD_REPORT` already point to the same actual v4 cold.
+Its two original methods still reject either development manifest and admit both
+images through the original current-source cold builder. An earlier development
+120/122 observation is not relabelled as a complete 122-method pass.
+
 The default-release class already executes all 38 original full-cost callers
 from a second real installation, with no native selector environment and with
 the retained Python arithmetic bodies forbidden. The supplement reads its
@@ -509,8 +590,9 @@ again against this run's exact cold report. These are additional observations,
 not extra credit in the full-discovery denominator.
 
 The ten existing supplemental command definitions, service-context command
-eleven, cost-ledger command twelve and evaluation command thirteen remain
-unchanged. Native/build admission follows as number fourteen,
+eleven, cost-ledger command twelve, evaluation command thirteen and
+native/build-admission command fourteen remain unchanged. Emission follows as
+number fifteen,
 all using the unmodified product workflow supervisor
 with its ordinary 1800-second budget. The original inner limits, including the
 CLI compilation and installed subprocess limits of twenty seconds, remain in
@@ -579,6 +661,46 @@ that GitHub's outer artifact ZIP otherwise normalizes. Download the artifact,
 verify its collection receipt, then extract the tar to restore retained modes.
 If collection fails before that point, the always-upload step also sees the
 existing raw staging evidence and the error appears in the original job log.
+
+## Complete lossless audit-copy delivery
+
+After the original qualification, supplement, collection and original artifact
+upload, a separate step may create `original-evidence.tar.xz`. The original
+`run()` and `collect()` ASTs, gzip, manifest, receipt and upload remain unchanged.
+The new step has its own 30-minute limit and never runs concurrently with the
+original 5400-second full gate or 180+3-second CLI owners.
+
+The command accepts only a completed collection from this exact five-file
+harness. It checks the original gzip against its receipt and the copied harness
+hashes, then decompresses the gzip to EOF and compresses the exact complete tar
+stream. It retains PAX headers, ordering and padding, using one Python stdlib XZ
+stream with preset 9, extreme mode and SHA-256 integrity. It never reconstructs
+a tar from extracted files or changes the original evidence allowlist.
+
+Both complete decoded streams receive member verification: recorded file
+bytes/hashes/modes/nanosecond timestamps, recorded directories and the embedded
+unchanged manifest. Complete tar lengths/hashes and ordered member observations
+must agree. Exact tar identity also preserves implicit-directory metadata not
+separately listed in the original manifest. Gzip, manifest, receipt and harness
+hashes must remain unchanged after readback, and the XZ hash must remain unchanged
+across its own readback. Only then is the XZ given its final name.
+
+The independent copy receipt records the original gzip hash/size, original
+manifest/receipt hashes, complete tar hash/size, new XZ hash/size, parameters and
+readback results. The unchanged original manifest and collection receipt
+accompany the XZ in a separate normal artifact upload at compression level 0.
+That artifact has a new identity, with a complete hash chain back to the
+original archive. Qualification results are unchanged; bit-identical compressed
+output across different library versions is not claimed.
+
+The complete copy must fit below the normal 512 MiB delivery limit with reserves
+for the copy receipt and outer ZIP. Actual uploaded artifact metadata remains
+authoritative; local sizing does not claim it has already been observed. If the
+copy is too large or verification fails, delivery remains `HOLD`, the original
+artifact stays intact and a separate small status artifact retains the reason
+and raw copy logs. Content is never omitted, split or downloaded through Range
+requests. This applies only to future archives made by this harness and does not
+relabel or modify an older unavailable artifact.
 
 ## Manual invocation on a provisioned runner
 
