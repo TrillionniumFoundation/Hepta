@@ -1,0 +1,609 @@
+{
+  "additional_limitations": [
+    "Nested inclusive spans and aggregate-only methods overlap; totals must not be added.",
+    "The unchanged original method failed before its first baseline emission and did not reach later assertions.",
+    "The complete source identities are the actual CI before/after snapshot and exact checked-out Git tree; no second local product source was executed.",
+    "No new cold qualification, no replacement bytes, no memo, no cached digest, no time-budget changes.",
+    "The Store generic observer was intentionally corrected; cross-run wall-time changes are not an optimization comparison.",
+    "Two bounded Clang/ld prerequisite probes occur before the 1800-second observed group.",
+    "The original runner retains unittest outcome/log and fixed suite identity, not independent loaded/start/stop JSONL events."
+  ],
+  "after_timer_fresh_map_comparison_ns": 14532189,
+  "artifact": {
+    "artifact_id": 14104166003,
+    "bytes": 2684449,
+    "git_blob": "feaf4ae35985e6b408ea610d21722ec2cb9d7e68",
+    "sha256": "5e2d6406cb907d20f0f0b73229d42159bc01bd8199767ffc89da9313a269204c"
+  },
+  "case_report": {
+    "bytes": 1441664,
+    "git_blob": "121e6ebaf9ac58ab49b3e27c7b3ca21623ab1599",
+    "sha256": "23751d6e073acad5aaf0ba3e947a6ff4501261ed1b209c3deb349473b676f251"
+  },
+  "cleanup_seconds": 3,
+  "counters": {
+    "code_admissions": 110,
+    "fresh_scans": 110,
+    "native:NativeArtifactNamespaceImage": 1341,
+    "native:NativeExecutionBudgetImage": 12,
+    "native:NativeRequestJournalImage": 218,
+    "native:NativeStoreLifecycleImage": 1210,
+    "publication_effects": 311
+  },
+  "current_sources_paths": 1552,
+  "deadline_timeline": {
+    "budget": {
+      "cost_policy": {
+        "id": "a-b3ef5fa6acb04751b0a6797190ea87e3",
+        "sha256": "8432bf9f24bc4ff5281ae068a76234ddd6a41425c013a3d4151471398275d4ca",
+        "uri": "hia://artifacts/04aa5544f2454aec8881775630f26717"
+      },
+      "max_candidates": 128,
+      "max_memory_bytes": "536870912",
+      "max_model_tokens": 0,
+      "max_native_wall_ms": 1000,
+      "max_total_wall_ms": 3000
+    },
+    "complete_fresh_scans_after_created_before_remaining": 47,
+    "context_id": "ctx-576583d74cbb4914b2087e3850fe3142",
+    "created_ns": 1794639939897485506,
+    "created_to_first_emit_ns": 2334575936,
+    "created_to_remaining_zero_ns": 3542386194,
+    "first_emit_start_wallclock_ns": 1794639942232061442,
+    "remaining_check_start_wallclock_ns": 1794639943439871700,
+    "remaining_ms": 0,
+    "source_of_created_ns": "unchanged stored value read by the two original diagnostic SELECT observers",
+    "those_fresh_spans_wall_ns": 2845171254
+  },
+  "deleted_inputs": [],
+  "errors": [],
+  "expected_failures": [],
+  "extra_observations": [
+    {
+      "context_id": "ctx-126928150fd94091b460cd6213573557",
+      "created_ns": "1794639938059399266",
+      "elapsed_ns": 49413,
+      "kind": "context-created-read",
+      "parent_span": 387,
+      "sampled_at": "2026-11-14T07:05:37.988094+00:00"
+    },
+    {
+      "context_id": "ctx-576583d74cbb4914b2087e3850fe3142",
+      "created_ns": "1794639939897485506",
+      "elapsed_ns": 28351,
+      "kind": "context-created-read",
+      "parent_span": 567,
+      "sampled_at": "2026-11-14T07:05:39.825389+00:00"
+    }
+  ],
+  "failures": [
+    [
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+      "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/source/tests/test_hia_agent_native_tools.py\", line 657, in test_expired_evaluation_is_rejected_before_any_reference_or_native_runner\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/source/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n    baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/budget_profile.py\", line 51, in measured\n    value = function(*args, **kwargs)\n  File \"/home/runner/work/Hepta/Hepta/source/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/source/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/harness/tools/budget_profile.py\", line 51, in measured\n    value = function(*args, **kwargs)\n  File \"/home/runner/work/Hepta/Hepta/source/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-cee6556cfd438dac677a56dbe8fe76fb2a92c4605c5ac93f8dadbef3e7926ac9\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"codegen\", \"message\": \"frozen context deadline expired before emission\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n"
+    ]
+  ],
+  "forbidden_calls": [],
+  "fresh_source_paths": 1551,
+  "full_job_log": {
+    "bytes": 53323,
+    "git_blob": "87f31f8a9d49157a5556662c19bbe4cbfd7fecc9",
+    "sha256": "181f3d0cc86f2d0c93f1cda4befc7692c1ffa4ea23f8417df46674d35c1e089f"
+  },
+  "group_elapsed_ns": 10242615761,
+  "group_limit_seconds": 1800,
+  "harness_commit": "8b6481c1a2d784d3c590291957c5268866d8d8bd",
+  "harness_files_from_zip_equal_frozen_and_published": 16,
+  "job": 132370075133,
+  "local_product_executions_during_readback": 0,
+  "native_sample_scope": "all calls counted after admission; only ordinals 1 modulo 64 timed, no extrapolated total",
+  "one_fresh_source_byte_extent": 58637295,
+  "original_limitations": [
+    "Instrumented diagnostic, never an original deadline qualification.",
+    "All public calls, fresh reads, hashes, original test budgets and production effects execute unchanged.",
+    "Timers and counters add real overhead; no budget or clock is adjusted to remove it.",
+    "Exclusive values subtract only explicitly timed direct child spans; they retain unlabelled work and instrumentation.",
+    "process_time_ns measures this process, not subprocess CPU.",
+    "Native calls are counted completely after constructor admission; one in 64 is timed including ctypes/FFI. No sample multiplication is an exact native CPU total.",
+    "Two context-created SELECT observations execute after the original context function timer; their separately recorded costs remain in enclosing real budgets.",
+    "Binary inputs are exact retained members of the failed original run. No fixture compiler or cold qualification runs here; original business builds execute normally.",
+    "Each selected original method runs in a fresh process, not the original complete 35-method order; first-use costs are separately visible."
+  ],
+  "original_log": {
+    "bytes": 2994,
+    "git_blob": "50319347fdc49a22a181e1fd4c1831eb5c71807f",
+    "sha256": "490aa7170b294e6f3f4b7f44820202a745068173d14fe2c8e145f1243db04cf7"
+  },
+  "original_method": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+  "original_outcome": "FAIL",
+  "original_store_receipt_entries": {
+    "1": 1090,
+    "2": 120
+  },
+  "original_test_file": {
+    "bytes": 42759,
+    "git_blob": "016621eacf28492569b7332ac84a6d0775060311",
+    "sha256": "5e6e26c4adb9100f6c25cb2bdbdfbd4c9752c15017e851dee3723b7451ae28ee"
+  },
+  "outer_report": {
+    "bytes": 9569,
+    "git_blob": "ec0a0c96038fc65b366399050df578a71802be65",
+    "sha256": "14c0426f64292be862bbec35292d800d419e5b0b0f940491e917b8cd2b561058"
+  },
+  "prerequisites": {
+    "jsonschema": "4.26.0",
+    "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+    "tools": {
+      "clang": {
+        "bytes": 132448,
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/lib/llvm-20/bin\n"
+      },
+      "ld": {
+        "bytes": 1359128,
+        "path": "/usr/bin/x86_64-linux-gnu-ld.bfd",
+        "sha256": "e9ceb054c12207970f2726dfc07e9a66b411602748628baf27399f02a9bbb31b",
+        "version": "GNU ld (GNU Binutils for Ubuntu) 2.42\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) a later version.\nThis program has absolutely no warranty.\n"
+      }
+    },
+    "z3": [
+      4,
+      15,
+      4,
+      0
+    ]
+  },
+  "process": {
+    "argv": [
+      "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python",
+      "-B",
+      "/home/runner/work/Hepta/Hepta/harness/tools/observe_case.py",
+      "--source",
+      "/home/runner/work/Hepta/Hepta/source",
+      "--inputs",
+      "/home/runner/work/Hepta/Hepta/harness/inputs/INPUTS.json",
+      "--retained",
+      "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs",
+      "--evidence",
+      "/home/runner/work/Hepta/Hepta/evidence/case-0/observations",
+      "--method",
+      "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner"
+    ],
+    "cleanup_seconds": 3,
+    "cwd": "/home/runner/work/Hepta/Hepta/source",
+    "elapsed_ns": 10234104542,
+    "original_group_seconds": 1800,
+    "pid": 3143,
+    "remaining_group_seconds": 1799.999939371,
+    "returncode": 0,
+    "same_process_group_absent": true,
+    "timed_out": false
+  },
+  "profile_spans": 1036,
+  "qualification": false,
+  "raw_bytes": 8003833,
+  "raw_directory_modes_are_constructed": true,
+  "raw_member_modes": [
+    420,
+    448
+  ],
+  "retained_files_before_after_exact": true,
+  "retained_original_files": 16,
+  "row_aggregations": {
+    "client-stage:emit": {
+      "calls": 1,
+      "exclusive_timed_children_wall_ns": 27590,
+      "inclusive_process_cpu_ns": 1196574560,
+      "inclusive_wall_ns": 1212443702
+    },
+    "client-stage:freeze": {
+      "calls": 2,
+      "exclusive_timed_children_wall_ns": 1171332,
+      "inclusive_process_cpu_ns": 2221818013,
+      "inclusive_wall_ns": 2297519691
+    },
+    "client-stage:import_program": {
+      "calls": 2,
+      "exclusive_timed_children_wall_ns": 138865,
+      "inclusive_process_cpu_ns": 1306529149,
+      "inclusive_wall_ns": 1330142819
+    },
+    "client-stage:verify": {
+      "calls": 2,
+      "exclusive_timed_children_wall_ns": 42673,
+      "inclusive_process_cpu_ns": 1604957534,
+      "inclusive_wall_ns": 1660985445
+    },
+    "code-admission:_admitted_code": {
+      "calls": 110,
+      "exclusive_timed_children_wall_ns": 394754235,
+      "inclusive_process_cpu_ns": 7038260067,
+      "inclusive_wall_ns": 7038941849
+    },
+    "context-create:_hia_context_reference": {
+      "calls": 2,
+      "exclusive_timed_children_wall_ns": 50067769,
+      "inclusive_process_cpu_ns": 921122226,
+      "inclusive_wall_ns": 947555846
+    },
+    "frame-initialization:StoreLifecycleFrame": {
+      "calls": 2,
+      "exclusive_timed_children_wall_ns": 225031,
+      "inclusive_process_cpu_ns": 221147,
+      "inclusive_wall_ns": 225031
+    },
+    "fresh-admission:file_digests": {
+      "calls": 110,
+      "exclusive_timed_children_wall_ns": 6644187614,
+      "inclusive_process_cpu_ns": 6643384607,
+      "inclusive_wall_ns": 6644187614
+    },
+    "image-admission:NativeArtifactNamespaceImage": {
+      "calls": 1,
+      "exclusive_timed_children_wall_ns": 764745,
+      "inclusive_process_cpu_ns": 762762,
+      "inclusive_wall_ns": 764745
+    },
+    "image-admission:NativeExecutionBudgetImage": {
+      "calls": 1,
+      "exclusive_timed_children_wall_ns": 454708,
+      "inclusive_process_cpu_ns": 452381,
+      "inclusive_wall_ns": 454708
+    },
+    "image-admission:NativeRequestJournalImage": {
+      "calls": 1,
+      "exclusive_timed_children_wall_ns": 441770,
+      "inclusive_process_cpu_ns": 415687,
+      "inclusive_wall_ns": 441770
+    },
+    "image-admission:NativeStoreLifecycleImage": {
+      "calls": 1,
+      "exclusive_timed_children_wall_ns": 4165527,
+      "inclusive_process_cpu_ns": 4161977,
+      "inclusive_wall_ns": 4165527
+    },
+    "original-method:tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner": {
+      "calls": 1,
+      "exclusive_timed_children_wall_ns": 334346092,
+      "inclusive_process_cpu_ns": 8886669228,
+      "inclusive_wall_ns": 9621950090
+    },
+    "public-store:check_profile": {
+      "calls": 35,
+      "exclusive_timed_children_wall_ns": 68798355,
+      "inclusive_process_cpu_ns": 2313117266,
+      "inclusive_wall_ns": 2333041523
+    },
+    "public-store:get": {
+      "calls": 8,
+      "exclusive_timed_children_wall_ns": 12758970,
+      "inclusive_process_cpu_ns": 525884704,
+      "inclusive_wall_ns": 532260724
+    },
+    "public-store:get_json": {
+      "calls": 18,
+      "exclusive_timed_children_wall_ns": 48368302,
+      "inclusive_process_cpu_ns": 1206926336,
+      "inclusive_wall_ns": 1234417463
+    },
+    "public-store:json": {
+      "calls": 20,
+      "exclusive_timed_children_wall_ns": 88394762,
+      "inclusive_process_cpu_ns": 1370514934,
+      "inclusive_wall_ns": 1495387297
+    },
+    "public-store:profile": {
+      "calls": 8,
+      "exclusive_timed_children_wall_ns": 38925564,
+      "inclusive_process_cpu_ns": 548976702,
+      "inclusive_wall_ns": 600286919
+    },
+    "public-store:put": {
+      "calls": 20,
+      "exclusive_timed_children_wall_ns": 62233613,
+      "inclusive_process_cpu_ns": 1351302053,
+      "inclusive_wall_ns": 1817775365
+    },
+    "publication-effect:_execute_native": {
+      "calls": 311,
+      "exclusive_timed_children_wall_ns": 47073878,
+      "inclusive_process_cpu_ns": 115606452,
+      "inclusive_wall_ns": 782127230
+    },
+    "remaining-budget:_remaining_ms": {
+      "calls": 1,
+      "exclusive_timed_children_wall_ns": 34581,
+      "inclusive_process_cpu_ns": 33479,
+      "inclusive_wall_ns": 34581
+    },
+    "service:_compile": {
+      "calls": 1,
+      "exclusive_timed_children_wall_ns": 27690,
+      "inclusive_process_cpu_ns": 26088,
+      "inclusive_wall_ns": 27690
+    },
+    "service:_context": {
+      "calls": 9,
+      "exclusive_timed_children_wall_ns": 1399496,
+      "inclusive_process_cpu_ns": 1786798744,
+      "inclusive_wall_ns": 1804030054
+    },
+    "service:_hia_emit": {
+      "calls": 1,
+      "exclusive_timed_children_wall_ns": 1785756,
+      "inclusive_process_cpu_ns": 937636845,
+      "inclusive_wall_ns": 949881627
+    },
+    "service:_profile": {
+      "calls": 35,
+      "exclusive_timed_children_wall_ns": 542793,
+      "inclusive_process_cpu_ns": 2313664537,
+      "inclusive_wall_ns": 2333584316
+    },
+    "service:_program": {
+      "calls": 5,
+      "exclusive_timed_children_wall_ns": 2749936,
+      "inclusive_process_cpu_ns": 331693718,
+      "inclusive_wall_ns": 334658166
+    },
+    "subprocess:run": {
+      "calls": 311,
+      "exclusive_timed_children_wall_ns": 735053352,
+      "inclusive_process_cpu_ns": 68355038,
+      "inclusive_wall_ns": 735053352
+    },
+    "tool-call:call": {
+      "calls": 17,
+      "exclusive_timed_children_wall_ns": 1083015091,
+      "inclusive_process_cpu_ns": 6599292506,
+      "inclusive_wall_ns": 6786140794
+    }
+  },
+  "run": 43569339563,
+  "schema": "hepta.namespace-r20-one-method-actual-readback.v1",
+  "skips": [],
+  "source_before_after_exact": true,
+  "source_commit": "26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d",
+  "source_paths": 3177,
+  "source_tree": "84df4b42f1e20fd7d0c7229e658cf3b458984ffb",
+  "status": "PASS_CUSTODY_AND_DIAGNOSTIC_INTEGRITY_ORIGINAL_METHOD_FAILED",
+  "store_modes": {
+    "1": 1,
+    "2": 1
+  },
+  "subprocess_operations": {
+    "store-get": {
+      "calls": 109,
+      "wall_ns": 229848678
+    },
+    "store-hash": {
+      "calls": 157,
+      "wall_ns": 230319427
+    },
+    "store-put": {
+      "calls": 45,
+      "wall_ns": 274885247
+    }
+  },
+  "supervision_scope": "child wait and same process-group absence; no ECHILD or subreaper assertion in this inherited diagnostic supervisor",
+  "tests_run": 1,
+  "tool_stages": [
+    {
+      "end_wallclock_ns": 1794639936803982593,
+      "fresh_scans": 1,
+      "fresh_wall_ns": 60515583,
+      "id": 305,
+      "outcome": "RETURNED",
+      "publication_effects": 4,
+      "start_wallclock_ns": 1794639936650834105,
+      "tool": "hia_describe",
+      "wall_ns": 153147847
+    },
+    {
+      "end_wallclock_ns": 1794639936937282891,
+      "fresh_scans": 1,
+      "fresh_wall_ns": 60325754,
+      "id": 317,
+      "outcome": "RETURNED",
+      "publication_effects": 2,
+      "start_wallclock_ns": 1794639936804000640,
+      "tool": "hia_read",
+      "wall_ns": 133281750
+    },
+    {
+      "end_wallclock_ns": 1794639937141540606,
+      "fresh_scans": 2,
+      "fresh_wall_ns": 120860155,
+      "id": 326,
+      "outcome": "RETURNED",
+      "publication_effects": 6,
+      "start_wallclock_ns": 1794639936943375072,
+      "tool": "hia_artifact",
+      "wall_ns": 198164863
+    },
+    {
+      "end_wallclock_ns": 1794639937368660580,
+      "fresh_scans": 2,
+      "fresh_wall_ns": 122515759,
+      "id": 346,
+      "outcome": "RETURNED",
+      "publication_effects": 6,
+      "start_wallclock_ns": 1794639937142028083,
+      "tool": "hia_artifact",
+      "wall_ns": 226631906
+    },
+    {
+      "end_wallclock_ns": 1794639937565390382,
+      "fresh_scans": 2,
+      "fresh_wall_ns": 120535958,
+      "id": 366,
+      "outcome": "RETURNED",
+      "publication_effects": 6,
+      "start_wallclock_ns": 1794639937368716011,
+      "tool": "hia_artifact",
+      "wall_ns": 196673770
+    },
+    {
+      "end_wallclock_ns": 1794639938068063951,
+      "fresh_scans": 6,
+      "fresh_wall_ns": 360732906,
+      "id": 386,
+      "outcome": "RETURNED",
+      "publication_effects": 14,
+      "start_wallclock_ns": 1794639937565407257,
+      "tool": "hia_context",
+      "wall_ns": 502656094
+    },
+    {
+      "end_wallclock_ns": 1794639938265405514,
+      "fresh_scans": 2,
+      "fresh_wall_ns": 120818814,
+      "id": 437,
+      "outcome": "RETURNED",
+      "publication_effects": 6,
+      "start_wallclock_ns": 1794639938068129228,
+      "tool": "hia_artifact",
+      "wall_ns": 197275905
+    },
+    {
+      "end_wallclock_ns": 1794639938732390824,
+      "fresh_scans": 6,
+      "fresh_wall_ns": 361360160,
+      "id": 457,
+      "outcome": "RETURNED",
+      "publication_effects": 16,
+      "start_wallclock_ns": 1794639938265423110,
+      "tool": "hia_candidate",
+      "wall_ns": 466967173
+    },
+    {
+      "end_wallclock_ns": 1794639938925677552,
+      "fresh_scans": 2,
+      "fresh_wall_ns": 120482239,
+      "id": 512,
+      "outcome": "RETURNED",
+      "publication_effects": 5,
+      "start_wallclock_ns": 1794639938732437613,
+      "tool": "hia_artifact",
+      "wall_ns": 193239569
+    },
+    {
+      "end_wallclock_ns": 1794639939139874477,
+      "fresh_scans": 2,
+      "fresh_wall_ns": 120566353,
+      "id": 530,
+      "outcome": "RETURNED",
+      "publication_effects": 5,
+      "start_wallclock_ns": 1794639938926146001,
+      "tool": "hia_artifact",
+      "wall_ns": 213727895
+    },
+    {
+      "end_wallclock_ns": 1794639939336946397,
+      "fresh_scans": 2,
+      "fresh_wall_ns": 120609996,
+      "id": 548,
+      "outcome": "RETURNED",
+      "publication_effects": 5,
+      "start_wallclock_ns": 1794639939139909208,
+      "tool": "hia_artifact",
+      "wall_ns": 197036749
+    },
+    {
+      "end_wallclock_ns": 1794639939905180184,
+      "fresh_scans": 7,
+      "fresh_wall_ns": 422432684,
+      "id": 566,
+      "outcome": "RETURNED",
+      "publication_effects": 16,
+      "start_wallclock_ns": 1794639939336962080,
+      "tool": "hia_context",
+      "wall_ns": 568217513
+    },
+    {
+      "end_wallclock_ns": 1794639940103128218,
+      "fresh_scans": 2,
+      "fresh_wall_ns": 120803630,
+      "id": 625,
+      "outcome": "RETURNED",
+      "publication_effects": 6,
+      "start_wallclock_ns": 1794639939905240873,
+      "tool": "hia_artifact",
+      "wall_ns": 197886985
+    },
+    {
+      "end_wallclock_ns": 1794639940571019574,
+      "fresh_scans": 6,
+      "fresh_wall_ns": 361547822,
+      "id": 645,
+      "outcome": "RETURNED",
+      "publication_effects": 16,
+      "start_wallclock_ns": 1794639940103145163,
+      "tool": "hia_candidate",
+      "wall_ns": 467873891
+    },
+    {
+      "end_wallclock_ns": 1794639941394838714,
+      "fresh_scans": 11,
+      "fresh_wall_ns": 665007771,
+      "id": 700,
+      "outcome": "RETURNED",
+      "publication_effects": 28,
+      "start_wallclock_ns": 1794639940571050780,
+      "tool": "hia_verify",
+      "wall_ns": 823787143
+    },
+    {
+      "end_wallclock_ns": 1794639942232025489,
+      "fresh_scans": 11,
+      "fresh_wall_ns": 667828155,
+      "id": 799,
+      "outcome": "RETURNED",
+      "publication_effects": 28,
+      "start_wallclock_ns": 1794639941394869119,
+      "tool": "hia_verify",
+      "wall_ns": 837155629
+    },
+    {
+      "end_wallclock_ns": 1794639943444478185,
+      "fresh_scans": 17,
+      "fresh_wall_ns": 1029983876,
+      "id": 898,
+      "outcome": "RAISED",
+      "publication_effects": 34,
+      "start_wallclock_ns": 1794639942232061442,
+      "tool": "hia_emit",
+      "wall_ns": 1212416112
+    }
+  ],
+  "unexpanded_aggregates": {
+    "BudgetState.call": {
+      "calls": 12,
+      "process_cpu_ns": 4906294,
+      "raises": 0,
+      "wall_ns": 4960849
+    },
+    "NamespaceState.call": {
+      "calls": 1341,
+      "process_cpu_ns": 147540129,
+      "raises": 0,
+      "wall_ns": 149788020
+    },
+    "RequestState.call": {
+      "calls": 218,
+      "process_cpu_ns": 61642195,
+      "raises": 0,
+      "wall_ns": 62103697
+    },
+    "StoreLifecycleFrame._effect": {
+      "calls": 603,
+      "process_cpu_ns": 155766840,
+      "raises": 0,
+      "wall_ns": 173801716
+    }
+  },
+  "unexpected_successes": [],
+  "whole_native": false,
+  "zip_has_original_directory_modes": false,
+  "zip_members": 46
+}

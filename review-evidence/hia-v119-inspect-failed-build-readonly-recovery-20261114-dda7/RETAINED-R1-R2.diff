@@ -1,0 +1,153 @@
+--- R1/run_retained_regressions.py
++++ R2/run_retained_regressions.py
+@@ -1,7 +1,6 @@
+-"""Explicit separate CLI-pair build and original3/CLI43 regression stages.
+-
+-No source preparation or generation occurs. All real builders, tests, IDs and
+-budgets come from the frozen inspect kit. No stage runs by default.
++"""Run only the original3/CLI43 groups after a separate real build admission.
++
++The original failed build remains immutable; all build entry points reject.
+ """
+ from pathlib import Path
+ import argparse
+@@ -15,13 +14,15 @@
+ 
+ HERE = Path(__file__).absolute().parent
+ ROOT = Path('/workspace/scratch/dda74a4fae35')
++FIRST = ROOT / 'v119-inspect-retained-regressions-r1'
++RECOVERY = ROOT / 'v119-inspect-retained-recovery-r1'
+ PRIOR = ROOT / 'v119-inspect-source10-r1'
+ GEN = ROOT / 'v119-inspect-generation-only-r1'
+ KIT = ROOT / 'v119-inspect-policy-execution-r1'
+ BASE = ROOT / 'v120-union-r20/source'
+ SOURCE = GEN / 'attempt-r1/source'
+ TREE = '7df49dd24bbba4ba3210168e639d6ea35a76a475'
+-SCHEMA = 'hepta.hia.inspect-retained-regression-stages.v1'
++SCHEMA = 'hepta.hia.inspect-retained-regression-stages.v2'
+ SECONDS, CLEANUP, MIB = 180, 3, 1048576
+ _ATTEMPT = None
+ 
+@@ -46,6 +47,10 @@
+                                    'compile_seconds': 20, 'capacity': MIB}
+             and pin(Path(__file__).read_bytes()) == plan['runner'], 'fixed stage contract differs')
+     require(pin((HERE / 'CONTRACT.md').read_bytes()) == plan['contract'], 'stage contract changed')
++    require(pin((FIRST / 'run_retained_regressions.py').read_bytes()) == plan['original_runner']
++            and pin((RECOVERY / 'admit_existing_cli_build.py').read_bytes()) == plan['admission_runner']
++            and pin((RECOVERY / 'ADMISSION-PLAN.json').read_bytes()) == plan['admission_plan']['pin'],
++            'separate original/recovery authority changed')
+     require(pin((PRIOR / 'run_source10_only_r2.py').read_bytes()) == plan['prior_runner'], 'prior runner changed')
+     sys.path.insert(0, str(PRIOR))
+     import run_source10_only_r2 as prior
+@@ -84,7 +89,7 @@
+     are not replaced. Independent complete byte/stat guards remain required.
+     This Python hook is not a hostile-code sandbox or an inherited OS policy.
+     """
+-    roots = (BASE, SOURCE, KIT, GEN, PRIOR, *additional_roots)
++    roots = (BASE, SOURCE, KIT, GEN, PRIOR, FIRST, RECOVERY, *additional_roots)
+     exact = (Path(__file__).absolute(), HERE / 'PLAN.json', HERE / 'CONTRACT.md')
+     def check(path, directory_fd=None):
+         if type(path) is int:
+@@ -136,68 +141,17 @@
+ 
+ 
+ def bind_cli_build(path, expected_sha, context):
+-    """Admit a separately executed build; an unexecuted plan cannot satisfy it."""
++    """Consume the separate actual read-only admission; never upgrade old FAIL."""
+     plan, prior, old_plan, guard, support, captures, frozen = context
+     require(path is not None and type(expected_sha) is str and len(expected_sha) == 64,
+-            'explicit actual CLI build result binding required')
+-    path = Path(path).absolute()
+-    expected_root = HERE / 'build-cli-attempt-r1'
+-    require(path == expected_root / 'RESULT.json', 'wrong CLI build result path')
+-    raw, _ = guard.read_exact(path, maximum=MIB)
+-    require(hashlib.sha256(raw).hexdigest() == expected_sha, 'actual CLI build result changed')
+-    report = support.json_bytes(raw)
+-    require(report['status'] == 'BUILD_CLI_ONLY_PASS' and report['source_tree'] == TREE
+-            and report['source_files'] == 3187 and report['owner_launch_attempts'] == 1
+-            and report['complete_source_guard_pass'] is True and report['matching_current_cold'] is False
+-            and report['plan_pin'] == pin((HERE / 'PLAN.json').read_bytes()), 'CLI prerequisite result differs')
+-    stage = expected_root / '00-build-cli'
+-    owner = support.json_bytes((stage / 'OWNER-RETURNED.json').read_bytes())
+-    support.complete_receipt(owner, stage / 'OWNER.json')
+-    request_raw = (stage / 'FROZEN-REQUEST.json').read_bytes()
+-    request = support.json_bytes(request_raw)
+-    value = support.json_bytes((stage / 'FROZEN-RESULT.json').read_bytes())
+-    require(value['status'] == 'PASS' and value['kind'] == 'build-cli' and value['group'] == 'build-cli'
+-            and value['source_unchanged'] is True and value['compiler_unchanged'] is True
+-            and value['request_pin'] == pin(request_raw) and request['source'] == str(SOURCE)
+-            and request['ids'] == [], 'actual CLI builder child differs')
+-    build = value['build']
+-    output = expected_root / 'retained-cli-build'
+-    require(build['manifest'] == str(output / 'manifest.json') and build['scope'] == frozen.DEVELOPMENT_SCOPE
+-            and build['matching_current_cold'] is False
+-            and build == support.json_bytes((output / 'INSPECT-RETAINED-BUILD.json').read_bytes()),
+-            'actual retained CLI development report differs')
+-    frozen._check_rows(build['observation_bindings'])
+-    require(frozen._bound(output / 'manifest.json') == build['manifest_binding']
+-            and frozen._bound(output / 'build.json') == build['original_build_binding'], 'CLI manifest/report changed')
+-    sys.path.insert(0, str(SOURCE))
+-    from tools import build_hia_cli_native as builder
+-    from tools.hia_cli_discovery_custody import admit_compilation
+-    require(tuple(builder.SOURCES) == ('control', 'format'), 'only the original CLI image pair is allowed')
+-    observations = []
+-    for name, relative in builder.SOURCES.items():
+-        directory = output / name
+-        label = 'cli-' + name
+-        source = (SOURCE / relative).read_bytes()
+-        image = directory / (label + '.image.bin')
+-        receipt, bindings = admit_compilation(directory, label, Path(support.B3['path']), source, image)
+-        require(build['children'][name] == {'actual_compile_receipt': receipt,
+-                'source': pin(source), 'image': pin(image.read_bytes())}, 'actual CLI compilation chain differs')
+-        observations.extend(bindings)
+-    require(observations == build['observation_bindings'], 'actual CLI observation inventory differs')
+-    original = support.json_bytes((output / 'build.json').read_bytes())
+-    require(original['owner_sources_before'] == original['owner_sources_after'] == builder.owner_sources()
+-            and original['source_manifest'] is None and original['cold_report_sha256'] is None,
+-            'retained CLI host/source/development boundary differs')
+-    capture_path = Path(report['build_capture']['path'])
+-    require(capture_path.parent == expected_root / 'maps'
+-            and capture_path.name == report['build_capture']['pin']['sha256'] + '.json', 'build capture pathname differs')
+-    expected_capture_raw, _ = guard.read_exact(capture_path,
+-        maximum=max(MIB, report['build_capture']['pin']['bytes']), expected=report['build_capture']['pin'])
+-    baseline = support.json_bytes(expected_capture_raw)
+-    actual = guard.capture(output, baseline['files'])
+-    guard.assert_capture(actual, baseline['files'], stable=baseline['stat'])
+-    return {'result': str(path), 'result_pin': pin(raw), 'manifest': build['manifest'],
+-            'output': str(output), 'capture': baseline}
++            'explicit actual read-only admission result binding required')
++    sys.path.insert(0, str(RECOVERY))
++    import admit_existing_cli_build as admission
++    require(Path(admission.__file__).absolute() == RECOVERY / 'admit_existing_cli_build.py',
++            'wrong separate admission consumer')
++    loaded = admission.bootstrap(plan['admission_plan']['path'], plan['admission_plan']['pin']['sha256'])
++    require(loaded[0]['source'] == plan['source'], 'recovery and retained sources differ')
++    return admission.verified_result(path, expected_sha, loaded)
+ 
+ 
+ def run_frozen_child(inner_path, inner_sha, subtest_path, support, frozen):
+@@ -223,6 +177,7 @@
+     require(hashlib.sha256(raw).hexdigest() == request_sha256, 'wrapper request changed')
+     request = json.loads(raw)
+     require(request['schema'] == SCHEMA + '.request', 'unknown wrapper request')
++    require(request['stage'] in ('original3', 'original-cli43'), 'R2 child forbids all build stages')
+     context = bootstrap(request['plan'], request['plan_sha256'])
+     plan, prior, old_plan, guard, support, captures, frozen = context
+     directory = Path(request_path).parent
+@@ -277,6 +232,7 @@
+ 
+ def execute(plan_path, plan_sha256, kind, attempt, build_result=None, build_result_sha256=None):
+     global _ATTEMPT
++    require(kind == 'retained-groups', 'R2 forbids all new build entry points')
+     context = bootstrap(plan_path, plan_sha256)
+     plan, prior, old_plan, guard, support, captures, frozen = context
+     attempt = Path(attempt).absolute()
+@@ -418,7 +374,7 @@
+ 
+ def main(argv=None):
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument('--execute-stage', choices=('build-cli', 'retained-groups'))
++    parser.add_argument('--execute-stage', choices=('retained-groups',))
+     parser.add_argument('--plan', type=Path); parser.add_argument('--plan-sha256')
+     parser.add_argument('--attempt', type=Path); parser.add_argument('--build-result', type=Path)
+     parser.add_argument('--build-result-sha256'); parser.add_argument('--child', type=Path)

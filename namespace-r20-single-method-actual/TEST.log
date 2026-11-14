@@ -1,0 +1,36 @@
+test_expired_evaluation_is_rejected_before_any_reference_or_native_runner (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner) ... FAIL
+
+======================================================================
+FAIL: test_expired_evaluation_is_rejected_before_any_reference_or_native_runner (tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/Hepta/Hepta/source/tests/test_hia_agent_native_tools.py", line 657, in test_expired_evaluation_is_rejected_before_any_reference_or_native_runner
+    _base, _candidate, baseline, build, receipts = self.build_pair(
+                                                   ~~~~~~~~~~~~~~~^
+        budget={"max_total_wall_ms": 3000, "max_native_wall_ms": 1000})
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/Hepta/Hepta/source/tests/test_hia_agent_native_tools.py", line 67, in build_pair
+    baseline_build = session.emit(base, receipts=[base_check["verification_receipt"]])
+  File "/home/runner/work/Hepta/Hepta/harness/tools/budget_profile.py", line 51, in measured
+    value = function(*args, **kwargs)
+  File "/home/runner/work/Hepta/Hepta/source/tools/hia_agent_native_qualification.py", line 265, in emit
+    return self.client.result("hia_emit", self.arguments(candidate=candidate,
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        backend_profile=self.backend, output_kind=kind, codegen=codegen,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        verification_receipts=list(receipts)))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/Hepta/Hepta/source/tools/hia_agent_native_qualification.py", line 162, in result
+    return self.call(tool, arguments)["result"]
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/Hepta/Hepta/harness/tools/budget_profile.py", line 51, in measured
+    value = function(*args, **kwargs)
+  File "/home/runner/work/Hepta/Hepta/source/tools/hia_agent_native_qualification.py", line 157, in call
+    raise QualificationFailure(f"{tool}: expected {expected_status}, got "
+                               + json.dumps(response, ensure_ascii=False))
+tools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {"contract_version": "hepta.hia.agent-native.v1", "request_id": "r-cee6556cfd438dac677a56dbe8fe76fb2a92c4605c5ac93f8dadbef3e7926ac9", "status": "rejected", "error": {"code": "E_HIA_BUDGET", "phase": "codegen", "message": "frozen context deadline expired before emission", "retry_action": "correct_input", "details_artifact": null}}
+
+----------------------------------------------------------------------
+Ran 1 test in 9.622s
+
+FAILED (failures=1)
