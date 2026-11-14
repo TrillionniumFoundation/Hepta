@@ -15,10 +15,12 @@ from tools.generate_hia_worker_request import format_program
 SOURCE_PATH = 'examples/hia_bootstrap/json_wire.hepta'
 MAGIC = int.from_bytes(b'HIAWIR02', 'little')
 CACHED_MAGIC = int.from_bytes(b'HIAWIR03', 'little')
+SUMMARY_MAGIC = int.from_bytes(b'HIAWIR04', 'little')
+PAIRED_MAGIC = int.from_bytes(b'HIAWIR05', 'little')
 # Header slots are part of the versioned continuation protocol. Arrays follow
 # the fixed header; the last 8192 bytes are the independently authored printer.
 FIELDS = {
-    'MAGIC': MAGIC, 'CACHED_MAGIC': CACHED_MAGIC, 'AWAIT': 8, 'SEQ': 16, 'PHASE': 24,
+    'MAGIC': MAGIC, 'CACHED_MAGIC': CACHED_MAGIC, 'SUMMARY_MAGIC': SUMMARY_MAGIC, 'PAIRED_MAGIC': PAIRED_MAGIC, 'AWAIT': 8, 'SEQ': 16, 'PHASE': 24,
     'MAX': 32, 'BUDGET': 40, 'ASCII': 48, 'SORT': 56, 'RENDERER': 64,
     'ROOT': 72, 'NODES': 80, 'QUEUED': 88, 'SP': 96, 'ACTIVE': 104,
     'OUT': 112, 'H': 120, 'DEPTH': 128, 'KIND': 136, 'SIZE': 144,
@@ -39,6 +41,8 @@ FIELDS = {
     'CMP_INDEX': 624, 'CMP_LESS': 632, 'CMP_LEN': 640,
     'CACHE_BASE': 648, 'CACHE_HITS': 656, 'CACHE_MISSES': 664,
     'CACHE_STORES': 672, 'CACHE_BYTES': 163840,
+    'SUMMARY_SOURCE': 680, 'SUMMARY_SIZE': 688, 'SUMMARY_HITS': 712,
+    'SCALAR_STORES': 720, 'SCALAR_HITS': 728, 'SCALAR_BASE': 16480,
     'ACTIVE_BASE': 1024, 'FRAME_BASE': 4096,
 }
 
@@ -46,13 +50,16 @@ SOURCE = r'''
 def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 32768 + 8192:
         return 199
-    if get(w, 0) == 0:
+    # The private protocol word cannot change before the receive/admission
+    # branch finishes. Keep the original first read and reuse that exact word.
+    protocol = get(w, 0)
+    if protocol == 0:
         if length(s) != 104 and length(s) != 112:
             return 199
         if read64(s, 0) == MAGIC:
             if length(s) != 104:
                 return 199
-        elif read64(s, 0) == CACHED_MAGIC:
+        elif read64(s, 0) == CACHED_MAGIC or read64(s, 0) == SUMMARY_MAGIC or read64(s, 0) == PAIRED_MAGIC:
             if length(s) != 112 or read64(s, 104) != 1:
                 return 199
         else:
@@ -76,7 +83,7 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 118
         if read64(s, 96) == 2:
             return 119
-        if read64(s, 0) == CACHED_MAGIC and read64(s, 96) != 0:
+        if read64(s, 0) != MAGIC and read64(s, 96) != 0:
             return 199
         budget = choose(maximum < 262144, maximum, 262144)
         slots = 2
@@ -88,12 +95,12 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         temp_a = table + slots * 8
         temp_b = temp_a + maximum + 64
         limbs = temp_b + maximum + 64
-        required = limbs + ((maximum * 4 + 31) >> 5) * 4 + 64 + 8192 + choose(read64(s, 0) == CACHED_MAGIC, CACHE_BYTES, 0)
+        required = limbs + ((maximum * 4 + 31) >> 5) * 4 + 64 + 8192 + choose(read64(s, 0) != MAGIC, CACHE_BYTES, 0)
         if length(w) != required or length(o) < maximum:
             return 199
         put(w, 0, read64(s, 0))
         put(w, CACHE_BASE, 0)
-        if read64(s, 0) == CACHED_MAGIC:
+        if read64(s, 0) != MAGIC:
             put(w, CACHE_BASE, required - 8192 - CACHE_BYTES)
         put(w, MAX, maximum)
         put(w, BUDGET, budget)
@@ -112,10 +119,10 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         push(w, read64(s, 24), 0, 0)
         put(w, PHASE, 1)
     else:
-        if (get(w, 0) != MAGIC and get(w, 0) != CACHED_MAGIC) or get(w, AWAIT) == 0 or length(s) < 56:
+        if (protocol != MAGIC and protocol != CACHED_MAGIC and protocol != SUMMARY_MAGIC and protocol != PAIRED_MAGIC) or get(w, AWAIT) == 0 or length(s) < 56:
             return 199
         opcode = get(w, AWAIT)
-        if read64(s, 0) != get(w, 0) or read64(s, 8) != get(w, SEQ) or read64(s, 16) != opcode:
+        if read64(s, 0) != protocol or read64(s, 8) != get(w, SEQ) or read64(s, 16) != opcode:
             return 199
         expected = 56
         if opcode == 3 or opcode == 4:
@@ -128,6 +135,8 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             expected = expected + read64(s, 24)
         if length(s) != expected:
             return 199
+        if opcode == 1 and (protocol == SUMMARY_MAGIC or protocol == PAIRED_MAGIC):
+            summary_receive(s, w)
         put(w, AWAIT, 0)
     while True:
         phase = get(w, PHASE)
@@ -164,6 +173,61 @@ def ask(w:mutbuf, opcode:u64, handle:u64, index:u64, count:u64, part:u64, phase:
     put(w, REQ_PART, part)
     put(w, PHASE, phase)
     return 1
+
+def summary_receive(s:readbuf, w:mutbuf) -> u64:
+    # An actual reply remains the source of its facts; do not copy every
+    # word through the continuation header. Only exact immutable scalar
+    # summaries may enter the bounded cache. Container cursors stay fresh.
+    put(w, SUMMARY_SOURCE, 0)
+    kind = read64(s, 24)
+    if kind <= 4:
+        handle = get(w, REQ_H)
+        slot = SCALAR_BASE + (handle & 255) * 40
+        if handle != 0 and get(w, slot) == 0:
+            index = 0
+            while index < 4:
+                put(w, slot + 8 + index * 8, read64(s, 24 + index * 8))
+                index = index + 1
+            put(w, slot, handle)
+            put(w, SCALAR_STORES, get(w, SCALAR_STORES) + 1)
+    return 0
+
+def summary_field(s:readbuf, w:mutbuf, at:u64) -> u64:
+    if get(w, 0) == SUMMARY_MAGIC or get(w, 0) == PAIRED_MAGIC:
+        source = get(w, SUMMARY_SOURCE)
+        if source == 1:
+            if at == 24:
+                return 4
+            if at == 32:
+                return get(w, SUMMARY_SIZE)
+            return 0
+        if source != 0:
+            return get(w, source + at - 24)
+    return read64(s, at)
+
+def ask_summary(w:mutbuf, handle:u64, phase:u64) -> u64:
+    # Only HIAWIR04 may reuse observed immutable scalar facts. Every original
+    # HIA admission step still runs after lookup. No container summary,
+    # cursor, value bytes, digit-limit observation or decision is cached.
+    # Retained nonzero handles cannot be reused during a session.
+    # HIAWIR02/03 retain every original request and workspace state write.
+    if get(w, 0) == SUMMARY_MAGIC or get(w, 0) == PAIRED_MAGIC:
+        scalar = SCALAR_BASE + (handle & 255) * 40
+        if handle != 0 and get(w, scalar) == handle:
+            put(w, SUMMARY_SOURCE, scalar + 8)
+            put(w, SCALAR_HITS, get(w, SCALAR_HITS) + 1)
+            put(w, SUMMARY_HITS, get(w, SUMMARY_HITS) + 1)
+            put(w, PHASE, phase)
+            return 0
+        if get(w, CACHE_BASE) != 0:
+            slot = get(w, CACHE_BASE) + (handle & 1023) * 160
+            if handle != 0 and get(w, slot) == handle:
+                put(w, SUMMARY_SOURCE, 1)
+                put(w, SUMMARY_SIZE, get(w, slot + 8))
+                put(w, SUMMARY_HITS, get(w, SUMMARY_HITS) + 1)
+                put(w, PHASE, phase)
+                return 0
+    return ask(w, 1, handle, 0, 0, 0, phase)
 
 def push(w:mutbuf, handle:u64, depth:u64, leaving:u64) -> u64:
     index = get(w, SP)
@@ -202,14 +266,14 @@ def preflight(s:readbuf, w:mutbuf, phase:u64) -> u64:
             return 102
         put(w, H, handle)
         put(w, DEPTH, depth)
-        return ask(w, 1, handle, 0, 0, 0, 2)
+        return ask_summary(w, handle, 2)
     if phase == 2:
-        kind = read64(s, 24)
-        size = read64(s, 32)
+        kind = summary_field(s, w, 24)
+        size = summary_field(s, w, 32)
         put(w, KIND, kind)
         put(w, SIZE, size)
-        put(w, A, read64(s, 40))
-        put(w, B, read64(s, 48))
+        put(w, A, summary_field(s, w, 40))
+        put(w, B, summary_field(s, w, 48))
         if kind >= 5 and kind <= 7:
             if size > get(w, BUDGET) - get(w, NODES) - get(w, QUEUED):
                 return 103
@@ -263,9 +327,9 @@ def preflight(s:readbuf, w:mutbuf, phase:u64) -> u64:
         if read64(s, 24) == 0:
             return 199
         put(w, KEY_H, read64(s, 24))
-        return ask(w, 1, read64(s, 24), 0, 0, 0, 12)
+        return ask_summary(w, read64(s, 24), 12)
     if phase == 12:
-        put(w, KEY_KIND, read64(s, 24))
+        put(w, KEY_KIND, summary_field(s, w, 24))
         return norm_begin(s, w, get(w, KEY_H), 0, get(w, TEMP_A), 13)
     if phase == 13:
         put(w, KEY_LEN, get(w, N_COUNT))
@@ -304,7 +368,7 @@ def preflight(s:readbuf, w:mutbuf, phase:u64) -> u64:
             if get(w, record + 24) != 0:
                 handle = get(w, record + 24)
             put(w, N_H, handle)
-            return ask(w, 1, handle, 0, 0, 0, 15)
+            return ask_summary(w, handle, 15)
         put(w, PROBE, (slot + 1) & (get(w, HASH_SLOTS) - 1))
         return 0
     if phase == 15:
@@ -325,10 +389,10 @@ def preflight(s:readbuf, w:mutbuf, phase:u64) -> u64:
 
 def norm_begin(s:readbuf, w:mutbuf, handle:u64, role:u64, target:u64, next:u64) -> u64:
     put(w, N_H, handle)
-    put(w, N_KIND, read64(s, 24))
-    put(w, N_SIZE, read64(s, 32))
-    put(w, N_A, read64(s, 40))
-    put(w, N_B, read64(s, 48))
+    put(w, N_KIND, summary_field(s, w, 24))
+    put(w, N_SIZE, summary_field(s, w, 32))
+    put(w, N_A, summary_field(s, w, 40))
+    put(w, N_B, summary_field(s, w, 48))
     put(w, N_ROLE, role)
     put(w, N_TARGET, target)
     put(w, N_RETURN, next)
@@ -765,10 +829,10 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         put(w, OUT, 0)
         put(w, PREFIX, 0)
         put(w, H, get(w, ROOT))
-        return ask(w, 1, get(w, H), 0, 0, 0, 101)
+        return ask_summary(w, get(w, H), 101)
     if phase == 101:
-        kind = read64(s, 24)
-        size = read64(s, 32)
+        kind = summary_field(s, w, 24)
+        size = summary_field(s, w, 32)
         if kind < 5:
             if kind == 4:
                 if get(w, PREFIX) != 0:
@@ -826,7 +890,7 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         if read64(s, 24) == 0:
             return 199
         put(w, H, read64(s, 24))
-        return ask(w, 1, get(w, H), 0, 0, 0, 101)
+        return ask_summary(w, get(w, H), 101)
     if phase == 108:
         if get(w, N_COUNT) > get(w, MAX):
             return 116
@@ -866,6 +930,16 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         put(w, PREFIX, choose(index == 0, 91, 44))
         put(w, frame + 24, index + 1)
         return ask(w, 2, get(w, frame), index, 0, 0, 102)
+    if phase == 115:
+        frame = frame_at(w)
+        record = get(w, RECORDS) + (get(w, frame + 32) + get(w, frame + 24)) * 64
+        if read64(s, 24) == 0:
+            return 199
+        put(w, record, read64(s, 24))
+        if read64(s, 32) == 0:
+            return 199
+        put(w, record + 8, read64(s, 32))
+        return ask_summary(w, get(w, record), 114)
     if phase >= 111 and phase <= 114:
         frame = frame_at(w)
         index = get(w, frame + 24)
@@ -878,6 +952,8 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
                 put(w, SORT_WIDTH, 1)
                 put(w, PHASE, 120)
                 return 0
+            if get(w, 0) == PAIRED_MAGIC:
+                return ask(w, 7, get(w, frame), index, 0, 0, 115)
             return ask(w, 2, get(w, frame), index, 0, 0, 112)
         if phase == 112:
             if read64(s, 24) == 0:
@@ -888,11 +964,11 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
             if read64(s, 24) == 0:
                 return 199
             put(w, record + 8, read64(s, 24))
-            return ask(w, 1, get(w, record), 0, 0, 0, 114)
-        put(w, record + 16, read64(s, 24))
-        put(w, record + 24, read64(s, 32))
-        put(w, record + 32, read64(s, 40))
-        put(w, record + 40, read64(s, 48))
+            return ask_summary(w, get(w, record), 114)
+        put(w, record + 16, summary_field(s, w, 24))
+        put(w, record + 24, summary_field(s, w, 32))
+        put(w, record + 32, summary_field(s, w, 40))
+        put(w, record + 40, summary_field(s, w, 48))
         put(w, record + 48, choose(index + 1 == get(w, frame + 16), 0, record + 64))
         put(w, frame + 24, index + 1)
         put(w, PHASE, 111)
@@ -917,7 +993,9 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
             put(w, frame + 48, get(w, record))
             put(w, frame + 56, get(w, record + 8))
             put(w, frame + 40, get(w, record + 48))
-            return ask(w, 1, get(w, record), 0, 0, 0, 143)
+            return ask_summary(w, get(w, record), 143)
+        if get(w, 0) == PAIRED_MAGIC:
+            return ask(w, 7, get(w, frame), index, 0, 0, 145)
         return ask(w, 2, get(w, frame), index, 0, 0, 141)
     if phase == 141:
         frame = frame_at(w)
@@ -926,7 +1004,12 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 142:
         frame = frame_at(w)
         put(w, frame + 56, read64(s, 24))
-        return ask(w, 1, get(w, frame + 48), 0, 0, 0, 143)
+        return ask_summary(w, get(w, frame + 48), 143)
+    if phase == 145:
+        frame = frame_at(w)
+        put(w, frame + 48, read64(s, 24))
+        put(w, frame + 56, read64(s, 32))
+        return ask_summary(w, get(w, frame + 48), 143)
     if phase == 143:
         frame = frame_at(w)
         return norm_begin(s, w, get(w, frame + 48), 3, get(w, TEMP_A), 144)
@@ -954,7 +1037,7 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         put(w, PREFIX, 0)
         put(w, H, get(w, frame + 56))
         put(w, frame + 24, get(w, frame + 24) + 1)
-        return ask(w, 1, get(w, H), 0, 0, 0, 101)
+        return ask_summary(w, get(w, H), 101)
     return 199
 
 def frame_at(w:mutbuf) -> u64:
@@ -1236,7 +1319,7 @@ def source_program():
             for statement in node.body:
                 if (isinstance(statement, ast.If)
                         and ast.dump(statement.test, include_attributes=False) == ast.dump(
-                            ast.parse('get(w, 0) == 0', mode='eval').body, include_attributes=False)):
+                            ast.parse('protocol == 0', mode='eval').body, include_attributes=False)):
                     if initialization is not None:
                         raise ValueError('ambiguous JSON wire initialization branch')
                     initialization = statement
