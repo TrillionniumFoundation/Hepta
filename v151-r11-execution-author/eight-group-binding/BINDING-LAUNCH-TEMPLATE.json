@@ -1,0 +1,154 @@
+{
+  "Root_must_fill_real_proof_after_independent_reader": true,
+  "all_product_execution_requires_separate_Root_authorization": true,
+  "binder_runs": 0,
+  "commands": [
+    {
+      "argv": [
+        "python3",
+        "-I",
+        "-B",
+        "/tmp/hia-r11-controls-author-r1-dda7/prepare_controls_author.py",
+        "--root-prefix-proof",
+        "<ACTUAL_ROOT_RESULT_PATH>",
+        "--root-prefix-proof-git",
+        "<ACTUAL_ROOT_RESULT_GIT>"
+      ],
+      "cwd": "/tmp"
+    },
+    {
+      "argv": [
+        "python3",
+        "-I",
+        "-B",
+        "/tmp/hia-r11-controls-author-r1-dda7/verify_controls_author.py"
+      ],
+      "cwd": "/tmp"
+    },
+    {
+      "argv": [
+        "python3",
+        "-I",
+        "-B",
+        "/tmp/hia-r11-controls-author-r1-dda7/make_handoff.py"
+      ],
+      "cwd": "/tmp"
+    }
+  ],
+  "executable_now": false,
+  "minimum_free_bytes": 3221225472,
+  "original_budgets": {
+    "each_VM_steps": 10000000,
+    "each_native_cleanup_seconds": 3,
+    "each_native_cpu_seconds": 10,
+    "each_native_seconds": 20,
+    "each_owner_cleanup_seconds": 3,
+    "each_owner_seconds": 180,
+    "file_extent": 8388609,
+    "pipeline_VM_heap_bytes": 16777216,
+    "source_output_workspace_capacity": 1048576,
+    "standalone_VM_heap_bytes": 1048576
+  },
+  "original_maximum_actual_calls": {
+    "kernel_original": 130,
+    "last_byte_VM": 2,
+    "last_byte_kernel": 2,
+    "observer_and_fault_compile_or_pack": 6,
+    "pipeline_VM": 7,
+    "pipeline_postreturn_kernel": 6,
+    "semantic_VM_new": 6,
+    "standalone_native": 163
+  },
+  "original_one_attempt_fail_stop": "first failed owner/group or incomplete custody stops later phases; no retry",
+  "original_phases": [
+    {
+      "compile_calls": 0,
+      "direct_kernel_calls": 0,
+      "name": "public-R5-refusal",
+      "new_VM_calls": 0,
+      "out": "public-R5-refusal",
+      "report_count": null,
+      "script": null,
+      "standalone_native_calls": 0
+    },
+    {
+      "compile_calls": 0,
+      "direct_kernel_calls": 0,
+      "name": "native162",
+      "new_VM_calls": 0,
+      "out": "semantic/evidence/full-buffer-replay-r1",
+      "report_count": 162,
+      "script": "semantic/authoring/run_full_buffer_replay_r1.py",
+      "standalone_native_calls": 162
+    },
+    {
+      "compile_calls": 0,
+      "direct_kernel_calls": 0,
+      "name": "semantic-edge-vm",
+      "new_VM_calls": 1,
+      "out": "semantic/evidence/compact-vm-diagnostic-r1",
+      "report_count": null,
+      "script": "semantic/authoring/run_compact_vm_diagnostic_r1.py",
+      "standalone_native_calls": 1
+    },
+    {
+      "compile_calls": 0,
+      "direct_kernel_calls": 0,
+      "name": "semantic-remaining-vm",
+      "new_VM_calls": 5,
+      "out": "semantic/evidence/compact-vm-remaining-r1",
+      "report_count": 6,
+      "script": "semantic/authoring/run_compact_vm_remaining_r1.py",
+      "standalone_native_calls": 0
+    },
+    {
+      "compile_calls": 0,
+      "direct_kernel_calls": 130,
+      "name": "kernel130",
+      "new_VM_calls": 0,
+      "out": "aggregate/successor-r2/evidence/kernel-130-r1",
+      "report_count": 130,
+      "script": "aggregate/successor-r2/authoring/run_kernel_130_r1.py",
+      "standalone_native_calls": 0
+    },
+    {
+      "compile_calls": 2,
+      "direct_kernel_calls": 0,
+      "name": "observer-build",
+      "new_VM_calls": 0,
+      "out": "aggregate/successor-r3/evidence/observer-build-r1",
+      "report_count": null,
+      "script": "aggregate/successor-r3/authoring/run_observer_build.py",
+      "standalone_native_calls": 0
+    },
+    {
+      "compile_calls": 0,
+      "direct_kernel_calls": 6,
+      "name": "pipeline7",
+      "new_VM_calls": 7,
+      "out": "aggregate/successor-r3/evidence/pipeline-vm-r1",
+      "report_count": 7,
+      "script": "aggregate/successor-r3/authoring/run_pipeline_vm_r1.py",
+      "standalone_native_calls": 0
+    },
+    {
+      "compile_calls": 4,
+      "direct_kernel_calls": 2,
+      "name": "tail2",
+      "new_VM_calls": 2,
+      "out": "aggregate/successor-r3/evidence/tail-faults-r1",
+      "report_count": 2,
+      "script": "aggregate/successor-r3/authoring/run_tail_faults_r1.py",
+      "standalone_native_calls": 0
+    }
+  ],
+  "predicate_gate_required_before_original_eight_groups": true,
+  "product_argv_produced_only_after_actual_binding": true,
+  "products": 0,
+  "required_inputs": {
+    "root_prefix_proof_git_blob": null,
+    "root_prefix_proof_path": null
+  },
+  "schema": "hia.R11.future-binding.launch-template.v1",
+  "status": "AUTHORING_ONLY_REQUIRED_ACTUAL_PROOF_UNBOUND"
+}

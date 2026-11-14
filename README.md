@@ -1,3 +1,32 @@
+# HIA 原生重写实际执行检查点 — v151
+
+冻结时间：2026-11-14 23:51:30 UTC。父检查点：`f3cf855ca83f7fa3223cbdfb42be1511b15d4c4c`。
+
+**整套 HIA 原生化仍未闭合，旧生产实现删除数为 0。** 当前代码与实际验证有进展，但默认 CLI、Worker、Service、SQLite Store 和 22 个 Rust runtime 工具仍待完整替换。
+
+| 范围 | 实际结果与边界 | 证据 |
+|---|---|---|
+| R10 原八组 | 独立核验确认原 163 Native、6 VM，其中跨目标借用仍在 10,000,001 步失败。Counted 在原预算复现完整失败缓冲区；处理停在 phase=1、函数索引13/38、输入游标6,183/19,089，后四组未启动 | [独立结果](v151-r10-terminal-actual/RESULT.json)、[诊断](v151-r10-counted-actual/RESULT.json) |
+| R11 HIA 改动 | 仅两个 ASCII 谓词块改变，另外 105 个函数不变；全 u64 语义，无新增字段范围假设。107 函数、1,456 块、6,270 操作 | [源码作者](v151-r11-ascii-author/MOUNT-RECIPE.json)、[执行作者](v151-r11-execution-author/MOUNT-RECIPE.json) |
+| R11 生成与打包 | 生成/check/compile/pack 通过；HIA 396,167 B，Native image 543,961 B，ELF 1,036,288 B，保留原 1 MiB 上限。独立重新读取原 6,777 文件、全部 214 原件和 12 个逻辑缓冲区通过。真实 HIA 边界与完整八组尚未执行，燃料闭合未成立 | [生成结果](v151-current-results/r11-prefix-result.json)、[独立核验](v151-current-results/r11-prefix-terminal-result.json) |
+| 旧源码 Patch R3 | 独立复核通过：20 owners、58 方法、8 次编译、19,502 Native、12 VM；完整读取 395,397 次。大体积证据封存尝试退出 -9，原因未证实，原失败及部分输出保留 | [独立结果](v151-patch-terminal-r3-actual/RESULT.json)、[封存失败](v151-patch-custody-r1-failure/FAILURE-OBSERVATION.json) |
+| 当前 op8 Core | 原源码报告12、原生报告2、CLI43、外部8，共65方法与6次构建通过，包含真实 wheel 构建安装。独立 reader R1 拒绝原测试的符号链接，R2 因嵌套计数器作用域失败；最窄 R3 仅作者完成 | [产品结果](v151-op8-core-actual/RESULT.json)、[R1失败](v151-current-results/op8-core-terminal-r1-result.json)、[R2失败](v151-current-results/op8-core-terminal-r2-result.json)、[后继作者](v151-op8-terminal-readers-author/MOUNT-RECIPE.json) |
+| 当前 op8 Patch | 原20 owners、58方法、8次构建、12 VM全部通过；当前独立终态尚未执行，不借用旧源码 Native 计数 | [结果](v151-current-results/op8-patch20-result.json)、[作者](v151-op8-patch20-author/MOUNT-RECIPE.json) |
+| Inspect R1/R2 | Source18通过。Native阶段编译和十项测试通过后，父控制器因完整 INDEX 为28,066,785 B、12,376调用而触发原16MiB读取限制；后8 owners和VM未启动。R2独立新scope以流式全量索引/前驱核验修复，未修改原capture限制和测试，尚未执行 | [Source18](v151-current-results/op8-inspect-source18-result.json)、[Native失败](v151-current-results/op8-inspect-native-r1-result.json)、[R2作者](v151-op8-inspect-r2-author/MOUNT-RECIPE.json) |
+| R6 | 原18阶段、76方法、7构建作者完成；须绑定当前实际Source/Native/VM前驱。旧R5 witness10失败保留，尚无R6实际PASS | [作者](v151-op8-r6-author/MOUNT-RECIPE.json) |
+
+Core R2 失败前已调用两次 readlink；记录计数为0不代表没有读取链接目标文本。链接载荷没有被跟随。R11 独立 reader 的工具返回显示被截断，原返回原样保留；完整 RESULT 另行完整读取并发布，未用重建内容替换原工具返回。
+
+已完整远端保存的作者、R10 prefix/helper/admission 和历史证据按各 recipe 定义恢复；当前产品的全部大体积原始输出远端封存仍有待办，不能由 RESULT 已发布推断完成。所有原测试ID、断言、预算、完整新鲜读取和失败历史继续保留。
+
+接下来执行 Core R3、当前 Patch 独立复核、R11真实边界与原八组、Inspect R2与R6；同时完成真实HIA持久事务Store、Namespace、ordinary compiler、匹配当前源码的cold链及默认安装入口。完整生产链与恢复/兼容门槛通过前，不删除旧生产实现。
+
+默认 Hepta main 为 `f33d8da316de8fdf27b504371f1a5310997ff548`，runtime 默认为 `ba574f2a6a1b74e85191c58d7bec011720736bb9`；本检查点没有合并、默认切换或部署。详见[完整状态](STATE.json)和[本轮更新](v151-checkpoint/V151-UPDATE.json)。
+
+---
+
+## 完整保留的 v150 历史记录
+
 # HIA 原生重写实际执行检查点 — v150
 
 冻结时间：2026-11-14 22:12:50 UTC。父检查点：`7a40b9f8cdef74aaad86482e48ff95570aefb972`。
