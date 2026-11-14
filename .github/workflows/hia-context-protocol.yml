@@ -1,0 +1,36 @@
+name: HIA CPython context protocol Source controls
+on:
+  push:
+    branches:
+      - 'audit/hia-context-protocol-*'
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout the exact diagnostic harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+      - name: Checkout the exact published product
+        uses: actions/checkout@v4
+        with:
+          ref: e7c1729345d5d06757b38a6ae1ce54ae9790fd85
+          path: product
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install the original pinned Source dependencies
+        run: python -m pip install jsonschema==4.26.0 z3-solver==4.15.4.0
+      - name: Run all nine exact Source controls
+        run: python -B harness/diagnostics/context_protocol/run.py --repository product --evidence "$RUNNER_TEMP/hia-context-protocol-source"
+      - name: Preserve complete Source diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-context-protocol-source-${{ github.sha }}
+          path: ${{ runner.temp }}/hia-context-protocol-source
+          if-no-files-found: error
+          retention-days: 7
