@@ -1,0 +1,23 @@
+--- retained/qualify_entry_layout
++++ explicit/qualify_entry_layout_explicit
+@@ -1,4 +1,4 @@
+-def qualify_entry_layout(directory, compilers):
++def qualify_entry_layout_explicit(directory, compilers, *, source_path):
+     """Additional finite native gate; never replace the complete cold replay.
+ 
+     Declaration permutations can change machine layout and dense SSA numbering.
+@@ -13,12 +13,12 @@
+     from tools.hia_selfhost_capacity import count_nodes
+     from tools.hia_selfhost_cfg_worklist import cases as cfg_cases, qualify as qualify_cfg
+     from tools.hia_selfhost_loans import reference_source
+-    from tools.qualify_hia_selfhost import SOURCE as COMPILER, compile_stage, mutate_compiler
++    from tools.qualify_hia_selfhost import compile_stage, mutate_compiler
+     from tools.qualify_hia_selfhost_cli import execute, inspect_executable
+     directory = Path(directory)
+     prepared = []
+     for label, compiler in compilers:
+-        canonical = COMPILER.read_bytes()
++        canonical = Path(source_path).read_bytes()
+         if label == 'modified':
+             canonical = mutate_compiler(canonical)
+         elif label != 'original':

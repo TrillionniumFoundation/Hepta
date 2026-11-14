@@ -1,0 +1,15 @@
+--- before/hepta/hia_inspect_program_native.py
++++ after/hepta/hia_inspect_program_native.py
+@@ -62,6 +62,12 @@
+     def service(self, issued):
+         self._require_machine_idle()
+         return super().service(issued)
++
++    def drive(self):
++        self._require_machine_idle()
++        if self.pending is not None and not self.executed:
++            self.service(self.pending)
++        return super().drive()
+ 
+     def take(self, *, yielded=False):
+         self._require_machine_idle()
