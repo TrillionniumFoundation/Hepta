@@ -1,0 +1,267 @@
+{
+  "author_script": {
+    "bytes": 13057,
+    "git_blob": "f3e6cc00f9862be3c3791b191448b42e8ca1ad04",
+    "mode": "100644",
+    "path": "/workspace/scratch/dda74a4fae35/v119_inspect_execution_freeze.py",
+    "sha256": "fd87aac983ea715c00f390eb095e02f860de2abab05183cbc1dc659d899efec6",
+    "text": "\"\"\"Author-only AST/byte checks and immutable capsule; no project import/run.\"\"\"\nfrom pathlib import Path\nimport ast\nimport base64\nimport hashlib\nimport json\nimport zlib\n\nBASE = Path('/workspace/scratch/dda74a4fae35')\nKIT = BASE / 'v119-inspect-policy-execution-r1'\nR1 = BASE / 'v119-inspect-policy-owner-r1'\nR20 = BASE / 'v120-union-r20/source'\n\n\ndef wire(value):\n    return (json.dumps(value, sort_keys=True, indent=2, ensure_ascii=True) + '\\n').encode()\n\n\ndef pin(raw):\n    return {'bytes': len(raw), 'mode': '100644', 'sha256': hashlib.sha256(raw).hexdigest(),\n            'git_blob': hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\\0' + raw).hexdigest()}\n\n\ndef write(path, raw):\n    with path.open('xb') as stream:\n        stream.write(raw)\n\n\ndef tree(files):\n    root = {}\n    for path, row in files.items():\n        parts = path.split('/'); current = root\n        for part in parts[:-1]: current = current.setdefault(part, {})\n        assert parts[-1] not in current\n        current[parts[-1]] = row\n    def digest(value):\n        rows = []\n        for name, row in value.items():\n            if 'git_blob' in row:\n                rows.append((name.encode(), row['mode'].encode(), bytes.fromhex(row['git_blob'])))\n            else:\n                rows.append(((name+'/').encode(), b'40000', digest(row)))\n        raw = b''.join(mode + b' ' + name.rstrip(b'/') + b'\\0' + sha for name, mode, sha in sorted(rows))\n        return hashlib.sha1(b'tree ' + str(len(raw)).encode() + b'\\0' + raw).digest()\n    return digest(root).hex()\n\n\ndef main():\n    publication = KIT / 'publication'; publication.mkdir(mode=0o700)\n    static = {'schema':'hepta.hia.inspect-execution-authoring-static.v1',\n              'status':'STATIC_AUTHORING_CHECKS_ONLY', 'checks':[],\n              'project_imports':0, 'generation':0, 'product_tests':0,\n              'native_compilation':0, 'native_execution':0, 'vm_execution':0,\n              'full_base_copy':False, 'qualification_inherited':False}\n    capsule = json.loads((KIT/'inputs/R1-SOURCE-TRANSPORT.json').read_bytes())\n    decoded = zlib.decompress(base64.b64decode(capsule['data'], validate=True))\n    assert pin(decoded) == capsule['payload']\n    overlay = json.loads(decoded)\n    assert overlay['schema'] == 'hepta.hia.inspect-policy-authoring-source.v1'\n    base = json.loads((KIT/'inputs/R20-SOURCE-MANIFEST.json').read_bytes())\n    assert len(base) == 3177 and tree(base) == 'f137ac1733a4f6d1e434ef10531952a139c4015a'\n    prepared = dict(base)\n    for name,row in overlay['files'].items():\n        raw = row['text'].encode()\n        assert pin(raw) == {key:row['after'][key] for key in ('bytes','mode','sha256','git_blob')}\n        assert (R1/'source'/name).read_bytes() == raw\n        if row['before'] is None:\n            assert name not in base and not (R20/name).exists()\n        else:\n            old = row['before']['text'].encode()\n            assert old == (R20/name).read_bytes() and pin(old) == base[name]\n        prepared[name] = pin(raw)\n    assert len(overlay['files']) == 8 and len(prepared) == 3184\n    existing = overlay['files']['hepta/hia_program_tools.py']\n    assert existing['text'].encode().startswith(existing['before']['text'].encode())\n    assert len(existing['text'].encode()) - len(existing['before']['text'].encode()) == 744\n    static['checks'].append({'name':'complete R20 map and all eight frozen overlay preimages/after bytes',\n                             'base_files':len(base),'base_tree':tree(base),\n                             'prepared_files':len(prepared),'prepared_tree':tree(prepared)})\n    fixture = json.loads(overlay['files']['tests/fixtures/hia_inspect_program_originals.json']['text'])\n    old_ids=[]\n    for name,row in fixture['test_sources'].items():\n        raw=(R20/name).read_bytes()\n        assert len(raw)==row['bytes'] and hashlib.sha256(raw).hexdigest()==row['sha256']\n        assert pin(raw)['git_blob']==row['git_blob']\n        old_ids.extend(x['id'] for x in row['selected_methods'])\n    assert len(old_ids)==3 and len(fixture['original_cli_ids'])==43\n    static['checks'].append({'name':'all four original test files complete bytes; original3 and CLI43 IDs',\n                             'test_files':{name:{key:row[key] for key in ('bytes','sha256','git_blob')} for name,row in fixture['test_sources'].items()}})\n    spec=json.loads((KIT/'EXECUTION-SPEC.json').read_bytes())\n    assert spec['groups']['original3']==old_ids and spec['groups']['original-cli43']==fixture['original_cli_ids']\n    syntax={}\n    for path in sorted(KIT.glob('*.py')):\n        raw=path.read_bytes(); parsed=ast.parse(raw, filename=str(path)); syntax[path.name]=pin(raw)\n        for node in parsed.body:\n            if isinstance(node, (ast.Import,ast.ImportFrom)):\n                names = [alias.name for alias in node.names] if isinstance(node,ast.Import) else [node.module or '']\n                assert not any(name=='hepta' or name.startswith('hepta.') or name=='tools' or name.startswith('tools.') for name in names)\n    assert len(syntax)==4\n    static['checks'].append({'name':'four complete Python files parse; no top-level product import', 'files':syntax})\n    declared={}\n    for filename,module in (('inspect_exec_cases.py','inspect_exec_cases'),('inspect_exec_vm.py','inspect_exec_vm')):\n        for cls in ast.parse((KIT/filename).read_bytes()).body:\n            if isinstance(cls,ast.ClassDef):\n                for fn in cls.body:\n                    if isinstance(fn,ast.FunctionDef) and fn.name.startswith('test_'):\n                        declared[module+'.'+cls.name+'.'+fn.name] = ast.get_source_segment((KIT/filename).read_text(),fn)\n    new_ids=[name for group in spec['native_group_order']+spec['vm_group_order'] for name in spec['groups'][group]]\n    assert len(new_ids)==29 and len(set(new_ids))==29 and set(new_ids)==set(declared)\n    assert len([x for x in new_ids if '.InspectFrameVMTests.' in x])==12\n    for group in spec['native_group_order']:\n        if group.startswith('inspect-lost-'): assert len(spec['groups'][group])==1\n    source_tree=ast.parse(overlay['files']['tests/test_hia_inspect_program_source.py']['text'])\n    cls=next(n for n in source_tree.body if isinstance(n,ast.ClassDef) and n.name=='InspectProgramSourceTests')\n    actual_source_ids=['tests.test_hia_inspect_program_source.'+cls.name+'.'+f.name for f in cls.body if isinstance(f,ast.FunctionDef) and f.name.startswith('test_')]\n    assert actual_source_ids==spec['groups']['source10'] and len(actual_source_ids)==10\n    static['checks'].append({'name':'exact declared Source10/new Native17/VM12; four fault groups are individual children',\n                             'groups':spec['groups']})\n    support=ast.parse((KIT/'inspect_exec_support.py').read_bytes())\n    constants={target.id:ast.literal_eval(n.value) for n in support.body if isinstance(n,ast.Assign) for target in n.targets if isinstance(target,ast.Name) and target.id in ('CAPACITY','VM_STEPS','VM_CALL_DEPTH','SECONDS','CLEANUP','COMPILE_SECONDS')}\n    assert constants=={'CAPACITY':1048576,'VM_STEPS':10000000,'VM_CALL_DEPTH':128,'SECONDS':180,'CLEANUP':3,'COMPILE_SECONDS':20}\n    parent=ast.parse((KIT/'run_inspect_development.py').read_bytes())\n    calls=[n for n in ast.walk(parent) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='run_owned']\n    assert len(calls)==1\n    keywords={x.arg:ast.unparse(x.value) for x in calls[0].keywords}\n    assert keywords['qualification_seconds']=='SECONDS' and keywords['cleanup_seconds']=='CLEANUP'\n    assert keywords['supervisor_env']==keywords['env']=='env'\n    cases=ast.parse((KIT/'inspect_exec_cases.py').read_bytes())\n    loss=next(n for n in ast.walk(cases) if isinstance(n,ast.FunctionDef) and n.name=='intercepted')\n    assert any(isinstance(n,ast.Compare) and ast.unparse(n)=='w is frame.state' for n in ast.walk(loss))\n    journal=next(n for n in ast.walk(support) if isinstance(n,ast.FunctionDef) and n.name=='invoke')\n    assert any(isinstance(n,ast.Try) and n.finalbody and any(isinstance(c,ast.Call) and isinstance(c.func,ast.Attribute) and c.func.attr=='original' for c in ast.walk(n)) for n in ast.walk(journal))\n    vm=ast.parse((KIT/'inspect_exec_vm.py').read_bytes())\n    replay=next(n for n in ast.walk(vm) if isinstance(n,ast.FunctionDef) and n.name=='replay')\n    assert any(isinstance(n,ast.Try) and n.finalbody for n in ast.walk(replay))\n    static['checks'].append({'name':'original static budgets, same supervisor/child env, actual-root fault targeting, buffer-finally structure', 'constants':constants})\n    for name in spec['generated_only']:\n        assert not (R1/'source'/name).exists()\n    static['checks'].append({'name':'three inspect generated outputs remain absent; authoring did not execute generation'})\n    static['limitations']=['AST and byte checks are not product execution.',\n                          'Actual inflight-reentry boundary may fail and has not been fixed or qualified.',\n                          'R20 prepared tree is pinned; no formal-final-tree metadata equivalence is inferred.',\n                          'No current-cold/installed-inspect/CLI-op10/whole qualification.']\n    write(KIT/'STATIC-REPORT.json',wire(static))\n    files={}\n    for path in sorted(KIT.rglob('*')):\n        if path.is_file() and 'publication' not in path.relative_to(KIT).parts:\n            files[path.relative_to(KIT).as_posix()]=pin(path.read_bytes())\n    index={'schema':'hepta.hia.inspect-execution-kit-pins.v1','files':files,\n           'self_excluded_from_files':True,'external_authority':'reviewed exact --kit-index-sha256 argument',\n           'product_execution':0}\n    write(KIT/'KIT-PINS.json',wire(index))\n    payload={'schema':'hepta.hia.inspect-execution-kit-source.v1','base':'FIRST_AUTHORING_ALL_PATHS_NEW',\n             'files':{name:{'before':None,'after':{**row,'text':(KIT/name).read_text()},'text':(KIT/name).read_text()} for name,row in {**files,'KIT-PINS.json':pin((KIT/'KIT-PINS.json').read_bytes())}.items()},\n             'product_overlay_unchanged':'8e91c8be30734df36217b5d37f7f226b5abbb154'}\n    payload_raw=wire(payload)\n    transport={'schema':'hia.zlib-base64-capsule.v1','encoding':'zlib+base64','payload':pin(payload_raw),\n               'data':base64.b64encode(zlib.compress(payload_raw,9)).decode()}\n    transported=wire(transport)\n    assert zlib.decompress(base64.b64decode(transport['data']))==payload_raw\n    write(publication/'SOURCE-TRANSPORT.json',transported)\n    write(publication/'STATIC-REPORT.json',(KIT/'STATIC-REPORT.json').read_bytes())\n    write(publication/'EXECUTION-SPEC.json',(KIT/'EXECUTION-SPEC.json').read_bytes())\n    write(publication/'EXECUTION-CONTRACT.md',(KIT/'EXECUTION-CONTRACT.md').read_bytes())\n    evidence={'schema':'hepta.hia.inspect-executor-authoring-evidence.v1',\n              'author_script':{'path':str(Path(__file__)),'text':Path(__file__).read_text(),**pin(Path(__file__).read_bytes())},\n              'initial_input_readback':json.loads((KIT/'INPUT-READBACK.json').read_bytes()),\n              'static_report':static,'product_execution':0}\n    write(publication/'AUTHORING-EVIDENCE.json',wire(evidence))\n    summary={'schema':'hepta.hia.inspect-execution-kit-summary.v1','status':'AUTHORED_NOT_EXECUTED',\n             'kit':str(KIT),'source_transport':pin(transported),'decoded_source':pin(payload_raw),\n             'kit_index':pin((KIT/'KIT-PINS.json').read_bytes()),'files':len(payload['files']),\n             'base_tree':tree(base),'prepared_tree':tree(prepared),'prepared_files':len(prepared),\n             'declared_counts':spec['declared_counts'],'full_base_copy':False,'source_product_edits':0,\n             'generation':0,'product_tests':0,'native_compile':0,'native_execution':0,'vm_execution':0,\n             'matching_current_cold':False,'whole_cli_native':False,\n             'next':'Root review before any execution; minimum free 1GiB and exact pinned runtime required.',\n             'future_argv':[json.loads((KIT/'inputs/B3-REUSE-SIZE-PLAN.json').read_bytes())['interpreter']['argv0'],\n                            '-I','-B',str(KIT/'run_inspect_development.py'),'--execute-development',\n                            '--base-source',str(R20),'--attempt',str(BASE/'v119-inspect-policy-attempt-r1'),\n                            '--kit-index-sha256',hashlib.sha256((KIT/'KIT-PINS.json').read_bytes()).hexdigest()]}\n    write(publication/'SUMMARY.json',wire(summary))\n    plan={'schema':'hepta.hia.inspect-execution-publication-plan.v1','items':[{'name':p.name,'path':str(p),**pin(p.read_bytes())} for p in sorted(publication.iterdir()) if p.is_file()]}\n    write(publication/'UPLOAD-PLAN.json',wire(plan))\n    print(json.dumps({'status':'AUTHORING_STATIC_COMPLETE_ZERO_PRODUCT','files':len(payload['files']),\n                      'payload_bytes':len(payload_raw),'transport_bytes':len(transported),\n                      'prepared_tree':tree(prepared),'declared_counts':spec['declared_counts'],\n                      'kit_index_sha256':summary['kit_index']['sha256']}))\n\n\nif __name__=='__main__':main()\n"
+  },
+  "initial_input_readback": {
+    "compiler": {
+      "bytes": 673413,
+      "git_blob": "315c6b5f36a1ec679deb68abdca24bd4d1bef9f8",
+      "mode": 420,
+      "path": "/workspace/scratch/dda74a4fae35/v95-native-file-render-r1/evidence/development-chain-r1/ordinary-B3.image.bin",
+      "sha256": "bfd603dd2b40974d2083b567b4295fb3975938da8435dd636514fc197c485de0"
+    },
+    "input_files": {
+      "B3-REUSE-SIZE-PLAN.json": {
+        "bytes": 4761,
+        "git_blob": "9a24fd60064dda03aa08483cdc07e08a105ef436",
+        "original_path": "/workspace/scratch/dda74a4fae35/v117-dense-token-r8-r1/SIZE-EXECUTION-PLAN.json",
+        "sha256": "e97bbe15e405c52a3b0f2c7ecc1df7dced68e15f56656a2020fee743c3c3f03a"
+      },
+      "B3-REUSE-SIZE-RESULT.json": {
+        "bytes": 962,
+        "git_blob": "c5844174dff0b1cb9f93fe3d16a4536ab4362057",
+        "original_path": "/workspace/scratch/dda74a4fae35/v117-dense-token-r8-r1/evidence/unique-size-r1/RESULT.json",
+        "sha256": "6fb457416221920f7be1a28e0d6f21ee46bcb722c29f76c760b5c4ccb946a46c"
+      },
+      "R1-INTEGRATION-SPEC.json": {
+        "bytes": 12428,
+        "git_blob": "c4381f8b8ccbbfd48b0f971528277891cc0de9e6",
+        "original_path": "/workspace/scratch/dda74a4fae35/v119-inspect-policy-owner-r1/publication/INTEGRATION-SPEC.json",
+        "sha256": "812b5ca8019f5076ba5e4a2b72fc60fc3a5b563c08fe1cba1e4f5ec679274772"
+      },
+      "R1-SOURCE-TRANSPORT.json": {
+        "bytes": 40128,
+        "git_blob": "8e91c8be30734df36217b5d37f7f226b5abbb154",
+        "original_path": "/workspace/scratch/dda74a4fae35/v119-inspect-policy-owner-r1/publication/SOURCE-TRANSPORT.json",
+        "sha256": "b23d19f57e1e4597a4e276fd78e2462d6005ba560204b1cd5fe6905f83a413fe"
+      },
+      "R20-SOURCE-MANIFEST.json": {
+        "bytes": 775971,
+        "git_blob": "c221fcf4359e1e4d237ea6ca70c2fa0fdc495dd2",
+        "original_path": "/workspace/scratch/dda74a4fae35/v120-union-r20/SOURCE-MANIFEST.json",
+        "sha256": "7dc0b5d888828119b0727b4844d031275df4caf2c0628ee04efe59474be74ffa"
+      }
+    },
+    "r1_overlay_paths": 8,
+    "r20_files": 3177,
+    "r20_tree": "f137ac1733a4f6d1e434ef10531952a139c4015a",
+    "scope": "Development only; no current-source cold authority; no full base copy made.",
+    "status": "AUTHORING_ONLY_ZERO_PRODUCT_EXECUTION"
+  },
+  "product_execution": 0,
+  "schema": "hepta.hia.inspect-executor-authoring-evidence.v1",
+  "static_report": {
+    "checks": [
+      {
+        "base_files": 3177,
+        "base_tree": "f137ac1733a4f6d1e434ef10531952a139c4015a",
+        "name": "complete R20 map and all eight frozen overlay preimages/after bytes",
+        "prepared_files": 3184,
+        "prepared_tree": "f6d1cb39690433f5af5b6ca9842977912a99e219"
+      },
+      {
+        "name": "all four original test files complete bytes; original3 and CLI43 IDs",
+        "test_files": {
+          "tests/test_hia_agent_entry.py": {
+            "bytes": 8282,
+            "git_blob": "effec24c26c645b0daea945464b41b746c8a632f",
+            "sha256": "01f65d003ca6f406e5ce57399df0d56fbbe7875177bafd57ba7142fdeb3b2ad1"
+          },
+          "tests/test_hia_cli_continuation_native.py": {
+            "bytes": 37203,
+            "git_blob": "7bc79024fb550575149c18a07c4268f8f7734d94",
+            "sha256": "40886aeb41388b6ac61e0eff653c2060aeeddc19c5bca0845d11c1b92e5b7bea"
+          },
+          "tests/test_hia_cli_native.py": {
+            "bytes": 54092,
+            "git_blob": "ba7077c5f4005b5d800ae7b989de389b7b2d623d",
+            "sha256": "7fa75b027a5e67ecb1ff39cd9e73b4e7a7e178a32de30e6590fd6db488efc5d1"
+          },
+          "tests/test_hia_program_tools.py": {
+            "bytes": 8416,
+            "git_blob": "fe4a0a3469a21e34673cfcf9c2b1dd0357a95aa3",
+            "sha256": "3f637a36f31b92d014c846e61994741e251011e53b50dd1468e65c212f3482b5"
+          }
+        }
+      },
+      {
+        "files": {
+          "inspect_exec_cases.py": {
+            "bytes": 34305,
+            "git_blob": "d6f34ade05e8ed8e93d72197bd25fe64a247c4a3",
+            "mode": "100644",
+            "sha256": "ff097a0e8e478c36d76ea139e910ac5b8f41d28e54cd8922cb1992266833a4e7"
+          },
+          "inspect_exec_support.py": {
+            "bytes": 17379,
+            "git_blob": "f6d59fd0caef181064c5b77adca2b7e9216ac332",
+            "mode": "100644",
+            "sha256": "ca6b7a7acae6a9fc6ddba8b594f024c8f5c03f5fe5d92f2aaa8b6a516d3098c1"
+          },
+          "inspect_exec_vm.py": {
+            "bytes": 9840,
+            "git_blob": "cfeaa6f2d71e91c751457232c5f617aa9cd237c8",
+            "mode": "100644",
+            "sha256": "609e803c1b2032e7cd70c977566127230e6f593c198dad6e69db7408ef2a79f0"
+          },
+          "run_inspect_development.py": {
+            "bytes": 26495,
+            "git_blob": "2b9362e70eefba7a3e6fc9f15296b810d057f648",
+            "mode": "100644",
+            "sha256": "7054c3d0f6eb53f3bbb98713dc0b63146b8df19ef0c04d63df5fc669d1f4473c"
+          }
+        },
+        "name": "four complete Python files parse; no top-level product import"
+      },
+      {
+        "groups": {
+          "inspect-lost-claim": [
+            "inspect_exec_cases.InspectLostReturnTests.test_lost_actual_claim_stops_before_the_foreign_effect"
+          ],
+          "inspect-lost-effect-ack": [
+            "inspect_exec_cases.InspectLostReturnTests.test_lost_actual_effect_ack_retains_outcome_and_forbids_replay"
+          ],
+          "inspect-lost-retirement-ack": [
+            "inspect_exec_cases.InspectLostReturnTests.test_lost_actual_retirement_ack_retains_unknown_ownership"
+          ],
+          "inspect-lost-terminal-ack": [
+            "inspect_exec_cases.InspectLostReturnTests.test_lost_actual_terminal_ack_forbids_result_or_policy_replay"
+          ],
+          "inspect-native-inflight-boundary": [
+            "inspect_exec_cases.InspectNativeProtocolTests.test_machine_entry_reentry_has_no_second_initial_call"
+          ],
+          "inspect-native-policy": [
+            "inspect_exec_cases.InspectNativePolicyTests.test_real_verified_versions_keep_complete_inspection_outputs",
+            "inspect_exec_cases.InspectNativePolicyTests.test_signature_deepcopy_order_eager_default_and_detached_values",
+            "inspect_exec_cases.InspectNativePolicyTests.test_inspect_eager_sha_provider_order_and_original_aliases",
+            "inspect_exec_cases.InspectNativePolicyTests.test_foreign_callable_aliases_and_keyword_omission_are_observed_once",
+            "inspect_exec_cases.InspectNativePolicyTests.test_live_code_default_and_argument_time_mutations_use_actual_captured_callable",
+            "inspect_exec_cases.InspectNativePolicyTests.test_replaced_module_builtins_cannot_silently_change_original_import_authority",
+            "inspect_exec_cases.InspectNativePolicyTests.test_dictionary_update_uses_real_mapping_protocol_and_duplicate_replacement",
+            "inspect_exec_cases.InspectNativePolicyTests.test_dictionary_overwrite_and_result_retirement_preserve_finalizers",
+            "inspect_exec_cases.InspectNativePolicyTests.test_provider_failures_preserve_first_error_and_outer_context",
+            "inspect_exec_cases.InspectNativePolicyTests.test_held_error_and_reference_retirement_without_gc"
+          ],
+          "inspect-native-provider-protocol": [
+            "inspect_exec_cases.InspectNativeProtocolTests.test_same_frame_provider_reentry_stops_and_independent_nested_frame_runs",
+            "inspect_exec_cases.InspectNativeProtocolTests.test_cross_frame_and_repeated_claim_refuse_before_another_machine_effect"
+          ],
+          "inspect-vm-actual-lost-returns": [
+            "inspect_exec_vm.InspectFrameVMTests.test_lost_claim_actual_return_full_buffers",
+            "inspect_exec_vm.InspectFrameVMTests.test_lost_effect_ack_actual_return_full_buffers",
+            "inspect_exec_vm.InspectFrameVMTests.test_lost_terminal_ack_actual_return_full_buffers",
+            "inspect_exec_vm.InspectFrameVMTests.test_lost_retirement_ack_actual_return_full_buffers"
+          ],
+          "inspect-vm-ordinary-transitions": [
+            "inspect_exec_vm.InspectFrameVMTests.test_signature_start_full_buffers",
+            "inspect_exec_vm.InspectFrameVMTests.test_inspection_start_full_buffers",
+            "inspect_exec_vm.InspectFrameVMTests.test_dictionary_update_claim_full_buffers",
+            "inspect_exec_vm.InspectFrameVMTests.test_dictionary_update_ack_full_buffers",
+            "inspect_exec_vm.InspectFrameVMTests.test_normal_terminal_full_buffers",
+            "inspect_exec_vm.InspectFrameVMTests.test_exception_terminal_full_buffers",
+            "inspect_exec_vm.InspectFrameVMTests.test_retirement_start_full_buffers",
+            "inspect_exec_vm.InspectFrameVMTests.test_retirement_ack_full_buffers"
+          ],
+          "original-cli43": [
+            "tests.test_hia_cli_native.CliNativeTests.test_actual_installed_wheel_without_retained_cli_or_checkout_resources",
+            "tests.test_hia_cli_native.CliNativeTests.test_all_fifteen_real_actions_and_publication_branches",
+            "tests.test_hia_cli_native.CliNativeTests.test_argparse_order_abbreviation_clusters_repetition_and_sentinel",
+            "tests.test_hia_cli_native.CliNativeTests.test_error_json_is_native_and_keeps_active_exception_context",
+            "tests.test_hia_cli_native.CliNativeTests.test_error_str_baseexception_preserves_object_context_and_closes",
+            "tests.test_hia_cli_native.CliNativeTests.test_existing_read_ceilings_and_unicode_error_publication",
+            "tests.test_hia_cli_native.CliNativeTests.test_external_baseexception_after_native_return_closes_permission",
+            "tests.test_hia_cli_native.CliNativeTests.test_help_wrapping_columns_and_exact_unicode_repr",
+            "tests.test_hia_cli_native.CliNativeTests.test_hia_continuation_routes_selfhost_without_entering_direct_emitter",
+            "tests.test_hia_cli_native.CliNativeTests.test_hyphenated_build_help_matches_reference_at_every_ordinary_width",
+            "tests.test_hia_cli_native.CliNativeTests.test_native_ack_refusal_and_no_replay_after_consumed_effect",
+            "tests.test_hia_cli_native.CliNativeTests.test_output_precedes_result_truth_and_query_read_errors",
+            "tests.test_hia_cli_native.CliNativeTests.test_parser_stream_write_failures_and_missing_stdout_match",
+            "tests.test_hia_cli_native.CliNativeTests.test_python_color_environment_precedence_and_colored_wrapping",
+            "tests.test_hia_cli_native.CliNativeTests.test_selfhost_options_errors_and_complete_argv_preserve_current_entry",
+            "tests.test_hia_cli_native.CliNativeTests.test_source_bundle_binding_and_selected_fail_closed",
+            "tests.test_hia_cli_native.CliNativeTests.test_unchanged_original_agent_entry_suite_with_native_selected",
+            "tests.test_hia_cli_native.CliSourceTests.test_complete_regeneration_and_unchanged_native_profile",
+            "tests.test_hia_cli_native.CliSourceTests.test_independent_core_vm_argument_and_error_formatter",
+            "tests.test_hia_cli_native.CliSourceTests.test_matching_cold_build_rejects_before_output_creation",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_all_profiles_keep_complete_native_vm_frames_and_local_retirement_order",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_apply_edit_stack_argument_and_named_local_destruction_order",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_as_dict_temporary_releases_after_output_before_program",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_assembly_named_raw_program_text_are_retained_in_original_order",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_closed_instance_nonces_never_reuse_and_old_claim_cannot_move",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_cross_session_claim_and_repeated_claim_are_native_refusals",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_foreign_result_ack_loss_keeps_owner_and_forbids_replay",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_independent_vm_matches_complete_claim_and_selfhost_continuation_bytes",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_native_temporary_read_releases_before_program_report",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_nonce_exhaustion_refuses_before_control_entry_without_wrap",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_normal_terminal_releases_owned_locals_without_gc_or_retained_pool",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_pending_query_releases_during_read_unwind_before_handler_context",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_preclaim_ack_loss_never_launches_a_foreign_effect",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_published_warm_loader_keeps_actual_immutable_mappings",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_query_argument_release_can_modify_returned_query_before_output",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_report_unpack_temporary_releases_before_output_mutation",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_same_session_reentry_fences_but_independent_nested_call_is_allowed",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_selfhost_and_native_dispatch_preserve_input_output_pin_objects",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_selfhost_parser_pair_errors_precede_all_file_or_build_effects",
+            "tests.test_hia_cli_continuation_native.CliContinuationNativeTests.test_warm_disk_image_drift_or_missing_is_rejected_before_entry",
+            "tests.test_hia_cli_continuation_native.CliContinuationSourceTests.test_default_keeps_arbitrary_argv_object_reference_route",
+            "tests.test_hia_cli_continuation_native.CliContinuationSourceTests.test_hia_owns_new_backend_and_one_use_claim_protocol",
+            "tests.test_hia_cli_continuation_native.CliContinuationSourceTests.test_v74_original_reference_body_is_byte_exact"
+          ],
+          "original3": [
+            "tests.test_hia_agent_entry.AgentEntryTests.test_assembly_roundtrip_uses_only_core",
+            "tests.test_hia_cli_native.CliNativeTests.test_all_fifteen_real_actions_and_publication_branches",
+            "tests.test_hia_program_tools.HIAProgramToolsTests.test_cli_verify_run_inspect_and_patch_need_no_rust_or_high_level_source"
+          ],
+          "source10": [
+            "tests.test_hia_inspect_program_source.InspectProgramSourceTests.test_only_exact_dictionary_update_extends_the_unchanged_front_call_gate",
+            "tests.test_hia_inspect_program_source.InspectProgramSourceTests.test_two_complete_bodies_three_original_methods_and_all_cli_ids_remain",
+            "tests.test_hia_inspect_program_source.InspectProgramSourceTests.test_exact_function_guard_rejects_code_defaults_and_foreign_key_protocols",
+            "tests.test_hia_inspect_program_source.InspectProgramSourceTests.test_foreign_inspect_alias_is_called_once_without_attribute_probes",
+            "tests.test_hia_inspect_program_source.InspectProgramSourceTests.test_signature_foreign_omission_and_explicit_keyword_keep_real_call_shape",
+            "tests.test_hia_inspect_program_source.InspectProgramSourceTests.test_original_inspection_orders_eager_sha_and_detached_signature_fields",
+            "tests.test_hia_inspect_program_source.InspectProgramSourceTests.test_original_signature_eager_default_and_first_provider_exception_are_preserved",
+            "tests.test_hia_inspect_program_source.InspectProgramSourceTests.test_generated_policy_ports_and_host_compatibility_are_reproducible",
+            "tests.test_hia_inspect_program_source.InspectProgramSourceTests.test_explicit_manifest_refuses_self_reported_sources_paths_and_nonregular_files",
+            "tests.test_hia_inspect_program_source.InspectProgramSourceTests.test_default_public_functions_do_not_import_or_invoke_the_new_owner"
+          ]
+        },
+        "name": "exact declared Source10/new Native17/VM12; four fault groups are individual children"
+      },
+      {
+        "constants": {
+          "CAPACITY": 1048576,
+          "CLEANUP": 3,
+          "COMPILE_SECONDS": 20,
+          "SECONDS": 180,
+          "VM_CALL_DEPTH": 128,
+          "VM_STEPS": 10000000
+        },
+        "name": "original static budgets, same supervisor/child env, actual-root fault targeting, buffer-finally structure"
+      },
+      {
+        "name": "three inspect generated outputs remain absent; authoring did not execute generation"
+      }
+    ],
+    "full_base_copy": false,
+    "generation": 0,
+    "limitations": [
+      "AST and byte checks are not product execution.",
+      "Actual inflight-reentry boundary may fail and has not been fixed or qualified.",
+      "R20 prepared tree is pinned; no formal-final-tree metadata equivalence is inferred.",
+      "No current-cold/installed-inspect/CLI-op10/whole qualification."
+    ],
+    "native_compilation": 0,
+    "native_execution": 0,
+    "product_tests": 0,
+    "project_imports": 0,
+    "qualification_inherited": false,
+    "schema": "hepta.hia.inspect-execution-authoring-static.v1",
+    "status": "STATIC_AUTHORING_CHECKS_ONLY",
+    "vm_execution": 0
+  }
+}

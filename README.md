@@ -1,37 +1,25 @@
-# HIA 原生重写进度与可复核证据（V122）
+# HIA native rewrite progress — 2026-11-14 05:14:56 UTC
 
-本提交记录实际开发状态和原件，**整套 HIA 原生闭环、匹配当前源码的 cold 资格、旧生产实现退役均未完成**。代码候选、局部控制和正式工作流分别记录，不能互相替代资格。
+This checkpoint preserves the complete generation and real-VM evidence for the new HIA u32-immediate compiler, R20 terminal Source evidence, and exact authoring plans. It does not claim whole-project native closure.
 
-## 目前已完成
+## Verified results
 
-- R19 全量 Source 的真实终态为 1411 项：1407 通过、3 失败、1 错误；原 62 项未执行。完整原件已由独立提交 [d035af2a882e348948e6c5571b60ef81dace9892](https://github.com/TrillionniumFoundation/Hepta/commit/d035af2a882e348948e6c5571b60ef81dace9892) 保持可达。
-- R20 五组修复已合并为精确 3177 文件候选。定向 37 项全通过，完整 1421 Source 和原 62 项的正式运行 [43553551892](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43553551892) 截至 04:27:13 UTC 仍在步骤 7，没有终态。
-- 新增 HIA u32 精确短常量编码编译器已实际生成并完成检查：466876 B、125 函数、1472 块、8141 操作。完整逆 AST 恢复原编译器，其他 124 个辅助函数逐字相等。
-- 新编译器原 9 项控制实际全部通过；452 次真实 VM 观察保存 2712 个完整缓冲区，共 46403838 B。350 次正常返回、102 次预期边界陷阱；最大实际步数 2113542，原每次 10M fuel 与整组 180+3 限制不变。尚未执行新编译器 Native 编译或建立 B0/B1/B2/B3。
-- inspect 两个完整原策略已作者为独立 owner。其唯一既有文件修改是对当前 R20 program_tools 的 744 B 追加；保留原 3 个相关测试、原 CLI 43 项和默认 210/可选 8 个资源。生成、测试、Native、VM 和 cold 均尚未执行。
+R20 formal run 43553551892 completed successfully: Source 1421/1421, original bounded controls 10 + 43 + 9 = 62, two complete passes over 139 generators, and 1574 AST checks. The actual 3177-file source tree is 84df4b42f1e20fd7d0c7229e658cf3b458984ffb. Both original ZIPs total 431,745,519 bytes; full SHA256, CRC and source identity were checked. The bounded development lane includes five real native compiles and is not a fresh full cold qualification.
 
-## 仍需闭合
+The new compiler source was generated and checked with the original limits. Source9 passed with 452 actual CoreVM observations, 2712 full before/after frames, 350 returned outcomes and 102 expected bounds traps. The complete generation/Source9 archive is mounted under u32-generation-source-complete; its 36 leaves restore 3342 logical files and 60,788,301 bytes. Its external 3175-file base remains recoverable through the complete R19 archive in ancestor d035af2a882e348948e6c5571b60ef81dace9892, and the active 3180-file candidate retains every original file unchanged.
 
-必须先取得 R20 的全量正式结果，再以实际生成后的完整产品源码运行原 Native 123 流程及其当前源码冷启动步骤。R8 的真实编译产物仍比聚合剩余空间多 6600 B，尚未采用或执行 VM。新短编码候选提供了可验证的后继方向，不能提前宣告解决尺寸、fuel 或聚合调用者问题。
+C0 produced a 674,610-byte compiler image with SHA256 219524343b32541866bd9e07e25f4e2014b861a34dd60e1932a3d05792d5a209. Root independently checked the actual 2,564,052-byte response, source, full output/workspace, receipt, seven inputs, all 3180 source files and owner cleanup. C1/C2 have not executed. C0 is a development compile using the explicitly fixed HIA observer, not a new B0/current-source cold result.
 
-[生产执行链审计](https://github.com/TrillionniumFoundation/Hepta/blob/d035af2a882e348948e6c5571b60ef81dace9892/PRODUCTION-OWNER-AUDIT.md)逐项检查 15 条实际链和 60 份冻结文件：CLI、服务/SQLite、构建安装宿主、对象和异常端口等仍有真实 Python 或外部实现职责。完整替换和切换验证完成以前，旧生产实现继续保留。
+## Work in progress
 
-## 本提交中的证据
+The complete R20 Native123 candidate is being published at codex/hia-combined-native-v120-r20-20261114-dda7. All 123 original steps, bytes, conditions and limits are unchanged. Step 6 must produce actual matching-current-source cold evidence. No run or success is claimed in this frozen snapshot. A first complete-tree API request timed out with unknown outcome; that original is retained, with exact-object GET reconciliation before a smaller equivalent base-tree request.
 
-| 路径 | 范围 |
-| --- | --- |
-| r20-inputs/ | 五组修复后的实际新 packets、完整计划、Source ID 清单与源码 manifest |
-| r20-focused/ | 37 项定向验证的完整原件压缩包和索引 |
-| r20-formal/ | 精确 17 文件正式 harness 及发布/运行中历史快照 |
-| u32-authored/ | 四个新源码文件的完整 packet、原体前像与作者阶段证据 |
-| u32-generated/ | 实际生成的完整 HIA 编译器源码 |
-| u32-source9/ | 唯一 9 项实际执行器与冻结计划 |
-| inspect-authored/ | 八路径完整源码前后像、原件和静态审查 |
-| root-records/ | 99 份选定完整记录、Root 独立核验、错误原件与全文索引 |
-| prepared-r19-differences/ | 原 R19 准备副本与保留实际源码间仅有的三份全文差异 |
-| recipes/ | 原生产者 recipe，保留最初路径与身份 |
-| STATE.json | 各执行范围、真实结果、尚未执行项和原限制 |
+The inspect source and full execution kit are authored and mounted, but their declared Source10, Native17 and VM12 groups are unexecuted. The known busy-entry guard counterexample remains explicit. The next bounded generation preparation is under review.
 
-完整 generation/Source9 六帧原件的生产者归档将单独挂入后继；这里的 Root 完整读回报告不替代原帧文件。R20 正式工作流的终态也只能以未来实际观察为准，本快照不会被回填成通过。
+## Original evidence and storage
 
-旧累计审计分支的更新失败与所有回读均保留；独立 R19 原件分支实际成功。本提交只创建新的进度证据分支，以独立 R19 证据提交为父，不修改 main、草稿产品 head 或运行中的正式分支。已经清理的只是已逐字核验来源的可重建测试副本；准备中的 R19 副本清理在本快照时尚未执行。
+The 22-file Root records capsule contains 9,765,484 original bytes: independent reviews, actual C0 review, earlier metadata corrections, exact duplicate-copy retirement inventories, and the proposed Source9 frame retirement. Every capsule entry was decoded and compared by bytes, mode, Git blob and SHA256 before publishing. Original failure and unknown-write records remain preserved.
+
+Only derived duplicate copies have been retired. Source9 frame removal is still proposed at this snapshot; its exact 2712 files can be retired only after the complete raw archive is rooted and their bytes/modes are rechecked. Production legacy, active source, original ZIPs, test assertions and budgets remain intact. Whole-native and current-cold are false.
+
+See STATE.json for exact scope and recipes. The earlier dff2632 checkpoint remains available through commit history; this checkpoint does not rewrite its historical state.
