@@ -6,7 +6,9 @@ on one immutable product commit. It provisions the prerequisites required by
 complete `unittest` discovery, preserves original success and failure output,
 and independently checks the ordered method identities visible in the original
 verbose test log. Product source, selectors, test bodies, skip rules and all
-inner budgets remain unchanged.
+inner budgets remain unchanged. A separate supplemental step runs missing
+original caller qualifiers and binds the production SHA stream image to the
+same cold compilation and the native observations already made by full discovery.
 
 ## Freeze and publish
 
@@ -14,6 +16,9 @@ inner budgets remain unchanged.
 SHA and full tree SHA. Its values name the frozen product selected for this
 run. A later audit requires replacing both SHAs with that audit's separately
 frozen product commit and tree. Nothing resolves a moving product branch at runtime.
+The unpublishable draft uses `REPLACE_PRODUCT_COMMIT` and `REPLACE_PRODUCT_TREE`;
+both must be replaced before publication. The normal strict target parser
+rejects these placeholders. It has no draft execution or target fallback.
 
 Publish exactly these five files as a fresh Git tree without a product base:
 
@@ -106,11 +111,23 @@ leave full discovery evidence and prevent an attempted passing run.
 
 The pre-discovery environment mirrors v4's existing static selector removals
 and its original cold-report bindings, read from the admitted v4 source.
-Sixteen newer native selectors, including `NATIVE_MAPPING`, additionally point
+Twenty-one newer cold selectors, including `NATIVE_MAPPING`, additionally point
 to **this same run's future `qualification/cold.json`**. The real unchanged v4
 still performs its own original assignments. All native consumers retain their
 existing matching-source cold admission. The two `WRONG_COLD_REPORT` negative
 control variables are never populated.
+
+The current additions are `BOUNDED_MEMORY`, `SCALAR_PROFILE`,
+`GENERATION_RETENTION`, `PUBLICATION_MEASUREMENT`, and the actual
+`SHA256_STREAM_DIFFERENTIAL` cold selector. Full discovery retains the original
+mapping, scalar, measurement, generation and stream differential component
+evidence under `qualification/full-discovery-components/`. Before execution the
+harness checks the same source/native tuples that v4 extracts, together with
+its original component groups. These retained native classes must first run
+in full discovery, so their evidence directories are not reused by an earlier
+stage. Their source-only classes stay in the existing source test tuple.
+Inherited production manifests and development compiler alternatives for these
+components are removed before the same-run cold bindings are applied.
 
 ## Original full execution and bounds
 
@@ -152,6 +169,49 @@ visible when a prerequisite, component or final suite fails.
 `whole_native_delivery_qualified` remains false even after a passing retained
 regression; the original v4 does not grant whole-native product qualification.
 
+## Supplemental callers without repeating component suites
+
+The workflow's separate supplemental step does not insert a stage into v4 or
+change its `steps.json`. It requires all 35 original stages to have been reached,
+then checks actual ordered full-suite method observations for the retained
+component classes. It does not infer native execution from an environment
+variable or from a generated source file.
+
+The component modules already run through complete discovery. The independent
+qualifier commands in the product workflow are not part of the two tuples that
+v4 extracts. The supplemental step therefore runs only the missing original
+scalar-profile, bounded-memory and generation-retention caller qualifiers,
+each with the same `qualification/cold.json`. Generation uses the original
+`--require-companion-policies` gate with mapping, scalar and measurement
+manifests produced by that full discovery. Their build scopes, cold-report
+hashes, complete source manifests, compiler identities and actual image bytes
+must match before they can be reused. No development image substitutes for a
+missing candidate, and no companion owner is optional in that gate.
+
+For SHA, the existing `tests.test_hia_sha256_stream_transition_equivalence`
+native class has already invoked both original and candidate images against
+its independent VM observations. Its retained report must show `actualCold`,
+the same cold/nested reports and complete source manifest, unchanged compiler
+and source, and real public-buffer and alias observations. The supplemental
+step invokes the existing `tools/build_hia_sha256.py --candidate sha256_stream`
+with that cold compiler. The produced manifest must name exactly the candidate
+image hash that the original differential class actually executed. The older
+`test_hia_sha256_stream_native` development fixture is not relabelled as cold.
+
+All four supplemental commands use the unmodified product workflow supervisor
+with its ordinary 1800-second budget. Original caller tests retain their own
+limits and zero-anomaly conditions. Reports require complete planned/started/
+stopped IDs, nonzero exact counts, zero skips, and preserved captured inputs.
+The supplemental result is separate from the original full result; a successful
+GitHub job requires both. An original full failure remains a failure even if
+these added caller gates pass. No component test suite is executed again by
+the supplemental step.
+
+The retained v4 plus this supplement does not reproduce every independent step
+of the current `hia-core.yml`: the selected mapping and publication-measurement
+caller gates remain required in the standard workflow on the same final product
+head, and are not duplicated here.
+
 ## Independent method-identity observation
 
 The original v4 records complete suite counts but does not instrument unittest
@@ -183,6 +243,8 @@ failure or interrupted execution:
   qualification and full-suite results if produced; raw source inventories and
   the independent method-identity observation.
 - All five executed harness files and selected GitHub run metadata.
+- Same-run full-discovery component builds and observations, all supplemental
+  commands and process-owner receipts, and their independent result record.
 - File sizes, SHA-256 values, original file and directory modes/timestamps,
   missing not-yet-produced paths, and explicit excluded-directory records.
 
@@ -213,6 +275,9 @@ HIA_GATE_PYTHON=python bash harness/prepare-dependencies.sh \
 python -B harness/run-gate.py run --target harness/target.json --source source \
   --environment "$RUNNER_TEMP/native-prerequisites/environment.json" \
   --output "$RUNNER_TEMP/full-retained"
+python -B harness/run-gate.py supplemental --target harness/target.json --source source \
+  --environment "$RUNNER_TEMP/native-prerequisites/environment.json" \
+  --full-run "$RUNNER_TEMP/full-retained"
 ```
 
 Every preparation and qualification output directory must be new and outside

@@ -125,6 +125,16 @@ jobs:
             --output "$HIA_AUDIT_ROOT/full-run" \
             > "$HIA_AUDIT_ROOT/setup/gate-wrapper.stdout" 2> "$HIA_AUDIT_ROOT/setup/gate-wrapper.stderr"
 
+      - name: Require missing original callers and the same-cold production SHA image
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B harness/run-gate.py supplemental --target harness/target.json --source source \
+            --environment "$HIA_AUDIT_ROOT/dependencies/environment.json" \
+            --full-run "$HIA_AUDIT_ROOT/full-run" \
+            > "$HIA_AUDIT_ROOT/setup/supplemental.stdout" 2> "$HIA_AUDIT_ROOT/setup/supplemental.stderr"
+
       - name: Retain original success or failure evidence with an explicit allowlist
         if: ${{ always() }}
         shell: bash
