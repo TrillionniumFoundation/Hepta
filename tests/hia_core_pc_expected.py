@@ -2,7 +2,8 @@
 
 The original UNPACK and comparison snapshot files stay byte-identical.  Their
 provenance describes historical bytes.  This loader returns separately labelled
-current expectations from exact legacy, PC-forwarding, fixed-word-read or balanced-dispatch identities.
+current expectations from exact legacy, PC-forwarding, fixed-word-read,
+balanced-dispatch or numbered-unit put-mask-elision identities.
 The fixed Core39 revision also admits the exact two-loop UNPACK zero-store successor;
 it never computes expected HIA hashes from the current HIA files.  The original
 callers still read and compare all 40 actual files, so mixed revisions fail.
@@ -24,6 +25,13 @@ BALANCED_GENERATOR_PIN = {
     "size": 17538,
     "sha256": "f89aa27693deb0b9a4db7325de9b346c2abdf947e5fed6e0c6e738b7c91cf7fa",
     "git_blob_sha1": "cb894b1bf7cf7e0a5e36bd26e37bc24ec6b83308",
+}
+PUT_MASK_MANIFEST = "tests/fixtures/hia_core_put_mask_elision_v1.json"
+PUT_MASK_MANIFEST_SHA256 = "d11290240af6136f4f3cf9d6c50c32eec51ae62d9105a79de7f17a4174c4449e"  # Remains closed until actual 40 outputs are frozen.
+PUT_MASK_GENERATOR_PIN = {
+    "size": 17703,
+    "sha256": "bbd03622a355917aba369375a226aab3b7003ed0bca8d53d9fdc5a0b7906d548",
+    "git_blob_sha1": "99cd0840528faac59ae3a2a10baa6466baa905aa",
 }
 EXPECTED_PATHS = {
     *(f"examples/hia_bootstrap/core_lowering_{number:03d}.hiaasm" for number in range(38)),
@@ -165,6 +173,85 @@ def _balanced_dispatch(root, fixed_raw, actual, by_path, numbered):
     return "balanced_dispatch"
 
 
+def _put_mask_elision(root, fixed_raw, actual, by_path, numbered):
+    """Append one exact numbered-unit helper revision; retain all old mappings."""
+    raw = (root / PUT_MASK_MANIFEST).read_bytes()
+    if (PUT_MASK_MANIFEST_SHA256 is None
+            or sha256(raw).hexdigest() != PUT_MASK_MANIFEST_SHA256):
+        raise ValueError("put-mask expectation manifest is not frozen")
+    manifest = _json(raw)
+    if manifest["schema"] != "hepta.hia.core39.explicit-put-mask-elision.v1":
+        raise ValueError("unknown put-mask expectation schema")
+    if manifest["balanced_dispatch_manifest"] != {
+            "path": BALANCED_MANIFEST, "sha256": BALANCED_MANIFEST_SHA256}:
+        raise ValueError("put-mask predecessor differs")
+    generator = manifest["generator"]
+    if (generator["path"] != "tools/generate_hia_core_lowering.py"
+            or generator["balanced_dispatch"] != BALANCED_GENERATOR_PIN
+            or generator["put_mask_elision"] != PUT_MASK_GENERATOR_PIN):
+        raise ValueError("put-mask author pin differs")
+    _require_pin(actual, PUT_MASK_GENERATOR_PIN)
+    replacements = generator["exact_forward_replacements"]
+    if type(replacements) is not list or len(replacements) != 3:
+        raise ValueError("put-mask derivation must have three substitutions")
+    for replacement in replacements:
+        if type(replacement) is not dict or set(replacement) != {"before", "after"}:
+            raise ValueError("malformed put-mask derivation")
+        before, after = replacement["before"], replacement["after"]
+        if (type(before) is not str or type(after) is not str
+                or not before or not after or before == after):
+            raise ValueError("malformed put-mask substitution")
+    text = actual.decode("utf-8")
+    for replacement in reversed(replacements):
+        before, after = replacement["before"], replacement["after"]
+        if text.count(after) != 1 or text.count(before) != 0:
+            raise ValueError("ambiguous inverse put-mask derivation")
+        text = text.replace(after, before, 1)
+    balanced_raw = text.encode("utf-8")
+    _require_pin(balanced_raw, BALANCED_GENERATOR_PIN)
+    for replacement in replacements:
+        before, after = replacement["before"], replacement["after"]
+        if text.count(before) != 1 or text.count(after) != 0:
+            raise ValueError("ambiguous forward put-mask derivation")
+        text = text.replace(before, after, 1)
+    if text.encode("utf-8") != actual:
+        raise ValueError("unknown Core39 put-mask revision")
+    if _balanced_dispatch(root, fixed_raw, balanced_raw, by_path, numbered) != "balanced_dispatch":
+        raise ValueError("put-mask predecessor revision differs")
+    rows = manifest["files"]
+    if type(rows) is not list or len(rows) != 40:
+        raise ValueError("put-mask expectation population differs")
+    successor = {}
+    for row in rows:
+        if type(row) is not dict or set(row) != {"path", "balanced_dispatch", "put_mask_elision"}:
+            raise ValueError("malformed put-mask expectation")
+        path = row["path"]
+        if type(path) is not str or path in successor or path not in EXPECTED_PATHS:
+            raise ValueError("duplicate or unknown put-mask expectation")
+        for revision in ("balanced_dispatch", "put_mask_elision"):
+            expected = row[revision]
+            if (type(expected) is not dict or set(expected) != {"size", "sha256", "git_blob_sha1"}
+                    or type(expected["size"]) is not int or expected["size"] < 0):
+                raise ValueError("malformed put-mask identity")
+            for field, length in (("sha256", 64), ("git_blob_sha1", 40)):
+                value = expected[field]
+                if (type(value) is not str or len(value) != length
+                        or any(character not in "0123456789abcdef" for character in value)):
+                    raise ValueError("unfrozen put-mask digest")
+        if row["balanced_dispatch"] != by_path[path]["balanced_dispatch"]:
+            raise ValueError("put-mask predecessor file differs")
+        successor[path] = row
+    if set(successor) != EXPECTED_PATHS:
+        raise ValueError("put-mask expected paths differ")
+    changed = {path for path, row in successor.items()
+               if row["balanced_dispatch"] != row["put_mask_elision"]}
+    if changed != numbered:
+        raise ValueError("only the 38 numbered put-mask Core units may differ")
+    for path, row in successor.items():
+        by_path[path]["put_mask_elision"] = row["put_mask_elision"]
+    return "put_mask_elision"
+
+
 def _fixed_word_reads(root, pc_raw, actual, by_path, numbered):
     raw = (root / FIXED_READS_MANIFEST).read_bytes()
     if sha256(raw).hexdigest() != FIXED_READS_MANIFEST_SHA256:
@@ -193,7 +280,8 @@ def _fixed_word_reads(root, pc_raw, actual, by_path, numbered):
             raise ValueError("ambiguous inverse fixed-word-read Core derivation")
         text = text.replace(after, before, 1)
     if (text.encode("utf-8") != pc_raw
-            or (actual != fixed_raw and _pin(actual) != BALANCED_GENERATOR_PIN)):
+            or (actual != fixed_raw
+                and _pin(actual) not in (BALANCED_GENERATOR_PIN, PUT_MASK_GENERATOR_PIN))):
         raise ValueError("unknown Core39 generator revision")
 
     unpack = manifest["unpack_generator"]
@@ -248,6 +336,8 @@ def _fixed_word_reads(root, pc_raw, actual, by_path, numbered):
     for path, row in fixed.items():
         by_path[path]["fixed_word_reads"] = row["fixed_word_reads"]
     if actual != fixed_raw:
+        if _pin(actual) == PUT_MASK_GENERATOR_PIN:
+            return _put_mask_elision(root, fixed_raw, actual, by_path, numbered)
         return _balanced_dispatch(root, fixed_raw, actual, by_path, numbered)
     return "fixed_word_reads"
 

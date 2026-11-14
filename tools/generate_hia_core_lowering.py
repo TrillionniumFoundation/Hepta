@@ -27,7 +27,7 @@ HANDOFF = 2
 FINISHED = 0
 
 
-def helpers():
+def helpers(*, unit_put_without_mask=False):
     result = []
     for name, typ in (('word', 'readbuf'), ('get', 'mutbuf')):
         lines = ['def ' + name + '(b:' + typ + ', at:u64) -> u64:']
@@ -38,7 +38,10 @@ def helpers():
         result.append('\n'.join(lines))
     lines = ['def put(b:mutbuf, at:u64, value:u64) -> u64:']
     for i in range(8):
-        lines.append('    store(b, at + ' + str(i) + ', (value >> ' + str(8 * i) + ') & 255)')
+        byte_value = '(value >> ' + str(8 * i) + ')'
+        if not unit_put_without_mask:
+            byte_value += ' & 255'
+        lines.append('    store(b, at + ' + str(i) + ', ' + byte_value + ')')
     lines.append('    return 0')
     result.append('\n'.join(lines))
     return '\n\n'.join(result) + '\n'
@@ -309,7 +312,7 @@ def unit_source(unit, selected, entries, total, workspace, output):
     # Initial mode admission exists in unit zero only; other units cannot start.
     startup = start_source(entries) if unit == 0 else (
         'def start(s:readbuf, w:mutbuf) -> u64:\n    return ' + str(ABI) + '\n')
-    return main + '\n' + startup + '\n' + '\n\n'.join(leaves + ['\n'.join(lines)]) + '\n' + helpers()
+    return main + '\n' + startup + '\n' + '\n\n'.join(leaves + ['\n'.join(lines)]) + '\n' + helpers(unit_put_without_mask=True)
 
 
 def pool_wire(values):
