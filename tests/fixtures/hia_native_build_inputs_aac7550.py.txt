@@ -1,0 +1,29 @@
+    def _build_inputs(self, ref, context, artifact):
+        """Capture and validate one immutable Core/object/final build observation."""
+        record, _ = self.store.get_json(ref, kind="build-receipt")
+        if (record["context"] != context or record["native_artifact"] != artifact or record["installation"] != self.identities
+                or record.get("target_profile") != self.profiles["target"]
+                or record.get("backend_profile") != self.profiles["backend"]):
+            reject("E_HIA_RECEIPT_BINDING", "build receipt belongs to a different native subject")
+        data, metadata, program = self._native(artifact, context)
+        if any(record.get(name) != value for name, value in metadata.items()):
+            reject("E_HIA_RECEIPT_BINDING", "build record differs from retained native metadata")
+        built = record.get("native_build")
+        if (type(built) is not dict or type(record.get("object_artifact")) is not dict
+                or record["object_artifact"] != built.get("object_artifact")
+                or record.get("object_sha256") != built.get("object_sha256")
+                or built.get("core_sha256") != program.sha256
+                or built.get("input_sha256") != program.input_sha256
+                or built.get("implementation_sha256") != self.identities["backend_sha256"]
+                or built.get("kind") != record["output_kind"]
+                or built.get("foreign_buffer_exports") != record.get("foreign_buffer_exports", [])
+                or built.get("artifact_sha256") != sha256(data).hexdigest()):
+            reject("E_HIA_RECEIPT_BINDING", "build record differs from actual artifact bytes")
+        object_bytes, object_metadata = self.store.get(record["object_artifact"], kind="build-object")
+        expected_metadata = {"schema": "hepta.hia.agent.build-object.v1", "core_sha256": program.sha256,
+            "machine_plan_sha256": built.get("machine_plan_sha256"), "installation": self.identities}
+        if (object_metadata != expected_metadata or sha256(object_bytes).hexdigest() != record["object_sha256"]
+                or record["object_artifact"]["sha256"] != record["object_sha256"]
+                or record["output_kind"] == "object" and object_bytes != data):
+            reject("E_HIA_RECEIPT_BINDING", "retained object differs from its exact build binding")
+        return record, data, object_bytes, program

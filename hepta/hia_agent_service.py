@@ -36,6 +36,15 @@ def _now():
 
 
 def _signatures(program, foreign_buffer_exports=()):
+    selected = os.environ.get('HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST')
+    if selected is not None:
+        from .hia_native_build_admission_native import installed_native_build_admission, NativeBuildAdmissionFrame
+        return NativeBuildAdmissionFrame(installed_native_build_admission(selected), 1,
+                                         None, (program, foreign_buffer_exports)).finish()
+    return _signatures_reference(program, foreign_buffer_exports)
+
+
+def _signatures_reference(program, foreign_buffer_exports=()):
     from .hia_program_native import WIDTHS
     from .hia_native_byte_abi import normalize_exports
     from .hia_agent_buffers import PROFILE as BUFFER_PROFILE
@@ -939,6 +948,14 @@ class HIAAgentService:
             "linker_used": args["output_kind"] == "shared", "native_execution_observed": False, "adopted": False}
 
     def _native(self, ref, context=None):
+        selected = os.environ.get('HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST')
+        if selected is not None:
+            from .hia_native_build_admission_native import installed_native_build_admission, NativeBuildAdmissionFrame
+            return NativeBuildAdmissionFrame(installed_native_build_admission(selected), 2,
+                                             self, (ref, context)).finish()
+        return self._native_reference(ref, context)
+
+    def _native_reference(self, ref, context=None):
         data, metadata = self.store.get(ref, kind="native")
         if metadata["installation"] != self.identities or context is not None and metadata["context"] != context:
             reject("E_HIA_RECEIPT_BINDING", "native artifact belongs to a different context or implementation")
@@ -951,9 +968,25 @@ class HIAAgentService:
         return data, metadata, program
 
     def _build_receipt(self, ref, context, artifact):
+        selected = os.environ.get('HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST')
+        if selected is not None:
+            from .hia_native_build_admission_native import installed_native_build_admission, NativeBuildAdmissionFrame
+            return NativeBuildAdmissionFrame(installed_native_build_admission(selected), 4,
+                                             self, (ref, context, artifact)).finish()
+        return self._build_receipt_reference(ref, context, artifact)
+
+    def _build_receipt_reference(self, ref, context, artifact):
         return self._build_inputs(ref, context, artifact)[0]
 
     def _build_inputs(self, ref, context, artifact):
+        selected = os.environ.get('HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST')
+        if selected is not None:
+            from .hia_native_build_admission_native import installed_native_build_admission, NativeBuildAdmissionFrame
+            return NativeBuildAdmissionFrame(installed_native_build_admission(selected), 3,
+                                             self, (ref, context, artifact)).finish()
+        return self._build_inputs_reference(ref, context, artifact)
+
+    def _build_inputs_reference(self, ref, context, artifact):
         """Capture and validate one immutable Core/object/final build observation."""
         record, _ = self.store.get_json(ref, kind="build-receipt")
         if (record["context"] != context or record["native_artifact"] != artifact or record["installation"] != self.identities

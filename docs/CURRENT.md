@@ -19,9 +19,9 @@ The canonical suffix entered main at
 
 | Scope | Audited main `f33d8da` | Earlier `ad352ee` | Published parent `b569c21` | This implementation |
 | --- | ---: | ---: | ---: | ---: |
-| HIA source files ending in `.hepta` | 178 | 188 | 190 | 193 |
+| HIA source files ending in `.hepta` | 178 | 188 | 190 | 194 |
 | Physical legacy `.hia`, `.HIA`, `.hiaasm` or `.hia.json` paths, including case variants | 0 | 0 | 0 | 0 |
-| Production Python modules directly under `hepta/` | 186 | 195 | 198 | 206 |
+| Production Python modules directly under `hepta/` | 186 | 195 | 198 | 208 |
 
 These counts describe files, not percentages of behavior. The additional
 Python modules are explicit adapters for new native owners; their existence is
@@ -53,12 +53,15 @@ tree `84b67370cd899f969a7130605f99bb056904af04`, added static resources and Stor
 lifecycle. Published `19065d2` added service context, cost-ledger policy, complete
 primitive Core diagnostics and the default-owner candidate installation. Its
 `9a9a9c9` successor corrected one frozen-fixture citation without changing the
-original source gate. This revision adds the complete evaluation control owner
-and reduces fixed-word ledger overhead. The eight HIA semantic owners introduced
+original source gate. Published `aac7550` added complete evaluation control and
+reduced fixed-word ledger overhead; `55e4ab1` installed the frozen inventory
+dependency in the Source job. This revision adds complete signature, native
+artifact and build-receipt admission. The nine HIA semantic owners introduced
 by this continuation are listed first:
 
 | Area | HIA-owned behavior | Retained host boundary |
 | --- | --- | --- |
+| [Native artifact and build receipt](HIA_NATIVE_BUILD_ADMISSION.md) | All four original signature/native/build-input/build-receipt methods, including ordered loops, composite checks, short circuits and nested admission | Opaque Python object protocols, original Core/context/ABI providers, Store/SQLite and SHA-256 |
 | [Evaluation](HIA_EVALUATION_NATIVE.md) | Complete original evaluation branches, case/arm iteration, correctness and completeness flags, six-outcome precedence, budget/effect order and exact integer deadlines | Original reference VM and native runner, Store/SQLite/clock providers, object protocols, integer-to-binary64 division and threshold comparison |
 | [Cost ledger](HIA_COST_LEDGER_NATIVE.md) | Original query/decode/policy ordering, 10,001-row truncation, context/unscoped selection, exact signed sums and output construction order | SQLite query/fetch, JSON decoding, row/object allocation and the original integer/string conversions |
 | [Service context](HIA_SERVICE_CONTEXT_NATIVE.md) | Context freeze/lookup, workload and budget loops, complete effect ordering, exact signed deadline arithmetic and remaining-time floor | Schema/profile/buffer providers, object/time protocols, artifact/SQLite effects and the original candidate-consumption provider |
@@ -75,6 +78,38 @@ by this continuation are listed first:
 | [Bounded byte memory](HIA_BOUNDED_MEMORY_NATIVE.md) | Original fill/move admission and refusals, actual in-place fill and overlapping move | Exact Python object facts, buffer export lifetime, allocator and GIL custody |
 | [SHA stream](HIA_SHA256_STREAM_NATIVE.md) | Original full-width state transitions with fixed eight-byte word accesses expanded | Original bounded adapter and foreign object lifetime |
 | [Execution budget](HIA_EXECUTION_BUDGET_NATIVE.md) and [journal](HIA_AGENT_JOURNAL_NATIVE.md) | Original budget transitions and complete per-request catalog hashing, with fixed word accesses expanded | Actual clock observations, SQLite transactions, durable journal and request dispatch |
+
+Native artifact admission preserves the four complete `aac7550` originals and
+the separate behavior-equivalence caller as byte-frozen fixtures. Its HIA
+continuation contains 19 functions, 278 blocks and 901 operations, with 83 fixed
+foreign ports; it does not increase the existing profile limits. Nested
+build-to-native-to-signature observations stay in the same HIA frame and never
+call the four retained control bodies. The actual worker helper registry now
+contains 37 source-bound single-image selectors.
+
+The isolated implementation `3b26f33` passed all 303 independent original
+semantic scenarios, six VM/native full-buffer comparisons and all ten component
+methods in 55.862 seconds. Its complete original nine-module caller gate passed
+112 methods in 186.977 seconds, with 658 frames, 101,496 native calls, seven
+confirmed foreign exceptions and zero retained-control calls. The frozen
+17-module inventory separately records another 128 scope IDs; those are not
+claimed as executed by the 112-caller gate. All original budgets remain intact.
+
+The installed seven-owner composition executes emit, verify, evaluate, adopt
+and replay. Normal verification replay preserves the original read-only subject
+revalidation: one mode-4 frame and 229 entries, with no new request, artifact or
+cost record. Unknown durable intent replays perform zero admission entries. The
+first new installed test incorrectly expected zero entries for normal verify
+replay; that failure is retained and its new assertion was corrected from the
+original call chain. Production semantics and original tests were unchanged.
+These are explicit development observations on their named source. The integrated
+development tree `f0333949344b15126dc44c1baef161187d879b68` then passed all 112
+owner/shared/source methods in 220.003 seconds. All five custody reports found
+unchanged inputs, and both six-owner and seven-owner compositions passed. The
+subsequent current-state documentation and inventory correction changes no
+execution source: all 1,145 support-contract inputs remain byte-identical.
+Its original Source checks are recorded separately. Matching-source cold and
+full remote runs retain their own source and compiler identities.
 
 Evaluation retains the exact 172-line `19065d2` original and its value-observation
 helper as independent fixtures. HIA orders both reference batches, case
@@ -219,7 +254,7 @@ they are not alternate production versions. No cached catalog identity or
 shortened validation path substitutes for the original per-request full hash.
 Performance measurements are observations, not new acceptance thresholds.
 
-The [helper bundle](HIA_NATIVE_HELPER_WORKER.md) contains **35** declared
+The [helper bundle](HIA_NATIVE_HELPER_WORKER.md) contains **37** declared
 single-image selectors. A source control checks the registry against the
 support declaration and verifies every packaged source. Selected paths retain
 installed source/image custody and explicit refusal instead of fallback.
@@ -285,10 +320,11 @@ Groups overlap and are never added into a unique-test total.
 | Parent `0daf86d`, [full retained 43541249953](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43541249953) | SUCCESS. All 4,843 planned/started/finished IDs match; zero failures, errors, skips, expected failures or unexpected successes. The original regression took 4,012.647 seconds within 5,400 seconds; source bytes were unchanged before and after. |
 | Published parent `ad352ee`, [push 43563651594](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43563651594) and [PR 43563684162](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43563684162) | Both FAILURE, confirmed at 2026-11-14 07:38:48 UTC. Both Source jobs passed 645/645, but Native failed the final ordinary JSON-wire caller gate. The PR ran all 91 caller methods in 385.760 seconds with one failure: native-timeout termination took 6.659 seconds against the original five-second limit. Its merge checkout `5af2ef6b31b3ccd998fdedb8d23d4869bbe4bd66` has the exact published tree. The independently completed full run is recorded separately below. Later successful runs do not erase these failures. A local reproduction isolated substantial JSON-wire overhead before the timed native runner; its native batch exhausted its one-millisecond budget without starting a child. |
 | Published parent `ad352ee`, [full retained 43563838838](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43563838838) | SUCCESS, completed 2026-11-14 08:06:30 UTC. All 4,893 planned/started/finished IDs match, zero anomalies, 4,134.669 seconds within the original 5,400-second full-discovery budget. All eight same-cold supplemental gates passed. The original v4 invocation took 7,361.745 seconds across its separate stages; no whole-run 5,400-second limit is implied. Exact harness `e5812b8a4f0c9dae0a8a30b83cf30e75d9901ea1`, product tree `9c56113194795c738d3e7804eb1a89f8a1803cbd`. |
-| Published parent `b569c21`, [push 43566589915](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43566589915) and [PR 43566764873](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43566764873) | Both SUCCESS; the PR reached its terminal result at 2026-11-14 07:49:17 UTC. Both Source jobs passed 651/651, and each Native job completed all 91 API steps successfully with none skipped, including cold 11/11 and language 1,242/1,242. The final PR JSON-wire gate passed all 91 methods in 286.594 seconds. The two Source runs took 646.747 and 748.449 seconds. PR merge `c55b748d358d2dd64be61384f53633b19de83896` has the exact product tree. Separate [full retained 43566751297](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43566751297), using harness `367ba22d6fdefba2cb8d820b6438fd71fac4c7da`, was still running at 08:36 UTC. |
-| Implementation `19065d2`, [push 43572500569](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43572500569) and [PR 43572597045](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43572597045) | Both Source jobs failed the original Core-only boundary gate: the documented frozen `.py.txt` fixture path was read as a nonexistent `.py` script. The `9a9a9c9` documentation-only successor uses the existing fixture citation convention and leaves that gate unchanged. Its original Core-only and source-contract controls passed 18/18 in 38.227 seconds. Native jobs and [full retained 43572595959](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43572595959) were still running at 08:36 UTC; no terminal result is claimed. The original PR merge `608d067555b2167565ae59e92538e3cc37c21158` has product tree `fb860885c7b3eb833b8bba2aac91d3bb4c4c529c`. That full run uses actual harness `94f544ab9383e4fe6c0ea955027892720dbfc4d1`. |
-| Published `9a9a9c9`, [push 43573129902](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43573129902) and [PR 43573135447](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43573135447) | Both SUCCESS. Source passed 662 methods in each job; the push took 530.310 seconds. Both Native jobs completed every declared step, including the original 91 JSON-wire callers in 294.305 and 308.489 seconds. Complete original job logs were independently read back. PR merge `9144bea50898caa313d94755d54cd96d5e7f2d9b` has product tree `d597c1f9f0017e6a716359deaee51dd631af18ff`. [Full retained 43573178591](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43573178591), using actual harness `965b40bca7d01bb33d7497a24a4ad77d8d133d7a`, was still running at 09:28 UTC; full acceptance is not claimed. |
-| Evaluation/transport integration `aac7550`, [push 43579621543](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43579621543) and [PR 43579724238](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43579724238) | The final exact-tree development integration passed all 102 methods in 179.784 seconds, with four unchanged-custody records and six-owner replay checks. The PR Source job then ran all 667 methods in 569.536 seconds with six import errors: its new complete retained-caller inventory needs `jsonschema`, which the Source job did not install. This successor installs the same fixed `jsonschema==4.26.0` already used by the Native job; no test, discovery list, limit or product policy changes. Native and [full retained 43579990844](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43579990844) remained running at 09:28 UTC. That full run uses actual harness `1040910fca70aa637898a18c510a56e905dca69e`, targeting exact `aac7550` tree `33f0f17090a42da252f053d7bcc241185181952d`; its result cannot qualify this successor. |
+| Published parent `b569c21`, [push 43566589915](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43566589915) and [PR 43566764873](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43566764873) | Both SUCCESS; the PR reached its terminal result at 2026-11-14 07:49:17 UTC. Both Source jobs passed 651/651, and each Native job completed all 91 API steps successfully with none skipped, including cold 11/11 and language 1,242/1,242. The final PR JSON-wire gate passed all 91 methods in 286.594 seconds. The two Source runs took 646.747 and 748.449 seconds. PR merge `c55b748d358d2dd64be61384f53633b19de83896` has the exact product tree. Separate [full retained 43566751297](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43566751297), using harness `367ba22d6fdefba2cb8d820b6438fd71fac4c7da`, failed stage 35 at 5,400.123 seconds against the original 5,400-second limit. Its first 34 stages and all ten supplements passed. Of 4,923 planned methods, 4,850 started, 4,849 reached `ok`, one had no terminal result and 73 never started. No observed completed method failed, but the original complete result JSON was never produced. The supervisor terminated the group and completed cleanup. The last method is the interruption point, not proof of the sole cause. |
+| Implementation `19065d2`, [push 43572500569](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43572500569) and [PR 43572597045](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43572597045) | Both Source jobs failed the original Core-only boundary gate: the documented frozen `.py.txt` fixture path was read as a nonexistent `.py` script. The `9a9a9c9` documentation-only successor uses the existing fixture citation convention and leaves that gate unchanged. Its original Core-only and source-contract controls passed 18/18 in 38.227 seconds. [Full retained 43572595959](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43572595959) also failed. Its 35 original stages had 32 PASS and three HOLD, all traced to the same fixture citation: source scope, Source tests and full discovery. Full discovery ran all 4,973 planned IDs to terminal results in 3,296.997 unittest seconds, with 4,972 `ok` and that one Core-only ERROR; there was no timeout or second observed defect. All twelve supplements passed. These results remain failures after the successor fixes the citation. The original PR merge `608d067555b2167565ae59e92538e3cc37c21158` has product tree `fb860885c7b3eb833b8bba2aac91d3bb4c4c529c`. That full run uses actual harness `94f544ab9383e4fe6c0ea955027892720dbfc4d1`. |
+| Published `9a9a9c9`, [push 43573129902](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43573129902) and [PR 43573135447](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43573135447) | Both SUCCESS. Source passed 662 methods in each job; the push took 530.310 seconds. Both Native jobs completed every declared step, including the original 91 JSON-wire callers in 294.305 and 308.489 seconds. Complete original job logs were independently read back. PR merge `9144bea50898caa313d94755d54cd96d5e7f2d9b` has product tree `d597c1f9f0017e6a716359deaee51dd631af18ff`. [Full retained 43573178591](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43573178591), using actual harness `965b40bca7d01bb33d7497a24a4ad77d8d133d7a`, was still running at 10:14 UTC; full acceptance is not claimed. |
+| Evaluation/transport integration `aac7550`, [push 43579621543](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43579621543) and [PR 43579724238](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43579724238) | The final exact-tree development integration passed all 102 methods in 179.784 seconds, with four unchanged-custody records and six-owner replay checks. The PR Source job then ran all 667 methods in 569.536 seconds with six import errors: its new complete retained-caller inventory needs `jsonschema`, which the Source job did not install. The published `55e4ab1` successor installs the same fixed `jsonschema==4.26.0` already used by the Native job; no test, discovery list, limit or product policy changes. Native and [full retained 43579990844](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43579990844) remained running at 10:14 UTC. That full run uses actual harness `1040910fca70aa637898a18c510a56e905dca69e`, targeting exact `aac7550` tree `33f0f17090a42da252f053d7bcc241185181952d`; its result cannot qualify this successor. |
+| Source-dependency repair `55e4ab1`, [push 43581207089](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43581207089) and [PR 43581371995](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43581371995) | Both Source jobs passed all 667 methods in 688.058 and 693.059 seconds; the original complete job logs were read back. Native jobs were still running at 10:14 UTC. This establishes the repaired Source job on `55e4ab1` tree `239e174b0ed76b5d9997f5831d899eb3a105b38b`, not matching-source acceptance of the new admission owner. |
 | `a7710b5`, [push 43475067137](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43475067137) | FAILURE. Source: 585 tests passed. Native failed the accepted 64 MiB `store-put` at its original 60-second subprocess limit; subsequent product steps were skipped. |
 | `a7710b5`, [PR 43475077671](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43475077671) | SUCCESS. Source: 585 tests; every declared Native step completed. Actual checkout was merge `05d0cb2130982c4ffd408521650e20298e4c4ac0`, independently verified to have the same `b5618be` tree, with parents main `f33d8da` and `a7710b5`. |
 | `fbc34a716e31e72dd492fa926025b04808df339a`, [push 43537843469](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43537843469) and [PR 43538070022](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43538070022) | Both failed. Each Source run executed 619 methods with one failure: the bounded-memory installation fixture lacked ten explicit resource-role declarations. Each Native run passed cold and stages 8-16, including 41 scalar and 99 combined generation callers, then executed all 17 bounded-memory tests with two failures at 148,869 bytes against the original 65,536-byte ceiling. Later native steps were skipped. The PR checkout was `5e443ab300c98cc7702d0992b5423d40d9b54f60`, with the same `590189851a4b37965ed9c6b0abbb43f8d8c3115d` tree. This revision fixes the real loader allocation and explicitly copies all resource roles; those earlier runs remain failures. |
@@ -317,6 +353,19 @@ directories. The verified file content totals 1,937,564,921 bytes. The archive
 preserves original failures as well as successes; it does not qualify later
 source changes or erase that source's two separate Core workflow failures.
 
+Both later failure archives were independently checked in full before their
+failure diagnoses were closed. The `b569c21` artifact `14108017266` is
+450,792,778 ZIP bytes, SHA-256
+`91932126ce5b877d266b695485b21655118dfc56fb01900871fd48b86a0b3d11`;
+all 26,627 files and 28,187 tar members matched their original sizes, hashes,
+modes and nanosecond timestamps. The `19065d2` artifact `14107992993` is
+530,344,233 ZIP bytes, SHA-256
+`e51b1cc0b153a9ad0f82f0e91fd562de07e1e7b6141205d6c52ca4db2c514c78`;
+all 31,560 files and 33,278 tar members passed the same checks. Missing original
+reports remain explicit omissions; no replacement result was manufactured.
+The first failure is an incomplete timed-out discovery, while the second is a
+fully executed discovery with one error. Neither qualifies a later source.
+
 The earlier failed `be36b7c` full run used product tree `e32d473fc5ce396b513a6b85e04340fb25d81d12`
 and separate harness `59c6e5912c86f6253b68b7a1579dbeef2fe8c111`.
 All six real NDU preparations and fixed verification dependencies passed.
@@ -335,7 +384,7 @@ complete original-caller gates. The retained
 keeps original source/harness custody, all 35 stages and complete discovery.
 New component callers are additional gates, not replacements for that suite.
 The workflow now includes full cost, its default installation candidate, patch
-impact, static resources, Store lifecycle, service context, cost ledger, complete evaluation and both CLI
+impact, static resources, Store lifecycle, service context, cost ledger, complete evaluation, native artifact/build admission and both CLI
 discovery qualifiers.
 Its Native artifact upload now explicitly retains the full-cost, patch-impact,
 CLI-discovery and default-installation evidence directories; the earlier Core
@@ -386,9 +435,9 @@ remaining service methods listed here.
 | `hia_context` | Hosted schema/profile/buffer providers, clock/object protocols and persistence effects; selected freeze/lookup/deadline control now has the HIA owner above |
 | `hia_inspect` | View/selector/query/lowering coordination |
 | `hia_candidate` | Import/patch routing, retention and complete diagnostics |
-| `hia_verify` | Claims, independent proofs, receipts, deadlines and replay verification |
+| `hia_verify` | Claims, independent proofs, deadlines and replay verification; selected native artifact/build-receipt control has the HIA owner above, with Core/ABI/Store/object providers retained |
 | `hia_emit` | Profile/receipt/plan/deadline/build and artifact retention |
-| `hia_evaluate` | Reference/native workload loops, outcomes, comparison and receipts; selected ledger ordering/filtering/arithmetic now has the HIA owner above, with SQLite/JSON/object/conversion effects retained |
+| `hia_evaluate` | Original reference VM/native runner, clock/object protocols, integer-to-binary64 division and threshold comparison, plus SQLite/artifact effects; selected complete evaluation control and ledger policy now have the HIA owners above |
 | `hia_adopt` | Receipt/objective/ABI admission and the outer adoption transaction |
 | `hia_rollback` | Request, retained-image and receipt coordination |
 
