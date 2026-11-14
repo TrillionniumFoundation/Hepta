@@ -1,0 +1,107 @@
+{
+  "compiler_child_limit_seconds": 20,
+  "custody": "PARTIAL_HTTP_RANGE_MEMBER_CRC_VERIFIED_WHOLE_ZIP_PENDING",
+  "failed_job_step": 15,
+  "group_limit_seconds": 1800,
+  "head": "26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d",
+  "job": 132343657673,
+  "later_gates": "NOT_EXECUTED_AFTER_NAMESPACE_FAILURE",
+  "native_whole": "FAIL",
+  "nested": {
+    "errors": [],
+    "expected_failures": [],
+    "failures": [
+      [
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+        "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 657, in test_expired_evaluation_is_rejected_before_any_reference_or_native_runner\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n    baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-2f7ede410124f15bf5f37252bab5695c7e2bf2982a63e515a67b6bcc5a583257\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"codegen\", \"message\": \"frozen context deadline expired before emission\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n"
+      ],
+      [
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 572, in test_native_timeout_is_incomplete_terminated_and_not_adoptable\n    self.assertLess(time.monotonic() - started, 5)\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 6.1432236370000055 not less than 5\n"
+      ],
+      [
+        "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+        "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 591, in test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        document=looping, candidate=looping, workload=workload,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n    baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-756bb592f158ce30c23b1be42f19223ecc8605ca6b747429c7e62b7996efcd2b\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"codegen\", \"message\": \"frozen context deadline expired before emission\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n"
+      ]
+    ],
+    "loaded_ids": [
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_allocation_resource_trace_difference_is_not_value_equivalence",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_equivalence_search_uses_remaining_frozen_context_budget",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_invalid_candidate_is_repaired_with_an_explicit_new_request",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_matching_return_values_do_not_hide_different_first_trap",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_patch_binds_canonical_base_and_whole_candidate_is_rechecked",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_stale_context_and_foreign_validation_profile_are_rejected",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission",
+      "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+      "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+      "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_all_eleven_tools_and_full_u8_native_workload",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_published_version_lease_survives_rollback_and_release_is_checked",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_tool_object_emission_needs_no_llvm_import_or_external_process",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_u64_generation_boundary_rejects_out_of_range_strings",
+      "tests.test_hia_agent_native_tools.AgentStoreDirectoryPermissionTests.test_preexisting_world_writable_artifact_directory_is_rejected",
+      "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_cli_requires_explicit_campaign_before_any_transport_or_evidence",
+      "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_committed_but_lost_reply_retains_original_intent_for_recovery",
+      "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_existing_output_is_preserved_and_refused_before_dispatch",
+      "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_invalid_campaign_cannot_start_a_transport_or_use_an_arbitrary_slot",
+      "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_two_campaigns_share_store_but_not_slot_and_reconnect_does_not_reexecute"
+    ],
+    "skips": [],
+    "tests_run": 35,
+    "unexpected_successes": []
+  },
+  "original_report_bytes": 236337,
+  "original_report_git_blob": "037dd52b11f300e2cff029b1cbc2fee1f15c7191",
+  "original_test_budgets_changed": false,
+  "outer": {
+    "errors": [],
+    "executed_ids": [
+      "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_original_agent_tools_and_campaign_with_all_three_owners_and_no_namespace_reference"
+    ],
+    "expected_count": 1,
+    "expected_failures": [],
+    "loaded_ids": [
+      "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_original_agent_tools_and_campaign_with_all_three_owners_and_no_namespace_reference"
+    ],
+    "skips": [],
+    "status": "FAIL",
+    "tests_run": 1,
+    "unexpected_successes": []
+  },
+  "outer_traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_store_lifecycle.py\", line 480, in _child\n    _require(nested['tests_run'] == len(expected_nested) and type(nested['tests_run']) is int\n    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n             and not any(nested[key] for key in ('failures', 'errors', 'skips',\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                 'expected_failures', 'unexpected_successes')),\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n             'complete original nested caller gate failed')\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_store_lifecycle.py\", line 163, in _require\n    raise ValueError(message)\nValueError: complete original nested caller gate failed\n",
+  "parent_admission_traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_store_lifecycle.py\", line 570, in qualify\n    _admit_child_observations(child, sha256(held[request_path]).hexdigest())\n    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_store_lifecycle.py\", line 339, in _admit_child_observations\n    _require(type(child) is dict and child.get('schema') == 'hepta.hia.store-lifecycle-caller-observations.v1'\n    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n             and child.get('scope') == 'OBSERVATIONS_ONLY_NO_COLD_AUTHORITY'\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ...<3 lines>...\n             and child.get('source_and_inputs_unchanged') is True,\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n             'original requests caller observation custody differs')\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/qualify_hia_store_lifecycle.py\", line 163, in _require\n    raise ValueError(message)\nValueError: original requests caller observation custody differs\n",
+  "run": 43560753071,
+  "schema": "hepta.native123.namespace-original-triage.v1",
+  "source_and_inputs_unchanged": true,
+  "source_job": "IN_PROGRESS_AT_LAST_READ",
+  "terminal": {
+    "argv": [
+      "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python",
+      "-I",
+      "-B",
+      "/home/runner/work/Hepta/Hepta/tools/qualify_hia_store_lifecycle.py",
+      "--_child-request",
+      "/home/runner/work/_temp/hia-store-lifecycle-namespace/caller-request.json"
+    ],
+    "elapsed_ns": 450477305309,
+    "pid": 13399,
+    "returncode": 1,
+    "timed_out": false,
+    "timeout_seconds": 1800
+  }
+}

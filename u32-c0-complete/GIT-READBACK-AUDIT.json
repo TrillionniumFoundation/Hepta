@@ -1,0 +1,66 @@
+{
+  "files": {
+    "authoring/complete_c0_git_readback_r1.py": {
+      "identity": {
+        "bytes": 7074,
+        "git_blob": "7da2d86a597071f79fab7c71669cae32cfa3d99f",
+        "mode": "100644",
+        "sha256": "5142c9eeda32f2407be5a5585919c633eb89a70970e35d920d1b88c1accf8dd6",
+        "type": "blob"
+      },
+      "text": "\"\"\"Read actual immutable Git GET responses; reconstruct C0 originals without execution.\"\"\"\nimport base64\nimport gzip\nimport hashlib\nimport json\nfrom pathlib import Path\nimport stat\nimport time\n\nROOT = Path(__file__).resolve().parents[1]\nBUNDLE = ROOT / 'handoff-c0-completed-r1'\nPUBLICATION = BUNDLE / 'publication'\n\n\ndef require(value, reason):\n    if not value:\n        raise AssertionError(reason)\n\n\ndef pin(raw):\n    return {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest(),\n            'git_blob': hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\\0' + raw).hexdigest()}\n\n\ndef check(raw, row):\n    require(pin(raw) == {key: row[key] for key in ('bytes', 'sha256', 'git_blob')}, 'complete byte identity differs')\n\n\ndef ordinary(path):\n    require(stat.S_ISREG(path.lstat().st_mode), 'ordinary original required: ' + str(path))\n    return path.read_bytes()\n\n\ndef dump(path, value):\n    with path.open('x') as stream:\n        json.dump(value, stream, sort_keys=True, indent=2, allow_nan=False)\n        stream.write('\\n')\n\n\ndef main():\n    started = time.monotonic()\n    plan = json.loads(ordinary(BUNDLE / 'PUBLISH-PLAN.json'))\n    require(len(plan) == 33, 'exact metadata and thirty-part inventory required')\n    observed, receipts, responses = {}, [], []\n    for index, row in enumerate(plan):\n        name = 'c0-completed-%03d' % index\n        receipt_path = PUBLICATION / (name + '-receipt.json')\n        receipt = json.loads(ordinary(receipt_path))\n        require(receipt['status'] in ('ACK_FULL_GET_MATCH', 'ORIGINAL_POST_ACK_GET_ONLY_RECOVERY_MATCH'),\n                'not a completed actual ACK/GET receipt')\n        require(all(receipt[key] == row[key] for key in ('path', 'bytes', 'sha256', 'git_blob')),\n                'receipt differs from frozen publish row')\n        get_path = PUBLICATION / (name + ('-recovery-readback.response.json' if index in (6, 7)\n                                        else '-readback.response.json'))\n        response_raw = ordinary(get_path)\n        response = json.loads(response_raw)\n        require(response.get('isError') is False, 'actual GET failed')\n        text = response['structuredContent']['content']\n        require(type(text) is str, 'actual GET did not return complete UTF8 text')\n        raw = text.encode('utf-8')\n        check(raw, row)\n        require(raw == ordinary(BUNDLE / row['path']), 'actual GET differs from original transport bytes')\n        observed[row['path']] = raw\n        receipts.append(receipt)\n        ack_raw = ordinary(PUBLICATION / (name + '-blob.response.json'))\n        responses.append({'name': name, 'post_ack_response': json.loads(ack_raw),\n                          'post_ack_raw_identity': pin(ack_raw),\n                          'full_get_response_raw_identity': pin(response_raw),\n                          'actual_full_get_content': pin(raw),\n                          'get_only_recovery_after_original_post': index in (6, 7)})\n    wrapper = json.loads(observed['INDEX-CAPSULE.json'])\n    index_raw = gzip.decompress(base64.b64decode(wrapper['data'], validate=True))\n    check(index_raw, wrapper['decoded'])\n    index = json.loads(index_raw)\n    encoded = b''.join(observed[row['path']] for row in index['parts'])\n    require(b'\\n' not in encoded and b'\\r' not in encoded, 'base64 transport has unexpected line endings')\n    check(encoded, index['base64'])\n    compressed = base64.b64decode(encoded, validate=True)\n    check(compressed, index['gzip'])\n    raw_capsule = gzip.decompress(compressed)\n    check(raw_capsule, index['json_capsule'])\n    payload = json.loads(raw_capsule)\n    require(payload['files'] == index['files'] and payload['directories'] == index['directories'],\n            'logical manifests differ')\n    objects = {}\n    for key, row in payload['objects'].items():\n        raw = base64.b64decode(row['base64'], validate=True)\n        check(raw, row)\n        require(key == row['sha256'], 'CAS key differs')\n        objects[key] = raw\n    require(len(objects) == index['unique_objects'] == 97\n            and sum(map(len, objects.values())) == index['unique_bytes'] == 11676343,\n            'object count or size differs')\n    total = 0\n    for name, row in payload['files'].items():\n        raw = objects[row['object']]\n        check(raw, row)\n        current = ROOT / name\n        require(raw == ordinary(current) and stat.S_IMODE(current.lstat().st_mode) == row['mode'],\n                'actual GET reconstructed logical bytes/mode differ: ' + name)\n        total += len(raw)\n    require(len(payload['files']) == index['logical_files'] == 114\n            and total == index['logical_bytes'] == 14924116, 'logical count or size differs')\n    for name, mode in payload['directories'].items():\n        current = ROOT / name\n        require(stat.S_ISDIR(current.lstat().st_mode)\n                and stat.S_IMODE(current.lstat().st_mode) == mode, 'original directory mode differs')\n    exceptional_names = ('scheduler-r2-batch-6-intent.json', 'scheduler-r2-batch-6-result.json',\n                         'BATCH-6-POST-ACK-GET-RECOVERY-INTENT.json',\n                         'c0-completed-006-recovery-readback.intent.json',\n                         'c0-completed-007-recovery-readback.intent.json')\n    exceptions = {}\n    for name in exceptional_names:\n        raw = ordinary(PUBLICATION / name)\n        exceptions[name] = {'identity': pin(raw), 'text': raw.decode()}\n    transport = {'schema': 'hepta.selfhost-u32-C0-transport-receipts.v1',\n        'status': 'ALL_33_POST_ACK_AND_COMPLETE_GET_CONTENT_VERIFIED',\n        'receipts': receipts, 'post_ack_and_get_bindings': responses,\n        'post_ack_local_recording_failures': 2, 'post_retries': 0,\n        'get_only_recoveries': 2, 'exceptional_originals_verbatim': exceptions,\n        'successful_full_API_GET_envelopes_remain_local': True,\n        'mounted_blobs_preserve_each_complete_actual_GET_content': True,\n        'all_114_execution_authoring_logical_originals_recoverable': True}\n    dump(BUNDLE / 'TRANSPORT-RECEIPTS.json', transport)\n    result = {'schema': 'hepta.selfhost-u32-C0-git-readback.v1',\n        'status': 'PASS_ACTUAL_GIT_GET_RECONSTRUCTION_AND_ALL_ORIGINALS',\n        'metadata_blobs': 3, 'parts': 30, 'logical_files': 114, 'logical_bytes': total,\n        'objects': len(objects), 'object_bytes': sum(map(len, objects.values())),\n        'directories': len(payload['directories']), 'gzip': index['gzip'],\n        'actual_POST_ACK_and_full_GET_per_blob': True,\n        'complete_Git_SHA_size_base64_gzip_CRC_object_member_modes_verified': True,\n        'all_reconstructed_bytes_and_modes_equal_current_originals': True,\n        'filesystem_restore_performed': False, 'full_memory_reconstruction_from_actual_GET': True,\n        'external_3175_R19_base_included': False, 'products_executed': 0,\n        'transport_failures_preserved': 2, 'get_only_recoveries': 2, 'post_retries': 0,\n        'elapsed_seconds': time.monotonic() - started}\n    dump(BUNDLE / 'GIT-READBACK.json', result)\n    print(json.dumps(result, sort_keys=True))\n\n\nif __name__ == '__main__':\n    main()\n"
+    },
+    "handoff-c0-completed-r1/git-readback-execution-r1/REQUEST.json": {
+      "identity": {
+        "bytes": 252,
+        "git_blob": "f4057d4995d988f840c1bca6cc074034a69d29f4",
+        "mode": "100644",
+        "sha256": "71cc6a846bd64318ac9f9746f502cfa5f30b7309e3deed5b7613a02e6a68469c",
+        "type": "blob"
+      },
+      "text": "{\n  \"command\": [\n    \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3\",\n    \"-B\",\n    \"/workspace/scratch/dda74a4fae35/v121-selfhost-small-constant-r1/authoring/complete_c0_git_readback_r1.py\"\n  ],\n  \"product_executions\": 0\n}\n"
+    },
+    "handoff-c0-completed-r1/git-readback-execution-r1/RESULT.json": {
+      "identity": {
+        "bytes": 90,
+        "git_blob": "e635a8b5c46b52f3f19f78211481461b65f837c8",
+        "mode": "100644",
+        "sha256": "bc170d7666bd15c30d02f5cef51958c35078f4121d123a7ddf0ebd62ea4fb612",
+        "type": "blob"
+      },
+      "text": "{\n  \"elapsed_seconds\": 0.6954363450058736,\n  \"product_executions\": 0,\n  \"returncode\": 0\n}\n"
+    },
+    "handoff-c0-completed-r1/git-readback-execution-r1/stderr.bin": {
+      "identity": {
+        "bytes": 0,
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+        "mode": "100644",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "type": "blob"
+      },
+      "text": ""
+    },
+    "handoff-c0-completed-r1/git-readback-execution-r1/stdout.bin": {
+      "identity": {
+        "bytes": 889,
+        "git_blob": "8a2079a023665a2f26c0e1172552d67b0c8027f1",
+        "mode": "100644",
+        "sha256": "6b5a2899845e50ac295e0b5c963ea9519e663cf3265f0a1052fed0cc2843220b",
+        "type": "blob"
+      },
+      "text": "{\"actual_POST_ACK_and_full_GET_per_blob\": true, \"all_reconstructed_bytes_and_modes_equal_current_originals\": true, \"complete_Git_SHA_size_base64_gzip_CRC_object_member_modes_verified\": true, \"directories\": 15, \"elapsed_seconds\": 0.6284963900106959, \"external_3175_R19_base_included\": false, \"filesystem_restore_performed\": false, \"full_memory_reconstruction_from_actual_GET\": true, \"get_only_recoveries\": 2, \"gzip\": {\"bytes\": 2852956, \"git_blob\": \"696c3aed02bb0d1cb5e1b0712d17b7304d5496e0\", \"sha256\": \"23add3280b986cf30c36fd5d276b643662d56daa720a14ece7832312267de766\"}, \"logical_bytes\": 14924116, \"logical_files\": 114, \"metadata_blobs\": 3, \"object_bytes\": 11676343, \"objects\": 97, \"parts\": 30, \"post_retries\": 0, \"products_executed\": 0, \"schema\": \"hepta.selfhost-u32-C0-git-readback.v1\", \"status\": \"PASS_ACTUAL_GIT_GET_RECONSTRUCTION_AND_ALL_ORIGINALS\", \"transport_failures_preserved\": 2}\n"
+    },
+    "handoff-c0-completed-r1/publication/SCHEDULER-R2.js": {
+      "identity": {
+        "bytes": 2322,
+        "git_blob": "f7a81377d251bdbc64fcd05813f917ab20fed6cd",
+        "mode": "100644",
+        "sha256": "26e32165dcbf5f36a606d113d21ccaaf893c5752bfcc6bbe6da96cb01caa280e",
+        "type": "blob"
+      },
+      "text": "return async function publishRange(first, end) {\n  const h = new Function(\"tools\",\"store\",\"load\",load(\"v119.publish.helper\"))(tools,store,load);\n  const root = \"/workspace/scratch/dda74a4fae35/v121-selfhost-small-constant-r1/handoff-c0-completed-r1\";\n  const pub = h.makeHelper(root,\"v121.c0.completed.publish.state\");\n  const rows = load(\"v121.c0.completed.plan\");\n  async function readPinned(row, index) {\n    const cached = load(\"v121.c0.completed.pending_text.\" + index);\n    if (typeof cached === \"string\") {\n      if (h.utf8(cached).length !== row.bytes) throw Error(\"cached byte count differs\");\n      return cached;\n    }\n    const py = \"import pathlib,json,hashlib,sys;b=pathlib.Path(sys.argv[1]).read_bytes();print(json.dumps({'text':b.decode('utf-8'),'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest(),'git_blob':hashlib.sha1(b'blob '+str(len(b)).encode()+b'\\\\0'+b).hexdigest()}))\";\n    const r = await tools.exec_command({cmd:\"python -B -c \"+h.quote(py)+\" \"+h.quote(row.local_path),\n      shell:\"/bin/bash\",login:false,workdir:\"/\",max_output_tokens:120000});\n    if (r.exit_code !== 0) throw Error(\"read failed before POST\");\n    const value = JSON.parse(r.output);\n    if (value.bytes !== row.bytes || h.utf8(value.text).length !== row.bytes ||\n        value.sha256 !== row.sha256 || value.git_blob !== row.git_blob)\n      throw Error(\"immutable part full read identity differs before POST\");\n    return value.text;\n  }\n  for (let start=first;start<end;start+=2) {\n    const selected=rows.slice(start,Math.min(start+2,end));\n    await pub.save(\"scheduler-r2-batch-\"+start+\"-intent.json\",{first:start,count:selected.length,maximum_in_flight:2,paths:selected.map(x=>x.path)});\n    const done=await Promise.allSettled(selected.map(async(row,offset)=>\n      pub.publish(row.name,await readPinned(row,start+offset),row)));\n    store(\"v121.c0.completed.batch.\"+start,done);\n    await pub.save(\"scheduler-r2-batch-\"+start+\"-result.json\",done.map(x=>x.status===\"fulfilled\"?x:{status:x.status,reason:String(x.reason)}));\n    text({first:start,results:done.map(x=>x.status===\"fulfilled\"?{status:x.status,path:x.value.path,git_blob:x.value.git_blob}:{status:x.status,reason:String(x.reason)})});\n    if(done.some(x=>x.status!==\"fulfilled\"))throw Error(\"batch incomplete; stopped after awaiting both; no retry\");\n  }\n}"
+    }
+  },
+  "product_executions": 0,
+  "schema": "hepta.selfhost-u32-C0-readback-audit-originals.v1"
+}
