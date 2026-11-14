@@ -140,7 +140,7 @@ EXTRA_COLD_COMPONENTS = (
     "PUBLICATION_MEASUREMENT", "SHA256_STREAM_DIFFERENTIAL",
     "FULL_COST", "PATCH_IMPACT", "CLI_DISCOVERY_JSON", "STATIC_BUDGET", "STORE_LIFECYCLE",
     "DEFAULT_RELEASE", "SERVICE_CONTEXT", "COST_LEDGER", "EVALUATION", "NATIVE_TRANSPORT",
-    "NATIVE_BUILD_ADMISSION",
+    "NATIVE_BUILD_ADMISSION", "NATIVE_BUILD_DISPATCH",
 )
 
 DEFAULT_RELEASE_SOURCE_CLASS = "tests.test_hia_default_native_release.DefaultReleaseSourceTests"
@@ -155,6 +155,8 @@ NATIVE_TRANSPORT_SOURCE_CLASS = "tests.test_hia_native_transport_failures.Native
 NATIVE_TRANSPORT_NATIVE_CLASS = "tests.test_hia_native_transport_failures.NativeTransportNativeTests"
 NATIVE_BUILD_ADMISSION_SOURCE_CLASS = "tests.test_hia_native_build_admission_native.NativeBuildAdmissionSourceTests"
 NATIVE_BUILD_ADMISSION_NATIVE_CLASS = "tests.test_hia_native_build_admission_native.NativeBuildAdmissionNativeTests"
+NATIVE_BUILD_DISPATCH_SOURCE_CLASS = "tests.test_hia_native_build_dispatch.NativeBuildDispatchSourceTests"
+NATIVE_BUILD_DISPATCH_NATIVE_CLASS = "tests.test_hia_native_build_dispatch.NativeBuildDispatchNativeTests"
 
 # These classes occur only in complete discovery, not the source/native tuples
 # extracted by the unchanged v4. Keep their actual same-run build evidence for
@@ -186,6 +188,7 @@ FULL_DISCOVERY_EVIDENCE = {
     "evaluation": (EVALUATION_NATIVE_CLASS, "HEPTA_HIA_EVALUATION_EVIDENCE"),
     "native-transport": (NATIVE_TRANSPORT_NATIVE_CLASS, "HEPTA_HIA_NATIVE_TRANSPORT_EVIDENCE"),
     "native-build-admission": (NATIVE_BUILD_ADMISSION_NATIVE_CLASS, "HEPTA_HIA_NATIVE_BUILD_ADMISSION_EVIDENCE"),
+    "native-build-dispatch": (NATIVE_BUILD_DISPATCH_NATIVE_CLASS, "HEPTA_HIA_NATIVE_BUILD_DISPATCH_EVIDENCE"),
 }
 # The selected CLI callers use a separate fixture under the same evidence root.
 # They remain their own complete class in the original full discovery.
@@ -217,6 +220,7 @@ ADDITIONAL_DISCARDED_SELECTORS = (
     "HEPTA_HIA_EVALUATION_MANIFEST", "HEPTA_HIA_EVALUATION_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_NATIVE_TRANSPORT_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST", "HEPTA_HIA_NATIVE_BUILD_ADMISSION_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_NATIVE_BUILD_DISPATCH_DEVELOPMENT_COMPILER",
 )
 
 
@@ -238,6 +242,8 @@ def component_workflow_coverage(root):
         raise ValueError("native-transport source class must remain in the first extracted source tuple")
     if NATIVE_BUILD_ADMISSION_SOURCE_CLASS not in named[0]:
         raise ValueError("native-build-admission source class must remain in the first extracted source tuple")
+    if NATIVE_BUILD_DISPATCH_SOURCE_CLASS not in named[0]:
+        raise ValueError("native-build-dispatch source class must remain in the first extracted source tuple")
     groups = [node for node in ast.walk(ast.parse((root / RUNNER).read_bytes()))
               if isinstance(node, ast.Assign) and len(node.targets) == 1
               and getattr(node.targets[0], "id", None) == "groups"]
@@ -262,6 +268,7 @@ def component_workflow_coverage(root):
             "evaluation_source_class_in_first_source_tuple": True,
             "native_transport_source_class_in_first_source_tuple": True,
             "native_build_admission_source_class_in_first_source_tuple": True,
+            "native_build_dispatch_source_class_in_first_source_tuple": True,
             "retained_native_classes_first_execute_in_full_discovery": True,
             "extra_component_suite_reruns": False}
 
@@ -471,6 +478,7 @@ def require_observed_component_methods(discovery, identity):
     classes.append(EVALUATION_SOURCE_CLASS)
     classes.append(NATIVE_TRANSPORT_SOURCE_CLASS)
     classes.append(NATIVE_BUILD_ADMISSION_SOURCE_CLASS)
+    classes.append(NATIVE_BUILD_DISPATCH_SOURCE_CLASS)
     checked = {}
     for name in classes:
         planned = [item for item in discovery["planned_test_ids"] if item.startswith(name + ".")]
@@ -490,6 +498,9 @@ def require_observed_component_methods(discovery, identity):
         if ((name == NATIVE_BUILD_ADMISSION_SOURCE_CLASS and len(planned) != 3)
                 or (name == NATIVE_BUILD_ADMISSION_NATIVE_CLASS and len(planned) != 7)):
             raise ValueError("native-build-admission requires all three source and seven native methods")
+        if ((name == NATIVE_BUILD_DISPATCH_SOURCE_CLASS and len(planned) != 2)
+                or (name == NATIVE_BUILD_DISPATCH_NATIVE_CLASS and len(planned) != 3)):
+            raise ValueError("native-build-dispatch requires both source and all three native methods")
         if (not planned or [row["id"] for row in observed] != planned
                 or (name == DEFAULT_RELEASE_NATIVE_CLASS and len(planned) != 12)
                 or not all(row.get("completion_observed") is True
@@ -2010,7 +2021,7 @@ def native_build_admission_controls(directory, pins):
             raise ValueError("native-build-admission original full trace, alias or exception differs")
         expected[row["case"]] = row["expected"]
     counts = release_json(directory / "test_actual_native_full_buffers_match_independent_VM/vm-native-entry-counts.json", pins)
-    if counts != {"continuation": 592} or type(counts.get("continuation")) is not int:
+    if counts != {"continuation": 665} or type(counts.get("continuation")) is not int:
         raise ValueError("native-build-admission original six VM comparisons differ")
     rows = release_json(directory / "test_lost_ACK_native_errors_retain_unknown_and_foreign_errors_confirm/native-and-foreign-exceptions.json", pins)
     errors = ("ValueError", "TypeError", "OSError", "OverflowError", "RecursionError",
@@ -2114,14 +2125,14 @@ def native_build_admission_worker_streams(location, worker_sha, catalog_sha, bun
                    for suffix in ("stdout", "stderr")} for name in names}
     counts = {name: native_build_admission_counts(logs[name]["stderr"]) for name in names[2:]}
     zero = {"frames": 0, "entries": 0, "modes": {}, "object_observations": 0, "unknown_frames": 0}
-    if (counts["first"] != {"frames": 2, "entries": 458, "modes": {"4": 2}, "object_observations": 2, "unknown_frames": 0}
-            or counts["replay"] != {"frames": 1, "entries": 229, "modes": {"4": 1}, "object_observations": 1, "unknown_frames": 0}
+    if (counts["first"] != {"frames": 6, "entries": 506, "modes": {"2": 2, "3": 2, "4": 2}, "object_observations": 2, "unknown_frames": 0}
+            or counts["replay"] != {"frames": 3, "entries": 253, "modes": {"2": 1, "3": 1, "4": 1}, "object_observations": 1, "unknown_frames": 0}
             or any(counts[name] != zero for name in ("native_ack-replay", "process_loss-replay", "changed-installed-source"))):
         raise ValueError("native-build-admission ordinary revalidation or unknown replay counts differ")
     for name in ("native_ack", "process_loss"):
         row = counts[name]
-        if (row["frames"] != 1 or row["modes"] != {"4": 1} or row["object_observations"] != 1
-                or row["unknown_frames"] != 1 or not 0 < row["entries"] < counts["replay"]["entries"]
+        if (row["frames"] != 3 or row["modes"] != {"2": 1, "3": 1, "4": 1} or row["object_observations"] != 1
+                or row["unknown_frames"] != 2 or not 0 < row["entries"] < counts["replay"]["entries"]
                 or logs[name]["stdout"]):
             raise ValueError("native-build-admission lost worker did not retain the observed unfinished frame")
     if (counts["native_ack"]["entries"] != counts["process_loss"]["entries"] + 1
@@ -2371,6 +2382,12 @@ def native_build_admission_custody(directory, root, cold_path, compiler, sources
             or any(build.get(key) is not True for key in (
                 "control_branches_and_ordered_effects_owned_by_hia", "four_complete_original_acceptance_policies_owned_by_hia",
                 "core_abi_store_hash_providers_hosted", "foreign_object_protocols_and_providers_hosted"))
+            or any(build.get(key) is not True for key in (
+                "dynamic_method_and_global_lookup_preserved", "original_method_calls_enter_selected_native_child_owners",
+                "active_causal_native_loss_propagated_without_exception_type_inference",
+                "runtime_comprehension_protocols_observed_without_version_threshold",
+                "normal_and_short_circuit_iterator_release_owned_by_hia"))
+            or build.get("retained_body_claim_scope") != "canonical selected route; explicit foreign callables remain unconstrained"
             or any(build.get(key) is not False for key in (
                 "retained_four_bodies_invoked", "whole_stack_rewritten_in_hia", "all_input_equivalence_proved"))
             or custody.get("schema") != "hepta.hia.native-build-admission-test-custody.v1"
@@ -2399,6 +2416,203 @@ def require_native_build_admission_component(directory, root, cold_path, compile
             "seven_owner_composition": require_native_build_admission_composition(directory, root, cold_path, compiler, sources, pins),
             "source_and_compiler_custody_verified": True, "test_result_owned_by_original_full_runner": True,
             "test_bodies_rerun_by_supplement": False, "whole_native_delivery_qualified": False, "passed": True}
+
+
+def native_build_dispatch_observations(directory, root, sources, pins):
+    """Read separately frozen original cases without executing either owner."""
+    from tests.hia_native_build_admission_scenarios import scenarios
+    directory, root = Path(directory), Path(root)
+    fixture_name = "tests/fixtures/hia_native_build_dispatch_cases_aac7550.json"
+    oracle_name = "tests/hia_native_build_dispatch_oracle.py"
+    fixture_digest = "f42756d516f2ac3227445da1bc12a37120877c313c0c2fd765f2fa468bab04ec"
+    oracle_digest = "751c323f838240866dc0e4d22dd4c683d17393ea92356677308f4df20eac74ab"
+    fixture_raw = release_bytes(root / fixture_name, pins)
+    oracle_raw = release_bytes(root / oracle_name, pins)
+    if (hashlib.sha256(fixture_raw).hexdigest() != fixture_digest
+            or hashlib.sha256(oracle_raw).hexdigest() != oracle_digest
+            or sources.get(fixture_name) != fixture_digest
+            or sources.get(oracle_name) != oracle_digest):
+        raise ValueError("native-build-dispatch independently frozen original files differ")
+    fixture = json.loads(fixture_raw)
+    names = [row["name"] for row in fixture["cases"]]
+    ordinary = [row["name"] for row in scenarios()]
+    if (len(names) != 205 or len(set(names)) != 205
+            or len(ordinary) != 303 or len(set(ordinary)) != 303
+            or fixture.get("candidate_execution_before_freeze") is not False
+            or fixture.get("existing_303_cases_or_expected_modified") is not False):
+        raise ValueError("native-build-dispatch complete original inventories differ")
+    location = directory / "test_frozen_dispatch_runtime_and_original_default_observations"
+    matrices = (("complete-observations.json", names), ("retained-303-observations.json", ordinary))
+    expected = {}
+    for filename, planned in matrices:
+        rows = release_json(location / filename, pins)
+        if type(rows) is not list or [row.get("case") for row in rows] != planned:
+            raise ValueError("native-build-dispatch complete observation order differs: " + filename)
+        for row in rows:
+            if (set(row) != {"case", "expected", "actual"}
+                    or row["expected"].get("name") != row["case"]
+                    or evaluation_json_bytes(row["expected"]) != evaluation_json_bytes(row["actual"])):
+                raise ValueError("native-build-dispatch original trace, binding, lifetime or exception differs")
+            expected[row["case"]] = row["expected"]
+    counts = release_json(location / "entry-counts.json", pins)
+    modes = {"mode_1", "mode_2", "mode_3", "mode_4"}
+    events = {"event_0", "event_1", "event_2", "event_3"}
+    if (type(counts) is not dict or set(counts) != modes | events
+            or any(type(value) is not int or value < 0 for value in counts.values())
+            or counts["event_0"] != sum(counts[name] for name in modes)
+            or counts["event_0"] <= 0 or counts["event_1"] <= 0
+            or counts["event_1"] != counts["event_2"] + counts["event_3"]):
+        raise ValueError("native-build-dispatch actual canonical and override native event accounting differs")
+    errors = ("ValueError", "TypeError", "OSError", "OverflowError", "RecursionError",
+              "OperationalError", "MixedRejected", "RuntimeError", "KeyboardInterrupt", "SystemExit")
+    calls = ((2, "dispatch_signatures_call"), (3, "dispatch_native_call"),
+             (4, "dispatch_build_inputs_call"))
+    failures = release_json(directory /
+        "test_lost_override_ACK_retains_unknown_without_retry_or_false_foreign_rejection/unknown-overrides.json", pins)
+    if type(failures) is not list or len(failures) != 30:
+        raise ValueError("native-build-dispatch complete three-call lost-ACK controls are absent")
+    for row, (mode, port, error) in zip(failures,
+            ((mode, port, error) for mode, port in calls for error in errors)):
+        case = "dispatch." + str(mode) + ".instance_function"
+        raised = error if error in ("RuntimeError", "KeyboardInterrupt", "SystemExit") else "NativeBuildAdmissionUnknown"
+        observed, trace = row.get("events", []), row.get("trace", [])
+        if (row.get("case") != case or row.get("port") != port or row.get("injected") != error
+                or row.get("raised") != raised
+                or row.get("original_exception_or_cause_identity_retained") is not True
+                or row.get("unknown_custody_retained") is not True
+                or not observed or observed[0] != 0 or observed[-1] != 2
+                or any(type(value) is not int or value not in (0, 1, 2) for value in observed)
+                or not trace or sum(item.get("event") == "dispatch.call" for item in trace) != 1
+                or evaluation_json_bytes(trace) != evaluation_json_bytes(expected[case]["trace"][:len(trace)])):
+            raise ValueError("native-build-dispatch override was retried, rejected or lost original exception identity")
+    return {"independent_original_dispatch_and_runtime_cases": 205,
+            "unchanged_original_canonical_cases": 303, "actual_native_event_counts": counts,
+            "full_trace_alias_lifetime_and_exception_comparison": True,
+            "foreign_override_lost_ACK_cases": 30, "test_bodies_rerun_by_readback": False,
+            "all_python_versions_tested": False, "all_input_equivalence_proved": False}
+
+
+def native_build_dispatch_nested_losses(directory, pins):
+    """Verify child and ancestor outcomes from the actual nested call records."""
+    from hepta.hia_native_build_admission_protocol import PORT, PORTS
+    directory = Path(directory)
+    location = directory / "test_nested_native_loss_propagates_causally_and_foreign_errors_keep_identity"
+    unknown = release_json(location / "nested-native-loss.json", pins)
+    foreign = release_json(location / "nested-confirmed-foreign.json", pins)
+    originals = release_json(directory /
+        "test_frozen_dispatch_runtime_and_original_default_observations/retained-303-observations.json", pins)
+    expected = {row["case"]: row["expected"] for row in originals}
+    errors = ("ValueError", "TypeError", "OSError", "OverflowError", "RecursionError",
+              "OperationalError", "MixedRejected", "RuntimeError", "KeyboardInterrupt", "SystemExit")
+    plan = [(outer, child, error) for outer, child in ((3, 2), (4, 3), (4, 2)) for error in errors]
+    if type(unknown) is not list or type(foreign) is not list or len(unknown) != 30 or len(foreign) != 30:
+        raise ValueError("native-build-dispatch complete nested unknown and foreign controls are absent")
+    for rows, is_unknown in ((unknown, True), (foreign, False)):
+        for row, (outer, child, error) in zip(rows, plan):
+            modes = list(range(outer, child - 1, -1))
+            events, trace = row.get("events", []), row.get("trace", [])
+            case = "inputs_ordinary" if outer == 3 else "receipt_ordinary"
+            if (row.get("outer_mode") != outer or row.get("failed_mode") != child
+                    or row.get("injected") != error or not events or not trace
+                    or any(type(event) is not dict or set(event) != {"mode", "event", "port"}
+                           or any(type(event[key]) is not int for key in event)
+                           or event["mode"] not in modes or event["event"] not in (0, 1, 2, 3)
+                           or not 0 <= event["port"] <= len(PORTS) for event in events)
+                    or [event["mode"] for event in events if event["event"] == 0] != modes
+                    or any(event["port"] != 0 for event in events if event["event"] == 0)
+                    or evaluation_json_bytes(trace) != evaluation_json_bytes(expected[case]["trace"][:len(trace)])):
+                raise ValueError("native-build-dispatch nested identity, native event order or original trace differs")
+            if is_unknown:
+                port = "native_get" if child == 2 else "build_get"
+                raised = error if error in ("RuntimeError", "KeyboardInterrupt", "SystemExit") else "NativeBuildAdmissionUnknown"
+                if (row.get("failed_port") != port or row.get("raised") != raised
+                        or row.get("active_causal_frames") != modes
+                        or row.get("original_exception_or_cause_identity_retained") is not True
+                        or row.get("all_causal_unknown_custody_retained") is not True
+                        or row.get("no_confirmed_foreign_exception_event") is not True
+                        or any(event["event"] == 3 for event in events)
+                        or events[-1] != {"mode": child, "event": 2, "port": PORT[port]}):
+                    raise ValueError("native-build-dispatch inner loss was confirmed or lost causal custody")
+            else:
+                confirmed = [event["mode"] for event in events if event["event"] == 3]
+                if (row.get("same_exception_object") is not True
+                        or row.get("all_causal_custody_released") is not True
+                        or row.get("confirmed_frames") != list(reversed(modes))
+                        or confirmed != list(reversed(modes))):
+                    raise ValueError("native-build-dispatch genuine foreign exception did not unwind all owners exactly")
+                for mode in modes:
+                    frame_events = [event["event"] for event in events if event["mode"] == mode]
+                    if (frame_events[-1] != 3 or frame_events.count(1) != frame_events.count(2) + 1):
+                        raise ValueError("native-build-dispatch confirmed nested frame event accounting differs")
+    return {"native_loss_cases": 30, "confirmed_foreign_exception_cases": 30,
+            "outer_child_pairs": [[3, 2], [4, 3], [4, 2]],
+            "all_active_ancestors_retain_unknown_without_foreign_rejection": True,
+            "genuine_foreign_exception_identity_and_inner_first_confirmation_preserved": True,
+            "test_bodies_rerun_by_readback": False}
+
+
+def native_build_dispatch_custody(directory, root, cold_path, compiler, sources, pins):
+    from tools.build_hia_native_build_admission import INPUTS, SOURCE_NAME
+    directory = Path(directory)
+    manifest_path = directory / "built/manifest.json"
+    manifest = require_release_compilation(directory / "built", "native_build_admission", SOURCE_NAME,
+                                          INPUTS, root, compiler, sources, pins)
+    build = release_json(directory / "built/build.json", pins)
+    custody = release_json(directory / "component-custody.json", pins)
+    scope = "DEVELOPMENT_COMPONENT" if cold_path is None else "MATCHING_SOURCE_COLD_COMPONENT"
+    facts = custody.get("runtime_protocol_facts")
+    if (manifest.get("schema") != "hepta.hia.native-build-admission.v1"
+            or manifest.get("source_sha256") != sources[SOURCE_NAME]
+            or manifest.get("compiler_sha256") != sha(compiler)
+            or build.get("schema") != "hepta.hia.native-build-admission-build.v1"
+            or build.get("scope") != scope or build.get("manifest") != manifest
+            or build.get("source_manifest") != (None if cold_path is None else sources)
+            or build.get("cold_report_sha256") != (None if cold_path is None else sha(cold_path))
+            or any(build.get(key) is not True for key in (
+                "dynamic_method_and_global_lookup_preserved", "original_method_calls_enter_selected_native_child_owners",
+                "active_causal_native_loss_propagated_without_exception_type_inference",
+                "runtime_comprehension_protocols_observed_without_version_threshold",
+                "normal_and_short_circuit_iterator_release_owned_by_hia"))
+            or any(build.get(key) is not False for key in (
+                "retained_four_bodies_invoked", "whole_stack_rewritten_in_hia", "all_input_equivalence_proved"))
+            or build.get("retained_body_claim_scope") != "canonical selected route; explicit foreign callables remain unconstrained"
+            or custody.get("schema") != "hepta.hia.native-build-dispatch-test-custody.v1"
+            or custody.get("manifest") != str(manifest_path)
+            or custody.get("matching_cold_report") != (None if cold_path is None else str(cold_path))
+            or custody.get("compiler_sha256") != sha(compiler)
+            or custody.get("source_manifest_before") != sources
+            or custody.get("source_manifest_after") != sources
+            or custody.get("source_and_compiler_unchanged") is not True
+            or custody.get("test_result_owned_by_outer_runner") is not True
+            or custody.get("canonical_and_explicit_foreign_override_scopes_distinct") is not True
+            or custody.get("all_python_versions_tested") is not False
+            or custody.get("all_input_equivalence_proved") is not False
+            or custody.get("whole_native_delivery_qualified") is not False
+            or not isinstance(custody.get("python_version"), str) or not custody["python_version"]
+            or type(facts) is not dict or set(facts) != {
+                "generator_reiterations", "list_reiterations", "dict_reiterations"}
+            or any(type(value) is not int or not 0 <= value < 2**64 for value in facts.values())):
+        raise ValueError("native-build-dispatch same-source compilation or runtime custody differs")
+    return manifest, custody
+
+
+def require_native_build_dispatch_component(directory, root, cold_path, compiler, sources, pins):
+    directory = Path(directory)
+    manifest_path = directory / "built/manifest.json"
+    require_cold_component(manifest_path, "examples/hia_bootstrap/native_build_admission.hepta",
+                           sha(cold_path), sha(compiler), sources, pins)
+    manifest, custody = native_build_dispatch_custody(directory, root, cold_path, compiler, sources, pins)
+    controls = native_build_dispatch_observations(directory, root, sources, pins)
+    nested = native_build_dispatch_nested_losses(directory, pins)
+    return {"scope": "MATCHING_SOURCE_COLD_COMPONENT", "manifest": str(manifest_path),
+            "image_sha256": manifest["image_sha256"], "controls": controls,
+            "nested_native_loss_controls": nested,
+            "python_version": custody["python_version"],
+            "runtime_protocol_facts": custody["runtime_protocol_facts"],
+            "source_and_compiler_custody_verified": True,
+            "test_result_owned_by_original_full_runner": True,
+            "test_bodies_rerun_by_supplement": False,
+            "whole_native_delivery_qualified": False, "passed": True}
 
 
 def native_build_admission_original_inventory(root, sources, discovery, pins):
@@ -2616,6 +2830,7 @@ def supplemental(args):
     evaluation = None
     native_transport = None
     native_build_admission = None
+    native_build_dispatch = None
     sha_image_bound = False
     try:
         if read_pinned_json(args.target, pins) != target:
@@ -2697,6 +2912,9 @@ def supplemental(args):
         native_build_admission = require_native_build_admission_component(retained / "native-build-admission", root,
                                                                          cold_path, compiler, sources, pins)
         added_components["native-build-admission"] = native_build_admission["manifest"]
+        native_build_dispatch = require_native_build_dispatch_component(retained / "native-build-dispatch", root,
+                                                                        cold_path, compiler, sources, pins)
+        added_components["native-build-dispatch"] = native_build_dispatch["manifest"]
         discovery_root = retained / "cli-discovery-json"
         for name in ("CliDiscoveryJsonNativeTests", "CliDiscoverySelectionFixture"):
             fixture_path = discovery_root / name / "cold-fixture/FIXTURE.json"
@@ -2984,6 +3202,7 @@ def supplemental(args):
                   and evaluation is not None and evaluation["passed"]
                   and native_transport is not None and native_transport["passed"]
                   and native_build_admission is not None and native_build_admission["passed"]
+                  and native_build_dispatch is not None and native_build_dispatch["passed"]
                   and len(commands) == 14 and all(row["passed"] for row in commands))
     write_json(output / "supplemental-result.json", {
         "schema": "hepta.hia.same-cold-supplemental-callers.v1", "target": target,
@@ -2998,6 +3217,7 @@ def supplemental(args):
         "evaluation_full_discovery_artifact_readback": evaluation,
         "native_transport_full_discovery_artifact_readback": native_transport,
         "native_build_admission_full_discovery_artifact_readback": native_build_admission,
+        "native_build_dispatch_full_discovery_artifact_readback": native_build_dispatch,
         "production_sha_image_matches_actual_executed_differential_image": sha_image_bound,
         "commands": commands, "captured_inputs": pins, "original_35_stages_modified": False,
         "original_component_test_suites_rerun": False,
@@ -3005,6 +3225,7 @@ def supplemental(args):
         "service_context_job_11_modified": False,
         "cost_ledger_job_12_modified": False,
         "evaluation_job_13_modified": False,
+        "native_build_admission_job_14_modified": False,
         "service_context_original_caller_gate_attempted": any(
             row["name"] == "service-context-callers" for row in commands),
         "cost_ledger_seven_ordinary_caller_gate_attempted": any(

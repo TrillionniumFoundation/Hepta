@@ -32,6 +32,13 @@ modules, totaling 112 methods. Its frozen inventory also retains the 128 methods
 in eight separate administrator-scope modules. Readback checks the 303 original
 semantic scenarios, six independent VM cases, actual installed worker and
 seven-owner composition without executing these tests a second time.
+The dispatch repair adds two source methods and three native methods to the
+same complete discovery. Readback checks 205 independently frozen dynamic-call
+and runtime cases alongside all 303 canonical cases, plus 30 lost override
+acknowledgements, 30 nested native losses and 30 matched foreign exceptions.
+Canonical calls enter selected child HIA owners; an unconfirmed child outcome
+must retain every active causal ancestor as unknown. These checks add no
+supplemental caller command and do not rerun test bodies.
 The default-release native class constructs and installs its candidate wheel
 within full discovery. The supplement only reads back that real artifact and
 its already executed original callers; it adds no command or test rerun.
@@ -407,7 +414,7 @@ Before that command, readback admits the component's actual same-cold compiler
 request, receipt, full output buffer, image, source inputs and before/after
 custody. All 303 retained independent original observations must match as
 canonical JSON bytes, including aliases, exception classes and causes, and
-provider order. The six VM cases retain 592 native continuation observations;
+provider order. The six VM cases retain 665 native continuation observations;
 the original full method owns every native/VM return, output and state-buffer
 comparison, because these raw buffers are not separately serialized. Thirty
 lost-ACK controls and ten confirmed foreign-exception controls must preserve
@@ -421,11 +428,13 @@ must agree. The original installed worker poisons all four retained admission
 bodies and prohibits authoring imports. Raw stdout and stderr must agree with
 the worker identity derived from the actual wheel, the single-helper bundle,
 request correlations and observed native counters. The first `hia_verify`
-request performs two mode-4 frames and 458 entries. Normal verification replay
-retains the original read-only receipt revalidation: one mode-4 frame and 229
-entries, with its full request row and artifact/cost row counts unchanged.
+request performs six frames and 506 entries: modes 2, 3 and 4 each enter twice.
+Normal verification replay retains the original read-only receipt revalidation:
+three frames and 253 entries, with one entry to each of those modes and its
+full request row and artifact/cost row counts unchanged.
 Those latter table contents are not separately retained. Both the lost native
-ACK and process exit retain a running intent with no response; unknown replay
+ACK and process exit each retain three frames and two unknown ancestors, and
+keep a running intent with no response; unknown replay
 must make zero native calls and preserve that complete request row. The actual
 parent serializes loss exit codes 1 and 73, and the retained child streams must
 show the controlled ACK failure. This is observation of the admission image
@@ -445,6 +454,25 @@ serialized. The original 3000 ms context and 1000 ms native budget are preserved
 These observations do not establish whole-project dynamic-caller closure or
 whole-native delivery, and they do not replace the original hosted Core, ABI,
 Store, hash and Python object-provider boundaries.
+
+Dispatch readback separately requires the exact original oracle and fixture
+digests, complete ordered 205- and 303-case reports, byte-equivalent canonical
+observations and consistent native event totals. It checks actual method-call
+binding, aliases, exception attributes and causes, iterator protocol and release
+events without normalizing differences between Python runtimes. Runtime probes
+are admitted as observed unsigned integer facts, with no version threshold or
+claim that every supported Python runtime has been tested.
+
+The nested-loss cases cover 3-to-2, 4-to-3 and 4-to-3-to-2 owner entry. Each
+actual child ACK failure must preserve the original exception or cause identity,
+the original trace prefix and every active causal frame, with no confirmed
+foreign-exception event. Genuine foreign exceptions must preserve identity,
+confirm each frame in inner-to-outer order and release their causal custody.
+The same-cold wrapper admits the original compiler request, output, image and
+complete before/after source manifest before reading these observations. A
+development report cannot satisfy that wrapper. Explicit foreign overrides
+remain unconstrained user callables; the retained-body claim concerns the
+canonical selected route. This readback does not prove all-input equivalence.
 
 The default-release class already executes all 38 original full-cost callers
 from a second real installation, with no native selector environment and with
