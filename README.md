@@ -1,19 +1,28 @@
 # Complete retained HIA qualification harness
 
-This delivery successor is prepared from published harness
-`dd55bb5c9a7af5fe0f33910c43461e4d01cdd1d1`, tree
-`dce39ae4ddc854bbcd446a0e13398518cb5462ba`.
+This target-binding successor is prepared from published harness
+`e40723c6eda02c888444059cad98189a65b284bb`, tree
+`9f3ac52ffa33d3316324dbe4a28c727fbe2868d4`. Its runner, workflow and dependency
+preparation are byte-identical to that harness.
 The immutable product target is the actually published commit
+`5bf69586b890706290c5fbfe93065ec0d3af40b1`, tree
+`9008d431cf28b51edd8a5de589081090e3a19916`. Its parent
 `04492c20356b459d003152fc8b71b4c7d90e4244`, tree
-`4e45e5118880dda99249ee37000d04d82e2994f9`. This metadata-only successor of
-`5da589f0bf6444c2c0acd95e2ba778c7e4ae1cfd`, tree
-`c612c8795f59d1726ef404b5e9d678c69869ad87`, synchronizes the generated language
-coverage and support inventories. All production, HIA, tests and workflow bytes
-remain those of 5da. That shared-delivery implementation's parent is
+`4e45e5118880dda99249ee37000d04d82e2994f9`, passed generated-file cleanliness
+but its complete push Source suite ran 684 methods with one release-freeze
+inventory failure. The new target removes the duplicated runtime delivery
+module from the explicit non-package bootstrap list; the unchanged complete
+`hepta/**/*.py` discovery still binds that module. All 1,193 source paths and
+support semantics remain unchanged. The complete related 36 controls passed,
+including the original selfhost-contract cold replay. This local scoped result
+does not qualify the new full run.
+Both metadata successors retain the production, HIA, original test and workflow
+bytes of shared-delivery integration `5da589f0bf6444c2c0acd95e2ba778c7e4ae1cfd`,
+tree `c612c8795f59d1726ef404b5e9d678c69869ad87`. Its parent is
 `c0195643083e1d4c68679237edfa77143dc7b1c6`, tree
 `7a37b1ced47251fdc58e50624a5f77be56af374a`, which introduced the complete
-eight-method Store artifact/profile owner. The new target adds the shared
-delivery controls while retaining the recorded original Store HOLD results.
+eight-method Store artifact/profile owner. All original Store HOLD observations
+and earlier Source/Native/full failures remain recorded under their own source.
 Target/source identity checks and static reader QA are not cold or full-suite
 qualification.
 No development result, earlier target or moving branch substitutes for the
