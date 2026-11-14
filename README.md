@@ -26,6 +26,12 @@ callers. Readback retains the 111 original traces, independent VM comparisons,
 actual installed worker and six-owner composition. The native-transport fault
 controls also run in first full discovery, using the original Store, context
 and ledger images; they add no caller command.
+The native/build-admission owner adds its complete native class to first full
+discovery and a fourteenth supplemental command over nine complete ordinary
+modules, totaling 112 methods. Its frozen inventory also retains the 128 methods
+in eight separate administrator-scope modules. Readback checks the 303 original
+semantic scenarios, six independent VM cases, actual installed worker and
+seven-owner composition without executing these tests a second time.
 The default-release native class constructs and installs its candidate wheel
 within full discovery. The supplement only reads back that real artifact and
 its already executed original callers; it adds no command or test rerun.
@@ -130,7 +136,7 @@ leave full discovery evidence and prevent an attempted passing run.
 
 The pre-discovery environment mirrors v4's existing static selector removals
 and its original cold-report bindings, read from the admitted v4 source.
-Thirty-one newer cold selectors, including `NATIVE_MAPPING`, additionally point
+Thirty-two newer cold selectors, including `NATIVE_MAPPING`, additionally point
 to **this same run's future `qualification/cold.json`**. The real unchanged v4
 still performs its own original assignments. All native consumers retain their
 existing matching-source cold admission. The two `WRONG_COLD_REPORT` negative
@@ -140,7 +146,8 @@ The additions include `BOUNDED_MEMORY`, `SCALAR_PROFILE`,
 `GENERATION_RETENTION`, `PUBLICATION_MEASUREMENT`, the actual
 `SHA256_STREAM_DIFFERENTIAL` selector, and the new `FULL_COST`, `PATCH_IMPACT`,
 `STATIC_BUDGET`, `STORE_LIFECYCLE`, `CLI_DISCOVERY_JSON`, `DEFAULT_RELEASE`,
-`SERVICE_CONTEXT`, `COST_LEDGER`, `EVALUATION` and `NATIVE_TRANSPORT` selectors. Full discovery
+`SERVICE_CONTEXT`, `COST_LEDGER`, `EVALUATION`, `NATIVE_TRANSPORT` and
+`NATIVE_BUILD_ADMISSION` selectors. Full discovery
 retains the original mapping, scalar, measurement, generation and stream
 differential component evidence under `qualification/full-discovery-components/`.
 Before execution the
@@ -184,7 +191,12 @@ manifest and development compiler alternatives are discarded. The separate
 and all six `NativeTransportNativeTests` methods first run in full discovery
 under `HEPTA_HIA_NATIVE_TRANSPORT_EVIDENCE`. Its three actual builds and complete
 source/compiler custody must bind the same cold report. Readback does not rerun
-these fault-control bodies or create a fourteenth caller command.
+these fault-control bodies or add a transport caller command.
+`NativeBuildAdmissionSourceTests` retains exactly three source methods in the
+first source tuple; all seven `NativeBuildAdmissionNativeTests` methods first
+execute in full discovery under `HEPTA_HIA_NATIVE_BUILD_ADMISSION_EVIDENCE`.
+Inherited runtime manifests and development compilers are discarded before
+the same-run cold and evidence bindings are applied.
 
 ## Original full execution and bounds
 
@@ -377,6 +389,63 @@ new installed-worker observations. The original 3000 ms context and 1000 ms
 native budget remain unchanged. Original request-journal, SQLite, runner,
 object and binary64 interoperability boundaries remain explicit.
 
+The fourteenth command runs all 112 native/build-admission callers in their
+frozen nine-module order, with `_signatures`, `_native`, `_build_inputs` and
+`_build_receipt` retained reference bodies forbidden. All 240 original methods
+in seventeen modules must remain visible to complete discovery. The eight
+separate modules retain their existing helper bundles and scopes; this gate
+does not inject the new owner into those original inputs. The only permitted
+original-source adjustment is one exact helper-registry count assertion:
+normalizing its decimal literal back to 36 must restore the frozen entire-file
+hash. Every other original source byte remains exact. Aggregate and per-method
+native continuation counts must agree, all four modes must have positive
+frames, and the original verbose log must contain all 112 successful methods
+in order. Original method budgets remain unchanged. Python reference poisoning
+applies to the test process; subprocesses inherit the selector, not the patches.
+
+Before that command, readback admits the component's actual same-cold compiler
+request, receipt, full output buffer, image, source inputs and before/after
+custody. All 303 retained independent original observations must match as
+canonical JSON bytes, including aliases, exception classes and causes, and
+provider order. The six VM cases retain 592 native continuation observations;
+the original full method owns every native/VM return, output and state-buffer
+comparison, because these raw buffers are not separately serialized. Thirty
+lost-ACK controls and ten confirmed foreign-exception controls must preserve
+their original exception classification and continuation state. The harness
+does not rerun an oracle, VM, native image or component method during readback.
+
+Its one actual wheel and installed RECORD must match the same-cold product
+bytes, allowing only the exact final source-drift control: one LF appended to
+installed `native_build_admission.hepta`. Both recorded hashes and actual bytes
+must agree. The original installed worker poisons all four retained admission
+bodies and prohibits authoring imports. Raw stdout and stderr must agree with
+the worker identity derived from the actual wheel, the single-helper bundle,
+request correlations and observed native counters. The first `hia_verify`
+request performs two mode-4 frames and 458 entries. Normal verification replay
+retains the original read-only receipt revalidation: one mode-4 frame and 229
+entries, with its full request row and artifact/cost row counts unchanged.
+Those latter table contents are not separately retained. Both the lost native
+ACK and process exit retain a running intent with no response; unknown replay
+must make zero native calls and preserve that complete request row. The actual
+parent serializes loss exit codes 1 and 73, and the retained child streams must
+show the controlled ACK failure. This is observation of the admission image
+and completed Store object reads in the installed worker; it does not establish
+execution of the admitted artifact or poisoning of descendant processes.
+
+The separate seven-owner test-process composition adds native/build admission
+to Store lifecycle, service context, execution budget, candidate budget, cost
+ledger and evaluation. Every manifest, image and compiler transport must bind
+the same cold report. Actual counters cover fixture construction, public
+emit/verify/evaluate/adopt and cleanup. Evaluation replay retains zero additional
+native entries, zero durable changes, unchanged budget rows and all three
+published artifact bodies. Adoption replay retains the exact completed
+response; its zero native-entry and SQL-write assertions remain owned by the
+original full method because these adoption deltas are not separately
+serialized. The original 3000 ms context and 1000 ms native budget are preserved.
+These observations do not establish whole-project dynamic-caller closure or
+whole-native delivery, and they do not replace the original hosted Core, ABI,
+Store, hash and Python object-provider boundaries.
+
 The default-release class already executes all 38 original full-cost callers
 from a second real installation, with no native selector environment and with
 the retained Python arithmetic bodies forbidden. The supplement reads its
@@ -412,8 +481,8 @@ again against this run's exact cold report. These are additional observations,
 not extra credit in the full-discovery denominator.
 
 The ten existing supplemental command definitions, service-context command
-eleven and cost-ledger command twelve remain unchanged. Evaluation follows as
-number thirteen,
+eleven, cost-ledger command twelve and evaluation command thirteen remain
+unchanged. Native/build admission follows as number fourteen,
 all using the unmodified product workflow supervisor
 with its ordinary 1800-second budget. The original inner limits, including the
 CLI compilation and installed subprocess limits of twenty seconds, remain in
