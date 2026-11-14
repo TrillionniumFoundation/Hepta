@@ -1,0 +1,13 @@
+# PROPOSAL ONLY: NOT APPLIED, NOT AUTHORIZED FOR EXECUTION.
+# The original R5 file and its FAIL remain unchanged.
+# These paths denote a hypothetical separately versioned baseline.
+# All three callback state assertions, both real verifier calls, and the
+# remaining method body stay byte-identical. New qualification is required.
+--- a/hypothetical-witness-contract-v2/test_inspect_cli_witness_controls.py
++++ b/hypothetical-witness-contract-v2/test_inspect_cli_witness_controls.py
+@@ -461,4 +461,4 @@
+             row, _, error = c.observe('real-executed-pending-reentry', lambda: c.owner.finish(frame))
+         self.assertIsNone(error)
+-        self.assertEqual(reentries, ['refused-without-machine-entry'])
++        self.assertEqual(reentries, ['refused-without-machine-entry', 'refused-without-machine-entry'])
+         self.assert_native_inspect(row)

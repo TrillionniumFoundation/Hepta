@@ -1,3 +1,72 @@
+# HIA 原生重写恢复检查点 — v146
+
+冻结时间：2026-11-14 16:12:04 UTC。前一完整检查点：`eb0e9670b8065707187204f21f1e8ae8919a3a15`。
+
+**整套 HIA 原生化尚未闭合，旧生产实现保留。** 本轮继续完成了 PatchResult 的实际 Native 编译、原 Native12 和原 VM12；CLI R5 推进到第十个见证用例并暴露真实契约冲突。随后执行环境原工作区与临时目录消失，尚未远端封存的部分运行原件无法继续读取。因此本检查点分别记录实际观察、完整保管材料和确实缺失的证据，不将有限门通过提升为当前环境或默认整套资格。
+
+## 最新实际结果与证据边界
+
+| 范围 | 已实际观察 | 本检查点可证明的边界 |
+|---|---|---|
+| PatchResult build R2 | 1 次原编译通过，HIA 103,357 B → 镜像 123,468 B；六个实际缓冲区完整核对 | 43 个运行原件及作者/Root材料共81个逻辑文件完整远端保管；[完整包](v146-patch-build-r2-complete/TREE-RECIPE.json) |
+| PatchResult Native12 | 12 方法、24事件、10子测试通过；9,844次实际调用，其中9,176次Patch、668次Inspect；原180+3 owner和ECHILD成立 | 新归档仅30/207片完整远端保管。前缀实际解压未得到任何完整TAR成员，恢复原件数为0；[缺口记录](v146-patch-native12-partial/INTERRUPTION.json) |
+| PatchResult VM12 | 12方法、24事件通过；12组返回值及72 VM跨度对72 Native跨度逐字相等；原10M步骤/8MiB/depth128保持 | 新VM原件及有限链终态未完整远端封存。保留的执行工具回执与作者文本支持历史观察，不代替原始运行包 |
+| CLI op10 R5 | 前13阶段通过；第14阶段witness-10为1 FAIL/0 ERROR；后4组未启动 | 原测试期望1次refusal，真实原流程产生2次；未删除第二次验证，也未改原断言。作者与实际前检完整，失败运行原件不完整 |
+| R8 R2 | 147个作者文件和原语义/aggregate控制完整保存，环境中断后重新逐字读回 | 原Native162、VM6、130/7/6/2仍为0次；未重放旧restore或product计划 |
+| CLI op13 | 两个源码草稿从完整工具文本恢复，另有明确标记的中断后support草稿 | 仅AST检查；缺少旧独立字节pin，未执行产品，也未完成默认调用接线 |
+
+所有原测试ID、正文、断言、时间/CPU/内存/容量/VM预算保持。没有通过删除用例、缩减源码扫描、摘要缓存、自动产品重试或提高预算获得通过。默认main仍为本轮核对的`f33d8da316de8fdf27b504371f1a5310997ff548`，没有因这些有限结果获得整套资格。
+
+## 环境中断与已保存材料
+
+Root在2026-11-14 15:22:06 UTC使用显式`/tmp`工作目录确认原工作区、Root临时目录、Native归档目录及共享内存生成目录均不存在。中断原因未知；没有重建旧路径并声称恢复旧device/inode/ctime。GitHub对象和会话保留文本仍可读取。
+
+此前v145的1,420个叶片已重新全文递归GET核对。本检查点新增204个叶片，包含54份Root恢复记录以及CLI R5、Patch编译、R8作者、op13草稿和Native部分归档材料；所有新增载荷均由Root全文GET并核对字节身份。具体分类和边界见：
+
+- [环境中断事实](v146-recovery/ENVIRONMENT-DISCONTINUITY.json)
+- [中断前实际执行观察](v146-recovery/SESSION-OBSERVATIONS.json)
+- [保留文本与工具回执清单](v146-recovery/RETAINED-PAYLOAD-MANIFEST.json)
+- [Native部分前缀实际恢复结果](v146-native-prefix-recovery/RECOVERY-RESULT.json)
+- [R8作者包中断后读回](v146-r8-reset-readback/RESET-READBACK.json)
+- [op13草稿恢复边界](v146-op13-recovered-drafts/RECOVERY-REPORT.json)
+
+Native归档完整压缩体原为27,009,263 B；已保存的前30片合计3,932,160 B，仅能解压出部分首个INDEX成员。该INDEX正文原需38,902,040 B，实际前缀仅含24,289,263 B，尚缺14,612,777 B；gzip未到EOF，也不能检查终态CRC。缺少的177片没有从哈希凭空补出。更早Inspect归档仍为44/179片，也不声称完整恢复。
+
+## CLI R5 的真实未闭合点
+
+R5保留R4的完整code-object比较，仅修正固定CPython3.14操作数code object的位置元数据。原60字节代码及15项非位置字段保持，完整原64,615行有序前驱保持。实际产品执行69.814360769秒后在原witness-10停止：Source18、7次编译和witness-01..09已通过，witness-11、witness-12、retained3及原CLI43没有启动。
+
+原`inspect_program`首先调用`verify_program(document)`，随后访问`normalization_report`；该属性再次调用当时的`verify_program(self)`。原busy回调因此观察两次拒绝，而用例末尾要求一次。三条busy状态断言在两次回调内均通过，最后计数断言失败。删除原第二次验证会改变可观察行为，修改原断言也不能算保留原资格。中断后又从完整作者包恢复12个精确源码文件进行独立源级审查，确认该失败段直接调用owner并绕过CLI适配层；保留两次正常provider调用和每次回调的三条状态断言，就必然追加两个marker，无法仅修wrapper同时满足singleton断言。[完整源码证明](v146-r5-contract-review/ANALYSIS.md)和[未应用的版本化契约提案](v146-r5-contract-review/PROPOSED-CONTRACT-SUCCESSOR.diff)已保留。原R5仍为FAIL，提案没有应用或执行。该用例的lost-claim后缀尚未到达，不能声称通过。
+
+完整[作者包](v146-cli-r5-authoring/TREE-RECIPE.json)、[前检作者](v146-cli-r5-preflight-author/TREE-RECIPE.json)与[实际前检](v146-cli-r5-preflight-actual/TREE-RECIPE.json)可恢复；尚未保存的15,188个实际失败原件不由这些材料代替。
+
+## 固定运行时已静态恢复
+
+原Actions artifact 14062024126的39,213,243 B ZIP已通过真实下载恢复。原解释器、动态库及标准库共2,496文件、108,197,034 B均在全新路径恢复。Root独立重新读取ZIP全部12成员、内部gzip完整终态与2,496个TAR成员，逐完整字节比较当前2,496文件，并核对原模式及此次新七字段stat。原解释器17,752 B、libpython32,366,232 B的固定SHA均完全相符。
+
+- [独立完整静态读回](v146-runtime-static-root/ROOT-READBACK.json)
+- [原始manifest、新身份与恢复报告完整包](v146-runtime-static-recovery/RECIPE.json)
+
+该恢复没有执行解释器、binder、产品或CI；旧venv、6,487个原导出排除路径及旧动态映射身份没有继承，动态运行时资格仍为false。此项恢复填补的是开发工具字节，不代表产品已经摆脱Python或整套HIA资格完成。
+
+## 源码与输入的恢复路径已找齐
+
+[R8恢复可行性报告](v146-recovery-feasibility/REPORT.json)逐项映射了3,180个实际源码文件及948个固定输入引用（944个独立路径）。源码共98,471,253 B；独立输入共710,690,611 B。原编译器被捕获副本的0400模式与所需固定输入0644模式不同，后续恢复必须明确记录模式设置和新身份，不能声称旧文件未变。
+
+该报告冻结时尚未找回compact的70片传输入口。其后已经从保留的旧完整读回记录定位到[原78叶recipe及70片INDEX](v146-compact-transport-locator/RECIPE.json)，Root已全文GET两份清单并核对每片映射。旧R5 Native162通过、VM6为5通过/1原10M燃料失败，以及两项历史缺失原件全部保持。源码和所需输入正在新路径恢复，尚未借此执行任何产品或继承原资格。
+
+## 整套替换与清理门仍未闭合
+
+Hepta的普通CLI、Worker、Service和Store链仍有Python与SQLite所有权。hepta-runtime的默认分支`hepta-runtime-base`固定在`ba574f2a6a1b74e85191c58d7bec011720736bb9`，有22个处理器且没有被审计PR121的11条HIA链；固定PR121 `008036843625e12c21b6dc533be5cf3115cda579`有125个处理器，其HIA路径仍经过Rust分派/持久任务和Python Worker/Service/SQLite。两个native-local处理器没有替换默认Rust分派；实际部署版本未知。两种范围不可混为一谈。原R20 NativeNamespace仍为32 PASS／3 FAIL，私有R8原语义与aggregate门未执行，当前源码的cold生产者、严格读取器、选择器和负例尚未整体通过。原普通测试入口及安装/默认激活也须独立闭合。
+
+下一步完成原源码和固定输入的恢复，独立验证新环境中的固定运行时，并记录新的路径及身份；然后继续解决CLI契约、op13接线、R8和namespace的真实功能门。任何恢复均不继承已失效的旧stat证明，任何有限门都不授权旧生产整套删除。
+
+## 保留的 v145 历史快照
+
+以下原文完整保留，反映当时冻结状态；与上文冲突的待办状态以v146明确范围为准。
+
+---
+
 # HIA 原生重写进度 — v145
 
 冻结时间：2026-11-14 14:20:45 UTC。前一提交：0ff42a9d7fd1f3876deb804c9c3288c64d754d88。完整谱系、原测试与历史失败保留在 [STATE.json](STATE.json)。

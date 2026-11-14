@@ -1,0 +1,572 @@
+{
+  "CI": 0,
+  "analyzer_pin": {
+    "bytes": 13596,
+    "git_blob": "218d98b302142882f0af8f07ef97ff9e5b14de7e",
+    "sha256": "5b8853c5edf230251f94d3b870254325c30125239fa081f31578c6984e0c0cad"
+  },
+  "author_plan_pin": {
+    "bytes": 28945,
+    "git_blob": "fc2619602ffbaf2ac9baf93aa31435eb8d3d46b9",
+    "sha256": "963925bdb8846346e3b70e313db0489e17c65467a008e2a3eeb93fd6c493151a"
+  },
+  "authority": {
+    "R3_drive_author_capsule": "651102e1d05f5854271d7f2f0a4404ca159dd057",
+    "R3_drive_recipe": "389ffce406540a63ef8ea39b0db38d8f406f021a",
+    "R5_author_core": "d605885ff5367f536d38cfca7d9e101177ab8d10",
+    "R5_author_recipe": "8d24df97c067381c8bca3937184bc5793a1fadb9",
+    "R5_full_author_decoded": {
+      "bytes": 4709331,
+      "git_blob": "2afc287bb15c57a1597b4845dd415c9778152bf2",
+      "sha256": "1c638a57427a5e86131867effed91bcdb4ea29702bfd7fd5f6e2220fdf330160"
+    },
+    "R5_full_author_manifest": "0df2be56852f3091cef48367e46e77a15a00db6a",
+    "R5_source_recipe": "affd38ca5c772d995d2e00a4597449fa91bae80f",
+    "R5_source_transport": "c34aa38e26b0de176f83651e71e17fb3311e3358",
+    "boundary": "Restored exact author/plan/source identities. Does not claim original R5 frame archive recovered or a new 3191-file installation.",
+    "full_readback_member_counts": {
+      "R3_drive": 19,
+      "R5_core": 20,
+      "R5_full_author": 33,
+      "R5_source": 25
+    },
+    "initial_source_recipe": "004e6c02042385bf4f94d980f37a610e8a73da59",
+    "initial_source_transport": "8e91c8be30734df36217b5d37f7f226b5abbb154",
+    "repository": "TrillionniumFoundation/Hepta",
+    "stable_commit": "26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d"
+  },
+  "binders": 0,
+  "body_preservation": {
+    "HIA_policy_complete_functions": [
+      {
+        "name": "function_signature",
+        "text_pin": {
+          "bytes": 404,
+          "git_blob": "c3e2d8d7e71d821130c3a967d2db2413e2e24548",
+          "sha256": "f93d4b50cc66fa8021cfdec2013f7653702696723ee28486fca7c5ec38d126ca"
+        },
+        "whole_text_and_AST_equal": true
+      },
+      {
+        "name": "inspect_program",
+        "text_pin": {
+          "bytes": 1085,
+          "git_blob": "2d12b2329f7057af43173b7875948e19d17e66aa",
+          "sha256": "dae5708a13daf467e10674909aadcc71eb88d4ed04007b9329e9c85a2138d204"
+        },
+        "whole_text_and_AST_equal": true
+      }
+    ],
+    "R20_pin": {
+      "bytes": 23798,
+      "git_blob": "f2f0d5aebc1edb924bc584046c837b8493a12609",
+      "sha256": "c28938c356c14c353d679c452e9581714771bbc029c30846fef44de7bd194ac0"
+    },
+    "R5_pin": {
+      "bytes": 24542,
+      "git_blob": "2d6f00150fa3545a8abfb5cceeace42f3cae55c4",
+      "sha256": "179ee9abdec905438a6ee9a5d3df3e4c8b266f546490582e25587af95dfb02b4"
+    },
+    "appended_anchor_bytes": 744,
+    "entire_R20_prefix_exact": true
+  },
+  "budget_changes": 0,
+  "conditional_conclusion": "For this unchanged primitive fixture with current providers and both successful effects, two legitimate refused reentries and two appends are required. This is not a universal count for all inspect inputs or error paths.",
+  "decision": "No implementation patch under the current contract. Preserve old failure and exact test. Only an explicitly versioned new observer baseline can admit the two-marker result without dropping original global reverify.",
+  "excerpts": {
+    "CLI_adapter_is_session_only": {
+      "excerpt_pin": {
+        "bytes": 2685,
+        "git_blob": "feca5d45f74d0c29a6345fde611f85c74f6d0178",
+        "sha256": "4e7a67eefced1fb5bf8fc737951b310c2fdbcb4f35e205e28832968ce554f91b"
+      },
+      "first_line": 65,
+      "full_source_pin": {
+        "bytes": 7293,
+        "git_blob": "cbd5621e19aab82007f4d4f36dbd6035c8181b10",
+        "sha256": "ec64170a816cb141cbf46d819f236668dcc51be46959f42d0a3486a01a4e567c"
+      },
+      "last_line": 107,
+      "source": "source/hia_cli_inspect_native.py",
+      "text": "        def inspect_effect(operation, a, b, c, d):\n            nonlocal witnessed_record\n            # Preserve the actual existing report closure for op9 and every\n            # other operation. No extra session or provider lookup there.\n            if _TYPE(operation) is not int or operation not in (10, 35):\n                return previous(operation, a, b, c, d)\n            current = held_session()\n            if current is None or not port.current():\n                return previous(operation, a, b, c, d)\n            # Exact original effect prefix, including two permission reads.\n            if current.discovery_permission is not None:\n                return current.discovery_permission.consume_legacy_port(current, operation, a, b, c, d)\n            value, register, field, argument = current.value, current.register, current.field, current.argument\n            zero = (0, 0, 0)\n            if operation == 10:\n                # The provider lookup precedes argument evaluation, exactly\n                # as in self.common['inspect_program'](value(a)).\n                provider = current.common['inspect_program']\n                # Transfer the selected provider onto the call stack before\n                # document evaluation. The witness belongs to this selection;\n                # definition state is still checked after argument evaluation.\n                result = invoke_captured_inspect(record, witnessed_record,\n                    (provider, (provider := None))[0], value(a))\n                return register(result), 0, 0\n            carrier = port.entry(current, operation, a, b, c, d,\n                                 value, register, field, argument, zero)\n            (verify_program, read_bounded, decode_json, inspect_program,\n             apply_program_patch, publish_program, operand) = carrier\n            carrier = None\n            matched = imported_operand_matches(record, operand)\n            # No extra attribute read. Release the foreign operand before\n            # the original common.update expression and any of its effects.\n            operand = None\n            current.common.update(verify_program=verify_program, read_bounded=read_bounded,\n                                  decode_json=decode_json, inspect_program=inspect_program,\n                                  apply_program_patch=apply_program_patch, publish_program=publish_program)\n            # A failed or reentrant update never publishes an early witness.\n            witnessed_record = record if matched else None\n            return zero\n\n        # Only weak session retention, as in the existing report closure.\n        session._effect = inspect_effect\n        return session\n"
+    },
+    "R3_drive": {
+      "excerpt_pin": {
+        "bytes": 187,
+        "git_blob": "ee9e8521d9aa472b97dab79344a9c67fd7602a1b",
+        "sha256": "28529ece18fb256684c608abd6688ee4e4a605029b896ad0bcd2261e8c90207a"
+      },
+      "first_line": 66,
+      "full_source_pin": {
+        "bytes": 16685,
+        "git_blob": "714247cd3d821339575983a70a804c9a69471b1e",
+        "sha256": "8bdc0f48ba8a48dc79afec36e62cad09d2f85ee6ae0c53bf640ba5b5058e5ed3"
+      },
+      "last_line": 70,
+      "source": "source/hia_inspect_program_native.py",
+      "text": "    def drive(self):\n        self._require_machine_idle()\n        if self.pending is not None and not self.executed:\n            self.service(self.pending)\n        return super().drive()\n"
+    },
+    "R3_machine_lease": {
+      "excerpt_pin": {
+        "bytes": 1272,
+        "git_blob": "a91364a699c0346a7fdd37139a31b71eec3b5ca3",
+        "sha256": "5bcd0024978273aba6f45576b234ebdde6ab2740009d9b0f55a8230a804ff666"
+      },
+      "first_line": 35,
+      "full_source_pin": {
+        "bytes": 16685,
+        "git_blob": "714247cd3d821339575983a70a804c9a69471b1e",
+        "sha256": "8bdc0f48ba8a48dc79afec36e62cad09d2f85ee6ae0c53bf640ba5b5058e5ed3"
+      },
+      "last_line": 64,
+      "source": "source/hia_inspect_program_native.py",
+      "text": "class InspectProgramFrame(FrontFrame):\n    # Inherit construction without an extra argument-retaining frame.\n    # Each physical call shadows this idle default on its own instance.\n    _machine_busy = False\n\n    def _require_machine_idle(self):\n        if self._machine_busy is not False:\n            raise FrontUnknown('inspect machine entry is already active')\n\n    def _invoke(self, command, flag=0, error=0, op=0):\n        # A callback can reenter before the actual HIA entry has started.\n        # Claim this physical interval before its header or count is written.\n        self._require_machine_idle()\n        self._machine_busy = True\n        try:\n            return super()._invoke(command, flag, error, op)\n        finally:\n            # The inherited caller still owns uncertain/lost-ACK handling.\n            # Clearing this lease is never an acknowledgement or replay grant.\n            self._machine_busy = False\n\n    def step(self):\n        # Refuse before the inherited exception handler can close an active\n        # frame in response to this separate, rejected reentrant request.\n        self._require_machine_idle()\n        return super().step()\n\n    def service(self, issued):\n        self._require_machine_idle()\n        return super().service(issued)\n"
+    },
+    "actual_prepare": {
+      "excerpt_pin": {
+        "bytes": 302,
+        "git_blob": "9f5e2ab77bd1f83afbfea3b17951ec3bca4813b1",
+        "sha256": "38632d182f3f02fa02552af267314e99d20f02df664548b392584a20e4ce4273"
+      },
+      "first_line": 216,
+      "full_source_pin": {
+        "bytes": 16685,
+        "git_blob": "714247cd3d821339575983a70a804c9a69471b1e",
+        "sha256": "8bdc0f48ba8a48dc79afec36e62cad09d2f85ee6ae0c53bf640ba5b5058e5ed3"
+      },
+      "last_line": 220,
+      "source": "source/hia_inspect_program_native.py",
+      "text": "    def prepare(self, name, arguments, *, witness=None):\n        mode, arity = self.modes[name]\n        if _TYPE(arguments) is not tuple or len(arguments) != arity:\n            raise TypeError('front argument binding differs')\n        return InspectProgramFrame(self, mode, arguments, witness=witness)\n"
+    },
+    "actual_public_verifier_wrapper": {
+      "excerpt_pin": {
+        "bytes": 1801,
+        "git_blob": "6127c27bceef6654b97634a24a51f987e3eef85b",
+        "sha256": "e048fb5b3c8cf5988f1d1358ef4d6a50eac5d329ba6e6d88020ae36bac3fde7f"
+      },
+      "first_line": 1045,
+      "full_source_pin": {
+        "bytes": 52164,
+        "git_blob": "d56089119158ff6f27de605140f0fbdf23c9e006",
+        "sha256": "858cfa25387af02d54dad96f63f51652fb1eb2f92341411cc35a23bf22b68c84"
+      },
+      "last_line": 1076,
+      "source": "source/hia_program.py",
+      "text": "_core_verification_referenceverify_program = verify_program\n\ndef verify_program(program, *, profile=None):\n    if profile is not None:\n        if type(profile) is str and profile == \"hepta.hia.linux-file-roundtrip.v2\":\n            from .hia_linux_file_roundtrip import verify_linux_file_roundtrip_program\n            return verify_linux_file_roundtrip_program(program)\n        elif type(profile) is str and profile == \"hepta.hia.linux-file-render.v3\":\n            from .hia_linux_file_render import verify_linux_file_render_program\n            return verify_linux_file_render_program(program)\n        if type(profile) is str and profile == \"hepta.hia.linux-file.v1\":\n            from .hia_linux_file import verify_linux_file_program\n            return verify_linux_file_program(program)\n        elif type(profile) is str and profile == \"hepta.hia.linux-cli-process.v1\":\n            from .hia_linux_cli_process import verify_linux_cli_process_program\n            return verify_linux_cli_process_program(program)\n        elif type(profile) is str and profile == \"hepta.hia.linux-process.v1\":\n            from .hia_linux_process import verify_linux_process_program\n            return verify_linux_process_program(program)\n        from .hia_linux_stdio import require_profile, verify_linux_stdio_program\n        require_profile(profile)\n        return verify_linux_stdio_program(program)\n    with _native_core_verification_scope() as owner:\n        if owner is None:\n            carrier = {'callee': _core_verification_referenceverify_program, 'program': program}\n            del program, owner\n            return carrier.pop('callee')(carrier.pop('program'))\n        frame = owner.prepare('verify_program', (program,))\n        del program\n        return owner.finish(frame)\n\nverify_core = verify_program\n"
+    },
+    "changed_attr_scope": {
+      "excerpt_pin": {
+        "bytes": 195,
+        "git_blob": "ce8e8c5bada3bd7f7f544f70dba2a15cf2295135",
+        "sha256": "d9f6ee14411254c848adbfcda76d9b17231873a5b9bd7b1b7ce9b5a6f8e23fb9"
+      },
+      "first_line": 254,
+      "full_source_pin": {
+        "bytes": 12740,
+        "git_blob": "b65cdbd5be3890e7d4bb424504a2a7ff4e70a371",
+        "sha256": "a7c05f4d8112bf81d02d29d7d17ff8b3be938d85454f4ce8c7d8600b5b815a3d"
+      },
+      "last_line": 261,
+      "source": "author/inspect_cli_control_support.py",
+      "text": "@contextmanager\ndef changed_attr(target, name, value):\n    old = getattr(target, name)\n    setattr(target, name, value)\n    try:\n        yield old\n    finally:\n        setattr(target, name, old)\n"
+    },
+    "constructor_has_no_policy_execution": {
+      "excerpt_pin": {
+        "bytes": 2608,
+        "git_blob": "a0f269f41bca538ba95831265d842fdede211751",
+        "sha256": "f9c630b09482a05214602324eb1e26ec02f1dd75aab57d3ef92f71ce76e77927"
+      },
+      "first_line": 84,
+      "full_source_pin": {
+        "bytes": 23617,
+        "git_blob": "4e059c9e161286eddc8d1df5c6c40bb455242af8",
+        "sha256": "d0a429525404a15cedf9c14cdeabca49ed1029d7e866e89acf77a63871f4c9e0"
+      },
+      "last_line": 137,
+      "source": "source/hia_front_continuation.py",
+      "text": "        raise ExceptionDeliveryUnavailable('native frame transport requires a reviewed CPython 3.12, 3.13 or 3.14 ABI')\n    return version[0] * 100 + version[1]\n\n\nclass ContinuationFrame:\n    def __init__(self, image, mode, arguments, captures=(), *, witness=None):\n        self.closed = False\n        self._runtime_profile = image.runtime_profile\n        self.state = self.output = None\n        self.pending = self.frame_bytes = None\n        self.executed = self.completed = False\n        self.error = self.handled = None\n        self.reply = None\n        self.values = []\n        self.cells = set()\n        self.mode = mode\n        self.image = image\n        self.witness = witness\n        self._terminal_taken = False\n        self._yield_taken = False\n        self._started = False\n        self._retiring = self._retired = self._uncertain = False\n        self.nonce = next(_NONCES)\n        if self.nonce >= 1 << 64:\n            raise OverflowError('native machine-plan continuation nonce exhausted')\n        try:\n            entry, slots, info, metadata = image.function(mode)\n            self.parameter_count = info & 65535\n            self.generator = bool((info >> 16) & 1)\n            capture_count = info >> 32\n            if len(arguments) != self.parameter_count or len(captures) != capture_count:\n                raise TypeError('native machine-plan private argument arity differs')\n            self.values = [_EMPTY] * slots\n            for index in range(slots):\n                if image.table[metadata + index] & 2:\n                    self.cells.add(index)\n                    self.values[index] = _Cell()\n            for index, value in enumerate(arguments):\n                self._set(index, value)\n            for index, cell in enumerate(captures):\n                destination = struct.unpack_from('<H', image.table, metadata + slots + 2 * index)[0]\n                if type(cell) is not _Cell or destination >= slots:\n                    raise RuntimeError('native machine-plan closure representation differs')\n                self.cells.add(destination)\n                self.values[destination] = cell\n            self.state = _private_zeroed_buffer(image.workspace_bytes)\n            self.output = _private_zeroed_buffer(2048)\n        except BaseException:\n            self.close(release=False)\n            # No policy instruction has run. These two arenas belong only to\n            # this partial constructor, even if its traceback retains self.\n            # Argument/closure slots keep their original traceback ownership.\n            self.state = self.output = None\n            raise\n"
+    },
+    "effect_service": {
+      "excerpt_pin": {
+        "bytes": 1023,
+        "git_blob": "60ae4ee9bfa74b2e3e64c6cc355f0774107f760f",
+        "sha256": "9584bdd0339b1ab112f76c2c8996a647e74bbf652011464b00467cb8609a3125"
+      },
+      "first_line": 286,
+      "full_source_pin": {
+        "bytes": 23617,
+        "git_blob": "4e059c9e161286eddc8d1df5c6c40bb455242af8",
+        "sha256": "d0a429525404a15cedf9c14cdeabca49ed1029d7e866e89acf77a63871f4c9e0"
+      },
+      "last_line": 306,
+      "source": "source/hia_front_continuation.py",
+      "text": "    def service(self, issued):\n        if (self.closed and not self._retiring) or issued is not self.pending or type(issued) is not Issued:\n            raise RuntimeError('native machine-plan observation is not the issued permission')\n        if type(issued.raw) is not bytes or issued.raw != self.frame_bytes or self.executed:\n            raise RuntimeError('native machine-plan observation changed or was already consumed')\n        self.executed = True\n        try:\n            if self._invoke(2, op=_read_word(issued.raw, 32)) != 4:\n                raise RuntimeError('native machine-plan observation claim refused')\n            observed = _capture_with_handler(self)\n            if observed[0]:\n                self.reply = (observed[1], 0)\n            else:\n                self.error = observed[1]\n                self.reply = (0, 1)\n            observed = None\n            self.completed = True\n        except BaseException:\n            self._uncertain = True\n            self.close(release=False)\n            raise\n"
+    },
+    "finish": {
+      "excerpt_pin": {
+        "bytes": 372,
+        "git_blob": "e1f59f5d78b239be10c42c4d8d917274a2883243",
+        "sha256": "ab5fb4660152c73906d8129b61dbe28c415d7cb055c22981da47a3591acc5d47"
+      },
+      "first_line": 205,
+      "full_source_pin": {
+        "bytes": 9883,
+        "git_blob": "06e2ce1a2bf81735d47af515d9fb2a6c836bce3d",
+        "sha256": "59161c439b2382c22b04ccb0321cde50e48990d0428beea74cedc17b30351059"
+      },
+      "last_line": 216,
+      "source": "source/hia_front_runtime.py",
+      "text": "    def finish(self, frame):\n        completed = False\n        try:\n            if frame.drive() != 0:\n                raise FrontUnknown('front root unexpectedly yielded')\n            completed = True\n            return frame.take()\n        except BaseException:\n            completed = False\n            raise\n        finally:\n            frame.close(release=completed)\n"
+    },
+    "fixed_primitive_fixture": {
+      "excerpt_pin": {
+        "bytes": 203,
+        "git_blob": "d1d67453d550c85bc9b3fb61f41f548dc395edc5",
+        "sha256": "117f74d8e579cadc800fcbd57c8b3fe0bfec6749a9d767095223ee0451cc1c04"
+      },
+      "first_line": 171,
+      "full_source_pin": {
+        "bytes": 12740,
+        "git_blob": "b65cdbd5be3890e7d4bb424504a2a7ff4e70a371",
+        "sha256": "a7c05f4d8112bf81d02d29d7d17ff8b3be938d85454f4ce8c7d8600b5b815a3d"
+      },
+      "last_line": 174,
+      "source": "author/inspect_cli_control_support.py",
+      "text": "    def fixture(self):\n        from tests.test_hia_program import m, f, b, c, ret\n        return m(f('calculate', [], ['u32'], [], [\n            b('entry', [], [c('answer', 'u32', 7)], ret('answer'))]))\n"
+    },
+    "fixture_module": {
+      "excerpt_pin": {
+        "bytes": 381,
+        "git_blob": "8f6755c9a82e7b404f736c408cb937c3e5878497",
+        "sha256": "308933c6061ff9f720850c8967d36f5f06e82717eb7ef75ec42c47921ca679d3"
+      },
+      "first_line": 30,
+      "full_source_pin": {
+        "bytes": 21312,
+        "git_blob": "330acb605b18d62c0d936693e2b7b593e7638ee7",
+        "sha256": "73de53638397a1d564b3580551c83fa0ecf936c79af3ba1c5334b929aad45d3c"
+      },
+      "last_line": 40,
+      "source": "source/test_hia_program.py",
+      "text": "def f(name, params, returns, effects, blocks):\n    return {\"name\": name, \"params\": [p(*x) for x in params], \"returns\": returns,\n            \"effects\": effects, \"entry\": blocks[0][\"id\"], \"blocks\": blocks}\n\n\ndef m(*functions):\n    return {\"schema\": SCHEMA, \"module\": \"standalone_test\", \"functions\": list(functions)}\n\n\ndef ret(*names):\n    return {\"op\": \"ret\", \"values\": list(names)}\n"
+    },
+    "observation_calls_once": {
+      "excerpt_pin": {
+        "bytes": 1490,
+        "git_blob": "a3c7a18cd0194cee3c131160d27fcf848718c582",
+        "sha256": "02a2d75bd8517e52f20a7bd1e85ff1619d414d6c4bb63a918dbca8a56aeb9a1b"
+      },
+      "first_line": 201,
+      "full_source_pin": {
+        "bytes": 12740,
+        "git_blob": "b65cdbd5be3890e7d4bb424504a2a7ff4e70a371",
+        "sha256": "a7c05f4d8112bf81d02d29d7d17ff8b3be938d85454f4ce8c7d8600b5b815a3d"
+      },
+      "last_line": 230,
+      "source": "author/inspect_cli_control_support.py",
+      "text": "    def observe(self, label, call):\n        self.tag(label)\n        before = self.counts()\n        policy = []\n        old_profile = sys.getprofile()\n        require(old_profile is None, 'an explicit profile observer is already installed')\n        def profile(frame, event, argument):\n            if event == 'call' and frame.f_code in self.old_codes:\n                policy.append(self.old_codes[frame.f_code])\n        out, err = io.StringIO(), io.StringIO()\n        row = {'label': label, 'before_calls': before}\n        result = exception = None\n        try:\n            sys.setprofile(profile)\n            with redirect_stdout(out), redirect_stderr(err):\n                try:\n                    result = call()\n                    row.update(kind='return', value=plain(result))\n                except BaseException as caught:\n                    exception = caught\n                    row.update(kind='exception', error=error_value(caught),\n                               traceback=''.join(traceback.format_exception(caught)))\n        finally:\n            sys.setprofile(old_profile)\n            row.update(stdout=out.getvalue(), stderr=err.getvalue(), old_policy_calls=policy,\n                       after_calls=self.counts())\n            row['call_delta'] = {name: row['after_calls'][name] - before[name] for name in before}\n            self.rows.append(row)\n            publish(self.directory / ('OBSERVATION-%04d.json' % len(self.rows)), row)\n        return row, result, exception\n"
+    },
+    "original_inspect_policy": {
+      "excerpt_pin": {
+        "bytes": 1086,
+        "git_blob": "660b2c75f55bde48e35fa0d46c71cab9c4362787",
+        "sha256": "9096af61fddca0152e86646ceb0e0184b704979173929557833afef6956d26f3"
+      },
+      "first_line": 285,
+      "full_source_pin": {
+        "bytes": 24542,
+        "git_blob": "2d6f00150fa3545a8abfb5cceeace42f3cae55c4",
+        "sha256": "179ee9abdec905438a6ee9a5d3df3e4c8b266f546490582e25587af95dfb02b4"
+      },
+      "last_line": 303,
+      "source": "source/hia_program_tools_r5.py",
+      "text": "def inspect_program(document):\n    from .hia_program import verify_program\n    verified = verify_program(document)\n    data = verified.as_dict()\n    return {\n        \"schema\": (\"hepta.hia.inspect.v2\" if data[\"schema\"] == \"hepta.hia.program.v8\"\n                   else \"hepta.hia.inspect.v1\"), \"ok\": True,\n        \"program_sha256\": verified.sha256, \"module\": data[\"module\"],\n        \"input_sha256\": getattr(verified, \"input_sha256\", verified.sha256),\n        \"normalization\": getattr(verified, \"normalization_report\", None),\n        \"functions\": [{\n            **function_signature(fn, include_return_loans=data[\"schema\"] == \"hepta.hia.program.v8\"),\n            \"blocks\": [{\"id\": block[\"id\"], \"params\": block[\"params\"],\n                        \"operations\": [{\"index\": index, **operation}\n                                       for index, operation in enumerate(block[\"ops\"])],\n                        \"term\": block[\"term\"]} for block in fn[\"blocks\"]],\n        } for fn in data[\"functions\"]],\n        \"claims\": {\"native_executed\": False, \"whole_language_soundness_proved\": False},\n    }\n"
+    },
+    "original_normalization_property": {
+      "excerpt_pin": {
+        "bytes": 915,
+        "git_blob": "526696fec3d01913ec27513c9178d3a2ffa0b356",
+        "sha256": "338ca6b4f1f120cb1d9634ffeee472fa81a6fb23e0ec1fc4afc9b59bab1e3a2a"
+      },
+      "first_line": 411,
+      "full_source_pin": {
+        "bytes": 52164,
+        "git_blob": "d56089119158ff6f27de605140f0fbdf23c9e006",
+        "sha256": "858cfa25387af02d54dad96f63f51652fb1eb2f92341411cc35a23bf22b68c84"
+      },
+      "last_line": 426,
+      "source": "source/hia_program.py",
+      "text": "    @property\n    def normalization_report(self):\n        checked = verify_program(self)\n        core = checked.as_dict()\n        original = (decode_internal_canonical(checked.structured_bytes, max_nodes=MAX_NODES, max_depth=MAX_DEPTH)\n                    if checked.structured_bytes is not None else core)\n        return {\"input_sha256\": checked.input_sha256,\n                \"core_sha256\": checked.sha256,\n                \"input_schema\": original[\"schema\"],\n                \"input_profile\": profile_for_schema(original[\"schema\"]),\n                \"core_schema\": core[\"schema\"],\n                \"core_profile\": profile_for_schema(core[\"schema\"]),\n                \"structured_elaboration_rechecked\": checked.structured_bytes is not None,\n                \"primitive_core_rechecked\": True,\n                \"source_ast_required\": False,\n                \"public_scalar_entrypoints\": sorted(checked.scalar_entrypoints)}\n"
+    },
+    "original_pending_guard": {
+      "excerpt_pin": {
+        "bytes": 1093,
+        "git_blob": "680a8cec0cef5dfc39152302b15e0cedbfab0b2b",
+        "sha256": "fc30d5daddf642effc3be07a11e6a1531ec24da2f3685e588244638ae86730fc"
+      },
+      "first_line": 232,
+      "full_source_pin": {
+        "bytes": 23617,
+        "git_blob": "4e059c9e161286eddc8d1df5c6c40bb455242af8",
+        "sha256": "d0a429525404a15cedf9c14cdeabca49ed1029d7e866e89acf77a63871f4c9e0"
+      },
+      "last_line": 255,
+      "source": "source/hia_front_continuation.py",
+      "text": "    def step(self):\n        if self.closed and not self._retiring:\n            raise RuntimeError('native machine-plan frame is closed')\n        if self.pending is not None and not self.completed:\n            raise RuntimeError('native machine-plan observation lacks its actual acknowledgement')\n        try:\n            if not self._started:\n                result = self._invoke(0)\n                self._started = True\n            elif self._status == 2:\n                if not self._yield_taken:\n                    raise RuntimeError('native machine-plan yielded value was not consumed')\n                self._yield_taken = False\n                result = self._invoke(3)\n            else:\n                if self.reply is None or self.pending is None:\n                    raise RuntimeError('native machine-plan continuation has no issued result')\n                result = self._invoke(1, *self.reply)\n            self._accept_result(result)\n            return result\n        except BaseException:\n            self._uncertain = True\n            self.close(release=False)\n            raise\n"
+    },
+    "original_test_entire_method": {
+      "excerpt_pin": {
+        "bytes": 2919,
+        "git_blob": "b0eb247fa5e687fd250abbca834c3751310b128a",
+        "sha256": "225b61726c1082d8ce444210628d7c889349cb69c37701ae0de896b2d427f6ff"
+      },
+      "first_line": 434,
+      "full_source_pin": {
+        "bytes": 29331,
+        "git_blob": "98582224513d486f706459183e3b5cd7a089bf0c",
+        "sha256": "292657b99d1296661f3942c5054e8db6223b9d55ab50c7b38c80529c4b84cc73"
+      },
+      "last_line": 488,
+      "source": "author/test_inspect_cli_witness_controls.py",
+      "text": "    def test_entry_error_busy_unknown_no_retry(self):\n        c = self.c\n        session = c.ports(c.session())\n        failure, calls = ForeignFailure('inside real HIA provider'), []\n        def refusing(document):\n            calls.append(document)\n            raise failure\n        with changed_attr(c.program, 'verify_program', refusing):\n            row, _, error = c.observe('real-HIA-provider-error',\n                lambda: c.call10(session, c.fixture()))\n        self.assertIs(error, failure)\n        self.assertEqual(len(calls), 1)\n        self.assert_native_inspect(row)\n\n        # Original executed-but-uncompleted boundary, on an actual component\n        # frame. It is not counted as a full CLI positive control.\n        frame = c.owner.prepare('inspect_program', (c.fixture(),))\n        real_verify, reentries = c.program.verify_program, []\n        def reenter(document):\n            before = c.owner.entries\n            with self.assertRaises(RuntimeError):\n                frame.drive()\n            self.assertEqual(c.owner.entries, before)\n            self.assertTrue(frame.executed and not frame.completed)\n            reentries.append('refused-without-machine-entry')\n            return real_verify(document)\n        with changed_attr(c.program, 'verify_program', reenter):\n            row, _, error = c.observe('real-executed-pending-reentry', lambda: c.owner.finish(frame))\n        self.assertIsNone(error)\n        self.assertEqual(reentries, ['refused-without-machine-entry'])\n        self.assert_native_inspect(row)\n\n        # Last in this fresh child: the wrapper was captured BEFORE issuance.\n        from hepta.hia_front_continuation import _UNCONFIRMED_RETIREMENTS\n        session = c.ports(c.session())\n        keys = set(_UNCONFIRMED_RETIREMENTS)\n        c.gate.armed = 'first-real-claim'\n        row, _, error = c.observe('lost-real-claim-via-op10', lambda: c.call10(session, c.fixture()))\n        self.assertIsInstance(error, LostActualReturn)\n        self.assertEqual(len(c.gate.losses), 1)\n        self.assert_native_inspect(row)\n        unknown = [_UNCONFIRMED_RETIREMENTS[k] for k in set(_UNCONFIRMED_RETIREMENTS) - keys]\n        self.assertGreaterEqual(len(unknown), 1)\n        before = c.counts()['inspect']\n        for held in unknown:\n            self.assertTrue(held._uncertain and held.closed)\n            for call in (held.step, held.drive, lambda: held.service(held.pending), held.take):\n                with self.assertRaises(RuntimeError):\n                    call()\n                self.assertEqual(c.counts()['inspect'], before)\n        publish(c.directory / 'UNKNOWN-BOUNDARY.json', {\n            'losses': c.gate.losses, 'quarantined_nonces': [held.nonce for held in unknown],\n            'no_foreign_retry': row['old_policy_calls'] == [],\n            'no_product_calls_after_unknown_refusals': True,\n            'quarantine_is_retained_until_owned_child_exit': True})\n"
+    },
+    "original_verifier": {
+      "excerpt_pin": {
+        "bytes": 2017,
+        "git_blob": "180ace68d467bc46f1e776035b101b41bd0817dc",
+        "sha256": "b4a66186621e5e7270dbb70b35abf1e0a30dafd4d378391fb6b1797edff0468c"
+      },
+      "first_line": 984,
+      "full_source_pin": {
+        "bytes": 52164,
+        "git_blob": "d56089119158ff6f27de605140f0fbdf23c9e006",
+        "sha256": "858cfa25387af02d54dad96f63f51652fb1eb2f92341411cc35a23bf22b68c84"
+      },
+      "last_line": 1018,
+      "source": "source/hia_program.py",
+      "text": "def verify_program(program) -> VerifiedProgram:\n    \"\"\"Check standalone operations and every CFG edge; no source/hash authority.\n\n    Even a manually constructed VerifiedProgram is parsed and fully rechecked.\n    Caller-owned dictionaries and decoded dictionaries never back execution.\n    \"\"\"\n    if isinstance(program, VerifiedProgram) and program.structured_bytes is not None:\n        if type(program.structured_bytes) is not bytes:\n            _reject(\"structured input must be immutable canonical bytes\", \"E_HIA_FORMAT\")\n        checked = verify_program(program.structured_bytes)\n        if (checked.structured_bytes != program.structured_bytes\n                or checked.canonical_bytes != program.canonical_bytes):\n            _reject(\"structured input and executable core differ\", \"E_HIA_CORE\")\n        return checked\n    data, raw = _decode(program)\n    if (type(data) is dict and type(data.get(\"schema\")) is str\n            and data[\"schema\"] in COMPOSITE_SCHEMAS):\n        from .hia_program_composite import elaborate_program\n        # The entire input was bounded/strictly decoded above.  The whole\n        # generated program is independently checked, with no receipt bypass.\n        core = verify_program(elaborate_program(data))\n        return VerifiedProgram(core.canonical_bytes, raw)\n    if type(data) is dict and data.get(\"schema\") == SCHEMA_V2 and \"types\" in data:\n        _reject(\"historical nominal v2 requires import_legacy_composite_v2; \"\n                \"the primitive v2 namespace cannot infer a producer profile\",\n                \"E_HIA_VERSION_COLLISION\")\n    from .hia_core_admission_native import selected_core_structure\n    selected = selected_core_structure(data, raw)\n    if selected is not None:\n        return VerifiedProgram(raw)\n    functions, block_maps = _primitive_structure(data)\n    interfaces = _function_interfaces(functions)\n    for fn in functions.values():\n        _verify_function(data[\"schema\"], fn, block_maps[fn[\"name\"]], interfaces)\n    return VerifiedProgram(raw)\n"
+    },
+    "real_component_admission": {
+      "excerpt_pin": {
+        "bytes": 1958,
+        "git_blob": "7c23f4311a1bd5ca1fcfb3a95777e990af954a1a",
+        "sha256": "9d1d5465bef3742da072dcb31d816f191cfb8817dbf7f7dec20a101e117ce332"
+      },
+      "first_line": 88,
+      "full_source_pin": {
+        "bytes": 12740,
+        "git_blob": "b65cdbd5be3890e7d4bb424504a2a7ff4e70a371",
+        "sha256": "a7c05f4d8112bf81d02d29d7d17ff8b3be938d85454f4ce8c7d8600b5b815a3d"
+      },
+      "last_line": 117,
+      "source": "author/inspect_cli_control_support.py",
+      "text": "        from hepta import cli, hia_program_tools, hia_program\n        from hepta import hia_cli_inspect_native as adapter\n        from hepta import hia_inspect_cli_records as records\n        from hepta.hia_cli_verified_report_native import installed_bundle, NativeReportCli\n        from hepta.hia_inspect_program_native import admit_inspect_program, NativeInspectProgram\n        self.cli, self.tools, self.program = cli, hia_program_tools, hia_program\n        self.adapter, self.records = adapter, records\n        self.original_effect = adapter._EFFECT\n        # All three new modules must really be loaded from the frozen view.\n        loaded = {}\n        for relative in ADAPTER_FILES:\n            name = relative.removesuffix('.py').replace('/', '.')\n            module = sys.modules.get(name)\n            path = Path(CONTEXT['source']) / relative\n            require(module is not None and Path(module.__file__).absolute() == path,\n                    'adapter module came from outside actual complete source')\n            raw = path.read_bytes()\n            require(pin(raw) == CONTEXT['adapter_files'][relative], 'adapter bytes differ')\n            loaded[name] = {'path': str(path), **pin(raw)}\n        manifest_path = Path(CONTEXT['report_manifest'])\n        manifest_raw = manifest_path.read_bytes()\n        manifest = json.loads(manifest_raw)\n        self.report = installed_bundle(manifest_path, manifest_raw, manifest, strict=True)\n        require(type(self.report) is NativeReportCli, 'real strict six-image report owner required')\n        admission = admit_inspect_program(CONTEXT['inspect_manifest'])\n        require(type(admission.owner) is NativeInspectProgram, 'real Inspect owner required')\n        self.admission, self.owner = admission, admission.owner\n        self.owners = {name: getattr(self.report, 'formatter' if name == 'format' else name)\n                       for name in COMPONENTS}\n        self.owners['inspect'] = self.owner\n"
+    },
+    "verified_type_and_defaults": {
+      "excerpt_pin": {
+        "bytes": 596,
+        "git_blob": "d93b279b0632b3cc31c64b106df669ad56d90f92",
+        "sha256": "afa5c72e508963634233bbeaf6034bdd334e09b91cbbcb554faf8e3df05a6afb"
+      },
+      "first_line": 380,
+      "full_source_pin": {
+        "bytes": 52164,
+        "git_blob": "d56089119158ff6f27de605140f0fbdf23c9e006",
+        "sha256": "858cfa25387af02d54dad96f63f51652fb1eb2f92341411cc35a23bf22b68c84"
+      },
+      "last_line": 398,
+      "source": "source/hia_program.py",
+      "text": "@dataclass(frozen=True, slots=True)\nclass VerifiedProgram:\n    \"\"\"Immutable bytes, not an unforgeable receipt; consumers reverify them.\"\"\"\n\n    canonical_bytes: bytes\n    structured_bytes: bytes | None = None\n\n    @property\n    def sha256(self):\n        return payload_sha256(self.canonical_bytes).hex()\n\n    @property\n    def canonical_json(self):\n        return self.canonical_bytes.decode(\"utf-8\")\n\n    @property\n    def input_sha256(self):\n        return payload_sha256(self.structured_bytes if self.structured_bytes is not None\n                              else self.canonical_bytes).hex()\n"
+    }
+  },
+  "historical_runtime_boundary": {
+    "elapsed_seconds": 69.814360769,
+    "exit_code": 1,
+    "hash_only_old_diagnosis": {
+      "FRAME_LINKS": "70d16aeeecddcf1252ccdf66499dc29f6c123a04",
+      "HANDOFF": "51abfb8fcde5ac22508d8dae7a8484192bea5798",
+      "REPORT": "ad755fa360ad4c9dde4880d3ad75a20d356a550b"
+    },
+    "missing": "Original R5 execution large raw and prior diagnosis payloads were not completely remote-sealed before reset. This source report does not fill that gap.",
+    "not_reached": "Lost-real-claim/unknown-frame assertions below line463 in the same method were not established by its failed run.",
+    "prior_frame_link_claim": "OBSERVATION-0002: indices19..540, 522 calls, 3132 spans, 10298016 bytes were read before reset. Payloads not recovered here.",
+    "reported": "First13 groups PASS; group14 witness10 errors0/failures1 at singleton marker assertion.",
+    "session": 63905,
+    "source": "Prior Root/peer terminal statements; no new raw-frame replay."
+  },
+  "new_reader_errors": [
+    "Drive capsule first assumed text instead of base64: KeyError before restore. Actual base64 schema and all full member pins then verified.",
+    "One display requested support through264 but file has261 lines: IndexError after display, no project execution.",
+    "Computed direct blob IDs returned404 for some objects; exact content recovered from sealed capsules and matched to those IDs."
+  ],
+  "old_R5_gate": "HISTORICAL_FAIL_UNCHANGED",
+  "original_limits": {
+    "cleanup_seconds": 3,
+    "compile_seconds": 20,
+    "image_bytes": 1048576,
+    "owner_seconds": 180,
+    "storage_free_bytes": 1073741824,
+    "vm_steps": 10000000
+  },
+  "products": 0,
+  "project_imports": 0,
+  "proof_of_incompatibility": "Both required callback invocations execute the same append only after all three local assertions pass. Preserving both observations, those assertions, and error=None implies len(reentries)=2, contradicting the original expected singleton. The tested call bypasses CLI wrappers.",
+  "required_call_sequence": [
+    "prepare: actual Inspect frame construction; no policy/provider execution",
+    "changed_attr installs reenter for entire synchronous finish",
+    "inspect imports current verify_program and calls reenter(original document)",
+    "callback: RuntimeError refusal, unchanged entry count, executed/notcompleted, append1, real_verify(document)",
+    "normalization_report property dynamically resolves verify_program and calls reenter(VerifiedProgram)",
+    "callback: RuntimeError refusal, unchanged entry count, executed/notcompleted, append2, real_verify(VerifiedProgram)",
+    "normal finish; provider restored; error is None; singleton-list assertion fails"
+  ],
+  "schema": "hepta.hia.inspect-cli-witness10-source-review.v2",
+  "scope": "Post-reset readback/AST analysis, not a new runtime result or original-stat restoration.",
+  "source_map_pin": {
+    "bytes": 779234,
+    "git_blob": "f400270fe733603befffde0006fb11f306cde2ea",
+    "sha256": "e53dc50aabb24c464bff34ada1ae8b96a90a1e98ccfc5fce77cf719495912c79"
+  },
+  "source_rows": [
+    {
+      "R5_map_exact": true,
+      "logical": "hepta/hia_program_tools.py",
+      "pin": {
+        "bytes": 24542,
+        "git_blob": "2d6f00150fa3545a8abfb5cceeace42f3cae55c4",
+        "sha256": "179ee9abdec905438a6ee9a5d3df3e4c8b266f546490582e25587af95dfb02b4"
+      },
+      "recovery_path": "source/hia_program_tools_r5.py"
+    },
+    {
+      "R5_map_exact": true,
+      "logical": "hepta/hia_program.py",
+      "pin": {
+        "bytes": 52164,
+        "git_blob": "d56089119158ff6f27de605140f0fbdf23c9e006",
+        "sha256": "858cfa25387af02d54dad96f63f51652fb1eb2f92341411cc35a23bf22b68c84"
+      },
+      "recovery_path": "source/hia_program.py"
+    },
+    {
+      "R5_map_exact": true,
+      "logical": "hepta/hia_schema.py",
+      "pin": {
+        "bytes": 5652,
+        "git_blob": "28a7de9d1317a720f09e066427631b957bfdf16b",
+        "sha256": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253"
+      },
+      "recovery_path": "source/hia_schema.py"
+    },
+    {
+      "R5_map_exact": true,
+      "logical": "hepta/hia_front_continuation.py",
+      "pin": {
+        "bytes": 23617,
+        "git_blob": "4e059c9e161286eddc8d1df5c6c40bb455242af8",
+        "sha256": "d0a429525404a15cedf9c14cdeabca49ed1029d7e866e89acf77a63871f4c9e0"
+      },
+      "recovery_path": "source/hia_front_continuation.py"
+    },
+    {
+      "R5_map_exact": true,
+      "logical": "hepta/hia_front_runtime.py",
+      "pin": {
+        "bytes": 9883,
+        "git_blob": "06e2ce1a2bf81735d47af515d9fb2a6c836bce3d",
+        "sha256": "59161c439b2382c22b04ccb0321cde50e48990d0428beea74cedc17b30351059"
+      },
+      "recovery_path": "source/hia_front_runtime.py"
+    },
+    {
+      "R5_map_exact": true,
+      "logical": "hepta/hia_inspect_program_native.py",
+      "pin": {
+        "bytes": 16685,
+        "git_blob": "714247cd3d821339575983a70a804c9a69471b1e",
+        "sha256": "8bdc0f48ba8a48dc79afec36e62cad09d2f85ee6ae0c53bf640ba5b5058e5ed3"
+      },
+      "recovery_path": "source/hia_inspect_program_native.py"
+    },
+    {
+      "R5_map_exact": true,
+      "logical": "hepta/hia_inspect_program_ports.py",
+      "pin": {
+        "bytes": 6702,
+        "git_blob": "98e75bf3ce731163778df851bc3a44f5a5741cec",
+        "sha256": "582d2c238cb5b529558b42d6839b028357de774643b3b03cb37764b1feabdb38"
+      },
+      "recovery_path": "source/hia_inspect_program_ports.py"
+    },
+    {
+      "R5_map_exact": true,
+      "logical": "hepta/hia_cli_native.py",
+      "pin": {
+        "bytes": 38373,
+        "git_blob": "5d33ab8be69faf922cc3c92b0e226e4180169bcc",
+        "sha256": "ffd6477041c68dff834e02a80801d7bc4f5c8e89deea77bec069c3a722ad4f15"
+      },
+      "recovery_path": "source/hia_cli_native.py"
+    },
+    {
+      "R5_map_exact": true,
+      "logical": "hepta/hia_cli_inspect_native.py",
+      "pin": {
+        "bytes": 7293,
+        "git_blob": "cbd5621e19aab82007f4d4f36dbd6035c8181b10",
+        "sha256": "ec64170a816cb141cbf46d819f236668dcc51be46959f42d0a3486a01a4e567c"
+      },
+      "recovery_path": "source/hia_cli_inspect_native.py"
+    },
+    {
+      "R5_map_exact": true,
+      "logical": "tests/test_hia_program.py",
+      "pin": {
+        "bytes": 21312,
+        "git_blob": "330acb605b18d62c0d936693e2b7b593e7638ee7",
+        "sha256": "73de53638397a1d564b3580551c83fa0ecf936c79af3ba1c5334b929aad45d3c"
+      },
+      "recovery_path": "source/test_hia_program.py"
+    },
+    {
+      "R5_map_exact": true,
+      "logical": "tools/hia_inspect_program_policy.py",
+      "pin": {
+        "bytes": 1570,
+        "git_blob": "e14ae391caecab70491274dd099c5f44854641b7",
+        "sha256": "84b61581c350eb16cda89648c1be6de8786988f307c187b0cb082d81dfaba64c"
+      },
+      "recovery_path": "source/hia_inspect_program_policy.py"
+    },
+    {
+      "R5_map_exact": true,
+      "logical": "tools/generate_hia_inspect_program.py",
+      "pin": {
+        "bytes": 3854,
+        "git_blob": "c22fd4bc0171d89ab85e4b553fb7901b97fe9f32",
+        "sha256": "f42358def63fdebd745c53d9847011541f737d08bbfee18184c9da8ddccabd0f"
+      },
+      "recovery_path": "source/generate_hia_inspect_program.py"
+    }
+  ],
+  "source_tree_from_R5_author_plan": "d5e3ca6576607e3bfaad4bae09058a6c9fcfd1a5",
+  "status": "SOURCE_CONTRACT_CONFLICT_RECONFIRMED_NO_COMPLIANT_WRAPPER_ONLY_PATCH",
+  "support_pin": {
+    "bytes": 12740,
+    "git_blob": "b65cdbd5be3890e7d4bb424504a2a7ff4e70a371",
+    "sha256": "a7c05f4d8112bf81d02d29d7d17ff8b3be938d85454f4ce8c7d8600b5b815a3d"
+  },
+  "test_changes": 0,
+  "test_pin": {
+    "bytes": 29331,
+    "git_blob": "98582224513d486f706459183e3b5cd7a089bf0c",
+    "sha256": "292657b99d1296661f3942c5054e8db6223b9d55ab50c7b38c80529c4b84cc73"
+  },
+  "tests": 0,
+  "witness_group": {
+    "fresh_owned_child": true,
+    "ids": [
+      "test_inspect_cli_witness_controls.InspectCliWitnessControls.test_entry_error_busy_unknown_no_retry"
+    ]
+  }
+}

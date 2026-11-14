@@ -1,0 +1,13 @@
+{
+  "schema": "hepta.recovered.pre-reset-tool-result.v1",
+  "persistent_key": "v146.patch.vm12.r3.preflight.r2.author",
+  "original_filesystem_current": false,
+  "original_local_raw_available": false,
+  "observed_tool_result": {
+    "chunk_id": "552072",
+    "wall_time_seconds": 0.032307236,
+    "exit_code": 0,
+    "original_token_count": 262,
+    "output": "--- \n+++ \n@@ -40,7 +40,7 @@\n original_support=fixed(a['catalog_source']);support_defs=definitions(original_support)\n assert bf['make_vm_catalog']==support_defs['make_vm_catalog']\n def named_assign(raw,name):\n- return next(ast.literal_eval(n.value) for n in ast.parse(raw).body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id==name)\n+ return next(ast.dump(n.value,include_attributes=False) for n in ast.parse(raw).body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id==name)\n for name in ('VM_KEYS','VM_STEPS','VM_HEAP','VM_CALL_DEPTH'):\n  assert named_assign(binder,name)==named_assign(original_support,name)\n assert read(Path(a['generation']['root'])/'source/tests/hia_patch_result_support.py')==original_support\n\n{\"path\": \"/tmp/hia-root-v141-dda7/verify_patch_vm12_r3_binding_preflight_r2.py\", \"bytes\": 12880, \"git_blob\": \"03d5791047da051ebf565d7f9ef8e81e77576eb1\", \"whole_inverse\": true, \"source_binder_product_changes\": 0}\n"
+  }
+}
