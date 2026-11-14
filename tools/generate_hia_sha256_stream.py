@@ -101,7 +101,17 @@ def compress(w:mutbuf) -> u64:
     for i, name in enumerate('abcdefgh'):
         source += f'    put(w, {1024 + i * 8}, (get(w, {1024 + i * 8}) + {name}) & 4294967295)\n'
     source += '    return 0\n'
-    return source + HELPERS[HELPERS.index('\ndef rotate'):]
+    # Fixed-width state loads/stores dominate the native compressor. Unroll
+    # their eight-byte loops without changing layout, byte order or guards.
+    helpers = HELPERS[HELPERS.index('\ndef rotate'):HELPERS.index('\ndef get')]
+    helpers += '\ndef get(w:mutbuf, index:u64) -> u64:\n    value = 0\n'
+    for offset in range(8):
+        helpers += f'    value = value | (byte(w, index + {offset}) << {offset * 8})\n'
+    helpers += '    return value\n\ndef put(w:mutbuf, index:u64, value:u64) -> u64:\n'
+    for offset in range(8):
+        helpers += f'    store(w, index + {offset}, value & 255)\n    value = value >> 8\n'
+    helpers += '    return 0\n'
+    return source + helpers
 
 
 def document():
